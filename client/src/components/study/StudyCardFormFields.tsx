@@ -1,4 +1,5 @@
 import type { StudyCardType } from '@languageflow/shared/src/types';
+import { Braces, Eye, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
@@ -19,6 +20,12 @@ interface StudyCardFormFieldsProps {
   ) => void;
 }
 
+const CARD_TYPE_OPTIONS = [
+  { value: 'recognition', Icon: Eye },
+  { value: 'production', Icon: Pencil },
+  { value: 'cloze', Icon: Braces },
+] as const;
+
 const StudyCardFormFields = ({
   values,
   idPrefix,
@@ -30,22 +37,49 @@ const StudyCardFormFields = ({
   onFieldChange,
 }: StudyCardFormFieldsProps) => {
   const { t } = useTranslation('study');
+  const cardTypeLabelId = `${idPrefix}-card-type-label`;
 
   return (
     <>
       {includeCardTypeSelect ? (
-        <StudyFormField htmlFor={`${idPrefix}-card-type`} label={t('form.cardType')}>
-          <select
-            id={`${idPrefix}-card-type`}
-            value={values.cardType}
-            onChange={(event) => onCardTypeChange?.(event.target.value as StudyCardType)}
-            className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+        <div>
+          <p id={cardTypeLabelId} className="mb-2 block text-sm font-medium text-gray-700">
+            {t('form.cardType')}
+          </p>
+          <div
+            role="radiogroup"
+            aria-labelledby={cardTypeLabelId}
+            className="grid grid-cols-1 gap-2 sm:grid-cols-3"
           >
-            <option value="recognition">{t('form.recognition')}</option>
-            <option value="production">{t('form.production')}</option>
-            <option value="cloze">{t('form.cloze')}</option>
-          </select>
-        </StudyFormField>
+            {CARD_TYPE_OPTIONS.map(({ value, Icon }) => {
+              const isSelected = values.cardType === value;
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => onCardTypeChange?.(value as StudyCardType)}
+                  className={`flex min-h-[4.75rem] items-center gap-3 rounded-xl border bg-white px-3.5 py-3 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-navy/15 ${
+                    isSelected
+                      ? 'border-navy/50 bg-cream text-navy shadow-sm'
+                      : 'border-gray-300 text-gray-700 hover:border-navy/30 hover:bg-cream/60'
+                  }`}
+                >
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                      isSelected ? 'bg-navy text-white' : 'bg-navy/5 text-navy'
+                    }`}
+                  >
+                    <Icon aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <span className="font-semibold">{t(`form.${value}`)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       ) : null}
 
       {!hidePromptFields ? (

@@ -9,7 +9,6 @@ import type {
 import {
   buildStudyCandidateCommitItem,
   createStudyCandidateDraft,
-  hasVisualProductionPreview,
   STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS,
   type StudyCandidateDraft,
 } from '../components/study/studyCandidateModel';
@@ -84,6 +83,7 @@ function useGeneratedStudyCandidates() {
                 candidate: {
                   ...currentDraft.candidate,
                   prompt: result.prompt,
+                  answer: result.answer,
                   previewImage: result.previewImage,
                   imagePrompt: result.imagePrompt,
                 },
@@ -149,10 +149,7 @@ function useGeneratedStudyCandidates() {
   const startLazyImageBackfill = useCallback(
     async (drafts: StudyCandidateDraft[], token: number) => {
       const visualDraftIds = drafts
-        .filter(
-          (draft) =>
-            hasVisualProductionPreview(draft) && draft.imagePrompt.trim() && !draft.previewImage
-        )
+        .filter((draft) => draft.imagePrompt.trim() && !draft.previewImage)
         .slice(0, STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT)
         .map((draft) => draft.candidate.clientId);
 

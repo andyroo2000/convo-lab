@@ -11,7 +11,6 @@ import type { StudyCardFormValues } from './studyCardFormModel';
 import {
   buildStudyCandidateCommitItem,
   buildStudyCandidatePreviewCard,
-  hasVisualProductionPreview,
   type StudyCandidateDraft,
 } from './studyCandidateModel';
 
@@ -83,7 +82,7 @@ const StudyCandidateDraftList = ({
       {candidateDrafts.map((draft, index) => {
         const previewUrl = toAssetUrl(draft.previewAudio?.url);
         const previewImageUrl = toAssetUrl(draft.previewImage?.url);
-        const shouldShowImagePreview = hasVisualProductionPreview(draft);
+        const isProductionCandidate = draft.candidate.candidateKind === 'production';
         const candidateSelectId = `candidate-${index}-selected`;
         const commitItem = buildStudyCandidateCommitItem(draft);
         const previewCard = buildStudyCandidatePreviewCard(draft, commitItem);
@@ -146,26 +145,28 @@ const StudyCandidateDraftList = ({
               title={previewTitle}
             />
 
-            {shouldShowImagePreview ? (
-              <StudyCandidatePreviewImage
-                altText={t('create.generatedCardPromptAlt')}
-                imagePrompt={draft.imagePrompt}
-                imagePromptId={`candidate-${index}-image-prompt`}
-                imagePromptLabel={t('create.imagePrompt')}
-                isRegenerateDisabled={isAnyCandidateRegenerating && !isImageRegenerating}
-                isRegenerating={isImageRegenerating}
-                onImagePromptChange={(value) => onUpdateCandidateImagePrompt(index, value)}
-                onRegenerate={() => onRegenerateCandidateImage(index)}
-                previewUrl={previewImageUrl}
-                regenerateError={
-                  regenerateImageErrorByCandidateId[draft.candidate.clientId] ?? null
-                }
-                regenerateLabel={
-                  isImageRegenerating ? t('create.regeneratingImage') : t('create.regenerateImage')
-                }
-                title={t('create.imagePreview')}
-              />
-            ) : null}
+            <StudyCandidatePreviewImage
+              altText={
+                isProductionCandidate
+                  ? t('create.generatedCardPromptAlt')
+                  : t('create.generatedCardAnswerAlt')
+              }
+              imagePrompt={draft.imagePrompt}
+              imagePromptId={`candidate-${index}-image-prompt`}
+              imagePromptLabel={t('create.imagePrompt')}
+              isRegenerateDisabled={isAnyCandidateRegenerating && !isImageRegenerating}
+              isRegenerating={isImageRegenerating}
+              onImagePromptChange={(value) => onUpdateCandidateImagePrompt(index, value)}
+              onRegenerate={() => onRegenerateCandidateImage(index)}
+              previewUrl={previewImageUrl}
+              regenerateError={regenerateImageErrorByCandidateId[draft.candidate.clientId] ?? null}
+              regenerateLabel={
+                isImageRegenerating ? t('create.regeneratingImage') : t('create.regenerateImage')
+              }
+              title={
+                isProductionCandidate ? t('create.imagePreview') : t('create.answerImagePreview')
+              }
+            />
 
             <StudyCardAudioSettingsFields
               values={draft.values}

@@ -2,15 +2,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  SUPPORTED_LANGUAGES,
-  SPEAKER_COLORS,
-  TTS_VOICES,
-} from '@languageflow/shared/src/constants-new';
+import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '@languageflow/shared/src/constants-new';
 import { getRandomName } from '@languageflow/shared/src/nameConstants';
 import {
   getCourseSpeakerVoices,
   getDialogueSpeakerVoices,
+  getSelectableTtsVoices,
+  getTtsVoiceById,
 } from '@languageflow/shared/src/voiceSelection';
 import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
@@ -116,8 +114,7 @@ const DialogueGenerator = () => {
       if (!createAudioCourse || !audioCourseEnabled) return null;
 
       const getTargetVoiceGender = (voiceId: string): 'male' | 'female' => {
-        const voices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
-        const match = voices.find((voice) => voice.id === voiceId);
+        const match = getTtsVoiceById(targetLanguage, voiceId);
         return match?.gender === 'female' ? 'female' : 'male';
       };
 
@@ -421,9 +418,9 @@ const DialogueGenerator = () => {
     );
   }
 
-  const narratorVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const narratorVoices = getSelectableTtsVoices(nativeLanguage);
   const narratorVoiceChoices = narratorVoices.filter((voice) => voice.provider === 'fishaudio');
-  const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const targetVoices = getSelectableTtsVoices(targetLanguage);
 
   return (
     <div className="space-y-6 retro-dialogue-create-v3-generator">

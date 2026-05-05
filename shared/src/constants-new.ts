@@ -105,123 +105,131 @@ export const TTS_VOICES = {
       {
         id: 'fishaudio:0dff3f6860294829b98f8c4501b2cf25',
         gender: 'male',
-        description: 'Fish Audio: Nakamura - Professional and measured',
+        description: 'Fish Audio: Nakamura - Cool and restrained',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:875668667eb94c20b09856b971d9ca2f',
         gender: 'male',
-        description: 'Fish Audio: Sample - Calm narrator',
+        description: 'Fish Audio: Sato - Warm izakaya owner',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
         gender: 'male',
-        description: 'Fish Audio: Watashi no Boisu - Warm and gentle',
+        description: 'Fish Audio: Ren - Wiry and assertive',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:b3e9710c629a472f8224e1c4975a869e',
         gender: 'male',
-        description: 'Fish Audio: Otani-san - Confident and professional',
+        description: 'Fish Audio: Otani - Bookish and thoughtful',
         provider: 'fishaudio',
       },
       // Female voices
       {
         id: 'fishaudio:72416f3ff95541d9a2456b945e8a7c32',
         gender: 'female',
-        description: 'Fish Audio: Rina Mama - Gentle and warm',
+        description: 'Fish Audio: Rina - Cool and stern',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:e6e20195abee4187bddfd1a2609a04f9',
         gender: 'female',
-        description: 'Fish Audio: Yu-san - Warm and empathetic',
+        description: 'Fish Audio: Yu - Polished politician',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:351aa1e3ef354082bc1f4294d4eea5d0',
         gender: 'female',
-        description: 'Fish Audio: Ken Mama - Soft and intimate',
+        description: 'Fish Audio: Hana - Cute and soft-spoken',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
         gender: 'female',
-        description: 'Fish Audio: Voice Clone Demo - Soothing and friendly',
+        description: 'Fish Audio: Mika - College student',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:9639f090aa6346329d7d3aca7e6b7226',
         gender: 'female',
-        description: 'Fish Audio: Ken Mama 2 - Gentle and conversational',
+        description: 'Fish Audio: Yumi - Young Tokyo mother',
         provider: 'fishaudio',
       },
-      // Google voices - Verified from Google Cloud TTS API (npx tsx check-google-voices.ts)
-      // Wavenet FEMALE voices
+      // Google voices - curated Japanese options, plus hidden legacy choices for existing cards.
+      // Full set can be re-verified with: npx tsx check-google-voices.ts
+      // Female voices
       {
         id: 'ja-JP-Wavenet-A',
         gender: 'female',
         description: 'Google: Ichiro - Animated and bright',
         provider: 'google',
+        hiddenFromPicker: true,
       },
       {
         id: 'ja-JP-Wavenet-B',
         gender: 'female',
         description: 'Google: Rina - Natural and clear',
         provider: 'google',
+        hiddenFromPicker: true,
       },
-      // Neural2 FEMALE voices
       {
         id: 'ja-JP-Neural2-B',
         gender: 'female',
-        description: 'Google: Nanami - Bright and cheerful',
+        description: 'Google: Nanami - News announcer',
         provider: 'google',
+        hiddenFromPicker: true,
       },
-      // Wavenet MALE voices
+      // Male voices
       {
         id: 'ja-JP-Wavenet-C',
         gender: 'male',
-        description: 'Google: Shohei - Calm and clear',
+        description: 'Google: Shohei - Young TV announcer',
         provider: 'google',
       },
       {
         id: 'ja-JP-Wavenet-D',
         gender: 'male',
-        description: 'Google: Naoki - Confident and clear',
+        description: 'Google: Naoki - Deep TV announcer',
         provider: 'google',
+        hiddenFromPicker: true,
       },
-      // Neural2 MALE voices
       {
         id: 'ja-JP-Neural2-C',
         gender: 'male',
         description: 'Google: Kento - Professional',
         provider: 'google',
+        hiddenFromPicker: true,
       },
       {
         id: 'ja-JP-Neural2-D',
         gender: 'male',
         description: 'Google: Daichi - Warm and conversational',
         provider: 'google',
+        hiddenFromPicker: true,
       },
       // Polly voices (Neural)
       {
         id: 'Takumi',
         gender: 'male',
-        description: 'Polly: Takumi - Natural and smooth',
+        description: 'Polly: Takumi - Young TV announcer',
         provider: 'polly',
+        hiddenFromPicker: true,
       },
       {
         id: 'Kazuha',
         gender: 'female',
-        description: 'Polly: Kazuha - Friendly and clear',
+        description: 'Polly: Kazuha - Kawaii radio announcer',
         provider: 'polly',
+        hiddenFromPicker: true,
       },
       {
         id: 'Tomoko',
         gender: 'female',
-        description: 'Polly: Tomoko - Natural and pleasant',
+        description: 'Polly: Tomoko - Local TV announcer',
         provider: 'polly',
+        hiddenFromPicker: true,
       },
     ],
   },

@@ -29,13 +29,6 @@ export function normalizeCandidateImagePrompt(value: string): string | null {
   return trimmed || null;
 }
 
-export function hasVisualProductionPreview(draft: StudyCandidateDraft): boolean {
-  return (
-    draft.candidate.candidateKind === 'production' &&
-    (draft.imagePrompt.trim().length > 0 || draft.previewImage !== null)
-  );
-}
-
 export function studyCandidateToFormValues(candidate: StudyCardCandidate): StudyCardFormValues {
   if (candidate.cardType === 'cloze') {
     return {
@@ -77,7 +70,8 @@ export function createStudyCandidateDraft(candidate: StudyCardCandidate): StudyC
     values: studyCandidateToFormValues(candidate),
     previewAudio: candidate.previewAudio ?? null,
     previewAudioRole: candidate.previewAudioRole ?? null,
-    previewImage: candidate.previewImage ?? candidate.prompt.cueImage ?? null,
+    previewImage:
+      candidate.previewImage ?? candidate.prompt.cueImage ?? candidate.answer.answerImage ?? null,
     imagePrompt: candidate.imagePrompt ?? '',
   };
 }
@@ -86,23 +80,33 @@ export function buildStudyCandidateCommitItem(
   draft: StudyCandidateDraft
 ): StudyCardCandidateCommitItem {
   const payload = buildStudyCardFormPayload(draft.values);
-  const prompt =
-    draft.candidate.candidateKind === 'audio-recognition'
-      ? {
-          cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
-        }
-      : {
-          ...payload.prompt,
-          // Visual production prompts use the generated image as the cue, so suppress
-          // any residual text cue when an image is selected.
-          ...(draft.previewImage ? { cueText: null, cueImage: draft.previewImage } : {}),
-        };
+  const { prompt: payloadPrompt, answer: payloadAnswer } = payload;
+  const hasGeneratedImage = draft.previewImage !== null;
+  const isProductionImage = draft.candidate.candidateKind === 'production';
+  let prompt = payloadPrompt;
+  if (draft.candidate.candidateKind === 'audio-recognition') {
+    prompt = {
+      cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
+    };
+  } else if (isProductionImage) {
+    prompt = {
+      ...payloadPrompt,
+      // Visual production prompts use the generated image as the cue, so suppress
+      // any residual text cue when an image is selected.
+      ...(hasGeneratedImage ? { cueText: null, cueImage: draft.previewImage } : {}),
+    };
+  }
+  const answer =
+    hasGeneratedImage && !isProductionImage
+      ? { ...payloadAnswer, answerImage: draft.previewImage }
+      : payloadAnswer;
+
   return {
     clientId: draft.candidate.clientId,
     candidateKind: draft.candidate.candidateKind,
     cardType: draft.candidate.cardType,
     prompt,
-    answer: payload.answer,
+    answer,
     previewAudio: draft.previewAudio,
     previewAudioRole: draft.previewAudioRole,
     previewImage: draft.previewImage,

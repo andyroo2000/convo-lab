@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
 import { buildStudyCardFormPayload, getStudyCardFormValues } from '../studyCardFormModel';
 
@@ -50,7 +51,7 @@ describe('studyCardFormModel', () => {
       answerExpression: '会社',
       answerReading: '会社[かいしゃ]',
       answerMeaning: 'company',
-      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioVoiceId: 'ja-JP-Wavenet-D',
       answerAudioTextOverride: 'かいしゃ',
       notes: 'Use in business contexts.',
       sentenceJp: '会社に行きます。',
@@ -68,7 +69,7 @@ describe('studyCardFormModel', () => {
         expression: '会社',
         expressionReading: '会社[かいしゃ]',
         meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioVoiceId: 'ja-JP-Wavenet-D',
         answerAudioTextOverride: 'かいしゃ',
         sentenceJp: '会社に行きます。',
         sentenceEn: 'I am going to the company.',
@@ -170,7 +171,7 @@ describe('studyCardFormModel', () => {
           restoredText: 'お風呂に虫がいる！',
           restoredTextReading: 'お風呂[ふろ]に虫[むし]がいる！',
           meaning: 'There are bugs in the bath!',
-          answerAudioVoiceId: 'ja-JP-Neural2-D',
+          answerAudioVoiceId: 'ja-JP-Neural2-B',
           answerAudioTextOverride: 'おふろにむしがいる',
           notes: 'Keep calm.',
         },
@@ -193,9 +194,43 @@ describe('studyCardFormModel', () => {
       answerExpression: 'お風呂に虫がいる！',
       answerReading: 'お風呂[ふろ]に虫[むし]がいる！',
       answerMeaning: 'There are bugs in the bath!',
-      answerAudioVoiceId: 'ja-JP-Neural2-D',
+      answerAudioVoiceId: 'ja-JP-Neural2-B',
       answerAudioTextOverride: 'おふろにむしがいる',
       notes: 'Keep calm.',
     });
+  });
+
+  it('limits Japanese Google voice options while preserving Fish Audio voices', () => {
+    const japaneseVoices = TTS_VOICES.ja.voices;
+    const selectableJapaneseVoices = getSelectableTtsVoices('ja');
+    const fishAudioVoiceIds = japaneseVoices
+      .filter((voice) => voice.provider === 'fishaudio')
+      .map((voice) => voice.id);
+    const selectableGoogleVoices = selectableJapaneseVoices.filter(
+      (voice) => voice.provider === 'google'
+    );
+
+    expect(selectableJapaneseVoices.map((voice) => voice.id)).toEqual(
+      expect.arrayContaining(fishAudioVoiceIds)
+    );
+    expect(selectableGoogleVoices.map((voice) => voice.description)).toEqual([
+      'Google: Shohei - Young TV announcer',
+    ]);
+    expect(selectableGoogleVoices.map((voice) => voice.id)).toEqual(['ja-JP-Wavenet-C']);
+    expect(
+      japaneseVoices
+        .filter((voice) => 'hiddenFromPicker' in voice && voice.hiddenFromPicker)
+        .map((voice) => voice.id)
+    ).toEqual([
+      'ja-JP-Wavenet-A',
+      'ja-JP-Wavenet-B',
+      'ja-JP-Neural2-B',
+      'ja-JP-Wavenet-D',
+      'ja-JP-Neural2-C',
+      'ja-JP-Neural2-D',
+      'Takumi',
+      'Kazuha',
+      'Tomoko',
+    ]);
   });
 });

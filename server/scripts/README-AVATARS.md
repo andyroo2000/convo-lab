@@ -1,15 +1,16 @@
 # Speaker Avatar Generator
 
-This script generates realistic speaker avatars using Google's Imagen 3 (via Vertex AI) and automatically crops them to optimized headshots.
+This script generates realistic speaker avatars using the same OpenAI Images helper used by study-card image generation and automatically crops them to optimized headshots.
 
 ## Features
 
 - Generates avatars for 6 different speaker types:
   - Japanese: male/female × casual/polite/formal (6 avatars)
-- Automatically crops full-body images to headshots (top 60%)
+- Automatically crops generated square portraits to avatar headshots
 - Resizes to 256×256px for optimal performance
 - Optimizes JPEG quality for small file sizes
-- Saves originals for reference
+- Saves originals for local reference
+- Uploads cropped runtime avatars to GCS when `GCS_BUCKET_NAME` is configured
 
 ## Usage
 
@@ -24,6 +25,7 @@ Avatars are saved to:
 
 - **Cropped avatars**: `server/public/avatars/` (256×256, optimized)
 - **Original images**: `server/public/avatars/original/` (full resolution)
+- **Runtime assets**: `gs://$GCS_BUCKET_NAME/avatars/` for signed delivery via `/api/avatars/...`
 
 ## File Naming Convention
 
@@ -35,28 +37,18 @@ Examples:
 
 ## How It Works
 
-1. **Generate**: Uses Imagen 3 to generate realistic portrait based on detailed prompts
-2. **Crop**: Extracts top 60% of the image (captures face and upper shoulders)
-3. **Resize**: Resizes to 256×256px using smart cropping (focuses on top/center)
+1. **Generate**: Uses the configured OpenAI image model to generate realistic portraits
+2. **Crop**: Uses square cover cropping to keep the portrait centered
+3. **Resize**: Resizes to 256×256px
 4. **Optimize**: Compresses to JPEG at 85% quality for small file size
-5. **Save**: Saves both cropped and original versions
+5. **Save**: Saves both cropped and original versions locally
+6. **Upload**: Copies cropped avatars to GCS when storage is configured
 
 ## Customization
 
 ### Adjust Crop Area
 
-Edit the `cropHeight` calculation in `generate-speaker-avatars.ts`:
-
-```typescript
-// Current: top 60%
-const cropHeight = Math.floor(height * 0.6);
-
-// More headshot: top 50%
-const cropHeight = Math.floor(height * 0.5);
-
-// More upper body: top 70%
-const cropHeight = Math.floor(height * 0.7);
-```
+Edit the `.resize(256, 256, { fit: 'cover', position: 'center' })` options in `generate-speaker-avatars.ts`.
 
 ### Change Output Size
 
@@ -66,35 +58,34 @@ Edit the resize parameters:
 // Current: 256×256
 .resize(256, 256, {
   fit: 'cover',
-  position: 'top',
+  position: 'center',
 })
 
 // Larger: 512×512
 .resize(512, 512, {
   fit: 'cover',
-  position: 'top',
+  position: 'center',
 })
 ```
 
 ### Modify Prompts
 
-Edit the `AVATAR_PROMPTS` object to customize the generation prompts for each avatar type.
+Edit the `AVATARS` array to customize the generation prompts for each avatar type.
 
 ## Cost Considerations
 
-Each image generation with Imagen 3 costs approximately $0.02 USD.
-Generating all 12 avatars will cost approximately $0.24 USD.
+The script generates six images. Cost depends on the configured OpenAI image model and quality settings in `openAIClient.ts`.
 
 ## Troubleshooting
 
 ### "No images generated" error
 
-- Check that Vertex AI API is enabled in your Google Cloud project
-- Verify your Google Cloud credentials are properly configured
+- Check that `OPENAI_API_KEY` is configured in the server environment
+- Verify the configured OpenAI image model supports image generation
 
 ### Images are too zoomed in/out
 
-- Adjust the `cropHeight` percentage (see Customization section)
+- Adjust the resize `position` value (see Customization section)
 - Modify the prompts to request "upper body shot" or "full torso"
 
 ### File sizes too large
@@ -112,6 +103,6 @@ function getSpeakerAvatarUrl(
   gender: 'male' | 'female',
   tone: 'casual' | 'polite' | 'formal'
 ) {
-  return `/avatars/${language}-${gender}-${tone}.jpg`;
+  return `/api/avatars/${language}-${gender}-${tone}.jpg`;
 }
 ```

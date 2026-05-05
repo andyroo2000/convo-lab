@@ -54,6 +54,8 @@ temp/
 uploads/
 storage/
 server/public/study-media/
+server/public/avatars/original/
+server/public/avatars/voices/
 
 # Google Cloud
 .gcloudignore

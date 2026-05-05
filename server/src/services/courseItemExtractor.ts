@@ -1,4 +1,4 @@
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Episode, Sentence, Speaker } from '@prisma/client';
 
 import { reviewDialogue, editDialogue } from './dialogueReviewer.js';
@@ -1229,19 +1229,14 @@ export async function runDialogueExtraction(
   // Build dialogue exchanges
   const exchanges: DialogueExchange[] = [];
 
-  const voicesConfig = (TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices ||
-    []) as ReadonlyArray<{
-    id: string;
-    gender: 'male' | 'female';
-    provider?: string;
-  }>;
+  const voicesConfig = getSelectableTtsVoices(targetLanguage);
   const preferredProvider = voicesConfig.some((voice) => voice.provider === 'fishaudio')
     ? 'fishaudio'
     : undefined;
 
   const getFallbackVoices = (lang: string): [string, string] => {
     if (lang.toLowerCase() === 'ja') {
-      return ['ja-JP-Wavenet-B', 'ja-JP-Wavenet-C'];
+      return ['ja-JP-Neural2-B', 'ja-JP-Wavenet-C'];
     }
     return ['en-US-Wavenet-F', 'en-US-Wavenet-D'];
   };
