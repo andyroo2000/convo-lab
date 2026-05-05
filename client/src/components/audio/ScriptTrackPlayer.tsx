@@ -61,7 +61,7 @@ const ScriptTrackPlayer = ({
         unit &&
         unit.type === 'L2' &&
         currentTimeMs >= timing.startTime - 1000 &&
-        currentTimeMs < timing.endTime + 5000
+        currentTimeMs < timing.endTime + 1000
       );
     });
 

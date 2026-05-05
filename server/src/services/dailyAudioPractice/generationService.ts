@@ -52,14 +52,7 @@ export async function processDailyAudioPracticeJob(params: {
       where: { id: practice.id },
       data: {
         sourceCardIdsJson: selected.cards.map((card) => card.id) as Prisma.InputJsonValue,
-        selectionSummaryJson: {
-          ...selected.summary,
-          atoms: atoms.map((atom) => ({
-            cardId: atom.cardId,
-            targetText: atom.targetText,
-            english: atom.english,
-          })),
-        } as Prisma.InputJsonValue,
+        selectionSummaryJson: selected.summary as unknown as Prisma.InputJsonValue,
       },
     });
     await onProgress(20);

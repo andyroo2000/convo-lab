@@ -169,19 +169,27 @@ router.post(
       await ensureDefaultTracks(practice.id);
 
       if (practice.status !== 'ready' && practice.status !== 'generating') {
-        await prisma.dailyAudioPractice.update({
-          where: { id: practice.id },
+        const started = await prisma.dailyAudioPractice.updateMany({
+          where: {
+            id: practice.id,
+            status: {
+              notIn: ['ready', 'generating'],
+            },
+          },
           data: { status: 'generating', errorMessage: null },
         });
-        try {
-          await enqueueDailyAudioPracticeJob(practice.id);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          await prisma.dailyAudioPractice.update({
-            where: { id: practice.id },
-            data: { status: 'error', errorMessage: message },
-          });
-          throw error;
+
+        if (started.count > 0) {
+          try {
+            await enqueueDailyAudioPracticeJob(practice.id);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            await prisma.dailyAudioPractice.update({
+              where: { id: practice.id },
+              data: { status: 'error', errorMessage: message },
+            });
+            throw error;
+          }
         }
       }
 

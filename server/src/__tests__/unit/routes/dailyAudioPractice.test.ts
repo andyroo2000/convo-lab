@@ -124,11 +124,11 @@ describe('dailyAudioPractice routes', () => {
       preferredNativeLanguage: 'en',
     });
     mockPrisma.dailyAudioPracticeTrack.upsert.mockResolvedValue(makeTrack());
+    mockPrisma.dailyAudioPractice.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it('creates today’s practice set and enqueues generation', async () => {
     mockPrisma.dailyAudioPractice.upsert.mockResolvedValue(makePractice());
-    mockPrisma.dailyAudioPractice.update.mockResolvedValue(makePractice({ status: 'generating' }));
     mockPrisma.dailyAudioPractice.findUniqueOrThrow.mockResolvedValue(
       makePractice({ status: 'generating' })
     );
@@ -166,9 +166,9 @@ describe('dailyAudioPractice routes', () => {
 
   it('restarts an errored set and rolls back status when enqueue fails', async () => {
     mockPrisma.dailyAudioPractice.upsert.mockResolvedValue(makePractice({ status: 'error' }));
-    mockPrisma.dailyAudioPractice.update
-      .mockResolvedValueOnce(makePractice({ status: 'generating' }))
-      .mockResolvedValueOnce(makePractice({ status: 'error', errorMessage: 'Redis unavailable' }));
+    mockPrisma.dailyAudioPractice.update.mockResolvedValue(
+      makePractice({ status: 'error', errorMessage: 'Redis unavailable' })
+    );
     enqueueDailyAudioPracticeJobMock.mockRejectedValue(new Error('Redis unavailable'));
 
     await request(createApp())
@@ -177,8 +177,7 @@ describe('dailyAudioPractice routes', () => {
       .expect(500);
 
     expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith('practice-1');
-    expect(mockPrisma.dailyAudioPractice.update).toHaveBeenNthCalledWith(
-      2,
+    expect(mockPrisma.dailyAudioPractice.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           status: 'error',
@@ -186,6 +185,21 @@ describe('dailyAudioPractice routes', () => {
         }),
       })
     );
+  });
+
+  it('does not enqueue when another request already moved the set to generating', async () => {
+    mockPrisma.dailyAudioPractice.upsert.mockResolvedValue(makePractice({ status: 'draft' }));
+    mockPrisma.dailyAudioPractice.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.dailyAudioPractice.findUniqueOrThrow.mockResolvedValue(
+      makePractice({ status: 'generating' })
+    );
+
+    await request(createApp())
+      .post('/api/daily-audio-practice')
+      .send({ timeZone: 'America/New_York' })
+      .expect(202);
+
+    expect(enqueueDailyAudioPracticeJobMock).not.toHaveBeenCalled();
   });
 
   it('returns queue progress for a generating set', async () => {
