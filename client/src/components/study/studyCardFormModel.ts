@@ -32,6 +32,7 @@ export interface StudyCardFormPayload {
 export interface StudyCardFormConfig {
   card?: StudyCardSummary;
   initialCardType?: StudyCardType;
+  initialAnswerAudioVoiceId?: string;
 }
 
 const emptyToNull = (value: string) => (value === '' ? null : value);
@@ -39,6 +40,7 @@ const emptyToNull = (value: string) => (value === '' ? null : value);
 export const getStudyCardFormValues = ({
   card,
   initialCardType = 'recognition',
+  initialAnswerAudioVoiceId = DEFAULT_NARRATOR_VOICES.ja,
 }: StudyCardFormConfig = {}): StudyCardFormValues => {
   if (card) {
     if (card.cardType === 'cloze') {
@@ -82,7 +84,7 @@ export const getStudyCardFormValues = ({
     answerExpression: '',
     answerReading: '',
     answerMeaning: '',
-    answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+    answerAudioVoiceId: initialAnswerAudioVoiceId,
     answerAudioTextOverride: '',
     notes: '',
     sentenceJp: '',
@@ -140,10 +142,14 @@ export const buildStudyCardFormPayload = (
   };
 };
 
-export const useStudyCardForm = ({ card, initialCardType }: StudyCardFormConfig) => {
+export const useStudyCardForm = ({
+  card,
+  initialCardType,
+  initialAnswerAudioVoiceId,
+}: StudyCardFormConfig) => {
   const baseValues = useMemo(
-    () => getStudyCardFormValues({ card, initialCardType }),
-    [card, initialCardType]
+    () => getStudyCardFormValues({ card, initialCardType, initialAnswerAudioVoiceId }),
+    [card, initialAnswerAudioVoiceId, initialCardType]
   );
   const [values, setValues] = useState<StudyCardFormValues>(baseValues);
 
@@ -169,8 +175,8 @@ export const useStudyCardForm = ({ card, initialCardType }: StudyCardFormConfig)
   }, []);
 
   const reset = useCallback(() => {
-    setValues(getStudyCardFormValues({ card, initialCardType }));
-  }, [card, initialCardType]);
+    setValues(getStudyCardFormValues({ card, initialCardType, initialAnswerAudioVoiceId }));
+  }, [card, initialAnswerAudioVoiceId, initialCardType]);
 
   const buildPayload = useCallback(() => buildStudyCardFormPayload(values, card), [card, values]);
 

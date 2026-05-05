@@ -5,7 +5,10 @@ import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants';
+import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new';
 import type {
+  StudyCardCandidateKind,
+  StudyCardCandidateCommitItem,
   StudyCardCreationKind,
   StudyCardDraftCompleteResponse,
   StudyCardImagePlacement,
@@ -15,6 +18,7 @@ import type {
 
 import StudyCardImageControls from '../components/study/StudyCardImageControls';
 import StudyCardFormFields from '../components/study/StudyCardFormFields';
+import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import StudyCandidateDraftList from '../components/study/StudyCandidateDraftList';
 import {
@@ -22,6 +26,7 @@ import {
   getStudyCardFormValues,
   useStudyCardForm,
 } from '../components/study/studyCardFormModel';
+import { STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS } from '../components/study/studyCandidateModel';
 import {
   applyStudyCardImageToPayload,
   cardTypeForStudyCardCreationKind,
@@ -37,6 +42,7 @@ import {
   useCompleteStudyCardDraft,
   useCreateStudyCard,
   useGenerateStudyCardDraftImage,
+  useRegenerateStudyCardCandidatePreviewAudio,
 } from '../hooks/useStudy';
 
 type CreateMode = 'generate' | 'manual';
@@ -63,11 +69,45 @@ function getDraftFormValues(result: StudyCardDraftCompleteResponse) {
   });
 }
 
+function candidateKindForManualCreationKind(
+  creationKind: StudyCardCreationKind
+): StudyCardCandidateKind {
+  if (creationKind === 'production-text' || creationKind === 'production-image') {
+    return 'production';
+  }
+  return creationKind;
+}
+
+function applyStudyCardAudioToPayload(
+  payload: ReturnType<typeof buildStudyCardFormPayload>,
+  previewAudio: StudyMediaRef | null,
+  previewAudioRole: 'prompt' | 'answer' | null
+) {
+  if (!previewAudio || !previewAudioRole) return payload;
+
+  if (previewAudioRole === 'prompt') {
+    return {
+      ...payload,
+      prompt: { ...payload.prompt, cueAudio: previewAudio },
+      answer: { ...payload.answer, answerAudio: previewAudio },
+    };
+  }
+
+  return {
+    ...payload,
+    answer: { ...payload.answer, answerAudio: previewAudio },
+  };
+}
+
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
   const createCard = useCreateStudyCard();
   const completeDraft = useCompleteStudyCardDraft();
   const generateDraftImage = useGenerateStudyCardDraftImage();
+  const regenerateManualAudio = useRegenerateStudyCardCandidatePreviewAudio();
+  const [manualDefaultVoiceId, setManualDefaultVoiceId] = useState(() =>
+    selectManualStudyCardDefaultVoiceId()
+  );
   const [mode, setMode] = useState<CreateMode>('generate');
   const [creationKind, setCreationKind] = useState<StudyCardCreationKind>(
     DEFAULT_STUDY_CARD_CREATION_KIND
@@ -79,6 +119,10 @@ const StudyCreatePage = () => {
   const [manualImagePrompt, setManualImagePrompt] = useState('');
   const [manualImagePlacement, setManualImagePlacement] = useState<StudyCardImagePlacement>('none');
   const [manualPreviewImage, setManualPreviewImage] = useState<StudyMediaRef | null>(null);
+  const [manualPreviewAudio, setManualPreviewAudio] = useState<StudyMediaRef | null>(null);
+  const [manualPreviewAudioRole, setManualPreviewAudioRole] = useState<'prompt' | 'answer' | null>(
+    null
+  );
   const [isManualPreviewOpen, setIsManualPreviewOpen] = useState(false);
   const generated = useGeneratedStudyCandidates();
   const generationProgress = useFakeProgress(generated.generateCandidates.isPending, {
@@ -88,17 +132,33 @@ const StudyCreatePage = () => {
   const roundedGenerationProgress = Math.round(generationProgress.progress);
   const { values, setField, setValues, reset } = useStudyCardForm({
     initialCardType: 'recognition',
+    initialAnswerAudioVoiceId: manualDefaultVoiceId,
   });
   const manualCardType = cardTypeForStudyCardCreationKind(creationKind);
-  const manualPayload = buildStudyCardFormPayload({
+  const manualPayloadWithoutMedia = buildStudyCardFormPayload({
     ...values,
     cardType: manualCardType,
   });
+  const manualPayloadWithImage = applyStudyCardImageToPayload(
+    manualPayloadWithoutMedia,
+    manualPreviewImage,
+    manualImagePlacement
+  );
+  const manualPayload = applyStudyCardAudioToPayload(
+    manualPayloadWithImage,
+    manualPreviewAudio,
+    manualPreviewAudioRole
+  );
   const manualPreviewImageUrl = toAssetUrl(manualPreviewImage?.url);
+  const manualPreviewAudioUrl = toAssetUrl(manualPreviewAudio?.url);
+  const manualPreviewAudioTitle =
+    manualPreviewAudioRole === 'prompt'
+      ? t('create.audioRecognitionPrompt')
+      : t('create.answerPreview');
   const manualPreviewCard: StudyCardSummary = {
     id: 'manual-preview',
     noteId: 'manual-preview-note',
-    ...applyStudyCardImageToPayload(manualPayload, manualPreviewImage, manualImagePlacement),
+    ...manualPayload,
     state: {
       dueAt: null,
       introducedAt: null,
@@ -109,6 +169,17 @@ const StudyCreatePage = () => {
     answerAudioSource: 'missing',
     createdAt: '1970-01-01T00:00:00.000Z',
     updatedAt: '1970-01-01T00:00:00.000Z',
+  };
+  const manualAudioCandidate: StudyCardCandidateCommitItem = {
+    clientId: 'manual-draft',
+    candidateKind: candidateKindForManualCreationKind(creationKind),
+    cardType: manualCardType,
+    prompt: manualPayloadWithoutMedia.prompt,
+    answer: manualPayloadWithoutMedia.answer,
+    previewAudio: manualPreviewAudio,
+    previewAudioRole: manualPreviewAudioRole,
+    previewImage: manualPreviewImage,
+    imagePrompt: manualImagePrompt.trim() || null,
   };
 
   const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
@@ -121,6 +192,8 @@ const StudyCreatePage = () => {
         ? defaultVoiceIdForStudyCardCreationKind(nextCreationKind)
         : current.answerAudioVoiceId,
     }));
+    setManualPreviewAudio(null);
+    setManualPreviewAudioRole(null);
     setManualSuccess(null);
     if (nextCreationKind === 'production-image' && manualImagePlacement === 'none') {
       setManualImagePlacement('prompt');
@@ -131,14 +204,25 @@ const StudyCreatePage = () => {
     }
   };
 
+  const handleManualFieldChange = <K extends keyof typeof values>(
+    field: K,
+    value: (typeof values)[K]
+  ) => {
+    setField(field, value);
+    if (STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS.has(field)) {
+      setManualPreviewAudio(null);
+      setManualPreviewAudioRole(null);
+    }
+  };
+
   const handleFillRemainingFields = async () => {
     setManualSuccess(null);
     try {
       const result = await completeDraft.mutateAsync({
         creationKind,
-        cardType: manualPayload.cardType,
-        prompt: manualPayload.prompt,
-        answer: manualPayload.answer,
+        cardType: manualPayloadWithoutMedia.cardType,
+        prompt: manualPayloadWithoutMedia.prompt,
+        answer: manualPayloadWithoutMedia.answer,
         imagePlacement: manualImagePlacement,
         imagePrompt: manualImagePrompt.trim() || null,
       });
@@ -151,8 +235,23 @@ const StudyCreatePage = () => {
       if (result.previewImage) {
         setManualPreviewImage(result.previewImage);
       }
+      setManualPreviewAudio(result.previewAudio);
+      setManualPreviewAudioRole(result.previewAudioRole);
     } catch {
       // React Query exposes the fill error through completeDraft.error.
+    }
+  };
+
+  const handleRegenerateManualAudio = async () => {
+    setManualSuccess(null);
+    try {
+      const result = await regenerateManualAudio.mutateAsync({
+        candidate: manualAudioCandidate,
+      });
+      setManualPreviewAudio(result.previewAudio);
+      setManualPreviewAudioRole(result.previewAudioRole);
+    } catch {
+      // React Query exposes the regeneration error through regenerateManualAudio.error.
     }
   };
 
@@ -174,18 +273,13 @@ const StudyCreatePage = () => {
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setManualSuccess(null);
-    const withImage = applyStudyCardImageToPayload(
-      manualPayload,
-      manualPreviewImage,
-      manualImagePlacement
-    );
     const payload = {
-      ...withImage,
+      ...manualPayload,
       creationKind,
       prompt:
-        creationKind === 'production-image' && withImage.prompt.cueImage
-          ? { ...withImage.prompt, cueText: null }
-          : withImage.prompt,
+        creationKind === 'production-image' && manualPayload.prompt.cueImage
+          ? { ...manualPayload.prompt, cueText: null }
+          : manualPayload.prompt,
     };
 
     try {
@@ -196,6 +290,9 @@ const StudyCreatePage = () => {
       setManualImagePrompt('');
       setManualImagePlacement('none');
       setManualPreviewImage(null);
+      setManualPreviewAudio(null);
+      setManualPreviewAudioRole(null);
+      setManualDefaultVoiceId(selectManualStudyCardDefaultVoiceId());
       setIsManualPreviewOpen(false);
     } catch {
       // React Query stores the mutation error for the visible form message.
@@ -356,7 +453,29 @@ const StudyCreatePage = () => {
               creationKind={creationKind}
               includeCardTypeSelect
               onCreationKindChange={handleCreationKindChange}
-              onFieldChange={setField}
+              onFieldChange={handleManualFieldChange}
+            />
+
+            <StudyCandidatePreviewAudio
+              isRegenerateDisabled={
+                completeDraft.isPending || createCard.isPending || generateDraftImage.isPending
+              }
+              isRegenerating={regenerateManualAudio.isPending}
+              label={t('create.playPreview')}
+              onRegenerate={handleRegenerateManualAudio}
+              previewUrl={manualPreviewAudioUrl}
+              regenerateError={
+                regenerateManualAudio.error instanceof Error
+                  ? regenerateManualAudio.error.message
+                  : null
+              }
+              regenerateLabel={
+                regenerateManualAudio.isPending
+                  ? t('create.regeneratingPreview')
+                  : t('create.regeneratePreview')
+              }
+              staleLabel={t('create.previewStale')}
+              title={manualPreviewAudioTitle}
             />
 
             <StudyCardImageControls
@@ -410,7 +529,10 @@ const StudyCreatePage = () => {
                 type="button"
                 onClick={handleFillRemainingFields}
                 disabled={
-                  completeDraft.isPending || createCard.isPending || generateDraftImage.isPending
+                  completeDraft.isPending ||
+                  createCard.isPending ||
+                  generateDraftImage.isPending ||
+                  regenerateManualAudio.isPending
                 }
                 className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -419,7 +541,10 @@ const StudyCreatePage = () => {
               <button
                 type="submit"
                 disabled={
-                  createCard.isPending || completeDraft.isPending || generateDraftImage.isPending
+                  createCard.isPending ||
+                  completeDraft.isPending ||
+                  generateDraftImage.isPending ||
+                  regenerateManualAudio.isPending
                 }
                 className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >

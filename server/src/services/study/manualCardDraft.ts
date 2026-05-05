@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new.js';
 import {
   normalizeClozePayloadFields,
   normalizeLooseClozeText,
@@ -8,12 +8,14 @@ import {
 import { STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH } from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
+  StudyCardCandidateKind,
   StudyCardCreationKind,
   StudyCardDraftCompleteRequest,
   StudyCardDraftCompleteResponse,
   StudyCardDraftImageResponse,
   StudyCardImagePlacement,
   StudyCardType,
+  StudyMediaRef,
   StudyPromptPayload,
 } from '@languageflow/shared/src/types.js';
 
@@ -287,6 +289,73 @@ function assertCreationKindMatchesCardType(
   }
 }
 
+function candidateKindForManualCreationKind(
+  creationKind: StudyCardCreationKind
+): StudyCardCandidateKind {
+  if (creationKind === 'production-text' || creationKind === 'production-image') {
+    return 'production';
+  }
+  return creationKind;
+}
+
+async function synthesizeManualDraftPreviewAudio(input: {
+  userId: string;
+  creationKind: StudyCardCreationKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}): Promise<{
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  previewAudio: StudyMediaRef | null;
+  previewAudioRole: 'prompt' | 'answer' | null;
+}> {
+  const candidateKind = candidateKindForManualCreationKind(input.creationKind);
+  try {
+    const previewAudio = await synthesizeCandidatePreviewAudio(input.userId, {
+      clientId: `manual-draft-audio-${randomUUID()}`,
+      candidateKind,
+      cardType: input.cardType,
+      prompt: input.prompt,
+      answer: input.answer,
+      rationale: 'Generated manual draft preview audio.',
+    });
+
+    if (!previewAudio) {
+      return {
+        prompt: input.prompt,
+        answer: input.answer,
+        previewAudio: null,
+        previewAudioRole: null,
+      };
+    }
+
+    if (candidateKind === 'audio-recognition') {
+      return {
+        prompt: { ...input.prompt, cueAudio: previewAudio },
+        answer: { ...input.answer, answerAudio: previewAudio },
+        previewAudio,
+        previewAudioRole: 'prompt',
+      };
+    }
+
+    return {
+      prompt: input.prompt,
+      answer: { ...input.answer, answerAudio: previewAudio },
+      previewAudio,
+      previewAudioRole: 'answer',
+    };
+  } catch (error) {
+    console.warn('[Study manual draft] Failed to generate preview audio.', error);
+    return {
+      prompt: input.prompt,
+      answer: input.answer,
+      previewAudio: null,
+      previewAudioRole: null,
+    };
+  }
+}
+
 export async function generateManualStudyCardDraftImage(input: {
   userId: string;
   imagePrompt: string;
@@ -358,7 +427,7 @@ export async function completeManualStudyCardDraft(input: {
   const mergedAnswer = mergeBlankAnswerPayload(request.answer, parsed.answer);
   let answer: StudyAnswerPayload = {
     ...mergedAnswer,
-    answerAudioVoiceId: mergedAnswer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja,
+    answerAudioVoiceId: mergedAnswer.answerAudioVoiceId ?? selectManualStudyCardDefaultVoiceId(),
   };
   if (request.cardType === 'cloze') {
     const normalized = normalizeClozePayloadFields(prompt, answer);
@@ -382,15 +451,63 @@ export async function completeManualStudyCardDraft(input: {
           imagePlacement,
         })
       : null;
-
-  return {
+  const audioPreview = await synthesizeManualDraftPreviewAudio({
+    userId: input.userId,
     creationKind: request.creationKind,
     cardType: request.cardType,
     prompt,
     answer,
+  });
+
+  return {
+    creationKind: request.creationKind,
+    cardType: request.cardType,
+    prompt: audioPreview.prompt,
+    answer: audioPreview.answer,
     imagePlacement,
     imagePrompt,
+    previewAudio: audioPreview.previewAudio,
+    previewAudioRole: audioPreview.previewAudioRole,
     previewImage: preview?.previewImage ?? null,
+  };
+}
+
+async function resolveManualAudioMedia(input: {
+  userId: string;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}): Promise<{ mediaId: string; mediaRef: StudyMediaRef } | null> {
+  const mediaRefs = [input.prompt.cueAudio ?? null, input.answer.answerAudio ?? null].filter(
+    (value): value is StudyMediaRef => Boolean(value?.id)
+  );
+  const uniqueMediaIds = [
+    ...new Set(mediaRefs.map((media) => media.id).filter((id): id is string => Boolean(id))),
+  ];
+  if (uniqueMediaIds.length === 0) return null;
+  if (uniqueMediaIds.length > 1) {
+    throw new AppError('Only one generated audio preview can be attached to a study card.', 400);
+  }
+
+  const owned = await getOwnedPreviewMediaIds({
+    userId: input.userId,
+    mediaIds: uniqueMediaIds,
+    mediaKind: 'audio',
+    errorMessage: 'Preview audio was not found for this user.',
+  });
+
+  const mediaId = uniqueMediaIds[0];
+  if (!mediaId) return null;
+  if (!owned.has(mediaId)) {
+    throw new AppError('Preview audio was not found for this user.', 400);
+  }
+  const mediaRef = mediaRefs.find((media) => media.id === mediaId);
+  if (!mediaRef) {
+    throw new AppError('Preview audio was not found for this user.', 400);
+  }
+
+  return {
+    mediaId,
+    mediaRef,
   };
 }
 
@@ -435,26 +552,44 @@ export async function createManualStudyCard(input: {
   assertCreationKindMatchesCardType(input.creationKind, input.cardType);
 
   let prompt = input.prompt;
-  let answer = input.answer;
+  let answer: StudyAnswerPayload = {
+    ...input.answer,
+    answerAudioVoiceId: input.answer.answerAudioVoiceId ?? selectManualStudyCardDefaultVoiceId(),
+  };
   let promptAudioMediaId: string | null = null;
   let answerAudioMediaId: string | null = null;
+  const previewAudio = await resolveManualAudioMedia({
+    userId: input.userId,
+    prompt,
+    answer,
+  });
 
   if (input.creationKind === 'audio-recognition') {
-    const generated = await synthesizeCandidatePreviewAudio(input.userId, {
-      clientId: `manual-audio-${randomUUID()}`,
-      candidateKind: 'audio-recognition',
-      cardType: 'recognition',
-      prompt,
-      answer,
-      rationale: 'Generated manual listening prompt audio.',
-    });
-    if (!generated?.id) {
-      throw new AppError('Could not generate audio for this card.', 502);
+    if (previewAudio) {
+      prompt = { cueAudio: previewAudio.mediaRef };
+      answer = { ...answer, answerAudio: previewAudio.mediaRef };
+      promptAudioMediaId = previewAudio.mediaId;
+      answerAudioMediaId = previewAudio.mediaId;
+    } else {
+      const generated = await synthesizeCandidatePreviewAudio(input.userId, {
+        clientId: `manual-audio-${randomUUID()}`,
+        candidateKind: 'audio-recognition',
+        cardType: 'recognition',
+        prompt,
+        answer,
+        rationale: 'Generated manual listening prompt audio.',
+      });
+      if (!generated?.id) {
+        throw new AppError('Could not generate audio for this card.', 502);
+      }
+      prompt = { cueAudio: generated };
+      answer = { ...answer, answerAudio: generated };
+      promptAudioMediaId = generated.id;
+      answerAudioMediaId = generated.id;
     }
-    prompt = { cueAudio: generated };
-    answer = { ...answer, answerAudio: generated };
-    promptAudioMediaId = generated.id;
-    answerAudioMediaId = generated.id;
+  } else if (previewAudio) {
+    answer = { ...answer, answerAudio: previewAudio.mediaRef };
+    answerAudioMediaId = previewAudio.mediaId;
   }
 
   const imageMediaId = await resolveManualImageMediaId({

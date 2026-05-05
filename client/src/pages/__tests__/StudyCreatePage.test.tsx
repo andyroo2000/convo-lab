@@ -4,7 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import {
+  DEFAULT_NARRATOR_VOICES,
+  MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
+} from '@languageflow/shared/src/constants-new';
 import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
@@ -285,6 +288,14 @@ describe('StudyCreatePage', () => {
       },
       imagePlacement: 'answer',
       imagePrompt: 'A realistic photo of a company office. No text.',
+      previewAudio: {
+        id: 'manual-audio',
+        filename: 'manual-audio.mp3',
+        url: '/api/study/media/manual-audio',
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+      previewAudioRole: 'answer',
       previewImage: null,
     });
 
@@ -306,6 +317,48 @@ describe('StudyCreatePage', () => {
       'A realistic photo of a company office. No text.'
     );
     expect(screen.getByLabelText('Image placement')).toHaveValue('answer');
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-url',
+      'http://localhost:3001/api/study/media/manual-audio'
+    );
+    const audioToRegeneratePosition = screen
+      .getByRole('button', { name: 'Play generated preview audio' })
+      .compareDocumentPosition(screen.getByRole('button', { name: 'Regenerate audio' }));
+    expect(audioToRegeneratePosition).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('regenerates manual card audio and submits the refreshed preview audio', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.type(screen.getByLabelText('Prompt text'), '会社');
+    await userEvent.type(screen.getByLabelText('Answer expression'), '会社');
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+
+    expect(regenerateCandidateAudioMock).toHaveBeenCalledWith({
+      candidate: expect.objectContaining({
+        candidateKind: 'text-recognition',
+        cardType: 'recognition',
+        answer: expect.objectContaining({
+          expression: '会社',
+        }),
+      }),
+    });
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-url',
+      'http://localhost:3001/api/study/media/media-regenerated'
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+
+    expect(createStudyCardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answer: expect.objectContaining({
+          answerAudio: expect.objectContaining({ id: 'media-regenerated' }),
+        }),
+      })
+    );
   });
 
   it('opens the reusable card preview for manually entered fields', async () => {
@@ -462,15 +515,20 @@ describe('StudyCreatePage', () => {
     );
   });
 
-  it('defaults new cards to the Japanese narrator voice', async () => {
+  it('defaults new manual cards to either Ren or Yumi', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.99);
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
-    expect(screen.getByLabelText('Answer audio voice')).toHaveTextContent('Shohei');
-    expect(screen.getByTestId('voice-preview')).toHaveTextContent(DEFAULT_NARRATOR_VOICES.ja);
+    expect(screen.getByLabelText('Answer audio voice')).toHaveTextContent('Yumi');
+    expect(screen.getByTestId('voice-preview')).toHaveTextContent(
+      MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[1]
+    );
+    randomSpy.mockRestore();
   });
 
-  it('defaults manual audio-recognition cards to Ren', async () => {
+  it('keeps the randomized manual voice when switching to audio recognition', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
@@ -480,6 +538,7 @@ describe('StudyCreatePage', () => {
     expect(screen.getByTestId('voice-preview')).toHaveTextContent(
       DEFAULT_AUDIO_RECOGNITION_VOICE_ID
     );
+    randomSpy.mockRestore();
   });
 
   it('shows fake progress while candidate generation is pending', () => {
