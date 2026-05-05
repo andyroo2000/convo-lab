@@ -118,6 +118,7 @@ jobs:
             else
               echo "CONVOLAB_ROUTER_DIR=$ROUTER_DIR" >> .env.production
             fi
+            sed -i '/^CONVOLAB_ROUTER_CONFIG=/d' .env.production
 
             render_router_config() {
               color="$1"
