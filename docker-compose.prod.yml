@@ -127,7 +127,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - ${CONVOLAB_ROUTER_CONFIG:-/opt/convolab-runtime/prod-router/default.conf}:/etc/nginx/conf.d/default.conf:ro
+      - ${CONVOLAB_ROUTER_DIR:-/opt/convolab-runtime/prod-router}:/etc/nginx/conf.d:ro
     networks:
       - convolab-network
       - health-network
