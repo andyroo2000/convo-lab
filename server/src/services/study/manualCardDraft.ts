@@ -23,6 +23,7 @@ import { AppError } from '../../middleware/errorHandler.js';
 import { generateStudyCardCandidateJson } from '../llmClient.js';
 import { createStudyCard } from '../studySchedulerService.js';
 
+import { STUDY_IMAGE_PROMPT_STYLE } from './candidates/imagePromptGuardrails.js';
 import {
   generateCandidatePreviewImage,
   getOwnedPreviewMediaIds,
@@ -57,14 +58,6 @@ type StudyAnswerTextKey =
   | 'answerAudioVoiceId'
   | 'answerAudioTextOverride';
 
-const IMAGE_PROMPT_TREATMENTS = [
-  'realistic photo with natural light',
-  "construction paper children's book illustration",
-  'vintage National Geographic editorial photo',
-  'soft gouache storybook painting',
-  'Japanese travel magazine still life photo',
-] as const;
-
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -89,18 +82,6 @@ export function getBestManualCardAudioText(answer: StudyAnswerPayload): string |
     parseNullableString(answer.restoredText) ??
     parseNullableString(answer.restoredTextReading)
   );
-}
-
-export function selectStudyImagePromptTreatment(seed: string): string {
-  const normalizedSeed = seed.trim();
-  if (!normalizedSeed) return IMAGE_PROMPT_TREATMENTS[0];
-
-  let hash = 0;
-  for (let index = 0; index < normalizedSeed.length; index += 1) {
-    hash = (hash * 31 + normalizedSeed.charCodeAt(index)) >>> 0;
-  }
-
-  return IMAGE_PROMPT_TREATMENTS[hash % IMAGE_PROMPT_TREATMENTS.length];
 }
 
 function hasText(value: unknown): value is string {
@@ -193,10 +174,7 @@ function sanitizeAnswerPayload(value: unknown): StudyAnswerPayload {
   };
 }
 
-function buildManualDraftSystemInstruction(input: {
-  creationKind: StudyCardCreationKind;
-  imageTreatment: string;
-}): string {
+function buildManualDraftSystemInstruction(input: { creationKind: StudyCardCreationKind }): string {
   return `Complete one Japanese study card draft for ConvoLab.
 
 Return strict JSON only:
@@ -217,7 +195,7 @@ Rules:
 - If cloze text uses bracket notation like My [example] sentence, convert the bracketed span to {{c1::example}}.
 - Use bracket ruby readings like 会社[かいしゃ] in reading fields.
 - Include concise notes when useful.
-- Always return imagePrompt when the card has enough concrete visual context. Use this style treatment when writing it: ${input.imageTreatment}.
+- Always return imagePrompt when the card has enough concrete visual context. Use this style treatment when writing it: ${STUDY_IMAGE_PROMPT_STYLE}.
 - Image prompts must describe a scene only and include "No text". Never ask for visible labels, captions, signs, words, or flashcard UI.`;
 }
 
@@ -265,7 +243,6 @@ function parseManualDraftResponse(response: string): {
 function getImagePromptFallback(input: {
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
-  imageTreatment: string;
 }): string | null {
   const subject =
     input.answer.expression ??
@@ -276,7 +253,7 @@ function getImagePromptFallback(input: {
     input.prompt.clozeText ??
     null;
   if (!subject) return null;
-  return `A ${input.imageTreatment} representing ${subject}. No text.`;
+  return `A ${STUDY_IMAGE_PROMPT_STYLE} representing ${subject}. No text.`;
 }
 
 function assertCreationKindMatchesCardType(
@@ -404,23 +381,9 @@ export async function completeManualStudyCardDraft(input: {
     request.creationKind === 'production-image' && requestedPlacement === 'none'
       ? 'prompt'
       : requestedPlacement;
-  const seed = [
-    request.prompt.cueText,
-    request.prompt.cueMeaning,
-    request.prompt.clozeText,
-    request.answer.expression,
-    request.answer.restoredText,
-    request.answer.meaning,
-  ]
-    .filter(Boolean)
-    .join(' ');
-  const imageTreatment = selectStudyImagePromptTreatment(seed);
   const rawResponse = await generateStudyCardCandidateJson(
     buildManualDraftUserPrompt(request),
-    buildManualDraftSystemInstruction({
-      creationKind: request.creationKind,
-      imageTreatment,
-    })
+    buildManualDraftSystemInstruction({ creationKind: request.creationKind })
   );
   const parsed = parseManualDraftResponse(rawResponse);
   let prompt: StudyPromptPayload = mergeBlankPromptPayload(request.prompt, parsed.prompt);
@@ -435,9 +398,7 @@ export async function completeManualStudyCardDraft(input: {
     answer = normalized.answer;
   }
   let imagePrompt =
-    request.imagePrompt?.trim() ||
-    parsed.imagePrompt ||
-    getImagePromptFallback({ prompt, answer, imageTreatment });
+    request.imagePrompt?.trim() || parsed.imagePrompt || getImagePromptFallback({ prompt, answer });
 
   if (imagePrompt && imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) {
     imagePrompt = imagePrompt.slice(0, STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH);

@@ -160,6 +160,19 @@ describe('imageGenerator', () => {
       );
     });
 
+    it("should request construction-paper children's book image prompts", async () => {
+      await generateDialogueImages({
+        episodeId: 'episode-456',
+        dialogueId: 'dialogue-123',
+        imageCount: 1,
+      });
+
+      expect(mockGenerateWithGemini).toHaveBeenCalledWith(
+        expect.stringContaining("construction paper children's book illustration"),
+        expect.stringContaining("construction paper children's book illustration")
+      );
+    });
+
     it('should create Image records with prompt and order', async () => {
       await generateDialogueImages({
         episodeId: 'episode-456',
