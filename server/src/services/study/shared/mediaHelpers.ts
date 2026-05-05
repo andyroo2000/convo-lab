@@ -15,6 +15,7 @@ import { prisma } from '../../../db/client.js';
 import { synthesizeBatchedTexts } from '../../batchedTTSClient.js';
 import { uploadBufferToGCSPath } from '../../storageClient.js';
 
+import { isAudioRecognitionPrompt } from './audioRecognitionUtils.js';
 import { mergeStudyMediaRecord } from './cardMappers.js';
 import {
   STUDY_AUDIO_LOCK_POLL_INTERVAL_MS,
@@ -56,32 +57,6 @@ export function getStudyAudioRedisClient() {
   }
 
   return studyAudioRedisClient;
-}
-
-function hasMeaningfulPromptValue(value: unknown): boolean {
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
-  return isRecord(value);
-}
-
-function isAudioRecognitionPrompt(prompt: StudyPromptPayload): boolean {
-  if (!isRecord(prompt.cueAudio)) {
-    return false;
-  }
-
-  const nonAudioPromptValues = [
-    prompt.cueText,
-    prompt.cueReading,
-    prompt.cueMeaning,
-    prompt.cueImage,
-    prompt.clozeText,
-    prompt.clozeDisplayText,
-    prompt.clozeAnswerText,
-  ];
-
-  return !nonAudioPromptValues.some(hasMeaningfulPromptValue);
 }
 
 async function writeStudyMediaBufferLocally(storagePath: string, buffer: Buffer): Promise<void> {

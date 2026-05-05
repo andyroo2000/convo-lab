@@ -8,6 +8,7 @@ import type {
 
 import { AppError } from '../../../middleware/errorHandler.js';
 
+import { isAudioRecognitionPrompt } from './audioRecognitionUtils.js';
 import { ANKI_DECK_NAME } from './constants.js';
 import {
   isRecord,
@@ -62,32 +63,6 @@ function hydrateMediaRef(
     }),
     url: resolvedUrl,
   };
-}
-
-function hasMeaningfulPromptValue(value: unknown): boolean {
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
-  return isRecord(value);
-}
-
-function isAudioRecognitionPrompt(prompt: StudyPromptPayload): boolean {
-  if (!isRecord(prompt.cueAudio)) {
-    return false;
-  }
-
-  const nonAudioPromptValues = [
-    prompt.cueText,
-    prompt.cueReading,
-    prompt.cueMeaning,
-    prompt.cueImage,
-    prompt.clozeText,
-    prompt.clozeDisplayText,
-    prompt.clozeAnswerText,
-  ];
-
-  return !nonAudioPromptValues.some(hasMeaningfulPromptValue);
 }
 
 export async function normalizeStudyCardPayload(record: StudyCardWithRelations): Promise<{
