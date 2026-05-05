@@ -29,6 +29,27 @@ import {
 } from './shared.js';
 
 type JsonRecord = Record<string, unknown>;
+type StudyPromptTextKey =
+  | 'cueText'
+  | 'cueReading'
+  | 'cueMeaning'
+  | 'clozeText'
+  | 'clozeHint'
+  | 'clozeDisplayText'
+  | 'clozeAnswerText'
+  | 'clozeResolvedHint';
+type StudyAnswerTextKey =
+  | 'expression'
+  | 'expressionReading'
+  | 'meaning'
+  | 'notes'
+  | 'sentenceJp'
+  | 'sentenceJpKana'
+  | 'sentenceEn'
+  | 'restoredText'
+  | 'restoredTextReading'
+  | 'answerAudioVoiceId'
+  | 'answerAudioTextOverride';
 
 const IMAGE_PROMPT_TREATMENTS = [
   'realistic photo with natural light',
@@ -80,7 +101,66 @@ function normalizeLooseClozeText(value: string | null | undefined): string | nul
   const text = value?.trim();
   if (!text) return null;
   if (text.includes('{{c1::')) return text;
-  return text.replace(/\[([^\]]+)]/, '{{c1::$1}}');
+  return text.replace(/\[([^\]]+)]/g, '{{c1::$1}}');
+}
+
+function hasText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function mergeBlankPromptPayload(
+  current: StudyPromptPayload,
+  completion: StudyPromptPayload
+): StudyPromptPayload {
+  const next = { ...current };
+  const keys: StudyPromptTextKey[] = [
+    'cueText',
+    'cueReading',
+    'cueMeaning',
+    'clozeText',
+    'clozeHint',
+    'clozeDisplayText',
+    'clozeAnswerText',
+    'clozeResolvedHint',
+  ];
+
+  for (const key of keys) {
+    if (!hasText(next[key]) && hasText(completion[key])) {
+      next[key] = completion[key];
+    }
+  }
+
+  next.clozeText = normalizeLooseClozeText(next.clozeText);
+
+  return next;
+}
+
+function mergeBlankAnswerPayload(
+  current: StudyAnswerPayload,
+  completion: StudyAnswerPayload
+): StudyAnswerPayload {
+  const next = { ...current };
+  const keys: StudyAnswerTextKey[] = [
+    'expression',
+    'expressionReading',
+    'meaning',
+    'notes',
+    'sentenceJp',
+    'sentenceJpKana',
+    'sentenceEn',
+    'restoredText',
+    'restoredTextReading',
+    'answerAudioVoiceId',
+    'answerAudioTextOverride',
+  ];
+
+  for (const key of keys) {
+    if (!hasText(next[key]) && hasText(completion[key])) {
+      next[key] = completion[key];
+    }
+  }
+
+  return next;
 }
 
 function sanitizePromptPayload(value: unknown): StudyPromptPayload {
@@ -277,14 +357,11 @@ export async function completeManualStudyCardDraft(input: {
     })
   );
   const parsed = parseManualDraftResponse(rawResponse);
-  const prompt = { ...request.prompt, ...parsed.prompt };
+  const prompt = mergeBlankPromptPayload(request.prompt, parsed.prompt);
+  const mergedAnswer = mergeBlankAnswerPayload(request.answer, parsed.answer);
   const answer = {
-    ...request.answer,
-    ...parsed.answer,
-    answerAudioVoiceId:
-      parsed.answer.answerAudioVoiceId ??
-      request.answer.answerAudioVoiceId ??
-      DEFAULT_NARRATOR_VOICES.ja,
+    ...mergedAnswer,
+    answerAudioVoiceId: mergedAnswer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja,
   };
   let imagePrompt =
     request.imagePrompt?.trim() ||

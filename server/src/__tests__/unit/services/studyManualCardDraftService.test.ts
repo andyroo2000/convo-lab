@@ -40,11 +40,11 @@ describe('manual study card drafts', () => {
     vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
       JSON.stringify({
         prompt: {
-          clozeText: 'My [example] sentence.',
+          clozeText: 'My [example] and [second] sentence.',
           clozeHint: 'missing word',
         },
         answer: {
-          restoredText: 'My example sentence.',
+          restoredText: 'My example and second sentence.',
           meaning: 'Example sentence',
         },
         imagePrompt: 'A realistic photo of a notebook. No text.',
@@ -56,20 +56,65 @@ describe('manual study card drafts', () => {
       request: {
         creationKind: 'cloze',
         cardType: 'cloze',
-        prompt: { clozeText: 'My [example] sentence.' },
+        prompt: { clozeText: 'My [example] and [second] sentence.' },
         answer: {},
         imagePlacement: 'none',
         imagePrompt: null,
       },
     });
 
-    expect(result.prompt.clozeText).toBe('My {{c1::example}} sentence.');
-    expect(result.answer.restoredText).toBe('My example sentence.');
+    expect(result.prompt.clozeText).toBe('My {{c1::example}} and {{c1::second}} sentence.');
+    expect(result.answer.restoredText).toBe('My example and second sentence.');
     expect(result.imagePrompt).toContain('No text');
     expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
       expect.stringContaining('"creationKind": "cloze"'),
       expect.stringContaining('{{c1::...}}')
     );
+  });
+
+  it('fills only blank draft fields when the LLM returns nulls or conflicting values', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        prompt: {
+          cueText: null,
+          cueReading: '会社[かいしゃ]',
+          cueMeaning: 'company prompt hint',
+        },
+        answer: {
+          expression: null,
+          expressionReading: '会社[かいしゃ]',
+          meaning: 'LLM meaning should not replace user meaning',
+          answerAudioVoiceId: 'different-voice',
+        },
+        imagePrompt: null,
+      })
+    );
+
+    const result = await completeManualStudyCardDraft({
+      userId: 'user-1',
+      request: {
+        creationKind: 'text-recognition',
+        cardType: 'recognition',
+        prompt: { cueText: '会社' },
+        answer: {
+          meaning: 'company',
+          answerAudioVoiceId: 'user-voice',
+        },
+        imagePlacement: 'none',
+        imagePrompt: null,
+      },
+    });
+
+    expect(result.prompt).toMatchObject({
+      cueText: '会社',
+      cueReading: '会社[かいしゃ]',
+      cueMeaning: 'company prompt hint',
+    });
+    expect(result.answer).toMatchObject({
+      expressionReading: '会社[かいしゃ]',
+      meaning: 'company',
+      answerAudioVoiceId: 'user-voice',
+    });
   });
 
   it('auto-generates a preview image for production from image drafts', async () => {

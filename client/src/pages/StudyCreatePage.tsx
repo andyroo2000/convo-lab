@@ -94,34 +94,42 @@ const StudyCreatePage = () => {
   const handleFillRemainingFields = async () => {
     setManualSuccess(null);
     const payload = buildPayload();
-    const result = await completeDraft.mutateAsync({
-      creationKind,
-      cardType: payload.cardType,
-      prompt: payload.prompt,
-      answer: payload.answer,
-      imagePlacement: manualImagePlacement,
-      imagePrompt: manualImagePrompt.trim() || null,
-    });
-    const completedValues = getDraftFormValues(result);
-    setValues((current) => mergeBlankStudyCardFormFields(current, completedValues));
-    if (!manualImagePrompt.trim() && result.imagePrompt) {
-      setManualImagePrompt(result.imagePrompt);
-    }
-    setManualImagePlacement(result.imagePlacement);
-    if (result.previewImage) {
-      setManualPreviewImage(result.previewImage);
+    try {
+      const result = await completeDraft.mutateAsync({
+        creationKind,
+        cardType: payload.cardType,
+        prompt: payload.prompt,
+        answer: payload.answer,
+        imagePlacement: manualImagePlacement,
+        imagePrompt: manualImagePrompt.trim() || null,
+      });
+      const completedValues = getDraftFormValues(result);
+      setValues((current) => mergeBlankStudyCardFormFields(current, completedValues));
+      if (!manualImagePrompt.trim() && result.imagePrompt) {
+        setManualImagePrompt(result.imagePrompt);
+      }
+      setManualImagePlacement(result.imagePlacement);
+      if (result.previewImage) {
+        setManualPreviewImage(result.previewImage);
+      }
+    } catch {
+      // React Query exposes the fill error through completeDraft.error.
     }
   };
 
   const handleGenerateManualImage = async () => {
     setManualSuccess(null);
-    const result = await generateDraftImage.mutateAsync({
-      imagePrompt: manualImagePrompt,
-      imagePlacement: manualImagePlacement,
-    });
-    setManualImagePrompt(result.imagePrompt);
-    setManualImagePlacement(result.imagePlacement);
-    setManualPreviewImage(result.previewImage);
+    try {
+      const result = await generateDraftImage.mutateAsync({
+        imagePrompt: manualImagePrompt,
+        imagePlacement: manualImagePlacement,
+      });
+      setManualImagePrompt(result.imagePrompt);
+      setManualImagePlacement(result.imagePlacement);
+      setManualPreviewImage(result.previewImage);
+    } catch {
+      // React Query exposes the image-generation error through generateDraftImage.error.
+    }
   };
 
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
