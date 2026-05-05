@@ -413,7 +413,11 @@ async function resolveManualImageMediaId(input: {
     errorMessage: 'Preview image was not found for this user.',
   });
 
-  return owned.has(uniqueMediaIds[0]) ? uniqueMediaIds[0] : null;
+  if (!owned.has(uniqueMediaIds[0])) {
+    throw new AppError('Preview image was not found for this user.', 400);
+  }
+
+  return uniqueMediaIds[0];
 }
 
 export async function createManualStudyCard(input: {

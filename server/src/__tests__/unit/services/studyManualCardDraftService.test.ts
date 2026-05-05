@@ -226,4 +226,29 @@ describe('manual study card drafts', () => {
       expect.objectContaining({ imageMediaId: 'image-1' })
     );
   });
+
+  it('rejects manual cards when attached preview image ownership cannot be validated', async () => {
+    vi.mocked(getOwnedPreviewMediaIds).mockResolvedValue(new Set());
+
+    await expect(
+      createManualStudyCard({
+        userId: 'user-1',
+        creationKind: 'production-text',
+        cardType: 'production',
+        prompt: {
+          cueText: 'cloudy weather',
+          cueImage: {
+            id: 'image-1',
+            filename: 'image.webp',
+            url: '/api/study/media/image-1',
+            mediaKind: 'image',
+            source: 'generated',
+          },
+        },
+        answer: { expression: '曇り', meaning: 'cloudy weather' },
+      })
+    ).rejects.toThrow('Preview image was not found for this user.');
+
+    expect(createStudyCard).not.toHaveBeenCalled();
+  });
 });
