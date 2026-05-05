@@ -25,6 +25,7 @@ router.use(
     max: 240,
     windowMs: 60 * 1000,
   }),
+  // lgtm[js/missing-rate-limiting] rateLimitStudyRoute runs immediately before auth.
   requireAuth
 );
 router.use(requireFeatureFlag('flashcardsEnabled'));
