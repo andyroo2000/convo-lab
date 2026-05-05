@@ -60,7 +60,7 @@ describe('courseScriptGenerator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Default mock for Gemini - return valid JSON for batch calls
+    // Default core LLM mock: return valid JSON for batch calls
     mockGenerateCoreLlmText.mockImplementation(async (prompt: string) => {
       // Detect which batch call based on prompt content
       if (prompt.includes('LESSON_INTRO') && prompt.includes('CORE_ITEM_INTROS')) {
@@ -201,7 +201,7 @@ describe('courseScriptGenerator', () => {
 
       await generateCourseScript(lessonPlan, mockContext);
 
-      // Should have generated Gemini call for batch 1
+      // Should have generated core LLM call for batch 1
       expect(mockGenerateCoreLlmText).toHaveBeenCalled();
     });
 

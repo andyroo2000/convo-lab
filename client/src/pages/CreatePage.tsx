@@ -84,7 +84,7 @@ const CreatePage = () => {
                     <span className="retro-create-v3-icon-wrap" aria-hidden="true">
                       <MessageSquare className="h-4 w-4" />
                     </span>
-                    <span className="retro-caps">Prompt / Story / Dialogue</span>
+                    <span className="retro-caps">{t('create:types.dialogue.mini')}</span>
                   </div>
 
                   <p className="retro-create-v3-card-description">
@@ -120,7 +120,7 @@ const CreatePage = () => {
                     <span className="retro-create-v3-icon-wrap" aria-hidden="true">
                       <Headphones className="h-4 w-4" />
                     </span>
-                    <span className="retro-caps">Drills / Dialogue / Story</span>
+                    <span className="retro-caps">{t('create:types.dailyAudio.mini')}</span>
                   </div>
 
                   <p className="retro-create-v3-card-description">

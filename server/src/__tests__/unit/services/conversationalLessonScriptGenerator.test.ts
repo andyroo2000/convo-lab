@@ -299,7 +299,7 @@ describe('conversationalLessonScriptGenerator', () => {
         },
       ];
 
-      // Mock Gemini to return progressive chunks
+      // Mock core LLM to return progressive chunks
       mockGenerateCoreLlmText
         .mockResolvedValueOnce('Pretend you are talking to a friend.')
         .mockResolvedValueOnce(
@@ -311,7 +311,7 @@ describe('conversationalLessonScriptGenerator', () => {
 
       await generateConversationalLessonScript(exchangesForChunks, mockContext);
 
-      // Should have called Gemini for scenario + progressive chunks
+      // Should have called core LLM for scenario + progressive chunks
       expect(mockGenerateCoreLlmText).toHaveBeenCalledTimes(2);
     });
 

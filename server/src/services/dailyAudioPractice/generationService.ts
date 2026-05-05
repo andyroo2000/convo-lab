@@ -70,6 +70,14 @@ export async function processDailyAudioPracticeJob(params: {
 
     for (const [index, trackConfig] of DAILY_AUDIO_TRACKS.entries()) {
       const scriptUnits = scripts[trackConfig.mode];
+      const existingReadyTrack = practice.tracks.find(
+        (track) => track.mode === trackConfig.mode && track.status === 'ready' && track.audioUrl
+      );
+      if (existingReadyTrack) {
+        await onProgress(45 + Math.floor(((index + 1) / DAILY_AUDIO_TRACKS.length) * 45));
+        continue;
+      }
+
       const track = await prisma.dailyAudioPracticeTrack.upsert({
         where: {
           practiceId_mode: {

@@ -8,6 +8,7 @@
   "types": {
     "dialogue": {
       "title": "Dialogue",
+      "mini": "Prompt / Story / Dialogue",
       "description": "Generate AI dialogues from your own stories, calibrated to your proficiency level"
     },
     "course": {
@@ -16,6 +17,7 @@
     },
     "dailyAudio": {
       "title": "Daily Audio Practice",
+      "mini": "Drills / Dialogue / Story",
       "description": "Generate drills, dialogues, and a story from the flashcards you are learning"
     }
   },
