@@ -27,6 +27,8 @@ export interface AssembleAudioOptions {
   targetLanguage: string;
   nativeLanguage: string;
   onProgress?: (current: number, total: number) => void;
+  outputFolder?: string;
+  outputFilename?: string;
 }
 
 export interface AssembledAudio {
@@ -40,7 +42,15 @@ export interface AssembledAudio {
  * Synthesizes TTS for narration and L2 content, generates silence for pauses
  */
 export async function assembleLessonAudio(options: AssembleAudioOptions): Promise<AssembledAudio> {
-  const { lessonId, scriptUnits, targetLanguage, nativeLanguage, onProgress } = options;
+  const {
+    lessonId,
+    scriptUnits,
+    targetLanguage,
+    nativeLanguage,
+    onProgress,
+    outputFolder = 'courses',
+    outputFilename = `lesson-${lessonId}.mp3`,
+  } = options;
 
   console.log(`Assembling audio for lesson ${lessonId} with ${scriptUnits.length} units`);
 
@@ -116,9 +126,9 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
     // Upload to GCS using streaming (no memory spike)
     const audioUrl = await uploadFileToGCS({
       filePath: finalAudioPath,
-      filename: `lesson-${lessonId}.mp3`,
+      filename: outputFilename,
       contentType: 'audio/mpeg',
-      folder: 'courses',
+      folder: outputFolder,
     });
 
     console.log(`Uploaded to: ${audioUrl}`);

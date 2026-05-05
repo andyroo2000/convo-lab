@@ -1,8 +1,8 @@
 import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Episode, Sentence, Speaker } from '@prisma/client';
 
+import { generateCoreLlmText } from './coreLlmClient.js';
 import { reviewDialogue, editDialogue } from './dialogueReviewer.js';
-import { generateWithGemini } from './geminiClient.js';
 import { LanguageMetadata } from './languageProcessor.js';
 import { logger } from './logger.js';
 import { stripFuriganaToKana } from './pronunciation/furiganaUtils.js';
@@ -415,7 +415,7 @@ Guidelines for each phrase:
 ${phrases[0].readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "reading" field if not applicable\n'}`;
 
   try {
-    const response = await generateWithGemini(prompt);
+    const response = await generateCoreLlmText(prompt);
 
     // Parse JSON response (strip markdown code blocks if present)
     let jsonText = response.trim();
@@ -568,7 +568,7 @@ Guidelines:
 ${readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "reading" field if not applicable\n'}`;
 
   try {
-    const response = await generateWithGemini(prompt);
+    const response = await generateCoreLlmText(prompt);
 
     // Parse JSON response (strip markdown code blocks if present)
     let jsonText = response.trim();
@@ -670,7 +670,7 @@ Return ONLY a JSON array (no markdown, no explanation):
   }
 ]`;
 
-        const response = await generateWithGemini(splitPrompt);
+        const response = await generateCoreLlmText(splitPrompt);
 
         // Parse JSON
         let jsonText = response.trim();
@@ -796,7 +796,7 @@ Return ONLY a JSON object (no markdown, no explanation):
 }`;
 
   try {
-    const response = await generateWithGemini(vocabExtractionPrompt);
+    const response = await generateCoreLlmText(vocabExtractionPrompt);
 
     // Parse JSON
     let jsonText = response.trim();
@@ -1196,7 +1196,7 @@ Return ONLY a JSON object (no markdown, no explanation):
 }
 
 /**
- * Run dialogue extraction: send prompt to Gemini, parse response, assign voices.
+ * Run dialogue extraction: send prompt to the core LLM, parse response, assign voices.
  * Extracted from extractDialogueExchangesFromSourceText for admin Script Lab use.
  * Does NOT include the automatic review/edit pass — the admin IS the reviewer.
  */
@@ -1209,7 +1209,7 @@ export async function runDialogueExtraction(
   speaker1VoiceId?: string,
   speaker2VoiceId?: string
 ): Promise<DialogueExchange[]> {
-  const response = await generateWithGemini(prompt);
+  const response = await generateCoreLlmText(prompt);
 
   // Parse JSON
   let jsonText = response.trim();

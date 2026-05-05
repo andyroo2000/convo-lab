@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../db/client.js';
 
 import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
-import { generateWithGemini } from './geminiClient.js';
+import { generateCoreLlmText } from './coreLlmClient.js';
 import { stripFuriganaToKana } from './pronunciation/furiganaUtils.js';
 import {
   formatGrammarForPrompt,
@@ -72,7 +72,7 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
   });
 
   try {
-    // Build prompt for Gemini
+    // Build prompt for the core LLM
     const systemInstruction = buildSystemInstruction(
       episode.targetLanguage,
       episode.nativeLanguage,
@@ -92,7 +92,7 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
       grammarSeedOverride
     );
 
-    // Retry logic for Gemini API calls (handles transient JSON parsing errors)
+    // Retry logic for core LLM calls (handles transient JSON parsing errors)
     const MAX_RETRIES = 3;
     let lastError: Error | null = null;
     let dialogueData: DialogueData | null = null;
@@ -100,11 +100,10 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         console.log(
-          `[DIALOGUE] Attempt ${attempt}/${MAX_RETRIES}: Generating dialogue with Gemini`
+          `[DIALOGUE] Attempt ${attempt}/${MAX_RETRIES}: Generating dialogue with OpenAI`
         );
 
-        // Generate dialogue with Gemini
-        const response = await generateWithGemini(prompt, systemInstruction);
+        const response = await generateCoreLlmText(prompt, systemInstruction);
 
         // Strip markdown code fences if present
         let jsonText = response.trim();

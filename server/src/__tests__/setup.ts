@@ -18,6 +18,15 @@ vi.mock('../services/geminiClient.js', async () => {
   };
 });
 
+vi.mock('../services/coreLlmClient.js', async () => {
+  const stubResponse = async () => '{}';
+
+  return {
+    generateCoreLlmText: vi.fn(stubResponse),
+    generateCoreLlmJsonText: vi.fn(stubResponse),
+  };
+});
+
 // Initialize i18next for tests with inline resources
 // eslint-disable-next-line import/no-named-as-default-member
 i18next.init({
@@ -204,6 +213,29 @@ export const mockPrisma = {
     createMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
+    count: vi.fn(),
+  },
+  dailyAudioPractice: {
+    findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    upsert: vi.fn(),
+    deleteMany: vi.fn(),
+    count: vi.fn(),
+  },
+  dailyAudioPracticeTrack: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    upsert: vi.fn(),
     deleteMany: vi.fn(),
     count: vi.fn(),
   },

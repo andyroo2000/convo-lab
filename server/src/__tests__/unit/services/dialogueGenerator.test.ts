@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateDialogue } from '../../../services/dialogueGenerator.js';
 
 // Create hoisted mocks
-const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
+const mockGenerateCoreLlmText = vi.hoisted(() => vi.fn());
 const mockGetAvatarUrlFromVoice = vi.hoisted(() => vi.fn());
 const mockParseVoiceIdForGender = vi.hoisted(() => vi.fn());
 const mockPrisma = vi.hoisted(() => ({
@@ -24,8 +24,9 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 
 // Mock dependencies
-vi.mock('../../../services/geminiClient.js', () => ({
-  generateWithGemini: mockGenerateWithGemini,
+vi.mock('../../../services/coreLlmClient.js', () => ({
+  generateCoreLlmText: mockGenerateCoreLlmText,
+  generateCoreLlmJsonText: mockGenerateCoreLlmText,
 }));
 
 vi.mock('../../../services/avatarService.js', () => ({
@@ -91,7 +92,7 @@ describe('dialogueGenerator', () => {
       ...data,
     }));
 
-    mockGenerateWithGemini.mockResolvedValue(JSON.stringify(mockDialogueResponse));
+    mockGenerateCoreLlmText.mockResolvedValue(JSON.stringify(mockDialogueResponse));
     mockGetAvatarUrlFromVoice.mockResolvedValue('https://storage.example.com/avatar.jpg');
     mockParseVoiceIdForGender.mockReturnValue('female');
   });
@@ -110,7 +111,7 @@ describe('dialogueGenerator', () => {
         where: { id: 'episode-123' },
         data: { status: 'generating' },
       });
-      expect(mockGenerateWithGemini).toHaveBeenCalled();
+      expect(mockGenerateCoreLlmText).toHaveBeenCalled();
       expect(mockPrisma.dialogue.create).toHaveBeenCalled();
       expect(result).toHaveProperty('dialogue');
       expect(result).toHaveProperty('speakers');
@@ -129,7 +130,7 @@ describe('dialogueGenerator', () => {
     });
 
     it('should update episode status to error on failure', async () => {
-      mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
+      mockGenerateCoreLlmText.mockRejectedValue(new Error('API error'));
 
       await expect(
         generateDialogue({
@@ -145,7 +146,7 @@ describe('dialogueGenerator', () => {
     });
 
     it('should strip markdown code fences from response', async () => {
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         `\`\`\`json\n${JSON.stringify(mockDialogueResponse)}\n\`\`\``
       );
 
@@ -163,7 +164,7 @@ describe('dialogueGenerator', () => {
         speakers: mockSpeakers,
       });
 
-      const prompt = mockGenerateWithGemini.mock.calls[0][0];
+      const prompt = mockGenerateCoreLlmText.mock.calls[0][0];
       expect(prompt).toContain('3 alternative ways');
       expect(prompt).toContain('EXACTLY 6 dialogue lines');
     });
@@ -176,7 +177,7 @@ describe('dialogueGenerator', () => {
         dialogueLength: 10,
       });
 
-      const prompt = mockGenerateWithGemini.mock.calls[0][0];
+      const prompt = mockGenerateCoreLlmText.mock.calls[0][0];
       expect(prompt).toContain('5 alternative ways');
       expect(prompt).toContain('EXACTLY 10 dialogue lines');
     });
@@ -223,8 +224,8 @@ describe('dialogueGenerator', () => {
         speakers: mockSpeakers,
       });
 
-      const systemInstruction = mockGenerateWithGemini.mock.calls[0][1];
-      const prompt = mockGenerateWithGemini.mock.calls[0][0];
+      const systemInstruction = mockGenerateCoreLlmText.mock.calls[0][1];
+      const prompt = mockGenerateCoreLlmText.mock.calls[0][0];
 
       // Should use stripped names (田中, not 田中[たなか])
       expect(systemInstruction).toContain('田中');
@@ -237,7 +238,7 @@ describe('dialogueGenerator', () => {
       const responseWithoutTitle = {
         sentences: mockDialogueResponse.sentences,
       };
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify(responseWithoutTitle));
+      mockGenerateCoreLlmText.mockResolvedValue(JSON.stringify(responseWithoutTitle));
 
       await generateDialogue({
         episodeId: 'episode-123',
@@ -306,7 +307,7 @@ describe('dialogueGenerator', () => {
         speakers: mockSpeakers,
       });
 
-      const systemInstruction = mockGenerateWithGemini.mock.calls[0][1];
+      const systemInstruction = mockGenerateCoreLlmText.mock.calls[0][1];
       expect(systemInstruction).toContain('Japanese');
     });
 
@@ -316,7 +317,7 @@ describe('dialogueGenerator', () => {
         speakers: mockSpeakers,
       });
 
-      const systemInstruction = mockGenerateWithGemini.mock.calls[0][1];
+      const systemInstruction = mockGenerateCoreLlmText.mock.calls[0][1];
       expect(systemInstruction).toContain('native, casual');
       expect(systemInstruction).toContain('intermediate, polite');
     });
@@ -329,7 +330,7 @@ describe('dialogueGenerator', () => {
         speakers: mockSpeakers,
       });
 
-      const prompt = mockGenerateWithGemini.mock.calls[0][0];
+      const prompt = mockGenerateCoreLlmText.mock.calls[0][0];
       expect(prompt).toContain('Two friends talking about their weekend');
     });
 
@@ -339,7 +340,7 @@ describe('dialogueGenerator', () => {
         speakers: mockSpeakers,
       });
 
-      const prompt = mockGenerateWithGemini.mock.calls[0][0];
+      const prompt = mockGenerateCoreLlmText.mock.calls[0][0];
       expect(prompt).toContain('Return your response as JSON');
       expect(prompt).toContain('"title"');
       expect(prompt).toContain('"sentences"');
@@ -358,7 +359,7 @@ describe('dialogueGenerator', () => {
         speakers: mockSpeakers,
       });
 
-      const systemInstruction = mockGenerateWithGemini.mock.calls[0][1];
+      const systemInstruction = mockGenerateCoreLlmText.mock.calls[0][1];
       expect(systemInstruction).toContain('Japanese');
     });
   });

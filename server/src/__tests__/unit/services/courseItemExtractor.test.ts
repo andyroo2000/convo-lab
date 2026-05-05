@@ -12,15 +12,16 @@ import type { LanguageMetadata } from '../../../services/languageProcessor.js';
 // Import after mocking
 
 // Create hoisted mocks
-const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
+const mockGenerateCoreLlmText = vi.hoisted(() => vi.fn());
 const mockReviewDialogue = vi.hoisted(() => vi.fn());
 const mockEditDialogue = vi.hoisted(() => vi.fn());
 const mockSampleVocabulary = vi.hoisted(() => vi.fn());
 const mockFormatWordsForPrompt = vi.hoisted(() => vi.fn());
 const mockGetProficiencyFramework = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../services/geminiClient.js', () => ({
-  generateWithGemini: mockGenerateWithGemini,
+vi.mock('../../../services/coreLlmClient.js', () => ({
+  generateCoreLlmText: mockGenerateCoreLlmText,
+  generateCoreLlmJsonText: mockGenerateCoreLlmText,
 }));
 
 vi.mock('../../../services/dialogueReviewer.js', () => ({
@@ -168,7 +169,7 @@ describe('courseItemExtractor', () => {
       const episode = createMockEpisode(sentences);
 
       // Mock batch decomposition response
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           phrases: [
             {
@@ -198,7 +199,7 @@ describe('courseItemExtractor', () => {
       const episode = createMockEpisode(sentences);
 
       // Mock with enough components for all sentences
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           phrases: Array.from({ length: 8 }, (_, i) => ({
             phraseIndex: i,
@@ -220,7 +221,7 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           phrases: [
             {
@@ -248,7 +249,7 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           phrases: [
             {
@@ -287,7 +288,7 @@ describe('courseItemExtractor', () => {
       );
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
+      mockGenerateCoreLlmText.mockRejectedValue(new Error('API error'));
 
       const result = await extractCoreItems(episode, 3, 5);
 
@@ -317,7 +318,7 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           phrases: sentences.map((_, i) => ({
             phraseIndex: i,
@@ -350,7 +351,7 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           phrases: sentences.map((_, i) => ({
             phraseIndex: i,
@@ -394,7 +395,7 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           phrases: sentences.map((_, i) => ({
             phraseIndex: i,
@@ -440,7 +441,7 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: [
             { sentenceIndex: 0, vocabulary: [{ word: 'こんにちは', translation: 'hello' }] },
@@ -461,7 +462,7 @@ describe('courseItemExtractor', () => {
       const sentences = [createMockSentence('s1', 'こんにちは', 'Hello')];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: [{ sentenceIndex: 0, vocabulary: [] }],
         })
@@ -485,7 +486,7 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: [
             {
@@ -505,7 +506,7 @@ describe('courseItemExtractor', () => {
       const sentences = [createMockSentence('s1', 'こんにちは', 'Hello')];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
+      mockGenerateCoreLlmText.mockRejectedValue(new Error('API error'));
 
       const result = await extractDialogueExchanges(episode);
 
@@ -520,7 +521,7 @@ describe('courseItemExtractor', () => {
       );
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: Array.from({ length: 26 }, (_, i) => ({
             sentenceIndex: i,
@@ -539,7 +540,7 @@ describe('courseItemExtractor', () => {
 
   describe('extractDialogueExchangesFromSourceText', () => {
     it('should generate dialogue from source text', async () => {
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: [
             {
@@ -586,7 +587,7 @@ describe('courseItemExtractor', () => {
     });
 
     it('should include JLPT level in vocabulary items', async () => {
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: [
             {
@@ -616,7 +617,7 @@ describe('courseItemExtractor', () => {
     });
 
     it('should assign voice IDs to speakers', async () => {
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: [
             {
@@ -653,7 +654,7 @@ describe('courseItemExtractor', () => {
     });
 
     it('should use provided speaker voice IDs', async () => {
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: [
             {
@@ -686,7 +687,7 @@ describe('courseItemExtractor', () => {
     });
 
     it('should throw error on API failure', async () => {
-      mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
+      mockGenerateCoreLlmText.mockRejectedValue(new Error('API error'));
 
       await expect(
         extractDialogueExchangesFromSourceText('A conversation', 'Test', 'ja', 'en', 15)
@@ -694,7 +695,7 @@ describe('courseItemExtractor', () => {
     });
 
     it('should throw error on invalid response format', async () => {
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           invalid: 'response',
         })
@@ -706,7 +707,7 @@ describe('courseItemExtractor', () => {
     });
 
     it('should clean romanization from vocabulary words', async () => {
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         JSON.stringify({
           exchanges: [
             {
@@ -756,7 +757,7 @@ describe('courseItemExtractor', () => {
       const episode = createMockEpisode(sentences);
 
       // Mock needs to return components for all phrases that will be selected
-      mockGenerateWithGemini.mockResolvedValue(
+      mockGenerateCoreLlmText.mockResolvedValue(
         `\`\`\`json\n${JSON.stringify({
           phrases: Array.from({ length: 4 }, (_, i) => ({
             phraseIndex: i,

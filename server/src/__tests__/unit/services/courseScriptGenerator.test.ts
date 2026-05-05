@@ -6,11 +6,12 @@ import { LessonPlan, LessonSection, DrillEvent } from '../../../services/courseP
 import { generateCourseScript, LessonScriptUnit } from '../../../services/courseScriptGenerator.js';
 
 // Create hoisted mocks
-const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
+const mockGenerateCoreLlmText = vi.hoisted(() => vi.fn());
 
 // Mock dependencies
-vi.mock('../../../services/geminiClient.js', () => ({
-  generateWithGemini: mockGenerateWithGemini,
+vi.mock('../../../services/coreLlmClient.js', () => ({
+  generateCoreLlmText: mockGenerateCoreLlmText,
+  generateCoreLlmJsonText: mockGenerateCoreLlmText,
 }));
 
 describe('courseScriptGenerator', () => {
@@ -60,7 +61,7 @@ describe('courseScriptGenerator', () => {
     vi.clearAllMocks();
 
     // Default mock for Gemini - return valid JSON for batch calls
-    mockGenerateWithGemini.mockImplementation(async (prompt: string) => {
+    mockGenerateCoreLlmText.mockImplementation(async (prompt: string) => {
       // Detect which batch call based on prompt content
       if (prompt.includes('LESSON_INTRO') && prompt.includes('CORE_ITEM_INTROS')) {
         return JSON.stringify({
@@ -201,7 +202,7 @@ describe('courseScriptGenerator', () => {
       await generateCourseScript(lessonPlan, mockContext);
 
       // Should have generated Gemini call for batch 1
-      expect(mockGenerateWithGemini).toHaveBeenCalled();
+      expect(mockGenerateCoreLlmText).toHaveBeenCalled();
     });
 
     it('should generate L2 audio units for core items', async () => {
@@ -281,7 +282,7 @@ describe('courseScriptGenerator', () => {
       await generateCourseScript(lessonPlan, mockContext);
 
       // Should have made batch 2 call
-      const batch2Call = mockGenerateWithGemini.mock.calls.find((call) =>
+      const batch2Call = mockGenerateCoreLlmText.mock.calls.find((call) =>
         call[0].includes('PHRASE_CONSTRUCTION_INTRO')
       );
       expect(batch2Call).toBeDefined();
@@ -340,7 +341,7 @@ describe('courseScriptGenerator', () => {
       await generateCourseScript(lessonPlan, mockContext);
 
       // Should have made batch 3 call
-      const batch3Call = mockGenerateWithGemini.mock.calls.find((call) =>
+      const batch3Call = mockGenerateCoreLlmText.mock.calls.find((call) =>
         call[0].includes('ROLEPLAY_INTRO')
       );
       expect(batch3Call).toBeDefined();
@@ -374,7 +375,7 @@ describe('courseScriptGenerator', () => {
 
   describe('fallback handling for JSON parsing errors', () => {
     it('should fallback gracefully when batch 1 JSON parsing fails', async () => {
-      mockGenerateWithGemini.mockResolvedValueOnce('Invalid JSON response');
+      mockGenerateCoreLlmText.mockResolvedValueOnce('Invalid JSON response');
 
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
@@ -398,7 +399,7 @@ describe('courseScriptGenerator', () => {
     });
 
     it('should handle markdown code blocks in JSON response', async () => {
-      mockGenerateWithGemini.mockResolvedValueOnce(`\`\`\`json
+      mockGenerateCoreLlmText.mockResolvedValueOnce(`\`\`\`json
 {
   "lessonIntro": "Welcome wrapped in markdown!",
   "coreItemIntros": ["Listen carefully."],

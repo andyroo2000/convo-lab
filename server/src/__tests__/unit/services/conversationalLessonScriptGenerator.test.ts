@@ -5,11 +5,12 @@ import { generateConversationalLessonScript } from '../../../services/conversati
 import type { DialogueExchange, VocabularyItem } from '../../../services/courseItemExtractor.js';
 
 // Hoisted mock
-const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
+const mockGenerateCoreLlmText = vi.hoisted(() => vi.fn());
 
 // Mock dependencies
-vi.mock('../../../services/geminiClient.js', () => ({
-  generateWithGemini: mockGenerateWithGemini,
+vi.mock('../../../services/coreLlmClient.js', () => ({
+  generateCoreLlmText: mockGenerateCoreLlmText,
+  generateCoreLlmJsonText: mockGenerateCoreLlmText,
 }));
 
 describe('conversationalLessonScriptGenerator', () => {
@@ -60,7 +61,7 @@ describe('conversationalLessonScriptGenerator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default scenario response
-    mockGenerateWithGemini.mockResolvedValue(
+    mockGenerateCoreLlmText.mockResolvedValue(
       'Pretend you are an American traveler at a Japanese bar in Hokkaido.'
     );
   });
@@ -69,7 +70,7 @@ describe('conversationalLessonScriptGenerator', () => {
     it('should generate intro with AI-generated scenario', async () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
-      expect(mockGenerateWithGemini).toHaveBeenCalled();
+      expect(mockGenerateCoreLlmText).toHaveBeenCalled();
       const scenarioUnit = result.units.find(
         (u) => u.type === 'narration_L1' && u.text.includes('Pretend')
       );
@@ -79,12 +80,12 @@ describe('conversationalLessonScriptGenerator', () => {
     it('should include JLPT level in scenario prompt when provided', async () => {
       await generateConversationalLessonScript(mockExchanges, mockContext);
 
-      const call = mockGenerateWithGemini.mock.calls[0][0];
+      const call = mockGenerateCoreLlmText.mock.calls[0][0];
       expect(call).toContain('JLPT N4');
     });
 
     it('should use fallback intro when AI fails', async () => {
-      mockGenerateWithGemini.mockRejectedValue(new Error('AI error'));
+      mockGenerateCoreLlmText.mockRejectedValue(new Error('AI error'));
 
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
@@ -299,7 +300,7 @@ describe('conversationalLessonScriptGenerator', () => {
       ];
 
       // Mock Gemini to return progressive chunks
-      mockGenerateWithGemini
+      mockGenerateCoreLlmText
         .mockResolvedValueOnce('Pretend you are talking to a friend.')
         .mockResolvedValueOnce(
           JSON.stringify([
@@ -311,7 +312,7 @@ describe('conversationalLessonScriptGenerator', () => {
       await generateConversationalLessonScript(exchangesForChunks, mockContext);
 
       // Should have called Gemini for scenario + progressive chunks
-      expect(mockGenerateWithGemini).toHaveBeenCalledTimes(2);
+      expect(mockGenerateCoreLlmText).toHaveBeenCalledTimes(2);
     });
 
     it('should handle vocabulary without JLPT level', async () => {

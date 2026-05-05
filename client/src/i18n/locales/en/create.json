@@ -9,6 +9,10 @@
     "course": {
       "title": "Audio Course",
       "description": "Audio-only lessons built from your dialogues—perfect for your commute or morning walk"
+    },
+    "dailyAudio": {
+      "title": "Daily Audio Practice",
+      "description": "Generate drills, dialogues, and a story from the flashcards you are learning"
     }
   },
   "buttons": {

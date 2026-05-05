@@ -87,6 +87,7 @@ describe('CreatePage', () => {
       renderCreatePage();
 
       expect(screen.getByTestId('create-card-dialogues')).toBeTruthy();
+      expect(screen.getByTestId('create-card-daily-audio')).toBeTruthy();
     });
   });
 
@@ -118,6 +119,15 @@ describe('CreatePage', () => {
       fireEvent.click(dialogueCard);
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/create/dialogue');
+    });
+
+    it('should navigate to daily audio practice on click', () => {
+      renderCreatePage();
+
+      const dailyAudioCard = screen.getByTestId('create-card-daily-audio');
+      fireEvent.click(dailyAudioCard);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/app/study/daily-audio');
     });
   });
 

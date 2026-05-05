@@ -59,6 +59,7 @@ model User {
   studyMedia              StudyMedia[]
   studyImportJobs         StudyImportJob[]
   studySettings           StudySettings?
+  dailyAudioPractices     DailyAudioPractice[]
 
   @@index([email])
   @@index([role])
@@ -329,6 +330,53 @@ model CourseCoreItem {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([courseId])
+}
+
+model DailyAudioPractice {
+  id                    String   @id @default(uuid())
+  userId                String
+  practiceDate          DateTime @db.Date
+  status                String   @default("draft") // draft, generating, ready, error
+  targetDurationMinutes Int      @default(30)
+  targetLanguage        String   @default("ja")
+  nativeLanguage        String   @default("en")
+  sourceCardIdsJson     Json?
+  selectionSummaryJson  Json?
+  errorMessage          String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user   User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tracks DailyAudioPracticeTrack[]
+
+  @@unique([userId, practiceDate])
+  @@index([userId, status, practiceDate])
+  @@index([status])
+  @@map("daily_audio_practices")
+}
+
+model DailyAudioPracticeTrack {
+  id                     String   @id @default(uuid())
+  practiceId             String
+  mode                   String // drill, dialogue, story
+  status                 String   @default("draft") // draft, generating, ready, error
+  title                  String
+  sortOrder              Int
+  scriptUnitsJson        Json?
+  audioUrl               String?
+  timingData             Json?
+  approxDurationSeconds  Int?
+  generationMetadataJson Json?
+  errorMessage           String?  @db.Text
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  practice DailyAudioPractice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, mode])
+  @@index([practiceId, sortOrder])
+  @@index([status])
+  @@map("daily_audio_practice_tracks")
 }
 
 // Speaker Avatar Models - Store avatars in GCS

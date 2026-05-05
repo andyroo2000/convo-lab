@@ -1,4 +1,4 @@
-import { generateWithGemini } from './geminiClient.js';
+import { generateCoreLlmText } from './coreLlmClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 
 export interface ProofreadingResult {
@@ -16,7 +16,7 @@ export interface ProofreadingResult {
  * - Japanese text accuracy
  * - Natural narrator English
  *
- * Uses Gemini 2.5 Flash for fast, cheap evaluation (~$0.001 per call).
+ * Uses the core OpenAI generator so proofreading follows the same provider path as generation.
  */
 export async function proofreadScript(
   units: LessonScriptUnit[],
@@ -66,7 +66,10 @@ If score < 7, include specific issues that need fixing.
 Be concise. Only flag real problems, not minor style preferences.`;
 
   try {
-    const response = await generateWithGemini(prompt, 'gemini-2.5-flash');
+    const response = await generateCoreLlmText(
+      prompt,
+      'You are a careful Japanese language teaching script proofreader. Return valid JSON only.'
+    );
     const parsed = JSON.parse(response);
 
     const result: ProofreadingResult = {

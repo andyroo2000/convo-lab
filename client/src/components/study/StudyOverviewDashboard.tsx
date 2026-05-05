@@ -62,6 +62,9 @@ const StudyOverviewDashboard = ({
             <Link to="/app/study/create" className={STUDY_ACTION_CLASS}>
               {t('overview.create')}
             </Link>
+            <Link to="/app/study/daily-audio" className={STUDY_ACTION_CLASS}>
+              {t('overview.dailyAudio')}
+            </Link>
             <Link to="/app/study/settings" className={STUDY_ACTION_CLASS}>
               {t('overview.settings')}
             </Link>

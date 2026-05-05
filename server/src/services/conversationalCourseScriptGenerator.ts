@@ -1,6 +1,6 @@
+import { generateCoreLlmText } from './coreLlmClient.js';
 import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
 import { LessonScriptUnit } from './courseScriptGenerator.js';
-import { generateWithGemini } from './geminiClient.js';
 import { buildSpeakerIntro } from './speakerNarration.js';
 
 interface ConversationalScriptContext {
@@ -55,7 +55,7 @@ Example: "Pretend you are an American traveler talking to a bartender at a Japan
 Write only the scenario setup, no additional formatting:`;
 
   try {
-    const scenarioIntro = await generateWithGemini(scenarioPrompt);
+    const scenarioIntro = await generateCoreLlmText(scenarioPrompt);
 
     units.push(
       { type: 'marker', label: 'Lesson Start' },
@@ -281,7 +281,7 @@ Return ONLY a JSON array (no markdown, no explanation):
 ]`;
 
   try {
-    const response = await generateWithGemini(prompt);
+    const response = await generateCoreLlmText(prompt);
 
     // Parse JSON
     let jsonText = response.trim();
