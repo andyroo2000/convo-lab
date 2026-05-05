@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
 import type { StudyMediaRef } from '@languageflow/shared/src/types';
 
 import {
   applyStudyCardImageToPayload,
   cardTypeForStudyCardCreationKind,
+  DEFAULT_AUDIO_RECOGNITION_VOICE_ID,
+  defaultVoiceIdForStudyCardCreationKind,
+  isStudyCardCreationDefaultVoice,
   mergeBlankStudyCardFormFields,
 } from '../studyCardCreationModel';
 import type { StudyCardFormPayload, StudyCardFormValues } from '../studyCardFormModel';
@@ -39,6 +43,17 @@ describe('studyCardCreationModel', () => {
     expect(cardTypeForStudyCardCreationKind('production-text')).toBe('production');
     expect(cardTypeForStudyCardCreationKind('production-image')).toBe('production');
     expect(cardTypeForStudyCardCreationKind('cloze')).toBe('cloze');
+  });
+
+  it('uses Ren as the manual audio-recognition default voice only', () => {
+    expect(defaultVoiceIdForStudyCardCreationKind('audio-recognition')).toBe(
+      DEFAULT_AUDIO_RECOGNITION_VOICE_ID
+    );
+    expect(defaultVoiceIdForStudyCardCreationKind('text-recognition')).toBe(
+      DEFAULT_NARRATOR_VOICES.ja
+    );
+    expect(isStudyCardCreationDefaultVoice(DEFAULT_AUDIO_RECOGNITION_VOICE_ID)).toBe(true);
+    expect(isStudyCardCreationDefaultVoice('custom-voice')).toBe(false);
   });
 
   it('merges only blank form fields from an LLM-completed draft', () => {
