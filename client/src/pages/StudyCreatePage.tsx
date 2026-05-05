@@ -17,7 +17,11 @@ import StudyCardImageControls from '../components/study/StudyCardImageControls';
 import StudyCardFormFields from '../components/study/StudyCardFormFields';
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import StudyCandidateDraftList from '../components/study/StudyCandidateDraftList';
-import { getStudyCardFormValues, useStudyCardForm } from '../components/study/studyCardFormModel';
+import {
+  buildStudyCardFormPayload,
+  getStudyCardFormValues,
+  useStudyCardForm,
+} from '../components/study/studyCardFormModel';
 import {
   applyStudyCardImageToPayload,
   cardTypeForStudyCardCreationKind,
@@ -82,14 +86,19 @@ const StudyCreatePage = () => {
     expectedMs: 40_000,
   });
   const roundedGenerationProgress = Math.round(generationProgress.progress);
-  const { values, setField, setValues, reset, buildPayload } = useStudyCardForm({
+  const { values, setField, setValues, reset } = useStudyCardForm({
     initialCardType: 'recognition',
+  });
+  const manualCardType = cardTypeForStudyCardCreationKind(creationKind);
+  const manualPayload = buildStudyCardFormPayload({
+    ...values,
+    cardType: manualCardType,
   });
   const manualPreviewImageUrl = toAssetUrl(manualPreviewImage?.url);
   const manualPreviewCard: StudyCardSummary = {
     id: 'manual-preview',
     noteId: 'manual-preview-note',
-    ...applyStudyCardImageToPayload(buildPayload(), manualPreviewImage, manualImagePlacement),
+    ...applyStudyCardImageToPayload(manualPayload, manualPreviewImage, manualImagePlacement),
     state: {
       dueAt: null,
       introducedAt: null,
@@ -124,13 +133,12 @@ const StudyCreatePage = () => {
 
   const handleFillRemainingFields = async () => {
     setManualSuccess(null);
-    const payload = buildPayload();
     try {
       const result = await completeDraft.mutateAsync({
         creationKind,
-        cardType: payload.cardType,
-        prompt: payload.prompt,
-        answer: payload.answer,
+        cardType: manualPayload.cardType,
+        prompt: manualPayload.prompt,
+        answer: manualPayload.answer,
         imagePlacement: manualImagePlacement,
         imagePrompt: manualImagePrompt.trim() || null,
       });
@@ -167,7 +175,7 @@ const StudyCreatePage = () => {
     event.preventDefault();
     setManualSuccess(null);
     const withImage = applyStudyCardImageToPayload(
-      buildPayload(),
+      manualPayload,
       manualPreviewImage,
       manualImagePlacement
     );

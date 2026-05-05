@@ -711,11 +711,7 @@ function parseStudyCardDraftCompleteRequest(value: unknown): StudyCardDraftCompl
   }
 
   const creationKind = parseStudyCardCreationKind(value.creationKind);
-  const cardType = String(value.cardType);
   const expectedCardType = cardTypeForStudyCardCreationKind(creationKind);
-  if (cardType !== expectedCardType) {
-    throw new AppError('cardType must match creationKind.', 400);
-  }
 
   const payloads = parseStudyCardPayloads(value.prompt, value.answer);
   const imagePrompt = parseOptionalNullableStringField('draft', 'imagePrompt', value.imagePrompt);
@@ -1366,7 +1362,7 @@ router.post(
 
       const {
         creationKind: rawCreationKind,
-        cardType,
+        cardType: rawCardType,
         prompt,
         answer,
       } = req.body as {
@@ -1376,21 +1372,25 @@ router.post(
         answer?: unknown;
       };
 
-      if (!['recognition', 'production', 'cloze'].includes(String(cardType))) {
-        res.status(400).json({ message: 'cardType must be recognition, production, or cloze.' });
-        return;
-      }
-
       const payloads = parseStudyCardPayloads(prompt, answer);
       const creationKind =
         // Legacy callers only send the persisted card type; infer the creation behavior.
         typeof rawCreationKind === 'undefined'
-          ? cardType === 'production'
+          ? rawCardType === 'production'
             ? 'production-text'
-            : cardType === 'cloze'
+            : rawCardType === 'cloze'
               ? 'cloze'
               : 'text-recognition'
           : parseStudyCardCreationKind(rawCreationKind);
+      const cardType =
+        typeof rawCreationKind === 'undefined'
+          ? String(rawCardType)
+          : cardTypeForStudyCardCreationKind(creationKind);
+
+      if (!['recognition', 'production', 'cloze'].includes(cardType)) {
+        res.status(400).json({ message: 'cardType must be recognition, production, or cloze.' });
+        return;
+      }
 
       const createdCard = await createManualStudyCard({
         userId: req.userId,
