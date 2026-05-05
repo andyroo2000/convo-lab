@@ -37,6 +37,9 @@ function parseTargetDurationMinutes(value: unknown): number {
 
 function getLocalPracticeDate(timeZone: unknown): Date {
   const timezone = typeof timeZone === 'string' && timeZone.trim() ? timeZone.trim() : 'UTC';
+  if (timezone.length > 64) {
+    throw new AppError('timeZone must be a valid IANA timezone.', 400);
+  }
   let parts: Intl.DateTimeFormatPart[];
   try {
     parts = new Intl.DateTimeFormat('en-CA', {

@@ -42,8 +42,10 @@ function scoreCard(card: DailyAudioSelectedCard, reviewCount: number, now: Date)
   const lastReviewedAtMs =
     card.lastReviewedAt instanceof Date ? card.lastReviewedAt.getTime() : null;
 
+  // Priority model: overdue, learning/relearning, lapses, recently introduced/reviewed, then new.
   if (dueAtMs !== null && dueAtMs <= now.getTime()) score += 140;
   if (card.queueState === 'learning' || card.queueState === 'relearning') score += 75;
+  if (card.queueState === 'new') score += 25;
   if ((card.sourceLapses ?? 0) > 0) score += Math.min(60, (card.sourceLapses ?? 0) * 15);
   if (introducedAtMs !== null && now.getTime() - introducedAtMs < 7 * 24 * 60 * 60 * 1000) {
     score += 30;
@@ -81,9 +83,6 @@ export async function selectDailyAudioPracticeCards(params: {
           rawFieldsJson: true,
         },
       },
-      promptAudioMedia: true,
-      answerAudioMedia: true,
-      imageMedia: true,
     },
     orderBy: [
       { dueAt: 'asc' },

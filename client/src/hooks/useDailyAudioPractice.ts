@@ -9,6 +9,8 @@ import type {
   DailyAudioPracticeTrack,
 } from '../types';
 
+const DEFAULT_DAILY_AUDIO_DURATION_MINUTES = 30;
+
 export const dailyAudioPracticeKeys = {
   all: ['daily-audio-practice'] as const,
   list: () => [...dailyAudioPracticeKeys.all, 'list'] as const,
@@ -59,7 +61,7 @@ async function createDailyAudioPractice() {
     method: 'POST',
     body: JSON.stringify({
       timeZone: getDeviceStudyTimeZone(),
-      targetDurationMinutes: 30,
+      targetDurationMinutes: DEFAULT_DAILY_AUDIO_DURATION_MINUTES,
     }),
   });
 }

@@ -32,6 +32,12 @@ function formatLanguageLabel(language: LanguageCode) {
   return language === 'ja' ? 'Japanese' : language.toUpperCase();
 }
 
+function formatTrackStatus(status: string) {
+  if (status === 'draft' || status === 'generating') return 'Preparing audio...';
+  if (status === 'error') return 'Track audio could not be generated.';
+  return `Track audio is ${status}.`;
+}
+
 const ScriptTrackPlayer = ({
   title,
   status,
@@ -111,7 +117,7 @@ const ScriptTrackPlayer = ({
           </>
         ) : (
           <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.12)] px-4 py-5 text-[rgba(20,50,86,0.72)]">
-            Track audio is {status}.
+            {formatTrackStatus(status)}
           </div>
         )}
 

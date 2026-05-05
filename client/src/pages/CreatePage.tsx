@@ -73,7 +73,9 @@ const CreatePage = () => {
                 data-testid="create-card-dialogues"
               >
                 <div className="retro-create-v3-card-head">
-                  <div className="retro-create-v3-card-kicker retro-caps">ワーク 1</div>
+                  <div className="retro-create-v3-card-kicker retro-caps">
+                    {t('create:kickers.dialogue')}
+                  </div>
                   <h2 className="retro-create-v3-card-title">{t('create:types.dialogue.title')}</h2>
                 </div>
 
@@ -105,7 +107,9 @@ const CreatePage = () => {
                 data-testid="create-card-daily-audio"
               >
                 <div className="retro-create-v3-card-head">
-                  <div className="retro-create-v3-card-kicker retro-caps">ワーク 2</div>
+                  <div className="retro-create-v3-card-kicker retro-caps">
+                    {t('create:kickers.dailyAudio')}
+                  </div>
                   <h2 className="retro-create-v3-card-title">
                     {t('create:types.dailyAudio.title')}
                   </h2>

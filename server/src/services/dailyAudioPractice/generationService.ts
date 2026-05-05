@@ -27,10 +27,12 @@ export async function processDailyAudioPracticeJob(params: {
   }
 
   try {
-    await prisma.dailyAudioPractice.update({
-      where: { id: practice.id },
-      data: { status: 'generating', errorMessage: null },
-    });
+    if (practice.status !== 'generating') {
+      await prisma.dailyAudioPractice.update({
+        where: { id: practice.id },
+        data: { status: 'generating', errorMessage: null },
+      });
+    }
 
     const selected = await selectDailyAudioPracticeCards({
       userId: practice.userId,

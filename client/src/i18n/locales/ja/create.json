@@ -1,6 +1,10 @@
 {
   "title": "何を作成しますか？",
   "subtitle": "開始するアクティビティタイプを選択してください",
+  "kickers": {
+    "dialogue": "ワーク 1",
+    "dailyAudio": "ワーク 2"
+  },
   "types": {
     "dialogue": {
       "title": "対話",

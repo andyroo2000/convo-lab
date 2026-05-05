@@ -3,6 +3,8 @@ import type { LessonScriptUnit } from '../lessonScriptGenerator.js';
 
 import type { DailyAudioLearningAtom, DailyAudioPracticeTrackMode } from './types.js';
 
+const MAX_SCRIPT_ATOMS = 50;
+
 interface ScriptGenerationOptions {
   atoms: DailyAudioLearningAtom[];
   targetDurationMinutes: number;
@@ -312,10 +314,18 @@ export async function buildDailyAudioPracticeScripts(
     throw new Error('Daily Audio Practice needs at least one eligible study card.');
   }
 
+  const boundedOptions = {
+    ...options,
+    atoms: options.atoms.slice(0, MAX_SCRIPT_ATOMS),
+  };
+  const [dialogue, story] = await Promise.all([
+    buildDialogueScript(boundedOptions),
+    buildStoryScript(boundedOptions),
+  ]);
   const scripts: GeneratedScripts = {
-    drill: buildDrillScript(options),
-    dialogue: await buildDialogueScript(options),
-    story: await buildStoryScript(options),
+    drill: buildDrillScript(boundedOptions),
+    dialogue,
+    story,
   };
 
   validateDailyAudioScriptUnits(scripts.drill);

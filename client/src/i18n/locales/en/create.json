@@ -1,6 +1,10 @@
 {
   "title": "What do you want to create?",
   "subtitle": "Choose an activity type to get started",
+  "kickers": {
+    "dialogue": "Work 1",
+    "dailyAudio": "Work 2"
+  },
   "types": {
     "dialogue": {
       "title": "Dialogue",

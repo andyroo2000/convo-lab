@@ -12,6 +12,8 @@ import {
   useRecentDailyAudioPractice,
 } from '../hooks/useDailyAudioPractice';
 
+const GENERATION_STALE_AFTER_MS = 90 * 60 * 1000;
+
 function formatStatus(status: string) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
@@ -32,7 +34,15 @@ const DailyAudioPracticePage = () => {
   const practice =
     detailQuery.data ?? recentQuery.data?.find((item) => item.id === selectedPracticeId);
   const generating = practice?.status === 'generating';
-  const statusQuery = useDailyAudioPracticeStatus(practice?.id, Boolean(generating));
+  const generationUpdatedAt = practice?.updatedAt ? new Date(practice.updatedAt).getTime() : null;
+  const staleGeneration =
+    Boolean(generating) &&
+    generationUpdatedAt !== null &&
+    Date.now() - generationUpdatedAt > GENERATION_STALE_AFTER_MS;
+  const statusQuery = useDailyAudioPracticeStatus(
+    practice?.id,
+    Boolean(generating && !staleGeneration)
+  );
 
   useEffect(() => {
     const status = statusQuery.data?.status;
@@ -54,7 +64,7 @@ const DailyAudioPracticePage = () => {
   };
 
   const loading = recentQuery.isLoading || Boolean(selectedPracticeId && detailQuery.isLoading);
-  const progress = statusQuery.data?.progress ?? (generating ? 10 : null);
+  const progress = statusQuery.data?.progress ?? (generating ? 0 : null);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5">
@@ -116,6 +126,17 @@ const DailyAudioPracticePage = () => {
             {createPractice.error instanceof Error
               ? createPractice.error.message
               : 'Daily audio practice could not be started.'}
+          </p>
+        </section>
+      ) : null}
+
+      {staleGeneration ? (
+        <section className="retro-paper-panel border-2 border-amber-200 bg-amber-50 px-4 py-5">
+          <h2 className="text-xl font-bold text-amber-950">
+            Generation is taking longer than expected
+          </h2>
+          <p className="mt-2 text-amber-800">
+            Start a new generation to retry today&apos;s practice set.
           </p>
         </section>
       ) : null}
