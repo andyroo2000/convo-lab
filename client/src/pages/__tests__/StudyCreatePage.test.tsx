@@ -18,6 +18,11 @@ async function chooseAnswerAudioVoice(name: RegExp | string) {
   await userEvent.click(await screen.findByRole('option', { name }));
 }
 
+async function chooseManualCardType(name: RegExp | string) {
+  await userEvent.click(screen.getByRole('combobox', { name: 'Card type' }));
+  await userEvent.click(await screen.findByRole('option', { name }));
+}
+
 const {
   commitCandidatesMock,
   commitCandidatesState,
@@ -285,9 +290,8 @@ describe('StudyCreatePage', () => {
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
-    expect(screen.getByRole('radio', { name: 'Text recognition' })).toHaveAttribute(
-      'aria-checked',
-      'true'
+    expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent(
+      'Text recognition'
     );
     await userEvent.type(screen.getByLabelText('Prompt text'), '会社');
     await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
@@ -303,11 +307,30 @@ describe('StudyCreatePage', () => {
     expect(screen.getByLabelText('Image placement')).toHaveValue('answer');
   });
 
+  it('opens the reusable card preview for manually entered fields', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.type(screen.getByLabelText('Prompt text'), '会社');
+    await userEvent.type(screen.getByLabelText('Answer expression'), '会社');
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
+    await userEvent.click(screen.getByRole('button', { name: 'Preview card' }));
+
+    expect(screen.getByRole('dialog', { name: 'Card preview' })).toBeInTheDocument();
+    expect(screen.getByText('Prompt side')).toBeInTheDocument();
+    expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
+
+    expect(screen.getByText('Answer side')).toBeInTheDocument();
+    expect(screen.getAllByText('company').length).toBeGreaterThan(0);
+  });
+
   it('auto-generates the image preview when filling production-from-image', async () => {
     completeDraftMock.mockResolvedValue({
       creationKind: 'production-image',
       cardType: 'production',
-      prompt: { cueMeaning: '名詞' },
+      prompt: { cueText: 'cloudy weather', cueMeaning: '名詞' },
       answer: {
         expression: '曇り',
         expressionReading: '曇り[くもり]',
@@ -328,7 +351,7 @@ describe('StudyCreatePage', () => {
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
-    await userEvent.click(screen.getByRole('radio', { name: 'Production from image' }));
+    await chooseManualCardType(/Production from image/);
     await userEvent.type(screen.getByLabelText('Prompt text'), 'cloudy weather');
     await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
 
@@ -338,15 +361,17 @@ describe('StudyCreatePage', () => {
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
-    expect(createStudyCardMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        creationKind: 'production-image',
-        cardType: 'production',
-        prompt: expect.objectContaining({
-          cueImage: expect.objectContaining({ id: 'manual-image' }),
-          cueText: null,
-        }),
-      })
+    await waitFor(() =>
+      expect(createStudyCardMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          creationKind: 'production-image',
+          cardType: 'production',
+          prompt: expect.objectContaining({
+            cueImage: expect.objectContaining({ id: 'manual-image' }),
+            cueText: null,
+          }),
+        })
+      )
     );
   });
 
@@ -375,11 +400,11 @@ describe('StudyCreatePage', () => {
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
-    await userEvent.click(screen.getByRole('radio', { name: 'Production from image' }));
+    await chooseManualCardType(/Production from image/);
     await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
     expect(screen.getByAltText('Generated card prompt')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', { name: 'Text recognition' }));
+    await chooseManualCardType(/Text recognition/);
 
     expect(screen.queryByAltText('Generated card prompt')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Image prompt')).toHaveValue('');

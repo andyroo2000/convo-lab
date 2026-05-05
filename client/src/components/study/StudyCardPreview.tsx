@@ -89,12 +89,14 @@ export const StudyCardFace = ({
   card,
   layout = 'default',
   promptAudioRef,
+  resolvePitchAccent = true,
   side,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   card: StudyCardSummary;
   layout?: StudyCardLayout;
   promptAudioRef?: Ref<AudioPlayerHandle>;
+  resolvePitchAccent?: boolean;
   side: 'front' | 'back';
 }) => {
   const compactMobile = layout === 'mobile-focus';
@@ -264,7 +266,7 @@ export const StudyCardFace = ({
             }`}
           />
         ) : null}
-        <StudyPitchAccentPanel card={card} enabled />
+        <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
         <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
         {card.answer.meaning ? (
           <p
@@ -310,7 +312,7 @@ export const StudyCardFace = ({
           testId="study-answer-audio"
         />
       ) : null}
-      <StudyPitchAccentPanel card={card} enabled />
+      <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       {card.answer.restoredText ? (
         <p

@@ -9,11 +9,13 @@ import type {
   StudyCardCreationKind,
   StudyCardDraftCompleteResponse,
   StudyCardImagePlacement,
+  StudyCardSummary,
   StudyMediaRef,
 } from '@languageflow/shared/src/types';
 
 import StudyCardImageControls from '../components/study/StudyCardImageControls';
 import StudyCardFormFields from '../components/study/StudyCardFormFields';
+import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import StudyCandidateDraftList from '../components/study/StudyCandidateDraftList';
 import { getStudyCardFormValues, useStudyCardForm } from '../components/study/studyCardFormModel';
 import {
@@ -71,6 +73,7 @@ const StudyCreatePage = () => {
   const [manualImagePrompt, setManualImagePrompt] = useState('');
   const [manualImagePlacement, setManualImagePlacement] = useState<StudyCardImagePlacement>('none');
   const [manualPreviewImage, setManualPreviewImage] = useState<StudyMediaRef | null>(null);
+  const [isManualPreviewOpen, setIsManualPreviewOpen] = useState(false);
   const generated = useGeneratedStudyCandidates();
   const generationProgress = useFakeProgress(generated.generateCandidates.isPending, {
     // Candidate generation often takes tens of seconds, so pace the visual feedback for that wait.
@@ -81,6 +84,21 @@ const StudyCreatePage = () => {
     initialCardType: 'recognition',
   });
   const manualPreviewImageUrl = toAssetUrl(manualPreviewImage?.url);
+  const manualPreviewCard: StudyCardSummary = {
+    id: 'manual-preview',
+    noteId: 'manual-preview-note',
+    ...applyStudyCardImageToPayload(buildPayload(), manualPreviewImage, manualImagePlacement),
+    state: {
+      dueAt: null,
+      introducedAt: null,
+      queueState: 'new',
+      scheduler: null,
+      source: {},
+    },
+    answerAudioSource: 'missing',
+    createdAt: '1970-01-01T00:00:00.000Z',
+    updatedAt: '1970-01-01T00:00:00.000Z',
+  };
 
   const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
     const wasProductionImage = creationKind === 'production-image';
@@ -162,6 +180,7 @@ const StudyCreatePage = () => {
       setManualImagePrompt('');
       setManualImagePlacement('none');
       setManualPreviewImage(null);
+      setIsManualPreviewOpen(false);
     } catch {
       // React Query stores the mutation error for the visible form message.
     }
@@ -313,7 +332,7 @@ const StudyCreatePage = () => {
           </form>
         </section>
       ) : (
-        <section className="card retro-paper-panel max-w-3xl">
+        <section className="card retro-paper-panel max-w-4xl">
           <form className="space-y-4" onSubmit={handleManualSubmit}>
             <StudyCardFormFields
               values={values}
@@ -366,6 +385,13 @@ const StudyCreatePage = () => {
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
+                onClick={() => setIsManualPreviewOpen(true)}
+                className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
+              >
+                {t('create.previewCard')}
+              </button>
+              <button
+                type="button"
                 onClick={handleFillRemainingFields}
                 disabled={
                   completeDraft.isPending || createCard.isPending || generateDraftImage.isPending
@@ -390,6 +416,12 @@ const StudyCreatePage = () => {
                 {t('create.back')}
               </Link>
             </div>
+            {isManualPreviewOpen ? (
+              <StudyCandidateCardPreviewModal
+                card={manualPreviewCard}
+                onClose={() => setIsManualPreviewOpen(false)}
+              />
+            ) : null}
           </form>
         </section>
       )}

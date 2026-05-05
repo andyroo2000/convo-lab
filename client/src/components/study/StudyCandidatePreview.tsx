@@ -102,7 +102,7 @@ const StudyCandidateCardPreviewModal = ({
           }}
           className="min-h-[52vh] flex-1 overflow-y-auto px-5 py-8 text-left"
         >
-          <StudyCardFace card={card} side={side} />
+          <StudyCardFace card={card} resolvePitchAccent={false} side={side} />
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-gray-200 px-5 py-4">

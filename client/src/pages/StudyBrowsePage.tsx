@@ -7,6 +7,7 @@ import type { StudyBrowserField, StudyBrowserListResponse } from '@languageflow/
 
 import ConfirmModal from '../components/common/ConfirmModal';
 import StudyCardEditor from '../components/study/StudyCardEditor';
+import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import StudyFormField from '../components/study/StudyFormField';
 import StudySetDueControls from '../components/study/StudySetDueControls';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
@@ -78,6 +79,7 @@ const StudyBrowsePage = () => {
   // In the always-editor browse flow, Cancel means discard local edits by remounting the editor.
   const [editorResetToken, setEditorResetToken] = useState(0);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const runBackgroundTask = useStudyBackgroundTask();
   const mutationResetRef = useRef({
@@ -151,6 +153,7 @@ const StudyBrowsePage = () => {
 
   useEffect(() => {
     setShowSetDueControls(false);
+    setIsPreviewOpen(false);
     mutationResetRef.current.updateCard?.();
     mutationResetRef.current.regenerateAudio?.();
     mutationResetRef.current.regenerateImage?.();
@@ -620,6 +623,13 @@ const StudyBrowsePage = () => {
                         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
                           <button
                             type="button"
+                            onClick={() => setIsPreviewOpen(true)}
+                            className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50"
+                          >
+                            {t('create.previewCard')}
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => {
                               runBackgroundTask(
                                 () =>
@@ -738,6 +748,12 @@ const StudyBrowsePage = () => {
                           return updatedCard;
                         }}
                       />
+                      {isPreviewOpen ? (
+                        <StudyCandidateCardPreviewModal
+                          card={selectedCard}
+                          onClose={() => setIsPreviewOpen(false)}
+                        />
+                      ) : null}
                     </div>
                   ) : null}
 

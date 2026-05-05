@@ -560,6 +560,125 @@ describe('StudyPage', () => {
     });
   });
 
+  it('replays prompt audio button clicks without revealing audio-led cards', async () => {
+    const audioPrompt = {
+      cueAudio: {
+        filename: 'listening.mp3',
+        url: 'https://example.com/listening.mp3',
+        mediaKind: 'audio' as const,
+        source: 'imported' as const,
+      },
+    };
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 4,
+        newCount: 6,
+        learningCount: 2,
+        reviewCount: 8,
+        suspendedCount: 0,
+        totalCards: 20,
+      },
+      cards: [
+        {
+          ...baseCard,
+          prompt: audioPrompt,
+        },
+      ],
+    });
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
+      ...baseCard,
+      id: cardId,
+      prompt: audioPrompt,
+      answer: {
+        ...baseCard.answer,
+        answerAudio: {
+          filename: `${cardId}.mp3`,
+          url: `https://example.com/${cardId}.mp3`,
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      answerAudioSource: 'generated',
+    }));
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    });
+    const promptAudio = screen
+      .getAllByLabelText('Replay prompt audio')
+      .find((element): element is HTMLAudioElement => element instanceof HTMLAudioElement);
+    expect(promptAudio).not.toBeNull();
+    fireEvent.ended(promptAudio!);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByText('company')).not.toBeInTheDocument();
+    expect(screen.getByText('Tap, click, or press space to reveal')).toBeInTheDocument();
+  });
+
+  it('uses Space to replay prompt audio instead of revealing audio-led cards', async () => {
+    const audioPrompt = {
+      cueAudio: {
+        filename: 'listening.mp3',
+        url: 'https://example.com/listening.mp3',
+        mediaKind: 'audio' as const,
+        source: 'imported' as const,
+      },
+    };
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 4,
+        newCount: 6,
+        learningCount: 2,
+        reviewCount: 8,
+        suspendedCount: 0,
+        totalCards: 20,
+      },
+      cards: [
+        {
+          ...baseCard,
+          prompt: audioPrompt,
+        },
+      ],
+    });
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
+      ...baseCard,
+      id: cardId,
+      prompt: audioPrompt,
+      answer: {
+        ...baseCard.answer,
+        answerAudio: {
+          filename: `${cardId}.mp3`,
+          url: `https://example.com/${cardId}.mp3`,
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      answerAudioSource: 'generated',
+    }));
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.keyDown(window, { code: 'Space' });
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByText('company')).not.toBeInTheDocument();
+    expect(screen.getByText('Tap, click, or press space to reveal')).toBeInTheDocument();
+  });
+
   it('autoplays existing answer audio immediately when revealing a card', async () => {
     const originalPlayDescriptor = Object.getOwnPropertyDescriptor(
       HTMLMediaElement.prototype,
@@ -840,6 +959,11 @@ describe('StudyPage', () => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
     });
 
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(3);
+    });
+
     fireEvent.keyDown(window, { code: 'Digit1', key: '1' });
     await waitFor(() => {
       expect(mutateAsyncMock).toHaveBeenCalledWith({
@@ -854,7 +978,7 @@ describe('StudyPage', () => {
     fireEvent.keyDown(window, { code: 'Space' });
     fireEvent.keyDown(window, { code: 'Digit3', key: '3' });
     await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(3);
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(4);
     });
     await waitFor(() => {
       expect(mutateAsyncMock).toHaveBeenCalledWith({
@@ -864,12 +988,17 @@ describe('StudyPage', () => {
     });
 
     await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(4);
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(5);
     });
 
     fireEvent.keyDown(window, { code: 'Space' });
     await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(5);
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(6);
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(7);
     });
 
     const focusedAnswerAudio = screen

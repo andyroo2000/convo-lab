@@ -1,5 +1,6 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { StudyCardCreationKind, StudyCardType } from '@languageflow/shared/src/types';
-import { Braces, Eye, Image, Pencil, Volume2 } from 'lucide-react';
+import { Braces, ChevronDown, Eye, Image, Pencil, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
@@ -36,6 +37,9 @@ const CARD_CREATION_KIND_OPTIONS = [
   { value: 'cloze', labelKey: 'cloze', Icon: Braces },
 ] as const;
 
+const getNextIndex = (currentIndex: number, direction: 1 | -1, optionCount: number) =>
+  (currentIndex + direction + optionCount) % optionCount;
+
 const StudyCardFormFields = ({
   values,
   idPrefix,
@@ -50,6 +54,138 @@ const StudyCardFormFields = ({
 }: StudyCardFormFieldsProps) => {
   const { t } = useTranslation('study');
   const cardTypeLabelId = `${idPrefix}-card-type-label`;
+  const listboxId = `${idPrefix}-card-type-listbox`;
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [isCardKindOpen, setIsCardKindOpen] = useState(false);
+  const activeCreationKindIndexRef = useRef(0);
+  const selectedCreationKindOption = useMemo(
+    () =>
+      CARD_CREATION_KIND_OPTIONS.find((option) => option.value === creationKind) ??
+      CARD_CREATION_KIND_OPTIONS[0],
+    [creationKind]
+  );
+  const selectedCreationKindIndex = CARD_CREATION_KIND_OPTIONS.findIndex(
+    (option) => option.value === selectedCreationKindOption.value
+  );
+  const [activeCreationKindIndex, setActiveCreationKindIndex] = useState(selectedCreationKindIndex);
+
+  useEffect(() => {
+    setActiveCreationKindIndex(selectedCreationKindIndex);
+    activeCreationKindIndexRef.current = selectedCreationKindIndex;
+  }, [selectedCreationKindIndex]);
+
+  const setActiveCreationKind = useCallback((nextIndex: number) => {
+    activeCreationKindIndexRef.current = nextIndex;
+    setActiveCreationKindIndex(nextIndex);
+  }, []);
+
+  useEffect(() => {
+    if (!isCardKindOpen) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!dropdownRef.current?.contains(event.target as Node)) {
+        setIsCardKindOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [isCardKindOpen]);
+
+  const openCreationKindDropdown = useCallback(
+    (nextIndex = selectedCreationKindIndex) => {
+      setActiveCreationKind(nextIndex);
+      setIsCardKindOpen(true);
+      window.requestAnimationFrame(() => {
+        optionRefs.current[nextIndex]?.focus();
+      });
+    },
+    [selectedCreationKindIndex, setActiveCreationKind]
+  );
+
+  const selectCreationKind = useCallback(
+    (nextKind: StudyCardCreationKind) => {
+      onCreationKindChange?.(nextKind);
+      setIsCardKindOpen(false);
+      window.requestAnimationFrame(() => {
+        buttonRef.current?.focus();
+      });
+    },
+    [onCreationKindChange]
+  );
+
+  const handleCreationKindButtonKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextIndex = getNextIndex(
+        isCardKindOpen ? activeCreationKindIndexRef.current : selectedCreationKindIndex,
+        1,
+        CARD_CREATION_KIND_OPTIONS.length
+      );
+      openCreationKindDropdown(nextIndex);
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const nextIndex = getNextIndex(
+        isCardKindOpen ? activeCreationKindIndexRef.current : selectedCreationKindIndex,
+        -1,
+        CARD_CREATION_KIND_OPTIONS.length
+      );
+      openCreationKindDropdown(nextIndex);
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (isCardKindOpen) {
+        selectCreationKind(CARD_CREATION_KIND_OPTIONS[activeCreationKindIndexRef.current].value);
+        return;
+      }
+      openCreationKindDropdown();
+    }
+  };
+
+  const handleCreationKindOptionKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    optionIndex: number
+  ) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const nextIndex = getNextIndex(
+        optionIndex,
+        event.key === 'ArrowDown' ? 1 : -1,
+        CARD_CREATION_KIND_OPTIONS.length
+      );
+      setActiveCreationKind(nextIndex);
+      optionRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      const nextIndex = event.key === 'Home' ? 0 : CARD_CREATION_KIND_OPTIONS.length - 1;
+      setActiveCreationKind(nextIndex);
+      optionRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setIsCardKindOpen(false);
+      buttonRef.current?.focus();
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      selectCreationKind(CARD_CREATION_KIND_OPTIONS[optionIndex].value);
+    }
+  };
+  const SelectedCreationKindIcon = selectedCreationKindOption.Icon;
 
   return (
     <>
@@ -58,18 +194,101 @@ const StudyCardFormFields = ({
           <p id={cardTypeLabelId} className="mb-2 block text-sm font-medium text-gray-700">
             {t('form.cardType')}
           </p>
-          <div
-            role="radiogroup"
-            aria-labelledby={cardTypeLabelId}
-            className={`grid grid-cols-1 gap-2 ${
-              onCreationKindChange ? 'sm:grid-cols-2 lg:grid-cols-5' : 'sm:grid-cols-3'
-            }`}
-          >
-            {(onCreationKindChange ? CARD_CREATION_KIND_OPTIONS : CARD_TYPE_OPTIONS).map(
-              ({ value, labelKey, Icon }) => {
-                const isSelected = onCreationKindChange
-                  ? creationKind === value
-                  : values.cardType === value;
+          {onCreationKindChange ? (
+            <div ref={dropdownRef} className="relative">
+              <button
+                ref={buttonRef}
+                type="button"
+                role="combobox"
+                aria-controls={listboxId}
+                aria-expanded={isCardKindOpen}
+                aria-haspopup="listbox"
+                aria-labelledby={cardTypeLabelId}
+                onClick={() => {
+                  if (isCardKindOpen) {
+                    setIsCardKindOpen(false);
+                    return;
+                  }
+                  openCreationKindDropdown();
+                }}
+                onKeyDown={handleCreationKindButtonKeyDown}
+                className="flex w-full items-center gap-4 rounded-xl border border-navy/45 bg-white px-4 py-3 text-left text-navy shadow-sm transition hover:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-navy text-white">
+                  <SelectedCreationKindIcon aria-hidden="true" className="h-6 w-6" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">
+                    {t(`form.${selectedCreationKindOption.labelKey}`)}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-gray-600">
+                    {t(`form.${selectedCreationKindOption.labelKey}Description`)}
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`h-5 w-5 shrink-0 text-gray-500 transition-transform ${
+                    isCardKindOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              {isCardKindOpen ? (
+                <div
+                  id={listboxId}
+                  role="listbox"
+                  aria-labelledby={cardTypeLabelId}
+                  className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-10 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+                >
+                  {CARD_CREATION_KIND_OPTIONS.map(({ value, labelKey, Icon }, optionIndex) => {
+                    const isSelected = creationKind === value;
+                    const isActive = activeCreationKindIndex === optionIndex;
+
+                    return (
+                      <button
+                        key={value}
+                        ref={(element) => {
+                          optionRefs.current[optionIndex] = element;
+                        }}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        tabIndex={isActive ? 0 : -1}
+                        onClick={() => selectCreationKind(value)}
+                        onKeyDown={(event) => handleCreationKindOptionKeyDown(event, optionIndex)}
+                        onMouseEnter={() => setActiveCreationKind(optionIndex)}
+                        className={`flex w-full items-center gap-4 px-4 py-3 text-left transition ${
+                          isSelected
+                            ? 'bg-cream text-navy'
+                            : 'text-gray-700 hover:bg-cream/70 hover:text-navy'
+                        }`}
+                      >
+                        <span
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+                            isSelected ? 'bg-navy text-white' : 'bg-navy/5 text-navy'
+                          }`}
+                        >
+                          <Icon aria-hidden="true" className="h-5 w-5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-semibold">{t(`form.${labelKey}`)}</span>
+                          <span className="mt-0.5 block text-sm text-gray-600">
+                            {t(`form.${labelKey}Description`)}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div
+              role="radiogroup"
+              aria-labelledby={cardTypeLabelId}
+              className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            >
+              {CARD_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => {
+                const isSelected = values.cardType === value;
 
                 return (
                   <button
@@ -77,13 +296,7 @@ const StudyCardFormFields = ({
                     type="button"
                     role="radio"
                     aria-checked={isSelected}
-                    onClick={() => {
-                      if (onCreationKindChange) {
-                        onCreationKindChange(value as StudyCardCreationKind);
-                        return;
-                      }
-                      onCardTypeChange?.(value as StudyCardType);
-                    }}
+                    onClick={() => onCardTypeChange?.(value as StudyCardType)}
                     className={`flex min-h-[4.75rem] items-center gap-3 rounded-xl border bg-white px-3.5 py-3 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-navy/15 ${
                       isSelected
                         ? 'border-navy/50 bg-cream text-navy shadow-sm'
@@ -100,9 +313,9 @@ const StudyCardFormFields = ({
                     <span className="font-semibold">{t(`form.${labelKey}`)}</span>
                   </button>
                 );
-              }
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       ) : null}
 
