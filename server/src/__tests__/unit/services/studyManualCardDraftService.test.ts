@@ -194,6 +194,22 @@ describe('manual study card drafts', () => {
     );
   });
 
+  it('rejects audio-recognition cards when prompt audio cannot be generated', async () => {
+    vi.mocked(synthesizeCandidatePreviewAudio).mockResolvedValue(null);
+
+    await expect(
+      createManualStudyCard({
+        userId: 'user-1',
+        creationKind: 'audio-recognition',
+        cardType: 'recognition',
+        prompt: {},
+        answer: { expression: '会社', meaning: 'company' },
+      })
+    ).rejects.toThrow('Could not generate audio for this card.');
+
+    expect(createStudyCard).not.toHaveBeenCalled();
+  });
+
   it('validates generated preview image ownership before creating a manual card', async () => {
     vi.mocked(getOwnedPreviewMediaIds).mockResolvedValue(new Set(['image-1']));
     vi.mocked(createStudyCard).mockResolvedValue({ id: 'card-1' } as never);

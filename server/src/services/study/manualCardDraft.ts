@@ -446,12 +446,13 @@ export async function createManualStudyCard(input: {
       answer,
       rationale: 'Generated manual listening prompt audio.',
     });
-    if (generated?.id) {
-      prompt = { cueAudio: generated };
-      answer = { ...answer, answerAudio: generated };
-      promptAudioMediaId = generated.id;
-      answerAudioMediaId = generated.id;
+    if (!generated?.id) {
+      throw new AppError('Could not generate audio for this card.', 502);
     }
+    prompt = { cueAudio: generated };
+    answer = { ...answer, answerAudio: generated };
+    promptAudioMediaId = generated.id;
+    answerAudioMediaId = generated.id;
   }
 
   const imageMediaId = await resolveManualImageMediaId({

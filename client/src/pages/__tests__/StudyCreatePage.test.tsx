@@ -350,6 +350,42 @@ describe('StudyCreatePage', () => {
     );
   });
 
+  it('clears production-image preview state when switching to another manual kind', async () => {
+    completeDraftMock.mockResolvedValue({
+      creationKind: 'production-image',
+      cardType: 'production',
+      prompt: { cueMeaning: '名詞' },
+      answer: {
+        expression: '曇り',
+        expressionReading: '曇り[くもり]',
+        meaning: 'cloudy weather',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      },
+      imagePlacement: 'prompt',
+      imagePrompt: 'A realistic photo of cloudy weather over Tokyo. No text.',
+      previewImage: {
+        id: 'manual-image',
+        filename: 'manual-image.webp',
+        url: '/api/study/media/manual-image',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+    });
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Production from image' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
+    expect(screen.getByAltText('Generated card prompt')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Text recognition' }));
+
+    expect(screen.queryByAltText('Generated card prompt')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Image prompt')).toHaveValue('');
+    expect(screen.getByLabelText('Image placement')).toHaveValue('none');
+  });
+
   it('generates a manual image from the edited prompt before create', async () => {
     generateDraftImageMock.mockResolvedValue({
       previewImage: {

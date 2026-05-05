@@ -83,11 +83,16 @@ const StudyCreatePage = () => {
   const manualPreviewImageUrl = toAssetUrl(manualPreviewImage?.url);
 
   const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
+    const wasProductionImage = creationKind === 'production-image';
     setCreationKind(nextCreationKind);
     setCardType(cardTypeForStudyCardCreationKind(nextCreationKind));
     setManualSuccess(null);
     if (nextCreationKind === 'production-image' && manualImagePlacement === 'none') {
       setManualImagePlacement('prompt');
+    } else if (wasProductionImage && nextCreationKind !== 'production-image') {
+      setManualImagePlacement('none');
+      setManualImagePrompt('');
+      setManualPreviewImage(null);
     }
   };
 
