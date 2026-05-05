@@ -433,6 +433,9 @@ describe('StudyBrowsePage', () => {
     expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
     await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(resolveStudyCardPitchAccentMock.mock.calls[0]?.[0]).toBe('card-1');
+    });
   });
 
   it('sends the device timezone when setting a browse card due tomorrow', async () => {

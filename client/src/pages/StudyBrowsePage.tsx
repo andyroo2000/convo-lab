@@ -752,6 +752,7 @@ const StudyBrowsePage = () => {
                         <StudyCandidateCardPreviewModal
                           card={selectedCard}
                           onClose={() => setIsPreviewOpen(false)}
+                          resolvePitchAccent
                         />
                       ) : null}
                     </div>
