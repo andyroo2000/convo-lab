@@ -64,6 +64,8 @@ describe('manual study card drafts', () => {
     });
 
     expect(result.prompt.clozeText).toBe('My {{c1::example}} and {{c1::second}} sentence.');
+    expect(result.prompt.clozeDisplayText).toBe('My [...] and [...] sentence.');
+    expect(result.prompt.clozeAnswerText).toBe('second');
     expect(result.answer.restoredText).toBe('My example and second sentence.');
     expect(result.imagePrompt).toContain('No text');
     expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(

@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import {
+  normalizeClozePayloadFields,
+  normalizeLooseClozeText,
+} from '@languageflow/shared/src/studyCloze.js';
 import { STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH } from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
@@ -95,13 +99,6 @@ export function selectStudyImagePromptTreatment(seed: string): string {
   }
 
   return IMAGE_PROMPT_TREATMENTS[hash % IMAGE_PROMPT_TREATMENTS.length];
-}
-
-function normalizeLooseClozeText(value: string | null | undefined): string | null {
-  const text = value?.trim();
-  if (!text) return null;
-  if (text.includes('{{c1::')) return text;
-  return text.replace(/\[([^\]]+)]/g, '{{c1::$1}}');
 }
 
 function hasText(value: unknown): value is string {
@@ -357,12 +354,17 @@ export async function completeManualStudyCardDraft(input: {
     })
   );
   const parsed = parseManualDraftResponse(rawResponse);
-  const prompt = mergeBlankPromptPayload(request.prompt, parsed.prompt);
+  let prompt: StudyPromptPayload = mergeBlankPromptPayload(request.prompt, parsed.prompt);
   const mergedAnswer = mergeBlankAnswerPayload(request.answer, parsed.answer);
-  const answer = {
+  let answer: StudyAnswerPayload = {
     ...mergedAnswer,
     answerAudioVoiceId: mergedAnswer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja,
   };
+  if (request.cardType === 'cloze') {
+    const normalized = normalizeClozePayloadFields(prompt, answer);
+    prompt = normalized.prompt;
+    answer = normalized.answer;
+  }
   let imagePrompt =
     request.imagePrompt?.trim() ||
     parsed.imagePrompt ||

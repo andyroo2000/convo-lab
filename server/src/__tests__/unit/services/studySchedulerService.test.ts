@@ -615,6 +615,83 @@ describe('studySchedulerService', () => {
     );
   });
 
+  it('normalizes bracket shorthand when creating in-app cloze cards', async () => {
+    mockPrisma.studyNote.create.mockResolvedValue({ id: 'note-created' });
+    mockPrisma.studyCard.create.mockResolvedValue({
+      id: 'card-created',
+      userId: 'user-1',
+      noteId: 'note-created',
+      cardType: 'cloze',
+      queueState: 'new',
+      answerAudioSource: 'generated',
+      promptJson: {
+        clozeText: '試合に{{c1::勝ちました}}。',
+        clozeDisplayText: '試合に[...]。',
+        clozeAnswerText: '勝ちました',
+        clozeHint: null,
+        clozeResolvedHint: null,
+      },
+      answerJson: {
+        restoredText: '試合に勝ちました。',
+        restoredTextReading: '試合に勝ちました。[furigana]',
+        meaning: 'I won the match.',
+      },
+      schedulerStateJson: buildStudySessionSchedulerState('new'),
+      createdAt: new Date('2026-04-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: {},
+    });
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-created',
+      noteId: 'note-created',
+      cardType: 'cloze',
+      queueState: 'new',
+      answerAudioSource: 'generated',
+      promptJson: {
+        clozeText: '試合に{{c1::勝ちました}}。',
+        clozeDisplayText: '試合に[...]。',
+        clozeAnswerText: '勝ちました',
+        clozeHint: null,
+        clozeResolvedHint: null,
+      },
+      answerJson: {
+        restoredText: '試合に勝ちました。',
+        restoredTextReading: '試合に勝ちました。[furigana]',
+        meaning: 'I won the match.',
+      },
+      schedulerStateJson: buildStudySessionSchedulerState('new'),
+      createdAt: new Date('2026-04-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: {},
+    });
+
+    const created = await createStudyCard({
+      userId: 'user-1',
+      cardType: 'cloze',
+      prompt: { clozeText: '試合に[勝ちました]。' },
+      answer: { meaning: 'I won the match.' },
+      answerAudioMediaId: 'media-existing',
+    });
+
+    expect(vi.mocked(addFuriganaBrackets)).toHaveBeenCalledWith('試合に勝ちました。');
+    expect(mockPrisma.studyCard.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          promptJson: expect.objectContaining({
+            clozeText: '試合に{{c1::勝ちました}}。',
+            clozeDisplayText: '試合に[...]。',
+            clozeAnswerText: '勝ちました',
+          }),
+          answerJson: expect.objectContaining({
+            restoredText: '試合に勝ちました。',
+            restoredTextReading: '試合に勝ちました。[furigana]',
+          }),
+        }),
+      })
+    );
+    expect(created.prompt.clozeDisplayText).toBe('試合に[...]。');
+  });
+
   it('creates default study settings and validates updates', async () => {
     mockPrisma.studySettings.findUnique.mockResolvedValueOnce(null);
     mockPrisma.studySettings.upsert.mockResolvedValueOnce({

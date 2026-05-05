@@ -1,5 +1,6 @@
 import type { Ref } from 'react';
 import { STUDY_CANDIDATE_VISUAL_POS_LABELS_JA } from '@languageflow/shared/src/studyConstants';
+import { deriveClozePresentation } from '@languageflow/shared/src/studyCloze';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import StudyAudioPlayer from './StudyAudioPlayer';
@@ -17,6 +18,8 @@ const STUDY_CANDIDATE_VISUAL_POS_LABELS = new Set<string>(STUDY_CANDIDATE_VISUAL
 
 const isVisualProductionCueLabel = (value: string | null | undefined) =>
   Boolean(value && STUDY_CANDIDATE_VISUAL_POS_LABELS.has(value));
+
+const CLOZE_MARKUP_PATTERN = /\{\{c\d+::/;
 
 const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
   const readingText = card.answer.expressionReading ?? card.prompt.cueReading;
@@ -103,6 +106,13 @@ export const StudyCardFace = ({
 
   if (side === 'front') {
     if (card.cardType === 'cloze') {
+      const rawDisplayText = card.prompt.clozeDisplayText ?? null;
+      const derived = deriveClozePresentation(card.prompt.clozeText ?? rawDisplayText);
+      const clozeDisplayText =
+        rawDisplayText && !CLOZE_MARKUP_PATTERN.test(rawDisplayText)
+          ? rawDisplayText
+          : derived.displayText;
+
       return (
         <div
           className={
@@ -118,7 +128,7 @@ export const StudyCardFace = ({
                 : 'text-3xl sm:text-4xl md:text-6xl'
             }`}
           >
-            {toDisplayText(card.prompt.clozeDisplayText ?? card.prompt.clozeText ?? '')}
+            {toDisplayText(clozeDisplayText ?? '')}
           </p>
           {card.prompt.clozeResolvedHint ? (
             <p
