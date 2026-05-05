@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { generateStudyCardCandidateJson } from '../../../services/llmClient.js';
+import { STUDY_IMAGE_PROMPT_STYLE } from '../../../services/study/candidates/imagePromptGuardrails.js';
 import {
   generateCandidatePreviewImage,
   getOwnedPreviewMediaIds,
@@ -71,6 +72,18 @@ describe('manual study card drafts', () => {
     expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
       expect.stringContaining('"creationKind": "cloze"'),
       expect.stringContaining('{{c1::...}}')
+    );
+    expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining(STUDY_IMAGE_PROMPT_STYLE)
+    );
+    expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining('If people appear in the imagePrompt, describe them as Japanese')
+    );
+    expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining('If a place appears, set it in Japan')
     );
   });
 
@@ -212,6 +225,8 @@ describe('manual study card drafts', () => {
     expect(selectStudyImagePromptTreatment('曇り cloudy weather')).toBe(
       selectStudyImagePromptTreatment('曇り cloudy weather')
     );
+    expect(selectStudyImagePromptTreatment('曇り cloudy weather')).toBe(STUDY_IMAGE_PROMPT_STYLE);
+    expect(selectStudyImagePromptTreatment('会社 office')).toBe(STUDY_IMAGE_PROMPT_STYLE);
   });
 
   it('creates audio-recognition cards with one generated audio ref on both sides', async () => {
