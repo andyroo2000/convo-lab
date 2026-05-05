@@ -26,8 +26,6 @@ const limitDailyAudioReads = rateLimitStudyRoute({
 const DAILY_AUDIO_PRACTICE_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-router.use(limitDailyAudioReads);
-
 function parseTargetDurationMinutes(value: unknown): number {
   if (typeof value === 'undefined' || value === null) return DEFAULT_TARGET_DURATION_MINUTES;
   const parsed = Number(value);
@@ -236,6 +234,7 @@ router.post(
 
 router.get(
   '/',
+  limitDailyAudioReads,
   withDailyAudioAccess(async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) throw new AppError('Authentication required.', 401);
@@ -254,6 +253,7 @@ router.get(
 
 router.get(
   '/:id',
+  limitDailyAudioReads,
   withDailyAudioAccess(async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) throw new AppError('Authentication required.', 401);
@@ -272,6 +272,7 @@ router.get(
 
 router.get(
   '/:id/status',
+  limitDailyAudioReads,
   withDailyAudioAccess(async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) throw new AppError('Authentication required.', 401);
