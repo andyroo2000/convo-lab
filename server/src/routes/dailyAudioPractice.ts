@@ -6,7 +6,8 @@ import {
   enqueueDailyAudioPracticeJob,
   dailyAudioPracticeQueue,
 } from '../jobs/dailyAudioPracticeQueue.js';
-import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { AuthRequest } from '../middleware/auth.js';
+import { requireDailyAudioAuth } from '../middleware/dailyAudioAuth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
@@ -23,9 +24,8 @@ const limitDailyAudioReads = rateLimitStudyRoute({
   max: 240,
   windowMs: 60 * 1000,
 });
-const authenticateDailyAudioRequest: typeof requireAuth = requireAuth;
 
-router.use(limitDailyAudioReads, authenticateDailyAudioRequest);
+router.use(limitDailyAudioReads, requireDailyAudioAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
 
 function parseTargetDurationMinutes(value: unknown): number {
