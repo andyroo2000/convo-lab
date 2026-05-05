@@ -94,10 +94,13 @@ function serializePractice(
   };
 }
 
-async function ensureDefaultTracks(practiceId: string) {
+async function ensureDefaultTracks(
+  practiceId: string,
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) {
   await Promise.all(
     DAILY_AUDIO_TRACKS.map((track) =>
-      prisma.dailyAudioPracticeTrack.upsert({
+      db.dailyAudioPracticeTrack.upsert({
         where: {
           practiceId_mode: {
             practiceId,
@@ -151,39 +154,44 @@ router.post(
     async (req: AuthRequest, res, next) => {
       try {
         if (!req.userId) throw new AppError('Authentication required.', 401);
+        const userId = req.userId;
 
         const body = req.body as { timeZone?: unknown; targetDurationMinutes?: unknown };
         const practiceDate = getLocalPracticeDate(body.timeZone);
         const targetDurationMinutes = parseTargetDurationMinutes(body.targetDurationMinutes);
-        const languagePreferences = await getUserLanguagePreferences(req.userId);
+        const languagePreferences = await getUserLanguagePreferences(userId);
 
-        const practice = await prisma.dailyAudioPractice.upsert({
-          where: {
-            userId_practiceDate: {
-              userId: req.userId,
-              practiceDate,
-            },
-          },
-          create: {
-            userId: req.userId,
-            practiceDate,
-            status: 'draft',
-            targetDurationMinutes,
-            targetLanguage: languagePreferences.targetLanguage,
-            nativeLanguage: languagePreferences.nativeLanguage,
-          },
-          update: {
-            targetDurationMinutes,
-            targetLanguage: languagePreferences.targetLanguage,
-            nativeLanguage: languagePreferences.nativeLanguage,
-          },
-        });
-        await ensureDefaultTracks(practice.id);
-
-        if (practice.status !== 'ready' && practice.status !== 'generating') {
-          const started = await prisma.dailyAudioPractice.updateMany({
+        const { practice, shouldEnqueue } = await prisma.$transaction(async (tx) => {
+          const dailyPractice = await tx.dailyAudioPractice.upsert({
             where: {
-              id: practice.id,
+              userId_practiceDate: {
+                userId,
+                practiceDate,
+              },
+            },
+            create: {
+              userId,
+              practiceDate,
+              status: 'draft',
+              targetDurationMinutes,
+              targetLanguage: languagePreferences.targetLanguage,
+              nativeLanguage: languagePreferences.nativeLanguage,
+            },
+            update: {
+              targetDurationMinutes,
+              targetLanguage: languagePreferences.targetLanguage,
+              nativeLanguage: languagePreferences.nativeLanguage,
+            },
+          });
+          await ensureDefaultTracks(dailyPractice.id, tx);
+
+          if (dailyPractice.status === 'ready' || dailyPractice.status === 'generating') {
+            return { practice: dailyPractice, shouldEnqueue: false };
+          }
+
+          const started = await tx.dailyAudioPractice.updateMany({
+            where: {
+              id: dailyPractice.id,
               status: {
                 notIn: ['ready', 'generating'],
               },
@@ -191,17 +199,25 @@ router.post(
             data: { status: 'generating', errorMessage: null },
           });
 
-          if (started.count > 0) {
-            try {
-              await enqueueDailyAudioPracticeJob(practice.id);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              await prisma.dailyAudioPractice.update({
-                where: { id: practice.id },
-                data: { status: 'error', errorMessage: message },
-              });
-              throw error;
-            }
+          return {
+            practice: {
+              ...dailyPractice,
+              status: started.count > 0 ? 'generating' : dailyPractice.status,
+            },
+            shouldEnqueue: started.count > 0,
+          };
+        });
+
+        if (shouldEnqueue) {
+          try {
+            await enqueueDailyAudioPracticeJob(practice.id);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            await prisma.dailyAudioPractice.update({
+              where: { id: practice.id },
+              data: { status: 'error', errorMessage: message },
+            });
+            throw error;
           }
         }
 
