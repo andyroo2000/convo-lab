@@ -736,17 +736,9 @@ describe('StudyPage', () => {
     }
   });
 
-  it('uses space to pause, resume, and replay answer audio after reveal', async () => {
-    let paused = true;
-    let ended = false;
-    const playMock = vi.fn().mockImplementation(() => {
-      paused = false;
-      ended = false;
-      return Promise.resolve();
-    });
-    const pauseMock = vi.fn().mockImplementation(() => {
-      paused = true;
-    });
+  it('uses space to restart answer audio after reveal', async () => {
+    const playMock = vi.fn().mockImplementation(() => Promise.resolve());
+    const pauseMock = vi.fn();
 
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
@@ -755,14 +747,6 @@ describe('StudyPage', () => {
     Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
       configurable: true,
       value: pauseMock,
-    });
-    Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
-      configurable: true,
-      get: () => paused,
-    });
-    Object.defineProperty(HTMLMediaElement.prototype, 'ended', {
-      configurable: true,
-      get: () => ended,
     });
 
     startStudySessionMock.mockResolvedValue({
@@ -808,19 +792,17 @@ describe('StudyPage', () => {
 
     fireEvent.keyDown(window, { code: 'Space' });
     await waitFor(() => {
-      expect(pauseMock).toHaveBeenCalledTimes(1);
-    });
-
-    fireEvent.keyDown(window, { code: 'Space' });
-    await waitFor(() => {
       expect(playMock).toHaveBeenCalledTimes(2);
     });
 
-    paused = true;
-    ended = true;
     fireEvent.keyDown(window, { code: 'Space' });
     await waitFor(() => {
       expect(playMock).toHaveBeenCalledTimes(3);
+    });
+
+    fireEvent.keyDown(window, { code: 'Space' });
+    await waitFor(() => {
+      expect(playMock).toHaveBeenCalledTimes(4);
     });
   });
 

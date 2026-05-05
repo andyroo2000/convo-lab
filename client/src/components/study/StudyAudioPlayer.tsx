@@ -15,7 +15,6 @@ import { getAudioMimeType } from './studyCardUtils';
 
 export interface AudioPlayerHandle {
   play: () => Promise<boolean>;
-  togglePlayPause: () => Promise<boolean>;
   stop: () => void;
 }
 
@@ -47,14 +46,13 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
   ) => {
     const { t } = useTranslation('study');
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const playingRef = useRef(false);
+    const playAttemptRef = useRef(0);
     const [playing, setPlaying] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useWarmAudioCache([url]);
 
     const setPlayingState = useCallback((nextPlaying: boolean) => {
-      playingRef.current = nextPlaying;
       setPlaying(nextPlaying);
     }, []);
 
@@ -69,18 +67,22 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
     const play = useCallback(async () => {
       const audio = audioRef.current;
       if (!audio) return false;
+      const playAttempt = playAttemptRef.current + 1;
+      playAttemptRef.current = playAttempt;
 
       try {
         setErrorMessage(null);
-        if (audio.ended) {
-          audio.currentTime = 0;
-        }
+        audio.pause();
+        audio.currentTime = 0;
         // Autoplay and manual replay intentionally share the same error surface because
         // browsers like iOS Safari may reject play() until media is user-gesture eligible.
         await audio.play();
+        if (playAttemptRef.current !== playAttempt) return false;
         setPlayingState(true);
         return true;
       } catch (error) {
+        if (playAttemptRef.current !== playAttempt) return false;
+
         if (isInterruptedPlayError(error)) {
           setPlayingState(false);
           return false;
@@ -93,31 +95,13 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       }
     }, [label, setPlayingState, t]);
 
-    const togglePlayPause = useCallback(async () => {
-      const audio = audioRef.current;
-      if (!audio) return false;
-
-      if (playingRef.current && !audio.ended) {
-        audio.pause();
-        setPlayingState(false);
-        return true;
-      }
-
-      if (audio.ended) {
-        audio.currentTime = 0;
-      }
-
-      return play();
-    }, [play, setPlayingState]);
-
     useImperativeHandle(
       ref,
       () => ({
         play,
-        togglePlayPause,
         stop,
       }),
-      [play, stop, togglePlayPause]
+      [play, stop]
     );
 
     useEffect(() => {
@@ -145,7 +129,6 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       return () => {
         audio.pause();
         audio.currentTime = 0;
-        playingRef.current = false;
         audio.removeEventListener('ended', handleEnded);
         audio.removeEventListener('pause', handlePause);
         audio.removeEventListener('play', handlePlay);
@@ -160,13 +143,6 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
 
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
-      // Click rendering can use React state; the imperative Space-key toggle uses playingRef
-      // so it does not drift when a key handler closes over a previous render.
-      if (playing) {
-        stop();
-        return;
-      }
-
       play().catch(() => {});
     };
 
@@ -196,26 +172,17 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
               }}
               aria-label={label}
               data-testid={testId ? `${testId}-button` : undefined}
-              className={`inline-flex items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md ${buttonSizeClasses}`}
+              className={`inline-flex items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md ${
+                playing ? 'ring-2 ring-navy/20' : ''
+              } ${buttonSizeClasses}`}
             >
-              {playing ? (
-                <svg
-                  viewBox="0 0 24 24"
-                  className={`fill-current ${iconSizeClasses}`}
-                  aria-hidden="true"
-                >
-                  <rect x="6" y="5" width="4" height="14" rx="1" />
-                  <rect x="14" y="5" width="4" height="14" rx="1" />
-                </svg>
-              ) : (
-                <svg
-                  viewBox="0 0 24 24"
-                  className={`ml-0.5 fill-current ${iconSizeClasses}`}
-                  aria-hidden="true"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
+              <svg
+                viewBox="0 0 24 24"
+                className={`ml-0.5 fill-current ${iconSizeClasses}`}
+                aria-hidden="true"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </button>
           </div>
         ) : null}

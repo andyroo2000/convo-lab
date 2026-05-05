@@ -37,6 +37,17 @@ const baseCard = {
   updatedAt: new Date('2026-04-12T00:00:00.000Z').toISOString(),
 };
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 describe('StudyCardPreview', () => {
   beforeEach(() => {
     useStudyPitchAccentMock.mockReturnValue({
@@ -416,6 +427,98 @@ describe('StudyCardPreview', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
 
     expect(await screen.findByText('Audio playback failed. Try again.')).toBeInTheDocument();
+  });
+
+  it('restarts card audio from the beginning on every play button click', async () => {
+    const playMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: playMock,
+    });
+
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'prompt.mp3',
+              url: 'https://example.com/prompt.mp3',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        }}
+      />
+    );
+
+    const button = screen.getByRole('button', { name: 'Replay prompt audio' });
+    const audio = screen.getByTestId('study-prompt-audio-element') as HTMLAudioElement;
+
+    fireEvent.click(button);
+    await waitFor(() => expect(playMock).toHaveBeenCalledTimes(1));
+
+    audio.currentTime = 4;
+    fireEvent.click(button);
+
+    await waitFor(() => expect(playMock).toHaveBeenCalledTimes(2));
+    expect(audio.currentTime).toBe(0);
+  });
+
+  it('ignores a stale interrupted play request after a newer replay succeeds', async () => {
+    const originalPlayDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLMediaElement.prototype,
+      'play'
+    );
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const firstPlay = createDeferred<void>();
+    const playMock = vi
+      .fn()
+      .mockReturnValueOnce(firstPlay.promise)
+      .mockResolvedValueOnce(undefined);
+
+    try {
+      Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+        configurable: true,
+        value: playMock,
+      });
+
+      render(
+        <StudyCardFace
+          side="front"
+          card={{
+            ...baseCard,
+            prompt: {
+              cueAudio: {
+                filename: 'prompt.mp3',
+                url: 'https://example.com/prompt.mp3',
+                mediaKind: 'audio',
+                source: 'imported',
+              },
+            },
+          }}
+        />
+      );
+
+      const button = screen.getByRole('button', { name: 'Replay prompt audio' });
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      await waitFor(() => expect(playMock).toHaveBeenCalledTimes(2));
+      firstPlay.reject(
+        new DOMException('The play() request was interrupted by a call to pause().', 'AbortError')
+      );
+      await firstPlay.promise.catch(() => undefined);
+
+      await waitFor(() => expect(consoleErrorSpy).not.toHaveBeenCalled());
+      expect(screen.queryByText('Audio playback failed. Try again.')).not.toBeInTheDocument();
+    } finally {
+      consoleErrorSpy.mockRestore();
+      if (originalPlayDescriptor) {
+        Object.defineProperty(HTMLMediaElement.prototype, 'play', originalPlayDescriptor);
+      }
+    }
   });
 
   it('ignores interrupted audio play requests without surfacing an error', async () => {
