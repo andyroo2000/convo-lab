@@ -19,7 +19,14 @@ const DEFAULT_TARGET_DURATION_MINUTES = 30;
 const MIN_TARGET_DURATION_MINUTES = 5;
 const MAX_TARGET_DURATION_MINUTES = 60;
 
-router.use(requireAuth);
+router.use(
+  requireAuth,
+  rateLimitStudyRoute({
+    key: 'daily-audio-practice-read',
+    max: 240,
+    windowMs: 60 * 1000,
+  })
+);
 router.use(requireFeatureFlag('flashcardsEnabled'));
 
 function parseTargetDurationMinutes(value: unknown): number {
