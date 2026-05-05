@@ -23,6 +23,7 @@ import {
   recordStudyReview,
   reorderStudyNewCardQueue,
   resolveStudyCardPitchAccent,
+  shuffleStudyNewCardQueue,
   startStudySession,
   undoStudyReview,
   updateStudySettings,
@@ -1583,6 +1584,62 @@ describe('studySchedulerService', () => {
       reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-1', 'card-2'] })
     ).rejects.toThrow('Every reordered card');
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('shuffles all active new cards and returns the refreshed queue page', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    try {
+      mockPrisma.studyCard.findMany.mockResolvedValueOnce([
+        { id: 'card-1' },
+        { id: 'card-2' },
+        { id: 'card-3' },
+      ]);
+      mockPrisma.$executeRaw.mockResolvedValueOnce(3);
+      mockPrisma.studyCard.count.mockResolvedValueOnce(3);
+      mockPrisma.studyCard.findMany.mockResolvedValueOnce([
+        {
+          id: 'card-2',
+          noteId: 'note-2',
+          cardType: 'production',
+          promptJson: { cueText: '学校' },
+          answerJson: { meaning: 'school' },
+          newQueuePosition: 1,
+          createdAt: new Date('2026-04-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-04-02T00:00:00.000Z'),
+        },
+      ]);
+
+      const queue = await shuffleStudyNewCardQueue({ userId: 'user-1', q: '学校' });
+
+      expect(queue.items.map((item) => item.id)).toEqual(['card-2']);
+      expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(1, {
+        where: {
+          userId: 'user-1',
+          queueState: 'new',
+        },
+        select: {
+          id: true,
+        },
+        orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      });
+      expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.$executeRaw.mock.calls[0]?.[1]).toMatchObject({
+        values: ['card-2', 1, 'card-3', 2, 'card-1', 3],
+      });
+      expect(mockPrisma.studyCard.count).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          queueState: 'new',
+          searchText: {
+            contains: '学校',
+            mode: 'insensitive',
+          },
+        },
+      });
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 
   it('reports daily new-card allowance fields in the overview', async () => {

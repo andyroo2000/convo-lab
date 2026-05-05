@@ -430,6 +430,60 @@ export async function reorderStudyNewCardQueue(params: {
   });
 }
 
+function shuffleCardIds(cardIds: string[]): string[] {
+  const shuffled = [...cardIds];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
+export async function shuffleStudyNewCardQueue(params: {
+  userId: string;
+  q?: string;
+}): Promise<StudyNewCardQueueResponse> {
+  const cards = await prisma.studyCard.findMany({
+    where: {
+      userId: params.userId,
+      queueState: 'new',
+    },
+    select: {
+      id: true,
+    },
+    orderBy: NEW_CARD_QUEUE_ORDER,
+  });
+
+  if (cards.length > 1) {
+    const shuffledCardIds = shuffleCardIds(cards.map((card) => card.id));
+    const positionCases = Prisma.join(
+      shuffledCardIds.map((cardId, index) => Prisma.sql`WHEN ${cardId} THEN ${index + 1}`),
+      ' '
+    );
+    const cardIds = Prisma.join(shuffledCardIds);
+
+    const updatedCount = await prisma.$executeRaw`
+      UPDATE "study_cards"
+      SET "newQueuePosition" = CASE "id" ${positionCases} ELSE "newQueuePosition" END
+      WHERE "userId" = ${params.userId}
+        AND "queueState" = 'new'
+        AND "id" IN (${cardIds})
+    `;
+
+    if (updatedCount !== shuffledCardIds.length) {
+      throw new AppError('Every shuffled card must be an active new card owned by the user.', 400);
+    }
+  }
+
+  return getStudyNewCardQueue({
+    userId: params.userId,
+    limit: STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
+    q: params.q,
+  });
+}
+
 export async function getStudyOverview(
   userId: string,
   timeZone?: string,

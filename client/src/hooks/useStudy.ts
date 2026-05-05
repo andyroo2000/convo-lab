@@ -161,6 +161,13 @@ export async function reorderStudyNewCardQueue(cardIds: string[]) {
   });
 }
 
+export async function shuffleStudyNewCardQueue(params: { q?: string } = {}) {
+  return apiRequest<StudyNewCardQueueResponse>('/api/study/new-queue/shuffle', {
+    method: 'POST',
+    body: JSON.stringify({ q: params.q?.trim() || undefined }),
+  });
+}
+
 export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
     `/api/study/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`,
@@ -393,6 +400,20 @@ export function useReorderStudyNewCardQueue() {
 
   return useMutation({
     mutationFn: reorderStudyNewCardQueue,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+      ]);
+    },
+  });
+}
+
+export function useShuffleStudyNewCardQueue() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: shuffleStudyNewCardQueue,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),

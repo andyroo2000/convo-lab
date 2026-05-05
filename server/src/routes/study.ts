@@ -85,6 +85,7 @@ import {
   recordStudyReview,
   resolveStudyCardPitchAccent,
   reorderStudyNewCardQueue,
+  shuffleStudyNewCardQueue,
   startStudySession,
   undoStudyReview,
   updateStudySettings,
@@ -1038,6 +1039,28 @@ router.post(
       }
 
       res.json(await reorderStudyNewCardQueue({ userId: req.userId, cardIds }));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/new-queue/shuffle',
+  rateLimitStudyRoute({ key: 'new-queue-shuffle', max: 30, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const { q } = req.body as { q?: unknown };
+      res.json(
+        await shuffleStudyNewCardQueue({
+          userId: req.userId,
+          q: parseBoundedStringQueryParam('q', q),
+        })
+      );
     } catch (error) {
       next(error);
     }

@@ -8,6 +8,7 @@ export {
   recordStudyReview,
   reorderStudyNewCardQueue,
   resolveStudyCardPitchAccent,
+  shuffleStudyNewCardQueue,
   startStudySession,
   undoStudyReview,
   updateStudySettings,

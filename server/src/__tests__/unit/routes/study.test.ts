@@ -66,6 +66,7 @@ const {
   regenerateStudyCardImageMock,
   resolveStudyCardPitchAccentMock,
   reorderStudyNewCardQueueMock,
+  shuffleStudyNewCardQueueMock,
   startStudySessionMock,
   undoStudyReviewMock,
   updateStudySettingsMock,
@@ -105,6 +106,7 @@ const {
   regenerateStudyCardImageMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
+  shuffleStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
   updateStudySettingsMock: vi.fn(),
@@ -153,6 +155,7 @@ vi.mock('../../../services/studyService.js', () => ({
   regenerateStudyCardImage: regenerateStudyCardImageMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
+  shuffleStudyNewCardQueue: shuffleStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
   undoStudyReview: undoStudyReviewMock,
   updateStudySettings: updateStudySettingsMock,
@@ -198,6 +201,7 @@ describe('Study Routes', () => {
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
     regenerateStudyCardImageMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
+    shuffleStudyNewCardQueueMock.mockReset();
     undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
@@ -369,8 +373,14 @@ describe('Study Routes', () => {
     });
   });
 
-  it('lists and reorders the new-card queue', async () => {
+  it('lists, reorders, and shuffles the new-card queue', async () => {
     getStudyNewCardQueueMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      limit: 100,
+      nextCursor: null,
+    });
+    shuffleStudyNewCardQueueMock.mockResolvedValue({
       items: [],
       total: 0,
       limit: 100,
@@ -402,6 +412,17 @@ describe('Study Routes', () => {
     expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith({
       userId: 'user-1',
       cardIds: ['card-2', 'card-1'],
+    });
+
+    const shuffleResponse = await withMutationCsrf(
+      request(app).post('/study/new-queue/shuffle')
+    ).send({
+      q: '学校',
+    });
+    expect(shuffleResponse.status).toBe(200);
+    expect(shuffleStudyNewCardQueueMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      q: '学校',
     });
   });
 

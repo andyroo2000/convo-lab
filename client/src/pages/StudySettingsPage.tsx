@@ -19,7 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { STUDY_NEW_CARDS_PER_DAY_DEFAULT } from '@languageflow/shared/src/studyConstants';
 import type { StudyCardSummary, StudyNewCardQueueItem } from '@languageflow/shared/src/types';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Shuffle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
@@ -27,6 +27,7 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
   getStudyNewCardQueue,
   useReorderStudyNewCardQueue,
+  useShuffleStudyNewCardQueue,
   useStudyNewCardQueue,
   useStudySettings,
   useUpdateStudySettings,
@@ -172,6 +173,7 @@ const StudySettingsPage = () => {
   const settingsQuery = useStudySettings(enabled);
   const updateSettingsMutation = useUpdateStudySettings();
   const reorderMutation = useReorderStudyNewCardQueue();
+  const shuffleMutation = useShuffleStudyNewCardQueue();
   const queueQuery = useStudyNewCardQueue(enabled, { q: searchQuery });
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -205,6 +207,7 @@ const StudySettingsPage = () => {
   }, [settingsSavedVisible]);
 
   const queueIds = useMemo(() => queueItems.map((item) => item.id), [queueItems]);
+  const canShuffleQueue = queueItems.length > 1 && !queueQuery.isLoading;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -234,6 +237,29 @@ const StudySettingsPage = () => {
       },
       {
         label: 'Study new-card reorder',
+      }
+    );
+  };
+
+  const handleShuffleQueue = () => {
+    if (!canShuffleQueue || shuffleMutation.isPending) return;
+
+    const previousItems = queueItems;
+    const previousCursor = nextCursor;
+    runBackgroundTask(
+      async () => {
+        try {
+          const shuffledQueue = await shuffleMutation.mutateAsync({ q: searchQuery });
+          setQueueItems(shuffledQueue.items);
+          setNextCursor(shuffledQueue.nextCursor);
+        } catch (error) {
+          setQueueItems(previousItems);
+          setNextCursor(previousCursor);
+          throw error;
+        }
+      },
+      {
+        label: 'Study new-card queue shuffle',
       }
     );
   };
@@ -339,27 +365,38 @@ const StudySettingsPage = () => {
             <h2 className="text-2xl font-semibold text-navy">{t('settings.queueTitle')}</h2>
             <p className="text-sm text-gray-500">{t('settings.queueDescription')}</p>
           </div>
-          <form
-            className="flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setSearchQuery(searchDraft.trim());
-            }}
-          >
-            <input
-              type="search"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
-              placeholder={t('settings.searchPlaceholder')}
-              className="w-52 rounded-xl border border-gray-300 px-3 py-2 text-sm text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
-            />
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              type="submit"
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-white/50"
+              type="button"
+              onClick={handleShuffleQueue}
+              disabled={!canShuffleQueue || shuffleMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-white/50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t('settings.search')}
+              <Shuffle className="h-4 w-4" aria-hidden="true" />
+              {shuffleMutation.isPending ? t('settings.shuffling') : t('settings.shuffle')}
             </button>
-          </form>
+            <form
+              className="flex gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setSearchQuery(searchDraft.trim());
+              }}
+            >
+              <input
+                type="search"
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
+                placeholder={t('settings.searchPlaceholder')}
+                className="w-52 rounded-xl border border-gray-300 px-3 py-2 text-sm text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+              />
+              <button
+                type="submit"
+                className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-white/50"
+              >
+                {t('settings.search')}
+              </button>
+            </form>
+          </div>
         </div>
 
         {queueQuery.isLoading ? (

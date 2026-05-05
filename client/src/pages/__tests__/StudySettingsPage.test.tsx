@@ -11,6 +11,7 @@ import StudySettingsPage from '../StudySettingsPage';
 const {
   updateStudySettingsMock,
   reorderStudyNewCardQueueMock,
+  shuffleStudyNewCardQueueMock,
   resolveStudyCardPitchAccentMock,
   useStudySettingsMock,
   useStudyNewCardQueueMock,
@@ -18,6 +19,7 @@ const {
 } = vi.hoisted(() => ({
   updateStudySettingsMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
+  shuffleStudyNewCardQueueMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
   useStudySettingsMock: vi.fn(),
   useStudyNewCardQueueMock: vi.fn(),
@@ -98,6 +100,10 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: reorderStudyNewCardQueueMock,
     isPending: false,
   }),
+  useShuffleStudyNewCardQueue: () => ({
+    mutateAsync: shuffleStudyNewCardQueueMock,
+    isPending: false,
+  }),
 }));
 
 const renderPage = () => {
@@ -122,6 +128,7 @@ describe('StudySettingsPage', () => {
   beforeEach(() => {
     updateStudySettingsMock.mockReset();
     reorderStudyNewCardQueueMock.mockReset();
+    shuffleStudyNewCardQueueMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
     resolveStudyCardPitchAccentMock.mockImplementation(async () => ({
       answer: { pitchAccent: null },
@@ -345,6 +352,36 @@ describe('StudySettingsPage', () => {
 
     await waitFor(() => expect(reorderStudyNewCardQueueMock).toHaveBeenCalledTimes(1));
     expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith(['card-2', 'card-1']);
+    expect(screen.getByText('新しい')).toBeInTheDocument();
+    expect(screen.queryByText('会社')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /load more/i })).toBeInTheDocument();
+  });
+
+  it('shuffles the new-card queue and resets pagination from the returned first page', async () => {
+    shuffleStudyNewCardQueueMock.mockResolvedValue({
+      items: [
+        {
+          id: 'card-3',
+          noteId: 'note-3',
+          cardType: 'recognition',
+          displayText: '新しい',
+          meaning: 'new',
+          queuePosition: 1,
+          createdAt: new Date('2026-04-02T00:00:00.000Z').toISOString(),
+          updatedAt: new Date('2026-04-02T00:00:00.000Z').toISOString(),
+        },
+      ],
+      total: 101,
+      limit: 100,
+      nextCursor: '100',
+    });
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /shuffle/i }));
+
+    await waitFor(() => expect(shuffleStudyNewCardQueueMock).toHaveBeenCalledTimes(1));
+    expect(shuffleStudyNewCardQueueMock).toHaveBeenCalledWith({ q: '' });
     expect(screen.getByText('新しい')).toBeInTheDocument();
     expect(screen.queryByText('会社')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /load more/i })).toBeInTheDocument();

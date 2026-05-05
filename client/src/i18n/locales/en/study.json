@@ -63,6 +63,8 @@
     "failedQueue": "Failed to load the new-card queue.",
     "queueTitle": "New-card queue",
     "queueDescription": "Drag cards into the order they should be introduced.",
+    "shuffle": "Shuffle",
+    "shuffling": "Shuffling…",
     "searchPlaceholder": "Search new cards",
     "search": "Search",
     "loadingQueue": "Loading new cards…",
