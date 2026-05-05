@@ -30,7 +30,7 @@ import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
-import { isAudioLedPromptCard, toAssetUrl } from '../components/study/studyCardUtils';
+import { toAssetUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 
 const reviewScheduler = createStudyFsrsScheduler();
@@ -668,20 +668,6 @@ const useStudyReviewSession = () => {
     return true;
   }, [answerAudioRef, editing, revealed, runBackgroundTask]);
 
-  const togglePromptAudio = useCallback(() => {
-    if (revealed || editing || !currentCard || !isAudioLedPromptCard(currentCard)) {
-      return false;
-    }
-
-    const player = promptAudioRef.current;
-    if (!player) return false;
-
-    runBackgroundTask(() => player.play(), {
-      label: 'Study prompt-audio keyboard replay',
-    });
-    return true;
-  }, [currentCard, editing, promptAudioRef, revealed, runBackgroundTask]);
-
   const enterFocusMode = useCallback(async () => {
     stopAllAudio();
     resetStudyAudioAutoplay();
@@ -751,7 +737,6 @@ const useStudyReviewSession = () => {
     reviewSubmitPending,
     runBackgroundTask,
     setEditing,
-    togglePromptAudio,
     toggleAnswerAudio,
   });
 

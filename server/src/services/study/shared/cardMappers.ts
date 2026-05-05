@@ -64,6 +64,32 @@ function hydrateMediaRef(
   };
 }
 
+function hasMeaningfulPromptValue(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+
+  return isRecord(value);
+}
+
+function isAudioRecognitionPrompt(prompt: StudyPromptPayload): boolean {
+  if (!isRecord(prompt.cueAudio)) {
+    return false;
+  }
+
+  const nonAudioPromptValues = [
+    prompt.cueText,
+    prompt.cueReading,
+    prompt.cueMeaning,
+    prompt.cueImage,
+    prompt.clozeText,
+    prompt.clozeDisplayText,
+    prompt.clozeAnswerText,
+  ];
+
+  return !nonAudioPromptValues.some(hasMeaningfulPromptValue);
+}
+
 export async function normalizeStudyCardPayload(record: StudyCardWithRelations): Promise<{
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
@@ -100,6 +126,13 @@ export async function normalizeStudyCardPayload(record: StudyCardWithRelations):
     answerAudio: hydrateMediaRef(answer.answerAudio, record.answerAudioMedia) ?? answer.answerAudio,
     answerImage: hydrateMediaRef(answer.answerImage, record.imageMedia) ?? answer.answerImage,
   };
+
+  if (record.cardType === 'recognition' && isAudioRecognitionPrompt(prompt) && answer.answerAudio) {
+    prompt = {
+      ...prompt,
+      cueAudio: answer.answerAudio,
+    };
+  }
 
   if (record.cardType !== 'cloze') {
     return { prompt, answer };

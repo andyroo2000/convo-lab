@@ -622,7 +622,7 @@ describe('StudyPage', () => {
     expect(screen.getByText('Tap, click, or press space to reveal')).toBeInTheDocument();
   });
 
-  it('uses Space to replay prompt audio instead of revealing audio-led cards', async () => {
+  it('uses Space to reveal audio-led cards from the front side', async () => {
     const audioPrompt = {
       cueAudio: {
         filename: 'listening.mp3',
@@ -673,10 +673,9 @@ describe('StudyPage', () => {
     fireEvent.keyDown(window, { code: 'Space' });
 
     await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
+      expect(screen.getByText('company')).toBeInTheDocument();
     });
-    expect(screen.queryByText('company')).not.toBeInTheDocument();
-    expect(screen.getByText('Tap, click, or press space to reveal')).toBeInTheDocument();
+    expect(screen.queryByText('Tap, click, or press space to reveal')).not.toBeInTheDocument();
   });
 
   it('autoplays existing answer audio immediately when revealing a card', async () => {
@@ -941,11 +940,6 @@ describe('StudyPage', () => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
     });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-    await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(3);
-    });
-
     fireEvent.keyDown(window, { code: 'Digit1', key: '1' });
     await waitFor(() => {
       expect(mutateAsyncMock).toHaveBeenCalledWith({
@@ -960,7 +954,7 @@ describe('StudyPage', () => {
     fireEvent.keyDown(window, { code: 'Space' });
     fireEvent.keyDown(window, { code: 'Digit3', key: '3' });
     await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(4);
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(3);
     });
     await waitFor(() => {
       expect(mutateAsyncMock).toHaveBeenCalledWith({
@@ -970,17 +964,12 @@ describe('StudyPage', () => {
     });
 
     await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(5);
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(4);
     });
 
     fireEvent.keyDown(window, { code: 'Space' });
     await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(6);
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-    await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(7);
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(5);
     });
 
     const focusedAnswerAudio = screen

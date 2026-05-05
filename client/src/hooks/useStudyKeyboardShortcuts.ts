@@ -10,7 +10,6 @@ interface UseStudyKeyboardShortcutsOptions {
   onError: (message: string) => void;
   revealCurrentCard: () => void;
   revealed: boolean;
-  togglePromptAudio: () => boolean;
   toggleAnswerAudio: () => boolean;
   reviewSubmitPending: boolean;
   reviewPending: boolean;
@@ -50,7 +49,6 @@ export default function useStudyKeyboardShortcuts({
   onError,
   revealCurrentCard,
   revealed,
-  togglePromptAudio,
   toggleAnswerAudio,
   reviewPending,
   reviewSubmitPending,
@@ -59,15 +57,13 @@ export default function useStudyKeyboardShortcuts({
 }: UseStudyKeyboardShortcutsOptions) {
   const revealedRef = useRef(revealed);
   const revealCurrentCardRef = useRef(revealCurrentCard);
-  const togglePromptAudioRef = useRef(togglePromptAudio);
   const toggleAnswerAudioRef = useRef(toggleAnswerAudio);
 
   useEffect(() => {
     revealedRef.current = revealed;
     revealCurrentCardRef.current = revealCurrentCard;
-    togglePromptAudioRef.current = togglePromptAudio;
     toggleAnswerAudioRef.current = toggleAnswerAudio;
-  }, [revealCurrentCard, revealed, toggleAnswerAudio, togglePromptAudio]);
+  }, [revealCurrentCard, revealed, toggleAnswerAudio]);
 
   useEffect(() => {
     if (!focusMode) return undefined;
@@ -101,9 +97,6 @@ export default function useStudyKeyboardShortcuts({
           if (!toggleAnswerAudioRef.current()) {
             revealCurrentCardRef.current();
           }
-          return;
-        }
-        if (togglePromptAudioRef.current()) {
           return;
         }
         revealCurrentCardRef.current();
@@ -143,6 +136,5 @@ export default function useStudyKeyboardShortcuts({
     runBackgroundTask,
     setEditing,
     toggleAnswerAudio,
-    togglePromptAudio,
   ]);
 }
