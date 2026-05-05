@@ -21,7 +21,11 @@ async function chooseAnswerAudioVoice(name: RegExp | string) {
 const {
   commitCandidatesMock,
   commitCandidatesState,
+  completeDraftMock,
+  completeDraftState,
   createStudyCardMock,
+  generateDraftImageMock,
+  generateDraftImageState,
   generateCandidatesState,
   generateCandidatesMock,
   regenerateCandidateAudioMock,
@@ -30,7 +34,11 @@ const {
 } = vi.hoisted(() => ({
   commitCandidatesMock: vi.fn(),
   commitCandidatesState: { isPending: false },
+  completeDraftMock: vi.fn(),
+  completeDraftState: { error: null as Error | null, isPending: false },
   createStudyCardMock: vi.fn(),
+  generateDraftImageMock: vi.fn(),
+  generateDraftImageState: { error: null as Error | null, isPending: false },
   generateCandidatesState: { error: null as Error | null, isPending: false },
   generateCandidatesMock: vi.fn(),
   regenerateCandidateAudioMock: vi.fn(),
@@ -48,6 +56,16 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: createStudyCardMock,
     isPending: false,
     error: null,
+  }),
+  useCompleteStudyCardDraft: () => ({
+    mutateAsync: completeDraftMock,
+    isPending: completeDraftState.isPending,
+    error: completeDraftState.error,
+  }),
+  useGenerateStudyCardDraftImage: () => ({
+    mutateAsync: generateDraftImageMock,
+    isPending: generateDraftImageState.isPending,
+    error: generateDraftImageState.error,
   }),
   useGenerateStudyCardCandidates: () => ({
     mutateAsync: generateCandidatesMock,
@@ -142,7 +160,13 @@ describe('StudyCreatePage', () => {
   beforeEach(() => {
     commitCandidatesMock.mockReset();
     commitCandidatesState.isPending = false;
+    completeDraftMock.mockReset();
+    completeDraftState.error = null;
+    completeDraftState.isPending = false;
     createStudyCardMock.mockReset();
+    generateDraftImageMock.mockReset();
+    generateDraftImageState.error = null;
+    generateDraftImageState.isPending = false;
     generateCandidatesState.error = null;
     generateCandidatesState.isPending = false;
     generateCandidatesMock.mockReset();
@@ -214,6 +238,7 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
 
     expect(createStudyCardMock).toHaveBeenCalledWith({
+      creationKind: 'text-recognition',
       cardType: 'recognition',
       prompt: {
         cueText: '会社',
@@ -234,6 +259,128 @@ describe('StudyCreatePage', () => {
     expect(
       await screen.findByText('Created recognition card and seeded it into the study queue.')
     ).toBeInTheDocument();
+  });
+
+  it('fills only blank manual fields and keeps user-entered values', async () => {
+    completeDraftMock.mockResolvedValue({
+      creationKind: 'text-recognition',
+      cardType: 'recognition',
+      prompt: {
+        cueText: '会社 should not replace user text',
+        cueReading: '会社[かいしゃ]',
+        cueMeaning: 'company prompt hint',
+      },
+      answer: {
+        expression: '会社',
+        expressionReading: '会社[かいしゃ]',
+        meaning: 'company should not replace user meaning',
+        notes: 'Business noun.',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      },
+      imagePlacement: 'answer',
+      imagePrompt: 'A realistic photo of a company office. No text.',
+      previewImage: null,
+    });
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    expect(screen.getByRole('radio', { name: 'Text recognition' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+    await userEvent.type(screen.getByLabelText('Prompt text'), '会社');
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
+    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
+
+    expect(screen.getByLabelText('Prompt text')).toHaveValue('会社');
+    expect(screen.getByLabelText('Prompt reading')).toHaveValue('会社[かいしゃ]');
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('会社');
+    expect(screen.getByLabelText('Answer meaning')).toHaveValue('company');
+    expect(screen.getByLabelText('Image prompt')).toHaveValue(
+      'A realistic photo of a company office. No text.'
+    );
+    expect(screen.getByLabelText('Image placement')).toHaveValue('answer');
+  });
+
+  it('auto-generates the image preview when filling production-from-image', async () => {
+    completeDraftMock.mockResolvedValue({
+      creationKind: 'production-image',
+      cardType: 'production',
+      prompt: { cueMeaning: '名詞' },
+      answer: {
+        expression: '曇り',
+        expressionReading: '曇り[くもり]',
+        meaning: 'cloudy weather',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      },
+      imagePlacement: 'prompt',
+      imagePrompt: 'A realistic photo of cloudy weather over Tokyo. No text.',
+      previewImage: {
+        id: 'manual-image',
+        filename: 'manual-image.webp',
+        url: '/api/study/media/manual-image',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+    });
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Production from image' }));
+    await userEvent.type(screen.getByLabelText('Prompt text'), 'cloudy weather');
+    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
+
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/manual-image'
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+    expect(createStudyCardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creationKind: 'production-image',
+        cardType: 'production',
+        prompt: expect.objectContaining({
+          cueImage: expect.objectContaining({ id: 'manual-image' }),
+          cueText: null,
+        }),
+      })
+    );
+  });
+
+  it('generates a manual image from the edited prompt before create', async () => {
+    generateDraftImageMock.mockResolvedValue({
+      previewImage: {
+        id: 'manual-image',
+        filename: 'manual-image.webp',
+        url: '/api/study/media/manual-image',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+      imagePrompt: 'A construction paper illustration of a company office. No text.',
+      imagePlacement: 'both',
+    });
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.type(
+      screen.getByLabelText('Image prompt'),
+      'A construction paper illustration of a company office. No text.'
+    );
+    await userEvent.selectOptions(screen.getByLabelText('Image placement'), 'both');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
+
+    expect(generateDraftImageMock).toHaveBeenCalledWith({
+      imagePrompt: 'A construction paper illustration of a company office. No text.',
+      imagePlacement: 'both',
+    });
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/manual-image'
+    );
   });
 
   it('defaults new cards to the Japanese narrator voice', async () => {

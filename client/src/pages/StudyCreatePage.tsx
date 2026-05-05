@@ -5,44 +5,150 @@ import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants';
+import type {
+  StudyCardCreationKind,
+  StudyCardDraftCompleteResponse,
+  StudyCardImagePlacement,
+  StudyMediaRef,
+} from '@languageflow/shared/src/types';
 
+import StudyCardImageControls from '../components/study/StudyCardImageControls';
 import StudyCardFormFields from '../components/study/StudyCardFormFields';
 import StudyCandidateDraftList from '../components/study/StudyCandidateDraftList';
-import { useStudyCardForm } from '../components/study/studyCardFormModel';
+import { getStudyCardFormValues, useStudyCardForm } from '../components/study/studyCardFormModel';
+import {
+  applyStudyCardImageToPayload,
+  cardTypeForStudyCardCreationKind,
+  DEFAULT_STUDY_CARD_CREATION_KIND,
+  mergeBlankStudyCardFormFields,
+} from '../components/study/studyCardCreationModel';
+import { toAssetUrl } from '../components/study/studyCardUtils';
 import useFakeProgress from '../hooks/useFakeProgress';
 import useGeneratedStudyCandidates from '../hooks/useGeneratedStudyCandidates';
-import { useCreateStudyCard } from '../hooks/useStudy';
+import {
+  useCompleteStudyCardDraft,
+  useCreateStudyCard,
+  useGenerateStudyCardDraftImage,
+} from '../hooks/useStudy';
 
 type CreateMode = 'generate' | 'manual';
+
+function getDraftFormValues(result: StudyCardDraftCompleteResponse) {
+  return getStudyCardFormValues({
+    card: {
+      id: 'manual-draft',
+      noteId: 'manual-draft-note',
+      cardType: result.cardType,
+      prompt: result.prompt,
+      answer: result.answer,
+      state: {
+        dueAt: null,
+        introducedAt: null,
+        queueState: 'new',
+        scheduler: null,
+        source: {},
+      },
+      answerAudioSource: 'missing',
+      createdAt: '1970-01-01T00:00:00.000Z',
+      updatedAt: '1970-01-01T00:00:00.000Z',
+    },
+  });
+}
 
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
   const createCard = useCreateStudyCard();
+  const completeDraft = useCompleteStudyCardDraft();
+  const generateDraftImage = useGenerateStudyCardDraftImage();
   const [mode, setMode] = useState<CreateMode>('generate');
+  const [creationKind, setCreationKind] = useState<StudyCardCreationKind>(
+    DEFAULT_STUDY_CARD_CREATION_KIND
+  );
   const [targetText, setTargetText] = useState('');
   const [context, setContext] = useState('');
   const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
   const [manualSuccess, setManualSuccess] = useState<string | null>(null);
+  const [manualImagePrompt, setManualImagePrompt] = useState('');
+  const [manualImagePlacement, setManualImagePlacement] = useState<StudyCardImagePlacement>('none');
+  const [manualPreviewImage, setManualPreviewImage] = useState<StudyMediaRef | null>(null);
   const generated = useGeneratedStudyCandidates();
   const generationProgress = useFakeProgress(generated.generateCandidates.isPending, {
     // Candidate generation often takes tens of seconds, so pace the visual feedback for that wait.
     expectedMs: 40_000,
   });
   const roundedGenerationProgress = Math.round(generationProgress.progress);
-  const { values, setField, setCardType, reset, buildPayload } = useStudyCardForm({
+  const { values, setField, setValues, setCardType, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
   });
+  const manualPreviewImageUrl = toAssetUrl(manualPreviewImage?.url);
+
+  const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
+    setCreationKind(nextCreationKind);
+    setCardType(cardTypeForStudyCardCreationKind(nextCreationKind));
+    setManualSuccess(null);
+    if (nextCreationKind === 'production-image' && manualImagePlacement === 'none') {
+      setManualImagePlacement('prompt');
+    }
+  };
+
+  const handleFillRemainingFields = async () => {
+    setManualSuccess(null);
+    const payload = buildPayload();
+    const result = await completeDraft.mutateAsync({
+      creationKind,
+      cardType: payload.cardType,
+      prompt: payload.prompt,
+      answer: payload.answer,
+      imagePlacement: manualImagePlacement,
+      imagePrompt: manualImagePrompt.trim() || null,
+    });
+    const completedValues = getDraftFormValues(result);
+    setValues((current) => mergeBlankStudyCardFormFields(current, completedValues));
+    if (!manualImagePrompt.trim() && result.imagePrompt) {
+      setManualImagePrompt(result.imagePrompt);
+    }
+    setManualImagePlacement(result.imagePlacement);
+    if (result.previewImage) {
+      setManualPreviewImage(result.previewImage);
+    }
+  };
+
+  const handleGenerateManualImage = async () => {
+    setManualSuccess(null);
+    const result = await generateDraftImage.mutateAsync({
+      imagePrompt: manualImagePrompt,
+      imagePlacement: manualImagePlacement,
+    });
+    setManualImagePrompt(result.imagePrompt);
+    setManualImagePlacement(result.imagePlacement);
+    setManualPreviewImage(result.previewImage);
+  };
 
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setManualSuccess(null);
-    const payload = buildPayload();
+    const withImage = applyStudyCardImageToPayload(
+      buildPayload(),
+      manualPreviewImage,
+      manualImagePlacement
+    );
+    const payload = {
+      ...withImage,
+      creationKind,
+      prompt:
+        creationKind === 'production-image' && withImage.prompt.cueImage
+          ? { ...withImage.prompt, cueText: null }
+          : withImage.prompt,
+    };
 
     try {
       const created = await createCard.mutateAsync(payload);
 
       setManualSuccess(t('create.success', { cardType: created.cardType }));
       reset();
+      setManualImagePrompt('');
+      setManualImagePlacement('none');
+      setManualPreviewImage(null);
     } catch {
       // React Query stores the mutation error for the visible form message.
     }
@@ -199,9 +305,35 @@ const StudyCreatePage = () => {
             <StudyCardFormFields
               values={values}
               idPrefix="study"
+              creationKind={creationKind}
               includeCardTypeSelect
-              onCardTypeChange={setCardType}
+              onCreationKindChange={handleCreationKindChange}
               onFieldChange={setField}
+            />
+
+            <StudyCardImageControls
+              altText={t('create.generatedCardPromptAlt')}
+              imagePlacement={manualImagePlacement}
+              imagePrompt={manualImagePrompt}
+              imagePromptId="study-manual-image-prompt"
+              imagePromptLabel={t('create.imagePrompt')}
+              isRegenerateDisabled={completeDraft.isPending || createCard.isPending}
+              isRegenerating={generateDraftImage.isPending}
+              onImagePlacementChange={setManualImagePlacement}
+              onImagePromptChange={(value) => {
+                setManualImagePrompt(value);
+              }}
+              onRegenerate={handleGenerateManualImage}
+              previewUrl={manualPreviewImageUrl}
+              regenerateError={
+                generateDraftImage.error instanceof Error ? generateDraftImage.error.message : null
+              }
+              regenerateLabel={
+                generateDraftImage.isPending
+                  ? t('create.regeneratingImage')
+                  : t('create.generateImage')
+              }
+              title={t('create.imagePreview')}
             />
 
             {createCard.error ? (
@@ -209,12 +341,31 @@ const StudyCreatePage = () => {
                 {createCard.error instanceof Error ? createCard.error.message : t('create.failed')}
               </p>
             ) : null}
+            {completeDraft.error ? (
+              <p className="text-sm text-red-600">
+                {completeDraft.error instanceof Error
+                  ? completeDraft.error.message
+                  : t('create.fillRemainingFailed')}
+              </p>
+            ) : null}
             {manualSuccess ? <p className="text-sm text-emerald-700">{manualSuccess}</p> : null}
 
             <div className="flex flex-wrap gap-3">
               <button
+                type="button"
+                onClick={handleFillRemainingFields}
+                disabled={
+                  completeDraft.isPending || createCard.isPending || generateDraftImage.isPending
+                }
+                className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {completeDraft.isPending ? t('create.fillingRemaining') : t('create.fillRemaining')}
+              </button>
+              <button
                 type="submit"
-                disabled={createCard.isPending}
+                disabled={
+                  createCard.isPending || completeDraft.isPending || generateDraftImage.isPending
+                }
                 className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {createCard.isPending ? t('create.creating') : t('create.submit')}

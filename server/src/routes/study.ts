@@ -22,6 +22,10 @@ import type {
   StudyCardCandidateKind,
   StudyCardCandidatePreviewAudioRequest,
   StudyCardCandidatePreviewImageRequest,
+  StudyCardCreationKind,
+  StudyCardDraftCompleteRequest,
+  StudyCardDraftImageRequest,
+  StudyCardImagePlacement,
   StudyCardRegenerateImageRequest,
   StudyBrowserSortDirection,
   StudyBrowserSortField,
@@ -42,13 +46,17 @@ import {
 } from '../services/study/browserSort.js';
 import {
   cardTypeForStudyCardCandidateKind,
+  cardTypeForStudyCardCreationKind,
   parseOptionalStudyOverview,
   STUDY_CARD_CANDIDATE_KINDS,
+  STUDY_CARD_CREATION_KINDS,
+  STUDY_CARD_IMAGE_PLACEMENTS,
 } from '../services/study/shared.js';
 import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
-  createStudyCard,
+  completeManualStudyCardDraft,
+  createManualStudyCard,
   createStudyImportUploadSession,
   deleteStudyCard,
   exportStudyData,
@@ -67,6 +75,7 @@ import {
   getStudySettings,
   commitStudyCardCandidates,
   generateStudyCardCandidates,
+  generateManualStudyCardDraftImage,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
   regenerateStudyCardCandidatePreviewAudio,
@@ -671,6 +680,65 @@ function parseStudyCardCandidateKind(value: unknown): StudyCardCandidateKind {
   return value as StudyCardCandidateKind;
 }
 
+function parseStudyCardCreationKind(value: unknown): StudyCardCreationKind {
+  if (typeof value !== 'string' || !STUDY_CARD_CREATION_KINDS.has(value as StudyCardCreationKind)) {
+    throw new AppError(
+      'creationKind must be text-recognition, audio-recognition, production-text, production-image, or cloze.',
+      400
+    );
+  }
+
+  return value as StudyCardCreationKind;
+}
+
+function parseStudyCardImagePlacement(value: unknown): StudyCardImagePlacement {
+  if (typeof value === 'undefined' || value === null) {
+    return 'none';
+  }
+  if (
+    typeof value !== 'string' ||
+    !STUDY_CARD_IMAGE_PLACEMENTS.has(value as StudyCardImagePlacement)
+  ) {
+    throw new AppError('imagePlacement must be none, prompt, answer, or both.', 400);
+  }
+
+  return value as StudyCardImagePlacement;
+}
+
+function parseStudyCardDraftCompleteRequest(value: unknown): StudyCardDraftCompleteRequest {
+  if (!isPlainObject(value)) {
+    throw new AppError('Study card draft request body must be an object.', 400);
+  }
+
+  const creationKind = parseStudyCardCreationKind(value.creationKind);
+  const cardType = String(value.cardType);
+  const expectedCardType = cardTypeForStudyCardCreationKind(creationKind);
+  if (cardType !== expectedCardType) {
+    throw new AppError('cardType must match creationKind.', 400);
+  }
+
+  const payloads = parseStudyCardPayloads(value.prompt, value.answer);
+  const imagePrompt = parseOptionalNullableStringField('draft', 'imagePrompt', value.imagePrompt);
+  if (
+    typeof imagePrompt === 'string' &&
+    imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH
+  ) {
+    throw new AppError(
+      `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
+      400
+    );
+  }
+
+  return {
+    creationKind,
+    cardType: expectedCardType,
+    prompt: payloads.prompt,
+    answer: payloads.answer,
+    imagePlacement: parseStudyCardImagePlacement(value.imagePlacement),
+    imagePrompt: imagePrompt ?? null,
+  };
+}
+
 function parseStudyCardCandidatePreviewRole(value: unknown): 'prompt' | 'answer' | null {
   if (typeof value === 'undefined' || value === null) {
     return null;
@@ -1209,6 +1277,60 @@ router.post(
 );
 
 router.post(
+  '/cards/draft/complete',
+  rateLimitStudyRoute({ key: 'card-draft-complete', max: 30, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const request = parseStudyCardDraftCompleteRequest(req.body);
+      const result = await completeManualStudyCardDraft({
+        userId: req.userId,
+        request,
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/cards/draft/image',
+  rateLimitStudyRoute({
+    key: 'card-draft-image',
+    max: STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE,
+    windowMs: 60 * 1000,
+  }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = isPlainObject(req.body) ? (req.body as Partial<StudyCardDraftImageRequest>) : {};
+      const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt.trim() : '';
+      if (!imagePrompt) {
+        throw new AppError('imagePrompt is required.', 400);
+      }
+
+      const result = await generateManualStudyCardDraftImage({
+        userId: req.userId,
+        imagePrompt,
+        imagePlacement: parseStudyCardImagePlacement(body.imagePlacement),
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
   '/card-candidates/commit',
   rateLimitStudyRoute({ key: 'card-candidate-commit', max: 30, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
@@ -1242,7 +1364,13 @@ router.post(
         throw new AppError('Authenticated user is required.', 401);
       }
 
-      const { cardType, prompt, answer } = req.body as {
+      const {
+        creationKind: rawCreationKind,
+        cardType,
+        prompt,
+        answer,
+      } = req.body as {
+        creationKind?: unknown;
         cardType?: unknown;
         prompt?: unknown;
         answer?: unknown;
@@ -1254,9 +1382,18 @@ router.post(
       }
 
       const payloads = parseStudyCardPayloads(prompt, answer);
+      const creationKind =
+        typeof rawCreationKind === 'undefined'
+          ? cardType === 'production'
+            ? 'production-text'
+            : cardType === 'cloze'
+              ? 'cloze'
+              : 'text-recognition'
+          : parseStudyCardCreationKind(rawCreationKind);
 
-      const createdCard = await createStudyCard({
+      const createdCard = await createManualStudyCard({
         userId: req.userId,
+        creationKind,
         cardType: cardType as StudyCardType,
         prompt: payloads.prompt,
         answer: payloads.answer,
@@ -1512,8 +1649,8 @@ router.post(
       if (!imagePrompt.trim()) {
         throw new AppError('imagePrompt is required.', 400);
       }
-      if (body.imageRole !== 'prompt' && body.imageRole !== 'answer') {
-        throw new AppError('imageRole must be prompt or answer.', 400);
+      if (body.imageRole !== 'prompt' && body.imageRole !== 'answer' && body.imageRole !== 'both') {
+        throw new AppError('imageRole must be prompt, answer, or both.', 400);
       }
 
       const card = await regenerateStudyCardImage({

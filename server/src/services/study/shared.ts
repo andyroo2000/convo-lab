@@ -60,8 +60,11 @@ export {
 } from './shared/cursors.js';
 
 export {
+  cardTypeForStudyCardCreationKind,
   cardTypeForStudyCardCandidateKind,
+  STUDY_CARD_CREATION_KINDS,
   STUDY_CARD_CANDIDATE_KINDS,
+  STUDY_CARD_IMAGE_PLACEMENTS,
 } from './shared/candidates.js';
 
 export { noteFieldValueToString, stripHtml, toSearchText } from './shared/text.js';

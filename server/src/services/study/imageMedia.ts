@@ -115,7 +115,7 @@ export async function regenerateStudyCardImage(input: {
   userId: string;
   cardId: string;
   imagePrompt: string;
-  imageRole: 'prompt' | 'answer';
+  imageRole: 'prompt' | 'answer' | 'both';
 }): Promise<StudyCardSummary> {
   const imagePrompt = input.imagePrompt.trim();
   if (!imagePrompt) {
@@ -151,9 +151,13 @@ export async function regenerateStudyCardImage(input: {
   });
   const normalized = await normalizeStudyCardPayload(existing);
   const nextPrompt =
-    input.imageRole === 'prompt' ? { ...normalized.prompt, cueImage: image } : normalized.prompt;
+    input.imageRole === 'prompt' || input.imageRole === 'both'
+      ? { ...normalized.prompt, cueImage: image }
+      : normalized.prompt;
   const nextAnswer =
-    input.imageRole === 'answer' ? { ...normalized.answer, answerImage: image } : normalized.answer;
+    input.imageRole === 'answer' || input.imageRole === 'both'
+      ? { ...normalized.answer, answerImage: image }
+      : normalized.answer;
 
   // Cards keep one denormalized imageMediaId used by the mappers to hydrate whichever side
   // currently owns the card image.

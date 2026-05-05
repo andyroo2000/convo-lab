@@ -1,4 +1,4 @@
-import type { StudyCardSummary } from '@languageflow/shared/src/types';
+import type { StudyCardImagePlacement, StudyCardSummary } from '@languageflow/shared/src/types';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,7 +6,7 @@ import StudyAudioPlayer from './StudyAudioPlayer';
 import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
 import StudyCardFormFields from './StudyCardFormFields';
-import StudyCandidatePreviewImage from './StudyCandidatePreviewImage';
+import StudyCardImageControls from './StudyCardImageControls';
 import { useStudyCardForm } from './studyCardFormModel';
 import { toAssetUrl } from './studyCardUtils';
 
@@ -23,7 +23,7 @@ interface StudyCardEditorProps {
   }) => Promise<StudyCardSummary | void> | StudyCardSummary | void;
   onRegenerateImage?: (payload: {
     imagePrompt: string;
-    imageRole: 'prompt' | 'answer';
+    imageRole: 'prompt' | 'answer' | 'both';
   }) => Promise<StudyCardSummary | void> | StudyCardSummary | void;
   onDelete?: () => Promise<void> | void;
   isSaving?: boolean;
@@ -33,8 +33,9 @@ interface StudyCardEditorProps {
   error?: string | null;
 }
 
-function getCardImageRole(card: StudyCardSummary): 'prompt' | 'answer' {
+function getCardImageRole(card: StudyCardSummary): StudyCardImagePlacement {
   // Study cards currently carry at most one image, hydrated onto whichever side owns it.
+  if (card.prompt.cueImage && card.answer.answerImage) return 'both';
   return card.prompt.cueImage ? 'prompt' : 'answer';
 }
 
@@ -68,7 +69,7 @@ const StudyCardEditor = ({
   const [currentImage, setCurrentImage] = useState(
     card.prompt.cueImage ?? card.answer.answerImage ?? null
   );
-  const [imageRole, setImageRole] = useState<'prompt' | 'answer'>(() => getCardImageRole(card));
+  const [imageRole, setImageRole] = useState<StudyCardImagePlacement>(() => getCardImageRole(card));
   const [imagePrompt, setImagePrompt] = useState(() => getCardImagePrompt(card));
   const [regeneratedAudioPlayRequest, setRegeneratedAudioPlayRequest] = useState(0);
   const currentAudioPlayerRef = useRef<AudioPlayerHandle | null>(null);
@@ -136,9 +137,12 @@ const StudyCardEditor = ({
         // Regeneration saves media immediately; include the current reference so a later form save
         // does not accidentally drop freshly previewed media.
         await onSave({
-          prompt: imageRole === 'prompt' ? { ...prompt, cueImage: currentImage } : prompt,
+          prompt:
+            imageRole === 'prompt' || imageRole === 'both'
+              ? { ...prompt, cueImage: currentImage }
+              : prompt,
           answer:
-            imageRole === 'answer'
+            imageRole === 'answer' || imageRole === 'both'
               ? { ...answer, answerAudio: currentAnswerAudio, answerImage: currentImage }
               : { ...answer, answerAudio: currentAnswerAudio },
         });
@@ -161,40 +165,40 @@ const StudyCardEditor = ({
         onFieldChange={setField}
       />
 
-      {currentImage ? (
-        <StudyCandidatePreviewImage
-          altText={t('editor.currentImage')}
-          imagePrompt={imagePrompt}
-          imagePromptId="study-edit-image-prompt"
-          imagePromptLabel={t('editor.imagePrompt')}
-          isRegenerateDisabled={!onRegenerateImage || isBusy}
-          isRegenerating={isRegeneratingImage}
-          onImagePromptChange={setImagePrompt}
-          onRegenerate={async () => {
-            if (!onRegenerateImage) return;
-            try {
-              const updatedCard = await onRegenerateImage({
-                imagePrompt,
-                imageRole,
-              });
-              if (updatedCard) {
-                const nextImage =
-                  imageRole === 'prompt'
-                    ? updatedCard.prompt.cueImage
-                    : updatedCard.answer.answerImage;
-                setCurrentImage(nextImage ?? null);
-              }
-            } catch {
-              // The owning mutation surfaces the user-facing error; avoid an unhandled rejection.
+      <StudyCardImageControls
+        altText={t('editor.currentImage')}
+        imagePlacement={imageRole}
+        imagePrompt={imagePrompt}
+        imagePromptId="study-edit-image-prompt"
+        imagePromptLabel={t('editor.imagePrompt')}
+        isRegenerateDisabled={!onRegenerateImage || isBusy}
+        isRegenerating={isRegeneratingImage}
+        onImagePlacementChange={setImageRole}
+        onImagePromptChange={setImagePrompt}
+        onRegenerate={async () => {
+          if (!onRegenerateImage || imageRole === 'none') return;
+          try {
+            const updatedCard = await onRegenerateImage({
+              imagePrompt,
+              imageRole,
+            });
+            if (updatedCard) {
+              const nextImage =
+                imageRole === 'prompt' || imageRole === 'both'
+                  ? updatedCard.prompt.cueImage
+                  : updatedCard.answer.answerImage;
+              setCurrentImage(nextImage ?? null);
             }
-          }}
-          previewUrl={imageUrl}
-          regenerateLabel={
-            isRegeneratingImage ? t('editor.regeneratingImage') : t('editor.regenerateImage')
+          } catch {
+            // The owning mutation surfaces the user-facing error; avoid an unhandled rejection.
           }
-          title={t('editor.currentImage')}
-        />
-      ) : null}
+        }}
+        previewUrl={imageUrl}
+        regenerateLabel={
+          isRegeneratingImage ? t('editor.regeneratingImage') : t('editor.regenerateImage')
+        }
+        title={t('editor.currentImage')}
+      />
 
       <div className="rounded-2xl border border-gray-200 bg-cream/50 p-4">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">

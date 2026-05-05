@@ -27,12 +27,12 @@ const baseValues: StudyCardFormValues = {
 };
 
 describe('StudyCardFormFields', () => {
-  it('keeps cloze restored-answer reading editable', () => {
+  it('keeps cloze answer reading editable', () => {
     render(
       <StudyCardFormFields values={baseValues} idPrefix="test-study-card" onFieldChange={vi.fn()} />
     );
 
-    const readingInput = screen.getByRole('textbox', { name: /restored answer reading/i });
+    const readingInput = screen.getByRole('textbox', { name: /^answer reading$/i });
     expect(readingInput).toHaveValue('明日[あす]から早[はや]く起[お]きることにします。');
     expect(readingInput).toHaveAttribute('placeholder', 'Example: 明日[あした]から');
     expect(readingInput).toBeEnabled();
