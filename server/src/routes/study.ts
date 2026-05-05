@@ -1383,6 +1383,7 @@ router.post(
 
       const payloads = parseStudyCardPayloads(prompt, answer);
       const creationKind =
+        // Legacy callers only send the persisted card type; infer the creation behavior.
         typeof rawCreationKind === 'undefined'
           ? cardType === 'production'
             ? 'production-text'

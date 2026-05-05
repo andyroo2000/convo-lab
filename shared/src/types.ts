@@ -279,7 +279,7 @@ export interface StudyCardDraftCompleteResponse {
   answer: StudyAnswerPayload;
   imagePlacement: StudyCardImagePlacement;
   imagePrompt: string | null;
-  previewImage?: StudyMediaRef | null;
+  previewImage: StudyMediaRef | null;
 }
 
 export interface StudyCardDraftImageRequest {
