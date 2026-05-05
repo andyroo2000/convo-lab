@@ -147,6 +147,18 @@ describe('dailyAudioPractice routes', () => {
       status: 'generating',
       practiceDate: '2026-05-05',
     });
+    expect(mockPrisma.dailyAudioPracticeTrack.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          practiceId: PRACTICE_ID,
+          status: { not: 'ready' },
+        },
+        data: expect.objectContaining({
+          status: 'draft',
+          errorMessage: null,
+        }),
+      })
+    );
     expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith(PRACTICE_ID);
   });
 
@@ -185,7 +197,7 @@ describe('dailyAudioPractice routes', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           status: 'error',
-          errorMessage: 'Redis unavailable',
+          errorMessage: 'Daily Audio Practice could not be queued. Please try again.',
         }),
       })
     );
@@ -241,9 +253,20 @@ describe('dailyAudioPractice routes', () => {
     const response = await request(createApp()).get('/api/daily-audio-practice').expect(200);
 
     expect(response.body).toHaveLength(2);
+    expect(response.body[0].tracks[0]).not.toHaveProperty('scriptUnitsJson');
+    expect(response.body[0].tracks[0]).not.toHaveProperty('timingData');
     expect(mockPrisma.dailyAudioPractice.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { userId: 'user-1' },
+        include: {
+          tracks: {
+            select: expect.not.objectContaining({
+              scriptUnitsJson: true,
+              timingData: true,
+              generationMetadataJson: true,
+            }),
+          },
+        },
         take: 14,
       })
     );

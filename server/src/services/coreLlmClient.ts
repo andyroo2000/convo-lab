@@ -4,13 +4,22 @@ import { generateOpenAIResponseText } from './openAIClient.js';
 const DEFAULT_CORE_GENERATOR_MODEL = 'gpt-5.5';
 const DEFAULT_CORE_GENERATOR_REASONING_EFFORT = 'medium';
 
+function isOpenAICompatibleModel(model: string): boolean {
+  return !model.toLowerCase().includes('gemini');
+}
+
 function getCoreGeneratorModel(): string {
-  return (
-    process.env.CORE_GENERATOR_MODEL ??
-    // Keep core generation aligned with the flashcard model unless explicitly overridden.
-    process.env.STUDY_CARD_GENERATOR_MODEL ??
-    DEFAULT_CORE_GENERATOR_MODEL
-  );
+  if (process.env.CORE_GENERATOR_MODEL) {
+    return process.env.CORE_GENERATOR_MODEL;
+  }
+
+  const flashcardModel = process.env.STUDY_CARD_GENERATOR_MODEL;
+  // Keep core generation aligned with the flashcard model only when it is an OpenAI model id.
+  if (flashcardModel && isOpenAICompatibleModel(flashcardModel)) {
+    return flashcardModel;
+  }
+
+  return DEFAULT_CORE_GENERATOR_MODEL;
 }
 
 function getCoreGeneratorReasoningEffort(): string {

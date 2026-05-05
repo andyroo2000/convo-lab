@@ -11,6 +11,18 @@ import { buildDailyAudioLearningAtoms, selectDailyAudioPracticeCards } from './c
 import { buildDailyAudioPracticeScripts } from './scriptGenerator.js';
 import { DAILY_AUDIO_TRACKS } from './types.js';
 
+const GENERIC_GENERATION_ERROR =
+  'Daily Audio Practice generation failed. Please try again in a moment.';
+const NO_ELIGIBLE_CARDS_ERROR = 'Daily Audio Practice needs at least one eligible study card.';
+
+function getSafeGenerationErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message === NO_ELIGIBLE_CARDS_ERROR) {
+    return message;
+  }
+  return GENERIC_GENERATION_ERROR;
+}
+
 export async function processDailyAudioPracticeJob(params: {
   practiceId: string;
   onProgress?: (progress: number) => Promise<void> | void;
@@ -41,7 +53,7 @@ export async function processDailyAudioPracticeJob(params: {
     });
     const atoms = await buildDailyAudioLearningAtoms(selected.cards);
     if (atoms.length === 0) {
-      throw new Error('Daily Audio Practice needs at least one eligible study card.');
+      throw new Error(NO_ELIGIBLE_CARDS_ERROR);
     }
 
     await prisma.dailyAudioPractice.update({
@@ -136,7 +148,7 @@ export async function processDailyAudioPracticeJob(params: {
 
     return { practiceId: readyPractice.id, status: readyPractice.status };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getSafeGenerationErrorMessage(error);
     await prisma.dailyAudioPractice.update({
       where: { id: practice.id },
       data: { status: 'error', errorMessage: message },

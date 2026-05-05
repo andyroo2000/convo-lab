@@ -17,6 +17,7 @@ const router = Router();
 const DEFAULT_TARGET_DURATION_MINUTES = 30;
 const MIN_TARGET_DURATION_MINUTES = 5;
 const MAX_TARGET_DURATION_MINUTES = 60;
+const ENQUEUE_FAILURE_MESSAGE = 'Daily Audio Practice could not be queued. Please try again.';
 const limitDailyAudioReads = rateLimitStudyRoute({
   key: 'daily-audio-practice-read',
   max: 240,
@@ -89,6 +90,65 @@ function serializePractice(
         createdAt: track.createdAt.toISOString(),
         updatedAt: track.updatedAt.toISOString(),
       })),
+  };
+}
+
+type PracticeSummary = Prisma.DailyAudioPracticeGetPayload<{
+  include: {
+    tracks: {
+      select: {
+        id: true;
+        practiceId: true;
+        mode: true;
+        status: true;
+        title: true;
+        sortOrder: true;
+        audioUrl: true;
+        approxDurationSeconds: true;
+        errorMessage: true;
+        createdAt: true;
+        updatedAt: true;
+      };
+    };
+  };
+}>;
+
+function serializePracticeSummary(practice: PracticeSummary) {
+  return {
+    ...practice,
+    practiceDate: practice.practiceDate.toISOString().slice(0, 10),
+    createdAt: practice.createdAt.toISOString(),
+    updatedAt: practice.updatedAt.toISOString(),
+    tracks: [...practice.tracks]
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((track) => {
+        const {
+          id,
+          practiceId,
+          mode,
+          status,
+          title,
+          sortOrder,
+          audioUrl,
+          approxDurationSeconds,
+          errorMessage,
+          createdAt,
+          updatedAt,
+        } = track;
+        return {
+          id,
+          practiceId,
+          mode,
+          status,
+          title,
+          sortOrder,
+          audioUrl,
+          approxDurationSeconds,
+          errorMessage,
+          createdAt: createdAt.toISOString(),
+          updatedAt: updatedAt.toISOString(),
+        };
+      }),
   };
 }
 
@@ -197,6 +257,23 @@ router.post(
             data: { status: 'generating', errorMessage: null },
           });
 
+          if (started.count > 0) {
+            await tx.dailyAudioPracticeTrack.updateMany({
+              where: {
+                practiceId: dailyPractice.id,
+                status: { not: 'ready' },
+              },
+              data: {
+                status: 'draft',
+                audioUrl: null,
+                timingData: Prisma.JsonNull,
+                approxDurationSeconds: null,
+                generationMetadataJson: Prisma.JsonNull,
+                errorMessage: null,
+              },
+            });
+          }
+
           return {
             practice: {
               ...dailyPractice,
@@ -210,10 +287,9 @@ router.post(
           try {
             await enqueueDailyAudioPracticeJob(practice.id);
           } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
             await prisma.dailyAudioPractice.update({
               where: { id: practice.id },
-              data: { status: 'error', errorMessage: message },
+              data: { status: 'error', errorMessage: ENQUEUE_FAILURE_MESSAGE },
             });
             throw error;
           }
@@ -240,11 +316,27 @@ router.get(
       if (!req.userId) throw new AppError('Authentication required.', 401);
       const practices = await prisma.dailyAudioPractice.findMany({
         where: { userId: req.userId },
-        include: { tracks: true },
+        include: {
+          tracks: {
+            select: {
+              id: true,
+              practiceId: true,
+              mode: true,
+              status: true,
+              title: true,
+              sortOrder: true,
+              audioUrl: true,
+              approxDurationSeconds: true,
+              errorMessage: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
         orderBy: { practiceDate: 'desc' },
         take: 14,
       });
-      res.json(practices.map(serializePractice));
+      res.json(practices.map(serializePracticeSummary));
     } catch (error) {
       next(error);
     }
