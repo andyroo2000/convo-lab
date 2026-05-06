@@ -1,14 +1,24 @@
 {
   "title": "何を作成しますか？",
   "subtitle": "開始するアクティビティタイプを選択してください",
+  "kickers": {
+    "dialogue": "ワーク 1",
+    "dailyAudio": "ワーク 2"
+  },
   "types": {
     "dialogue": {
       "title": "対話",
+      "mini": "プロンプト / ストーリー / 対話",
       "description": "あなた自身のストーリーから、あなたの習熟度に合わせてAI対話を生成します"
     },
     "course": {
       "title": "音声コース",
       "description": "対話から構築された音声のみのレッスン—通勤や朝の散歩に最適"
+    },
+    "dailyAudio": {
+      "title": "毎日の音声練習",
+      "mini": "ドリル / 対話 / ストーリー",
+      "description": "学習中のフラッシュカードからドリル、対話、ストーリーを生成します"
     }
   },
   "buttons": {

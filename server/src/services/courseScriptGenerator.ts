@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
+import { generateCoreLlmText } from './coreLlmClient.js';
 import { LessonPlan, LessonSection, DrillEvent } from './coursePlanner.js';
-import { generateWithGemini } from './geminiClient.js';
 
 // Script unit types for the audio timeline
 export type LessonScriptUnit =
@@ -34,7 +34,7 @@ interface ScriptGenerationContext {
  * Generate complete lesson script from lesson plan
  * Returns timeline of script units (narration, L2 audio, pauses, markers)
  *
- * OPTIMIZED: Uses batched Gemini calls to reduce API usage from 20+ to 3 calls per lesson
+ * OPTIMIZED: Uses batched core LLM calls to reduce API usage from 20+ to 3 calls per lesson
  */
 export async function generateCourseScript(
   lessonPlan: LessonPlan,
@@ -553,7 +553,7 @@ Return as JSON with this exact structure:
 
 Write only the JSON, no additional text.`;
 
-  const response = await generateWithGemini(prompt);
+  const response = await generateCoreLlmText(prompt);
 
   // Parse JSON response (strip markdown code blocks if present)
   try {
@@ -588,7 +588,7 @@ Write only the JSON, no additional text.`;
 }
 
 /**
- * Generate introduction narration using Gemini
+ * Generate introduction narration using the core LLM
  */
 async function generateIntroScript(
   _section: LessonSection,
@@ -603,7 +603,7 @@ Write a warm, encouraging introduction (2-3 sentences) that:
 
 Keep it natural and conversational. Write only the narration text, no formatting.`;
 
-  const narration = await generateWithGemini(prompt);
+  const narration = await generateCoreLlmText(prompt);
 
   return [
     { type: 'narration_L1', text: narration.trim(), voiceId: context.l1VoiceId },
@@ -638,7 +638,7 @@ Write 1-2 sentences of ${context.nativeLanguage} narration that:
 
 Keep it brief and encouraging. Write only the narration text.`;
 
-    const narration = await generateWithGemini(prompt);
+    const narration = await generateCoreLlmText(prompt);
 
     units.push(
       { type: 'narration_L1', text: narration.trim(), voiceId: context.l1VoiceId },
@@ -722,7 +722,7 @@ async function generatePhraseConstructionScript(
 
 Keep it encouraging and explain that they'll practice building longer phrases.`;
 
-  const narration = await generateWithGemini(prompt);
+  const narration = await generateCoreLlmText(prompt);
 
   units.push(
     { type: 'narration_L1', text: narration.trim(), voiceId: context.l1VoiceId },
@@ -767,7 +767,7 @@ async function generateDialogueIntegrationScript(
 
 Explain that learners will now use these phrases in conversation. Keep it brief and encouraging.`;
 
-  const narration = await generateWithGemini(prompt);
+  const narration = await generateCoreLlmText(prompt);
 
   units.push(
     { type: 'narration_L1', text: narration.trim(), voiceId: context.l1VoiceId },
@@ -836,7 +836,7 @@ Return as JSON with this exact structure:
 
 Write only the JSON, no additional text.`;
 
-  const response = await generateWithGemini(prompt);
+  const response = await generateCoreLlmText(prompt);
 
   // Parse JSON response (strip markdown code blocks if present)
   try {
@@ -894,7 +894,7 @@ Example format: "You're at a restaurant and want to order. What do you say?"
 
 Write only the scenario question.`;
 
-      const scenario = await generateWithGemini(scenarioPrompt);
+      const scenario = await generateCoreLlmText(scenarioPrompt);
 
       units.push(
         {
@@ -930,7 +930,7 @@ async function generateRolePlayScript(
 
 Explain that the learner will play one role in a conversation, responding at the appropriate times. Keep it encouraging.`;
 
-  const narration = await generateWithGemini(prompt);
+  const narration = await generateCoreLlmText(prompt);
 
   units.push(
     { type: 'narration_L1', text: narration.trim(), voiceId: context.l1VoiceId },
@@ -1047,7 +1047,7 @@ Return as JSON with this exact structure:
 
 Write only the JSON, no additional text.`;
 
-  const response = await generateWithGemini(prompt);
+  const response = await generateCoreLlmText(prompt);
 
   // Parse JSON response (strip markdown code blocks if present)
   try {
@@ -1094,7 +1094,7 @@ async function generateOutroScript(
 
 Keep it warm and motivating.`;
 
-  const narration = await generateWithGemini(prompt);
+  const narration = await generateCoreLlmText(prompt);
 
   return [
     { type: 'narration_L1', text: narration.trim(), voiceId: context.l1VoiceId },

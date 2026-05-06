@@ -159,6 +159,61 @@ describe('openAIClient', () => {
     );
   });
 
+  it('can request plain text responses without JSON response formatting', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        mockJsonResponse(200, {
+          output_text: 'A short spoken intro.',
+        })
+      )
+    );
+
+    await expect(
+      generateOpenAIResponseText({
+        prompt: 'prompt',
+        systemInstruction: 'system',
+        model: 'gpt-5.5',
+        reasoningEffort: 'medium',
+        responseFormat: 'text',
+      })
+    ).resolves.toBe('A short spoken intro.');
+
+    expect(JSON.parse(vi.mocked(fetch).mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      text: {
+        format: {
+          type: 'text',
+        },
+      },
+    });
+  });
+
+  it('keeps JSON object response formatting as the default for text responses', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        mockJsonResponse(200, {
+          output_text: '{"ok":true}',
+        })
+      )
+    );
+
+    await generateOpenAIResponseText({
+      prompt: 'prompt',
+      systemInstruction: 'system',
+      model: 'gpt-5.5',
+      reasoningEffort: 'medium',
+    });
+
+    expect(JSON.parse(vi.mocked(fetch).mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      text: {
+        format: {
+          type: 'json_object',
+        },
+      },
+    });
+  });
+
   it('maps rejected credentials to a configuration error', async () => {
     vi.stubGlobal(
       'fetch',

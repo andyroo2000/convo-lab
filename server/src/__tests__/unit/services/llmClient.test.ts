@@ -3,14 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../middleware/errorHandler.js';
 import { generateStudyCardCandidateJson } from '../../../services/llmClient.js';
 
-const { generateWithGeminiMock } = vi.hoisted(() => ({
-  generateWithGeminiMock: vi.fn(),
-}));
-
-vi.mock('../../../services/geminiClient.js', () => ({
-  generateWithGemini: generateWithGeminiMock,
-}));
-
 describe('llmClient', () => {
   beforeEach(() => {
     vi.stubEnv('OPENAI_API_KEY', 'test-openai-key');
@@ -58,15 +50,16 @@ describe('llmClient', () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith('OpenAI request failed:', expect.any(Error));
   });
 
-  it('can still delegate to Gemini when configured', async () => {
+  it('ignores legacy provider configuration and keeps using OpenAI', async () => {
     vi.stubEnv('LLM_PROVIDER', 'gemini');
-    vi.stubEnv('STUDY_CARD_GENERATOR_MODEL', 'gemini-test-model');
-    generateWithGeminiMock.mockResolvedValue('{"candidates":[]}');
 
     await expect(generateStudyCardCandidateJson('prompt', 'system')).resolves.toBe(
       '{"candidates":[]}'
     );
 
-    expect(generateWithGeminiMock).toHaveBeenCalledWith('prompt', 'system', 'gemini-test-model');
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.openai.com/v1/responses',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 });

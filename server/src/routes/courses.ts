@@ -11,7 +11,7 @@ import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
-import { generateWithGemini } from '../services/geminiClient.js';
+import { generateCoreLlmText } from '../services/coreLlmClient.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
@@ -269,7 +269,7 @@ The course teaches ${targetLanguage.toUpperCase()} to ${nativeLanguage.toUpperCa
 
 Write only the description, no formatting or quotes.`;
 
-        courseDescription = await generateWithGemini(prompt);
+        courseDescription = await generateCoreLlmText(prompt);
         courseDescription = courseDescription.trim();
       } catch (err) {
         console.error('Failed to generate course description:', err);

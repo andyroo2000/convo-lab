@@ -284,3 +284,63 @@ export interface CourseStatusResponse {
   progress?: number;
   currentStage?: string;
 }
+
+export type DailyAudioPracticeMode = 'drill' | 'dialogue' | 'story';
+
+export interface DailyAudioPracticeTiming {
+  unitIndex: number;
+  startTime: number;
+  endTime: number;
+}
+
+export interface DailyAudioSelectionSummary {
+  totalCandidates: number;
+  totalEligible: number;
+  selectedCount: number;
+  dueCount: number;
+  learningCount: number;
+  recentMissCount: number;
+}
+
+export interface DailyAudioPracticeTrack {
+  id: string;
+  practiceId: string;
+  mode: DailyAudioPracticeMode;
+  status: 'draft' | 'generating' | 'ready' | 'error' | 'skipped';
+  title: string;
+  sortOrder: number;
+  scriptUnitsJson?: LessonScriptUnit[] | null;
+  audioUrl?: string | null;
+  timingData?: DailyAudioPracticeTiming[] | null;
+  approxDurationSeconds?: number | null;
+  generationMetadataJson?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyAudioPractice {
+  id: string;
+  userId: string;
+  practiceDate: string;
+  status: 'draft' | 'generating' | 'ready' | 'error';
+  targetDurationMinutes: number;
+  targetLanguage: LanguageCode;
+  nativeLanguage: LanguageCode;
+  sourceCardIdsJson?: string[] | null;
+  selectionSummaryJson?: DailyAudioSelectionSummary | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  tracks: DailyAudioPracticeTrack[];
+}
+
+export interface DailyAudioPracticeStatusResponse {
+  id: string;
+  status: DailyAudioPractice['status'];
+  progress: number | null;
+  tracks: Pick<
+    DailyAudioPracticeTrack,
+    'id' | 'mode' | 'status' | 'audioUrl' | 'approxDurationSeconds'
+  >[];
+}

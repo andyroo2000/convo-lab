@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare } from 'lucide-react';
+import { Headphones, MessageSquare } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsDemo } from '../hooks/useDemo';
@@ -73,7 +73,9 @@ const CreatePage = () => {
                 data-testid="create-card-dialogues"
               >
                 <div className="retro-create-v3-card-head">
-                  <div className="retro-create-v3-card-kicker retro-caps">ワーク 1</div>
+                  <div className="retro-create-v3-card-kicker retro-caps">
+                    {t('create:kickers.dialogue')}
+                  </div>
                   <h2 className="retro-create-v3-card-title">{t('create:types.dialogue.title')}</h2>
                 </div>
 
@@ -82,11 +84,47 @@ const CreatePage = () => {
                     <span className="retro-create-v3-icon-wrap" aria-hidden="true">
                       <MessageSquare className="h-4 w-4" />
                     </span>
-                    <span className="retro-caps">Prompt / Story / Dialogue</span>
+                    <span className="retro-caps">{t('create:types.dialogue.mini')}</span>
                   </div>
 
                   <p className="retro-create-v3-card-description">
                     {t('create:types.dialogue.description')}
+                  </p>
+
+                  <div className="retro-create-v3-card-cta">
+                    <span className="retro-create-v3-open retro-caps">
+                      {t('create:buttons.create')}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            )}
+            {isFeatureEnabled('flashcardsEnabled') && (
+              <button
+                type="button"
+                onClick={() => navigateWithViewAs('/app/study/daily-audio')}
+                className="retro-create-v3-card group"
+                data-testid="create-card-daily-audio"
+              >
+                <div className="retro-create-v3-card-head">
+                  <div className="retro-create-v3-card-kicker retro-caps">
+                    {t('create:kickers.dailyAudio')}
+                  </div>
+                  <h2 className="retro-create-v3-card-title">
+                    {t('create:types.dailyAudio.title')}
+                  </h2>
+                </div>
+
+                <div className="retro-create-v3-card-body">
+                  <div className="retro-create-v3-card-mini">
+                    <span className="retro-create-v3-icon-wrap" aria-hidden="true">
+                      <Headphones className="h-4 w-4" />
+                    </span>
+                    <span className="retro-caps">{t('create:types.dailyAudio.mini')}</span>
+                  </div>
+
+                  <p className="retro-create-v3-card-description">
+                    {t('create:types.dailyAudio.description')}
                   </p>
 
                   <div className="retro-create-v3-card-cta">

@@ -146,7 +146,9 @@ export async function generateOpenAIResponseText(input: {
   systemInstruction: string;
   model: string;
   reasoningEffort: string;
+  responseFormat?: 'json_object' | 'text';
 }): Promise<string> {
+  const responseFormat = input.responseFormat ?? 'json_object';
   const payload = await postOpenAIJson<OpenAIResponsesPayload>(
     'responses',
     {
@@ -166,7 +168,7 @@ export async function generateOpenAIResponseText(input: {
       },
       text: {
         format: {
-          type: 'json_object',
+          type: responseFormat,
         },
       },
     },

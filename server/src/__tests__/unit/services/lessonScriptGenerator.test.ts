@@ -6,10 +6,11 @@ import { LessonPlan, LessonSection, DrillEvent } from '../../../services/lessonP
 import { generateLessonScript, LessonScriptUnit } from '../../../services/lessonScriptGenerator.js';
 
 // Create hoisted mocks
-const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
+const mockGenerateCoreLlmText = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../services/geminiClient.js', () => ({
-  generateWithGemini: mockGenerateWithGemini,
+vi.mock('../../../services/coreLlmClient.js', () => ({
+  generateCoreLlmText: mockGenerateCoreLlmText,
+  generateCoreLlmJsonText: mockGenerateCoreLlmText,
 }));
 
 describe('lessonScriptGenerator', () => {
@@ -102,7 +103,7 @@ describe('lessonScriptGenerator', () => {
     });
 
     // Return different responses based on call order
-    mockGenerateWithGemini
+    mockGenerateCoreLlmText
       .mockResolvedValueOnce(batch1Response)
       .mockResolvedValueOnce(batch2Response)
       .mockResolvedValueOnce(batch3Response);
@@ -158,7 +159,7 @@ describe('lessonScriptGenerator', () => {
 
       await generateLessonScript(lessonPlan, mockContext);
 
-      expect(mockGenerateWithGemini).toHaveBeenCalledTimes(3);
+      expect(mockGenerateCoreLlmText).toHaveBeenCalledTimes(3);
     });
 
     it('should include L1 narration units', async () => {
@@ -242,7 +243,7 @@ describe('lessonScriptGenerator', () => {
         earlySRSIntro: 'Practice time.',
       })}\n\`\`\``;
 
-      mockGenerateWithGemini
+      mockGenerateCoreLlmText
         .mockReset()
         .mockResolvedValueOnce(batch1Response)
         .mockResolvedValueOnce(
@@ -270,7 +271,7 @@ describe('lessonScriptGenerator', () => {
       const lessonPlan = createMockLessonPlan(coreItems);
 
       // Return invalid JSON for batch 1
-      mockGenerateWithGemini
+      mockGenerateCoreLlmText
         .mockReset()
         .mockResolvedValueOnce('Invalid JSON response\nLine 2\nLine 3')
         .mockResolvedValueOnce(
@@ -532,8 +533,8 @@ describe('lessonScriptGenerator', () => {
       };
 
       // Reset mocks - when sections are missing, individual generators will be called
-      // These call generateWithGemini directly, so we need to provide proper responses
-      mockGenerateWithGemini.mockReset().mockResolvedValue('Simple fallback narration text.');
+      // These call the core LLM directly, so we need to provide proper responses
+      mockGenerateCoreLlmText.mockReset().mockResolvedValue('Simple fallback narration text.');
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 

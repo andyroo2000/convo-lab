@@ -1,14 +1,24 @@
 {
   "title": "What do you want to create?",
   "subtitle": "Choose an activity type to get started",
+  "kickers": {
+    "dialogue": "Work 1",
+    "dailyAudio": "Work 2"
+  },
   "types": {
     "dialogue": {
       "title": "Dialogue",
+      "mini": "Prompt / Story / Dialogue",
       "description": "Generate AI dialogues from your own stories, calibrated to your proficiency level"
     },
     "course": {
       "title": "Audio Course",
       "description": "Audio-only lessons built from your dialogues—perfect for your commute or morning walk"
+    },
+    "dailyAudio": {
+      "title": "Daily Audio Practice",
+      "mini": "Drills / Dialogue / Story",
+      "description": "Generate drills, dialogues, and a story from the flashcards you are learning"
     }
   },
   "buttons": {

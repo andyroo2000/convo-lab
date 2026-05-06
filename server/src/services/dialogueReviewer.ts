@@ -1,4 +1,4 @@
-import { generateWithGemini } from './geminiClient.js';
+import { generateCoreLlmText } from './coreLlmClient.js';
 
 export interface DialogueReview {
   overallScore: number; // 1-10
@@ -48,7 +48,7 @@ Provide constructive feedback. Return ONLY a JSON object:
 Set needsRevision=true only if overallScore < 7 or there are major issues.`;
 
   try {
-    const response = await generateWithGemini(prompt);
+    const response = await generateCoreLlmText(prompt);
     let jsonText = response.trim();
 
     // Extract JSON from markdown code blocks if present
@@ -103,7 +103,7 @@ Return ONLY a JSON array:
 ]`;
 
   try {
-    const response = await generateWithGemini(prompt);
+    const response = await generateCoreLlmText(prompt);
     let jsonText = response.trim();
 
     if (jsonText.includes('```')) {

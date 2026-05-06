@@ -9,6 +9,7 @@ interface StudyRateLimitOptions {
   key: string;
   max: number;
   windowMs: number;
+  allowAnonymousIdentity?: boolean;
   onBackendError?: 'fail-open' | 'fail-closed';
 }
 
@@ -51,16 +52,17 @@ async function incrementWindowCount(
 export function rateLimitStudyRoute(options: StudyRateLimitOptions) {
   return async (req: AuthRequest, _res: Response, next: NextFunction) => {
     try {
-      if (!req.userId) {
-        throw new AppError('Authentication required', 401);
-      }
-
       const windowStart = Math.floor(Date.now() / options.windowMs);
       const windowResetAtSeconds = Math.max(
         1,
         Math.ceil(((windowStart + 1) * options.windowMs) / 1000)
       );
-      const key = `rate-limit:study:${options.key}:${req.userId}:${windowStart}`;
+      if (!req.userId && !options.allowAnonymousIdentity) {
+        throw new AppError('Authentication required', 401);
+      }
+
+      const identity = req.userId ?? req.ip ?? 'unknown';
+      const key = `rate-limit:study:${options.key}:${identity}:${windowStart}`;
       const count = await incrementWindowCount(key, windowResetAtSeconds);
 
       if (count > options.max) {
