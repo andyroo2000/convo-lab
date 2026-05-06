@@ -13,6 +13,17 @@ const GENERIC_GENERATION_ERROR =
 const NO_ELIGIBLE_CARDS_ERROR = 'Daily Audio Practice needs at least one eligible study card.';
 const DAILY_AUDIO_GENERATED_TRACK_MODES = new Set<DailyAudioPracticeTrackMode>(['drill']);
 const GOOGLE_SHOHEI_JA_VOICE_ID = 'ja-JP-Wavenet-C';
+const SCRIPT_GENERATED_PROGRESS = 45;
+const AUDIO_ASSEMBLY_DONE_PROGRESS = 95;
+
+export function mapDailyAudioAssemblyProgress(current: number, total: number): number {
+  if (!Number.isFinite(current) || !Number.isFinite(total) || total <= 0) {
+    return SCRIPT_GENERATED_PROGRESS;
+  }
+
+  const ratio = Math.min(1, Math.max(0, current / total));
+  return SCRIPT_GENERATED_PROGRESS + Math.floor(ratio * 45);
+}
 
 function getSafeGenerationErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -27,7 +38,15 @@ export async function processDailyAudioPracticeJob(params: {
   onProgress?: (progress: number) => Promise<void> | void;
 }) {
   const onProgress = params.onProgress ?? (async () => {});
-  await onProgress(5);
+  let lastProgress = 0;
+  const reportProgress = async (progress: number) => {
+    const nextProgress = Math.min(100, Math.max(lastProgress, Math.floor(progress)));
+    if (nextProgress === lastProgress) return;
+    lastProgress = nextProgress;
+    await onProgress(nextProgress);
+  };
+
+  await reportProgress(5);
 
   const practice = await prisma.dailyAudioPractice.findUnique({
     where: { id: params.practiceId },
@@ -62,7 +81,7 @@ export async function processDailyAudioPracticeJob(params: {
         selectionSummaryJson: selected.summary as unknown as Prisma.InputJsonValue,
       },
     });
-    await onProgress(20);
+    await reportProgress(20);
 
     const drillScript = await buildDailyAudioPracticeDrillScriptResult({
       atoms,
@@ -74,7 +93,7 @@ export async function processDailyAudioPracticeJob(params: {
         DEFAULT_NARRATOR_VOICES.en,
       speakerVoiceIds: [GOOGLE_SHOHEI_JA_VOICE_ID, GOOGLE_SHOHEI_JA_VOICE_ID],
     });
-    await onProgress(45);
+    await reportProgress(SCRIPT_GENERATED_PROGRESS);
 
     for (const [index, trackConfig] of DAILY_AUDIO_TRACKS.entries()) {
       if (!DAILY_AUDIO_GENERATED_TRACK_MODES.has(trackConfig.mode)) {
@@ -105,7 +124,7 @@ export async function processDailyAudioPracticeJob(params: {
             errorMessage: null,
           },
         });
-        await onProgress(45 + Math.floor(((index + 1) / DAILY_AUDIO_TRACKS.length) * 45));
+        await reportProgress(45 + Math.floor(((index + 1) / DAILY_AUDIO_TRACKS.length) * 45));
         continue;
       }
 
@@ -141,7 +160,11 @@ export async function processDailyAudioPracticeJob(params: {
         nativeLanguage: practice.nativeLanguage,
         outputFolder: `daily-audio-practice/${practice.id}`,
         outputFilename: `${trackConfig.mode}-${track.id}.mp3`,
+        onProgress: (current, total) => {
+          void reportProgress(mapDailyAudioAssemblyProgress(current, total));
+        },
       });
+      await reportProgress(AUDIO_ASSEMBLY_DONE_PROGRESS);
 
       await prisma.dailyAudioPracticeTrack.update({
         where: { id: track.id },
@@ -156,7 +179,7 @@ export async function processDailyAudioPracticeJob(params: {
           } as Prisma.InputJsonValue,
         },
       });
-      await onProgress(45 + Math.floor(((index + 1) / DAILY_AUDIO_TRACKS.length) * 45));
+      await reportProgress(45 + Math.floor(((index + 1) / DAILY_AUDIO_TRACKS.length) * 45));
     }
 
     const readyPractice = await prisma.dailyAudioPractice.update({
@@ -164,7 +187,7 @@ export async function processDailyAudioPracticeJob(params: {
       data: { status: 'ready', errorMessage: null },
       include: { tracks: { orderBy: { sortOrder: 'asc' } } },
     });
-    await onProgress(100);
+    await reportProgress(100);
 
     return { practiceId: readyPractice.id, status: readyPractice.status };
   } catch (error) {

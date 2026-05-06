@@ -89,11 +89,21 @@ function applyOverridesToUnits(
       continue;
     }
 
-    output.push(units[i].reading);
+    output.push(normalizeKanaParticleUnitForTts(units[i].surface, units[i].reading));
     i++;
   }
 
   return output.join('');
+}
+
+function normalizeKanaParticleUnitForTts(surface: string, reading: string): string {
+  if (/^は([、。！？!?]|$)/.test(surface)) {
+    return reading.replace(/^は/, 'わ');
+  }
+  if (/^へ([、。！？!?]|$)/.test(surface)) {
+    return reading.replace(/^へ/, 'え');
+  }
+  return reading;
 }
 
 function applyForceKanaToText(text: string, cache: ReturnType<typeof getDictionaryCache>): string {
