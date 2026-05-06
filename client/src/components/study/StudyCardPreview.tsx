@@ -112,6 +112,7 @@ export const StudyCardFace = ({
         rawDisplayText && !CLOZE_MARKUP_PATTERN.test(rawDisplayText)
           ? rawDisplayText
           : derived.displayText;
+      const cueImageUrl = toAssetUrl(card.prompt.cueImage?.url);
 
       return (
         <div
@@ -121,6 +122,15 @@ export const StudyCardFace = ({
               : 'space-y-4 text-center sm:space-y-6'
           }
         >
+          {cueImageUrl ? (
+            <img
+              src={cueImageUrl}
+              alt={card.prompt.cueMeaning ?? 'Study prompt'}
+              className={`mx-auto object-contain sm:max-h-80 ${
+                compactMobile ? 'max-h-[32dvh] rounded-lg' : 'max-h-[36dvh] rounded-xl'
+              }`}
+            />
+          ) : null}
           <p
             className={`mx-auto max-w-5xl leading-relaxed text-black ${
               compactMobile

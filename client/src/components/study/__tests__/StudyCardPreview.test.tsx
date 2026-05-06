@@ -105,6 +105,44 @@ describe('StudyCardPreview', () => {
     );
   });
 
+  it('renders optional prompt images on cloze prompt sides', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          cardType: 'cloze',
+          prompt: {
+            clozeText: '会社で{{c1::働く}}',
+            clozeDisplayText: '会社で[...]',
+            cueMeaning: 'work scene',
+            cueImage: {
+              filename: 'company-front.webp',
+              url: 'https://example.com/company-front.webp',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+          },
+          answer: {
+            restoredText: '会社で働く',
+            meaning: 'work at a company',
+            answerImage: {
+              filename: 'company-back.webp',
+              url: 'https://example.com/company-back.webp',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByAltText('work scene')).toHaveAttribute(
+      'src',
+      'https://example.com/company-front.webp'
+    );
+  });
+
   it('renders Anki-style parenthetical furigana without showing raw parentheses', () => {
     render(
       <StudyCardFace
