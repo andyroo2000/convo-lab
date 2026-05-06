@@ -78,6 +78,40 @@ describe('manual study card drafts', () => {
     const systemInstruction = vi.mocked(generateStudyCardCandidateJson).mock.calls[0]?.[1] ?? '';
     expect(systemInstruction).toContain(IMAGE_PROMPT_STYLE);
     expect(systemInstruction).toContain(IMAGE_PROMPT_IMMERSION_GUIDANCE);
+    expect(systemInstruction).toContain('Cloze hints are required');
+    expect(systemInstruction).toContain('English only');
+  });
+
+  it('fills a missing manual cloze hint from the English sentence meaning', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        prompt: {
+          clozeText: '試合に{{c1::勝ちました}}。',
+          clozeHint: null,
+        },
+        answer: {
+          restoredText: '試合に勝ちました。',
+          meaning: 'I won the match.',
+        },
+        imagePrompt: null,
+      })
+    );
+
+    const result = await completeManualStudyCardDraft({
+      userId: 'user-1',
+      request: {
+        creationKind: 'cloze',
+        cardType: 'cloze',
+        prompt: { clozeText: '試合に[勝ちました]。' },
+        answer: {},
+        imagePlacement: 'none',
+        imagePrompt: null,
+      },
+    });
+
+    expect(result.prompt.clozeHint).toBe('I won the match.');
+    expect(result.prompt.clozeDisplayText).toBe('試合に[...]。');
+    expect(result.answer.restoredText).toBe('試合に勝ちました。');
   });
 
   it('fills only blank draft fields when the LLM returns nulls or conflicting values', async () => {

@@ -521,13 +521,52 @@ describe('studyCandidateService', () => {
       candidateKind: 'cloze',
       prompt: {
         clozeText: '会社{{c1::にも}}行ったよ',
-        clozeHint: 'Grammar or particle chunk',
+        clozeHint: 'I went to the company too.',
       },
       answer: {
         notes: 'Practice にも.',
         restoredTextReading: '会社にも行ったよ[furigana]',
       },
       rationale: 'Practice にも.',
+    });
+  });
+
+  it('prefers an English sentence translation when a generated cloze hint is missing', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'cloze-rain',
+            candidateKind: 'cloze',
+            cardType: 'cloze',
+            prompt: {
+              clozeText: '雨が{{c1::降っています}}。',
+            },
+            answer: {
+              restoredText: '雨が降っています。',
+              meaning: 'It is raining.',
+              sentenceEn: 'It is raining outside right now.',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+            rationale: 'Practice the weather expression.',
+          },
+        ],
+      })
+    );
+
+    const result = await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '雨が降っています。',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(result.candidates[0]).toMatchObject({
+      candidateKind: 'cloze',
+      prompt: {
+        clozeHint: 'It is raining outside right now.',
+      },
     });
   });
 

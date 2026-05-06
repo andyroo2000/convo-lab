@@ -35,6 +35,7 @@ const STUDY_JA_CANDIDATE_RANDOM_VOICE_IDS = TTS_VOICES.ja.voices
   )
   .map((voice) => voice.id);
 const STUDY_CANDIDATE_VISUAL_POS_JA = new Set<string>(STUDY_CANDIDATE_VISUAL_POS_LABELS_JA);
+const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -121,7 +122,23 @@ function sanitizeAnswerPayload(value: unknown, generatedVoiceId: string): StudyA
   };
 }
 
-function getFallbackClozeHint(clozeText: string | null | undefined): string {
+function getEnglishClozeHintFallback(answer: StudyAnswerPayload): string | null {
+  const candidates = [answer.sentenceEn, answer.meaning];
+  return (
+    candidates.find(
+      (candidate): candidate is string =>
+        typeof candidate === 'string' && !JAPANESE_TEXT_PATTERN.test(candidate)
+    ) ?? null
+  );
+}
+
+function getFallbackClozeHint(candidate: StudyCardCandidate): string {
+  const englishHint = getEnglishClozeHintFallback(candidate.answer);
+  if (englishHint) {
+    return englishHint;
+  }
+
+  const clozeText = candidate.prompt.clozeText;
   const hiddenText = clozeText?.match(/\{\{c1::([^}:]+)(?:::[^}]*)?}}/)?.[1]?.trim() ?? '';
   if (hiddenText && hiddenText.length <= 4 && !/[\u4e00-\u9faf]/.test(hiddenText)) {
     return 'Grammar or particle chunk';
@@ -136,7 +153,7 @@ function hydrateMissingPromptFields(candidate: StudyCardCandidate): StudyCardCan
       ...candidate,
       prompt: {
         ...candidate.prompt,
-        clozeHint: candidate.prompt.clozeHint ?? getFallbackClozeHint(candidate.prompt.clozeText),
+        clozeHint: candidate.prompt.clozeHint ?? getFallbackClozeHint(candidate),
       },
     };
   }

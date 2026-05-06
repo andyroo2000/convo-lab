@@ -58,6 +58,8 @@ type StudyAnswerTextKey =
   | 'answerAudioVoiceId'
   | 'answerAudioTextOverride';
 
+const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
+
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -194,7 +196,8 @@ Rules:
 - Audio recognition stores the Japanese in answer.expression; the server will make front audio.
 - Production from text asks English/context on the front and Japanese on the back.
 - Production from image should create an image prompt for the front visual cue.
-- Cloze uses prompt.clozeText with {{c1::...}} markup and answer.restoredText as the full sentence.
+- Cloze uses prompt.clozeText with {{c1::...}} markup, prompt.clozeHint, and answer.restoredText as the full sentence.
+- Cloze hints are required. Keep prompt.clozeHint English only, translating or paraphrasing the missing Japanese item without using Japanese, kana, romaji, or the hidden answer. If that hint would be awkward, use the full English sentence translation.
 - If cloze text uses bracket notation like My [example] sentence, convert the bracketed span to {{c1::example}}.
 - Use bracket ruby readings like 会社[かいしゃ] in reading fields.
 - Include concise notes when useful.
@@ -241,6 +244,30 @@ function parseManualDraftResponse(response: string): {
     imagePrompt:
       parseNullableString(parsed.imagePrompt)?.slice(0, STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) ??
       null,
+  };
+}
+
+function getEnglishClozeHintFallback(answer: StudyAnswerPayload): string | null {
+  const candidates = [answer.sentenceEn, answer.meaning];
+  return (
+    candidates.find(
+      (candidate): candidate is string =>
+        typeof candidate === 'string' && !JAPANESE_TEXT_PATTERN.test(candidate)
+    ) ?? null
+  );
+}
+
+function hydrateMissingManualClozeHint(
+  prompt: StudyPromptPayload,
+  answer: StudyAnswerPayload
+): StudyPromptPayload {
+  if (prompt.clozeHint) {
+    return prompt;
+  }
+
+  return {
+    ...prompt,
+    clozeHint: getEnglishClozeHintFallback(answer),
   };
 }
 
@@ -402,6 +429,7 @@ export async function completeManualStudyCardDraft(input: {
     answerAudioVoiceId: mergedAnswer.answerAudioVoiceId ?? selectManualStudyCardDefaultVoiceId(),
   };
   if (request.cardType === 'cloze') {
+    prompt = hydrateMissingManualClozeHint(prompt, answer);
     const normalized = normalizeClozePayloadFields(prompt, answer);
     prompt = normalized.prompt;
     answer = normalized.answer;
