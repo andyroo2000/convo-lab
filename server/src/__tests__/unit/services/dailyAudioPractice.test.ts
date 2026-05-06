@@ -4,6 +4,7 @@ import {
   buildDailyAudioLearningAtoms,
   selectDailyAudioPracticeCards,
 } from '../../../services/dailyAudioPractice/cardSelection.js';
+import { mapDailyAudioAssemblyProgress } from '../../../services/dailyAudioPractice/generationService.js';
 import {
   buildDailyAudioPracticeDrillScript,
   buildDailyAudioPracticeDrillScriptResult,
@@ -34,6 +35,14 @@ vi.mock('../../../services/coreLlmClient.js', () => ({
 describe('dailyAudioPractice services', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('maps audio assembly progress into the post-script generation range', () => {
+    expect(mapDailyAudioAssemblyProgress(0, 100)).toBe(45);
+    expect(mapDailyAudioAssemblyProgress(50, 100)).toBe(67);
+    expect(mapDailyAudioAssemblyProgress(100, 100)).toBe(90);
+    expect(mapDailyAudioAssemblyProgress(120, 100)).toBe(90);
+    expect(mapDailyAudioAssemblyProgress(1, 0)).toBe(45);
   });
 
   it('selects eligible study cards in priority order and excludes suspended cards', async () => {

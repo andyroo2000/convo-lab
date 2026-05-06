@@ -86,6 +86,17 @@ describe('japanesePronunciationOverrides', () => {
     expect(ambiguousKanji).toBe('ぶっか');
   });
 
+  it('normalizes standalone kana particles for TTS-only pronunciation text', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const result = module.applyJapanesePronunciationOverrides({
+      text: '昨日は辛いカレーを食べられませんでした。',
+      reading: '昨日[きのう]は辛[から]いカレーを食[た]べられませんでした。',
+    });
+
+    expect(result).toBe('きのうわからいカレーをたべられませんでした。');
+  });
+
   it('does not update in-memory state if disk write fails', async () => {
     const module = await import('../../../services/japanesePronunciationOverrides.js');
 
