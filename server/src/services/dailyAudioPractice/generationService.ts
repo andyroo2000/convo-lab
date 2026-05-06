@@ -5,7 +5,7 @@ import { prisma } from '../../db/client.js';
 import { assembleLessonAudio } from '../audioCourseAssembler.js';
 
 import { buildDailyAudioLearningAtoms, selectDailyAudioPracticeCards } from './cardSelection.js';
-import { buildDailyAudioPracticeDrillScript } from './scriptGenerator.js';
+import { buildDailyAudioPracticeDrillScriptResult } from './scriptGenerator.js';
 import { DAILY_AUDIO_TRACKS, type DailyAudioPracticeTrackMode } from './types.js';
 
 const GENERIC_GENERATION_ERROR =
@@ -64,7 +64,7 @@ export async function processDailyAudioPracticeJob(params: {
     });
     await onProgress(20);
 
-    const drillScript = await buildDailyAudioPracticeDrillScript({
+    const drillScript = await buildDailyAudioPracticeDrillScriptResult({
       atoms,
       targetDurationMinutes: practice.targetDurationMinutes,
       targetLanguage: practice.targetLanguage,
@@ -109,7 +109,7 @@ export async function processDailyAudioPracticeJob(params: {
         continue;
       }
 
-      const scriptUnits = drillScript;
+      const scriptUnits = drillScript.units;
       const track = await prisma.dailyAudioPracticeTrack.upsert({
         where: {
           practiceId_mode: {
@@ -151,8 +151,8 @@ export async function processDailyAudioPracticeJob(params: {
           approxDurationSeconds: assembled.actualDurationSeconds,
           timingData: assembled.timingData as Prisma.InputJsonValue,
           generationMetadataJson: {
-            unitCount: scriptUnits.length,
             sourceCardCount: atoms.length,
+            ...drillScript.metadata,
           } as Prisma.InputJsonValue,
         },
       });
