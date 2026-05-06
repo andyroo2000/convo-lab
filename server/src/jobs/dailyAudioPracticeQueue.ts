@@ -10,12 +10,29 @@ export const dailyAudioPracticeQueue = new Queue('daily-audio-practice-generatio
 });
 
 export async function enqueueDailyAudioPracticeJob(practiceId: string) {
+  const existingJob = await dailyAudioPracticeQueue.getJob(practiceId);
+  if (existingJob) {
+    const state = await existingJob.getState();
+    if (state === 'active' || state === 'waiting' || state === 'delayed') {
+      return existingJob;
+    }
+    await existingJob.remove();
+  }
+
   return dailyAudioPracticeQueue.add(
     'generate-daily-audio-practice',
     { practiceId },
     {
       jobId: practiceId,
       attempts: 2,
+      removeOnComplete: {
+        age: 60 * 60,
+        count: 20,
+      },
+      removeOnFail: {
+        age: 24 * 60 * 60,
+        count: 50,
+      },
       backoff: {
         type: 'exponential',
         delay: 5000,

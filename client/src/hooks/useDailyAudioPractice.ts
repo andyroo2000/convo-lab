@@ -22,6 +22,18 @@ function normalizeTracks(tracks: DailyAudioPracticeTrack[] = []) {
   return [...tracks].sort((left, right) => left.sortOrder - right.sortOrder);
 }
 
+function extractErrorMessage(errorBody: unknown): string {
+  if (!errorBody || typeof errorBody !== 'object') return 'Request failed';
+  const record = errorBody as Record<string, unknown>;
+  if (typeof record.message === 'string') return record.message;
+  if (typeof record.error === 'string') return record.error;
+  if (record.error && typeof record.error === 'object') {
+    const errorRecord = record.error as Record<string, unknown>;
+    if (typeof errorRecord.message === 'string') return errorRecord.message;
+  }
+  return 'Request failed';
+}
+
 async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers ?? {});
   if (init?.body && !headers.has('Content-Type')) {
@@ -36,7 +48,7 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(errorBody.message || errorBody.error || 'Request failed');
+    throw new Error(extractErrorMessage(errorBody));
   }
 
   return response.json() as Promise<T>;

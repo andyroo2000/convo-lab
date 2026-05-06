@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const workerProcessors = vi.hoisted(() => new Map<string, (job: unknown) => Promise<unknown>>());
 const queueAddMock = vi.hoisted(() => vi.fn());
+const queueGetJobMock = vi.hoisted(() => vi.fn());
 const processDailyAudioPracticeJobMock = vi.hoisted(() => vi.fn());
 
 vi.mock('bullmq', () => ({
   Queue: class MockQueue {
     add = queueAddMock;
 
-    getJob = vi.fn();
+    getJob = queueGetJobMock;
 
     constructor(
       public name: string,
@@ -38,6 +39,7 @@ vi.mock('../../../services/dailyAudioPractice/generationService.js', () => ({
 describe('dailyAudioPracticeQueue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queueGetJobMock.mockResolvedValue(null);
   });
 
   it('enqueues practice generation with a stable job id', async () => {
@@ -52,8 +54,44 @@ describe('dailyAudioPracticeQueue', () => {
       expect.objectContaining({
         jobId: 'practice-1',
         attempts: 2,
+        removeOnComplete: expect.any(Object),
+        removeOnFail: expect.any(Object),
       })
     );
+  });
+
+  it('removes a finished previous job before regenerating', async () => {
+    const previousJob = {
+      getState: vi.fn().mockResolvedValue('completed'),
+      remove: vi.fn().mockResolvedValue(undefined),
+    };
+    queueGetJobMock.mockResolvedValue(previousJob);
+    const { enqueueDailyAudioPracticeJob } =
+      await import('../../../jobs/dailyAudioPracticeQueue.js');
+
+    await enqueueDailyAudioPracticeJob('practice-1');
+
+    expect(previousJob.remove).toHaveBeenCalled();
+    expect(queueAddMock).toHaveBeenCalledWith(
+      'generate-daily-audio-practice',
+      { practiceId: 'practice-1' },
+      expect.objectContaining({ jobId: 'practice-1' })
+    );
+  });
+
+  it('reuses an active existing job instead of adding a duplicate', async () => {
+    const activeJob = {
+      getState: vi.fn().mockResolvedValue('active'),
+      remove: vi.fn(),
+    };
+    queueGetJobMock.mockResolvedValue(activeJob);
+    const { enqueueDailyAudioPracticeJob } =
+      await import('../../../jobs/dailyAudioPracticeQueue.js');
+
+    await expect(enqueueDailyAudioPracticeJob('practice-1')).resolves.toBe(activeJob);
+
+    expect(activeJob.remove).not.toHaveBeenCalled();
+    expect(queueAddMock).not.toHaveBeenCalled();
   });
 
   it('rejects malformed worker payloads', async () => {

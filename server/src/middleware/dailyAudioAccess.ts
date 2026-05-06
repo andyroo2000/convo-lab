@@ -31,7 +31,7 @@ function runMiddleware(
 
 export function withDailyAudioAccess(
   handler: DailyAudioHandler,
-  options?: { blockDemo?: boolean }
+  options?: { blockDemo?: boolean; afterAuth?: DailyAudioHandler[] }
 ) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -39,6 +39,9 @@ export function withDailyAudioAccess(
       await runMiddleware(requireFlashcards, req, res);
       if (options?.blockDemo) {
         await runMiddleware(blockDemoUser, req, res);
+      }
+      for (const middleware of options?.afterAuth ?? []) {
+        await runMiddleware(middleware, req, res);
       }
       await handler(req, res, next);
     } catch (error) {

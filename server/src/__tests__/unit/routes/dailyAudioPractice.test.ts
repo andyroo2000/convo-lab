@@ -61,7 +61,17 @@ vi.mock('../../../middleware/featureFlags.js', () => ({
 }));
 
 vi.mock('../../../middleware/studyRateLimit.js', () => ({
-  rateLimitStudyRoute: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+  rateLimitStudyRoute:
+    (options: { allowAnonymousIdentity?: boolean }) =>
+    (req: Request, _res: Response, next: NextFunction) => {
+      if (!(req as Request & { userId?: string }).userId && !options.allowAnonymousIdentity) {
+        const error = new Error('Authentication required') as Error & { statusCode: number };
+        error.statusCode = 401;
+        next(error);
+        return;
+      }
+      next();
+    },
 }));
 
 const PRACTICE_ID = '106b92e8-53c9-4e9e-8046-32feca98b8e4';

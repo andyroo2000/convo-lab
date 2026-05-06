@@ -27,6 +27,12 @@ const limitDailyAudioReads = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   allowAnonymousIdentity: true,
 });
+const limitDailyAudioGeneration = rateLimitStudyRoute({
+  key: 'daily-audio-practice',
+  max: 10,
+  windowMs: 60 * 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 const DAILY_AUDIO_PRACTICE_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -205,12 +211,6 @@ async function getUserLanguagePreferences(userId: string) {
 
 router.post(
   '/',
-  rateLimitStudyRoute({
-    key: 'daily-audio-practice',
-    max: 10,
-    windowMs: 60 * 60 * 1000,
-    onBackendError: 'fail-closed',
-  }),
   withDailyAudioAccess(
     async (req: AuthRequest, res, next) => {
       try {
@@ -247,7 +247,7 @@ router.post(
           await ensureDefaultTracks(dailyPractice.id, tx);
 
           if (dailyPractice.status === 'generating') {
-            return { practice: dailyPractice, shouldEnqueue: false };
+            return { practice: dailyPractice, shouldEnqueue: true };
           }
 
           const started = await tx.dailyAudioPractice.updateMany({
@@ -322,7 +322,7 @@ router.post(
         next(error);
       }
     },
-    { blockDemo: true }
+    { blockDemo: true, afterAuth: [limitDailyAudioGeneration] }
   )
 );
 
