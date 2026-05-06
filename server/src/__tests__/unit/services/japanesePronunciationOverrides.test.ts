@@ -42,7 +42,7 @@ vi.mock('fs', () => mockFs);
 
 const dictionaryJson = JSON.stringify({
   keepKanji: ['橋'],
-  forceKana: { 北海道: 'ほっかいどう' },
+  forceKana: { 北海道: 'ほっかいどう', 物価: 'ぶっか' },
   updatedAt: '2024-01-01T00:00:00.000Z',
 });
 
@@ -79,6 +79,11 @@ describe('japanesePronunciationOverrides', () => {
       text: '北海道',
     });
     expect(forced).toBe('ほっかいどう');
+
+    const ambiguousKanji = module.applyJapanesePronunciationOverrides({
+      text: '物価',
+    });
+    expect(ambiguousKanji).toBe('ぶっか');
   });
 
   it('does not update in-memory state if disk write fails', async () => {
@@ -99,6 +104,7 @@ describe('japanesePronunciationOverrides', () => {
     const after = module.getJapanesePronunciationDictionary();
     expect(after.keepKanji).toContain('橋');
     expect(after.forceKana).toHaveProperty('北海道', 'ほっかいどう');
+    expect(after.forceKana).toHaveProperty('物価', 'ぶっか');
   });
 
   it('updates dictionary after successful write', async () => {

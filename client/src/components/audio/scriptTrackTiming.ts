@@ -39,3 +39,9 @@ export function findCurrentL2Unit(
 
   return activeTiming ? units[activeTiming.unitIndex] : null;
 }
+
+export function versionAudioUrl(audioUrl: string, updatedAt?: string | null): string {
+  if (!updatedAt) return audioUrl;
+  const separator = audioUrl.includes('?') ? '&' : '?';
+  return `${audioUrl}${separator}v=${encodeURIComponent(updatedAt)}`;
+}

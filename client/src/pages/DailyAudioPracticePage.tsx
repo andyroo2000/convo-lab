@@ -196,6 +196,7 @@ const DailyAudioPracticePage = () => {
                 scriptUnits={track.scriptUnitsJson}
                 timingData={track.timingData}
                 approxDurationSeconds={track.approxDurationSeconds}
+                updatedAt={track.updatedAt}
                 targetLanguage={practice.targetLanguage}
               />
             ))}

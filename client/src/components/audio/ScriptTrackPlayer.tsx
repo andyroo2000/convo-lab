@@ -6,7 +6,11 @@ import ViewToggleButtons from '../common/ViewToggleButtons';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import type { DailyAudioPracticeTiming, LanguageCode, LessonScriptUnit } from '../../types';
-import { findCurrentL2Unit, normalizeTimingDataForDuration } from './scriptTrackTiming';
+import {
+  findCurrentL2Unit,
+  normalizeTimingDataForDuration,
+  versionAudioUrl,
+} from './scriptTrackTiming';
 
 interface ScriptTrackPlayerProps {
   title: string;
@@ -16,6 +20,7 @@ interface ScriptTrackPlayerProps {
   timingData?: DailyAudioPracticeTiming[] | null;
   targetLanguage: LanguageCode;
   approxDurationSeconds?: number | null;
+  updatedAt?: string | null;
 }
 
 function formatDuration(seconds?: number | null) {
@@ -54,6 +59,7 @@ const ScriptTrackPlayer = ({
   timingData,
   targetLanguage,
   approxDurationSeconds,
+  updatedAt,
 }: ScriptTrackPlayerProps) => {
   const { audioRef, currentTime, duration } = useAudioPlayer();
   const [showReadings, setShowReadings] = useState(false);
@@ -61,6 +67,7 @@ const ScriptTrackPlayer = ({
   const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
   const durationLabel = formatDuration(approxDurationSeconds);
   const ready = status === 'ready' && Boolean(audioUrl);
+  const playbackAudioUrl = audioUrl ? versionAudioUrl(audioUrl, updatedAt) : null;
   const units = useMemo(() => scriptUnits ?? [], [scriptUnits]);
   const timings = useMemo(() => timingData ?? [], [timingData]);
   const scaledTimings = useMemo(
@@ -68,7 +75,7 @@ const ScriptTrackPlayer = ({
     [approxDurationSeconds, duration, timings]
   );
 
-  useWarmAudioCache([audioUrl], ready);
+  useWarmAudioCache([playbackAudioUrl], ready);
 
   useEffect(() => {
     if (!ready || !units.length || !scaledTimings.length) {
@@ -101,7 +108,7 @@ const ScriptTrackPlayer = ({
           ) : null}
         </div>
 
-        {ready && audioUrl ? (
+        {ready && playbackAudioUrl ? (
           <>
             {timings.length ? (
               <CurrentTextDisplay
@@ -113,7 +120,7 @@ const ScriptTrackPlayer = ({
             ) : null}
 
             <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 py-3">
-              <AudioPlayer src={audioUrl} audioRef={audioRef} key={audioUrl} />
+              <AudioPlayer src={playbackAudioUrl} audioRef={audioRef} key={playbackAudioUrl} />
             </div>
           </>
         ) : (

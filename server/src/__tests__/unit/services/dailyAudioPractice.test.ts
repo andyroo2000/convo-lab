@@ -6,6 +6,7 @@ import {
 } from '../../../services/dailyAudioPractice/cardSelection.js';
 import {
   buildDailyAudioPracticeDrillScript,
+  buildDailyAudioPracticeDrillScriptResult,
   buildDailyAudioPracticeScripts,
   validateDailyAudioScriptUnits,
 } from '../../../services/dailyAudioPractice/scriptGenerator.js';
@@ -111,6 +112,14 @@ describe('dailyAudioPractice services', () => {
           meaning: 'go to the station',
         },
       }),
+      createCardRecord({
+        id: 'mixed-gloss-1',
+        answerJson: {
+          expression: '教材',
+          expressionReading: '教材[きょうざい]',
+          meaning: '勉強のために使うもの。\nstudy materials / teaching materials',
+        },
+      }),
     ]);
 
     expect(atoms).toMatchObject([
@@ -130,6 +139,12 @@ describe('dailyAudioPractice services', () => {
         reading: '駅[えき]に行[い]きます。',
         english: 'go to the station',
         exampleJp: '駅に行きます。',
+      },
+      {
+        cardId: 'mixed-gloss-1',
+        targetText: '教材',
+        reading: '教材[きょうざい]',
+        english: 'study materials / teaching materials',
       },
     ]);
   });
@@ -174,31 +189,41 @@ describe('dailyAudioPractice services', () => {
               exampleJp: '昼ごはんを食べました。',
               exampleReading: '昼[ひる]ごはんを食[た]べました。',
               exampleEn: 'I ate lunch.',
-              variations: [
+              grammarSubstitutions: [
                 {
                   japanese: '晩ごはんを食べました。',
                   reading: '晩[ばん]ごはんを食[た]べました。',
                   english: 'I ate dinner.',
                 },
                 {
-                  japanese: 'スープを飲みました。',
-                  reading: 'スープを飲[の]みました。',
-                  english: 'I drank soup.',
+                  japanese: '駅でお弁当を食べました。',
+                  reading: '駅[えき]でお弁当[べんとう]を食[た]べました。',
+                  english: 'I ate a boxed lunch at the station.',
+                },
+              ],
+              formTransforms: [
+                {
+                  japanese: '朝ごはんを食べませんでした。',
+                  reading: '朝[あさ]ごはんを食[た]べませんでした。',
+                  english: 'I did not eat breakfast.',
                 },
                 {
-                  japanese: '薬を飲みました。',
-                  reading: '薬[くすり]を飲[の]みました。',
-                  english: 'I took medicine.',
+                  japanese: '朝ごはんを食べられます。',
+                  reading: '朝[あさ]ごはんを食[た]べられます。',
+                  english: 'I can eat breakfast.',
                 },
-                {
-                  japanese: '日本語を勉強しました。',
-                  reading: '日本[にほん]語[ご]を勉[べん]強[きょう]しました。',
-                  english: 'I studied Japanese.',
-                },
+              ],
+              variations: [
                 {
                   japanese: '本を読みました。',
                   reading: '本[ほん]を読[よ]みました。',
                   english: 'ate',
+                },
+                {
+                  kind: 'anchor',
+                  japanese: '水を飲みました。',
+                  reading: '水[みず]を飲[の]みました。',
+                  english: 'I drank water.',
                 },
               ],
             },
@@ -239,8 +264,22 @@ describe('dailyAudioPractice services', () => {
     expect(scripts.drill).toContainEqual(
       expect.objectContaining({
         type: 'L2',
-        text: '日本語を勉強しました。',
-        translation: 'I studied Japanese.',
+        text: '駅でお弁当を食べました。',
+        translation: 'I ate a boxed lunch at the station.',
+      })
+    );
+    expect(scripts.drill).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '朝ごはんを食べませんでした。',
+        translation: 'I did not eat breakfast.',
+      })
+    );
+    expect(scripts.drill).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '朝ごはんを食べられます。',
+        translation: 'I can eat breakfast.',
       })
     );
     expect(scripts.drill).not.toContainEqual(
@@ -249,15 +288,26 @@ describe('dailyAudioPractice services', () => {
         text: '本を読みました。',
       })
     );
+    expect(scripts.drill).not.toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '水を飲みました。',
+      })
+    );
     const drillL2Units = scripts.drill.filter((unit) => unit.type === 'L2');
     expect(drillL2Units).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ text: '食べました', speed: 0.75 }),
-        expect.objectContaining({ text: '食べました', speed: 1 }),
+        expect.objectContaining({ text: '昼ごはんを食べました。', speed: 0.75 }),
+        expect.objectContaining({ text: '昼ごはんを食べました。', speed: 1 }),
       ])
     );
     expect(
       drillL2Units.filter((unit) => unit.text === '食べました').map((unit) => unit.speed)
+    ).toEqual([]);
+    expect(
+      drillL2Units
+        .filter((unit) => unit.text === '昼ごはんを食べました。')
+        .map((unit) => unit.speed)
     ).toEqual([0.75, 1, 0.75, 1]);
     const recognitionMarkerIndex = scripts.drill.findIndex(
       (unit) => unit.type === 'marker' && unit.label === 'Recognition drills'
@@ -279,10 +329,276 @@ describe('dailyAudioPractice services', () => {
     expect(scripts.story).toContainEqual(
       expect.objectContaining({ type: 'L2', voiceId: 'ja-JP-Neural2-B' })
     );
+    const drillPrompt = generateCoreLlmTextMock.mock.calls[2]?.[0] as string;
+    expect(drillPrompt).toContain('balanced ladder');
+    expect(drillPrompt).toContain('grammarSubstitutions contains exactly two items');
+    expect(drillPrompt).toContain('formTransforms contains exactly two items');
+    expect(drillPrompt).toContain('"anchor"');
+    expect(drillPrompt).toContain('"grammarSubstitutions"');
+    expect(drillPrompt).toContain('"formTransforms"');
     expect(() => validateDailyAudioScriptUnits(scripts.drill)).not.toThrow();
     expect(() => validateDailyAudioScriptUnits([{ type: 'pause', seconds: 0 }])).toThrow(
       'Pause units must have a positive duration.'
     );
+  });
+
+  it('uses generated prompts ahead of raw card prompts and reports drill metadata', async () => {
+    generateCoreLlmTextMock.mockResolvedValueOnce(
+      JSON.stringify({
+        items: [
+          {
+            cardId: 'card-1',
+            englishCue: 'study materials',
+            anchor: {
+              japanese: '先生は新しい教材を使います。',
+              reading: '先生[せんせい]は新[あたら]しい教材[きょうざい]を使[つか]います。',
+              english: 'The teacher uses new study materials.',
+            },
+            variations: [
+              {
+                japanese: '学生は古い教材を読みます。',
+                reading: '学生[がくせい]は古[ふる]い教材[きょうざい]を読[よ]みます。',
+                english: 'The student reads old study materials.',
+              },
+              {
+                japanese: '先生は新しい辞書を使います。',
+                reading: '先生[せんせい]は新[あたら]しい辞書[じしょ]を使[つか]います。',
+                english: 'The teacher uses a new dictionary.',
+              },
+              {
+                japanese: '先生は新しい教材を使いました。',
+                reading: '先生[せんせい]は新[あたら]しい教材[きょうざい]を使[つか]いました。',
+                english: 'The teacher used new study materials.',
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    const result = await buildDailyAudioPracticeDrillScriptResult({
+      atoms: [
+        {
+          cardId: 'card-1',
+          cardType: 'recognition',
+          targetText: '教材',
+          reading: '教材[きょうざい]',
+          english: '勉強のために使うもの。',
+          exampleJp: null,
+          exampleEn: null,
+          deckName: '日本語',
+          noteType: 'Core',
+        },
+      ],
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    const l2Units = result.units.filter((unit) => unit.type === 'L2');
+    expect(l2Units).toContainEqual(
+      expect.objectContaining({ text: '先生は新しい教材を使います。' })
+    );
+    expect(l2Units).toContainEqual(
+      expect.objectContaining({ text: '先生は新しい教材を使いました。' })
+    );
+    expect(l2Units).not.toContainEqual(expect.objectContaining({ text: '教材' }));
+    expect(result.metadata).toMatchObject({
+      enhancedAtomCount: 1,
+      generatedPromptCount: 4,
+      fallbackPromptCount: 0,
+      missingCueCount: 0,
+      totalPromptCount: 4,
+    });
+  });
+
+  it('keeps LLM readings first-class for kanji TTS while preserving kanji transcript text', async () => {
+    generateCoreLlmTextMock.mockResolvedValueOnce(
+      JSON.stringify({
+        items: [
+          {
+            cardId: 'card-1',
+            englishCue: 'prices',
+            anchor: {
+              japanese: 'この町は物価が高いです。',
+              reading: 'この町[まち]は物価[ぶっか]が高[たか]いです。',
+              english: 'The cost of living is high in this town.',
+            },
+            grammarSubstitutions: [
+              {
+                japanese: '東京は物価が高いです。',
+                reading: 'Tokyo wa bukka ga takai desu.',
+                english: 'Prices are high in Tokyo.',
+              },
+              {
+                japanese: '大阪は物価が安いです。',
+                reading: '大阪[おおさか]は物価[ぶっか]が安[やす]いです。',
+                english: 'Prices are low in Osaka.',
+              },
+            ],
+            formTransforms: [
+              {
+                japanese: '物価が高くなりました。',
+                reading: '物価[ぶっか]が高[たか]くなりました。',
+                english: 'Prices became high.',
+              },
+              {
+                japanese: '物価が下がりませんでした。',
+                english: 'Prices did not go down.',
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    const result = await buildDailyAudioPracticeDrillScriptResult({
+      atoms: [
+        {
+          cardId: 'card-1',
+          cardType: 'recognition',
+          targetText: '物価',
+          reading: '物価[ぶっか]',
+          english: 'prices',
+          exampleJp: null,
+          exampleEn: null,
+          deckName: '日本語',
+          noteType: 'Core',
+        },
+      ],
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    const l2Units = result.units.filter((unit) => unit.type === 'L2');
+    expect(l2Units).toContainEqual(
+      expect.objectContaining({
+        text: 'この町は物価が高いです。',
+        reading: 'この町[まち]は物価[ぶっか]が高[たか]いです。',
+        translation: 'The cost of living is high in this town.',
+      })
+    );
+    expect(l2Units).toContainEqual(
+      expect.objectContaining({
+        text: '大阪は物価が安いです。',
+        reading: '大阪[おおさか]は物価[ぶっか]が安[やす]いです。',
+      })
+    );
+    expect(l2Units).toContainEqual(
+      expect.objectContaining({
+        text: '物価が高くなりました。',
+        reading: '物価[ぶっか]が高[たか]くなりました。',
+      })
+    );
+    expect(l2Units).not.toContainEqual(expect.objectContaining({ text: '東京は物価が高いです。' }));
+    expect(l2Units).not.toContainEqual(
+      expect.objectContaining({ text: '物価が下がりませんでした。' })
+    );
+    expect(l2Units.map((unit) => unit.text).join(' ')).not.toMatch(/[()[\]（）]/);
+    expect(result.metadata).toMatchObject({
+      generatedPromptCount: 3,
+      fallbackPromptCount: 0,
+      totalPromptCount: 3,
+      l2UnitCount: 12,
+      l2UnitsWithReadingCount: 12,
+      l2UnitsMissingReadingCount: 0,
+      pronunciationOverrideCount: 12,
+    });
+  });
+
+  it('uses an LLM-provided cue for raw fallback prompts instead of this expression', async () => {
+    generateCoreLlmTextMock.mockResolvedValueOnce(
+      JSON.stringify({
+        items: [
+          {
+            cardId: 'card-1',
+            englishCue: 'study materials',
+          },
+        ],
+      })
+    );
+
+    const script = await buildDailyAudioPracticeDrillScript({
+      atoms: [
+        {
+          cardId: 'card-1',
+          cardType: 'recognition',
+          targetText: '教材',
+          reading: '教材[きょうざい]',
+          english: '勉強のために使うもの。',
+          exampleJp: null,
+          exampleEn: null,
+          deckName: '日本語',
+          noteType: 'Core',
+        },
+      ],
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    expect(script).toContainEqual(
+      expect.objectContaining({ type: 'L2', text: '教材', translation: 'study materials' })
+    );
+    expect(JSON.stringify(script)).not.toMatch(/this expression/i);
+  });
+
+  it('batches drill enhancement calls so one failed response does not erase all generated prompts', async () => {
+    generateCoreLlmTextMock
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          items: [
+            {
+              cardId: 'card-1',
+              englishCue: 'to win',
+              anchor: {
+                japanese: '昨日、試合に勝ちました。',
+                reading: '昨日[きのう]、試合[しあい]に勝[か]ちました。',
+                english: 'I won the game yesterday.',
+              },
+            },
+          ],
+        })
+      )
+      .mockResolvedValueOnce('not valid json');
+
+    const result = await buildDailyAudioPracticeDrillScriptResult({
+      atoms: Array.from({ length: 6 }, (_, index) => ({
+        cardId: `card-${index + 1}`,
+        cardType: 'recognition' as const,
+        targetText: index === 0 ? '勝つ' : `単語${index + 1}`,
+        reading: null,
+        english: index === 0 ? 'to win' : `word ${index + 1}`,
+        exampleJp: null,
+        exampleEn: null,
+        deckName: '日本語',
+        noteType: 'Core',
+      })),
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    expect(generateCoreLlmTextMock).toHaveBeenCalledTimes(2);
+    expect(result.metadata).toMatchObject({
+      enhancedAtomCount: 1,
+      generatedPromptCount: 1,
+      fallbackPromptCount: 5,
+      totalPromptCount: 6,
+    });
+    expect(result.units).toContainEqual(
+      expect.objectContaining({ type: 'L2', text: '昨日、試合に勝ちました。' })
+    );
+    expect(result.units).toContainEqual(expect.objectContaining({ type: 'L2', text: '単語6' }));
   });
 
   it('falls back to deterministic dialogue and story lines when LLM content is empty', async () => {
@@ -358,14 +674,14 @@ describe('dailyAudioPractice services', () => {
 
     const narratorLines = script.filter((unit) => unit.type === 'narration_L1');
     expect(narratorLines).toContainEqual(
-      expect.objectContaining({
-        text: 'How do you say "to eat breakfast"?',
-        voiceId: 'fishaudio:english',
-      })
+      expect.objectContaining({ text: 'I eat bread in the morning.' })
     );
     expect(
       narratorLines.map((unit) => (unit.type === 'narration_L1' ? unit.text : '')).join(' ')
     ).not.toMatch(/[\u3040-\u30ff\u3400-\u9fff]/);
+    expect(
+      narratorLines.map((unit) => (unit.type === 'narration_L1' ? unit.text : '')).join(' ')
+    ).not.toMatch(/this expression/i);
     expect(script).toContainEqual(
       expect.objectContaining({
         type: 'L2',
@@ -386,6 +702,7 @@ describe('dailyAudioPractice services', () => {
             exampleEn: 'I went west of Hokkaido last year.',
             variations: [
               {
+                kind: 'grammar_substitution',
                 japanese: '北海道[ほっかいどう]に行(い)きました。',
                 english: 'I went to Hokkaido.',
               },
@@ -443,10 +760,13 @@ describe('dailyAudioPractice services', () => {
             cardId: 'card-1',
             englishCue: "I can't eat vegetables",
             exampleJp: '野菜が食べられません。',
+            exampleReading: '野菜[やさい]が食[た]べられません。',
             exampleEn: "I can't eat vegetables.",
             variations: [
               {
+                kind: 'grammar_substitution',
                 japanese: '野菜が食べられません。',
+                reading: '野菜[やさい]が食[た]べられません。',
                 english: "I can't eat vegetables.",
               },
             ],
@@ -455,6 +775,7 @@ describe('dailyAudioPractice services', () => {
             cardId: 'card-2',
             englishCue: "I can't eat vegetables",
             exampleJp: '野菜が食べられません。',
+            exampleReading: '野菜[やさい]が食[た]べられません。',
             exampleEn: "I can't eat vegetables.",
           },
         ],

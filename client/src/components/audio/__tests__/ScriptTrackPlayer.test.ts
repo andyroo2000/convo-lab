@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { findCurrentL2Unit, normalizeTimingDataForDuration } from '../scriptTrackTiming';
+import {
+  findCurrentL2Unit,
+  normalizeTimingDataForDuration,
+  versionAudioUrl,
+} from '../scriptTrackTiming';
 import type { DailyAudioPracticeTiming, LessonScriptUnit } from '../../../types';
 
 describe('ScriptTrackPlayer timing helpers', () => {
@@ -37,5 +41,17 @@ describe('ScriptTrackPlayer timing helpers', () => {
     ];
 
     expect(normalizeTimingDataForDuration(timings, 10.5)).toBe(timings);
+  });
+
+  it('adds a stable version query to regenerated audio URLs', () => {
+    expect(versionAudioUrl('https://example.com/drill.mp3', '2026-05-06T14:09:16.951Z')).toBe(
+      'https://example.com/drill.mp3?v=2026-05-06T14%3A09%3A16.951Z'
+    );
+    expect(versionAudioUrl('https://example.com/drill.mp3?alt=media', 'updated')).toBe(
+      'https://example.com/drill.mp3?alt=media&v=updated'
+    );
+    expect(versionAudioUrl('https://example.com/drill.mp3', null)).toBe(
+      'https://example.com/drill.mp3'
+    );
   });
 });

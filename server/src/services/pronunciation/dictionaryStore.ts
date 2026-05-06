@@ -44,6 +44,7 @@ const DEFAULT_DICTIONARY: JapanesePronunciationDictionary = {
     清水寺: 'きよみずでら',
     季節: 'きせつ',
     景色: 'けしき',
+    物価: 'ぶっか',
   },
 };
 

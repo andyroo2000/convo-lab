@@ -13,6 +13,8 @@ const DEFAULT_SELECTION_LIMIT = 30;
 const DEFAULT_CANDIDATE_POOL_SIZE = 80;
 const ELIGIBLE_QUEUE_STATES = ['new', 'learning', 'review', 'relearning'];
 const RECENTLY_INTRODUCED_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
+const LATIN_TEXT_PATTERN = /[A-Za-z]/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -26,6 +28,30 @@ function plainText(value: unknown): string | null {
 function firstText(...values: unknown[]): string | null {
   for (const value of values) {
     const text = plainText(value);
+    if (text?.trim()) return text.trim();
+  }
+  return null;
+}
+
+function englishOnlyText(value: unknown): string | null {
+  const text = plainText(value);
+  if (!text?.trim()) return null;
+  if (!JAPANESE_TEXT_PATTERN.test(text) && LATIN_TEXT_PATTERN.test(text)) return text.trim();
+
+  const segments = text
+    .split(/[\n\r]+|[。！？]\s*/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  return (
+    segments.find(
+      (segment) => !JAPANESE_TEXT_PATTERN.test(segment) && LATIN_TEXT_PATTERN.test(segment)
+    ) ?? null
+  );
+}
+
+function firstEnglishText(...values: unknown[]): string | null {
+  for (const value of values) {
+    const text = englishOnlyText(value);
     if (text?.trim()) return text.trim();
   }
   return null;
@@ -174,6 +200,14 @@ export async function buildDailyAudioLearningAtoms(
           rawFields.Text
         ) ?? '';
       const english =
+        firstEnglishText(
+          answer.meaning,
+          answer.sentenceEn,
+          prompt.cueMeaning,
+          rawFields.Meaning,
+          rawFields.English,
+          rawFields.Translation
+        ) ??
         firstText(
           answer.meaning,
           answer.sentenceEn,
@@ -181,7 +215,8 @@ export async function buildDailyAudioLearningAtoms(
           rawFields.Meaning,
           rawFields.English,
           rawFields.Translation
-        ) ?? targetText;
+        ) ??
+        targetText;
 
       if (!targetText.trim()) return null;
 

@@ -1,14 +1,21 @@
 import { generateCoreLlmJsonText } from '../coreLlmClient.js';
+import { applyJapanesePronunciationOverrides } from '../japanesePronunciationOverrides.js';
 import type { LessonScriptUnit } from '../lessonScriptGenerator.js';
 
 import type { DailyAudioLearningAtom, DailyAudioPracticeTrackMode } from './types.js';
 
 const MAX_SCRIPT_ATOMS = 50;
 const MAX_VARIATIONS_PER_ATOM = 4;
+const DRILL_ENHANCEMENT_BATCH_SIZE = 5;
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
+const KANJI_TEXT_PATTERN = /[\u3400-\u9fff々〆ヵヶ]/;
+const LATIN_TEXT_PATTERN = /[A-Za-z]/;
+const SAFE_READING_TEXT_PATTERN =
+  /^[\u3040-\u30ff\u3400-\u9fff々〆ヵヶー\s、。！？!?.,・「」『』（）()[\]0-9]+$/;
 const INLINE_PAREN_READING_PATTERN = /([\u3400-\u9fff々〆ヵヶ]+)[(（]([\u3040-\u30ffー\s]+)[)）]/;
 const INLINE_BRACKET_READING_PATTERN =
   /([^\s[\]]*[\u3040-\u30ff\u3400-\u9fff][^\s[\]]*)\[([\u3040-\u30ffー\s]+)\]/;
+const DRILL_VARIATION_KINDS = ['grammar_substitution', 'form_transform'] as const;
 
 interface ScriptGenerationOptions {
   atoms: DailyAudioLearningAtom[];
@@ -21,6 +28,19 @@ interface ScriptGenerationOptions {
 
 type GeneratedScripts = Record<DailyAudioPracticeTrackMode, LessonScriptUnit[]>;
 
+export interface DailyAudioDrillGenerationMetadata {
+  enhancedAtomCount: number;
+  generatedPromptCount: number;
+  fallbackPromptCount: number;
+  missingCueCount: number;
+  totalPromptCount: number;
+  unitCount: number;
+  l2UnitCount: number;
+  l2UnitsWithReadingCount: number;
+  l2UnitsMissingReadingCount: number;
+  pronunciationOverrideCount: number;
+}
+
 interface DrillItemEnhancement {
   englishCue?: string;
   exampleJp?: string;
@@ -30,6 +50,7 @@ interface DrillItemEnhancement {
 }
 
 interface DrillVariation {
+  kind: (typeof DRILL_VARIATION_KINDS)[number];
   japanese: string;
   reading?: string;
   english: string;
@@ -40,6 +61,7 @@ interface DrillPrompt {
   japanese: string;
   reading?: string;
   english: string;
+  source: 'generated' | 'fallback';
 }
 
 interface JapaneseDisplayText {
@@ -79,7 +101,14 @@ function containsJapaneseText(text: string | null | undefined): boolean {
 function safeEnglishText(text: string | null | undefined): string | null {
   const trimmed = text?.trim();
   if (!trimmed || containsJapaneseText(trimmed)) return null;
+  if (/^this expression$/i.test(trimmed)) return null;
   return trimmed;
+}
+
+function parseDrillVariationKind(value: unknown): DrillVariation['kind'] | null {
+  return typeof value === 'string' && (DRILL_VARIATION_KINDS as readonly string[]).includes(value)
+    ? (value as DrillVariation['kind'])
+    : null;
 }
 
 function globalPattern(pattern: RegExp): RegExp {
@@ -92,9 +121,23 @@ function normalizeFuriganaFormat(reading: string | null | undefined): string | u
   return trimmed.replace(globalPattern(INLINE_PAREN_READING_PATTERN), '$1[$2]');
 }
 
+function hasKanji(text: string): boolean {
+  return KANJI_TEXT_PATTERN.test(text);
+}
+
+function isSafeJapaneseReadingText(reading: string): boolean {
+  const trimmed = reading.trim();
+  if (!trimmed) return false;
+  if (LATIN_TEXT_PATTERN.test(trimmed)) return false;
+  if (!JAPANESE_TEXT_PATTERN.test(trimmed)) return false;
+  if (!SAFE_READING_TEXT_PATTERN.test(trimmed)) return false;
+  return !hasKanji(trimmed) || INLINE_BRACKET_READING_PATTERN.test(trimmed);
+}
+
 function normalizeJapaneseDisplayText(
   text: string | null | undefined,
-  reading?: string | null
+  reading?: string | null,
+  options: { requireReadingForKanji?: boolean } = {}
 ): JapaneseDisplayText | null {
   const trimmed = text?.trim();
   if (!trimmed) return null;
@@ -109,9 +152,12 @@ function normalizeJapaneseDisplayText(
     .replace(globalPattern(INLINE_BRACKET_READING_PATTERN), '$1')
     .replace(globalPattern(INLINE_PAREN_READING_PATTERN), '$1')
     .trim();
-  const normalizedReading = normalizeFuriganaFormat(reading) ?? derivedReading;
+  const candidateReading = normalizeFuriganaFormat(reading) ?? derivedReading;
+  const normalizedReading =
+    candidateReading && isSafeJapaneseReadingText(candidateReading) ? candidateReading : undefined;
 
   if (!plainText) return null;
+  if (options.requireReadingForKanji && hasKanji(plainText) && !normalizedReading) return null;
   const result: JapaneseDisplayText = { text: plainText };
   if (normalizedReading && normalizedReading !== plainText) result.reading = normalizedReading;
   return result;
@@ -152,8 +198,8 @@ function safeGeneratedEnglishTranslation(
   return english;
 }
 
-function fallbackCueText(atom: DailyAudioLearningAtom): string {
-  return safeEnglishText(atom.english) ?? safeEnglishText(atom.exampleEn) ?? 'this expression';
+function fallbackCueText(atom: DailyAudioLearningAtom): string | null {
+  return safeEnglishText(atom.english) ?? safeEnglishText(atom.exampleEn);
 }
 
 function recallPauseSeconds(text: string): number {
@@ -164,7 +210,91 @@ function recallPauseSeconds(text: string): number {
   return 4;
 }
 
-async function buildDrillItemEnhancements(
+function stringField(record: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return null;
+}
+
+function parseGeneratedVariation(
+  value: unknown,
+  kind: DrillVariation['kind'],
+  englishCue: string | null
+): DrillVariation | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const variationJapanese = normalizeJapaneseDisplayText(
+    stringField(record, 'japanese', 'text', 'exampleJp'),
+    stringField(record, 'reading', 'exampleReading'),
+    { requireReadingForKanji: true }
+  );
+  const english = safeGeneratedEnglishTranslation(
+    stringField(record, 'english', 'translation', 'exampleEn'),
+    variationJapanese?.text,
+    englishCue
+  );
+  if (!variationJapanese || !english) return null;
+
+  const safeVariation: DrillVariation = { kind, japanese: variationJapanese.text, english };
+  if (variationJapanese.reading) safeVariation.reading = variationJapanese.reading;
+  return safeVariation;
+}
+
+function appendGeneratedVariations(
+  output: DrillVariation[],
+  values: unknown,
+  kind: DrillVariation['kind'],
+  englishCue: string | null
+) {
+  if (!Array.isArray(values)) return;
+  for (const value of values) {
+    const parsed = parseGeneratedVariation(value, kind, englishCue);
+    if (parsed) output.push(parsed);
+  }
+}
+
+function inferLegacyVariationKind(index: number): DrillVariation['kind'] {
+  return index < 2 ? 'grammar_substitution' : 'form_transform';
+}
+
+function appendLegacyVariations(
+  output: DrillVariation[],
+  values: unknown,
+  englishCue: string | null
+) {
+  if (!Array.isArray(values)) return;
+  values.forEach((value, index) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+    const record = value as Record<string, unknown>;
+    const explicitKind = parseDrillVariationKind(record.kind);
+    if (typeof record.kind === 'string' && !explicitKind) return;
+    const kind = explicitKind ?? inferLegacyVariationKind(index);
+    const parsed = parseGeneratedVariation(value, kind, englishCue);
+    if (parsed) output.push(parsed);
+  });
+}
+
+function selectBalancedVariations(variations: DrillVariation[]): DrillVariation[] {
+  const selected: DrillVariation[] = [
+    ...variations.filter((variation) => variation.kind === 'grammar_substitution').slice(0, 2),
+    ...variations.filter((variation) => variation.kind === 'form_transform').slice(0, 2),
+  ];
+  const selectedKeys = new Set(
+    selected.map((variation) => `${variation.kind}:${variation.japanese}`)
+  );
+  for (const variation of variations) {
+    if (selected.length >= MAX_VARIATIONS_PER_ATOM) break;
+    const key = `${variation.kind}:${variation.japanese}`;
+    if (selectedKeys.has(key)) continue;
+    selected.push(variation);
+    selectedKeys.add(key);
+  }
+  return selected;
+}
+
+async function buildDrillItemEnhancementBatch(
   atoms: DailyAudioLearningAtom[]
 ): Promise<Map<string, DrillItemEnhancement>> {
   if (atoms.length === 0) return new Map();
@@ -173,17 +303,23 @@ async function buildDrillItemEnhancements(
 
 Requirements:
 - Use the learner item naturally in new Japanese example sentences.
-- For every item, create one fresh example sentence plus up to ${MAX_VARIATIONS_PER_ATOM} substitution variations before moving to the next item.
-- For single words, reuse the word in different simple N5-N4 contexts. For grammar patterns or sentence phrases, reuse the same structure with different common N5-N4 words the learner is likely to know.
+- For every item, create a balanced ladder before moving to the next item:
+  1. anchor is the close anchor: a fresh sentence that clearly connects to the flashcard but does not copy the source example.
+  2. grammarSubstitutions contains exactly two items: keep the same grammar structure or sentence pattern, but swap in different common N5-N4 words, objects, people, places, or contexts.
+  3. formTransforms contains exactly two items: keep the target word, verb family, or core expression and change the form when linguistically appropriate, such as past, negative, potential, negative-past, polite/plain, or simple combinations.
+- For single words, reuse the word in different simple N5-N4 contexts and include at least one form_transform when the word can inflect. For non-inflecting nouns, use natural phrase/sentence frame changes instead of fake conjugations.
+- For grammar patterns or sentence phrases, reuse the same structure with different common N5-N4 words the learner is likely to know, then include form changes on the main verb/adjective when possible.
 - Keep the Japanese around JLPT N5-N4 level.
-- Put normal Japanese only in exampleJp and variation japanese fields. Do not include furigana, romaji, parenthetical readings, or bracket readings there.
-- Put furigana only in exampleReading and variation reading fields.
-- Keep English fields English only. Never include Japanese characters in englishCue, exampleEn, or variation english fields.
+- Put normal Japanese only in anchor.japanese, grammarSubstitutions[].japanese, and formTransforms[].japanese. Do not include furigana, romaji, parenthetical readings, or bracket readings there.
+- Put furigana only in reading fields.
+- If a Japanese example contains kanji, reading is required. Use bracket-notation furigana such as 物価[ぶっか] or kana-only text. Do not use romaji or English in reading fields.
+- Keep English fields English only. Never include Japanese characters in englishCue or english fields.
 - Translate each full Japanese example sentence into a complete, idiomatic English sentence. Do not use only the target word as the translation.
 - Translate context-dependent words by the meaning they have in the generated sentence, not by a literal dictionary gloss.
 - Preserve the grammar and topic of the Japanese sentence. Do not turn time/place topics into literal English subjects when that changes the meaning.
-- If the definition is Japanese-only, translate it into a short natural English cue.
+- If the definition is Japanese-only or mixed Japanese/English, translate it into a short natural English cue.
 - Do not copy the source example sentence unless there is no reasonable alternative.
+- Prefer new generated sentences over restating the card target by itself.
 
 Return JSON only:
 {
@@ -191,13 +327,22 @@ Return JSON only:
     {
       "cardId":"...",
       "englishCue":"short English cue",
-      "exampleJp":"new Japanese sentence",
-      "exampleReading":"optional reading with furigana",
-      "exampleEn":"English translation of the new sentence",
-      "variations": [
+      "anchor": {
+        "japanese":"new close-anchor Japanese sentence",
+        "reading":"required when japanese contains kanji; bracket furigana or kana-only",
+        "english":"English translation"
+      },
+      "grammarSubstitutions": [
         {
           "japanese":"variation Japanese sentence",
-          "reading":"optional reading",
+          "reading":"required when japanese contains kanji",
+          "english":"English translation"
+        }
+      ],
+      "formTransforms": [
+        {
+          "japanese":"variation Japanese sentence",
+          "reading":"required when japanese contains kanji",
           "english":"English translation"
         }
       ]
@@ -237,34 +382,39 @@ noteType=${atom.noteType ?? ''}`
       const englishCue = safeEnglishText(
         typeof record.englishCue === 'string' ? record.englishCue : null
       );
-      const example = normalizeJapaneseDisplayText(
-        typeof record.exampleJp === 'string' ? record.exampleJp : null,
-        typeof record.exampleReading === 'string' ? record.exampleReading : null
-      );
+      const anchorRecord =
+        record.anchor && typeof record.anchor === 'object' && !Array.isArray(record.anchor)
+          ? (record.anchor as Record<string, unknown>)
+          : null;
+      const example = anchorRecord
+        ? normalizeJapaneseDisplayText(
+            stringField(anchorRecord, 'japanese', 'text', 'exampleJp'),
+            stringField(anchorRecord, 'reading', 'exampleReading'),
+            { requireReadingForKanji: true }
+          )
+        : normalizeJapaneseDisplayText(
+            typeof record.exampleJp === 'string' ? record.exampleJp : null,
+            typeof record.exampleReading === 'string' ? record.exampleReading : null,
+            { requireReadingForKanji: true }
+          );
       const exampleEn = safeGeneratedEnglishTranslation(
-        typeof record.exampleEn === 'string' ? record.exampleEn : null,
+        anchorRecord
+          ? stringField(anchorRecord, 'english', 'translation', 'exampleEn')
+          : typeof record.exampleEn === 'string'
+            ? record.exampleEn
+            : null,
         example?.text,
         englishCue
       );
-      const rawVariations = Array.isArray(record.variations) ? record.variations : [];
       const variations: DrillVariation[] = [];
-      for (const variation of rawVariations) {
-        if (!variation || typeof variation !== 'object') continue;
-        const variationRecord = variation as Record<string, unknown>;
-        const variationJapanese = normalizeJapaneseDisplayText(
-          typeof variationRecord.japanese === 'string' ? variationRecord.japanese : null,
-          typeof variationRecord.reading === 'string' ? variationRecord.reading : null
-        );
-        const english = safeGeneratedEnglishTranslation(
-          typeof variationRecord.english === 'string' ? variationRecord.english : null,
-          variationJapanese?.text,
-          englishCue
-        );
-        if (!variationJapanese || !english) continue;
-        const safeVariation: DrillVariation = { japanese: variationJapanese.text, english };
-        if (variationJapanese.reading) safeVariation.reading = variationJapanese.reading;
-        variations.push(safeVariation);
-      }
+      appendGeneratedVariations(
+        variations,
+        record.grammarSubstitutions,
+        'grammar_substitution',
+        englishCue
+      );
+      appendGeneratedVariations(variations, record.formTransforms, 'form_transform', englishCue);
+      appendLegacyVariations(variations, record.variations, englishCue);
 
       const enhancement: DrillItemEnhancement = {};
       if (englishCue) enhancement.englishCue = englishCue;
@@ -273,35 +423,61 @@ noteType=${atom.noteType ?? ''}`
         enhancement.exampleEn = exampleEn;
         if (example.reading) enhancement.exampleReading = example.reading;
       }
-      if (variations.length) enhancement.variations = variations.slice(0, MAX_VARIATIONS_PER_ATOM);
+      if (variations.length) enhancement.variations = selectBalancedVariations(variations);
       enhancementByCardId.set(cardId, enhancement);
     }
     return enhancementByCardId;
-  } catch {
+  } catch (error) {
+    console.warn('[DailyAudioPractice] Drill enhancement batch failed; using fallbacks.', {
+      cardCount: atoms.length,
+      cardIds: atoms.map((atom) => atom.cardId),
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new Map();
   }
+}
+
+async function buildDrillItemEnhancements(
+  atoms: DailyAudioLearningAtom[]
+): Promise<Map<string, DrillItemEnhancement>> {
+  const enhancementByCardId = new Map<string, DrillItemEnhancement>();
+  for (let index = 0; index < atoms.length; index += DRILL_ENHANCEMENT_BATCH_SIZE) {
+    const batch = atoms.slice(index, index + DRILL_ENHANCEMENT_BATCH_SIZE);
+    const batchEnhancements = await buildDrillItemEnhancementBatch(batch);
+    for (const [cardId, enhancement] of batchEnhancements) {
+      enhancementByCardId.set(cardId, enhancement);
+    }
+  }
+  return enhancementByCardId;
+}
+
+interface DrillPromptBuildResult {
+  prompts: DrillPrompt[];
+  enhanced: boolean;
+  generatedPromptCount: number;
+  fallbackPromptCount: number;
+  missingCueCount: number;
 }
 
 function buildDrillPrompts(
   atom: DailyAudioLearningAtom,
   enhancement: DrillItemEnhancement | undefined
-): DrillPrompt[] {
+): DrillPromptBuildResult {
   const cueText = enhancement?.englishCue ?? fallbackCueText(atom);
   const target = normalizeJapaneseDisplayText(atom.targetText, atom.reading) ?? {
     text: atom.targetText,
     reading: atom.reading ?? undefined,
   };
-  const prompts: DrillPrompt[] = [
-    {
-      label: `Drill: ${atom.targetText}`,
-      japanese: target.text,
-      reading: target.reading,
-      english: cueText,
-    },
-  ];
+  const prompts: DrillPrompt[] = [];
+  let generatedPromptCount = 0;
+  let fallbackPromptCount = 0;
+  const hasGeneratedContent =
+    Boolean(enhancement?.exampleJp && enhancement.exampleEn) ||
+    Boolean(enhancement?.variations?.length);
 
   const exampleJp = enhancement?.exampleJp ?? atom.exampleJp;
-  const exampleEn = enhancement?.exampleEn ?? safeEnglishText(atom.exampleEn);
+  const exampleEn =
+    enhancement?.exampleEn ?? (hasGeneratedContent ? null : safeEnglishText(atom.exampleEn));
   if (exampleJp && exampleEn) {
     const example = normalizeJapaneseDisplayText(
       exampleJp,
@@ -309,11 +485,14 @@ function buildDrillPrompts(
     );
     if (example) {
       prompts.push({
-        label: `Example: ${atom.targetText}`,
+        label: `Anchor: ${atom.targetText}`,
         japanese: example.text,
         reading: example.reading,
         english: exampleEn,
+        source: hasGeneratedContent ? 'generated' : 'fallback',
       });
+      if (hasGeneratedContent) generatedPromptCount += 1;
+      else fallbackPromptCount += 1;
     }
   }
 
@@ -327,10 +506,31 @@ function buildDrillPrompts(
       japanese: variationJapanese.text,
       reading: variationJapanese.reading,
       english: variation.english,
+      source: 'generated',
     });
+    generatedPromptCount += 1;
   }
 
-  return prompts;
+  if (!hasGeneratedContent && cueText) {
+    prompts.unshift({
+      label: `Drill: ${atom.targetText}`,
+      japanese: target.text,
+      reading: target.reading,
+      english: cueText,
+      source: 'fallback',
+    });
+    fallbackPromptCount += 1;
+  }
+
+  const missingCueCount = !cueText && !hasGeneratedContent ? 1 : 0;
+
+  return {
+    prompts,
+    enhanced: hasGeneratedContent,
+    generatedPromptCount,
+    fallbackPromptCount,
+    missingCueCount,
+  };
 }
 
 function dedupeDrillPrompts(prompts: DrillPrompt[], seenJapanese: Set<string>): DrillPrompt[] {
@@ -351,10 +551,7 @@ function pushProductionPrompt(
   l1VoiceId: string,
   l2VoiceId: string
 ) {
-  const promptText =
-    prompt.english === 'this expression'
-      ? 'How do you say this expression?'
-      : `How do you say "${prompt.english}"?`;
+  const promptText = `How do you say "${prompt.english}"?`;
 
   units.push(
     { type: 'marker', label: prompt.label },
@@ -423,7 +620,7 @@ function pushRecognitionPrompt(
 function buildDrillScript(
   options: ScriptGenerationOptions,
   enhancements: Map<string, DrillItemEnhancement>
-): LessonScriptUnit[] {
+): { units: LessonScriptUnit[]; metadata: DailyAudioDrillGenerationMetadata } {
   const l2VoiceId = options.speakerVoiceIds[0];
   const units: LessonScriptUnit[] = [
     { type: 'marker', label: 'Daily Audio Practice - Drills' },
@@ -436,12 +633,31 @@ function buildDrillScript(
   ];
   const allPrompts: DrillPrompt[] = [];
   const seenJapanese = new Set<string>();
+  const metadata: DailyAudioDrillGenerationMetadata = {
+    enhancedAtomCount: 0,
+    generatedPromptCount: 0,
+    fallbackPromptCount: 0,
+    missingCueCount: 0,
+    totalPromptCount: 0,
+    unitCount: 0,
+    l2UnitCount: 0,
+    l2UnitsWithReadingCount: 0,
+    l2UnitsMissingReadingCount: 0,
+    pronunciationOverrideCount: 0,
+  };
 
   for (const atom of options.atoms) {
-    allPrompts.push(
-      ...dedupeDrillPrompts(buildDrillPrompts(atom, enhancements.get(atom.cardId)), seenJapanese)
-    );
+    const built = buildDrillPrompts(atom, enhancements.get(atom.cardId));
+    if (built.enhanced) metadata.enhancedAtomCount += 1;
+    metadata.missingCueCount += built.missingCueCount;
+    const deduped = dedupeDrillPrompts(built.prompts, seenJapanese);
+    metadata.generatedPromptCount += deduped.filter(
+      (prompt) => prompt.source === 'generated'
+    ).length;
+    metadata.fallbackPromptCount += deduped.filter((prompt) => prompt.source === 'fallback').length;
+    allPrompts.push(...deduped);
   }
+  metadata.totalPromptCount = allPrompts.length;
 
   units.push({ type: 'marker', label: 'Recognition drills' });
   for (const prompt of allPrompts) {
@@ -466,12 +682,49 @@ function buildDrillScript(
     text: 'Drill track complete. Nice work.',
     voiceId: options.l1VoiceId,
   });
-  return units;
+  metadata.unitCount = units.length;
+  Object.assign(metadata, buildDrillPronunciationMetadata(units));
+  return { units, metadata };
 }
 
-export async function buildDailyAudioPracticeDrillScript(
+function buildDrillPronunciationMetadata(
+  units: LessonScriptUnit[]
+): Pick<
+  DailyAudioDrillGenerationMetadata,
+  | 'l2UnitCount'
+  | 'l2UnitsWithReadingCount'
+  | 'l2UnitsMissingReadingCount'
+  | 'pronunciationOverrideCount'
+> {
+  let l2UnitCount = 0;
+  let l2UnitsWithReadingCount = 0;
+  let l2UnitsMissingReadingCount = 0;
+  let pronunciationOverrideCount = 0;
+
+  for (const unit of units) {
+    if (unit.type !== 'L2') continue;
+    l2UnitCount += 1;
+    if (unit.reading?.trim()) l2UnitsWithReadingCount += 1;
+    else l2UnitsMissingReadingCount += 1;
+
+    const ttsText = applyJapanesePronunciationOverrides({
+      text: unit.text,
+      reading: unit.reading,
+    });
+    if (ttsText !== unit.text) pronunciationOverrideCount += 1;
+  }
+
+  return {
+    l2UnitCount,
+    l2UnitsWithReadingCount,
+    l2UnitsMissingReadingCount,
+    pronunciationOverrideCount,
+  };
+}
+
+export async function buildDailyAudioPracticeDrillScriptResult(
   options: ScriptGenerationOptions
-): Promise<LessonScriptUnit[]> {
+): Promise<{ units: LessonScriptUnit[]; metadata: DailyAudioDrillGenerationMetadata }> {
   if (options.atoms.length === 0) {
     throw new Error('Daily Audio Practice needs at least one eligible study card.');
   }
@@ -482,8 +735,14 @@ export async function buildDailyAudioPracticeDrillScript(
   };
   const enhancements = await buildDrillItemEnhancements(boundedOptions.atoms);
   const drill = buildDrillScript(boundedOptions, enhancements);
-  validateDailyAudioScriptUnits(drill);
+  validateDailyAudioScriptUnits(drill.units);
   return drill;
+}
+
+export async function buildDailyAudioPracticeDrillScript(
+  options: ScriptGenerationOptions
+): Promise<LessonScriptUnit[]> {
+  return (await buildDailyAudioPracticeDrillScriptResult(options)).units;
 }
 
 function hasL2Units(units: LessonScriptUnit[]): boolean {
