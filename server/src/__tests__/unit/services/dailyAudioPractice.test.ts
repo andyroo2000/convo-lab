@@ -382,8 +382,14 @@ describe('dailyAudioPractice services', () => {
           {
             cardId: 'card-1',
             englishCue: 'went west of Hokkaido last year',
-            exampleJp: '去年(きょねん)、北海道(ほっかいどう)の西(にし)に行(い)きました。',
+            exampleJp: '去年(きょねん)、北海道[ほっかいどう]の西(にし)に行(い)きました。',
             exampleEn: 'I went west of Hokkaido last year.',
+            variations: [
+              {
+                japanese: '北海道[ほっかいどう]に行(い)きました。',
+                english: 'I went to Hokkaido.',
+              },
+            ],
           },
         ],
       })
@@ -419,6 +425,14 @@ describe('dailyAudioPractice services', () => {
         translation: 'I went west of Hokkaido last year.',
       })
     );
+    expect(script).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '北海道に行きました。',
+        reading: '北海道[ほっかいどう]に行[い]きました。',
+        translation: 'I went to Hokkaido.',
+      })
+    );
   });
 
   it('dedupes repeated drill prompts inside the recognition section', async () => {
@@ -437,6 +451,12 @@ describe('dailyAudioPractice services', () => {
               },
             ],
           },
+          {
+            cardId: 'card-2',
+            englishCue: "I can't eat vegetables",
+            exampleJp: '野菜が食べられません。',
+            exampleEn: "I can't eat vegetables.",
+          },
         ],
       })
     );
@@ -448,6 +468,16 @@ describe('dailyAudioPractice services', () => {
           cardType: 'recognition',
           targetText: '野菜が食べられません。',
           english: "I can't eat vegetables.",
+          exampleJp: null,
+          exampleEn: null,
+          deckName: '日本語',
+          noteType: 'Core',
+        },
+        {
+          cardId: 'card-2',
+          cardType: 'recognition',
+          targetText: '食べられません',
+          english: "can't eat",
           exampleJp: null,
           exampleEn: null,
           deckName: '日本語',

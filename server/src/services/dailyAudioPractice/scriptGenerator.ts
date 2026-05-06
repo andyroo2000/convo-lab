@@ -7,8 +7,8 @@ const MAX_SCRIPT_ATOMS = 50;
 const MAX_VARIATIONS_PER_ATOM = 4;
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 const INLINE_PAREN_READING_PATTERN =
-  /([\u3400-\u9fff々〆ヵヶ]+)[(（]([\u3040-\u30ffー\s]+)[)）]/g;
-const INLINE_BRACKET_READING_PATTERN = /([^\s[\]]+)\[([^\]]+)\]/g;
+  /([\u3400-\u9fff々〆ヵヶ]+)[(（]([\u3040-\u30ffー\s]+)[)）]/;
+const INLINE_BRACKET_READING_PATTERN = /([^\s[\]]+)\[([^\]]+)\]/;
 
 interface ScriptGenerationOptions {
   atoms: DailyAudioLearningAtom[];
@@ -82,10 +82,14 @@ function safeEnglishText(text: string | null | undefined): string | null {
   return trimmed;
 }
 
+function globalPattern(pattern: RegExp): RegExp {
+  return new RegExp(pattern.source, 'g');
+}
+
 function normalizeJapaneseReading(reading: string | null | undefined): string | undefined {
   const trimmed = reading?.trim();
   if (!trimmed) return undefined;
-  return trimmed.replace(INLINE_PAREN_READING_PATTERN, '$1[$2]');
+  return trimmed.replace(globalPattern(INLINE_PAREN_READING_PATTERN), '$1[$2]');
 }
 
 function normalizeJapaneseDisplayText(
@@ -95,19 +99,15 @@ function normalizeJapaneseDisplayText(
   const trimmed = text?.trim();
   if (!trimmed) return null;
 
-  let derivedReading: string | undefined;
-  if (INLINE_BRACKET_READING_PATTERN.test(trimmed)) {
-    derivedReading = trimmed;
-  } else if (INLINE_PAREN_READING_PATTERN.test(trimmed)) {
-    derivedReading = trimmed.replace(INLINE_PAREN_READING_PATTERN, '$1[$2]');
-  }
-
-  INLINE_BRACKET_READING_PATTERN.lastIndex = 0;
-  INLINE_PAREN_READING_PATTERN.lastIndex = 0;
-
+  const normalizedInlineReading = normalizeJapaneseReading(trimmed);
+  const derivedReading = normalizedInlineReading
+    ? INLINE_BRACKET_READING_PATTERN.test(normalizedInlineReading)
+      ? normalizedInlineReading
+      : undefined
+    : undefined;
   const plainText = trimmed
-    .replace(INLINE_BRACKET_READING_PATTERN, '$1')
-    .replace(INLINE_PAREN_READING_PATTERN, '$1')
+    .replace(globalPattern(INLINE_BRACKET_READING_PATTERN), '$1')
+    .replace(globalPattern(INLINE_PAREN_READING_PATTERN), '$1')
     .trim();
   const normalizedReading = normalizeJapaneseReading(reading) ?? derivedReading;
 
@@ -337,6 +337,7 @@ function dedupeDrillPrompts(prompts: DrillPrompt[], seenJapanese: Set<string>): 
   const deduped: DrillPrompt[] = [];
   for (const prompt of prompts) {
     const key = prompt.japanese.replace(/\s+/g, '');
+    // Deduping across the full practice prevents repeated slow/fast/English triplets.
     if (seenJapanese.has(key)) continue;
     seenJapanese.add(key);
     deduped.push(prompt);
