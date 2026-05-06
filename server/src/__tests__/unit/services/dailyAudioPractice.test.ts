@@ -305,7 +305,9 @@ describe('dailyAudioPractice services', () => {
       drillL2Units.filter((unit) => unit.text === '食べました').map((unit) => unit.speed)
     ).toEqual([]);
     expect(
-      drillL2Units.filter((unit) => unit.text === '昼ごはんを食べました。').map((unit) => unit.speed)
+      drillL2Units
+        .filter((unit) => unit.text === '昼ごはんを食べました。')
+        .map((unit) => unit.speed)
     ).toEqual([0.75, 1, 0.75, 1]);
     const recognitionMarkerIndex = scripts.drill.findIndex(
       (unit) => unit.type === 'marker' && unit.label === 'Recognition drills'
@@ -412,6 +414,103 @@ describe('dailyAudioPractice services', () => {
     });
   });
 
+  it('keeps LLM readings first-class for kanji TTS while preserving kanji transcript text', async () => {
+    generateCoreLlmTextMock.mockResolvedValueOnce(
+      JSON.stringify({
+        items: [
+          {
+            cardId: 'card-1',
+            englishCue: 'prices',
+            anchor: {
+              japanese: 'この町は物価が高いです。',
+              reading: 'この町[まち]は物価[ぶっか]が高[たか]いです。',
+              english: 'The cost of living is high in this town.',
+            },
+            grammarSubstitutions: [
+              {
+                japanese: '東京は物価が高いです。',
+                reading: 'Tokyo wa bukka ga takai desu.',
+                english: 'Prices are high in Tokyo.',
+              },
+              {
+                japanese: '大阪は物価が安いです。',
+                reading: '大阪[おおさか]は物価[ぶっか]が安[やす]いです。',
+                english: 'Prices are low in Osaka.',
+              },
+            ],
+            formTransforms: [
+              {
+                japanese: '物価が高くなりました。',
+                reading: '物価[ぶっか]が高[たか]くなりました。',
+                english: 'Prices became high.',
+              },
+              {
+                japanese: '物価が下がりませんでした。',
+                english: 'Prices did not go down.',
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    const result = await buildDailyAudioPracticeDrillScriptResult({
+      atoms: [
+        {
+          cardId: 'card-1',
+          cardType: 'recognition',
+          targetText: '物価',
+          reading: '物価[ぶっか]',
+          english: 'prices',
+          exampleJp: null,
+          exampleEn: null,
+          deckName: '日本語',
+          noteType: 'Core',
+        },
+      ],
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    const l2Units = result.units.filter((unit) => unit.type === 'L2');
+    expect(l2Units).toContainEqual(
+      expect.objectContaining({
+        text: 'この町は物価が高いです。',
+        reading: 'この町[まち]は物価[ぶっか]が高[たか]いです。',
+        translation: 'The cost of living is high in this town.',
+      })
+    );
+    expect(l2Units).toContainEqual(
+      expect.objectContaining({
+        text: '大阪は物価が安いです。',
+        reading: '大阪[おおさか]は物価[ぶっか]が安[やす]いです。',
+      })
+    );
+    expect(l2Units).toContainEqual(
+      expect.objectContaining({
+        text: '物価が高くなりました。',
+        reading: '物価[ぶっか]が高[たか]くなりました。',
+      })
+    );
+    expect(l2Units).not.toContainEqual(expect.objectContaining({ text: '東京は物価が高いです。' }));
+    expect(l2Units).not.toContainEqual(
+      expect.objectContaining({ text: '物価が下がりませんでした。' })
+    );
+    expect(l2Units.map((unit) => unit.text).join(' ')).not.toMatch(/[()[\]（）]/);
+    expect(result.metadata).toMatchObject({
+      generatedPromptCount: 3,
+      fallbackPromptCount: 0,
+      totalPromptCount: 3,
+      l2UnitCount: 12,
+      l2UnitsWithReadingCount: 12,
+      l2UnitsMissingReadingCount: 0,
+      pronunciationOverrideCount: 12,
+    });
+  });
+
   it('uses an LLM-provided cue for raw fallback prompts instead of this expression', async () => {
     generateCoreLlmTextMock.mockResolvedValueOnce(
       JSON.stringify({
@@ -461,6 +560,7 @@ describe('dailyAudioPractice services', () => {
               englishCue: 'to win',
               anchor: {
                 japanese: '昨日、試合に勝ちました。',
+                reading: '昨日[きのう]、試合[しあい]に勝[か]ちました。',
                 english: 'I won the game yesterday.',
               },
             },
@@ -660,11 +760,13 @@ describe('dailyAudioPractice services', () => {
             cardId: 'card-1',
             englishCue: "I can't eat vegetables",
             exampleJp: '野菜が食べられません。',
+            exampleReading: '野菜[やさい]が食[た]べられません。',
             exampleEn: "I can't eat vegetables.",
             variations: [
               {
                 kind: 'grammar_substitution',
                 japanese: '野菜が食べられません。',
+                reading: '野菜[やさい]が食[た]べられません。',
                 english: "I can't eat vegetables.",
               },
             ],
@@ -673,6 +775,7 @@ describe('dailyAudioPractice services', () => {
             cardId: 'card-2',
             englishCue: "I can't eat vegetables",
             exampleJp: '野菜が食べられません。',
+            exampleReading: '野菜[やさい]が食[た]べられません。',
             exampleEn: "I can't eat vegetables.",
           },
         ],

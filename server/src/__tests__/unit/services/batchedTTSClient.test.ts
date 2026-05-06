@@ -88,7 +88,7 @@ vi.mock('fluent-ffmpeg', () => ({
 vi.mock('fs', () => ({
   existsSync: vi.fn(() => true),
   readFileSync: vi.fn(() =>
-    JSON.stringify({ keepKanji: ['橋'], forceKana: { 北海道: 'ほっかいどう' } })
+    JSON.stringify({ keepKanji: ['橋'], forceKana: { 北海道: 'ほっかいどう', 物価: 'ぶっか' } })
   ),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
@@ -187,6 +187,22 @@ describe('batchedTTSClient', () => {
 
       // Use furigana reading for Japanese TTS
       expect(batches[0].units[0].text).toBe('かんじ');
+    });
+
+    it('should use generated furigana readings for ambiguous kanji TTS while preserving script text', () => {
+      const unit: LessonScriptUnit = {
+        type: 'L2',
+        text: 'この町は物価が高いです。',
+        reading: 'この町[まち]は物価[ぶっか]が高[たか]いです。',
+        voiceId: 'ja-JP-Wavenet-C',
+        speed: 1.0,
+      };
+      const units: LessonScriptUnit[] = [unit];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(unit.text).toBe('この町は物価が高いです。');
+      expect(batches[0].units[0].text).toBe('このまちはぶっかがたかいです。');
     });
 
     it('should keep kanji for keep-kanji words', () => {
