@@ -39,6 +39,14 @@ const audioRecognitionCard = {
   updatedAt: new Date('2026-04-12T00:00:00.000Z').toISOString(),
 };
 
+const imageRef = {
+  id: 'image-1',
+  filename: 'piano.webp',
+  url: 'https://example.com/piano.webp',
+  mediaKind: 'image' as const,
+  source: 'generated' as const,
+};
+
 describe('StudyCardEditor', () => {
   beforeEach(() => {
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
@@ -67,6 +75,36 @@ describe('StudyCardEditor', () => {
           cueText: null,
         }),
         answer: expect.objectContaining({
+          expression: '会社',
+        }),
+      });
+    });
+  });
+
+  it('explicitly moves an audio-recognition card image between prompt and answer placement', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const card = {
+      ...audioRecognitionCard,
+      prompt: {
+        ...audioRecognitionCard.prompt,
+        cueImage: imageRef,
+      },
+    };
+
+    render(<StudyCardEditor card={card} onCancel={vi.fn()} onSave={onSave} />);
+
+    await userEvent.selectOptions(screen.getByLabelText('Image placement'), 'answer');
+    await userEvent.click(screen.getByRole('button', { name: 'Save card' }));
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith({
+        prompt: expect.objectContaining({
+          cueAudio: audioPrompt,
+          cueImage: null,
+          cueText: null,
+        }),
+        answer: expect.objectContaining({
+          answerImage: imageRef,
           expression: '会社',
         }),
       });

@@ -136,16 +136,18 @@ const StudyCardEditor = ({
         event.preventDefault();
         const { prompt, answer } = buildPayload();
         // Regeneration saves media immediately; include the current reference so a later form save
-        // does not accidentally drop freshly previewed media.
+        // does not accidentally drop freshly previewed media. Explicitly clear the opposite side
+        // because the API merges PATCH payloads with the existing card JSON.
         await onSave({
-          prompt:
-            imageRole === 'prompt' || imageRole === 'both'
-              ? { ...prompt, cueImage: currentImage }
-              : prompt,
-          answer:
-            imageRole === 'answer' || imageRole === 'both'
-              ? { ...answer, answerAudio: currentAnswerAudio, answerImage: currentImage }
-              : { ...answer, answerAudio: currentAnswerAudio },
+          prompt: {
+            ...prompt,
+            cueImage: imageRole === 'prompt' || imageRole === 'both' ? currentImage : null,
+          },
+          answer: {
+            ...answer,
+            answerAudio: currentAnswerAudio,
+            answerImage: imageRole === 'answer' || imageRole === 'both' ? currentImage : null,
+          },
         });
       }}
     >
