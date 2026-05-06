@@ -9,6 +9,7 @@ const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 const INLINE_PAREN_READING_PATTERN = /([\u3400-\u9fff々〆ヵヶ]+)[(（]([\u3040-\u30ffー\s]+)[)）]/;
 const INLINE_BRACKET_READING_PATTERN =
   /([^\s[\]]*[\u3040-\u30ff\u3400-\u9fff][^\s[\]]*)\[([\u3040-\u30ffー\s]+)\]/;
+const DRILL_VARIATION_KINDS = ['anchor', 'grammar_substitution', 'form_transform'] as const;
 
 interface ScriptGenerationOptions {
   atoms: DailyAudioLearningAtom[];
@@ -30,6 +31,7 @@ interface DrillItemEnhancement {
 }
 
 interface DrillVariation {
+  kind: (typeof DRILL_VARIATION_KINDS)[number];
   japanese: string;
   reading?: string;
   english: string;
@@ -80,6 +82,13 @@ function safeEnglishText(text: string | null | undefined): string | null {
   const trimmed = text?.trim();
   if (!trimmed || containsJapaneseText(trimmed)) return null;
   return trimmed;
+}
+
+function parseDrillVariationKind(value: unknown): DrillVariation['kind'] | null {
+  return typeof value === 'string' &&
+    (DRILL_VARIATION_KINDS as readonly string[]).includes(value)
+    ? (value as DrillVariation['kind'])
+    : null;
 }
 
 function globalPattern(pattern: RegExp): RegExp {
@@ -173,8 +182,12 @@ async function buildDrillItemEnhancements(
 
 Requirements:
 - Use the learner item naturally in new Japanese example sentences.
-- For every item, create one fresh example sentence plus up to ${MAX_VARIATIONS_PER_ATOM} substitution variations before moving to the next item.
-- For single words, reuse the word in different simple N5-N4 contexts. For grammar patterns or sentence phrases, reuse the same structure with different common N5-N4 words the learner is likely to know.
+- For every item, create a balanced ladder before moving to the next item:
+  1. exampleJp is the close anchor: a fresh sentence that clearly connects to the flashcard but does not copy the source example.
+  2. variations contains exactly two grammar_substitution items: keep the same grammar structure or sentence pattern, but swap in different common N5-N4 words, objects, people, places, or contexts.
+  3. variations contains exactly two form_transform items: keep the target word, verb family, or core expression and change the form when linguistically appropriate, such as past, negative, potential, negative-past, polite/plain, or simple combinations.
+- For single words, reuse the word in different simple N5-N4 contexts and include at least one form_transform when the word can inflect. For non-inflecting nouns, use natural phrase/sentence frame changes instead of fake conjugations.
+- For grammar patterns or sentence phrases, reuse the same structure with different common N5-N4 words the learner is likely to know, then include form changes on the main verb/adjective when possible.
 - Keep the Japanese around JLPT N5-N4 level.
 - Put normal Japanese only in exampleJp and variation japanese fields. Do not include furigana, romaji, parenthetical readings, or bracket readings there.
 - Put furigana only in exampleReading and variation reading fields.
@@ -191,11 +204,19 @@ Return JSON only:
     {
       "cardId":"...",
       "englishCue":"short English cue",
+      "exampleKind":"anchor",
       "exampleJp":"new Japanese sentence",
       "exampleReading":"optional reading with furigana",
       "exampleEn":"English translation of the new sentence",
       "variations": [
         {
+          "kind":"grammar_substitution",
+          "japanese":"variation Japanese sentence",
+          "reading":"optional reading",
+          "english":"English translation"
+        },
+        {
+          "kind":"form_transform",
           "japanese":"variation Japanese sentence",
           "reading":"optional reading",
           "english":"English translation"
@@ -251,6 +272,8 @@ noteType=${atom.noteType ?? ''}`
       for (const variation of rawVariations) {
         if (!variation || typeof variation !== 'object') continue;
         const variationRecord = variation as Record<string, unknown>;
+        const kind = parseDrillVariationKind(variationRecord.kind);
+        if (!kind || kind === 'anchor') continue;
         const variationJapanese = normalizeJapaneseDisplayText(
           typeof variationRecord.japanese === 'string' ? variationRecord.japanese : null,
           typeof variationRecord.reading === 'string' ? variationRecord.reading : null
@@ -261,7 +284,7 @@ noteType=${atom.noteType ?? ''}`
           englishCue
         );
         if (!variationJapanese || !english) continue;
-        const safeVariation: DrillVariation = { japanese: variationJapanese.text, english };
+        const safeVariation: DrillVariation = { kind, japanese: variationJapanese.text, english };
         if (variationJapanese.reading) safeVariation.reading = variationJapanese.reading;
         variations.push(safeVariation);
       }
@@ -273,7 +296,12 @@ noteType=${atom.noteType ?? ''}`
         enhancement.exampleEn = exampleEn;
         if (example.reading) enhancement.exampleReading = example.reading;
       }
-      if (variations.length) enhancement.variations = variations.slice(0, MAX_VARIATIONS_PER_ATOM);
+      if (variations.length) {
+        enhancement.variations = [
+          ...variations.filter((variation) => variation.kind === 'grammar_substitution'),
+          ...variations.filter((variation) => variation.kind === 'form_transform'),
+        ].slice(0, MAX_VARIATIONS_PER_ATOM);
+      }
       enhancementByCardId.set(cardId, enhancement);
     }
     return enhancementByCardId;

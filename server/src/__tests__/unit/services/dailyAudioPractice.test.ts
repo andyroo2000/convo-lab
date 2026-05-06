@@ -176,29 +176,40 @@ describe('dailyAudioPractice services', () => {
               exampleEn: 'I ate lunch.',
               variations: [
                 {
+                  kind: 'grammar_substitution',
                   japanese: '晩ごはんを食べました。',
                   reading: '晩[ばん]ごはんを食[た]べました。',
                   english: 'I ate dinner.',
                 },
                 {
-                  japanese: 'スープを飲みました。',
-                  reading: 'スープを飲[の]みました。',
-                  english: 'I drank soup.',
+                  kind: 'grammar_substitution',
+                  japanese: '駅でお弁当を食べました。',
+                  reading: '駅[えき]でお弁当[べんとう]を食[た]べました。',
+                  english: 'I ate a boxed lunch at the station.',
                 },
                 {
-                  japanese: '薬を飲みました。',
-                  reading: '薬[くすり]を飲[の]みました。',
-                  english: 'I took medicine.',
+                  kind: 'form_transform',
+                  japanese: '朝ごはんを食べませんでした。',
+                  reading: '朝[あさ]ごはんを食[た]べませんでした。',
+                  english: 'I did not eat breakfast.',
                 },
                 {
-                  japanese: '日本語を勉強しました。',
-                  reading: '日本[にほん]語[ご]を勉[べん]強[きょう]しました。',
-                  english: 'I studied Japanese.',
+                  kind: 'form_transform',
+                  japanese: '朝ごはんを食べられます。',
+                  reading: '朝[あさ]ごはんを食[た]べられます。',
+                  english: 'I can eat breakfast.',
                 },
                 {
+                  kind: 'form_transform',
                   japanese: '本を読みました。',
                   reading: '本[ほん]を読[よ]みました。',
                   english: 'ate',
+                },
+                {
+                  kind: 'anchor',
+                  japanese: '水を飲みました。',
+                  reading: '水[みず]を飲[の]みました。',
+                  english: 'I drank water.',
                 },
               ],
             },
@@ -239,14 +250,34 @@ describe('dailyAudioPractice services', () => {
     expect(scripts.drill).toContainEqual(
       expect.objectContaining({
         type: 'L2',
-        text: '日本語を勉強しました。',
-        translation: 'I studied Japanese.',
+        text: '駅でお弁当を食べました。',
+        translation: 'I ate a boxed lunch at the station.',
+      })
+    );
+    expect(scripts.drill).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '朝ごはんを食べませんでした。',
+        translation: 'I did not eat breakfast.',
+      })
+    );
+    expect(scripts.drill).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '朝ごはんを食べられます。',
+        translation: 'I can eat breakfast.',
       })
     );
     expect(scripts.drill).not.toContainEqual(
       expect.objectContaining({
         type: 'L2',
         text: '本を読みました。',
+      })
+    );
+    expect(scripts.drill).not.toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '水を飲みました。',
       })
     );
     const drillL2Units = scripts.drill.filter((unit) => unit.type === 'L2');
@@ -279,6 +310,13 @@ describe('dailyAudioPractice services', () => {
     expect(scripts.story).toContainEqual(
       expect.objectContaining({ type: 'L2', voiceId: 'ja-JP-Neural2-B' })
     );
+    const drillPrompt = generateCoreLlmTextMock.mock.calls[2]?.[0] as string;
+    expect(drillPrompt).toContain('balanced ladder');
+    expect(drillPrompt).toContain('exactly two grammar_substitution items');
+    expect(drillPrompt).toContain('exactly two form_transform items');
+    expect(drillPrompt).toContain('"exampleKind":"anchor"');
+    expect(drillPrompt).toContain('"kind":"grammar_substitution"');
+    expect(drillPrompt).toContain('"kind":"form_transform"');
     expect(() => validateDailyAudioScriptUnits(scripts.drill)).not.toThrow();
     expect(() => validateDailyAudioScriptUnits([{ type: 'pause', seconds: 0 }])).toThrow(
       'Pause units must have a positive duration.'
@@ -386,6 +424,7 @@ describe('dailyAudioPractice services', () => {
             exampleEn: 'I went west of Hokkaido last year.',
             variations: [
               {
+                kind: 'grammar_substitution',
                 japanese: '北海道[ほっかいどう]に行(い)きました。',
                 english: 'I went to Hokkaido.',
               },
@@ -446,6 +485,7 @@ describe('dailyAudioPractice services', () => {
             exampleEn: "I can't eat vegetables.",
             variations: [
               {
+                kind: 'grammar_substitution',
                 japanese: '野菜が食べられません。',
                 english: "I can't eat vegetables.",
               },
