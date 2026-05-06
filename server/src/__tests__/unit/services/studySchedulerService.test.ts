@@ -985,6 +985,89 @@ describe('studySchedulerService', () => {
     expect(updated.answer.expression).toBe('事業');
   });
 
+  it('moves a study card image to the answer side without rehydrating it onto the prompt side', async () => {
+    const imageRef = {
+      id: 'media-image',
+      filename: 'piano.webp',
+      mediaKind: 'image' as const,
+      source: 'generated' as const,
+    };
+    const imageMedia = {
+      id: 'media-image',
+      mediaKind: 'image',
+      sourceKind: 'generated',
+      normalizedFilename: 'piano.webp',
+    };
+    const existing = {
+      ...buildStudySessionCard({
+        id: 'card-image',
+        queueState: 'review',
+        label: 'ピアノが弾けます。',
+      }),
+      imageMediaId: 'media-image',
+      imageMedia,
+      promptJson: {
+        cueAudio: {
+          id: 'media-audio',
+          filename: 'piano.mp3',
+          mediaKind: 'audio' as const,
+          source: 'generated' as const,
+        },
+        cueImage: imageRef,
+      },
+      answerJson: {
+        expression: 'ピアノが弾けます。',
+        meaning: 'I can play piano.',
+      },
+    };
+    const refreshed = {
+      ...existing,
+      promptJson: {
+        ...existing.promptJson,
+        cueImage: null,
+      },
+      answerJson: {
+        ...existing.answerJson,
+        answerImage: imageRef,
+      },
+    };
+    mockPrisma.studyCard.findFirst.mockResolvedValueOnce(existing).mockResolvedValueOnce(refreshed);
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+
+    const updated = await updateStudyCard({
+      userId: 'user-1',
+      cardId: 'card-image',
+      prompt: {
+        cueAudio: existing.promptJson.cueAudio,
+        cueText: null,
+        cueReading: null,
+        cueMeaning: null,
+        cueImage: null,
+      },
+      answer: {
+        expression: 'ピアノが弾けます。',
+        meaning: 'I can play piano.',
+        answerImage: imageRef,
+      },
+    });
+
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          imageMediaId: 'media-image',
+          promptJson: expect.objectContaining({
+            cueImage: null,
+          }),
+          answerJson: expect.objectContaining({
+            answerImage: expect.objectContaining({ id: 'media-image' }),
+          }),
+        }),
+      })
+    );
+    expect(updated.prompt.cueImage).toBeNull();
+    expect(updated.answer.answerImage).toEqual(expect.objectContaining({ id: 'media-image' }));
+  });
+
   it('preserves manually edited cloze restored-answer readings', async () => {
     mockPrisma.studyCard.findFirst
       .mockResolvedValueOnce(

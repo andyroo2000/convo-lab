@@ -153,11 +153,11 @@ export async function regenerateStudyCardImage(input: {
   const nextPrompt =
     input.imageRole === 'prompt' || input.imageRole === 'both'
       ? { ...normalized.prompt, cueImage: image }
-      : normalized.prompt;
+      : { ...normalized.prompt, cueImage: null };
   const nextAnswer =
     input.imageRole === 'answer' || input.imageRole === 'both'
       ? { ...normalized.answer, answerImage: image }
-      : normalized.answer;
+      : { ...normalized.answer, answerImage: null };
 
   // Cards keep one denormalized imageMediaId used by the mappers to hydrate whichever side
   // currently owns the card image.

@@ -90,7 +90,9 @@ export async function normalizeStudyCardPayload(record: StudyCardWithRelations):
   prompt = {
     ...prompt,
     cueAudio: hydrateMediaRef(prompt.cueAudio, record.promptAudioMedia) ?? prompt.cueAudio,
-    cueImage: hydrateMediaRef(prompt.cueImage, record.imageMedia) ?? prompt.cueImage,
+    cueImage: prompt.cueImage
+      ? (hydrateMediaRef(prompt.cueImage, record.imageMedia) ?? prompt.cueImage)
+      : prompt.cueImage,
   };
   answer = {
     ...answer,
@@ -99,7 +101,9 @@ export async function normalizeStudyCardPayload(record: StudyCardWithRelations):
     answerAudioTextOverride:
       typeof answer.answerAudioTextOverride === 'string' ? answer.answerAudioTextOverride : null,
     answerAudio: hydrateMediaRef(answer.answerAudio, record.answerAudioMedia) ?? answer.answerAudio,
-    answerImage: hydrateMediaRef(answer.answerImage, record.imageMedia) ?? answer.answerImage,
+    answerImage: answer.answerImage
+      ? (hydrateMediaRef(answer.answerImage, record.imageMedia) ?? answer.answerImage)
+      : answer.answerImage,
   };
 
   if (record.cardType === 'recognition' && isAudioRecognitionPrompt(prompt) && answer.answerAudio) {
