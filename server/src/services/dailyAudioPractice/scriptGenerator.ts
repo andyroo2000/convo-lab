@@ -4,7 +4,7 @@ import type { LessonScriptUnit } from '../lessonScriptGenerator.js';
 import type { DailyAudioLearningAtom, DailyAudioPracticeTrackMode } from './types.js';
 
 const MAX_SCRIPT_ATOMS = 50;
-const MAX_VARIATIONS_PER_ATOM = 2;
+const MAX_VARIATIONS_PER_ATOM = 4;
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 
 interface ScriptGenerationOptions {
@@ -74,6 +74,41 @@ function safeEnglishText(text: string | null | undefined): string | null {
   return trimmed;
 }
 
+function normalizedEnglish(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s']/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function englishWordCount(text: string): number {
+  const normalized = normalizedEnglish(text);
+  return normalized ? normalized.split(' ').length : 0;
+}
+
+function looksLikeJapaneseSentence(text: string): boolean {
+  const trimmed = text.trim();
+  return /[。！？!?]/.test(trimmed) || trimmed.length >= 8;
+}
+
+function safeGeneratedEnglishTranslation(
+  text: string | null | undefined,
+  japaneseText: string | null | undefined,
+  cueText: string | null | undefined
+): string | null {
+  const english = safeEnglishText(text);
+  if (!english) return null;
+  if (!japaneseText || !looksLikeJapaneseSentence(japaneseText)) return english;
+
+  const normalizedTranslation = normalizedEnglish(english);
+  const normalizedCue = cueText ? normalizedEnglish(cueText) : '';
+  if (normalizedCue && normalizedTranslation === normalizedCue) return null;
+  if (englishWordCount(english) < 2) return null;
+
+  return english;
+}
+
 function fallbackCueText(atom: DailyAudioLearningAtom): string {
   return safeEnglishText(atom.english) ?? safeEnglishText(atom.exampleEn) ?? 'this expression';
 }
@@ -95,9 +130,12 @@ async function buildDrillItemEnhancements(
 
 Requirements:
 - Use the learner item naturally in new Japanese example sentences.
-- Add up to ${MAX_VARIATIONS_PER_ATOM} substitution variations when the item is a phrase or sentence pattern. Reuse the same structure with different common N5-N4 words the learner is likely to know.
+- For every item, create one fresh example sentence plus up to ${MAX_VARIATIONS_PER_ATOM} substitution variations before moving to the next item.
+- For single words, reuse the word in different simple N5-N4 contexts. For grammar patterns or sentence phrases, reuse the same structure with different common N5-N4 words the learner is likely to know.
 - Keep the Japanese around JLPT N5-N4 level.
-- Keep English fields English only. Never include Japanese characters in englishCue or exampleEn.
+- Keep English fields English only. Never include Japanese characters in englishCue, exampleEn, or variation english fields.
+- Translate each full Japanese example sentence into a complete, idiomatic English sentence. Do not use only the target word as the translation.
+- Translate context-dependent words by the meaning they have in the generated sentence, not by a literal dictionary gloss.
 - If the definition is Japanese-only, translate it into a short natural English cue.
 - Do not copy the source example sentence unless there is no reasonable alternative.
 
@@ -161,8 +199,10 @@ noteType=${atom.noteType ?? ''}`
         typeof record.exampleReading === 'string' && record.exampleReading.trim()
           ? record.exampleReading.trim()
           : undefined;
-      const exampleEn = safeEnglishText(
-        typeof record.exampleEn === 'string' ? record.exampleEn : null
+      const exampleEn = safeGeneratedEnglishTranslation(
+        typeof record.exampleEn === 'string' ? record.exampleEn : null,
+        exampleJp,
+        englishCue
       );
       const rawVariations = Array.isArray(record.variations) ? record.variations : [];
       const variations: DrillVariation[] = [];
@@ -173,8 +213,10 @@ noteType=${atom.noteType ?? ''}`
           typeof variationRecord.japanese === 'string' && variationRecord.japanese.trim()
             ? variationRecord.japanese.trim()
             : null;
-        const english = safeEnglishText(
-          typeof variationRecord.english === 'string' ? variationRecord.english : null
+        const english = safeGeneratedEnglishTranslation(
+          typeof variationRecord.english === 'string' ? variationRecord.english : null,
+          japanese,
+          englishCue
         );
         if (!japanese || !english) continue;
         const reading =
@@ -188,9 +230,11 @@ noteType=${atom.noteType ?? ''}`
 
       const enhancement: DrillItemEnhancement = {};
       if (englishCue) enhancement.englishCue = englishCue;
-      if (exampleJp) enhancement.exampleJp = exampleJp;
-      if (exampleReading) enhancement.exampleReading = exampleReading;
-      if (exampleEn) enhancement.exampleEn = exampleEn;
+      if (exampleJp && exampleEn) {
+        enhancement.exampleJp = exampleJp;
+        enhancement.exampleEn = exampleEn;
+        if (exampleReading) enhancement.exampleReading = exampleReading;
+      }
       if (variations.length) enhancement.variations = variations.slice(0, MAX_VARIATIONS_PER_ATOM);
       enhancementByCardId.set(cardId, enhancement);
     }
@@ -324,7 +368,7 @@ function buildDrillScript(
     {
       type: 'narration_L1',
       text:
-        "Daily Audio Practice. We'll start with production drills, then switch to recognition drills.",
+        "Daily Audio Practice. We'll start with recognition drills, then switch to production drills.",
       voiceId: options.l1VoiceId,
     },
     { type: 'pause', seconds: 1 },
@@ -335,23 +379,23 @@ function buildDrillScript(
     allPrompts.push(...buildDrillPrompts(atom, enhancements.get(atom.cardId)));
   }
 
-  units.push({ type: 'marker', label: 'Production drills' });
+  units.push({ type: 'marker', label: 'Recognition drills' });
   for (const prompt of allPrompts) {
-    pushProductionPrompt(units, prompt, options.l1VoiceId, l2VoiceId);
+    pushRecognitionPrompt(units, prompt, options.l1VoiceId, l2VoiceId);
   }
 
   units.push(
-    { type: 'marker', label: 'Recognition drills' },
+    { type: 'marker', label: 'Production drills' },
     {
       type: 'narration_L1',
       text:
-        'Now the order reverses. Listen to the Japanese first, then check the English meaning.',
+        'Now the order reverses. Listen to the English prompt, then say the Japanese before the answer.',
       voiceId: options.l1VoiceId,
     },
     { type: 'pause', seconds: 1 }
   );
   for (const prompt of allPrompts) {
-    pushRecognitionPrompt(units, prompt, options.l1VoiceId, l2VoiceId);
+    pushProductionPrompt(units, prompt, options.l1VoiceId, l2VoiceId);
   }
 
   units.push({

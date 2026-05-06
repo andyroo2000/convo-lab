@@ -6,6 +6,7 @@ import ViewToggleButtons from '../common/ViewToggleButtons';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import type { DailyAudioPracticeTiming, LanguageCode, LessonScriptUnit } from '../../types';
+import { findCurrentL2Unit, normalizeTimingDataForDuration } from './scriptTrackTiming';
 
 interface ScriptTrackPlayerProps {
   title: string;
@@ -54,7 +55,7 @@ const ScriptTrackPlayer = ({
   targetLanguage,
   approxDurationSeconds,
 }: ScriptTrackPlayerProps) => {
-  const { audioRef, currentTime } = useAudioPlayer();
+  const { audioRef, currentTime, duration } = useAudioPlayer();
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
@@ -62,28 +63,21 @@ const ScriptTrackPlayer = ({
   const ready = status === 'ready' && Boolean(audioUrl);
   const units = useMemo(() => scriptUnits ?? [], [scriptUnits]);
   const timings = useMemo(() => timingData ?? [], [timingData]);
+  const scaledTimings = useMemo(
+    () => normalizeTimingDataForDuration(timings, duration || approxDurationSeconds),
+    [approxDurationSeconds, duration, timings]
+  );
 
   useWarmAudioCache([audioUrl], ready);
 
   useEffect(() => {
-    if (!ready || !units.length || !timings.length) {
+    if (!ready || !units.length || !scaledTimings.length) {
       setCurrentUnit(null);
       return;
     }
 
-    const currentTimeMs = currentTime * 1000;
-    const activeTiming = timings.find((timing) => {
-      const unit = units[timing.unitIndex];
-      return (
-        unit &&
-        unit.type === 'L2' &&
-        currentTimeMs >= timing.startTime - 1000 &&
-        currentTimeMs < timing.endTime + 1000
-      );
-    });
-
-    setCurrentUnit(activeTiming ? units[activeTiming.unitIndex] : null);
-  }, [currentTime, ready, timings, units]);
+    setCurrentUnit(findCurrentL2Unit(units, scaledTimings, currentTime));
+  }, [currentTime, ready, scaledTimings, units]);
 
   return (
     <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">

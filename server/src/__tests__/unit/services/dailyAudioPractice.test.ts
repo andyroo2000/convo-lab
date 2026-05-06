@@ -180,6 +180,26 @@ describe('dailyAudioPractice services', () => {
                   reading: '晩[ばん]ごはんを食[た]べました。',
                   english: 'I ate dinner.',
                 },
+                {
+                  japanese: 'スープを飲みました。',
+                  reading: 'スープを飲[の]みました。',
+                  english: 'I drank soup.',
+                },
+                {
+                  japanese: '薬を飲みました。',
+                  reading: '薬[くすり]を飲[の]みました。',
+                  english: 'I took medicine.',
+                },
+                {
+                  japanese: '日本語を勉強しました。',
+                  reading: '日本[にほん]語[ご]を勉[べん]強[きょう]しました。',
+                  english: 'I studied Japanese.',
+                },
+                {
+                  japanese: '本を読みました。',
+                  reading: '本[ほん]を読[よ]みました。',
+                  english: 'ate',
+                },
               ],
             },
           ],
@@ -216,6 +236,19 @@ describe('dailyAudioPractice services', () => {
         reading: '晩[ばん]ごはんを食[た]べました。',
       })
     );
+    expect(scripts.drill).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '日本語を勉強しました。',
+        translation: 'I studied Japanese.',
+      })
+    );
+    expect(scripts.drill).not.toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '本を読みました。',
+      })
+    );
     const drillL2Units = scripts.drill.filter((unit) => unit.type === 'L2');
     expect(drillL2Units).toEqual(
       expect.arrayContaining([
@@ -223,13 +256,24 @@ describe('dailyAudioPractice services', () => {
         expect.objectContaining({ text: '食べました', speed: 1 }),
       ])
     );
-    expect(
-      scripts.drill.some((unit) => unit.type === 'marker' && unit.label === 'Recognition drills')
-    ).toBe(true);
+    expect(drillL2Units.filter((unit) => unit.text === '食べました').map((unit) => unit.speed)).toEqual([
+      0.75,
+      1,
+      0.75,
+      1,
+    ]);
+    const recognitionMarkerIndex = scripts.drill.findIndex(
+      (unit) => unit.type === 'marker' && unit.label === 'Recognition drills'
+    );
+    const productionMarkerIndex = scripts.drill.findIndex(
+      (unit) => unit.type === 'marker' && unit.label === 'Production drills'
+    );
+    expect(recognitionMarkerIndex).toBeGreaterThanOrEqual(0);
+    expect(productionMarkerIndex).toBeGreaterThan(recognitionMarkerIndex);
     expect(scripts.drill).toContainEqual(
       expect.objectContaining({
         type: 'narration_L1',
-        text: 'Now the order reverses. Listen to the Japanese first, then check the English meaning.',
+        text: 'Now the order reverses. Listen to the English prompt, then say the Japanese before the answer.',
       })
     );
     expect(scripts.dialogue).toContainEqual(
