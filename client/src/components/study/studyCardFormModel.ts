@@ -8,6 +8,8 @@ import type {
   StudyPromptPayload,
 } from '@languageflow/shared/src/types';
 
+import { isAudioLedPromptCard } from './studyCardUtils';
+
 export interface StudyCardFormValues {
   cardType: StudyCardType;
   cueText: string;
@@ -118,6 +120,28 @@ export const buildStudyCardFormPayload = (
       cardType: 'cloze',
       prompt: normalized.prompt,
       answer: normalized.answer,
+    };
+  }
+
+  if (card && isAudioLedPromptCard(card)) {
+    return {
+      cardType: values.cardType,
+      prompt: {
+        ...(card?.prompt ?? {}),
+        cueText: null,
+        cueReading: null,
+        cueMeaning: null,
+      },
+      answer: {
+        expression: values.answerExpression,
+        expressionReading: emptyToNull(values.answerReading),
+        meaning: emptyToNull(values.answerMeaning),
+        answerAudioVoiceId: emptyToNull(values.answerAudioVoiceId),
+        answerAudioTextOverride: emptyToNull(values.answerAudioTextOverride),
+        sentenceJp: emptyToNull(values.sentenceJp),
+        sentenceEn: emptyToNull(values.sentenceEn),
+        notes: emptyToNull(values.notes),
+      },
     };
   }
 

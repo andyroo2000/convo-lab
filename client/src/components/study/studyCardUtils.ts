@@ -17,7 +17,8 @@ export const getAudioMimeType = (url?: string | null, filename?: string | null) 
 
 export const isAudioLedPromptCard = (card: StudyCardSummary) =>
   Boolean(
-    card.prompt.cueAudio?.url &&
+    card.cardType === 'recognition' &&
+    card.prompt.cueAudio &&
     !card.prompt.cueText &&
     !card.prompt.cueMeaning &&
     !card.prompt.clozeText

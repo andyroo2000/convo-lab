@@ -8,7 +8,7 @@ import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
 import StudyCardFormFields from './StudyCardFormFields';
 import StudyCardImageControls from './StudyCardImageControls';
 import { useStudyCardForm } from './studyCardFormModel';
-import { toAssetUrl } from './studyCardUtils';
+import { isAudioLedPromptCard, toAssetUrl } from './studyCardUtils';
 
 interface StudyCardEditorProps {
   card: StudyCardSummary;
@@ -65,6 +65,7 @@ const StudyCardEditor = ({
 }: StudyCardEditorProps) => {
   const { t } = useTranslation('study');
   const { values, setField, buildPayload } = useStudyCardForm({ card });
+  const isAudioLedPrompt = isAudioLedPromptCard(card);
   const [currentAnswerAudio, setCurrentAnswerAudio] = useState(card.answer.answerAudio ?? null);
   const [currentImage, setCurrentImage] = useState(
     card.prompt.cueImage ?? card.answer.answerImage ?? null
@@ -162,6 +163,7 @@ const StudyCardEditor = ({
         idPrefix="study-edit"
         includeAudioSettings={false}
         includeSentenceFields
+        hidePromptFields={isAudioLedPrompt}
         onFieldChange={setField}
       />
 
