@@ -54,21 +54,8 @@ vi.mock('../../contexts/AuthContext', () => ({
   }),
 }));
 
-// Mock EmptyStateCard component
-vi.mock('../../components/EmptyStateCard', () => ({
-  default: ({ title }: { title: string }) => <div data-testid="empty-state-card">{title}</div>,
-}));
-
 // Mock other components
 vi.mock('../../components/common/ConfirmModal', () => ({
-  default: () => null,
-}));
-
-vi.mock('../../components/common/LanguageLevelPill', () => ({
-  default: () => null,
-}));
-
-vi.mock('../../components/common/LanguageLevelSidebar', () => ({
   default: () => null,
 }));
 
