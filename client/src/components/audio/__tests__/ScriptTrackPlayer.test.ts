@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  findCurrentL2Unit,
-  normalizeTimingDataForDuration,
-} from '../scriptTrackTiming';
+import { findCurrentL2Unit, normalizeTimingDataForDuration } from '../scriptTrackTiming';
 import type { DailyAudioPracticeTiming, LessonScriptUnit } from '../../../types';
 
 describe('ScriptTrackPlayer timing helpers', () => {

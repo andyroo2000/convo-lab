@@ -6,8 +6,7 @@ import type { DailyAudioLearningAtom, DailyAudioPracticeTrackMode } from './type
 const MAX_SCRIPT_ATOMS = 50;
 const MAX_VARIATIONS_PER_ATOM = 4;
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
-const INLINE_PAREN_READING_PATTERN =
-  /([\u3400-\u9fff々〆ヵヶ]+)[(（]([\u3040-\u30ffー\s]+)[)）]/;
+const INLINE_PAREN_READING_PATTERN = /([\u3400-\u9fff々〆ヵヶ]+)[(（]([\u3040-\u30ffー\s]+)[)）]/;
 const INLINE_BRACKET_READING_PATTERN =
   /([^\s[\]]*[\u3040-\u30ff\u3400-\u9fff][^\s[\]]*)\[([\u3040-\u30ffー\s]+)\]/;
 
@@ -430,8 +429,7 @@ function buildDrillScript(
     { type: 'marker', label: 'Daily Audio Practice - Drills' },
     {
       type: 'narration_L1',
-      text:
-        "Daily Audio Practice. We'll start with recognition drills, then switch to production drills.",
+      text: "Daily Audio Practice. We'll start with recognition drills, then switch to production drills.",
       voiceId: options.l1VoiceId,
     },
     { type: 'pause', seconds: 1 },
@@ -454,8 +452,7 @@ function buildDrillScript(
     { type: 'marker', label: 'Production drills' },
     {
       type: 'narration_L1',
-      text:
-        'Now the order reverses. Listen to the English prompt, then say the Japanese before the answer.',
+      text: 'Now the order reverses. Listen to the English prompt, then say the Japanese before the answer.',
       voiceId: options.l1VoiceId,
     },
     { type: 'pause', seconds: 1 }
