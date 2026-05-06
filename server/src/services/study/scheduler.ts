@@ -85,6 +85,30 @@ function isActiveDueQueueState(queueState: StudyQueueState): boolean {
   return ACTIVE_DUE_QUEUE_STATES.includes(queueState as (typeof ACTIVE_DUE_QUEUE_STATES)[number]);
 }
 
+function getNextStudyCardImageMediaId(
+  prompt: StudyPromptPayload,
+  answer: StudyAnswerPayload,
+  currentImageMediaId?: string | null
+): string | null {
+  const nextImageId = prompt.cueImage?.id ?? answer.answerImage?.id;
+  if (typeof nextImageId === 'string') {
+    return nextImageId;
+  }
+
+  if (prompt.cueImage || answer.answerImage) {
+    return currentImageMediaId ?? null;
+  }
+
+  return null;
+}
+
+function payloadUpdatesStudyCardImagePlacement(input: UpdateStudyCardInput): boolean {
+  return (
+    Object.prototype.hasOwnProperty.call(input.prompt, 'cueImage') ||
+    Object.prototype.hasOwnProperty.call(input.answer, 'answerImage')
+  );
+}
+
 function isPrismaRecordNotFoundError(error: unknown): boolean {
   return isRecord(error) && error.code === 'P2025';
 }
@@ -1272,6 +1296,9 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
         answerAudio: null,
       }
     : normalizedPayload.answer;
+  const nextImageMediaId = payloadUpdatesStudyCardImagePlacement(input)
+    ? getNextStudyCardImageMediaId(normalizedPayload.prompt, nextAnswer, existing.imageMediaId)
+    : existing.imageMediaId;
 
   const updatedCardResult = await prisma.studyCard.updateMany({
     where: { id: input.cardId, userId: input.userId },
@@ -1284,6 +1311,7 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
       }),
       answerAudioSource: shouldRegenerateAnswerAudio ? 'missing' : existing.answerAudioSource,
       answerAudioMediaId: shouldRegenerateAnswerAudio ? null : existing.answerAudioMediaId,
+      imageMediaId: nextImageMediaId,
     },
   });
 
