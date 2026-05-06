@@ -33,9 +33,16 @@ function formatLanguageLabel(language: LanguageCode) {
 }
 
 function formatTrackStatus(status: string) {
+  if (status === 'skipped') return 'Skipped during drill development.';
   if (status === 'draft' || status === 'generating') return 'Preparing audio...';
   if (status === 'error') return 'Track audio could not be generated.';
   return `Track audio is ${status}.`;
+}
+
+function formatTrackMeta(status: string, durationLabel: string | null) {
+  if (durationLabel) return `${durationLabel} audio`;
+  if (status === 'skipped') return 'Skipped';
+  return status;
 }
 
 const ScriptTrackPlayer = ({
@@ -85,7 +92,7 @@ const ScriptTrackPlayer = ({
           <div>
             <h2 className="retro-headline text-3xl sm:text-[2.5rem]">{title}</h2>
             <p className="retro-caps text-[rgba(20,50,86,0.62)]">
-              {durationLabel ? `${durationLabel} audio` : status}
+              {formatTrackMeta(status, durationLabel)}
             </p>
           </div>
           {timings.length ? (

@@ -359,7 +359,7 @@ model DailyAudioPracticeTrack {
   id                     String   @id @default(uuid())
   practiceId             String
   mode                   String // drill, dialogue, story
-  status                 String   @default("draft") // draft, generating, ready, error
+  status                 String   @default("draft") // draft, generating, ready, error, skipped
   title                  String
   sortOrder              Int
   scriptUnitsJson        Json?

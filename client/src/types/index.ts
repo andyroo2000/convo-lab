@@ -306,7 +306,7 @@ export interface DailyAudioPracticeTrack {
   id: string;
   practiceId: string;
   mode: DailyAudioPracticeMode;
-  status: 'draft' | 'generating' | 'ready' | 'error';
+  status: 'draft' | 'generating' | 'ready' | 'error' | 'skipped';
   title: string;
   sortOrder: number;
   scriptUnitsJson?: LessonScriptUnit[] | null;

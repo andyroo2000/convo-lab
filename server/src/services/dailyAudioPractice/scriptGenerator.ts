@@ -4,6 +4,7 @@ import type { LessonScriptUnit } from '../lessonScriptGenerator.js';
 import type { DailyAudioLearningAtom, DailyAudioPracticeTrackMode } from './types.js';
 
 const MAX_SCRIPT_ATOMS = 50;
+const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 
 interface ScriptGenerationOptions {
   atoms: DailyAudioLearningAtom[];
@@ -15,6 +16,13 @@ interface ScriptGenerationOptions {
 }
 
 type GeneratedScripts = Record<DailyAudioPracticeTrackMode, LessonScriptUnit[]>;
+
+interface DrillItemEnhancement {
+  englishCue?: string;
+  exampleJp?: string;
+  exampleReading?: string;
+  exampleEn?: string;
+}
 
 function stripCodeFence(raw: string): string {
   let text = raw.trim();
@@ -41,25 +49,141 @@ function languageName(languageCode: string): string {
   return languageCode;
 }
 
+function containsJapaneseText(text: string | null | undefined): boolean {
+  return Boolean(text && JAPANESE_TEXT_PATTERN.test(text));
+}
+
+function safeEnglishText(text: string | null | undefined): string | null {
+  const trimmed = text?.trim();
+  if (!trimmed || containsJapaneseText(trimmed)) return null;
+  return trimmed;
+}
+
+function fallbackCueText(atom: DailyAudioLearningAtom): string {
+  return safeEnglishText(atom.english) ?? safeEnglishText(atom.exampleEn) ?? 'this expression';
+}
+
+function recallPauseSeconds(text: string): number {
+  const length = text.trim().length;
+  if (length > 80) return 9;
+  if (length > 48) return 7;
+  if (length > 28) return 5.5;
+  return 4;
+}
+
+async function buildDrillItemEnhancements(
+  atoms: DailyAudioLearningAtom[]
+): Promise<Map<string, DrillItemEnhancement>> {
+  if (atoms.length === 0) return new Map();
+
+  const prompt = `Create fresh N5-N4 Japanese drill examples from these learner items.
+
+Requirements:
+- Use the learner item naturally in a new Japanese example sentence.
+- Keep the Japanese around JLPT N5-N4 level.
+- Keep English fields English only. Never include Japanese characters in englishCue or exampleEn.
+- If the definition is Japanese-only, translate it into a short natural English cue.
+- Do not copy the source example sentence unless there is no reasonable alternative.
+
+Return JSON only:
+{
+  "items": [
+    {
+      "cardId":"...",
+      "englishCue":"short English cue",
+      "exampleJp":"new Japanese sentence",
+      "exampleReading":"optional reading with furigana",
+      "exampleEn":"English translation of the new sentence"
+    }
+  ]
+}
+
+Cards:
+${atoms
+  .map(
+    (atom, index) =>
+      `${index + 1}. cardId=${atom.cardId}
+target=${atom.targetText}
+definition=${atom.english}
+sourceExampleJp=${atom.exampleJp ?? ''}
+sourceExampleEn=${atom.exampleEn ?? ''}
+cardType=${atom.cardType}
+noteType=${atom.noteType ?? ''}`
+  )
+  .join('\n\n')}`;
+
+  try {
+    const parsed = parseJsonObject(
+      await generateCoreLlmJsonText(
+        prompt,
+        'Return valid JSON for audio drill examples. English fields must contain English only.'
+      )
+    );
+    const items = Array.isArray(parsed.items) ? parsed.items : [];
+    const enhancementByCardId = new Map<string, DrillItemEnhancement>();
+    for (const item of items) {
+      if (!item || typeof item !== 'object') continue;
+      const record = item as Record<string, unknown>;
+      const cardId = typeof record.cardId === 'string' ? record.cardId : null;
+      if (!cardId) continue;
+
+      const englishCue = safeEnglishText(
+        typeof record.englishCue === 'string' ? record.englishCue : null
+      );
+      const exampleJp =
+        typeof record.exampleJp === 'string' && record.exampleJp.trim()
+          ? record.exampleJp.trim()
+          : undefined;
+      const exampleReading =
+        typeof record.exampleReading === 'string' && record.exampleReading.trim()
+          ? record.exampleReading.trim()
+          : undefined;
+      const exampleEn = safeEnglishText(
+        typeof record.exampleEn === 'string' ? record.exampleEn : null
+      );
+
+      const enhancement: DrillItemEnhancement = {};
+      if (englishCue) enhancement.englishCue = englishCue;
+      if (exampleJp) enhancement.exampleJp = exampleJp;
+      if (exampleReading) enhancement.exampleReading = exampleReading;
+      if (exampleEn) enhancement.exampleEn = exampleEn;
+      enhancementByCardId.set(cardId, enhancement);
+    }
+    return enhancementByCardId;
+  } catch {
+    return new Map();
+  }
+}
+
 function pushAtomDrill(
   units: LessonScriptUnit[],
   atom: DailyAudioLearningAtom,
   l1VoiceId: string,
-  l2VoiceId: string
+  l2VoiceId: string,
+  enhancement: DrillItemEnhancement | undefined
 ) {
+  const cueText = enhancement?.englishCue ?? fallbackCueText(atom);
+  const promptText =
+    cueText === 'this expression'
+      ? 'How do you say this expression?'
+      : `How do you say "${cueText}"?`;
+  const exampleJp = enhancement?.exampleJp ?? atom.exampleJp;
+  const exampleEn = enhancement?.exampleEn ?? safeEnglishText(atom.exampleEn);
+  const exampleReading = enhancement?.exampleReading ?? readingForText(atom, exampleJp ?? '');
+
   units.push(
     { type: 'marker', label: `Drill: ${atom.targetText}` },
     {
       type: 'narration_L1',
-      text: `How do you say "${atom.english}"?`,
+      text: promptText,
       voiceId: l1VoiceId,
     },
-    { type: 'pause', seconds: 4 },
+    { type: 'pause', seconds: recallPauseSeconds(cueText) },
     {
       type: 'L2',
       text: atom.targetText,
       reading: atom.reading ?? undefined,
-      translation: atom.english,
+      translation: cueText,
       voiceId: l2VoiceId,
       speed: 1,
     },
@@ -68,26 +192,26 @@ function pushAtomDrill(
       type: 'L2',
       text: atom.targetText,
       reading: atom.reading ?? undefined,
-      translation: atom.english,
+      translation: cueText,
       voiceId: l2VoiceId,
       speed: 0.85,
     },
     { type: 'pause', seconds: 2.5 }
   );
 
-  if (atom.exampleJp) {
+  if (exampleJp) {
     units.push(
       {
         type: 'narration_L1',
-        text: atom.exampleEn ? `In context: ${atom.exampleEn}` : 'Listen in context.',
+        text: exampleEn ? `Now try a sentence: ${exampleEn}` : 'Now listen in context.',
         voiceId: l1VoiceId,
       },
-      { type: 'pause', seconds: 0.5 },
+      { type: 'pause', seconds: exampleEn ? recallPauseSeconds(exampleEn) : 0.5 },
       {
         type: 'L2',
-        text: atom.exampleJp,
-        reading: readingForText(atom, atom.exampleJp),
-        translation: atom.exampleEn ?? atom.english,
+        text: exampleJp,
+        reading: exampleReading,
+        translation: exampleEn ?? cueText,
         voiceId: l2VoiceId,
         speed: 1,
       },
@@ -96,7 +220,10 @@ function pushAtomDrill(
   }
 }
 
-function buildDrillScript(options: ScriptGenerationOptions): LessonScriptUnit[] {
+function buildDrillScript(
+  options: ScriptGenerationOptions,
+  enhancements: Map<string, DrillItemEnhancement>
+): LessonScriptUnit[] {
   const l2VoiceId = options.speakerVoiceIds[0];
   const units: LessonScriptUnit[] = [
     { type: 'marker', label: 'Daily Audio Practice - Drills' },
@@ -109,7 +236,13 @@ function buildDrillScript(options: ScriptGenerationOptions): LessonScriptUnit[] 
   ];
 
   for (const atom of options.atoms) {
-    pushAtomDrill(units, atom, options.l1VoiceId, l2VoiceId);
+    pushAtomDrill(
+      units,
+      atom,
+      options.l1VoiceId,
+      l2VoiceId,
+      enhancements.get(atom.cardId)
+    );
   }
 
   units.push({
@@ -118,6 +251,23 @@ function buildDrillScript(options: ScriptGenerationOptions): LessonScriptUnit[] 
     voiceId: options.l1VoiceId,
   });
   return units;
+}
+
+export async function buildDailyAudioPracticeDrillScript(
+  options: ScriptGenerationOptions
+): Promise<LessonScriptUnit[]> {
+  if (options.atoms.length === 0) {
+    throw new Error('Daily Audio Practice needs at least one eligible study card.');
+  }
+
+  const boundedOptions = {
+    ...options,
+    atoms: options.atoms.slice(0, MAX_SCRIPT_ATOMS),
+  };
+  const enhancements = await buildDrillItemEnhancements(boundedOptions.atoms);
+  const drill = buildDrillScript(boundedOptions, enhancements);
+  validateDailyAudioScriptUnits(drill);
+  return drill;
 }
 
 function hasL2Units(units: LessonScriptUnit[]): boolean {
@@ -323,7 +473,7 @@ export async function buildDailyAudioPracticeScripts(
     buildStoryScript(boundedOptions),
   ]);
   const scripts: GeneratedScripts = {
-    drill: buildDrillScript(boundedOptions),
+    drill: await buildDailyAudioPracticeDrillScript(boundedOptions),
     dialogue,
     story,
   };

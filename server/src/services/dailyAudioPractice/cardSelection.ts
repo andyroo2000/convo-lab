@@ -12,6 +12,7 @@ import type {
 const DEFAULT_SELECTION_LIMIT = 30;
 const DEFAULT_CANDIDATE_POOL_SIZE = 80;
 const ELIGIBLE_QUEUE_STATES = ['new', 'learning', 'review', 'relearning'];
+const RECENTLY_INTRODUCED_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -45,10 +46,10 @@ function scoreCard(card: DailyAudioSelectedCard, reviewCount: number, now: Date)
   // Priority model: overdue, learning/relearning, lapses, recently introduced/reviewed, then new.
   if (dueAtMs !== null && dueAtMs <= now.getTime()) score += 140;
   if (card.queueState === 'learning' || card.queueState === 'relearning') score += 75;
-  if (card.queueState === 'new') score += 25;
+  if (card.queueState === 'new') score += 55;
   if ((card.sourceLapses ?? 0) > 0) score += Math.min(60, (card.sourceLapses ?? 0) * 15);
-  if (introducedAtMs !== null && now.getTime() - introducedAtMs < 7 * 24 * 60 * 60 * 1000) {
-    score += 30;
+  if (introducedAtMs !== null && now.getTime() - introducedAtMs < RECENTLY_INTRODUCED_WINDOW_MS) {
+    score += 55;
   }
   if (lastReviewedAtMs !== null && now.getTime() - lastReviewedAtMs < 3 * 24 * 60 * 60 * 1000) {
     score += 20;
@@ -119,7 +120,27 @@ export async function selectDailyAudioPracticeCards(params: {
     return right.updatedAt.getTime() - left.updatedAt.getTime();
   });
 
-  const selected = ranked.slice(0, limit);
+  const newOrRecentlyIntroduced = ranked.filter((card) => {
+    const introducedAtMs = card.introducedAt instanceof Date ? card.introducedAt.getTime() : null;
+    return (
+      card.queueState === 'new' ||
+      (introducedAtMs !== null && now.getTime() - introducedAtMs < RECENTLY_INTRODUCED_WINDOW_MS)
+    );
+  });
+  const minimumNewerCardCount = Math.min(newOrRecentlyIntroduced.length, Math.ceil(limit * 0.3));
+  const selectedById = new Set<string>();
+  const selected: DailyAudioSelectedCard[] = [];
+
+  for (const card of newOrRecentlyIntroduced.slice(0, minimumNewerCardCount)) {
+    selected.push(card);
+    selectedById.add(card.id);
+  }
+  for (const card of ranked) {
+    if (selected.length >= limit) break;
+    if (selectedById.has(card.id)) continue;
+    selected.push(card);
+    selectedById.add(card.id);
+  }
   const summary: DailyAudioSelectionSummary = {
     totalCandidates: cards.length,
     totalEligible: eligible.length,

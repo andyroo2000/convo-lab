@@ -151,7 +151,7 @@ describe('dailyAudioPractice routes', () => {
       expect.objectContaining({
         where: {
           practiceId: PRACTICE_ID,
-          status: { not: 'ready' },
+          mode: { in: ['drill'] },
         },
         data: expect.objectContaining({
           status: 'draft',
@@ -159,15 +159,31 @@ describe('dailyAudioPractice routes', () => {
         }),
       })
     );
+    expect(mockPrisma.dailyAudioPracticeTrack.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          practiceId: PRACTICE_ID,
+          mode: { in: ['dialogue', 'story'] },
+        },
+        data: expect.objectContaining({
+          status: 'skipped',
+          errorMessage: null,
+        }),
+      })
+    );
     expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith(PRACTICE_ID);
   });
 
-  it('resumes an existing ready set without enqueuing a duplicate job', async () => {
+  it('regenerates an existing ready set when requested again', async () => {
     mockPrisma.dailyAudioPractice.upsert.mockResolvedValue(makePractice({ status: 'ready' }));
     mockPrisma.dailyAudioPractice.findUniqueOrThrow.mockResolvedValue(
       makePractice({
-        status: 'ready',
-        tracks: [makeTrack({ status: 'ready', audioUrl: '/x.mp3' })],
+        status: 'generating',
+        tracks: [
+          makeTrack({ status: 'draft', audioUrl: null }),
+          makeTrack({ id: 'track-2', mode: 'dialogue', status: 'skipped', audioUrl: null }),
+          makeTrack({ id: 'track-3', mode: 'story', status: 'skipped', audioUrl: null }),
+        ],
       })
     );
 
@@ -176,8 +192,14 @@ describe('dailyAudioPractice routes', () => {
       .send({ timeZone: 'America/New_York' })
       .expect(202);
 
-    expect(response.body.status).toBe('ready');
-    expect(enqueueDailyAudioPracticeJobMock).not.toHaveBeenCalled();
+    expect(response.body.status).toBe('generating');
+    expect(response.body.tracks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ mode: 'dialogue', status: 'skipped' }),
+        expect.objectContaining({ mode: 'story', status: 'skipped' }),
+      ])
+    );
+    expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith(PRACTICE_ID);
   });
 
   it('restarts an errored set and rolls back status when enqueue fails', async () => {

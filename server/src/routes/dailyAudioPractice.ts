@@ -18,6 +18,9 @@ const DEFAULT_TARGET_DURATION_MINUTES = 30;
 const MIN_TARGET_DURATION_MINUTES = 5;
 const MAX_TARGET_DURATION_MINUTES = 60;
 const ENQUEUE_FAILURE_MESSAGE = 'Daily Audio Practice could not be queued. Please try again.';
+const GENERATED_TRACK_MODES = ['drill'];
+const SKIPPED_TRACK_MODES = ['dialogue', 'story'];
+const SKIPPED_TRACK_METADATA = { reason: 'Disabled during drill development.' };
 const limitDailyAudioReads = rateLimitStudyRoute({
   key: 'daily-audio-practice-read',
   max: 240,
@@ -243,7 +246,7 @@ router.post(
           });
           await ensureDefaultTracks(dailyPractice.id, tx);
 
-          if (dailyPractice.status === 'ready' || dailyPractice.status === 'generating') {
+          if (dailyPractice.status === 'generating') {
             return { practice: dailyPractice, shouldEnqueue: false };
           }
 
@@ -251,7 +254,7 @@ router.post(
             where: {
               id: dailyPractice.id,
               status: {
-                notIn: ['ready', 'generating'],
+                not: 'generating',
               },
             },
             data: { status: 'generating', errorMessage: null },
@@ -261,7 +264,7 @@ router.post(
             await tx.dailyAudioPracticeTrack.updateMany({
               where: {
                 practiceId: dailyPractice.id,
-                status: { not: 'ready' },
+                mode: { in: GENERATED_TRACK_MODES },
               },
               data: {
                 status: 'draft',
@@ -269,6 +272,21 @@ router.post(
                 timingData: Prisma.JsonNull,
                 approxDurationSeconds: null,
                 generationMetadataJson: Prisma.JsonNull,
+                errorMessage: null,
+              },
+            });
+            await tx.dailyAudioPracticeTrack.updateMany({
+              where: {
+                practiceId: dailyPractice.id,
+                mode: { in: SKIPPED_TRACK_MODES },
+              },
+              data: {
+                status: 'skipped',
+                scriptUnitsJson: Prisma.JsonNull,
+                audioUrl: null,
+                timingData: Prisma.JsonNull,
+                approxDurationSeconds: null,
+                generationMetadataJson: SKIPPED_TRACK_METADATA,
                 errorMessage: null,
               },
             });
@@ -382,7 +400,9 @@ router.get(
           typeof job?.progress === 'number'
             ? job.progress
             : Math.floor(
-                (practice.tracks.filter((track) => track.status === 'ready').length /
+                (practice.tracks.filter((track) =>
+                  track.status === 'ready' || track.status === 'skipped'
+                ).length /
                   DAILY_AUDIO_TRACKS.length) *
                   100
               );

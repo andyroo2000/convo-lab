@@ -1,19 +1,18 @@
-import {
-  DEFAULT_NARRATOR_VOICES,
-  DEFAULT_SPEAKER_VOICES,
-} from '@languageflow/shared/src/constants-new.js';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { Prisma } from '@prisma/client';
 
 import { prisma } from '../../db/client.js';
 import { assembleLessonAudio } from '../audioCourseAssembler.js';
 
 import { buildDailyAudioLearningAtoms, selectDailyAudioPracticeCards } from './cardSelection.js';
-import { buildDailyAudioPracticeScripts } from './scriptGenerator.js';
-import { DAILY_AUDIO_TRACKS } from './types.js';
+import { buildDailyAudioPracticeDrillScript } from './scriptGenerator.js';
+import { DAILY_AUDIO_TRACKS, type DailyAudioPracticeTrackMode } from './types.js';
 
 const GENERIC_GENERATION_ERROR =
   'Daily Audio Practice generation failed. Please try again in a moment.';
 const NO_ELIGIBLE_CARDS_ERROR = 'Daily Audio Practice needs at least one eligible study card.';
+const DAILY_AUDIO_GENERATED_TRACK_MODES = new Set<DailyAudioPracticeTrackMode>(['drill']);
+const GOOGLE_SHOHEI_JA_VOICE_ID = 'ja-JP-Wavenet-C';
 
 function getSafeGenerationErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -65,7 +64,7 @@ export async function processDailyAudioPracticeJob(params: {
     });
     await onProgress(20);
 
-    const scripts = await buildDailyAudioPracticeScripts({
+    const drillScript = await buildDailyAudioPracticeDrillScript({
       atoms,
       targetDurationMinutes: practice.targetDurationMinutes,
       targetLanguage: practice.targetLanguage,
@@ -73,23 +72,44 @@ export async function processDailyAudioPracticeJob(params: {
       l1VoiceId:
         DEFAULT_NARRATOR_VOICES[practice.nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES] ??
         DEFAULT_NARRATOR_VOICES.en,
-      speakerVoiceIds: [
-        DEFAULT_SPEAKER_VOICES[practice.targetLanguage]?.speaker1 ?? 'ja-JP-Neural2-B',
-        DEFAULT_SPEAKER_VOICES[practice.targetLanguage]?.speaker2 ?? 'ja-JP-Neural2-C',
-      ],
+      speakerVoiceIds: [GOOGLE_SHOHEI_JA_VOICE_ID, GOOGLE_SHOHEI_JA_VOICE_ID],
     });
     await onProgress(45);
 
     for (const [index, trackConfig] of DAILY_AUDIO_TRACKS.entries()) {
-      const scriptUnits = scripts[trackConfig.mode];
-      const existingReadyTrack = practice.tracks.find(
-        (track) => track.mode === trackConfig.mode && track.status === 'ready' && track.audioUrl
-      );
-      if (existingReadyTrack) {
+      if (!DAILY_AUDIO_GENERATED_TRACK_MODES.has(trackConfig.mode)) {
+        await prisma.dailyAudioPracticeTrack.upsert({
+          where: {
+            practiceId_mode: {
+              practiceId: practice.id,
+              mode: trackConfig.mode,
+            },
+          },
+          create: {
+            practiceId: practice.id,
+            mode: trackConfig.mode,
+            title: trackConfig.title,
+            sortOrder: trackConfig.sortOrder,
+            status: 'skipped',
+            generationMetadataJson: { reason: 'Disabled during drill development.' },
+          },
+          update: {
+            title: trackConfig.title,
+            sortOrder: trackConfig.sortOrder,
+            status: 'skipped',
+            scriptUnitsJson: Prisma.JsonNull,
+            audioUrl: null,
+            timingData: Prisma.JsonNull,
+            approxDurationSeconds: null,
+            generationMetadataJson: { reason: 'Disabled during drill development.' },
+            errorMessage: null,
+          },
+        });
         await onProgress(45 + Math.floor(((index + 1) / DAILY_AUDIO_TRACKS.length) * 45));
         continue;
       }
 
+      const scriptUnits = drillScript;
       const track = await prisma.dailyAudioPracticeTrack.upsert({
         where: {
           practiceId_mode: {

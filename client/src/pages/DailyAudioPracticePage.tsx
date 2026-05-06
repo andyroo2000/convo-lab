@@ -74,7 +74,7 @@ const DailyAudioPracticePage = () => {
             <div className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Study audio</div>
             <h1 className="retro-headline text-4xl sm:text-6xl">Daily Audio Practice</h1>
             <p className="mt-2 max-w-3xl text-lg text-[rgba(20,50,86,0.76)]">
-              Generate drills, dialogues, and a short story from the cards you are learning.
+              Generate focused drill audio from the cards you are learning.
             </p>
           </div>
           <button
@@ -104,8 +104,8 @@ const DailyAudioPracticePage = () => {
         <section className="card retro-paper-panel space-y-3 py-10 text-center">
           <h2 className="retro-headline text-3xl">Ready when you are</h2>
           <p className="mx-auto max-w-xl text-gray-600">
-            Create a thirty-minute set with drills, dialogues, and story practice from your current
-            flashcards.
+            Create a drill track from your current flashcards. Dialogues and story are skipped while
+            this is in development.
           </p>
         </section>
       ) : null}

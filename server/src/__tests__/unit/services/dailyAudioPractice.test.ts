@@ -5,6 +5,7 @@ import {
   selectDailyAudioPracticeCards,
 } from '../../../services/dailyAudioPractice/cardSelection.js';
 import {
+  buildDailyAudioPracticeDrillScript,
   buildDailyAudioPracticeScripts,
   validateDailyAudioScriptUnits,
 } from '../../../services/dailyAudioPractice/scriptGenerator.js';
@@ -163,6 +164,19 @@ describe('dailyAudioPractice services', () => {
             },
           ],
         })
+      )
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          items: [
+            {
+              cardId: 'card-1',
+              englishCue: 'ate',
+              exampleJp: '昼ごはんを食べました。',
+              exampleReading: '昼[ひる]ごはんを食[た]べました。',
+              exampleEn: 'I ate lunch.',
+            },
+          ],
+        })
       );
 
     const scripts = await buildDailyAudioPracticeScripts({
@@ -191,8 +205,8 @@ describe('dailyAudioPractice services', () => {
     expect(scripts.drill).toContainEqual(
       expect.objectContaining({
         type: 'L2',
-        text: '朝ごはんを食べました。',
-        reading: undefined,
+        text: '昼ごはんを食べました。',
+        reading: '昼[ひる]ごはんを食[た]べました。',
       })
     );
     expect(scripts.dialogue).toContainEqual(
@@ -210,7 +224,8 @@ describe('dailyAudioPractice services', () => {
   it('falls back to deterministic dialogue and story lines when LLM content is empty', async () => {
     generateCoreLlmTextMock
       .mockResolvedValueOnce(JSON.stringify({ scenes: [] }))
-      .mockResolvedValueOnce(JSON.stringify({ title: 'Empty story', lines: [] }));
+      .mockResolvedValueOnce(JSON.stringify({ title: 'Empty story', lines: [] }))
+      .mockResolvedValueOnce(JSON.stringify({ items: [] }));
 
     const scripts = await buildDailyAudioPracticeScripts({
       atoms: [
@@ -238,6 +253,61 @@ describe('dailyAudioPractice services', () => {
     );
     expect(scripts.story).toContainEqual(
       expect.objectContaining({ type: 'L2', text: '朝ごはんを食べました。' })
+    );
+  });
+
+  it('translates Japanese-only drill cues before the English narrator speaks them', async () => {
+    generateCoreLlmTextMock.mockResolvedValueOnce(
+      JSON.stringify({
+        items: [
+          {
+            cardId: 'card-1',
+            englishCue: 'to eat breakfast',
+            exampleJp: '朝、パンを食べます。',
+            exampleReading: '朝[あさ]、パンを食[た]べます。',
+            exampleEn: 'I eat bread in the morning.',
+          },
+        ],
+      })
+    );
+
+    const script = await buildDailyAudioPracticeDrillScript({
+      atoms: [
+        {
+          cardId: 'card-1',
+          cardType: 'recognition',
+          targetText: '朝ごはんを食べる',
+          reading: '朝[あさ]ごはんを食[た]べる',
+          english: '朝食を食べること',
+          exampleJp: '朝ごはんを食べます。',
+          exampleEn: null,
+          deckName: '日本語',
+          noteType: 'Monolingual',
+        },
+      ],
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    const narratorLines = script.filter((unit) => unit.type === 'narration_L1');
+    expect(narratorLines).toContainEqual(
+      expect.objectContaining({
+        text: 'How do you say "to eat breakfast"?',
+        voiceId: 'fishaudio:english',
+      })
+    );
+    expect(
+      narratorLines.map((unit) => (unit.type === 'narration_L1' ? unit.text : '')).join(' ')
+    ).not.toMatch(/[\u3040-\u30ff\u3400-\u9fff]/);
+    expect(script).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '朝、パンを食べます。',
+        voiceId: 'ja-JP-Wavenet-C',
+      })
     );
   });
 });
