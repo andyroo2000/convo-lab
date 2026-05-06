@@ -570,6 +570,40 @@ describe('studyCandidateService', () => {
     });
   });
 
+  it('skips Japanese mixed into sentenceEn when backfilling a generated cloze hint', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'cloze-rain',
+            candidateKind: 'cloze',
+            cardType: 'cloze',
+            prompt: {
+              clozeText: '雨が{{c1::降っています}}。',
+            },
+            answer: {
+              restoredText: '雨が降っています。',
+              meaning: 'It is raining.',
+              sentenceEn: '雨が降っています means it is raining.',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+            rationale: 'Practice the weather expression.',
+          },
+        ],
+      })
+    );
+
+    const result = await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '雨が降っています。',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(result.candidates[0]?.prompt.clozeHint).toBe('It is raining.');
+  });
+
   it('uses the restored cloze sentence for generated answer audio', async () => {
     await regenerateStudyCardCandidatePreviewAudio({
       userId: 'user-1',

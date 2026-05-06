@@ -15,6 +15,7 @@ import type {
 
 import { AppError } from '../../../middleware/errorHandler.js';
 import { addFuriganaBrackets } from '../../furiganaService.js';
+import { getEnglishClozeHintFallback } from '../clozeHintUtils.js';
 import { cardTypeForStudyCardCandidateKind, STUDY_CARD_CANDIDATE_KINDS } from '../shared.js';
 
 import { STUDY_CANDIDATE_GENERATE_MAX_COUNT } from './constants.js';
@@ -35,7 +36,6 @@ const STUDY_JA_CANDIDATE_RANDOM_VOICE_IDS = TTS_VOICES.ja.voices
   )
   .map((voice) => voice.id);
 const STUDY_CANDIDATE_VISUAL_POS_JA = new Set<string>(STUDY_CANDIDATE_VISUAL_POS_LABELS_JA);
-const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -122,16 +122,6 @@ function sanitizeAnswerPayload(value: unknown, generatedVoiceId: string): StudyA
   };
 }
 
-function getEnglishClozeHintFallback(answer: StudyAnswerPayload): string | null {
-  const candidates = [answer.sentenceEn, answer.meaning];
-  return (
-    candidates.find(
-      (candidate): candidate is string =>
-        typeof candidate === 'string' && !JAPANESE_TEXT_PATTERN.test(candidate)
-    ) ?? null
-  );
-}
-
 function getFallbackClozeHint(candidate: StudyCardCandidate): string {
   const englishHint = getEnglishClozeHintFallback(candidate.answer);
   if (englishHint) {
@@ -153,7 +143,7 @@ function hydrateMissingPromptFields(candidate: StudyCardCandidate): StudyCardCan
       ...candidate,
       prompt: {
         ...candidate.prompt,
-        clozeHint: candidate.prompt.clozeHint ?? getFallbackClozeHint(candidate),
+        clozeHint: candidate.prompt.clozeHint || getFallbackClozeHint(candidate),
       },
     };
   }

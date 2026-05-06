@@ -29,6 +29,7 @@ import {
   getOwnedPreviewMediaIds,
   synthesizeCandidatePreviewAudio,
 } from './candidates/previewMedia.js';
+import { getEnglishClozeHintFallback } from './clozeHintUtils.js';
 import {
   cardTypeForStudyCardCreationKind,
   STUDY_CARD_CREATION_KINDS,
@@ -57,8 +58,6 @@ type StudyAnswerTextKey =
   | 'restoredTextReading'
   | 'answerAudioVoiceId'
   | 'answerAudioTextOverride';
-
-const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -247,27 +246,13 @@ function parseManualDraftResponse(response: string): {
   };
 }
 
-function getEnglishClozeHintFallback(answer: StudyAnswerPayload): string | null {
-  const candidates = [answer.sentenceEn, answer.meaning];
-  return (
-    candidates.find(
-      (candidate): candidate is string =>
-        typeof candidate === 'string' && !JAPANESE_TEXT_PATTERN.test(candidate)
-    ) ?? null
-  );
-}
-
 function hydrateMissingManualClozeHint(
   prompt: StudyPromptPayload,
   answer: StudyAnswerPayload
 ): StudyPromptPayload {
-  if (prompt.clozeHint) {
-    return prompt;
-  }
-
   return {
     ...prompt,
-    clozeHint: getEnglishClozeHintFallback(answer),
+    clozeHint: prompt.clozeHint || getEnglishClozeHintFallback(answer),
   };
 }
 
