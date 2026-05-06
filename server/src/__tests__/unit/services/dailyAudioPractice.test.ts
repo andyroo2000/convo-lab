@@ -256,12 +256,9 @@ describe('dailyAudioPractice services', () => {
         expect.objectContaining({ text: '食べました', speed: 1 }),
       ])
     );
-    expect(drillL2Units.filter((unit) => unit.text === '食べました').map((unit) => unit.speed)).toEqual([
-      0.75,
-      1,
-      0.75,
-      1,
-    ]);
+    expect(
+      drillL2Units.filter((unit) => unit.text === '食べました').map((unit) => unit.speed)
+    ).toEqual([0.75, 1, 0.75, 1]);
     const recognitionMarkerIndex = scripts.drill.findIndex(
       (unit) => unit.type === 'marker' && unit.label === 'Recognition drills'
     );
@@ -374,6 +371,112 @@ describe('dailyAudioPractice services', () => {
         type: 'L2',
         text: '朝、パンを食べます。',
         voiceId: 'ja-JP-Wavenet-C',
+      })
+    );
+  });
+
+  it('keeps furigana out of spoken Japanese text while preserving readings for display', async () => {
+    generateCoreLlmTextMock.mockResolvedValueOnce(
+      JSON.stringify({
+        items: [
+          {
+            cardId: 'card-1',
+            englishCue: 'went west of Hokkaido last year',
+            exampleJp: '去年(きょねん)、北海道(ほっかいどう)の西(にし)に行(い)きました。',
+            exampleEn: 'I went west of Hokkaido last year.',
+          },
+        ],
+      })
+    );
+
+    const script = await buildDailyAudioPracticeDrillScript({
+      atoms: [
+        {
+          cardId: 'card-1',
+          cardType: 'recognition',
+          targetText: '北海道[ほっかいどう]',
+          english: 'Hokkaido',
+          exampleJp: null,
+          exampleEn: null,
+          deckName: '日本語',
+          noteType: 'Core',
+        },
+      ],
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    const l2Units = script.filter((unit) => unit.type === 'L2');
+    expect(l2Units.map((unit) => unit.text).join(' ')).not.toMatch(/[()[\]（）]/);
+    expect(script).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '去年、北海道の西に行きました。',
+        reading: '去年[きょねん]、北海道[ほっかいどう]の西[にし]に行[い]きました。',
+        translation: 'I went west of Hokkaido last year.',
+      })
+    );
+  });
+
+  it('dedupes repeated drill prompts inside the recognition section', async () => {
+    generateCoreLlmTextMock.mockResolvedValueOnce(
+      JSON.stringify({
+        items: [
+          {
+            cardId: 'card-1',
+            englishCue: "I can't eat vegetables",
+            exampleJp: '野菜が食べられません。',
+            exampleEn: "I can't eat vegetables.",
+            variations: [
+              {
+                japanese: '野菜が食べられません。',
+                english: "I can't eat vegetables.",
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    const script = await buildDailyAudioPracticeDrillScript({
+      atoms: [
+        {
+          cardId: 'card-1',
+          cardType: 'recognition',
+          targetText: '野菜が食べられません。',
+          english: "I can't eat vegetables.",
+          exampleJp: null,
+          exampleEn: null,
+          deckName: '日本語',
+          noteType: 'Core',
+        },
+      ],
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    const recognitionStart = script.findIndex(
+      (unit) => unit.type === 'marker' && unit.label === 'Recognition drills'
+    );
+    const productionStart = script.findIndex(
+      (unit) => unit.type === 'marker' && unit.label === 'Production drills'
+    );
+    const recognitionUnits = script.slice(recognitionStart, productionStart);
+    const recognitionJapaneseSpeeds = recognitionUnits.flatMap((unit) =>
+      unit.type === 'L2' && unit.text === '野菜が食べられません。' ? [unit.speed] : []
+    );
+
+    expect(recognitionJapaneseSpeeds).toEqual([0.75, 1]);
+    expect(recognitionUnits).toContainEqual(
+      expect.objectContaining({
+        type: 'narration_L1',
+        text: "I can't eat vegetables",
       })
     );
   });
