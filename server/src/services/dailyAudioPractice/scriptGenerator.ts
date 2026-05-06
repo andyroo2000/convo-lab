@@ -5,6 +5,7 @@ import type { DailyAudioLearningAtom, DailyAudioPracticeTrackMode } from './type
 
 const MAX_SCRIPT_ATOMS = 50;
 const MAX_VARIATIONS_PER_ATOM = 4;
+const DRILL_ENHANCEMENT_BATCH_SIZE = 5;
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 const INLINE_PAREN_READING_PATTERN = /([\u3400-\u9fff々〆ヵヶ]+)[(（]([\u3040-\u30ffー\s]+)[)）]/;
 const INLINE_BRACKET_READING_PATTERN =
@@ -269,7 +270,7 @@ function selectBalancedVariations(variations: DrillVariation[]): DrillVariation[
   return selected;
 }
 
-async function buildDrillItemEnhancements(
+async function buildDrillItemEnhancementBatch(
   atoms: DailyAudioLearningAtom[]
 ): Promise<Map<string, DrillItemEnhancement>> {
   if (atoms.length === 0) return new Map();
@@ -399,9 +400,28 @@ noteType=${atom.noteType ?? ''}`
       enhancementByCardId.set(cardId, enhancement);
     }
     return enhancementByCardId;
-  } catch {
+  } catch (error) {
+    console.warn('[DailyAudioPractice] Drill enhancement batch failed; using fallbacks.', {
+      cardCount: atoms.length,
+      cardIds: atoms.map((atom) => atom.cardId),
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new Map();
   }
+}
+
+async function buildDrillItemEnhancements(
+  atoms: DailyAudioLearningAtom[]
+): Promise<Map<string, DrillItemEnhancement>> {
+  const enhancementByCardId = new Map<string, DrillItemEnhancement>();
+  for (let index = 0; index < atoms.length; index += DRILL_ENHANCEMENT_BATCH_SIZE) {
+    const batch = atoms.slice(index, index + DRILL_ENHANCEMENT_BATCH_SIZE);
+    const batchEnhancements = await buildDrillItemEnhancementBatch(batch);
+    for (const [cardId, enhancement] of batchEnhancements) {
+      enhancementByCardId.set(cardId, enhancement);
+    }
+  }
+  return enhancementByCardId;
 }
 
 interface DrillPromptBuildResult {

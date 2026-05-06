@@ -451,6 +451,56 @@ describe('dailyAudioPractice services', () => {
     expect(JSON.stringify(script)).not.toMatch(/this expression/i);
   });
 
+  it('batches drill enhancement calls so one failed response does not erase all generated prompts', async () => {
+    generateCoreLlmTextMock
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          items: [
+            {
+              cardId: 'card-1',
+              englishCue: 'to win',
+              anchor: {
+                japanese: '昨日、試合に勝ちました。',
+                english: 'I won the game yesterday.',
+              },
+            },
+          ],
+        })
+      )
+      .mockResolvedValueOnce('not valid json');
+
+    const result = await buildDailyAudioPracticeDrillScriptResult({
+      atoms: Array.from({ length: 6 }, (_, index) => ({
+        cardId: `card-${index + 1}`,
+        cardType: 'recognition' as const,
+        targetText: index === 0 ? '勝つ' : `単語${index + 1}`,
+        reading: null,
+        english: index === 0 ? 'to win' : `word ${index + 1}`,
+        exampleJp: null,
+        exampleEn: null,
+        deckName: '日本語',
+        noteType: 'Core',
+      })),
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      l1VoiceId: 'fishaudio:english',
+      speakerVoiceIds: ['ja-JP-Wavenet-C', 'ja-JP-Wavenet-C'],
+    });
+
+    expect(generateCoreLlmTextMock).toHaveBeenCalledTimes(2);
+    expect(result.metadata).toMatchObject({
+      enhancedAtomCount: 1,
+      generatedPromptCount: 1,
+      fallbackPromptCount: 5,
+      totalPromptCount: 6,
+    });
+    expect(result.units).toContainEqual(
+      expect.objectContaining({ type: 'L2', text: '昨日、試合に勝ちました。' })
+    );
+    expect(result.units).toContainEqual(expect.objectContaining({ type: 'L2', text: '単語6' }));
+  });
+
   it('falls back to deterministic dialogue and story lines when LLM content is empty', async () => {
     generateCoreLlmTextMock
       .mockResolvedValueOnce(JSON.stringify({ scenes: [] }))
