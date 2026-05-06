@@ -2,7 +2,7 @@ import type { StudyPromptPayload } from '@languageflow/shared/src/types.js';
 
 import { isRecord } from './guards.js';
 
-type NonAudioPromptKey = Exclude<keyof StudyPromptPayload, 'cueAudio'>;
+type NonAudioPromptKey = Exclude<keyof StudyPromptPayload, 'cueAudio' | 'cueImage'>;
 
 function hasMeaningfulPromptValue(value: unknown): boolean {
   if (typeof value === 'string') {
@@ -21,7 +21,6 @@ export function isAudioRecognitionPrompt(prompt: StudyPromptPayload): boolean {
     cueText: prompt.cueText,
     cueReading: prompt.cueReading,
     cueMeaning: prompt.cueMeaning,
-    cueImage: prompt.cueImage,
     clozeText: prompt.clozeText,
     clozeDisplayText: prompt.clozeDisplayText,
     clozeAnswerText: prompt.clozeAnswerText,

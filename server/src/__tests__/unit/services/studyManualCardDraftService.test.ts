@@ -247,6 +247,52 @@ describe('manual study card drafts', () => {
     );
   });
 
+  it('preserves prompt images on audio-recognition cards', async () => {
+    vi.mocked(getOwnedPreviewMediaIds).mockResolvedValue(new Set(['image-1']));
+    vi.mocked(synthesizeCandidatePreviewAudio).mockResolvedValue({
+      id: 'audio-1',
+      filename: 'manual.mp3',
+      url: '/api/study/media/audio-1',
+      mediaKind: 'audio',
+      source: 'generated',
+    });
+    vi.mocked(createStudyCard).mockResolvedValue({ id: 'card-1' } as never);
+    const cueImage = {
+      id: 'image-1',
+      filename: 'front.webp',
+      url: '/api/study/media/image-1',
+      mediaKind: 'image' as const,
+      source: 'generated' as const,
+    };
+
+    await createManualStudyCard({
+      userId: 'user-1',
+      creationKind: 'audio-recognition',
+      cardType: 'recognition',
+      prompt: { cueImage },
+      answer: { expression: '会社', meaning: 'company' },
+    });
+
+    expect(getOwnedPreviewMediaIds).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        mediaIds: ['image-1'],
+        mediaKind: 'image',
+      })
+    );
+    expect(createStudyCard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageMediaId: 'image-1',
+        prompt: {
+          cueImage,
+          cueAudio: expect.objectContaining({ id: 'audio-1' }),
+        },
+        promptAudioMediaId: 'audio-1',
+        answerAudioMediaId: 'audio-1',
+      })
+    );
+  });
+
   it('rejects audio-recognition cards when prompt audio cannot be generated', async () => {
     vi.mocked(synthesizeCandidatePreviewAudio).mockResolvedValue(null);
 

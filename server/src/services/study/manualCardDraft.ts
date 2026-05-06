@@ -538,7 +538,10 @@ export async function createManualStudyCard(input: {
 
   if (input.creationKind === 'audio-recognition') {
     if (previewAudio) {
-      prompt = { cueAudio: previewAudio.mediaRef };
+      prompt = {
+        ...(prompt.cueImage ? { cueImage: prompt.cueImage } : {}),
+        cueAudio: previewAudio.mediaRef,
+      };
       answer = { ...answer, answerAudio: previewAudio.mediaRef };
       promptAudioMediaId = previewAudio.mediaId;
       answerAudioMediaId = previewAudio.mediaId;
@@ -554,7 +557,10 @@ export async function createManualStudyCard(input: {
       if (!generated?.id) {
         throw new AppError('Could not generate audio for this card.', 502);
       }
-      prompt = { cueAudio: generated };
+      prompt = {
+        ...(prompt.cueImage ? { cueImage: prompt.cueImage } : {}),
+        cueAudio: generated,
+      };
       answer = { ...answer, answerAudio: generated };
       promptAudioMediaId = generated.id;
       answerAudioMediaId = generated.id;
