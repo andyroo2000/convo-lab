@@ -15,6 +15,7 @@ import type {
 
 import { AppError } from '../../../middleware/errorHandler.js';
 import { addFuriganaBrackets } from '../../furiganaService.js';
+import { getEnglishClozeHintFallback } from '../clozeHintUtils.js';
 import { cardTypeForStudyCardCandidateKind, STUDY_CARD_CANDIDATE_KINDS } from '../shared.js';
 
 import { STUDY_CANDIDATE_GENERATE_MAX_COUNT } from './constants.js';
@@ -121,7 +122,13 @@ function sanitizeAnswerPayload(value: unknown, generatedVoiceId: string): StudyA
   };
 }
 
-function getFallbackClozeHint(clozeText: string | null | undefined): string {
+function getFallbackClozeHint(candidate: StudyCardCandidate): string {
+  const englishHint = getEnglishClozeHintFallback(candidate.answer);
+  if (englishHint) {
+    return englishHint;
+  }
+
+  const clozeText = candidate.prompt.clozeText;
   const hiddenText = clozeText?.match(/\{\{c1::([^}:]+)(?:::[^}]*)?}}/)?.[1]?.trim() ?? '';
   if (hiddenText && hiddenText.length <= 4 && !/[\u4e00-\u9faf]/.test(hiddenText)) {
     return 'Grammar or particle chunk';
@@ -136,7 +143,7 @@ function hydrateMissingPromptFields(candidate: StudyCardCandidate): StudyCardCan
       ...candidate,
       prompt: {
         ...candidate.prompt,
-        clozeHint: candidate.prompt.clozeHint ?? getFallbackClozeHint(candidate.prompt.clozeText),
+        clozeHint: candidate.prompt.clozeHint || getFallbackClozeHint(candidate),
       },
     };
   }

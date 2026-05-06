@@ -400,8 +400,8 @@ router.get(
           typeof job?.progress === 'number'
             ? job.progress
             : Math.floor(
-                (practice.tracks.filter((track) =>
-                  track.status === 'ready' || track.status === 'skipped'
+                (practice.tracks.filter(
+                  (track) => track.status === 'ready' || track.status === 'skipped'
                 ).length /
                   DAILY_AUDIO_TRACKS.length) *
                   100

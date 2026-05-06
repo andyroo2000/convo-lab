@@ -19,6 +19,9 @@ describe('study candidate prompt builder', () => {
     expect(instruction).toContain(IMAGE_PROMPT_STYLE);
     expect(instruction).toContain('they should be Japanese');
     expect(instruction).toContain('set it in Japan');
+    expect(instruction).toContain('prompt.clozeHint is required');
+    expect(instruction).toContain('English only');
+    expect(instruction).toContain('full English sentence translation');
   });
 
   it('applies style and Japan-immersion guardrails exactly once', () => {
