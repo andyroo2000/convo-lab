@@ -4,6 +4,7 @@ import type { LessonScriptUnit } from '../lessonScriptGenerator.js';
 import type { DailyAudioLearningAtom, DailyAudioPracticeTrackMode } from './types.js';
 
 const MAX_SCRIPT_ATOMS = 50;
+const MAX_VARIATIONS_PER_ATOM = 2;
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 
 interface ScriptGenerationOptions {
@@ -22,6 +23,20 @@ interface DrillItemEnhancement {
   exampleJp?: string;
   exampleReading?: string;
   exampleEn?: string;
+  variations?: DrillVariation[];
+}
+
+interface DrillVariation {
+  japanese: string;
+  reading?: string;
+  english: string;
+}
+
+interface DrillPrompt {
+  label: string;
+  japanese: string;
+  reading?: string;
+  english: string;
 }
 
 function stripCodeFence(raw: string): string {
@@ -79,7 +94,8 @@ async function buildDrillItemEnhancements(
   const prompt = `Create fresh N5-N4 Japanese drill examples from these learner items.
 
 Requirements:
-- Use the learner item naturally in a new Japanese example sentence.
+- Use the learner item naturally in new Japanese example sentences.
+- Add up to ${MAX_VARIATIONS_PER_ATOM} substitution variations when the item is a phrase or sentence pattern. Reuse the same structure with different common N5-N4 words the learner is likely to know.
 - Keep the Japanese around JLPT N5-N4 level.
 - Keep English fields English only. Never include Japanese characters in englishCue or exampleEn.
 - If the definition is Japanese-only, translate it into a short natural English cue.
@@ -93,7 +109,14 @@ Return JSON only:
       "englishCue":"short English cue",
       "exampleJp":"new Japanese sentence",
       "exampleReading":"optional reading with furigana",
-      "exampleEn":"English translation of the new sentence"
+      "exampleEn":"English translation of the new sentence",
+      "variations": [
+        {
+          "japanese":"variation Japanese sentence",
+          "reading":"optional reading",
+          "english":"English translation"
+        }
+      ]
     }
   ]
 }
@@ -141,12 +164,34 @@ noteType=${atom.noteType ?? ''}`
       const exampleEn = safeEnglishText(
         typeof record.exampleEn === 'string' ? record.exampleEn : null
       );
+      const rawVariations = Array.isArray(record.variations) ? record.variations : [];
+      const variations: DrillVariation[] = [];
+      for (const variation of rawVariations) {
+        if (!variation || typeof variation !== 'object') continue;
+        const variationRecord = variation as Record<string, unknown>;
+        const japanese =
+          typeof variationRecord.japanese === 'string' && variationRecord.japanese.trim()
+            ? variationRecord.japanese.trim()
+            : null;
+        const english = safeEnglishText(
+          typeof variationRecord.english === 'string' ? variationRecord.english : null
+        );
+        if (!japanese || !english) continue;
+        const reading =
+          typeof variationRecord.reading === 'string' && variationRecord.reading.trim()
+            ? variationRecord.reading.trim()
+            : undefined;
+        const safeVariation: DrillVariation = { japanese, english };
+        if (reading) safeVariation.reading = reading;
+        variations.push(safeVariation);
+      }
 
       const enhancement: DrillItemEnhancement = {};
       if (englishCue) enhancement.englishCue = englishCue;
       if (exampleJp) enhancement.exampleJp = exampleJp;
       if (exampleReading) enhancement.exampleReading = exampleReading;
       if (exampleEn) enhancement.exampleEn = exampleEn;
+      if (variations.length) enhancement.variations = variations.slice(0, MAX_VARIATIONS_PER_ATOM);
       enhancementByCardId.set(cardId, enhancement);
     }
     return enhancementByCardId;
@@ -155,69 +200,118 @@ noteType=${atom.noteType ?? ''}`
   }
 }
 
-function pushAtomDrill(
-  units: LessonScriptUnit[],
+function buildDrillPrompts(
   atom: DailyAudioLearningAtom,
-  l1VoiceId: string,
-  l2VoiceId: string,
   enhancement: DrillItemEnhancement | undefined
-) {
+): DrillPrompt[] {
   const cueText = enhancement?.englishCue ?? fallbackCueText(atom);
-  const promptText =
-    cueText === 'this expression'
-      ? 'How do you say this expression?'
-      : `How do you say "${cueText}"?`;
+  const prompts: DrillPrompt[] = [
+    {
+      label: `Drill: ${atom.targetText}`,
+      japanese: atom.targetText,
+      reading: atom.reading ?? undefined,
+      english: cueText,
+    },
+  ];
+
   const exampleJp = enhancement?.exampleJp ?? atom.exampleJp;
   const exampleEn = enhancement?.exampleEn ?? safeEnglishText(atom.exampleEn);
-  const exampleReading = enhancement?.exampleReading ?? readingForText(atom, exampleJp ?? '');
+  if (exampleJp && exampleEn) {
+    prompts.push({
+      label: `Example: ${atom.targetText}`,
+      japanese: exampleJp,
+      reading: enhancement?.exampleReading ?? readingForText(atom, exampleJp),
+      english: exampleEn,
+    });
+  }
+
+  for (const [index, variation] of (enhancement?.variations ?? [])
+    .slice(0, MAX_VARIATIONS_PER_ATOM)
+    .entries()) {
+    prompts.push({
+      label: `Variation ${index + 1}: ${atom.targetText}`,
+      japanese: variation.japanese,
+      reading: variation.reading,
+      english: variation.english,
+    });
+  }
+
+  return prompts;
+}
+
+function pushProductionPrompt(
+  units: LessonScriptUnit[],
+  prompt: DrillPrompt,
+  l1VoiceId: string,
+  l2VoiceId: string
+) {
+  const promptText =
+    prompt.english === 'this expression'
+      ? 'How do you say this expression?'
+      : `How do you say "${prompt.english}"?`;
 
   units.push(
-    { type: 'marker', label: `Drill: ${atom.targetText}` },
+    { type: 'marker', label: prompt.label },
     {
       type: 'narration_L1',
       text: promptText,
       voiceId: l1VoiceId,
     },
-    { type: 'pause', seconds: recallPauseSeconds(cueText) },
+    { type: 'pause', seconds: recallPauseSeconds(prompt.english) },
     {
       type: 'L2',
-      text: atom.targetText,
-      reading: atom.reading ?? undefined,
-      translation: cueText,
+      text: prompt.japanese,
+      reading: prompt.reading,
+      translation: prompt.english,
+      voiceId: l2VoiceId,
+      speed: 0.75,
+    },
+    { type: 'pause', seconds: 1 },
+    {
+      type: 'L2',
+      text: prompt.japanese,
+      reading: prompt.reading,
+      translation: prompt.english,
       voiceId: l2VoiceId,
       speed: 1,
     },
-    { type: 'pause', seconds: 1.5 },
-    {
-      type: 'L2',
-      text: atom.targetText,
-      reading: atom.reading ?? undefined,
-      translation: cueText,
-      voiceId: l2VoiceId,
-      speed: 0.85,
-    },
     { type: 'pause', seconds: 2.5 }
   );
+}
 
-  if (exampleJp) {
-    units.push(
-      {
-        type: 'narration_L1',
-        text: exampleEn ? `Now try a sentence: ${exampleEn}` : 'Now listen in context.',
-        voiceId: l1VoiceId,
-      },
-      { type: 'pause', seconds: exampleEn ? recallPauseSeconds(exampleEn) : 0.5 },
-      {
-        type: 'L2',
-        text: exampleJp,
-        reading: exampleReading,
-        translation: exampleEn ?? cueText,
-        voiceId: l2VoiceId,
-        speed: 1,
-      },
-      { type: 'pause', seconds: 2 }
-    );
-  }
+function pushRecognitionPrompt(
+  units: LessonScriptUnit[],
+  prompt: DrillPrompt,
+  l1VoiceId: string,
+  l2VoiceId: string
+) {
+  units.push(
+    { type: 'marker', label: `Recognition: ${prompt.label}` },
+    {
+      type: 'L2',
+      text: prompt.japanese,
+      reading: prompt.reading,
+      translation: prompt.english,
+      voiceId: l2VoiceId,
+      speed: 0.75,
+    },
+    { type: 'pause', seconds: recallPauseSeconds(prompt.english) },
+    {
+      type: 'L2',
+      text: prompt.japanese,
+      reading: prompt.reading,
+      translation: prompt.english,
+      voiceId: l2VoiceId,
+      speed: 1,
+    },
+    { type: 'pause', seconds: 1.25 },
+    {
+      type: 'narration_L1',
+      text: prompt.english,
+      voiceId: l1VoiceId,
+    },
+    { type: 'pause', seconds: 2 }
+  );
 }
 
 function buildDrillScript(
@@ -229,20 +323,35 @@ function buildDrillScript(
     { type: 'marker', label: 'Daily Audio Practice - Drills' },
     {
       type: 'narration_L1',
-      text: "Daily Audio Practice. We'll start with focused recall and shadowing drills.",
+      text:
+        "Daily Audio Practice. We'll start with production drills, then switch to recognition drills.",
       voiceId: options.l1VoiceId,
     },
     { type: 'pause', seconds: 1 },
   ];
+  const allPrompts: DrillPrompt[] = [];
 
   for (const atom of options.atoms) {
-    pushAtomDrill(
-      units,
-      atom,
-      options.l1VoiceId,
-      l2VoiceId,
-      enhancements.get(atom.cardId)
-    );
+    allPrompts.push(...buildDrillPrompts(atom, enhancements.get(atom.cardId)));
+  }
+
+  units.push({ type: 'marker', label: 'Production drills' });
+  for (const prompt of allPrompts) {
+    pushProductionPrompt(units, prompt, options.l1VoiceId, l2VoiceId);
+  }
+
+  units.push(
+    { type: 'marker', label: 'Recognition drills' },
+    {
+      type: 'narration_L1',
+      text:
+        'Now the order reverses. Listen to the Japanese first, then check the English meaning.',
+      voiceId: options.l1VoiceId,
+    },
+    { type: 'pause', seconds: 1 }
+  );
+  for (const prompt of allPrompts) {
+    pushRecognitionPrompt(units, prompt, options.l1VoiceId, l2VoiceId);
   }
 
   units.push({

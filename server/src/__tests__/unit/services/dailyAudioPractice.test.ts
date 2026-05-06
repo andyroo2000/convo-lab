@@ -174,6 +174,13 @@ describe('dailyAudioPractice services', () => {
               exampleJp: '昼ごはんを食べました。',
               exampleReading: '昼[ひる]ごはんを食[た]べました。',
               exampleEn: 'I ate lunch.',
+              variations: [
+                {
+                  japanese: '晩ごはんを食べました。',
+                  reading: '晩[ばん]ごはんを食[た]べました。',
+                  english: 'I ate dinner.',
+                },
+              ],
             },
           ],
         })
@@ -205,8 +212,24 @@ describe('dailyAudioPractice services', () => {
     expect(scripts.drill).toContainEqual(
       expect.objectContaining({
         type: 'L2',
-        text: '昼ごはんを食べました。',
-        reading: '昼[ひる]ごはんを食[た]べました。',
+        text: '晩ごはんを食べました。',
+        reading: '晩[ばん]ごはんを食[た]べました。',
+      })
+    );
+    const drillL2Units = scripts.drill.filter((unit) => unit.type === 'L2');
+    expect(drillL2Units).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ text: '食べました', speed: 0.75 }),
+        expect.objectContaining({ text: '食べました', speed: 1 }),
+      ])
+    );
+    expect(
+      scripts.drill.some((unit) => unit.type === 'marker' && unit.label === 'Recognition drills')
+    ).toBe(true);
+    expect(scripts.drill).toContainEqual(
+      expect.objectContaining({
+        type: 'narration_L1',
+        text: 'Now the order reverses. Listen to the Japanese first, then check the English meaning.',
       })
     );
     expect(scripts.dialogue).toContainEqual(
