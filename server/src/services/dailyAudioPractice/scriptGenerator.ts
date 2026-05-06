@@ -8,7 +8,8 @@ const MAX_VARIATIONS_PER_ATOM = 4;
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 const INLINE_PAREN_READING_PATTERN =
   /([\u3400-\u9fff々〆ヵヶ]+)[(（]([\u3040-\u30ffー\s]+)[)）]/;
-const INLINE_BRACKET_READING_PATTERN = /([^\s[\]]+)\[([^\]]+)\]/;
+const INLINE_BRACKET_READING_PATTERN =
+  /([^\s[\]]*[\u3040-\u30ff\u3400-\u9fff][^\s[\]]*)\[([\u3040-\u30ffー\s]+)\]/;
 
 interface ScriptGenerationOptions {
   atoms: DailyAudioLearningAtom[];
@@ -86,7 +87,7 @@ function globalPattern(pattern: RegExp): RegExp {
   return new RegExp(pattern.source, 'g');
 }
 
-function normalizeJapaneseReading(reading: string | null | undefined): string | undefined {
+function normalizeFuriganaFormat(reading: string | null | undefined): string | undefined {
   const trimmed = reading?.trim();
   if (!trimmed) return undefined;
   return trimmed.replace(globalPattern(INLINE_PAREN_READING_PATTERN), '$1[$2]');
@@ -99,7 +100,7 @@ function normalizeJapaneseDisplayText(
   const trimmed = text?.trim();
   if (!trimmed) return null;
 
-  const normalizedInlineReading = normalizeJapaneseReading(trimmed);
+  const normalizedInlineReading = normalizeFuriganaFormat(trimmed);
   const derivedReading = normalizedInlineReading
     ? INLINE_BRACKET_READING_PATTERN.test(normalizedInlineReading)
       ? normalizedInlineReading
@@ -109,7 +110,7 @@ function normalizeJapaneseDisplayText(
     .replace(globalPattern(INLINE_BRACKET_READING_PATTERN), '$1')
     .replace(globalPattern(INLINE_PAREN_READING_PATTERN), '$1')
     .trim();
-  const normalizedReading = normalizeJapaneseReading(reading) ?? derivedReading;
+  const normalizedReading = normalizeFuriganaFormat(reading) ?? derivedReading;
 
   if (!plainText) return null;
   const result: JapaneseDisplayText = { text: plainText };
