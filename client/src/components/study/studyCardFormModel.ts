@@ -8,6 +8,8 @@ import type {
   StudyPromptPayload,
 } from '@languageflow/shared/src/types';
 
+import { isAudioLedPromptCard } from './studyCardUtils';
+
 export interface StudyCardFormValues {
   cardType: StudyCardType;
   cueText: string;
@@ -36,15 +38,6 @@ export interface StudyCardFormConfig {
 }
 
 const emptyToNull = (value: string) => (value === '' ? null : value);
-
-const isAudioLedRecognitionCard = (card?: StudyCardSummary) =>
-  Boolean(
-    card?.cardType === 'recognition' &&
-    card.prompt.cueAudio &&
-    !card.prompt.cueText &&
-    !card.prompt.cueMeaning &&
-    !card.prompt.clozeText
-  );
 
 export const getStudyCardFormValues = ({
   card,
@@ -130,7 +123,7 @@ export const buildStudyCardFormPayload = (
     };
   }
 
-  if (isAudioLedRecognitionCard(card)) {
+  if (card && isAudioLedPromptCard(card)) {
     return {
       cardType: values.cardType,
       prompt: {
