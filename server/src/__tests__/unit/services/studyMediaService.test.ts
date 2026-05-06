@@ -353,6 +353,13 @@ describe('studyMediaService', () => {
       mediaKind: 'audio',
       source: 'generated',
     };
+    const cueImage = {
+      id: 'image-1',
+      filename: 'front.webp',
+      url: '/api/study/media/image-1',
+      mediaKind: 'image',
+      source: 'generated',
+    };
 
     mockPrisma.studyCard.findFirst
       .mockResolvedValueOnce({
@@ -364,7 +371,7 @@ describe('studyMediaService', () => {
         answerAudioSource: 'generated',
         promptAudioMediaId: 'media-shohei',
         answerAudioMediaId: 'media-ren-old',
-        promptJson: { cueAudio: oldPromptAudio },
+        promptJson: { cueAudio: oldPromptAudio, cueImage },
         answerJson: {
           expression: '会社',
           meaning: 'company',
@@ -396,7 +403,7 @@ describe('studyMediaService', () => {
         answerAudioSource: 'generated',
         promptAudioMediaId: 'media-ren-new',
         answerAudioMediaId: 'media-ren-new',
-        promptJson: { cueAudio: newAudio },
+        promptJson: { cueAudio: newAudio, cueImage },
         answerJson: {
           expression: '会社',
           meaning: 'company',
@@ -425,7 +432,7 @@ describe('studyMediaService', () => {
       userId: 'user-1',
       cardType: 'recognition',
       answerAudioSource: 'generated',
-      promptJson: { cueAudio: oldPromptAudio },
+      promptJson: { cueAudio: oldPromptAudio, cueImage },
       answerJson: {
         expression: '会社',
         meaning: 'company',
@@ -447,6 +454,7 @@ describe('studyMediaService', () => {
       data: expect.objectContaining({
         promptJson: expect.objectContaining({
           cueAudio: newAudio,
+          cueImage,
         }),
         promptAudioMediaId: 'media-ren-new',
         answerJson: expect.objectContaining({
@@ -456,6 +464,7 @@ describe('studyMediaService', () => {
       }),
     });
     expect(card.prompt.cueAudio?.id).toBe('media-ren-new');
+    expect(card.prompt.cueImage?.id).toBe('image-1');
     expect(card.answer.answerAudio?.id).toBe('media-ren-new');
   });
 
@@ -600,7 +609,16 @@ describe('studyMediaService', () => {
       cardType: 'recognition',
       queueState: 'review',
       answerAudioSource: 'generated',
-      promptJson: { cueAudio: oldPromptAudio },
+      promptJson: {
+        cueAudio: oldPromptAudio,
+        cueImage: {
+          id: 'image-1',
+          filename: 'front.webp',
+          url: '/api/study/media/image-1',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
       answerJson: {
         expression: '会社',
         meaning: 'company',
@@ -641,6 +659,7 @@ describe('studyMediaService', () => {
     const card = await toStudyCardSummary(cardRecord);
 
     expect(card.prompt.cueAudio?.id).toBe('media-ren');
+    expect(card.prompt.cueImage?.id).toBe('image-1');
     expect(card.answer.answerAudio?.id).toBe('media-ren');
   });
 
