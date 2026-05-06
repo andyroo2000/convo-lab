@@ -124,6 +124,60 @@ describe('studyCardFormModel', () => {
     expect(payload.answer).not.toHaveProperty('restoredTextReading');
   });
 
+  it('keeps audio-recognition edit payloads audio-led without requiring prompt text', () => {
+    const promptAudio = {
+      filename: 'prompt.mp3',
+      url: 'https://example.com/prompt.mp3',
+      mediaKind: 'audio' as const,
+      source: 'generated' as const,
+    };
+    const payload = buildStudyCardFormPayload(
+      {
+        cardType: 'recognition',
+        cueText: '',
+        cueReading: '',
+        cueMeaning: '',
+        answerExpression: '会社',
+        answerReading: '会社[かいしゃ]',
+        answerMeaning: 'company',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        answerAudioTextOverride: '',
+        notes: '',
+        sentenceJp: '',
+        sentenceEn: '',
+      },
+      {
+        id: 'card-audio',
+        noteId: 'note-audio',
+        cardType: 'recognition',
+        prompt: {
+          cueAudio: promptAudio,
+        },
+        answer: {
+          expression: '会社',
+          expressionReading: '会社[かいしゃ]',
+          meaning: 'company',
+        },
+        state: {
+          dueAt: null,
+          queueState: 'new',
+          scheduler: null,
+          source: {},
+        },
+        answerAudioSource: 'missing',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    );
+
+    expect(payload.prompt).toEqual({
+      cueAudio: promptAudio,
+      cueText: null,
+      cueReading: null,
+      cueMeaning: null,
+    });
+  });
+
   it('builds a cloze payload with null-normalized hint and notes', () => {
     const payload = buildStudyCardFormPayload({
       cardType: 'cloze',

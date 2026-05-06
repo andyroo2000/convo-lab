@@ -37,6 +37,15 @@ export interface StudyCardFormConfig {
 
 const emptyToNull = (value: string) => (value === '' ? null : value);
 
+const isAudioLedRecognitionCard = (card?: StudyCardSummary) =>
+  Boolean(
+    card?.cardType === 'recognition' &&
+    card.prompt.cueAudio &&
+    !card.prompt.cueText &&
+    !card.prompt.cueMeaning &&
+    !card.prompt.clozeText
+  );
+
 export const getStudyCardFormValues = ({
   card,
   initialCardType = 'recognition',
@@ -118,6 +127,28 @@ export const buildStudyCardFormPayload = (
       cardType: 'cloze',
       prompt: normalized.prompt,
       answer: normalized.answer,
+    };
+  }
+
+  if (isAudioLedRecognitionCard(card)) {
+    return {
+      cardType: values.cardType,
+      prompt: {
+        ...(card?.prompt ?? {}),
+        cueText: null,
+        cueReading: null,
+        cueMeaning: null,
+      },
+      answer: {
+        expression: values.answerExpression,
+        expressionReading: emptyToNull(values.answerReading),
+        meaning: emptyToNull(values.answerMeaning),
+        answerAudioVoiceId: emptyToNull(values.answerAudioVoiceId),
+        answerAudioTextOverride: emptyToNull(values.answerAudioTextOverride),
+        sentenceJp: emptyToNull(values.sentenceJp),
+        sentenceEn: emptyToNull(values.sentenceEn),
+        notes: emptyToNull(values.notes),
+      },
     };
   }
 
