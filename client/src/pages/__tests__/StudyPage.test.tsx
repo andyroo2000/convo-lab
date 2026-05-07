@@ -473,6 +473,9 @@ describe('StudyPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     const gradeTray = screen.getByTestId('study-grade-tray');
+    expect(gradeTray).toHaveClass('fixed');
+    expect(gradeTray.className).not.toContain('md:static');
+    expect(screen.getByTestId('study-grade-tray-inner')).toHaveClass('mx-auto', 'max-w-7xl');
     expect(within(gradeTray).getByRole('button', { name: /again/i })).toBeInTheDocument();
     expect(within(gradeTray).getByRole('button', { name: /hard/i })).toBeInTheDocument();
     expect(within(gradeTray).getByRole('button', { name: /good/i })).toBeInTheDocument();
@@ -1153,6 +1156,35 @@ describe('StudyPage', () => {
       expect(screen.queryByText('company')).not.toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
+  });
+
+  it('hides the unsupported shake-to-undo warning on non-motion devices', async () => {
+    Object.defineProperty(navigator, 'maxTouchPoints', {
+      configurable: true,
+      value: 0,
+    });
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 4,
+        newCount: 6,
+        learningCount: 2,
+        reviewCount: 8,
+        suspendedCount: 0,
+        totalCards: 20,
+      },
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+
+    await waitFor(() => {
+      expect(startStudySessionMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      screen.queryByText('Shake to undo is not available on this device.')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enable motion' })).not.toBeInTheDocument();
   });
 
   it('shows the motion permission affordance when device-motion access is denied', async () => {
