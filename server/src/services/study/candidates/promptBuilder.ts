@@ -1,4 +1,5 @@
 import { IMAGE_PROMPT_IMMERSION_GUIDANCE, IMAGE_PROMPT_STYLE } from '../../imagePromptGuidance.js';
+import { STUDY_CARD_NOTES_GUIDANCE } from '../shared/notesGuidance.js';
 
 import { STUDY_CANDIDATE_GENERATE_MAX_COUNT } from './constants.js';
 
@@ -33,7 +34,8 @@ Rules:
 - imagePrompt must describe a scene only. Add "No text" as a constraint, and do not ask for a flashcard, worksheet, poster, title, caption, label, logo, sign, letters, words, or any visible text.
 - cloze uses prompt.clozeText with {{c1::...}} markup, prompt.clozeHint, and answer.restoredText. prompt.clozeHint is required, English only, and should translate or paraphrase the hidden Japanese item without using Japanese, kana, romaji, or the hidden answer. If a hidden-item hint would be awkward, use the full English sentence translation as the hint. Do not wrap text fields in extra quotation marks.
 - Use bracket ruby readings like 稚内[わっかない] in reading fields, including answer.expressionReading and answer.restoredTextReading.
-- Include answer.notes on every candidate with concise grammar/usage nuance. Include example sentence fields only when they add value beyond the target sentence. When adding answer.sentenceJp and answer.sentenceEn, make them short and natural but slightly specific, with a concrete situation, time, place, or speaker intention. Avoid generic dictionary-style examples like 今日は曇りです。
+- Include answer.notes on every candidate. ${STUDY_CARD_NOTES_GUIDANCE}
+- Include example sentence fields only when they add value beyond the target sentence. When adding answer.sentenceJp and answer.sentenceEn, make them short and natural but slightly specific, with a concrete situation, time, place, or speaker intention. Avoid generic dictionary-style examples like 今日は曇りです。
 - Omit answer.answerAudioVoiceId; the server assigns a random Fish Audio Japanese voice for each candidate preview.
 - Set answer.answerAudioTextOverride to kana/hiragana only when TTS may misread the kanji.
 - Do not include media refs; the server will add audio previews.
