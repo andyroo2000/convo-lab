@@ -1,7 +1,7 @@
 import { SENTENCE_SCRIPT_PROMPT } from '@languageflow/shared/src/scriptLabPrompts.js';
 
-import { LessonScriptUnit } from './courseScriptGenerator.js';
 import { generateWithGemini } from './geminiClient.js';
+import type { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { applyJapanesePronunciationOverrides } from './pronunciation/overrideEngine.js';
 
 export interface SentenceScriptOptions {

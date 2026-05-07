@@ -109,26 +109,6 @@ export function createSSMLWithPauses(text: string, pauseDuration: string = '1s')
   return `<speak>${text}<break time="${pauseDuration}"/></speak>`;
 }
 
-export function createSSMLSlow(text: string, rate: number = 0.75): string {
-  // Slow down speech using SSML
-  return `<speak><prosody rate="${rate}">${text}</prosody></speak>`;
-}
-
-/**
- * Creates SSML for lesson narration with appropriate pauses
- */
-export function createLessonSSML(text: string, pauseAfter: number = 0.5): string {
-  return `<speak>${text}<break time="${pauseAfter}s"/></speak>`;
-}
-
-/**
- * Creates SSML for anticipation drills (prompt + longer pause for learner response)
- */
-export function createAnticipationPromptSSML(text: string): string {
-  // Longer pause (3s) for learner to think and respond
-  return `<speak>${text}<break time="3s"/></speak>`;
-}
-
 /**
  * Generate silence audio buffer (for pause units)
  * Uses ffmpeg locally to produce silence with the same encoding parameters as

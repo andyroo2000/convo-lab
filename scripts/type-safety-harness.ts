@@ -109,7 +109,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/services/stripeService.test.ts', cardId: 'convo-lab-s7z', anyCount: 9, category: 'test' },
   { file: 'server/src/__tests__/unit/services/audioExtractorService.test.ts', cardId: 'convo-lab-8yu', anyCount: 3, category: 'test' },
   { file: 'server/src/__tests__/unit/services/lessonScriptGenerator.test.ts', cardId: 'convo-lab-c1e', anyCount: 19, category: 'test' },
-  { file: 'server/src/__tests__/unit/services/coursePlanner.test.ts', cardId: 'convo-lab-ai6', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/ttsClient.test.ts', cardId: 'convo-lab-3tp', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/emailService.test.ts', cardId: 'convo-lab-zru', anyCount: 11, category: 'test' },
   { file: 'server/src/__tests__/unit/services/emailService.token-security.test.ts', cardId: 'convo-lab-9t4', anyCount: 1, category: 'test' },
