@@ -26,7 +26,7 @@ export interface AssembleAudioOptions {
   scriptUnits: LessonScriptUnit[];
   targetLanguage: string;
   nativeLanguage: string;
-  onProgress?: (current: number, total: number) => void;
+  onProgress?: (current: number, total: number) => Promise<void> | void;
   outputFolder?: string;
   outputFilename?: string;
 }
@@ -57,6 +57,11 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
   // Create temp directory for audio segments
   const tempDir = path.join(os.tmpdir(), `audio-assembly-${Date.now()}`);
   await fs.mkdir(tempDir, { recursive: true });
+  const reportProgressFraction = async (fraction: number) => {
+    if (!onProgress || scriptUnits.length === 0) return;
+    const current = Math.floor(Math.min(1, Math.max(0, fraction)) * scriptUnits.length);
+    await onProgress(current, scriptUnits.length);
+  };
 
   try {
     // Use batched TTS processing to reduce API calls from ~756 to ~15-20
@@ -64,14 +69,15 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
       targetLanguage,
       nativeLanguage,
       tempDir,
-      onProgress: (batchIndex, totalBatches) => {
+      onProgress: async (batchIndex, totalBatches) => {
         // Map batch progress to overall progress (batches are ~60% of work)
         if (onProgress) {
           const progress = Math.floor((batchIndex / totalBatches) * 0.6 * scriptUnits.length);
-          onProgress(progress, scriptUnits.length);
+          await onProgress(progress, scriptUnits.length);
         }
       },
     });
+    await reportProgressFraction(0.65);
 
     // Write segments to files in order
     const audioSegmentFiles: string[] = [];
@@ -110,13 +116,16 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
         audioSegmentFiles.push(segmentPath);
       }
     }
+    await reportProgressFraction(0.75);
 
     console.log(`Generated ${audioSegmentFiles.length} audio segments, concatenating...`);
 
     // Concatenate all audio files and apply sweetening chain
     const rawAudioPath = await concatenateAudioFiles(audioSegmentFiles, tempDir);
+    await reportProgressFraction(0.85);
     const finalAudioPath = path.join(tempDir, 'sweetened-output.mp3');
     await applySweeteningChain(rawAudioPath, finalAudioPath);
+    await reportProgressFraction(0.9);
 
     // Get actual duration
     const actualDuration = await getAudioDurationFromFile(finalAudioPath);
@@ -130,6 +139,7 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
       contentType: 'audio/mpeg',
       folder: outputFolder,
     });
+    await reportProgressFraction(1);
 
     console.log(`Uploaded to: ${audioUrl}`);
 

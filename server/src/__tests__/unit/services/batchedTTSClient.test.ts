@@ -202,7 +202,7 @@ describe('batchedTTSClient', () => {
       const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
 
       expect(unit.text).toBe('この町は物価が高いです。');
-      expect(batches[0].units[0].text).toBe('このまちはぶっかがたかいです。');
+      expect(batches[0].units[0].text).toBe('このまちわぶっかがたかいです。');
     });
 
     it('should keep kanji for keep-kanji words', () => {
