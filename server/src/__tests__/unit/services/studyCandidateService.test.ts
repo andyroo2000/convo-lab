@@ -170,6 +170,11 @@ describe('studyCandidateService', () => {
       expect.not.stringContaining('<target_text>'),
       expect.any(String)
     );
+    const systemInstruction = vi.mocked(generateStudyCardCandidateJson).mock.calls[0]?.[1] ?? '';
+    expect(systemInstruction).toContain('For answer.notes');
+    expect(systemInstruction).toContain('2-5 insights');
+    expect(systemInstruction).toContain('Do not include romaji');
+    expect(systemInstruction).toContain('Prefer bullet points');
     expect(result.learnerContextSummary).toContain('会社 - company');
     expect(result.candidates).toHaveLength(2);
     expect(result.candidates[0]).toMatchObject({

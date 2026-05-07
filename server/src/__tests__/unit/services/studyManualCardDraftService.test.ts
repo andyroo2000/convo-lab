@@ -80,6 +80,10 @@ describe('manual study card drafts', () => {
     expect(systemInstruction).toContain(IMAGE_PROMPT_IMMERSION_GUIDANCE);
     expect(systemInstruction).toContain('Cloze hints are required');
     expect(systemInstruction).toContain('English only');
+    expect(systemInstruction).toContain('For answer.notes');
+    expect(systemInstruction).toContain('2-5 insights');
+    expect(systemInstruction).toContain('Do not include romaji');
+    expect(systemInstruction).toContain('Prefer bullet points');
   });
 
   it('fills a missing manual cloze hint from the English sentence meaning', async () => {

@@ -30,6 +30,7 @@ import {
   synthesizeCandidatePreviewAudio,
 } from './candidates/previewMedia.js';
 import { getEnglishClozeHintFallback } from './clozeHintUtils.js';
+import { STUDY_CARD_NOTES_GUIDANCE } from './shared/notesGuidance.js';
 import {
   cardTypeForStudyCardCreationKind,
   STUDY_CARD_CREATION_KINDS,
@@ -199,7 +200,7 @@ Rules:
 - Cloze hints are required. Keep prompt.clozeHint English only, translating or paraphrasing the missing Japanese item without using Japanese, kana, romaji, or the hidden answer. If that hint would be awkward, use the full English sentence translation.
 - If cloze text uses bracket notation like My [example] sentence, convert the bracketed span to {{c1::example}}.
 - Use bracket ruby readings like 会社[かいしゃ] in reading fields.
-- Include concise notes when useful.
+- Fill answer.notes when blank or when useful. ${STUDY_CARD_NOTES_GUIDANCE}
 - Always return imagePrompt when the card has enough concrete visual context. Use this style treatment when writing it: ${input.imageTreatment}.
 - ${IMAGE_PROMPT_IMMERSION_GUIDANCE}
 - Image prompts must describe a scene only and include "No text". Never ask for visible labels, captions, signs, words, or flashcard UI.`;
