@@ -53,7 +53,7 @@ export interface BatchProcessingOptions {
   targetLanguage: string;
   nativeLanguage: string;
   tempDir: string;
-  onProgress?: (batchIndex: number, totalBatches: number) => void;
+  onProgress?: (batchIndex: number, totalBatches: number) => Promise<void> | void;
   generateSilence?: (seconds: number) => Promise<Buffer>;
 }
 
@@ -755,7 +755,7 @@ export async function processBatches(
 
     // Report progress
     if (onProgress) {
-      onProgress(batchIndex + 1, expandedBatches.length);
+      await onProgress(batchIndex + 1, expandedBatches.length);
     }
   }
 

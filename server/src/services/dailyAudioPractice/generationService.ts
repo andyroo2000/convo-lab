@@ -160,9 +160,8 @@ export async function processDailyAudioPracticeJob(params: {
         nativeLanguage: practice.nativeLanguage,
         outputFolder: `daily-audio-practice/${practice.id}`,
         outputFilename: `${trackConfig.mode}-${track.id}.mp3`,
-        onProgress: (current, total) => {
-          void reportProgress(mapDailyAudioAssemblyProgress(current, total));
-        },
+        onProgress: (current, total) =>
+          reportProgress(mapDailyAudioAssemblyProgress(current, total)),
       });
       await reportProgress(AUDIO_ASSEMBLY_DONE_PROGRESS);
 
