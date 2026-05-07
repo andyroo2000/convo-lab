@@ -27,6 +27,9 @@ const StudyPage = () => {
   const reviewSession = useStudyReviewSession();
   const runBackgroundTask = useStudyBackgroundTask();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const shouldShowMotionBanner =
+    reviewSession.motionPermissionState === 'prompt' ||
+    reviewSession.motionPermissionState === 'denied';
   const motionBannerMessage = useMemo(() => {
     if (reviewSession.motionPermissionState === 'unsupported') {
       return t('motion.unsupported');
@@ -123,24 +126,22 @@ const StudyPage = () => {
                 reviewRemaining={reviewSession.sessionCounts.reviewRemaining}
                 onExit={reviewSession.exitFocusMode}
               />
-              {reviewSession.motionPermissionState !== 'granted' ? (
+              {shouldShowMotionBanner ? (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 md:mt-4 md:gap-3 md:rounded-2xl md:px-4 md:py-3 md:text-sm">
                   <p>{motionBannerMessage}</p>
-                  {reviewSession.motionPermissionState !== 'unsupported' ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        runBackgroundTask(() => reviewSession.requestMotionPermission(), {
-                          label: 'Study motion-permission retry',
-                        });
-                      }}
-                      className="rounded-full border border-amber-300 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-amber-900 hover:bg-amber-100 md:px-4 md:py-2 md:text-xs"
-                    >
-                      {reviewSession.motionPermissionState === 'denied'
-                        ? t('motion.retryDenied')
-                        : t('motion.retryPrompt')}
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      runBackgroundTask(() => reviewSession.requestMotionPermission(), {
+                        label: 'Study motion-permission retry',
+                      });
+                    }}
+                    className="rounded-full border border-amber-300 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-amber-900 hover:bg-amber-100 md:px-4 md:py-2 md:text-xs"
+                  >
+                    {reviewSession.motionPermissionState === 'denied'
+                      ? t('motion.retryDenied')
+                      : t('motion.retryPrompt')}
+                  </button>
                 </div>
               ) : null}
 
@@ -160,7 +161,7 @@ const StudyPage = () => {
               ) : null}
 
               {reviewSession.currentCard ? (
-                <div className="mt-2 flex flex-1 flex-col justify-between space-y-4 pb-24 md:mt-6 md:space-y-6 md:pb-0">
+                <div className="mt-2 flex flex-1 flex-col justify-between space-y-4 pb-24 md:mt-6 md:space-y-6 md:pb-44">
                   {!reviewSession.revealed ? (
                     <div
                       role="button"
@@ -226,21 +227,23 @@ const StudyPage = () => {
                   {reviewSession.revealed && !reviewSession.editing ? (
                     <div
                       data-testid="study-grade-tray"
-                      className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:static md:border-t-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-0"
+                      className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:bg-cream/95 md:px-6 md:pb-6 md:pt-3"
                     >
-                      <StudyGradeButtons
-                        gradeIntervals={reviewSession.gradeIntervals}
-                        disabled={
-                          reviewSession.reviewBusy ||
-                          reviewSession.sessionLoading ||
-                          reviewSession.undoPending
-                        }
-                        onGrade={(grade) => {
-                          runBackgroundTask(() => reviewSession.handleGrade(grade), {
-                            label: 'Study card grade',
-                          });
-                        }}
-                      />
+                      <div data-testid="study-grade-tray-inner" className="mx-auto max-w-7xl">
+                        <StudyGradeButtons
+                          gradeIntervals={reviewSession.gradeIntervals}
+                          disabled={
+                            reviewSession.reviewBusy ||
+                            reviewSession.sessionLoading ||
+                            reviewSession.undoPending
+                          }
+                          onGrade={(grade) => {
+                            runBackgroundTask(() => reviewSession.handleGrade(grade), {
+                              label: 'Study card grade',
+                            });
+                          }}
+                        />
+                      </div>
                     </div>
                   ) : null}
                 </div>
