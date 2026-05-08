@@ -59,10 +59,6 @@ vi.mock('../../components/common/ConfirmModal', () => ({
   default: () => null,
 }));
 
-vi.mock('../../components/common/Pill', () => ({
-  default: () => null,
-}));
-
 describe('LibraryPage', () => {
   const renderLibraryPage = () =>
     render(
