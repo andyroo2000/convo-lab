@@ -21,6 +21,7 @@ export interface AudioPlayerHandle {
 interface StudyAudioPlayerProps {
   filename?: string | null;
   label: string;
+  renderMode?: 'default' | 'hidden';
   size?: 'default' | 'compact';
   showTimeline?: boolean;
   timelineMode?: 'always' | 'desktop';
@@ -36,6 +37,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
     {
       filename,
       label,
+      renderMode = 'default',
       size = 'default',
       showTimeline = false,
       timelineMode = 'always',
@@ -146,7 +148,8 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       play().catch(() => {});
     };
 
-    const showButton = !showTimeline || timelineMode === 'desktop';
+    const showControls = renderMode !== 'hidden';
+    const showButton = showControls && (!showTimeline || timelineMode === 'desktop');
     const buttonClasses =
       timelineMode === 'desktop' ? 'flex justify-center md:hidden' : 'flex justify-center';
     const timelineClasses =
@@ -191,10 +194,10 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
           key={url}
           ref={audioRef}
           preload={audioPreload}
-          controls={showTimeline}
+          controls={showControls && showTimeline}
           aria-label={label}
           data-testid={testId ? `${testId}-element` : undefined}
-          className={showTimeline ? timelineClasses : 'hidden'}
+          className={showControls && showTimeline ? timelineClasses : 'hidden'}
         >
           <source
             src={url}

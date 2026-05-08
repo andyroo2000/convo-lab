@@ -48,57 +48,45 @@ const StudyPage = () => {
     });
   }, [overviewQuery.data, t]);
 
-  const renderReviewActions = () => {
+  const renderReviewActionButtons = () => {
     if (!reviewSession.currentCard) return null;
 
     return (
-      <div className="space-y-3">
-        <StudyReviewActions
-          card={reviewSession.currentCard}
-          disabled={reviewSession.cardActionMutation.isPending}
-          onEdit={() => {
-            reviewSession.setEditing(true);
-          }}
-          onBury={reviewSession.handleBuryForSession}
-          onToggleSuspend={() => {
-            runBackgroundTask(
-              () =>
-                reviewSession.handleCardAction(
-                  reviewSession.currentCard?.state.queueState === 'suspended'
-                    ? 'unsuspend'
-                    : 'suspend'
-                ),
-              {
-                label: 'Study card action',
-              }
-            );
-          }}
-          onForget={() => {
-            runBackgroundTask(() => reviewSession.handleCardAction('forget'), {
+      <StudyReviewActions
+        card={reviewSession.currentCard}
+        disabled={reviewSession.cardActionMutation.isPending}
+        onEdit={() => {
+          reviewSession.setEditing(true);
+        }}
+        onBury={reviewSession.handleBuryForSession}
+        onToggleSuspend={() => {
+          runBackgroundTask(
+            () =>
+              reviewSession.handleCardAction(
+                reviewSession.currentCard?.state.queueState === 'suspended'
+                  ? 'unsuspend'
+                  : 'suspend'
+              ),
+            {
               label: 'Study card action',
-            });
-          }}
-          onToggleSetDue={() => reviewSession.setShowSetDueControls((current) => !current)}
-          onOpenBrowse={() => {
-            const params = new URLSearchParams({
-              noteId: reviewSession.currentCard?.noteId ?? '',
-              cardId: reviewSession.currentCard?.id ?? '',
-            });
-            reviewSession.exitFocusMode();
-            navigate(`/app/study/browse?${params.toString()}`);
-          }}
-        />
-        {reviewSession.showSetDueControls ? (
-          <StudySetDueControls
-            disabled={reviewSession.cardActionMutation.isPending}
-            isSubmitting={reviewSession.cardActionMutation.isPending}
-            onCancel={() => reviewSession.setShowSetDueControls(false)}
-            onSubmit={async ({ mode, dueAt }) => {
-              await reviewSession.handleCardAction('set_due', { mode, dueAt });
-            }}
-          />
-        ) : null}
-      </div>
+            }
+          );
+        }}
+        onForget={() => {
+          runBackgroundTask(() => reviewSession.handleCardAction('forget'), {
+            label: 'Study card action',
+          });
+        }}
+        onToggleSetDue={() => reviewSession.setShowSetDueControls((current) => !current)}
+        onOpenBrowse={() => {
+          const params = new URLSearchParams({
+            noteId: reviewSession.currentCard?.noteId ?? '',
+            cardId: reviewSession.currentCard?.id ?? '',
+          });
+          reviewSession.exitFocusMode();
+          navigate(`/app/study/browse?${params.toString()}`);
+        }}
+      />
     );
   };
 
@@ -115,17 +103,37 @@ const StudyPage = () => {
     return (
       <>
         <div className="fixed inset-0 z-[60] overflow-y-auto bg-[#fdfbf5] md:bg-cream">
-          <section className="min-h-[100dvh] md:px-6 md:py-6">
+          <section className="min-h-[100dvh] md:px-3 md:py-2">
             <div
               data-testid="study-focus-shell"
-              className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col bg-[#fdfbf5] px-2 pt-2 md:min-h-[calc(100vh-3rem)] md:rounded-[2rem] md:p-6 md:shadow-sm md:ring-1 md:ring-gray-200"
+              className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col bg-[#fdfbf5] px-2 pt-2 md:min-h-[calc(100vh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
             >
               <StudyReviewHeader
                 newRemaining={reviewSession.sessionCounts.newRemaining}
                 failedDue={reviewSession.sessionCounts.failedDue}
                 reviewRemaining={reviewSession.sessionCounts.reviewRemaining}
+                actions={
+                  reviewSession.revealed && !reviewSession.editing
+                    ? renderReviewActionButtons()
+                    : null
+                }
                 onExit={reviewSession.exitFocusMode}
               />
+              {reviewSession.currentCard &&
+              reviewSession.revealed &&
+              !reviewSession.editing &&
+              reviewSession.showSetDueControls ? (
+                <div className="mt-2">
+                  <StudySetDueControls
+                    disabled={reviewSession.cardActionMutation.isPending}
+                    isSubmitting={reviewSession.cardActionMutation.isPending}
+                    onCancel={() => reviewSession.setShowSetDueControls(false)}
+                    onSubmit={async ({ mode, dueAt }) => {
+                      await reviewSession.handleCardAction('set_due', { mode, dueAt });
+                    }}
+                  />
+                </div>
+              ) : null}
               {shouldShowMotionBanner ? (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 md:mt-4 md:gap-3 md:rounded-2xl md:px-4 md:py-3 md:text-sm">
                   <p>{motionBannerMessage}</p>
@@ -161,7 +169,7 @@ const StudyPage = () => {
               ) : null}
 
               {reviewSession.currentCard ? (
-                <div className="mt-2 flex flex-1 flex-col justify-between space-y-4 pb-24 md:mt-6 md:space-y-6 md:pb-44">
+                <div className="mt-2 flex flex-1 flex-col justify-between space-y-4 pb-24 md:space-y-2">
                   {!reviewSession.revealed ? (
                     <div
                       role="button"
@@ -185,7 +193,8 @@ const StudyPage = () => {
                         />
                         {reviewSession.currentCard.cardType !== 'cloze' ? (
                           <p className="mt-8 text-center text-xs uppercase tracking-[0.18em] text-gray-400 sm:mt-10 sm:text-sm sm:tracking-[0.2em]">
-                            {t('focus.revealHint')}
+                            <span className="md:hidden">{t('focus.revealHintMobile')}</span>
+                            <span className="hidden md:inline">{t('focus.revealHintDesktop')}</span>
                           </p>
                         ) : null}
                       </div>
@@ -208,10 +217,7 @@ const StudyPage = () => {
                         />
                       ) : (
                         <div className="flex flex-col gap-4 md:gap-5">
-                          <div className="order-2 border-t border-gray-200 pt-4 md:order-1 md:border-t-0 md:pt-0">
-                            {renderReviewActions()}
-                          </div>
-                          <div className="order-1 flex min-h-[calc(100dvh-9.5rem)] items-center justify-center md:order-2 md:block md:min-h-0">
+                          <div className="flex min-h-[calc(100dvh-9.5rem)] items-center justify-center md:block md:min-h-0">
                             <StudyCardFace
                               card={reviewSession.currentCard}
                               layout="mobile-focus"
@@ -227,10 +233,13 @@ const StudyPage = () => {
                   {reviewSession.revealed && !reviewSession.editing ? (
                     <div
                       data-testid="study-grade-tray"
-                      className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:bg-cream/95 md:px-6 md:pb-6 md:pt-3"
+                      className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:bg-cream/95 md:px-6 md:py-2"
                     >
                       <div data-testid="study-grade-tray-inner" className="mx-auto max-w-7xl">
                         <StudyGradeButtons
+                          canReplayAudio={Boolean(
+                            reviewSession.currentCard.answer.answerAudio?.url
+                          )}
                           gradeIntervals={reviewSession.gradeIntervals}
                           disabled={
                             reviewSession.reviewBusy ||
@@ -240,6 +249,11 @@ const StudyPage = () => {
                           onGrade={(grade) => {
                             runBackgroundTask(() => reviewSession.handleGrade(grade), {
                               label: 'Study card grade',
+                            });
+                          }}
+                          onReplayAudio={() => {
+                            runBackgroundTask(() => reviewSession.answerAudioRef.current?.play(), {
+                              label: 'Study answer-audio replay',
                             });
                           }}
                         />

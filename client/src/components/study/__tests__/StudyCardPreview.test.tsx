@@ -105,6 +105,34 @@ describe('StudyCardPreview', () => {
     );
   });
 
+  it('places answer images before text details in focus review layout', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        layout="mobile-focus"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            notes: 'Short note.',
+            answerImage: {
+              filename: 'company.webp',
+              url: 'https://example.com/company.webp',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-answer-image-layout')).toHaveClass(
+      'items-center',
+      'md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)]'
+    );
+    expect(screen.getByAltText('Answer visual')).toHaveClass('md:max-h-[48dvh]');
+  });
+
   it('renders optional prompt images on cloze prompt sides', () => {
     render(
       <StudyCardFace
@@ -200,6 +228,27 @@ describe('StudyCardPreview', () => {
       expect.objectContaining({ cardType: 'cloze' }),
       true
     );
+  });
+
+  it('uses compact note spacing in focus review layout', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        layout="mobile-focus"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            notes: 'First note.\nSecond note.',
+          },
+        }}
+      />
+    );
+
+    const notes = screen.getByTestId('study-answer-notes');
+    expect(notes).toHaveClass('space-y-0.5', 'leading-tight');
+    expect(notes).not.toHaveClass('md:space-y-3');
+    expect(notes).not.toHaveClass('leading-relaxed');
   });
 
   it('renders derived cloze blanks instead of raw manual cloze markup', () => {
@@ -379,9 +428,7 @@ describe('StudyCardPreview', () => {
       />
     );
 
-    expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
-      'Play answer audio'
-    );
+    expect(screen.queryByTestId('study-answer-audio-button')).not.toBeInTheDocument();
     const audioSource = screen.getByTestId('study-answer-audio-source');
     expect(audioSource).toHaveAttribute('src', 'https://example.com/answer.mp3');
     expect(screen.getByTestId('study-answer-audio-element')).toHaveAttribute('preload', 'auto');

@@ -439,7 +439,8 @@ describe('StudyPage', () => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
     });
     expect(startStudySessionMock).toHaveBeenCalledWith();
-    expect(screen.getByText('Tap, click, or press space to reveal')).toBeInTheDocument();
+    expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
+    expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
   });
 
   it('keeps grade controls accessible separately from revealed-card maintenance actions', async () => {
@@ -476,18 +477,24 @@ describe('StudyPage', () => {
     expect(gradeTray).toHaveClass('fixed');
     expect(gradeTray.className).not.toContain('md:static');
     expect(screen.getByTestId('study-grade-tray-inner')).toHaveClass('mx-auto', 'max-w-7xl');
-    expect(within(gradeTray).getByRole('button', { name: /again/i })).toBeInTheDocument();
+    expect(gradeTray.className).not.toContain('md:pb-6');
+    const againButton = within(gradeTray).getByRole('button', { name: /again/i });
+    expect(againButton).toHaveClass('md:min-h-[2.25rem]');
+    expect(againButton.className).not.toContain('md:min-h-[8.25rem]');
+    expect(againButton).toBeInTheDocument();
+    expect(within(gradeTray).getByRole('button', { name: 'Replay answer audio' })).toHaveClass(
+      'md:min-h-[2.25rem]'
+    );
     expect(within(gradeTray).getByRole('button', { name: /hard/i })).toBeInTheDocument();
     expect(within(gradeTray).getByRole('button', { name: /good/i })).toBeInTheDocument();
     expect(within(gradeTray).getByRole('button', { name: /easy/i })).toBeInTheDocument();
     expect(within(gradeTray).queryByRole('button', { name: 'Edit card' })).not.toBeInTheDocument();
 
-    const reviewActions = screen.getByTestId('study-review-actions');
+    const reviewHeader = screen.getByTestId('study-review-header');
+    const reviewActions = within(reviewHeader).getByTestId('study-review-actions');
     expect(within(reviewActions).getByRole('button', { name: 'Edit card' })).toBeInTheDocument();
     expect(within(reviewActions).getByRole('button', { name: 'Set due' })).toBeInTheDocument();
-    expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
-      'Play answer audio'
-    );
+    expect(within(gradeTray).getByRole('button', { name: 'Replay answer audio' })).toBeEnabled();
   });
 
   it('autoplays prompt audio for audio-led cards and prepares missing answer audio on reveal', async () => {
@@ -557,9 +564,7 @@ describe('StudyPage', () => {
       expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1');
     });
     await waitFor(() => {
-      expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
-        'Play answer audio'
-      );
+      expect(screen.getByRole('button', { name: 'Replay answer audio' })).toBeEnabled();
     });
   });
 
@@ -622,7 +627,8 @@ describe('StudyPage', () => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
     });
     expect(screen.queryByText('company')).not.toBeInTheDocument();
-    expect(screen.getByText('Tap, click, or press space to reveal')).toBeInTheDocument();
+    expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
+    expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
   });
 
   it('uses Space to reveal audio-led cards from the front side', async () => {
@@ -678,7 +684,8 @@ describe('StudyPage', () => {
     await waitFor(() => {
       expect(screen.getByText('company')).toBeInTheDocument();
     });
-    expect(screen.queryByText('Tap, click, or press space to reveal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Click or push space to reveal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tap to reveal')).not.toBeInTheDocument();
   });
 
   it('autoplays existing answer audio immediately when revealing a card', async () => {
@@ -1326,7 +1333,8 @@ describe('StudyPage', () => {
       expect(screen.getByText('お風呂に虫[...]！')).toBeInTheDocument();
     });
     expect(screen.getByText('are (existence verb)')).toBeInTheDocument();
-    expect(screen.queryByText('Tap, click, or press space to reveal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Click or push space to reveal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tap to reveal')).not.toBeInTheDocument();
     expect(
       screen.queryByText('お風呂に虫{{c1::がいる::are (existence verb)}}！')
     ).not.toBeInTheDocument();

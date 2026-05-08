@@ -32,7 +32,9 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
         as="div"
         text={readingText}
         testId="study-japanese-heading"
-        className={`study-card-reading text-center font-semibold leading-tight text-black ${getHeadlineClasses(
+        autoFitSingleLine
+        minFontSizePx={compactMobile ? 24 : 28}
+        className={`study-card-reading mx-auto w-full max-w-5xl whitespace-nowrap text-center font-semibold leading-tight text-black ${getHeadlineClasses(
           headlineText,
           { compactMobile }
         )}`}
@@ -43,21 +45,28 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
 
   if (card.answer.expression) {
     return (
-      <p
-        className={`text-center font-semibold leading-tight text-black ${getHeadlineClasses(
+      <StudyRubyText
+        as="div"
+        text={card.answer.expression}
+        autoFitSingleLine
+        minFontSizePx={compactMobile ? 24 : 28}
+        className={`mx-auto w-full max-w-5xl whitespace-nowrap text-center font-semibold leading-tight text-black ${getHeadlineClasses(
           card.answer.expression,
           { compactMobile }
         )}`}
-      >
-        {toDisplayText(card.answer.expression)}
-      </p>
+      />
     );
   }
 
   return null;
 };
 
-const renderNotes = (notes: string[], containerClasses: string, noteClasses: string) => {
+const renderNotes = (
+  notes: string[],
+  containerClasses: string,
+  noteClasses: string,
+  testId?: string
+) => {
   if (notes.length === 0) return null;
 
   const noteCounts = new Map<string, number>();
@@ -72,7 +81,7 @@ const renderNotes = (notes: string[], containerClasses: string, noteClasses: str
   });
 
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} data-testid={testId}>
       {keyedNotes.map(({ key, note }) => (
         <p key={key} className={noteClasses}>
           <span aria-hidden="true">• </span>
@@ -220,14 +229,16 @@ export const StudyCardFace = ({
           <StudyAudioPlayer ref={promptAudioRef} url={cueAudioUrl} label="Play prompt audio" />
         ) : null}
         {card.prompt.cueText ? (
-          <p
-            className={`mx-auto max-w-4xl text-center font-semibold leading-tight text-black ${getHeadlineClasses(
+          <StudyRubyText
+            as="div"
+            text={card.prompt.cueText}
+            autoFitSingleLine
+            minFontSizePx={compactMobile ? 24 : 28}
+            className={`mx-auto w-full max-w-5xl whitespace-nowrap text-center font-semibold leading-tight text-black ${getHeadlineClasses(
               card.prompt.cueText,
               { compactMobile }
             )}`}
-          >
-            {toDisplayText(card.prompt.cueText)}
-          </p>
+          />
         ) : null}
         {card.prompt.cueMeaning ? (
           <p
@@ -245,95 +256,8 @@ export const StudyCardFace = ({
   const answerAudioUrl = toAssetUrl(card.answer.answerAudio?.url);
   const answerImageUrl = toAssetUrl(card.answer.answerImage?.url);
   const notes = toNotesList(card.answer.notes);
-
-  if (card.cardType === 'cloze') {
-    return (
-      <div
-        className={
-          compactMobile
-            ? 'space-y-3 text-center md:space-y-8'
-            : 'space-y-5 text-center sm:space-y-8'
-        }
-      >
-        {card.answer.restoredTextReading || card.answer.restoredText ? (
-          <StudyRubyText
-            as="div"
-            text={card.answer.restoredTextReading ?? card.answer.restoredText}
-            testId="study-cloze-heading"
-            className={`study-card-reading mx-auto max-w-5xl text-center font-semibold leading-tight text-black ${getHeadlineClasses(
-              card.answer.restoredText,
-              { compactMobile }
-            )}`}
-            rtClassName="text-[0.34em] font-medium text-gray-500"
-          />
-        ) : null}
-        {answerAudioUrl ? (
-          <StudyAudioPlayer
-            ref={answerAudioRef}
-            url={answerAudioUrl}
-            label="Play answer audio"
-            showTimeline
-            timelineMode={compactMobile ? 'desktop' : 'always'}
-            testId="study-answer-audio"
-          />
-        ) : null}
-        {answerImageUrl ? (
-          <img
-            src={answerImageUrl}
-            alt="Answer visual"
-            className={`mx-auto object-contain sm:max-h-72 ${
-              compactMobile ? 'max-h-[30dvh] rounded-lg' : 'max-h-[34dvh] rounded-xl'
-            }`}
-          />
-        ) : null}
-        <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
-        <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
-        {card.answer.meaning ? (
-          <p
-            className={`mx-auto max-w-4xl text-gray-800 ${
-              compactMobile
-                ? 'text-base leading-snug sm:text-2xl md:text-4xl'
-                : 'text-xl sm:text-3xl md:text-4xl'
-            }`}
-          >
-            {toDisplayText(card.answer.meaning)}
-          </p>
-        ) : null}
-        {renderNotes(
-          notes,
-          compactMobile
-            ? 'mx-auto max-w-5xl space-y-1 text-xs leading-snug text-gray-500 sm:space-y-2 sm:text-lg md:space-y-3 md:text-xl'
-            : 'mx-auto max-w-5xl space-y-2 text-sm leading-relaxed text-gray-500 sm:space-y-3 sm:text-xl',
-          'text-gray-500'
-        )}
-        {!answerAudioUrl ? (
-          <p className="text-sm uppercase tracking-[0.18em] text-gray-400">
-            Answer audio is being backfilled for this card.
-          </p>
-        ) : null}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={
-        compactMobile ? 'space-y-3 text-center md:space-y-8' : 'space-y-5 text-center sm:space-y-8'
-      }
-    >
-      {renderJapaneseHeading(card, compactMobile)}
-      {answerAudioUrl ? (
-        <StudyAudioPlayer
-          ref={answerAudioRef}
-          url={answerAudioUrl}
-          label="Play answer audio"
-          showTimeline
-          timelineMode={compactMobile ? 'desktop' : 'always'}
-          testId="study-answer-audio"
-        />
-      ) : null}
-      <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
-      <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
+  const renderedAnswerDetails = (
+    <>
       {card.answer.restoredText ? (
         <p
           className={`mx-auto max-w-4xl text-black ${
@@ -379,19 +303,126 @@ export const StudyCardFace = ({
       {renderNotes(
         notes,
         compactMobile
-          ? 'mx-auto max-w-5xl space-y-1 text-xs leading-snug text-gray-600 sm:space-y-2 sm:text-base md:space-y-3 md:text-lg'
-          : 'mx-auto max-w-5xl space-y-2 text-sm leading-relaxed text-gray-600 sm:space-y-3 sm:text-lg',
-        'text-gray-600'
+          ? 'mx-auto max-w-5xl space-y-0.5 text-xs leading-tight text-gray-600 sm:space-y-1 sm:text-base md:text-lg'
+          : 'mx-auto max-w-5xl space-y-1 text-sm leading-snug text-gray-600 sm:text-lg',
+        'text-gray-600',
+        'study-answer-notes'
       )}
-      {answerImageUrl ? (
-        <img
-          src={answerImageUrl}
-          alt="Answer visual"
-          className={`mx-auto object-contain sm:max-h-72 ${
-            compactMobile ? 'max-h-[30dvh] rounded-lg' : 'max-h-[34dvh] rounded-xl'
-          }`}
+    </>
+  );
+
+  if (card.cardType === 'cloze') {
+    return (
+      <div
+        className={
+          compactMobile
+            ? 'space-y-3 text-center md:space-y-8'
+            : 'space-y-5 text-center sm:space-y-8'
+        }
+      >
+        {card.answer.restoredTextReading || card.answer.restoredText ? (
+          <StudyRubyText
+            as="div"
+            text={card.answer.restoredTextReading ?? card.answer.restoredText}
+            testId="study-cloze-heading"
+            autoFitSingleLine
+            minFontSizePx={compactMobile ? 24 : 28}
+            className={`study-card-reading mx-auto w-full max-w-5xl whitespace-nowrap text-center font-semibold leading-tight text-black ${getHeadlineClasses(
+              card.answer.restoredText,
+              { compactMobile }
+            )}`}
+            rtClassName="text-[0.34em] font-medium text-gray-500"
+          />
+        ) : null}
+        {answerAudioUrl ? (
+          <StudyAudioPlayer
+            ref={answerAudioRef}
+            url={answerAudioUrl}
+            label="Play answer audio"
+            renderMode={compactMobile ? 'hidden' : 'default'}
+            showTimeline
+            timelineMode={compactMobile ? 'desktop' : 'always'}
+            testId="study-answer-audio"
+          />
+        ) : null}
+        {answerImageUrl ? (
+          <img
+            src={answerImageUrl}
+            alt="Answer visual"
+            className={`mx-auto object-contain sm:max-h-72 ${
+              compactMobile ? 'max-h-[30dvh] rounded-lg' : 'max-h-[34dvh] rounded-xl'
+            }`}
+          />
+        ) : null}
+        <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
+        <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
+        {card.answer.meaning ? (
+          <p
+            className={`mx-auto max-w-4xl text-gray-800 ${
+              compactMobile
+                ? 'text-base leading-snug sm:text-2xl md:text-4xl'
+                : 'text-xl sm:text-3xl md:text-4xl'
+            }`}
+          >
+            {toDisplayText(card.answer.meaning)}
+          </p>
+        ) : null}
+        {renderNotes(
+          notes,
+          compactMobile
+            ? 'mx-auto max-w-5xl space-y-0.5 text-xs leading-tight text-gray-500 sm:space-y-1 sm:text-lg md:text-xl'
+            : 'mx-auto max-w-5xl space-y-1 text-sm leading-snug text-gray-500 sm:text-xl',
+          'text-gray-500',
+          'study-answer-notes'
+        )}
+        {!answerAudioUrl ? (
+          <p className="text-sm uppercase tracking-[0.18em] text-gray-400">
+            Answer audio is being backfilled for this card.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={
+        compactMobile ? 'space-y-3 text-center md:space-y-8' : 'space-y-5 text-center sm:space-y-8'
+      }
+    >
+      {renderJapaneseHeading(card, compactMobile)}
+      {answerAudioUrl ? (
+        <StudyAudioPlayer
+          ref={answerAudioRef}
+          url={answerAudioUrl}
+          label="Play answer audio"
+          renderMode={compactMobile ? 'hidden' : 'default'}
+          showTimeline
+          timelineMode={compactMobile ? 'desktop' : 'always'}
+          testId="study-answer-audio"
         />
       ) : null}
+      <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
+      <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
+      {answerImageUrl ? (
+        <div
+          className="mx-auto grid w-full max-w-6xl items-center gap-4 text-center md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:gap-8 md:text-left"
+          data-testid="study-answer-image-layout"
+        >
+          <img
+            src={answerImageUrl}
+            alt="Answer visual"
+            className={`mx-auto w-full object-contain shadow-sm ring-1 ring-gray-200 md:mx-0 ${
+              compactMobile
+                ? 'max-h-[40dvh] rounded-xl md:max-h-[48dvh]'
+                : 'max-h-[38dvh] rounded-xl md:max-h-[46dvh]'
+            }`}
+          />
+          <div className="space-y-2 md:space-y-3">{renderedAnswerDetails}</div>
+        </div>
+      ) : (
+        renderedAnswerDetails
+      )}
       {!answerAudioUrl ? (
         <p className="text-sm uppercase tracking-[0.18em] text-gray-400">
           Answer audio is being backfilled for this card.
