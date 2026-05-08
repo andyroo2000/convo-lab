@@ -17,7 +17,7 @@ import type {
 } from '@languageflow/shared/src/types';
 
 import StudyCardImageControls from '../components/study/StudyCardImageControls';
-import StudyCardFormFields from '../components/study/StudyCardFormFields';
+import StudyCardFormFields, { StudyCardNotesField } from '../components/study/StudyCardFormFields';
 import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import StudyCandidateDraftList from '../components/study/StudyCandidateDraftList';
@@ -31,6 +31,7 @@ import {
   applyStudyCardImageToPayload,
   cardTypeForStudyCardCreationKind,
   DEFAULT_STUDY_CARD_CREATION_KIND,
+  defaultImagePlacementForStudyCardCreationKind,
   defaultVoiceIdForStudyCardCreationKind,
   isStudyCardCreationDefaultVoice,
   mergeBlankStudyCardFormFields,
@@ -105,9 +106,7 @@ const StudyCreatePage = () => {
   const completeDraft = useCompleteStudyCardDraft();
   const generateDraftImage = useGenerateStudyCardDraftImage();
   const regenerateManualAudio = useRegenerateStudyCardCandidatePreviewAudio();
-  const [manualDefaultVoiceId, setManualDefaultVoiceId] = useState(() =>
-    selectManualStudyCardDefaultVoiceId()
-  );
+  const [manualDefaultVoiceId] = useState(() => selectManualStudyCardDefaultVoiceId());
   const [mode, setMode] = useState<CreateMode>('generate');
   const [creationKind, setCreationKind] = useState<StudyCardCreationKind>(
     DEFAULT_STUDY_CARD_CREATION_KIND
@@ -117,7 +116,9 @@ const StudyCreatePage = () => {
   const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
   const [manualSuccess, setManualSuccess] = useState<string | null>(null);
   const [manualImagePrompt, setManualImagePrompt] = useState('');
-  const [manualImagePlacement, setManualImagePlacement] = useState<StudyCardImagePlacement>('none');
+  const [manualImagePlacement, setManualImagePlacement] = useState<StudyCardImagePlacement>(() =>
+    defaultImagePlacementForStudyCardCreationKind(DEFAULT_STUDY_CARD_CREATION_KIND)
+  );
   const [manualPreviewImage, setManualPreviewImage] = useState<StudyMediaRef | null>(null);
   const [manualPreviewAudio, setManualPreviewAudio] = useState<StudyMediaRef | null>(null);
   const [manualPreviewAudioRole, setManualPreviewAudioRole] = useState<'prompt' | 'answer' | null>(
@@ -130,7 +131,7 @@ const StudyCreatePage = () => {
     expectedMs: 40_000,
   });
   const roundedGenerationProgress = Math.round(generationProgress.progress);
-  const { values, setField, setValues, reset } = useStudyCardForm({
+  const { values, setField, setValues } = useStudyCardForm({
     initialCardType: 'recognition',
     initialAnswerAudioVoiceId: manualDefaultVoiceId,
   });
@@ -183,7 +184,7 @@ const StudyCreatePage = () => {
   };
 
   const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
-    const wasProductionImage = creationKind === 'production-image';
+    const nextImagePlacement = defaultImagePlacementForStudyCardCreationKind(nextCreationKind);
     setCreationKind(nextCreationKind);
     setValues((current) => ({
       ...current,
@@ -195,10 +196,11 @@ const StudyCreatePage = () => {
     setManualPreviewAudio(null);
     setManualPreviewAudioRole(null);
     setManualSuccess(null);
-    if (nextCreationKind === 'production-image' && manualImagePlacement === 'none') {
-      setManualImagePlacement('prompt');
-    } else if (wasProductionImage && nextCreationKind !== 'production-image') {
-      setManualImagePlacement('none');
+    setManualImagePlacement(nextImagePlacement);
+    if (nextImagePlacement === 'none') {
+      setManualImagePrompt('');
+      setManualPreviewImage(null);
+    } else if (manualImagePlacement !== nextImagePlacement) {
       setManualImagePrompt('');
       setManualPreviewImage(null);
     }
@@ -227,13 +229,18 @@ const StudyCreatePage = () => {
         imagePrompt: manualImagePrompt.trim() || null,
       });
       const completedValues = getDraftFormValues(result);
+      const requestedImagePlacement = manualImagePlacement;
       setValues((current) => mergeBlankStudyCardFormFields(current, completedValues));
       if (!manualImagePrompt.trim() && result.imagePrompt) {
         setManualImagePrompt(result.imagePrompt);
       }
-      setManualImagePlacement(result.imagePlacement);
-      if (result.previewImage) {
+      setManualImagePlacement(
+        requestedImagePlacement === 'none' ? requestedImagePlacement : result.imagePlacement
+      );
+      if (result.previewImage && requestedImagePlacement !== 'none') {
         setManualPreviewImage(result.previewImage);
+      } else if (requestedImagePlacement === 'none') {
+        setManualPreviewImage(null);
       }
       setManualPreviewAudio(result.previewAudio);
       setManualPreviewAudioRole(result.previewAudioRole);
@@ -284,15 +291,20 @@ const StudyCreatePage = () => {
 
     try {
       const created = await createCard.mutateAsync(payload);
+      const nextDefaultVoiceId = selectManualStudyCardDefaultVoiceId();
 
       setManualSuccess(t('create.success', { cardType: created.cardType }));
-      reset();
+      setValues(
+        getStudyCardFormValues({
+          initialCardType: manualCardType,
+          initialAnswerAudioVoiceId: nextDefaultVoiceId,
+        })
+      );
       setManualImagePrompt('');
-      setManualImagePlacement('none');
+      setManualImagePlacement(defaultImagePlacementForStudyCardCreationKind(creationKind));
       setManualPreviewImage(null);
       setManualPreviewAudio(null);
       setManualPreviewAudioRole(null);
-      setManualDefaultVoiceId(selectManualStudyCardDefaultVoiceId());
       setIsManualPreviewOpen(false);
     } catch {
       // React Query stores the mutation error for the visible form message.
@@ -452,6 +464,7 @@ const StudyCreatePage = () => {
               idPrefix="study"
               creationKind={creationKind}
               includeCardTypeSelect
+              includeNotesField={false}
               onCreationKindChange={handleCreationKindChange}
               onFieldChange={handleManualFieldChange}
             />
@@ -476,6 +489,12 @@ const StudyCreatePage = () => {
               }
               staleLabel={t('create.previewStale')}
               title={manualPreviewAudioTitle}
+            />
+
+            <StudyCardNotesField
+              values={values}
+              idPrefix="study"
+              onFieldChange={handleManualFieldChange}
             />
 
             <StudyCardImageControls
