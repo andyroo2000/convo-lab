@@ -89,7 +89,11 @@ function applyOverridesToUnits(
       continue;
     }
 
-    output.push(normalizeKanaParticleUnitForTts(units[i].surface, units[i].reading));
+    pushReadingWithOverlapCollapse(
+      output,
+      units[i].surface,
+      normalizeKanaParticleUnitForTts(units[i].surface, units[i].reading)
+    );
     i++;
   }
 
@@ -104,6 +108,43 @@ function normalizeKanaParticleUnitForTts(surface: string, reading: string): stri
     return reading.replace(/^へ/, 'え');
   }
   return reading;
+}
+
+function countKanji(text: string): number {
+  let count = 0;
+  for (const char of text) {
+    const code = char.charCodeAt(0);
+    if (code >= 0x4e00 && code <= 0x9fff) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function pushReadingWithOverlapCollapse(output: string[], surface: string, reading: string) {
+  const kanjiCount = countKanji(surface);
+  if (kanjiCount === 0) {
+    output.push(reading);
+    return;
+  }
+
+  const maxOverlap = Math.min(reading.length, output.length);
+  for (let overlapLen = maxOverlap; overlapLen >= 1; overlapLen--) {
+    const suffix = output.slice(output.length - overlapLen).join('');
+    if (!reading.startsWith(suffix)) {
+      continue;
+    }
+
+    const remainingReading = reading.length - overlapLen;
+    if (remainingReading < kanjiCount) {
+      continue;
+    }
+
+    output.splice(output.length - overlapLen, overlapLen);
+    break;
+  }
+
+  output.push(reading);
 }
 
 function applyForceKanaToText(text: string, cache: ReturnType<typeof getDictionaryCache>): string {

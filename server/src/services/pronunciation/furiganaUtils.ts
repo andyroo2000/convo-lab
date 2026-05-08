@@ -29,6 +29,41 @@ function isKanji(char: string): boolean {
   return code >= 0x4e00 && code <= 0x9fff;
 }
 
+function findReadingPrefixOverlap(
+  output: string[],
+  prefix: string[],
+  reading: string,
+  kanjiSurfaceLen: number
+): { outputCharsToRemove: number; prefixCharsConsumed: number } {
+  const maxOverlap = Math.min(reading.length, output.length + prefix.length);
+
+  for (let overlapLen = maxOverlap; overlapLen >= 1; overlapLen--) {
+    const contextStart = output.length + prefix.length - overlapLen;
+    const outputStart = Math.max(0, contextStart);
+    const outputPart = output.slice(outputStart).join('');
+    const prefixStart = Math.max(0, contextStart - output.length);
+    const prefixPart = prefix.slice(prefixStart).join('');
+    const overlap = `${outputPart}${prefixPart}`;
+
+    if (!overlap || !reading.startsWith(overlap)) {
+      continue;
+    }
+
+    const remainingReading = reading.length - overlapLen;
+    if (remainingReading < kanjiSurfaceLen) {
+      continue;
+    }
+
+    const prefixCharsConsumed = Math.min(prefix.length, overlapLen);
+    return {
+      outputCharsToRemove: overlapLen - prefixCharsConsumed,
+      prefixCharsConsumed,
+    };
+  }
+
+  return { outputCharsToRemove: 0, prefixCharsConsumed: 0 };
+}
+
 export function stripFuriganaToKana(text: string): string {
   const output: string[] = [];
   let buffer: string[] = []; // accumulates non-bracket characters
@@ -57,7 +92,9 @@ export function stripFuriganaToKana(text: string): string {
       }
       // i now points at ']', the for-loop will increment past it
 
-      // Check if a suffix of the kana prefix is already included in the reading.
+      // Check if a suffix of the already-emitted kana plus the current prefix is included
+      // in the reading. This protects TTS from malformed overlapping readings like
+      // 買[か]い物[かいもの], which should become かいもの rather than かいかいもの.
       // e.g. にはお菓子[おかし] — prefix "にはお", reading "おかし", kanji surface "菓子"
       // The suffix "お" matches the reading start, and the remaining reading "かし" (len 2)
       // covers the kanji surface "菓子" (len 2), so "お" is part of the annotated surface.
@@ -66,20 +103,15 @@ export function stripFuriganaToKana(text: string): string {
       const prefix = buffer.slice(0, firstKanjiIdx);
       const readingStr = reading.join('');
       const kanjiSurfaceLen = buffer.length - firstKanjiIdx;
-      let prefixCharsConsumed = 0;
+      const { outputCharsToRemove, prefixCharsConsumed } = findReadingPrefixOverlap(
+        output,
+        prefix,
+        readingStr,
+        kanjiSurfaceLen
+      );
 
-      if (prefix.length > 0) {
-        // Try longest matching suffix of prefix against start of reading
-        for (let suffixLen = prefix.length; suffixLen >= 1; suffixLen--) {
-          const suffix = prefix.slice(prefix.length - suffixLen).join('');
-          if (readingStr.startsWith(suffix)) {
-            const remainingReading = readingStr.length - suffixLen;
-            if (remainingReading >= kanjiSurfaceLen) {
-              prefixCharsConsumed = suffixLen;
-              break;
-            }
-          }
-        }
+      if (outputCharsToRemove > 0) {
+        output.splice(output.length - outputCharsToRemove, outputCharsToRemove);
       }
 
       // Flush the prefix, minus any characters consumed by the reading
