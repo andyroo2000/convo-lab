@@ -40,8 +40,12 @@ const {
   completeManualStudyCardDraftMock,
   execMock,
   createStudyCardMock,
+  createManualCardDraftMock,
+  createStudyCardFromManualDraftMock,
   createManualStudyCardMock,
   deleteStudyCardMock,
+  deleteManualCardDraftMock,
+  enqueueStudyManualCardDraftJobMock,
   expireAtMock,
   exportStudyCardsSectionMock,
   exportStudyImportsSectionMock,
@@ -56,6 +60,7 @@ const {
   getStudySettingsMock,
   generateStudyCardCandidatesMock,
   generateManualStudyCardDraftImageMock,
+  listManualCardDraftsMock,
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
@@ -65,9 +70,12 @@ const {
   regenerateStudyCardAnswerAudioMock,
   regenerateStudyCardImageMock,
   resolveStudyCardPitchAccentMock,
+  resetManualCardDraftForRetryMock,
   reorderStudyNewCardQueueMock,
   startStudySessionMock,
+  triggerWorkerJobMock,
   undoStudyReviewMock,
+  updateManualCardDraftMock,
   updateStudySettingsMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
@@ -79,8 +87,12 @@ const {
   completeManualStudyCardDraftMock: vi.fn(),
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
+  createManualCardDraftMock: vi.fn(),
+  createStudyCardFromManualDraftMock: vi.fn(),
   createManualStudyCardMock: vi.fn(),
   deleteStudyCardMock: vi.fn(),
+  deleteManualCardDraftMock: vi.fn(),
+  enqueueStudyManualCardDraftJobMock: vi.fn(),
   expireAtMock: vi.fn(),
   exportStudyCardsSectionMock: vi.fn(),
   exportStudyImportsSectionMock: vi.fn(),
@@ -95,6 +107,7 @@ const {
   getStudySettingsMock: vi.fn(),
   generateStudyCardCandidatesMock: vi.fn(),
   generateManualStudyCardDraftImageMock: vi.fn(),
+  listManualCardDraftsMock: vi.fn(),
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
@@ -104,9 +117,12 @@ const {
   regenerateStudyCardAnswerAudioMock: vi.fn(),
   regenerateStudyCardImageMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
+  resetManualCardDraftForRetryMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
+  triggerWorkerJobMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
+  updateManualCardDraftMock: vi.fn(),
   updateStudySettingsMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
 }));
@@ -123,8 +139,11 @@ vi.mock('../../../services/studyService.js', () => ({
   cancelStudyImportUpload: cancelStudyImportUploadMock,
   completeStudyImportUpload: completeStudyImportUploadMock,
   completeManualStudyCardDraft: completeManualStudyCardDraftMock,
+  createManualCardDraft: createManualCardDraftMock,
+  createStudyCardFromManualDraft: createStudyCardFromManualDraftMock,
   createManualStudyCard: createManualStudyCardMock,
   createStudyCard: createStudyCardMock,
+  deleteManualCardDraft: deleteManualCardDraftMock,
   deleteStudyCard: deleteStudyCardMock,
   commitStudyCardCandidates: commitStudyCardCandidatesMock,
   createStudyImportUploadSession: createStudyImportUploadSessionMock,
@@ -144,6 +163,7 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudySettings: getStudySettingsMock,
   generateStudyCardCandidates: generateStudyCardCandidatesMock,
   generateManualStudyCardDraftImage: generateManualStudyCardDraftImageMock,
+  listManualCardDrafts: listManualCardDraftsMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   regenerateStudyCardCandidatePreviewAudio: regenerateStudyCardCandidatePreviewAudioMock,
@@ -152,15 +172,26 @@ vi.mock('../../../services/studyService.js', () => ({
   regenerateStudyCardAnswerAudio: regenerateStudyCardAnswerAudioMock,
   regenerateStudyCardImage: regenerateStudyCardImageMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
+  resetManualCardDraftForRetry: resetManualCardDraftForRetryMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
   undoStudyReview: undoStudyReviewMock,
+  updateManualCardDraft: updateManualCardDraftMock,
   updateStudySettings: updateStudySettingsMock,
   updateStudyCard: updateStudyCardMock,
 }));
 
 vi.mock('../../../config/redis.js', () => ({
   createRedisConnection: createRedisConnectionMock,
+  defaultWorkerSettings: { concurrency: 1 },
+}));
+
+vi.mock('../../../jobs/studyManualCardDraftQueue.js', () => ({
+  enqueueStudyManualCardDraftJob: enqueueStudyManualCardDraftJobMock,
+}));
+
+vi.mock('../../../services/workerTrigger.js', () => ({
+  triggerWorkerJob: triggerWorkerJobMock,
 }));
 
 describe('Study Routes', () => {
@@ -188,17 +219,25 @@ describe('Study Routes', () => {
     cancelStudyImportUploadMock.mockReset();
     commitStudyCardCandidatesMock.mockReset();
     completeManualStudyCardDraftMock.mockReset();
+    createManualCardDraftMock.mockReset();
+    createStudyCardFromManualDraftMock.mockReset();
     createManualStudyCardMock.mockReset();
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
+    deleteManualCardDraftMock.mockReset();
     deleteStudyCardMock.mockReset();
+    enqueueStudyManualCardDraftJobMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
     generateManualStudyCardDraftImageMock.mockReset();
+    listManualCardDraftsMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
     regenerateStudyCardImageMock.mockReset();
+    resetManualCardDraftForRetryMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
+    triggerWorkerJobMock.mockReset();
     undoStudyReviewMock.mockReset();
+    updateManualCardDraftMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
     process.env = {
@@ -228,6 +267,7 @@ describe('Study Routes', () => {
     createRedisConnectionMock.mockReturnValue({
       multi: multiMock,
     });
+    triggerWorkerJobMock.mockResolvedValue(undefined);
     getStudyMediaAccessMock.mockResolvedValue(null);
     temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'study-route-test-'));
     vi.useFakeTimers();
@@ -1152,6 +1192,142 @@ describe('Study Routes', () => {
       imagePrompt: 'A realistic photo of cloudy weather. No text.',
       imagePlacement: 'both',
     });
+  });
+
+  it('creates a manual card draft, enqueues completion, and returns immediately', async () => {
+    createManualCardDraftMock.mockResolvedValue({
+      id: 'draft-1',
+      status: 'generating',
+      creationKind: 'cloze',
+      cardType: 'cloze',
+      prompt: { clozeText: '試合に[勝ちました]。' },
+      answer: {},
+      imagePlacement: 'both',
+      imagePrompt: null,
+      previewAudio: null,
+      previewAudioRole: null,
+      previewImage: null,
+      errorMessage: null,
+      createdAt: '2026-05-08T12:00:00.000Z',
+      updatedAt: '2026-05-08T12:00:00.000Z',
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/card-drafts')).send({
+      creationKind: 'cloze',
+      cardType: 'cloze',
+      prompt: { clozeText: '試合に[勝ちました]。' },
+      answer: {},
+      imagePlacement: 'both',
+      imagePrompt: null,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.id).toBe('draft-1');
+    expect(createManualCardDraftMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      request: expect.objectContaining({
+        creationKind: 'cloze',
+        cardType: 'cloze',
+        imagePlacement: 'both',
+      }),
+    });
+    expect(enqueueStudyManualCardDraftJobMock).toHaveBeenCalledWith('draft-1');
+    expect(triggerWorkerJobMock).toHaveBeenCalled();
+  });
+
+  it('lists, autosaves, retries, creates, and deletes manual card drafts', async () => {
+    const draft = {
+      id: 'draft-1',
+      status: 'ready',
+      creationKind: 'text-recognition',
+      cardType: 'recognition',
+      prompt: { cueText: '会社' },
+      answer: { expression: '会社', meaning: 'company' },
+      imagePlacement: 'none',
+      imagePrompt: null,
+      previewAudio: null,
+      previewAudioRole: null,
+      previewImage: null,
+      errorMessage: null,
+      createdAt: '2026-05-08T12:00:00.000Z',
+      updatedAt: '2026-05-08T12:00:00.000Z',
+    };
+    listManualCardDraftsMock.mockResolvedValue([draft]);
+    updateManualCardDraftMock.mockResolvedValue({
+      ...draft,
+      answer: { expression: '会社', meaning: 'business' },
+    });
+    resetManualCardDraftForRetryMock.mockResolvedValue({ ...draft, status: 'generating' });
+    createStudyCardFromManualDraftMock.mockResolvedValue({
+      draftId: 'draft-1',
+      card: { id: 'card-1', cardType: 'recognition' },
+    });
+    deleteManualCardDraftMock.mockResolvedValue(undefined);
+
+    const listResponse = await request(app).get('/study/card-drafts');
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.drafts).toHaveLength(1);
+    expect(listManualCardDraftsMock).toHaveBeenCalledWith('user-1');
+
+    const patchResponse = await withMutationCsrf(
+      request(app).patch('/study/card-drafts/draft-1')
+    ).send({
+      prompt: { cueText: '会社' },
+      answer: { expression: '会社', meaning: 'business' },
+      imagePlacement: 'none',
+      imagePrompt: null,
+      previewAudio: null,
+      previewAudioRole: null,
+      previewImage: null,
+    });
+    expect(patchResponse.status).toBe(200);
+    expect(updateManualCardDraftMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      draftId: 'draft-1',
+      request: expect.objectContaining({
+        answer: { expression: '会社', meaning: 'business' },
+      }),
+    });
+
+    const retryResponse = await withMutationCsrf(
+      request(app).post('/study/card-drafts/draft-1/retry')
+    ).send({});
+    expect(retryResponse.status).toBe(200);
+    expect(resetManualCardDraftForRetryMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      draftId: 'draft-1',
+    });
+    expect(enqueueStudyManualCardDraftJobMock).toHaveBeenCalledWith('draft-1');
+
+    const createResponse = await withMutationCsrf(
+      request(app).post('/study/card-drafts/draft-1/create-card')
+    ).send({});
+    expect(createResponse.status).toBe(201);
+    expect(createResponse.body.card.id).toBe('card-1');
+    expect(createStudyCardFromManualDraftMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      draftId: 'draft-1',
+    });
+
+    const deleteResponse = await withMutationCsrf(
+      request(app).delete('/study/card-drafts/draft-1')
+    );
+    expect(deleteResponse.status).toBe(204);
+    expect(deleteManualCardDraftMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      draftId: 'draft-1',
+    });
+  });
+
+  it('rejects malformed manual draft autosave payloads', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/card-drafts/draft-1')).send({
+      prompt: { cueText: '会社' },
+      answer: { expression: '会社' },
+      previewAudioRole: 'front',
+    });
+
+    expect(response.status).toBe(400);
+    expect(updateManualCardDraftMock).not.toHaveBeenCalled();
   });
 
   it('commits selected generated candidates after validating media refs', async () => {

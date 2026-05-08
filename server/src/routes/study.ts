@@ -26,6 +26,8 @@ import type {
   StudyCardDraftCompleteRequest,
   StudyCardDraftImageRequest,
   StudyCardImagePlacement,
+  StudyManualCardDraftCreateRequest,
+  StudyManualCardDraftUpdateRequest,
   StudyCardRegenerateImageRequest,
   StudyBrowserSortDirection,
   StudyBrowserSortField,
@@ -36,6 +38,7 @@ import type {
 } from '@languageflow/shared/src/types.js';
 import { Router } from 'express';
 
+import { enqueueStudyManualCardDraftJob } from '../jobs/studyManualCardDraftQueue.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
@@ -76,6 +79,10 @@ import {
   commitStudyCardCandidates,
   generateStudyCardCandidates,
   generateManualStudyCardDraftImage,
+  createManualCardDraft,
+  createStudyCardFromManualDraft,
+  deleteManualCardDraft,
+  listManualCardDrafts,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
   regenerateStudyCardCandidatePreviewAudio,
@@ -83,13 +90,16 @@ import {
   regenerateStudyCardAnswerAudio,
   regenerateStudyCardImage,
   recordStudyReview,
+  resetManualCardDraftForRetry,
   resolveStudyCardPitchAccent,
   reorderStudyNewCardQueue,
   startStudySession,
   undoStudyReview,
+  updateManualCardDraft,
   updateStudySettings,
   updateStudyCard,
 } from '../services/studyService.js';
+import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
@@ -735,6 +745,96 @@ function parseStudyCardDraftCompleteRequest(value: unknown): StudyCardDraftCompl
   };
 }
 
+function parseStudyManualCardDraftCreateRequest(value: unknown): StudyManualCardDraftCreateRequest {
+  if (!isPlainObject(value)) {
+    throw new AppError('Study card draft request body must be an object.', 400);
+  }
+
+  const creationKind = parseStudyCardCreationKind(value.creationKind);
+  const requestedCardType = value.cardType;
+  const expectedCardType = cardTypeForStudyCardCreationKind(creationKind);
+  if (
+    requestedCardType !== expectedCardType ||
+    !STUDY_CARD_TYPES.has(requestedCardType as StudyCardType)
+  ) {
+    throw new AppError('cardType must match creationKind.', 400);
+  }
+  const cardType = requestedCardType as StudyCardType;
+
+  const payloads = parseStudyCardPayloads(value.prompt, value.answer);
+  const imagePrompt = parseOptionalNullableStringField('draft', 'imagePrompt', value.imagePrompt);
+  if (
+    typeof imagePrompt === 'string' &&
+    imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH
+  ) {
+    throw new AppError(
+      `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
+      400
+    );
+  }
+
+  return {
+    creationKind,
+    cardType,
+    prompt: payloads.prompt,
+    answer: payloads.answer,
+    imagePlacement: parseStudyCardImagePlacement(value.imagePlacement),
+    imagePrompt: imagePrompt ?? null,
+  };
+}
+
+function parseStudyManualCardDraftUpdateRequest(value: unknown): StudyManualCardDraftUpdateRequest {
+  if (!isPlainObject(value)) {
+    throw new AppError('Study card draft update body must be an object.', 400);
+  }
+
+  const request: StudyManualCardDraftUpdateRequest = {};
+
+  if (typeof value.prompt !== 'undefined' || typeof value.answer !== 'undefined') {
+    const payloads = parseStudyCardPayloads(value.prompt, value.answer);
+    request.prompt = payloads.prompt;
+    request.answer = payloads.answer;
+  }
+
+  if (typeof value.imagePlacement !== 'undefined') {
+    request.imagePlacement = parseStudyCardImagePlacement(value.imagePlacement);
+  }
+
+  if (typeof value.imagePrompt !== 'undefined') {
+    const imagePrompt = parseOptionalNullableStringField('draft', 'imagePrompt', value.imagePrompt);
+    if (
+      typeof imagePrompt === 'string' &&
+      imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH
+    ) {
+      throw new AppError(
+        `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
+        400
+      );
+    }
+    request.imagePrompt = imagePrompt ?? null;
+  }
+
+  if (typeof value.previewAudio !== 'undefined') {
+    request.previewAudio = parseOptionalStudyMediaRef('draft', 'previewAudio', value.previewAudio);
+    if (request.previewAudio?.mediaKind && request.previewAudio.mediaKind !== 'audio') {
+      throw new AppError('draft.previewAudio.mediaKind must be audio.', 400);
+    }
+  }
+
+  if (typeof value.previewAudioRole !== 'undefined') {
+    request.previewAudioRole = parseStudyCardCandidatePreviewRole(value.previewAudioRole);
+  }
+
+  if (typeof value.previewImage !== 'undefined') {
+    request.previewImage = parseOptionalStudyMediaRef('draft', 'previewImage', value.previewImage);
+    if (request.previewImage?.mediaKind && request.previewImage.mediaKind !== 'image') {
+      throw new AppError('draft.previewImage.mediaKind must be image.', 400);
+    }
+  }
+
+  return request;
+}
+
 function parseStudyCardCandidatePreviewRole(value: unknown): 'prompt' | 'answer' | null {
   if (typeof value === 'undefined' || value === null) {
     return null;
@@ -1266,6 +1366,132 @@ router.post(
       });
 
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/card-drafts',
+  rateLimitStudyRoute({ key: 'manual-card-draft-create', max: 60, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const request = parseStudyManualCardDraftCreateRequest(req.body);
+      const draft = await createManualCardDraft({
+        userId: req.userId,
+        request,
+      });
+      await enqueueStudyManualCardDraftJob(draft.id);
+      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
+
+      res.status(201).json(draft);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get(
+  '/card-drafts',
+  rateLimitStudyRoute({ key: 'manual-card-draft-list', max: 120, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const drafts = await listManualCardDrafts(req.userId);
+      res.json({ drafts });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.patch(
+  '/card-drafts/:draftId',
+  rateLimitStudyRoute({ key: 'manual-card-draft-update', max: 120, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const request = parseStudyManualCardDraftUpdateRequest(req.body);
+      const draft = await updateManualCardDraft({
+        userId: req.userId,
+        draftId: req.params.draftId,
+        request,
+      });
+      res.json(draft);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/card-drafts/:draftId/retry',
+  rateLimitStudyRoute({ key: 'manual-card-draft-retry', max: 30, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const draft = await resetManualCardDraftForRetry({
+        userId: req.userId,
+        draftId: req.params.draftId,
+      });
+      await enqueueStudyManualCardDraftJob(draft.id);
+      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
+
+      res.json(draft);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/card-drafts/:draftId/create-card',
+  rateLimitStudyRoute({ key: 'manual-card-draft-create-card', max: 60, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const result = await createStudyCardFromManualDraft({
+        userId: req.userId,
+        draftId: req.params.draftId,
+      });
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.delete(
+  '/card-drafts/:draftId',
+  rateLimitStudyRoute({ key: 'manual-card-draft-delete', max: 60, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      await deleteManualCardDraft({
+        userId: req.userId,
+        draftId: req.params.draftId,
+      });
+      res.status(204).send();
     } catch (error) {
       next(error);
     }

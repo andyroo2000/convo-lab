@@ -12,7 +12,10 @@ import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants';
-import type { StudyCardCandidatePreviewImageResponse } from '@languageflow/shared/src/types';
+import type {
+  StudyCardCandidatePreviewImageResponse,
+  StudyManualCardDraft,
+} from '@languageflow/shared/src/types';
 
 import StudyCreatePage from '../StudyCreatePage';
 import { DEFAULT_AUDIO_RECOGNITION_VOICE_ID } from '../../components/study/studyCardCreationModel';
@@ -32,27 +35,47 @@ const {
   commitCandidatesState,
   completeDraftMock,
   completeDraftState,
+  createManualDraftMock,
+  createManualDraftState,
+  createCardFromManualDraftMock,
   createStudyCardMock,
+  deleteManualDraftMock,
   generateDraftImageMock,
   generateDraftImageState,
   generateCandidatesState,
   generateCandidatesMock,
+  manualDraftsState,
   regenerateCandidateAudioMock,
   regenerateCandidateImageMock,
+  retryManualDraftMock,
   resolveStudyCardPitchAccentMock,
+  updateManualDraftMock,
+  updateManualDraftMutateMock,
 } = vi.hoisted(() => ({
   commitCandidatesMock: vi.fn(),
   commitCandidatesState: { isPending: false },
   completeDraftMock: vi.fn(),
   completeDraftState: { error: null as Error | null, isPending: false },
+  createManualDraftMock: vi.fn(),
+  createManualDraftState: { error: null as Error | null, isPending: false },
+  createCardFromManualDraftMock: vi.fn(),
   createStudyCardMock: vi.fn(),
+  deleteManualDraftMock: vi.fn(),
   generateDraftImageMock: vi.fn(),
   generateDraftImageState: { error: null as Error | null, isPending: false },
   generateCandidatesState: { error: null as Error | null, isPending: false },
   generateCandidatesMock: vi.fn(),
+  manualDraftsState: {
+    drafts: [] as StudyManualCardDraft[],
+    error: null as Error | null,
+    isLoading: false,
+  },
   regenerateCandidateAudioMock: vi.fn(),
   regenerateCandidateImageMock: vi.fn(),
+  retryManualDraftMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
+  updateManualDraftMock: vi.fn(),
+  updateManualDraftMutateMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
@@ -70,6 +93,37 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: completeDraftMock,
     isPending: completeDraftState.isPending,
     error: completeDraftState.error,
+  }),
+  useStudyManualCardDrafts: () => ({
+    data: { drafts: manualDraftsState.drafts },
+    isLoading: manualDraftsState.isLoading,
+    error: manualDraftsState.error,
+  }),
+  useCreateStudyManualCardDraft: () => ({
+    mutateAsync: createManualDraftMock,
+    isPending: createManualDraftState.isPending,
+    error: createManualDraftState.error,
+  }),
+  useUpdateStudyManualCardDraft: () => ({
+    mutateAsync: updateManualDraftMock,
+    mutate: updateManualDraftMutateMock,
+    isPending: false,
+    error: null,
+  }),
+  useRetryStudyManualCardDraft: () => ({
+    mutateAsync: retryManualDraftMock,
+    isPending: false,
+    error: null,
+  }),
+  useCreateCardFromStudyManualCardDraft: () => ({
+    mutateAsync: createCardFromManualDraftMock,
+    isPending: false,
+    error: null,
+  }),
+  useDeleteStudyManualCardDraft: () => ({
+    mutateAsync: deleteManualDraftMock,
+    isPending: false,
+    error: null,
   }),
   useGenerateStudyCardDraftImage: () => ({
     mutateAsync: generateDraftImageMock,
@@ -165,6 +219,34 @@ const recognitionCandidate = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const manualDraft = (overrides: Partial<StudyManualCardDraft> = {}): StudyManualCardDraft => ({
+  id: 'draft-1',
+  status: 'ready',
+  creationKind: 'text-recognition',
+  cardType: 'recognition',
+  prompt: {
+    cueText: '会社',
+    cueReading: '会社[かいしゃ]',
+    cueMeaning: 'company prompt hint',
+  },
+  answer: {
+    expression: '会社',
+    expressionReading: '会社[かいしゃ]',
+    meaning: 'company',
+    notes: 'Business noun.',
+    answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+  },
+  imagePlacement: 'none',
+  imagePrompt: null,
+  previewAudio: null,
+  previewAudioRole: null,
+  previewImage: null,
+  errorMessage: null,
+  createdAt: '2026-05-08T12:00:00.000Z',
+  updatedAt: '2026-05-08T12:00:00.000Z',
+  ...overrides,
+});
+
 describe('StudyCreatePage', () => {
   beforeEach(() => {
     commitCandidatesMock.mockReset();
@@ -172,18 +254,38 @@ describe('StudyCreatePage', () => {
     completeDraftMock.mockReset();
     completeDraftState.error = null;
     completeDraftState.isPending = false;
+    createManualDraftMock.mockReset();
+    createManualDraftState.error = null;
+    createManualDraftState.isPending = false;
+    createCardFromManualDraftMock.mockReset();
     createStudyCardMock.mockReset();
+    deleteManualDraftMock.mockReset();
     generateDraftImageMock.mockReset();
     generateDraftImageState.error = null;
     generateDraftImageState.isPending = false;
     generateCandidatesState.error = null;
     generateCandidatesState.isPending = false;
     generateCandidatesMock.mockReset();
+    manualDraftsState.drafts = [];
+    manualDraftsState.error = null;
+    manualDraftsState.isLoading = false;
     regenerateCandidateAudioMock.mockReset();
     regenerateCandidateImageMock.mockReset();
+    retryManualDraftMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
+    updateManualDraftMock.mockReset();
+    updateManualDraftMutateMock.mockReset();
     commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
+    createManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
+    createCardFromManualDraftMock.mockResolvedValue({
+      card: { id: 'created-1', cardType: 'recognition' },
+    });
     createStudyCardMock.mockResolvedValue({ cardType: 'recognition' });
+    deleteManualDraftMock.mockResolvedValue(undefined);
+    retryManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
+    updateManualDraftMock.mockImplementation(async ({ draftId, values }) =>
+      manualDraft({ id: draftId, ...values })
+    );
     generateCandidatesMock.mockResolvedValue({ candidates: [], learnerContextSummary: null });
     regenerateCandidateAudioMock.mockResolvedValue({
       prompt: { cueMeaning: 'company' },
@@ -235,7 +337,7 @@ describe('StudyCreatePage', () => {
     vi.useRealTimers();
   });
 
-  it('creates a recognition card and shows a success message', async () => {
+  it('queues a manual draft and clears the composer immediately', async () => {
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
@@ -244,9 +346,10 @@ describe('StudyCreatePage', () => {
     await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
     await chooseAnswerAudioVoice(/Sato/);
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かいしゃ');
-    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+    expect(screen.queryByRole('button', { name: 'Create card' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
 
-    expect(createStudyCardMock).toHaveBeenCalledWith({
+    expect(createManualDraftMock).toHaveBeenCalledWith({
       creationKind: 'text-recognition',
       cardType: 'recognition',
       prompt: {
@@ -264,53 +367,48 @@ describe('StudyCreatePage', () => {
         sentenceEn: null,
         notes: null,
       },
+      imagePlacement: 'none',
+      imagePrompt: null,
     });
+    expect(createStudyCardMock).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Prompt text')).toHaveValue('');
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('');
     expect(
-      await screen.findByText('Created recognition card and seeded it into the study queue.')
+      await screen.findByText('Draft queued. You can keep entering cards while it fills in.')
     ).toBeInTheDocument();
   });
 
-  it('fills only blank manual fields and keeps user-entered values', async () => {
-    completeDraftMock.mockResolvedValue({
-      creationKind: 'text-recognition',
-      cardType: 'recognition',
-      prompt: {
-        cueText: '会社 should not replace user text',
-        cueReading: '会社[かいしゃ]',
-        cueMeaning: 'company prompt hint',
-      },
-      answer: {
-        expression: '会社',
-        expressionReading: '会社[かいしゃ]',
-        meaning: 'company should not replace user meaning',
-        notes: 'Business noun.',
-        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-      },
-      imagePlacement: 'answer',
-      imagePrompt: 'A realistic photo of a company office. No text.',
-      previewAudio: {
-        id: 'manual-audio',
-        filename: 'manual-audio.mp3',
-        url: '/api/study/media/manual-audio',
-        mediaKind: 'audio',
-        source: 'generated',
-      },
-      previewAudioRole: 'answer',
-      previewImage: null,
-    });
+  it('renders the draft queue and loads selected ready draft fields', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({
+        imagePrompt: 'A realistic photo of a company office. No text.',
+        previewAudio: {
+          id: 'manual-audio',
+          filename: 'manual-audio.mp3',
+          url: '/api/study/media/manual-audio',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'answer',
+      }),
+    ];
 
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
-    expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent(
-      'Text recognition'
-    );
-    await userEvent.type(screen.getByLabelText('Prompt text'), '会社');
-    await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
-    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
 
-    // Text-recognition drafts should keep explicit no-image state even if a stale server payload
-    // returns another placement.
+    expect(screen.getByTestId('study-manual-draft-list')).toHaveClass('xl:flex');
+    expect(screen.getByTestId('study-manual-draft-scroll-region')).toHaveClass(
+      'xl:overflow-y-auto'
+    );
+    expect(screen.getByRole('columnheader', { name: 'Draft' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Updated' })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Cards' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Reviews' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+
     expect(screen.getByLabelText('Prompt text')).toHaveValue('会社');
     expect(screen.getByLabelText('Prompt reading')).toHaveValue('会社[かいしゃ]');
     expect(screen.getByLabelText('Answer expression')).toHaveValue('会社');
@@ -331,6 +429,142 @@ describe('StudyCreatePage', () => {
       .getByRole('button', { name: 'Play generated preview audio' })
       .compareDocumentPosition(screen.getByLabelText('Notes'));
     expect(audioToNotesPosition).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('shows generating, ready, and error draft statuses and actions', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-generating', status: 'generating', prompt: { cueText: '準備中' } }),
+      manualDraft({ id: 'draft-ready', status: 'ready', prompt: { cueText: '会社' } }),
+      manualDraft({
+        id: 'draft-error',
+        status: 'error',
+        prompt: { cueText: '失敗' },
+        errorMessage: 'Audio failed.',
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+
+    expect(screen.getByText('Generating')).toBeInTheDocument();
+    expect(screen.getByText('Ready')).toBeInTheDocument();
+    expect(screen.getByText('Needs attention')).toBeInTheDocument();
+
+    await userEvent.click(screen.getAllByText('失敗')[0]);
+    expect(screen.getByText(/Audio failed/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry fill' }));
+    expect(retryManualDraftMock).toHaveBeenCalledWith('draft-error');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    expect(deleteManualDraftMock).toHaveBeenCalledWith('draft-error');
+  });
+
+  it('lets a stale generating draft be retried', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({
+        id: 'draft-stale',
+        status: 'generating',
+        prompt: { cueText: '止まりました' },
+        updatedAt: '2000-01-01T00:00:00.000Z',
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.click(screen.getByRole('button', { name: 'Retry fill' }));
+
+    expect(retryManualDraftMock).toHaveBeenCalledWith('draft-stale');
+  });
+
+  it('selecting and editing a ready draft autosaves changes', async () => {
+    manualDraftsState.drafts = [manualDraft()];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'business');
+
+    await waitFor(() => {
+      expect(updateManualDraftMock).toHaveBeenCalledWith({
+        draftId: 'draft-1',
+        values: expect.objectContaining({
+          answer: expect.objectContaining({ meaning: 'business' }),
+        }),
+      });
+    });
+  });
+
+  it('creates a selected draft card and removes it from the queue', async () => {
+    manualDraftsState.drafts = [manualDraft()];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+
+    expect(updateManualDraftMock).toHaveBeenCalledWith({
+      draftId: 'draft-1',
+      values: expect.objectContaining({
+        prompt: expect.objectContaining({ cueText: '会社' }),
+        answer: expect.objectContaining({ expression: '会社' }),
+      }),
+    });
+    expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-1');
+    expect(
+      await screen.findByText('Created recognition card and seeded it into the study queue.')
+    ).toBeInTheDocument();
+  });
+
+  it('loads a ready draft with generated image and audio previews', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({
+        creationKind: 'production-image',
+        cardType: 'production',
+        prompt: { cueText: 'cloudy weather', cueMeaning: '名詞' },
+        answer: {
+          expression: '曇り',
+          expressionReading: '曇り[くもり]',
+          meaning: 'cloudy weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        imagePlacement: 'prompt',
+        imagePrompt: 'A realistic photo of a company office. No text.',
+        previewAudio: {
+          id: 'manual-audio',
+          filename: 'manual-audio.mp3',
+          url: '/api/study/media/manual-audio',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'answer',
+        previewImage: {
+          id: 'manual-image',
+          filename: 'manual-image.webp',
+          url: '/api/study/media/manual-image',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-url',
+      'http://localhost:3001/api/study/media/manual-audio'
+    );
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/manual-image'
+    );
   });
 
   it('defaults manual image placement by creation kind', async () => {
@@ -361,19 +595,34 @@ describe('StudyCreatePage', () => {
   });
 
   it('keeps the selected manual creation kind after creating a card', async () => {
-    createStudyCardMock.mockResolvedValue({ cardType: 'cloze' });
+    manualDraftsState.drafts = [
+      manualDraft({
+        creationKind: 'cloze',
+        cardType: 'cloze',
+        prompt: {
+          clozeText: '試合に{{c1::勝ちました}}。',
+          clozeDisplayText: '試合に[...]。',
+          clozeAnswerText: '勝ちました',
+        },
+        answer: {
+          restoredText: '試合に勝ちました。',
+          meaning: 'I won the match.',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        imagePlacement: 'both',
+      }),
+    ];
+    createCardFromManualDraftMock.mockResolvedValue({
+      card: { id: 'created-card', cardType: 'cloze' },
+    });
 
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
-    await chooseManualCardType(/Cloze/);
-    fireEvent.change(screen.getByLabelText('Cloze text'), {
-      target: { value: '試合に[勝ちました]。' },
-    });
-    await userEvent.type(screen.getByLabelText('Answer'), '試合に勝ちました。');
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
 
-    await waitFor(() => expect(createStudyCardMock).toHaveBeenCalled());
+    await waitFor(() => expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-1'));
     expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent('Cloze');
     expect(screen.getByLabelText('Image placement')).toHaveValue('both');
     expect(screen.getByLabelText('Cloze text')).toHaveValue('');
@@ -381,12 +630,12 @@ describe('StudyCreatePage', () => {
   });
 
   it('regenerates manual card audio and submits the refreshed preview audio', async () => {
+    manualDraftsState.drafts = [manualDraft()];
+
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
-    await userEvent.type(screen.getByLabelText('Prompt text'), '会社');
-    await userEvent.type(screen.getByLabelText('Answer expression'), '会社');
-    await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
     await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
 
     expect(regenerateCandidateAudioMock).toHaveBeenCalledWith({
@@ -405,10 +654,12 @@ describe('StudyCreatePage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
 
-    expect(createStudyCardMock).toHaveBeenCalledWith(
+    expect(updateManualDraftMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        answer: expect.objectContaining({
-          answerAudio: expect.objectContaining({ id: 'media-regenerated' }),
+        draftId: 'draft-1',
+        values: expect.objectContaining({
+          previewAudio: expect.objectContaining({ id: 'media-regenerated' }),
+          previewAudioRole: 'answer',
         }),
       })
     );
@@ -450,28 +701,7 @@ describe('StudyCreatePage', () => {
     expect(within(dialog).queryByText(/{{c1::/)).not.toBeInTheDocument();
   });
 
-  it('auto-generates the image preview when filling production-from-image', async () => {
-    completeDraftMock.mockResolvedValue({
-      creationKind: 'production-image',
-      cardType: 'production',
-      prompt: { cueText: 'cloudy weather', cueMeaning: '名詞' },
-      answer: {
-        expression: '曇り',
-        expressionReading: '曇り[くもり]',
-        meaning: 'cloudy weather',
-        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-      },
-      imagePlacement: 'prompt',
-      imagePrompt: 'A realistic photo of cloudy weather over Tokyo. No text.',
-      previewImage: {
-        id: 'manual-image',
-        filename: 'manual-image.webp',
-        url: '/api/study/media/manual-image',
-        mediaKind: 'image',
-        source: 'generated',
-      },
-    });
-
+  it('queues production-from-image drafts with prompt image placement', async () => {
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
@@ -479,55 +709,16 @@ describe('StudyCreatePage', () => {
     await userEvent.type(screen.getByLabelText('Prompt text'), 'cloudy weather');
     await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
 
-    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
-      'src',
-      'http://localhost:3001/api/study/media/manual-image'
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
-    await waitFor(() =>
-      expect(createStudyCardMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          creationKind: 'production-image',
-          cardType: 'production',
-          prompt: expect.objectContaining({
-            cueImage: expect.objectContaining({ id: 'manual-image' }),
-            cueText: null,
-          }),
-        })
-      )
+    expect(createManualDraftMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creationKind: 'production-image',
+        cardType: 'production',
+        imagePlacement: 'prompt',
+      })
     );
   });
 
-  it('auto-generates the image preview when filling cloze cards', async () => {
-    completeDraftMock.mockResolvedValue({
-      creationKind: 'cloze',
-      cardType: 'cloze',
-      prompt: {
-        clozeText: '試合に{{c1::勝ちました}}。',
-        clozeDisplayText: '試合に[...]。',
-        clozeAnswerText: '勝ちました',
-        clozeHint: 'won',
-      },
-      answer: {
-        restoredText: '試合に勝ちました。',
-        restoredTextReading: '試合[しあい]に勝[か]ちました。',
-        meaning: 'I won the match.',
-        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-      },
-      imagePlacement: 'both',
-      imagePrompt: 'A realistic photo of a person celebrating a match win. No text.',
-      previewAudio: null,
-      previewAudioRole: null,
-      previewImage: {
-        id: 'manual-cloze-image',
-        filename: 'manual-cloze-image.webp',
-        url: '/api/study/media/manual-cloze-image',
-        mediaKind: 'image',
-        source: 'generated',
-      },
-    });
-
+  it('queues cloze drafts with both-side image placement', async () => {
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
@@ -537,7 +728,7 @@ describe('StudyCreatePage', () => {
     });
     await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
 
-    expect(completeDraftMock).toHaveBeenCalledWith(
+    expect(createManualDraftMock).toHaveBeenCalledWith(
       expect.objectContaining({
         creationKind: 'cloze',
         cardType: 'cloze',
@@ -545,25 +736,10 @@ describe('StudyCreatePage', () => {
       })
     );
     expect(screen.getByLabelText('Image placement')).toHaveValue('both');
-    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
-      'src',
-      'http://localhost:3001/api/study/media/manual-cloze-image'
-    );
   });
 
   it('clears production-image preview state when switching to another manual kind', async () => {
-    completeDraftMock.mockResolvedValue({
-      creationKind: 'production-image',
-      cardType: 'production',
-      prompt: { cueMeaning: '名詞' },
-      answer: {
-        expression: '曇り',
-        expressionReading: '曇り[くもり]',
-        meaning: 'cloudy weather',
-        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-      },
-      imagePlacement: 'prompt',
-      imagePrompt: 'A realistic photo of cloudy weather over Tokyo. No text.',
+    generateDraftImageMock.mockResolvedValue({
       previewImage: {
         id: 'manual-image',
         filename: 'manual-image.webp',
@@ -571,13 +747,19 @@ describe('StudyCreatePage', () => {
         mediaKind: 'image',
         source: 'generated',
       },
+      imagePrompt: 'A realistic photo of cloudy weather over Tokyo. No text.',
+      imagePlacement: 'prompt',
     });
 
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
     await chooseManualCardType(/Production from image/);
-    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
+    await userEvent.type(
+      screen.getByLabelText('Image prompt'),
+      'A realistic photo of cloudy weather over Tokyo. No text.'
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
     expect(screen.getByAltText('Generated card prompt')).toBeInTheDocument();
 
     await chooseManualCardType(/Text recognition/);

@@ -5,3 +5,4 @@ export * from './studyBrowserService.js';
 export * from './studyExportService.js';
 export * from './studyCandidateService.js';
 export * from './study/manualCardDraft.js';
+export * from './study/manualCardDrafts.js';

@@ -295,6 +295,53 @@ export interface StudyCardDraftImageResponse {
   imagePlacement: StudyCardImagePlacement;
 }
 
+export type StudyManualCardDraftStatus = 'generating' | 'ready' | 'error';
+
+export interface StudyManualCardDraft {
+  id: string;
+  status: StudyManualCardDraftStatus;
+  creationKind: StudyCardCreationKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  imagePlacement: StudyCardImagePlacement;
+  imagePrompt: string | null;
+  previewAudio: StudyMediaRef | null;
+  previewAudioRole: 'prompt' | 'answer' | null;
+  previewImage: StudyMediaRef | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudyManualCardDraftListResponse {
+  drafts: StudyManualCardDraft[];
+}
+
+export interface StudyManualCardDraftCreateRequest {
+  creationKind: StudyCardCreationKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  imagePlacement?: StudyCardImagePlacement;
+  imagePrompt?: string | null;
+}
+
+export interface StudyManualCardDraftUpdateRequest {
+  prompt?: StudyPromptPayload;
+  answer?: StudyAnswerPayload;
+  imagePlacement?: StudyCardImagePlacement;
+  imagePrompt?: string | null;
+  previewAudio?: StudyMediaRef | null;
+  previewAudioRole?: 'prompt' | 'answer' | null;
+  previewImage?: StudyMediaRef | null;
+}
+
+export interface StudyManualCardDraftCreateCardResponse {
+  card: StudyCardSummary;
+  draftId: string;
+}
+
 export interface StudyOverview {
   dueCount: number;
   newCount: number;

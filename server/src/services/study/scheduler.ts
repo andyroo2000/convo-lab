@@ -40,6 +40,7 @@ import type {
 import {
   assertValidStudyTimeZone,
   buildStudyCardSearchText,
+  buildStudyNoteSearchText,
   createFreshSchedulerState,
   dateFromLocalDayStart,
   dateFromDayBoundary,
@@ -1522,15 +1523,22 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
         })
       : { prompt: input.prompt, answer: input.answer };
 
+  const rawFields = input.rawFields ?? {};
+  const canonicalFields = input.canonicalFields ?? {
+    createdInApp: true,
+    ...(input.creationKind ? { creationKind: input.creationKind } : {}),
+  };
+  const noteTypeName =
+    input.noteTypeName ??
+    (input.creationKind ? `ConvoLab ${input.creationKind}` : 'ConvoLab Study Card');
   const note = await prisma.studyNote.create({
     data: {
       userId: input.userId,
       sourceKind: 'convolab',
-      rawFieldsJson: toPrismaJson({}),
-      canonicalJson: toPrismaJson({
-        createdInApp: true,
-      }),
-      searchText: '',
+      sourceNotetypeName: noteTypeName,
+      rawFieldsJson: toPrismaJson(rawFields),
+      canonicalJson: toPrismaJson(canonicalFields),
+      searchText: buildStudyNoteSearchText({ rawFields, canonical: canonicalFields }),
     },
   });
 
@@ -1545,6 +1553,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
       userId: input.userId,
       noteId: note.id,
       sourceKind: 'convolab',
+      sourceTemplateName: input.sourceTemplateName ?? noteTypeName,
       cardType: input.cardType,
       queueState: 'new',
       newQueuePosition,
