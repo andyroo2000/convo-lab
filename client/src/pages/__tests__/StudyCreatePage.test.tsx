@@ -309,6 +309,8 @@ describe('StudyCreatePage', () => {
     await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
     await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
 
+    // Text-recognition drafts should keep explicit no-image state even if a stale server payload
+    // returns another placement.
     expect(screen.getByLabelText('Prompt text')).toHaveValue('会社');
     expect(screen.getByLabelText('Prompt reading')).toHaveValue('会社[かいしゃ]');
     expect(screen.getByLabelText('Answer expression')).toHaveValue('会社');
@@ -345,9 +347,14 @@ describe('StudyCreatePage', () => {
 
     await chooseManualCardType(/Production from image/);
     expect(screen.getByLabelText('Image placement')).toHaveValue('prompt');
+    await userEvent.type(
+      screen.getByLabelText('Image prompt'),
+      'A realistic photo of cloudy weather. No text.'
+    );
 
     await chooseManualCardType(/Cloze/);
     expect(screen.getByLabelText('Image placement')).toHaveValue('both');
+    expect(screen.getByLabelText('Image prompt')).toHaveValue('');
 
     await chooseManualCardType(/Text recognition/);
     expect(screen.getByLabelText('Image placement')).toHaveValue('none');

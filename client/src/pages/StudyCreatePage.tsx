@@ -203,6 +203,7 @@ const StudyCreatePage = () => {
       setManualImagePrompt('');
       setManualPreviewImage(null);
     } else if (manualImagePlacement !== nextImagePlacement) {
+      setManualImagePrompt('');
       setManualPreviewImage(null);
     }
   };
