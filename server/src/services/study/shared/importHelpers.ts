@@ -18,7 +18,7 @@ import { State, type Card } from 'ts-fsrs';
 import { open as openZipFile, type Entry, type ZipFile } from 'yauzl';
 
 import { AppError } from '../../../middleware/errorHandler.js';
-import { addFuriganaBrackets } from '../../furiganaService.js';
+import { generateJapaneseReading } from '../../japaneseReadingGenerator.js';
 
 import { ANKI_DECK_NAME, FIELD_SEPARATOR } from './constants.js';
 import { isRecord, parseJsonRecord, sanitizeText } from './guards.js';
@@ -510,7 +510,7 @@ async function resolveRestoredTextReading(
 ): Promise<string | null> {
   return (
     getProvidedRestoredTextReading(answer) ??
-    (restoredText ? await addFuriganaBrackets(restoredText) : null)
+    (restoredText ? await generateJapaneseReading(restoredText) : null)
   );
 }
 

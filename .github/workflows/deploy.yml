@@ -26,9 +26,6 @@ jobs:
           - name: worker
             dockerfile: server/Dockerfile.worker
             context: .
-          - name: furigana
-            dockerfile: furigana-service/Dockerfile
-            context: ./furigana-service
 
     steps:
       - name: Checkout code
