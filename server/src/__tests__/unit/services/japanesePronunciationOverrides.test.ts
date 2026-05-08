@@ -97,6 +97,17 @@ describe('japanesePronunciationOverrides', () => {
     expect(result).toBe('きのうわからいカレーをたべられませんでした。');
   });
 
+  it('collapses overlapping bracket readings for Japanese TTS text', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const result = module.applyJapanesePronunciationOverrides({
+      text: '今朝は買い物したかったです。',
+      reading: '今朝[けさ]は買[か]い物[かいもの]したかったです。',
+    });
+
+    expect(result).toBe('けさわかいものしたかったです。');
+  });
+
   it('does not update in-memory state if disk write fails', async () => {
     const module = await import('../../../services/japanesePronunciationOverrides.js');
 

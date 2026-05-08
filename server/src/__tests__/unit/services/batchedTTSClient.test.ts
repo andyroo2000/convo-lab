@@ -204,6 +204,22 @@ describe('batchedTTSClient', () => {
       expect(batches[0].units[0].text).toBe('このまちわぶっかがたかいです。');
     });
 
+    it('should collapse overlapping generated furigana before Japanese TTS', () => {
+      const unit: LessonScriptUnit = {
+        type: 'L2',
+        text: '今朝は買い物したかったです。',
+        reading: '今朝[けさ]は買[か]い物[かいもの]したかったです。',
+        voiceId: 'ja-JP-Wavenet-C',
+        speed: 1.0,
+      };
+      const units: LessonScriptUnit[] = [unit];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(unit.text).toBe('今朝は買い物したかったです。');
+      expect(batches[0].units[0].text).toBe('けさわかいものしたかったです。');
+    });
+
     it('should keep kanji for keep-kanji words', () => {
       const units: LessonScriptUnit[] = [
         {
