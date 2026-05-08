@@ -103,6 +103,10 @@ describe('StudyCardPreview', () => {
       'src',
       'https://example.com/company.webp'
     );
+    expect(screen.getByTestId('study-answer-image-layout')).toHaveClass(
+      'items-center',
+      'md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)]'
+    );
   });
 
   it('places answer images before text details in focus review layout', () => {
@@ -130,7 +134,52 @@ describe('StudyCardPreview', () => {
       'items-center',
       'md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)]'
     );
+    expect(screen.getByTestId('study-answer-image-column')).toHaveClass(
+      'md:border-r',
+      'md:border-gray-300/80',
+      'md:pr-8'
+    );
+    expect(screen.getByAltText('Answer visual')).not.toHaveClass('ring-1', 'shadow-sm');
     expect(screen.getByAltText('Answer visual')).toHaveClass('md:max-h-[48dvh]');
+  });
+
+  it('reuses prompt images in the split back layout when no answer image exists', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        layout="mobile-focus"
+        card={{
+          ...baseCard,
+          cardType: 'production',
+          prompt: {
+            cueImage: {
+              filename: 'cloudy.png',
+              url: 'https://example.com/cloudy.png',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+            cueMeaning: '名詞',
+          },
+          answer: {
+            expression: '曇り',
+            expressionReading: '曇[くも]り',
+            meaning: 'cloudy',
+            notes: 'Weather word.',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-answer-image-layout')).toHaveClass(
+      'items-center',
+      'md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)]'
+    );
+    expect(screen.getByAltText('Study visual')).toHaveAttribute(
+      'src',
+      'https://example.com/cloudy.png'
+    );
+    expect(screen.getByText('cloudy')).toBeInTheDocument();
+    expect(screen.getByTestId('study-answer-notes')).toHaveTextContent('Weather word.');
   });
 
   it('renders optional prompt images on cloze prompt sides', () => {
