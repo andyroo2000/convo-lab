@@ -2,7 +2,7 @@
 /**
  * Type Safety Harness for ConvoLab
  *
- * Autonomously removes `any` types from 86 files in parallel.
+ * Autonomously removes `any` types from registered files in parallel.
  * Each file gets its own Claude session that reads the file,
  * replaces `any` with proper types, and verifies with tsc.
  *
@@ -57,7 +57,7 @@ interface HarnessOptions {
 const PROJECT_ROOT = '/Users/andrewlandry/source/convo-lab';
 
 // ─── File Registry ──────────────────────────────────────────────────────────
-// All 86 files with `any` types, their beads card IDs, and occurrence counts.
+// Files with `any` types, their beads card IDs, and occurrence counts.
 
 const FILE_TASKS: FileTask[] = [
   // Client source files
@@ -74,7 +74,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/services/conversationalLessonScriptGenerator.ts', cardId: 'convo-lab-242', anyCount: 1, category: 'source' },
   { file: 'server/src/services/workerTrigger.ts', cardId: 'convo-lab-6zp', anyCount: 1, category: 'source' },
   { file: 'server/src/services/courseItemExtractor.ts', cardId: 'convo-lab-2lr', anyCount: 10, category: 'source' },
-  { file: 'server/src/services/conversationalCourseScriptGenerator.ts', cardId: 'convo-lab-55t', anyCount: 1, category: 'source' },
   { file: 'server/src/services/stripeService.ts', cardId: 'convo-lab-3im', anyCount: 6, category: 'source' },
   { file: 'server/src/services/ttsProviders/PollyTTSProvider.ts', cardId: 'convo-lab-slh', anyCount: 1, category: 'source' },
   { file: 'server/src/config/passport.ts', cardId: 'convo-lab-vls', anyCount: 1, category: 'source' },
@@ -107,7 +106,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/routes/images.test.ts', cardId: 'convo-lab-5op', anyCount: 9, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/verification.test.ts', cardId: 'convo-lab-18q', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/stripeService.test.ts', cardId: 'convo-lab-s7z', anyCount: 9, category: 'test' },
-  { file: 'server/src/__tests__/unit/services/audioExtractorService.test.ts', cardId: 'convo-lab-8yu', anyCount: 3, category: 'test' },
   { file: 'server/src/__tests__/unit/services/lessonScriptGenerator.test.ts', cardId: 'convo-lab-c1e', anyCount: 19, category: 'test' },
   { file: 'server/src/__tests__/unit/services/ttsClient.test.ts', cardId: 'convo-lab-3tp', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/emailService.test.ts', cardId: 'convo-lab-zru', anyCount: 11, category: 'test' },
