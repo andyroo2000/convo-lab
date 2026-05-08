@@ -254,7 +254,9 @@ export const StudyCardFace = ({
   }
 
   const answerAudioUrl = toAssetUrl(card.answer.answerAudio?.url);
-  const answerImageUrl = toAssetUrl(card.answer.answerImage?.url);
+  const reviewImage = card.answer.answerImage ?? card.prompt.cueImage ?? null;
+  const reviewImageUrl = toAssetUrl(reviewImage?.url);
+  const reviewImageAlt = card.answer.answerImage ? 'Answer visual' : 'Study visual';
   const notes = toNotesList(card.answer.notes);
   const renderedAnswerDetails = (
     <>
@@ -312,6 +314,30 @@ export const StudyCardFace = ({
   );
 
   if (card.cardType === 'cloze') {
+    const renderedClozeAnswerDetails = (
+      <>
+        {card.answer.meaning ? (
+          <p
+            className={`mx-auto max-w-4xl text-gray-800 ${
+              compactMobile
+                ? 'text-base leading-snug sm:text-2xl md:text-4xl'
+                : 'text-xl sm:text-3xl md:text-4xl'
+            }`}
+          >
+            {toDisplayText(card.answer.meaning)}
+          </p>
+        ) : null}
+        {renderNotes(
+          notes,
+          compactMobile
+            ? 'mx-auto max-w-5xl space-y-0.5 text-xs leading-tight text-gray-500 sm:space-y-1 sm:text-lg md:text-xl'
+            : 'mx-auto max-w-5xl space-y-1 text-sm leading-snug text-gray-500 sm:text-xl',
+          'text-gray-500',
+          'study-answer-notes'
+        )}
+      </>
+    );
+
     return (
       <div
         className={
@@ -345,35 +371,31 @@ export const StudyCardFace = ({
             testId="study-answer-audio"
           />
         ) : null}
-        {answerImageUrl ? (
-          <img
-            src={answerImageUrl}
-            alt="Answer visual"
-            className={`mx-auto object-contain sm:max-h-72 ${
-              compactMobile ? 'max-h-[30dvh] rounded-lg' : 'max-h-[34dvh] rounded-xl'
-            }`}
-          />
-        ) : null}
         <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
         <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
-        {card.answer.meaning ? (
-          <p
-            className={`mx-auto max-w-4xl text-gray-800 ${
-              compactMobile
-                ? 'text-base leading-snug sm:text-2xl md:text-4xl'
-                : 'text-xl sm:text-3xl md:text-4xl'
-            }`}
+        {reviewImageUrl ? (
+          <div
+            className="mx-auto grid w-full max-w-6xl items-center gap-4 text-center md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:gap-8 md:text-left"
+            data-testid="study-answer-image-layout"
           >
-            {toDisplayText(card.answer.meaning)}
-          </p>
-        ) : null}
-        {renderNotes(
-          notes,
-          compactMobile
-            ? 'mx-auto max-w-5xl space-y-0.5 text-xs leading-tight text-gray-500 sm:space-y-1 sm:text-lg md:text-xl'
-            : 'mx-auto max-w-5xl space-y-1 text-sm leading-snug text-gray-500 sm:text-xl',
-          'text-gray-500',
-          'study-answer-notes'
+            <div
+              className="mx-auto w-full md:border-r md:border-gray-300/80 md:pr-8"
+              data-testid="study-answer-image-column"
+            >
+              <img
+                src={reviewImageUrl}
+                alt={reviewImageAlt}
+                className={`mx-auto w-full object-contain md:mx-0 ${
+                  compactMobile
+                    ? 'max-h-[40dvh] rounded-xl md:max-h-[48dvh]'
+                    : 'max-h-[38dvh] rounded-xl md:max-h-[46dvh]'
+                }`}
+              />
+            </div>
+            <div className="space-y-2 md:space-y-3">{renderedClozeAnswerDetails}</div>
+          </div>
+        ) : (
+          renderedClozeAnswerDetails
         )}
         {!answerAudioUrl ? (
           <p className="text-sm uppercase tracking-[0.18em] text-gray-400">
@@ -404,20 +426,25 @@ export const StudyCardFace = ({
       ) : null}
       <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
-      {answerImageUrl ? (
+      {reviewImageUrl ? (
         <div
           className="mx-auto grid w-full max-w-6xl items-center gap-4 text-center md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:gap-8 md:text-left"
           data-testid="study-answer-image-layout"
         >
-          <img
-            src={answerImageUrl}
-            alt="Answer visual"
-            className={`mx-auto w-full object-contain shadow-sm ring-1 ring-gray-200 md:mx-0 ${
-              compactMobile
-                ? 'max-h-[40dvh] rounded-xl md:max-h-[48dvh]'
-                : 'max-h-[38dvh] rounded-xl md:max-h-[46dvh]'
-            }`}
-          />
+          <div
+            className="mx-auto w-full md:border-r md:border-gray-300/80 md:pr-8"
+            data-testid="study-answer-image-column"
+          >
+            <img
+              src={reviewImageUrl}
+              alt={reviewImageAlt}
+              className={`mx-auto w-full object-contain md:mx-0 ${
+                compactMobile
+                  ? 'max-h-[40dvh] rounded-xl md:max-h-[48dvh]'
+                  : 'max-h-[38dvh] rounded-xl md:max-h-[46dvh]'
+              }`}
+            />
+          </div>
           <div className="space-y-2 md:space-y-3">{renderedAnswerDetails}</div>
         </div>
       ) : (
