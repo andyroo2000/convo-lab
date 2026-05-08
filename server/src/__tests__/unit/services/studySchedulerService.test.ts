@@ -12,7 +12,7 @@ import {
   uploadBufferToGCSPathMock,
 } from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
-import { addFuriganaBrackets } from '../../../services/furiganaService.js';
+import { generateJapaneseReading } from '../../../services/japaneseReadingGenerator.js';
 import {
   createStudyCard,
   deleteStudyCard,
@@ -686,7 +686,7 @@ describe('studySchedulerService', () => {
       answerAudioMediaId: 'media-existing',
     });
 
-    expect(vi.mocked(addFuriganaBrackets)).toHaveBeenCalledWith('試合に勝ちました。');
+    expect(vi.mocked(generateJapaneseReading)).toHaveBeenCalledWith('試合に勝ちました。');
     expect(mockPrisma.studyCard.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -1117,11 +1117,11 @@ describe('studySchedulerService', () => {
     expect(updated.answer.restoredTextReading).toBe(
       '明日[あす]から早[はや]く起[お]きることにします。'
     );
-    expect(vi.mocked(addFuriganaBrackets)).not.toHaveBeenCalled();
+    expect(vi.mocked(generateJapaneseReading)).not.toHaveBeenCalled();
   });
 
   it('auto-generates cloze restored-answer readings when the edit payload leaves them blank', async () => {
-    // The suffix marks the mocked furigana-service return value; it is not real bracket notation.
+    // The suffix marks the mocked LLM reading return value; it is not real bracket notation.
     mockPrisma.studyCard.findFirst
       .mockResolvedValueOnce(
         buildClozeStudyCardRecord('明日[あした]から早[はや]く起[お]きることにします。')
@@ -1145,7 +1145,9 @@ describe('studySchedulerService', () => {
       },
     });
 
-    expect(vi.mocked(addFuriganaBrackets)).toHaveBeenCalledWith('明日から早く起きることにします。');
+    expect(vi.mocked(generateJapaneseReading)).toHaveBeenCalledWith(
+      '明日から早く起きることにします。'
+    );
     expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

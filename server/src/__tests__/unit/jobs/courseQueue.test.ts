@@ -11,7 +11,7 @@ const workerEventHandlers = vi.hoisted(
 const mockExtractDialogueExchangesFromSourceText = vi.hoisted(() => vi.fn());
 const mockGenerateConversationalLessonScript = vi.hoisted(() => vi.fn());
 const mockAssembleLessonAudio = vi.hoisted(() => vi.fn());
-const mockAddReadingBrackets = vi.hoisted(() => vi.fn());
+const mockFillMissingJapaneseReadingsForScriptUnits = vi.hoisted(() => vi.fn());
 const mockProofreadScript = vi.hoisted(() => vi.fn().mockResolvedValue({ score: 7, issues: [] }));
 const mockPrisma = vi.hoisted(() => ({
   course: {
@@ -88,8 +88,8 @@ vi.mock('../../../services/conversationalLessonScriptGenerator.js', () => ({
   generateConversationalLessonScript: mockGenerateConversationalLessonScript,
 }));
 
-vi.mock('../../../services/furiganaService.js', () => ({
-  addReadingBrackets: mockAddReadingBrackets,
+vi.mock('../../../services/japaneseReadingGenerator.js', () => ({
+  fillMissingJapaneseReadingsForScriptUnits: mockFillMissingJapaneseReadingsForScriptUnits,
 }));
 
 vi.mock('../../../services/audioCourseAssembler.js', () => ({
@@ -207,7 +207,7 @@ describe('courseQueue', () => {
     mockExtractDialogueExchangesFromSourceText.mockResolvedValue(mockDialogueExchanges);
     mockGenerateConversationalLessonScript.mockResolvedValue(mockGeneratedScript);
     mockAssembleLessonAudio.mockResolvedValue(mockAssembledAudio);
-    mockAddReadingBrackets.mockImplementation(async (text: string) => text);
+    mockFillMissingJapaneseReadingsForScriptUnits.mockImplementation(async (units) => units);
   });
 
   describe('queue setup', () => {
@@ -311,6 +311,18 @@ describe('courseQueue', () => {
           jlptLevel: 'N4',
         }),
         900
+      );
+    });
+
+    it('should fill missing Japanese script readings before audio assembly', async () => {
+      const processor = workerProcessors.get('course-generation')!;
+      const job = createMockJob({ data: { courseId: 'course-123' } });
+
+      await processor(job);
+
+      expect(mockFillMissingJapaneseReadingsForScriptUnits).toHaveBeenCalledWith(
+        mockGeneratedScript.units,
+        'ja'
       );
     });
 

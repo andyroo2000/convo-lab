@@ -13,7 +13,7 @@ import {
   runDialogueExtraction,
   DialogueExchange,
 } from '../services/courseItemExtractor.js';
-import { addReadingBrackets } from '../services/furiganaService.js';
+import { fillMissingJapaneseReadingsForScriptUnits } from '../services/japaneseReadingGenerator.js';
 import { LessonScriptUnit } from '../services/lessonScriptGenerator.js';
 import { DEFAULT_SCRIPT_CONFIG, buildScriptConfig } from '../services/scriptGenerationConfig.js';
 import { proofreadScript } from '../services/scriptProofreader.js';
@@ -256,18 +256,7 @@ router.post('/:id/generate-script', async (req: AuthRequest, res, next) => {
 
     // Normalize Japanese readings
     if (course.targetLanguage === 'ja') {
-      scriptUnits = await Promise.all(
-        scriptUnits.map(async (unit) => {
-          if (unit.type !== 'L2' || !unit.text.trim()) {
-            return unit;
-          }
-          if (unit.reading && unit.reading.trim()) {
-            return unit;
-          }
-          const reading = await addReadingBrackets(unit.text, 'ja');
-          return { ...unit, reading };
-        })
-      );
+      scriptUnits = await fillMissingJapaneseReadingsForScriptUnits(scriptUnits, 'ja');
     }
 
     // Save script to course (with pipeline stage marker)

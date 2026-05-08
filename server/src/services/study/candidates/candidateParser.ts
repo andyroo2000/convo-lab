@@ -14,7 +14,7 @@ import type {
 } from '@languageflow/shared/src/types.js';
 
 import { AppError } from '../../../middleware/errorHandler.js';
-import { addFuriganaBrackets } from '../../furiganaService.js';
+import { generateJapaneseReading } from '../../japaneseReadingGenerator.js';
 import { getEnglishClozeHintFallback } from '../clozeHintUtils.js';
 import { cardTypeForStudyCardCandidateKind, STUDY_CARD_CANDIDATE_KINDS } from '../shared.js';
 
@@ -189,7 +189,7 @@ function hydrateMissingNotes(candidate: StudyCardCandidate): StudyCardCandidate 
 async function getGeneratedReading(text: string | null | undefined): Promise<string | null> {
   const trimmed = text?.trim();
   if (!trimmed) return null;
-  return addFuriganaBrackets(trimmed);
+  return generateJapaneseReading(trimmed);
 }
 
 export async function enrichCandidateReadings(

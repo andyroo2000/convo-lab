@@ -63,8 +63,12 @@ vi.mock('../../../services/batchedTTSClient.js', () => ({
   synthesizeBatchedTexts: synthesizeBatchedTextsMock,
 }));
 
-vi.mock('../../../services/furiganaService.js', () => ({
-  addFuriganaBrackets: vi.fn(async (text: string) => `${text}[furigana]`),
+vi.mock('../../../services/japaneseReadingGenerator.js', () => ({
+  generateJapaneseReading: vi.fn(async (text: string) => `${text}[furigana]`),
+  generateJapaneseReadings: vi.fn(async (texts: string[]) =>
+    texts.map((text) => `${text}[furigana]`)
+  ),
+  fillMissingJapaneseReadingsForScriptUnits: vi.fn(async (units) => units),
 }));
 
 vi.mock('../../../services/pitchAccent/pitchAccentResolver.js', () => ({

@@ -94,9 +94,8 @@ async function checkMetadataStatus() {
     if (emptyMetadata === 0) {
       console.log('✅ All sentences have metadata! No backfill needed.');
     } else {
-      console.log(`⚠️  ${emptyMetadata} sentences need backfilling.`);
-      console.log(`\nTo backfill, run:`);
-      console.log(`  npm run backfill:metadata`);
+      console.log(`⚠️  ${emptyMetadata} sentences are missing metadata.`);
+      console.log('\nRegenerate affected Japanese dialogues to rebuild LLM reading metadata.');
     }
     console.log('');
   } catch (error) {

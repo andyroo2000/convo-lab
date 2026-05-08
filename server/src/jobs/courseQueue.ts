@@ -14,7 +14,7 @@ import {
   extractDialogueExchangesFromSourceText,
 } from '../services/courseItemExtractor.js';
 import type { DialogueExchange } from '../services/courseItemExtractor.js';
-import { addReadingBrackets } from '../services/furiganaService.js';
+import { fillMissingJapaneseReadingsForScriptUnits } from '../services/japaneseReadingGenerator.js';
 import { LessonScriptUnit } from '../services/lessonScriptGenerator.js';
 import { proofreadScript } from '../services/scriptProofreader.js';
 
@@ -287,19 +287,8 @@ async function processCourseGeneration(job: {
 
     // Normalize Japanese readings for display + TTS
     if (course.targetLanguage === 'ja') {
-      console.log('Normalizing Japanese readings with furigana service...');
-      scriptUnits = await Promise.all(
-        scriptUnits.map(async (unit) => {
-          if (unit.type !== 'L2' || !unit.text.trim()) {
-            return unit;
-          }
-          if (unit.reading && unit.reading.trim() && unit.reading !== unit.text) {
-            return unit;
-          }
-          const reading = await addReadingBrackets(unit.text, 'ja');
-          return { ...unit, reading };
-        })
-      );
+      console.log('Normalizing missing Japanese readings with LLM...');
+      scriptUnits = await fillMissingJapaneseReadingsForScriptUnits(scriptUnits, 'ja');
     }
 
     // Save script units to scriptUnitsJson and preserve pipeline data in scriptJson

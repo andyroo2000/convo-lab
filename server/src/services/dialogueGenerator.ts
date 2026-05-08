@@ -5,6 +5,7 @@ import { prisma } from '../db/client.js';
 
 import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
 import { generateCoreLlmText } from './coreLlmClient.js';
+import { generateJapaneseReadings } from './japaneseReadingGenerator.js';
 import { stripFuriganaToKana } from './pronunciation/furiganaUtils.js';
 import {
   formatGrammarForPrompt,
@@ -348,7 +349,7 @@ async function createDialogueInDB(
   episodeId: string,
   speakers: Speaker[],
   dialogueData: DialogueData,
-  _targetLanguage: string,
+  targetLanguage: string,
   _nativeLanguage: string
 ) {
   // Create dialogue
@@ -385,12 +386,26 @@ async function createDialogueInDB(
   // Map speaker names to IDs (using stripped names for matching)
   const speakerMap = new Map(speakerRecords.map((s) => [stripPhoneticNotation(s.name), s.id]));
 
-  // Derive metadata from LLM-provided readings (no furigana service needed)
-  const allMetadata = dialogueData.sentences.map((sent) => ({
+  const sentenceReadings = dialogueData.sentences.map((sent) => sent.reading?.trim() || sent.text);
+  if (targetLanguage === 'ja') {
+    const missingReadingSentences = dialogueData.sentences
+      .map((sent, index) => ({ sent, index }))
+      .filter(({ sent }) => !sent.reading?.trim());
+    const generatedReadings = await generateJapaneseReadings(
+      missingReadingSentences.map(({ sent }) => sent.text)
+    );
+    missingReadingSentences.forEach(({ index }, generatedIndex) => {
+      sentenceReadings[index] =
+        generatedReadings[generatedIndex] ?? dialogueData.sentences[index].text;
+    });
+  }
+
+  // Derive metadata from LLM-provided readings, filling missing values through the core LLM.
+  const allMetadata = dialogueData.sentences.map((sent, index) => ({
     japanese: {
       kanji: sent.text,
-      kana: sent.reading ? stripFuriganaToKana(sent.reading) : sent.text,
-      furigana: sent.reading || sent.text,
+      kana: stripFuriganaToKana(sentenceReadings[index] ?? sent.text),
+      furigana: sentenceReadings[index] ?? sent.text,
     },
   }));
   console.log(`[DIALOGUE] Derived metadata from LLM readings for ${allMetadata.length} sentences`);

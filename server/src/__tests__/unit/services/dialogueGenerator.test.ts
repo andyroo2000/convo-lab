@@ -64,12 +64,14 @@ describe('dialogueGenerator', () => {
       {
         speaker: '田中',
         text: 'こんにちは',
+        reading: 'こんにちは',
         translation: 'Hello',
         variations: ['こんにちわ', 'おはよう'],
       },
       {
         speaker: '山田',
         text: 'お元気ですか',
+        reading: 'お元気[げんき]ですか',
         translation: 'How are you?',
         variations: ['元気？', '調子はどう？'],
       },
@@ -216,6 +218,59 @@ describe('dialogueGenerator', () => {
         throw new Error('Expected ready status update call');
       }
       expect(readyUpdate[0].data.title).toBe('Weekend Plans');
+    });
+
+    it('fills missing Japanese sentence readings before deriving metadata', async () => {
+      const responseWithMissingReading = {
+        title: 'Weekend Plans',
+        sentences: [
+          {
+            speaker: '田中',
+            text: '北海道に行きました。',
+            translation: 'I went to Hokkaido.',
+            variations: [],
+          },
+          {
+            speaker: '山田',
+            text: 'いいですね。',
+            reading: 'いいですね。',
+            translation: 'Nice.',
+            variations: [],
+          },
+        ],
+      };
+      mockGenerateCoreLlmText
+        .mockResolvedValueOnce(JSON.stringify(responseWithMissingReading))
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            readings: [
+              {
+                id: '0',
+                reading: '北海道[ほっかいどう]に行[い]きました。',
+              },
+            ],
+          })
+        );
+
+      await generateDialogue({
+        episodeId: 'episode-123',
+        speakers: mockSpeakers,
+      });
+
+      expect(mockPrisma.sentence.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            text: '北海道に行きました。',
+            metadata: {
+              japanese: {
+                kanji: '北海道に行きました。',
+                kana: 'ほっかいどうにいきました。',
+                furigana: '北海道[ほっかいどう]に行[い]きました。',
+              },
+            },
+          }),
+        })
+      );
     });
 
     it('should strip furigana from speaker names in prompts', async () => {

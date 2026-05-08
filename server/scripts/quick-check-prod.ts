@@ -72,10 +72,10 @@ async function quickCheck() {
 
     if (empty === total) {
       console.log('⚠️  ALL sentences have empty metadata!');
-      console.log('   → You need to run the migration: npm run backfill:metadata\n');
+      console.log('   → Regenerate affected Japanese dialogues to rebuild LLM reading metadata.\n');
     } else if (empty > 0) {
-      console.log(`⚠️  ${empty} sentences still need backfilling`);
-      console.log('   → Run: npm run backfill:metadata\n');
+      console.log(`⚠️  ${empty} sentences are missing metadata`);
+      console.log('   → Regenerate affected Japanese dialogues to rebuild LLM reading metadata.\n');
     } else {
       console.log('✅ All sentences have metadata!\n');
     }
