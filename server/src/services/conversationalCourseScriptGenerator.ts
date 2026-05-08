@@ -1,6 +1,6 @@
 import { generateCoreLlmText } from './coreLlmClient.js';
 import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
-import { LessonScriptUnit } from './courseScriptGenerator.js';
+import type { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { buildSpeakerIntro } from './speakerNarration.js';
 
 interface ConversationalScriptContext {

@@ -2,9 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import {
   createSSMLWithPauses,
-  createSSMLSlow,
-  createLessonSSML,
-  createAnticipationPromptSSML,
   synthesizeSpeech,
   generateSilence,
 } from '../../../services/ttsClient.js';
@@ -34,37 +31,6 @@ describe('SSML Helper Functions', () => {
     it('should handle empty text', () => {
       const result = createSSMLWithPauses('');
       expect(result).toBe('<speak><break time="1s"/></speak>');
-    });
-  });
-
-  describe('createSSMLSlow', () => {
-    it('should wrap text with prosody tag at default 0.75 rate', () => {
-      const result = createSSMLSlow('Hello world');
-      expect(result).toBe('<speak><prosody rate="0.75">Hello world</prosody></speak>');
-    });
-
-    it('should use custom rate', () => {
-      const result = createSSMLSlow('Hello world', 0.5);
-      expect(result).toBe('<speak><prosody rate="0.5">Hello world</prosody></speak>');
-    });
-  });
-
-  describe('createLessonSSML', () => {
-    it('should wrap text with SSML and default 0.5s pause', () => {
-      const result = createLessonSSML('Listen and repeat');
-      expect(result).toBe('<speak>Listen and repeat<break time="0.5s"/></speak>');
-    });
-
-    it('should use custom pause duration', () => {
-      const result = createLessonSSML('Listen and repeat', 1);
-      expect(result).toBe('<speak>Listen and repeat<break time="1s"/></speak>');
-    });
-  });
-
-  describe('createAnticipationPromptSSML', () => {
-    it('should create SSML with 3 second pause for learner response', () => {
-      const result = createAnticipationPromptSSML('How do you say hello?');
-      expect(result).toBe('<speak>How do you say hello?<break time="3s"/></speak>');
     });
   });
 });

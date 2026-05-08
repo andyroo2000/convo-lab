@@ -77,7 +77,6 @@ vi.mock('../../../db/client.js', () => ({
 vi.mock('../../../services/ttsClient.js', () => ({
   synthesizeSpeech: mockSynthesizeSpeech,
   createSSMLWithPauses: mockCreateSSMLWithPauses,
-  createSSMLSlow: vi.fn(),
 }));
 
 vi.mock('../../../services/batchedTTSClient.js', () => ({
