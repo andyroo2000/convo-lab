@@ -300,7 +300,7 @@ function defaultManualDraftImagePlacement(
   if (requestedPlacement !== 'none') return requestedPlacement;
   if (creationKind === 'production-image') return 'prompt';
   if (creationKind === 'cloze') return 'both';
-  return requestedPlacement;
+  return 'none';
 }
 
 function shouldGenerateManualDraftPreviewImage(
