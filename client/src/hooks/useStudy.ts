@@ -22,6 +22,11 @@ import type {
   StudyCardDraftCompleteResponse,
   StudyCardDraftImageRequest,
   StudyCardDraftImageResponse,
+  StudyManualCardDraft,
+  StudyManualCardDraftCreateCardResponse,
+  StudyManualCardDraftCreateRequest,
+  StudyManualCardDraftListResponse,
+  StudyManualCardDraftUpdateRequest,
   StudyCardRegenerateImageRequest,
   StudyCardSummary,
   StudyExportManifest,
@@ -269,6 +274,52 @@ export async function generateStudyCardDraftImage(
   });
 }
 
+export async function getStudyManualCardDrafts(): Promise<StudyManualCardDraftListResponse> {
+  return apiRequest<StudyManualCardDraftListResponse>('/api/study/card-drafts');
+}
+
+export async function createStudyManualCardDraft(
+  payload: StudyManualCardDraftCreateRequest
+): Promise<StudyManualCardDraft> {
+  return apiRequest<StudyManualCardDraft>('/api/study/card-drafts', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateStudyManualCardDraft(payload: {
+  draftId: string;
+  values: StudyManualCardDraftUpdateRequest;
+}): Promise<StudyManualCardDraft> {
+  return apiRequest<StudyManualCardDraft>(`/api/study/card-drafts/${payload.draftId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload.values),
+  });
+}
+
+export async function retryStudyManualCardDraft(draftId: string): Promise<StudyManualCardDraft> {
+  return apiRequest<StudyManualCardDraft>(`/api/study/card-drafts/${draftId}/retry`, {
+    method: 'POST',
+  });
+}
+
+export async function createCardFromStudyManualCardDraft(
+  draftId: string
+): Promise<StudyManualCardDraftCreateCardResponse> {
+  return apiRequest<StudyManualCardDraftCreateCardResponse>(
+    `/api/study/card-drafts/${draftId}/create-card`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function deleteStudyManualCardDraft(draftId: string): Promise<void> {
+  await apiRequest<unknown>(`/api/study/card-drafts/${draftId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function undoStudyReview(
   reviewLogId: string,
   currentOverview?: StudyOverview
@@ -485,6 +536,76 @@ export function useCompleteStudyCardDraft() {
 export function useGenerateStudyCardDraftImage() {
   return useMutation({
     mutationFn: generateStudyCardDraftImage,
+  });
+}
+
+export function useStudyManualCardDrafts(enabled: boolean) {
+  return useQuery({
+    queryKey: ['study', 'manual-card-drafts'],
+    queryFn: getStudyManualCardDrafts,
+    enabled,
+    refetchInterval: (query) =>
+      query.state.data?.drafts.some((draft) => draft.status === 'generating') ? 2500 : false,
+  });
+}
+
+export function useCreateStudyManualCardDraft() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createStudyManualCardDraft,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+    },
+  });
+}
+
+export function useUpdateStudyManualCardDraft() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateStudyManualCardDraft,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+    },
+  });
+}
+
+export function useRetryStudyManualCardDraft() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: retryStudyManualCardDraft,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+    },
+  });
+}
+
+export function useCreateCardFromStudyManualCardDraft() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createCardFromStudyManualCardDraft,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+      ]);
+    },
+  });
+}
+
+export function useDeleteStudyManualCardDraft() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteStudyManualCardDraft,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+    },
   });
 }
 

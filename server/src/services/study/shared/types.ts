@@ -1,5 +1,6 @@
 import type {
   StudyCardActionName,
+  StudyCardCreationKind,
   StudyCardSetDueMode,
   StudyCardType,
   StudyImportPreview,
@@ -208,6 +209,11 @@ export interface CreateStudyCardInput {
   cardType: StudyCardType;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
+  creationKind?: StudyCardCreationKind | null;
+  noteTypeName?: string | null;
+  rawFields?: JsonRecord | null;
+  canonicalFields?: JsonRecord | null;
+  sourceTemplateName?: string | null;
   promptAudioMediaId?: string | null;
   answerAudioMediaId?: string | null;
   imageMediaId?: string | null;

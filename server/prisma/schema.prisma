@@ -58,6 +58,7 @@ model User {
   studyReviewLogs         StudyReviewLog[]
   studyMedia              StudyMedia[]
   studyImportJobs         StudyImportJob[]
+  studyCardDrafts         StudyCardDraft[]
   studySettings           StudySettings?
   dailyAudioPractices     DailyAudioPractice[]
 
@@ -496,6 +497,30 @@ model StudyMedia {
   @@index([importJobId])
   @@index([normalizedFilename])
   @@map("study_media")
+}
+
+model StudyCardDraft {
+  id                String   @id @default(uuid())
+  userId            String
+  status            String   @default("generating")
+  creationKind      String
+  cardType          String
+  promptJson        Json
+  answerJson        Json
+  imagePlacement    String   @default("none")
+  imagePrompt       String?  @db.Text
+  previewAudioJson  Json?
+  previewAudioRole  String?
+  previewImageJson  Json?
+  errorMessage      String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt, id])
+  @@index([userId, status, updatedAt])
+  @@map("study_card_drafts")
 }
 
 model StudyCard {

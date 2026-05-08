@@ -95,9 +95,9 @@ export async function sampleVocabulary(
   const allWords = await getVocabularyForLevel(language, level);
   if (allWords.length === 0) return [];
 
-  // Random sampling
-  const shuffled = [...allWords].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, allWords.length));
+  const uniqueWords = Array.from(new Map(allWords.map((word) => [word.word, word])).values());
+  const shuffled = [...uniqueWords].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, uniqueWords.length));
 }
 
 export function formatWordsForPrompt(words: VocabularyWord[], _language: string): string {

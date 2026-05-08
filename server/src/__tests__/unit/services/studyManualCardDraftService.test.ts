@@ -331,6 +331,17 @@ describe('manual study card drafts', () => {
 
     expect(createStudyCard).toHaveBeenCalledWith(
       expect.objectContaining({
+        creationKind: 'audio-recognition',
+        noteTypeName: 'ConvoLab Audio Recognition',
+        sourceTemplateName: 'Audio recognition',
+        rawFields: expect.objectContaining({
+          Expression: '会社',
+          Meaning: 'company',
+        }),
+        canonicalFields: expect.objectContaining({
+          answerText: '会社',
+          meaning: 'company',
+        }),
         promptAudioMediaId: 'audio-1',
         answerAudioMediaId: 'audio-1',
         prompt: {

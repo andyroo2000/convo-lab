@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,6 +12,7 @@ import type {
   StudyCardCreationKind,
   StudyCardDraftCompleteResponse,
   StudyCardImagePlacement,
+  StudyManualCardDraft,
   StudyCardSummary,
   StudyMediaRef,
 } from '@languageflow/shared/src/types';
@@ -21,6 +22,7 @@ import StudyCardFormFields, { StudyCardNotesField } from '../components/study/St
 import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import StudyCandidateDraftList from '../components/study/StudyCandidateDraftList';
+import StudyScrollableListPanel from '../components/study/StudyScrollableListPanel';
 import {
   buildStudyCardFormPayload,
   getStudyCardFormValues,
@@ -34,21 +36,25 @@ import {
   defaultImagePlacementForStudyCardCreationKind,
   defaultVoiceIdForStudyCardCreationKind,
   isStudyCardCreationDefaultVoice,
-  mergeBlankStudyCardFormFields,
 } from '../components/study/studyCardCreationModel';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import useFakeProgress from '../hooks/useFakeProgress';
 import useGeneratedStudyCandidates from '../hooks/useGeneratedStudyCandidates';
 import {
-  useCompleteStudyCardDraft,
-  useCreateStudyCard,
+  useCreateCardFromStudyManualCardDraft,
+  useCreateStudyManualCardDraft,
+  useDeleteStudyManualCardDraft,
   useGenerateStudyCardDraftImage,
+  useRetryStudyManualCardDraft,
+  useStudyManualCardDrafts,
+  useUpdateStudyManualCardDraft,
   useRegenerateStudyCardCandidatePreviewAudio,
 } from '../hooks/useStudy';
 
 type CreateMode = 'generate' | 'manual';
+const STALE_GENERATING_DRAFT_RETRY_AFTER_MS = 10 * 60 * 1000;
 
-function getDraftFormValues(result: StudyCardDraftCompleteResponse) {
+function getDraftFormValues(result: StudyCardDraftCompleteResponse | StudyManualCardDraft) {
   return getStudyCardFormValues({
     card: {
       id: 'manual-draft',
@@ -79,6 +85,19 @@ function candidateKindForManualCreationKind(
   return creationKind;
 }
 
+function creationKindLabelKey(creationKind: StudyCardCreationKind) {
+  if (creationKind === 'text-recognition') return 'textRecognition';
+  if (creationKind === 'audio-recognition') return 'audioRecognition';
+  if (creationKind === 'production-text') return 'productionText';
+  if (creationKind === 'production-image') return 'productionImage';
+  return 'cloze';
+}
+
+function isStaleGeneratingManualDraft(draft: StudyManualCardDraft | null | undefined) {
+  if (!draft || draft.status !== 'generating') return false;
+  return Date.now() - new Date(draft.updatedAt).getTime() >= STALE_GENERATING_DRAFT_RETRY_AFTER_MS;
+}
+
 function applyStudyCardAudioToPayload(
   payload: ReturnType<typeof buildStudyCardFormPayload>,
   previewAudio: StudyMediaRef | null,
@@ -102,8 +121,11 @@ function applyStudyCardAudioToPayload(
 
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
-  const createCard = useCreateStudyCard();
-  const completeDraft = useCompleteStudyCardDraft();
+  const createDraft = useCreateStudyManualCardDraft();
+  const updateDraft = useUpdateStudyManualCardDraft();
+  const deleteDraft = useDeleteStudyManualCardDraft();
+  const retryDraft = useRetryStudyManualCardDraft();
+  const createCardFromDraft = useCreateCardFromStudyManualCardDraft();
   const generateDraftImage = useGenerateStudyCardDraftImage();
   const regenerateManualAudio = useRegenerateStudyCardCandidatePreviewAudio();
   const [manualDefaultVoiceId] = useState(() => selectManualStudyCardDefaultVoiceId());
@@ -125,7 +147,20 @@ const StudyCreatePage = () => {
     null
   );
   const [isManualPreviewOpen, setIsManualPreviewOpen] = useState(false);
+  const [selectedManualDraftId, setSelectedManualDraftId] = useState<string | null>(null);
+  const manualAutosaveTimeoutRef = useRef<number | null>(null);
+  const manualAutosavePromiseRef = useRef<Promise<unknown> | null>(null);
+  const hydratedManualDraftKeyRef = useRef<string | null>(null);
   const generated = useGeneratedStudyCandidates();
+  const manualDraftsQuery = useStudyManualCardDrafts(mode === 'manual');
+  const manualDrafts = useMemo(
+    () => manualDraftsQuery.data?.drafts ?? [],
+    [manualDraftsQuery.data?.drafts]
+  );
+  const selectedManualDraft = useMemo(
+    () => manualDrafts.find((draft) => draft.id === selectedManualDraftId) ?? null,
+    [manualDrafts, selectedManualDraftId]
+  );
   const generationProgress = useFakeProgress(generated.generateCandidates.isPending, {
     // Candidate generation often takes tens of seconds, so pace the visual feedback for that wait.
     expectedMs: 40_000,
@@ -172,7 +207,7 @@ const StudyCreatePage = () => {
     updatedAt: '1970-01-01T00:00:00.000Z',
   };
   const manualAudioCandidate: StudyCardCandidateCommitItem = {
-    clientId: 'manual-draft',
+    clientId: selectedManualDraft ? `manual-draft-${selectedManualDraft.id}` : 'manual-draft',
     candidateKind: candidateKindForManualCreationKind(creationKind),
     cardType: manualCardType,
     prompt: manualPayloadWithoutMedia.prompt,
@@ -182,6 +217,130 @@ const StudyCreatePage = () => {
     previewImage: manualPreviewImage,
     imagePrompt: manualImagePrompt.trim() || null,
   };
+  const isReviewingManualDraft = Boolean(selectedManualDraft);
+  const isSelectedManualDraftGenerating = selectedManualDraft?.status === 'generating';
+  const canRetrySelectedManualDraft =
+    selectedManualDraft?.status === 'error' || isStaleGeneratingManualDraft(selectedManualDraft);
+  const isManualBusy =
+    createDraft.isPending ||
+    updateDraft.isPending ||
+    deleteDraft.isPending ||
+    retryDraft.isPending ||
+    createCardFromDraft.isPending ||
+    generateDraftImage.isPending ||
+    regenerateManualAudio.isPending;
+
+  const resetManualComposer = useCallback(
+    (nextCreationKind = creationKind) => {
+      const nextDefaultVoiceId = selectManualStudyCardDefaultVoiceId();
+      setValues(
+        getStudyCardFormValues({
+          initialCardType: cardTypeForStudyCardCreationKind(nextCreationKind),
+          initialAnswerAudioVoiceId: nextDefaultVoiceId,
+        })
+      );
+      setManualImagePrompt('');
+      setManualImagePlacement(defaultImagePlacementForStudyCardCreationKind(nextCreationKind));
+      setManualPreviewImage(null);
+      setManualPreviewAudio(null);
+      setManualPreviewAudioRole(null);
+      setIsManualPreviewOpen(false);
+    },
+    [creationKind, setValues]
+  );
+
+  useEffect(() => {
+    if (!selectedManualDraftId) return;
+    if (manualDrafts.some((draft) => draft.id === selectedManualDraftId)) return;
+    setSelectedManualDraftId(null);
+    resetManualComposer();
+  }, [manualDrafts, resetManualComposer, selectedManualDraftId]);
+
+  useEffect(() => {
+    if (!selectedManualDraft) {
+      hydratedManualDraftKeyRef.current = null;
+      return;
+    }
+
+    const hydrationKey = `${selectedManualDraft.id}:${
+      selectedManualDraft.status === 'generating' ? 'generating' : 'editable'
+    }`;
+    if (hydratedManualDraftKeyRef.current === hydrationKey) return;
+    hydratedManualDraftKeyRef.current = hydrationKey;
+
+    setCreationKind(selectedManualDraft.creationKind);
+    setValues(getDraftFormValues(selectedManualDraft));
+    setManualImagePrompt(selectedManualDraft.imagePrompt ?? '');
+    setManualImagePlacement(selectedManualDraft.imagePlacement);
+    setManualPreviewImage(selectedManualDraft.previewImage);
+    setManualPreviewAudio(selectedManualDraft.previewAudio);
+    setManualPreviewAudioRole(selectedManualDraft.previewAudioRole);
+    setManualSuccess(null);
+    setIsManualPreviewOpen(false);
+  }, [selectedManualDraft, setValues]);
+
+  useEffect(() => {
+    if (!selectedManualDraft || selectedManualDraft.status === 'generating') return undefined;
+
+    const nextPayload = {
+      prompt: manualPayload.prompt,
+      answer: manualPayload.answer,
+      imagePlacement: manualImagePlacement,
+      imagePrompt: manualImagePrompt.trim() || null,
+      previewAudio: manualPreviewAudio,
+      previewAudioRole: manualPreviewAudioRole,
+      previewImage: manualPreviewImage,
+    };
+    const persistedPayload = {
+      prompt: selectedManualDraft.prompt,
+      answer: selectedManualDraft.answer,
+      imagePlacement: selectedManualDraft.imagePlacement,
+      imagePrompt: selectedManualDraft.imagePrompt,
+      previewAudio: selectedManualDraft.previewAudio,
+      previewAudioRole: selectedManualDraft.previewAudioRole,
+      previewImage: selectedManualDraft.previewImage,
+    };
+
+    if (JSON.stringify(nextPayload) === JSON.stringify(persistedPayload)) {
+      return undefined;
+    }
+
+    if (manualAutosaveTimeoutRef.current !== null) {
+      window.clearTimeout(manualAutosaveTimeoutRef.current);
+    }
+    manualAutosaveTimeoutRef.current = window.setTimeout(() => {
+      manualAutosaveTimeoutRef.current = null;
+      const autosavePromise = updateDraft
+        .mutateAsync({
+          draftId: selectedManualDraft.id,
+          values: nextPayload,
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (manualAutosavePromiseRef.current === autosavePromise) {
+            manualAutosavePromiseRef.current = null;
+          }
+        });
+      manualAutosavePromiseRef.current = autosavePromise;
+    }, 700);
+
+    return () => {
+      if (manualAutosaveTimeoutRef.current !== null) {
+        window.clearTimeout(manualAutosaveTimeoutRef.current);
+        manualAutosaveTimeoutRef.current = null;
+      }
+    };
+  }, [
+    manualImagePlacement,
+    manualImagePrompt,
+    manualPayload.answer,
+    manualPayload.prompt,
+    manualPreviewAudio,
+    manualPreviewAudioRole,
+    manualPreviewImage,
+    selectedManualDraft,
+    updateDraft,
+  ]);
 
   const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
     const nextImagePlacement = defaultImagePlacementForStudyCardCreationKind(nextCreationKind);
@@ -220,7 +379,7 @@ const StudyCreatePage = () => {
   const handleFillRemainingFields = async () => {
     setManualSuccess(null);
     try {
-      const result = await completeDraft.mutateAsync({
+      await createDraft.mutateAsync({
         creationKind,
         cardType: manualPayloadWithoutMedia.cardType,
         prompt: manualPayloadWithoutMedia.prompt,
@@ -228,24 +387,11 @@ const StudyCreatePage = () => {
         imagePlacement: manualImagePlacement,
         imagePrompt: manualImagePrompt.trim() || null,
       });
-      const completedValues = getDraftFormValues(result);
-      const requestedImagePlacement = manualImagePlacement;
-      setValues((current) => mergeBlankStudyCardFormFields(current, completedValues));
-      if (!manualImagePrompt.trim() && result.imagePrompt) {
-        setManualImagePrompt(result.imagePrompt);
-      }
-      setManualImagePlacement(
-        requestedImagePlacement === 'none' ? requestedImagePlacement : result.imagePlacement
-      );
-      if (result.previewImage && requestedImagePlacement !== 'none') {
-        setManualPreviewImage(result.previewImage);
-      } else if (requestedImagePlacement === 'none') {
-        setManualPreviewImage(null);
-      }
-      setManualPreviewAudio(result.previewAudio);
-      setManualPreviewAudioRole(result.previewAudioRole);
+      setSelectedManualDraftId(null);
+      resetManualComposer(creationKind);
+      setManualSuccess(t('create.draftQueued'));
     } catch {
-      // React Query exposes the fill error through completeDraft.error.
+      // React Query exposes the queue error through createDraft.error.
     }
   };
 
@@ -277,35 +423,65 @@ const StudyCreatePage = () => {
     }
   };
 
+  const handleRetrySelectedDraft = async () => {
+    if (!selectedManualDraft) return;
+    setManualSuccess(null);
+    if (manualAutosaveTimeoutRef.current !== null) {
+      window.clearTimeout(manualAutosaveTimeoutRef.current);
+      manualAutosaveTimeoutRef.current = null;
+    }
+    try {
+      await retryDraft.mutateAsync(selectedManualDraft.id);
+    } catch {
+      // React Query exposes the retry error through retryDraft.error.
+    }
+  };
+
+  const handleDeleteSelectedDraft = async () => {
+    if (!selectedManualDraft) return;
+    setManualSuccess(null);
+    if (manualAutosaveTimeoutRef.current !== null) {
+      window.clearTimeout(manualAutosaveTimeoutRef.current);
+      manualAutosaveTimeoutRef.current = null;
+    }
+    try {
+      await deleteDraft.mutateAsync(selectedManualDraft.id);
+      setSelectedManualDraftId(null);
+      resetManualComposer(creationKind);
+      setManualSuccess(t('create.draftDeleted'));
+    } catch {
+      // React Query exposes the delete error through deleteDraft.error.
+    }
+  };
+
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!selectedManualDraft) return;
     setManualSuccess(null);
-    const payload = {
-      ...manualPayload,
-      creationKind,
-      prompt:
-        creationKind === 'production-image' && manualPayload.prompt.cueImage
-          ? { ...manualPayload.prompt, cueText: null }
-          : manualPayload.prompt,
-    };
+    if (manualAutosaveTimeoutRef.current !== null) {
+      window.clearTimeout(manualAutosaveTimeoutRef.current);
+      manualAutosaveTimeoutRef.current = null;
+    }
+    await manualAutosavePromiseRef.current;
 
     try {
-      const created = await createCard.mutateAsync(payload);
-      const nextDefaultVoiceId = selectManualStudyCardDefaultVoiceId();
+      await updateDraft.mutateAsync({
+        draftId: selectedManualDraft.id,
+        values: {
+          prompt: manualPayload.prompt,
+          answer: manualPayload.answer,
+          imagePlacement: manualImagePlacement,
+          imagePrompt: manualImagePrompt.trim() || null,
+          previewAudio: manualPreviewAudio,
+          previewAudioRole: manualPreviewAudioRole,
+          previewImage: manualPreviewImage,
+        },
+      });
+      const result = await createCardFromDraft.mutateAsync(selectedManualDraft.id);
 
-      setManualSuccess(t('create.success', { cardType: created.cardType }));
-      setValues(
-        getStudyCardFormValues({
-          initialCardType: manualCardType,
-          initialAnswerAudioVoiceId: nextDefaultVoiceId,
-        })
-      );
-      setManualImagePrompt('');
-      setManualImagePlacement(defaultImagePlacementForStudyCardCreationKind(creationKind));
-      setManualPreviewImage(null);
-      setManualPreviewAudio(null);
-      setManualPreviewAudioRole(null);
-      setIsManualPreviewOpen(false);
+      setManualSuccess(t('create.success', { cardType: result.card.cardType }));
+      setSelectedManualDraftId(null);
+      resetManualComposer(creationKind);
     } catch {
       // React Query stores the mutation error for the visible form message.
     }
@@ -324,6 +500,47 @@ const StudyCreatePage = () => {
       // React Query stores the mutation error for the visible form message.
     }
   };
+
+  const manualError =
+    createDraft.error ??
+    updateDraft.error ??
+    createCardFromDraft.error ??
+    deleteDraft.error ??
+    retryDraft.error;
+  let manualErrorMessage: string | null = null;
+  if (manualError instanceof Error) {
+    manualErrorMessage = manualError.message;
+  } else if (manualError) {
+    manualErrorMessage = t('create.failed');
+  }
+  const draftStatusLabel = selectedManualDraft
+    ? t(`create.draftStatuses.${selectedManualDraft.status}`)
+    : null;
+  const draftListHeader = (
+    <div className="flex items-center justify-between gap-3">
+      <p className="text-sm text-gray-600">
+        {t('create.draftQueueCount', { count: manualDrafts.length })}
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          setSelectedManualDraftId(null);
+          resetManualComposer(creationKind);
+          setManualSuccess(null);
+        }}
+        className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-gray-50"
+      >
+        {t('create.newDraft')}
+      </button>
+    </div>
+  );
+  const draftListFooter = (
+    <p className="text-sm text-gray-500">
+      {manualDrafts.some((draft) => draft.status === 'generating')
+        ? t('create.draftQueueGenerating')
+        : t('create.draftQueueReady')}
+    </p>
+  );
 
   return (
     <div className="space-y-6">
@@ -457,132 +674,261 @@ const StudyCreatePage = () => {
           </form>
         </section>
       ) : (
-        <section className="card retro-paper-panel max-w-4xl">
-          <form className="space-y-4" onSubmit={handleManualSubmit}>
-            <StudyCardFormFields
-              values={values}
-              idPrefix="study"
-              creationKind={creationKind}
-              includeCardTypeSelect
-              includeNotesField={false}
-              onCreationKindChange={handleCreationKindChange}
-              onFieldChange={handleManualFieldChange}
-            />
-
-            <StudyCandidatePreviewAudio
-              isRegenerateDisabled={
-                completeDraft.isPending || createCard.isPending || generateDraftImage.isPending
-              }
-              isRegenerating={regenerateManualAudio.isPending}
-              label={t('create.playPreview')}
-              onRegenerate={handleRegenerateManualAudio}
-              previewUrl={manualPreviewAudioUrl}
-              regenerateError={
-                regenerateManualAudio.error instanceof Error
-                  ? regenerateManualAudio.error.message
-                  : null
-              }
-              regenerateLabel={
-                regenerateManualAudio.isPending
-                  ? t('create.regeneratingPreview')
-                  : t('create.regeneratePreview')
-              }
-              staleLabel={t('create.previewStale')}
-              title={manualPreviewAudioTitle}
-            />
-
-            <StudyCardNotesField
-              values={values}
-              idPrefix="study"
-              onFieldChange={handleManualFieldChange}
-            />
-
-            <StudyCardImageControls
-              altText={t('create.generatedCardPromptAlt')}
-              imagePlacement={manualImagePlacement}
-              imagePrompt={manualImagePrompt}
-              imagePromptId="study-manual-image-prompt"
-              imagePromptLabel={t('create.imagePrompt')}
-              isRegenerateDisabled={completeDraft.isPending || createCard.isPending}
-              isRegenerating={generateDraftImage.isPending}
-              onImagePlacementChange={setManualImagePlacement}
-              onImagePromptChange={(value) => {
-                setManualImagePrompt(value);
-              }}
-              onRegenerate={handleGenerateManualImage}
-              previewUrl={manualPreviewImageUrl}
-              regenerateError={
-                generateDraftImage.error instanceof Error ? generateDraftImage.error.message : null
-              }
-              regenerateLabel={
-                generateDraftImage.isPending
-                  ? t('create.regeneratingImage')
-                  : t('create.generateImage')
-              }
-              title={t('create.imagePreview')}
-            />
-
-            {createCard.error ? (
-              <p className="text-sm text-red-600">
-                {createCard.error instanceof Error ? createCard.error.message : t('create.failed')}
+        <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
+          <StudyScrollableListPanel
+            panelTestId="study-manual-draft-list"
+            scrollRegionTestId="study-manual-draft-scroll-region"
+            header={draftListHeader}
+            footer={draftListFooter}
+          >
+            {manualDraftsQuery.isLoading ? (
+              <p className="p-6 text-gray-500">{t('create.loadingDrafts')}</p>
+            ) : null}
+            {manualDraftsQuery.error ? (
+              <p className="p-6 text-red-600">
+                {manualDraftsQuery.error instanceof Error
+                  ? manualDraftsQuery.error.message
+                  : t('create.failedDrafts')}
               </p>
             ) : null}
-            {completeDraft.error ? (
-              <p className="text-sm text-red-600">
-                {completeDraft.error instanceof Error
-                  ? completeDraft.error.message
-                  : t('create.fillRemainingFailed')}
-              </p>
+            {!manualDraftsQuery.isLoading && manualDrafts.length === 0 ? (
+              <div className="p-6 text-center text-gray-600">{t('create.noDrafts')}</div>
             ) : null}
-            {manualSuccess ? <p className="text-sm text-emerald-700">{manualSuccess}</p> : null}
+            {manualDrafts.length > 0 ? (
+              <>
+                <div className="space-y-3 p-4 md:hidden">
+                  {manualDrafts.map((draft) => {
+                    const isSelected = draft.id === selectedManualDraftId;
+                    return (
+                      <button
+                        key={draft.id}
+                        type="button"
+                        data-testid="study-manual-draft-item"
+                        onClick={() => setSelectedManualDraftId(draft.id)}
+                        className={`block w-full rounded-2xl border px-4 py-4 text-left ${
+                          isSelected
+                            ? 'border-navy bg-blue-50'
+                            : 'border-gray-200 bg-white hover:bg-cream/50'
+                        }`}
+                      >
+                        <p className="break-words text-base font-semibold text-gray-900">
+                          {draft.prompt.cueText ??
+                            draft.prompt.clozeDisplayText ??
+                            draft.prompt.clozeText ??
+                            draft.answer.expression ??
+                            draft.answer.restoredText ??
+                            t('create.untitledDraft')}
+                        </p>
+                        <p className="mt-2 text-sm text-gray-600">
+                          {t(`form.${creationKindLabelKey(draft.creationKind)}`)} ·{' '}
+                          {t(`create.draftStatuses.${draft.status}`)}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="sticky top-0 z-[1] bg-cream/95 text-gray-600">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">{t('create.draftColumn')}</th>
+                        <th className="px-4 py-3 font-medium">{t('create.statusColumn')}</th>
+                        <th className="px-4 py-3 font-medium">{t('create.updatedColumn')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {manualDrafts.map((draft) => {
+                        const isSelected = draft.id === selectedManualDraftId;
+                        return (
+                          <tr
+                            key={draft.id}
+                            data-testid="study-manual-draft-row"
+                            onClick={() => setSelectedManualDraftId(draft.id)}
+                            className={`cursor-pointer border-t border-gray-200 ${
+                              isSelected ? 'bg-blue-100/70' : 'hover:bg-cream/50'
+                            }`}
+                          >
+                            <td className="max-w-[16rem] px-4 py-3 align-top">
+                              <p className="line-clamp-2 break-words text-gray-900">
+                                {draft.prompt.cueText ??
+                                  draft.prompt.clozeDisplayText ??
+                                  draft.prompt.clozeText ??
+                                  draft.answer.expression ??
+                                  draft.answer.restoredText ??
+                                  t('create.untitledDraft')}
+                              </p>
+                              <p className="mt-1 text-xs text-gray-500">
+                                {t(`form.${creationKindLabelKey(draft.creationKind)}`)}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 align-top text-gray-700">
+                              {t(`create.draftStatuses.${draft.status}`)}
+                            </td>
+                            <td className="px-4 py-3 align-top text-gray-700">
+                              {new Date(draft.updatedAt).toLocaleString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : null}
+          </StudyScrollableListPanel>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setIsManualPreviewOpen(true)}
-                className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
-              >
-                {t('create.previewCard')}
-              </button>
-              <button
-                type="button"
-                onClick={handleFillRemainingFields}
-                disabled={
-                  completeDraft.isPending ||
-                  createCard.isPending ||
-                  generateDraftImage.isPending ||
-                  regenerateManualAudio.isPending
-                }
-                className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {completeDraft.isPending ? t('create.fillingRemaining') : t('create.fillRemaining')}
-              </button>
-              <button
-                type="submit"
-                disabled={
-                  createCard.isPending ||
-                  completeDraft.isPending ||
-                  generateDraftImage.isPending ||
-                  regenerateManualAudio.isPending
-                }
-                className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {createCard.isPending ? t('create.creating') : t('create.submit')}
-              </button>
-              <Link
-                to="/app/study"
-                className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
-              >
-                {t('create.back')}
-              </Link>
-            </div>
-            {isManualPreviewOpen ? (
-              <StudyCandidateCardPreviewModal
-                card={manualPreviewCard}
-                onClose={() => setIsManualPreviewOpen(false)}
-              />
-            ) : null}
-          </form>
+          <section className="card retro-paper-panel min-w-0">
+            <form className="space-y-4" onSubmit={handleManualSubmit}>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-navy">
+                    {selectedManualDraft ? t('create.reviewDraft') : t('create.newDraftTitle')}
+                  </h2>
+                  {selectedManualDraft ? (
+                    <p className="text-sm text-gray-600">
+                      {draftStatusLabel}
+                      {selectedManualDraft.errorMessage
+                        ? ` · ${selectedManualDraft.errorMessage}`
+                        : ''}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-600">{t('create.newDraftDescription')}</p>
+                  )}
+                </div>
+              </div>
+
+              <fieldset disabled={isSelectedManualDraftGenerating} className="space-y-4">
+                <StudyCardFormFields
+                  values={values}
+                  idPrefix="study"
+                  creationKind={creationKind}
+                  includeCardTypeSelect={!isReviewingManualDraft}
+                  includeNotesField={false}
+                  onCreationKindChange={handleCreationKindChange}
+                  onFieldChange={handleManualFieldChange}
+                />
+
+                <StudyCandidatePreviewAudio
+                  isRegenerateDisabled={isSelectedManualDraftGenerating || isManualBusy}
+                  isRegenerating={regenerateManualAudio.isPending}
+                  label={t('create.playPreview')}
+                  onRegenerate={handleRegenerateManualAudio}
+                  previewUrl={manualPreviewAudioUrl}
+                  regenerateError={
+                    regenerateManualAudio.error instanceof Error
+                      ? regenerateManualAudio.error.message
+                      : null
+                  }
+                  regenerateLabel={
+                    regenerateManualAudio.isPending
+                      ? t('create.regeneratingPreview')
+                      : t('create.regeneratePreview')
+                  }
+                  staleLabel={t('create.previewStale')}
+                  title={manualPreviewAudioTitle}
+                />
+
+                <StudyCardNotesField
+                  values={values}
+                  idPrefix="study"
+                  onFieldChange={handleManualFieldChange}
+                />
+
+                <StudyCardImageControls
+                  altText={t('create.generatedCardPromptAlt')}
+                  imagePlacement={manualImagePlacement}
+                  imagePrompt={manualImagePrompt}
+                  imagePromptId="study-manual-image-prompt"
+                  imagePromptLabel={t('create.imagePrompt')}
+                  isRegenerateDisabled={isSelectedManualDraftGenerating || isManualBusy}
+                  isRegenerating={generateDraftImage.isPending}
+                  onImagePlacementChange={setManualImagePlacement}
+                  onImagePromptChange={(value) => {
+                    setManualImagePrompt(value);
+                  }}
+                  onRegenerate={handleGenerateManualImage}
+                  previewUrl={manualPreviewImageUrl}
+                  regenerateError={
+                    generateDraftImage.error instanceof Error
+                      ? generateDraftImage.error.message
+                      : null
+                  }
+                  regenerateLabel={
+                    generateDraftImage.isPending
+                      ? t('create.regeneratingImage')
+                      : t('create.generateImage')
+                  }
+                  title={t('create.imagePreview')}
+                />
+              </fieldset>
+
+              {manualErrorMessage ? (
+                <p className="text-sm text-red-600">{manualErrorMessage}</p>
+              ) : null}
+              {manualSuccess ? <p className="text-sm text-emerald-700">{manualSuccess}</p> : null}
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsManualPreviewOpen(true)}
+                  disabled={isSelectedManualDraftGenerating}
+                  className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t('create.previewCard')}
+                </button>
+                {selectedManualDraft ? (
+                  <>
+                    {canRetrySelectedManualDraft ? (
+                      <button
+                        type="button"
+                        onClick={handleRetrySelectedDraft}
+                        disabled={isManualBusy}
+                        className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {retryDraft.isPending ? t('create.retryingDraft') : t('create.retryDraft')}
+                      </button>
+                    ) : null}
+                    <button
+                      type="submit"
+                      disabled={isSelectedManualDraftGenerating || isManualBusy}
+                      className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {createCardFromDraft.isPending ? t('create.creating') : t('create.submit')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelectedDraft}
+                      disabled={isManualBusy}
+                      className="rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deleteDraft.isPending ? t('create.deletingDraft') : t('create.deleteDraft')}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleFillRemainingFields}
+                    disabled={isManualBusy}
+                    className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {createDraft.isPending ? t('create.queueingDraft') : t('create.fillRemaining')}
+                  </button>
+                )}
+                <Link
+                  to="/app/study"
+                  className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
+                >
+                  {t('create.back')}
+                </Link>
+              </div>
+              {isManualPreviewOpen ? (
+                <StudyCandidateCardPreviewModal
+                  card={manualPreviewCard}
+                  onClose={() => setIsManualPreviewOpen(false)}
+                />
+              ) : null}
+            </form>
+          </section>
         </section>
       )}
 

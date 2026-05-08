@@ -293,6 +293,73 @@ function candidateKindForManualCreationKind(
   return creationKind;
 }
 
+export function getConvoLabNoteTypeName(creationKind: StudyCardCreationKind): string {
+  if (creationKind === 'text-recognition') return 'ConvoLab Text Recognition';
+  if (creationKind === 'audio-recognition') return 'ConvoLab Audio Recognition';
+  if (creationKind === 'production-text' || creationKind === 'production-image') {
+    return 'ConvoLab Production';
+  }
+  return 'ConvoLab Cloze';
+}
+
+function getConvoLabSourceTemplateName(creationKind: StudyCardCreationKind): string {
+  if (creationKind === 'text-recognition') return 'Text recognition';
+  if (creationKind === 'audio-recognition') return 'Audio recognition';
+  if (creationKind === 'production-image') return 'Production from image';
+  if (creationKind === 'production-text') return 'Production from text';
+  return 'Cloze';
+}
+
+function buildConvoLabNoteFields(input: {
+  creationKind: StudyCardCreationKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}): { rawFields: JsonRecord; canonicalFields: JsonRecord } {
+  const rawFields: JsonRecord = {
+    CardType: input.cardType,
+    CreationKind: input.creationKind,
+  };
+
+  const add = (key: string, value: unknown) => {
+    if (typeof value === 'string' && value.trim()) {
+      rawFields[key] = value;
+    }
+  };
+
+  if (input.cardType === 'cloze') {
+    add('Text', input.prompt.clozeText);
+    add('ClozeHint', input.prompt.clozeHint ?? input.prompt.clozeResolvedHint);
+    add('AnswerExpression', input.answer.restoredText);
+    add('AnswerReading', input.answer.restoredTextReading);
+    add('Meaning', input.answer.meaning);
+  } else {
+    add('PromptText', input.prompt.cueText);
+    add('PromptReading', input.prompt.cueReading);
+    add('PromptMeaning', input.prompt.cueMeaning);
+    add('Expression', input.answer.expression);
+    add('Reading', input.answer.expressionReading);
+    add('Meaning', input.answer.meaning);
+    add('SentenceJapanese', input.answer.sentenceJp);
+    add('SentenceEnglish', input.answer.sentenceEn);
+  }
+
+  add('Notes', input.answer.notes);
+
+  return {
+    rawFields,
+    canonicalFields: {
+      createdInApp: true,
+      creationKind: input.creationKind,
+      cardType: input.cardType,
+      promptText:
+        input.prompt.cueText ?? input.prompt.clozeDisplayText ?? input.prompt.clozeText ?? null,
+      answerText: input.answer.expression ?? input.answer.restoredText ?? null,
+      meaning: input.answer.meaning ?? null,
+    },
+  };
+}
+
 function defaultManualDraftImagePlacement(
   creationKind: StudyCardCreationKind,
   requestedPlacement: StudyCardImagePlacement
@@ -604,12 +671,23 @@ export async function createManualStudyCard(input: {
     prompt,
     answer,
   });
-
-  return createStudyCard({
-    userId: input.userId,
+  const noteFields = buildConvoLabNoteFields({
+    creationKind: input.creationKind,
     cardType: input.cardType,
     prompt,
     answer,
+  });
+
+  return createStudyCard({
+    userId: input.userId,
+    creationKind: input.creationKind,
+    cardType: input.cardType,
+    prompt,
+    answer,
+    noteTypeName: getConvoLabNoteTypeName(input.creationKind),
+    sourceTemplateName: getConvoLabSourceTemplateName(input.creationKind),
+    rawFields: noteFields.rawFields,
+    canonicalFields: noteFields.canonicalFields,
     promptAudioMediaId,
     answerAudioMediaId,
     imageMediaId,
