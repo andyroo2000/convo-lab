@@ -13,7 +13,8 @@
     "loading": "Loading study session…",
     "empty": "No cards are ready right now. Import more cards or come back when something is due.",
     "reveal": "Reveal answer",
-    "revealHint": "Tap, click, or press space to reveal"
+    "revealHintDesktop": "Click or push space to reveal",
+    "revealHintMobile": "Tap to reveal"
   },
   "reviewActions": {
     "edit": "Edit card",
