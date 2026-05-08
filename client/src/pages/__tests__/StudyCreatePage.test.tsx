@@ -360,6 +360,26 @@ describe('StudyCreatePage', () => {
     expect(screen.getByLabelText('Image placement')).toHaveValue('none');
   });
 
+  it('keeps the selected manual creation kind after creating a card', async () => {
+    createStudyCardMock.mockResolvedValue({ cardType: 'cloze' });
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await chooseManualCardType(/Cloze/);
+    fireEvent.change(screen.getByLabelText('Cloze text'), {
+      target: { value: '試合に[勝ちました]。' },
+    });
+    await userEvent.type(screen.getByLabelText('Answer'), '試合に勝ちました。');
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+
+    await waitFor(() => expect(createStudyCardMock).toHaveBeenCalled());
+    expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent('Cloze');
+    expect(screen.getByLabelText('Image placement')).toHaveValue('both');
+    expect(screen.getByLabelText('Cloze text')).toHaveValue('');
+    expect(screen.getByLabelText('Answer')).toHaveValue('');
+  });
+
   it('regenerates manual card audio and submits the refreshed preview audio', async () => {
     renderPage();
 

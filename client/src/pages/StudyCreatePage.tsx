@@ -106,9 +106,7 @@ const StudyCreatePage = () => {
   const completeDraft = useCompleteStudyCardDraft();
   const generateDraftImage = useGenerateStudyCardDraftImage();
   const regenerateManualAudio = useRegenerateStudyCardCandidatePreviewAudio();
-  const [manualDefaultVoiceId, setManualDefaultVoiceId] = useState(() =>
-    selectManualStudyCardDefaultVoiceId()
-  );
+  const [manualDefaultVoiceId] = useState(() => selectManualStudyCardDefaultVoiceId());
   const [mode, setMode] = useState<CreateMode>('generate');
   const [creationKind, setCreationKind] = useState<StudyCardCreationKind>(
     DEFAULT_STUDY_CARD_CREATION_KIND
@@ -133,7 +131,7 @@ const StudyCreatePage = () => {
     expectedMs: 40_000,
   });
   const roundedGenerationProgress = Math.round(generationProgress.progress);
-  const { values, setField, setValues, reset } = useStudyCardForm({
+  const { values, setField, setValues } = useStudyCardForm({
     initialCardType: 'recognition',
     initialAnswerAudioVoiceId: manualDefaultVoiceId,
   });
@@ -293,18 +291,20 @@ const StudyCreatePage = () => {
 
     try {
       const created = await createCard.mutateAsync(payload);
+      const nextDefaultVoiceId = selectManualStudyCardDefaultVoiceId();
 
       setManualSuccess(t('create.success', { cardType: created.cardType }));
-      setCreationKind(DEFAULT_STUDY_CARD_CREATION_KIND);
-      reset();
-      setManualImagePrompt('');
-      setManualImagePlacement(
-        defaultImagePlacementForStudyCardCreationKind(DEFAULT_STUDY_CARD_CREATION_KIND)
+      setValues(
+        getStudyCardFormValues({
+          initialCardType: manualCardType,
+          initialAnswerAudioVoiceId: nextDefaultVoiceId,
+        })
       );
+      setManualImagePrompt('');
+      setManualImagePlacement(defaultImagePlacementForStudyCardCreationKind(creationKind));
       setManualPreviewImage(null);
       setManualPreviewAudio(null);
       setManualPreviewAudioRole(null);
-      setManualDefaultVoiceId(selectManualStudyCardDefaultVoiceId());
       setIsManualPreviewOpen(false);
     } catch {
       // React Query stores the mutation error for the visible form message.
