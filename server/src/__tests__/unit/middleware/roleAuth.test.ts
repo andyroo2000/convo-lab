@@ -14,7 +14,7 @@ describe('requireAdmin middleware', () => {
   beforeEach(() => {
     mockReq = {};
     mockRes = {};
-    mockNext = vi.fn();
+    mockNext = vi.fn() as unknown as NextFunction;
     vi.clearAllMocks();
   });
 
@@ -91,7 +91,7 @@ describe('requireRole middleware', () => {
   beforeEach(() => {
     mockReq = {};
     mockRes = {};
-    mockNext = vi.fn();
+    mockNext = vi.fn() as unknown as NextFunction;
     vi.clearAllMocks();
   });
 

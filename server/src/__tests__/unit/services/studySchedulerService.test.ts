@@ -38,6 +38,11 @@ const SESSION_TEST_UPDATED_AT = new Date('2026-04-12T00:00:00.000Z');
 
 type SessionTestQueueState = 'new' | 'learning' | 'review' | 'relearning';
 
+interface StudyMediaUpdateData {
+  storagePath: string | null;
+  publicUrl: string | null;
+}
+
 function buildStudySessionSchedulerState(
   queueState: SessionTestQueueState,
   dueAt = SESSION_TEST_DUE_AT
@@ -225,7 +230,9 @@ describe('studySchedulerService', () => {
         note: {},
       });
     mockPrisma.studyReviewLog.create.mockResolvedValue({ id: 'review-log-1' });
-    mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (client: typeof mockPrisma) => unknown) => callback(mockPrisma)
+    );
 
     const reviewResult = await recordStudyReview({
       userId: 'user-1',
@@ -294,7 +301,9 @@ describe('studySchedulerService', () => {
         note: {},
       });
     mockPrisma.studyReviewLog.create.mockResolvedValue({ id: 'review-log-new' });
-    mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (client: typeof mockPrisma) => unknown) => callback(mockPrisma)
+    );
     mockPrisma.$queryRaw.mockResolvedValue([
       {
         due_count: 0,
@@ -366,7 +375,9 @@ describe('studySchedulerService', () => {
         })
         .mockResolvedValueOnce(null);
       mockPrisma.studyReviewLog.delete.mockResolvedValue({});
-      mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
+      mockPrisma.$transaction.mockImplementation(
+        async (callback: (client: typeof mockPrisma) => unknown) => callback(mockPrisma)
+      );
       mockPrisma.studyCard.findFirst.mockResolvedValue({
         id: 'card-1',
         userId: 'user-1',
@@ -454,7 +465,9 @@ describe('studySchedulerService', () => {
       })
       .mockResolvedValueOnce(null);
     mockPrisma.studyReviewLog.delete.mockResolvedValue({});
-    mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (client: typeof mockPrisma) => unknown) => callback(mockPrisma)
+    );
     mockPrisma.studyCard.findFirst.mockResolvedValue({
       id: 'card-new',
       userId: 'user-1',
@@ -1770,17 +1783,19 @@ describe('studySchedulerService', () => {
         })
       );
       mockPrisma.studyCard.findMany.mockResolvedValueOnce([]);
-      mockPrisma.studyMedia.update.mockImplementation(async ({ where, data }) => ({
-        id: where.id,
-        userId: 'user-1',
-        importJobId: 'import-1',
-        sourceKind: 'anki_import',
-        sourceFilename: `${where.id}.mp3`,
-        normalizedFilename: `${where.id}.mp3`,
-        mediaKind: 'audio',
-        storagePath: data.storagePath,
-        publicUrl: data.publicUrl,
-      }));
+      mockPrisma.studyMedia.update.mockImplementation(
+        async ({ where, data }: { where: { id: string }; data: StudyMediaUpdateData }) => ({
+          id: where.id,
+          userId: 'user-1',
+          importJobId: 'import-1',
+          sourceKind: 'anki_import',
+          sourceFilename: `${where.id}.mp3`,
+          normalizedFilename: `${where.id}.mp3`,
+          mediaKind: 'audio',
+          storagePath: data.storagePath,
+          publicUrl: data.publicUrl,
+        })
+      );
       mockPrisma.$queryRaw.mockResolvedValue([
         {
           due_count: 31,

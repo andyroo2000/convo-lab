@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
 // Create a mock Prisma client with common methods
-export const mockPrisma = {
+const mockPrismaBase = {
   user: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -143,8 +143,14 @@ export const mockPrisma = {
     count: vi.fn(),
   },
   $queryRaw: vi.fn(),
-  $transaction: vi.fn((callback) => callback(mockPrisma)),
+  $transaction: vi.fn(),
 };
+
+export const mockPrisma = mockPrismaBase;
+
+mockPrisma.$transaction.mockImplementation((callback: (client: typeof mockPrisma) => unknown) =>
+  callback(mockPrisma)
+);
 
 // Mock the prisma module
 vi.mock('../../db/client.js', () => ({

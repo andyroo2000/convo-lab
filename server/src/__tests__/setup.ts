@@ -94,7 +94,7 @@ process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.NODE_ENV = 'test';
 
 // Create a mock Prisma client with common methods
-export const mockPrisma = {
+const mockPrismaBase = {
   user: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -332,12 +332,16 @@ export const mockPrisma = {
   },
   $executeRaw: vi.fn(),
   $queryRaw: vi.fn(),
-  $transaction: vi.fn((callbackOrOperations) =>
-    Array.isArray(callbackOrOperations)
-      ? Promise.all(callbackOrOperations)
-      : callbackOrOperations(mockPrisma)
-  ),
+  $transaction: vi.fn(),
 };
+
+export const mockPrisma = mockPrismaBase;
+
+mockPrisma.$transaction.mockImplementation((callbackOrOperations: unknown) =>
+  Array.isArray(callbackOrOperations)
+    ? Promise.all(callbackOrOperations)
+    : (callbackOrOperations as (client: typeof mockPrisma) => unknown)(mockPrisma)
+);
 
 // Mock the prisma module - this must be before any imports that use prisma
 vi.mock('../db/client.js', () => ({

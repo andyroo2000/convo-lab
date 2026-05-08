@@ -14,7 +14,7 @@ describe('blockDemoUser middleware', () => {
   beforeEach(() => {
     mockReq = {};
     mockRes = {};
-    mockNext = vi.fn();
+    mockNext = vi.fn() as unknown as NextFunction;
     vi.clearAllMocks();
   });
 

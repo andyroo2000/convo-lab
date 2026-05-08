@@ -230,8 +230,8 @@ describe('Email Service', () => {
 
       await emailService.sendVerificationEmail('test-user-id', 'test@example.com', 'Test User');
 
-      expect(mockPrisma.emailVerificationToken.deleteMany).toHaveBeenCalledBefore(
-        mockPrisma.emailVerificationToken.create as unknown as ReturnType<typeof vi.fn>
+      expect(mockPrisma.emailVerificationToken.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+        mockPrisma.emailVerificationToken.create.mock.invocationCallOrder[0]
       );
 
       process.env.NODE_ENV = originalEnv;
