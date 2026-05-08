@@ -38,18 +38,17 @@ const mockFfmpeg = vi.hoisted(() => {
     }),
     run: vi.fn(),
   };
-  const ffmpegFn = vi.fn(() => mockInstance) as ReturnType<typeof vi.fn> & {
-    ffprobe: (
-      path: string,
-      cb: (err: Error | null, metadata: { format: { duration: number } }) => void
-    ) => void;
-  };
-  ffmpegFn.ffprobe = vi.fn(
-    (
-      _path: string,
-      cb: (err: Error | null, metadata: { format: { duration: number } }) => void
-    ) => {
-      cb(null, { format: { duration: 10.0 } });
+  const ffmpegFn = Object.assign(
+    vi.fn(() => mockInstance),
+    {
+      ffprobe: vi.fn(
+        (
+          _path: string,
+          cb: (err: Error | null, metadata: { format: { duration: number } }) => void
+        ) => {
+          cb(null, { format: { duration: 10.0 } });
+        }
+      ),
     }
   );
   return { ffmpegFn, mockInstance };

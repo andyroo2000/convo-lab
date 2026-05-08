@@ -64,16 +64,14 @@ export const createMockFfmpegChain = () => {
 };
 
 // Mock ffmpeg function
-type MockFfmpegFn = ReturnType<typeof vi.fn> & {
-  ffprobe: typeof mockFfprobe;
-  setFfprobePath: ReturnType<typeof vi.fn>;
-  setFfmpegPath: ReturnType<typeof vi.fn>;
-};
-
-export const mockFfmpeg = vi.fn(() => createMockFfmpegChain()) as MockFfmpegFn;
-mockFfmpeg.ffprobe = mockFfprobe;
-mockFfmpeg.setFfprobePath = vi.fn();
-mockFfmpeg.setFfmpegPath = vi.fn();
+export const mockFfmpeg = Object.assign(
+  vi.fn(() => createMockFfmpegChain()),
+  {
+    ffprobe: mockFfprobe,
+    setFfprobePath: vi.fn(),
+    setFfmpegPath: vi.fn(),
+  }
+);
 
 // Reset all mocks
 export const resetFfmpegMocks = () => {

@@ -37,7 +37,7 @@ describe('errorHandler middleware', () => {
 
     mockReq = {};
     mockRes = { status: statusMock, json: jsonMock };
-    mockNext = vi.fn();
+    mockNext = vi.fn() as unknown as NextFunction;
 
     // Suppress console.error for unhandled errors
     vi.spyOn(console, 'error').mockImplementation(() => {});

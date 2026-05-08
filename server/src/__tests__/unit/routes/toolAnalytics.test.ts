@@ -6,13 +6,15 @@ import toolAnalyticsRoutes from '../../../routes/toolAnalytics.js';
 
 describe('toolAnalytics route', () => {
   let app: Application;
-  let stdoutSpy: ReturnType<typeof vi.spyOn>;
+  let stdoutSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     app = express();
     app.use(json());
     app.use('/api', toolAnalyticsRoutes);
-    stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    stdoutSpy = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true) as unknown as ReturnType<typeof vi.fn>;
   });
 
   afterEach(() => {

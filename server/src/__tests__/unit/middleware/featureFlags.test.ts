@@ -22,7 +22,7 @@ describe('featureFlags middleware', () => {
     });
 
     const middleware = requireFeatureFlag('flashcardsEnabled');
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     await middleware({ userId: 'user-1', role: 'user' } as never, {} as Response, next);
 
@@ -37,7 +37,7 @@ describe('featureFlags middleware', () => {
     });
 
     const middleware = requireFeatureFlag('flashcardsEnabled');
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     await middleware({ userId: 'user-1', role: 'user' } as never, {} as Response, next);
 
@@ -52,7 +52,7 @@ describe('featureFlags middleware', () => {
     mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
 
     const middleware = requireFeatureFlag('flashcardsEnabled');
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     await middleware({ userId: 'user-1', role: 'user' } as never, {} as Response, next);
 
@@ -65,7 +65,7 @@ describe('featureFlags middleware', () => {
 
   it('allows admin users to bypass feature flag checks', async () => {
     const middleware = requireFeatureFlag('flashcardsEnabled');
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     await middleware({ userId: 'user-1', role: 'admin' } as never, {} as Response, next);
 
@@ -81,7 +81,7 @@ describe('featureFlags middleware', () => {
     });
 
     const middleware = requireFeatureFlag('flashcardsEnabled');
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     await middleware({ userId: 'user-1', role: 'user' } as never, {} as Response, next);
     await middleware({ userId: 'user-1', role: 'user' } as never, {} as Response, next);
@@ -106,7 +106,7 @@ describe('featureFlags middleware', () => {
       });
 
     const middleware = requireFeatureFlag('flashcardsEnabled');
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     await middleware({ userId: 'user-1', role: 'user' } as never, {} as Response, next);
     vi.setSystemTime(new Date('2026-04-22T12:00:31.000Z'));

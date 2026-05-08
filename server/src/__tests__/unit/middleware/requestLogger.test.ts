@@ -7,7 +7,7 @@ describe('requestLogger Middleware', () => {
   let mockReq: { method: string; path: string };
   let mockRes: { statusCode: number; on: ReturnType<typeof vi.fn> };
   let mockNext: NextFunction;
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleLogSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     // Setup mocks
@@ -18,10 +18,12 @@ describe('requestLogger Middleware', () => {
       on: vi.fn(),
     };
 
-    mockNext = vi.fn();
+    mockNext = vi.fn() as unknown as NextFunction;
 
     // Spy on console.log
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {}) as unknown as ReturnType<
+      typeof vi.fn
+    >;
   });
 
   afterEach(() => {

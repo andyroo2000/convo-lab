@@ -36,7 +36,7 @@ describe('rateLimitGeneration middleware', () => {
       userId: 'user-123',
     };
     mockRes = {};
-    mockNext = vi.fn();
+    mockNext = vi.fn() as unknown as NextFunction;
     vi.clearAllMocks();
   });
 

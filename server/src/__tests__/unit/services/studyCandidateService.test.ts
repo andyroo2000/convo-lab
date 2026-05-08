@@ -64,6 +64,17 @@ const japaneseCandidateVoiceIds = TTS_VOICES.ja.voices
   .filter((voice) => expectedCandidateVoiceIds.includes(voice.id))
   .map((voice) => voice.id);
 
+interface StudyMediaData {
+  userId: string;
+  sourceKind: string;
+  sourceFilename: string | null;
+  normalizedFilename: string | null;
+  mediaKind: string;
+  contentType: string | null;
+  storagePath: string | null;
+  publicUrl: string | null;
+}
+
 describe('studyCandidateService', () => {
   beforeEach(() => {
     resetStudyServiceMocks();
@@ -93,7 +104,7 @@ describe('studyCandidateService', () => {
         sourceLapses: 2,
       },
     ]);
-    mockPrisma.studyMedia.create.mockImplementation(async ({ data }) => ({
+    mockPrisma.studyMedia.create.mockImplementation(async ({ data }: { data: StudyMediaData }) => ({
       id: `media-${String(mockPrisma.studyMedia.create.mock.calls.length)}`,
       userId: data.userId,
       importJobId: null,
