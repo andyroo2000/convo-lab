@@ -214,10 +214,9 @@ describe('StudyCardPreview', () => {
       />
     );
 
-    expect(screen.getByAltText('work scene')).toHaveAttribute(
-      'src',
-      'https://example.com/company-front.webp'
-    );
+    const frontImage = screen.getByAltText('work scene');
+    expect(frontImage).toHaveAttribute('src', 'https://example.com/company-front.webp');
+    expect(frontImage).toHaveClass('max-h-[50dvh]');
   });
 
   it('renders Anki-style parenthetical furigana without showing raw parentheses', () => {
@@ -373,7 +372,7 @@ describe('StudyCardPreview', () => {
       />
     );
 
-    expect(screen.getByAltText('Study prompt')).toBeInTheDocument();
+    expect(screen.getByAltText('Study prompt')).toHaveClass('max-h-[56dvh]');
     expect(screen.getByText('名詞')).toBeInTheDocument();
   });
 

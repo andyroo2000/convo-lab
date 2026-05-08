@@ -356,6 +356,16 @@ describe('StudyBrowsePage', () => {
         sortDirection: 'desc',
       })
     );
+    expect(screen.getByTestId('study-browser-note-list')).toHaveClass(
+      'xl:flex',
+      'xl:max-h-[calc(100vh-3rem)]',
+      'xl:sticky'
+    );
+    expect(screen.getByTestId('study-browser-note-scroll-region')).toHaveClass(
+      'xl:min-h-0',
+      'xl:flex-1',
+      'xl:overflow-y-auto'
+    );
     expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
     expect(await screen.findByText('Imported fields')).toBeInTheDocument();
   });

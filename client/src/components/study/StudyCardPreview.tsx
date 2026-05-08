@@ -135,8 +135,8 @@ export const StudyCardFace = ({
             <img
               src={cueImageUrl}
               alt={card.prompt.cueMeaning ?? 'Study prompt'}
-              className={`mx-auto object-contain sm:max-h-80 ${
-                compactMobile ? 'max-h-[32dvh] rounded-lg' : 'max-h-[36dvh] rounded-xl'
+              className={`mx-auto object-contain ${
+                compactMobile ? 'max-h-[46dvh] rounded-lg' : 'max-h-[50dvh] rounded-xl'
               }`}
             />
           ) : null}
@@ -180,8 +180,8 @@ export const StudyCardFace = ({
             <img
               src={cueImageUrl}
               alt="Study prompt"
-              className={`mx-auto w-auto max-w-full object-contain sm:max-h-[50vh] ${
-                compactMobile ? 'max-h-[40dvh]' : 'max-h-[42dvh]'
+              className={`mx-auto w-auto max-w-full object-contain ${
+                compactMobile ? 'max-h-[52dvh]' : 'max-h-[56dvh]'
               }`}
             />
           ) : null}
@@ -220,8 +220,8 @@ export const StudyCardFace = ({
           <img
             src={cueImageUrl}
             alt={card.prompt.cueMeaning ?? 'Study prompt'}
-            className={`mx-auto object-contain sm:max-h-80 ${
-              compactMobile ? 'max-h-[32dvh] rounded-lg' : 'max-h-[36dvh] rounded-xl'
+            className={`mx-auto object-contain ${
+              compactMobile ? 'max-h-[46dvh] rounded-lg' : 'max-h-[50dvh] rounded-xl'
             }`}
           />
         ) : null}
