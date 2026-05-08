@@ -293,6 +293,24 @@ function candidateKindForManualCreationKind(
   return creationKind;
 }
 
+function defaultManualDraftImagePlacement(
+  creationKind: StudyCardCreationKind,
+  requestedPlacement: StudyCardImagePlacement
+): StudyCardImagePlacement {
+  if (requestedPlacement !== 'none') return requestedPlacement;
+  if (creationKind === 'production-image') return 'prompt';
+  if (creationKind === 'cloze') return 'both';
+  return requestedPlacement;
+}
+
+function shouldGenerateManualDraftPreviewImage(
+  creationKind: StudyCardCreationKind,
+  imagePlacement: StudyCardImagePlacement
+): boolean {
+  if (imagePlacement === 'none') return false;
+  return creationKind === 'production-image' || creationKind === 'cloze';
+}
+
 async function synthesizeManualDraftPreviewAudio(input: {
   userId: string;
   creationKind: StudyCardCreationKind;
@@ -395,10 +413,7 @@ export async function completeManualStudyCardDraft(input: {
   if (!STUDY_CARD_IMAGE_PLACEMENTS.has(requestedPlacement)) {
     throw new AppError('imagePlacement is not supported.', 400);
   }
-  const imagePlacement =
-    request.creationKind === 'production-image' && requestedPlacement === 'none'
-      ? 'prompt'
-      : requestedPlacement;
+  const imagePlacement = defaultManualDraftImagePlacement(request.creationKind, requestedPlacement);
   const imageTreatment = IMAGE_PROMPT_STYLE;
   const rawResponse = await generateStudyCardCandidateJson(
     buildManualDraftUserPrompt(request),
@@ -430,7 +445,7 @@ export async function completeManualStudyCardDraft(input: {
   }
 
   const preview =
-    request.creationKind === 'production-image' && imagePrompt
+    shouldGenerateManualDraftPreviewImage(request.creationKind, imagePlacement) && imagePrompt
       ? await generateManualStudyCardDraftImage({
           userId: input.userId,
           imagePrompt,

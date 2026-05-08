@@ -10,6 +10,7 @@ import {
   applyStudyCardImageToPayload,
   cardTypeForStudyCardCreationKind,
   DEFAULT_AUDIO_RECOGNITION_VOICE_ID,
+  defaultImagePlacementForStudyCardCreationKind,
   defaultVoiceIdForStudyCardCreationKind,
   isStudyCardCreationDefaultVoice,
   mergeBlankStudyCardFormFields,
@@ -46,6 +47,14 @@ describe('studyCardCreationModel', () => {
     expect(cardTypeForStudyCardCreationKind('production-text')).toBe('production');
     expect(cardTypeForStudyCardCreationKind('production-image')).toBe('production');
     expect(cardTypeForStudyCardCreationKind('cloze')).toBe('cloze');
+  });
+
+  it('defaults manual image placement only for image-led creation kinds', () => {
+    expect(defaultImagePlacementForStudyCardCreationKind('text-recognition')).toBe('none');
+    expect(defaultImagePlacementForStudyCardCreationKind('audio-recognition')).toBe('none');
+    expect(defaultImagePlacementForStudyCardCreationKind('production-text')).toBe('none');
+    expect(defaultImagePlacementForStudyCardCreationKind('production-image')).toBe('prompt');
+    expect(defaultImagePlacementForStudyCardCreationKind('cloze')).toBe('both');
   });
 
   it('randomly chooses Ren or Yumi as the manual default voice', () => {

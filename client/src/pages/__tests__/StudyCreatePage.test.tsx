@@ -316,7 +316,7 @@ describe('StudyCreatePage', () => {
     expect(screen.getByLabelText('Image prompt')).toHaveValue(
       'A realistic photo of a company office. No text.'
     );
-    expect(screen.getByLabelText('Image placement')).toHaveValue('answer');
+    expect(screen.getByLabelText('Image placement')).toHaveValue('none');
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
       'http://localhost:3001/api/study/media/manual-audio'
@@ -325,6 +325,32 @@ describe('StudyCreatePage', () => {
       .getByRole('button', { name: 'Play generated preview audio' })
       .compareDocumentPosition(screen.getByRole('button', { name: 'Regenerate audio' }));
     expect(audioToRegeneratePosition).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const audioToNotesPosition = screen
+      .getByRole('button', { name: 'Play generated preview audio' })
+      .compareDocumentPosition(screen.getByLabelText('Notes'));
+    expect(audioToNotesPosition).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('defaults manual image placement by creation kind', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    expect(screen.getByLabelText('Image placement')).toHaveValue('none');
+
+    await chooseManualCardType(/Audio recognition/);
+    expect(screen.getByLabelText('Image placement')).toHaveValue('none');
+
+    await chooseManualCardType(/Production from text/);
+    expect(screen.getByLabelText('Image placement')).toHaveValue('none');
+
+    await chooseManualCardType(/Production from image/);
+    expect(screen.getByLabelText('Image placement')).toHaveValue('prompt');
+
+    await chooseManualCardType(/Cloze/);
+    expect(screen.getByLabelText('Image placement')).toHaveValue('both');
+
+    await chooseManualCardType(/Text recognition/);
+    expect(screen.getByLabelText('Image placement')).toHaveValue('none');
   });
 
   it('regenerates manual card audio and submits the refreshed preview audio', async () => {
@@ -443,6 +469,58 @@ describe('StudyCreatePage', () => {
           }),
         })
       )
+    );
+  });
+
+  it('auto-generates the image preview when filling cloze cards', async () => {
+    completeDraftMock.mockResolvedValue({
+      creationKind: 'cloze',
+      cardType: 'cloze',
+      prompt: {
+        clozeText: '試合に{{c1::勝ちました}}。',
+        clozeDisplayText: '試合に[...]。',
+        clozeAnswerText: '勝ちました',
+        clozeHint: 'won',
+      },
+      answer: {
+        restoredText: '試合に勝ちました。',
+        restoredTextReading: '試合[しあい]に勝[か]ちました。',
+        meaning: 'I won the match.',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      },
+      imagePlacement: 'both',
+      imagePrompt: 'A realistic photo of a person celebrating a match win. No text.',
+      previewAudio: null,
+      previewAudioRole: null,
+      previewImage: {
+        id: 'manual-cloze-image',
+        filename: 'manual-cloze-image.webp',
+        url: '/api/study/media/manual-cloze-image',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+    });
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await chooseManualCardType(/Cloze/);
+    fireEvent.change(screen.getByLabelText('Cloze text'), {
+      target: { value: '試合に[勝ちました]。' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
+
+    expect(completeDraftMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creationKind: 'cloze',
+        cardType: 'cloze',
+        imagePlacement: 'both',
+      })
+    );
+    expect(screen.getByLabelText('Image placement')).toHaveValue('both');
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/manual-cloze-image'
     );
   });
 

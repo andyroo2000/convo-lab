@@ -17,6 +17,14 @@ export const DEFAULT_STUDY_CARD_CREATION_KIND: StudyCardCreationKind = 'text-rec
 export const DEFAULT_STUDY_CARD_IMAGE_PLACEMENT: StudyCardImagePlacement = 'none';
 export const DEFAULT_AUDIO_RECOGNITION_VOICE_ID = MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0];
 
+export function defaultImagePlacementForStudyCardCreationKind(
+  creationKind: StudyCardCreationKind
+): StudyCardImagePlacement {
+  if (creationKind === 'production-image') return 'prompt';
+  if (creationKind === 'cloze') return 'both';
+  return DEFAULT_STUDY_CARD_IMAGE_PLACEMENT;
+}
+
 export function cardTypeForStudyCardCreationKind(
   creationKind: StudyCardCreationKind
 ): StudyCardType {

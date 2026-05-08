@@ -12,6 +12,7 @@ interface StudyCardFormFieldsProps {
   idPrefix: string;
   includeCardTypeSelect?: boolean;
   includeAudioSettings?: boolean;
+  includeNotesField?: boolean;
   hidePromptFields?: boolean;
   includeSentenceFields?: boolean;
   creationKind?: StudyCardCreationKind;
@@ -40,11 +41,31 @@ const CARD_CREATION_KIND_OPTIONS = [
 const getNextIndex = (currentIndex: number, direction: 1 | -1, optionCount: number) =>
   (currentIndex + direction + optionCount) % optionCount;
 
+export const StudyCardNotesField = ({
+  values,
+  idPrefix,
+  onFieldChange,
+}: Pick<StudyCardFormFieldsProps, 'values' | 'idPrefix' | 'onFieldChange'>) => {
+  const { t } = useTranslation('study');
+
+  return (
+    <StudyFormField htmlFor={`${idPrefix}-notes`} label={t('form.notes')}>
+      <textarea
+        id={`${idPrefix}-notes`}
+        value={values.notes}
+        onChange={(event) => onFieldChange('notes', event.target.value)}
+        className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+      />
+    </StudyFormField>
+  );
+};
+
 const StudyCardFormFields = ({
   values,
   idPrefix,
   includeCardTypeSelect = false,
   includeAudioSettings = true,
+  includeNotesField = true,
   hidePromptFields = false,
   includeSentenceFields = false,
   creationKind,
@@ -430,14 +451,9 @@ const StudyCardFormFields = ({
         </div>
       ) : null}
 
-      <StudyFormField htmlFor={`${idPrefix}-notes`} label={t('form.notes')}>
-        <textarea
-          id={`${idPrefix}-notes`}
-          value={values.notes}
-          onChange={(event) => onFieldChange('notes', event.target.value)}
-          className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-        />
-      </StudyFormField>
+      {includeNotesField ? (
+        <StudyCardNotesField values={values} idPrefix={idPrefix} onFieldChange={onFieldChange} />
+      ) : null}
     </>
   );
 };

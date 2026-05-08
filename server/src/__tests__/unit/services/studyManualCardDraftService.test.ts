@@ -53,6 +53,13 @@ describe('manual study card drafts', () => {
         imagePrompt: 'A realistic photo of a notebook. No text.',
       })
     );
+    vi.mocked(generateCandidatePreviewImage).mockResolvedValue({
+      id: 'cloze-image-1',
+      filename: 'cloze-image.webp',
+      url: '/api/study/media/cloze-image-1',
+      mediaKind: 'image',
+      source: 'generated',
+    });
 
     const result = await completeManualStudyCardDraft({
       userId: 'user-1',
@@ -70,7 +77,15 @@ describe('manual study card drafts', () => {
     expect(result.prompt.clozeDisplayText).toBe('My [...] and [...] sentence.');
     expect(result.prompt.clozeAnswerText).toBe('second');
     expect(result.answer.restoredText).toBe('My example and second sentence.');
+    expect(result.imagePlacement).toBe('both');
     expect(result.imagePrompt).toContain('No text');
+    expect(result.previewImage?.id).toBe('cloze-image-1');
+    expect(generateCandidatePreviewImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        imagePrompt: expect.stringContaining('No text'),
+      })
+    );
     expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
       expect.stringContaining('"creationKind": "cloze"'),
       expect.stringContaining('{{c1::...}}')
@@ -161,6 +176,50 @@ describe('manual study card drafts', () => {
       meaning: 'company',
       answerAudioVoiceId: 'user-voice',
     });
+    expect(generateCandidatePreviewImage).not.toHaveBeenCalled();
+  });
+
+  it('defaults omitted cloze image placement to both for draft completion', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        prompt: {
+          clozeText: '試合に{{c1::勝ちました}}。',
+          clozeHint: 'won',
+        },
+        answer: {
+          restoredText: '試合に勝ちました。',
+          meaning: 'I won the match.',
+        },
+        imagePrompt: 'A realistic photo of a person celebrating a match win. No text.',
+      })
+    );
+    vi.mocked(generateCandidatePreviewImage).mockResolvedValue({
+      id: 'cloze-image-2',
+      filename: 'cloze-image-2.webp',
+      url: '/api/study/media/cloze-image-2',
+      mediaKind: 'image',
+      source: 'generated',
+    });
+
+    const result = await completeManualStudyCardDraft({
+      userId: 'user-1',
+      request: {
+        creationKind: 'cloze',
+        cardType: 'cloze',
+        prompt: { clozeText: '試合に[勝ちました]。' },
+        answer: {},
+        imagePrompt: null,
+      },
+    });
+
+    expect(result.imagePlacement).toBe('both');
+    expect(result.previewImage?.id).toBe('cloze-image-2');
+    expect(generateCandidatePreviewImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        imagePrompt: expect.stringContaining('No text'),
+      })
+    );
   });
 
   it('fills a draft with a Ren or Yumi voice and generated preview audio', async () => {
