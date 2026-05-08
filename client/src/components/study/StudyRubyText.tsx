@@ -22,7 +22,6 @@ const StudyRubyText = ({
   testId,
 }: StudyRubyTextProps) => {
   const elementRef = useRef<HTMLElement | null>(null);
-  const baseFontSizeRef = useRef<number | null>(null);
   const fitFontSizeRef = useRef<number | null>(null);
   const [fitFontSize, setFitFontSize] = useState<number | null>(null);
 
@@ -42,7 +41,6 @@ const StudyRubyText = ({
     if (!element) return undefined;
 
     let frameId = 0;
-    baseFontSizeRef.current = null;
 
     const fit = () => {
       const scheduleFrame =
@@ -57,12 +55,11 @@ const StudyRubyText = ({
         if (!currentElement) return;
 
         const availableWidth = currentElement.clientWidth;
-        const requiredWidth = currentElement.scrollWidth;
-        const currentFontSize = Number.parseFloat(window.getComputedStyle(currentElement).fontSize);
-        const baseFontSize = baseFontSizeRef.current ?? currentFontSize;
-        baseFontSizeRef.current = baseFontSize;
-        const requiredWidthAtBase =
-          currentFontSize > 0 ? requiredWidth * (baseFontSize / currentFontSize) : requiredWidth;
+        const previousInlineFontSize = currentElement.style.fontSize;
+        currentElement.style.fontSize = '';
+        const requiredWidthAtBase = currentElement.scrollWidth;
+        const baseFontSize = Number.parseFloat(window.getComputedStyle(currentElement).fontSize);
+        currentElement.style.fontSize = previousInlineFontSize;
 
         if (
           !availableWidth ||
@@ -88,8 +85,11 @@ const StudyRubyText = ({
     fit();
 
     const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
-    resizeObserver?.observe(element);
-    window.addEventListener('resize', fit);
+    if (resizeObserver) {
+      resizeObserver.observe(element);
+    } else {
+      window.addEventListener('resize', fit);
+    }
 
     return () => {
       const cancelFrame =
@@ -97,8 +97,11 @@ const StudyRubyText = ({
           ? window.cancelAnimationFrame.bind(window)
           : window.clearTimeout.bind(window);
       cancelFrame(frameId);
-      resizeObserver?.disconnect();
-      window.removeEventListener('resize', fit);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      } else {
+        window.removeEventListener('resize', fit);
+      }
     };
   }, [autoFitSingleLine, minFontSizePx, text]);
 

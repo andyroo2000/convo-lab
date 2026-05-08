@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
 interface StudyGradeButtonsProps {
-  canReplayAudio?: boolean;
   gradeIntervals: Record<'again' | 'hard' | 'good' | 'easy', string> | null;
   disabled?: boolean;
   onGrade: (grade: 'again' | 'hard' | 'good' | 'easy') => void;
@@ -16,20 +15,20 @@ const gradeButtonStyles: Record<'again' | 'hard' | 'good' | 'easy', string> = {
 };
 
 const StudyGradeButtons = ({
-  canReplayAudio = false,
   gradeIntervals,
   disabled = false,
   onGrade,
   onReplayAudio,
 }: StudyGradeButtonsProps) => {
   const { t } = useTranslation('study');
+  const replayDisabled = !onReplayAudio || disabled;
 
   return (
     <div className="grid grid-cols-[3rem_repeat(4,minmax(0,1fr))] gap-1.5 md:grid-cols-[2.75rem_repeat(4,minmax(0,1fr))] md:gap-2">
       <button
         type="button"
         onClick={onReplayAudio}
-        disabled={!canReplayAudio || disabled}
+        disabled={replayDisabled}
         aria-label="Replay answer audio"
         title="Replay answer audio"
         data-testid="study-grade-tray-audio"

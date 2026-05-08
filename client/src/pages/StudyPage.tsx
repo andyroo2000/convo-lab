@@ -237,9 +237,6 @@ const StudyPage = () => {
                     >
                       <div data-testid="study-grade-tray-inner" className="mx-auto max-w-7xl">
                         <StudyGradeButtons
-                          canReplayAudio={Boolean(
-                            reviewSession.currentCard.answer.answerAudio?.url
-                          )}
                           gradeIntervals={reviewSession.gradeIntervals}
                           disabled={
                             reviewSession.reviewBusy ||
@@ -251,11 +248,18 @@ const StudyPage = () => {
                               label: 'Study card grade',
                             });
                           }}
-                          onReplayAudio={() => {
-                            runBackgroundTask(() => reviewSession.answerAudioRef.current?.play(), {
-                              label: 'Study answer-audio replay',
-                            });
-                          }}
+                          onReplayAudio={
+                            reviewSession.currentCard.answer.answerAudio?.url
+                              ? () => {
+                                  runBackgroundTask(
+                                    () => reviewSession.answerAudioRef.current?.play(),
+                                    {
+                                      label: 'Study answer-audio replay',
+                                    }
+                                  );
+                                }
+                              : undefined
+                          }
                         />
                       </div>
                     </div>
