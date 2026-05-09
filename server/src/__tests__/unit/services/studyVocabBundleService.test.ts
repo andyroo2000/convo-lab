@@ -367,4 +367,41 @@ describe('studyVocabBundleService', () => {
       },
     });
   });
+
+  it('leaves drafts generating on retryable processor failures before the final attempt', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    generateStudyCardCandidateJsonMock.mockRejectedValue(new Error('provider timeout'));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(
+      processStudyVocabBundleDrafts('group-1', { markDraftsOnError: false })
+    ).rejects.toThrow('provider timeout');
+    expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('stores a safe user-facing error message after final provider failure', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    generateStudyCardCandidateJsonMock.mockRejectedValue(
+      new Error('provider leaked prompt detail')
+    );
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(processStudyVocabBundleDrafts('group-1')).rejects.toThrow(
+      'provider leaked prompt detail'
+    );
+    expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
+      where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
+      data: {
+        status: 'error',
+        errorMessage:
+          'Could not generate this vocab bundle. Please retry or edit the drafts manually.',
+      },
+    });
+  });
 });

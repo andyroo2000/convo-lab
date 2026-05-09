@@ -40,7 +40,8 @@ export async function enqueueStudyManualCardDraftJob(draftId: string) {
     {
       jobId: draftId,
       // The processor persists provider failures onto the draft as user-visible error state,
-      // so BullMQ retries would duplicate side effects without improving recovery.
+      // so BullMQ retries would duplicate side effects without improving recovery. Vocab bundle
+      // drafts defer that persistence until the final attempt because one job owns many drafts.
       attempts: 1,
       removeOnComplete: {
         age: 60 * 60,

@@ -41,10 +41,6 @@ const {
   generateDraftImageState,
   generateCandidatesState,
   generateCandidatesMock,
-  generateVocabBundleState,
-  generateVocabBundleMock,
-  commitVocabBundleMock,
-  commitVocabBundleState,
   manualDraftsState,
   regenerateCandidateAudioMock,
   regenerateCandidateImageMock,
@@ -72,10 +68,6 @@ const {
   generateDraftImageState: { error: null as Error | null, isPending: false },
   generateCandidatesState: { error: null as Error | null, isPending: false },
   generateCandidatesMock: vi.fn(),
-  generateVocabBundleState: { error: null as Error | null, isPending: false },
-  generateVocabBundleMock: vi.fn(),
-  commitVocabBundleMock: vi.fn(),
-  commitVocabBundleState: { error: null as Error | null, isPending: false },
   manualDraftsState: {
     drafts: [] as StudyManualCardDraft[],
     error: null as Error | null,
@@ -152,16 +144,6 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: generateCandidatesMock,
     isPending: generateCandidatesState.isPending,
     error: generateCandidatesState.error,
-  }),
-  useGenerateStudyVocabBundle: () => ({
-    mutateAsync: generateVocabBundleMock,
-    isPending: generateVocabBundleState.isPending,
-    error: generateVocabBundleState.error,
-  }),
-  useCommitStudyVocabBundle: () => ({
-    mutateAsync: commitVocabBundleMock,
-    isPending: commitVocabBundleState.isPending,
-    error: commitVocabBundleState.error,
   }),
   useRegenerateStudyCardCandidatePreviewAudio: () => ({
     mutateAsync: regenerateCandidateAudioMock,
@@ -261,12 +243,6 @@ describe('StudyCreatePage', () => {
     generateCandidatesState.error = null;
     generateCandidatesState.isPending = false;
     generateCandidatesMock.mockReset();
-    generateVocabBundleState.error = null;
-    generateVocabBundleState.isPending = false;
-    generateVocabBundleMock.mockReset();
-    commitVocabBundleState.error = null;
-    commitVocabBundleState.isPending = false;
-    commitVocabBundleMock.mockReset();
     manualDraftsState.drafts = [];
     manualDraftsState.error = null;
     manualDraftsState.isLoading = false;
@@ -280,10 +256,6 @@ describe('StudyCreatePage', () => {
     updateManualDraftState.error = null;
     updateManualDraftState.isPending = false;
     commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
-    commitVocabBundleMock.mockResolvedValue({
-      groupId: 'group-1',
-      drafts: [manualDraft({ id: 'draft-created-1' })],
-    });
     createManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
     createVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',
@@ -971,7 +943,5 @@ describe('StudyCreatePage', () => {
     expect(
       await screen.findByText('Added 11 generated cards to the draft queue.')
     ).toBeInTheDocument();
-    expect(generateVocabBundleMock).not.toHaveBeenCalled();
-    expect(commitVocabBundleMock).not.toHaveBeenCalled();
   });
 });

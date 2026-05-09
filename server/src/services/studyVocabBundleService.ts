@@ -1,3 +1,4 @@
+import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new.js';
 import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
@@ -48,6 +49,11 @@ import {
   STUDY_VOCAB_VARIANT_KINDS_BY_STAGE,
   STUDY_VOCAB_VARIANT_STAGES,
 } from './study/variants/constants.js';
+
+const VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR =
+  'Generated vocab bundle did not match queued draft placeholders.';
+const VOCAB_BUNDLE_DRAFT_GENERATION_ERROR =
+  'Could not generate this vocab bundle. Please retry or edit the drafts manually.';
 
 function assertBoundedText(name: string, value: string, max: number): void {
   if (!value.trim()) {
@@ -105,6 +111,7 @@ function placeholderDraftForVariant(input: {
   sentenceId: string | null;
   sentenceOrdinal: number | null;
 }) {
+  const answerAudioVoiceId = selectManualStudyCardDefaultVoiceId();
   const variantStatus: StudyVocabVariantStatus =
     input.stage === STUDY_VOCAB_VARIANT_STAGES.sentenceAudio ? 'available' : 'locked';
   const suffix =
@@ -116,7 +123,7 @@ function placeholderDraftForVariant(input: {
       creationKind: 'audio-recognition' as const,
       cardType: 'recognition' as const,
       prompt: {},
-      answer: { expression: sentenceLabel, meaning: '', answerAudioVoiceId: '' },
+      answer: { expression: sentenceLabel, meaning: '', answerAudioVoiceId },
       imagePlacement: 'none' as const,
       imagePrompt: null,
       variantSentenceId: input.sentenceId,
@@ -132,7 +139,7 @@ function placeholderDraftForVariant(input: {
       creationKind: 'text-recognition' as const,
       cardType: 'recognition' as const,
       prompt: { cueText: sentenceLabel },
-      answer: { expression: sentenceLabel, meaning: '', answerAudioVoiceId: '' },
+      answer: { expression: sentenceLabel, meaning: '', answerAudioVoiceId },
       imagePlacement: 'none' as const,
       imagePrompt: null,
       variantSentenceId: input.sentenceId,
@@ -148,7 +155,7 @@ function placeholderDraftForVariant(input: {
       creationKind: 'audio-recognition' as const,
       cardType: 'recognition' as const,
       prompt: {},
-      answer: { expression: input.targetWord, meaning: '', answerAudioVoiceId: '' },
+      answer: { expression: input.targetWord, meaning: '', answerAudioVoiceId },
       imagePlacement: 'none' as const,
       imagePrompt: null,
       variantSentenceId: null,
@@ -164,7 +171,7 @@ function placeholderDraftForVariant(input: {
       creationKind: 'text-recognition' as const,
       cardType: 'recognition' as const,
       prompt: { cueText: input.targetWord },
-      answer: { expression: input.targetWord, meaning: '', answerAudioVoiceId: '' },
+      answer: { expression: input.targetWord, meaning: '', answerAudioVoiceId },
       imagePlacement: 'none' as const,
       imagePrompt: null,
       variantSentenceId: null,
@@ -179,7 +186,7 @@ function placeholderDraftForVariant(input: {
     creationKind: 'cloze' as const,
     cardType: 'cloze' as const,
     prompt: { clozeText: sentenceLabel, clozeHint: '' },
-    answer: { restoredText: sentenceLabel, meaning: '', answerAudioVoiceId: '' },
+    answer: { restoredText: sentenceLabel, meaning: '', answerAudioVoiceId },
     imagePlacement: 'none' as const,
     imagePrompt: null,
     variantSentenceId: input.sentenceId,
@@ -258,6 +265,16 @@ function expectedVariantKeys(): Set<string> {
   keys.add(`${String(STUDY_VOCAB_VARIANT_STAGES.wordAudio)}:word`);
   keys.add(`${String(STUDY_VOCAB_VARIANT_STAGES.wordText)}:word`);
   return keys;
+}
+
+function userFacingVocabBundleDraftErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message === VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR) {
+    return VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR;
+  }
+  if (error instanceof AppError && error.statusCode < 500) {
+    return error.message;
+  }
+  return VOCAB_BUNDLE_DRAFT_GENERATION_ERROR;
 }
 
 function validateCommitVariants(variants: StudyVocabBundleCommitVariant[]): void {
@@ -445,7 +462,8 @@ export async function createStudyVocabBundleDrafts(input: {
 }
 
 export async function processStudyVocabBundleDrafts(
-  groupId: string
+  groupId: string,
+  options: { markDraftsOnError?: boolean } = {}
 ): Promise<{ groupId: string; completedDraftCount: number } | null> {
   const group = await prisma.studyVariantGroup.findUnique({
     where: { id: groupId },
@@ -526,25 +544,27 @@ export async function processStudyVocabBundleDrafts(
       const sentenceIdsByOrdinal = new Map(
         currentSentences.map((sentence) => [sentence.ordinal, sentence.id])
       );
-      for (const sentence of bundle.sentences) {
-        const sentenceId = sentenceIdsByOrdinal.get(sentence.ordinal);
-        if (!sentenceId) continue;
-        await tx.studyVariantSentence.update({
-          where: { id: sentenceId },
-          data: {
-            sentenceJp: sentence.sentenceJp,
-            sentenceReading: sentence.sentenceReading ?? null,
-            sentenceEn: sentence.sentenceEn,
-            notes: sentence.notes ?? null,
-          },
-        });
-      }
+      await Promise.all(
+        bundle.sentences.map((sentence) => {
+          const sentenceId = sentenceIdsByOrdinal.get(sentence.ordinal);
+          if (!sentenceId) return Promise.resolve(null);
+          return tx.studyVariantSentence.update({
+            where: { id: sentenceId },
+            data: {
+              sentenceJp: sentence.sentenceJp,
+              sentenceReading: sentence.sentenceReading ?? null,
+              sentenceEn: sentence.sentenceEn,
+              notes: sentence.notes ?? null,
+            },
+          });
+        })
+      );
 
       const currentDrafts = await tx.studyCardDraft.findMany({
         where: { variantGroupId: group.id, userId: group.userId },
       });
       if (resolvedItems.length !== currentDrafts.length) {
-        throw new Error('Generated vocab bundle did not match queued draft placeholders.');
+        throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
       }
       const draftsByKey = new Map(
         currentDrafts.map((draft) => [
@@ -552,58 +572,57 @@ export async function processStudyVocabBundleDrafts(
           draft,
         ])
       );
-      const updated = [];
+      const updated = await Promise.all(
+        resolvedItems.map(async (resolved) => {
+          const sentenceId =
+            typeof resolved.variantSentenceOrdinal === 'number'
+              ? (sentenceIdsByOrdinal.get(resolved.variantSentenceOrdinal) ?? null)
+              : null;
+          const key = `${String(resolved.stage)}:${sentenceId ?? 'word'}`;
+          const draft = draftsByKey.get(key);
+          if (!draft) {
+            throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
+          }
 
-      for (const resolved of resolvedItems) {
-        const sentenceId =
-          typeof resolved.variantSentenceOrdinal === 'number'
-            ? (sentenceIdsByOrdinal.get(resolved.variantSentenceOrdinal) ?? null)
-            : null;
-        const key = `${String(resolved.stage)}:${sentenceId ?? 'word'}`;
-        const draft = draftsByKey.get(key);
-        if (!draft) {
-          throw new Error('Generated vocab bundle did not match queued draft placeholders.');
-        }
+          const previewAudio =
+            resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)
+              ? getResolvedPreviewAudio(resolved)
+              : null;
+          const previewImage =
+            resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
+              ? getResolvedPreviewImage(resolved)
+              : null;
+          const imagePlacement =
+            previewImage && resolved.item.cardType === 'cloze'
+              ? 'both'
+              : previewImage
+                ? 'prompt'
+                : 'none';
+          const imagePrompt = previewImage ? (resolved.item.imagePrompt ?? null) : null;
+          const variantStatus = resolved.stage === 1 ? 'available' : 'locked';
 
-        const previewAudio =
-          resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)
-            ? getResolvedPreviewAudio(resolved)
-            : null;
-        const previewImage =
-          resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
-            ? getResolvedPreviewImage(resolved)
-            : null;
-        const imagePlacement =
-          previewImage && resolved.item.cardType === 'cloze'
-            ? 'both'
-            : previewImage
-              ? 'prompt'
-              : 'none';
-        const imagePrompt = previewImage ? (resolved.item.imagePrompt ?? null) : null;
-        const variantStatus = resolved.stage === 1 ? 'available' : 'locked';
-
-        const nextDraft = await tx.studyCardDraft.update({
-          where: { id: draft.id },
-          data: {
-            status: 'ready',
-            creationKind: creationKindForCandidateKind(resolved.item.candidateKind),
-            cardType: resolved.item.cardType,
-            promptJson: toPrismaJson(resolved.prompt),
-            answerJson: toPrismaJson(resolved.answer),
-            imagePlacement,
-            imagePrompt,
-            previewAudioJson: toNullablePrismaJson(previewAudio),
-            previewAudioRole: resolved.previewAudioRole,
-            previewImageJson: toNullablePrismaJson(previewImage),
-            variantKind: resolved.variantKind,
-            variantStage: resolved.stage,
-            variantStatus,
-            variantUnlockedAt: variantStatus === 'available' ? new Date() : null,
-            errorMessage: null,
-          },
-        });
-        updated.push(nextDraft);
-      }
+          return tx.studyCardDraft.update({
+            where: { id: draft.id },
+            data: {
+              status: 'ready',
+              creationKind: creationKindForCandidateKind(resolved.item.candidateKind),
+              cardType: resolved.item.cardType,
+              promptJson: toPrismaJson(resolved.prompt),
+              answerJson: toPrismaJson(resolved.answer),
+              imagePlacement,
+              imagePrompt,
+              previewAudioJson: toNullablePrismaJson(previewAudio),
+              previewAudioRole: resolved.previewAudioRole,
+              previewImageJson: toNullablePrismaJson(previewImage),
+              variantKind: resolved.variantKind,
+              variantStage: resolved.stage,
+              variantStatus,
+              variantUnlockedAt: variantStatus === 'available' ? new Date() : null,
+              errorMessage: null,
+            },
+          });
+        })
+      );
 
       return updated;
     });
@@ -613,14 +632,16 @@ export async function processStudyVocabBundleDrafts(
       completedDraftCount: updatedDrafts.length,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not generate the vocab bundle.';
-    await prisma.studyCardDraft.updateMany({
-      where: { variantGroupId: group.id, userId: group.userId, status: 'generating' },
-      data: {
-        status: 'error',
-        errorMessage: message,
-      },
-    });
+    logger.warn('[StudyVocabBundle] Failed to process vocab bundle drafts.', error);
+    if (options.markDraftsOnError !== false) {
+      await prisma.studyCardDraft.updateMany({
+        where: { variantGroupId: group.id, userId: group.userId, status: 'generating' },
+        data: {
+          status: 'error',
+          errorMessage: userFacingVocabBundleDraftErrorMessage(error),
+        },
+      });
+    }
     throw error;
   }
 }

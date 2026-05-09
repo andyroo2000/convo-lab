@@ -7,6 +7,8 @@ import { processStudyVocabBundleDrafts } from '../services/studyVocabBundleServi
 const queueConnection = createRedisConnection();
 const workerConnection = createRedisConnection();
 const STUDY_VOCAB_BUNDLE_DRAFT_QUEUE_NAME = 'study-vocab-bundle-drafts';
+const STUDY_VOCAB_BUNDLE_DRAFT_JOB_ATTEMPTS = 3;
+const ACTIVE_JOB_STATES = new Set(['active', 'waiting', 'delayed', 'prioritized']);
 
 export const studyVocabBundleDraftQueue = new Queue(STUDY_VOCAB_BUNDLE_DRAFT_QUEUE_NAME, {
   connection: queueConnection,
@@ -29,10 +31,13 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
   const existingJob = await studyVocabBundleDraftQueue.getJob(groupId);
   if (existingJob) {
     const state = await existingJob.getState();
-    if (state === 'active' || state === 'waiting' || state === 'delayed') {
+    if (ACTIVE_JOB_STATES.has(state)) {
       return existingJob;
     }
-    await existingJob.remove();
+    if (state === 'failed') {
+      await existingJob.retry();
+    }
+    return existingJob;
   }
 
   return studyVocabBundleDraftQueue.add(
@@ -40,7 +45,11 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
     { groupId },
     {
       jobId: groupId,
-      attempts: 1,
+      attempts: STUDY_VOCAB_BUNDLE_DRAFT_JOB_ATTEMPTS,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
       removeOnComplete: {
         age: 60 * 60,
         count: 50,
@@ -61,7 +70,13 @@ export const studyVocabBundleDraftWorker = new Worker(
     }
 
     const { groupId } = parseStudyVocabBundleDraftJobData(job.data);
-    const result = await processStudyVocabBundleDrafts(groupId);
+    const attempts =
+      typeof job.opts.attempts === 'number'
+        ? job.opts.attempts
+        : STUDY_VOCAB_BUNDLE_DRAFT_JOB_ATTEMPTS;
+    const result = await processStudyVocabBundleDrafts(groupId, {
+      markDraftsOnError: job.attemptsMade + 1 >= attempts,
+    });
     await job.updateProgress(100);
     return result;
   },

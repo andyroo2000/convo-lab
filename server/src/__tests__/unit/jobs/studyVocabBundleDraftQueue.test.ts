@@ -42,7 +42,7 @@ describe('studyVocabBundleDraftQueue', () => {
     queueGetJobMock.mockResolvedValue(null);
   });
 
-  it('enqueues vocab bundle draft groups with a stable job id and single processor attempt', async () => {
+  it('enqueues vocab bundle draft groups with a stable job id and retry backoff', async () => {
     const { enqueueStudyVocabBundleDraftJob } =
       await import('../../../jobs/studyVocabBundleDraftQueue.js');
 
@@ -53,7 +53,11 @@ describe('studyVocabBundleDraftQueue', () => {
       { groupId: 'group-1' },
       expect.objectContaining({
         jobId: 'group-1',
-        attempts: 1,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
         removeOnComplete: expect.any(Object),
         removeOnFail: expect.any(Object),
       })
@@ -75,6 +79,23 @@ describe('studyVocabBundleDraftQueue', () => {
     expect(queueAddMock).not.toHaveBeenCalled();
   });
 
+  it('retries an existing failed group job instead of removing and recreating it', async () => {
+    const failedJob = {
+      getState: vi.fn().mockResolvedValue('failed'),
+      remove: vi.fn(),
+      retry: vi.fn().mockResolvedValue(undefined),
+    };
+    queueGetJobMock.mockResolvedValue(failedJob);
+    const { enqueueStudyVocabBundleDraftJob } =
+      await import('../../../jobs/studyVocabBundleDraftQueue.js');
+
+    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(failedJob);
+
+    expect(failedJob.retry).toHaveBeenCalled();
+    expect(failedJob.remove).not.toHaveBeenCalled();
+    expect(queueAddMock).not.toHaveBeenCalled();
+  });
+
   it('dispatches valid worker payloads to the vocab bundle draft processor', async () => {
     processStudyVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',
@@ -87,10 +108,35 @@ describe('studyVocabBundleDraftQueue', () => {
     await processor?.({
       name: 'complete-vocab-bundle-drafts',
       data: { groupId: 'group-1' },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
       updateProgress,
     });
 
-    expect(processStudyVocabBundleDraftsMock).toHaveBeenCalledWith('group-1');
+    expect(processStudyVocabBundleDraftsMock).toHaveBeenCalledWith('group-1', {
+      markDraftsOnError: false,
+    });
     expect(updateProgress).toHaveBeenCalledWith(100);
+  });
+
+  it('marks drafts as error only on the final processor attempt', async () => {
+    processStudyVocabBundleDraftsMock.mockResolvedValue({
+      groupId: 'group-1',
+      completedDraftCount: 11,
+    });
+    await import('../../../jobs/studyVocabBundleDraftQueue.js');
+    const processor = workerProcessors.get('study-vocab-bundle-drafts');
+
+    await processor?.({
+      name: 'complete-vocab-bundle-drafts',
+      data: { groupId: 'group-1' },
+      attemptsMade: 2,
+      opts: { attempts: 3 },
+      updateProgress: vi.fn(),
+    });
+
+    expect(processStudyVocabBundleDraftsMock).toHaveBeenCalledWith('group-1', {
+      markDraftsOnError: true,
+    });
   });
 });

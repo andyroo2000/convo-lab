@@ -753,7 +753,7 @@ const StudyCreatePage = () => {
               </p>
             ) : null}
             {vocabSuccess ? <p className="text-sm text-emerald-700">{vocabSuccess}</p> : null}
-            {generationProgress.isVisible && !createVocabBundleDrafts.error ? (
+            {generationProgress.isVisible && !createVocabBundleDrafts.error && !vocabSuccess ? (
               <div
                 role="status"
                 aria-label={t('create.generationProgressLabel')}
