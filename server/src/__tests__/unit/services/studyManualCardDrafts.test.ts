@@ -100,6 +100,50 @@ describe('manual card draft persistence service', () => {
     });
   });
 
+  it('uses an opaque cursor for draft pagination', async () => {
+    const cursorRecord = draftRecord({
+      id: 'draft_with_underscores',
+      createdAt: new Date('2026-05-08T10:00:00.000Z'),
+    });
+    mockPrisma.studyCardDraft.findMany.mockResolvedValueOnce([
+      cursorRecord,
+      draftRecord({ id: 'draft-2', createdAt: new Date('2026-05-08T11:00:00.000Z') }),
+    ]);
+    const { listManualCardDrafts } = await import('../../../services/study/manualCardDrafts.js');
+
+    const firstPage = await listManualCardDrafts({ userId: 'user-1', limit: 1 });
+
+    expect(firstPage.nextCursor).toBeTruthy();
+    expect(firstPage.nextCursor).not.toContain('draft_with_underscores');
+
+    mockPrisma.studyCardDraft.findMany.mockResolvedValueOnce([]);
+    await listManualCardDrafts({
+      userId: 'user-1',
+      limit: 1,
+      cursor: firstPage.nextCursor,
+    });
+
+    expect(mockPrisma.studyCardDraft.findMany).toHaveBeenLastCalledWith({
+      where: {
+        userId: 'user-1',
+        OR: [
+          { createdAt: { gt: cursorRecord.createdAt } },
+          { createdAt: cursorRecord.createdAt, id: { gt: cursorRecord.id } },
+        ],
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: 2,
+    });
+  });
+
+  it('rejects malformed draft cursors', async () => {
+    const { listManualCardDrafts } = await import('../../../services/study/manualCardDrafts.js');
+
+    await expect(
+      listManualCardDrafts({ userId: 'user-1', cursor: 'not-a-valid-cursor' })
+    ).rejects.toThrow('Invalid draft cursor.');
+  });
+
   it('rejects new drafts when the user draft queue is full', async () => {
     mockPrisma.studyCardDraft.count.mockResolvedValue(2000);
     const { createManualCardDraft } = await import('../../../services/study/manualCardDrafts.js');

@@ -210,19 +210,37 @@ function normalizeListLimit(limit: number | null | undefined): number {
 }
 
 function encodeDraftCursor(record: StudyManualCardDraftRecord): string {
-  return `${record.createdAt.toISOString()}_${record.id}`;
+  return Buffer.from(
+    JSON.stringify({
+      createdAt: record.createdAt.toISOString(),
+      id: record.id,
+    }),
+    'utf8'
+  ).toString('base64url');
 }
 
 function decodeDraftCursor(
   cursor: string | null | undefined
 ): { createdAt: Date; id: string } | null {
   if (!cursor) return null;
-  const separatorIndex = cursor.lastIndexOf('_');
-  if (separatorIndex <= 0 || separatorIndex >= cursor.length - 1) {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+  } catch {
     throw new AppError('Invalid draft cursor.', 400);
   }
-  const createdAt = new Date(cursor.slice(0, separatorIndex));
-  const id = cursor.slice(separatorIndex + 1);
+  if (
+    !payload ||
+    typeof payload !== 'object' ||
+    !('createdAt' in payload) ||
+    !('id' in payload) ||
+    typeof payload.createdAt !== 'string' ||
+    typeof payload.id !== 'string'
+  ) {
+    throw new AppError('Invalid draft cursor.', 400);
+  }
+  const createdAt = new Date(payload.createdAt);
+  const id = payload.id;
   if (Number.isNaN(createdAt.getTime()) || !id) {
     throw new AppError('Invalid draft cursor.', 400);
   }

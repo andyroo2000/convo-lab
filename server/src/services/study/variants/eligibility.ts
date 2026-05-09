@@ -9,6 +9,7 @@ type ReviewLogLike = {
 export function hasRequiredRecentWins(reviewLogs: ReviewLogLike[]): boolean {
   let wins = 0;
   for (const log of reviewLogs) {
+    // Reviews are supplied newest-first; the latest Again starts a fresh eligibility window.
     if (log.rating === 1) {
       return false;
     }

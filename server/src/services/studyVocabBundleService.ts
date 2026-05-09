@@ -19,6 +19,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 import { generateStudyCardCandidateJson } from './llmClient.js';
+import { logger } from './logger.js';
 import {
   resolveStudyCardCandidateCommitItem,
   type ResolvedStudyCardCandidateCommitItem,
@@ -85,6 +86,22 @@ function getResolvedPreviewImage(
   );
 }
 
+async function buildOptionalLearnerContextSummary(
+  userId: string,
+  includeLearnerContext: boolean
+): Promise<string | null> {
+  if (!includeLearnerContext) return null;
+  try {
+    return await buildLearnerContextSummary(userId);
+  } catch (error) {
+    logger.warn(
+      '[StudyVocabBundle] Failed to build learner context; continuing without it.',
+      error
+    );
+    return null;
+  }
+}
+
 export async function generateStudyVocabBundle(input: {
   userId: string;
   request: StudyVocabBundleGenerateRequest;
@@ -105,9 +122,10 @@ export async function generateStudyVocabBundle(input: {
   }
 
   void scheduleStudyCandidatePreviewMediaCleanup(input.userId);
-  const learnerContextSummary = request.includeLearnerContext
-    ? await buildLearnerContextSummary(input.userId)
-    : null;
+  const learnerContextSummary = await buildOptionalLearnerContextSummary(
+    input.userId,
+    request.includeLearnerContext
+  );
   const rawResponse = await generateStudyCardCandidateJson(
     buildVocabBundleUserPrompt({
       targetWord: request.targetWord,

@@ -66,11 +66,13 @@ function buildStudySessionCard({
   queueState,
   label = id,
   newQueuePosition = null,
+  variantGroupId = null,
 }: {
   id: string;
   queueState: SessionTestQueueState;
   label?: string;
   newQueuePosition?: number | null;
+  variantGroupId?: string | null;
 }) {
   return {
     id,
@@ -84,6 +86,7 @@ function buildStudySessionCard({
     promptJson: { cueText: label },
     answerJson: { expression: label, meaning: 'meaning' },
     schedulerStateJson: buildStudySessionSchedulerState(queueState),
+    variantGroupId,
     createdAt: SESSION_TEST_CREATED_AT,
     updatedAt: SESSION_TEST_UPDATED_AT,
     note: {},
@@ -1507,6 +1510,52 @@ describe('studySchedulerService', () => {
         take: expectedNewCardCount,
       })
     );
+  });
+
+  it('prefers varied variant groups for new cards while still filling the allowed slots', async () => {
+    const expectedNewCardCount = 3;
+
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
+      userId: 'user-1',
+      newCardsPerDay: expectedNewCardCount,
+    });
+    mockPrisma.studyCard.count.mockResolvedValue(0);
+    mockPrisma.studyCard.findMany
+      .mockResolvedValueOnce([
+        buildStudySessionCard({
+          id: 'group-1-a',
+          queueState: 'new',
+          newQueuePosition: 1,
+          variantGroupId: 'group-1',
+        }),
+        buildStudySessionCard({
+          id: 'group-1-b',
+          queueState: 'new',
+          newQueuePosition: 2,
+          variantGroupId: 'group-1',
+        }),
+        buildStudySessionCard({
+          id: 'group-2-a',
+          queueState: 'new',
+          newQueuePosition: 3,
+          variantGroupId: 'group-2',
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+    mockPrisma.$queryRaw.mockResolvedValue([
+      buildStudyOverviewRow({
+        newCount: expectedNewCardCount,
+        reviewCount: 0,
+        totalCards: expectedNewCardCount,
+        nextDueAt: null,
+      }),
+    ]);
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    const session = await startStudySession('user-1', { timeZone: 'America/New_York' });
+
+    expect(session.cards.map((card) => card.id)).toEqual(['group-1-a', 'group-2-a', 'group-1-b']);
+    expect(session.cards).toHaveLength(expectedNewCardCount);
   });
 
   it('reduces the new-card session cap by cards already introduced today', async () => {
