@@ -59,6 +59,8 @@ model User {
   studyMedia              StudyMedia[]
   studyImportJobs         StudyImportJob[]
   studyCardDrafts         StudyCardDraft[]
+  studyVariantGroups      StudyVariantGroup[]
+  studyVariantSentences   StudyVariantSentence[]
   studySettings           StudySettings?
   dailyAudioPractices     DailyAudioPractice[]
 
@@ -512,15 +514,68 @@ model StudyCardDraft {
   previewAudioJson  Json?
   previewAudioRole  String?
   previewImageJson  Json?
+  variantGroupId    String?
+  variantSentenceId String?
+  variantKind       String?
+  variantStage      Int?
+  variantStatus     String?
+  variantUnlockedAt DateTime?
   errorMessage      String?  @db.Text
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variantGroup    StudyVariantGroup?    @relation(fields: [variantGroupId], references: [id], onDelete: SetNull)
+  variantSentence StudyVariantSentence? @relation(fields: [variantSentenceId], references: [id], onDelete: SetNull)
 
-  @@index([userId, updatedAt, id])
+  @@index([userId, createdAt, id])
   @@index([userId, status, updatedAt])
+  @@index([variantGroupId])
+  @@index([variantSentenceId])
   @@map("study_card_drafts")
+}
+
+model StudyVariantGroup {
+  id             String   @id @default(uuid())
+  userId         String
+  targetWord     String
+  targetReading  String?
+  targetMeaning  String?
+  sourceSentence String?  @db.Text
+  sourceContext  String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentences StudyVariantSentence[]
+  cards     StudyCard[]
+  drafts    StudyCardDraft[]
+
+  @@index([userId, createdAt])
+  @@index([userId, targetWord])
+  @@map("study_variant_groups")
+}
+
+model StudyVariantSentence {
+  id              String   @id @default(uuid())
+  userId          String
+  variantGroupId  String
+  ordinal         Int
+  sentenceJp      String   @db.Text
+  sentenceReading String?  @db.Text
+  sentenceEn      String   @db.Text
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variantGroup StudyVariantGroup @relation(fields: [variantGroupId], references: [id], onDelete: Cascade)
+  cards        StudyCard[]
+  drafts       StudyCardDraft[]
+
+  @@unique([variantGroupId, ordinal])
+  @@index([userId, variantGroupId])
+  @@map("study_variant_sentences")
 }
 
 model StudyCard {
@@ -559,6 +614,12 @@ model StudyCard {
   promptAudioMediaId   String?
   answerAudioMediaId   String?
   imageMediaId         String?
+  variantGroupId       String?
+  variantSentenceId    String?
+  variantKind          String?
+  variantStage         Int?
+  variantStatus        String?
+  variantUnlockedAt    DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -568,6 +629,8 @@ model StudyCard {
   promptAudioMedia StudyMedia?      @relation("StudyPromptAudio", fields: [promptAudioMediaId], references: [id], onDelete: SetNull)
   answerAudioMedia StudyMedia?      @relation("StudyAnswerAudio", fields: [answerAudioMediaId], references: [id], onDelete: SetNull)
   imageMedia       StudyMedia?      @relation("StudyImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+  variantGroup     StudyVariantGroup?    @relation(fields: [variantGroupId], references: [id], onDelete: SetNull)
+  variantSentence  StudyVariantSentence? @relation(fields: [variantSentenceId], references: [id], onDelete: SetNull)
   reviewLogs       StudyReviewLog[]
 
   @@unique([userId, sourceCardId])
@@ -578,6 +641,9 @@ model StudyCard {
   @@index([userId, noteId, cardType])
   @@index([userId, noteId, queueState])
   @@index([userId, updatedAt, id])
+  @@index([userId, variantStatus, queueState, newQueuePosition])
+  @@index([variantGroupId, variantStage])
+  @@index([variantSentenceId])
   @@index([noteId])
   @@index([importJobId])
   @@map("study_cards")

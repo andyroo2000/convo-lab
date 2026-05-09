@@ -16,7 +16,7 @@ import {
   synthesizeCandidatePreviewAudio,
 } from './previewMedia.js';
 
-type ResolvedStudyCardCandidateCommitItem = {
+export type ResolvedStudyCardCandidateCommitItem = {
   item: StudyCardCandidateCommitItem;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
@@ -25,7 +25,7 @@ type ResolvedStudyCardCandidateCommitItem = {
   previewImageId: string | null;
 };
 
-async function resolveStudyCardCandidateCommitItem(input: {
+export async function resolveStudyCardCandidateCommitItem(input: {
   userId: string;
   item: StudyCardCandidateCommitItem;
 }): Promise<ResolvedStudyCardCandidateCommitItem> {

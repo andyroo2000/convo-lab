@@ -4,5 +4,6 @@ export * from './studySchedulerService.js';
 export * from './studyBrowserService.js';
 export * from './studyExportService.js';
 export * from './studyCandidateService.js';
+export * from './studyVocabBundleService.js';
 export * from './study/manualCardDraft.js';
 export * from './study/manualCardDrafts.js';

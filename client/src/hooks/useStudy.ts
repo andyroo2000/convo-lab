@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   StudyAnswerPayload,
   StudyCardActionName,
@@ -39,6 +39,10 @@ import type {
   StudyReviewResult,
   StudySettings,
   StudyUndoReviewResult,
+  StudyVocabBundleCommitRequest,
+  StudyVocabBundleCommitResponse,
+  StudyVocabBundleGenerateRequest,
+  StudyVocabBundleGenerateResponse,
 } from '@languageflow/shared/src/types';
 
 import { API_URL } from '../config';
@@ -232,6 +236,30 @@ export async function commitStudyCardCandidates(
   });
 }
 
+export async function generateStudyVocabBundle(
+  payload: StudyVocabBundleGenerateRequest
+): Promise<StudyVocabBundleGenerateResponse> {
+  return apiRequest<StudyVocabBundleGenerateResponse>(
+    '/api/study/card-candidates/vocab-bundle/generate',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function commitStudyVocabBundle(
+  payload: StudyVocabBundleCommitRequest
+): Promise<StudyVocabBundleCommitResponse> {
+  return apiRequest<StudyVocabBundleCommitResponse>(
+    '/api/study/card-candidates/vocab-bundle/commit',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
 export async function regenerateStudyCardCandidatePreviewAudio(
   payload: StudyCardCandidatePreviewAudioRequest
 ): Promise<StudyCardCandidatePreviewAudioResponse> {
@@ -274,8 +302,16 @@ export async function generateStudyCardDraftImage(
   });
 }
 
-export async function getStudyManualCardDrafts(): Promise<StudyManualCardDraftListResponse> {
-  return apiRequest<StudyManualCardDraftListResponse>('/api/study/card-drafts');
+export async function getStudyManualCardDrafts(
+  params: { cursor?: string | null; limit?: number } = {}
+): Promise<StudyManualCardDraftListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.cursor) searchParams.set('cursor', params.cursor);
+  if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit));
+  const suffix = searchParams.toString();
+  return apiRequest<StudyManualCardDraftListResponse>(
+    `/api/study/card-drafts${suffix ? `?${suffix}` : ''}`
+  );
 }
 
 export async function createStudyManualCardDraft(
@@ -527,6 +563,12 @@ export function useGenerateStudyCardCandidates() {
   });
 }
 
+export function useGenerateStudyVocabBundle() {
+  return useMutation({
+    mutationFn: generateStudyVocabBundle,
+  });
+}
+
 export function useCompleteStudyCardDraft() {
   return useMutation({
     mutationFn: completeStudyCardDraft,
@@ -540,12 +582,18 @@ export function useGenerateStudyCardDraftImage() {
 }
 
 export function useStudyManualCardDrafts(enabled: boolean) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['study', 'manual-card-drafts'],
-    queryFn: getStudyManualCardDrafts,
+    queryFn: ({ pageParam }) => getStudyManualCardDrafts({ cursor: pageParam, limit: 200 }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled,
     refetchInterval: (query) =>
-      query.state.data?.drafts.some((draft) => draft.status === 'generating') ? 2500 : false,
+      query.state.data?.pages.some((page) =>
+        page.drafts.some((draft) => draft.status === 'generating')
+      )
+        ? 2500
+        : false,
   });
 }
 
@@ -618,6 +666,20 @@ export function useCommitStudyCardCandidates() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+      ]);
+    },
+  });
+}
+
+export function useCommitStudyVocabBundle() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: commitStudyVocabBundle,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
       ]);
     },

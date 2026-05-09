@@ -63,6 +63,7 @@ import {
   toStudyFsrsState,
   toStudyImportPreview,
 } from './shared.js';
+import { unlockStudyVariantStagesAfterReviewInTransaction } from './variants/unlocking.js';
 
 const ACTIVE_DUE_QUEUE_STATES = ['learning', 'review', 'relearning'] as const;
 const STUDY_CARD_SUMMARY_INCLUDE = {
@@ -238,6 +239,7 @@ async function getNextNewQueuePosition(userId: string): Promise<number> {
     where: {
       userId,
       queueState: 'new',
+      OR: [{ variantStatus: null }, { variantStatus: 'available' }],
     },
     _max: {
       newQueuePosition: true,
@@ -328,6 +330,7 @@ export async function getStudyNewCardQueue(params: {
   const where: Prisma.StudyCardWhereInput = {
     userId: params.userId,
     queueState: 'new',
+    OR: [{ variantStatus: null }, { variantStatus: 'available' }],
     ...(query
       ? {
           searchText: {
@@ -387,6 +390,7 @@ export async function reorderStudyNewCardQueue(params: {
     where: {
       userId: params.userId,
       queueState: 'new',
+      OR: [{ variantStatus: null }, { variantStatus: 'available' }],
       id: {
         in: params.cardIds,
       },
@@ -410,6 +414,7 @@ export async function reorderStudyNewCardQueue(params: {
           where: {
             userId: params.userId,
             queueState: 'new',
+            OR: [{ variantStatus: null }, { variantStatus: 'available' }],
           },
           _max: {
             newQueuePosition: true,
@@ -496,7 +501,10 @@ export async function getStudyOverview(
           WHEN "queueState" IN ('learning', 'review', 'relearning') AND "dueAt" <= ${now} THEN 1
           ELSE 0
         END), 0) AS due_count,
-        COALESCE(SUM(CASE WHEN "queueState" = 'new' THEN 1 ELSE 0 END), 0) AS new_count,
+        COALESCE(SUM(CASE
+          WHEN "queueState" = 'new' AND ("variantStatus" IS NULL OR "variantStatus" = 'available') THEN 1
+          ELSE 0
+        END), 0) AS new_count,
         COALESCE(SUM(CASE WHEN "queueState" IN ('learning', 'relearning') THEN 1 ELSE 0 END), 0) AS learning_count,
         COALESCE(SUM(CASE WHEN "queueState" = 'review' THEN 1 ELSE 0 END), 0) AS review_count,
         COALESCE(SUM(CASE WHEN "queueState" IN ('suspended', 'buried') THEN 1 ELSE 0 END), 0) AS suspended_count,
@@ -797,15 +805,38 @@ async function fetchQueuedNewStudyCards(
     return [];
   }
 
-  return prisma.studyCard.findMany({
+  const cards = await prisma.studyCard.findMany({
     where: {
       userId,
       queueState: 'new',
+      OR: [{ variantStatus: null }, { variantStatus: 'available' }],
     },
     include: STUDY_CARD_SUMMARY_INCLUDE,
     orderBy: NEW_CARD_QUEUE_ORDER,
     take: limit,
   });
+
+  const selected: StudyCardWithRelations[] = [];
+  const seenVariantGroups = new Set<string>();
+  const deferred: StudyCardWithRelations[] = [];
+  for (const card of cards) {
+    if (!card.variantGroupId || !seenVariantGroups.has(card.variantGroupId)) {
+      selected.push(card);
+      if (card.variantGroupId) {
+        seenVariantGroups.add(card.variantGroupId);
+      }
+    } else {
+      deferred.push(card);
+    }
+    if (selected.length >= limit) break;
+  }
+
+  for (const card of deferred) {
+    if (selected.length >= limit) break;
+    selected.push(card);
+  }
+
+  return selected;
 }
 
 async function fetchDueStudyCards(
@@ -933,7 +964,7 @@ export async function recordStudyReview(params: {
       throw new AppError('Study card not found.', 404);
     }
 
-    return tx.studyReviewLog.create({
+    const reviewLog = await tx.studyReviewLog.create({
       data: {
         userId: params.userId,
         cardId: params.cardId,
@@ -954,6 +985,16 @@ export async function recordStudyReview(params: {
         }),
       },
     });
+
+    if (card.variantGroupId && card.variantStage) {
+      await unlockStudyVariantStagesAfterReviewInTransaction({
+        tx,
+        userId: params.userId,
+        cardId: params.cardId,
+      });
+    }
+
+    return reviewLog;
   });
 
   const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
@@ -1543,7 +1584,9 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
   });
 
   const initialState = createFreshSchedulerState();
-  const newQueuePosition = await getNextNewQueuePosition(input.userId);
+  const variantStatus = input.variantStatus ?? null;
+  const isLockedVariant = variantStatus === 'locked';
+  const newQueuePosition = isLockedVariant ? null : await getNextNewQueuePosition(input.userId);
   const promptAudioMediaId = input.promptAudioMediaId ?? null;
   const answerAudioMediaId = input.answerAudioMediaId ?? null;
   const imageMediaId = input.imageMediaId ?? null;
@@ -1564,6 +1607,12 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
       promptAudioMediaId,
       answerAudioMediaId,
       imageMediaId,
+      variantGroupId: input.variantGroupId ?? null,
+      variantSentenceId: input.variantSentenceId ?? null,
+      variantKind: input.variantKind ?? null,
+      variantStage: input.variantStage ?? null,
+      variantStatus,
+      variantUnlockedAt: input.variantUnlockedAt ?? (isLockedVariant ? null : new Date()),
       answerAudioSource: answerAudioMediaId ? 'generated' : 'missing',
     },
     include: {

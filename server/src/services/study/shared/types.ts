@@ -12,6 +12,8 @@ import type {
   StudyBrowserSortField,
   StudyFsrsState,
   StudyPromptPayload,
+  StudyVocabVariantKind,
+  StudyVocabVariantStatus,
 } from '@languageflow/shared/src/types.js';
 import { Prisma } from '@prisma/client';
 
@@ -217,6 +219,12 @@ export interface CreateStudyCardInput {
   promptAudioMediaId?: string | null;
   answerAudioMediaId?: string | null;
   imageMediaId?: string | null;
+  variantGroupId?: string | null;
+  variantSentenceId?: string | null;
+  variantKind?: StudyVocabVariantKind | null;
+  variantStage?: number | null;
+  variantStatus?: StudyVocabVariantStatus | null;
+  variantUnlockedAt?: Date | null;
 }
 
 export interface UpdateStudyCardInput {

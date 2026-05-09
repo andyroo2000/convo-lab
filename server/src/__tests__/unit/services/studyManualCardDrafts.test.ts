@@ -83,24 +83,70 @@ describe('manual card draft persistence service', () => {
   });
 
   it('lists drafts oldest first by creation time', async () => {
+    mockPrisma.studyCardDraft.count.mockResolvedValue(2);
     mockPrisma.studyCardDraft.findMany.mockResolvedValue([
       draftRecord({ id: 'draft-1', createdAt: new Date('2026-05-08T10:00:00.000Z') }),
       draftRecord({ id: 'draft-2', createdAt: new Date('2026-05-08T11:00:00.000Z') }),
     ]);
     const { listManualCardDrafts } = await import('../../../services/study/manualCardDrafts.js');
 
-    const result = await listManualCardDrafts('user-1');
+    const result = await listManualCardDrafts({ userId: 'user-1' });
 
-    expect(result.map((draft) => draft.id)).toEqual(['draft-1', 'draft-2']);
+    expect(result.drafts.map((draft) => draft.id)).toEqual(['draft-1', 'draft-2']);
+    expect(result.total).toBe(2);
     expect(mockPrisma.studyCardDraft.findMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      take: 100,
+      take: 201,
     });
   });
 
+  it('uses an opaque cursor for draft pagination', async () => {
+    const cursorRecord = draftRecord({
+      id: 'draft_with_underscores',
+      createdAt: new Date('2026-05-08T10:00:00.000Z'),
+    });
+    mockPrisma.studyCardDraft.findMany.mockResolvedValueOnce([
+      cursorRecord,
+      draftRecord({ id: 'draft-2', createdAt: new Date('2026-05-08T11:00:00.000Z') }),
+    ]);
+    const { listManualCardDrafts } = await import('../../../services/study/manualCardDrafts.js');
+
+    const firstPage = await listManualCardDrafts({ userId: 'user-1', limit: 1 });
+
+    expect(firstPage.nextCursor).toBeTruthy();
+    expect(firstPage.nextCursor).not.toContain('draft_with_underscores');
+
+    mockPrisma.studyCardDraft.findMany.mockResolvedValueOnce([]);
+    await listManualCardDrafts({
+      userId: 'user-1',
+      limit: 1,
+      cursor: firstPage.nextCursor,
+    });
+
+    expect(mockPrisma.studyCardDraft.findMany).toHaveBeenLastCalledWith({
+      where: {
+        userId: 'user-1',
+        OR: [
+          { createdAt: { gt: cursorRecord.createdAt } },
+          { createdAt: cursorRecord.createdAt, id: { gt: cursorRecord.id } },
+        ],
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: 2,
+    });
+  });
+
+  it('rejects malformed draft cursors', async () => {
+    const { listManualCardDrafts } = await import('../../../services/study/manualCardDrafts.js');
+
+    await expect(
+      listManualCardDrafts({ userId: 'user-1', cursor: 'not-a-valid-cursor' })
+    ).rejects.toThrow('Invalid draft cursor.');
+  });
+
   it('rejects new drafts when the user draft queue is full', async () => {
-    mockPrisma.studyCardDraft.count.mockResolvedValue(50);
+    mockPrisma.studyCardDraft.count.mockResolvedValue(2000);
     const { createManualCardDraft } = await import('../../../services/study/manualCardDrafts.js');
 
     await expect(
@@ -346,13 +392,15 @@ describe('manual card draft persistence service', () => {
     const result = await createStudyCardFromManualDraft({ userId: 'user-1', draftId: 'draft-1' });
 
     expect(result.card.id).toBe('card-1');
-    expect(createManualStudyCardMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      creationKind: 'production-image',
-      cardType: 'production',
-      prompt: expect.objectContaining({ cueText: null }),
-      answer: { expression: '曇り', meaning: 'cloudy weather' },
-    });
+    expect(createManualStudyCardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        creationKind: 'production-image',
+        cardType: 'production',
+        prompt: expect.objectContaining({ cueText: null }),
+        answer: { expression: '曇り', meaning: 'cloudy weather' },
+      })
+    );
     expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
       where: {
         id: 'draft-1',

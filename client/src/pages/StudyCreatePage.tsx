@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
-  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
-} from '@languageflow/shared/src/studyConstants';
 import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new';
 import type {
   StudyCardCandidateKind,
@@ -21,8 +17,9 @@ import StudyCardImageControls from '../components/study/StudyCardImageControls';
 import StudyCardFormFields, { StudyCardNotesField } from '../components/study/StudyCardFormFields';
 import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
-import StudyCandidateDraftList from '../components/study/StudyCandidateDraftList';
 import StudyScrollableListPanel from '../components/study/StudyScrollableListPanel';
+import StudyVocabBundlePreview from '../components/study/StudyVocabBundlePreview';
+import StudyVocabCandidateForm from '../components/study/StudyVocabCandidateForm';
 import {
   buildStudyCardFormPayload,
   getStudyCardFormValues,
@@ -39,7 +36,7 @@ import {
 } from '../components/study/studyCardCreationModel';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import useFakeProgress from '../hooks/useFakeProgress';
-import useGeneratedStudyCandidates from '../hooks/useGeneratedStudyCandidates';
+import useGeneratedStudyVocabBundle from '../hooks/useGeneratedStudyVocabBundle';
 import {
   useCreateCardFromStudyManualCardDraft,
   useCreateStudyManualCardDraft,
@@ -133,7 +130,8 @@ const StudyCreatePage = () => {
   const [creationKind, setCreationKind] = useState<StudyCardCreationKind>(
     DEFAULT_STUDY_CARD_CREATION_KIND
   );
-  const [targetText, setTargetText] = useState('');
+  const [targetWord, setTargetWord] = useState('');
+  const [sourceSentence, setSourceSentence] = useState('');
   const [context, setContext] = useState('');
   const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
   const [manualSuccess, setManualSuccess] = useState<string | null>(null);
@@ -151,17 +149,23 @@ const StudyCreatePage = () => {
   const manualAutosaveTimeoutRef = useRef<number | null>(null);
   const manualAutosavePromiseRef = useRef<Promise<unknown> | null>(null);
   const hydratedManualDraftKeyRef = useRef<string | null>(null);
-  const generated = useGeneratedStudyCandidates();
+  const generated = useGeneratedStudyVocabBundle();
   const manualDraftsQuery = useStudyManualCardDrafts(mode === 'manual');
+  const { data: manualDraftData } = manualDraftsQuery;
+  const manualDraftPages = useMemo(() => {
+    if (!manualDraftData) return [];
+    return 'pages' in manualDraftData ? manualDraftData.pages : [manualDraftData];
+  }, [manualDraftData]);
   const manualDrafts = useMemo(
-    () => manualDraftsQuery.data?.drafts ?? [],
-    [manualDraftsQuery.data?.drafts]
+    () => manualDraftPages.flatMap((page) => page.drafts),
+    [manualDraftPages]
   );
+  const manualDraftTotal = manualDraftPages[0]?.total ?? manualDrafts.length;
   const selectedManualDraft = useMemo(
     () => manualDrafts.find((draft) => draft.id === selectedManualDraftId) ?? null,
     [manualDrafts, selectedManualDraftId]
   );
-  const generationProgress = useFakeProgress(generated.generateCandidates.isPending, {
+  const generationProgress = useFakeProgress(generated.generateBundle.isPending, {
     // Candidate generation often takes tens of seconds, so pace the visual feedback for that wait.
     expectedMs: 40_000,
   });
@@ -497,12 +501,11 @@ const StudyCreatePage = () => {
     }
   };
 
-  const handleGenerateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const handleGenerateSubmit = async () => {
     try {
       await generated.generate({
-        targetText,
+        targetWord,
+        sourceSentence: sourceSentence || null,
         context,
         includeLearnerContext,
       });
@@ -529,7 +532,7 @@ const StudyCreatePage = () => {
   const draftListHeader = (
     <div className="flex items-center justify-between gap-3">
       <p className="text-sm text-gray-600">
-        {t('create.draftQueueCount', { count: manualDrafts.length })}
+        {t('create.draftQueueCount', { count: manualDraftTotal })}
       </p>
       <button
         type="button"
@@ -545,11 +548,42 @@ const StudyCreatePage = () => {
     </div>
   );
   const draftListFooter = (
-    <p className="text-sm text-gray-500">
-      {manualDrafts.some((draft) => draft.status === 'generating')
-        ? t('create.draftQueueGenerating')
-        : t('create.draftQueueReady')}
-    </p>
+    <>
+      <div className="text-sm text-gray-500">
+        <p>
+          {manualDrafts.some((draft) => draft.status === 'generating')
+            ? t('create.draftQueueGenerating')
+            : t('create.draftQueueReady')}
+        </p>
+        <p className="mt-1">
+          {t('create.draftQueueShowing', {
+            shown: manualDrafts.length,
+            total: manualDraftTotal,
+          })}
+        </p>
+      </div>
+      {manualDraftsQuery.hasNextPage ? (
+        <button
+          type="button"
+          onClick={() => {
+            manualDraftsQuery.fetchNextPage().catch(() => undefined);
+          }}
+          disabled={manualDraftsQuery.isFetchingNextPage}
+          className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {manualDraftsQuery.isFetchingNextPage
+            ? t('create.loadingDrafts')
+            : t('create.loadMoreDrafts')}
+        </button>
+      ) : null}
+      {manualDraftsQuery.isFetchNextPageError && manualDraftsQuery.error ? (
+        <p className="text-xs text-red-600">
+          {manualDraftsQuery.error instanceof Error
+            ? manualDraftsQuery.error.message
+            : t('create.failedDrafts')}
+        </p>
+      ) : null}
+    </>
   );
 
   return (
@@ -564,7 +598,7 @@ const StudyCreatePage = () => {
               type="button"
               onClick={() => {
                 setMode(nextMode);
-                generated.setSuccess(null);
+                generated.clear();
                 setManualSuccess(null);
               }}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
@@ -580,109 +614,58 @@ const StudyCreatePage = () => {
       </section>
 
       {mode === 'generate' ? (
-        <section className="card retro-paper-panel max-w-4xl">
-          <form
-            className="space-y-4"
-            data-testid="study-generate-form"
-            onSubmit={handleGenerateSubmit}
-          >
-            <div className="block">
-              <label
-                htmlFor="study-generate-target"
-                className="mb-2 block text-sm font-medium text-gray-700"
-              >
-                {t('create.targetText')}
-              </label>
-              <textarea
-                id="study-generate-target"
-                value={targetText}
-                onChange={(event) => setTargetText(event.target.value)}
-                maxLength={STUDY_CANDIDATE_TARGET_MAX_LENGTH}
-                className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-                required
-              />
-            </div>
-            <div className="block">
-              <label
-                htmlFor="study-generate-context"
-                className="mb-2 block text-sm font-medium text-gray-700"
-              >
-                {t('create.context')}
-              </label>
-              <textarea
-                id="study-generate-context"
-                value={context}
-                onChange={(event) => setContext(event.target.value)}
-                maxLength={STUDY_CANDIDATE_CONTEXT_MAX_LENGTH}
-                className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="study-generate-learner-context"
-                type="checkbox"
-                checked={includeLearnerContext}
-                onChange={(event) => setIncludeLearnerContext(event.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <label
-                htmlFor="study-generate-learner-context"
-                className="text-sm font-medium text-gray-700"
-              >
-                {t('create.useLearnerContext')}
-              </label>
-            </div>
+        <>
+          <StudyVocabCandidateForm
+            targetWord={targetWord}
+            sourceSentence={sourceSentence}
+            context={context}
+            includeLearnerContext={includeLearnerContext}
+            isGenerating={generated.generateBundle.isPending}
+            onContextChange={setContext}
+            onIncludeLearnerContextChange={setIncludeLearnerContext}
+            onSourceSentenceChange={setSourceSentence}
+            onSubmit={() => {
+              handleGenerateSubmit().catch(() => undefined);
+            }}
+            onTargetWordChange={setTargetWord}
+          />
 
-            {generated.generateCandidates.error ? (
-              <p className="text-sm text-red-600">
-                {generated.generateCandidates.error instanceof Error
-                  ? generated.generateCandidates.error.message
-                  : t('create.generateFailed')}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={
-                generated.generateCandidates.isPending ||
-                generated.isCandidateAudioRegenerating ||
-                generated.isCandidateImageRegenerating
-              }
-              className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          {generated.generateBundle.error ? (
+            <p className="text-sm text-red-600">
+              {generated.generateBundle.error instanceof Error
+                ? generated.generateBundle.error.message
+                : t('create.generateFailed')}
+            </p>
+          ) : null}
+          {generationProgress.isVisible && !generated.generateBundle.error ? (
+            <div
+              role="status"
+              aria-label={t('create.generationProgressLabel')}
+              className="max-w-xl rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"
             >
-              {generated.generateCandidates.isPending
-                ? t('create.generating')
-                : t('create.generateSubmit')}
-            </button>
-            {generationProgress.isVisible && !generated.generateCandidates.error ? (
-              <div
-                role="status"
-                aria-label={t('create.generationProgressLabel')}
-                className="max-w-xl rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3 text-sm font-medium text-navy">
-                  <span>{t('create.generationProgressTitle')}</span>
-                  <span data-testid="study-generate-progress-percent">
-                    {roundedGenerationProgress}%
-                  </span>
-                </div>
-                <div
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={roundedGenerationProgress}
-                  className="mt-2 h-2 overflow-hidden rounded-full bg-white"
-                >
-                  <div
-                    data-testid="study-generate-progress-bar"
-                    className="h-full rounded-full bg-navy transition-[width] duration-300 ease-out"
-                    style={{ width: `${generationProgress.progress}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-gray-600">{t('create.generationProgressHint')}</p>
+              <div className="flex items-center justify-between gap-3 text-sm font-medium text-navy">
+                <span>{t('create.generationProgressTitle')}</span>
+                <span data-testid="study-generate-progress-percent">
+                  {roundedGenerationProgress}%
+                </span>
               </div>
-            ) : null}
-          </form>
-        </section>
+              <div
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={roundedGenerationProgress}
+                className="mt-2 h-2 overflow-hidden rounded-full bg-white"
+              >
+                <div
+                  data-testid="study-generate-progress-bar"
+                  className="h-full rounded-full bg-navy transition-[width] duration-300 ease-out"
+                  style={{ width: `${generationProgress.progress}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-gray-600">{t('create.generationProgressHint')}</p>
+            </div>
+          ) : null}
+        </>
       ) : (
         <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
           <StudyScrollableListPanel
@@ -942,30 +925,27 @@ const StudyCreatePage = () => {
         </section>
       )}
 
-      {generated.candidateDrafts.length > 0 ? (
-        <StudyCandidateDraftList
-          candidateDrafts={generated.candidateDrafts}
-          commitError={generated.commitCandidates.error}
-          isCommitPending={generated.commitCandidates.isPending}
+      {generated.bundle && generated.variantDrafts.length > 0 ? (
+        <StudyVocabBundlePreview
+          bundle={generated.bundle}
+          commitError={generated.commitBundle.error}
+          isCommitting={generated.commitBundle.isPending}
           learnerContextSummary={generated.learnerContextSummary}
-          onCommitCandidates={generated.commit}
-          onRegenerateCandidateAudio={generated.handleRegenerateCandidateAudio}
-          onRegenerateCandidateImage={generated.handleRegenerateCandidateImage}
-          onToggleCandidate={generated.toggleCandidate}
-          onUpdateCandidateImagePrompt={generated.updateCandidateImagePrompt}
-          onUpdateCandidateField={generated.updateCandidateField}
+          onCommit={async () => {
+            await generated.commit();
+            setMode('manual');
+          }}
+          onClosePreview={() => generated.setPreviewDraftIndex(null)}
+          onPreview={generated.setPreviewDraftIndex}
+          onRegenerateAudio={generated.regenerateVariantAudio}
           previewDraftIndex={generated.previewDraftIndex}
-          regenerateErrorByCandidateId={generated.regenerateErrorByCandidateId}
-          regenerateImageErrorByCandidateId={generated.regenerateImageErrorByCandidateId}
+          regenerateErrors={generated.regenerateErrors}
           regeneratingCandidateId={generated.regeneratingCandidateId}
-          regeneratingImageCandidateId={generated.regeneratingImageCandidateId}
-          selectedCount={generated.selectedCount}
-          setPreviewDraftIndex={generated.setPreviewDraftIndex}
-          success={generated.success}
+          variantDrafts={generated.variantDrafts}
         />
       ) : null}
 
-      {generated.candidateDrafts.length === 0 && generated.success ? (
+      {!generated.bundle && generated.success ? (
         <section className="card retro-paper-panel max-w-4xl">
           <p className="text-sm text-emerald-700">{generated.success}</p>
         </section>

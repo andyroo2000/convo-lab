@@ -6,6 +6,7 @@ import * as studyImportService from '../../../services/studyImportService.js';
 import * as studyMediaService from '../../../services/studyMediaService.js';
 import * as studySchedulerService from '../../../services/studySchedulerService.js';
 import * as studyService from '../../../services/studyService.js';
+import * as studyVocabBundleService from '../../../services/studyVocabBundleService.js';
 
 describe('studyService barrel', () => {
   it('re-exports import functions from the import service', () => {
@@ -51,6 +52,15 @@ describe('studyService barrel', () => {
     expect(studyService.exportStudyMediaSection).toBe(studyExportService.exportStudyMediaSection);
     expect(studyService.exportStudyImportsSection).toBe(
       studyExportService.exportStudyImportsSection
+    );
+  });
+
+  it('re-exports vocab bundle functions from the vocab bundle service', () => {
+    expect(studyService.generateStudyVocabBundle).toBe(
+      studyVocabBundleService.generateStudyVocabBundle
+    );
+    expect(studyService.commitStudyVocabBundle).toBe(
+      studyVocabBundleService.commitStudyVocabBundle
     );
   });
 });

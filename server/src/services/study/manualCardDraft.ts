@@ -17,6 +17,8 @@ import type {
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
+  StudyVocabVariantKind,
+  StudyVocabVariantStatus,
 } from '@languageflow/shared/src/types.js';
 
 import { AppError } from '../../middleware/errorHandler.js';
@@ -613,6 +615,12 @@ export async function createManualStudyCard(input: {
   cardType: StudyCardType;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
+  variantGroupId?: string | null;
+  variantSentenceId?: string | null;
+  variantKind?: StudyVocabVariantKind | null;
+  variantStage?: number | null;
+  variantStatus?: StudyVocabVariantStatus | null;
+  variantUnlockedAt?: Date | null;
 }) {
   if (!STUDY_CARD_CREATION_KINDS.has(input.creationKind)) {
     throw new AppError('creationKind is not supported.', 400);
@@ -691,5 +699,11 @@ export async function createManualStudyCard(input: {
     promptAudioMediaId,
     answerAudioMediaId,
     imageMediaId,
+    variantGroupId: input.variantGroupId ?? null,
+    variantSentenceId: input.variantSentenceId ?? null,
+    variantKind: input.variantKind ?? null,
+    variantStage: input.variantStage ?? null,
+    variantStatus: input.variantStatus ?? null,
+    variantUnlockedAt: input.variantUnlockedAt ?? null,
   });
 }

@@ -37,6 +37,7 @@ const {
   createStudyImportUploadSessionMock,
   createRedisConnectionMock,
   commitStudyCardCandidatesMock,
+  commitStudyVocabBundleMock,
   completeManualStudyCardDraftMock,
   execMock,
   createStudyCardMock,
@@ -59,6 +60,7 @@ const {
   getStudyImportUploadReadinessMock,
   getStudySettingsMock,
   generateStudyCardCandidatesMock,
+  generateStudyVocabBundleMock,
   generateManualStudyCardDraftImageMock,
   listManualCardDraftsMock,
   multiMock,
@@ -84,6 +86,7 @@ const {
   createStudyImportUploadSessionMock: vi.fn(),
   createRedisConnectionMock: vi.fn(),
   commitStudyCardCandidatesMock: vi.fn(),
+  commitStudyVocabBundleMock: vi.fn(),
   completeManualStudyCardDraftMock: vi.fn(),
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
@@ -106,6 +109,7 @@ const {
   getStudyImportUploadReadinessMock: vi.fn(),
   getStudySettingsMock: vi.fn(),
   generateStudyCardCandidatesMock: vi.fn(),
+  generateStudyVocabBundleMock: vi.fn(),
   generateManualStudyCardDraftImageMock: vi.fn(),
   listManualCardDraftsMock: vi.fn(),
   multiMock: vi.fn(),
@@ -146,6 +150,7 @@ vi.mock('../../../services/studyService.js', () => ({
   deleteManualCardDraft: deleteManualCardDraftMock,
   deleteStudyCard: deleteStudyCardMock,
   commitStudyCardCandidates: commitStudyCardCandidatesMock,
+  commitStudyVocabBundle: commitStudyVocabBundleMock,
   createStudyImportUploadSession: createStudyImportUploadSessionMock,
   exportStudyData: vi.fn(),
   exportStudyCardsSection: exportStudyCardsSectionMock,
@@ -162,6 +167,7 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyOverview: vi.fn(),
   getStudySettings: getStudySettingsMock,
   generateStudyCardCandidates: generateStudyCardCandidatesMock,
+  generateStudyVocabBundle: generateStudyVocabBundleMock,
   generateManualStudyCardDraftImage: generateManualStudyCardDraftImageMock,
   listManualCardDrafts: listManualCardDraftsMock,
   performStudyCardAction: performStudyCardActionMock,
@@ -218,6 +224,7 @@ describe('Study Routes', () => {
     vi.resetModules();
     cancelStudyImportUploadMock.mockReset();
     commitStudyCardCandidatesMock.mockReset();
+    commitStudyVocabBundleMock.mockReset();
     completeManualStudyCardDraftMock.mockReset();
     createManualCardDraftMock.mockReset();
     createStudyCardFromManualDraftMock.mockReset();
@@ -228,6 +235,7 @@ describe('Study Routes', () => {
     deleteStudyCardMock.mockReset();
     enqueueStudyManualCardDraftJobMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
+    generateStudyVocabBundleMock.mockReset();
     generateManualStudyCardDraftImageMock.mockReset();
     listManualCardDraftsMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
@@ -923,6 +931,52 @@ describe('Study Routes', () => {
     expect(generateStudyCardCandidatesMock).not.toHaveBeenCalled();
   });
 
+  it('commits generated vocab bundles after route shape validation', async () => {
+    commitStudyVocabBundleMock.mockResolvedValue({
+      groupId: 'group-1',
+      drafts: [],
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/vocab-bundle/commit')
+    ).send({
+      targetWord: '営業する',
+      targetReading: null,
+      targetMeaning: null,
+      sourceSentence: null,
+      sourceContext: null,
+      sentences: [],
+      variants: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(commitStudyVocabBundleMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      request: {
+        targetWord: '営業する',
+        targetReading: null,
+        targetMeaning: null,
+        sourceSentence: null,
+        sourceContext: null,
+        sentences: [],
+        variants: [],
+      },
+    });
+  });
+
+  it('rejects malformed vocab bundle commits before hitting the service', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/vocab-bundle/commit')
+    ).send({
+      targetWord: '営業する',
+      sentences: [],
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('variants must be an array');
+    expect(commitStudyVocabBundleMock).not.toHaveBeenCalled();
+  });
+
   it('regenerates candidate preview audio after validating the candidate payload', async () => {
     regenerateStudyCardCandidatePreviewAudioMock.mockResolvedValue({
       prompt: { cueMeaning: 'company' },
@@ -1252,7 +1306,12 @@ describe('Study Routes', () => {
       createdAt: '2026-05-08T12:00:00.000Z',
       updatedAt: '2026-05-08T12:00:00.000Z',
     };
-    listManualCardDraftsMock.mockResolvedValue([draft]);
+    listManualCardDraftsMock.mockResolvedValue({
+      drafts: [draft],
+      total: 1,
+      limit: 200,
+      nextCursor: null,
+    });
     updateManualCardDraftMock.mockResolvedValue({
       ...draft,
       answer: { expression: '会社', meaning: 'business' },
@@ -1267,7 +1326,11 @@ describe('Study Routes', () => {
     const listResponse = await request(app).get('/study/card-drafts');
     expect(listResponse.status).toBe(200);
     expect(listResponse.body.drafts).toHaveLength(1);
-    expect(listManualCardDraftsMock).toHaveBeenCalledWith('user-1');
+    expect(listManualCardDraftsMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cursor: undefined,
+      limit: 200,
+    });
 
     const patchResponse = await withMutationCsrf(
       request(app).patch('/study/card-drafts/draft-1')

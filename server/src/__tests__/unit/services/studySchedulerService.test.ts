@@ -66,11 +66,13 @@ function buildStudySessionCard({
   queueState,
   label = id,
   newQueuePosition = null,
+  variantGroupId = null,
 }: {
   id: string;
   queueState: SessionTestQueueState;
   label?: string;
   newQueuePosition?: number | null;
+  variantGroupId?: string | null;
 }) {
   return {
     id,
@@ -84,6 +86,7 @@ function buildStudySessionCard({
     promptJson: { cueText: label },
     answerJson: { expression: label, meaning: 'meaning' },
     schedulerStateJson: buildStudySessionSchedulerState(queueState),
+    variantGroupId,
     createdAt: SESSION_TEST_CREATED_AT,
     updatedAt: SESSION_TEST_UPDATED_AT,
     note: {},
@@ -242,6 +245,79 @@ describe('studySchedulerService', () => {
 
     expect(mockPrisma.studyCard.updateMany).toHaveBeenCalled();
     expect(reviewResult.reviewLogId).toBe('review-log-1');
+  });
+
+  it('unlocks the next vocab variant stage inside the review transaction', async () => {
+    const reviewedCard = {
+      id: 'card-stage-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'recognition',
+      queueState: 'review',
+      dueAt: new Date('2026-04-12T00:00:00.000Z'),
+      answerAudioSource: 'imported',
+      promptJson: {},
+      answerJson: {},
+      schedulerStateJson: {
+        due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+        stability: 10,
+        difficulty: 4,
+        elapsed_days: 4,
+        scheduled_days: 10,
+        learning_steps: 0,
+        reps: 6,
+        lapses: 1,
+        state: 2,
+        last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+      },
+      variantGroupId: 'group-1',
+      variantStage: 1,
+      createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: {},
+    };
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce(reviewedCard)
+      .mockResolvedValueOnce({
+        variantGroupId: 'group-1',
+        variantStage: 1,
+      })
+      .mockResolvedValueOnce({
+        ...reviewedCard,
+        dueAt: new Date('2026-04-20T00:00:00.000Z'),
+      });
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.studyReviewLog.create.mockResolvedValue({ id: 'review-log-variant' });
+    mockPrisma.studyCard.count.mockResolvedValue(1);
+    mockPrisma.studyCard.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'card-stage-1',
+          reviewLogs: [{ rating: 3 }, { rating: 3 }],
+        },
+      ])
+      .mockResolvedValueOnce([{ id: 'card-stage-2' }]);
+    mockPrisma.studyCard.aggregate.mockResolvedValue({
+      _max: {
+        newQueuePosition: 8,
+      },
+    });
+    mockPrisma.studyCard.update.mockResolvedValue({});
+
+    const reviewResult = await recordStudyReview({
+      userId: 'user-1',
+      cardId: 'card-stage-1',
+      grade: 'good',
+    });
+
+    expect(reviewResult.reviewLogId).toBe('review-log-variant');
+    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith({
+      where: { id: 'card-stage-2' },
+      data: expect.objectContaining({
+        variantStatus: 'available',
+        newQueuePosition: 9,
+      }),
+    });
   });
 
   it('marks a new card as introduced only on its first review', async () => {
@@ -1382,7 +1458,7 @@ describe('studySchedulerService', () => {
       expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
-          where: { userId: 'user-1', queueState: 'new' },
+          where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
           orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
           take: expectedNewCardCount,
         })
@@ -1453,7 +1529,7 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: { userId: 'user-1', queueState: 'new' },
+        where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
         take: expectedNewCardCount,
       })
     );
@@ -1503,10 +1579,56 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: { userId: 'user-1', queueState: 'new' },
+        where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
         take: expectedNewCardCount,
       })
     );
+  });
+
+  it('prefers varied variant groups for new cards while still filling the allowed slots', async () => {
+    const expectedNewCardCount = 3;
+
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
+      userId: 'user-1',
+      newCardsPerDay: expectedNewCardCount,
+    });
+    mockPrisma.studyCard.count.mockResolvedValue(0);
+    mockPrisma.studyCard.findMany
+      .mockResolvedValueOnce([
+        buildStudySessionCard({
+          id: 'group-1-a',
+          queueState: 'new',
+          newQueuePosition: 1,
+          variantGroupId: 'group-1',
+        }),
+        buildStudySessionCard({
+          id: 'group-1-b',
+          queueState: 'new',
+          newQueuePosition: 2,
+          variantGroupId: 'group-1',
+        }),
+        buildStudySessionCard({
+          id: 'group-2-a',
+          queueState: 'new',
+          newQueuePosition: 3,
+          variantGroupId: 'group-2',
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+    mockPrisma.$queryRaw.mockResolvedValue([
+      buildStudyOverviewRow({
+        newCount: expectedNewCardCount,
+        reviewCount: 0,
+        totalCards: expectedNewCardCount,
+        nextDueAt: null,
+      }),
+    ]);
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    const session = await startStudySession('user-1', { timeZone: 'America/New_York' });
+
+    expect(session.cards.map((card) => card.id)).toEqual(['group-1-a', 'group-2-a', 'group-1-b']);
+    expect(session.cards).toHaveLength(expectedNewCardCount);
   });
 
   it('reduces the new-card session cap by cards already introduced today', async () => {
@@ -1545,7 +1667,7 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: { userId: 'user-1', queueState: 'new' },
+        where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
         take: expectedNewCardCount,
       })
     );
@@ -1613,7 +1735,7 @@ describe('studySchedulerService', () => {
     expect(queue.items.map((item) => item.displayText)).toEqual(['会社', '学校']);
     expect(mockPrisma.studyCard.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: 'user-1', queueState: 'new' },
+        where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
         orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
       })
     );
@@ -1656,10 +1778,10 @@ describe('studySchedulerService', () => {
     await reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-1', 'card-2'] });
 
     expect(mockPrisma.studyCard.aggregate).toHaveBeenCalledWith({
-      where: {
+      where: expect.objectContaining({
         userId: 'user-1',
         queueState: 'new',
-      },
+      }),
       _max: {
         newQueuePosition: true,
       },

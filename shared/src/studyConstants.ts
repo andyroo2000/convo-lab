@@ -15,7 +15,9 @@ export const STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX = 500;
 
 export const STUDY_CANDIDATE_TARGET_MAX_LENGTH = 500;
 export const STUDY_CANDIDATE_CONTEXT_MAX_LENGTH = 2000;
-export const STUDY_CANDIDATE_COMMIT_MAX_COUNT = 10;
+export const STUDY_CANDIDATE_COMMIT_MAX_COUNT = 20;
+export const STUDY_VOCAB_BUNDLE_SENTENCE_COUNT = 3;
+export const STUDY_VOCAB_BUNDLE_CARD_COUNT = 11;
 export const STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH = 1000;
 // Caps automatic lazy image backfill per generation; tune alongside the manual
 // image-regeneration route limit so image API spend stays predictable.
