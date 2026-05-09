@@ -267,9 +267,8 @@ export const StudyCardFace = ({
   const imageLayoutClasses = compactMobile
     ? 'mx-auto grid w-full max-w-full min-w-0 items-start gap-3 text-center md:max-w-6xl md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:items-center md:gap-8 md:text-left'
     : 'mx-auto grid w-full max-w-6xl min-w-0 items-center gap-4 text-center md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:gap-8 md:text-left';
-  const imageColumnClasses = compactMobile
-    ? 'mx-auto flex w-full min-w-0 justify-center md:block md:border-r md:border-gray-300/80 md:pr-8'
-    : 'mx-auto flex w-full min-w-0 justify-center md:block md:border-r md:border-gray-300/80 md:pr-8';
+  const imageColumnClasses =
+    'mx-auto flex w-full min-w-0 justify-center md:block md:border-r md:border-gray-300/80 md:pr-8';
   const renderedAnswerDetails = (
     <>
       {card.answer.restoredText ? (
