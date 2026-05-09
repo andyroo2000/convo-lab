@@ -89,18 +89,19 @@ describe('manual card draft persistence service', () => {
     ]);
     const { listManualCardDrafts } = await import('../../../services/study/manualCardDrafts.js');
 
-    const result = await listManualCardDrafts('user-1');
+    const result = await listManualCardDrafts({ userId: 'user-1' });
 
-    expect(result.map((draft) => draft.id)).toEqual(['draft-1', 'draft-2']);
+    expect(result.drafts.map((draft) => draft.id)).toEqual(['draft-1', 'draft-2']);
+    expect(result.total).toBe(0);
     expect(mockPrisma.studyCardDraft.findMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      take: 100,
+      take: 201,
     });
   });
 
   it('rejects new drafts when the user draft queue is full', async () => {
-    mockPrisma.studyCardDraft.count.mockResolvedValue(50);
+    mockPrisma.studyCardDraft.count.mockResolvedValue(2000);
     const { createManualCardDraft } = await import('../../../services/study/manualCardDrafts.js');
 
     await expect(
@@ -346,13 +347,15 @@ describe('manual card draft persistence service', () => {
     const result = await createStudyCardFromManualDraft({ userId: 'user-1', draftId: 'draft-1' });
 
     expect(result.card.id).toBe('card-1');
-    expect(createManualStudyCardMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      creationKind: 'production-image',
-      cardType: 'production',
-      prompt: expect.objectContaining({ cueText: null }),
-      answer: { expression: '曇り', meaning: 'cloudy weather' },
-    });
+    expect(createManualStudyCardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        creationKind: 'production-image',
+        cardType: 'production',
+        prompt: expect.objectContaining({ cueText: null }),
+        answer: { expression: '曇り', meaning: 'cloudy weather' },
+      })
+    );
     expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
       where: {
         id: 'draft-1',

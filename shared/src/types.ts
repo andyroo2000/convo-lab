@@ -17,6 +17,8 @@ export {
   STUDY_CANDIDATE_COMMIT_MAX_COUNT,
   STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
   STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT,
+  STUDY_VOCAB_BUNDLE_CARD_COUNT,
+  STUDY_VOCAB_BUNDLE_SENTENCE_COUNT,
 } from './studyConstants';
 
 export type LanguageCode = 'ja' | 'en';
@@ -190,6 +192,15 @@ export type StudyCardCandidateKind =
   | 'production'
   | 'cloze';
 
+export type StudyVocabVariantKind =
+  | 'sentence_audio_recognition'
+  | 'sentence_text_recognition'
+  | 'word_audio_recognition'
+  | 'word_text_recognition'
+  | 'sentence_cloze';
+
+export type StudyVocabVariantStatus = 'available' | 'locked';
+
 export interface StudyCardCandidate {
   clientId: string;
   candidateKind: StudyCardCandidateKind;
@@ -233,6 +244,67 @@ export interface StudyCardCandidateCommitRequest {
 
 export interface StudyCardCandidateCommitResponse {
   cards: StudyCardSummary[];
+}
+
+export interface StudyVocabBundleGenerateRequest {
+  targetWord: string;
+  sourceSentence?: string | null;
+  context?: string | null;
+  includeLearnerContext?: boolean;
+}
+
+export interface StudyVocabBundleSentence {
+  ordinal: number;
+  sentenceJp: string;
+  sentenceReading?: string | null;
+  sentenceEn: string;
+  notes?: string | null;
+}
+
+export interface StudyVocabBundleCandidate {
+  clientId: string;
+  stage: number;
+  variantKind: StudyVocabVariantKind;
+  variantSentenceOrdinal?: number | null;
+  candidate: StudyCardCandidate;
+}
+
+export interface StudyVocabBundle {
+  targetWord: string;
+  targetReading?: string | null;
+  targetMeaning?: string | null;
+  sourceSentence?: string | null;
+  sourceContext?: string | null;
+  sentences: StudyVocabBundleSentence[];
+  variants: StudyVocabBundleCandidate[];
+}
+
+export interface StudyVocabBundleGenerateResponse {
+  bundle: StudyVocabBundle;
+  learnerContextSummary?: string | null;
+}
+
+export interface StudyVocabBundleCommitVariant {
+  clientId: string;
+  stage: number;
+  variantKind: StudyVocabVariantKind;
+  variantSentenceOrdinal?: number | null;
+  candidate: StudyCardCandidateCommitItem;
+}
+
+export interface StudyVocabBundleCommitRequest {
+  targetWord: string;
+  targetReading?: string | null;
+  targetMeaning?: string | null;
+  sourceSentence?: string | null;
+  sourceContext?: string | null;
+  sentences: StudyVocabBundleSentence[];
+  variants: StudyVocabBundleCommitVariant[];
+}
+
+export interface StudyVocabBundleCommitResponse {
+  groupId: string;
+  drafts: StudyManualCardDraft[];
 }
 
 export interface StudyCardCandidatePreviewAudioRequest {
@@ -309,6 +381,12 @@ export interface StudyManualCardDraft {
   previewAudio: StudyMediaRef | null;
   previewAudioRole: 'prompt' | 'answer' | null;
   previewImage: StudyMediaRef | null;
+  variantGroupId?: string | null;
+  variantSentenceId?: string | null;
+  variantKind?: StudyVocabVariantKind | null;
+  variantStage?: number | null;
+  variantStatus?: StudyVocabVariantStatus | null;
+  variantUnlockedAt?: string | null;
   errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
@@ -316,6 +394,9 @@ export interface StudyManualCardDraft {
 
 export interface StudyManualCardDraftListResponse {
   drafts: StudyManualCardDraft[];
+  total: number;
+  limit: number;
+  nextCursor: string | null;
 }
 
 export interface StudyManualCardDraftCreateRequest {

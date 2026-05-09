@@ -35,6 +35,8 @@ import type {
   StudyMediaRef,
   StudyPromptPayload,
   StudyQueueState,
+  StudyVocabBundleCommitRequest,
+  StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types.js';
 import { Router } from 'express';
 
@@ -77,7 +79,9 @@ import {
   getStudyOverview,
   getStudySettings,
   commitStudyCardCandidates,
+  commitStudyVocabBundle,
   generateStudyCardCandidates,
+  generateStudyVocabBundle,
   generateManualStudyCardDraftImage,
   createManualCardDraft,
   createStudyCardFromManualDraft,
@@ -1243,6 +1247,69 @@ router.post(
 // Candidate routes intentionally rely on the global flashcardsEnabled gate above;
 // no separate rollout flag is needed for this flashcards-only surface.
 router.post(
+  '/card-candidates/vocab-bundle/generate',
+  rateLimitStudyRoute({ key: 'vocab-bundle-generate', max: 20, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = req.body as Partial<StudyVocabBundleGenerateRequest>;
+      if (typeof body.targetWord !== 'string') {
+        throw new AppError('targetWord is required.', 400);
+      }
+      if (
+        typeof body.sourceSentence !== 'undefined' &&
+        body.sourceSentence !== null &&
+        typeof body.sourceSentence !== 'string'
+      ) {
+        throw new AppError('sourceSentence must be a string or null.', 400);
+      }
+      if (
+        typeof body.context !== 'undefined' &&
+        body.context !== null &&
+        typeof body.context !== 'string'
+      ) {
+        throw new AppError('context must be a string or null.', 400);
+      }
+
+      res.json(
+        await generateStudyVocabBundle({
+          userId: req.userId,
+          request: {
+            targetWord: body.targetWord,
+            sourceSentence: body.sourceSentence ?? null,
+            context: body.context ?? null,
+            includeLearnerContext:
+              typeof body.includeLearnerContext === 'boolean' ? body.includeLearnerContext : true,
+          },
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/card-candidates/vocab-bundle/commit',
+  rateLimitStudyRoute({ key: 'vocab-bundle-commit', max: 20, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = req.body as StudyVocabBundleCommitRequest;
+      res.json(await commitStudyVocabBundle({ userId: req.userId, request: body }));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
   '/card-candidates/generate',
   rateLimitStudyRoute({ key: 'card-candidate-generate', max: 20, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
@@ -1405,8 +1472,13 @@ router.get(
         throw new AppError('Authenticated user is required.', 401);
       }
 
-      const drafts = await listManualCardDrafts(req.userId);
-      res.json({ drafts });
+      res.json(
+        await listManualCardDrafts({
+          userId: req.userId,
+          cursor: parseBoundedStringQueryParam('cursor', req.query.cursor),
+          limit: parsePaginationLimit(req.query.limit, 200, 2000),
+        })
+      );
     } catch (error) {
       next(error);
     }

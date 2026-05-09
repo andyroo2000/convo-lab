@@ -1382,7 +1382,7 @@ describe('studySchedulerService', () => {
       expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
-          where: { userId: 'user-1', queueState: 'new' },
+          where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
           orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
           take: expectedNewCardCount,
         })
@@ -1453,7 +1453,7 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: { userId: 'user-1', queueState: 'new' },
+        where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
         take: expectedNewCardCount,
       })
     );
@@ -1503,7 +1503,7 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: { userId: 'user-1', queueState: 'new' },
+        where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
         take: expectedNewCardCount,
       })
     );
@@ -1545,7 +1545,7 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: { userId: 'user-1', queueState: 'new' },
+        where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
         take: expectedNewCardCount,
       })
     );
@@ -1613,7 +1613,7 @@ describe('studySchedulerService', () => {
     expect(queue.items.map((item) => item.displayText)).toEqual(['会社', '学校']);
     expect(mockPrisma.studyCard.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: 'user-1', queueState: 'new' },
+        where: expect.objectContaining({ userId: 'user-1', queueState: 'new' }),
         orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
       })
     );
@@ -1656,10 +1656,10 @@ describe('studySchedulerService', () => {
     await reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-1', 'card-2'] });
 
     expect(mockPrisma.studyCard.aggregate).toHaveBeenCalledWith({
-      where: {
+      where: expect.objectContaining({
         userId: 'user-1',
         queueState: 'new',
-      },
+      }),
       _max: {
         newQueuePosition: true,
       },

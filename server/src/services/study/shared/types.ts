@@ -217,6 +217,12 @@ export interface CreateStudyCardInput {
   promptAudioMediaId?: string | null;
   answerAudioMediaId?: string | null;
   imageMediaId?: string | null;
+  variantGroupId?: string | null;
+  variantSentenceId?: string | null;
+  variantKind?: string | null;
+  variantStage?: number | null;
+  variantStatus?: string | null;
+  variantUnlockedAt?: Date | null;
 }
 
 export interface UpdateStudyCardInput {
