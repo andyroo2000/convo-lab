@@ -156,8 +156,8 @@ export const StudyCardFace = ({
             <p
               className={
                 compactMobile
-                  ? 'text-base text-gray-700 sm:text-2xl md:text-3xl'
-                  : 'text-xl text-gray-700 sm:text-2xl md:text-3xl'
+                  ? 'pb-1 text-base leading-snug text-gray-700 sm:text-2xl md:text-3xl'
+                  : 'pb-1 text-xl leading-snug text-gray-700 sm:text-2xl md:text-3xl'
               }
             >
               {toDisplayText(card.prompt.clozeResolvedHint)}

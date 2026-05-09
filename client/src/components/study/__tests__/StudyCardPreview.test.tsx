@@ -350,6 +350,32 @@ describe('StudyCardPreview', () => {
     expect(screen.queryByText(/{{c1::/)).not.toBeInTheDocument();
   });
 
+  it('keeps cloze prompt hints from clipping descenders', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          cardType: 'cloze',
+          prompt: {
+            clozeText: '毎日運動を{{c1::続けています}}。',
+            clozeDisplayText: '毎日運動を[...]続けています。',
+            clozeResolvedHint: 'continuously (indicates ongoing action)',
+          },
+          answer: {
+            restoredText: '毎日運動を続けています。',
+            meaning: 'I exercise every day.',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('continuously (indicates ongoing action)')).toHaveClass(
+      'leading-snug',
+      'pb-1'
+    );
+  });
+
   it('keeps helper meaning hidden on media-led prompt cards', () => {
     render(
       <StudyCardFace
