@@ -102,11 +102,11 @@ const StudyPage = () => {
   if (reviewSession.focusMode) {
     return (
       <>
-        <div className="fixed inset-0 z-[60] overflow-y-auto bg-[#fdfbf5] md:bg-cream">
-          <section className="min-h-[100dvh] md:px-3 md:py-2">
+        <div className="fixed inset-0 z-[60] overflow-hidden bg-[#fdfbf5] md:bg-cream">
+          <section className="h-[100dvh] md:px-3 md:py-2">
             <div
               data-testid="study-focus-shell"
-              className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:min-h-[calc(100vh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
+              className="mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
             >
               <StudyReviewHeader
                 newRemaining={reviewSession.sessionCounts.newRemaining}
@@ -169,7 +169,10 @@ const StudyPage = () => {
               ) : null}
 
               {reviewSession.currentCard ? (
-                <div className="mt-2 flex min-w-0 flex-1 flex-col justify-between space-y-4 overflow-x-hidden pb-24 md:space-y-2">
+                <div
+                  data-testid="study-focus-card-scroll"
+                  className="mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden pb-24 md:space-y-2 md:pb-16"
+                >
                   {!reviewSession.revealed ? (
                     <div
                       role="button"
