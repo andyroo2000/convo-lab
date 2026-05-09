@@ -4,6 +4,7 @@ import type {
 } from '@languageflow/shared/src/types.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AppError } from '../../../middleware/errorHandler.js';
 import { mockPrisma } from '../../setup.js';
 
 const createReadyManualCardDraftsInTransactionMock = vi.hoisted(() => vi.fn());
@@ -446,6 +447,28 @@ describe('studyVocabBundleService', () => {
         status: 'error',
         errorMessage:
           'Could not generate this vocab bundle. Please retry or edit the drafts manually.',
+      },
+    });
+  });
+
+  it('stores safe client AppError messages on final draft processing failures', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    generateStudyCardCandidateJsonMock.mockRejectedValue(
+      new AppError('Target word is required.', 400)
+    );
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(processStudyVocabBundleDrafts('group-1')).rejects.toThrow(
+      'Target word is required.'
+    );
+    expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
+      where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
+      data: {
+        status: 'error',
+        errorMessage: 'Target word is required.',
       },
     });
   });

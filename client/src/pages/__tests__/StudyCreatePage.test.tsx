@@ -903,6 +903,38 @@ describe('StudyCreatePage', () => {
     expect(screen.getByTestId('study-generate-progress-percent')).toHaveTextContent('0%');
   });
 
+  it('hides vocab bundle progress after drafts are queued successfully', async () => {
+    let resolveVocabBundle!: (value: unknown) => void;
+    createVocabBundleDraftsMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveVocabBundle = resolve;
+        })
+    );
+    const { rerenderPage } = renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word'), '営業する');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate vocab bundle' }));
+    createVocabBundleDraftsState.isPending = true;
+    rerenderPage();
+
+    expect(
+      screen.getByRole('status', { name: 'Candidate generation progress' })
+    ).toBeInTheDocument();
+
+    resolveVocabBundle({
+      groupId: 'group-1',
+      drafts: [manualDraft({ id: 'vocab-draft-1', status: 'generating' })],
+    });
+
+    expect(
+      await screen.findByText(/Added 1 generated card to the draft queue/)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Candidate generation progress' })
+    ).not.toBeInTheDocument();
+  });
+
   it('queues vocab bundle drafts from target word and optional sentence without waiting for generation', async () => {
     createVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',

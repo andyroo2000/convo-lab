@@ -41,20 +41,20 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
       return existingJob;
     }
     if (state === 'failed') {
-      // A failed job has exhausted its attempt budget; recreate it so a manual retry gets a fresh window.
-      await existingJob.remove();
-    } else if (state === 'completed') {
-      // Group IDs are per-creation UUIDs, so finished jobs are historical records, not requeue targets.
-      return existingJob;
-    } else {
-      if (state === 'unknown') {
-        console.warn(
-          `Vocab bundle draft job ${groupId} has unknown BullMQ state; leaving it alone.`
-        );
-      }
-      // Keep future BullMQ states stable instead of removing a job a worker might still observe.
+      console.warn(
+        `Vocab bundle draft job ${groupId} has already failed; leaving historical job in place.`
+      );
       return existingJob;
     }
+    if (state === 'completed') {
+      // Group IDs are per-creation UUIDs, so finished jobs are historical records, not requeue targets.
+      return existingJob;
+    }
+    if (state === 'unknown') {
+      console.warn(`Vocab bundle draft job ${groupId} has unknown BullMQ state; leaving it alone.`);
+    }
+    // Keep future BullMQ states stable instead of removing a job a worker might still observe.
+    return existingJob;
   }
 
   return studyVocabBundleDraftQueue.add(
