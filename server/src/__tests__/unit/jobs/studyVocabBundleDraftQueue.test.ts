@@ -79,6 +79,23 @@ describe('studyVocabBundleDraftQueue', () => {
     expect(queueAddMock).not.toHaveBeenCalled();
   });
 
+  it('does not enqueue duplicate prioritized group jobs', async () => {
+    const prioritizedJob = {
+      getState: vi.fn().mockResolvedValue('prioritized'),
+      remove: vi.fn(),
+      retry: vi.fn(),
+    };
+    queueGetJobMock.mockResolvedValue(prioritizedJob);
+    const { enqueueStudyVocabBundleDraftJob } =
+      await import('../../../jobs/studyVocabBundleDraftQueue.js');
+
+    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(prioritizedJob);
+
+    expect(prioritizedJob.retry).not.toHaveBeenCalled();
+    expect(prioritizedJob.remove).not.toHaveBeenCalled();
+    expect(queueAddMock).not.toHaveBeenCalled();
+  });
+
   it('retries an existing failed group job instead of removing and recreating it', async () => {
     const failedJob = {
       getState: vi.fn().mockResolvedValue('failed'),
@@ -110,6 +127,23 @@ describe('studyVocabBundleDraftQueue', () => {
 
     expect(completedJob.retry).not.toHaveBeenCalled();
     expect(completedJob.remove).not.toHaveBeenCalled();
+    expect(queueAddMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps unrecognized future group job states stable', async () => {
+    const futureStateJob = {
+      getState: vi.fn().mockResolvedValue('future-state'),
+      remove: vi.fn(),
+      retry: vi.fn(),
+    };
+    queueGetJobMock.mockResolvedValue(futureStateJob);
+    const { enqueueStudyVocabBundleDraftJob } =
+      await import('../../../jobs/studyVocabBundleDraftQueue.js');
+
+    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(futureStateJob);
+
+    expect(futureStateJob.retry).not.toHaveBeenCalled();
+    expect(futureStateJob.remove).not.toHaveBeenCalled();
     expect(queueAddMock).not.toHaveBeenCalled();
   });
 

@@ -8,7 +8,13 @@ const queueConnection = createRedisConnection();
 const workerConnection = createRedisConnection();
 const STUDY_VOCAB_BUNDLE_DRAFT_QUEUE_NAME = 'study-vocab-bundle-drafts';
 const STUDY_VOCAB_BUNDLE_DRAFT_JOB_ATTEMPTS = 3;
-const ACTIVE_JOB_STATES = new Set(['active', 'waiting', 'delayed', 'prioritized']);
+const ACTIVE_JOB_STATES = new Set([
+  'active',
+  'waiting',
+  'delayed',
+  'prioritized',
+  'waiting-children',
+]);
 const FINISHED_JOB_STATES = new Set(['completed', 'unknown']);
 
 export const studyVocabBundleDraftQueue = new Queue(STUDY_VOCAB_BUNDLE_DRAFT_QUEUE_NAME, {
@@ -43,6 +49,7 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
       // Group IDs are per-creation UUIDs, so finished jobs are historical records, not requeue targets.
       return existingJob;
     }
+    // Keep future BullMQ states stable instead of removing a job a worker might still observe.
     return existingJob;
   }
 
