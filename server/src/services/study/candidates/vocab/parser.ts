@@ -1,4 +1,4 @@
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new.js';
 import { STUDY_VOCAB_BUNDLE_SENTENCE_COUNT } from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyCardCandidate,
@@ -96,7 +96,7 @@ function audioCandidate(input: {
       notes: input.notes,
       sentenceJp: input.sentenceJp,
       sentenceEn: input.sentenceEn,
-      answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      answerAudioVoiceId: selectManualStudyCardDefaultVoiceId(),
     },
     rationale: 'Introduces the item by sound before text.',
     warnings: [],
@@ -131,7 +131,7 @@ function textCandidate(input: {
       notes: input.notes,
       sentenceJp: input.sentenceJp,
       sentenceEn: input.sentenceEn,
-      answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      answerAudioVoiceId: selectManualStudyCardDefaultVoiceId(),
     },
     rationale: 'Checks visual recognition after listening practice.',
     warnings: [],
@@ -164,7 +164,7 @@ function clozeCandidate(input: {
       restoredTextReading: input.restoredReading,
       meaning: input.meaning,
       notes: input.notes,
-      answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      answerAudioVoiceId: selectManualStudyCardDefaultVoiceId(),
     },
     rationale: 'Tests recall in sentence context after recognition stages.',
     warnings: [],

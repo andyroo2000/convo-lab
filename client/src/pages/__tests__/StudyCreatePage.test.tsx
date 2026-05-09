@@ -33,6 +33,8 @@ const {
   createCardFromManualDraftMock,
   createCardFromManualDraftState,
   createStudyCardMock,
+  createVocabBundleDraftsMock,
+  createVocabBundleDraftsState,
   deleteManualDraftMock,
   deleteManualDraftState,
   generateDraftImageMock,
@@ -62,6 +64,8 @@ const {
   createCardFromManualDraftMock: vi.fn(),
   createCardFromManualDraftState: { isPending: false },
   createStudyCardMock: vi.fn(),
+  createVocabBundleDraftsMock: vi.fn(),
+  createVocabBundleDraftsState: { error: null as Error | null, isPending: false },
   deleteManualDraftMock: vi.fn(),
   deleteManualDraftState: { isPending: false },
   generateDraftImageMock: vi.fn(),
@@ -112,6 +116,11 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: createManualDraftMock,
     isPending: createManualDraftState.isPending,
     error: createManualDraftState.error,
+  }),
+  useCreateStudyVocabBundleDrafts: () => ({
+    mutateAsync: createVocabBundleDraftsMock,
+    isPending: createVocabBundleDraftsState.isPending,
+    error: createVocabBundleDraftsState.error,
   }),
   useUpdateStudyManualCardDraft: () => ({
     mutateAsync: updateManualDraftMock,
@@ -241,6 +250,9 @@ describe('StudyCreatePage', () => {
     createCardFromManualDraftMock.mockReset();
     createCardFromManualDraftState.isPending = false;
     createStudyCardMock.mockReset();
+    createVocabBundleDraftsMock.mockReset();
+    createVocabBundleDraftsState.error = null;
+    createVocabBundleDraftsState.isPending = false;
     deleteManualDraftMock.mockReset();
     deleteManualDraftState.isPending = false;
     generateDraftImageMock.mockReset();
@@ -273,6 +285,22 @@ describe('StudyCreatePage', () => {
       drafts: [manualDraft({ id: 'draft-created-1' })],
     });
     createManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
+    createVocabBundleDraftsMock.mockResolvedValue({
+      groupId: 'group-1',
+      drafts: [
+        manualDraft({
+          id: 'vocab-draft-1',
+          status: 'generating',
+          creationKind: 'audio-recognition',
+          prompt: {},
+          answer: {
+            expression: '営業の仕事は楽しいです。',
+            meaning: '',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+        }),
+      ],
+    });
     createCardFromManualDraftMock.mockResolvedValue({
       card: { id: 'created-1', cardType: 'recognition' },
     });
@@ -892,7 +920,7 @@ describe('StudyCreatePage', () => {
 
   it('shows fake progress while vocab bundle generation is pending', () => {
     vi.useFakeTimers();
-    generateVocabBundleState.isPending = true;
+    createVocabBundleDraftsState.isPending = true;
 
     renderPage();
 
@@ -903,127 +931,47 @@ describe('StudyCreatePage', () => {
     expect(screen.getByTestId('study-generate-progress-percent')).toHaveTextContent('0%');
   });
 
-  it('generates a vocab bundle from target word and optional sentence', async () => {
-    generateVocabBundleMock.mockResolvedValue({
-      learnerContextSummary: 'Recent context',
-      bundle: {
-        targetWord: '営業する',
-        targetReading: '営業[えいぎょう]する',
-        targetMeaning: 'to do sales',
-        sourceSentence: '営業の仕事は楽しいです。',
-        sourceContext: 'Business chapter',
-        sentences: [
-          {
-            ordinal: 0,
-            sentenceJp: '営業の仕事は楽しいです。',
-            sentenceReading: '営業[えいぎょう]の仕事[しごと]は楽[たの]しいです。',
-            sentenceEn: 'Sales work is fun.',
+  it('queues vocab bundle drafts from target word and optional sentence without waiting for generation', async () => {
+    createVocabBundleDraftsMock.mockResolvedValue({
+      groupId: 'group-1',
+      drafts: Array.from({ length: 11 }, (_, index) =>
+        manualDraft({
+          id: `vocab-draft-${String(index + 1)}`,
+          status: 'generating',
+          creationKind: index < 3 ? 'audio-recognition' : 'text-recognition',
+          prompt: index < 3 ? {} : { cueText: '営業する' },
+          answer: {
+            expression: index < 3 ? '営業の仕事は楽しいです。' : '営業する',
+            meaning: '',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
           },
-          {
-            ordinal: 1,
-            sentenceJp: '午後に営業します。',
-            sentenceReading: '午後[ごご]に営業[えいぎょう]します。',
-            sentenceEn: 'I will do sales in the afternoon.',
-          },
-          {
-            ordinal: 2,
-            sentenceJp: '駅の近くで営業しています。',
-            sentenceReading: '駅[えき]の近[ちか]くで営業[えいぎょう]しています。',
-            sentenceEn: 'They are operating near the station.',
-          },
-        ],
-        variants: [
-          {
-            clientId: 'sentence-audio-0',
-            stage: 1,
-            variantKind: 'sentence_audio_recognition',
-            variantSentenceOrdinal: 0,
-            candidate: {
-              clientId: 'sentence-audio-0',
-              candidateKind: 'audio-recognition',
-              cardType: 'recognition',
-              prompt: {},
-              answer: {
-                expression: '営業の仕事は楽しいです。',
-                expressionReading: '営業[えいぎょう]の仕事[しごと]は楽[たの]しいです。',
-                meaning: 'Sales work is fun.',
-                answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-              },
-              rationale: 'Start with listening.',
-              warnings: [],
-              previewAudio: {
-                id: 'audio-1',
-                filename: 'audio-1.mp3',
-                url: '/api/study/media/audio-1',
-                mediaKind: 'audio',
-                source: 'generated',
-              },
-              previewAudioRole: 'prompt',
-            },
-          },
-          {
-            clientId: 'word-text',
-            stage: 4,
-            variantKind: 'word_text_recognition',
-            variantSentenceOrdinal: null,
-            candidate: {
-              clientId: 'word-text',
-              candidateKind: 'text-recognition',
-              cardType: 'recognition',
-              prompt: { cueText: '営業する', cueReading: '営業[えいぎょう]する' },
-              answer: {
-                expression: '営業する',
-                expressionReading: '営業[えいぎょう]する',
-                meaning: 'to do sales',
-                answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-              },
-              rationale: 'Then visual word recognition.',
-              warnings: [],
-              previewAudio: null,
-              previewAudioRole: null,
-            },
-          },
-        ],
-      },
+        })
+      ),
     });
 
     renderPage();
 
+    expect(screen.getByTestId('study-manual-draft-list')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Target word'), '営業する');
     await userEvent.type(screen.getByLabelText('Source sentence'), '営業の仕事は楽しいです。');
     await userEvent.type(screen.getByLabelText('Extra context'), 'Business chapter');
     await userEvent.click(screen.getByRole('button', { name: 'Generate vocab bundle' }));
 
-    expect(generateVocabBundleMock).toHaveBeenCalledWith({
+    expect(createVocabBundleDraftsMock).toHaveBeenCalledWith({
       targetWord: '営業する',
       sourceSentence: '営業の仕事は楽しいです。',
       context: 'Business chapter',
       includeLearnerContext: true,
     });
-    expect((await screen.findAllByText('営業する')).length).toBeGreaterThan(0);
-    expect(screen.getByText('Sentence listening')).toBeInTheDocument();
-    expect(screen.getByText('Word recognition')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Add 2 staged cards' }));
-    expect(commitVocabBundleMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        targetWord: '営業する',
-        variants: expect.arrayContaining([
-          expect.objectContaining({
-            stage: 1,
-            variantKind: 'sentence_audio_recognition',
-            candidate: expect.objectContaining({ candidateKind: 'audio-recognition' }),
-          }),
-          expect.objectContaining({
-            stage: 4,
-            variantKind: 'word_text_recognition',
-            candidate: expect.objectContaining({ candidateKind: 'text-recognition' }),
-          }),
-        ]),
-      })
-    );
+    await waitFor(() => {
+      expect(screen.getByLabelText('Target word')).toHaveValue('');
+      expect(screen.getByLabelText('Source sentence')).toHaveValue('');
+      expect(screen.getByLabelText('Extra context')).toHaveValue('');
+    });
     expect(
-      await screen.findByText('Added 1 generated card to the draft queue.')
+      await screen.findByText('Added 11 generated cards to the draft queue.')
     ).toBeInTheDocument();
+    expect(generateVocabBundleMock).not.toHaveBeenCalled();
+    expect(commitVocabBundleMock).not.toHaveBeenCalled();
   });
 });

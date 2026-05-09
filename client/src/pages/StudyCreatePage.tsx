@@ -18,7 +18,6 @@ import StudyCardFormFields, { StudyCardNotesField } from '../components/study/St
 import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import StudyScrollableListPanel from '../components/study/StudyScrollableListPanel';
-import StudyVocabBundlePreview from '../components/study/StudyVocabBundlePreview';
 import StudyVocabCandidateForm from '../components/study/StudyVocabCandidateForm';
 import {
   buildStudyCardFormPayload,
@@ -36,10 +35,10 @@ import {
 } from '../components/study/studyCardCreationModel';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import useFakeProgress from '../hooks/useFakeProgress';
-import useGeneratedStudyVocabBundle from '../hooks/useGeneratedStudyVocabBundle';
 import {
   useCreateCardFromStudyManualCardDraft,
   useCreateStudyManualCardDraft,
+  useCreateStudyVocabBundleDrafts,
   useDeleteStudyManualCardDraft,
   useGenerateStudyCardDraftImage,
   useRetryStudyManualCardDraft,
@@ -123,6 +122,7 @@ const StudyCreatePage = () => {
   const deleteDraft = useDeleteStudyManualCardDraft();
   const retryDraft = useRetryStudyManualCardDraft();
   const createCardFromDraft = useCreateCardFromStudyManualCardDraft();
+  const createVocabBundleDrafts = useCreateStudyVocabBundleDrafts();
   const generateDraftImage = useGenerateStudyCardDraftImage();
   const regenerateManualAudio = useRegenerateStudyCardCandidatePreviewAudio();
   const [manualDefaultVoiceId] = useState(() => selectManualStudyCardDefaultVoiceId());
@@ -135,6 +135,7 @@ const StudyCreatePage = () => {
   const [context, setContext] = useState('');
   const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
   const [manualSuccess, setManualSuccess] = useState<string | null>(null);
+  const [vocabSuccess, setVocabSuccess] = useState<string | null>(null);
   const [manualImagePrompt, setManualImagePrompt] = useState('');
   const [manualImagePlacement, setManualImagePlacement] = useState<StudyCardImagePlacement>(() =>
     defaultImagePlacementForStudyCardCreationKind(DEFAULT_STUDY_CARD_CREATION_KIND)
@@ -149,8 +150,7 @@ const StudyCreatePage = () => {
   const manualAutosaveTimeoutRef = useRef<number | null>(null);
   const manualAutosavePromiseRef = useRef<Promise<unknown> | null>(null);
   const hydratedManualDraftKeyRef = useRef<string | null>(null);
-  const generated = useGeneratedStudyVocabBundle();
-  const manualDraftsQuery = useStudyManualCardDrafts(mode === 'manual');
+  const manualDraftsQuery = useStudyManualCardDrafts(true);
   const { data: manualDraftData } = manualDraftsQuery;
   const manualDraftPages = useMemo(() => {
     if (!manualDraftData) return [];
@@ -165,9 +165,8 @@ const StudyCreatePage = () => {
     () => manualDrafts.find((draft) => draft.id === selectedManualDraftId) ?? null,
     [manualDrafts, selectedManualDraftId]
   );
-  const generationProgress = useFakeProgress(generated.generateBundle.isPending, {
-    // Candidate generation often takes tens of seconds, so pace the visual feedback for that wait.
-    expectedMs: 40_000,
+  const generationProgress = useFakeProgress(createVocabBundleDrafts.isPending, {
+    expectedMs: 4_000,
   });
   const roundedGenerationProgress = Math.round(generationProgress.progress);
   const { values, setField, setValues } = useStudyCardForm({
@@ -502,13 +501,18 @@ const StudyCreatePage = () => {
   };
 
   const handleGenerateSubmit = async () => {
+    setVocabSuccess(null);
     try {
-      await generated.generate({
+      const result = await createVocabBundleDrafts.mutateAsync({
         targetWord,
         sourceSentence: sourceSentence || null,
         context,
         includeLearnerContext,
       });
+      setTargetWord('');
+      setSourceSentence('');
+      setContext('');
+      setVocabSuccess(t('create.generatedSuccess', { count: result.drafts.length }));
     } catch {
       // React Query stores the mutation error for the visible form message.
     }
@@ -585,6 +589,115 @@ const StudyCreatePage = () => {
       ) : null}
     </>
   );
+  const draftListPanel = (
+    <StudyScrollableListPanel
+      panelTestId="study-manual-draft-list"
+      scrollRegionTestId="study-manual-draft-scroll-region"
+      header={draftListHeader}
+      footer={draftListFooter}
+    >
+      {manualDraftsQuery.isLoading ? (
+        <p className="p-6 text-gray-500">{t('create.loadingDrafts')}</p>
+      ) : null}
+      {manualDraftsQuery.error ? (
+        <p className="p-6 text-red-600">
+          {manualDraftsQuery.error instanceof Error
+            ? manualDraftsQuery.error.message
+            : t('create.failedDrafts')}
+        </p>
+      ) : null}
+      {!manualDraftsQuery.isLoading && manualDrafts.length === 0 ? (
+        <div className="p-6 text-center text-gray-600">{t('create.noDrafts')}</div>
+      ) : null}
+      {manualDrafts.length > 0 ? (
+        <>
+          <div className="space-y-3 p-4 md:hidden">
+            {manualDrafts.map((draft) => {
+              const isSelected = draft.id === selectedManualDraftId;
+              return (
+                <button
+                  key={draft.id}
+                  type="button"
+                  data-testid="study-manual-draft-item"
+                  onClick={() => {
+                    setMode('manual');
+                    setSelectedManualDraftId(draft.id);
+                  }}
+                  className={`block w-full rounded-2xl border px-4 py-4 text-left ${
+                    isSelected
+                      ? 'border-navy bg-blue-50'
+                      : 'border-gray-200 bg-white hover:bg-cream/50'
+                  }`}
+                >
+                  <p className="break-words text-base font-semibold text-gray-900">
+                    {draft.prompt.cueText ??
+                      draft.prompt.clozeDisplayText ??
+                      draft.prompt.clozeText ??
+                      draft.answer.expression ??
+                      draft.answer.restoredText ??
+                      t('create.untitledDraft')}
+                  </p>
+                  <p className="mt-2 text-sm text-gray-600">
+                    {t(`form.${creationKindLabelKey(draft.creationKind)}`)} ·{' '}
+                    {t(`create.draftStatuses.${draft.status}`)}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="min-w-full text-left text-sm">
+              <thead className="sticky top-0 z-[1] bg-cream/95 text-gray-600">
+                <tr>
+                  <th className="px-4 py-3 font-medium">{t('create.draftColumn')}</th>
+                  <th className="px-4 py-3 font-medium">{t('create.statusColumn')}</th>
+                  <th className="px-4 py-3 font-medium">{t('create.createdColumn')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {manualDrafts.map((draft) => {
+                  const isSelected = draft.id === selectedManualDraftId;
+                  return (
+                    <tr
+                      key={draft.id}
+                      data-testid="study-manual-draft-row"
+                      onClick={() => {
+                        setMode('manual');
+                        setSelectedManualDraftId(draft.id);
+                      }}
+                      className={`cursor-pointer border-t border-gray-200 ${
+                        isSelected ? 'bg-blue-100/70' : 'hover:bg-cream/50'
+                      }`}
+                    >
+                      <td className="max-w-[16rem] px-4 py-3 align-top">
+                        <p className="line-clamp-2 break-words text-gray-900">
+                          {draft.prompt.cueText ??
+                            draft.prompt.clozeDisplayText ??
+                            draft.prompt.clozeText ??
+                            draft.answer.expression ??
+                            draft.answer.restoredText ??
+                            t('create.untitledDraft')}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {t(`form.${creationKindLabelKey(draft.creationKind)}`)}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 align-top text-gray-700">
+                        {t(`create.draftStatuses.${draft.status}`)}
+                      </td>
+                      <td className="px-4 py-3 align-top text-gray-700">
+                        {new Date(draft.createdAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : null}
+    </StudyScrollableListPanel>
+  );
 
   return (
     <div className="space-y-6">
@@ -598,8 +711,8 @@ const StudyCreatePage = () => {
               type="button"
               onClick={() => {
                 setMode(nextMode);
-                generated.clear();
                 setManualSuccess(null);
+                setVocabSuccess(null);
               }}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 mode === nextMode
@@ -614,161 +727,65 @@ const StudyCreatePage = () => {
       </section>
 
       {mode === 'generate' ? (
-        <>
-          <StudyVocabCandidateForm
-            targetWord={targetWord}
-            sourceSentence={sourceSentence}
-            context={context}
-            includeLearnerContext={includeLearnerContext}
-            isGenerating={generated.generateBundle.isPending}
-            onContextChange={setContext}
-            onIncludeLearnerContextChange={setIncludeLearnerContext}
-            onSourceSentenceChange={setSourceSentence}
-            onSubmit={() => {
-              handleGenerateSubmit().catch(() => undefined);
-            }}
-            onTargetWordChange={setTargetWord}
-          />
-
-          {generated.generateBundle.error ? (
-            <p className="text-sm text-red-600">
-              {generated.generateBundle.error instanceof Error
-                ? generated.generateBundle.error.message
-                : t('create.generateFailed')}
-            </p>
-          ) : null}
-          {generationProgress.isVisible && !generated.generateBundle.error ? (
-            <div
-              role="status"
-              aria-label={t('create.generationProgressLabel')}
-              className="max-w-xl rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"
-            >
-              <div className="flex items-center justify-between gap-3 text-sm font-medium text-navy">
-                <span>{t('create.generationProgressTitle')}</span>
-                <span data-testid="study-generate-progress-percent">
-                  {roundedGenerationProgress}%
-                </span>
-              </div>
-              <div
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={roundedGenerationProgress}
-                className="mt-2 h-2 overflow-hidden rounded-full bg-white"
-              >
-                <div
-                  data-testid="study-generate-progress-bar"
-                  className="h-full rounded-full bg-navy transition-[width] duration-300 ease-out"
-                  style={{ width: `${generationProgress.progress}%` }}
-                />
-              </div>
-              <p className="mt-2 text-xs text-gray-600">{t('create.generationProgressHint')}</p>
-            </div>
-          ) : null}
-        </>
-      ) : (
         <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
-          <StudyScrollableListPanel
-            panelTestId="study-manual-draft-list"
-            scrollRegionTestId="study-manual-draft-scroll-region"
-            header={draftListHeader}
-            footer={draftListFooter}
-          >
-            {manualDraftsQuery.isLoading ? (
-              <p className="p-6 text-gray-500">{t('create.loadingDrafts')}</p>
-            ) : null}
-            {manualDraftsQuery.error ? (
-              <p className="p-6 text-red-600">
-                {manualDraftsQuery.error instanceof Error
-                  ? manualDraftsQuery.error.message
-                  : t('create.failedDrafts')}
+          {draftListPanel}
+          <div className="space-y-4">
+            <StudyVocabCandidateForm
+              targetWord={targetWord}
+              sourceSentence={sourceSentence}
+              context={context}
+              includeLearnerContext={includeLearnerContext}
+              isGenerating={createVocabBundleDrafts.isPending}
+              onContextChange={setContext}
+              onIncludeLearnerContextChange={setIncludeLearnerContext}
+              onSourceSentenceChange={setSourceSentence}
+              onSubmit={() => {
+                handleGenerateSubmit().catch(() => undefined);
+              }}
+              onTargetWordChange={setTargetWord}
+            />
+
+            {createVocabBundleDrafts.error ? (
+              <p className="text-sm text-red-600">
+                {createVocabBundleDrafts.error instanceof Error
+                  ? createVocabBundleDrafts.error.message
+                  : t('create.generateFailed')}
               </p>
             ) : null}
-            {!manualDraftsQuery.isLoading && manualDrafts.length === 0 ? (
-              <div className="p-6 text-center text-gray-600">{t('create.noDrafts')}</div>
-            ) : null}
-            {manualDrafts.length > 0 ? (
-              <>
-                <div className="space-y-3 p-4 md:hidden">
-                  {manualDrafts.map((draft) => {
-                    const isSelected = draft.id === selectedManualDraftId;
-                    return (
-                      <button
-                        key={draft.id}
-                        type="button"
-                        data-testid="study-manual-draft-item"
-                        onClick={() => setSelectedManualDraftId(draft.id)}
-                        className={`block w-full rounded-2xl border px-4 py-4 text-left ${
-                          isSelected
-                            ? 'border-navy bg-blue-50'
-                            : 'border-gray-200 bg-white hover:bg-cream/50'
-                        }`}
-                      >
-                        <p className="break-words text-base font-semibold text-gray-900">
-                          {draft.prompt.cueText ??
-                            draft.prompt.clozeDisplayText ??
-                            draft.prompt.clozeText ??
-                            draft.answer.expression ??
-                            draft.answer.restoredText ??
-                            t('create.untitledDraft')}
-                        </p>
-                        <p className="mt-2 text-sm text-gray-600">
-                          {t(`form.${creationKindLabelKey(draft.creationKind)}`)} ·{' '}
-                          {t(`create.draftStatuses.${draft.status}`)}
-                        </p>
-                      </button>
-                    );
-                  })}
+            {vocabSuccess ? <p className="text-sm text-emerald-700">{vocabSuccess}</p> : null}
+            {generationProgress.isVisible && !createVocabBundleDrafts.error ? (
+              <div
+                role="status"
+                aria-label={t('create.generationProgressLabel')}
+                className="max-w-xl rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"
+              >
+                <div className="flex items-center justify-between gap-3 text-sm font-medium text-navy">
+                  <span>{t('create.generationProgressTitle')}</span>
+                  <span data-testid="study-generate-progress-percent">
+                    {roundedGenerationProgress}%
+                  </span>
                 </div>
-                <div className="hidden overflow-x-auto md:block">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="sticky top-0 z-[1] bg-cream/95 text-gray-600">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">{t('create.draftColumn')}</th>
-                        <th className="px-4 py-3 font-medium">{t('create.statusColumn')}</th>
-                        <th className="px-4 py-3 font-medium">{t('create.createdColumn')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {manualDrafts.map((draft) => {
-                        const isSelected = draft.id === selectedManualDraftId;
-                        return (
-                          <tr
-                            key={draft.id}
-                            data-testid="study-manual-draft-row"
-                            onClick={() => setSelectedManualDraftId(draft.id)}
-                            className={`cursor-pointer border-t border-gray-200 ${
-                              isSelected ? 'bg-blue-100/70' : 'hover:bg-cream/50'
-                            }`}
-                          >
-                            <td className="max-w-[16rem] px-4 py-3 align-top">
-                              <p className="line-clamp-2 break-words text-gray-900">
-                                {draft.prompt.cueText ??
-                                  draft.prompt.clozeDisplayText ??
-                                  draft.prompt.clozeText ??
-                                  draft.answer.expression ??
-                                  draft.answer.restoredText ??
-                                  t('create.untitledDraft')}
-                              </p>
-                              <p className="mt-1 text-xs text-gray-500">
-                                {t(`form.${creationKindLabelKey(draft.creationKind)}`)}
-                              </p>
-                            </td>
-                            <td className="px-4 py-3 align-top text-gray-700">
-                              {t(`create.draftStatuses.${draft.status}`)}
-                            </td>
-                            <td className="px-4 py-3 align-top text-gray-700">
-                              {new Date(draft.createdAt).toLocaleString()}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={roundedGenerationProgress}
+                  className="mt-2 h-2 overflow-hidden rounded-full bg-white"
+                >
+                  <div
+                    data-testid="study-generate-progress-bar"
+                    className="h-full rounded-full bg-navy transition-[width] duration-300 ease-out"
+                    style={{ width: `${generationProgress.progress}%` }}
+                  />
                 </div>
-              </>
+                <p className="mt-2 text-xs text-gray-600">{t('create.generationProgressHint')}</p>
+              </div>
             ) : null}
-          </StudyScrollableListPanel>
+          </div>
+        </section>
+      ) : (
+        <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
+          {draftListPanel}
 
           <section className="card retro-paper-panel min-w-0">
             <form className="space-y-4" onSubmit={handleManualSubmit}>
@@ -924,32 +941,6 @@ const StudyCreatePage = () => {
           </section>
         </section>
       )}
-
-      {generated.bundle && generated.variantDrafts.length > 0 ? (
-        <StudyVocabBundlePreview
-          bundle={generated.bundle}
-          commitError={generated.commitBundle.error}
-          isCommitting={generated.commitBundle.isPending}
-          learnerContextSummary={generated.learnerContextSummary}
-          onCommit={async () => {
-            await generated.commit();
-            setMode('manual');
-          }}
-          onClosePreview={() => generated.setPreviewDraftIndex(null)}
-          onPreview={generated.setPreviewDraftIndex}
-          onRegenerateAudio={generated.regenerateVariantAudio}
-          previewDraftIndex={generated.previewDraftIndex}
-          regenerateErrors={generated.regenerateErrors}
-          regeneratingCandidateId={generated.regeneratingCandidateId}
-          variantDrafts={generated.variantDrafts}
-        />
-      ) : null}
-
-      {!generated.bundle && generated.success ? (
-        <section className="card retro-paper-panel max-w-4xl">
-          <p className="text-sm text-emerald-700">{generated.success}</p>
-        </section>
-      ) : null}
     </div>
   );
 };

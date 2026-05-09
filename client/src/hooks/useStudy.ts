@@ -41,6 +41,7 @@ import type {
   StudyUndoReviewResult,
   StudyVocabBundleCommitRequest,
   StudyVocabBundleCommitResponse,
+  StudyVocabBundleDraftCreateResponse,
   StudyVocabBundleGenerateRequest,
   StudyVocabBundleGenerateResponse,
 } from '@languageflow/shared/src/types';
@@ -241,6 +242,18 @@ export async function generateStudyVocabBundle(
 ): Promise<StudyVocabBundleGenerateResponse> {
   return apiRequest<StudyVocabBundleGenerateResponse>(
     '/api/study/card-candidates/vocab-bundle/generate',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function createStudyVocabBundleDrafts(
+  payload: StudyVocabBundleGenerateRequest
+): Promise<StudyVocabBundleDraftCreateResponse> {
+  return apiRequest<StudyVocabBundleDraftCreateResponse>(
+    '/api/study/card-candidates/vocab-bundle/drafts',
     {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -566,6 +579,17 @@ export function useGenerateStudyCardCandidates() {
 export function useGenerateStudyVocabBundle() {
   return useMutation({
     mutationFn: generateStudyVocabBundle,
+  });
+}
+
+export function useCreateStudyVocabBundleDrafts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createStudyVocabBundleDrafts,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+    },
   });
 }
 

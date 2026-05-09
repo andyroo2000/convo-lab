@@ -9,6 +9,7 @@ import { emailWorker } from './jobs/emailQueue.js';
 import { imageWorker } from './jobs/imageQueue.js';
 import { studyImportWorker } from './jobs/studyImportQueue.js';
 import { studyManualCardDraftWorker } from './jobs/studyManualCardDraftQueue.js';
+import { studyVocabBundleDraftWorker } from './jobs/studyVocabBundleDraftQueue.js';
 
 console.log('🚀 BullMQ Workers Starting...');
 console.log('Workers initialized:', {
@@ -20,6 +21,7 @@ console.log('Workers initialized:', {
   dailyAudioPracticeWorker: !!dailyAudioPracticeWorker,
   emailWorker: !!emailWorker,
   studyManualCardDraftWorker: !!studyManualCardDraftWorker,
+  studyVocabBundleDraftWorker: !!studyVocabBundleDraftWorker,
   studyImportWorker: !!studyImportWorker,
 });
 
@@ -32,6 +34,7 @@ const workers = [
   dailyAudioPracticeWorker,
   emailWorker,
   studyManualCardDraftWorker,
+  studyVocabBundleDraftWorker,
   studyImportWorker,
 ];
 
@@ -46,6 +49,7 @@ async function areQueuesEmpty(): Promise<boolean> {
     const { dailyAudioPracticeQueue } = await import('./jobs/dailyAudioPracticeQueue.js');
     const { emailQueue } = await import('./jobs/emailQueue.js');
     const { studyManualCardDraftQueue } = await import('./jobs/studyManualCardDraftQueue.js');
+    const { studyVocabBundleDraftQueue } = await import('./jobs/studyVocabBundleDraftQueue.js');
     const { studyImportQueue } = await import('./jobs/studyImportQueue.js');
 
     const queues = [
@@ -57,6 +61,7 @@ async function areQueuesEmpty(): Promise<boolean> {
       dailyAudioPracticeQueue,
       emailQueue,
       studyManualCardDraftQueue,
+      studyVocabBundleDraftQueue,
       studyImportQueue,
     ];
 

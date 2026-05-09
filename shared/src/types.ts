@@ -284,6 +284,11 @@ export interface StudyVocabBundleGenerateResponse {
   learnerContextSummary?: string | null;
 }
 
+export interface StudyVocabBundleDraftCreateResponse {
+  groupId: string;
+  drafts: StudyManualCardDraft[];
+}
+
 export interface StudyVocabBundleCommitVariant {
   clientId: string;
   stage: number;

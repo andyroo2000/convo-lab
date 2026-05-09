@@ -93,6 +93,15 @@ export interface ReadyManualCardDraftInput extends StudyManualCardDraftCreateReq
   variantUnlockedAt?: Date | null;
 }
 
+export interface GeneratingManualCardDraftInput extends StudyManualCardDraftCreateRequest {
+  variantGroupId?: string | null;
+  variantSentenceId?: string | null;
+  variantKind?: StudyVocabVariantKind | null;
+  variantStage?: number | null;
+  variantStatus?: StudyVocabVariantStatus | null;
+  variantUnlockedAt?: Date | null;
+}
+
 type ManualCardDraftTx = Prisma.TransactionClient;
 
 function parseDraftStatus(value: string): StudyManualCardDraftStatus {
@@ -360,6 +369,57 @@ export async function createReadyManualCardDraftsInTransaction(input: {
   drafts: ReadyManualCardDraftInput[];
 }): Promise<StudyManualCardDraft[]> {
   const created = await createReadyManualCardDraftRecords(input);
+
+  return created.map((draft) => toManualCardDraft(draft));
+}
+
+export async function createGeneratingManualCardDraftsInTransaction(input: {
+  tx: ManualCardDraftTx;
+  userId: string;
+  drafts: GeneratingManualCardDraftInput[];
+}): Promise<StudyManualCardDraft[]> {
+  if (input.drafts.length === 0) return [];
+
+  const normalizedDrafts = input.drafts.map((requestedDraft) => {
+    const creationKind = parseCreationKind(requestedDraft.creationKind);
+    const requestedCardType = parseCardType(requestedDraft.cardType);
+    const cardType = cardTypeForStudyCardCreationKind(creationKind);
+    validateCreationKindAndCardType({ creationKind, cardType: requestedCardType });
+    return {
+      userId: input.userId,
+      status: 'generating',
+      creationKind,
+      cardType,
+      promptJson: toPrismaJson(requestedDraft.prompt),
+      answerJson: toPrismaJson(requestedDraft.answer),
+      imagePlacement: parseImagePlacement(requestedDraft.imagePlacement ?? 'none'),
+      imagePrompt: requestedDraft.imagePrompt?.trim() || null,
+      previewAudioJson: toNullablePrismaJson(null),
+      previewAudioRole: null,
+      previewImageJson: toNullablePrismaJson(null),
+      variantGroupId: requestedDraft.variantGroupId ?? null,
+      variantSentenceId: requestedDraft.variantSentenceId ?? null,
+      variantKind: requestedDraft.variantKind ?? null,
+      variantStage: requestedDraft.variantStage ?? null,
+      variantStatus: requestedDraft.variantStatus ?? null,
+      variantUnlockedAt: requestedDraft.variantUnlockedAt ?? null,
+      errorMessage: null,
+    };
+  });
+
+  const existingDraftCount = await input.tx.studyCardDraft.count({
+    where: { userId: input.userId },
+  });
+  if (existingDraftCount + normalizedDrafts.length > MAX_MANUAL_CARD_DRAFTS_PER_USER) {
+    throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
+  }
+
+  const created = await Promise.all(
+    normalizedDrafts.map(async (data) => {
+      const draft = await input.tx.studyCardDraft.create({ data });
+      return draft as StudyManualCardDraftRecord;
+    })
+  );
 
   return created.map((draft) => toManualCardDraft(draft));
 }

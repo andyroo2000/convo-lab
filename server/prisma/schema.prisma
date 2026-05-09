@@ -502,15 +502,15 @@ model StudyMedia {
 }
 
 model StudyCardDraft {
-  id                String   @id @default(uuid())
+  id                String    @id @default(uuid())
   userId            String
-  status            String   @default("generating")
+  status            String    @default("generating")
   creationKind      String
   cardType          String
   promptJson        Json
   answerJson        Json
-  imagePlacement    String   @default("none")
-  imagePrompt       String?  @db.Text
+  imagePlacement    String    @default("none")
+  imagePrompt       String?   @db.Text
   previewAudioJson  Json?
   previewAudioRole  String?
   previewImageJson  Json?
@@ -520,9 +520,9 @@ model StudyCardDraft {
   variantStage      Int?
   variantStatus     String?
   variantUnlockedAt DateTime?
-  errorMessage      String?  @db.Text
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  errorMessage      String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   variantGroup    StudyVariantGroup?    @relation(fields: [variantGroupId], references: [id], onDelete: SetNull)
@@ -536,15 +536,16 @@ model StudyCardDraft {
 }
 
 model StudyVariantGroup {
-  id             String   @id @default(uuid())
-  userId         String
-  targetWord     String
-  targetReading  String?
-  targetMeaning  String?
-  sourceSentence String?  @db.Text
-  sourceContext  String?  @db.Text
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  userId                String
+  targetWord            String
+  targetReading         String?
+  targetMeaning         String?
+  sourceSentence        String?  @db.Text
+  sourceContext         String?  @db.Text
+  includeLearnerContext Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   sentences StudyVariantSentence[]
@@ -623,12 +624,12 @@ model StudyCard {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  note             StudyNote        @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  importJob        StudyImportJob?  @relation(fields: [importJobId], references: [id], onDelete: SetNull)
-  promptAudioMedia StudyMedia?      @relation("StudyPromptAudio", fields: [promptAudioMediaId], references: [id], onDelete: SetNull)
-  answerAudioMedia StudyMedia?      @relation("StudyAnswerAudio", fields: [answerAudioMediaId], references: [id], onDelete: SetNull)
-  imageMedia       StudyMedia?      @relation("StudyImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note             StudyNote             @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  importJob        StudyImportJob?       @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+  promptAudioMedia StudyMedia?           @relation("StudyPromptAudio", fields: [promptAudioMediaId], references: [id], onDelete: SetNull)
+  answerAudioMedia StudyMedia?           @relation("StudyAnswerAudio", fields: [answerAudioMediaId], references: [id], onDelete: SetNull)
+  imageMedia       StudyMedia?           @relation("StudyImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
   variantGroup     StudyVariantGroup?    @relation(fields: [variantGroupId], references: [id], onDelete: SetNull)
   variantSentence  StudyVariantSentence? @relation(fields: [variantSentenceId], references: [id], onDelete: SetNull)
   reviewLogs       StudyReviewLog[]
