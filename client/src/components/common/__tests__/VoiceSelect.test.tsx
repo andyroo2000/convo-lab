@@ -94,6 +94,24 @@ describe('VoiceSelect', () => {
     expect(onChange).toHaveBeenCalledWith('fishaudio:875668667eb94c20b09856b971d9ca2f');
   });
 
+  it('raises the open listbox above neighboring form fields', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <VoiceSelect
+        id="voice"
+        label="Voice"
+        language="ja"
+        value="ja-JP-Wavenet-C"
+        onChange={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole('combobox'));
+
+    expect(screen.getByRole('listbox')).toHaveClass('z-50');
+  });
+
   it('supports keyboard navigation for visible voices', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

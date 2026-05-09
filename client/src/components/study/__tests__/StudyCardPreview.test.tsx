@@ -131,7 +131,8 @@ describe('StudyCardPreview', () => {
     );
 
     expect(screen.getByTestId('study-answer-image-layout')).toHaveClass(
-      'items-center',
+      'items-start',
+      'md:items-center',
       'md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)]'
     );
     expect(screen.getByTestId('study-answer-image-column')).toHaveClass(
@@ -171,7 +172,8 @@ describe('StudyCardPreview', () => {
     );
 
     expect(screen.getByTestId('study-answer-image-layout')).toHaveClass(
-      'items-center',
+      'items-start',
+      'md:items-center',
       'md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)]'
     );
     expect(screen.getByAltText('Study visual')).toHaveAttribute(
@@ -297,6 +299,32 @@ describe('StudyCardPreview', () => {
     expect(notes).toHaveClass('space-y-0.5', 'leading-tight');
     expect(notes).not.toHaveClass('md:space-y-3');
     expect(notes).not.toHaveClass('leading-relaxed');
+  });
+
+  it('allows long Japanese headings to wrap on mobile focus while preserving desktop nowrap', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        layout="mobile-focus"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            expression:
+              '違います、これは兄の友達で、今の奥さんです。妹はこれです。この時、まだ中学生でした。',
+            expressionReading:
+              '違[ちが]います、これは兄[あに]の友達[ともだち]で、今[いま]の奥[おく]さんです。妹[いもうと]はこれです。この時[とき]、まだ中学[ちゅうがく]生[せい]でした。',
+            meaning: "No, this is my brother's friend, and now his wife. This is my sister.",
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-japanese-heading')).toHaveClass(
+      'whitespace-normal',
+      'break-words',
+      'md:whitespace-nowrap'
+    );
   });
 
   it('renders derived cloze blanks instead of raw manual cloze markup', () => {

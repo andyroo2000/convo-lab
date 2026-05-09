@@ -211,7 +211,7 @@ const VoiceSelect = ({
   const selectedMeta = formattedSelectedVoice?.meta ?? null;
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={`relative ${isOpen ? 'z-50' : 'z-0'}`}>
       <label
         id={`${id}-label`}
         htmlFor={id}
@@ -262,7 +262,7 @@ const VoiceSelect = ({
           id={listboxId}
           role="listbox"
           aria-labelledby={`${id}-label`}
-          className="absolute z-30 mt-2 grid max-h-[32rem] w-full grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 text-sm shadow-xl sm:grid-cols-2"
+          className="absolute z-50 mt-2 grid max-h-[32rem] w-full grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 text-sm shadow-xl sm:grid-cols-2"
         >
           {menuVoices.map((voice, index) => {
             const formatted = formatVoiceLabel(voice);

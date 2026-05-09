@@ -106,7 +106,7 @@ const StudyPage = () => {
           <section className="min-h-[100dvh] md:px-3 md:py-2">
             <div
               data-testid="study-focus-shell"
-              className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col bg-[#fdfbf5] px-2 pt-2 md:min-h-[calc(100vh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
+              className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:min-h-[calc(100vh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
             >
               <StudyReviewHeader
                 newRemaining={reviewSession.sessionCounts.newRemaining}
@@ -169,7 +169,7 @@ const StudyPage = () => {
               ) : null}
 
               {reviewSession.currentCard ? (
-                <div className="mt-2 flex flex-1 flex-col justify-between space-y-4 pb-24 md:space-y-2">
+                <div className="mt-2 flex min-w-0 flex-1 flex-col justify-between space-y-4 overflow-x-hidden pb-24 md:space-y-2">
                   {!reviewSession.revealed ? (
                     <div
                       role="button"
@@ -184,7 +184,7 @@ const StudyPage = () => {
                       }}
                       className="flex min-h-[calc(100dvh-7.5rem)] w-full flex-1 items-center justify-center px-3 py-4 text-left transition md:min-h-[60vh] md:rounded-[2rem] md:bg-white md:px-12 md:py-12 md:shadow-sm md:ring-1 md:ring-gray-200 md:hover:shadow-md"
                     >
-                      <div className="w-full">
+                      <div className="w-full min-w-0 overflow-x-hidden">
                         <StudyCardFace
                           card={reviewSession.currentCard}
                           layout="mobile-focus"
@@ -200,7 +200,7 @@ const StudyPage = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="min-h-[calc(100dvh-7.5rem)] flex-1 px-3 py-3 md:min-h-[60vh] md:rounded-[2rem] md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-gray-200">
+                    <div className="min-h-[calc(100dvh-7.5rem)] min-w-0 flex-1 overflow-x-hidden px-2 py-2 md:min-h-[60vh] md:rounded-[2rem] md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-gray-200">
                       {reviewSession.editing ? (
                         <StudyCardEditor
                           card={reviewSession.currentCard}
@@ -217,13 +217,15 @@ const StudyPage = () => {
                         />
                       ) : (
                         <div className="flex flex-col gap-4 md:gap-5">
-                          <div className="flex min-h-[calc(100dvh-9.5rem)] items-center justify-center md:block md:min-h-0">
-                            <StudyCardFace
-                              card={reviewSession.currentCard}
-                              layout="mobile-focus"
-                              side="back"
-                              answerAudioRef={reviewSession.answerAudioRef}
-                            />
+                          <div className="flex min-h-[calc(100dvh-9.5rem)] min-w-0 items-start justify-center overflow-x-hidden md:block md:min-h-0">
+                            <div className="w-full min-w-0 overflow-x-hidden">
+                              <StudyCardFace
+                                card={reviewSession.currentCard}
+                                layout="mobile-focus"
+                                side="back"
+                                answerAudioRef={reviewSession.answerAudioRef}
+                              />
+                            </div>
                           </div>
                         </div>
                       )}

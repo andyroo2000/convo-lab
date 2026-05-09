@@ -21,7 +21,7 @@ const StudyCardAudioSettingsFields = ({
   const { t } = useTranslation('study');
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="relative z-20 grid gap-4 md:grid-cols-2">
       {/* Study cards are Japanese-only for now; derive this from card language if that changes. */}
       <VoiceSelect
         id={`${idPrefix}-answer-audio-voice`}
