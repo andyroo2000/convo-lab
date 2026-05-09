@@ -156,6 +156,23 @@ describe('studyVocabBundleDraftQueue', () => {
     expect(queueAddMock).not.toHaveBeenCalled();
   });
 
+  it('keeps unknown group job states stable for operator inspection', async () => {
+    const unknownStateJob = {
+      getState: vi.fn().mockResolvedValue('unknown'),
+      remove: vi.fn(),
+      retry: vi.fn(),
+    };
+    queueGetJobMock.mockResolvedValue(unknownStateJob);
+    const { enqueueStudyVocabBundleDraftJob } =
+      await import('../../../jobs/studyVocabBundleDraftQueue.js');
+
+    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(unknownStateJob);
+
+    expect(unknownStateJob.retry).not.toHaveBeenCalled();
+    expect(unknownStateJob.remove).not.toHaveBeenCalled();
+    expect(queueAddMock).not.toHaveBeenCalled();
+  });
+
   it('dispatches valid worker payloads to the vocab bundle draft processor', async () => {
     processStudyVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',
