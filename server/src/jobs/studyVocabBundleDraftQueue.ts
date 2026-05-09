@@ -1,8 +1,11 @@
-/* eslint-disable no-console */
 import { Queue, Worker } from 'bullmq';
 
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
-import { processStudyVocabBundleDrafts } from '../services/studyVocabBundleService.js';
+import { logger } from '../services/logger.js';
+import {
+  processStudyVocabBundleDrafts,
+  VocabBundleDraftMismatchError,
+} from '../services/studyVocabBundleService.js';
 
 const queueConnection = createRedisConnection();
 const workerConnection = createRedisConnection();
@@ -41,7 +44,7 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
       return existingJob;
     }
     if (state === 'failed') {
-      console.warn(
+      logger.warn(
         `Vocab bundle draft job ${groupId} has already failed; leaving historical job in place.`
       );
       return existingJob;
@@ -51,7 +54,7 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
       return existingJob;
     }
     if (state === 'unknown') {
-      console.warn(`Vocab bundle draft job ${groupId} has unknown BullMQ state; leaving it alone.`);
+      logger.warn(`Vocab bundle draft job ${groupId} has unknown BullMQ state; leaving it alone.`);
     }
     // Keep future BullMQ states stable instead of removing a job a worker might still observe.
     return existingJob;
@@ -91,9 +94,18 @@ export const studyVocabBundleDraftWorker = new Worker(
       typeof job.opts.attempts === 'number'
         ? job.opts.attempts
         : STUDY_VOCAB_BUNDLE_DRAFT_JOB_ATTEMPTS;
-    const result = await processStudyVocabBundleDrafts(groupId, {
-      markDraftsOnError: job.attemptsMade + 1 >= attempts,
-    });
+    const shouldMarkDraftsOnError = job.attemptsMade + 1 >= attempts;
+    let result: Awaited<ReturnType<typeof processStudyVocabBundleDrafts>>;
+    try {
+      result = await processStudyVocabBundleDrafts(groupId, {
+        markDraftsOnError: shouldMarkDraftsOnError,
+      });
+    } catch (error) {
+      if (error instanceof VocabBundleDraftMismatchError) {
+        job.discard();
+      }
+      throw error;
+    }
     await job.updateProgress(100);
     return result;
   },
@@ -104,9 +116,9 @@ export const studyVocabBundleDraftWorker = new Worker(
 );
 
 studyVocabBundleDraftWorker.on('completed', (job) => {
-  console.log(`Vocab bundle draft job ${job.id} completed`);
+  logger.info(`Vocab bundle draft job ${job.id} completed`);
 });
 
 studyVocabBundleDraftWorker.on('failed', (job, err) => {
-  console.error(`Vocab bundle draft job ${job?.id} failed:`, err);
+  logger.error(`Vocab bundle draft job ${job?.id} failed:`, err);
 });

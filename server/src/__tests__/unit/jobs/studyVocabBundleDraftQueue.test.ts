@@ -4,6 +4,14 @@ const workerProcessors = vi.hoisted(() => new Map<string, (job: unknown) => Prom
 const queueAddMock = vi.hoisted(() => vi.fn());
 const queueGetJobMock = vi.hoisted(() => vi.fn());
 const processStudyVocabBundleDraftsMock = vi.hoisted(() => vi.fn());
+const VocabBundleDraftMismatchErrorMock = vi.hoisted(
+  () =>
+    class VocabBundleDraftMismatchError extends Error {
+      constructor() {
+        super('Generated vocab bundle did not match queued draft placeholders.');
+      }
+    }
+);
 
 vi.mock('bullmq', () => ({
   Queue: class MockQueue {
@@ -34,6 +42,7 @@ vi.mock('../../../config/redis.js', () => ({
 
 vi.mock('../../../services/studyVocabBundleService.js', () => ({
   processStudyVocabBundleDrafts: processStudyVocabBundleDraftsMock,
+  VocabBundleDraftMismatchError: VocabBundleDraftMismatchErrorMock,
 }));
 
 describe('studyVocabBundleDraftQueue', () => {
@@ -189,5 +198,29 @@ describe('studyVocabBundleDraftQueue', () => {
     expect(processStudyVocabBundleDraftsMock).toHaveBeenCalledWith('group-1', {
       markDraftsOnError: true,
     });
+  });
+
+  it('discards non-retryable mismatch worker failures', async () => {
+    const mismatchError = new VocabBundleDraftMismatchErrorMock();
+    processStudyVocabBundleDraftsMock.mockRejectedValue(mismatchError);
+    await import('../../../jobs/studyVocabBundleDraftQueue.js');
+    const processor = workerProcessors.get('study-vocab-bundle-drafts');
+    const discard = vi.fn();
+
+    await expect(
+      processor?.({
+        name: 'complete-vocab-bundle-drafts',
+        data: { groupId: 'group-1' },
+        attemptsMade: 0,
+        opts: { attempts: 3 },
+        discard,
+        updateProgress: vi.fn(),
+      })
+    ).rejects.toBe(mismatchError);
+
+    expect(processStudyVocabBundleDraftsMock).toHaveBeenCalledWith('group-1', {
+      markDraftsOnError: false,
+    });
+    expect(discard).toHaveBeenCalled();
   });
 });

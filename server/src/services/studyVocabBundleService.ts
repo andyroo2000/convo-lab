@@ -55,7 +55,7 @@ const VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR =
 const VOCAB_BUNDLE_DRAFT_GENERATION_ERROR =
   'Could not generate this vocab bundle. Please retry or edit the drafts manually.';
 
-class VocabBundleDraftMismatchError extends Error {
+export class VocabBundleDraftMismatchError extends Error {
   constructor() {
     super(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
     this.name = 'VocabBundleDraftMismatchError';
@@ -650,7 +650,8 @@ export async function processStudyVocabBundleDrafts(
     logger.warn('[StudyVocabBundle] Failed to process vocab bundle drafts.', error);
     // Direct service calls default to persisting final errors; queue retries opt out until the last attempt.
     const shouldMarkDraftsOnError = options.markDraftsOnError ?? true;
-    if (shouldMarkDraftsOnError) {
+    const isNonRetryableDraftMismatch = error instanceof VocabBundleDraftMismatchError;
+    if (shouldMarkDraftsOnError || isNonRetryableDraftMismatch) {
       await prisma.studyCardDraft.updateMany({
         where: { variantGroupId: group.id, userId: group.userId, status: 'generating' },
         data: {

@@ -333,7 +333,7 @@ describe('studyVocabBundleService', () => {
     expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
   });
 
-  it('marks generating drafts as error when generated variants do not match placeholders', async () => {
+  it('marks generating drafts as error immediately when generated variants do not match placeholders', async () => {
     const group = vocabGroup(false);
     const mismatchError = 'Generated vocab bundle did not match queued draft placeholders.';
     mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
@@ -358,7 +358,9 @@ describe('studyVocabBundleService', () => {
     const { processStudyVocabBundleDrafts } =
       await import('../../../services/studyVocabBundleService.js');
 
-    await expect(processStudyVocabBundleDrafts('group-1')).rejects.toThrow(mismatchError);
+    await expect(
+      processStudyVocabBundleDrafts('group-1', { markDraftsOnError: false })
+    ).rejects.toThrow(mismatchError);
     expect(mockPrisma.studyCardDraft.update).not.toHaveBeenCalled();
     expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
       where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
