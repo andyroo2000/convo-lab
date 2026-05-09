@@ -15,7 +15,6 @@ const ACTIVE_JOB_STATES = new Set([
   'prioritized',
   'waiting-children',
 ]);
-const LEAVE_ALONE_JOB_STATES = new Set(['completed', 'unknown']);
 
 export const studyVocabBundleDraftQueue = new Queue(STUDY_VOCAB_BUNDLE_DRAFT_QUEUE_NAME, {
   connection: queueConnection,
@@ -42,15 +41,20 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
       return existingJob;
     }
     if (state === 'failed') {
-      await existingJob.retry();
-      return existingJob;
-    }
-    if (LEAVE_ALONE_JOB_STATES.has(state)) {
+      // A failed job has exhausted its attempt budget; recreate it so a manual retry gets a fresh window.
+      await existingJob.remove();
+    } else if (state === 'completed') {
       // Group IDs are per-creation UUIDs, so finished jobs are historical records, not requeue targets.
       return existingJob;
+    } else {
+      if (state === 'unknown') {
+        console.warn(
+          `Vocab bundle draft job ${groupId} has unknown BullMQ state; leaving it alone.`
+        );
+      }
+      // Keep future BullMQ states stable instead of removing a job a worker might still observe.
+      return existingJob;
     }
-    // Keep future BullMQ states stable instead of removing a job a worker might still observe.
-    return existingJob;
   }
 
   return studyVocabBundleDraftQueue.add(

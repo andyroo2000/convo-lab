@@ -96,21 +96,30 @@ describe('studyVocabBundleDraftQueue', () => {
     expect(queueAddMock).not.toHaveBeenCalled();
   });
 
-  it('retries an existing failed group job instead of removing and recreating it', async () => {
+  it('recreates an existing failed group job with a fresh attempt budget', async () => {
+    const requeuedJob = { id: 'group-1' };
+    queueAddMock.mockResolvedValue(requeuedJob);
     const failedJob = {
       getState: vi.fn().mockResolvedValue('failed'),
       remove: vi.fn(),
-      retry: vi.fn().mockResolvedValue(undefined),
+      retry: vi.fn(),
     };
     queueGetJobMock.mockResolvedValue(failedJob);
     const { enqueueStudyVocabBundleDraftJob } =
       await import('../../../jobs/studyVocabBundleDraftQueue.js');
 
-    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(failedJob);
+    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(requeuedJob);
 
-    expect(failedJob.retry).toHaveBeenCalled();
-    expect(failedJob.remove).not.toHaveBeenCalled();
-    expect(queueAddMock).not.toHaveBeenCalled();
+    expect(failedJob.retry).not.toHaveBeenCalled();
+    expect(failedJob.remove).toHaveBeenCalled();
+    expect(queueAddMock).toHaveBeenCalledWith(
+      'complete-vocab-bundle-drafts',
+      { groupId: 'group-1' },
+      expect.objectContaining({
+        jobId: 'group-1',
+        attempts: 3,
+      })
+    );
   });
 
   it('does not re-enqueue a completed historical group job', async () => {

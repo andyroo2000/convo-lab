@@ -576,7 +576,7 @@ export async function processStudyVocabBundleDrafts(
         throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
       }
       const seenResolvedKeys = new Set<string>();
-      const resolvedDraftKeys = resolvedItems.map((resolved) => {
+      const resolvedDraftInputs = resolvedItems.map((resolved) => {
         const sentenceId =
           typeof resolved.variantSentenceOrdinal === 'number'
             ? (sentenceIdsByOrdinal.get(resolved.variantSentenceOrdinal) ?? null)
@@ -586,15 +586,10 @@ export async function processStudyVocabBundleDrafts(
           throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
         }
         seenResolvedKeys.add(key);
-        return { key, sentenceId };
+        return { key, resolved };
       });
       const updated = await Promise.all(
-        resolvedItems.map(async (resolved, index) => {
-          const resolvedDraftKey = resolvedDraftKeys[index];
-          if (!resolvedDraftKey) {
-            throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
-          }
-          const { key } = resolvedDraftKey;
+        resolvedDraftInputs.map(async ({ key, resolved }) => {
           const draft = draftsByKey.get(key);
           if (!draft) {
             throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
