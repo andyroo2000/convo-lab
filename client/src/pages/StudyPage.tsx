@@ -30,6 +30,7 @@ const StudyPage = () => {
   const shouldShowMotionBanner =
     reviewSession.motionPermissionState === 'prompt' ||
     reviewSession.motionPermissionState === 'denied';
+  const showGradeTray = reviewSession.revealed && !reviewSession.editing;
   const motionBannerMessage = useMemo(() => {
     if (reviewSession.motionPermissionState === 'unsupported') {
       return t('motion.unsupported');
@@ -106,7 +107,7 @@ const StudyPage = () => {
           <section className="h-[100dvh] md:px-3 md:py-2">
             <div
               data-testid="study-focus-shell"
-              className="mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
+              className="study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
             >
               <StudyReviewHeader
                 newRemaining={reviewSession.sessionCounts.newRemaining}
@@ -171,7 +172,9 @@ const StudyPage = () => {
               {reviewSession.currentCard ? (
                 <div
                   data-testid="study-focus-card-scroll"
-                  className="mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden pb-24 md:space-y-2 md:pb-16"
+                  className={`study-focus-scroll mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
+                    showGradeTray ? 'pb-24 md:pb-16' : 'pb-0'
+                  }`}
                 >
                   {!reviewSession.revealed ? (
                     <div
@@ -235,7 +238,7 @@ const StudyPage = () => {
                     </div>
                   )}
 
-                  {reviewSession.revealed && !reviewSession.editing ? (
+                  {showGradeTray ? (
                     <div
                       data-testid="study-grade-tray"
                       className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:bg-cream/95 md:px-6 md:py-2"

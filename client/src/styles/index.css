@@ -5472,3 +5472,23 @@
 .loading-spinner {
   @apply animate-spin;
 }
+
+@layer utilities {
+  .study-focus-shell,
+  .study-focus-shell * {
+    scrollbar-width: none;
+  }
+
+  .study-focus-shell::-webkit-scrollbar,
+  .study-focus-shell *::-webkit-scrollbar {
+    display: none;
+  }
+
+  .study-focus-scroll {
+    scrollbar-width: none;
+  }
+
+  .study-focus-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
