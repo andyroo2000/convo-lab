@@ -39,6 +39,7 @@ const {
   commitStudyCardCandidatesMock,
   commitStudyVocabBundleMock,
   completeManualStudyCardDraftMock,
+  createStudyVocabBundleDraftsMock,
   execMock,
   createStudyCardMock,
   createManualCardDraftMock,
@@ -47,6 +48,7 @@ const {
   deleteStudyCardMock,
   deleteManualCardDraftMock,
   enqueueStudyManualCardDraftJobMock,
+  enqueueStudyVocabBundleDraftJobMock,
   expireAtMock,
   exportStudyCardsSectionMock,
   exportStudyImportsSectionMock,
@@ -88,6 +90,7 @@ const {
   commitStudyCardCandidatesMock: vi.fn(),
   commitStudyVocabBundleMock: vi.fn(),
   completeManualStudyCardDraftMock: vi.fn(),
+  createStudyVocabBundleDraftsMock: vi.fn(),
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
   createManualCardDraftMock: vi.fn(),
@@ -96,6 +99,7 @@ const {
   deleteStudyCardMock: vi.fn(),
   deleteManualCardDraftMock: vi.fn(),
   enqueueStudyManualCardDraftJobMock: vi.fn(),
+  enqueueStudyVocabBundleDraftJobMock: vi.fn(),
   expireAtMock: vi.fn(),
   exportStudyCardsSectionMock: vi.fn(),
   exportStudyImportsSectionMock: vi.fn(),
@@ -147,6 +151,7 @@ vi.mock('../../../services/studyService.js', () => ({
   createStudyCardFromManualDraft: createStudyCardFromManualDraftMock,
   createManualStudyCard: createManualStudyCardMock,
   createStudyCard: createStudyCardMock,
+  createStudyVocabBundleDrafts: createStudyVocabBundleDraftsMock,
   deleteManualCardDraft: deleteManualCardDraftMock,
   deleteStudyCard: deleteStudyCardMock,
   commitStudyCardCandidates: commitStudyCardCandidatesMock,
@@ -196,6 +201,10 @@ vi.mock('../../../jobs/studyManualCardDraftQueue.js', () => ({
   enqueueStudyManualCardDraftJob: enqueueStudyManualCardDraftJobMock,
 }));
 
+vi.mock('../../../jobs/studyVocabBundleDraftQueue.js', () => ({
+  enqueueStudyVocabBundleDraftJob: enqueueStudyVocabBundleDraftJobMock,
+}));
+
 vi.mock('../../../services/workerTrigger.js', () => ({
   triggerWorkerJob: triggerWorkerJobMock,
 }));
@@ -226,6 +235,7 @@ describe('Study Routes', () => {
     commitStudyCardCandidatesMock.mockReset();
     commitStudyVocabBundleMock.mockReset();
     completeManualStudyCardDraftMock.mockReset();
+    createStudyVocabBundleDraftsMock.mockReset();
     createManualCardDraftMock.mockReset();
     createStudyCardFromManualDraftMock.mockReset();
     createManualStudyCardMock.mockReset();
@@ -234,6 +244,7 @@ describe('Study Routes', () => {
     deleteManualCardDraftMock.mockReset();
     deleteStudyCardMock.mockReset();
     enqueueStudyManualCardDraftJobMock.mockReset();
+    enqueueStudyVocabBundleDraftJobMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
     generateStudyVocabBundleMock.mockReset();
     generateManualStudyCardDraftImageMock.mockReset();
@@ -962,6 +973,38 @@ describe('Study Routes', () => {
         variants: [],
       },
     });
+  });
+
+  it('queues generated vocab bundles as async manual drafts', async () => {
+    createStudyVocabBundleDraftsMock.mockResolvedValue({
+      groupId: 'group-1',
+      drafts: [{ id: 'draft-1', status: 'generating' }],
+    });
+    enqueueStudyVocabBundleDraftJobMock.mockResolvedValue(undefined);
+    triggerWorkerJobMock.mockResolvedValue(undefined);
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/vocab-bundle/drafts')
+    ).send({
+      targetWord: ' 営業する ',
+      sourceSentence: ' 営業の仕事は楽しいです。 ',
+      context: ' Business chapter ',
+      includeLearnerContext: false,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.groupId).toBe('group-1');
+    expect(createStudyVocabBundleDraftsMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      request: {
+        targetWord: ' 営業する ',
+        sourceSentence: ' 営業の仕事は楽しいです。 ',
+        context: ' Business chapter ',
+        includeLearnerContext: false,
+      },
+    });
+    expect(enqueueStudyVocabBundleDraftJobMock).toHaveBeenCalledWith('group-1');
+    expect(triggerWorkerJobMock).toHaveBeenCalled();
   });
 
   it('rejects malformed vocab bundle commits before hitting the service', async () => {

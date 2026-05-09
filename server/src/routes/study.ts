@@ -41,6 +41,7 @@ import type {
 import { Router } from 'express';
 
 import { enqueueStudyManualCardDraftJob } from '../jobs/studyManualCardDraftQueue.js';
+import { enqueueStudyVocabBundleDraftJob } from '../jobs/studyVocabBundleDraftQueue.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
@@ -80,6 +81,7 @@ import {
   getStudySettings,
   commitStudyCardCandidates,
   commitStudyVocabBundle,
+  createStudyVocabBundleDrafts,
   generateStudyCardCandidates,
   generateStudyVocabBundle,
   generateManualStudyCardDraftImage,
@@ -1246,6 +1248,54 @@ router.post(
 
 // Candidate routes intentionally rely on the global flashcardsEnabled gate above;
 // no separate rollout flag is needed for this flashcards-only surface.
+router.post(
+  '/card-candidates/vocab-bundle/drafts',
+  rateLimitStudyRoute({ key: 'vocab-bundle-drafts', max: 20, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = req.body as Partial<StudyVocabBundleGenerateRequest>;
+      if (typeof body.targetWord !== 'string') {
+        throw new AppError('targetWord is required.', 400);
+      }
+      if (
+        typeof body.sourceSentence !== 'undefined' &&
+        body.sourceSentence !== null &&
+        typeof body.sourceSentence !== 'string'
+      ) {
+        throw new AppError('sourceSentence must be a string or null.', 400);
+      }
+      if (
+        typeof body.context !== 'undefined' &&
+        body.context !== null &&
+        typeof body.context !== 'string'
+      ) {
+        throw new AppError('context must be a string or null.', 400);
+      }
+
+      const result = await createStudyVocabBundleDrafts({
+        userId: req.userId,
+        request: {
+          targetWord: body.targetWord,
+          sourceSentence: body.sourceSentence ?? null,
+          context: body.context ?? null,
+          includeLearnerContext:
+            typeof body.includeLearnerContext === 'boolean' ? body.includeLearnerContext : true,
+        },
+      });
+      await enqueueStudyVocabBundleDraftJob(result.groupId);
+      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
+
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.post(
   '/card-candidates/vocab-bundle/generate',
   rateLimitStudyRoute({ key: 'vocab-bundle-generate', max: 20, windowMs: 60 * 1000 }),

@@ -7,10 +7,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockPrisma } from '../../setup.js';
 
 const createReadyManualCardDraftsInTransactionMock = vi.hoisted(() => vi.fn());
+const createGeneratingManualCardDraftsInTransactionMock = vi.hoisted(() => vi.fn());
 const getOwnedPreviewMediaIdsMock = vi.hoisted(() => vi.fn());
 const resolveStudyCardCandidateCommitItemMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../services/study/manualCardDrafts.js', () => ({
+  createGeneratingManualCardDraftsInTransaction: createGeneratingManualCardDraftsInTransactionMock,
   createReadyManualCardDraftsInTransaction: createReadyManualCardDraftsInTransactionMock,
 }));
 
@@ -74,10 +76,63 @@ function variant(index: number) {
 
 describe('studyVocabBundleService', () => {
   beforeEach(() => {
+    createGeneratingManualCardDraftsInTransactionMock.mockReset();
     createReadyManualCardDraftsInTransactionMock.mockReset();
     getOwnedPreviewMediaIdsMock.mockReset();
     resolveStudyCardCandidateCommitItemMock.mockReset();
     mockPrisma.studyVariantGroup.create.mockReset();
+  });
+
+  it('creates generating drafts for an async vocab bundle request', async () => {
+    mockPrisma.studyVariantGroup.create.mockResolvedValue({
+      id: 'group-1',
+      sentences: [0, 1, 2].map((ordinal) => ({
+        id: `sentence-${ordinal}`,
+        ordinal,
+      })),
+    });
+    createGeneratingManualCardDraftsInTransactionMock.mockImplementation(async ({ drafts }) =>
+      drafts.map((draft: StudyManualCardDraftCreateRequest, index: number) => ({
+        ...draft,
+        id: `draft-${index}`,
+        status: 'generating',
+      }))
+    );
+
+    const { createStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+    const result = await createStudyVocabBundleDrafts({
+      userId: 'user-1',
+      request: {
+        targetWord: '営業する',
+        sourceSentence: '営業の仕事は楽しいです。',
+        context: 'business chapter',
+        includeLearnerContext: true,
+      },
+    });
+
+    expect(result.groupId).toBe('group-1');
+    expect(result.drafts).toHaveLength(11);
+    expect(createGeneratingManualCardDraftsInTransactionMock).toHaveBeenCalledWith({
+      tx: mockPrisma,
+      userId: 'user-1',
+      drafts: expect.arrayContaining([
+        expect.objectContaining({
+          creationKind: 'audio-recognition',
+          variantKind: 'sentence_audio_recognition',
+          variantStage: 1,
+          variantStatus: 'available',
+          variantGroupId: 'group-1',
+        }),
+        expect.objectContaining({
+          creationKind: 'cloze',
+          variantKind: 'sentence_cloze',
+          variantStage: 5,
+          variantStatus: 'locked',
+          variantGroupId: 'group-1',
+        }),
+      ]),
+    });
   });
 
   it('commits generated vocab variants into the shared manual draft queue', async () => {
