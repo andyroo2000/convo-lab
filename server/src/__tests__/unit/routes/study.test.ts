@@ -931,6 +931,52 @@ describe('Study Routes', () => {
     expect(generateStudyCardCandidatesMock).not.toHaveBeenCalled();
   });
 
+  it('commits generated vocab bundles after route shape validation', async () => {
+    commitStudyVocabBundleMock.mockResolvedValue({
+      groupId: 'group-1',
+      drafts: [],
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/vocab-bundle/commit')
+    ).send({
+      targetWord: '営業する',
+      targetReading: null,
+      targetMeaning: null,
+      sourceSentence: null,
+      sourceContext: null,
+      sentences: [],
+      variants: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(commitStudyVocabBundleMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      request: {
+        targetWord: '営業する',
+        targetReading: null,
+        targetMeaning: null,
+        sourceSentence: null,
+        sourceContext: null,
+        sentences: [],
+        variants: [],
+      },
+    });
+  });
+
+  it('rejects malformed vocab bundle commits before hitting the service', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/vocab-bundle/commit')
+    ).send({
+      targetWord: '営業する',
+      sentences: [],
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('variants must be an array');
+    expect(commitStudyVocabBundleMock).not.toHaveBeenCalled();
+  });
+
   it('regenerates candidate preview audio after validating the candidate payload', async () => {
     regenerateStudyCardCandidatePreviewAudioMock.mockResolvedValue({
       prompt: { cueMeaning: 'company' },

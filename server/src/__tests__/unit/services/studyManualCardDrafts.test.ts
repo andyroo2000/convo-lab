@@ -83,6 +83,7 @@ describe('manual card draft persistence service', () => {
   });
 
   it('lists drafts oldest first by creation time', async () => {
+    mockPrisma.studyCardDraft.count.mockResolvedValue(2);
     mockPrisma.studyCardDraft.findMany.mockResolvedValue([
       draftRecord({ id: 'draft-1', createdAt: new Date('2026-05-08T10:00:00.000Z') }),
       draftRecord({ id: 'draft-2', createdAt: new Date('2026-05-08T11:00:00.000Z') }),
@@ -92,7 +93,7 @@ describe('manual card draft persistence service', () => {
     const result = await listManualCardDrafts({ userId: 'user-1' });
 
     expect(result.drafts.map((draft) => draft.id)).toEqual(['draft-1', 'draft-2']);
-    expect(result.total).toBe(0);
+    expect(result.total).toBe(2);
     expect(mockPrisma.studyCardDraft.findMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],

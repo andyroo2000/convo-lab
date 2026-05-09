@@ -1301,8 +1301,59 @@ router.post(
         throw new AppError('Authenticated user is required.', 401);
       }
 
-      const body = req.body as StudyVocabBundleCommitRequest;
-      res.json(await commitStudyVocabBundle({ userId: req.userId, request: body }));
+      const body = req.body as Partial<StudyVocabBundleCommitRequest>;
+      if (typeof body.targetWord !== 'string') {
+        throw new AppError('targetWord is required.', 400);
+      }
+      if (
+        typeof body.targetReading !== 'undefined' &&
+        body.targetReading !== null &&
+        typeof body.targetReading !== 'string'
+      ) {
+        throw new AppError('targetReading must be a string or null.', 400);
+      }
+      if (
+        typeof body.targetMeaning !== 'undefined' &&
+        body.targetMeaning !== null &&
+        typeof body.targetMeaning !== 'string'
+      ) {
+        throw new AppError('targetMeaning must be a string or null.', 400);
+      }
+      if (
+        typeof body.sourceSentence !== 'undefined' &&
+        body.sourceSentence !== null &&
+        typeof body.sourceSentence !== 'string'
+      ) {
+        throw new AppError('sourceSentence must be a string or null.', 400);
+      }
+      if (
+        typeof body.sourceContext !== 'undefined' &&
+        body.sourceContext !== null &&
+        typeof body.sourceContext !== 'string'
+      ) {
+        throw new AppError('sourceContext must be a string or null.', 400);
+      }
+      if (!Array.isArray(body.sentences)) {
+        throw new AppError('sentences must be an array.', 400);
+      }
+      if (!Array.isArray(body.variants)) {
+        throw new AppError('variants must be an array.', 400);
+      }
+
+      res.json(
+        await commitStudyVocabBundle({
+          userId: req.userId,
+          request: {
+            targetWord: body.targetWord,
+            targetReading: body.targetReading ?? null,
+            targetMeaning: body.targetMeaning ?? null,
+            sourceSentence: body.sourceSentence ?? null,
+            sourceContext: body.sourceContext ?? null,
+            sentences: body.sentences,
+            variants: body.variants,
+          },
+        })
+      );
     } catch (error) {
       next(error);
     }

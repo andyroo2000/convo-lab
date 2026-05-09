@@ -93,6 +93,8 @@ export interface ReadyManualCardDraftInput extends StudyManualCardDraftCreateReq
   variantUnlockedAt?: Date | null;
 }
 
+type ManualCardDraftTx = Prisma.TransactionClient;
+
 function parseDraftStatus(value: string): StudyManualCardDraftStatus {
   if (STUDY_MANUAL_CARD_DRAFT_STATUSES.has(value as StudyManualCardDraftStatus)) {
     return value as StudyManualCardDraftStatus;
@@ -302,10 +304,11 @@ export async function listManualCardDrafts(
   };
 }
 
-export async function createReadyManualCardDrafts(input: {
+async function createReadyManualCardDraftRecords(input: {
+  tx: ManualCardDraftTx;
   userId: string;
   drafts: ReadyManualCardDraftInput[];
-}): Promise<StudyManualCardDraft[]> {
+}): Promise<StudyManualCardDraftRecord[]> {
   if (input.drafts.length === 0) return [];
 
   const normalizedDrafts = input.drafts.map((requestedDraft) => {
@@ -336,22 +339,42 @@ export async function createReadyManualCardDrafts(input: {
     };
   });
 
-  const created = await prisma.$transaction(
-    async (tx) => {
-      const existingDraftCount = await tx.studyCardDraft.count({
-        where: { userId: input.userId },
-      });
-      if (existingDraftCount + normalizedDrafts.length > MAX_MANUAL_CARD_DRAFTS_PER_USER) {
-        throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
-      }
+  const existingDraftCount = await input.tx.studyCardDraft.count({
+    where: { userId: input.userId },
+  });
+  if (existingDraftCount + normalizedDrafts.length > MAX_MANUAL_CARD_DRAFTS_PER_USER) {
+    throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
+  }
 
-      const createdDrafts: StudyManualCardDraftRecord[] = [];
-      for (const data of normalizedDrafts) {
-        const draft = await tx.studyCardDraft.create({ data });
-        createdDrafts.push(draft as StudyManualCardDraftRecord);
-      }
-      return createdDrafts;
-    },
+  const createdDrafts: StudyManualCardDraftRecord[] = [];
+  for (const data of normalizedDrafts) {
+    const draft = await input.tx.studyCardDraft.create({ data });
+    createdDrafts.push(draft as StudyManualCardDraftRecord);
+  }
+  return createdDrafts;
+}
+
+export async function createReadyManualCardDraftsInTransaction(input: {
+  tx: ManualCardDraftTx;
+  userId: string;
+  drafts: ReadyManualCardDraftInput[];
+}): Promise<StudyManualCardDraft[]> {
+  const created = await createReadyManualCardDraftRecords(input);
+
+  return created.map((draft) => toManualCardDraft(draft));
+}
+
+export async function createReadyManualCardDrafts(input: {
+  userId: string;
+  drafts: ReadyManualCardDraftInput[];
+}): Promise<StudyManualCardDraft[]> {
+  const created = await prisma.$transaction(
+    async (tx) =>
+      createReadyManualCardDraftRecords({
+        tx,
+        userId: input.userId,
+        drafts: input.drafts,
+      }),
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
   );
 

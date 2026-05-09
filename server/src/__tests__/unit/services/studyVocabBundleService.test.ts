@@ -6,12 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mockPrisma } from '../../setup.js';
 
-const createReadyManualCardDraftsMock = vi.hoisted(() => vi.fn());
+const createReadyManualCardDraftsInTransactionMock = vi.hoisted(() => vi.fn());
 const getOwnedPreviewMediaIdsMock = vi.hoisted(() => vi.fn());
 const resolveStudyCardCandidateCommitItemMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../services/study/manualCardDrafts.js', () => ({
-  createReadyManualCardDrafts: createReadyManualCardDraftsMock,
+  createReadyManualCardDraftsInTransaction: createReadyManualCardDraftsInTransactionMock,
 }));
 
 vi.mock('../../../services/study/candidates/previewMedia.js', () => ({
@@ -74,7 +74,7 @@ function variant(index: number) {
 
 describe('studyVocabBundleService', () => {
   beforeEach(() => {
-    createReadyManualCardDraftsMock.mockReset();
+    createReadyManualCardDraftsInTransactionMock.mockReset();
     getOwnedPreviewMediaIdsMock.mockReset();
     resolveStudyCardCandidateCommitItemMock.mockReset();
     mockPrisma.studyVariantGroup.create.mockReset();
@@ -98,7 +98,7 @@ describe('studyVocabBundleService', () => {
       previewImageId: null,
     }));
     getOwnedPreviewMediaIdsMock.mockImplementation(async ({ mediaIds }) => new Set(mediaIds));
-    createReadyManualCardDraftsMock.mockImplementation(
+    createReadyManualCardDraftsInTransactionMock.mockImplementation(
       async ({ drafts }: { drafts: StudyManualCardDraftCreateRequest[] }) =>
         drafts.map((draft, index) => ({ ...draft, id: `draft-${index}`, status: 'ready' }))
     );
@@ -119,7 +119,8 @@ describe('studyVocabBundleService', () => {
 
     expect(result.groupId).toBe('group-1');
     expect(result.drafts).toHaveLength(11);
-    expect(createReadyManualCardDraftsMock).toHaveBeenCalledWith({
+    expect(createReadyManualCardDraftsInTransactionMock).toHaveBeenCalledWith({
+      tx: mockPrisma,
       userId: 'user-1',
       drafts: expect.arrayContaining([
         expect.objectContaining({
@@ -162,6 +163,6 @@ describe('studyVocabBundleService', () => {
     ).rejects.toThrow('Vocab variant candidate kind does not match its stage.');
 
     expect(mockPrisma.studyVariantGroup.create).not.toHaveBeenCalled();
-    expect(createReadyManualCardDraftsMock).not.toHaveBeenCalled();
+    expect(createReadyManualCardDraftsInTransactionMock).not.toHaveBeenCalled();
   });
 });

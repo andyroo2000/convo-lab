@@ -14,6 +14,7 @@ import type {
   StudyVocabBundleGenerateResponse,
   StudyVocabBundleSentence,
 } from '@languageflow/shared/src/types.js';
+import { Prisma } from '@prisma/client';
 
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -35,7 +36,7 @@ import {
   buildVocabBundleSystemInstruction,
   buildVocabBundleUserPrompt,
 } from './study/candidates/vocab/promptBuilder.js';
-import { createReadyManualCardDrafts } from './study/manualCardDrafts.js';
+import { createReadyManualCardDraftsInTransaction } from './study/manualCardDrafts.js';
 import {
   STUDY_VOCAB_VARIANT_KINDS_BY_STAGE,
   STUDY_VOCAB_VARIANT_STAGES,
@@ -281,77 +282,85 @@ export async function commitStudyVocabBundle(input: {
     }),
   ]);
 
-  const group = await prisma.studyVariantGroup.create({
-    data: {
-      userId: input.userId,
-      targetWord: input.request.targetWord,
-      targetReading: input.request.targetReading ?? null,
-      targetMeaning: input.request.targetMeaning ?? null,
-      sourceSentence: input.request.sourceSentence ?? null,
-      sourceContext: input.request.sourceContext ?? null,
-      sentences: {
-        create: input.request.sentences.map((sentence) => ({
+  const { group, drafts } = await prisma.$transaction(
+    async (tx) => {
+      const group = await tx.studyVariantGroup.create({
+        data: {
           userId: input.userId,
-          ordinal: sentence.ordinal,
-          sentenceJp: sentence.sentenceJp,
-          sentenceReading: sentence.sentenceReading ?? null,
-          sentenceEn: sentence.sentenceEn,
-          notes: sentence.notes ?? null,
-        })),
-      },
+          targetWord: input.request.targetWord,
+          targetReading: input.request.targetReading ?? null,
+          targetMeaning: input.request.targetMeaning ?? null,
+          sourceSentence: input.request.sourceSentence ?? null,
+          sourceContext: input.request.sourceContext ?? null,
+          sentences: {
+            create: input.request.sentences.map((sentence) => ({
+              userId: input.userId,
+              ordinal: sentence.ordinal,
+              sentenceJp: sentence.sentenceJp,
+              sentenceReading: sentence.sentenceReading ?? null,
+              sentenceEn: sentence.sentenceEn,
+              notes: sentence.notes ?? null,
+            })),
+          },
+        },
+        include: {
+          sentences: true,
+        },
+      });
+      const sentencesByOrdinal = new Map(
+        group.sentences.map((sentence) => [sentence.ordinal, sentence.id])
+      );
+
+      const drafts = await createReadyManualCardDraftsInTransaction({
+        tx,
+        userId: input.userId,
+        drafts: resolvedItems.map((resolved) => {
+          const previewAudio =
+            resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)
+              ? getResolvedPreviewAudio(resolved)
+              : null;
+          const previewImage =
+            resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
+              ? getResolvedPreviewImage(resolved)
+              : null;
+          const imagePlacement =
+            previewImage && resolved.item.cardType === 'cloze'
+              ? 'both'
+              : previewImage
+                ? 'prompt'
+                : 'none';
+          const imagePrompt = previewImage ? (resolved.item.imagePrompt ?? null) : null;
+          const creationKind = creationKindForCandidateKind(resolved.item.candidateKind);
+          const sentenceId =
+            typeof resolved.variantSentenceOrdinal === 'number'
+              ? (sentencesByOrdinal.get(resolved.variantSentenceOrdinal) ?? null)
+              : null;
+          const variantStatus = resolved.stage === 1 ? 'available' : 'locked';
+
+          return {
+            creationKind,
+            cardType: resolved.item.cardType,
+            prompt: resolved.prompt,
+            answer: resolved.answer,
+            imagePlacement,
+            imagePrompt,
+            previewAudio,
+            previewAudioRole: resolved.previewAudioRole,
+            previewImage,
+            variantGroupId: group.id,
+            variantSentenceId: sentenceId,
+            variantKind: resolved.variantKind,
+            variantStage: resolved.stage,
+            variantStatus,
+            variantUnlockedAt: variantStatus === 'available' ? new Date() : null,
+          };
+        }),
+      });
+
+      return { group, drafts };
     },
-    include: {
-      sentences: true,
-    },
-  });
-  const sentencesByOrdinal = new Map(
-    group.sentences.map((sentence) => [sentence.ordinal, sentence.id])
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
   );
-
-  const drafts = await createReadyManualCardDrafts({
-    userId: input.userId,
-    drafts: resolvedItems.map((resolved) => {
-      const previewAudio =
-        resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)
-          ? getResolvedPreviewAudio(resolved)
-          : null;
-      const previewImage =
-        resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
-          ? getResolvedPreviewImage(resolved)
-          : null;
-      const imagePlacement =
-        previewImage && resolved.item.cardType === 'cloze'
-          ? 'both'
-          : previewImage
-            ? 'prompt'
-            : 'none';
-      const imagePrompt = previewImage ? (resolved.item.imagePrompt ?? null) : null;
-      const creationKind = creationKindForCandidateKind(resolved.item.candidateKind);
-      const sentenceId =
-        typeof resolved.variantSentenceOrdinal === 'number'
-          ? (sentencesByOrdinal.get(resolved.variantSentenceOrdinal) ?? null)
-          : null;
-      const variantStatus = resolved.stage === 1 ? 'available' : 'locked';
-
-      return {
-        creationKind,
-        cardType: resolved.item.cardType,
-        prompt: resolved.prompt,
-        answer: resolved.answer,
-        imagePlacement,
-        imagePrompt,
-        previewAudio,
-        previewAudioRole: resolved.previewAudioRole,
-        previewImage,
-        variantGroupId: group.id,
-        variantSentenceId: sentenceId,
-        variantKind: resolved.variantKind,
-        variantStage: resolved.stage,
-        variantStatus,
-        variantUnlockedAt: variantStatus === 'available' ? new Date() : null,
-      };
-    }),
-  });
 
   return {
     groupId: group.id,

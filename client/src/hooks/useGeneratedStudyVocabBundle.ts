@@ -44,6 +44,7 @@ function useGeneratedStudyVocabBundle() {
   const [regenerateErrors, setRegenerateErrors] = useState<Record<string, string>>({});
   const [previewDraftIndex, setPreviewDraftIndex] = useState<number | null>(null);
   const variantDraftsRef = useRef<StudyVocabVariantDraft[]>([]);
+  const activeRegenerationCandidateIdRef = useRef<string | null>(null);
 
   const setDrafts = useCallback((next: StudyVocabVariantDraft[]) => {
     variantDraftsRef.current = next;
@@ -55,6 +56,7 @@ function useGeneratedStudyVocabBundle() {
     setDrafts([]);
     setLearnerContextSummary(null);
     setSuccess(null);
+    activeRegenerationCandidateIdRef.current = null;
     setRegeneratingCandidateId(null);
     setRegenerateErrors({});
     setPreviewDraftIndex(null);
@@ -78,6 +80,8 @@ function useGeneratedStudyVocabBundle() {
       const variant = variantDraftsRef.current[index];
       if (!variant) return;
       const candidateId = variant.draft.candidate.clientId;
+      if (activeRegenerationCandidateIdRef.current) return;
+      activeRegenerationCandidateIdRef.current = candidateId;
       setRegeneratingCandidateId(candidateId);
       setRegenerateErrors((current) => {
         const { [candidateId]: _cleared, ...rest } = current;
@@ -115,7 +119,10 @@ function useGeneratedStudyVocabBundle() {
             error instanceof Error ? error.message : 'Unable to regenerate preview audio.',
         }));
       } finally {
-        setRegeneratingCandidateId(null);
+        if (activeRegenerationCandidateIdRef.current === candidateId) {
+          activeRegenerationCandidateIdRef.current = null;
+          setRegeneratingCandidateId(null);
+        }
       }
     },
     [regenerateAudio, setDrafts]
