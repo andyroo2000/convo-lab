@@ -576,6 +576,13 @@ const StudyCreatePage = () => {
             : t('create.loadMoreDrafts')}
         </button>
       ) : null}
+      {manualDraftsQuery.isFetchNextPageError && manualDraftsQuery.error ? (
+        <p className="text-xs text-red-600">
+          {manualDraftsQuery.error instanceof Error
+            ? manualDraftsQuery.error.message
+            : t('create.failedDrafts')}
+        </p>
+      ) : null}
     </>
   );
 

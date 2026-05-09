@@ -248,15 +248,8 @@ export async function commitStudyVocabBundle(input: {
   }
   validateCommitVariants(input.request.variants);
 
-  const resolvedItems: Array<
-    ResolvedStudyCardCandidateCommitItem & {
-      stage: number;
-      variantKind: StudyVocabBundleCommitVariant['variantKind'];
-      variantSentenceOrdinal: number | null;
-    }
-  > = [];
-  for (const variant of input.request.variants) {
-    resolvedItems.push({
+  const resolvedItems = await Promise.all(
+    input.request.variants.map(async (variant) => ({
       ...(await resolveStudyCardCandidateCommitItem({
         userId: input.userId,
         item: variant.candidate,
@@ -264,8 +257,8 @@ export async function commitStudyVocabBundle(input: {
       stage: variant.stage,
       variantKind: variant.variantKind,
       variantSentenceOrdinal: variant.variantSentenceOrdinal ?? null,
-    });
-  }
+    }))
+  );
 
   const previewAudioIds = resolvedItems.flatMap((item) =>
     item.previewAudioId ? [item.previewAudioId] : []

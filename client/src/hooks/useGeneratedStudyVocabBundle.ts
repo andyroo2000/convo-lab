@@ -141,6 +141,7 @@ function useGeneratedStudyVocabBundle() {
     setSuccess(t('create.generatedSuccess', { count: result.drafts.length }));
     setBundle(null);
     setDrafts([]);
+    setLearnerContextSummary(null);
     setPreviewDraftIndex(null);
   }, [bundle, commitBundle, setDrafts, t]);
 
