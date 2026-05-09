@@ -73,37 +73,25 @@ describe('studyVocabBundleDraftQueue', () => {
     );
   });
 
-  it('does not enqueue duplicate active group jobs', async () => {
-    const activeJob = {
-      getState: vi.fn().mockResolvedValue('active'),
-      remove: vi.fn(),
-    };
-    queueGetJobMock.mockResolvedValue(activeJob);
-    const { enqueueStudyVocabBundleDraftJob } =
-      await import('../../../jobs/studyVocabBundleDraftQueue.js');
+  it.each(['active', 'waiting', 'delayed', 'prioritized', 'waiting-children'])(
+    'does not enqueue duplicate %s group jobs',
+    async (state) => {
+      const activeJob = {
+        getState: vi.fn().mockResolvedValue(state),
+        remove: vi.fn(),
+        retry: vi.fn(),
+      };
+      queueGetJobMock.mockResolvedValue(activeJob);
+      const { enqueueStudyVocabBundleDraftJob } =
+        await import('../../../jobs/studyVocabBundleDraftQueue.js');
 
-    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(activeJob);
+      await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(activeJob);
 
-    expect(activeJob.remove).not.toHaveBeenCalled();
-    expect(queueAddMock).not.toHaveBeenCalled();
-  });
-
-  it('does not enqueue duplicate prioritized group jobs', async () => {
-    const prioritizedJob = {
-      getState: vi.fn().mockResolvedValue('prioritized'),
-      remove: vi.fn(),
-      retry: vi.fn(),
-    };
-    queueGetJobMock.mockResolvedValue(prioritizedJob);
-    const { enqueueStudyVocabBundleDraftJob } =
-      await import('../../../jobs/studyVocabBundleDraftQueue.js');
-
-    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(prioritizedJob);
-
-    expect(prioritizedJob.retry).not.toHaveBeenCalled();
-    expect(prioritizedJob.remove).not.toHaveBeenCalled();
-    expect(queueAddMock).not.toHaveBeenCalled();
-  });
+      expect(activeJob.retry).not.toHaveBeenCalled();
+      expect(activeJob.remove).not.toHaveBeenCalled();
+      expect(queueAddMock).not.toHaveBeenCalled();
+    }
+  );
 
   it('leaves an existing failed group job alone as a historical record', async () => {
     const failedJob = {
@@ -238,6 +226,27 @@ describe('studyVocabBundleDraftQueue', () => {
     expect(processStudyVocabBundleDraftsMock).toHaveBeenCalledWith('group-1', {
       markDraftsOnError: false,
     });
+    expect(discard).toHaveBeenCalled();
+  });
+
+  it('preserves the mismatch error when discarding the worker job fails', async () => {
+    const mismatchError = new VocabBundleDraftMismatchErrorMock();
+    processStudyVocabBundleDraftsMock.mockRejectedValue(mismatchError);
+    await import('../../../jobs/studyVocabBundleDraftQueue.js');
+    const processor = workerProcessors.get('study-vocab-bundle-drafts');
+    const discard = vi.fn().mockRejectedValue(new Error('redis down'));
+
+    await expect(
+      processor?.({
+        name: 'complete-vocab-bundle-drafts',
+        data: { groupId: 'group-1' },
+        attemptsMade: 0,
+        opts: { attempts: 3 },
+        discard,
+        updateProgress: vi.fn(),
+      })
+    ).rejects.toBe(mismatchError);
+
     expect(discard).toHaveBeenCalled();
   });
 });

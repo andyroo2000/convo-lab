@@ -103,7 +103,14 @@ export const studyVocabBundleDraftWorker = new Worker(
       });
     } catch (error) {
       if (error instanceof VocabBundleDraftMismatchError) {
-        await job.discard();
+        try {
+          await job.discard();
+        } catch (discardError) {
+          logger.warn(
+            'Failed to discard non-retryable vocab bundle draft job; BullMQ may retry it.',
+            discardError
+          );
+        }
       }
       throw error;
     }
