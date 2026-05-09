@@ -9,6 +9,7 @@ const workerConnection = createRedisConnection();
 const STUDY_VOCAB_BUNDLE_DRAFT_QUEUE_NAME = 'study-vocab-bundle-drafts';
 const STUDY_VOCAB_BUNDLE_DRAFT_JOB_ATTEMPTS = 3;
 const ACTIVE_JOB_STATES = new Set(['active', 'waiting', 'delayed', 'prioritized']);
+const FINISHED_JOB_STATES = new Set(['completed', 'unknown']);
 
 export const studyVocabBundleDraftQueue = new Queue(STUDY_VOCAB_BUNDLE_DRAFT_QUEUE_NAME, {
   connection: queueConnection,
@@ -36,6 +37,11 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
     }
     if (state === 'failed') {
       await existingJob.retry();
+      return existingJob;
+    }
+    if (FINISHED_JOB_STATES.has(state)) {
+      // Group IDs are per-creation UUIDs, so finished jobs are historical records, not requeue targets.
+      return existingJob;
     }
     return existingJob;
   }

@@ -96,6 +96,23 @@ describe('studyVocabBundleDraftQueue', () => {
     expect(queueAddMock).not.toHaveBeenCalled();
   });
 
+  it('does not re-enqueue a completed historical group job', async () => {
+    const completedJob = {
+      getState: vi.fn().mockResolvedValue('completed'),
+      remove: vi.fn(),
+      retry: vi.fn(),
+    };
+    queueGetJobMock.mockResolvedValue(completedJob);
+    const { enqueueStudyVocabBundleDraftJob } =
+      await import('../../../jobs/studyVocabBundleDraftQueue.js');
+
+    await expect(enqueueStudyVocabBundleDraftJob('group-1')).resolves.toBe(completedJob);
+
+    expect(completedJob.retry).not.toHaveBeenCalled();
+    expect(completedJob.remove).not.toHaveBeenCalled();
+    expect(queueAddMock).not.toHaveBeenCalled();
+  });
+
   it('dispatches valid worker payloads to the vocab bundle draft processor', async () => {
     processStudyVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',

@@ -368,6 +368,49 @@ describe('studyVocabBundleService', () => {
     });
   });
 
+  it('marks generating drafts as error when placeholder draft variant keys are duplicated', async () => {
+    const group = vocabGroup(false);
+    const mismatchError = 'Generated vocab bundle did not match queued draft placeholders.';
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    mockPrisma.studyVariantGroup.update.mockResolvedValue(group);
+    mockPrisma.studyVariantSentence.findMany.mockResolvedValue(group.sentences);
+    mockPrisma.studyVariantSentence.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    mockPrisma.studyCardDraft.findMany.mockResolvedValue([
+      ...group.drafts.slice(0, 10),
+      {
+        ...group.drafts[10],
+        variantStage: 1,
+        variantSentenceId: 'sentence-0',
+      },
+    ]);
+    generateStudyCardCandidateJsonMock.mockResolvedValue(vocabBundleJson());
+    resolveStudyCardCandidateCommitItemMock.mockImplementation(async ({ item }) => ({
+      item,
+      prompt: item.prompt,
+      answer: item.answer,
+      previewAudioId: item.previewAudio?.id ?? null,
+      previewAudioRole: item.previewAudioRole ?? null,
+      previewImageId: item.previewImage?.id ?? null,
+    }));
+    getOwnedPreviewMediaIdsMock.mockImplementation(async ({ mediaIds }) => new Set(mediaIds));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(processStudyVocabBundleDrafts('group-1')).rejects.toThrow(mismatchError);
+    expect(mockPrisma.studyCardDraft.update).not.toHaveBeenCalled();
+    expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
+      where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
+      data: {
+        status: 'error',
+        errorMessage: mismatchError,
+      },
+    });
+  });
+
   it('leaves drafts generating on retryable processor failures before the final attempt', async () => {
     const group = vocabGroup(false);
     mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);

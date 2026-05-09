@@ -572,6 +572,10 @@ export async function processStudyVocabBundleDrafts(
           draft,
         ])
       );
+      if (draftsByKey.size !== currentDrafts.length) {
+        throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
+      }
+      const seenResolvedKeys = new Set<string>();
       const updated = await Promise.all(
         resolvedItems.map(async (resolved) => {
           const sentenceId =
@@ -579,6 +583,10 @@ export async function processStudyVocabBundleDrafts(
               ? (sentenceIdsByOrdinal.get(resolved.variantSentenceOrdinal) ?? null)
               : null;
           const key = `${String(resolved.stage)}:${sentenceId ?? 'word'}`;
+          if (seenResolvedKeys.has(key)) {
+            throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
+          }
+          seenResolvedKeys.add(key);
           const draft = draftsByKey.get(key);
           if (!draft) {
             throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
@@ -633,7 +641,7 @@ export async function processStudyVocabBundleDrafts(
     };
   } catch (error) {
     logger.warn('[StudyVocabBundle] Failed to process vocab bundle drafts.', error);
-    if (options.markDraftsOnError !== false) {
+    if (options.markDraftsOnError ?? true) {
       await prisma.studyCardDraft.updateMany({
         where: { variantGroupId: group.id, userId: group.userId, status: 'generating' },
         data: {
