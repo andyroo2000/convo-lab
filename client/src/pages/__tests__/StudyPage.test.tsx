@@ -474,6 +474,12 @@ describe('StudyPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     const gradeTray = screen.getByTestId('study-grade-tray');
+    expect(screen.getByTestId('study-focus-shell')).toHaveClass('h-[100dvh]', 'min-h-0');
+    expect(screen.getByTestId('study-focus-card-scroll')).toHaveClass(
+      'min-h-0',
+      'overflow-y-auto',
+      'md:pb-16'
+    );
     expect(gradeTray).toHaveClass('fixed');
     expect(gradeTray.className).not.toContain('md:static');
     expect(screen.getByTestId('study-grade-tray-inner')).toHaveClass('mx-auto', 'max-w-7xl');
