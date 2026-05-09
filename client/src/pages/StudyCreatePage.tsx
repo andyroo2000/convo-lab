@@ -464,6 +464,9 @@ const StudyCreatePage = () => {
     await manualAutosavePromiseRef.current;
 
     try {
+      const createdDraftIndex = manualDrafts.findIndex(
+        (draft) => draft.id === selectedManualDraft.id
+      );
       await updateDraft.mutateAsync({
         draftId: selectedManualDraft.id,
         values: {
@@ -477,15 +480,11 @@ const StudyCreatePage = () => {
         },
       });
       const result = await createCardFromDraft.mutateAsync(selectedManualDraft.id);
-      const createdDraftIndex = manualDrafts.findIndex(
-        (draft) => draft.id === selectedManualDraft.id
-      );
       let nextDraftId: string | null = null;
       if (createdDraftIndex >= 0) {
         nextDraftId =
           manualDrafts[createdDraftIndex + 1]?.id ??
-          (createdDraftIndex > 0 ? manualDrafts[createdDraftIndex - 1]?.id : null) ??
-          null;
+          (createdDraftIndex > 0 ? manualDrafts[createdDraftIndex - 1]?.id : null);
       }
 
       setManualSuccess(t('create.success', { cardType: result.card.cardType }));
