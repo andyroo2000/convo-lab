@@ -30,19 +30,23 @@ const StudyVocabStageSection = ({
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Stage {stage}</p>
       <h3 className="font-display text-xl text-brown">{title}</h3>
     </div>
-    {variants.map(({ index, variant }) => (
-      <StudyVocabVariantRow
-        key={variant.meta.clientId}
-        index={index}
-        variant={variant}
-        isRegenerating={regeneratingCandidateId === variant.draft.candidate.clientId}
-        isPreviewOpen={previewDraftIndex === index}
-        regenerateError={regenerateErrors[variant.draft.candidate.clientId] ?? null}
-        onClosePreview={onClosePreview}
-        onPreview={onPreview}
-        onRegenerateAudio={onRegenerateAudio}
-      />
-    ))}
+    {variants.map(({ index, variant }) => {
+      const isRegenerating = regeneratingCandidateId === variant.draft.candidate.clientId;
+      return (
+        <StudyVocabVariantRow
+          key={variant.meta.clientId}
+          index={index}
+          variant={variant}
+          isRegenerating={isRegenerating}
+          isRegenerateDisabled={Boolean(regeneratingCandidateId) && !isRegenerating}
+          isPreviewOpen={previewDraftIndex === index}
+          regenerateError={regenerateErrors[variant.draft.candidate.clientId] ?? null}
+          onClosePreview={onClosePreview}
+          onPreview={onPreview}
+          onRegenerateAudio={onRegenerateAudio}
+        />
+      );
+    })}
   </section>
 );
 

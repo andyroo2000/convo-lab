@@ -82,6 +82,7 @@ function useGeneratedStudyVocabBundle() {
       const candidateId = variant.draft.candidate.clientId;
       if (activeRegenerationCandidateIdRef.current) return;
       activeRegenerationCandidateIdRef.current = candidateId;
+      setSuccess(null);
       setRegeneratingCandidateId(candidateId);
       setRegenerateErrors((current) => {
         const { [candidateId]: _cleared, ...rest } = current;

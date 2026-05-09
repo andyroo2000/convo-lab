@@ -247,6 +247,79 @@ describe('studySchedulerService', () => {
     expect(reviewResult.reviewLogId).toBe('review-log-1');
   });
 
+  it('unlocks the next vocab variant stage inside the review transaction', async () => {
+    const reviewedCard = {
+      id: 'card-stage-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'recognition',
+      queueState: 'review',
+      dueAt: new Date('2026-04-12T00:00:00.000Z'),
+      answerAudioSource: 'imported',
+      promptJson: {},
+      answerJson: {},
+      schedulerStateJson: {
+        due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+        stability: 10,
+        difficulty: 4,
+        elapsed_days: 4,
+        scheduled_days: 10,
+        learning_steps: 0,
+        reps: 6,
+        lapses: 1,
+        state: 2,
+        last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+      },
+      variantGroupId: 'group-1',
+      variantStage: 1,
+      createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: {},
+    };
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce(reviewedCard)
+      .mockResolvedValueOnce({
+        variantGroupId: 'group-1',
+        variantStage: 1,
+      })
+      .mockResolvedValueOnce({
+        ...reviewedCard,
+        dueAt: new Date('2026-04-20T00:00:00.000Z'),
+      });
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.studyReviewLog.create.mockResolvedValue({ id: 'review-log-variant' });
+    mockPrisma.studyCard.count.mockResolvedValue(1);
+    mockPrisma.studyCard.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'card-stage-1',
+          reviewLogs: [{ rating: 3 }, { rating: 3 }],
+        },
+      ])
+      .mockResolvedValueOnce([{ id: 'card-stage-2' }]);
+    mockPrisma.studyCard.aggregate.mockResolvedValue({
+      _max: {
+        newQueuePosition: 8,
+      },
+    });
+    mockPrisma.studyCard.update.mockResolvedValue({});
+
+    const reviewResult = await recordStudyReview({
+      userId: 'user-1',
+      cardId: 'card-stage-1',
+      grade: 'good',
+    });
+
+    expect(reviewResult.reviewLogId).toBe('review-log-variant');
+    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith({
+      where: { id: 'card-stage-2' },
+      data: expect.objectContaining({
+        variantStatus: 'available',
+        newQueuePosition: 9,
+      }),
+    });
+  });
+
   it('marks a new card as introduced only on its first review', async () => {
     mockPrisma.studyCard.findFirst
       .mockResolvedValueOnce({

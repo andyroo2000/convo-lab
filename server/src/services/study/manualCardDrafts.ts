@@ -346,12 +346,12 @@ async function createReadyManualCardDraftRecords(input: {
     throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
   }
 
-  const createdDrafts: StudyManualCardDraftRecord[] = [];
-  for (const data of normalizedDrafts) {
-    const draft = await input.tx.studyCardDraft.create({ data });
-    createdDrafts.push(draft as StudyManualCardDraftRecord);
-  }
-  return createdDrafts;
+  return Promise.all(
+    normalizedDrafts.map(async (data) => {
+      const draft = await input.tx.studyCardDraft.create({ data });
+      return draft as StudyManualCardDraftRecord;
+    })
+  );
 }
 
 export async function createReadyManualCardDraftsInTransaction(input: {

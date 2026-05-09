@@ -29,7 +29,21 @@ export async function unlockStudyVariantStagesAfterReview(input: {
   userId: string;
   cardId: string;
 }): Promise<void> {
-  const reviewedCard = await prisma.studyCard.findFirst({
+  await prisma.$transaction(async (tx) => {
+    await unlockStudyVariantStagesAfterReviewInTransaction({
+      tx,
+      userId: input.userId,
+      cardId: input.cardId,
+    });
+  });
+}
+
+export async function unlockStudyVariantStagesAfterReviewInTransaction(input: {
+  tx: Prisma.TransactionClient;
+  userId: string;
+  cardId: string;
+}): Promise<void> {
+  const reviewedCard = await input.tx.studyCard.findFirst({
     where: {
       id: input.cardId,
       userId: input.userId,
@@ -58,56 +72,57 @@ export async function unlockStudyVariantStagesAfterReview(input: {
   const variantGroupId = reviewedCard.variantGroupId;
   const reviewedStage = reviewedCard.variantStage;
 
-  await prisma.$transaction(async (tx) => {
-    const existingNextStage = await tx.studyCard.count({
-      where: {
-        userId: input.userId,
-        variantGroupId,
-        variantStage: nextStage,
-        variantStatus: 'locked',
-      },
-    });
-    if (existingNextStage === 0) {
-      return;
-    }
-
-    const eligible = await stageCardsAreEligible({
-      tx,
+  const existingNextStage = await input.tx.studyCard.count({
+    where: {
       userId: input.userId,
       variantGroupId,
-      stage: reviewedStage,
-    });
-    if (!eligible) {
-      return;
-    }
+      variantStage: nextStage,
+      variantStatus: 'locked',
+    },
+  });
+  if (existingNextStage === 0) {
+    return;
+  }
 
-    const lockedCards = await tx.studyCard.findMany({
-      where: {
-        userId: input.userId,
-        variantGroupId,
-        variantStage: nextStage,
-        variantStatus: 'locked',
-      },
-      select: {
-        id: true,
-      },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
+  const eligible = await stageCardsAreEligible({
+    tx: input.tx,
+    userId: input.userId,
+    variantGroupId,
+    stage: reviewedStage,
+  });
+  if (!eligible) {
+    return;
+  }
 
-    let nextQueuePosition = await getNextNewQueuePosition(tx, input.userId);
-    const now = new Date();
-    for (const card of lockedCards) {
-      await tx.studyCard.update({
+  const lockedCards = await input.tx.studyCard.findMany({
+    where: {
+      userId: input.userId,
+      variantGroupId,
+      variantStage: nextStage,
+      variantStatus: 'locked',
+    },
+    select: {
+      id: true,
+    },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+
+  let nextQueuePosition = await getNextNewQueuePosition(input.tx, input.userId);
+  const now = new Date();
+  await Promise.all(
+    lockedCards.map((card) => {
+      const newQueuePosition = nextQueuePosition;
+      nextQueuePosition += 1;
+      return input.tx.studyCard.update({
         where: {
           id: card.id,
         },
         data: {
           variantStatus: 'available',
           variantUnlockedAt: now,
-          newQueuePosition: nextQueuePosition,
+          newQueuePosition,
         },
       });
-      nextQueuePosition += 1;
-    }
-  });
+    })
+  );
 }

@@ -28,7 +28,6 @@ import { State, Rating, type Grade } from 'ts-fsrs';
 
 import { prisma } from '../../db/client.js';
 import { AppError } from '../../middleware/errorHandler.js';
-import { logger } from '../logger.js';
 import { resolvePitchAccent } from '../pitchAccent/pitchAccentResolver.js';
 
 import { ensureGeneratedAnswerAudio, ensureStudyCardMediaAvailable } from './media.js';
@@ -64,7 +63,7 @@ import {
   toStudyFsrsState,
   toStudyImportPreview,
 } from './shared.js';
-import { unlockStudyVariantStagesAfterReview } from './variants/unlocking.js';
+import { unlockStudyVariantStagesAfterReviewInTransaction } from './variants/unlocking.js';
 
 const ACTIVE_DUE_QUEUE_STATES = ['learning', 'review', 'relearning'] as const;
 const STUDY_CARD_SUMMARY_INCLUDE = {
@@ -965,7 +964,7 @@ export async function recordStudyReview(params: {
       throw new AppError('Study card not found.', 404);
     }
 
-    return tx.studyReviewLog.create({
+    const reviewLog = await tx.studyReviewLog.create({
       data: {
         userId: params.userId,
         cardId: params.cardId,
@@ -986,18 +985,17 @@ export async function recordStudyReview(params: {
         }),
       },
     });
-  });
 
-  if (card.variantGroupId && card.variantStage) {
-    try {
-      await unlockStudyVariantStagesAfterReview({
+    if (card.variantGroupId && card.variantStage) {
+      await unlockStudyVariantStagesAfterReviewInTransaction({
+        tx,
         userId: params.userId,
         cardId: params.cardId,
       });
-    } catch (error) {
-      logger.error('[Study] Failed to unlock vocab variant stages after review.', error);
     }
-  }
+
+    return reviewLog;
+  });
 
   const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {

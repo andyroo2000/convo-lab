@@ -9,6 +9,7 @@ import type { StudyVocabVariantDraft } from '../../hooks/useGeneratedStudyVocabB
 interface StudyVocabVariantRowProps {
   index: number;
   variant: StudyVocabVariantDraft;
+  isRegenerateDisabled: boolean;
   isRegenerating: boolean;
   isPreviewOpen: boolean;
   regenerateError: string | null;
@@ -20,6 +21,7 @@ interface StudyVocabVariantRowProps {
 const StudyVocabVariantRow = ({
   index,
   variant,
+  isRegenerateDisabled,
   isRegenerating,
   isPreviewOpen,
   regenerateError,
@@ -57,6 +59,7 @@ const StudyVocabVariantRow = ({
       </div>
       <StudyCandidatePreviewAudio
         isRegenerating={isRegenerating}
+        isRegenerateDisabled={isRegenerateDisabled}
         label="Play preview audio"
         onRegenerate={() => onRegenerateAudio(index)}
         previewUrl={variant.draft.previewAudio?.url ?? null}
