@@ -225,7 +225,7 @@
     "untitledDraft": "Untitled draft",
     "draftColumn": "Draft",
     "statusColumn": "Status",
-    "updatedColumn": "Updated",
+    "createdColumn": "Created",
     "queueingDraft": "Queueing…",
     "retryDraft": "Retry fill",
     "retryingDraft": "Retrying…",

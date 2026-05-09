@@ -160,7 +160,7 @@ async function findManualCardDraftOrThrow(input: {
 export async function listManualCardDrafts(userId: string): Promise<StudyManualCardDraft[]> {
   const drafts = await prisma.studyCardDraft.findMany({
     where: { userId },
-    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     take: MANUAL_CARD_DRAFT_LIST_LIMIT,
   });
   return drafts.map((draft) => toManualCardDraft(draft as StudyManualCardDraftRecord));
