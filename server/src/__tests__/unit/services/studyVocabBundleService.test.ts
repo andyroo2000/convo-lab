@@ -363,7 +363,8 @@ describe('studyVocabBundleService', () => {
       where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
       data: {
         status: 'error',
-        errorMessage: mismatchError,
+        errorMessage:
+          'Could not generate this vocab bundle. Please retry or edit the drafts manually.',
       },
     });
   });
@@ -406,7 +407,8 @@ describe('studyVocabBundleService', () => {
       where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
       data: {
         status: 'error',
-        errorMessage: mismatchError,
+        errorMessage:
+          'Could not generate this vocab bundle. Please retry or edit the drafts manually.',
       },
     });
   });

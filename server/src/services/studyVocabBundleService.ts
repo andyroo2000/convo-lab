@@ -55,6 +55,13 @@ const VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR =
 const VOCAB_BUNDLE_DRAFT_GENERATION_ERROR =
   'Could not generate this vocab bundle. Please retry or edit the drafts manually.';
 
+class VocabBundleDraftMismatchError extends Error {
+  constructor() {
+    super(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
+    this.name = 'VocabBundleDraftMismatchError';
+  }
+}
+
 function assertBoundedText(name: string, value: string, max: number): void {
   if (!value.trim()) {
     throw new AppError(`${name} is required.`, 400);
@@ -268,9 +275,6 @@ function expectedVariantKeys(): Set<string> {
 }
 
 function userFacingVocabBundleDraftErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message === VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR) {
-    return VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR;
-  }
   if (error instanceof AppError && error.statusCode < 500) {
     return error.message;
   }
@@ -564,7 +568,7 @@ export async function processStudyVocabBundleDrafts(
         where: { variantGroupId: group.id, userId: group.userId },
       });
       if (resolvedItems.length !== currentDrafts.length) {
-        throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
+        throw new VocabBundleDraftMismatchError();
       }
       const draftsByKey = new Map(
         currentDrafts.map((draft) => [
@@ -573,7 +577,7 @@ export async function processStudyVocabBundleDrafts(
         ])
       );
       if (draftsByKey.size !== currentDrafts.length) {
-        throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
+        throw new VocabBundleDraftMismatchError();
       }
       const seenResolvedKeys = new Set<string>();
       const resolvedDraftInputs = resolvedItems.map((resolved) => {
@@ -583,7 +587,7 @@ export async function processStudyVocabBundleDrafts(
             : null;
         const key = `${String(resolved.stage)}:${sentenceId ?? 'word'}`;
         if (seenResolvedKeys.has(key)) {
-          throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
+          throw new VocabBundleDraftMismatchError();
         }
         seenResolvedKeys.add(key);
         return { key, resolved };
@@ -592,7 +596,7 @@ export async function processStudyVocabBundleDrafts(
         resolvedDraftInputs.map(async ({ key, resolved }) => {
           const draft = draftsByKey.get(key);
           if (!draft) {
-            throw new Error(VOCAB_BUNDLE_DRAFT_MISMATCH_ERROR);
+            throw new VocabBundleDraftMismatchError();
           }
 
           const previewAudio =
