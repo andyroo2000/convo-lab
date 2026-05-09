@@ -38,8 +38,10 @@ const {
   createManualDraftMock,
   createManualDraftState,
   createCardFromManualDraftMock,
+  createCardFromManualDraftState,
   createStudyCardMock,
   deleteManualDraftMock,
+  deleteManualDraftState,
   generateDraftImageMock,
   generateDraftImageState,
   generateCandidatesState,
@@ -48,9 +50,11 @@ const {
   regenerateCandidateAudioMock,
   regenerateCandidateImageMock,
   retryManualDraftMock,
+  retryManualDraftState,
   resolveStudyCardPitchAccentMock,
   updateManualDraftMock,
   updateManualDraftMutateMock,
+  updateManualDraftState,
 } = vi.hoisted(() => ({
   commitCandidatesMock: vi.fn(),
   commitCandidatesState: { isPending: false },
@@ -59,8 +63,10 @@ const {
   createManualDraftMock: vi.fn(),
   createManualDraftState: { error: null as Error | null, isPending: false },
   createCardFromManualDraftMock: vi.fn(),
+  createCardFromManualDraftState: { isPending: false },
   createStudyCardMock: vi.fn(),
   deleteManualDraftMock: vi.fn(),
+  deleteManualDraftState: { isPending: false },
   generateDraftImageMock: vi.fn(),
   generateDraftImageState: { error: null as Error | null, isPending: false },
   generateCandidatesState: { error: null as Error | null, isPending: false },
@@ -73,9 +79,11 @@ const {
   regenerateCandidateAudioMock: vi.fn(),
   regenerateCandidateImageMock: vi.fn(),
   retryManualDraftMock: vi.fn(),
+  retryManualDraftState: { isPending: false },
   resolveStudyCardPitchAccentMock: vi.fn(),
   updateManualDraftMock: vi.fn(),
   updateManualDraftMutateMock: vi.fn(),
+  updateManualDraftState: { error: null as Error | null, isPending: false },
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
@@ -107,22 +115,22 @@ vi.mock('../../hooks/useStudy', () => ({
   useUpdateStudyManualCardDraft: () => ({
     mutateAsync: updateManualDraftMock,
     mutate: updateManualDraftMutateMock,
-    isPending: false,
-    error: null,
+    isPending: updateManualDraftState.isPending,
+    error: updateManualDraftState.error,
   }),
   useRetryStudyManualCardDraft: () => ({
     mutateAsync: retryManualDraftMock,
-    isPending: false,
+    isPending: retryManualDraftState.isPending,
     error: null,
   }),
   useCreateCardFromStudyManualCardDraft: () => ({
     mutateAsync: createCardFromManualDraftMock,
-    isPending: false,
+    isPending: createCardFromManualDraftState.isPending,
     error: null,
   }),
   useDeleteStudyManualCardDraft: () => ({
     mutateAsync: deleteManualDraftMock,
-    isPending: false,
+    isPending: deleteManualDraftState.isPending,
     error: null,
   }),
   useGenerateStudyCardDraftImage: () => ({
@@ -258,8 +266,10 @@ describe('StudyCreatePage', () => {
     createManualDraftState.error = null;
     createManualDraftState.isPending = false;
     createCardFromManualDraftMock.mockReset();
+    createCardFromManualDraftState.isPending = false;
     createStudyCardMock.mockReset();
     deleteManualDraftMock.mockReset();
+    deleteManualDraftState.isPending = false;
     generateDraftImageMock.mockReset();
     generateDraftImageState.error = null;
     generateDraftImageState.isPending = false;
@@ -272,9 +282,12 @@ describe('StudyCreatePage', () => {
     regenerateCandidateAudioMock.mockReset();
     regenerateCandidateImageMock.mockReset();
     retryManualDraftMock.mockReset();
+    retryManualDraftState.isPending = false;
     resolveStudyCardPitchAccentMock.mockReset();
     updateManualDraftMock.mockReset();
     updateManualDraftMutateMock.mockReset();
+    updateManualDraftState.error = null;
+    updateManualDraftState.isPending = false;
     commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
     createManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
     createCardFromManualDraftMock.mockResolvedValue({
@@ -403,7 +416,7 @@ describe('StudyCreatePage', () => {
     );
     expect(screen.getByRole('columnheader', { name: 'Draft' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Updated' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Created' })).toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Cards' })).not.toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Reviews' })).not.toBeInTheDocument();
 
@@ -498,6 +511,39 @@ describe('StudyCreatePage', () => {
     });
   });
 
+  it('keeps draft actions enabled while an autosave is pending', async () => {
+    updateManualDraftState.isPending = true;
+    manualDraftsState.drafts = [
+      manualDraft({
+        imagePlacement: 'both',
+        imagePrompt: 'A realistic photo of a company office. No text.',
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+
+    expect(screen.getByRole('button', { name: 'Create card' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Delete draft' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Generate image' })).toBeEnabled();
+  });
+
+  it('disables draft actions while their own mutations are running', async () => {
+    manualDraftsState.drafts = [manualDraft()];
+    createCardFromManualDraftState.isPending = true;
+    deleteManualDraftState.isPending = true;
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+
+    expect(screen.getByRole('button', { name: 'Creating…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Deleting…' })).toBeDisabled();
+  });
+
   it('creates a selected draft card and removes it from the queue', async () => {
     manualDraftsState.drafts = [manualDraft()];
 
@@ -518,6 +564,39 @@ describe('StudyCreatePage', () => {
     expect(
       await screen.findByText('Created recognition card and seeded it into the study queue.')
     ).toBeInTheDocument();
+  });
+
+  it('selects the next draft in queue after creating a card', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-1', prompt: { cueText: '一番目' } }),
+      manualDraft({ id: 'draft-2', prompt: { cueText: '二番目' } }),
+      manualDraft({ id: 'draft-3', prompt: { cueText: '三番目' } }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+
+    await waitFor(() => expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-2'));
+    await waitFor(() => expect(screen.getByLabelText('Prompt text')).toHaveValue('三番目'));
+  });
+
+  it('selects the previous draft when creating the last draft in queue', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-1', prompt: { cueText: '一番目' } }),
+      manualDraft({ id: 'draft-2', prompt: { cueText: '二番目' } }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+
+    await waitFor(() => expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-2'));
+    await waitFor(() => expect(screen.getByLabelText('Prompt text')).toHaveValue('一番目'));
   });
 
   it('loads a ready draft with generated image and audio previews', async () => {

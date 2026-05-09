@@ -221,9 +221,8 @@ const StudyCreatePage = () => {
   const isSelectedManualDraftGenerating = selectedManualDraft?.status === 'generating';
   const canRetrySelectedManualDraft =
     selectedManualDraft?.status === 'error' || isStaleGeneratingManualDraft(selectedManualDraft);
-  const isManualBusy =
+  const isManualActionBusy =
     createDraft.isPending ||
-    updateDraft.isPending ||
     deleteDraft.isPending ||
     retryDraft.isPending ||
     createCardFromDraft.isPending ||
@@ -465,6 +464,9 @@ const StudyCreatePage = () => {
     await manualAutosavePromiseRef.current;
 
     try {
+      const createdDraftIndex = manualDrafts.findIndex(
+        (draft) => draft.id === selectedManualDraft.id
+      );
       await updateDraft.mutateAsync({
         draftId: selectedManualDraft.id,
         values: {
@@ -478,10 +480,18 @@ const StudyCreatePage = () => {
         },
       });
       const result = await createCardFromDraft.mutateAsync(selectedManualDraft.id);
+      let nextDraftId: string | null = null;
+      if (createdDraftIndex >= 0) {
+        nextDraftId =
+          manualDrafts[createdDraftIndex + 1]?.id ??
+          (createdDraftIndex > 0 ? manualDrafts[createdDraftIndex - 1]?.id : null);
+      }
 
       setManualSuccess(t('create.success', { cardType: result.card.cardType }));
-      setSelectedManualDraftId(null);
-      resetManualComposer(creationKind);
+      setSelectedManualDraftId(nextDraftId);
+      if (!nextDraftId) {
+        resetManualComposer(creationKind);
+      }
     } catch {
       // React Query stores the mutation error for the visible form message.
     }
@@ -733,7 +743,7 @@ const StudyCreatePage = () => {
                       <tr>
                         <th className="px-4 py-3 font-medium">{t('create.draftColumn')}</th>
                         <th className="px-4 py-3 font-medium">{t('create.statusColumn')}</th>
-                        <th className="px-4 py-3 font-medium">{t('create.updatedColumn')}</th>
+                        <th className="px-4 py-3 font-medium">{t('create.createdColumn')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -765,7 +775,7 @@ const StudyCreatePage = () => {
                               {t(`create.draftStatuses.${draft.status}`)}
                             </td>
                             <td className="px-4 py-3 align-top text-gray-700">
-                              {new Date(draft.updatedAt).toLocaleString()}
+                              {new Date(draft.createdAt).toLocaleString()}
                             </td>
                           </tr>
                         );
@@ -809,7 +819,7 @@ const StudyCreatePage = () => {
                 />
 
                 <StudyCandidatePreviewAudio
-                  isRegenerateDisabled={isSelectedManualDraftGenerating || isManualBusy}
+                  isRegenerateDisabled={isSelectedManualDraftGenerating || isManualActionBusy}
                   isRegenerating={regenerateManualAudio.isPending}
                   label={t('create.playPreview')}
                   onRegenerate={handleRegenerateManualAudio}
@@ -840,7 +850,7 @@ const StudyCreatePage = () => {
                   imagePrompt={manualImagePrompt}
                   imagePromptId="study-manual-image-prompt"
                   imagePromptLabel={t('create.imagePrompt')}
-                  isRegenerateDisabled={isSelectedManualDraftGenerating || isManualBusy}
+                  isRegenerateDisabled={isSelectedManualDraftGenerating || isManualActionBusy}
                   isRegenerating={generateDraftImage.isPending}
                   onImagePlacementChange={setManualImagePlacement}
                   onImagePromptChange={(value) => {
@@ -882,7 +892,7 @@ const StudyCreatePage = () => {
                       <button
                         type="button"
                         onClick={handleRetrySelectedDraft}
-                        disabled={isManualBusy}
+                        disabled={isManualActionBusy}
                         className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {retryDraft.isPending ? t('create.retryingDraft') : t('create.retryDraft')}
@@ -890,7 +900,7 @@ const StudyCreatePage = () => {
                     ) : null}
                     <button
                       type="submit"
-                      disabled={isSelectedManualDraftGenerating || isManualBusy}
+                      disabled={isSelectedManualDraftGenerating || isManualActionBusy}
                       className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {createCardFromDraft.isPending ? t('create.creating') : t('create.submit')}
@@ -898,7 +908,7 @@ const StudyCreatePage = () => {
                     <button
                       type="button"
                       onClick={handleDeleteSelectedDraft}
-                      disabled={isManualBusy}
+                      disabled={isManualActionBusy}
                       className="rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {deleteDraft.isPending ? t('create.deletingDraft') : t('create.deleteDraft')}
@@ -908,7 +918,7 @@ const StudyCreatePage = () => {
                   <button
                     type="button"
                     onClick={handleFillRemainingFields}
-                    disabled={isManualBusy}
+                    disabled={isManualActionBusy}
                     className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {createDraft.isPending ? t('create.queueingDraft') : t('create.fillRemaining')}
