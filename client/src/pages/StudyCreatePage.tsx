@@ -166,8 +166,7 @@ const StudyCreatePage = () => {
     [manualDrafts, selectedManualDraftId]
   );
   const generationProgress = useFakeProgress(createVocabBundleDrafts.isPending, {
-    // Candidate generation often takes tens of seconds, so pace the visual feedback for that wait.
-    expectedMs: 40_000,
+    expectedMs: 4_000,
   });
   const roundedGenerationProgress = Math.round(generationProgress.progress);
   const { values, setField, setValues } = useStudyCardForm({

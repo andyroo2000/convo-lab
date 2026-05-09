@@ -391,6 +391,7 @@ export async function createStudyVocabBundleDrafts(input: {
           targetWord: request.targetWord,
           sourceSentence: request.sourceSentence,
           sourceContext: request.context || null,
+          includeLearnerContext: request.includeLearnerContext,
           sentences: {
             create: [0, 1, 2].map((ordinal) => ({
               userId: input.userId,
@@ -470,7 +471,7 @@ export async function processStudyVocabBundleDrafts(
         targetWord: group.targetWord,
         sourceSentence: group.sourceSentence,
         context: group.sourceContext,
-        includeLearnerContext: true,
+        includeLearnerContext: group.includeLearnerContext,
       },
     });
     const bundle = generated.bundle;
@@ -542,6 +543,9 @@ export async function processStudyVocabBundleDrafts(
       const currentDrafts = await tx.studyCardDraft.findMany({
         where: { variantGroupId: group.id, userId: group.userId },
       });
+      if (resolvedItems.length !== currentDrafts.length) {
+        throw new Error('Generated vocab bundle did not match queued draft placeholders.');
+      }
       const draftsByKey = new Map(
         currentDrafts.map((draft) => [
           `${String(draft.variantStage)}:${draft.variantSentenceId ?? 'word'}`,
@@ -557,7 +561,9 @@ export async function processStudyVocabBundleDrafts(
             : null;
         const key = `${String(resolved.stage)}:${sentenceId ?? 'word'}`;
         const draft = draftsByKey.get(key);
-        if (!draft) continue;
+        if (!draft) {
+          throw new Error('Generated vocab bundle did not match queued draft placeholders.');
+        }
 
         const previewAudio =
           resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)

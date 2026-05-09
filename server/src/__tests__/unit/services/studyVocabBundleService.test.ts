@@ -10,6 +10,8 @@ const createReadyManualCardDraftsInTransactionMock = vi.hoisted(() => vi.fn());
 const createGeneratingManualCardDraftsInTransactionMock = vi.hoisted(() => vi.fn());
 const getOwnedPreviewMediaIdsMock = vi.hoisted(() => vi.fn());
 const resolveStudyCardCandidateCommitItemMock = vi.hoisted(() => vi.fn());
+const generateStudyCardCandidateJsonMock = vi.hoisted(() => vi.fn());
+const buildLearnerContextSummaryMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../services/study/manualCardDrafts.js', () => ({
   createGeneratingManualCardDraftsInTransaction: createGeneratingManualCardDraftsInTransactionMock,
@@ -23,6 +25,14 @@ vi.mock('../../../services/study/candidates/previewMedia.js', () => ({
 
 vi.mock('../../../services/study/candidates/candidateCommit.js', () => ({
   resolveStudyCardCandidateCommitItem: resolveStudyCardCandidateCommitItemMock,
+}));
+
+vi.mock('../../../services/llmClient.js', () => ({
+  generateStudyCardCandidateJson: generateStudyCardCandidateJsonMock,
+}));
+
+vi.mock('../../../services/study/candidates/learnerContext.js', () => ({
+  buildLearnerContextSummary: buildLearnerContextSummaryMock,
 }));
 
 function sentence(ordinal: number) {
@@ -74,13 +84,72 @@ function variant(index: number) {
   } satisfies StudyVocabBundleCommitVariant;
 }
 
+function vocabBundleJson() {
+  return JSON.stringify({
+    targetWord: '営業する',
+    targetReading: '営業[えいぎょう]する',
+    targetMeaning: 'to do sales',
+    sentences: [0, 1, 2].map((ordinal) => ({
+      sentenceJp: `営業する例文${ordinal + 1}です。`,
+      sentenceReading: `営業[えいぎょう]する例文[れいぶん]${ordinal + 1}です。`,
+      sentenceEn: `Example sentence ${ordinal + 1}.`,
+      notes: `sentence ${ordinal + 1}`,
+      clozeText: `{{c1:営業する}}例文${ordinal + 1}です。`,
+      clozeHint: 'to do sales',
+    })),
+  });
+}
+
+function draftForVariant(index: number) {
+  const current = variant(index);
+  return {
+    id: `draft-${index}`,
+    userId: 'user-1',
+    status: 'generating',
+    variantGroupId: 'group-1',
+    variantSentenceId:
+      typeof current.variantSentenceOrdinal === 'number'
+        ? `sentence-${current.variantSentenceOrdinal}`
+        : null,
+    variantKind: current.variantKind,
+    variantStage: current.stage,
+  };
+}
+
+function vocabGroup(includeLearnerContext: boolean) {
+  return {
+    id: 'group-1',
+    userId: 'user-1',
+    targetWord: '営業する',
+    targetReading: null,
+    targetMeaning: null,
+    sourceSentence: '営業の仕事は楽しいです。',
+    sourceContext: 'business chapter',
+    includeLearnerContext,
+    sentences: [0, 1, 2].map((ordinal) => ({
+      id: `sentence-${ordinal}`,
+      ordinal,
+    })),
+    drafts: Array.from({ length: 11 }, (_value, index) => draftForVariant(index)),
+  };
+}
+
 describe('studyVocabBundleService', () => {
   beforeEach(() => {
     createGeneratingManualCardDraftsInTransactionMock.mockReset();
     createReadyManualCardDraftsInTransactionMock.mockReset();
     getOwnedPreviewMediaIdsMock.mockReset();
     resolveStudyCardCandidateCommitItemMock.mockReset();
+    generateStudyCardCandidateJsonMock.mockReset();
+    buildLearnerContextSummaryMock.mockReset();
     mockPrisma.studyVariantGroup.create.mockReset();
+    mockPrisma.studyVariantGroup.findUnique.mockReset();
+    mockPrisma.studyVariantGroup.update.mockReset();
+    mockPrisma.studyVariantSentence.findMany.mockReset();
+    mockPrisma.studyVariantSentence.update.mockReset();
+    mockPrisma.studyCardDraft.findMany.mockReset();
+    mockPrisma.studyCardDraft.update.mockReset();
+    mockPrisma.studyCardDraft.updateMany.mockReset();
   });
 
   it('creates generating drafts for an async vocab bundle request', async () => {
@@ -113,6 +182,13 @@ describe('studyVocabBundleService', () => {
 
     expect(result.groupId).toBe('group-1');
     expect(result.drafts).toHaveLength(11);
+    expect(mockPrisma.studyVariantGroup.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          includeLearnerContext: true,
+        }),
+      })
+    );
     expect(createGeneratingManualCardDraftsInTransactionMock).toHaveBeenCalledWith({
       tx: mockPrisma,
       userId: 'user-1',
@@ -219,5 +295,76 @@ describe('studyVocabBundleService', () => {
 
     expect(mockPrisma.studyVariantGroup.create).not.toHaveBeenCalled();
     expect(createReadyManualCardDraftsInTransactionMock).not.toHaveBeenCalled();
+  });
+
+  it('processes queued vocab bundle drafts without re-enabling omitted learner context', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    mockPrisma.studyVariantGroup.update.mockResolvedValue(group);
+    mockPrisma.studyVariantSentence.findMany.mockResolvedValue(group.sentences);
+    mockPrisma.studyVariantSentence.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    mockPrisma.studyCardDraft.findMany.mockResolvedValue(group.drafts);
+    mockPrisma.studyCardDraft.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    generateStudyCardCandidateJsonMock.mockResolvedValue(vocabBundleJson());
+    resolveStudyCardCandidateCommitItemMock.mockImplementation(async ({ item }) => ({
+      item,
+      prompt: item.prompt,
+      answer: item.answer,
+      previewAudioId: item.previewAudio?.id ?? null,
+      previewAudioRole: item.previewAudioRole ?? null,
+      previewImageId: item.previewImage?.id ?? null,
+    }));
+    getOwnedPreviewMediaIdsMock.mockImplementation(async ({ mediaIds }) => new Set(mediaIds));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+    const result = await processStudyVocabBundleDrafts('group-1');
+
+    expect(result).toEqual({ groupId: 'group-1', completedDraftCount: 11 });
+    expect(buildLearnerContextSummaryMock).not.toHaveBeenCalled();
+    expect(mockPrisma.studyCardDraft.update).toHaveBeenCalledTimes(11);
+    expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('marks generating drafts as error when generated variants do not match placeholders', async () => {
+    const group = vocabGroup(false);
+    const mismatchError = 'Generated vocab bundle did not match queued draft placeholders.';
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    mockPrisma.studyVariantGroup.update.mockResolvedValue(group);
+    mockPrisma.studyVariantSentence.findMany.mockResolvedValue(group.sentences);
+    mockPrisma.studyVariantSentence.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    mockPrisma.studyCardDraft.findMany.mockResolvedValue(group.drafts.slice(0, 10));
+    generateStudyCardCandidateJsonMock.mockResolvedValue(vocabBundleJson());
+    resolveStudyCardCandidateCommitItemMock.mockImplementation(async ({ item }) => ({
+      item,
+      prompt: item.prompt,
+      answer: item.answer,
+      previewAudioId: item.previewAudio?.id ?? null,
+      previewAudioRole: item.previewAudioRole ?? null,
+      previewImageId: item.previewImage?.id ?? null,
+    }));
+    getOwnedPreviewMediaIdsMock.mockImplementation(async ({ mediaIds }) => new Set(mediaIds));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(processStudyVocabBundleDrafts('group-1')).rejects.toThrow(mismatchError);
+    expect(mockPrisma.studyCardDraft.update).not.toHaveBeenCalled();
+    expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
+      where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
+      data: {
+        status: 'error',
+        errorMessage: mismatchError,
+      },
+    });
   });
 });
