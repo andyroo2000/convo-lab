@@ -234,6 +234,30 @@ describe('manual card draft persistence service', () => {
     });
   });
 
+  it('marks drafts failed when queueing cannot start', async () => {
+    mockPrisma.studyCardDraft.update.mockResolvedValue(
+      draftRecord({ status: 'error', errorMessage: 'Could not queue draft generation.' })
+    );
+    const { markManualCardDraftError } =
+      await import('../../../services/study/manualCardDrafts.js');
+
+    const result = await markManualCardDraftError({
+      userId: 'user-1',
+      draftId: 'draft-1',
+      errorMessage: 'Could not queue draft generation.',
+    });
+
+    expect(result.status).toBe('error');
+    expect(result.errorMessage).toBe('Could not queue draft generation.');
+    expect(mockPrisma.studyCardDraft.update).toHaveBeenCalledWith({
+      where: { id: 'draft-1', userId: 'user-1' },
+      data: {
+        status: 'error',
+        errorMessage: 'Could not queue draft generation.',
+      },
+    });
+  });
+
   it('retries stale generating drafts so users can recover stuck jobs', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(now);

@@ -61,6 +61,7 @@ const {
   generateStudyCardCandidatesMock,
   generateManualStudyCardDraftImageMock,
   listManualCardDraftsMock,
+  markManualCardDraftErrorMock,
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
@@ -108,6 +109,7 @@ const {
   generateStudyCardCandidatesMock: vi.fn(),
   generateManualStudyCardDraftImageMock: vi.fn(),
   listManualCardDraftsMock: vi.fn(),
+  markManualCardDraftErrorMock: vi.fn(),
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
@@ -164,6 +166,7 @@ vi.mock('../../../services/studyService.js', () => ({
   generateStudyCardCandidates: generateStudyCardCandidatesMock,
   generateManualStudyCardDraftImage: generateManualStudyCardDraftImageMock,
   listManualCardDrafts: listManualCardDraftsMock,
+  markManualCardDraftError: markManualCardDraftErrorMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   regenerateStudyCardCandidatePreviewAudio: regenerateStudyCardCandidatePreviewAudioMock,
@@ -230,6 +233,7 @@ describe('Study Routes', () => {
     generateStudyCardCandidatesMock.mockReset();
     generateManualStudyCardDraftImageMock.mockReset();
     listManualCardDraftsMock.mockReset();
+    markManualCardDraftErrorMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
     regenerateStudyCardImageMock.mockReset();
@@ -1235,6 +1239,60 @@ describe('Study Routes', () => {
     expect(triggerWorkerJobMock).toHaveBeenCalled();
   });
 
+  it('keeps a new manual draft retryable when enqueue fails', async () => {
+    createManualCardDraftMock.mockResolvedValue({
+      id: 'draft-1',
+      status: 'generating',
+      creationKind: 'cloze',
+      cardType: 'cloze',
+      prompt: { clozeText: '試合に[勝ちました]。' },
+      answer: {},
+      imagePlacement: 'both',
+      imagePrompt: null,
+      previewAudio: null,
+      previewAudioRole: null,
+      previewImage: null,
+      errorMessage: null,
+      createdAt: '2026-05-08T12:00:00.000Z',
+      updatedAt: '2026-05-08T12:00:00.000Z',
+    });
+    enqueueStudyManualCardDraftJobMock.mockRejectedValue(new Error('Redis unavailable.'));
+    markManualCardDraftErrorMock.mockResolvedValue({
+      id: 'draft-1',
+      status: 'error',
+      creationKind: 'cloze',
+      cardType: 'cloze',
+      prompt: { clozeText: '試合に[勝ちました]。' },
+      answer: {},
+      imagePlacement: 'both',
+      imagePrompt: null,
+      previewAudio: null,
+      previewAudioRole: null,
+      previewImage: null,
+      errorMessage: 'Could not queue draft generation. Please retry this draft.',
+      createdAt: '2026-05-08T12:00:00.000Z',
+      updatedAt: '2026-05-08T12:00:01.000Z',
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/card-drafts')).send({
+      creationKind: 'cloze',
+      cardType: 'cloze',
+      prompt: { clozeText: '試合に[勝ちました]。' },
+      answer: {},
+      imagePlacement: 'both',
+      imagePrompt: null,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.status).toBe('error');
+    expect(markManualCardDraftErrorMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      draftId: 'draft-1',
+      errorMessage: 'Could not queue draft generation. Please retry this draft.',
+    });
+    expect(triggerWorkerJobMock).not.toHaveBeenCalled();
+  });
+
   it('lists, autosaves, retries, creates, and deletes manual card drafts', async () => {
     const draft = {
       id: 'draft-1',
@@ -1317,6 +1375,45 @@ describe('Study Routes', () => {
       userId: 'user-1',
       draftId: 'draft-1',
     });
+  });
+
+  it('keeps retried manual drafts recoverable when enqueue fails', async () => {
+    const draft = {
+      id: 'draft-1',
+      status: 'generating',
+      creationKind: 'text-recognition',
+      cardType: 'recognition',
+      prompt: { cueText: '会社' },
+      answer: { expression: '会社', meaning: 'company' },
+      imagePlacement: 'none',
+      imagePrompt: null,
+      previewAudio: null,
+      previewAudioRole: null,
+      previewImage: null,
+      errorMessage: null,
+      createdAt: '2026-05-08T12:00:00.000Z',
+      updatedAt: '2026-05-08T12:00:00.000Z',
+    };
+    resetManualCardDraftForRetryMock.mockResolvedValue(draft);
+    enqueueStudyManualCardDraftJobMock.mockRejectedValue(new Error('Redis unavailable.'));
+    markManualCardDraftErrorMock.mockResolvedValue({
+      ...draft,
+      status: 'error',
+      errorMessage: 'Could not queue draft generation. Please retry this draft.',
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-drafts/draft-1/retry')
+    ).send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('error');
+    expect(markManualCardDraftErrorMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      draftId: 'draft-1',
+      errorMessage: 'Could not queue draft generation. Please retry this draft.',
+    });
+    expect(triggerWorkerJobMock).not.toHaveBeenCalled();
   });
 
   it('rejects malformed manual draft autosave payloads', async () => {

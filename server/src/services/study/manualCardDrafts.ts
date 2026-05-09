@@ -268,6 +268,22 @@ export async function resetManualCardDraftForRetry(input: {
   return toManualCardDraft(updated as StudyManualCardDraftRecord);
 }
 
+export async function markManualCardDraftError(input: {
+  userId: string;
+  draftId: string;
+  errorMessage: string;
+}): Promise<StudyManualCardDraft> {
+  const updated = await prisma.studyCardDraft.update({
+    where: { id: input.draftId, userId: input.userId },
+    data: {
+      status: 'error',
+      errorMessage: input.errorMessage,
+    },
+  });
+
+  return toManualCardDraft(updated as StudyManualCardDraftRecord);
+}
+
 export async function deleteManualCardDraft(input: {
   userId: string;
   draftId: string;
