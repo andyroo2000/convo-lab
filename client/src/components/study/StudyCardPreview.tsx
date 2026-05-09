@@ -25,6 +25,9 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
   const readingText = card.answer.expressionReading ?? card.prompt.cueReading;
   const headlineText =
     card.answer.expressionReading ?? card.answer.expression ?? card.prompt.cueReading ?? '';
+  const headingMinFontSizePx = compactMobile ? 24 : 28;
+  const headingWrapClasses =
+    'max-w-full min-w-0 whitespace-normal break-words md:max-w-5xl md:whitespace-nowrap';
 
   if (readingText) {
     return (
@@ -33,8 +36,8 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
         text={readingText}
         testId="study-japanese-heading"
         autoFitSingleLine
-        minFontSizePx={compactMobile ? 24 : 28}
-        className={`study-card-reading mx-auto w-full max-w-5xl whitespace-nowrap text-center font-semibold leading-tight text-black ${getHeadlineClasses(
+        minFontSizePx={headingMinFontSizePx}
+        className={`study-card-reading mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
           headlineText,
           { compactMobile }
         )}`}
@@ -49,8 +52,8 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
         as="div"
         text={card.answer.expression}
         autoFitSingleLine
-        minFontSizePx={compactMobile ? 24 : 28}
-        className={`mx-auto w-full max-w-5xl whitespace-nowrap text-center font-semibold leading-tight text-black ${getHeadlineClasses(
+        minFontSizePx={headingMinFontSizePx}
+        className={`mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
           card.answer.expression,
           { compactMobile }
         )}`}
@@ -234,7 +237,7 @@ export const StudyCardFace = ({
             text={card.prompt.cueText}
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
-            className={`mx-auto w-full max-w-5xl whitespace-nowrap text-center font-semibold leading-tight text-black ${getHeadlineClasses(
+            className={`mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
               card.prompt.cueText,
               { compactMobile }
             )}`}
@@ -258,11 +261,19 @@ export const StudyCardFace = ({
   const reviewImageUrl = toAssetUrl(reviewImage?.url);
   const reviewImageAlt = card.answer.answerImage ? 'Answer visual' : 'Study visual';
   const notes = toNotesList(card.answer.notes);
+  const reviewImageClasses = compactMobile
+    ? 'max-h-[30dvh] w-auto max-w-full rounded-lg md:max-h-[48dvh] md:w-full md:rounded-xl'
+    : 'max-h-[38dvh] w-auto max-w-full rounded-xl md:max-h-[46dvh] md:w-full';
+  const imageLayoutClasses = compactMobile
+    ? 'mx-auto grid w-full max-w-full min-w-0 items-start gap-3 text-center md:max-w-6xl md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:items-center md:gap-8 md:text-left'
+    : 'mx-auto grid w-full max-w-6xl min-w-0 items-center gap-4 text-center md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:gap-8 md:text-left';
+  const imageColumnClasses =
+    'mx-auto flex w-full min-w-0 justify-center md:block md:border-r md:border-gray-300/80 md:pr-8';
   const renderedAnswerDetails = (
     <>
       {card.answer.restoredText ? (
         <p
-          className={`mx-auto max-w-4xl text-black ${
+          className={`mx-auto max-w-full break-words text-black md:max-w-4xl ${
             compactMobile
               ? 'text-base leading-snug sm:text-2xl md:text-4xl'
               : 'text-xl leading-relaxed sm:text-3xl md:text-4xl'
@@ -273,7 +284,7 @@ export const StudyCardFace = ({
       ) : null}
       {card.answer.meaning ? (
         <p
-          className={`mx-auto max-w-4xl text-gray-800 ${
+          className={`mx-auto max-w-full break-words text-gray-800 md:max-w-4xl ${
             compactMobile
               ? 'text-base leading-snug sm:text-xl md:text-3xl'
               : 'text-lg sm:text-2xl md:text-3xl'
@@ -284,7 +295,7 @@ export const StudyCardFace = ({
       ) : null}
       {card.answer.sentenceJp ? (
         <p
-          className={`mx-auto max-w-4xl text-black ${
+          className={`mx-auto max-w-full break-words text-black md:max-w-4xl ${
             compactMobile
               ? 'text-sm leading-snug sm:text-lg md:text-xl'
               : 'text-base leading-relaxed sm:text-xl'
@@ -295,7 +306,7 @@ export const StudyCardFace = ({
       ) : null}
       {card.answer.sentenceEn ? (
         <p
-          className={`mx-auto max-w-3xl text-gray-600 ${
+          className={`mx-auto max-w-full break-words text-gray-600 md:max-w-3xl ${
             compactMobile ? 'text-xs leading-snug sm:text-base md:text-lg' : 'text-sm sm:text-lg'
           }`}
         >
@@ -305,9 +316,9 @@ export const StudyCardFace = ({
       {renderNotes(
         notes,
         compactMobile
-          ? 'mx-auto max-w-5xl space-y-0.5 text-xs leading-tight text-gray-600 sm:space-y-1 sm:text-base md:text-lg'
+          ? 'mx-auto w-full max-w-full space-y-0.5 text-xs leading-tight text-gray-600 sm:space-y-1 sm:text-base md:max-w-5xl md:text-lg'
           : 'mx-auto max-w-5xl space-y-1 text-sm leading-snug text-gray-600 sm:text-lg',
-        'text-gray-600',
+        'break-words text-gray-600',
         'study-answer-notes'
       )}
     </>
@@ -342,7 +353,7 @@ export const StudyCardFace = ({
       <div
         className={
           compactMobile
-            ? 'space-y-3 text-center md:space-y-8'
+            ? 'w-full min-w-0 space-y-3 overflow-x-hidden text-center md:space-y-8'
             : 'space-y-5 text-center sm:space-y-8'
         }
       >
@@ -353,7 +364,7 @@ export const StudyCardFace = ({
             testId="study-cloze-heading"
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
-            className={`study-card-reading mx-auto w-full max-w-5xl whitespace-nowrap text-center font-semibold leading-tight text-black ${getHeadlineClasses(
+            className={`study-card-reading mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
               card.answer.restoredText,
               { compactMobile }
             )}`}
@@ -374,25 +385,15 @@ export const StudyCardFace = ({
         <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
         <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
         {reviewImageUrl ? (
-          <div
-            className="mx-auto grid w-full max-w-6xl items-center gap-4 text-center md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:gap-8 md:text-left"
-            data-testid="study-answer-image-layout"
-          >
-            <div
-              className="mx-auto w-full md:border-r md:border-gray-300/80 md:pr-8"
-              data-testid="study-answer-image-column"
-            >
+          <div className={imageLayoutClasses} data-testid="study-answer-image-layout">
+            <div className={imageColumnClasses} data-testid="study-answer-image-column">
               <img
                 src={reviewImageUrl}
                 alt={reviewImageAlt}
-                className={`mx-auto w-full object-contain md:mx-0 ${
-                  compactMobile
-                    ? 'max-h-[40dvh] rounded-xl md:max-h-[48dvh]'
-                    : 'max-h-[38dvh] rounded-xl md:max-h-[46dvh]'
-                }`}
+                className={`mx-auto object-contain md:mx-0 ${reviewImageClasses}`}
               />
             </div>
-            <div className="space-y-2 md:space-y-3">{renderedClozeAnswerDetails}</div>
+            <div className="min-w-0 space-y-2 md:space-y-3">{renderedClozeAnswerDetails}</div>
           </div>
         ) : (
           renderedClozeAnswerDetails
@@ -409,7 +410,9 @@ export const StudyCardFace = ({
   return (
     <div
       className={
-        compactMobile ? 'space-y-3 text-center md:space-y-8' : 'space-y-5 text-center sm:space-y-8'
+        compactMobile
+          ? 'w-full min-w-0 space-y-3 overflow-x-hidden text-center md:space-y-8'
+          : 'space-y-5 text-center sm:space-y-8'
       }
     >
       {renderJapaneseHeading(card, compactMobile)}
@@ -427,25 +430,15 @@ export const StudyCardFace = ({
       <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       {reviewImageUrl ? (
-        <div
-          className="mx-auto grid w-full max-w-6xl items-center gap-4 text-center md:grid-cols-[minmax(18rem,1fr)_minmax(20rem,1fr)] md:gap-8 md:text-left"
-          data-testid="study-answer-image-layout"
-        >
-          <div
-            className="mx-auto w-full md:border-r md:border-gray-300/80 md:pr-8"
-            data-testid="study-answer-image-column"
-          >
+        <div className={imageLayoutClasses} data-testid="study-answer-image-layout">
+          <div className={imageColumnClasses} data-testid="study-answer-image-column">
             <img
               src={reviewImageUrl}
               alt={reviewImageAlt}
-              className={`mx-auto w-full object-contain md:mx-0 ${
-                compactMobile
-                  ? 'max-h-[40dvh] rounded-xl md:max-h-[48dvh]'
-                  : 'max-h-[38dvh] rounded-xl md:max-h-[46dvh]'
-              }`}
+              className={`mx-auto object-contain md:mx-0 ${reviewImageClasses}`}
             />
           </div>
-          <div className="space-y-2 md:space-y-3">{renderedAnswerDetails}</div>
+          <div className="min-w-0 space-y-2 md:space-y-3">{renderedAnswerDetails}</div>
         </div>
       ) : (
         renderedAnswerDetails

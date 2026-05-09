@@ -174,14 +174,16 @@ const StudyCandidateDraftList = ({
               onFieldChange={(field, value) => onUpdateCandidateField(index, field, value)}
             />
 
-            <StudyCardFormFields
-              values={draft.values}
-              idPrefix={`candidate-${index}`}
-              hidePromptFields={draft.candidate.candidateKind === 'audio-recognition'}
-              includeAudioSettings={false}
-              includeSentenceFields
-              onFieldChange={(field, value) => onUpdateCandidateField(index, field, value)}
-            />
+            <div className="relative z-0">
+              <StudyCardFormFields
+                values={draft.values}
+                idPrefix={`candidate-${index}`}
+                hidePromptFields={draft.candidate.candidateKind === 'audio-recognition'}
+                includeAudioSettings={false}
+                includeSentenceFields
+                onFieldChange={(field, value) => onUpdateCandidateField(index, field, value)}
+              />
+            </div>
 
             {previewDraftIndex === index ? (
               <StudyCandidateCardPreviewModal
