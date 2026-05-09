@@ -15,7 +15,7 @@ const ACTIVE_JOB_STATES = new Set([
   'prioritized',
   'waiting-children',
 ]);
-const FINISHED_JOB_STATES = new Set(['completed', 'unknown']);
+const LEAVE_ALONE_JOB_STATES = new Set(['completed', 'unknown']);
 
 export const studyVocabBundleDraftQueue = new Queue(STUDY_VOCAB_BUNDLE_DRAFT_QUEUE_NAME, {
   connection: queueConnection,
@@ -45,7 +45,7 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
       await existingJob.retry();
       return existingJob;
     }
-    if (FINISHED_JOB_STATES.has(state)) {
+    if (LEAVE_ALONE_JOB_STATES.has(state)) {
       // Group IDs are per-creation UUIDs, so finished jobs are historical records, not requeue targets.
       return existingJob;
     }

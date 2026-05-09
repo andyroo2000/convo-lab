@@ -425,7 +425,7 @@ describe('studyVocabBundleService', () => {
     expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
   });
 
-  it('stores a safe user-facing error message after final provider failure', async () => {
+  it('defaults direct processing calls to store a safe user-facing error message', async () => {
     const group = vocabGroup(false);
     mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
     generateStudyCardCandidateJsonMock.mockRejectedValue(
