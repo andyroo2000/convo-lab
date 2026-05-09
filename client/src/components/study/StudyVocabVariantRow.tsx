@@ -11,6 +11,7 @@ interface StudyVocabVariantRowProps {
   variant: StudyVocabVariantDraft;
   isRegenerating: boolean;
   isPreviewOpen: boolean;
+  regenerateError: string | null;
   onPreview: (index: number) => void;
   onClosePreview: () => void;
   onRegenerateAudio: (index: number) => void;
@@ -21,6 +22,7 @@ const StudyVocabVariantRow = ({
   variant,
   isRegenerating,
   isPreviewOpen,
+  regenerateError,
   onPreview,
   onClosePreview,
   onRegenerateAudio,
@@ -46,14 +48,6 @@ const StudyVocabVariantRow = ({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => onRegenerateAudio(index)}
-            disabled={isRegenerating}
-            className="rounded-full border border-gray-300 px-3 py-2 text-xs font-semibold text-navy hover:bg-gray-50 disabled:opacity-60"
-          >
-            {isRegenerating ? 'Regenerating…' : 'Regenerate audio'}
-          </button>
-          <button
-            type="button"
             onClick={() => onPreview(index)}
             className="rounded-full border border-gray-300 px-3 py-2 text-xs font-semibold text-navy hover:bg-gray-50"
           >
@@ -67,7 +61,7 @@ const StudyVocabVariantRow = ({
         onRegenerate={() => onRegenerateAudio(index)}
         previewUrl={variant.draft.previewAudio?.url ?? null}
         regenerateLabel={isRegenerating ? 'Regenerating…' : 'Regenerate audio'}
-        regenerateError={null}
+        regenerateError={regenerateError}
         staleLabel="Audio will be generated when you add this card."
         title="Preview audio"
       />

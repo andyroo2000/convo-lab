@@ -135,4 +135,33 @@ describe('studyVocabBundleService', () => {
       ]),
     });
   });
+
+  it('rejects commit variants that do not match the staged bundle shape', async () => {
+    const variants = Array.from({ length: 11 }, (_value, index) => variant(index));
+    variants[7] = {
+      ...variants[7],
+      stage: 1,
+      variantKind: 'sentence_audio_recognition',
+      variantSentenceOrdinal: 0,
+    };
+    const { commitStudyVocabBundle } = await import('../../../services/studyVocabBundleService.js');
+
+    await expect(
+      commitStudyVocabBundle({
+        userId: 'user-1',
+        request: {
+          targetWord: '営業する',
+          targetReading: '営業[えいぎょう]する',
+          targetMeaning: 'to do sales',
+          sourceSentence: '営業の仕事は楽しいです。',
+          sourceContext: 'business chapter',
+          sentences: [sentence(0), sentence(1), sentence(2)],
+          variants,
+        },
+      })
+    ).rejects.toThrow('Vocab variant candidate kind does not match its stage.');
+
+    expect(mockPrisma.studyVariantGroup.create).not.toHaveBeenCalled();
+    expect(createReadyManualCardDraftsMock).not.toHaveBeenCalled();
+  });
 });

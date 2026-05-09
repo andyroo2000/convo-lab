@@ -36,6 +36,10 @@ import {
   buildVocabBundleUserPrompt,
 } from './study/candidates/vocab/promptBuilder.js';
 import { createReadyManualCardDrafts } from './study/manualCardDrafts.js';
+import {
+  STUDY_VOCAB_VARIANT_KINDS_BY_STAGE,
+  STUDY_VOCAB_VARIANT_STAGES,
+} from './study/variants/constants.js';
 
 function assertBoundedText(name: string, value: string, max: number): void {
   if (!value.trim()) {
@@ -98,7 +102,80 @@ async function buildOptionalLearnerContextSummary(
       '[StudyVocabBundle] Failed to build learner context; continuing without it.',
       error
     );
-    return null;
+  }
+  return null;
+}
+
+function expectedCandidateKindForVariant(
+  variantKind: StudyVocabBundleCommitVariant['variantKind']
+): StudyVocabBundleCommitVariant['candidate']['candidateKind'] {
+  if (variantKind === 'sentence_audio_recognition' || variantKind === 'word_audio_recognition') {
+    return 'audio-recognition';
+  }
+  if (variantKind === 'sentence_text_recognition' || variantKind === 'word_text_recognition') {
+    return 'text-recognition';
+  }
+  return 'cloze';
+}
+
+function expectedVariantKeys(): Set<string> {
+  const keys = new Set<string>();
+  for (let ordinal = 0; ordinal < STUDY_VOCAB_BUNDLE_SENTENCE_COUNT; ordinal += 1) {
+    keys.add(`${String(STUDY_VOCAB_VARIANT_STAGES.sentenceAudio)}:${String(ordinal)}`);
+    keys.add(`${String(STUDY_VOCAB_VARIANT_STAGES.sentenceText)}:${String(ordinal)}`);
+    keys.add(`${String(STUDY_VOCAB_VARIANT_STAGES.sentenceCloze)}:${String(ordinal)}`);
+  }
+  keys.add(`${String(STUDY_VOCAB_VARIANT_STAGES.wordAudio)}:word`);
+  keys.add(`${String(STUDY_VOCAB_VARIANT_STAGES.wordText)}:word`);
+  return keys;
+}
+
+function validateCommitVariants(variants: StudyVocabBundleCommitVariant[]): void {
+  const expectedKeys = expectedVariantKeys();
+  const seenKeys = new Set<string>();
+
+  for (const variant of variants) {
+    if (!Number.isInteger(variant.stage)) {
+      throw new AppError('Vocab variant stage must be an integer.', 400);
+    }
+    const expectedKind = STUDY_VOCAB_VARIANT_KINDS_BY_STAGE[variant.stage];
+    if (!expectedKind || variant.variantKind !== expectedKind) {
+      throw new AppError('Vocab variant kind does not match its stage.', 400);
+    }
+    if (variant.candidate.candidateKind !== expectedCandidateKindForVariant(variant.variantKind)) {
+      throw new AppError('Vocab variant candidate kind does not match its stage.', 400);
+    }
+
+    const isSentenceStage =
+      variant.stage === STUDY_VOCAB_VARIANT_STAGES.sentenceAudio ||
+      variant.stage === STUDY_VOCAB_VARIANT_STAGES.sentenceText ||
+      variant.stage === STUDY_VOCAB_VARIANT_STAGES.sentenceCloze;
+    const ordinal = variant.variantSentenceOrdinal ?? null;
+    if (isSentenceStage) {
+      if (
+        typeof ordinal !== 'number' ||
+        !Number.isInteger(ordinal) ||
+        ordinal < 0 ||
+        ordinal >= STUDY_VOCAB_BUNDLE_SENTENCE_COUNT
+      ) {
+        throw new AppError(
+          'Sentence vocab variants must reference sentence ordinal 0, 1, or 2.',
+          400
+        );
+      }
+    } else if (ordinal !== null) {
+      throw new AppError('Word vocab variants must not reference a sentence ordinal.', 400);
+    }
+
+    const key = `${String(variant.stage)}:${isSentenceStage ? String(ordinal) : 'word'}`;
+    if (!expectedKeys.has(key) || seenKeys.has(key)) {
+      throw new AppError('Vocab bundle variants must contain the expected staged cards once.', 400);
+    }
+    seenKeys.add(key);
+  }
+
+  if (seenKeys.size !== expectedKeys.size) {
+    throw new AppError('Vocab bundle variants must contain the expected staged cards once.', 400);
   }
 }
 
@@ -141,13 +218,12 @@ export async function generateStudyVocabBundle(input: {
     sourceSentence: request.sourceSentence,
     context: request.context,
   });
-  const variants = [];
-  for (const variant of bundle.variants) {
-    variants.push({
+  const variants = await Promise.all(
+    bundle.variants.map(async (variant) => ({
       ...variant,
       candidate: await addPreviewAudio(input.userId, variant.candidate),
-    });
-  }
+    }))
+  );
 
   return {
     bundle: {
@@ -170,6 +246,7 @@ export async function commitStudyVocabBundle(input: {
   ) {
     throw new AppError('Vocab bundles must include eleven card variants.', 400);
   }
+  validateCommitVariants(input.request.variants);
 
   const resolvedItems: Array<
     ResolvedStudyCardCandidateCommitItem & {

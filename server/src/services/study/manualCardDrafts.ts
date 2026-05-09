@@ -11,6 +11,7 @@ import type {
   StudyVocabVariantKind,
   StudyVocabVariantStatus,
 } from '@languageflow/shared/src/types.js';
+import { Prisma } from '@prisma/client';
 
 import { prisma } from '../../db/client.js';
 import { AppError } from '../../middleware/errorHandler.js';
@@ -306,46 +307,55 @@ export async function createReadyManualCardDrafts(input: {
   drafts: ReadyManualCardDraftInput[];
 }): Promise<StudyManualCardDraft[]> {
   if (input.drafts.length === 0) return [];
-  const existingDraftCount = await prisma.studyCardDraft.count({
-    where: { userId: input.userId },
-  });
-  if (existingDraftCount + input.drafts.length > MAX_MANUAL_CARD_DRAFTS_PER_USER) {
-    throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
-  }
 
-  const created: StudyManualCardDraft[] = [];
-  for (const requestedDraft of input.drafts) {
+  const normalizedDrafts = input.drafts.map((requestedDraft) => {
     const creationKind = parseCreationKind(requestedDraft.creationKind);
     const requestedCardType = parseCardType(requestedDraft.cardType);
     const cardType = cardTypeForStudyCardCreationKind(creationKind);
     validateCreationKindAndCardType({ creationKind, cardType: requestedCardType });
     const imagePlacement = parseImagePlacement(requestedDraft.imagePlacement ?? 'none');
-    const draft = await prisma.studyCardDraft.create({
-      data: {
-        userId: input.userId,
-        status: 'ready',
-        creationKind,
-        cardType,
-        promptJson: toPrismaJson(requestedDraft.prompt),
-        answerJson: toPrismaJson(requestedDraft.answer),
-        imagePlacement,
-        imagePrompt: requestedDraft.imagePrompt?.trim() || null,
-        previewAudioJson: toNullablePrismaJson(requestedDraft.previewAudio ?? null),
-        previewAudioRole: requestedDraft.previewAudioRole ?? null,
-        previewImageJson: toNullablePrismaJson(requestedDraft.previewImage ?? null),
-        variantGroupId: requestedDraft.variantGroupId ?? null,
-        variantSentenceId: requestedDraft.variantSentenceId ?? null,
-        variantKind: requestedDraft.variantKind ?? null,
-        variantStage: requestedDraft.variantStage ?? null,
-        variantStatus: requestedDraft.variantStatus ?? null,
-        variantUnlockedAt: requestedDraft.variantUnlockedAt ?? null,
-        errorMessage: null,
-      },
-    });
-    created.push(toManualCardDraft(draft as StudyManualCardDraftRecord));
-  }
+    return {
+      userId: input.userId,
+      status: 'ready',
+      creationKind,
+      cardType,
+      promptJson: toPrismaJson(requestedDraft.prompt),
+      answerJson: toPrismaJson(requestedDraft.answer),
+      imagePlacement,
+      imagePrompt: requestedDraft.imagePrompt?.trim() || null,
+      previewAudioJson: toNullablePrismaJson(requestedDraft.previewAudio ?? null),
+      previewAudioRole: requestedDraft.previewAudioRole ?? null,
+      previewImageJson: toNullablePrismaJson(requestedDraft.previewImage ?? null),
+      variantGroupId: requestedDraft.variantGroupId ?? null,
+      variantSentenceId: requestedDraft.variantSentenceId ?? null,
+      variantKind: requestedDraft.variantKind ?? null,
+      variantStage: requestedDraft.variantStage ?? null,
+      variantStatus: requestedDraft.variantStatus ?? null,
+      variantUnlockedAt: requestedDraft.variantUnlockedAt ?? null,
+      errorMessage: null,
+    };
+  });
 
-  return created;
+  const created = await prisma.$transaction(
+    async (tx) => {
+      const existingDraftCount = await tx.studyCardDraft.count({
+        where: { userId: input.userId },
+      });
+      if (existingDraftCount + normalizedDrafts.length > MAX_MANUAL_CARD_DRAFTS_PER_USER) {
+        throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
+      }
+
+      const createdDrafts: StudyManualCardDraftRecord[] = [];
+      for (const data of normalizedDrafts) {
+        const draft = await tx.studyCardDraft.create({ data });
+        createdDrafts.push(draft as StudyManualCardDraftRecord);
+      }
+      return createdDrafts;
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+  );
+
+  return created.map((draft) => toManualCardDraft(draft));
 }
 
 export async function createManualCardDraft(input: {

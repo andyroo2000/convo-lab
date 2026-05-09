@@ -22,6 +22,7 @@ interface StudyVocabBundlePreviewProps {
   onPreview: (index: number) => void;
   onRegenerateAudio: (index: number) => void;
   previewDraftIndex: number | null;
+  regenerateErrors: Record<string, string>;
   regeneratingCandidateId: string | null;
   variantDrafts: StudyVocabVariantDraft[];
 }
@@ -36,6 +37,7 @@ const StudyVocabBundlePreview = ({
   onPreview,
   onRegenerateAudio,
   previewDraftIndex,
+  regenerateErrors,
   regeneratingCandidateId,
   variantDrafts,
 }: StudyVocabBundlePreviewProps) => {
@@ -85,6 +87,7 @@ const StudyVocabBundlePreview = ({
           title={STAGE_TITLES[stage] ?? `Stage ${stage}`}
           variants={variants}
           previewDraftIndex={previewDraftIndex}
+          regenerateErrors={regenerateErrors}
           regeneratingCandidateId={regeneratingCandidateId}
           onClosePreview={onClosePreview}
           onPreview={onPreview}

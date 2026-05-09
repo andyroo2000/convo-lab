@@ -7,6 +7,7 @@ interface StudyVocabStageSectionProps {
   title: string;
   variants: Array<{ index: number; variant: StudyVocabVariantDraft }>;
   previewDraftIndex: number | null;
+  regenerateErrors: Record<string, string>;
   regeneratingCandidateId: string | null;
   onClosePreview: () => void;
   onPreview: (index: number) => void;
@@ -18,6 +19,7 @@ const StudyVocabStageSection = ({
   title,
   variants,
   previewDraftIndex,
+  regenerateErrors,
   regeneratingCandidateId,
   onClosePreview,
   onPreview,
@@ -35,6 +37,7 @@ const StudyVocabStageSection = ({
         variant={variant}
         isRegenerating={regeneratingCandidateId === variant.draft.candidate.clientId}
         isPreviewOpen={previewDraftIndex === index}
+        regenerateError={regenerateErrors[variant.draft.candidate.clientId] ?? null}
         onClosePreview={onClosePreview}
         onPreview={onPreview}
         onRegenerateAudio={onRegenerateAudio}

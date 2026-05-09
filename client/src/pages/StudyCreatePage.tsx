@@ -932,6 +932,7 @@ const StudyCreatePage = () => {
           onPreview={generated.setPreviewDraftIndex}
           onRegenerateAudio={generated.regenerateVariantAudio}
           previewDraftIndex={generated.previewDraftIndex}
+          regenerateErrors={generated.regenerateErrors}
           regeneratingCandidateId={generated.regeneratingCandidateId}
           variantDrafts={generated.variantDrafts}
         />

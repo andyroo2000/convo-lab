@@ -28,6 +28,7 @@ import { State, Rating, type Grade } from 'ts-fsrs';
 
 import { prisma } from '../../db/client.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import { logger } from '../logger.js';
 import { resolvePitchAccent } from '../pitchAccent/pitchAccentResolver.js';
 
 import { ensureGeneratedAnswerAudio, ensureStudyCardMediaAvailable } from './media.js';
@@ -988,10 +989,14 @@ export async function recordStudyReview(params: {
   });
 
   if (card.variantGroupId && card.variantStage) {
-    await unlockStudyVariantStagesAfterReview({
-      userId: params.userId,
-      cardId: params.cardId,
-    });
+    try {
+      await unlockStudyVariantStagesAfterReview({
+        userId: params.userId,
+        cardId: params.cardId,
+      });
+    } catch (error) {
+      logger.error('[Study] Failed to unlock vocab variant stages after review.', error);
+    }
   }
 
   const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({

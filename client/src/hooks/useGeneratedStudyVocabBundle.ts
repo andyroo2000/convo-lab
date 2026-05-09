@@ -41,6 +41,7 @@ function useGeneratedStudyVocabBundle() {
   const [learnerContextSummary, setLearnerContextSummary] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [regeneratingCandidateId, setRegeneratingCandidateId] = useState<string | null>(null);
+  const [regenerateErrors, setRegenerateErrors] = useState<Record<string, string>>({});
   const [previewDraftIndex, setPreviewDraftIndex] = useState<number | null>(null);
   const variantDraftsRef = useRef<StudyVocabVariantDraft[]>([]);
 
@@ -55,6 +56,7 @@ function useGeneratedStudyVocabBundle() {
     setLearnerContextSummary(null);
     setSuccess(null);
     setRegeneratingCandidateId(null);
+    setRegenerateErrors({});
     setPreviewDraftIndex(null);
   }, [setDrafts]);
 
@@ -77,6 +79,10 @@ function useGeneratedStudyVocabBundle() {
       if (!variant) return;
       const candidateId = variant.draft.candidate.clientId;
       setRegeneratingCandidateId(candidateId);
+      setRegenerateErrors((current) => {
+        const { [candidateId]: _cleared, ...rest } = current;
+        return rest;
+      });
       try {
         const result = await regenerateAudio.mutateAsync({
           candidate: buildStudyCandidateCommitItem(variant.draft),
@@ -102,6 +108,12 @@ function useGeneratedStudyVocabBundle() {
               : current
           )
         );
+      } catch (error) {
+        setRegenerateErrors((current) => ({
+          ...current,
+          [candidateId]:
+            error instanceof Error ? error.message : 'Unable to regenerate preview audio.',
+        }));
       } finally {
         setRegeneratingCandidateId(null);
       }
@@ -142,6 +154,7 @@ function useGeneratedStudyVocabBundle() {
     learnerContextSummary,
     previewDraftIndex,
     regenerateVariantAudio,
+    regenerateErrors,
     regeneratingCandidateId,
     setPreviewDraftIndex,
     success,
