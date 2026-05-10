@@ -18,7 +18,7 @@ import type {
   StudyVocabVariantKind,
   StudyVocabVariantStatus,
 } from '@languageflow/shared/src/types.js';
-import { Prisma } from '@prisma/client';
+import { Prisma, type StudyCardDraft as PrismaStudyCardDraft } from '@prisma/client';
 
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -548,21 +548,19 @@ export async function processStudyVocabBundleDrafts(
       const sentenceIdsByOrdinal = new Map(
         currentSentences.map((sentence) => [sentence.ordinal, sentence.id])
       );
-      await Promise.all(
-        bundle.sentences.map((sentence) => {
-          const sentenceId = sentenceIdsByOrdinal.get(sentence.ordinal);
-          if (!sentenceId) return Promise.resolve(null);
-          return tx.studyVariantSentence.update({
-            where: { id: sentenceId },
-            data: {
-              sentenceJp: sentence.sentenceJp,
-              sentenceReading: sentence.sentenceReading ?? null,
-              sentenceEn: sentence.sentenceEn,
-              notes: sentence.notes ?? null,
-            },
-          });
-        })
-      );
+      for (const sentence of bundle.sentences) {
+        const sentenceId = sentenceIdsByOrdinal.get(sentence.ordinal);
+        if (!sentenceId) continue;
+        await tx.studyVariantSentence.update({
+          where: { id: sentenceId },
+          data: {
+            sentenceJp: sentence.sentenceJp,
+            sentenceReading: sentence.sentenceReading ?? null,
+            sentenceEn: sentence.sentenceEn,
+            notes: sentence.notes ?? null,
+          },
+        });
+      }
 
       const currentDrafts = await tx.studyCardDraft.findMany({
         where: { variantGroupId: group.id, userId: group.userId },
@@ -592,31 +590,32 @@ export async function processStudyVocabBundleDrafts(
         seenResolvedKeys.add(key);
         return { key, resolved };
       });
-      const updated = await Promise.all(
-        resolvedDraftInputs.map(async ({ key, resolved }) => {
-          const draft = draftsByKey.get(key);
-          if (!draft) {
-            throw new VocabBundleDraftMismatchError();
-          }
+      const updated: PrismaStudyCardDraft[] = [];
+      for (const { key, resolved } of resolvedDraftInputs) {
+        const draft = draftsByKey.get(key);
+        if (!draft) {
+          throw new VocabBundleDraftMismatchError();
+        }
 
-          const previewAudio =
-            resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)
-              ? getResolvedPreviewAudio(resolved)
-              : null;
-          const previewImage =
-            resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
-              ? getResolvedPreviewImage(resolved)
-              : null;
-          const imagePlacement =
-            previewImage && resolved.item.cardType === 'cloze'
-              ? 'both'
-              : previewImage
-                ? 'prompt'
-                : 'none';
-          const imagePrompt = previewImage ? (resolved.item.imagePrompt ?? null) : null;
-          const variantStatus = resolved.stage === 1 ? 'available' : 'locked';
+        const previewAudio =
+          resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)
+            ? getResolvedPreviewAudio(resolved)
+            : null;
+        const previewImage =
+          resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
+            ? getResolvedPreviewImage(resolved)
+            : null;
+        const imagePlacement =
+          previewImage && resolved.item.cardType === 'cloze'
+            ? 'both'
+            : previewImage
+              ? 'prompt'
+              : 'none';
+        const imagePrompt = previewImage ? (resolved.item.imagePrompt ?? null) : null;
+        const variantStatus = resolved.stage === 1 ? 'available' : 'locked';
 
-          return tx.studyCardDraft.update({
+        updated.push(
+          await tx.studyCardDraft.update({
             where: { id: draft.id },
             data: {
               status: 'ready',
@@ -635,9 +634,9 @@ export async function processStudyVocabBundleDrafts(
               variantUnlockedAt: variantStatus === 'available' ? new Date() : null,
               errorMessage: null,
             },
-          });
-        })
-      );
+          })
+        );
+      }
 
       return updated;
     });
@@ -652,6 +651,8 @@ export async function processStudyVocabBundleDrafts(
     const shouldMarkDraftsOnError = options.markDraftsOnError ?? true;
     const isNonRetryableDraftMismatch = error instanceof VocabBundleDraftMismatchError;
     if (shouldMarkDraftsOnError || isNonRetryableDraftMismatch) {
+      // Mismatches throw inside the interactive transaction; Prisma rolls that back before this
+      // catch runs, so draft errors are intentionally written in a separate update.
       await prisma.studyCardDraft.updateMany({
         where: { variantGroupId: group.id, userId: group.userId, status: 'generating' },
         data: {
