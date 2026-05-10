@@ -216,7 +216,11 @@ const StudyCardFormFields = ({
             {t('form.cardType')}
           </p>
           {onCreationKindChange ? (
-            <div ref={dropdownRef} className={`relative ${isCardKindOpen ? 'z-40' : 'z-0'}`}>
+            <div
+              ref={dropdownRef}
+              data-testid={`${idPrefix}-creation-kind-dropdown`}
+              className={`relative ${isCardKindOpen ? 'z-40' : ''}`}
+            >
               <button
                 ref={buttonRef}
                 type="button"

@@ -97,8 +97,11 @@ describe('StudyCardFormFields', () => {
     expect(cardTypeSelect).toHaveTextContent('Text recognition');
     expect(cardTypeSelect).toHaveTextContent('Read Japanese, recall meaning');
     expect(screen.queryByRole('radiogroup', { name: 'Card type' })).not.toBeInTheDocument();
+    const dropdown = screen.getByTestId('test-study-card-creation-kind-dropdown');
+    expect(dropdown).not.toHaveClass('z-40');
 
     await user.click(cardTypeSelect);
+    expect(dropdown).toHaveClass('z-40');
     expect(screen.getByRole('listbox', { name: 'Card type' })).toHaveClass('z-40');
 
     await user.click(screen.getByRole('option', { name: /Production from image/ }));
