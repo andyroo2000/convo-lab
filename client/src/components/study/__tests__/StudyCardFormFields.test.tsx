@@ -99,6 +99,8 @@ describe('StudyCardFormFields', () => {
     expect(screen.queryByRole('radiogroup', { name: 'Card type' })).not.toBeInTheDocument();
 
     await user.click(cardTypeSelect);
+    expect(screen.getByRole('listbox', { name: 'Card type' })).toHaveClass('z-40');
+
     await user.click(screen.getByRole('option', { name: /Production from image/ }));
 
     expect(onCreationKindChange).toHaveBeenCalledWith('production-image');

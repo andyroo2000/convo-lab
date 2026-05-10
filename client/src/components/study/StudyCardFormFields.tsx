@@ -216,7 +216,7 @@ const StudyCardFormFields = ({
             {t('form.cardType')}
           </p>
           {onCreationKindChange ? (
-            <div ref={dropdownRef} className="relative">
+            <div ref={dropdownRef} className={`relative ${isCardKindOpen ? 'z-40' : 'z-0'}`}>
               <button
                 ref={buttonRef}
                 type="button"
@@ -258,7 +258,7 @@ const StudyCardFormFields = ({
                   id={listboxId}
                   role="listbox"
                   aria-labelledby={cardTypeLabelId}
-                  className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-10 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+                  className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
                 >
                   {CARD_CREATION_KIND_OPTIONS.map(({ value, labelKey, Icon }, optionIndex) => {
                     const isSelected = creationKind === value;
