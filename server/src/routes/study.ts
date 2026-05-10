@@ -89,6 +89,8 @@ import {
   createStudyCardFromManualDraft,
   deleteManualCardDraft,
   listManualCardDrafts,
+  markManualCardDraftError,
+  markManualCardDraftsForVariantGroupError,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
   regenerateStudyCardCandidatePreviewAudio,
@@ -115,6 +117,10 @@ const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
+const MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE =
+  'Could not queue draft generation. Please retry this draft.';
+const VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE =
+  'Could not queue vocab bundle generation. Please retry these drafts.';
 // Tune with STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT, which caps automatic lazy backfill.
 const STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE = Math.max(
   10,
@@ -1286,7 +1292,24 @@ router.post(
             typeof body.includeLearnerContext === 'boolean' ? body.includeLearnerContext : true,
         },
       });
-      await enqueueStudyVocabBundleDraftJob(result.groupId);
+      try {
+        await enqueueStudyVocabBundleDraftJob(result.groupId);
+      } catch (error) {
+        console.error('Failed to enqueue study vocab bundle draft job:', error);
+        let failedDrafts;
+        try {
+          failedDrafts = await markManualCardDraftsForVariantGroupError({
+            userId: req.userId,
+            variantGroupId: result.groupId,
+            errorMessage: VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE,
+          });
+        } catch (markError) {
+          console.error('Failed to mark study vocab bundle drafts as error:', markError);
+          throw markError;
+        }
+        res.status(201).json({ ...result, drafts: failedDrafts });
+        return;
+      }
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
       res.status(201).json(result);
@@ -1554,7 +1577,24 @@ router.post(
         userId: req.userId,
         request,
       });
-      await enqueueStudyManualCardDraftJob(draft.id);
+      try {
+        await enqueueStudyManualCardDraftJob(draft.id);
+      } catch (error) {
+        console.error('Failed to enqueue study manual card draft job:', error);
+        let failedDraft;
+        try {
+          failedDraft = await markManualCardDraftError({
+            userId: req.userId,
+            draftId: draft.id,
+            errorMessage: MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE,
+          });
+        } catch (markError) {
+          console.error('Failed to mark study manual card draft as error:', markError);
+          throw markError;
+        }
+        res.status(201).json(failedDraft);
+        return;
+      }
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
       res.status(201).json(draft);
@@ -1621,7 +1661,24 @@ router.post(
         userId: req.userId,
         draftId: req.params.draftId,
       });
-      await enqueueStudyManualCardDraftJob(draft.id);
+      try {
+        await enqueueStudyManualCardDraftJob(draft.id);
+      } catch (error) {
+        console.error('Failed to enqueue study manual card draft retry job:', error);
+        let failedDraft;
+        try {
+          failedDraft = await markManualCardDraftError({
+            userId: req.userId,
+            draftId: draft.id,
+            errorMessage: MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE,
+          });
+        } catch (markError) {
+          console.error('Failed to mark retried study manual card draft as error:', markError);
+          throw markError;
+        }
+        res.json(failedDraft);
+        return;
+      }
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
       res.json(draft);
