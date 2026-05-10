@@ -37,7 +37,6 @@ const {
   createStudyImportUploadSessionMock,
   createRedisConnectionMock,
   commitStudyCardCandidatesMock,
-  commitStudyVocabBundleMock,
   completeManualStudyCardDraftMock,
   createStudyVocabBundleDraftsMock,
   execMock,
@@ -62,7 +61,6 @@ const {
   getStudyImportUploadReadinessMock,
   getStudySettingsMock,
   generateStudyCardCandidatesMock,
-  generateStudyVocabBundleMock,
   generateManualStudyCardDraftImageMock,
   listManualCardDraftsMock,
   multiMock,
@@ -88,7 +86,6 @@ const {
   createStudyImportUploadSessionMock: vi.fn(),
   createRedisConnectionMock: vi.fn(),
   commitStudyCardCandidatesMock: vi.fn(),
-  commitStudyVocabBundleMock: vi.fn(),
   completeManualStudyCardDraftMock: vi.fn(),
   createStudyVocabBundleDraftsMock: vi.fn(),
   execMock: vi.fn(),
@@ -113,7 +110,6 @@ const {
   getStudyImportUploadReadinessMock: vi.fn(),
   getStudySettingsMock: vi.fn(),
   generateStudyCardCandidatesMock: vi.fn(),
-  generateStudyVocabBundleMock: vi.fn(),
   generateManualStudyCardDraftImageMock: vi.fn(),
   listManualCardDraftsMock: vi.fn(),
   multiMock: vi.fn(),
@@ -155,7 +151,6 @@ vi.mock('../../../services/studyService.js', () => ({
   deleteManualCardDraft: deleteManualCardDraftMock,
   deleteStudyCard: deleteStudyCardMock,
   commitStudyCardCandidates: commitStudyCardCandidatesMock,
-  commitStudyVocabBundle: commitStudyVocabBundleMock,
   createStudyImportUploadSession: createStudyImportUploadSessionMock,
   exportStudyData: vi.fn(),
   exportStudyCardsSection: exportStudyCardsSectionMock,
@@ -172,7 +167,6 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyOverview: vi.fn(),
   getStudySettings: getStudySettingsMock,
   generateStudyCardCandidates: generateStudyCardCandidatesMock,
-  generateStudyVocabBundle: generateStudyVocabBundleMock,
   generateManualStudyCardDraftImage: generateManualStudyCardDraftImageMock,
   listManualCardDrafts: listManualCardDraftsMock,
   performStudyCardAction: performStudyCardActionMock,
@@ -233,7 +227,6 @@ describe('Study Routes', () => {
     vi.resetModules();
     cancelStudyImportUploadMock.mockReset();
     commitStudyCardCandidatesMock.mockReset();
-    commitStudyVocabBundleMock.mockReset();
     completeManualStudyCardDraftMock.mockReset();
     createStudyVocabBundleDraftsMock.mockReset();
     createManualCardDraftMock.mockReset();
@@ -246,7 +239,6 @@ describe('Study Routes', () => {
     enqueueStudyManualCardDraftJobMock.mockReset();
     enqueueStudyVocabBundleDraftJobMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
-    generateStudyVocabBundleMock.mockReset();
     generateManualStudyCardDraftImageMock.mockReset();
     listManualCardDraftsMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
@@ -942,39 +934,6 @@ describe('Study Routes', () => {
     expect(generateStudyCardCandidatesMock).not.toHaveBeenCalled();
   });
 
-  it('commits generated vocab bundles after route shape validation', async () => {
-    commitStudyVocabBundleMock.mockResolvedValue({
-      groupId: 'group-1',
-      drafts: [],
-    });
-
-    const response = await withMutationCsrf(
-      request(app).post('/study/card-candidates/vocab-bundle/commit')
-    ).send({
-      targetWord: '営業する',
-      targetReading: null,
-      targetMeaning: null,
-      sourceSentence: null,
-      sourceContext: null,
-      sentences: [],
-      variants: [],
-    });
-
-    expect(response.status).toBe(200);
-    expect(commitStudyVocabBundleMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      request: {
-        targetWord: '営業する',
-        targetReading: null,
-        targetMeaning: null,
-        sourceSentence: null,
-        sourceContext: null,
-        sentences: [],
-        variants: [],
-      },
-    });
-  });
-
   it('queues generated vocab bundles as async manual drafts', async () => {
     createStudyVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',
@@ -1005,19 +964,6 @@ describe('Study Routes', () => {
     });
     expect(enqueueStudyVocabBundleDraftJobMock).toHaveBeenCalledWith('group-1');
     expect(triggerWorkerJobMock).toHaveBeenCalled();
-  });
-
-  it('rejects malformed vocab bundle commits before hitting the service', async () => {
-    const response = await withMutationCsrf(
-      request(app).post('/study/card-candidates/vocab-bundle/commit')
-    ).send({
-      targetWord: '営業する',
-      sentences: [],
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('variants must be an array');
-    expect(commitStudyVocabBundleMock).not.toHaveBeenCalled();
   });
 
   it('regenerates candidate preview audio after validating the candidate payload', async () => {

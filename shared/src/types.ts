@@ -289,29 +289,6 @@ export interface StudyVocabBundleDraftCreateResponse {
   drafts: StudyManualCardDraft[];
 }
 
-export interface StudyVocabBundleCommitVariant {
-  clientId: string;
-  stage: number;
-  variantKind: StudyVocabVariantKind;
-  variantSentenceOrdinal?: number | null;
-  candidate: StudyCardCandidateCommitItem;
-}
-
-export interface StudyVocabBundleCommitRequest {
-  targetWord: string;
-  targetReading?: string | null;
-  targetMeaning?: string | null;
-  sourceSentence?: string | null;
-  sourceContext?: string | null;
-  sentences: StudyVocabBundleSentence[];
-  variants: StudyVocabBundleCommitVariant[];
-}
-
-export interface StudyVocabBundleCommitResponse {
-  groupId: string;
-  drafts: StudyManualCardDraft[];
-}
-
 export interface StudyCardCandidatePreviewAudioRequest {
   candidate: StudyCardCandidateCommitItem;
 }

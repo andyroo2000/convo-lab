@@ -56,11 +56,11 @@ describe('studyService barrel', () => {
   });
 
   it('re-exports vocab bundle functions from the vocab bundle service', () => {
-    expect(studyService.generateStudyVocabBundle).toBe(
-      studyVocabBundleService.generateStudyVocabBundle
+    expect(studyService.createStudyVocabBundleDrafts).toBe(
+      studyVocabBundleService.createStudyVocabBundleDrafts
     );
-    expect(studyService.commitStudyVocabBundle).toBe(
-      studyVocabBundleService.commitStudyVocabBundle
+    expect(studyService.processStudyVocabBundleDrafts).toBe(
+      studyVocabBundleService.processStudyVocabBundleDrafts
     );
   });
 });

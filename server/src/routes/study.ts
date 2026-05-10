@@ -35,7 +35,6 @@ import type {
   StudyMediaRef,
   StudyPromptPayload,
   StudyQueueState,
-  StudyVocabBundleCommitRequest,
   StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types.js';
 import { Router } from 'express';
@@ -80,10 +79,8 @@ import {
   getStudyOverview,
   getStudySettings,
   commitStudyCardCandidates,
-  commitStudyVocabBundle,
   createStudyVocabBundleDrafts,
   generateStudyCardCandidates,
-  generateStudyVocabBundle,
   generateManualStudyCardDraftImage,
   createManualCardDraft,
   createStudyCardFromManualDraft,
@@ -1331,120 +1328,6 @@ router.post(
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
       res.status(201).json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/card-candidates/vocab-bundle/generate',
-  rateLimitStudyRoute({ key: 'vocab-bundle-generate', max: 20, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const body = req.body as Partial<StudyVocabBundleGenerateRequest>;
-      if (typeof body.targetWord !== 'string') {
-        throw new AppError('targetWord is required.', 400);
-      }
-      if (
-        typeof body.sourceSentence !== 'undefined' &&
-        body.sourceSentence !== null &&
-        typeof body.sourceSentence !== 'string'
-      ) {
-        throw new AppError('sourceSentence must be a string or null.', 400);
-      }
-      if (
-        typeof body.context !== 'undefined' &&
-        body.context !== null &&
-        typeof body.context !== 'string'
-      ) {
-        throw new AppError('context must be a string or null.', 400);
-      }
-
-      res.json(
-        await generateStudyVocabBundle({
-          userId: req.userId,
-          request: {
-            targetWord: body.targetWord,
-            sourceSentence: body.sourceSentence ?? null,
-            context: body.context ?? null,
-            includeLearnerContext:
-              typeof body.includeLearnerContext === 'boolean' ? body.includeLearnerContext : true,
-          },
-        })
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/card-candidates/vocab-bundle/commit',
-  rateLimitStudyRoute({ key: 'vocab-bundle-commit', max: 20, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const body = req.body as Partial<StudyVocabBundleCommitRequest>;
-      if (typeof body.targetWord !== 'string') {
-        throw new AppError('targetWord is required.', 400);
-      }
-      if (
-        typeof body.targetReading !== 'undefined' &&
-        body.targetReading !== null &&
-        typeof body.targetReading !== 'string'
-      ) {
-        throw new AppError('targetReading must be a string or null.', 400);
-      }
-      if (
-        typeof body.targetMeaning !== 'undefined' &&
-        body.targetMeaning !== null &&
-        typeof body.targetMeaning !== 'string'
-      ) {
-        throw new AppError('targetMeaning must be a string or null.', 400);
-      }
-      if (
-        typeof body.sourceSentence !== 'undefined' &&
-        body.sourceSentence !== null &&
-        typeof body.sourceSentence !== 'string'
-      ) {
-        throw new AppError('sourceSentence must be a string or null.', 400);
-      }
-      if (
-        typeof body.sourceContext !== 'undefined' &&
-        body.sourceContext !== null &&
-        typeof body.sourceContext !== 'string'
-      ) {
-        throw new AppError('sourceContext must be a string or null.', 400);
-      }
-      if (!Array.isArray(body.sentences)) {
-        throw new AppError('sentences must be an array.', 400);
-      }
-      if (!Array.isArray(body.variants)) {
-        throw new AppError('variants must be an array.', 400);
-      }
-
-      res.json(
-        await commitStudyVocabBundle({
-          userId: req.userId,
-          request: {
-            targetWord: body.targetWord,
-            targetReading: body.targetReading ?? null,
-            targetMeaning: body.targetMeaning ?? null,
-            sourceSentence: body.sourceSentence ?? null,
-            sourceContext: body.sourceContext ?? null,
-            sentences: body.sentences,
-            variants: body.variants,
-          },
-        })
-      );
     } catch (error) {
       next(error);
     }

@@ -83,18 +83,6 @@ export interface StudyManualCardDraftListResult {
   nextCursor: string | null;
 }
 
-export interface ReadyManualCardDraftInput extends StudyManualCardDraftCreateRequest {
-  previewAudio?: StudyMediaRef | null;
-  previewAudioRole?: 'prompt' | 'answer' | null;
-  previewImage?: StudyMediaRef | null;
-  variantGroupId?: string | null;
-  variantSentenceId?: string | null;
-  variantKind?: StudyVocabVariantKind | null;
-  variantStage?: number | null;
-  variantStatus?: StudyVocabVariantStatus | null;
-  variantUnlockedAt?: Date | null;
-}
-
 export interface GeneratingManualCardDraftInput extends StudyManualCardDraftCreateRequest {
   variantGroupId?: string | null;
   variantSentenceId?: string | null;
@@ -315,66 +303,6 @@ export async function listManualCardDrafts(
   };
 }
 
-async function createReadyManualCardDraftRecords(input: {
-  tx: ManualCardDraftTx;
-  userId: string;
-  drafts: ReadyManualCardDraftInput[];
-}): Promise<StudyManualCardDraftRecord[]> {
-  if (input.drafts.length === 0) return [];
-
-  const normalizedDrafts = input.drafts.map((requestedDraft) => {
-    const creationKind = parseCreationKind(requestedDraft.creationKind);
-    const requestedCardType = parseCardType(requestedDraft.cardType);
-    const cardType = cardTypeForStudyCardCreationKind(creationKind);
-    validateCreationKindAndCardType({ creationKind, cardType: requestedCardType });
-    const imagePlacement = parseImagePlacement(requestedDraft.imagePlacement ?? 'none');
-    return {
-      userId: input.userId,
-      status: 'ready',
-      creationKind,
-      cardType,
-      promptJson: toPrismaJson(requestedDraft.prompt),
-      answerJson: toPrismaJson(requestedDraft.answer),
-      imagePlacement,
-      imagePrompt: requestedDraft.imagePrompt?.trim() || null,
-      previewAudioJson: toNullablePrismaJson(requestedDraft.previewAudio ?? null),
-      previewAudioRole: requestedDraft.previewAudioRole ?? null,
-      previewImageJson: toNullablePrismaJson(requestedDraft.previewImage ?? null),
-      variantGroupId: requestedDraft.variantGroupId ?? null,
-      variantSentenceId: requestedDraft.variantSentenceId ?? null,
-      variantKind: requestedDraft.variantKind ?? null,
-      variantStage: requestedDraft.variantStage ?? null,
-      variantStatus: requestedDraft.variantStatus ?? null,
-      variantUnlockedAt: requestedDraft.variantUnlockedAt ?? null,
-      errorMessage: null,
-    };
-  });
-
-  const existingDraftCount = await input.tx.studyCardDraft.count({
-    where: { userId: input.userId },
-  });
-  if (existingDraftCount + normalizedDrafts.length > MAX_MANUAL_CARD_DRAFTS_PER_USER) {
-    throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
-  }
-
-  return Promise.all(
-    normalizedDrafts.map(async (data) => {
-      const draft = await input.tx.studyCardDraft.create({ data });
-      return draft as StudyManualCardDraftRecord;
-    })
-  );
-}
-
-export async function createReadyManualCardDraftsInTransaction(input: {
-  tx: ManualCardDraftTx;
-  userId: string;
-  drafts: ReadyManualCardDraftInput[];
-}): Promise<StudyManualCardDraft[]> {
-  const created = await createReadyManualCardDraftRecords(input);
-
-  return created.map((draft) => toManualCardDraft(draft));
-}
-
 export async function createGeneratingManualCardDraftsInTransaction(input: {
   tx: ManualCardDraftTx;
   userId: string;
@@ -431,23 +359,6 @@ export async function createGeneratingManualCardDraftsInTransaction(input: {
     }
     return record;
   });
-
-  return created.map((draft) => toManualCardDraft(draft));
-}
-
-export async function createReadyManualCardDrafts(input: {
-  userId: string;
-  drafts: ReadyManualCardDraftInput[];
-}): Promise<StudyManualCardDraft[]> {
-  const created = await prisma.$transaction(
-    async (tx) =>
-      createReadyManualCardDraftRecords({
-        tx,
-        userId: input.userId,
-        drafts: input.drafts,
-      }),
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
-  );
 
   return created.map((draft) => toManualCardDraft(draft));
 }
