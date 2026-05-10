@@ -430,6 +430,48 @@ describe('studyVocabBundleService', () => {
     expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
   });
 
+  it('can complete drafts on a retry after an early retryable processor failure', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    mockPrisma.studyVariantGroup.update.mockResolvedValue(group);
+    mockPrisma.studyVariantSentence.findMany.mockResolvedValue(group.sentences);
+    mockPrisma.studyVariantSentence.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    mockPrisma.studyCardDraft.findMany.mockResolvedValue(group.drafts);
+    mockPrisma.studyCardDraft.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    generateStudyCardCandidateJsonMock
+      .mockRejectedValueOnce(new Error('provider timeout'))
+      .mockResolvedValue(vocabBundleJson());
+    resolveStudyCardCandidateCommitItemMock.mockImplementation(async ({ item }) => ({
+      item,
+      prompt: item.prompt,
+      answer: item.answer,
+      previewAudioId: item.previewAudio?.id ?? null,
+      previewAudioRole: item.previewAudioRole ?? null,
+      previewImageId: item.previewImage?.id ?? null,
+    }));
+    getOwnedPreviewMediaIdsMock.mockImplementation(async ({ mediaIds }) => new Set(mediaIds));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(
+      processStudyVocabBundleDrafts('group-1', { markDraftsOnError: false })
+    ).rejects.toThrow('provider timeout');
+    const retryResult = await processStudyVocabBundleDrafts('group-1', {
+      markDraftsOnError: false,
+    });
+
+    expect(retryResult).toEqual({ groupId: 'group-1', completedDraftCount: 11 });
+    expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.studyCardDraft.update).toHaveBeenCalledTimes(11);
+  });
+
   it('defaults direct processing calls to store a safe user-facing error message', async () => {
     const group = vocabGroup(false);
     mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
