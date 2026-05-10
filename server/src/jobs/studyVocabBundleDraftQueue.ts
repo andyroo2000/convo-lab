@@ -52,6 +52,9 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
     }
     if (state === 'completed') {
       // Group IDs are per-creation UUIDs, so finished jobs are historical records, not requeue targets.
+      logger.warn(
+        `Vocab bundle draft job ${groupId} has already completed; leaving historical job in place.`
+      );
       return existingJob;
     }
     if (state === 'unknown') {
@@ -98,11 +101,12 @@ export const studyVocabBundleDraftWorker = new Worker(
         ? job.opts.attempts
         : STUDY_VOCAB_BUNDLE_DRAFT_JOB_ATTEMPTS;
     const shouldMarkDraftsOnError = job.attemptsMade + 1 >= attempts;
-    let result: Awaited<ReturnType<typeof processStudyVocabBundleDrafts>>;
     try {
-      result = await processStudyVocabBundleDrafts(groupId, {
+      const result = await processStudyVocabBundleDrafts(groupId, {
         markDraftsOnError: shouldMarkDraftsOnError,
       });
+      await job.updateProgress(100);
+      return result ?? { groupId, completedDraftCount: 0 };
     } catch (error) {
       if (error instanceof VocabBundleDraftMismatchError) {
         try {
@@ -116,8 +120,6 @@ export const studyVocabBundleDraftWorker = new Worker(
       }
       throw error;
     }
-    await job.updateProgress(100);
-    return result;
   },
   {
     connection: workerConnection,

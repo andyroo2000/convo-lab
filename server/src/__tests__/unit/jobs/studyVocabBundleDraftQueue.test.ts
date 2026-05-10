@@ -184,6 +184,25 @@ describe('studyVocabBundleDraftQueue', () => {
     expect(updateProgress).toHaveBeenCalledWith(100);
   });
 
+  it('returns an explicit completed result when the processor short-circuits as already handled', async () => {
+    processStudyVocabBundleDraftsMock.mockResolvedValue(null);
+    await import('../../../jobs/studyVocabBundleDraftQueue.js');
+    const processor = workerProcessors.get('study-vocab-bundle-drafts');
+    const updateProgress = vi.fn();
+
+    await expect(
+      processor?.({
+        name: 'complete-vocab-bundle-drafts',
+        data: { groupId: 'group-1' },
+        attemptsMade: 0,
+        opts: { attempts: 3 },
+        updateProgress,
+      })
+    ).resolves.toEqual({ groupId: 'group-1', completedDraftCount: 0 });
+
+    expect(updateProgress).toHaveBeenCalledWith(100);
+  });
+
   it('marks drafts as error only on the final processor attempt', async () => {
     processStudyVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',

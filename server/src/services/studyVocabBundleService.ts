@@ -465,6 +465,10 @@ export async function createStudyVocabBundleDrafts(input: {
   };
 }
 
+/**
+ * Queue callers pass markDraftsOnError=false until the final BullMQ attempt.
+ * Direct calls default to writing draft errors immediately so failures are visible.
+ */
 export async function processStudyVocabBundleDrafts(
   groupId: string,
   options: { markDraftsOnError?: boolean } = {}
@@ -584,6 +588,7 @@ export async function processStudyVocabBundleDrafts(
             ? (sentenceIdsByOrdinal.get(resolved.variantSentenceOrdinal) ?? null)
             : null;
         const key = `${String(resolved.stage)}:${sentenceId ?? 'word'}`;
+        // Draft-key checks above catch duplicate placeholders; this catches duplicate generated items.
         if (seenResolvedKeys.has(key)) {
           throw new VocabBundleDraftMismatchError();
         }
