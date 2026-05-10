@@ -549,6 +549,52 @@ describe('StudyCreatePage', () => {
     ).toBeInTheDocument();
   });
 
+  it('creates audio-recognition draft cards without requiring prompt text', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({
+        creationKind: 'audio-recognition',
+        cardType: 'recognition',
+        prompt: {},
+        answer: {
+          expression: '営業の仕事は楽しいです。',
+          expressionReading: '営業[えいぎょう]の仕事[しごと]は楽[たの]しいです。',
+          meaning: 'Sales work is fun.',
+          answerAudioVoiceId: DEFAULT_AUDIO_RECOGNITION_VOICE_ID,
+        },
+        previewAudio: {
+          id: 'audio-vocab',
+          filename: 'audio-vocab.mp3',
+          url: '/api/study/media/audio-vocab',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'prompt',
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+
+    expect(screen.queryByLabelText('Prompt text')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+
+    expect(updateManualDraftMock).toHaveBeenCalledWith({
+      draftId: 'draft-1',
+      values: expect.objectContaining({
+        prompt: {
+          cueAudio: expect.objectContaining({ id: 'audio-vocab' }),
+        },
+        answer: expect.objectContaining({
+          expression: '営業の仕事は楽しいです。',
+          answerAudio: expect.objectContaining({ id: 'audio-vocab' }),
+        }),
+      }),
+    });
+    expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-1');
+  });
+
   it('selects the next draft in queue after creating a card', async () => {
     manualDraftsState.drafts = [
       manualDraft({ id: 'draft-1', prompt: { cueText: '一番目' } }),
@@ -627,6 +673,51 @@ describe('StudyCreatePage', () => {
       'src',
       'http://localhost:3001/api/study/media/manual-image'
     );
+  });
+
+  it('loads vocab cloze drafts with both-side generated image controls enabled', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({
+        creationKind: 'cloze',
+        cardType: 'cloze',
+        prompt: {
+          clozeText: '営業の仕事は{{c1::楽しい}}です。',
+          clozeDisplayText: '営業の仕事は[...]です。',
+          clozeAnswerText: '楽しい',
+          clozeHint: 'fun',
+        },
+        answer: {
+          restoredText: '営業の仕事は楽しいです。',
+          restoredTextReading: '営業[えいぎょう]の仕事[しごと]は楽[たの]しいです。',
+          meaning: 'Sales work is fun.',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        imagePlacement: 'both',
+        imagePrompt: 'A natural office scene showing enjoyable sales work. No text.',
+        previewImage: {
+          id: 'vocab-cloze-image',
+          filename: 'vocab-cloze-image.webp',
+          url: '/api/study/media/vocab-cloze-image',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+
+    expect(screen.getByLabelText('Image placement')).toHaveValue('both');
+    expect(screen.getByLabelText('Image prompt')).toHaveValue(
+      'A natural office scene showing enjoyable sales work. No text.'
+    );
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/vocab-cloze-image'
+    );
+    expect(screen.getByRole('button', { name: 'Generate image' })).toBeEnabled();
   });
 
   it('defaults manual image placement by creation kind', async () => {
