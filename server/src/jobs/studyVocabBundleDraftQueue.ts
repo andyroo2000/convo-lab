@@ -16,6 +16,7 @@ const ACTIVE_JOB_STATES = new Set([
   'waiting',
   'delayed',
   'prioritized',
+  // Forward-compatible with BullMQ flow jobs if this queue ever gains child work.
   'waiting-children',
 ]);
 
@@ -55,9 +56,10 @@ export async function enqueueStudyVocabBundleDraftJob(groupId: string) {
     }
     if (state === 'unknown') {
       logger.warn(`Vocab bundle draft job ${groupId} has unknown BullMQ state; leaving it alone.`);
+      // If an unknown job is truly lost, an operator can re-enqueue after inspecting Redis state.
+      return existingJob;
     }
-    // Keep unknown/future BullMQ states stable instead of removing a job a worker might still observe.
-    // If an unknown job is truly lost, an operator can re-enqueue after inspecting Redis state.
+    // Keep future BullMQ states stable instead of removing a job a worker might still observe.
     return existingJob;
   }
 
