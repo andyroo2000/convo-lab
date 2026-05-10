@@ -1,5 +1,8 @@
 import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new.js';
-import { STUDY_VOCAB_BUNDLE_SENTENCE_COUNT } from '@languageflow/shared/src/studyConstants.js';
+import {
+  STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
+  STUDY_VOCAB_BUNDLE_SENTENCE_COUNT,
+} from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyCardCandidate,
   StudyVocabBundle,
@@ -12,6 +15,8 @@ import { generateJapaneseReading } from '../../../japaneseReadingGenerator.js';
 import { STUDY_VOCAB_VARIANT_STAGES } from '../../variants/constants.js';
 
 type JsonRecord = Record<string, unknown>;
+
+const MIN_WORD_BOUNDARY_RATIO = 0.75;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -142,6 +147,28 @@ function textCandidate(input: {
   };
 }
 
+export function truncateAtWordBoundary(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+  const truncated = value.slice(0, maxLength).trimEnd();
+  const lastSpaceIndex = truncated.lastIndexOf(' ');
+  if (lastSpaceIndex > Math.floor(maxLength * MIN_WORD_BOUNDARY_RATIO)) {
+    return truncated.slice(0, lastSpaceIndex).trimEnd();
+  }
+  return truncated;
+}
+
+export function buildClozeImagePrompt(input: { meaning: string; notes: string | null }): string {
+  const noTextSuffix = ' No text.';
+  const sentenceEndingPunctuation = /[.!?。！？]+$/u;
+  const meaning =
+    input.meaning.trim().replace(sentenceEndingPunctuation, '') || 'the Japanese sentence';
+  const notes = input.notes?.trim();
+  const noteContext = notes ? ` Context: ${notes.replace(sentenceEndingPunctuation, '')}.` : '';
+  const basePrompt = `A natural immersive scene representing this sentence meaning: ${meaning}.${noteContext}`;
+  const maxBaseLength = STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH - noTextSuffix.length;
+  return `${truncateAtWordBoundary(basePrompt, maxBaseLength)}${noTextSuffix}`;
+}
+
 function clozeCandidate(input: {
   clientId: string;
   clozeText: string;
@@ -171,7 +198,10 @@ function clozeCandidate(input: {
     previewAudio: null,
     previewAudioRole: null,
     previewImage: null,
-    imagePrompt: null,
+    imagePrompt: buildClozeImagePrompt({
+      meaning: input.meaning,
+      notes: input.notes,
+    }),
   };
 }
 

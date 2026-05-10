@@ -4,6 +4,7 @@ import {
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants.js';
 import type {
+  StudyCardCandidate,
   StudyCardCreationKind,
   StudyMediaRef,
   StudyVocabBundleDraftCreateResponse,
@@ -12,7 +13,7 @@ import type {
   StudyVocabVariantKind,
   StudyVocabVariantStatus,
 } from '@languageflow/shared/src/types.js';
-import { Prisma, type StudyCardDraft as PrismaStudyCardDraft } from '@prisma/client';
+import { type StudyCardDraft as PrismaStudyCardDraft } from '@prisma/client';
 
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -25,7 +26,11 @@ import {
 } from './study/candidates/candidateCommit.js';
 import { buildLearnerContextSummary } from './study/candidates/learnerContext.js';
 import { scheduleStudyCandidatePreviewMediaCleanup } from './study/candidates/mediaCleanup.js';
-import { addPreviewAudio, getOwnedPreviewMediaIds } from './study/candidates/previewMedia.js';
+import {
+  addPreviewAudio,
+  generateCandidatePreviewImage,
+  getOwnedPreviewMediaIds,
+} from './study/candidates/previewMedia.js';
 import {
   normalizeVocabBundleGenerateRequest,
   parseVocabBundleResponse,
@@ -232,6 +237,33 @@ function userFacingVocabBundleDraftErrorMessage(error: unknown): string {
   return VOCAB_BUNDLE_DRAFT_GENERATION_ERROR;
 }
 
+async function addVocabBundlePreviewImage(
+  userId: string,
+  candidate: StudyCardCandidate
+): Promise<StudyCardCandidate> {
+  if (candidate.candidateKind !== 'cloze' || !candidate.imagePrompt?.trim()) {
+    return candidate;
+  }
+
+  try {
+    return {
+      ...candidate,
+      previewImage: await generateCandidatePreviewImage({
+        userId,
+        clientId: candidate.clientId,
+        imagePrompt: candidate.imagePrompt,
+      }),
+    };
+  } catch (error) {
+    logger.warn('[StudyVocabBundle] Failed to generate cloze preview image.', {
+      error,
+      clientId: candidate.clientId,
+      userId,
+    });
+    return candidate;
+  }
+}
+
 async function generateStudyVocabBundle(input: {
   userId: string;
   request: StudyVocabBundleGenerateRequest;
@@ -271,12 +303,21 @@ async function generateStudyVocabBundle(input: {
     sourceSentence: request.sourceSentence,
     context: request.context,
   });
-  const variants = await Promise.all(
+  const variantsWithAudio = await Promise.all(
     bundle.variants.map(async (variant) => ({
       ...variant,
       candidate: await addPreviewAudio(input.userId, variant.candidate),
     }))
   );
+  const variants: typeof variantsWithAudio = [];
+  for (const variant of variantsWithAudio) {
+    // Keep the TTS previews parallel above, but serialize image generation to avoid
+    // fanning out several heavier image requests from one vocab bundle job.
+    variants.push({
+      ...variant,
+      candidate: await addVocabBundlePreviewImage(input.userId, variant.candidate),
+    });
+  }
 
   return {
     bundle: {
@@ -358,7 +399,7 @@ export async function createStudyVocabBundleDrafts(input: {
 
       return { group, drafts };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    { isolationLevel: 'Serializable' }
   );
 
   return {
@@ -512,13 +553,21 @@ export async function processStudyVocabBundleDrafts(
           resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
             ? getResolvedPreviewImage(resolved)
             : null;
+        const clozeImagePrompt =
+          resolved.item.cardType === 'cloze' ? (resolved.item.imagePrompt?.trim() ?? null) : null;
         const imagePlacement =
-          previewImage && resolved.item.cardType === 'cloze'
+          resolved.item.cardType === 'cloze' && (previewImage || clozeImagePrompt)
             ? 'both'
             : previewImage
               ? 'prompt'
               : 'none';
-        const imagePrompt = previewImage ? (resolved.item.imagePrompt ?? null) : null;
+        // Cloze drafts keep a prompt even if auto-generation failed so users can retry manually.
+        // Other card types keep the historical behavior: only persist a prompt alongside an image.
+        const imagePrompt = clozeImagePrompt
+          ? clozeImagePrompt
+          : previewImage
+            ? (resolved.item.imagePrompt ?? null)
+            : null;
         const variantStatus = resolved.stage === 1 ? 'available' : 'locked';
 
         updated.push(

@@ -115,6 +115,25 @@ function applyStudyCardAudioToPayload(
   };
 }
 
+function buildManualPayloadForCreationKind(input: {
+  values: ReturnType<typeof getStudyCardFormValues>;
+  creationKind: StudyCardCreationKind;
+  cardType: ReturnType<typeof cardTypeForStudyCardCreationKind>;
+}) {
+  const payload = buildStudyCardFormPayload({
+    ...input.values,
+    cardType: input.cardType,
+  });
+  if (input.creationKind !== 'audio-recognition') {
+    return payload;
+  }
+
+  return {
+    ...payload,
+    prompt: {},
+  };
+}
+
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
   const createDraft = useCreateStudyManualCardDraft();
@@ -174,8 +193,9 @@ const StudyCreatePage = () => {
     initialAnswerAudioVoiceId: manualDefaultVoiceId,
   });
   const manualCardType = cardTypeForStudyCardCreationKind(creationKind);
-  const manualPayloadWithoutMedia = buildStudyCardFormPayload({
-    ...values,
+  const manualPayloadWithoutMedia = buildManualPayloadForCreationKind({
+    values,
+    creationKind,
     cardType: manualCardType,
   });
   const manualPayloadWithImage = applyStudyCardImageToPayload(
@@ -814,6 +834,7 @@ const StudyCreatePage = () => {
                   creationKind={creationKind}
                   includeCardTypeSelect={!isReviewingManualDraft}
                   includeNotesField={false}
+                  hidePromptFields={creationKind === 'audio-recognition'}
                   onCreationKindChange={handleCreationKindChange}
                   onFieldChange={handleManualFieldChange}
                 />

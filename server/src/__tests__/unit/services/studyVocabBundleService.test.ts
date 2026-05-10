@@ -1,4 +1,5 @@
 import type { StudyManualCardDraftCreateRequest } from '@languageflow/shared/src/types.js';
+import { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppError } from '../../../middleware/errorHandler.js';
@@ -9,6 +10,7 @@ const getOwnedPreviewMediaIdsMock = vi.hoisted(() => vi.fn());
 const resolveStudyCardCandidateCommitItemMock = vi.hoisted(() => vi.fn());
 const generateStudyCardCandidateJsonMock = vi.hoisted(() => vi.fn());
 const buildLearnerContextSummaryMock = vi.hoisted(() => vi.fn());
+const generateCandidatePreviewImageMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../services/study/manualCardDrafts.js', () => ({
   createGeneratingManualCardDraftsInTransaction: createGeneratingManualCardDraftsInTransactionMock,
@@ -16,6 +18,7 @@ vi.mock('../../../services/study/manualCardDrafts.js', () => ({
 
 vi.mock('../../../services/study/candidates/previewMedia.js', () => ({
   addPreviewAudio: vi.fn(async (_userId, candidate) => candidate),
+  generateCandidatePreviewImage: generateCandidatePreviewImageMock,
   getOwnedPreviewMediaIds: getOwnedPreviewMediaIdsMock,
 }));
 
@@ -32,8 +35,8 @@ vi.mock('../../../services/study/candidates/learnerContext.js', () => ({
 }));
 
 function variant(index: number) {
-  const sentenceOrdinal = index % 3;
   const isCloze = index >= 8;
+  const sentenceOrdinal = isCloze ? index - 8 : index % 3;
   const isAudio = index < 3 || index === 6;
   const audio = {
     id: `audio-${index}`,
@@ -127,6 +130,14 @@ describe('studyVocabBundleService', () => {
     resolveStudyCardCandidateCommitItemMock.mockReset();
     generateStudyCardCandidateJsonMock.mockReset();
     buildLearnerContextSummaryMock.mockReset();
+    generateCandidatePreviewImageMock.mockReset();
+    generateCandidatePreviewImageMock.mockImplementation(async ({ clientId }) => ({
+      id: `image-${clientId}`,
+      filename: `${clientId}.webp`,
+      url: `/api/study/media/image-${clientId}`,
+      mediaKind: 'image',
+      source: 'generated',
+    }));
     mockPrisma.studyVariantGroup.create.mockReset();
     mockPrisma.studyVariantGroup.findUnique.mockReset();
     mockPrisma.studyVariantGroup.update.mockReset();
@@ -227,7 +238,76 @@ describe('studyVocabBundleService', () => {
 
     expect(result).toEqual({ groupId: 'group-1', completedDraftCount: 11 });
     expect(buildLearnerContextSummaryMock).not.toHaveBeenCalled();
+    expect(generateCandidatePreviewImageMock).toHaveBeenCalledTimes(3);
+    expect(generateCandidatePreviewImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        clientId: 'sentence-cloze-0',
+        imagePrompt: expect.stringContaining('No text'),
+      })
+    );
     expect(mockPrisma.studyCardDraft.update).toHaveBeenCalledTimes(11);
+    expect(mockPrisma.studyCardDraft.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'draft-8' },
+        data: expect.objectContaining({
+          cardType: 'cloze',
+          imagePlacement: 'both',
+          imagePrompt: expect.stringContaining('No text'),
+          previewImageJson: expect.objectContaining({
+            id: 'image-sentence-cloze-0',
+            mediaKind: 'image',
+          }),
+        }),
+      })
+    );
+    expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('keeps cloze drafts ready with image prompts when preview image generation fails', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    mockPrisma.studyVariantGroup.update.mockResolvedValue(group);
+    mockPrisma.studyVariantSentence.findMany.mockResolvedValue(group.sentences);
+    mockPrisma.studyVariantSentence.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    mockPrisma.studyCardDraft.findMany.mockResolvedValue(group.drafts);
+    mockPrisma.studyCardDraft.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    generateStudyCardCandidateJsonMock.mockResolvedValue(vocabBundleJson());
+    generateCandidatePreviewImageMock.mockRejectedValue(new Error('image provider timeout'));
+    resolveStudyCardCandidateCommitItemMock.mockImplementation(async ({ item }) => ({
+      item,
+      prompt: item.prompt,
+      answer: item.answer,
+      previewAudioId: item.previewAudio?.id ?? null,
+      previewAudioRole: item.previewAudioRole ?? null,
+      previewImageId: item.previewImage?.id ?? null,
+    }));
+    getOwnedPreviewMediaIdsMock.mockImplementation(async ({ mediaIds }) => new Set(mediaIds));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+    const result = await processStudyVocabBundleDrafts('group-1');
+
+    expect(result).toEqual({ groupId: 'group-1', completedDraftCount: 11 });
+    expect(generateCandidatePreviewImageMock).toHaveBeenCalledTimes(3);
+    expect(mockPrisma.studyCardDraft.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'draft-8' },
+        data: expect.objectContaining({
+          status: 'ready',
+          cardType: 'cloze',
+          imagePlacement: 'both',
+          imagePrompt: expect.stringContaining('No text'),
+          previewImageJson: Prisma.JsonNull,
+        }),
+      })
+    );
     expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
   });
 
