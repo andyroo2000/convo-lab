@@ -1324,7 +1324,7 @@ router.post(
         enqueueLogMessage: 'Failed to enqueue study vocab bundle draft job:',
         markErrorLogMessage: 'Failed to mark study vocab bundle drafts as error:',
       });
-      if (!enqueueResult.queued) {
+      if (enqueueResult.queued === false) {
         res.status(201).json({ ...result, drafts: enqueueResult.result });
         return;
       }
@@ -1607,7 +1607,7 @@ router.post(
         enqueueLogMessage: 'Failed to enqueue study manual card draft job:',
         markErrorLogMessage: 'Failed to mark study manual card draft as error:',
       });
-      if (!enqueueResult.queued) {
+      if (enqueueResult.queued === false) {
         res.status(201).json(enqueueResult.result);
         return;
       }
@@ -1689,7 +1689,7 @@ router.post(
         enqueueLogMessage: 'Failed to enqueue study manual card draft retry job:',
         markErrorLogMessage: 'Failed to mark retried study manual card draft as error:',
       });
-      if (!enqueueResult.queued) {
+      if (enqueueResult.queued === false) {
         res.json(enqueueResult.result);
         return;
       }
