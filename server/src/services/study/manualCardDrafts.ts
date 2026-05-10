@@ -554,6 +554,63 @@ export async function resetManualCardDraftForRetry(input: {
   return toManualCardDraft(updated as StudyManualCardDraftRecord);
 }
 
+export async function markManualCardDraftError(input: {
+  userId: string;
+  draftId: string;
+  errorMessage: string;
+}): Promise<StudyManualCardDraft> {
+  const updated = await prisma.studyCardDraft.update({
+    where: { id: input.draftId, userId: input.userId },
+    data: {
+      status: 'error',
+      errorMessage: input.errorMessage,
+    },
+  });
+
+  return toManualCardDraft(updated as StudyManualCardDraftRecord);
+}
+
+export async function markManualCardDraftsForVariantGroupError(input: {
+  userId: string;
+  variantGroupId: string;
+  errorMessage: string;
+}): Promise<StudyManualCardDraft[]> {
+  const drafts = await prisma.$transaction(async (tx) => {
+    const generatingDrafts = await tx.studyCardDraft.findMany({
+      where: {
+        userId: input.userId,
+        variantGroupId: input.variantGroupId,
+        status: 'generating',
+      },
+      select: { id: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const draftIds = generatingDrafts.map((draft) => draft.id);
+    if (draftIds.length === 0) return [];
+
+    await tx.studyCardDraft.updateMany({
+      where: {
+        userId: input.userId,
+        id: { in: draftIds },
+      },
+      data: {
+        status: 'error',
+        errorMessage: input.errorMessage,
+      },
+    });
+
+    return tx.studyCardDraft.findMany({
+      where: {
+        userId: input.userId,
+        id: { in: draftIds },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+  });
+
+  return drafts.map((draft) => toManualCardDraft(draft as StudyManualCardDraftRecord));
+}
+
 export async function deleteManualCardDraft(input: {
   userId: string;
   draftId: string;

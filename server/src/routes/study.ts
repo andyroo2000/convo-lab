@@ -89,6 +89,8 @@ import {
   createStudyCardFromManualDraft,
   deleteManualCardDraft,
   listManualCardDrafts,
+  markManualCardDraftError,
+  markManualCardDraftsForVariantGroupError,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
   regenerateStudyCardCandidatePreviewAudio,
@@ -115,6 +117,10 @@ const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
+const MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE =
+  'Could not queue draft generation. Please retry this draft.';
+const VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE =
+  'Could not queue vocab bundle generation. Please retry these drafts.';
 // Tune with STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT, which caps automatic lazy backfill.
 const STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE = Math.max(
   10,
@@ -123,6 +129,26 @@ const STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE = Math.max(
 // Keep a separate name so persisted-card regeneration can diverge from preview regeneration later.
 const STUDY_CARD_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE =
   STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE;
+
+async function enqueueOrMarkDraftError<T>(input: {
+  enqueue: () => Promise<unknown>;
+  markError: () => Promise<T>;
+  enqueueLogMessage: string;
+  markErrorLogMessage: string;
+}): Promise<{ queued: true } | { queued: false; result: T }> {
+  try {
+    await input.enqueue();
+    return { queued: true };
+  } catch (error) {
+    console.error(input.enqueueLogMessage, error);
+    try {
+      return { queued: false, result: await input.markError() };
+    } catch (markError) {
+      console.error(input.markErrorLogMessage, markError);
+      throw markError;
+    }
+  }
+}
 
 function isValidIanaTimeZone(value: string): boolean {
   try {
@@ -1256,6 +1282,7 @@ router.post(
       if (!req.userId) {
         throw new AppError('Authenticated user is required.', 401);
       }
+      const userId = req.userId;
 
       const body = req.body as Partial<StudyVocabBundleGenerateRequest>;
       if (typeof body.targetWord !== 'string') {
@@ -1277,7 +1304,7 @@ router.post(
       }
 
       const result = await createStudyVocabBundleDrafts({
-        userId: req.userId,
+        userId,
         request: {
           targetWord: body.targetWord,
           sourceSentence: body.sourceSentence ?? null,
@@ -1286,7 +1313,21 @@ router.post(
             typeof body.includeLearnerContext === 'boolean' ? body.includeLearnerContext : true,
         },
       });
-      await enqueueStudyVocabBundleDraftJob(result.groupId);
+      const enqueueResult = await enqueueOrMarkDraftError({
+        enqueue: () => enqueueStudyVocabBundleDraftJob(result.groupId),
+        markError: () =>
+          markManualCardDraftsForVariantGroupError({
+            userId,
+            variantGroupId: result.groupId,
+            errorMessage: VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE,
+          }),
+        enqueueLogMessage: 'Failed to enqueue study vocab bundle draft job:',
+        markErrorLogMessage: 'Failed to mark study vocab bundle drafts as error:',
+      });
+      if (!enqueueResult.queued) {
+        res.status(201).json({ ...result, drafts: enqueueResult.result });
+        return;
+      }
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
       res.status(201).json(result);
@@ -1548,13 +1589,28 @@ router.post(
       if (!req.userId) {
         throw new AppError('Authenticated user is required.', 401);
       }
+      const userId = req.userId;
 
       const request = parseStudyManualCardDraftCreateRequest(req.body);
       const draft = await createManualCardDraft({
-        userId: req.userId,
+        userId,
         request,
       });
-      await enqueueStudyManualCardDraftJob(draft.id);
+      const enqueueResult = await enqueueOrMarkDraftError({
+        enqueue: () => enqueueStudyManualCardDraftJob(draft.id),
+        markError: () =>
+          markManualCardDraftError({
+            userId,
+            draftId: draft.id,
+            errorMessage: MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE,
+          }),
+        enqueueLogMessage: 'Failed to enqueue study manual card draft job:',
+        markErrorLogMessage: 'Failed to mark study manual card draft as error:',
+      });
+      if (!enqueueResult.queued) {
+        res.status(201).json(enqueueResult.result);
+        return;
+      }
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
       res.status(201).json(draft);
@@ -1616,12 +1672,27 @@ router.post(
       if (!req.userId) {
         throw new AppError('Authenticated user is required.', 401);
       }
+      const userId = req.userId;
 
       const draft = await resetManualCardDraftForRetry({
-        userId: req.userId,
+        userId,
         draftId: req.params.draftId,
       });
-      await enqueueStudyManualCardDraftJob(draft.id);
+      const enqueueResult = await enqueueOrMarkDraftError({
+        enqueue: () => enqueueStudyManualCardDraftJob(draft.id),
+        markError: () =>
+          markManualCardDraftError({
+            userId,
+            draftId: draft.id,
+            errorMessage: MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE,
+          }),
+        enqueueLogMessage: 'Failed to enqueue study manual card draft retry job:',
+        markErrorLogMessage: 'Failed to mark retried study manual card draft as error:',
+      });
+      if (!enqueueResult.queued) {
+        res.json(enqueueResult.result);
+        return;
+      }
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
       res.json(draft);
