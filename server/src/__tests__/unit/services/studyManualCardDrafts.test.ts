@@ -41,6 +41,7 @@ describe('manual card draft persistence service', () => {
     mockPrisma.studyCardDraft.findFirst.mockReset();
     mockPrisma.studyCardDraft.findUnique.mockReset();
     mockPrisma.studyCardDraft.create.mockReset();
+    mockPrisma.studyCardDraft.createMany.mockReset();
     mockPrisma.studyCardDraft.update.mockReset();
     mockPrisma.studyCardDraft.updateMany.mockReset();
     mockPrisma.studyCardDraft.delete.mockReset();
@@ -164,6 +165,34 @@ describe('manual card draft persistence service', () => {
     ).rejects.toThrow('Draft queue is full.');
 
     expect(mockPrisma.studyCardDraft.create).not.toHaveBeenCalled();
+  });
+
+  it('fails batch draft creation if created records cannot be reloaded', async () => {
+    mockPrisma.studyCardDraft.count.mockResolvedValue(0);
+    mockPrisma.studyCardDraft.createMany.mockResolvedValue({ count: 1 });
+    mockPrisma.studyCardDraft.findMany.mockResolvedValue([]);
+    const { createGeneratingManualCardDraftsInTransaction } =
+      await import('../../../services/study/manualCardDrafts.js');
+    const tx = mockPrisma as unknown as Parameters<
+      typeof createGeneratingManualCardDraftsInTransaction
+    >[0]['tx'];
+
+    await expect(
+      createGeneratingManualCardDraftsInTransaction({
+        tx,
+        userId: 'user-1',
+        drafts: [
+          {
+            creationKind: 'text-recognition',
+            cardType: 'recognition',
+            prompt: { cueText: '会社' },
+            answer: { expression: '会社', meaning: 'company' },
+            imagePlacement: 'none',
+            imagePrompt: null,
+          },
+        ],
+      })
+    ).rejects.toThrow('Created study card draft could not be reloaded.');
   });
 
   it('rejects draft creation when the supplied card type does not match the creation kind', async () => {

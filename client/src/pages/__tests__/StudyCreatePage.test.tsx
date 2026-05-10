@@ -41,10 +41,6 @@ const {
   generateDraftImageState,
   generateCandidatesState,
   generateCandidatesMock,
-  generateVocabBundleState,
-  generateVocabBundleMock,
-  commitVocabBundleMock,
-  commitVocabBundleState,
   manualDraftsState,
   regenerateCandidateAudioMock,
   regenerateCandidateImageMock,
@@ -72,10 +68,6 @@ const {
   generateDraftImageState: { error: null as Error | null, isPending: false },
   generateCandidatesState: { error: null as Error | null, isPending: false },
   generateCandidatesMock: vi.fn(),
-  generateVocabBundleState: { error: null as Error | null, isPending: false },
-  generateVocabBundleMock: vi.fn(),
-  commitVocabBundleMock: vi.fn(),
-  commitVocabBundleState: { error: null as Error | null, isPending: false },
   manualDraftsState: {
     drafts: [] as StudyManualCardDraft[],
     error: null as Error | null,
@@ -152,16 +144,6 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: generateCandidatesMock,
     isPending: generateCandidatesState.isPending,
     error: generateCandidatesState.error,
-  }),
-  useGenerateStudyVocabBundle: () => ({
-    mutateAsync: generateVocabBundleMock,
-    isPending: generateVocabBundleState.isPending,
-    error: generateVocabBundleState.error,
-  }),
-  useCommitStudyVocabBundle: () => ({
-    mutateAsync: commitVocabBundleMock,
-    isPending: commitVocabBundleState.isPending,
-    error: commitVocabBundleState.error,
   }),
   useRegenerateStudyCardCandidatePreviewAudio: () => ({
     mutateAsync: regenerateCandidateAudioMock,
@@ -261,12 +243,6 @@ describe('StudyCreatePage', () => {
     generateCandidatesState.error = null;
     generateCandidatesState.isPending = false;
     generateCandidatesMock.mockReset();
-    generateVocabBundleState.error = null;
-    generateVocabBundleState.isPending = false;
-    generateVocabBundleMock.mockReset();
-    commitVocabBundleState.error = null;
-    commitVocabBundleState.isPending = false;
-    commitVocabBundleMock.mockReset();
     manualDraftsState.drafts = [];
     manualDraftsState.error = null;
     manualDraftsState.isLoading = false;
@@ -280,10 +256,6 @@ describe('StudyCreatePage', () => {
     updateManualDraftState.error = null;
     updateManualDraftState.isPending = false;
     commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
-    commitVocabBundleMock.mockResolvedValue({
-      groupId: 'group-1',
-      drafts: [manualDraft({ id: 'draft-created-1' })],
-    });
     createManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
     createVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',
@@ -931,6 +903,38 @@ describe('StudyCreatePage', () => {
     expect(screen.getByTestId('study-generate-progress-percent')).toHaveTextContent('0%');
   });
 
+  it('hides vocab bundle progress after drafts are queued successfully', async () => {
+    let resolveVocabBundle!: (value: unknown) => void;
+    createVocabBundleDraftsMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveVocabBundle = resolve;
+        })
+    );
+    const { rerenderPage } = renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word'), '営業する');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate vocab bundle' }));
+    createVocabBundleDraftsState.isPending = true;
+    rerenderPage();
+
+    expect(
+      screen.getByRole('status', { name: 'Candidate generation progress' })
+    ).toBeInTheDocument();
+
+    resolveVocabBundle({
+      groupId: 'group-1',
+      drafts: [manualDraft({ id: 'vocab-draft-1', status: 'generating' })],
+    });
+
+    expect(
+      await screen.findByText(/Added 1 generated card to the draft queue/)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Candidate generation progress' })
+    ).not.toBeInTheDocument();
+  });
+
   it('queues vocab bundle drafts from target word and optional sentence without waiting for generation', async () => {
     createVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',
@@ -971,7 +975,5 @@ describe('StudyCreatePage', () => {
     expect(
       await screen.findByText('Added 11 generated cards to the draft queue.')
     ).toBeInTheDocument();
-    expect(generateVocabBundleMock).not.toHaveBeenCalled();
-    expect(commitVocabBundleMock).not.toHaveBeenCalled();
   });
 });

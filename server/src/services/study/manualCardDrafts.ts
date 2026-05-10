@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import type {
   StudyCardCreationKind,
   StudyCardImagePlacement,
@@ -386,6 +388,7 @@ export async function createGeneratingManualCardDraftsInTransaction(input: {
     const cardType = cardTypeForStudyCardCreationKind(creationKind);
     validateCreationKindAndCardType({ creationKind, cardType: requestedCardType });
     return {
+      id: randomUUID(),
       userId: input.userId,
       status: 'generating',
       creationKind,
@@ -414,12 +417,20 @@ export async function createGeneratingManualCardDraftsInTransaction(input: {
     throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
   }
 
-  const created = await Promise.all(
-    normalizedDrafts.map(async (data) => {
-      const draft = await input.tx.studyCardDraft.create({ data });
-      return draft as StudyManualCardDraftRecord;
-    })
+  await input.tx.studyCardDraft.createMany({ data: normalizedDrafts });
+  const createdRecords = await input.tx.studyCardDraft.findMany({
+    where: { id: { in: normalizedDrafts.map((draft) => draft.id) }, userId: input.userId },
+  });
+  const recordsById = new Map(
+    createdRecords.map((draft) => [draft.id, draft as StudyManualCardDraftRecord])
   );
+  const created = normalizedDrafts.map((draft) => {
+    const record = recordsById.get(draft.id);
+    if (!record) {
+      throw new Error('Created study card draft could not be reloaded.');
+    }
+    return record;
+  });
 
   return created.map((draft) => toManualCardDraft(draft));
 }

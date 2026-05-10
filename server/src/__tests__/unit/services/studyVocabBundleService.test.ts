@@ -4,6 +4,7 @@ import type {
 } from '@languageflow/shared/src/types.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AppError } from '../../../middleware/errorHandler.js';
 import { mockPrisma } from '../../setup.js';
 
 const createReadyManualCardDraftsInTransactionMock = vi.hoisted(() => vi.fn());
@@ -332,7 +333,7 @@ describe('studyVocabBundleService', () => {
     expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
   });
 
-  it('marks generating drafts as error when generated variants do not match placeholders', async () => {
+  it('marks generating drafts as error immediately when generated variants do not match placeholders', async () => {
     const group = vocabGroup(false);
     const mismatchError = 'Generated vocab bundle did not match queued draft placeholders.';
     mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
@@ -357,13 +358,161 @@ describe('studyVocabBundleService', () => {
     const { processStudyVocabBundleDrafts } =
       await import('../../../services/studyVocabBundleService.js');
 
+    await expect(
+      processStudyVocabBundleDrafts('group-1', { markDraftsOnError: false })
+    ).rejects.toThrow(mismatchError);
+    expect(mockPrisma.studyCardDraft.update).not.toHaveBeenCalled();
+    expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
+      where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
+      data: {
+        status: 'error',
+        errorMessage:
+          'Could not generate this vocab bundle. Please retry or edit the drafts manually.',
+      },
+    });
+  });
+
+  it('marks generating drafts as error when placeholder draft variant keys are duplicated', async () => {
+    const group = vocabGroup(false);
+    const mismatchError = 'Generated vocab bundle did not match queued draft placeholders.';
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    mockPrisma.studyVariantGroup.update.mockResolvedValue(group);
+    mockPrisma.studyVariantSentence.findMany.mockResolvedValue(group.sentences);
+    mockPrisma.studyVariantSentence.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    mockPrisma.studyCardDraft.findMany.mockResolvedValue([
+      ...group.drafts.slice(0, 10),
+      {
+        ...group.drafts[10],
+        variantStage: 1,
+        variantSentenceId: 'sentence-0',
+      },
+    ]);
+    generateStudyCardCandidateJsonMock.mockResolvedValue(vocabBundleJson());
+    resolveStudyCardCandidateCommitItemMock.mockImplementation(async ({ item }) => ({
+      item,
+      prompt: item.prompt,
+      answer: item.answer,
+      previewAudioId: item.previewAudio?.id ?? null,
+      previewAudioRole: item.previewAudioRole ?? null,
+      previewImageId: item.previewImage?.id ?? null,
+    }));
+    getOwnedPreviewMediaIdsMock.mockImplementation(async ({ mediaIds }) => new Set(mediaIds));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
     await expect(processStudyVocabBundleDrafts('group-1')).rejects.toThrow(mismatchError);
     expect(mockPrisma.studyCardDraft.update).not.toHaveBeenCalled();
     expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
       where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
       data: {
         status: 'error',
-        errorMessage: mismatchError,
+        errorMessage:
+          'Could not generate this vocab bundle. Please retry or edit the drafts manually.',
+      },
+    });
+  });
+
+  it('leaves drafts generating on retryable processor failures before the final attempt', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    generateStudyCardCandidateJsonMock.mockRejectedValue(new Error('provider timeout'));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(
+      processStudyVocabBundleDrafts('group-1', { markDraftsOnError: false })
+    ).rejects.toThrow('provider timeout');
+    expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('can complete drafts on a retry after an early retryable processor failure', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    mockPrisma.studyVariantGroup.update.mockResolvedValue(group);
+    mockPrisma.studyVariantSentence.findMany.mockResolvedValue(group.sentences);
+    mockPrisma.studyVariantSentence.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    mockPrisma.studyCardDraft.findMany.mockResolvedValue(group.drafts);
+    mockPrisma.studyCardDraft.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      ...data,
+    }));
+    generateStudyCardCandidateJsonMock
+      .mockRejectedValueOnce(new Error('provider timeout'))
+      .mockResolvedValue(vocabBundleJson());
+    resolveStudyCardCandidateCommitItemMock.mockImplementation(async ({ item }) => ({
+      item,
+      prompt: item.prompt,
+      answer: item.answer,
+      previewAudioId: item.previewAudio?.id ?? null,
+      previewAudioRole: item.previewAudioRole ?? null,
+      previewImageId: item.previewImage?.id ?? null,
+    }));
+    getOwnedPreviewMediaIdsMock.mockImplementation(async ({ mediaIds }) => new Set(mediaIds));
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(
+      processStudyVocabBundleDrafts('group-1', { markDraftsOnError: false })
+    ).rejects.toThrow('provider timeout');
+    const retryResult = await processStudyVocabBundleDrafts('group-1', {
+      markDraftsOnError: false,
+    });
+
+    expect(retryResult).toEqual({ groupId: 'group-1', completedDraftCount: 11 });
+    expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.studyCardDraft.update).toHaveBeenCalledTimes(11);
+  });
+
+  it('defaults direct processing calls to store a safe user-facing error message', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    generateStudyCardCandidateJsonMock.mockRejectedValue(
+      new Error('provider leaked prompt detail')
+    );
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(processStudyVocabBundleDrafts('group-1')).rejects.toThrow(
+      'provider leaked prompt detail'
+    );
+    expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
+      where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
+      data: {
+        status: 'error',
+        errorMessage:
+          'Could not generate this vocab bundle. Please retry or edit the drafts manually.',
+      },
+    });
+  });
+
+  it('stores safe client AppError messages on final draft processing failures', async () => {
+    const group = vocabGroup(false);
+    mockPrisma.studyVariantGroup.findUnique.mockResolvedValue(group);
+    generateStudyCardCandidateJsonMock.mockRejectedValue(
+      new AppError('Target word is required.', 400)
+    );
+
+    const { processStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(processStudyVocabBundleDrafts('group-1')).rejects.toThrow(
+      'Target word is required.'
+    );
+    expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
+      where: { variantGroupId: 'group-1', userId: 'user-1', status: 'generating' },
+      data: {
+        status: 'error',
+        errorMessage: 'Target word is required.',
       },
     });
   });

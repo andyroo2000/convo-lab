@@ -39,11 +39,8 @@ import type {
   StudyReviewResult,
   StudySettings,
   StudyUndoReviewResult,
-  StudyVocabBundleCommitRequest,
-  StudyVocabBundleCommitResponse,
   StudyVocabBundleDraftCreateResponse,
   StudyVocabBundleGenerateRequest,
-  StudyVocabBundleGenerateResponse,
 } from '@languageflow/shared/src/types';
 
 import { API_URL } from '../config';
@@ -237,35 +234,11 @@ export async function commitStudyCardCandidates(
   });
 }
 
-export async function generateStudyVocabBundle(
-  payload: StudyVocabBundleGenerateRequest
-): Promise<StudyVocabBundleGenerateResponse> {
-  return apiRequest<StudyVocabBundleGenerateResponse>(
-    '/api/study/card-candidates/vocab-bundle/generate',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }
-  );
-}
-
 export async function createStudyVocabBundleDrafts(
   payload: StudyVocabBundleGenerateRequest
 ): Promise<StudyVocabBundleDraftCreateResponse> {
   return apiRequest<StudyVocabBundleDraftCreateResponse>(
     '/api/study/card-candidates/vocab-bundle/drafts',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }
-  );
-}
-
-export async function commitStudyVocabBundle(
-  payload: StudyVocabBundleCommitRequest
-): Promise<StudyVocabBundleCommitResponse> {
-  return apiRequest<StudyVocabBundleCommitResponse>(
-    '/api/study/card-candidates/vocab-bundle/commit',
     {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -576,12 +549,6 @@ export function useGenerateStudyCardCandidates() {
   });
 }
 
-export function useGenerateStudyVocabBundle() {
-  return useMutation({
-    mutationFn: generateStudyVocabBundle,
-  });
-}
-
 export function useCreateStudyVocabBundleDrafts() {
   const queryClient = useQueryClient();
 
@@ -690,20 +657,6 @@ export function useCommitStudyCardCandidates() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
-      ]);
-    },
-  });
-}
-
-export function useCommitStudyVocabBundle() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: commitStudyVocabBundle,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
       ]);
     },
