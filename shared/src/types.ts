@@ -168,6 +168,7 @@ export interface StudyFsrsState {
 export interface StudyCardState {
   dueAt: string | null;
   introducedAt?: string | null;
+  failedAt?: string | null;
   queueState: StudyQueueState;
   scheduler: StudyFsrsState | null;
   source: StudySourceSnapshot;
@@ -407,6 +408,7 @@ export interface StudyManualCardDraftCreateCardResponse {
 
 export interface StudyOverview {
   dueCount: number;
+  failedCount?: number;
   newCount: number;
   newCardsPerDay?: number;
   newCardsIntroducedToday?: number;

@@ -74,7 +74,11 @@ const StudyOverviewDashboard = ({
         {error ? <p className="text-red-600">{error.message}</p> : null}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-5">
+        <div className="card retro-paper-panel">
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-500">{t('overview.failed')}</p>
+          <p className="text-3xl font-bold text-navy">{overview?.failedCount ?? 0}</p>
+        </div>
         <div className="card retro-paper-panel">
           <p className="text-xs uppercase tracking-[0.2em] text-gray-500">{t('overview.due')}</p>
           <p className="text-3xl font-bold text-navy">{overview?.dueCount ?? 0}</p>

@@ -195,6 +195,7 @@ export function parseOptionalStudyOverview(value: unknown): StudyOverview | unde
   const readFiniteNumber = (candidate: unknown): number | null =>
     typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : null;
   const dueCount = readFiniteNumber(value.dueCount);
+  const failedCount = readFiniteNumber(value.failedCount);
   const newCount = readFiniteNumber(value.newCount);
   const learningCount = readFiniteNumber(value.learningCount);
   const reviewCount = readFiniteNumber(value.reviewCount);
@@ -220,6 +221,7 @@ export function parseOptionalStudyOverview(value: unknown): StudyOverview | unde
 
   return {
     dueCount,
+    failedCount: failedCount ?? undefined,
     newCount,
     learningCount,
     reviewCount,

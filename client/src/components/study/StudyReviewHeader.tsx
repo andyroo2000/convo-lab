@@ -35,11 +35,11 @@ const StudyReviewHeader = ({
       </div>
       <div className="text-right">
         <p className="text-sm font-semibold tracking-[0.08em] text-navy md:text-base">
-          <span className="text-blue-600">{newRemaining}</span>
-          <span className="px-1.5 text-gray-400">+</span>
           <span className="text-red-600">{failedDue}</span>
           <span className="px-1.5 text-gray-400">+</span>
           <span className="text-emerald-700">{reviewRemaining}</span>
+          <span className="px-1.5 text-gray-400">+</span>
+          <span className="text-blue-600">{newRemaining}</span>
         </p>
         <p className="sr-only">{t('reviewHeader.counts')}</p>
       </div>

@@ -433,7 +433,8 @@ describe('useStudyReviewSession', () => {
     });
   });
 
-  it('moves a failed new card from the new count to the failed count', async () => {
+  it('removes a failed new card while it waits for its retry due time', async () => {
+    const retryDueAt = new Date('2999-04-21T12:05:00.000Z').toISOString();
     const newCard = {
       ...baseCardOne,
       id: 'new-card-1',
@@ -465,13 +466,15 @@ describe('useStudyReviewSession', () => {
         ...newCard,
         state: {
           ...newCard.state,
-          dueAt: new Date('2026-04-21T12:05:00.000Z').toISOString(),
+          dueAt: retryDueAt,
+          failedAt: new Date().toISOString(),
           queueState: 'learning' as const,
         },
       },
       overview: {
         ...baseOverview,
         dueCount: 0,
+        failedCount: 1,
         newCount: 0,
         newCardsPerDay: 20,
         newCardsIntroducedToday: 1,
@@ -479,6 +482,7 @@ describe('useStudyReviewSession', () => {
         learningCount: 1,
         reviewCount: 0,
         totalCards: 1,
+        nextDueAt: retryDueAt,
       },
     });
 
@@ -501,9 +505,135 @@ describe('useStudyReviewSession', () => {
 
     expect(result.current.sessionCounts).toEqual({
       newRemaining: 0,
+      failedDue: 0,
+      reviewRemaining: 0,
+    });
+    await waitFor(() => {
+      expect(result.current.currentCard).toBeNull();
+    });
+    expect(startStudySessionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts persisted failed cards loaded from the server', async () => {
+    const failedCard = {
+      ...baseCardOne,
+      id: 'failed-card-1',
+      state: {
+        ...baseCardOne.state,
+        failedAt: new Date('2026-04-21T12:00:00.000Z').toISOString(),
+        queueState: 'relearning' as const,
+      },
+    };
+
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        ...baseOverview,
+        dueCount: 0,
+        failedCount: 1,
+        newCount: 0,
+        learningCount: 1,
+        reviewCount: 0,
+        totalCards: 1,
+      },
+      cards: [failedCard],
+    });
+    prepareStudyAnswerAudioMock.mockResolvedValue(failedCard);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    expect(result.current.sessionCounts).toEqual({
+      newRemaining: 0,
       failedDue: 1,
       reviewRemaining: 0,
     });
+  });
+
+  it('loads new cards in the same focus session after backlog is cleared', async () => {
+    const dueCard = {
+      ...baseCardOne,
+      id: 'due-card-1',
+    };
+    const newCard = {
+      ...baseCardTwo,
+      id: 'new-card-1',
+      state: {
+        ...baseCardTwo.state,
+        dueAt: null,
+        queueState: 'new' as const,
+        source: { type: 0 },
+      },
+    };
+
+    startStudySessionMock
+      .mockResolvedValueOnce({
+        overview: {
+          ...baseOverview,
+          dueCount: 1,
+          failedCount: 0,
+          newCount: 1,
+          newCardsAvailableToday: 0,
+          reviewCount: 1,
+          totalCards: 2,
+        },
+        cards: [dueCard],
+      })
+      .mockResolvedValueOnce({
+        overview: {
+          ...baseOverview,
+          dueCount: 0,
+          failedCount: 0,
+          newCount: 1,
+          newCardsAvailableToday: 1,
+          reviewCount: 0,
+          totalCards: 1,
+        },
+        cards: [newCard],
+      });
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) =>
+      cardId === newCard.id ? newCard : dueCard
+    );
+    reviewMutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-log-due',
+      card: {
+        ...dueCard,
+        state: {
+          ...dueCard.state,
+          dueAt: new Date('2026-04-22T12:00:00.000Z').toISOString(),
+          queueState: 'review' as const,
+        },
+      },
+      overview: {
+        ...baseOverview,
+        dueCount: 0,
+        failedCount: 0,
+        newCount: 1,
+        newCardsAvailableToday: 1,
+        reviewCount: 1,
+        totalCards: 2,
+      },
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentCard?.id).toBe('new-card-1');
+    });
+    expect(startStudySessionMock).toHaveBeenCalledTimes(2);
   });
 
   it('restores a buried card when undo is triggered', async () => {

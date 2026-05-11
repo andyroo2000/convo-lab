@@ -605,6 +605,7 @@ model StudyCard {
   queueState           String // Runtime queue state; DB check enforced in migration history.
   dueAt                DateTime?
   introducedAt         DateTime?
+  failedAt             DateTime?
   lastReviewedAt       DateTime?
   newQueuePosition     Int?
   promptJson           Json
@@ -638,6 +639,7 @@ model StudyCard {
   @@index([userId, queueState, dueAt])
   @@index([userId, queueState, newQueuePosition])
   @@index([userId, introducedAt])
+  @@index([userId, failedAt])
   @@index([userId, lastReviewedAt])
   @@index([userId, noteId, cardType])
   @@index([userId, noteId, queueState])
