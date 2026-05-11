@@ -95,6 +95,7 @@ interface FeatureFlags {
 interface PronunciationDictionary {
   keepKanji: string[];
   forceKana: Record<string, string>;
+  verbKana?: Record<string, string>;
   updatedAt?: string;
 }
 
@@ -121,6 +122,7 @@ const AdminPage = () => {
   const [pronunciationSaving, setPronunciationSaving] = useState(false);
   const [keepKanjiText, setKeepKanjiText] = useState('');
   const [forceKanaText, setForceKanaText] = useState('');
+  const [verbKanaText, setVerbKanaText] = useState('');
   const [confirmAction, setConfirmAction] = useState<
     | { type: 'delete-user'; id: string; email: string }
     | { type: 'delete-invite-code'; id: string; code: string }
@@ -400,6 +402,7 @@ const AdminPage = () => {
       setPronunciationDictionary(data);
       setKeepKanjiText(formatKeepKanjiText(data.keepKanji || []));
       setForceKanaText(formatForceKanaText(data.forceKana || {}));
+      setVerbKanaText(formatForceKanaText(data.verbKana || {}));
     } catch (err) {
       showToast(
         err instanceof Error ? err.message : 'Failed to fetch pronunciation dictionary',
@@ -413,9 +416,14 @@ const AdminPage = () => {
   const handleSavePronunciationDictionary = async () => {
     const keepKanji = parseKeepKanjiText(keepKanjiText);
     const { entries: forceKana, errors } = parseForceKanaText(forceKanaText);
+    const { entries: verbKana, errors: verbKanaErrors } = parseForceKanaText(verbKanaText);
 
     if (errors.length > 0) {
       showToast(errors[0], 'error');
+      return;
+    }
+    if (verbKanaErrors.length > 0) {
+      showToast(verbKanaErrors[0], 'error');
       return;
     }
 
@@ -425,7 +433,7 @@ const AdminPage = () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ keepKanji, forceKana }),
+        body: JSON.stringify({ keepKanji, forceKana, verbKana }),
       });
 
       if (!response.ok) throw new Error('Failed to update pronunciation dictionary');
@@ -434,6 +442,7 @@ const AdminPage = () => {
       setPronunciationDictionary(updated);
       setKeepKanjiText(formatKeepKanjiText(updated.keepKanji || []));
       setForceKanaText(formatForceKanaText(updated.forceKana || {}));
+      setVerbKanaText(formatForceKanaText(updated.verbKana || {}));
       showToast('Pronunciation dictionary updated', 'success');
     } catch (err) {
       showToast(
@@ -1437,7 +1446,8 @@ const AdminPage = () => {
               <h2 className="text-xl font-semibold text-navy mb-2">Pronunciation Dictionaries</h2>
               <p className="text-sm text-gray-600 mb-6">
                 Keep-kanji words stay in kanji for TTS. Force-kana words replace kanji with kana.
-                Enter one item per line. Force-kana format: word=reading.
+                Verb-kana words derive common godan stems for TTS. Enter one item per line. Kana
+                formats: word=reading.
               </p>
 
               {pronunciationLoading ? (
@@ -1446,7 +1456,7 @@ const AdminPage = () => {
                 </div>
               ) : (
                 <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div>
                       <h3 className="text-base font-semibold text-navy mb-2">Keep-Kanji</h3>
                       <textarea
@@ -1465,6 +1475,16 @@ const AdminPage = () => {
                         rows={12}
                         className="retro-admin-v3-input w-full p-3 text-sm font-mono text-gray-800"
                         placeholder="例: 北海道=ほっかいどう"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-navy mb-2">Verb-Kana</h3>
+                      <textarea
+                        value={verbKanaText}
+                        onChange={(e) => setVerbKanaText(e.target.value)}
+                        rows={12}
+                        className="retro-admin-v3-input w-full p-3 text-sm font-mono text-gray-800"
+                        placeholder="例: 話す=はなす"
                       />
                     </div>
                   </div>

@@ -748,6 +748,7 @@ router.put('/pronunciation-dictionaries', requireAdmin, async (req: AuthRequest,
     const payload = req.body as {
       keepKanji?: unknown;
       forceKana?: unknown;
+      verbKana?: unknown;
     };
 
     if (!Array.isArray(payload.keepKanji)) {
@@ -785,36 +786,52 @@ router.put('/pronunciation-dictionaries', requireAdmin, async (req: AuthRequest,
       return trimmed;
     });
 
-    const forceKanaEntries = Object.entries(payload.forceKana as Record<string, unknown>);
-    if (forceKanaEntries.length > MAX_FORCE_KANA_ENTRIES) {
-      throw new AppError(
-        `forceKana must contain no more than ${MAX_FORCE_KANA_ENTRIES} entries`,
-        400
-      );
-    }
-    const forceKana: Record<string, string> = {};
-    for (const [word, kana] of forceKanaEntries) {
-      if (typeof word !== 'string' || typeof kana !== 'string') {
-        throw new AppError('forceKana values must be strings', 400);
+    const parseKanaMap = (
+      value: unknown,
+      fieldName: 'forceKana' | 'verbKana'
+    ): Record<string, string> => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new AppError(`${fieldName} must be an object of word-to-kana mappings`, 400);
       }
-      const trimmedWord = word.trim();
-      const trimmedKana = kana.trim();
-      if (!trimmedWord || !trimmedKana) {
-        throw new AppError('forceKana entries must be non-empty strings', 400);
-      }
-      if (
-        trimmedWord.length > MAX_PRONUNCIATION_ENTRY_LENGTH ||
-        trimmedKana.length > MAX_PRONUNCIATION_ENTRY_LENGTH
-      ) {
+
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (entries.length > MAX_FORCE_KANA_ENTRIES) {
         throw new AppError(
-          `forceKana entries must be <= ${MAX_PRONUNCIATION_ENTRY_LENGTH} characters`,
+          `${fieldName} must contain no more than ${MAX_FORCE_KANA_ENTRIES} entries`,
           400
         );
       }
-      forceKana[trimmedWord] = trimmedKana;
-    }
 
-    const updated = await updateJapanesePronunciationDictionary({ keepKanji, forceKana });
+      const parsed: Record<string, string> = {};
+      for (const [word, kana] of entries) {
+        if (typeof word !== 'string' || typeof kana !== 'string') {
+          throw new AppError(`${fieldName} values must be strings`, 400);
+        }
+        const trimmedWord = word.trim();
+        const trimmedKana = kana.trim();
+        if (!trimmedWord || !trimmedKana) {
+          throw new AppError(`${fieldName} entries must be non-empty strings`, 400);
+        }
+        if (
+          trimmedWord.length > MAX_PRONUNCIATION_ENTRY_LENGTH ||
+          trimmedKana.length > MAX_PRONUNCIATION_ENTRY_LENGTH
+        ) {
+          throw new AppError(
+            `${fieldName} entries must be <= ${MAX_PRONUNCIATION_ENTRY_LENGTH} characters`,
+            400
+          );
+        }
+        parsed[trimmedWord] = trimmedKana;
+      }
+
+      return parsed;
+    };
+
+    const forceKana = parseKanaMap(payload.forceKana, 'forceKana');
+    const verbKana =
+      payload.verbKana === undefined ? undefined : parseKanaMap(payload.verbKana, 'verbKana');
+
+    const updated = await updateJapanesePronunciationDictionary({ keepKanji, forceKana, verbKana });
     res.json(updated);
   } catch (error) {
     next(error);
