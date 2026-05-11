@@ -45,6 +45,11 @@ const DEFAULT_DICTIONARY: JapanesePronunciationDictionary = {
     季節: 'きせつ',
     景色: 'けしき',
     物価: 'ぶっか',
+    話さ: 'はなさ',
+    話し: 'はなし',
+    話す: 'はなす',
+    話せ: 'はなせ',
+    話そ: 'はなそ',
   },
 };
 

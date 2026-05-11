@@ -13,19 +13,36 @@ function matchWordAtIndex(
   units: FuriganaUnit[],
   startIndex: number,
   word: string
-): { endIndex: number; surface: string } | undefined {
+): { endIndex: number; surface: string; trailingUnit?: FuriganaUnit } | undefined {
   let surface = '';
+  let remaining = word;
 
   for (let endIndex = startIndex; endIndex < units.length; endIndex++) {
-    surface += units[endIndex].surface;
+    const unit = units[endIndex];
+    const unitSurface = unit.surface;
 
-    if (surface === word) {
-      return { endIndex, surface };
+    if (remaining.startsWith(unitSurface)) {
+      surface += unitSurface;
+      remaining = remaining.slice(unitSurface.length);
+
+      if (!remaining) {
+        return { endIndex, surface };
+      }
+
+      continue;
     }
 
-    if (surface.length >= word.length) {
-      break;
+    if (unitSurface.startsWith(remaining) && unit.reading === unitSurface) {
+      const trailingSurface = unitSurface.slice(remaining.length);
+      surface += remaining;
+      return {
+        endIndex,
+        surface,
+        trailingUnit: { surface: trailingSurface, reading: trailingSurface },
+      };
     }
+
+    break;
   }
 
   return undefined;
@@ -85,6 +102,14 @@ function applyOverridesToUnits(
     const forceMatch = findForceMatch(units, i, cache);
     if (forceMatch) {
       output.push(forceMatch.kana);
+      if (forceMatch.trailingUnit) {
+        output.push(
+          normalizeKanaParticleUnitForTts(
+            forceMatch.trailingUnit.surface,
+            forceMatch.trailingUnit.reading
+          )
+        );
+      }
       i = forceMatch.endIndex + 1;
       continue;
     }
