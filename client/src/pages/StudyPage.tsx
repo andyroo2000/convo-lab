@@ -259,12 +259,10 @@ const StudyPage = () => {
                           onReplayAudio={
                             reviewSession.currentCard.answer.answerAudio?.url
                               ? () => {
-                                  runBackgroundTask(
-                                    () => reviewSession.answerAudioRef.current?.play(),
-                                    {
-                                      label: 'Study answer-audio replay',
-                                    }
-                                  );
+                                  const playPromise = reviewSession.answerAudioRef.current?.play();
+                                  runBackgroundTask(playPromise, {
+                                    label: 'Study answer-audio replay',
+                                  });
                                 }
                               : undefined
                           }

@@ -752,6 +752,10 @@ describe('StudyPage', () => {
 
       expect(playMock).toHaveBeenCalledTimes(1);
       expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Replay answer audio' }));
+
+      expect(playMock).toHaveBeenCalledTimes(2);
     } finally {
       if (originalPlayDescriptor) {
         Object.defineProperty(HTMLMediaElement.prototype, 'play', originalPlayDescriptor);
