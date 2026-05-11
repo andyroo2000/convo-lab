@@ -433,6 +433,72 @@ describe('useStudyReviewSession', () => {
     });
   });
 
+  it('increments the failed count for a due card while it waits for its retry due time', async () => {
+    const retryDueAt = new Date('2999-04-21T12:05:00.000Z').toISOString();
+
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        ...baseOverview,
+        dueCount: 2,
+        failedCount: 0,
+        newCount: 0,
+        reviewCount: 2,
+        totalCards: 2,
+      },
+      cards: [baseCardOne, baseCardTwo],
+    });
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) =>
+      cardId === baseCardOne.id ? baseCardOne : baseCardTwo
+    );
+    reviewMutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-log-due',
+      card: {
+        ...baseCardOne,
+        state: {
+          ...baseCardOne.state,
+          dueAt: retryDueAt,
+          failedAt: new Date().toISOString(),
+          queueState: 'relearning' as const,
+        },
+      },
+      overview: {
+        ...baseOverview,
+        dueCount: 1,
+        failedCount: 1,
+        newCount: 0,
+        learningCount: 1,
+        reviewCount: 1,
+        totalCards: 2,
+        nextDueAt: retryDueAt,
+      },
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    expect(result.current.sessionCounts).toEqual({
+      newRemaining: 0,
+      failedDue: 0,
+      reviewRemaining: 2,
+    });
+
+    await act(async () => {
+      await result.current.handleGrade('again');
+    });
+
+    expect(result.current.sessionCounts).toEqual({
+      newRemaining: 0,
+      failedDue: 1,
+      reviewRemaining: 1,
+    });
+    expect(result.current.currentCard?.id).toBe('card-2');
+    expect(startStudySessionMock).toHaveBeenCalledTimes(1);
+  });
+
   it('removes a failed new card while it waits for its retry due time', async () => {
     const retryDueAt = new Date('2999-04-21T12:05:00.000Z').toISOString();
     const newCard = {
@@ -505,7 +571,7 @@ describe('useStudyReviewSession', () => {
 
     expect(result.current.sessionCounts).toEqual({
       newRemaining: 0,
-      failedDue: 0,
+      failedDue: 1,
       reviewRemaining: 0,
     });
     await waitFor(() => {
