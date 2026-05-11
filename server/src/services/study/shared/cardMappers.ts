@@ -173,6 +173,7 @@ export async function toStudyCardSummary(
     state: {
       dueAt: record.dueAt instanceof Date ? record.dueAt.toISOString() : null,
       introducedAt: record.introducedAt instanceof Date ? record.introducedAt.toISOString() : null,
+      failedAt: record.failedAt instanceof Date ? record.failedAt.toISOString() : null,
       queueState: parseStudyQueueState(record.queueState),
       scheduler: getRequiredSchedulerState(record),
       source: {

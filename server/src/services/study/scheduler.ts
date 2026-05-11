@@ -488,6 +488,7 @@ export async function getStudyOverview(
     prisma.$queryRaw<
       Array<{
         due_count: bigint | number | null;
+        failed_count: bigint | number | null;
         new_count: bigint | number | null;
         learning_count: bigint | number | null;
         review_count: bigint | number | null;
@@ -498,9 +499,16 @@ export async function getStudyOverview(
     >(Prisma.sql`
       SELECT
         COALESCE(SUM(CASE
-          WHEN "queueState" IN ('learning', 'review', 'relearning') AND "dueAt" <= ${now} THEN 1
+          WHEN "queueState" IN ('learning', 'review', 'relearning')
+            AND "dueAt" <= ${now}
+            AND "failedAt" IS NULL
+          THEN 1
           ELSE 0
         END), 0) AS due_count,
+        COALESCE(SUM(CASE
+          WHEN "queueState" IN ('learning', 'review', 'relearning') AND "failedAt" IS NOT NULL THEN 1
+          ELSE 0
+        END), 0) AS failed_count,
         COALESCE(SUM(CASE
           WHEN "queueState" = 'new' AND ("variantStatus" IS NULL OR "variantStatus" = 'available') THEN 1
           ELSE 0
@@ -524,6 +532,7 @@ export async function getStudyOverview(
 
   const cardOverview = cardOverviewRows[0] ?? {
     due_count: 0,
+    failed_count: 0,
     new_count: 0,
     learning_count: 0,
     review_count: 0,
@@ -532,14 +541,17 @@ export async function getStudyOverview(
     next_due_at: null,
   };
   const toCount = (value: bigint | number | null | undefined): number => Number(value ?? 0);
+  const dueCount = toCount(cardOverview.due_count);
+  const failedCount = toCount(cardOverview.failed_count);
   const newCount = toCount(cardOverview.new_count);
   const newCardsAvailableToday = Math.min(
     newCount,
-    Math.max(0, settings.newCardsPerDay - introducedToday)
+    failedCount > 0 || dueCount > 0 ? 0 : Math.max(0, settings.newCardsPerDay - introducedToday)
   );
 
   return {
-    dueCount: toCount(cardOverview.due_count),
+    dueCount,
+    failedCount,
     newCount,
     newCardsPerDay: settings.newCardsPerDay,
     newCardsIntroducedToday: introducedToday,
@@ -573,6 +585,7 @@ export async function getStudyOverview(
 interface StudyOverviewMutationCardLike {
   queueState: StudyQueueState;
   dueAt: Date | null;
+  failedAt: Date | null;
 }
 
 function getStudyOverviewBucket(
@@ -598,7 +611,15 @@ function countsAsDue(card: StudyOverviewMutationCardLike, now: Date): boolean {
     return false;
   }
 
-  return isActiveDueQueueState(card.queueState) && card.dueAt.getTime() <= now.getTime();
+  return (
+    isActiveDueQueueState(card.queueState) &&
+    !(card.failedAt instanceof Date) &&
+    card.dueAt.getTime() <= now.getTime()
+  );
+}
+
+function countsAsFailed(card: StudyOverviewMutationCardLike): boolean {
+  return isActiveDueQueueState(card.queueState) && card.failedAt instanceof Date;
 }
 
 function countsAsNextDueCandidate(card: StudyOverviewMutationCardLike): boolean {
@@ -608,10 +629,12 @@ function countsAsNextDueCandidate(card: StudyOverviewMutationCardLike): boolean 
 function getOverviewMutationCard(record: {
   queueState: string;
   dueAt: Date | null;
+  failedAt?: Date | null;
 }): StudyOverviewMutationCardLike {
   return {
     queueState: parseStudyQueueState(record.queueState),
     dueAt: record.dueAt instanceof Date ? record.dueAt : null,
+    failedAt: record.failedAt instanceof Date ? record.failedAt : null,
   };
 }
 
@@ -646,6 +669,7 @@ async function getAdjustedStudyOverview(
   const now = new Date();
   const nextOverview: StudyOverview = {
     ...currentOverview,
+    failedCount: currentOverview.failedCount ?? 0,
     latestImport: currentOverview.latestImport ?? null,
     nextDueAt: currentOverview.nextDueAt ?? null,
   };
@@ -669,6 +693,15 @@ async function getAdjustedStudyOverview(
 
   if (previousCountedAsDue !== nextCountedAsDue) {
     nextOverview.dueCount = Math.max(0, nextOverview.dueCount + (nextCountedAsDue ? 1 : -1));
+  }
+
+  const previousCountedAsFailed = countsAsFailed(previousCard);
+  const nextCountedAsFailed = countsAsFailed(nextCard);
+  if (previousCountedAsFailed !== nextCountedAsFailed) {
+    nextOverview.failedCount = Math.max(
+      0,
+      (nextOverview.failedCount ?? 0) + (nextCountedAsFailed ? 1 : -1)
+    );
   }
 
   const currentNextDueAt =
@@ -702,6 +735,36 @@ async function getAdjustedStudyOverview(
   }
 
   return nextOverview;
+}
+
+async function getAdjustedOrFreshStudyOverview(params: {
+  userId: string;
+  timeZone?: string;
+  currentOverview?: StudyOverview;
+  previousCard: StudyOverviewMutationCardLike;
+  nextCard: StudyOverviewMutationCardLike;
+  refreshWhenBacklogCleared?: boolean;
+}): Promise<StudyOverview> {
+  if (!params.currentOverview) {
+    return getStudyOverview(params.userId, params.timeZone);
+  }
+
+  const adjusted = await getAdjustedStudyOverview(
+    params.userId,
+    params.currentOverview,
+    params.previousCard,
+    params.nextCard
+  );
+
+  if (
+    params.refreshWhenBacklogCleared === true &&
+    adjusted.dueCount === 0 &&
+    (adjusted.failedCount ?? 0) === 0
+  ) {
+    return getStudyOverview(params.userId, params.timeZone);
+  }
+
+  return adjusted;
 }
 
 function toQueueStateFromFsrsState(state: number): StudyQueueState {
@@ -793,8 +856,33 @@ function getNewCardLimitForSession(remainingNewAllowance: number): number {
   return Math.min(STUDY_SESSION_READY_CARD_LIMIT, remainingNewAllowance);
 }
 
-function getDueCardLimitForSession(newCardCount: number): number {
-  return Math.max(0, STUDY_SESSION_READY_CARD_LIMIT - newCardCount);
+async function getActiveFailedCardCount(userId: string): Promise<number> {
+  return prisma.studyCard.count({
+    where: {
+      userId,
+      queueState: {
+        in: [...ACTIVE_DUE_QUEUE_STATES],
+      },
+      failedAt: {
+        not: null,
+      },
+    },
+  });
+}
+
+async function getReadyNonFailedDueCardCount(userId: string, now: Date): Promise<number> {
+  return prisma.studyCard.count({
+    where: {
+      userId,
+      queueState: {
+        in: [...ACTIVE_DUE_QUEUE_STATES],
+      },
+      failedAt: null,
+      dueAt: {
+        lte: now,
+      },
+    },
+  });
 }
 
 async function fetchQueuedNewStudyCards(
@@ -867,7 +955,7 @@ async function fetchDueStudyCards(
 export async function startStudySession(userId: string, options: { timeZone?: string } = {}) {
   const now = new Date();
   const dayWindow = getStudyDayWindow(options.timeZone, now);
-  const [settings, introducedToday] = await Promise.all([
+  const [settings, introducedToday, activeFailedCount, readyNonFailedDueCount] = await Promise.all([
     getStudySettings(userId),
     prisma.studyCard.count({
       where: {
@@ -878,19 +966,18 @@ export async function startStudySession(userId: string, options: { timeZone?: st
         },
       },
     }),
+    getActiveFailedCardCount(userId),
+    getReadyNonFailedDueCardCount(userId, now),
   ]);
 
   const remainingNewAllowance = getRemainingNewCardAllowance(settings, introducedToday);
-  // New cards are fetched first to reserve their daily slots, but the returned session keeps due cards first.
-  const newCards = await fetchQueuedNewStudyCards(
-    userId,
-    getNewCardLimitForSession(remainingNewAllowance)
-  );
-  const dueCards = await fetchDueStudyCards(
-    userId,
-    now,
-    getDueCardLimitForSession(newCards.length)
-  );
+  const hasBacklog = activeFailedCount > 0 || readyNonFailedDueCount > 0;
+  const dueCards = hasBacklog
+    ? await fetchDueStudyCards(userId, now, STUDY_SESSION_READY_CARD_LIMIT)
+    : [];
+  const newCards = hasBacklog
+    ? []
+    : await fetchQueuedNewStudyCards(userId, getNewCardLimitForSession(remainingNewAllowance));
   const cards = [...dueCards, ...newCards];
 
   await ensureStudyCardMediaAvailable(cards.slice(0, STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT));
@@ -946,6 +1033,7 @@ export async function recordStudyReview(params: {
   const nextState = scheduler.next(previousState, now, gradeToRating[params.grade]).card;
   const serializedNextState = serializeFsrsCard(nextState);
   const nextQueueState = toQueueStateFromFsrsState(nextState.state);
+  const nextFailedAt = params.grade === 'again' ? now : null;
   const wasIntroducedNow =
     parseStudyQueueState(card.queueState) === 'new' && !(card.introducedAt instanceof Date);
   const createdReviewLog = await prisma.$transaction(async (tx) => {
@@ -955,6 +1043,7 @@ export async function recordStudyReview(params: {
         schedulerStateJson: toPrismaJson(serializedNextState),
         queueState: nextQueueState,
         dueAt: nextState.due,
+        failedAt: nextFailedAt,
         lastReviewedAt: now,
         introducedAt: wasIntroducedNow ? now : undefined,
       },
@@ -980,6 +1069,7 @@ export async function recordStudyReview(params: {
           beforeDueAt: card.dueAt instanceof Date ? card.dueAt.toISOString() : null,
           beforeIntroducedAt:
             card.introducedAt instanceof Date ? card.introducedAt.toISOString() : null,
+          beforeFailedAt: card.failedAt instanceof Date ? card.failedAt.toISOString() : null,
           beforeLastReviewedAt:
             card.lastReviewedAt instanceof Date ? card.lastReviewedAt.toISOString() : null,
         }),
@@ -1017,12 +1107,14 @@ export async function recordStudyReview(params: {
   // New-card reviews change introduced-today allowance fields, so they need a fresh overview.
   const overview =
     params.currentOverview && parseStudyQueueState(card.queueState) !== 'new'
-      ? await getAdjustedStudyOverview(
-          params.userId,
-          params.currentOverview,
-          getOverviewMutationCard(card),
-          getOverviewMutationCard(refreshed)
-        )
+      ? await getAdjustedOrFreshStudyOverview({
+          userId: params.userId,
+          timeZone: params.timeZone,
+          currentOverview: params.currentOverview,
+          previousCard: getOverviewMutationCard(card),
+          nextCard: getOverviewMutationCard(refreshed),
+          refreshWhenBacklogCleared: true,
+        })
       : await getStudyOverview(params.userId, params.timeZone);
 
   return {
@@ -1116,6 +1208,8 @@ export async function undoStudyReview(params: {
       : restoredQueueState === 'new'
         ? null
         : cardRecord.introducedAt;
+  const restoredFailedAt =
+    typeof rawPayload.beforeFailedAt === 'string' ? new Date(rawPayload.beforeFailedAt) : null;
 
   await prisma.$transaction(async (tx) => {
     const updatedCard = await tx.studyCard.updateMany({
@@ -1125,6 +1219,7 @@ export async function undoStudyReview(params: {
         queueState: restoredQueueState,
         dueAt: restoredDueAt,
         introducedAt: restoredIntroducedAt,
+        failedAt: restoredFailedAt,
         lastReviewedAt: restoredLastReviewedAt,
       },
     });
@@ -1157,12 +1252,14 @@ export async function undoStudyReview(params: {
 
   const overview =
     params.currentOverview && restoredQueueState !== 'new'
-      ? await getAdjustedStudyOverview(
-          params.userId,
-          params.currentOverview,
-          getOverviewMutationCard(cardRecord),
-          getOverviewMutationCard(refreshed)
-        )
+      ? await getAdjustedOrFreshStudyOverview({
+          userId: params.userId,
+          timeZone: params.timeZone,
+          currentOverview: params.currentOverview,
+          previousCard: getOverviewMutationCard(cardRecord),
+          nextCard: getOverviewMutationCard(refreshed),
+          refreshWhenBacklogCleared: true,
+        })
       : await getStudyOverview(params.userId, params.timeZone);
 
   return {
@@ -1197,6 +1294,7 @@ export async function performStudyCardAction(
   let nextSchedulerState = getRequiredSchedulerState(existing);
   let nextLastReviewedAt = existing.lastReviewedAt instanceof Date ? existing.lastReviewedAt : null;
   let nextIntroducedAt = existing.introducedAt instanceof Date ? existing.introducedAt : null;
+  let nextFailedAt = existing.failedAt instanceof Date ? existing.failedAt : null;
   let nextNewQueuePosition =
     typeof existing.newQueuePosition === 'number' ? existing.newQueuePosition : null;
 
@@ -1211,6 +1309,7 @@ export async function performStudyCardAction(
     nextSchedulerState = createFreshSchedulerState();
     nextLastReviewedAt = null;
     nextIntroducedAt = null;
+    nextFailedAt = null;
     nextNewQueuePosition = await getNextNewQueuePosition(input.userId);
   } else if (input.action === 'set_due') {
     const mode = input.mode;
@@ -1233,6 +1332,7 @@ export async function performStudyCardAction(
       schedulerStateJson: toPrismaJson(nextSchedulerState),
       lastReviewedAt: nextLastReviewedAt,
       introducedAt: nextIntroducedAt,
+      failedAt: nextFailedAt,
       newQueuePosition: nextNewQueuePosition,
     },
   });
@@ -1262,12 +1362,13 @@ export async function performStudyCardAction(
     input.currentOverview &&
     parseStudyQueueState(existing.queueState) !== 'new' &&
     parseStudyQueueState(refreshed.queueState) !== 'new'
-      ? await getAdjustedStudyOverview(
-          input.userId,
-          input.currentOverview,
-          getOverviewMutationCard(existing),
-          getOverviewMutationCard(refreshed)
-        )
+      ? await getAdjustedOrFreshStudyOverview({
+          userId: input.userId,
+          timeZone: input.timeZone,
+          currentOverview: input.currentOverview,
+          previousCard: getOverviewMutationCard(existing),
+          nextCard: getOverviewMutationCard(refreshed),
+        })
       : await getStudyOverview(input.userId, input.timeZone);
 
   return {

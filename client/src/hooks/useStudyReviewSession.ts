@@ -41,7 +41,6 @@ interface StudyUndoSnapshot {
   currentIndex: number;
   revealed: boolean;
   answeredCardIds: string[];
-  failedCardIds: string[];
 }
 
 type StudyUndoAction =
@@ -93,12 +92,49 @@ const getGradeIntervals = (card: StudyCardSummary | null) => {
 };
 
 const isCardEligibleForSession = (card: StudyCardSummary) => {
-  if (card.state.queueState === 'new') return true;
+  if (card.state.queueState === 'new') return !card.state.failedAt;
   if (!['learning', 'review', 'relearning'].includes(card.state.queueState)) {
     return false;
   }
   if (!card.state.dueAt) return false;
   return new Date(card.state.dueAt).getTime() <= Date.now();
+};
+
+const hasPersistedFailure = (card: StudyCardSummary) => Boolean(card.state.failedAt);
+
+const orderStudySessionCards = (cards: StudyCardSummary[]) =>
+  [...cards].sort((left, right) => {
+    const leftIsNew = left.state.queueState === 'new';
+    const rightIsNew = right.state.queueState === 'new';
+    if (leftIsNew !== rightIsNew) return leftIsNew ? 1 : -1;
+    if (leftIsNew && rightIsNew) return 0;
+
+    const leftDueAt = left.state.dueAt
+      ? new Date(left.state.dueAt).getTime()
+      : Number.MAX_SAFE_INTEGER;
+    const rightDueAt = right.state.dueAt
+      ? new Date(right.state.dueAt).getTime()
+      : Number.MAX_SAFE_INTEGER;
+    if (leftDueAt !== rightDueAt) return leftDueAt - rightDueAt;
+
+    return left.id.localeCompare(right.id);
+  });
+
+const getCardsAfterReview = (
+  currentCards: StudyCardSummary[],
+  updatedCard: StudyCardSummary,
+  grade: 'again' | 'hard' | 'good' | 'easy'
+) => {
+  let nextCards = currentCards.filter((card) => card.id !== updatedCard.id);
+
+  if (grade === 'again' && hasPersistedFailure(updatedCard)) {
+    nextCards = nextCards.filter((card) => card.state.queueState !== 'new');
+    if (isCardEligibleForSession(updatedCard)) {
+      nextCards.push(updatedCard);
+    }
+  }
+
+  return orderStudySessionCards(nextCards);
 };
 
 const useStudyReviewSession = () => {
@@ -119,10 +155,11 @@ const useStudyReviewSession = () => {
   const [undoPending, setUndoPending] = useState(false);
   const [reviewSubmitPending, setReviewSubmitPending] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
-  const [failedCardIds, setFailedCardIds] = useState<string[]>([]);
   const reviewSubmitPendingRef = useRef(false);
   const sessionCardCountRef = useRef(0);
   const canSurfaceAsyncSessionErrorRef = useRef(false);
+  const answeredCardIdsRef = useRef<Set<string>>(new Set());
+  const autoRefreshEmptySessionRef = useRef(false);
   const runBackgroundTask = useStudyBackgroundTask();
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
@@ -131,11 +168,10 @@ const useStudyReviewSession = () => {
   const gradeIntervals = useMemo(() => getGradeIntervals(currentCard), [currentCard]);
   const sessionCounts = useMemo(() => {
     const answeredSet = new Set(answeredCardIds);
-    const failedSet = new Set(failedCardIds);
     const totals = { newRemaining: 0, failedDue: 0, reviewRemaining: 0 };
 
     cards.forEach((card) => {
-      if (failedSet.has(card.id)) {
+      if (hasPersistedFailure(card)) {
         totals.failedDue += 1;
       } else if (!answeredSet.has(card.id)) {
         if (card.state.queueState === 'new') {
@@ -147,7 +183,7 @@ const useStudyReviewSession = () => {
     });
 
     return totals;
-  }, [answeredCardIds, cards, failedCardIds]);
+  }, [answeredCardIds, cards]);
   const updateCardErrorMessage = useMemo(() => {
     if (regenerateAudioMutation.error instanceof Error) {
       return regenerateAudioMutation.error.message;
@@ -167,6 +203,10 @@ const useStudyReviewSession = () => {
   useEffect(() => {
     sessionCardCountRef.current = session?.cards.length ?? 0;
   }, [session]);
+
+  useEffect(() => {
+    answeredCardIdsRef.current = new Set(answeredCardIds);
+  }, [answeredCardIds]);
 
   useEffect(() => {
     canSurfaceAsyncSessionErrorRef.current = focusMode;
@@ -195,6 +235,7 @@ const useStudyReviewSession = () => {
   const mergeCardIntoSession = useCallback((updatedCard: StudyCardSummary) => {
     setSession((currentSession) => {
       if (!currentSession) return currentSession;
+      if (answeredCardIdsRef.current.has(updatedCard.id)) return currentSession;
 
       return {
         ...currentSession,
@@ -217,24 +258,19 @@ const useStudyReviewSession = () => {
   }, []);
 
   const applyReviewResultToSession = useCallback(
-    (updatedCard: StudyCardSummary, grade: 'again' | 'hard' | 'good' | 'easy') => {
+    (
+      updatedCard: StudyCardSummary,
+      grade: 'again' | 'hard' | 'good' | 'easy',
+      resolvedCards?: StudyCardSummary[],
+      resolvedOverview?: StudyOverview
+    ) => {
       setSession((currentSession) => {
         if (!currentSession) return currentSession;
 
-        const currentCards = [...currentSession.cards];
-        const cardIndex = currentCards.findIndex((card) => card.id === updatedCard.id);
-        if (cardIndex === -1) return currentSession;
-
-        if (grade === 'again') {
-          currentCards.splice(cardIndex, 1);
-          currentCards.push(updatedCard);
-        } else {
-          currentCards.splice(cardIndex, 1);
-        }
-
         return {
           ...currentSession,
-          cards: currentCards,
+          overview: resolvedOverview ?? currentSession.overview,
+          cards: resolvedCards ?? getCardsAfterReview(currentSession.cards, updatedCard, grade),
         };
       });
     },
@@ -250,16 +286,14 @@ const useStudyReviewSession = () => {
             currentIndex,
             revealed,
             answeredCardIds,
-            failedCardIds,
           }).session
         : null,
       overview: getCachedOverview(),
       currentIndex,
       revealed,
       answeredCardIds: [...answeredCardIds],
-      failedCardIds: [...failedCardIds],
     }),
-    [answeredCardIds, currentIndex, failedCardIds, getCachedOverview, revealed, session]
+    [answeredCardIds, currentIndex, getCachedOverview, revealed, session]
   );
 
   const ensureAnswerAudioPrepared = useStudyAnswerAudioPrep({
@@ -294,8 +328,8 @@ const useStudyReviewSession = () => {
       }
       setCurrentIndex(restored.currentIndex);
       setRevealed(restored.revealed);
+      answeredCardIdsRef.current = new Set(restored.answeredCardIds);
       setAnsweredCardIds(restored.answeredCardIds);
-      setFailedCardIds(restored.failedCardIds);
       setSessionError(null);
       setShowSetDueControls(false);
     },
@@ -308,6 +342,7 @@ const useStudyReviewSession = () => {
 
     try {
       const nextSession = await startStudySession();
+      autoRefreshEmptySessionRef.current = nextSession.cards.length === 0;
       setSession(nextSession);
       syncOverview(nextSession.overview);
       return nextSession;
@@ -371,8 +406,9 @@ const useStudyReviewSession = () => {
     setUndoPending(false);
     reviewSubmitPendingRef.current = false;
     setReviewSubmitPending(false);
+    autoRefreshEmptySessionRef.current = false;
+    answeredCardIdsRef.current = new Set();
     setAnsweredCardIds([]);
-    setFailedCardIds([]);
     runBackgroundTask(() => queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }), {
       label: 'Study overview refresh',
     });
@@ -396,16 +432,10 @@ const useStudyReviewSession = () => {
         setReviewSubmitPending(true);
         stopAllAudio();
         const reviewResult = await reviewMutation.mutateAsync({ cardId: currentCard.id, grade });
+        answeredCardIdsRef.current.add(currentCard.id);
         setAnsweredCardIds((current) =>
           current.includes(currentCard.id) ? current : [...current, currentCard.id]
         );
-        setFailedCardIds((current) => {
-          if (grade === 'again') {
-            return current.includes(currentCard.id) ? current : [...current, currentCard.id];
-          }
-
-          return current.filter((cardId) => cardId !== currentCard.id);
-        });
         pushUndo({
           kind: 'grade',
           snapshot: undoSnapshot,
@@ -414,13 +444,12 @@ const useStudyReviewSession = () => {
         if (grade === 'again') {
           resetStudyAudioAutoplayForCard(currentCard.id);
         }
-        applyReviewResultToSession(reviewResult.card, grade);
+        const nextCards = getCardsAfterReview(cards, reviewResult.card, grade);
+        autoRefreshEmptySessionRef.current = nextCards.length === 0;
+        applyReviewResultToSession(reviewResult.card, grade, nextCards, reviewResult.overview);
         syncOverview(reviewResult.overview);
         setCurrentIndex((current) => {
-          const currentSessionCardCount = sessionCardCountRef.current;
-          const nextLength =
-            grade === 'again' ? currentSessionCardCount : Math.max(currentSessionCardCount - 1, 0);
-
+          const nextLength = nextCards.length;
           if (nextLength === 0) return 0;
           return Math.min(current, nextLength - 1);
         });
@@ -438,6 +467,7 @@ const useStudyReviewSession = () => {
       applyReviewResultToSession,
       captureUndoSnapshot,
       currentCard,
+      cards,
       editing,
       pushUndo,
       resetStudyAudioAutoplayForCard,
@@ -458,8 +488,8 @@ const useStudyReviewSession = () => {
       snapshot: captureUndoSnapshot(),
     });
     stopAllAudio();
+    autoRefreshEmptySessionRef.current = false;
     setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
-    setFailedCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
     removeCardFromSession(currentCard.id);
     const nextLength = Math.max(cards.length - 1, 0);
     setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
@@ -495,8 +525,8 @@ const useStudyReviewSession = () => {
 
         syncOverview(result.overview);
         setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
-        setFailedCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
         setShowSetDueControls(false);
+        autoRefreshEmptySessionRef.current = false;
 
         if (isCardEligibleForSession(result.card)) {
           mergeCardIntoSession(result.card);
@@ -582,8 +612,8 @@ const useStudyReviewSession = () => {
     stopAllAudio();
     try {
       await deleteCardMutation.mutateAsync(currentCard.id);
+      autoRefreshEmptySessionRef.current = false;
       setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
-      setFailedCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
       removeCardFromSession(currentCard.id);
       const nextLength = Math.max(cards.length - 1, 0);
       setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
@@ -679,8 +709,9 @@ const useStudyReviewSession = () => {
     setRevealed(false);
     setEditing(false);
     setUndoPending(false);
+    autoRefreshEmptySessionRef.current = false;
+    answeredCardIdsRef.current = new Set();
     setAnsweredCardIds([]);
-    setFailedCardIds([]);
     runBackgroundTask(() => requestMotionPermission(), {
       label: 'Study motion-permission request',
     });
@@ -696,6 +727,65 @@ const useStudyReviewSession = () => {
     runBackgroundTask,
     resetUndo,
     stopAllAudio,
+  ]);
+
+  useEffect(() => {
+    if (
+      !focusMode ||
+      sessionLoading ||
+      sessionError ||
+      currentCard ||
+      reviewBusy ||
+      undoPending ||
+      editing ||
+      !autoRefreshEmptySessionRef.current
+    ) {
+      return undefined;
+    }
+
+    const overview = session?.overview ?? getCachedOverview();
+    if (!overview) return undefined;
+
+    const failedCount = overview.failedCount ?? 0;
+    const newCardsAvailable = overview.newCardsAvailableToday ?? overview.newCount;
+    const nextDueAt = overview.nextDueAt ? new Date(overview.nextDueAt) : null;
+    const nextDueMs = nextDueAt && !Number.isNaN(nextDueAt.getTime()) ? nextDueAt.getTime() : null;
+    const shouldLoadNow =
+      overview.dueCount > 0 ||
+      (failedCount === 0 && newCardsAvailable > 0) ||
+      (failedCount > 0 && nextDueMs !== null && nextDueMs <= Date.now());
+
+    if (shouldLoadNow) {
+      runBackgroundTask(() => loadSession(), {
+        label: 'Study session refresh',
+      });
+      return undefined;
+    }
+
+    if (failedCount > 0 && nextDueMs !== null) {
+      const delayMs = Math.max(0, Math.min(nextDueMs - Date.now() + 250, 2_147_483_647));
+      const timeoutId = window.setTimeout(() => {
+        runBackgroundTask(() => loadSession(), {
+          label: 'Study failed-card retry refresh',
+        });
+      }, delayMs);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    return undefined;
+  }, [
+    currentCard,
+    editing,
+    focusMode,
+    getCachedOverview,
+    loadSession,
+    reviewBusy,
+    runBackgroundTask,
+    session?.overview,
+    sessionError,
+    sessionLoading,
+    undoPending,
   ]);
 
   useEffect(() => {

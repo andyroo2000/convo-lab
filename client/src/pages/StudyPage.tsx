@@ -22,6 +22,7 @@ const StudyPage = () => {
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
   const availableCount =
+    (overviewQuery.data?.failedCount ?? 0) +
     (overviewQuery.data?.dueCount ?? 0) +
     (overviewQuery.data?.newCardsAvailableToday ?? overviewQuery.data?.newCount ?? 0);
   const reviewSession = useStudyReviewSession();
@@ -44,6 +45,7 @@ const StudyPage = () => {
   const headline = useMemo(() => {
     if (!overviewQuery.data) return t('title');
     return t('headline', {
+      failedCount: overviewQuery.data.failedCount ?? 0,
       dueCount: overviewQuery.data.dueCount,
       newCount: overviewQuery.data.newCount,
     });

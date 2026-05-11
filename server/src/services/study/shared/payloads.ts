@@ -60,6 +60,7 @@ export function toConvolabReviewRawPayload(params: {
   beforeQueueState: string;
   beforeDueAt: string | null;
   beforeIntroducedAt?: string | null;
+  beforeFailedAt?: string | null;
   beforeLastReviewedAt: string | null;
 }): Prisma.InputJsonValue {
   const payload = {
@@ -67,6 +68,7 @@ export function toConvolabReviewRawPayload(params: {
     beforeQueueState: params.beforeQueueState,
     beforeDueAt: params.beforeDueAt,
     beforeIntroducedAt: params.beforeIntroducedAt ?? null,
+    beforeFailedAt: params.beforeFailedAt ?? null,
     beforeLastReviewedAt: params.beforeLastReviewedAt,
   };
 

@@ -355,7 +355,7 @@ describe('StudyPage', () => {
     renderStudyPage();
 
     expect(screen.getByRole('button', { name: 'Begin Study' })).toBeInTheDocument();
-    expect(screen.getByText('4 due, 6 new')).toBeInTheDocument();
+    expect(screen.getByText('0 failed, 4 due, 6 new')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Browse' })).toHaveAttribute(
       'href',
       '/app/study/browse'

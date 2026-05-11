@@ -1,7 +1,7 @@
 {
   "title": "学習",
   "disabled": "この環境では学習機能が無効になっています。",
-  "headline": "期限 {{dueCount}} 件、新規 {{newCount}} 件",
+  "headline": "失敗 {{failedCount}} 件、期限 {{dueCount}} 件、新規 {{newCount}} 件",
   "motion": {
     "unsupported": "この端末ではシェイクで取り消しは使えません。",
     "denied": "モーションアクセスが拒否されたため、シェイクで取り消しはオフになっています。",
@@ -27,7 +27,7 @@
   },
   "reviewHeader": {
     "exit": "学習を終了",
-    "counts": "新規 + 失敗 + レビュー"
+    "counts": "失敗 + 期限 + 新規"
   },
   "gradeButtons": {
     "again": "もう一度",
@@ -43,6 +43,7 @@
     "dailyAudio": "毎日の音声",
     "settings": "設定",
     "due": "期限",
+    "failed": "失敗",
     "new": "新規",
     "learning": "学習中",
     "total": "合計",

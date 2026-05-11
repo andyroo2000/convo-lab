@@ -1,7 +1,7 @@
 {
   "title": "Study",
   "disabled": "Study is currently disabled for this environment.",
-  "headline": "{{dueCount}} due, {{newCount}} new",
+  "headline": "{{failedCount}} failed, {{dueCount}} due, {{newCount}} new",
   "motion": {
     "unsupported": "Shake to undo is not available on this device.",
     "denied": "Shake to undo is off because motion access was denied.",
@@ -27,7 +27,7 @@
   },
   "reviewHeader": {
     "exit": "Exit Study",
-    "counts": "New + Failed + Review"
+    "counts": "Failed + Due + New"
   },
   "gradeButtons": {
     "again": "Again",
@@ -43,6 +43,7 @@
     "dailyAudio": "Daily Audio",
     "settings": "Settings",
     "due": "Due",
+    "failed": "Failed",
     "new": "New",
     "learning": "Learning",
     "total": "Total",
