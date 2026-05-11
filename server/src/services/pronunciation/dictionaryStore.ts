@@ -256,6 +256,7 @@ const GODAN_STEM_ROWS: Record<string, [string, string, string, string, string]> 
   ぬ: ['な', 'に', 'ぬ', 'ね', 'の'],
   ぶ: ['ば', 'び', 'ぶ', 'べ', 'ぼ'],
   む: ['ま', 'み', 'む', 'め', 'も'],
+  る: ['ら', 'り', 'る', 'れ', 'ろ'],
 };
 
 function deriveGodanStemEntries(word: string, kana: string): Array<[string, string]> {

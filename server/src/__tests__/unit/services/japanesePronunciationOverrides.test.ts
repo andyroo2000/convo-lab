@@ -130,6 +130,24 @@ describe('japanesePronunciationOverrides', () => {
     expect(invitation).toBe('じかんがあったら、こうえんですこしはなしませんか。');
   });
 
+  it('derives verb-stem overrides for godan る verbs', async () => {
+    mockFs.__setFile(
+      JSON.stringify({
+        keepKanji: [],
+        forceKana: {},
+        verbKana: { 帰る: 'かえる' },
+      })
+    );
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const result = module.applyJapanesePronunciationOverrides({
+      text: '家に帰りたいです。',
+      reading: '家[いえ]に帰[き]りたいです。',
+    });
+
+    expect(result).toBe('いえにかえりたいです。');
+  });
+
   it('loads older dictionaries without verb-kana entries', async () => {
     mockFs.__setFile(
       JSON.stringify({
