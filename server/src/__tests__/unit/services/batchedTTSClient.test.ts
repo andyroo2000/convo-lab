@@ -87,7 +87,18 @@ vi.mock('fluent-ffmpeg', () => ({
 vi.mock('fs', () => ({
   existsSync: vi.fn(() => true),
   readFileSync: vi.fn(() =>
-    JSON.stringify({ keepKanji: ['橋'], forceKana: { 北海道: 'ほっかいどう', 物価: 'ぶっか' } })
+    JSON.stringify({
+      keepKanji: ['橋'],
+      forceKana: {
+        北海道: 'ほっかいどう',
+        物価: 'ぶっか',
+        話さ: 'はなさ',
+        話し: 'はなし',
+        話す: 'はなす',
+        話せ: 'はなせ',
+        話そ: 'はなそ',
+      },
+    })
   ),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
@@ -218,6 +229,22 @@ describe('batchedTTSClient', () => {
 
       expect(unit.text).toBe('今朝は買い物したかったです。');
       expect(batches[0].units[0].text).toBe('けさわかいものしたかったです。');
+    });
+
+    it('should correct generated furigana that misreads 話し inflections before Japanese TTS', () => {
+      const unit: LessonScriptUnit = {
+        type: 'L2',
+        text: '時間があったら、公園で少し話しませんか。',
+        reading: '時間[じかん]があったら、公園[こうえん]で少[すこ]し話[わな]しませんか。',
+        voiceId: 'ja-JP-Wavenet-C',
+        speed: 1.0,
+      };
+      const units: LessonScriptUnit[] = [unit];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(unit.text).toBe('時間があったら、公園で少し話しませんか。');
+      expect(batches[0].units[0].text).toBe('じかんがあったら、こうえんですこしはなしませんか。');
     });
 
     it('should keep kanji for keep-kanji words', () => {

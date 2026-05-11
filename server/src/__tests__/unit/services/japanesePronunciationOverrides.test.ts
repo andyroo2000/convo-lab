@@ -42,7 +42,15 @@ vi.mock('fs', () => mockFs);
 
 const dictionaryJson = JSON.stringify({
   keepKanji: ['橋'],
-  forceKana: { 北海道: 'ほっかいどう', 物価: 'ぶっか' },
+  forceKana: {
+    北海道: 'ほっかいどう',
+    物価: 'ぶっか',
+    話さ: 'はなさ',
+    話し: 'はなし',
+    話す: 'はなす',
+    話せ: 'はなせ',
+    話そ: 'はなそ',
+  },
   updatedAt: '2024-01-01T00:00:00.000Z',
 });
 
@@ -106,6 +114,22 @@ describe('japanesePronunciationOverrides', () => {
     });
 
     expect(result).toBe('けさわかいものしたかったです。');
+  });
+
+  it('uses dictionary verb-stem overrides when generated furigana misreads 話し inflections', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const conditional = module.applyJapanesePronunciationOverrides({
+      text: '日本人と話したら',
+      reading: '日本人[にほんじん]と話[わな]したら',
+    });
+    expect(conditional).toBe('にほんじんとはなしたら');
+
+    const invitation = module.applyJapanesePronunciationOverrides({
+      text: '時間があったら、公園で少し話しませんか。',
+      reading: '時間[じかん]があったら、公園[こうえん]で少[すこ]し話[わな]しませんか。',
+    });
+    expect(invitation).toBe('じかんがあったら、こうえんですこしはなしませんか。');
   });
 
   it('does not update in-memory state if disk write fails', async () => {
