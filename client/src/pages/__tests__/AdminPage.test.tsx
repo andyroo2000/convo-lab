@@ -127,6 +127,7 @@ const mockFeatureFlags = {
 const mockPronunciationDictionary = {
   keepKanji: ['橋'],
   forceKana: { 北海道: 'ほっかいどう' },
+  verbKana: { 話す: 'はなす' },
   updatedAt: new Date('2024-01-02').toISOString(),
 };
 
@@ -582,6 +583,15 @@ describe('AdminPage', () => {
       });
     });
 
+    it('should fetch and display verb pronunciation overrides', async () => {
+      renderPage('settings');
+
+      await waitFor(() => {
+        expect(screen.getByText('Verb-Kana')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('話す=はなす')).toBeInTheDocument();
+      });
+    });
+
     it('should toggle feature flags', async () => {
       renderPage('settings');
 
@@ -593,6 +603,24 @@ describe('AdminPage', () => {
           expect.stringContaining('/api/admin/feature-flags'),
           expect.objectContaining({
             method: 'PATCH',
+          })
+        );
+      });
+    });
+
+    it('should save verb pronunciation overrides', async () => {
+      renderPage('settings');
+
+      const verbKanaInput = await screen.findByDisplayValue('話す=はなす');
+      fireEvent.change(verbKanaInput, { target: { value: '書く=かく' } });
+      fireEvent.click(screen.getByText('Save Dictionary'));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/admin/pronunciation-dictionaries'),
+          expect.objectContaining({
+            method: 'PUT',
+            body: expect.stringContaining('"verbKana":{"書く":"かく"}'),
           })
         );
       });

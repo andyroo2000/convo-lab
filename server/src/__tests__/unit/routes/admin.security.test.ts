@@ -55,8 +55,12 @@ vi.mock('stripe', () => ({
 }));
 
 vi.mock('../../../services/japanesePronunciationOverrides.js', () => ({
-  getJapanesePronunciationDictionary: vi.fn(() => ({ keepKanji: [], forceKana: {} })),
-  updateJapanesePronunciationDictionary: vi.fn(async () => ({ keepKanji: [], forceKana: {} })),
+  getJapanesePronunciationDictionary: vi.fn(() => ({ keepKanji: [], forceKana: {}, verbKana: {} })),
+  updateJapanesePronunciationDictionary: vi.fn(async () => ({
+    keepKanji: [],
+    forceKana: {},
+    verbKana: {},
+  })),
 }));
 
 describe('Admin Security Tests', () => {

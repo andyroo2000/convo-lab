@@ -8,6 +8,7 @@ import { normalizeMatchText } from './textUtils.js';
 export interface JapanesePronunciationDictionary {
   keepKanji: string[];
   forceKana: Record<string, string>;
+  verbKana?: Record<string, string>;
   updatedAt?: string;
 }
 
@@ -45,11 +46,9 @@ const DEFAULT_DICTIONARY: JapanesePronunciationDictionary = {
     季節: 'きせつ',
     景色: 'けしき',
     物価: 'ぶっか',
-    話さ: 'はなさ',
-    話し: 'はなし',
+  },
+  verbKana: {
     話す: 'はなす',
-    話せ: 'はなせ',
-    話そ: 'はなそ',
   },
 };
 
@@ -168,9 +167,27 @@ function normalizeDictionary(
     forceKana[word] = kana;
   }
 
+  const rawVerbKana = input.verbKana && typeof input.verbKana === 'object' ? input.verbKana : {};
+  const verbEntries = Object.entries(rawVerbKana)
+    .map(
+      ([word, kana]) =>
+        [
+          typeof word === 'string' ? normalizeMatchText(word) : '',
+          typeof kana === 'string' ? kana.trim() : '',
+        ] as const
+    )
+    .filter(([word, kana]) => word && kana)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  const verbKana: Record<string, string> = {};
+  for (const [word, kana] of verbEntries) {
+    verbKana[word] = kana;
+  }
+
   return {
     keepKanji: keepKanjiSorted,
     forceKana,
+    verbKana,
   };
 }
 
@@ -209,16 +226,63 @@ function buildCache(dictionary: JapanesePronunciationDictionary): DictionaryCach
     .map(([word, kana]) => [normalizeMatchText(word), kana] as [string, string])
     .filter(([word, kana]) => word && kana);
   const forceKanaMap = new Map(forceKanaEntries);
-  const forceKanaSorted = [...forceKanaEntries].sort((a, b) => b[0].length - a[0].length);
+  const derivedVerbEntries = deriveVerbKanaEntries(dictionary.verbKana ?? {}).filter(
+    ([word]) => !forceKanaMap.has(word)
+  );
+  const effectiveForceKanaEntries = [...forceKanaEntries, ...derivedVerbEntries];
+  const effectiveForceKanaMap = new Map(effectiveForceKanaEntries);
+  const forceKanaSorted = [...effectiveForceKanaEntries].sort((a, b) => {
+    const lengthDiff = b[0].length - a[0].length;
+    if (lengthDiff !== 0) return lengthDiff;
+    return a[0].localeCompare(b[0]);
+  });
 
   return {
     keepKanjiWords,
     keepKanjiSet,
     keepKanjiSorted,
-    forceKanaEntries,
-    forceKanaMap,
+    forceKanaEntries: effectiveForceKanaEntries,
+    forceKanaMap: effectiveForceKanaMap,
     forceKanaSorted,
   };
+}
+
+const GODAN_STEM_ROWS: Record<string, [string, string, string, string, string]> = {
+  う: ['わ', 'い', 'う', 'え', 'お'],
+  く: ['か', 'き', 'く', 'け', 'こ'],
+  ぐ: ['が', 'ぎ', 'ぐ', 'げ', 'ご'],
+  す: ['さ', 'し', 'す', 'せ', 'そ'],
+  つ: ['た', 'ち', 'つ', 'て', 'と'],
+  ぬ: ['な', 'に', 'ぬ', 'ね', 'の'],
+  ぶ: ['ば', 'び', 'ぶ', 'べ', 'ぼ'],
+  む: ['ま', 'み', 'む', 'め', 'も'],
+};
+
+function deriveGodanStemEntries(word: string, kana: string): Array<[string, string]> {
+  const wordEnding = word.at(-1);
+  const kanaEnding = kana.at(-1);
+  if (!wordEnding || !kanaEnding || wordEnding !== kanaEnding) {
+    return [];
+  }
+
+  const stemRow = GODAN_STEM_ROWS[wordEnding];
+  if (!stemRow) {
+    return [];
+  }
+
+  const wordBase = word.slice(0, -1);
+  const kanaBase = kana.slice(0, -1);
+  return stemRow.map((ending) => [`${wordBase}${ending}`, `${kanaBase}${ending}`]);
+}
+
+function deriveVerbKanaEntries(verbKana: Record<string, string>): Array<[string, string]> {
+  const entries = new Map<string, string>();
+  for (const [word, kana] of Object.entries(verbKana)) {
+    for (const [stemWord, stemKana] of deriveGodanStemEntries(word, kana)) {
+      entries.set(stemWord, stemKana);
+    }
+  }
+  return [...entries.entries()];
 }
 
 let dictionaryState: JapanesePronunciationDictionary | null = null;
@@ -268,12 +332,13 @@ export function getDictionaryCache(): DictionaryCache | null {
 export function getJapanesePronunciationDictionary(): JapanesePronunciationDictionary {
   ensureDictionaryLoadedSync();
   if (!dictionaryState) {
-    return { keepKanji: [], forceKana: {} };
+    return { keepKanji: [], forceKana: {}, verbKana: {} };
   }
 
   return {
     keepKanji: [...dictionaryState.keepKanji],
     forceKana: { ...dictionaryState.forceKana },
+    verbKana: { ...(dictionaryState.verbKana ?? {}) },
     updatedAt: dictionaryState.updatedAt,
   };
 }
@@ -283,7 +348,10 @@ export async function updateJapanesePronunciationDictionary(
 ): Promise<JapanesePronunciationDictionary> {
   await ensureDictionaryLoadedAsync();
 
-  const normalized = normalizeDictionary(dictionary);
+  const normalized = normalizeDictionary({
+    ...dictionary,
+    verbKana: dictionary.verbKana ?? dictionaryState?.verbKana ?? {},
+  });
   const updated: JapanesePronunciationDictionary = {
     ...normalized,
     updatedAt: new Date().toISOString(),

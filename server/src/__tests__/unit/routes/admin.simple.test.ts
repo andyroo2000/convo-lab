@@ -45,15 +45,23 @@ const mockPrisma = vi.hoisted(() => ({
 const mockPronunciationDictionary = {
   keepKanji: ['橋'],
   forceKana: { 北海道: 'ほっかいどう' },
+  verbKana: { 話す: 'はなす' },
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
 const mockGetPronunciationDictionary = vi.hoisted(() => vi.fn(() => mockPronunciationDictionary));
 const mockUpdatePronunciationDictionary = vi.hoisted(() =>
-  vi.fn(async (dictionary: { keepKanji: string[]; forceKana: Record<string, string> }) => ({
-    ...dictionary,
-    updatedAt: new Date('2024-01-02').toISOString(),
-  }))
+  vi.fn(
+    async (dictionary: {
+      keepKanji: string[];
+      forceKana: Record<string, string>;
+      verbKana?: Record<string, string>;
+    }) => ({
+      ...dictionary,
+      verbKana: dictionary.verbKana ?? mockPronunciationDictionary.verbKana,
+      updatedAt: new Date('2024-01-02').toISOString(),
+    })
+  )
 );
 
 vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
@@ -187,6 +195,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.keepKanji).toContain('橋');
+      expect(response.body.verbKana).toHaveProperty('話す', 'はなす');
       expect(mockGetPronunciationDictionary).toHaveBeenCalled();
     });
 
@@ -216,7 +225,22 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       expect(response.status).toBe(200);
       expect(response.body.keepKanji).toContain('端');
       expect(response.body.forceKana).toHaveProperty('東京', 'とうきょう');
+      expect(response.body.verbKana).toHaveProperty('話す', 'はなす');
       expect(mockUpdatePronunciationDictionary).toHaveBeenCalled();
+    });
+
+    it('should update pronunciation dictionary verbKana entries', async () => {
+      const response = await request(app)
+        .put('/admin/pronunciation-dictionaries')
+        .send({ keepKanji: ['端'], forceKana: { 東京: 'とうきょう' }, verbKana: { 書く: 'かく' } });
+
+      expect(response.status).toBe(200);
+      expect(response.body.verbKana).toHaveProperty('書く', 'かく');
+      expect(mockUpdatePronunciationDictionary).toHaveBeenCalledWith({
+        keepKanji: ['端'],
+        forceKana: { 東京: 'とうきょう' },
+        verbKana: { 書く: 'かく' },
+      });
     });
 
     it('should reject overly large keepKanji lists', async () => {
@@ -236,6 +260,15 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('forceKana entries must be <=');
+    });
+
+    it('should reject invalid verbKana payloads', async () => {
+      const response = await request(app)
+        .put('/admin/pronunciation-dictionaries')
+        .send({ keepKanji: ['端'], forceKana: {}, verbKana: [] });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('verbKana must be an object');
     });
   });
 
