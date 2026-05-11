@@ -662,7 +662,8 @@ const useStudyReviewSession = () => {
       return false;
     }
 
-    runBackgroundTask(() => answerAudioRef.current?.play(), {
+    const playPromise = answerAudioRef.current.play();
+    runBackgroundTask(playPromise, {
       label: 'Study answer-audio keyboard replay',
     });
     return true;
