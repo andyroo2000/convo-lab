@@ -168,11 +168,16 @@ const useStudyReviewSession = () => {
   const gradeIntervals = useMemo(() => getGradeIntervals(currentCard), [currentCard]);
   const sessionCounts = useMemo(() => {
     const answeredSet = new Set(answeredCardIds);
-    const totals = { newRemaining: 0, failedDue: 0, reviewRemaining: 0 };
+    const totals = {
+      newRemaining: 0,
+      failedDue: session?.overview.failedCount ?? 0,
+      reviewRemaining: 0,
+    };
+    let loadedFailedCount = 0;
 
     cards.forEach((card) => {
       if (hasPersistedFailure(card)) {
-        totals.failedDue += 1;
+        loadedFailedCount += 1;
       } else if (!answeredSet.has(card.id)) {
         if (card.state.queueState === 'new') {
           totals.newRemaining += 1;
@@ -182,8 +187,10 @@ const useStudyReviewSession = () => {
       }
     });
 
+    totals.failedDue = Math.max(totals.failedDue, loadedFailedCount);
+
     return totals;
-  }, [answeredCardIds, cards]);
+  }, [answeredCardIds, cards, session?.overview.failedCount]);
   const updateCardErrorMessage = useMemo(() => {
     if (regenerateAudioMutation.error instanceof Error) {
       return regenerateAudioMutation.error.message;
