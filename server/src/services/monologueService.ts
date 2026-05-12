@@ -60,6 +60,7 @@ const MONOLOGUE_FULL_AUDIO_TAKE_LIST_LIMIT = 5;
 const MONOLOGUE_DRAFT_UPDATE_MAX_ATTEMPTS = 3;
 const MONOLOGUE_LLM_GENERATION_MAX_ATTEMPTS = 2;
 const MONOLOGUE_FULL_RENDER_WARN_MS = 20_000;
+const MONOLOGUE_FULL_RENDER_TIMEOUT_MS = 60_000;
 const MONOLOGUE_TARGET_LANGUAGE: LanguageCode = 'ja';
 const MONOLOGUE_NATIVE_LANGUAGE: LanguageCode = 'en';
 const MONOLOGUE_TTS_VOICE_IDS = new Set(
@@ -113,8 +114,25 @@ function sanitizeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function truncate(value: string, maxLength: number): string {
-  return value.length > maxLength ? value.slice(0, maxLength) : value;
+function requireMaxLength(
+  value: string,
+  maxLength: number,
+  label: string,
+  statusCode = 400
+): string {
+  if (value.length > maxLength) {
+    throw new AppError(`${label} can have at most ${maxLength} characters.`, statusCode);
+  }
+  return value;
+}
+
+function sanitizeBoundedString(
+  value: unknown,
+  maxLength: number,
+  label: string,
+  statusCode = 400
+): string {
+  return requireMaxLength(sanitizeString(value), maxLength, label, statusCode);
 }
 
 function delay(ms: number): Promise<void> {
@@ -260,34 +278,54 @@ function parseGeneratedMonologue(raw: string): GeneratedMonologue {
     throw new AppError('Monologue generator returned invalid JSON.', 502);
   }
   const record = parsed as Record<string, unknown>;
-  const title = truncate(
+  const title = requireMaxLength(
     sanitizeString(record.title) || 'Untitled monologue',
-    MONOLOGUE_TITLE_MAX_LENGTH
+    MONOLOGUE_TITLE_MAX_LENGTH,
+    'Generated monologue title',
+    502
   );
-  const fullText = truncate(sanitizeString(record.fullText), MONOLOGUE_FULL_TEXT_MAX_LENGTH);
+  const fullText = sanitizeBoundedString(
+    record.fullText,
+    MONOLOGUE_FULL_TEXT_MAX_LENGTH,
+    'Generated monologue fullText',
+    502
+  );
   const rawSegments = Array.isArray(record.segments) ? record.segments : [];
   const segments = rawSegments
     .slice(0, MONOLOGUE_SEGMENT_MAX_COUNT)
     .map((value): GeneratedMonologueSegment | null => {
       if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
       const segment = value as Record<string, unknown>;
-      const sourceText = truncate(
-        sanitizeString(segment.sourceText),
-        MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH
+      const sourceText = sanitizeBoundedString(
+        segment.sourceText,
+        MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH,
+        'Generated monologue segment sourceText',
+        502
       );
-      const japaneseText = truncate(
-        sanitizeString(segment.japaneseText),
-        MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH
+      const japaneseText = sanitizeBoundedString(
+        segment.japaneseText,
+        MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH,
+        'Generated monologue segment japaneseText',
+        502
       );
       if (!sourceText || !japaneseText) return null;
       return {
         sourceText,
         japaneseText,
         reading:
-          truncate(sanitizeString(segment.reading), MONOLOGUE_SEGMENT_READING_MAX_LENGTH) || null,
+          sanitizeBoundedString(
+            segment.reading,
+            MONOLOGUE_SEGMENT_READING_MAX_LENGTH,
+            'Generated monologue segment reading',
+            502
+          ) || null,
         beatLabel:
-          truncate(sanitizeString(segment.beatLabel), MONOLOGUE_SEGMENT_BEAT_LABEL_MAX_LENGTH) ||
-          null,
+          sanitizeBoundedString(
+            segment.beatLabel,
+            MONOLOGUE_SEGMENT_BEAT_LABEL_MAX_LENGTH,
+            'Generated monologue segment beat label',
+            502
+          ) || null,
       };
     })
     .filter((value): value is GeneratedMonologueSegment => Boolean(value));
@@ -421,13 +459,17 @@ export async function createMonologueProject(
   userId: string,
   request: MonologueCreateRequest
 ): Promise<MonologueProjectSummary> {
-  const sourceText = truncate(sanitizeString(request.sourceText), MONOLOGUE_SOURCE_MAX_LENGTH);
+  const sourceText = sanitizeBoundedString(
+    request.sourceText,
+    MONOLOGUE_SOURCE_MAX_LENGTH,
+    'sourceText'
+  );
   if (!sourceText) {
     throw new AppError('sourceText is required.', 400);
   }
 
   const generated = await generateParsedMonologueDraft({ sourceText, title: request.title });
-  const requestedTitle = truncate(sanitizeString(request.title), MONOLOGUE_TITLE_MAX_LENGTH);
+  const requestedTitle = sanitizeBoundedString(request.title, MONOLOGUE_TITLE_MAX_LENGTH, 'title');
   const title = requestedTitle || generated.title;
 
   const project = await prisma.$transaction(async (tx) => {
@@ -536,7 +578,11 @@ export async function updateMonologueDraft(
   }
   const activeVersion = project.activeVersion;
 
-  const fullText = truncate(sanitizeString(request.fullText), MONOLOGUE_FULL_TEXT_MAX_LENGTH);
+  const fullText = sanitizeBoundedString(
+    request.fullText,
+    MONOLOGUE_FULL_TEXT_MAX_LENGTH,
+    'fullText'
+  );
   if (!fullText) {
     throw new AppError('fullText is required.', 400);
   }
@@ -544,7 +590,7 @@ export async function updateMonologueDraft(
   const segments = validateDraftSegments(request.segments);
   const title =
     typeof request.title === 'string'
-      ? truncate(sanitizeString(request.title), MONOLOGUE_TITLE_MAX_LENGTH)
+      ? sanitizeBoundedString(request.title, MONOLOGUE_TITLE_MAX_LENGTH, 'title')
       : null;
   let mediaCleanupCandidates: MonologueMediaCleanupCandidate[] = [];
 
@@ -808,9 +854,10 @@ export async function generateMonologueSegmentAudioTake(
 
   const voice = resolveMonologueVoice(request.voiceId);
   const speed = normalizeMonologueVoiceSpeed(voice, request.speed ?? 1);
-  const displayName = truncate(
+  const displayName = requireMaxLength(
     sanitizeString(request.displayName) || defaultTakeName(request.voiceId, speed),
-    MONOLOGUE_TAKE_NAME_MAX_LENGTH
+    MONOLOGUE_TAKE_NAME_MAX_LENGTH,
+    'displayName'
   );
   const makeDefault = request.isDefault === true;
   const buffer = await synthesizeMonologueText({
@@ -1115,25 +1162,27 @@ async function resolveMediaFilePath(input: {
 }
 
 async function concatenateAudioFiles(audioFiles: string[], outputPath: string): Promise<void> {
-  const tempDir = path.dirname(outputPath);
+  const tempDir = path.resolve(path.dirname(outputPath));
   const listPath = path.join(tempDir, 'concat.txt');
   const tempDirWithSeparator = `${tempDir}${path.sep}`;
+  const safeBasenames: string[] = [];
   for (const file of audioFiles) {
-    const basename = path.basename(file);
+    const resolvedFile = path.resolve(file);
+    const basename = path.basename(resolvedFile);
     if (
       !path.isAbsolute(file) ||
-      !file.startsWith(tempDirWithSeparator) ||
+      !resolvedFile.startsWith(tempDirWithSeparator) ||
       !/^segment-\d+\.mp3$/.test(basename)
     ) {
       throw new AppError('Audio render file path was outside the temporary render directory.', 500);
     }
+    safeBasenames.push(basename);
   }
-  await fs.writeFile(
-    listPath,
-    audioFiles.map((file) => `file '${path.basename(file)}'`).join('\n')
-  );
+  await fs.writeFile(listPath, safeBasenames.map((basename) => `file '${basename}'`).join('\n'));
   await new Promise<void>((resolve, reject) => {
-    ffmpeg()
+    let settled = false;
+    const timer: { current?: NodeJS.Timeout } = {};
+    const command = ffmpeg()
       .input(listPath)
       .inputOptions(['-f concat', '-safe 0'])
       .audioCodec('libmp3lame')
@@ -1141,15 +1190,29 @@ async function concatenateAudioFiles(audioFiles: string[], outputPath: string): 
       .audioFrequency(44100)
       .audioChannels(2)
       .output(outputPath)
-      .on('end', () => resolve())
+      .on('end', () => {
+        if (settled) return;
+        settled = true;
+        if (timer.current) clearTimeout(timer.current);
+        resolve();
+      })
       .on('error', (error: Error) => {
+        if (settled) return;
+        settled = true;
+        if (timer.current) clearTimeout(timer.current);
         reject(
           isFfmpegUnavailableError(error)
             ? new AppError('Audio concatenation is unavailable: ffmpeg not found.', 503)
             : error
         );
-      })
-      .run();
+      });
+    timer.current = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      command.kill('SIGKILL');
+      reject(new AppError('Audio concatenation timed out.', 503));
+    }, MONOLOGUE_FULL_RENDER_TIMEOUT_MS);
+    command.run();
   });
 }
 

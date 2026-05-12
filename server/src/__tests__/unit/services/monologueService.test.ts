@@ -258,6 +258,20 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
   });
 
+  it('rejects oversized source text before calling the LLM', async () => {
+    await expect(
+      createMonologueProject('user-1', {
+        sourceText: 'a'.repeat(12_001),
+      })
+    ).rejects.toMatchObject({
+      message: 'sourceText can have at most 12000 characters.',
+      statusCode: 400,
+    });
+
+    expect(mockGenerateCoreLlmJsonText).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
+  });
+
   it('returns an app error when the LLM returns malformed monologue JSON', async () => {
     mockGenerateCoreLlmJsonText.mockResolvedValue('not json');
 
@@ -347,6 +361,34 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
     expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
     expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+    expect(mockGenerateCoreLlmJsonText).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects overlong generated segment text instead of truncating it', async () => {
+    mockGenerateCoreLlmJsonText.mockResolvedValue(
+      JSON.stringify({
+        title: 'Generated title',
+        fullText: '日本語です。',
+        segments: [
+          {
+            sourceText: 'English cue',
+            japaneseText: 'あ'.repeat(1001),
+            reading: 'にほんごです。',
+          },
+        ],
+      })
+    );
+
+    await expect(
+      createMonologueProject('user-1', {
+        sourceText: 'English source',
+      })
+    ).rejects.toMatchObject({
+      message: 'Generated monologue segment japaneseText can have at most 1000 characters.',
+      statusCode: 502,
+    });
+
+    expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
     expect(mockGenerateCoreLlmJsonText).toHaveBeenCalledTimes(2);
   });
 
@@ -596,6 +638,38 @@ describe('monologueService', () => {
         }),
       })
     );
+  });
+
+  it('rejects oversized audio take display names before synthesizing audio', async () => {
+    mockPrisma.monologueSegment.findFirst.mockResolvedValue({
+      id: 'segment-1',
+      userId: 'user-1',
+      projectId: 'project-1',
+      scriptVersionId: 'version-1',
+      ordinal: 0,
+      sourceText: 'English cue',
+      japaneseText: '日本語です。',
+      reading: 'にほんごです。',
+      beatLabel: null,
+      createdAt: now,
+      updatedAt: now,
+      project: { activeVersionId: 'version-1' },
+      scriptVersion: { id: 'version-1', status: 'approved' },
+    });
+
+    await expect(
+      generateMonologueSegmentAudioTake('user-1', 'project-1', 'segment-1', {
+        voiceId: 'ja-JP-Neural2-D',
+        speed: 0.85,
+        displayName: 'a'.repeat(121),
+      })
+    ).rejects.toMatchObject({
+      message: 'displayName can have at most 120 characters.',
+      statusCode: 400,
+    });
+
+    expect(mockSynthesizeBatchedTexts).not.toHaveBeenCalled();
+    expect(mockPersistStudyMediaBuffer).not.toHaveBeenCalled();
   });
 
   it('cleans up persisted media when sentence take creation fails', async () => {
@@ -915,6 +989,24 @@ describe('monologueService', () => {
       })
     ).rejects.toThrow('Monologue segment text can have at most 1000 characters.');
     expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized fullText edits before writing', async () => {
+    await expect(
+      updateMonologueDraft('user-1', 'project-1', {
+        fullText: 'あ'.repeat(12_001),
+        segments: [
+          {
+            sourceText: 'English cue',
+            japaneseText: '日本語です。',
+            reading: null,
+            beatLabel: null,
+          },
+        ],
+      })
+    ).rejects.toThrow('fullText can have at most 12000 characters.');
+    expect(mockPrisma.monologueScriptVersion.update).not.toHaveBeenCalled();
     expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
   });
 
