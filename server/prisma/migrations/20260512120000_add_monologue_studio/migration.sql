@@ -72,6 +72,7 @@ ALTER TABLE "monologue_script_versions" ADD CONSTRAINT "monologue_script_version
 ALTER TABLE "monologue_audio_takes" ADD CONSTRAINT "monologue_audio_takes_scope_check" CHECK ("scope" IN ('sentence', 'full'));
 
 CREATE INDEX "monologue_projects_userId_updatedAt_id_idx" ON "monologue_projects"("userId", "updatedAt", "id");
+CREATE INDEX "monologue_projects_userId_id_idx" ON "monologue_projects"("userId", "id");
 CREATE INDEX "monologue_projects_userId_status_idx" ON "monologue_projects"("userId", "status");
 CREATE INDEX "monologue_projects_activeVersionId_idx" ON "monologue_projects"("activeVersionId");
 CREATE INDEX "monologue_script_versions_userId_projectId_versionNumber_idx" ON "monologue_script_versions"("userId", "projectId", "versionNumber");

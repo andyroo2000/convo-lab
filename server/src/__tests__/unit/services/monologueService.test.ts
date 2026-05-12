@@ -254,7 +254,7 @@ describe('monologueService', () => {
   });
 
   it('returns an app error when the LLM returns malformed monologue JSON', async () => {
-    mockGenerateCoreLlmJsonText.mockResolvedValueOnce('not json');
+    mockGenerateCoreLlmJsonText.mockResolvedValue('not json');
 
     await expect(
       createMonologueProject('user-1', {
@@ -268,10 +268,43 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
     expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
     expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+    expect(mockGenerateCoreLlmJsonText).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries once when the LLM returns malformed JSON before a usable monologue', async () => {
+    mockGenerateCoreLlmJsonText.mockResolvedValueOnce('not json').mockResolvedValueOnce(
+      JSON.stringify({
+        title: 'Recovered title',
+        fullText: 'もう一度試します。',
+        segments: [
+          {
+            sourceText: 'Try again',
+            japaneseText: 'もう一度試します。',
+            reading: 'もういちどためします。',
+          },
+        ],
+      })
+    );
+
+    await createMonologueProject('user-1', {
+      sourceText: 'English source',
+    });
+
+    expect(mockGenerateCoreLlmJsonText).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.monologueProject.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: 'Recovered title',
+      }),
+    });
+    expect(mockPrisma.monologueScriptVersion.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        fullText: 'もう一度試します。',
+      }),
+    });
   });
 
   it('returns an app error when generated monologue JSON is not an object', async () => {
-    mockGenerateCoreLlmJsonText.mockResolvedValueOnce('[]');
+    mockGenerateCoreLlmJsonText.mockResolvedValue('[]');
 
     await expect(
       createMonologueProject('user-1', {
@@ -285,10 +318,11 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
     expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
     expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+    expect(mockGenerateCoreLlmJsonText).toHaveBeenCalledTimes(2);
   });
 
   it('returns an app error when generated monologue JSON has no usable script', async () => {
-    mockGenerateCoreLlmJsonText.mockResolvedValueOnce(
+    mockGenerateCoreLlmJsonText.mockResolvedValue(
       JSON.stringify({
         title: 'Generated title',
         fullText: '',
@@ -308,6 +342,7 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
     expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
     expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+    expect(mockGenerateCoreLlmJsonText).toHaveBeenCalledTimes(2);
   });
 
   it('lists active-version segment counts instead of all historical segments', async () => {
@@ -667,6 +702,54 @@ describe('monologueService', () => {
     });
     expect(mockDeletePersistedStudyMediaByStoragePath).toHaveBeenCalledWith(
       'study-media/user-1/monologue-generated/full.mp3'
+    );
+  });
+
+  it('keeps regenerate results when stale object storage deletion fails after DB cleanup', async () => {
+    mockPrisma.monologueAudioTake.findFirst.mockResolvedValue({
+      id: 'take-1',
+      userId: 'user-1',
+      projectId: 'project-1',
+      scriptVersionId: 'version-1',
+      segmentId: 'segment-1',
+      mediaId: 'old-media',
+      displayName: 'Slow shadowing',
+      source: 'tts',
+      provider: 'google',
+      voiceId: 'ja-JP-Neural2-D',
+      speed: 0.85,
+      scope: 'sentence',
+      isDefault: false,
+      createdAt: now,
+      updatedAt: now,
+      segment: {
+        id: 'segment-1',
+        japaneseText: '日本語です。',
+        reading: 'にほんごです。',
+      },
+      scriptVersion: { id: 'version-1', status: 'approved' },
+      media: {
+        id: 'old-media',
+        storagePath: 'study-media/user-1/monologue-generated/old.mp3',
+      },
+    });
+    mockPrisma.studyMedia.deleteMany.mockResolvedValue({ count: 1 });
+    mockDeletePersistedStudyMediaByStoragePath.mockRejectedValueOnce(new Error('gcs failed'));
+
+    await expect(regenerateMonologueAudioTake('user-1', 'project-1', 'take-1')).resolves.toEqual(
+      expect.objectContaining({ id: 'project-1' })
+    );
+
+    expect(mockPrisma.monologueAudioTake.update).toHaveBeenCalledWith({
+      where: { id: 'take-1' },
+      data: {
+        mediaId: 'media-1',
+        provider: 'google',
+        speed: 0.85,
+      },
+    });
+    expect(mockDeletePersistedStudyMediaByStoragePath).toHaveBeenCalledWith(
+      'study-media/user-1/monologue-generated/old.mp3'
     );
   });
 

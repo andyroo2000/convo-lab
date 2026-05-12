@@ -602,6 +602,7 @@ model MonologueProject {
   segments      MonologueSegment[]
   audioTakes    MonologueAudioTake[]
 
+  @@index([userId, id])
   @@index([userId, updatedAt, id])
   @@index([userId, status])
   @@index([activeVersionId])
