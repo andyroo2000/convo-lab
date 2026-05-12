@@ -114,6 +114,8 @@ describe('study schema verification', () => {
     expect(migration).toContain('"monologue_projects_status_check"');
     expect(migration).toContain("CHECK (\"status\" IN ('draft', 'approved', 'ready'))");
     expect(migration).toContain('"monologue_script_versions_status_check"');
+    expect(migration).toContain('"monologue_audio_takes_scope_check"');
+    expect(migration).toContain("CHECK (\"scope\" IN ('sentence', 'full'))");
     expect(migration).toContain(
       'ALTER TABLE "monologue_audio_takes" ADD CONSTRAINT "monologue_audio_takes_mediaId_fkey"'
     );

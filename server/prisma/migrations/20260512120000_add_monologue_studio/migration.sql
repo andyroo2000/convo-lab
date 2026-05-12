@@ -69,6 +69,7 @@ CREATE UNIQUE INDEX "monologue_segments_scriptVersionId_ordinal_key" ON "monolog
 
 ALTER TABLE "monologue_projects" ADD CONSTRAINT "monologue_projects_status_check" CHECK ("status" IN ('draft', 'approved', 'ready'));
 ALTER TABLE "monologue_script_versions" ADD CONSTRAINT "monologue_script_versions_status_check" CHECK ("status" IN ('draft', 'approved'));
+ALTER TABLE "monologue_audio_takes" ADD CONSTRAINT "monologue_audio_takes_scope_check" CHECK ("scope" IN ('sentence', 'full'));
 
 CREATE INDEX "monologue_projects_userId_updatedAt_id_idx" ON "monologue_projects"("userId", "updatedAt", "id");
 CREATE INDEX "monologue_projects_userId_status_idx" ON "monologue_projects"("userId", "status");

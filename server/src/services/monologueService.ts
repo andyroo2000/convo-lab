@@ -52,6 +52,7 @@ const MONOLOGUE_FULL_TEXT_MAX_LENGTH = 12_000;
 const MONOLOGUE_TITLE_MAX_LENGTH = 120;
 const MONOLOGUE_TAKE_NAME_MAX_LENGTH = 120;
 const MONOLOGUE_SEGMENT_MAX_COUNT = 80;
+const MONOLOGUE_SEGMENT_AUDIO_TAKE_LIST_LIMIT = 20;
 const MONOLOGUE_DRAFT_UPDATE_MAX_ATTEMPTS = 3;
 const MONOLOGUE_TARGET_LANGUAGE: LanguageCode = 'ja';
 const MONOLOGUE_NATIVE_LANGUAGE: LanguageCode = 'en';
@@ -205,7 +206,9 @@ async function loadProject(userId: string, projectId: string) {
             orderBy: { ordinal: 'asc' },
             include: {
               audioTakes: {
+                where: { scope: 'sentence' },
                 orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+                take: MONOLOGUE_SEGMENT_AUDIO_TAKE_LIST_LIMIT,
               },
             },
           },
@@ -500,6 +503,7 @@ export async function updateMonologueDraft(
             include: { media: true },
           });
           transactionCleanupCandidates.push(...staleTakes.map((take) => take.media));
+          // Segment deletion cascades to sentence audio takes; media rows are cleaned up after commit.
           await tx.monologueSegment.deleteMany({ where: { scriptVersionId: activeVersion.id } });
           await tx.monologueProject.update({
             where: { id: projectId },

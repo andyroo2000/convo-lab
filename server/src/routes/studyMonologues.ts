@@ -21,7 +21,7 @@ const router = Router();
 const MONOLOGUE_CREATE_RATE_LIMIT_PER_MINUTE = 8;
 const MONOLOGUE_DRAFT_RATE_LIMIT_PER_MINUTE = 20;
 const MONOLOGUE_AUDIO_RATE_LIMIT_PER_MINUTE = 30;
-const MONOLOGUE_AUDIO_DEFAULT_RATE_LIMIT_PER_MINUTE = 60;
+const MONOLOGUE_SET_DEFAULT_RATE_LIMIT_PER_MINUTE = 60;
 const MONOLOGUE_ALLOWED_SPEEDS = new Set([0.75, 0.85, 1]);
 // TODO: derive from the project target language once monologues support languages beyond Japanese.
 const MONOLOGUE_ALLOWED_VOICE_IDS = new Set(getMonologueTtsVoices('ja').map((voice) => voice.id));
@@ -148,13 +148,21 @@ router.put(
   }
 );
 
-router.post('/:projectId/approve', async (req: AuthRequest, res, next) => {
-  try {
-    res.json(await approveMonologueScript(requireUserId(req), req.params.projectId));
-  } catch (error) {
-    next(error);
+router.post(
+  '/:projectId/approve',
+  rateLimitStudyRoute({
+    key: 'monologue-approve-script',
+    max: MONOLOGUE_DRAFT_RATE_LIMIT_PER_MINUTE,
+    windowMs: 60 * 1000,
+  }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      res.json(await approveMonologueScript(requireUserId(req), req.params.projectId));
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 router.post(
   '/:projectId/segments/:segmentId/audio-takes',
@@ -212,7 +220,7 @@ router.post(
   '/:projectId/audio-takes/:takeId/default',
   rateLimitStudyRoute({
     key: 'monologue-default-audio',
-    max: MONOLOGUE_AUDIO_DEFAULT_RATE_LIMIT_PER_MINUTE,
+    max: MONOLOGUE_SET_DEFAULT_RATE_LIMIT_PER_MINUTE,
     windowMs: 60 * 1000,
   }),
   async (req: AuthRequest, res, next) => {
