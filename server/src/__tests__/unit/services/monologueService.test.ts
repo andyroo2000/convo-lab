@@ -12,12 +12,21 @@ const mockPrisma = vi.hoisted(() => ({
   },
   monologueProject: {
     findFirst: vi.fn(),
+    update: vi.fn(),
+  },
+  monologueScriptVersion: {
+    aggregate: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
   },
   monologueSegment: {
+    createMany: vi.fn(),
+    deleteMany: vi.fn(),
     findFirst: vi.fn(),
   },
   studyMedia: {
     create: vi.fn(),
+    deleteMany: vi.fn(),
   },
 }));
 
@@ -37,7 +46,7 @@ vi.mock('fluent-ffmpeg', () => ({
   default: vi.fn(),
 }));
 
-const { generateMonologueSegmentAudioTake, regenerateMonologueAudioTake } =
+const { generateMonologueSegmentAudioTake, regenerateMonologueAudioTake, updateMonologueDraft } =
   await import('../../../services/monologueService.js');
 
 const now = new Date('2026-05-12T12:00:00.000Z');
@@ -98,6 +107,7 @@ beforeEach(() => {
     storagePath: 'study-media/user-1/monologue-generated/audio.mp3',
     publicUrl: null,
   });
+  mockPrisma.studyMedia.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.monologueProject.findFirst.mockResolvedValue(projectRecord());
   mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
 });
@@ -187,7 +197,12 @@ describe('monologueService', () => {
         reading: 'にほんごです。',
       },
       scriptVersion: { id: 'version-1', status: 'approved' },
+      media: {
+        id: 'old-media',
+        storagePath: 'study-media/user-1/monologue-generated/old.mp3',
+      },
     });
+    mockPrisma.studyMedia.deleteMany.mockResolvedValue({ count: 1 });
 
     await regenerateMonologueAudioTake('user-1', 'project-1', 'take-1');
 
@@ -199,5 +214,79 @@ describe('monologueService', () => {
         speed: 0.85,
       },
     });
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: 'old-media',
+        monologueTakes: { none: {} },
+      },
+    });
+  });
+
+  it('creates a new draft version when editing an approved monologue', async () => {
+    const approvedProject = projectRecord();
+    const draftProject = {
+      ...projectRecord(),
+      status: 'draft',
+      activeVersionId: 'version-2',
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        id: 'version-2',
+        versionNumber: 2,
+        status: 'draft',
+        fullText: '新しい日本語です。',
+      },
+    };
+    mockPrisma.monologueProject.findFirst
+      .mockResolvedValueOnce(approvedProject)
+      .mockResolvedValueOnce(draftProject);
+    mockPrisma.monologueScriptVersion.aggregate.mockResolvedValue({
+      _max: { versionNumber: 1 },
+    });
+    mockPrisma.monologueScriptVersion.create.mockResolvedValue({
+      id: 'version-2',
+      versionNumber: 2,
+    });
+
+    const result = await updateMonologueDraft('user-1', 'project-1', {
+      title: 'Tokyo return',
+      fullText: '新しい日本語です。',
+      segments: [
+        {
+          ordinal: 0,
+          sourceText: 'New English cue',
+          japaneseText: '新しい日本語です。',
+          reading: 'あたらしいにほんごです。',
+          beatLabel: 'Opening',
+        },
+      ],
+    });
+
+    expect(mockPrisma.monologueScriptVersion.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        projectId: 'project-1',
+        status: 'draft',
+        versionNumber: 2,
+      }),
+    });
+    expect(mockPrisma.monologueProject.update).toHaveBeenCalledWith({
+      where: { id: 'project-1' },
+      data: {
+        activeVersionId: 'version-2',
+        status: 'draft',
+        title: 'Tokyo return',
+      },
+    });
+    expect(mockPrisma.monologueSegment.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          scriptVersionId: 'version-2',
+          ordinal: 0,
+          sourceText: 'New English cue',
+          japaneseText: '新しい日本語です。',
+        }),
+      ],
+    });
+    expect(result.status).toBe('draft');
+    expect(result.activeVersion?.versionNumber).toBe(2);
   });
 });

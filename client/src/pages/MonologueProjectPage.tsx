@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   canAdjustMonologueVoiceSpeed,
@@ -179,9 +179,14 @@ const MonologueProjectPage = () => {
   const [segments, setSegments] = useState<SegmentDraft[]>([]);
   const [recallIndex, setRecallIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  const [pendingSegmentAudioIds, setPendingSegmentAudioIds] = useState<string[]>([]);
+  const initializedDraftKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!project?.activeVersion) return;
+    const draftKey = `${project.id}:${project.activeVersion.id}`;
+    if (initializedDraftKeyRef.current === draftKey) return;
+    initializedDraftKeyRef.current = draftKey;
     setTitle(project.title);
     setFullText(project.activeVersion.fullText);
     setSegments(
@@ -247,14 +252,19 @@ const MonologueProjectPage = () => {
 
   const handleGenerateAudio = async (segmentId: string, control: AudioControlState) => {
     if (!projectId) return;
-    await generateAudio.mutateAsync({
-      projectId,
-      segmentId,
-      displayName: control.displayName || null,
-      isDefault: true,
-      speed: control.speed,
-      voiceId: control.voiceId,
-    });
+    setPendingSegmentAudioIds((current) => [...current, segmentId]);
+    try {
+      await generateAudio.mutateAsync({
+        projectId,
+        segmentId,
+        displayName: control.displayName || null,
+        isDefault: true,
+        speed: control.speed,
+        voiceId: control.voiceId,
+      });
+    } finally {
+      setPendingSegmentAudioIds((current) => current.filter((id) => id !== segmentId));
+    }
   };
 
   if (projectQuery.isLoading) {
@@ -372,22 +382,26 @@ const MonologueProjectPage = () => {
                 Sentence {index + 1}
               </p>
               <input
+                aria-label={`Sentence ${index + 1} beat label`}
                 value={segment.beatLabel}
                 onChange={(event) => updateSegment(index, { beatLabel: event.target.value })}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 placeholder="Beat label"
               />
               <textarea
+                aria-label={`Sentence ${index + 1} English cue`}
                 value={segment.sourceText}
                 onChange={(event) => updateSegment(index, { sourceText: event.target.value })}
                 className="min-h-20 rounded-lg border border-gray-300 px-3 py-2 text-sm"
               />
               <textarea
+                aria-label={`Sentence ${index + 1} Japanese text`}
                 value={segment.japaneseText}
                 onChange={(event) => updateSegment(index, { japaneseText: event.target.value })}
                 className="min-h-20 rounded-lg border border-gray-300 px-3 py-2 text-sm"
               />
               <input
+                aria-label={`Sentence ${index + 1} reading`}
                 value={segment.reading}
                 onChange={(event) => updateSegment(index, { reading: event.target.value })}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
@@ -464,7 +478,7 @@ const MonologueProjectPage = () => {
               </div>
               <SegmentAudioControls
                 disabled={!isApproved}
-                isBusy={generateAudio.isPending}
+                isBusy={pendingSegmentAudioIds.includes(segment.id)}
                 onGenerate={handleGenerateAudio}
                 segment={segment}
               />
