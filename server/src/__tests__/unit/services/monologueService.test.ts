@@ -73,6 +73,7 @@ const {
   createMonologueProject,
   generateMonologueFullAudioTake,
   generateMonologueSegmentAudioTake,
+  getMonologueProject,
   listMonologueProjects,
   regenerateMonologueAudioTake,
   setMonologueDefaultAudioTake,
@@ -339,6 +340,57 @@ describe('monologueService', () => {
     );
     expect(projects[0]?.segmentCount).toBe(6);
     expect(projects[0]).not.toHaveProperty('sourceText');
+  });
+
+  it('hides full audio takes from inactive script versions', async () => {
+    mockPrisma.monologueProject.findFirst.mockResolvedValueOnce({
+      ...projectRecord(),
+      activeVersionId: 'version-2',
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        id: 'version-2',
+      },
+      audioTakes: [
+        {
+          id: 'full-current',
+          userId: 'user-1',
+          projectId: 'project-1',
+          scriptVersionId: 'version-2',
+          segmentId: null,
+          mediaId: 'media-current',
+          displayName: 'Current full render',
+          source: 'tts',
+          provider: 'mixed',
+          voiceId: null,
+          speed: 1,
+          scope: 'full',
+          isDefault: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'full-old',
+          userId: 'user-1',
+          projectId: 'project-1',
+          scriptVersionId: 'version-1',
+          segmentId: null,
+          mediaId: 'media-old',
+          displayName: 'Old full render',
+          source: 'tts',
+          provider: 'mixed',
+          voiceId: null,
+          speed: 1,
+          scope: 'full',
+          isDefault: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    const project = await getMonologueProject('user-1', 'project-1');
+
+    expect(project.fullAudioTakes.map((take) => take.id)).toEqual(['full-current']);
   });
 
   it('rejects sentence audio generation until the script is approved', async () => {

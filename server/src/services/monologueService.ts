@@ -160,7 +160,7 @@ function projectToSummary(project: NonNullable<MonologueProjectRecord>): Monolog
     updatedAt: project.updatedAt.toISOString(),
     activeVersion: project.activeVersion ? versionToSummary(project.activeVersion) : null,
     fullAudioTakes: project.audioTakes
-      .filter((take) => take.scope === 'full')
+      .filter((take) => take.scope === 'full' && take.scriptVersionId === project.activeVersionId)
       .map(audioTakeToSummary),
   };
 }
