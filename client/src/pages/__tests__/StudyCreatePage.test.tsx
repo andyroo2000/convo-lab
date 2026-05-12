@@ -11,7 +11,6 @@ import {
 import type { StudyManualCardDraft } from '@languageflow/shared/src/types';
 
 import StudyCreatePage from '../StudyCreatePage';
-import { DEFAULT_AUDIO_RECOGNITION_VOICE_ID } from '../../components/study/studyCardCreationModel';
 
 async function chooseAnswerAudioVoice(name: RegExp | string) {
   await userEvent.click(screen.getByLabelText('Answer audio voice'));
@@ -559,7 +558,7 @@ describe('StudyCreatePage', () => {
           expression: '営業の仕事は楽しいです。',
           expressionReading: '営業[えいぎょう]の仕事[しごと]は楽[たの]しいです。',
           meaning: 'Sales work is fun.',
-          answerAudioVoiceId: DEFAULT_AUDIO_RECOGNITION_VOICE_ID,
+          answerAudioVoiceId: MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0],
         },
         previewAudio: {
           id: 'audio-vocab',
@@ -976,7 +975,7 @@ describe('StudyCreatePage', () => {
 
     expect(screen.getByLabelText('Answer audio voice')).toHaveTextContent('Ren');
     expect(screen.getByTestId('voice-preview')).toHaveTextContent(
-      DEFAULT_AUDIO_RECOGNITION_VOICE_ID
+      MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0]
     );
     randomSpy.mockRestore();
   });

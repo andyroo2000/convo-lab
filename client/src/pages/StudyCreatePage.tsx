@@ -24,7 +24,6 @@ import {
   getStudyCardFormValues,
   useStudyCardForm,
 } from '../components/study/studyCardFormModel';
-import { STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS } from '../components/study/studyCandidateModel';
 import {
   applyStudyCardImageToPayload,
   cardTypeForStudyCardCreationKind,
@@ -49,6 +48,9 @@ import {
 
 type CreateMode = 'generate' | 'manual';
 const STALE_GENERATING_DRAFT_RETRY_AFTER_MS = 10 * 60 * 1000;
+const STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS = new Set<
+  keyof ReturnType<typeof getStudyCardFormValues>
+>(['answerExpression', 'answerReading', 'answerAudioVoiceId', 'answerAudioTextOverride']);
 
 function getDraftFormValues(result: StudyCardDraftCompleteResponse | StudyManualCardDraft) {
   return getStudyCardFormValues({
