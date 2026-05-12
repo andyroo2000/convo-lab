@@ -18,6 +18,7 @@ export interface VoiceConfig {
   id: string;
   gender: string;
   description: string;
+  name?: string;
   provider?: 'google' | 'polly' | 'fishaudio';
   hiddenFromPicker?: boolean;
 }
@@ -155,6 +156,10 @@ export function getMonologueTtsVoices(language: string): VoiceConfig[] {
   return getTtsVoices(language).filter(
     (voice) => isFishAudioVoice(voice) || isGoogleNeuralVoice(voice)
   );
+}
+
+export function getMonologueVoiceDisplayName(voice: VoiceConfig | undefined): string | null {
+  return voice?.name ?? null;
 }
 
 export function getMonologueVoiceSpeedOptions(voice: VoiceConfig | undefined): number[] {

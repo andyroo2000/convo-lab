@@ -22,6 +22,7 @@ import type {
 import {
   getLanguageCodeFromVoiceId,
   getMonologueTtsVoices,
+  getMonologueVoiceDisplayName,
   getTtsVoiceById,
   normalizeMonologueVoiceSpeed,
 } from '@languageflow/shared/src/voiceSelection.js';
@@ -576,7 +577,7 @@ function resolveMonologueVoice(voiceId: string) {
 
 function defaultTakeName(voiceId: string, speed: number): string {
   const voice = getTtsVoiceById(MONOLOGUE_TARGET_LANGUAGE, voiceId);
-  const label = voice?.description.split(': ')[1]?.split(' - ')[0] ?? voiceId;
+  const label = getMonologueVoiceDisplayName(voice) ?? voiceId;
   const provider = voice?.provider === 'google' ? 'Google' : 'Fish';
   return `${provider} ${label} ${speed}x`;
 }

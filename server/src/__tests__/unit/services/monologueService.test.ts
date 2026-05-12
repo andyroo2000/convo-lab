@@ -419,7 +419,7 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueAudioTake.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          displayName: expect.stringContaining('1x'),
+          displayName: 'Fish Ren 1x',
           isDefault: false,
           speed: 1,
         }),
@@ -463,6 +463,7 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueAudioTake.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          displayName: 'Google Daichi 0.85x',
           isDefault: true,
         }),
       })

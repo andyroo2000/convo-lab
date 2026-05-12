@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   canAdjustMonologueVoiceSpeed,
   getMonologueTtsVoices,
+  getMonologueVoiceDisplayName,
   getMonologueVoiceSpeedOptions,
   getTtsVoiceById,
   MONOLOGUE_DEFAULT_GOOGLE_NEURAL_SPEED,
@@ -47,7 +48,9 @@ const defaultVoice =
 
 function formatVoiceLabel(voiceId: string): string {
   const voice = getTtsVoiceById('ja', voiceId);
-  return voice?.description ?? voiceId;
+  const provider = voice?.provider === 'google' ? 'Google' : 'Fish';
+  const label = getMonologueVoiceDisplayName(voice) ?? voiceId;
+  return `${provider} ${label}`;
 }
 
 function buildDefaultControl(): AudioControlState {
