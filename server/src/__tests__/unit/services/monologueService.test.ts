@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 
+import { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSynthesizeBatchedTexts = vi.hoisted(() => vi.fn());
@@ -410,7 +411,7 @@ describe('monologueService', () => {
     });
   });
 
-  it('regenerates a take in place without changing display name or default status', async () => {
+  it('regenerates a default take in place and invalidates stale full renders', async () => {
     mockPrisma.monologueAudioTake.findFirst.mockResolvedValue({
       id: 'take-1',
       userId: 'user-1',
@@ -438,6 +439,15 @@ describe('monologueService', () => {
         storagePath: 'study-media/user-1/monologue-generated/old.mp3',
       },
     });
+    mockPrisma.monologueAudioTake.findMany.mockResolvedValueOnce([
+      {
+        id: 'full-take-1',
+        media: {
+          id: 'full-media',
+          storagePath: 'study-media/user-1/monologue-generated/full.mp3',
+        },
+      },
+    ]);
     mockPrisma.studyMedia.deleteMany.mockResolvedValue({ count: 1 });
 
     await regenerateMonologueAudioTake('user-1', 'project-1', 'take-1');
@@ -456,6 +466,27 @@ describe('monologueService', () => {
         monologueTakes: { none: {} },
       },
     });
+    expect(mockPrisma.monologueAudioTake.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        projectId: 'project-1',
+        scriptVersionId: 'version-1',
+        scope: 'full',
+      },
+    });
+    expect(mockPrisma.monologueProject.update).toHaveBeenCalledWith({
+      where: { id: 'project-1' },
+      data: { status: 'approved' },
+    });
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: 'full-media',
+        monologueTakes: { none: {} },
+      },
+    });
+    expect(mockDeletePersistedStudyMediaByStoragePath).toHaveBeenCalledWith(
+      'study-media/user-1/monologue-generated/full.mp3'
+    );
   });
 
   it('creates a new draft version when editing an approved monologue', async () => {
@@ -561,6 +592,33 @@ describe('monologueService', () => {
         title: '',
       },
     });
+  });
+
+  it('returns 409 when approved draft version retries are exhausted', async () => {
+    const duplicateVersionError = new Prisma.PrismaClientKnownRequestError('duplicate version', {
+      code: 'P2002',
+      clientVersion: 'test',
+    });
+    mockPrisma.$transaction.mockRejectedValue(duplicateVersionError);
+
+    await expect(
+      updateMonologueDraft('user-1', 'project-1', {
+        fullText: '新しい日本語です。',
+        segments: [
+          {
+            ordinal: 0,
+            sourceText: 'New English cue',
+            japaneseText: '新しい日本語です。',
+            reading: 'あたらしいにほんごです。',
+            beatLabel: null,
+          },
+        ],
+      })
+    ).rejects.toMatchObject({
+      message: 'Another monologue draft edit was saved at the same time. Try again.',
+      statusCode: 409,
+    });
+    expect(mockPrisma.$transaction).toHaveBeenCalledTimes(3);
   });
 
   it('cleans up orphaned media when replacing draft segments', async () => {

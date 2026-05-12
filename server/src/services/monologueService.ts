@@ -434,6 +434,7 @@ export async function updateMonologueDraft(
   if (!fullText) {
     throw new AppError('fullText is required.', 400);
   }
+  // fullText is the canonical edited script; segments drive sentence rehearsal and audio.
   const segments = validateDraftSegments(request.segments);
   const title =
     typeof request.title === 'string'
@@ -616,6 +617,28 @@ async function deleteUnusedMonologueMedia(media: { id: string; storagePath: stri
   }
 }
 
+async function listFullAudioTakesForVersion(input: {
+  userId: string;
+  projectId: string;
+  scriptVersionId: string;
+}) {
+  return prisma.monologueAudioTake.findMany({
+    where: {
+      userId: input.userId,
+      projectId: input.projectId,
+      scriptVersionId: input.scriptVersionId,
+      scope: 'full',
+    },
+    include: { media: true },
+  });
+}
+
+async function deleteStaleFullAudioMedia(
+  takes: Array<{ media: { id: string; storagePath: string | null } }>
+) {
+  await Promise.all(takes.map((take) => deleteUnusedMonologueMedia(take.media)));
+}
+
 async function synthesizeMonologueText(input: {
   text: string;
   reading?: string | null;
@@ -658,6 +681,13 @@ export async function generateMonologueSegmentAudioTake(
     MONOLOGUE_TAKE_NAME_MAX_LENGTH
   );
   const makeDefault = request.isDefault === true;
+  const staleFullTakes = makeDefault
+    ? await listFullAudioTakesForVersion({
+        userId,
+        projectId,
+        scriptVersionId: segment.scriptVersionId,
+      })
+    : [];
   const buffer = await synthesizeMonologueText({
     text: segment.japaneseText,
     reading: segment.reading,
@@ -677,6 +707,18 @@ export async function generateMonologueSegmentAudioTake(
         await tx.monologueAudioTake.updateMany({
           where: { userId, segmentId, scope: 'sentence' },
           data: { isDefault: false },
+        });
+        await tx.monologueAudioTake.deleteMany({
+          where: {
+            userId,
+            projectId,
+            scriptVersionId: segment.scriptVersionId,
+            scope: 'full',
+          },
+        });
+        await tx.monologueProject.update({
+          where: { id: projectId },
+          data: { status: 'approved' },
         });
       }
       await tx.monologueAudioTake.create({
@@ -700,6 +742,7 @@ export async function generateMonologueSegmentAudioTake(
     await deleteUnusedMonologueMedia(media);
     throw error;
   }
+  await deleteStaleFullAudioMedia(staleFullTakes);
 
   return getMonologueProject(userId, projectId);
 }
@@ -739,6 +782,13 @@ export async function regenerateMonologueAudioTake(
   });
 
   const previousMedia = take.media;
+  const staleFullTakes = take.isDefault
+    ? await listFullAudioTakesForVersion({
+        userId,
+        projectId,
+        scriptVersionId: take.scriptVersionId,
+      })
+    : [];
   let deletedPreviousMedia: { count: number };
   try {
     deletedPreviousMedia = await prisma.$transaction(async (tx) => {
@@ -750,6 +800,20 @@ export async function regenerateMonologueAudioTake(
           speed,
         },
       });
+      if (take.isDefault) {
+        await tx.monologueAudioTake.deleteMany({
+          where: {
+            userId,
+            projectId,
+            scriptVersionId: take.scriptVersionId,
+            scope: 'full',
+          },
+        });
+        await tx.monologueProject.update({
+          where: { id: projectId },
+          data: { status: 'approved' },
+        });
+      }
       return tx.studyMedia.deleteMany({
         where: {
           id: previousMedia.id,
@@ -764,6 +828,7 @@ export async function regenerateMonologueAudioTake(
   if (deletedPreviousMedia.count > 0 && previousMedia.storagePath) {
     await deletePersistedStudyMediaByStoragePath(previousMedia.storagePath);
   }
+  await deleteStaleFullAudioMedia(staleFullTakes);
 
   return getMonologueProject(userId, projectId);
 }
@@ -779,6 +844,14 @@ export async function setMonologueDefaultAudioTake(
   if (!take) {
     throw new AppError('Monologue audio take not found.', 404);
   }
+  const shouldInvalidateFullAudio = take.scope === 'sentence' && !take.isDefault;
+  const staleFullTakes = shouldInvalidateFullAudio
+    ? await listFullAudioTakesForVersion({
+        userId,
+        projectId,
+        scriptVersionId: take.scriptVersionId,
+      })
+    : [];
 
   await prisma.$transaction(async (tx) => {
     await tx.monologueAudioTake.updateMany({
@@ -794,7 +867,22 @@ export async function setMonologueDefaultAudioTake(
       where: { id: take.id },
       data: { isDefault: true },
     });
+    if (shouldInvalidateFullAudio) {
+      await tx.monologueAudioTake.deleteMany({
+        where: {
+          userId,
+          projectId,
+          scriptVersionId: take.scriptVersionId,
+          scope: 'full',
+        },
+      });
+      await tx.monologueProject.update({
+        where: { id: projectId },
+        data: { status: 'approved' },
+      });
+    }
   });
+  await deleteStaleFullAudioMedia(staleFullTakes);
 
   return getMonologueProject(userId, projectId);
 }

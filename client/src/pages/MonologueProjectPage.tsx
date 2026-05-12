@@ -34,6 +34,7 @@ interface SegmentDraft {
 
 interface AudioControlState {
   displayName: string;
+  isDefault: boolean;
   speed: number;
   voiceId: string;
 }
@@ -53,6 +54,7 @@ function buildDefaultControl(): AudioControlState {
   const voiceId = defaultVoice?.id ?? '';
   return {
     displayName: '',
+    isDefault: true,
     speed: MONOLOGUE_DEFAULT_GOOGLE_NEURAL_SPEED,
     voiceId,
   };
@@ -84,7 +86,7 @@ const SegmentAudioControls = ({
 
   return (
     <div className="mt-4 grid gap-3 rounded-xl border border-gray-200 bg-white/70 p-3">
-      <div className="grid gap-3 md:grid-cols-[1.3fr_0.6fr_1fr_auto]">
+      <div className="grid gap-3 md:grid-cols-[1.2fr_0.6fr_1fr_auto_auto]">
         <label
           htmlFor={`monologue-${segment.id}-voice`}
           className="grid gap-1 text-xs font-semibold text-gray-600"
@@ -149,6 +151,24 @@ const SegmentAudioControls = ({
             className="min-h-10 rounded-lg border border-gray-300 bg-white px-2 text-sm"
             placeholder={`${formatVoiceLabel(control.voiceId)} ${control.speed}x`}
           />
+        </label>
+        <label
+          htmlFor={`monologue-${segment.id}-make-default`}
+          className="flex items-center gap-2 self-end text-xs font-semibold text-gray-600"
+        >
+          <input
+            id={`monologue-${segment.id}-make-default`}
+            type="checkbox"
+            checked={control.isDefault}
+            onChange={(event) =>
+              setControl((current) => ({
+                ...current,
+                isDefault: event.target.checked,
+              }))
+            }
+            className="h-4 w-4 rounded border-gray-300 text-navy"
+          />
+          {t('monologue.controls.makeDefault')}
         </label>
         <button
           type="button"
@@ -296,7 +316,7 @@ const MonologueProjectPage = () => {
         projectId,
         segmentId,
         displayName: control.displayName || null,
-        isDefault: true,
+        isDefault: control.isDefault,
         speed: control.speed,
         voiceId: control.voiceId,
       });

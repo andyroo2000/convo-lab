@@ -112,6 +112,7 @@
       "voice": "Voice",
       "speed": "Speed",
       "takeName": "Take name",
+      "makeDefault": "Make default",
       "generate": "Generate",
       "generating": "Generating…",
       "fishFixedSpeed": "Fish Audio takes are fixed at 1.0x."

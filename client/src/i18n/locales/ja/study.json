@@ -112,6 +112,7 @@
       "voice": "音声",
       "speed": "速度",
       "takeName": "テイク名",
+      "makeDefault": "デフォルトにする",
       "generate": "生成",
       "generating": "生成中…",
       "fishFixedSpeed": "Fish Audio のテイクは 1.0x 固定です。"
