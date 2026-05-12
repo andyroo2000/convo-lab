@@ -82,7 +82,7 @@ function truncate(value: string, maxLength: number): string {
 }
 
 function parseMonologueStatus(value: string): MonologueProjectStatus {
-  if (value === 'approved' || value === 'ready' || value === 'error') return value;
+  if (value === 'approved' || value === 'ready') return value;
   return 'draft';
 }
 

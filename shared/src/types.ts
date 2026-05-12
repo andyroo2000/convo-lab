@@ -54,7 +54,7 @@ export type StudyQueueState = 'new' | 'learning' | 'review' | 'relearning' | 'su
 
 export type StudyAudioSource = 'imported' | 'generated' | 'missing';
 
-export type MonologueProjectStatus = 'draft' | 'approved' | 'ready' | 'error';
+export type MonologueProjectStatus = 'draft' | 'approved' | 'ready';
 
 export type MonologueScriptVersionStatus = 'draft' | 'approved';
 

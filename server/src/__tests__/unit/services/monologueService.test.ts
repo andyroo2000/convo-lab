@@ -237,6 +237,20 @@ describe('monologueService', () => {
     });
   });
 
+  it('does not persist a monologue project when initial LLM generation fails', async () => {
+    mockGenerateCoreLlmJsonText.mockRejectedValueOnce(new Error('llm unavailable'));
+
+    await expect(
+      createMonologueProject('user-1', {
+        sourceText: 'English source',
+      })
+    ).rejects.toThrow('llm unavailable');
+
+    expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+  });
+
   it('lists active-version segment counts instead of all historical segments', async () => {
     mockPrisma.monologueProject.findMany.mockResolvedValue([
       {
