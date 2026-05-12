@@ -657,6 +657,7 @@ export async function generateMonologueSegmentAudioTake(
     sanitizeString(request.displayName) || defaultTakeName(request.voiceId, speed),
     MONOLOGUE_TAKE_NAME_MAX_LENGTH
   );
+  const makeDefault = request.isDefault === true;
   const buffer = await synthesizeMonologueText({
     text: segment.japaneseText,
     reading: segment.reading,
@@ -672,7 +673,7 @@ export async function generateMonologueSegmentAudioTake(
 
   try {
     await prisma.$transaction(async (tx) => {
-      if (request.isDefault !== false) {
+      if (makeDefault) {
         await tx.monologueAudioTake.updateMany({
           where: { userId, segmentId, scope: 'sentence' },
           data: { isDefault: false },
@@ -691,7 +692,7 @@ export async function generateMonologueSegmentAudioTake(
           voiceId: request.voiceId,
           speed,
           scope: 'sentence',
-          isDefault: request.isDefault !== false,
+          isDefault: makeDefault,
         },
       });
     });

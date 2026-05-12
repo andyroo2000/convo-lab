@@ -18,6 +18,7 @@ import {
 
 const router = Router();
 const MONOLOGUE_CREATE_RATE_LIMIT_PER_MINUTE = 8;
+const MONOLOGUE_DRAFT_RATE_LIMIT_PER_MINUTE = 20;
 const MONOLOGUE_AUDIO_RATE_LIMIT_PER_MINUTE = 30;
 const MONOLOGUE_ALLOWED_SPEEDS = new Set([0.75, 0.85, 1]);
 
@@ -108,21 +109,29 @@ router.get('/:projectId', async (req: AuthRequest, res, next) => {
   }
 });
 
-router.put('/:projectId/draft', async (req: AuthRequest, res, next) => {
-  try {
-    const body = requireBodyObject(req.body);
-    // Segment shape and cross-field validation live in the service with draft-version rules.
-    res.json(
-      await updateMonologueDraft(requireUserId(req), req.params.projectId, {
-        title: typeof body.title === 'string' ? body.title : undefined,
-        fullText: typeof body.fullText === 'string' ? body.fullText : '',
-        segments: Array.isArray(body.segments) ? body.segments.map(draftSegmentFromUnknown) : [],
-      })
-    );
-  } catch (error) {
-    next(error);
+router.put(
+  '/:projectId/draft',
+  rateLimitStudyRoute({
+    key: 'monologue-draft-update',
+    max: MONOLOGUE_DRAFT_RATE_LIMIT_PER_MINUTE,
+    windowMs: 60 * 1000,
+  }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const body = requireBodyObject(req.body);
+      // Segment shape and cross-field validation live in the service with draft-version rules.
+      res.json(
+        await updateMonologueDraft(requireUserId(req), req.params.projectId, {
+          title: typeof body.title === 'string' ? body.title : undefined,
+          fullText: typeof body.fullText === 'string' ? body.fullText : '',
+          segments: Array.isArray(body.segments) ? body.segments.map(draftSegmentFromUnknown) : [],
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 router.post('/:projectId/approve', async (req: AuthRequest, res, next) => {
   try {

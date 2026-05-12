@@ -320,7 +320,44 @@ describe('monologueService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           displayName: expect.stringContaining('1x'),
+          isDefault: false,
           speed: 1,
+        }),
+      })
+    );
+    expect(mockPrisma.monologueAudioTake.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('sets a generated sentence take as default only when explicitly requested', async () => {
+    mockPrisma.monologueSegment.findFirst.mockResolvedValue({
+      id: 'segment-1',
+      userId: 'user-1',
+      projectId: 'project-1',
+      scriptVersionId: 'version-1',
+      ordinal: 0,
+      sourceText: 'English cue',
+      japaneseText: '日本語です。',
+      reading: 'にほんごです。',
+      beatLabel: null,
+      createdAt: now,
+      updatedAt: now,
+      scriptVersion: { id: 'version-1', status: 'approved' },
+    });
+
+    await generateMonologueSegmentAudioTake('user-1', 'project-1', 'segment-1', {
+      voiceId: 'ja-JP-Neural2-D',
+      speed: 0.85,
+      isDefault: true,
+    });
+
+    expect(mockPrisma.monologueAudioTake.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', segmentId: 'segment-1', scope: 'sentence' },
+      data: { isDefault: false },
+    });
+    expect(mockPrisma.monologueAudioTake.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          isDefault: true,
         }),
       })
     );
