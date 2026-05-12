@@ -15,12 +15,14 @@ const {
   generateMonologueSegmentAudioTakeMock,
   getMonologueProjectMock,
   listMonologueProjectsMock,
+  setMonologueDefaultAudioTakeMock,
 } = vi.hoisted(() => ({
   approveMonologueScriptMock: vi.fn(),
   createMonologueProjectMock: vi.fn(),
   generateMonologueSegmentAudioTakeMock: vi.fn(),
   getMonologueProjectMock: vi.fn(),
   listMonologueProjectsMock: vi.fn(),
+  setMonologueDefaultAudioTakeMock: vi.fn(),
 }));
 
 vi.mock('../../../middleware/studyRateLimit.js', () => ({
@@ -35,7 +37,7 @@ vi.mock('../../../services/monologueService.js', () => ({
   getMonologueProject: getMonologueProjectMock,
   listMonologueProjects: listMonologueProjectsMock,
   regenerateMonologueAudioTake: vi.fn(),
-  setMonologueDefaultAudioTake: vi.fn(),
+  setMonologueDefaultAudioTake: setMonologueDefaultAudioTakeMock,
   updateMonologueDraft: vi.fn(),
 }));
 
@@ -144,6 +146,43 @@ describe('study monologue routes', () => {
         voiceId: 'ja-JP-Neural2-D',
       }
     );
+  });
+
+  it('treats null audio speed as omitted', async () => {
+    generateMonologueSegmentAudioTakeMock.mockResolvedValue({
+      id: 'project-1',
+      status: 'ready',
+    });
+
+    const response = await request(app)
+      .post('/api/study/monologues/project-1/segments/segment-1/audio-takes')
+      .send({ voiceId: 'fish-ren', speed: null });
+
+    expect(response.status).toBe(201);
+    expect(generateMonologueSegmentAudioTakeMock).toHaveBeenCalledWith(
+      'user-1',
+      'project-1',
+      'segment-1',
+      expect.objectContaining({ speed: undefined, voiceId: 'fish-ren' })
+    );
+  });
+
+  it('sets a default audio take', async () => {
+    setMonologueDefaultAudioTakeMock.mockResolvedValue({
+      id: 'project-1',
+      status: 'ready',
+    });
+
+    const response = await request(app).post(
+      '/api/study/monologues/project-1/audio-takes/take-1/default'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: 'project-1',
+      status: 'ready',
+    });
+    expect(setMonologueDefaultAudioTakeMock).toHaveBeenCalledWith('user-1', 'project-1', 'take-1');
   });
 
   it('returns 400 when creating without source text', async () => {

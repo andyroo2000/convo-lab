@@ -769,7 +769,7 @@ describe('monologueService', () => {
           scriptVersionId: 'version-1',
           segmentId: null,
           mediaId: 'media-1',
-          displayName: 'Full monologue render',
+          displayName: 'Tokyo story',
           source: 'tts',
           provider: 'mixed',
           voiceId: null,

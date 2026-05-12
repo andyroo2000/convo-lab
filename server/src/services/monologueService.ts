@@ -33,6 +33,7 @@ import { AppError } from '../middleware/errorHandler.js';
 
 import { synthesizeBatchedTexts } from './batchedTTSClient.js';
 import { generateCoreLlmJsonText } from './coreLlmClient.js';
+import { logger } from './logger.js';
 import { downloadFromGCSPath } from './storageClient.js';
 import { persistStudyMediaBuffer } from './study/shared/mediaHelpers.js';
 import {
@@ -620,11 +621,13 @@ async function deleteUnusedMonologueMediaBatch(
   const cleanupResults = await Promise.allSettled(
     mediaCandidates.map((media) => deleteUnusedMonologueMedia(media))
   );
-  const failedCleanup = cleanupResults.find(
+  const failedCleanups = cleanupResults.filter(
     (result): result is PromiseRejectedResult => result.status === 'rejected'
   );
-  if (failedCleanup) {
-    throw failedCleanup.reason;
+  if (failedCleanups.length > 0) {
+    logger.warn('[Monologue] Failed to clean up unused media.', {
+      failures: failedCleanups.map((result) => result.reason),
+    });
   }
 }
 
@@ -1022,7 +1025,7 @@ export async function generateMonologueFullAudioTake(
             scriptVersionId: activeVersionId,
             segmentId: null,
             mediaId: media.id,
-            displayName: 'Full monologue render',
+            displayName: project.title,
             source: 'tts',
             provider: 'mixed',
             voiceId: null,
