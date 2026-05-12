@@ -231,6 +231,11 @@ const MonologueProjectPage = () => {
   }, [project]);
 
   useEffect(() => {
+    setRecallIndex(0);
+    setRevealed(false);
+  }, [activeVersion?.id]);
+
+  useEffect(() => {
     if (!draftDirty) return undefined;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
