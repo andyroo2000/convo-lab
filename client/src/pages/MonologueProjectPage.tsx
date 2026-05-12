@@ -263,6 +263,7 @@ const MonologueProjectPage = () => {
   } else if (approveScript.isPending) {
     approveLabel = t('monologue.actions.approving');
   }
+  const approveDisabled = approveScript.isPending || isApproved || draftDirty;
   let scriptErrorMessage = t('monologue.errors.saveScript');
   if (updateDraft.error instanceof Error) {
     scriptErrorMessage = updateDraft.error.message;
@@ -433,7 +434,7 @@ const MonologueProjectPage = () => {
             </button>
             <button
               type="button"
-              disabled={approveScript.isPending || isApproved}
+              disabled={approveDisabled}
               onClick={() => {
                 setSaveSucceeded(false);
                 if (projectId) approveScript.mutate(projectId);
@@ -444,6 +445,11 @@ const MonologueProjectPage = () => {
             </button>
           </div>
         </div>
+        {draftDirty && !isApproved ? (
+          <p className="text-sm font-semibold text-amber-700">
+            {t('monologue.actions.saveBeforeApprove')}
+          </p>
+        ) : null}
         <label
           htmlFor="monologue-project-title"
           className="grid gap-2 text-sm font-semibold text-gray-700"

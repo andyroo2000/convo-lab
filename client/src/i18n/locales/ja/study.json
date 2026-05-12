@@ -87,7 +87,8 @@
       "saved": "保存しました",
       "approve": "承認",
       "approved": "承認済み",
-      "approving": "承認中…"
+      "approving": "承認中…",
+      "saveBeforeApprove": "承認する前にスクリプトの編集を保存してください。"
     },
     "listen": {
       "title": "聞く",

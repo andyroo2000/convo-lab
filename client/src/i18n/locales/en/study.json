@@ -87,7 +87,8 @@
       "saved": "Saved",
       "approve": "Approve",
       "approved": "Approved",
-      "approving": "Approving…"
+      "approving": "Approving…",
+      "saveBeforeApprove": "Save your script edits before approving."
     },
     "listen": {
       "title": "Listen",

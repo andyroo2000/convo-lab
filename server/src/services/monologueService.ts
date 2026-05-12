@@ -55,6 +55,7 @@ const MONOLOGUE_SEGMENT_MAX_COUNT = 80;
 const MONOLOGUE_SEGMENT_AUDIO_TAKE_LIST_LIMIT = 20;
 const MONOLOGUE_DRAFT_UPDATE_MAX_ATTEMPTS = 3;
 const MONOLOGUE_LLM_GENERATION_MAX_ATTEMPTS = 2;
+const MONOLOGUE_FULL_RENDER_WARN_MS = 20_000;
 const MONOLOGUE_TARGET_LANGUAGE: LanguageCode = 'ja';
 const MONOLOGUE_NATIVE_LANGUAGE: LanguageCode = 'en';
 const MONOLOGUE_TTS_VOICE_IDS = new Set(
@@ -503,6 +504,7 @@ export async function updateMonologueDraft(
         const transactionCleanupCandidates: MonologueMediaCleanupCandidate[] = [];
         let versionId = activeVersion.id;
         if (activeVersion.status === 'approved') {
+          // Approved versions keep their sentence audio; retries in this branch should not clean old takes.
           const latest = await tx.monologueScriptVersion.aggregate({
             where: { projectId, userId },
             _max: { versionNumber: true },
@@ -1066,6 +1068,7 @@ export async function generateMonologueFullAudioTake(
   );
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'monologue-render-'));
+  const renderStartedAt = Date.now();
   try {
     const files = await Promise.all(
       defaultTakes.map((take, index) =>
@@ -1124,6 +1127,15 @@ export async function generateMonologueFullAudioTake(
     }
     await deleteStaleFullAudioMedia(staleFullTakes);
   } finally {
+    const elapsedMs = Date.now() - renderStartedAt;
+    if (elapsedMs > MONOLOGUE_FULL_RENDER_WARN_MS) {
+      logger.warn('[Monologue] Full audio render exceeded warning threshold.', {
+        elapsedMs,
+        projectId,
+        segmentCount: project.activeVersion.segments.length,
+        userId,
+      });
+    }
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 
