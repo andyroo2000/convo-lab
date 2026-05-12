@@ -295,9 +295,8 @@ const MonologueProjectPage = () => {
         values: {
           title,
           fullText,
-          segments: segments.map((segment, index) => ({
+          segments: segments.map((segment) => ({
             id: segment.id,
-            ordinal: index,
             sourceText: segment.sourceText,
             japaneseText: segment.japaneseText,
             reading: segment.reading || null,

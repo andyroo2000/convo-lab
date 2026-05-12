@@ -303,7 +303,7 @@ function validateDraftSegments(
     throw new AppError(`Monologue can have at most ${MONOLOGUE_SEGMENT_MAX_COUNT} segments.`, 400);
   }
 
-  return segments.map((segment, index) => {
+  return segments.map((segment) => {
     const sourceText = sanitizeString(segment.sourceText);
     const japaneseText = sanitizeString(segment.japaneseText);
     if (!sourceText || !japaneseText) {
@@ -312,7 +312,6 @@ function validateDraftSegments(
 
     return {
       id: segment.id,
-      ordinal: Number.isFinite(segment.ordinal) ? Math.trunc(segment.ordinal) : index,
       sourceText,
       japaneseText,
       reading: sanitizeString(segment.reading) || null,
@@ -523,9 +522,7 @@ export async function updateMonologueDraft(
     }
   }
 
-  for (const media of mediaCleanupCandidates) {
-    await deleteUnusedMonologueMedia(media);
-  }
+  await deleteUnusedMonologueMediaBatch(mediaCleanupCandidates);
 
   return getMonologueProject(userId, projectId);
 }
@@ -617,6 +614,20 @@ async function deleteUnusedMonologueMedia(media: { id: string; storagePath: stri
   }
 }
 
+async function deleteUnusedMonologueMediaBatch(
+  mediaCandidates: Array<{ id: string; storagePath: string | null }>
+) {
+  const cleanupResults = await Promise.allSettled(
+    mediaCandidates.map((media) => deleteUnusedMonologueMedia(media))
+  );
+  const failedCleanup = cleanupResults.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected'
+  );
+  if (failedCleanup) {
+    throw failedCleanup.reason;
+  }
+}
+
 async function listFullAudioTakesForVersion(input: {
   userId: string;
   projectId: string;
@@ -636,7 +647,7 @@ async function listFullAudioTakesForVersion(input: {
 async function deleteStaleFullAudioMedia(
   takes: Array<{ media: { id: string; storagePath: string | null } }>
 ) {
-  await Promise.all(takes.map((take) => deleteUnusedMonologueMedia(take.media)));
+  await deleteUnusedMonologueMediaBatch(takes.map((take) => take.media));
 }
 
 async function synthesizeMonologueText(input: {
@@ -1029,9 +1040,7 @@ export async function generateMonologueFullAudioTake(
       await deleteUnusedMonologueMedia(media);
       throw error;
     }
-    for (const staleTake of staleFullTakes) {
-      await deleteUnusedMonologueMedia(staleTake.media);
-    }
+    await deleteStaleFullAudioMedia(staleFullTakes);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

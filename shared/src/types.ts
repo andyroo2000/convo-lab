@@ -132,7 +132,6 @@ export interface MonologueCreateRequest {
 
 export interface MonologueSegmentUpdateInput {
   id?: string;
-  ordinal: number;
   sourceText: string;
   japaneseText: string;
   reading?: string | null;

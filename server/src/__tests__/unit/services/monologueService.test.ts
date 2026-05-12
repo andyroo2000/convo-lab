@@ -519,7 +519,6 @@ describe('monologueService', () => {
       fullText: '新しい日本語です。',
       segments: [
         {
-          ordinal: 0,
           sourceText: 'New English cue',
           japaneseText: '新しい日本語です。',
           reading: 'あたらしいにほんごです。',
@@ -576,7 +575,6 @@ describe('monologueService', () => {
       fullText: '日本語です。',
       segments: [
         {
-          ordinal: 0,
           sourceText: 'English cue',
           japaneseText: '日本語です。',
           reading: 'にほんごです。',
@@ -606,7 +604,6 @@ describe('monologueService', () => {
         fullText: '新しい日本語です。',
         segments: [
           {
-            ordinal: 0,
             sourceText: 'New English cue',
             japaneseText: '新しい日本語です。',
             reading: 'あたらしいにほんごです。',
@@ -648,7 +645,6 @@ describe('monologueService', () => {
       fullText: '日本語です。',
       segments: [
         {
-          ordinal: 0,
           sourceText: 'English cue',
           japaneseText: '日本語です。',
           reading: 'にほんごです。',
