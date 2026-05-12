@@ -101,7 +101,6 @@ const MonologueStudioPage = () => {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="font-bold text-navy">{project.title}</h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-gray-600">{project.sourceText}</p>
                 </div>
                 <span className="rounded-full bg-navy/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-navy">
                   {project.status}

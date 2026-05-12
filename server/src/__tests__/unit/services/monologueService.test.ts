@@ -327,14 +327,18 @@ describe('monologueService', () => {
 
     expect(mockPrisma.monologueProject.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: {
+        select: expect.objectContaining({
           activeVersion: {
             select: { _count: { select: { segments: true } } },
           },
-        },
+        }),
       })
     );
+    expect(mockPrisma.monologueProject.findMany.mock.calls[0]?.[0].select).not.toHaveProperty(
+      'sourceText'
+    );
     expect(projects[0]?.segmentCount).toBe(6);
+    expect(projects[0]).not.toHaveProperty('sourceText');
   });
 
   it('rejects sentence audio generation until the script is approved', async () => {
@@ -426,6 +430,38 @@ describe('monologueService', () => {
       })
     );
     expect(mockPrisma.monologueAudioTake.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('returns an app error when monologue TTS returns no audio', async () => {
+    mockPrisma.monologueSegment.findFirst.mockResolvedValue({
+      id: 'segment-1',
+      userId: 'user-1',
+      projectId: 'project-1',
+      scriptVersionId: 'version-1',
+      ordinal: 0,
+      sourceText: 'English cue',
+      japaneseText: '日本語です。',
+      reading: 'にほんごです。',
+      beatLabel: null,
+      createdAt: now,
+      updatedAt: now,
+      project: { activeVersionId: 'version-1' },
+      scriptVersion: { id: 'version-1', status: 'approved' },
+    });
+    mockSynthesizeBatchedTexts.mockResolvedValueOnce([]);
+
+    await expect(
+      generateMonologueSegmentAudioTake('user-1', 'project-1', 'segment-1', {
+        voiceId: 'ja-JP-Neural2-D',
+        speed: 0.85,
+      })
+    ).rejects.toMatchObject({
+      message: 'Monologue TTS returned no audio.',
+      statusCode: 502,
+    });
+
+    expect(mockPersistStudyMediaBuffer).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueAudioTake.create).not.toHaveBeenCalled();
   });
 
   it('sets a generated sentence take as default only when explicitly requested', async () => {

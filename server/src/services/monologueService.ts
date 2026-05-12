@@ -169,7 +169,6 @@ function buildListItem(project: {
   id: string;
   title: string;
   status: string;
-  sourceText: string;
   activeVersionId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -179,7 +178,6 @@ function buildListItem(project: {
     id: project.id,
     title: project.title,
     status: parseMonologueStatus(project.status),
-    sourceText: project.sourceText,
     activeVersionId: project.activeVersionId,
     segmentCount: project.activeVersion?._count.segments ?? 0,
     createdAt: project.createdAt.toISOString(),
@@ -400,7 +398,13 @@ export async function listMonologueProjects(userId: string): Promise<MonologuePr
     orderBy: { updatedAt: 'desc' },
     // TODO: add cursor pagination when monologue libraries can exceed this V1 page size.
     take: 50,
-    include: {
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      activeVersionId: true,
+      createdAt: true,
+      updatedAt: true,
       activeVersion: {
         select: { _count: { select: { segments: true } } },
       },
@@ -671,7 +675,7 @@ async function synthesizeMonologueText(input: {
     speed: input.speed,
   });
   if (!buffer) {
-    throw new Error('Monologue TTS returned no audio.');
+    throw new AppError('Monologue TTS returned no audio.', 502);
   }
 
   return buffer;

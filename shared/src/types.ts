@@ -118,7 +118,6 @@ export interface MonologueProjectListItem {
   id: string;
   title: string;
   status: MonologueProjectStatus;
-  sourceText: string;
   activeVersionId: string | null;
   segmentCount: number;
   createdAt: string;
