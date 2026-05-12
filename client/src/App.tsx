@@ -50,6 +50,8 @@ const StudyImportPage = lazy(() => import('./pages/StudyImportPage'));
 const StudyCreatePage = lazy(() => import('./pages/StudyCreatePage'));
 const StudySettingsPage = lazy(() => import('./pages/StudySettingsPage'));
 const DailyAudioPracticePage = lazy(() => import('./pages/DailyAudioPracticePage'));
+const MonologueStudioPage = lazy(() => import('./pages/MonologueStudioPage'));
+const MonologueProjectPage = lazy(() => import('./pages/MonologueProjectPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading fallback component
@@ -286,6 +288,22 @@ const App = () => (
                     element={
                       <StudyRouteWrapper>
                         <DailyAudioPracticePage />
+                      </StudyRouteWrapper>
+                    }
+                  />
+                  <Route
+                    path="study/monologues"
+                    element={
+                      <StudyRouteWrapper>
+                        <MonologueStudioPage />
+                      </StudyRouteWrapper>
+                    }
+                  />
+                  <Route
+                    path="study/monologues/:projectId"
+                    element={
+                      <StudyRouteWrapper>
+                        <MonologueProjectPage />
                       </StudyRouteWrapper>
                     }
                   />

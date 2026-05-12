@@ -106,6 +106,8 @@ import {
 } from '../services/studyService.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
+import monologueRoutes from './studyMonologues.js';
+
 const router = Router();
 const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
 const MAX_STUDY_CARD_PAYLOAD_DEPTH = 8;
@@ -946,6 +948,7 @@ function parseStudyReviewDurationMs(value: unknown): number | undefined {
 
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
+router.use('/monologues', monologueRoutes);
 
 router.post(
   '/imports',

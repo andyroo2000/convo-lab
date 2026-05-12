@@ -32,6 +32,11 @@ import type {
   StudyImportResult,
   StudyImportUploadReadiness,
   StudyImportUploadSession,
+  MonologueAudioGenerateRequest,
+  MonologueCreateRequest,
+  MonologueDraftUpdateRequest,
+  MonologueProjectListItem,
+  MonologueProjectSummary,
   StudyNewCardQueueResponse,
   StudyOverview,
   StudyPromptPayload,
@@ -81,6 +86,16 @@ interface StudyCardActionPayload {
   dueAt?: string;
   timeZone?: string;
   currentOverview?: StudyOverview;
+}
+
+interface MonologueAudioTakePayload extends MonologueAudioGenerateRequest {
+  projectId: string;
+  segmentId: string;
+}
+
+interface MonologueTakeActionPayload {
+  projectId: string;
+  takeId: string;
 }
 
 export interface StudyBrowserQuery {
@@ -142,6 +157,97 @@ export async function updateStudySettings(payload: StudySettings): Promise<Study
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export async function listMonologueProjects(): Promise<{ projects: MonologueProjectListItem[] }> {
+  return apiRequest<{ projects: MonologueProjectListItem[] }>('/api/study/monologues');
+}
+
+export async function createMonologueProject(
+  payload: MonologueCreateRequest
+): Promise<MonologueProjectSummary> {
+  return apiRequest<MonologueProjectSummary>('/api/study/monologues', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getMonologueProject(projectId: string): Promise<MonologueProjectSummary> {
+  return apiRequest<MonologueProjectSummary>(
+    `/api/study/monologues/${encodeURIComponent(projectId)}`
+  );
+}
+
+export async function updateMonologueDraft(payload: {
+  projectId: string;
+  values: MonologueDraftUpdateRequest;
+}): Promise<MonologueProjectSummary> {
+  return apiRequest<MonologueProjectSummary>(
+    `/api/study/monologues/${encodeURIComponent(payload.projectId)}/draft`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload.values),
+    }
+  );
+}
+
+export async function approveMonologueScript(projectId: string): Promise<MonologueProjectSummary> {
+  return apiRequest<MonologueProjectSummary>(
+    `/api/study/monologues/${encodeURIComponent(projectId)}/approve`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function generateMonologueSegmentAudioTake(
+  payload: MonologueAudioTakePayload
+): Promise<MonologueProjectSummary> {
+  return apiRequest<MonologueProjectSummary>(
+    `/api/study/monologues/${encodeURIComponent(payload.projectId)}/segments/${encodeURIComponent(
+      payload.segmentId
+    )}/audio-takes`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        displayName: payload.displayName,
+        isDefault: payload.isDefault,
+        speed: payload.speed,
+        voiceId: payload.voiceId,
+      }),
+    }
+  );
+}
+
+export async function regenerateMonologueAudioTake(
+  payload: MonologueTakeActionPayload
+): Promise<MonologueProjectSummary> {
+  return apiRequest<MonologueProjectSummary>(
+    `/api/study/monologues/${encodeURIComponent(payload.projectId)}/audio-takes/${encodeURIComponent(
+      payload.takeId
+    )}/regenerate`,
+    { method: 'POST' }
+  );
+}
+
+export async function setMonologueDefaultAudioTake(
+  payload: MonologueTakeActionPayload
+): Promise<MonologueProjectSummary> {
+  return apiRequest<MonologueProjectSummary>(
+    `/api/study/monologues/${encodeURIComponent(payload.projectId)}/audio-takes/${encodeURIComponent(
+      payload.takeId
+    )}/default`,
+    { method: 'POST' }
+  );
+}
+
+export async function generateMonologueFullAudio(
+  projectId: string
+): Promise<MonologueProjectSummary> {
+  return apiRequest<MonologueProjectSummary>(
+    `/api/study/monologues/${encodeURIComponent(projectId)}/full-audio`,
+    { method: 'POST' }
+  );
 }
 
 export async function getStudyNewCardQueue(
@@ -433,6 +539,74 @@ export function useStudySettings(enabled: boolean) {
     queryFn: getStudySettings,
     enabled,
   });
+}
+
+export function useMonologueProjects(enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['study', 'monologues'],
+    queryFn: listMonologueProjects,
+    enabled,
+  });
+}
+
+export function useMonologueProject(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ['study', 'monologues', projectId ?? 'none'],
+    queryFn: () => getMonologueProject(projectId as string),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useCreateMonologueProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createMonologueProject,
+    onSuccess: async (project) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'monologues'] }),
+        queryClient.setQueryData(['study', 'monologues', project.id], project),
+      ]);
+    },
+  });
+}
+
+function useMonologueProjectMutation<TPayload>(
+  mutationFn: (payload: TPayload) => Promise<MonologueProjectSummary>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn,
+    onSuccess: async (project) => {
+      queryClient.setQueryData(['study', 'monologues', project.id], project);
+      await queryClient.invalidateQueries({ queryKey: ['study', 'monologues'] });
+    },
+  });
+}
+
+export function useUpdateMonologueDraft() {
+  return useMonologueProjectMutation(updateMonologueDraft);
+}
+
+export function useApproveMonologueScript() {
+  return useMonologueProjectMutation(approveMonologueScript);
+}
+
+export function useGenerateMonologueSegmentAudioTake() {
+  return useMonologueProjectMutation(generateMonologueSegmentAudioTake);
+}
+
+export function useRegenerateMonologueAudioTake() {
+  return useMonologueProjectMutation(regenerateMonologueAudioTake);
+}
+
+export function useSetMonologueDefaultAudioTake() {
+  return useMonologueProjectMutation(setMonologueDefaultAudioTake);
+}
+
+export function useGenerateMonologueFullAudio() {
+  return useMonologueProjectMutation(generateMonologueFullAudio);
 }
 
 export function useStudyNewCardQueue(

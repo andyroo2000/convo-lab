@@ -23,6 +23,10 @@ const studyCardTypeCheckMigrationPath = new URL(
   '../../../../prisma/migrations/20260422213000_add_study_card_type_check/migration.sql',
   import.meta.url
 );
+const monologueStudioMigrationPath = new URL(
+  '../../../../prisma/migrations/20260512120000_add_monologue_studio/migration.sql',
+  import.meta.url
+);
 
 describe('study schema verification', () => {
   it('keeps the StudyCard(noteId) index in both schema and migration history', async () => {
@@ -92,5 +96,23 @@ describe('study schema verification', () => {
       'sourceReviewId     BigInt? // Nullable for ConvoLab-native logs; unique per user when imported review ids are present.'
     );
     expect(schema).toContain('@@unique([userId, sourceReviewId])');
+  });
+
+  it('keeps Monologue Studio models and migration tables in sync', async () => {
+    const [schema, migration] = await Promise.all([
+      readFile(schemaPath, 'utf8'),
+      readFile(monologueStudioMigrationPath, 'utf8'),
+    ]);
+
+    expect(schema).toContain('model MonologueProject');
+    expect(schema).toContain('model MonologueScriptVersion');
+    expect(schema).toContain('model MonologueSegment');
+    expect(schema).toContain('model MonologueAudioTake');
+    expect(schema).toContain('monologueTakes   MonologueAudioTake[]');
+    expect(migration).toContain('CREATE TABLE "monologue_projects"');
+    expect(migration).toContain('CREATE TABLE "monologue_audio_takes"');
+    expect(migration).toContain(
+      'ALTER TABLE "monologue_audio_takes" ADD CONSTRAINT "monologue_audio_takes_mediaId_fkey"'
+    );
   });
 });

@@ -22,6 +22,10 @@ export interface VoiceConfig {
   hiddenFromPicker?: boolean;
 }
 
+export const MONOLOGUE_GOOGLE_NEURAL_SPEEDS = [0.75, 0.85, 1.0] as const;
+export const MONOLOGUE_FISH_AUDIO_SPEED = 1.0;
+export const MONOLOGUE_DEFAULT_GOOGLE_NEURAL_SPEED = 0.85;
+
 export type VoiceAvatarTone = 'casual' | 'polite' | 'formal';
 
 const SUPPORTED_VOICE_AVATAR_LANGUAGES = new Set(['ja']);
@@ -137,6 +141,47 @@ export function getTtsVoices(language: string): VoiceConfig[] {
 
 export function getSelectableTtsVoices(language: string): VoiceConfig[] {
   return getTtsVoices(language).filter((voice) => !voice.hiddenFromPicker);
+}
+
+export function isGoogleNeuralVoice(voice: VoiceConfig | undefined): boolean {
+  return Boolean(voice?.provider === 'google' && voice.id.includes('-Neural2-'));
+}
+
+export function isFishAudioVoice(voice: VoiceConfig | undefined): boolean {
+  return voice?.provider === 'fishaudio';
+}
+
+export function getMonologueTtsVoices(language: string): VoiceConfig[] {
+  return getTtsVoices(language).filter(
+    (voice) => isFishAudioVoice(voice) || isGoogleNeuralVoice(voice)
+  );
+}
+
+export function getMonologueVoiceSpeedOptions(voice: VoiceConfig | undefined): number[] {
+  if (isGoogleNeuralVoice(voice)) {
+    return [...MONOLOGUE_GOOGLE_NEURAL_SPEEDS];
+  }
+
+  return [MONOLOGUE_FISH_AUDIO_SPEED];
+}
+
+export function canAdjustMonologueVoiceSpeed(voice: VoiceConfig | undefined): boolean {
+  return isGoogleNeuralVoice(voice);
+}
+
+export function normalizeMonologueVoiceSpeed(
+  voice: VoiceConfig | undefined,
+  speed: number
+): number {
+  if (!isGoogleNeuralVoice(voice)) {
+    return MONOLOGUE_FISH_AUDIO_SPEED;
+  }
+
+  return MONOLOGUE_GOOGLE_NEURAL_SPEEDS.includes(
+    speed as (typeof MONOLOGUE_GOOGLE_NEURAL_SPEEDS)[number]
+  )
+    ? speed
+    : MONOLOGUE_DEFAULT_GOOGLE_NEURAL_SPEED;
 }
 
 export function getTtsVoiceById(language: string, voiceId: string): VoiceConfig | undefined {
