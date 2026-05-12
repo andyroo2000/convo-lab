@@ -286,6 +286,39 @@ describe('monologueService', () => {
     );
   });
 
+  it('cleans up persisted media when sentence take creation fails', async () => {
+    mockPrisma.monologueSegment.findFirst.mockResolvedValue({
+      id: 'segment-1',
+      userId: 'user-1',
+      projectId: 'project-1',
+      scriptVersionId: 'version-1',
+      ordinal: 0,
+      sourceText: 'English cue',
+      japaneseText: '日本語です。',
+      reading: 'にほんごです。',
+      beatLabel: null,
+      createdAt: now,
+      updatedAt: now,
+      scriptVersion: { id: 'version-1', status: 'approved' },
+    });
+    mockPrisma.$transaction.mockRejectedValueOnce(new Error('db write failed'));
+    mockPrisma.studyMedia.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+    await expect(
+      generateMonologueSegmentAudioTake('user-1', 'project-1', 'segment-1', {
+        voiceId: 'ja-JP-Neural2-D',
+        speed: 0.85,
+      })
+    ).rejects.toThrow('db write failed');
+
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: 'media-1',
+        monologueTakes: { none: {} },
+      },
+    });
+  });
+
   it('regenerates a take in place without changing display name or default status', async () => {
     mockPrisma.monologueAudioTake.findFirst.mockResolvedValue({
       id: 'take-1',
@@ -440,6 +473,16 @@ describe('monologueService', () => {
   });
 
   it('approves the active script version', async () => {
+    mockPrisma.monologueProject.findFirst.mockResolvedValue({
+      ...projectRecord(),
+      status: 'draft',
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        status: 'draft',
+        approvedAt: null,
+      },
+    });
+
     await approveMonologueScript('user-1', 'project-1');
 
     expect(mockPrisma.monologueScriptVersion.update).toHaveBeenCalledWith({
@@ -450,6 +493,13 @@ describe('monologueService', () => {
       where: { id: 'project-1' },
       data: { status: 'approved' },
     });
+  });
+
+  it('leaves an already-approved script unchanged when approving again', async () => {
+    await approveMonologueScript('user-1', 'project-1');
+
+    expect(mockPrisma.monologueScriptVersion.update).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueProject.update).not.toHaveBeenCalled();
   });
 
   it('sets a sentence audio take as default within its segment', async () => {

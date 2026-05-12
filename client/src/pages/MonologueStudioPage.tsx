@@ -14,11 +14,15 @@ const MonologueStudioPage = () => {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const project = await createProject.mutateAsync({
-      title: title.trim() || null,
-      sourceText,
-    });
-    navigate(`/app/study/monologues/${project.id}`);
+    try {
+      const project = await createProject.mutateAsync({
+        title: title.trim() || null,
+        sourceText,
+      });
+      navigate(`/app/study/monologues/${project.id}`);
+    } catch {
+      // React Query exposes the error in the form; keep the submit handler settled.
+    }
   };
 
   return (

@@ -500,20 +500,15 @@ export async function updateMonologueDraft(
       });
       break;
     } catch (error) {
-      if (
-        activeVersion.status === 'approved' &&
-        isPrismaUniqueConstraintError(error) &&
-        attempt < MONOLOGUE_DRAFT_UPDATE_MAX_ATTEMPTS
-      ) {
-        continue;
+      if (activeVersion.status !== 'approved' || !isPrismaUniqueConstraintError(error)) {
+        throw error;
       }
-      if (activeVersion.status === 'approved' && isPrismaUniqueConstraintError(error)) {
+      if (attempt >= MONOLOGUE_DRAFT_UPDATE_MAX_ATTEMPTS) {
         throw new AppError(
           'Another monologue draft edit was saved at the same time. Try again.',
           409
         );
       }
-      throw error;
     }
   }
 
@@ -530,6 +525,9 @@ export async function approveMonologueScript(
   });
   if (!project?.activeVersion) {
     throw new AppError('Monologue project not found.', 404);
+  }
+  if (project.activeVersion.status === 'approved') {
+    return getMonologueProject(userId, projectId);
   }
 
   await prisma.$transaction([
@@ -592,6 +590,18 @@ async function persistMonologueAudio(input: {
   });
 }
 
+async function deleteUnusedMonologueMedia(media: { id: string; storagePath: string | null }) {
+  const deletedMedia = await prisma.studyMedia.deleteMany({
+    where: {
+      id: media.id,
+      monologueTakes: { none: {} },
+    },
+  });
+  if (deletedMedia.count > 0 && media.storagePath) {
+    await deletePersistedStudyMediaByStoragePath(media.storagePath);
+  }
+}
+
 async function synthesizeMonologueText(input: {
   text: string;
   reading?: string | null;
@@ -646,30 +656,35 @@ export async function generateMonologueSegmentAudioTake(
     buffer,
   });
 
-  await prisma.$transaction(async (tx) => {
-    if (request.isDefault !== false) {
-      await tx.monologueAudioTake.updateMany({
-        where: { userId, segmentId, scope: 'sentence' },
-        data: { isDefault: false },
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (request.isDefault !== false) {
+        await tx.monologueAudioTake.updateMany({
+          where: { userId, segmentId, scope: 'sentence' },
+          data: { isDefault: false },
+        });
+      }
+      await tx.monologueAudioTake.create({
+        data: {
+          userId,
+          projectId,
+          scriptVersionId: segment.scriptVersionId,
+          segmentId,
+          mediaId: media.id,
+          displayName,
+          source: 'tts',
+          provider: voice.provider,
+          voiceId: request.voiceId,
+          speed,
+          scope: 'sentence',
+          isDefault: request.isDefault !== false,
+        },
       });
-    }
-    await tx.monologueAudioTake.create({
-      data: {
-        userId,
-        projectId,
-        scriptVersionId: segment.scriptVersionId,
-        segmentId,
-        mediaId: media.id,
-        displayName,
-        source: 'tts',
-        provider: voice.provider,
-        voiceId: request.voiceId,
-        speed,
-        scope: 'sentence',
-        isDefault: request.isDefault !== false,
-      },
     });
-  });
+  } catch (error) {
+    await deleteUnusedMonologueMedia(media);
+    throw error;
+  }
 
   return getMonologueProject(userId, projectId);
 }
@@ -709,22 +724,28 @@ export async function regenerateMonologueAudioTake(
   });
 
   const previousMedia = take.media;
-  const deletedPreviousMedia = await prisma.$transaction(async (tx) => {
-    await tx.monologueAudioTake.update({
-      where: { id: take.id },
-      data: {
-        mediaId: media.id,
-        provider: voice.provider,
-        speed,
-      },
+  let deletedPreviousMedia: { count: number };
+  try {
+    deletedPreviousMedia = await prisma.$transaction(async (tx) => {
+      await tx.monologueAudioTake.update({
+        where: { id: take.id },
+        data: {
+          mediaId: media.id,
+          provider: voice.provider,
+          speed,
+        },
+      });
+      return tx.studyMedia.deleteMany({
+        where: {
+          id: previousMedia.id,
+          monologueTakes: { none: {} },
+        },
+      });
     });
-    return tx.studyMedia.deleteMany({
-      where: {
-        id: previousMedia.id,
-        monologueTakes: { none: {} },
-      },
-    });
-  });
+  } catch (error) {
+    await deleteUnusedMonologueMedia(media);
+    throw error;
+  }
   if (deletedPreviousMedia.count > 0 && previousMedia.storagePath) {
     await deletePersistedStudyMediaByStoragePath(previousMedia.storagePath);
   }
@@ -784,7 +805,7 @@ async function concatenateAudioFiles(audioFiles: string[], outputPath: string): 
   const listPath = path.join(path.dirname(outputPath), 'concat.txt');
   await fs.writeFile(
     listPath,
-    audioFiles.map((file) => `file '${file.replaceAll("'", "'\\''")}'`).join('\n')
+    audioFiles.map((file) => `file '${file.replaceAll("'", "\\'")}'`).join('\n')
   );
   await new Promise<void>((resolve, reject) => {
     ffmpeg()
@@ -861,37 +882,42 @@ export async function generateMonologueFullAudioTake(
       buffer: await fs.readFile(outputPath),
     });
 
-    await prisma.$transaction(async (tx) => {
-      await tx.monologueAudioTake.updateMany({
-        where: {
-          userId,
-          projectId,
-          scriptVersionId: activeVersionId,
-          scope: 'full',
-        },
-        data: { isDefault: false },
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.monologueAudioTake.updateMany({
+          where: {
+            userId,
+            projectId,
+            scriptVersionId: activeVersionId,
+            scope: 'full',
+          },
+          data: { isDefault: false },
+        });
+        await tx.monologueAudioTake.create({
+          data: {
+            userId,
+            projectId,
+            scriptVersionId: activeVersionId,
+            segmentId: null,
+            mediaId: media.id,
+            displayName: 'Full monologue render',
+            source: 'tts',
+            provider: 'mixed',
+            voiceId: null,
+            speed: 1,
+            scope: 'full',
+            isDefault: true,
+          },
+        });
+        await tx.monologueProject.update({
+          where: { id: projectId },
+          data: { status: 'ready' },
+        });
       });
-      await tx.monologueAudioTake.create({
-        data: {
-          userId,
-          projectId,
-          scriptVersionId: activeVersionId,
-          segmentId: null,
-          mediaId: media.id,
-          displayName: 'Full monologue render',
-          source: 'tts',
-          provider: 'mixed',
-          voiceId: null,
-          speed: 1,
-          scope: 'full',
-          isDefault: true,
-        },
-      });
-      await tx.monologueProject.update({
-        where: { id: projectId },
-        data: { status: 'ready' },
-      });
-    });
+    } catch (error) {
+      await deleteUnusedMonologueMedia(media);
+      throw error;
+    }
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

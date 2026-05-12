@@ -183,6 +183,7 @@ const MonologueProjectPage = () => {
   const [recallIndex, setRecallIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [pendingSegmentAudioIds, setPendingSegmentAudioIds] = useState<string[]>([]);
+  const [saveSucceeded, setSaveSucceeded] = useState(false);
   const initializedDraftKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -232,6 +233,7 @@ const MonologueProjectPage = () => {
   }
 
   const updateSegment = (index: number, patch: Partial<SegmentDraft>) => {
+    setSaveSucceeded(false);
     setSegments((current) =>
       current.map((segment, currentIndex) =>
         currentIndex === index ? { ...segment, ...patch } : segment
@@ -242,21 +244,27 @@ const MonologueProjectPage = () => {
   const handleSaveDraft = async (event: FormEvent) => {
     event.preventDefault();
     if (!projectId) return;
-    await updateDraft.mutateAsync({
-      projectId,
-      values: {
-        title,
-        fullText,
-        segments: segments.map((segment, index) => ({
-          id: segment.id,
-          ordinal: index,
-          sourceText: segment.sourceText,
-          japaneseText: segment.japaneseText,
-          reading: segment.reading || null,
-          beatLabel: segment.beatLabel || null,
-        })),
-      },
-    });
+    setSaveSucceeded(false);
+    try {
+      await updateDraft.mutateAsync({
+        projectId,
+        values: {
+          title,
+          fullText,
+          segments: segments.map((segment, index) => ({
+            id: segment.id,
+            ordinal: index,
+            sourceText: segment.sourceText,
+            japaneseText: segment.japaneseText,
+            reading: segment.reading || null,
+            beatLabel: segment.beatLabel || null,
+          })),
+        },
+      });
+      setSaveSucceeded(true);
+    } catch {
+      // React Query exposes the error below the form; keep the submit handler settled.
+    }
   };
 
   const handleGenerateAudio = async (segmentId: string, control: AudioControlState) => {
@@ -271,6 +279,8 @@ const MonologueProjectPage = () => {
         speed: control.speed,
         voiceId: control.voiceId,
       });
+    } catch {
+      // Mutation error is rendered in the sentence-audio section.
     } finally {
       setPendingSegmentAudioIds((current) => current.filter((id) => id !== segmentId));
     }
@@ -365,7 +375,10 @@ const MonologueProjectPage = () => {
           <input
             id="monologue-project-title"
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setSaveSucceeded(false);
+              setTitle(event.target.value);
+            }}
             className="rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"
           />
         </label>
@@ -377,7 +390,10 @@ const MonologueProjectPage = () => {
           <textarea
             id="monologue-full-text"
             value={fullText}
-            onChange={(event) => setFullText(event.target.value)}
+            onChange={(event) => {
+              setSaveSucceeded(false);
+              setFullText(event.target.value);
+            }}
             className="min-h-44 rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"
           />
         </label>
@@ -422,6 +438,9 @@ const MonologueProjectPage = () => {
         {(updateDraft.error || approveScript.error) && (
           <p className="text-sm text-red-600">{scriptErrorMessage}</p>
         )}
+        {saveSucceeded && !updateDraft.error ? (
+          <p className="text-sm font-semibold text-green-700">{t('monologue.actions.saved')}</p>
+        ) : null}
       </form>
 
       <section className="card retro-paper-panel space-y-4">
