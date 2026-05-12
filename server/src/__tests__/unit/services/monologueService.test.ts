@@ -147,6 +147,7 @@ beforeEach(() => {
   );
   mockSynthesizeBatchedTexts.mockResolvedValue([Buffer.from('audio')]);
   mockFindAccessibleLocalStudyMediaPath.mockResolvedValue('/tmp/monologue-segment.mp3');
+  writeFileSync('/tmp/monologue-segment.mp3', Buffer.from('segment audio'));
   mockDeletePersistedStudyMediaByStoragePath.mockResolvedValue(undefined);
   mockFfmpeg.mockImplementation(() => {
     let outputPath = '';
@@ -653,6 +654,7 @@ describe('monologueService', () => {
         japaneseText: '日本語です。',
         reading: 'にほんごです。',
       },
+      project: { activeVersionId: 'version-1' },
       scriptVersion: { id: 'version-1', status: 'approved' },
       media: {
         id: 'old-media',
@@ -731,6 +733,7 @@ describe('monologueService', () => {
         japaneseText: '日本語です。',
         reading: 'にほんごです。',
       },
+      project: { activeVersionId: 'version-1' },
       scriptVersion: { id: 'version-1', status: 'approved' },
       media: {
         id: 'old-media',
@@ -755,6 +758,42 @@ describe('monologueService', () => {
     expect(mockDeletePersistedStudyMediaByStoragePath).toHaveBeenCalledWith(
       'study-media/user-1/monologue-generated/old.mp3'
     );
+  });
+
+  it('rejects regenerating audio for a superseded script version', async () => {
+    mockPrisma.monologueAudioTake.findFirst.mockResolvedValue({
+      id: 'take-1',
+      userId: 'user-1',
+      projectId: 'project-1',
+      scriptVersionId: 'version-1',
+      segmentId: 'segment-1',
+      mediaId: 'old-media',
+      displayName: 'Old version take',
+      source: 'tts',
+      provider: 'google',
+      voiceId: 'ja-JP-Neural2-D',
+      speed: 0.85,
+      scope: 'sentence',
+      isDefault: false,
+      createdAt: now,
+      updatedAt: now,
+      segment: {
+        id: 'segment-1',
+        japaneseText: '古い文です。',
+        reading: 'ふるいぶんです。',
+      },
+      project: { activeVersionId: 'version-2' },
+      scriptVersion: { id: 'version-1', status: 'approved' },
+      media: {
+        id: 'old-media',
+        storagePath: 'study-media/user-1/monologue-generated/old.mp3',
+      },
+    });
+
+    await expect(regenerateMonologueAudioTake('user-1', 'project-1', 'take-1')).rejects.toThrow(
+      'Regenerate audio for the active monologue script version.'
+    );
+    expect(mockSynthesizeBatchedTexts).not.toHaveBeenCalled();
   });
 
   it('creates a new draft version when editing an approved monologue', async () => {
@@ -858,6 +897,25 @@ describe('monologueService', () => {
         title: '',
       },
     });
+  });
+
+  it('rejects oversized monologue segment edits before writing', async () => {
+    await expect(
+      updateMonologueDraft('user-1', 'project-1', {
+        fullText: '日本語です。',
+        segments: [
+          {
+            id: 'segment-1',
+            sourceText: 'English cue',
+            japaneseText: 'あ'.repeat(1001),
+            reading: null,
+            beatLabel: null,
+          },
+        ],
+      })
+    ).rejects.toThrow('Monologue segment text can have at most 1000 characters.');
+    expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
   });
 
   it('returns 409 when approved draft version retries are exhausted', async () => {

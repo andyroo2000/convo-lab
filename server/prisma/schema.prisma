@@ -639,10 +639,10 @@ model MonologueSegment {
   projectId       String
   scriptVersionId String
   ordinal         Int
-  sourceText      String   @db.Text
-  japaneseText    String   @db.Text
-  reading         String?  @db.Text
-  beatLabel       String?
+  sourceText      String   @db.VarChar(1000)
+  japaneseText    String   @db.VarChar(1000)
+  reading         String?  @db.VarChar(1000)
+  beatLabel       String?  @db.VarChar(120)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

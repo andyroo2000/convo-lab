@@ -51,6 +51,9 @@ const MONOLOGUE_SOURCE_MAX_LENGTH = 12_000;
 const MONOLOGUE_FULL_TEXT_MAX_LENGTH = 12_000;
 const MONOLOGUE_TITLE_MAX_LENGTH = 120;
 const MONOLOGUE_TAKE_NAME_MAX_LENGTH = 120;
+const MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH = 1_000;
+const MONOLOGUE_SEGMENT_READING_MAX_LENGTH = 1_000;
+const MONOLOGUE_SEGMENT_BEAT_LABEL_MAX_LENGTH = 120;
 const MONOLOGUE_SEGMENT_MAX_COUNT = 80;
 const MONOLOGUE_SEGMENT_AUDIO_TAKE_LIST_LIMIT = 20;
 const MONOLOGUE_FULL_AUDIO_TAKE_LIST_LIMIT = 5;
@@ -268,14 +271,23 @@ function parseGeneratedMonologue(raw: string): GeneratedMonologue {
     .map((value): GeneratedMonologueSegment | null => {
       if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
       const segment = value as Record<string, unknown>;
-      const sourceText = sanitizeString(segment.sourceText);
-      const japaneseText = sanitizeString(segment.japaneseText);
+      const sourceText = truncate(
+        sanitizeString(segment.sourceText),
+        MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH
+      );
+      const japaneseText = truncate(
+        sanitizeString(segment.japaneseText),
+        MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH
+      );
       if (!sourceText || !japaneseText) return null;
       return {
         sourceText,
         japaneseText,
-        reading: sanitizeString(segment.reading) || null,
-        beatLabel: sanitizeString(segment.beatLabel) || null,
+        reading:
+          truncate(sanitizeString(segment.reading), MONOLOGUE_SEGMENT_READING_MAX_LENGTH) || null,
+        beatLabel:
+          truncate(sanitizeString(segment.beatLabel), MONOLOGUE_SEGMENT_BEAT_LABEL_MAX_LENGTH) ||
+          null,
       };
     })
     .filter((value): value is GeneratedMonologueSegment => Boolean(value));
@@ -364,19 +376,43 @@ function validateDraftSegments(
     throw new AppError(`Monologue can have at most ${MONOLOGUE_SEGMENT_MAX_COUNT} segments.`, 400);
   }
 
+  // Ordinals are not accepted from clients; writes assign index-based ordinals for a dense sequence.
   return segments.map((segment) => {
     const sourceText = sanitizeString(segment.sourceText);
     const japaneseText = sanitizeString(segment.japaneseText);
+    const reading = sanitizeString(segment.reading);
+    const beatLabel = sanitizeString(segment.beatLabel);
     if (!sourceText || !japaneseText) {
       throw new AppError('Each monologue segment needs English and Japanese text.', 400);
+    }
+    if (
+      sourceText.length > MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH ||
+      japaneseText.length > MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH
+    ) {
+      throw new AppError(
+        `Monologue segment text can have at most ${MONOLOGUE_SEGMENT_TEXT_MAX_LENGTH} characters.`,
+        400
+      );
+    }
+    if (reading.length > MONOLOGUE_SEGMENT_READING_MAX_LENGTH) {
+      throw new AppError(
+        `Monologue segment reading can have at most ${MONOLOGUE_SEGMENT_READING_MAX_LENGTH} characters.`,
+        400
+      );
+    }
+    if (beatLabel.length > MONOLOGUE_SEGMENT_BEAT_LABEL_MAX_LENGTH) {
+      throw new AppError(
+        `Monologue segment beat label can have at most ${MONOLOGUE_SEGMENT_BEAT_LABEL_MAX_LENGTH} characters.`,
+        400
+      );
     }
 
     return {
       id: segment.id,
       sourceText,
       japaneseText,
-      reading: sanitizeString(segment.reading) || null,
-      beatLabel: sanitizeString(segment.beatLabel) || null,
+      reading: reading || null,
+      beatLabel: beatLabel || null,
     };
   });
 }
@@ -853,13 +889,21 @@ export async function regenerateMonologueAudioTake(
 ): Promise<MonologueProjectSummary> {
   const take = await prisma.monologueAudioTake.findFirst({
     where: { id: takeId, projectId, userId },
-    include: { media: true, segment: true, scriptVersion: true },
+    include: {
+      media: true,
+      project: { select: { activeVersionId: true } },
+      segment: true,
+      scriptVersion: true,
+    },
   });
   if (!take) {
     throw new AppError('Monologue audio take not found.', 404);
   }
   if (take.scope !== 'sentence' || !take.segment || !take.voiceId) {
     throw new AppError('Only sentence TTS takes can be regenerated in place.', 400);
+  }
+  if (take.project.activeVersionId !== take.scriptVersionId) {
+    throw new AppError('Regenerate audio for the active monologue script version.', 409);
   }
   if (take.scriptVersion.status !== 'approved') {
     throw new AppError('Approve the monologue script before regenerating audio.', 400);
@@ -1059,19 +1103,34 @@ async function resolveMediaFilePath(input: {
   if (!input.storagePath) {
     throw new Error('Audio media is missing a storage path.');
   }
-  const localPath = await findAccessibleLocalStudyMediaPath(input.storagePath);
-  if (localPath) return localPath;
-
   const destinationPath = path.join(input.tempDir, `segment-${input.index}.mp3`);
+  const localPath = await findAccessibleLocalStudyMediaPath(input.storagePath);
+  if (localPath) {
+    await fs.copyFile(localPath, destinationPath);
+    return destinationPath;
+  }
+
   await downloadFromGCSPath({ filePath: input.storagePath, destinationPath });
   return destinationPath;
 }
 
 async function concatenateAudioFiles(audioFiles: string[], outputPath: string): Promise<void> {
-  const listPath = path.join(path.dirname(outputPath), 'concat.txt');
+  const tempDir = path.dirname(outputPath);
+  const listPath = path.join(tempDir, 'concat.txt');
+  const tempDirWithSeparator = `${tempDir}${path.sep}`;
+  for (const file of audioFiles) {
+    const basename = path.basename(file);
+    if (
+      !path.isAbsolute(file) ||
+      !file.startsWith(tempDirWithSeparator) ||
+      !/^segment-\d+\.mp3$/.test(basename)
+    ) {
+      throw new AppError('Audio render file path was outside the temporary render directory.', 500);
+    }
+  }
   await fs.writeFile(
     listPath,
-    audioFiles.map((file) => `file '${file.replaceAll("'", "\\'")}'`).join('\n')
+    audioFiles.map((file) => `file '${path.basename(file)}'`).join('\n')
   );
   await new Promise<void>((resolve, reject) => {
     ffmpeg()

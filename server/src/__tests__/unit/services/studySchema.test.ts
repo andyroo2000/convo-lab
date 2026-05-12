@@ -111,6 +111,8 @@ describe('study schema verification', () => {
     expect(schema).toContain('monologueTakes   MonologueAudioTake[]');
     expect(migration).toContain('CREATE TABLE "monologue_projects"');
     expect(migration).toContain('CREATE TABLE "monologue_audio_takes"');
+    expect(migration).toContain('"japaneseText" VARCHAR(1000) NOT NULL');
+    expect(migration).toContain('"reading" VARCHAR(1000)');
     expect(migration).toContain(
       'CREATE INDEX "monologue_projects_userId_id_idx" ON "monologue_projects"("userId", "id")'
     );
