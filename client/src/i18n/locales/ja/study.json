@@ -52,6 +52,67 @@
     "loading": "概要を読み込み中…",
     "empty": "`日本語` デッキを取り込むかカードを作成して、ここから学習を始めましょう。"
   },
+  "monologue": {
+    "loading": "モノローグを読み込み中…",
+    "version": "バージョン {{version}}",
+    "sentenceLabel": "文 {{index}}",
+    "actions": {
+      "back": "モノローグスタジオに戻る",
+      "save": "下書きを保存",
+      "saving": "保存中…",
+      "approve": "承認",
+      "approved": "承認済み",
+      "approving": "承認中…"
+    },
+    "listen": {
+      "title": "聞く",
+      "empty": "すべての文の音声を生成してから、全体音声を作成します。",
+      "render": "全体音声を作成",
+      "rendering": "作成中…"
+    },
+    "script": {
+      "title": "スクリプト",
+      "projectTitle": "タイトル",
+      "fullJapanese": "日本語スクリプト全文"
+    },
+    "segmentFields": {
+      "beatLabel": "文 {{index}} のビートラベル",
+      "beatLabelPlaceholder": "ビートラベル",
+      "englishCue": "文 {{index}} の英語キュー",
+      "japaneseText": "文 {{index}} の日本語",
+      "reading": "文 {{index}} の読み",
+      "readingPlaceholder": "読み"
+    },
+    "controls": {
+      "voice": "音声",
+      "speed": "速度",
+      "takeName": "テイク名",
+      "generate": "生成",
+      "generating": "生成中…",
+      "fishFixedSpeed": "Fish Audio のテイクは 1.0x 固定です。"
+    },
+    "audio": {
+      "title": "文ごとの音声",
+      "approveFirst": "音声を生成する前にスクリプトを承認してください。",
+      "default": "（デフォルト）",
+      "setDefault": "デフォルトにする",
+      "regenerate": "再生成"
+    },
+    "recall": {
+      "title": "文のリコール",
+      "progress": "{{count}} 文中 {{index}} 文目",
+      "reveal": "表示",
+      "hide": "答えを隠す",
+      "previous": "前へ",
+      "next": "次へ"
+    },
+    "errors": {
+      "notFound": "モノローグが見つかりません。",
+      "saveScript": "スクリプトを保存できませんでした。",
+      "fullAudio": "全体音声を作成できませんでした。",
+      "audioAction": "文の音声を更新できませんでした。"
+    }
+  },
   "settings": {
     "title": "学習設定",
     "description": "新規カードをレビューに追加する数と表示順を調整します。",

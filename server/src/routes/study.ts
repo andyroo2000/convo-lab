@@ -948,6 +948,7 @@ function parseStudyReviewDurationMs(value: unknown): number | undefined {
 
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
+// Monologue Studio V1 lives under Study and intentionally shares the Study/flashcards gate.
 router.use('/monologues', monologueRoutes);
 
 router.post(

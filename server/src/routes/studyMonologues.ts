@@ -18,6 +18,7 @@ import {
 const router = Router();
 const MONOLOGUE_CREATE_RATE_LIMIT_PER_MINUTE = 8;
 const MONOLOGUE_AUDIO_RATE_LIMIT_PER_MINUTE = 30;
+const MONOLOGUE_ALLOWED_SPEEDS = new Set([0.75, 0.85, 1]);
 
 function requireUserId(req: AuthRequest): string {
   if (!req.userId) {
@@ -40,6 +41,18 @@ function optionalString(value: unknown): string | null | undefined {
   throw new AppError('Expected a string or null.', 400);
 }
 
+function optionalMonologueSpeed(value: unknown): number | undefined {
+  if (typeof value === 'undefined') return undefined;
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    !MONOLOGUE_ALLOWED_SPEEDS.has(value)
+  ) {
+    throw new AppError('speed must be 0.75, 0.85, or 1.', 400);
+  }
+  return value;
+}
+
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
     res.json({ projects: await listMonologueProjects(requireUserId(req)) });
@@ -59,9 +72,12 @@ router.post(
     try {
       const body = requireBodyObject(req.body);
       const sourceText = optionalString(body.sourceText);
+      if (!sourceText?.trim()) {
+        throw new AppError('sourceText is required.', 400);
+      }
       const title = optionalString(body.title);
       const result = await createMonologueProject(requireUserId(req), {
-        sourceText: sourceText ?? '',
+        sourceText,
         title,
       });
       res.status(201).json(result);
@@ -82,6 +98,7 @@ router.get('/:projectId', async (req: AuthRequest, res, next) => {
 router.put('/:projectId/draft', async (req: AuthRequest, res, next) => {
   try {
     const body = requireBodyObject(req.body);
+    // Segment shape and cross-field validation live in the service with draft-version rules.
     res.json(
       await updateMonologueDraft(requireUserId(req), req.params.projectId, {
         title: typeof body.title === 'string' ? body.title : undefined,
@@ -124,7 +141,7 @@ router.post(
             voiceId: body.voiceId,
             displayName: optionalString(body.displayName),
             isDefault: typeof body.isDefault === 'boolean' ? body.isDefault : undefined,
-            speed: typeof body.speed === 'number' ? body.speed : undefined,
+            speed: optionalMonologueSpeed(body.speed),
           }
         )
       );

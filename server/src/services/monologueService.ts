@@ -169,7 +169,7 @@ function buildListItem(project: {
   activeVersionId: string | null;
   createdAt: Date;
   updatedAt: Date;
-  _count: { segments: number };
+  activeVersion: { _count: { segments: number } } | null;
 }): MonologueProjectListItem {
   return {
     id: project.id,
@@ -177,7 +177,7 @@ function buildListItem(project: {
     status: parseMonologueStatus(project.status),
     sourceText: project.sourceText,
     activeVersionId: project.activeVersionId,
-    segmentCount: project._count.segments,
+    segmentCount: project.activeVersion?._count.segments ?? 0,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
   };
@@ -392,7 +392,11 @@ export async function listMonologueProjects(userId: string): Promise<MonologuePr
     orderBy: { updatedAt: 'desc' },
     // TODO: add cursor pagination when monologue libraries can exceed this V1 page size.
     take: 50,
-    include: { _count: { select: { segments: true } } },
+    include: {
+      activeVersion: {
+        select: { _count: { select: { segments: true } } },
+      },
+    },
   });
 
   return projects.map(buildListItem);

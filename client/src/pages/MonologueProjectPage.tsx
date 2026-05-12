@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   canAdjustMonologueVoiceSpeed,
   getMonologueTtsVoices,
@@ -67,6 +68,7 @@ const SegmentAudioControls = ({
   onGenerate: (segmentId: string, control: AudioControlState) => void;
   segment: MonologueSegmentSummary;
 }) => {
+  const { t } = useTranslation('study');
   const [control, setControl] = useState<AudioControlState>(() => buildDefaultControl());
   const selectedVoice = getTtsVoiceById('ja', control.voiceId);
   const speedOptions = getMonologueVoiceSpeedOptions(selectedVoice);
@@ -86,7 +88,7 @@ const SegmentAudioControls = ({
           htmlFor={`monologue-${segment.id}-voice`}
           className="grid gap-1 text-xs font-semibold text-gray-600"
         >
-          Voice
+          {t('monologue.controls.voice')}
           <select
             id={`monologue-${segment.id}-voice`}
             value={control.voiceId}
@@ -109,7 +111,7 @@ const SegmentAudioControls = ({
           htmlFor={`monologue-${segment.id}-speed`}
           className="grid gap-1 text-xs font-semibold text-gray-600"
         >
-          Speed
+          {t('monologue.controls.speed')}
           <select
             id={`monologue-${segment.id}-speed`}
             value={control.speed}
@@ -133,7 +135,7 @@ const SegmentAudioControls = ({
           htmlFor={`monologue-${segment.id}-take-name`}
           className="grid gap-1 text-xs font-semibold text-gray-600"
         >
-          Take name
+          {t('monologue.controls.takeName')}
           <input
             id={`monologue-${segment.id}-take-name`}
             value={control.displayName}
@@ -153,17 +155,18 @@ const SegmentAudioControls = ({
           onClick={() => onGenerate(segment.id, control)}
           className="self-end rounded-lg bg-navy px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isBusy ? 'Generating...' : 'Generate'}
+          {isBusy ? t('monologue.controls.generating') : t('monologue.controls.generate')}
         </button>
       </div>
       {!canAdjustSpeed ? (
-        <p className="text-xs text-gray-500">Fish Audio takes are fixed at 1.0x.</p>
+        <p className="text-xs text-gray-500">{t('monologue.controls.fishFixedSpeed')}</p>
       ) : null}
     </div>
   );
 };
 
 const MonologueProjectPage = () => {
+  const { t } = useTranslation('study');
   const { projectId } = useParams();
   const projectQuery = useMonologueProject(projectId);
   const updateDraft = useUpdateMonologueDraft();
@@ -209,17 +212,23 @@ const MonologueProjectPage = () => {
   const recallAudio =
     recallSegment?.audioTakes.find((take) => take.isDefault) ?? recallSegment?.audioTakes[0];
   const isApproved = activeVersion?.status === 'approved';
-  let approveLabel = 'Approve';
+  let approveLabel = t('monologue.actions.approve');
   if (isApproved) {
-    approveLabel = 'Approved';
+    approveLabel = t('monologue.actions.approved');
   } else if (approveScript.isPending) {
-    approveLabel = 'Approving...';
+    approveLabel = t('monologue.actions.approving');
   }
-  let scriptErrorMessage = 'Could not save script.';
+  let scriptErrorMessage = t('monologue.errors.saveScript');
   if (updateDraft.error instanceof Error) {
     scriptErrorMessage = updateDraft.error.message;
   } else if (approveScript.error instanceof Error) {
     scriptErrorMessage = approveScript.error.message;
+  }
+  const audioActionError =
+    generateAudio.error ?? regenerateAudio.error ?? setDefaultAudio.error ?? null;
+  let audioActionErrorMessage = t('monologue.errors.audioAction');
+  if (audioActionError instanceof Error) {
+    audioActionErrorMessage = audioActionError.message;
   }
 
   const updateSegment = (index: number, patch: Partial<SegmentDraft>) => {
@@ -268,7 +277,7 @@ const MonologueProjectPage = () => {
   };
 
   if (projectQuery.isLoading) {
-    return <p className="text-gray-500">Loading monologue...</p>;
+    return <p className="text-gray-500">{t('monologue.loading')}</p>;
   }
 
   if (!project || !activeVersion) {
@@ -277,10 +286,10 @@ const MonologueProjectPage = () => {
         <p className="text-red-600">
           {projectQuery.error instanceof Error
             ? projectQuery.error.message
-            : 'Monologue not found.'}
+            : t('monologue.errors.notFound')}
         </p>
         <Link className="mt-4 inline-flex text-navy underline" to="/app/study/monologues">
-          Back to Monologue Studio
+          {t('monologue.actions.back')}
         </Link>
       </section>
     );
@@ -290,25 +299,23 @@ const MonologueProjectPage = () => {
     <div className="space-y-6">
       <div>
         <Link className="text-sm font-semibold text-navy underline" to="/app/study/monologues">
-          Back to Monologue Studio
+          {t('monologue.actions.back')}
         </Link>
         <h1 className="mt-2 text-3xl font-bold text-navy">{project.title}</h1>
         <p className="mt-1 text-sm uppercase tracking-[0.14em] text-gray-500">
-          {project.status} · version {activeVersion.versionNumber}
+          {project.status} · {t('monologue.version', { version: activeVersion.versionNumber })}
         </p>
       </div>
 
       <section className="card retro-paper-panel space-y-4">
-        <h2 className="text-xl font-bold text-navy">Listen</h2>
+        <h2 className="text-xl font-bold text-navy">{t('monologue.listen.title')}</h2>
         {defaultFullTake ? (
           <StudyAudioPlayer
             url={toAssetUrl(defaultFullTake.audioUrl) ?? ''}
             label={defaultFullTake.displayName}
           />
         ) : (
-          <p className="text-gray-600">
-            Generate sentence audio for every segment, then render full audio.
-          </p>
+          <p className="text-gray-600">{t('monologue.listen.empty')}</p>
         )}
         <button
           type="button"
@@ -316,27 +323,29 @@ const MonologueProjectPage = () => {
           onClick={() => projectId && generateFullAudio.mutate(projectId)}
           className="rounded-xl border border-navy px-4 py-2 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {generateFullAudio.isPending ? 'Rendering...' : 'Render full monologue'}
+          {generateFullAudio.isPending
+            ? t('monologue.listen.rendering')
+            : t('monologue.listen.render')}
         </button>
         {generateFullAudio.error ? (
           <p className="text-sm text-red-600">
             {generateFullAudio.error instanceof Error
               ? generateFullAudio.error.message
-              : 'Could not render full audio.'}
+              : t('monologue.errors.fullAudio')}
           </p>
         ) : null}
       </section>
 
       <form className="card retro-paper-panel space-y-4" onSubmit={handleSaveDraft}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-navy">Script</h2>
+          <h2 className="text-xl font-bold text-navy">{t('monologue.script.title')}</h2>
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"
               disabled={updateDraft.isPending}
               className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold text-navy disabled:opacity-60"
             >
-              {updateDraft.isPending ? 'Saving...' : 'Save draft'}
+              {updateDraft.isPending ? t('monologue.actions.saving') : t('monologue.actions.save')}
             </button>
             <button
               type="button"
@@ -352,7 +361,7 @@ const MonologueProjectPage = () => {
           htmlFor="monologue-project-title"
           className="grid gap-2 text-sm font-semibold text-gray-700"
         >
-          Title
+          {t('monologue.script.projectTitle')}
           <input
             id="monologue-project-title"
             value={title}
@@ -364,7 +373,7 @@ const MonologueProjectPage = () => {
           htmlFor="monologue-full-text"
           className="grid gap-2 text-sm font-semibold text-gray-700"
         >
-          Full Japanese script
+          {t('monologue.script.fullJapanese')}
           <textarea
             id="monologue-full-text"
             value={fullText}
@@ -379,33 +388,33 @@ const MonologueProjectPage = () => {
               className="grid gap-2 rounded-xl border border-gray-200 bg-white p-3"
             >
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
-                Sentence {index + 1}
+                {t('monologue.sentenceLabel', { index: index + 1 })}
               </p>
               <input
-                aria-label={`Sentence ${index + 1} beat label`}
+                aria-label={t('monologue.segmentFields.beatLabel', { index: index + 1 })}
                 value={segment.beatLabel}
                 onChange={(event) => updateSegment(index, { beatLabel: event.target.value })}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                placeholder="Beat label"
+                placeholder={t('monologue.segmentFields.beatLabelPlaceholder')}
               />
               <textarea
-                aria-label={`Sentence ${index + 1} English cue`}
+                aria-label={t('monologue.segmentFields.englishCue', { index: index + 1 })}
                 value={segment.sourceText}
                 onChange={(event) => updateSegment(index, { sourceText: event.target.value })}
                 className="min-h-20 rounded-lg border border-gray-300 px-3 py-2 text-sm"
               />
               <textarea
-                aria-label={`Sentence ${index + 1} Japanese text`}
+                aria-label={t('monologue.segmentFields.japaneseText', { index: index + 1 })}
                 value={segment.japaneseText}
                 onChange={(event) => updateSegment(index, { japaneseText: event.target.value })}
                 className="min-h-20 rounded-lg border border-gray-300 px-3 py-2 text-sm"
               />
               <input
-                aria-label={`Sentence ${index + 1} reading`}
+                aria-label={t('monologue.segmentFields.reading', { index: index + 1 })}
                 value={segment.reading}
                 onChange={(event) => updateSegment(index, { reading: event.target.value })}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                placeholder="Reading"
+                placeholder={t('monologue.segmentFields.readingPlaceholder')}
               />
             </div>
           ))}
@@ -416,15 +425,16 @@ const MonologueProjectPage = () => {
       </form>
 
       <section className="card retro-paper-panel space-y-4">
-        <h2 className="text-xl font-bold text-navy">Sentence audio</h2>
-        {!isApproved ? (
-          <p className="text-gray-600">Approve the script before generating audio.</p>
+        <h2 className="text-xl font-bold text-navy">{t('monologue.audio.title')}</h2>
+        {!isApproved ? <p className="text-gray-600">{t('monologue.audio.approveFirst')}</p> : null}
+        {audioActionError ? (
+          <p className="text-sm text-red-600">{audioActionErrorMessage}</p>
         ) : null}
         <div className="grid gap-4">
           {activeVersion.segments.map((segment) => (
             <div key={segment.id} className="rounded-xl border border-gray-200 bg-white p-4">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
-                Sentence {segment.ordinal + 1}
+                {t('monologue.sentenceLabel', { index: segment.ordinal + 1 })}
               </p>
               <p className="mt-2 text-sm text-gray-600">{segment.sourceText}</p>
               <p className="mt-2 text-lg font-semibold text-navy">{segment.japaneseText}</p>
@@ -437,7 +447,7 @@ const MonologueProjectPage = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-semibold text-navy">
-                          {take.displayName} {take.isDefault ? '(default)' : ''}
+                          {take.displayName} {take.isDefault ? t('monologue.audio.default') : ''}
                         </p>
                         <p className="text-xs text-gray-500">
                           {take.provider ?? 'audio'} · {take.speed}x
@@ -452,7 +462,7 @@ const MonologueProjectPage = () => {
                             }
                             className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-navy"
                           >
-                            Set default
+                            {t('monologue.audio.setDefault')}
                           </button>
                         ) : null}
                         <button
@@ -462,7 +472,7 @@ const MonologueProjectPage = () => {
                           }
                           className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-navy"
                         >
-                          Regenerate
+                          {t('monologue.audio.regenerate')}
                         </button>
                       </div>
                     </div>
@@ -488,11 +498,14 @@ const MonologueProjectPage = () => {
       </section>
 
       <section className="card retro-paper-panel space-y-4">
-        <h2 className="text-xl font-bold text-navy">Sentence recall</h2>
+        <h2 className="text-xl font-bold text-navy">{t('monologue.recall.title')}</h2>
         {recallSegment ? (
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
-              Sentence {recallIndex + 1} of {activeVersion.segments.length}
+              {t('monologue.recall.progress', {
+                index: recallIndex + 1,
+                count: activeVersion.segments.length,
+              })}
             </p>
             <p className="mt-3 text-lg text-navy">{recallSegment.sourceText}</p>
             {revealed ? (
@@ -516,7 +529,7 @@ const MonologueProjectPage = () => {
                 onClick={() => setRevealed((current) => !current)}
                 className="rounded-xl bg-navy px-4 py-2 text-sm font-bold text-white"
               >
-                {revealed ? 'Hide answer' : 'Reveal'}
+                {revealed ? t('monologue.recall.hide') : t('monologue.recall.reveal')}
               </button>
               <button
                 type="button"
@@ -527,7 +540,7 @@ const MonologueProjectPage = () => {
                 disabled={recallIndex === 0}
                 className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold text-navy disabled:opacity-60"
               >
-                Previous
+                {t('monologue.recall.previous')}
               </button>
               <button
                 type="button"
@@ -540,7 +553,7 @@ const MonologueProjectPage = () => {
                 disabled={recallIndex >= activeVersion.segments.length - 1}
                 className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold text-navy disabled:opacity-60"
               >
-                Next
+                {t('monologue.recall.next')}
               </button>
             </div>
           </div>
