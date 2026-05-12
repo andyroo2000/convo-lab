@@ -94,7 +94,8 @@
       "title": "Listen",
       "empty": "Generate sentence audio for every segment, then render full audio.",
       "render": "Render full monologue",
-      "rendering": "Rendering…"
+      "rendering": "Rendering…",
+      "renderQueued": "Full audio is rendering in the background."
     },
     "script": {
       "title": "Script",

@@ -24,6 +24,7 @@ const mockPrisma = vi.hoisted(() => ({
     findMany: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   monologueScriptVersion: {
     aggregate: vi.fn(),
@@ -75,6 +76,8 @@ const {
   generateMonologueSegmentAudioTake,
   getMonologueProject,
   listMonologueProjects,
+  markMonologueFullAudioRenderFailed,
+  prepareMonologueFullAudioRender,
   regenerateMonologueAudioTake,
   setMonologueDefaultAudioTake,
   updateMonologueDraft,
@@ -195,6 +198,7 @@ beforeEach(() => {
   });
   mockPrisma.monologueProject.findFirst.mockResolvedValue(projectRecord());
   mockPrisma.monologueProject.update.mockResolvedValue({});
+  mockPrisma.monologueProject.updateMany.mockResolvedValue({ count: 1 });
   mockPrisma.monologueScriptVersion.create.mockResolvedValue({
     id: 'version-1',
     versionNumber: 1,
@@ -988,6 +992,68 @@ describe('monologueService', () => {
     });
   });
 
+  it('prepares a full-audio render by marking the project as rendering', async () => {
+    mockPrisma.monologueProject.findFirst
+      .mockResolvedValueOnce({
+        ...projectRecord(),
+        activeVersion: {
+          ...projectRecord().activeVersion,
+          segments: [
+            {
+              ...projectRecord().activeVersion.segments[0],
+              audioTakes: [{ id: 'sentence-take-1' }],
+            },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({
+        ...projectRecord(),
+        status: 'rendering',
+      });
+
+    const project = await prepareMonologueFullAudioRender('user-1', 'project-1');
+
+    expect(mockPrisma.monologueProject.update).toHaveBeenCalledWith({
+      where: { id: 'project-1' },
+      data: { status: 'rendering' },
+    });
+    expect(project.status).toBe('rendering');
+  });
+
+  it('rejects preparing a full-audio render until every sentence has a default take', async () => {
+    mockPrisma.monologueProject.findFirst.mockResolvedValueOnce({
+      ...projectRecord(),
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        segments: [
+          {
+            ...projectRecord().activeVersion.segments[0],
+            audioTakes: [],
+          },
+        ],
+      },
+    });
+
+    await expect(prepareMonologueFullAudioRender('user-1', 'project-1')).rejects.toThrow(
+      'Every sentence needs a default audio take before full render.'
+    );
+    expect(mockPrisma.monologueProject.update).not.toHaveBeenCalled();
+  });
+
+  it('marks a failed full-audio render back to approved for the queued version only', async () => {
+    await markMonologueFullAudioRenderFailed('user-1', 'project-1', 'version-1');
+
+    expect(mockPrisma.monologueProject.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'project-1',
+        userId: 'user-1',
+        activeVersionId: 'version-1',
+        status: 'rendering',
+      },
+      data: { status: 'approved' },
+    });
+  });
+
   it('renders full audio and prunes stale full takes', async () => {
     const fullProject = {
       ...projectRecord(),
@@ -1088,6 +1154,21 @@ describe('monologueService', () => {
     expect(mockDeletePersistedStudyMediaByStoragePath).toHaveBeenCalledWith(
       'study-media/user-1/monologue-generated/old-full.mp3'
     );
+  });
+
+  it('rejects stale full-audio render jobs for superseded script versions', async () => {
+    mockPrisma.monologueProject.findFirst.mockResolvedValueOnce(projectRecord());
+
+    await expect(
+      generateMonologueFullAudioTake('user-1', 'project-1', {
+        expectedScriptVersionId: 'version-2',
+      })
+    ).rejects.toMatchObject({
+      message: 'Monologue full-audio render job is stale.',
+      statusCode: 409,
+    });
+    expect(mockFfmpeg).not.toHaveBeenCalled();
+    expect(mockPersistStudyMediaBuffer).not.toHaveBeenCalled();
   });
 
   it('returns a clear service error when ffmpeg is unavailable', async () => {

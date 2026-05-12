@@ -554,6 +554,7 @@ export function useMonologueProject(projectId: string | undefined) {
     queryKey: ['study', 'monologues', projectId ?? null],
     queryFn: () => getMonologueProject(projectId as string),
     enabled: Boolean(projectId),
+    refetchInterval: (query) => (query.state.data?.status === 'rendering' ? 3000 : false),
   });
 }
 

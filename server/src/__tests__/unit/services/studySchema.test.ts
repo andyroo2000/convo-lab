@@ -115,7 +115,9 @@ describe('study schema verification', () => {
       'CREATE INDEX "monologue_projects_userId_id_idx" ON "monologue_projects"("userId", "id")'
     );
     expect(migration).toContain('"monologue_projects_status_check"');
-    expect(migration).toContain("CHECK (\"status\" IN ('draft', 'approved', 'ready'))");
+    expect(migration).toContain(
+      "CHECK (\"status\" IN ('draft', 'approved', 'rendering', 'ready'))"
+    );
     expect(migration).toContain('"monologue_script_versions_status_check"');
     expect(migration).toContain('"monologue_audio_takes_scope_check"');
     expect(migration).toContain("CHECK (\"scope\" IN ('sentence', 'full'))");

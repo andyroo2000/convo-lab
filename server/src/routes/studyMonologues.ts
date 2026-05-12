@@ -2,20 +2,24 @@ import type { MonologueSegmentUpdateInput } from '@languageflow/shared/src/types
 import { getMonologueTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Router } from 'express';
 
+import { enqueueMonologueFullAudioRenderJob } from '../jobs/monologueAudioQueue.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
+import { logger } from '../services/logger.js';
 import {
   approveMonologueScript,
   createMonologueProject,
-  generateMonologueFullAudioTake,
   generateMonologueSegmentAudioTake,
   getMonologueProject,
   listMonologueProjects,
+  markMonologueFullAudioRenderFailed,
+  prepareMonologueFullAudioRender,
   regenerateMonologueAudioTake,
   setMonologueDefaultAudioTake,
   updateMonologueDraft,
 } from '../services/monologueService.js';
+import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 const MONOLOGUE_CREATE_RATE_LIMIT_PER_MINUTE = 8;
@@ -247,7 +251,29 @@ router.post(
   }),
   async (req: AuthRequest, res, next) => {
     try {
-      res.json(await generateMonologueFullAudioTake(requireUserId(req), req.params.projectId));
+      const userId = requireUserId(req);
+      const project = await prepareMonologueFullAudioRender(userId, req.params.projectId);
+      if (!project.activeVersionId) {
+        throw new AppError('Monologue project has no active script version.', 500);
+      }
+      try {
+        await enqueueMonologueFullAudioRenderJob({
+          userId,
+          projectId: req.params.projectId,
+          scriptVersionId: project.activeVersionId,
+        });
+      } catch (error) {
+        await markMonologueFullAudioRenderFailed(
+          userId,
+          req.params.projectId,
+          project.activeVersionId
+        );
+        throw error;
+      }
+      triggerWorkerJob().catch((error: unknown) => {
+        logger.warn('Failed to trigger monologue full-audio worker.', { error });
+      });
+      res.status(202).json(project);
     } catch (error) {
       next(error);
     }

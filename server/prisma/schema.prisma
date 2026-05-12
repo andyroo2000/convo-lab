@@ -591,7 +591,7 @@ model MonologueProject {
   sourceText      String   @db.Text
   targetLanguage  String   @default("ja")
   nativeLanguage  String   @default("en")
-  status          String   @default("draft")
+  status          String   @default("draft") // draft | approved | rendering | ready; DB check enforced in migration history.
   activeVersionId String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

@@ -12,23 +12,29 @@ import studyMonologueRoutes from '../../../routes/studyMonologues.js';
 const {
   approveMonologueScriptMock,
   createMonologueProjectMock,
-  generateMonologueFullAudioTakeMock,
   generateMonologueSegmentAudioTakeMock,
   getMonologueProjectMock,
+  markMonologueFullAudioRenderFailedMock,
   listMonologueProjectsMock,
+  prepareMonologueFullAudioRenderMock,
   regenerateMonologueAudioTakeMock,
   setMonologueDefaultAudioTakeMock,
   updateMonologueDraftMock,
+  enqueueMonologueFullAudioRenderJobMock,
+  triggerWorkerJobMock,
 } = vi.hoisted(() => ({
   approveMonologueScriptMock: vi.fn(),
   createMonologueProjectMock: vi.fn(),
-  generateMonologueFullAudioTakeMock: vi.fn(),
   generateMonologueSegmentAudioTakeMock: vi.fn(),
   getMonologueProjectMock: vi.fn(),
+  markMonologueFullAudioRenderFailedMock: vi.fn(),
   listMonologueProjectsMock: vi.fn(),
+  prepareMonologueFullAudioRenderMock: vi.fn(),
   regenerateMonologueAudioTakeMock: vi.fn(),
   setMonologueDefaultAudioTakeMock: vi.fn(),
   updateMonologueDraftMock: vi.fn(),
+  enqueueMonologueFullAudioRenderJobMock: vi.fn(),
+  triggerWorkerJobMock: vi.fn(),
 }));
 
 vi.mock('../../../middleware/studyRateLimit.js', () => ({
@@ -38,13 +44,22 @@ vi.mock('../../../middleware/studyRateLimit.js', () => ({
 vi.mock('../../../services/monologueService.js', () => ({
   approveMonologueScript: approveMonologueScriptMock,
   createMonologueProject: createMonologueProjectMock,
-  generateMonologueFullAudioTake: generateMonologueFullAudioTakeMock,
   generateMonologueSegmentAudioTake: generateMonologueSegmentAudioTakeMock,
   getMonologueProject: getMonologueProjectMock,
   listMonologueProjects: listMonologueProjectsMock,
+  markMonologueFullAudioRenderFailed: markMonologueFullAudioRenderFailedMock,
+  prepareMonologueFullAudioRender: prepareMonologueFullAudioRenderMock,
   regenerateMonologueAudioTake: regenerateMonologueAudioTakeMock,
   setMonologueDefaultAudioTake: setMonologueDefaultAudioTakeMock,
   updateMonologueDraft: updateMonologueDraftMock,
+}));
+
+vi.mock('../../../jobs/monologueAudioQueue.js', () => ({
+  enqueueMonologueFullAudioRenderJob: enqueueMonologueFullAudioRenderJobMock,
+}));
+
+vi.mock('../../../services/workerTrigger.js', () => ({
+  triggerWorkerJob: triggerWorkerJobMock,
 }));
 
 function createApp() {
@@ -69,6 +84,8 @@ describe('study monologue routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listMonologueProjectsMock.mockResolvedValue([]);
+    enqueueMonologueFullAudioRenderJobMock.mockResolvedValue({ id: 'project-1:version-1' });
+    triggerWorkerJobMock.mockResolvedValue(undefined);
   });
 
   it('lists monologue projects', async () => {
@@ -286,20 +303,28 @@ describe('study monologue routes', () => {
     expect(setMonologueDefaultAudioTakeMock).toHaveBeenCalledWith('user-1', 'project-1', 'take-1');
   });
 
-  it('generates full monologue audio', async () => {
-    generateMonologueFullAudioTakeMock.mockResolvedValue({
+  it('queues full monologue audio generation', async () => {
+    prepareMonologueFullAudioRenderMock.mockResolvedValue({
       id: 'project-1',
-      status: 'approved',
+      status: 'rendering',
+      activeVersionId: 'version-1',
     });
 
     const response = await request(app).post('/api/study/monologues/project-1/full-audio');
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(202);
     expect(response.body).toEqual({
       id: 'project-1',
-      status: 'approved',
+      status: 'rendering',
+      activeVersionId: 'version-1',
     });
-    expect(generateMonologueFullAudioTakeMock).toHaveBeenCalledWith('user-1', 'project-1');
+    expect(prepareMonologueFullAudioRenderMock).toHaveBeenCalledWith('user-1', 'project-1');
+    expect(enqueueMonologueFullAudioRenderJobMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      projectId: 'project-1',
+      scriptVersionId: 'version-1',
+    });
+    expect(triggerWorkerJobMock).toHaveBeenCalled();
   });
 
   it('returns 400 when creating without source text', async () => {

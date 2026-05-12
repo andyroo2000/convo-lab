@@ -257,6 +257,7 @@ const MonologueProjectPage = () => {
   const recallAudio =
     recallSegment?.audioTakes.find((take) => take.isDefault) ?? recallSegment?.audioTakes[0];
   const isApproved = activeVersion?.status === 'approved';
+  const isRenderingFullAudio = project?.status === 'rendering' || generateFullAudio.isPending;
   let approveLabel = t('monologue.actions.approve');
   if (isApproved) {
     approveLabel = t('monologue.actions.approved');
@@ -404,14 +405,15 @@ const MonologueProjectPage = () => {
         )}
         <button
           type="button"
-          disabled={!isApproved || generateFullAudio.isPending}
+          disabled={!isApproved || isRenderingFullAudio}
           onClick={() => projectId && generateFullAudio.mutate(projectId)}
           className="rounded-xl border border-navy px-4 py-2 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {generateFullAudio.isPending
-            ? t('monologue.listen.rendering')
-            : t('monologue.listen.render')}
+          {isRenderingFullAudio ? t('monologue.listen.rendering') : t('monologue.listen.render')}
         </button>
+        {project.status === 'rendering' ? (
+          <p className="text-sm text-gray-600">{t('monologue.listen.renderQueued')}</p>
+        ) : null}
         {generateFullAudio.error ? (
           <p className="text-sm text-red-600">
             {generateFullAudio.error instanceof Error
