@@ -10,13 +10,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import studyMonologueRoutes from '../../../routes/studyMonologues.js';
 
 const {
+  approveMonologueScriptMock,
   createMonologueProjectMock,
   generateMonologueSegmentAudioTakeMock,
   getMonologueProjectMock,
+  listMonologueProjectsMock,
 } = vi.hoisted(() => ({
+  approveMonologueScriptMock: vi.fn(),
   createMonologueProjectMock: vi.fn(),
   generateMonologueSegmentAudioTakeMock: vi.fn(),
   getMonologueProjectMock: vi.fn(),
+  listMonologueProjectsMock: vi.fn(),
 }));
 
 vi.mock('../../../middleware/studyRateLimit.js', () => ({
@@ -24,12 +28,12 @@ vi.mock('../../../middleware/studyRateLimit.js', () => ({
 }));
 
 vi.mock('../../../services/monologueService.js', () => ({
-  approveMonologueScript: vi.fn(),
+  approveMonologueScript: approveMonologueScriptMock,
   createMonologueProject: createMonologueProjectMock,
   generateMonologueFullAudioTake: vi.fn(),
   generateMonologueSegmentAudioTake: generateMonologueSegmentAudioTakeMock,
   getMonologueProject: getMonologueProjectMock,
-  listMonologueProjects: vi.fn().mockResolvedValue([]),
+  listMonologueProjects: listMonologueProjectsMock,
   regenerateMonologueAudioTake: vi.fn(),
   setMonologueDefaultAudioTake: vi.fn(),
   updateMonologueDraft: vi.fn(),
@@ -56,6 +60,90 @@ describe('study monologue routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    listMonologueProjectsMock.mockResolvedValue([]);
+  });
+
+  it('creates a monologue project from source text', async () => {
+    createMonologueProjectMock.mockResolvedValue({
+      id: 'project-1',
+      title: 'Tokyo story',
+      sourceText: 'English source',
+    });
+
+    const response = await request(app)
+      .post('/api/study/monologues')
+      .send({ title: 'Tokyo story', sourceText: 'English source' });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      id: 'project-1',
+      title: 'Tokyo story',
+      sourceText: 'English source',
+    });
+    expect(createMonologueProjectMock).toHaveBeenCalledWith('user-1', {
+      title: 'Tokyo story',
+      sourceText: 'English source',
+    });
+  });
+
+  it('returns a monologue project by id', async () => {
+    getMonologueProjectMock.mockResolvedValue({
+      id: 'project-1',
+      title: 'Tokyo story',
+    });
+
+    const response = await request(app).get('/api/study/monologues/project-1');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: 'project-1',
+      title: 'Tokyo story',
+    });
+    expect(getMonologueProjectMock).toHaveBeenCalledWith('user-1', 'project-1');
+  });
+
+  it('approves a monologue project script', async () => {
+    approveMonologueScriptMock.mockResolvedValue({
+      id: 'project-1',
+      status: 'approved',
+    });
+
+    const response = await request(app).post('/api/study/monologues/project-1/approve');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: 'project-1',
+      status: 'approved',
+    });
+    expect(approveMonologueScriptMock).toHaveBeenCalledWith('user-1', 'project-1');
+  });
+
+  it('generates a sentence audio take', async () => {
+    generateMonologueSegmentAudioTakeMock.mockResolvedValue({
+      id: 'project-1',
+      status: 'ready',
+    });
+
+    const response = await request(app)
+      .post('/api/study/monologues/project-1/segments/segment-1/audio-takes')
+      .send({ voiceId: 'ja-JP-Neural2-D', speed: 0.85, displayName: 'Daichi slow' });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      id: 'project-1',
+      status: 'ready',
+    });
+    expect(generateMonologueSegmentAudioTakeMock).toHaveBeenCalledWith(
+      'user-1',
+      'project-1',
+      'segment-1',
+      {
+        displayName: 'Daichi slow',
+        isDefault: undefined,
+        speed: 0.85,
+        voiceId: 'ja-JP-Neural2-D',
+      }
+    );
   });
 
   it('returns 400 when creating without source text', async () => {

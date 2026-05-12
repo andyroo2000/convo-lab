@@ -551,7 +551,7 @@ export function useMonologueProjects(enabled: boolean = true) {
 
 export function useMonologueProject(projectId: string | undefined) {
   return useQuery({
-    queryKey: ['study', 'monologues', projectId ?? 'none'],
+    queryKey: ['study', 'monologues', projectId ?? null],
     queryFn: () => getMonologueProject(projectId as string),
     enabled: Boolean(projectId),
   });

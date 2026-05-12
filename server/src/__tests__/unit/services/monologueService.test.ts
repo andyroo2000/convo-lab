@@ -7,6 +7,8 @@ const mockPrisma = vi.hoisted(() => ({
   $transaction: vi.fn(),
   monologueAudioTake: {
     create: vi.fn(),
+    deleteMany: vi.fn(),
+    findMany: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
@@ -137,6 +139,8 @@ beforeEach(() => {
     publicUrl: null,
   });
   mockPrisma.studyMedia.deleteMany.mockResolvedValue({ count: 0 });
+  mockPrisma.monologueAudioTake.deleteMany.mockResolvedValue({ count: 0 });
+  mockPrisma.monologueAudioTake.findMany.mockResolvedValue([]);
   mockPrisma.monologueAudioTake.update.mockResolvedValue({});
   mockPrisma.monologueAudioTake.updateMany.mockResolvedValue({ count: 1 });
   mockPrisma.monologueProject.create.mockResolvedValue({
@@ -468,6 +472,54 @@ describe('monologueService', () => {
       data: {
         status: 'draft',
         title: '',
+      },
+    });
+  });
+
+  it('cleans up orphaned media when replacing draft segments', async () => {
+    const draftProject = {
+      ...projectRecord(),
+      status: 'draft',
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        status: 'draft',
+      },
+    };
+    mockPrisma.monologueProject.findFirst
+      .mockResolvedValueOnce(draftProject)
+      .mockResolvedValueOnce(draftProject);
+    mockPrisma.monologueAudioTake.findMany.mockResolvedValueOnce([
+      {
+        id: 'take-1',
+        media: {
+          id: 'old-draft-media',
+          storagePath: 'study-media/user-1/monologue-generated/draft.mp3',
+        },
+      },
+    ]);
+    mockPrisma.studyMedia.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+    await updateMonologueDraft('user-1', 'project-1', {
+      fullText: '日本語です。',
+      segments: [
+        {
+          ordinal: 0,
+          sourceText: 'English cue',
+          japaneseText: '日本語です。',
+          reading: 'にほんごです。',
+          beatLabel: null,
+        },
+      ],
+    });
+
+    expect(mockPrisma.monologueAudioTake.findMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', projectId: 'project-1', scriptVersionId: 'version-1' },
+      include: { media: true },
+    });
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: 'old-draft-media',
+        monologueTakes: { none: {} },
       },
     });
   });

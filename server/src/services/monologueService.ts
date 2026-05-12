@@ -58,6 +58,7 @@ type MonologueProjectRecord = Awaited<ReturnType<typeof loadProject>>;
 type MonologueScriptVersionRecord = NonNullable<MonologueProjectRecord>['activeVersion'];
 type MonologueSegmentRecord = NonNullable<MonologueScriptVersionRecord>['segments'][number];
 type MonologueAudioTakeRecord = NonNullable<MonologueProjectRecord>['audioTakes'][number];
+type MonologueMediaCleanupCandidate = { id: string; storagePath: string | null };
 
 interface GeneratedMonologueSegment {
   sourceText: string;
@@ -438,6 +439,15 @@ export async function updateMonologueDraft(
     typeof request.title === 'string'
       ? truncate(sanitizeString(request.title), MONOLOGUE_TITLE_MAX_LENGTH)
       : null;
+  const mediaCleanupCandidates: MonologueMediaCleanupCandidate[] =
+    activeVersion.status === 'draft'
+      ? (
+          await prisma.monologueAudioTake.findMany({
+            where: { userId, projectId, scriptVersionId: activeVersion.id },
+            include: { media: true },
+          })
+        ).map((take) => take.media)
+      : [];
 
   for (let attempt = 1; attempt <= MONOLOGUE_DRAFT_UPDATE_MAX_ATTEMPTS; attempt += 1) {
     try {
@@ -510,6 +520,10 @@ export async function updateMonologueDraft(
         );
       }
     }
+  }
+
+  for (const media of mediaCleanupCandidates) {
+    await deleteUnusedMonologueMedia(media);
   }
 
   return getMonologueProject(userId, projectId);
@@ -851,6 +865,15 @@ export async function generateMonologueFullAudioTake(
     throw new AppError('Approve the monologue script before generating full audio.', 400);
   }
   const activeVersionId = project.activeVersion.id;
+  const staleFullTakes = await prisma.monologueAudioTake.findMany({
+    where: {
+      userId,
+      projectId,
+      scriptVersionId: activeVersionId,
+      scope: 'full',
+    },
+    include: { media: true },
+  });
 
   const maybeDefaultTakes = project.activeVersion.segments.map((segment) => segment.audioTakes[0]);
   if (maybeDefaultTakes.some((take) => !take)) {
@@ -884,14 +907,13 @@ export async function generateMonologueFullAudioTake(
 
     try {
       await prisma.$transaction(async (tx) => {
-        await tx.monologueAudioTake.updateMany({
+        await tx.monologueAudioTake.deleteMany({
           where: {
             userId,
             projectId,
             scriptVersionId: activeVersionId,
             scope: 'full',
           },
-          data: { isDefault: false },
         });
         await tx.monologueAudioTake.create({
           data: {
@@ -917,6 +939,9 @@ export async function generateMonologueFullAudioTake(
     } catch (error) {
       await deleteUnusedMonologueMedia(media);
       throw error;
+    }
+    for (const staleTake of staleFullTakes) {
+      await deleteUnusedMonologueMedia(staleTake.media);
     }
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });

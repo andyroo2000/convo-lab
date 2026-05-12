@@ -38,6 +38,7 @@ interface AudioControlState {
   voiceId: string;
 }
 
+// TODO: derive this from the project target language when monologues expand beyond Japanese.
 const monologueVoices = getMonologueTtsVoices('ja');
 const defaultVoice =
   monologueVoices.find((voice) => voice.provider === 'google' && voice.id.includes('-Neural2-')) ??
@@ -184,6 +185,7 @@ const MonologueProjectPage = () => {
   const [revealed, setRevealed] = useState(false);
   const [pendingSegmentAudioIds, setPendingSegmentAudioIds] = useState<string[]>([]);
   const [saveSucceeded, setSaveSucceeded] = useState(false);
+  const [draftDirty, setDraftDirty] = useState(false);
   const initializedDraftKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -193,6 +195,8 @@ const MonologueProjectPage = () => {
     initializedDraftKeyRef.current = draftKey;
     setTitle(project.title);
     setFullText(project.activeVersion.fullText);
+    setSaveSucceeded(false);
+    setDraftDirty(false);
     setSegments(
       project.activeVersion.segments.map((segment) => ({
         id: segment.id,
@@ -204,6 +208,17 @@ const MonologueProjectPage = () => {
       }))
     );
   }, [project]);
+
+  useEffect(() => {
+    if (!draftDirty) return undefined;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // eslint-disable-next-line no-param-reassign -- Required by browsers to trigger beforeunload confirmation.
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [draftDirty]);
 
   const defaultFullTake = useMemo(
     () => project?.fullAudioTakes.find((take) => take.isDefault) ?? project?.fullAudioTakes[0],
@@ -231,9 +246,14 @@ const MonologueProjectPage = () => {
   if (audioActionError instanceof Error) {
     audioActionErrorMessage = audioActionError.message;
   }
+  function confirmDiscardDraftChanges() {
+    // eslint-disable-next-line no-alert -- Standard browser confirmation for unsaved form edits.
+    return !draftDirty || window.confirm(t('monologue.unsavedChanges'));
+  }
 
   const updateSegment = (index: number, patch: Partial<SegmentDraft>) => {
     setSaveSucceeded(false);
+    setDraftDirty(true);
     setSegments((current) =>
       current.map((segment, currentIndex) =>
         currentIndex === index ? { ...segment, ...patch } : segment
@@ -262,6 +282,7 @@ const MonologueProjectPage = () => {
         },
       });
       setSaveSucceeded(true);
+      setDraftDirty(false);
     } catch {
       // React Query exposes the error below the form; keep the submit handler settled.
     }
@@ -308,7 +329,13 @@ const MonologueProjectPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <Link className="text-sm font-semibold text-navy underline" to="/app/study/monologues">
+        <Link
+          className="text-sm font-semibold text-navy underline"
+          to="/app/study/monologues"
+          onClick={(event) => {
+            if (!confirmDiscardDraftChanges()) event.preventDefault();
+          }}
+        >
           {t('monologue.actions.back')}
         </Link>
         <h1 className="mt-2 text-3xl font-bold text-navy">{project.title}</h1>
@@ -360,7 +387,10 @@ const MonologueProjectPage = () => {
             <button
               type="button"
               disabled={approveScript.isPending || isApproved}
-              onClick={() => projectId && approveScript.mutate(projectId)}
+              onClick={() => {
+                setSaveSucceeded(false);
+                if (projectId) approveScript.mutate(projectId);
+              }}
               className="rounded-xl bg-navy px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               {approveLabel}
@@ -377,6 +407,7 @@ const MonologueProjectPage = () => {
             value={title}
             onChange={(event) => {
               setSaveSucceeded(false);
+              setDraftDirty(true);
               setTitle(event.target.value);
             }}
             className="rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"
@@ -392,6 +423,7 @@ const MonologueProjectPage = () => {
             value={fullText}
             onChange={(event) => {
               setSaveSucceeded(false);
+              setDraftDirty(true);
               setFullText(event.target.value);
             }}
             className="min-h-44 rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"

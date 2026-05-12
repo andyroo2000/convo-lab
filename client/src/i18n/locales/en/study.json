@@ -79,6 +79,7 @@
     "loading": "Loading monologue…",
     "version": "version {{version}}",
     "sentenceLabel": "Sentence {{index}}",
+    "unsavedChanges": "You have unsaved script edits. Leave without saving?",
     "actions": {
       "back": "Back to Monologue Studio",
       "save": "Save draft",

@@ -79,6 +79,7 @@
     "loading": "モノローグを読み込み中…",
     "version": "バージョン {{version}}",
     "sentenceLabel": "文 {{index}}",
+    "unsavedChanges": "未保存のスクリプト編集があります。保存せずに移動しますか？",
     "actions": {
       "back": "モノローグスタジオに戻る",
       "save": "下書きを保存",

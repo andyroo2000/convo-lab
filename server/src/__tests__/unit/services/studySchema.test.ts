@@ -111,6 +111,8 @@ describe('study schema verification', () => {
     expect(schema).toContain('monologueTakes   MonologueAudioTake[]');
     expect(migration).toContain('CREATE TABLE "monologue_projects"');
     expect(migration).toContain('CREATE TABLE "monologue_audio_takes"');
+    expect(migration).toContain('"monologue_projects_status_check"');
+    expect(migration).toContain('"monologue_script_versions_status_check"');
     expect(migration).toContain(
       'ALTER TABLE "monologue_audio_takes" ADD CONSTRAINT "monologue_audio_takes_mediaId_fkey"'
     );
