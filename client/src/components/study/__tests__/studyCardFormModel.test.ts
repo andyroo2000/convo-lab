@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants';
 import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
 import { buildStudyCardFormPayload, getStudyCardFormValues } from '../studyCardFormModel';

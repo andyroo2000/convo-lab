@@ -1,4 +1,4 @@
-import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new.js';
+import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants.js';
 import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,

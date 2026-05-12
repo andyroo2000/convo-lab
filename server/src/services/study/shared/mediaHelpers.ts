@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants.js';
 import type {
   StudyAnswerPayload,
   StudyMediaRef,

@@ -14,7 +14,7 @@
 
 import { prisma } from '../src/db/client.js';
 import { courseQueue } from '../src/jobs/courseQueue.js';
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants.js';
 
 type LanguageCode = 'ja';
 

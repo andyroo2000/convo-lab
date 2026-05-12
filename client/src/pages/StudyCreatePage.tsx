@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new';
+import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants';
 import type {
   StudyCardCandidateKind,
   StudyCardCandidateCommitItem,

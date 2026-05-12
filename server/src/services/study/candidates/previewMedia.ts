@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants.js';
 import type {
   StudyCardCandidate,
   StudyCardCandidateCommitItem,

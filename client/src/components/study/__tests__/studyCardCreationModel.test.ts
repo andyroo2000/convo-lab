@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_NARRATOR_VOICES,
   MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
-} from '@languageflow/shared/src/constants-new';
+} from '@languageflow/shared/src/constants';
 import type { StudyMediaRef } from '@languageflow/shared/src/types';
 
 import {

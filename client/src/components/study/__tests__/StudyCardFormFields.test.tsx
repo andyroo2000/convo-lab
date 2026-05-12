@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants';
 
 import StudyCardFormFields from '../StudyCardFormFields';
 import type { StudyCardFormValues } from '../studyCardFormModel';

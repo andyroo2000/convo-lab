@@ -5,7 +5,7 @@ import { SENTENCE_SCRIPT_PROMPT } from '@languageflow/shared/src/scriptLabPrompt
 import {
   DEFAULT_NARRATOR_VOICES,
   DEFAULT_SPEAKER_VOICES,
-} from '@languageflow/shared/src/constants-new';
+} from '@languageflow/shared/src/constants';
 import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
 import { API_URL } from '../../../config';

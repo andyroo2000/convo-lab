@@ -83,6 +83,12 @@ function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? value.slice(0, maxLength) : value;
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 function parseMonologueStatus(value: string): MonologueProjectStatus {
   if (value === 'approved' || value === 'ready') return value;
   return 'draft';
@@ -450,19 +456,12 @@ export async function updateMonologueDraft(
     typeof request.title === 'string'
       ? truncate(sanitizeString(request.title), MONOLOGUE_TITLE_MAX_LENGTH)
       : null;
-  const mediaCleanupCandidates: MonologueMediaCleanupCandidate[] =
-    activeVersion.status === 'draft'
-      ? (
-          await prisma.monologueAudioTake.findMany({
-            where: { userId, projectId, scriptVersionId: activeVersion.id },
-            include: { media: true },
-          })
-        ).map((take) => take.media)
-      : [];
+  let mediaCleanupCandidates: MonologueMediaCleanupCandidate[] = [];
 
   for (let attempt = 1; attempt <= MONOLOGUE_DRAFT_UPDATE_MAX_ATTEMPTS; attempt += 1) {
     try {
-      await prisma.$transaction(async (tx) => {
+      mediaCleanupCandidates = await prisma.$transaction(async (tx) => {
+        const transactionCleanupCandidates: MonologueMediaCleanupCandidate[] = [];
         let versionId = activeVersion.id;
         if (activeVersion.status === 'approved') {
           const latest = await tx.monologueScriptVersion.aggregate({
@@ -496,6 +495,11 @@ export async function updateMonologueDraft(
             where: { id: activeVersion.id },
             data: { fullText },
           });
+          const staleTakes = await tx.monologueAudioTake.findMany({
+            where: { userId, projectId, scriptVersionId: activeVersion.id },
+            include: { media: true },
+          });
+          transactionCleanupCandidates.push(...staleTakes.map((take) => take.media));
           await tx.monologueSegment.deleteMany({ where: { scriptVersionId: activeVersion.id } });
           await tx.monologueProject.update({
             where: { id: projectId },
@@ -518,6 +522,7 @@ export async function updateMonologueDraft(
             beatLabel: segment.beatLabel ?? null,
           })),
         });
+        return transactionCleanupCandidates;
       });
       break;
     } catch (error) {
@@ -530,6 +535,7 @@ export async function updateMonologueDraft(
           409
         );
       }
+      await delay(75 * attempt);
     }
   }
 
@@ -993,7 +999,9 @@ export async function generateMonologueFullAudioTake(
     include: { media: true },
   });
 
-  const maybeDefaultTakes = project.activeVersion.segments.map((segment) => segment.audioTakes[0]);
+  const maybeDefaultTakes = project.activeVersion.segments.map((segment) =>
+    segment.audioTakes.find((take) => take.isDefault)
+  );
   if (maybeDefaultTakes.some((take) => !take)) {
     throw new AppError('Every sentence needs a default audio take before full render.', 400);
   }

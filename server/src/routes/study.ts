@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { TTS_VOICES } from '@languageflow/shared/src/constants.js';
 import {
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,

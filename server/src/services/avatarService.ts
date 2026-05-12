@@ -1,4 +1,4 @@
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { TTS_VOICES } from '@languageflow/shared/src/constants.js';
 import sharp from 'sharp';
 
 import { prisma } from '../db/client.js';

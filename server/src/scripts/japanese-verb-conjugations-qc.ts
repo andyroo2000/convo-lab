@@ -4,7 +4,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { TTS_VOICES } from '@languageflow/shared/src/constants.js';
 import { config as loadEnv } from 'dotenv';
 
 import { GoogleTTSProvider } from '../services/ttsProviders/GoogleTTSProvider.js';

@@ -1,4 +1,4 @@
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { TTS_VOICES } from '@languageflow/shared/src/constants.js';
 
 import type { DialogueExchange } from './courseItemExtractor.js';
 

@@ -1,7 +1,7 @@
 import {
   DEFAULT_NARRATOR_VOICES,
   MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
-} from '@languageflow/shared/src/constants-new.js';
+} from '@languageflow/shared/src/constants.js';
 import { STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH } from '@languageflow/shared/src/studyConstants.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

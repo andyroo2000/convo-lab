@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 
-import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants.js';
 import {
   STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
   STUDY_CANDIDATE_VISUAL_POS_LABELS_JA,
