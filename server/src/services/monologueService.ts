@@ -196,6 +196,14 @@ function isPrismaUniqueConstraintError(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
+function isFfmpegUnavailableError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code = (error as NodeJS.ErrnoException).code;
+  return (
+    code === 'ENOENT' || /ffmpeg.*(not found|unavailable|cannot find|ENOENT)/i.test(error.message)
+  );
+}
+
 async function loadProject(userId: string, projectId: string) {
   return prisma.monologueProject.findFirst({
     where: { id: projectId, userId },
@@ -959,7 +967,13 @@ async function concatenateAudioFiles(audioFiles: string[], outputPath: string): 
       .audioChannels(2)
       .output(outputPath)
       .on('end', () => resolve())
-      .on('error', reject)
+      .on('error', (error: Error) => {
+        reject(
+          isFfmpegUnavailableError(error)
+            ? new AppError('Audio concatenation is unavailable: ffmpeg not found.', 503)
+            : error
+        );
+      })
       .run();
   });
 }

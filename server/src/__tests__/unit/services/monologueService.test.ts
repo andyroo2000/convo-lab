@@ -1007,6 +1007,68 @@ describe('monologueService', () => {
     );
   });
 
+  it('returns a clear service error when ffmpeg is unavailable', async () => {
+    const fullProject = {
+      ...projectRecord(),
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        segments: [
+          {
+            ...projectRecord().activeVersion.segments[0],
+            audioTakes: [
+              {
+                id: 'sentence-take-1',
+                userId: 'user-1',
+                projectId: 'project-1',
+                scriptVersionId: 'version-1',
+                segmentId: 'segment-1',
+                mediaId: 'sentence-media-1',
+                displayName: 'Sentence take',
+                source: 'tts',
+                provider: 'google',
+                voiceId: 'ja-JP-Neural2-D',
+                speed: 0.85,
+                scope: 'sentence',
+                isDefault: true,
+                createdAt: now,
+                updatedAt: now,
+                media: {
+                  id: 'sentence-media-1',
+                  storagePath: 'study-media/user-1/monologue-generated/segment.mp3',
+                },
+              },
+            ],
+          },
+        ],
+      },
+    };
+    mockPrisma.monologueProject.findFirst.mockResolvedValueOnce(fullProject);
+    mockFfmpeg.mockImplementationOnce(() => {
+      const command = {
+        input: vi.fn(() => command),
+        inputOptions: vi.fn(() => command),
+        audioCodec: vi.fn(() => command),
+        audioBitrate: vi.fn(() => command),
+        audioFrequency: vi.fn(() => command),
+        audioChannels: vi.fn(() => command),
+        output: vi.fn(() => command),
+        on: vi.fn((_event: string, _callback: (error?: Error) => void) => command),
+        run: vi.fn(() => {
+          const errorHandler = command.on.mock.calls.find(([event]) => event === 'error')?.[1];
+          const error = new Error('Cannot find ffmpeg');
+          (error as NodeJS.ErrnoException).code = 'ENOENT';
+          if (errorHandler) errorHandler(error);
+        }),
+      };
+      return command;
+    });
+
+    await expect(generateMonologueFullAudioTake('user-1', 'project-1')).rejects.toMatchObject({
+      message: 'Audio concatenation is unavailable: ffmpeg not found.',
+      statusCode: 503,
+    });
+  });
+
   it('requires every sentence to have a default take before rendering full audio', async () => {
     await expect(generateMonologueFullAudioTake('user-1', 'project-1')).rejects.toThrow(
       'Every sentence needs a default audio take before full render.'
