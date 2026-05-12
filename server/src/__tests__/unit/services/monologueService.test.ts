@@ -1,8 +1,13 @@
+import { writeFileSync } from 'node:fs';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSynthesizeBatchedTexts = vi.hoisted(() => vi.fn());
 const mockPersistStudyMediaBuffer = vi.hoisted(() => vi.fn());
 const mockGenerateCoreLlmJsonText = vi.hoisted(() => vi.fn());
+const mockFindAccessibleLocalStudyMediaPath = vi.hoisted(() => vi.fn());
+const mockDeletePersistedStudyMediaByStoragePath = vi.hoisted(() => vi.fn());
+const mockFfmpeg = vi.hoisted(() => vi.fn());
 const mockPrisma = vi.hoisted(() => ({
   $transaction: vi.fn(),
   monologueAudioTake: {
@@ -51,8 +56,15 @@ vi.mock('../../../services/study/shared/mediaHelpers.js', () => ({
   persistStudyMediaBuffer: mockPersistStudyMediaBuffer,
 }));
 
+vi.mock('../../../services/study/shared/paths.js', () => ({
+  deletePersistedStudyMediaByStoragePath: mockDeletePersistedStudyMediaByStoragePath,
+  findAccessibleLocalStudyMediaPath: mockFindAccessibleLocalStudyMediaPath,
+  getStudyMediaApiPath: (mediaId: string) => `/api/study/media/${mediaId}`,
+  normalizeFilename: (value: string) => value.replace(/[^a-zA-Z0-9._-]/g, '-'),
+}));
+
 vi.mock('fluent-ffmpeg', () => ({
-  default: vi.fn(),
+  default: mockFfmpeg,
 }));
 
 const {
@@ -129,6 +141,30 @@ beforeEach(() => {
     })
   );
   mockSynthesizeBatchedTexts.mockResolvedValue([Buffer.from('audio')]);
+  mockFindAccessibleLocalStudyMediaPath.mockResolvedValue('/tmp/monologue-segment.mp3');
+  mockDeletePersistedStudyMediaByStoragePath.mockResolvedValue(undefined);
+  mockFfmpeg.mockImplementation(() => {
+    let outputPath = '';
+    const command = {
+      input: vi.fn(() => command),
+      inputOptions: vi.fn(() => command),
+      audioCodec: vi.fn(() => command),
+      audioBitrate: vi.fn(() => command),
+      audioFrequency: vi.fn(() => command),
+      audioChannels: vi.fn(() => command),
+      output: vi.fn((path: string) => {
+        outputPath = path;
+        return command;
+      }),
+      on: vi.fn((_event: string, _callback: () => void) => command),
+      run: vi.fn(() => {
+        writeFileSync(outputPath, Buffer.from('full audio'));
+        const endHandler = command.on.mock.calls.find(([event]) => event === 'end')?.[1];
+        if (endHandler) endHandler();
+      }),
+    };
+    return command;
+  });
   mockPersistStudyMediaBuffer.mockResolvedValue({
     publicUrl: null,
     storagePath: 'study-media/user-1/monologue-generated/audio.mp3',
@@ -580,6 +616,108 @@ describe('monologueService', () => {
       where: { id: 'take-1' },
       data: { isDefault: true },
     });
+  });
+
+  it('renders full audio and prunes stale full takes', async () => {
+    const fullProject = {
+      ...projectRecord(),
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        segments: [
+          {
+            ...projectRecord().activeVersion.segments[0],
+            audioTakes: [
+              {
+                id: 'sentence-take-1',
+                userId: 'user-1',
+                projectId: 'project-1',
+                scriptVersionId: 'version-1',
+                segmentId: 'segment-1',
+                mediaId: 'sentence-media-1',
+                displayName: 'Sentence take',
+                source: 'tts',
+                provider: 'google',
+                voiceId: 'ja-JP-Neural2-D',
+                speed: 0.85,
+                scope: 'sentence',
+                isDefault: true,
+                createdAt: now,
+                updatedAt: now,
+                media: {
+                  id: 'sentence-media-1',
+                  storagePath: 'study-media/user-1/monologue-generated/segment.mp3',
+                },
+              },
+            ],
+          },
+        ],
+      },
+    };
+    mockPrisma.monologueProject.findFirst.mockResolvedValueOnce(fullProject).mockResolvedValueOnce({
+      ...fullProject,
+      status: 'ready',
+      audioTakes: [
+        {
+          id: 'full-take-2',
+          userId: 'user-1',
+          projectId: 'project-1',
+          scriptVersionId: 'version-1',
+          segmentId: null,
+          mediaId: 'media-1',
+          displayName: 'Full monologue render',
+          source: 'tts',
+          provider: 'mixed',
+          voiceId: null,
+          speed: 1,
+          scope: 'full',
+          isDefault: true,
+          createdAt: now,
+          updatedAt: now,
+          media: {
+            id: 'media-1',
+            storagePath: 'study-media/user-1/monologue-generated/full.mp3',
+          },
+        },
+      ],
+    });
+    mockPrisma.monologueAudioTake.findMany.mockResolvedValueOnce([
+      {
+        id: 'old-full-take',
+        media: {
+          id: 'old-full-media',
+          storagePath: 'study-media/user-1/monologue-generated/old-full.mp3',
+        },
+      },
+    ]);
+    mockPrisma.studyMedia.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+    await generateMonologueFullAudioTake('user-1', 'project-1');
+
+    expect(mockFfmpeg).toHaveBeenCalled();
+    expect(mockPrisma.monologueAudioTake.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        projectId: 'project-1',
+        scriptVersionId: 'version-1',
+        scope: 'full',
+      },
+    });
+    expect(mockPrisma.monologueAudioTake.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        mediaId: 'media-1',
+        scope: 'full',
+        isDefault: true,
+      }),
+    });
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: 'old-full-media',
+        monologueTakes: { none: {} },
+      },
+    });
+    expect(mockDeletePersistedStudyMediaByStoragePath).toHaveBeenCalledWith(
+      'study-media/user-1/monologue-generated/old-full.mp3'
+    );
   });
 
   it('requires every sentence to have a default take before rendering full audio', async () => {

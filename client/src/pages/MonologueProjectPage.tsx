@@ -186,6 +186,7 @@ const MonologueProjectPage = () => {
   const [pendingSegmentAudioIds, setPendingSegmentAudioIds] = useState<string[]>([]);
   const [saveSucceeded, setSaveSucceeded] = useState(false);
   const [draftDirty, setDraftDirty] = useState(false);
+  const [audioActionErrorMessage, setAudioActionErrorMessage] = useState<string | null>(null);
   const initializedDraftKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -240,15 +241,13 @@ const MonologueProjectPage = () => {
   } else if (approveScript.error instanceof Error) {
     scriptErrorMessage = approveScript.error.message;
   }
-  const audioActionError =
-    generateAudio.error ?? regenerateAudio.error ?? setDefaultAudio.error ?? null;
-  let audioActionErrorMessage = t('monologue.errors.audioAction');
-  if (audioActionError instanceof Error) {
-    audioActionErrorMessage = audioActionError.message;
-  }
   function confirmDiscardDraftChanges() {
     // eslint-disable-next-line no-alert -- Standard browser confirmation for unsaved form edits.
     return !draftDirty || window.confirm(t('monologue.unsavedChanges'));
+  }
+
+  function getAudioActionErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : t('monologue.errors.audioAction');
   }
 
   const updateSegment = (index: number, patch: Partial<SegmentDraft>) => {
@@ -290,6 +289,7 @@ const MonologueProjectPage = () => {
 
   const handleGenerateAudio = async (segmentId: string, control: AudioControlState) => {
     if (!projectId) return;
+    setAudioActionErrorMessage(null);
     setPendingSegmentAudioIds((current) => [...current, segmentId]);
     try {
       await generateAudio.mutateAsync({
@@ -300,10 +300,30 @@ const MonologueProjectPage = () => {
         speed: control.speed,
         voiceId: control.voiceId,
       });
-    } catch {
-      // Mutation error is rendered in the sentence-audio section.
+    } catch (error) {
+      setAudioActionErrorMessage(getAudioActionErrorMessage(error));
     } finally {
       setPendingSegmentAudioIds((current) => current.filter((id) => id !== segmentId));
+    }
+  };
+
+  const handleSetDefaultAudio = async (takeId: string) => {
+    if (!projectId) return;
+    setAudioActionErrorMessage(null);
+    try {
+      await setDefaultAudio.mutateAsync({ projectId, takeId });
+    } catch (error) {
+      setAudioActionErrorMessage(getAudioActionErrorMessage(error));
+    }
+  };
+
+  const handleRegenerateAudio = async (takeId: string) => {
+    if (!projectId) return;
+    setAudioActionErrorMessage(null);
+    try {
+      await regenerateAudio.mutateAsync({ projectId, takeId });
+    } catch (error) {
+      setAudioActionErrorMessage(getAudioActionErrorMessage(error));
     }
   };
 
@@ -478,7 +498,7 @@ const MonologueProjectPage = () => {
       <section className="card retro-paper-panel space-y-4">
         <h2 className="text-xl font-bold text-navy">{t('monologue.audio.title')}</h2>
         {!isApproved ? <p className="text-gray-600">{t('monologue.audio.approveFirst')}</p> : null}
-        {audioActionError ? (
+        {audioActionErrorMessage ? (
           <p className="text-sm text-red-600">{audioActionErrorMessage}</p>
         ) : null}
         <div className="grid gap-4">
@@ -508,9 +528,9 @@ const MonologueProjectPage = () => {
                         {!take.isDefault ? (
                           <button
                             type="button"
-                            onClick={() =>
-                              projectId && setDefaultAudio.mutate({ projectId, takeId: take.id })
-                            }
+                            onClick={() => {
+                              handleSetDefaultAudio(take.id);
+                            }}
                             className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-navy"
                           >
                             {t('monologue.audio.setDefault')}
@@ -518,9 +538,9 @@ const MonologueProjectPage = () => {
                         ) : null}
                         <button
                           type="button"
-                          onClick={() =>
-                            projectId && regenerateAudio.mutate({ projectId, takeId: take.id })
-                          }
+                          onClick={() => {
+                            handleRegenerateAudio(take.id);
+                          }}
                           className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-navy"
                         >
                           {t('monologue.audio.regenerate')}

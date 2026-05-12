@@ -1,3 +1,4 @@
+import type { MonologueSegmentUpdateInput } from '@languageflow/shared/src/types.js';
 import { Router } from 'express';
 
 import type { AuthRequest } from '../middleware/auth.js';
@@ -53,6 +54,18 @@ function optionalMonologueSpeed(value: unknown): number | undefined {
   return value;
 }
 
+function draftSegmentFromUnknown(value: unknown): MonologueSegmentUpdateInput {
+  const segment = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  return {
+    id: typeof segment.id === 'string' ? segment.id : undefined,
+    ordinal: typeof segment.ordinal === 'number' ? segment.ordinal : Number.NaN,
+    sourceText: typeof segment.sourceText === 'string' ? segment.sourceText : '',
+    japaneseText: typeof segment.japaneseText === 'string' ? segment.japaneseText : '',
+    reading: typeof segment.reading === 'string' ? segment.reading : null,
+    beatLabel: typeof segment.beatLabel === 'string' ? segment.beatLabel : null,
+  };
+}
+
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
     res.json({ projects: await listMonologueProjects(requireUserId(req)) });
@@ -103,7 +116,7 @@ router.put('/:projectId/draft', async (req: AuthRequest, res, next) => {
       await updateMonologueDraft(requireUserId(req), req.params.projectId, {
         title: typeof body.title === 'string' ? body.title : undefined,
         fullText: typeof body.fullText === 'string' ? body.fullText : '',
-        segments: Array.isArray(body.segments) ? body.segments : [],
+        segments: Array.isArray(body.segments) ? body.segments.map(draftSegmentFromUnknown) : [],
       })
     );
   } catch (error) {
