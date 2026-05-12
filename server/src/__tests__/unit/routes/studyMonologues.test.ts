@@ -12,17 +12,21 @@ import studyMonologueRoutes from '../../../routes/studyMonologues.js';
 const {
   approveMonologueScriptMock,
   createMonologueProjectMock,
+  generateMonologueFullAudioTakeMock,
   generateMonologueSegmentAudioTakeMock,
   getMonologueProjectMock,
   listMonologueProjectsMock,
+  regenerateMonologueAudioTakeMock,
   setMonologueDefaultAudioTakeMock,
   updateMonologueDraftMock,
 } = vi.hoisted(() => ({
   approveMonologueScriptMock: vi.fn(),
   createMonologueProjectMock: vi.fn(),
+  generateMonologueFullAudioTakeMock: vi.fn(),
   generateMonologueSegmentAudioTakeMock: vi.fn(),
   getMonologueProjectMock: vi.fn(),
   listMonologueProjectsMock: vi.fn(),
+  regenerateMonologueAudioTakeMock: vi.fn(),
   setMonologueDefaultAudioTakeMock: vi.fn(),
   updateMonologueDraftMock: vi.fn(),
 }));
@@ -34,11 +38,11 @@ vi.mock('../../../middleware/studyRateLimit.js', () => ({
 vi.mock('../../../services/monologueService.js', () => ({
   approveMonologueScript: approveMonologueScriptMock,
   createMonologueProject: createMonologueProjectMock,
-  generateMonologueFullAudioTake: vi.fn(),
+  generateMonologueFullAudioTake: generateMonologueFullAudioTakeMock,
   generateMonologueSegmentAudioTake: generateMonologueSegmentAudioTakeMock,
   getMonologueProject: getMonologueProjectMock,
   listMonologueProjects: listMonologueProjectsMock,
-  regenerateMonologueAudioTake: vi.fn(),
+  regenerateMonologueAudioTake: regenerateMonologueAudioTakeMock,
   setMonologueDefaultAudioTake: setMonologueDefaultAudioTakeMock,
   updateMonologueDraft: updateMonologueDraftMock,
 }));
@@ -65,6 +69,38 @@ describe('study monologue routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listMonologueProjectsMock.mockResolvedValue([]);
+  });
+
+  it('lists monologue projects', async () => {
+    listMonologueProjectsMock.mockResolvedValue([
+      {
+        id: 'project-1',
+        title: 'Tokyo story',
+        status: 'draft',
+        activeVersionId: 'version-1',
+        segmentCount: 3,
+        createdAt: '2026-05-12T12:00:00.000Z',
+        updatedAt: '2026-05-12T12:00:00.000Z',
+      },
+    ]);
+
+    const response = await request(app).get('/api/study/monologues');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      projects: [
+        {
+          id: 'project-1',
+          title: 'Tokyo story',
+          status: 'draft',
+          activeVersionId: 'version-1',
+          segmentCount: 3,
+          createdAt: '2026-05-12T12:00:00.000Z',
+          updatedAt: '2026-05-12T12:00:00.000Z',
+        },
+      ],
+    });
+    expect(listMonologueProjectsMock).toHaveBeenCalledWith('user-1');
   });
 
   it('creates a monologue project from source text', async () => {
@@ -192,6 +228,24 @@ describe('study monologue routes', () => {
     );
   });
 
+  it('regenerates an existing audio take', async () => {
+    regenerateMonologueAudioTakeMock.mockResolvedValue({
+      id: 'project-1',
+      status: 'approved',
+    });
+
+    const response = await request(app).post(
+      '/api/study/monologues/project-1/audio-takes/take-1/regenerate'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: 'project-1',
+      status: 'approved',
+    });
+    expect(regenerateMonologueAudioTakeMock).toHaveBeenCalledWith('user-1', 'project-1', 'take-1');
+  });
+
   it('treats null audio speed as omitted', async () => {
     generateMonologueSegmentAudioTakeMock.mockResolvedValue({
       id: 'project-1',
@@ -230,6 +284,22 @@ describe('study monologue routes', () => {
       status: 'ready',
     });
     expect(setMonologueDefaultAudioTakeMock).toHaveBeenCalledWith('user-1', 'project-1', 'take-1');
+  });
+
+  it('generates full monologue audio', async () => {
+    generateMonologueFullAudioTakeMock.mockResolvedValue({
+      id: 'project-1',
+      status: 'approved',
+    });
+
+    const response = await request(app).post('/api/study/monologues/project-1/full-audio');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: 'project-1',
+      status: 'approved',
+    });
+    expect(generateMonologueFullAudioTakeMock).toHaveBeenCalledWith('user-1', 'project-1');
   });
 
   it('returns 400 when creating without source text', async () => {

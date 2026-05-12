@@ -594,6 +594,7 @@ async function persistMonologueAudio(input: {
 }) {
   const persisted = await persistStudyMediaBuffer({
     userId: input.userId,
+    // Used only as a storage-path segment; StudyMedia.importJobId remains null for generated monologue media.
     importJobId: MONOLOGUE_GENERATED_IMPORT_JOB_ID,
     filename: input.filename,
     buffer: input.buffer,
