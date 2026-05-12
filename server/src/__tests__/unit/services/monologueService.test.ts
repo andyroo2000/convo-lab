@@ -402,6 +402,43 @@ describe('monologueService', () => {
     expect(result.activeVersion?.versionNumber).toBe(2);
   });
 
+  it('allows a draft title to be cleared explicitly', async () => {
+    const draftProject = {
+      ...projectRecord(),
+      status: 'draft',
+      title: 'Tokyo story',
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        status: 'draft',
+      },
+    };
+    mockPrisma.monologueProject.findFirst
+      .mockResolvedValueOnce(draftProject)
+      .mockResolvedValueOnce({ ...draftProject, title: '' });
+
+    await updateMonologueDraft('user-1', 'project-1', {
+      title: '',
+      fullText: '日本語です。',
+      segments: [
+        {
+          ordinal: 0,
+          sourceText: 'English cue',
+          japaneseText: '日本語です。',
+          reading: 'にほんごです。',
+          beatLabel: null,
+        },
+      ],
+    });
+
+    expect(mockPrisma.monologueProject.update).toHaveBeenCalledWith({
+      where: { id: 'project-1' },
+      data: {
+        status: 'draft',
+        title: '',
+      },
+    });
+  });
+
   it('approves the active script version', async () => {
     await approveMonologueScript('user-1', 'project-1');
 

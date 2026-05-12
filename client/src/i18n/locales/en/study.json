@@ -52,6 +52,29 @@
     "loading": "Loading overview…",
     "empty": "Import your `日本語` deck or create a card to start studying here."
   },
+  "monologueStudio": {
+    "title": "Monologue Studio",
+    "description": "Build a Japanese speech from an English source, approve the script, then rehearse it sentence by sentence.",
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "Tokyo story",
+      "source": "English source monologue",
+      "sourcePlaceholder": "Write the story you want to be able to tell…",
+      "generate": "Generate draft",
+      "generating": "Generating Japanese draft…"
+    },
+    "list": {
+      "title": "Your monologues",
+      "loading": "Loading…",
+      "empty": "No monologues yet.",
+      "sentenceCount_one": "{{count}} sentence",
+      "sentenceCount_other": "{{count}} sentences"
+    },
+    "errors": {
+      "create": "Could not create monologue.",
+      "load": "Could not load monologues."
+    }
+  },
   "monologue": {
     "loading": "Loading monologue…",
     "version": "version {{version}}",

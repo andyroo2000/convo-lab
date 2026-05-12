@@ -43,6 +43,7 @@ import {
 } from './study/shared/paths.js';
 
 const MONOLOGUE_GENERATED_MEDIA_SOURCE_KIND = 'monologue_generated';
+// Path-prefix sentinel for generated StudyMedia storage, not a StudyImportJob foreign key.
 const MONOLOGUE_GENERATED_IMPORT_JOB_ID = 'monologue-generated';
 const MONOLOGUE_SOURCE_MAX_LENGTH = 12_000;
 const MONOLOGUE_FULL_TEXT_MAX_LENGTH = 12_000;
@@ -148,8 +149,8 @@ function projectToSummary(project: NonNullable<MonologueProjectRecord>): Monolog
     id: project.id,
     title: project.title,
     sourceText: project.sourceText,
-    targetLanguage: MONOLOGUE_TARGET_LANGUAGE,
-    nativeLanguage: MONOLOGUE_NATIVE_LANGUAGE,
+    targetLanguage: project.targetLanguage as LanguageCode,
+    nativeLanguage: project.nativeLanguage as LanguageCode,
     status: parseMonologueStatus(project.status),
     activeVersionId: project.activeVersionId,
     createdAt: project.createdAt.toISOString(),
@@ -466,7 +467,7 @@ export async function updateMonologueDraft(
             data: {
               activeVersionId: version.id,
               status: 'draft',
-              ...(title ? { title } : {}),
+              ...(title !== null ? { title } : {}),
             },
           });
         } else {
@@ -479,7 +480,7 @@ export async function updateMonologueDraft(
             where: { id: projectId },
             data: {
               status: 'draft',
-              ...(title ? { title } : {}),
+              ...(title !== null ? { title } : {}),
             },
           });
         }

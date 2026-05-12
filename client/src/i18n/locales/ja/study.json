@@ -52,6 +52,29 @@
     "loading": "概要を読み込み中…",
     "empty": "`日本語` デッキを取り込むかカードを作成して、ここから学習を始めましょう。"
   },
+  "monologueStudio": {
+    "title": "モノローグスタジオ",
+    "description": "英語の原稿から日本語のスピーチを作り、スクリプトを承認してから文ごとに練習します。",
+    "form": {
+      "title": "タイトル",
+      "titlePlaceholder": "東京の話",
+      "source": "英語の元原稿",
+      "sourcePlaceholder": "話せるようになりたい内容を書いてください…",
+      "generate": "下書きを生成",
+      "generating": "日本語の下書きを生成中…"
+    },
+    "list": {
+      "title": "あなたのモノローグ",
+      "loading": "読み込み中…",
+      "empty": "モノローグはまだありません。",
+      "sentenceCount_one": "{{count}} 文",
+      "sentenceCount_other": "{{count}} 文"
+    },
+    "errors": {
+      "create": "モノローグを作成できませんでした。",
+      "load": "モノローグを読み込めませんでした。"
+    }
+  },
   "monologue": {
     "loading": "モノローグを読み込み中…",
     "version": "バージョン {{version}}",

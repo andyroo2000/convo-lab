@@ -196,9 +196,7 @@ router.post(
   }),
   async (req: AuthRequest, res, next) => {
     try {
-      res
-        .status(201)
-        .json(await generateMonologueFullAudioTake(requireUserId(req), req.params.projectId));
+      res.json(await generateMonologueFullAudioTake(requireUserId(req), req.params.projectId));
     } catch (error) {
       next(error);
     }
