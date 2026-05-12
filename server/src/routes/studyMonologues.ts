@@ -1,4 +1,5 @@
 import type { MonologueSegmentUpdateInput } from '@languageflow/shared/src/types.js';
+import { getMonologueTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Router } from 'express';
 
 import type { AuthRequest } from '../middleware/auth.js';
@@ -22,6 +23,7 @@ const MONOLOGUE_DRAFT_RATE_LIMIT_PER_MINUTE = 20;
 const MONOLOGUE_AUDIO_RATE_LIMIT_PER_MINUTE = 30;
 const MONOLOGUE_AUDIO_DEFAULT_RATE_LIMIT_PER_MINUTE = 60;
 const MONOLOGUE_ALLOWED_SPEEDS = new Set([0.75, 0.85, 1]);
+const MONOLOGUE_ALLOWED_VOICE_IDS = new Set(getMonologueTtsVoices('ja').map((voice) => voice.id));
 
 function requireUserId(req: AuthRequest): string {
   if (!req.userId) {
@@ -52,6 +54,16 @@ function optionalMonologueSpeed(value: unknown): number | undefined {
     !MONOLOGUE_ALLOWED_SPEEDS.has(value)
   ) {
     throw new AppError('speed must be 0.75, 0.85, or 1.', 400);
+  }
+  return value;
+}
+
+function requireMonologueVoiceId(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new AppError('voiceId is required.', 400);
+  }
+  if (!MONOLOGUE_ALLOWED_VOICE_IDS.has(value)) {
+    throw new AppError('voiceId is not available for monologues.', 400);
   }
   return value;
 }
@@ -153,16 +165,14 @@ router.post(
   async (req: AuthRequest, res, next) => {
     try {
       const body = requireBodyObject(req.body);
-      if (typeof body.voiceId !== 'string') {
-        throw new AppError('voiceId is required.', 400);
-      }
+      const voiceId = requireMonologueVoiceId(body.voiceId);
       res.status(201).json(
         await generateMonologueSegmentAudioTake(
           requireUserId(req),
           req.params.projectId,
           req.params.segmentId,
           {
-            voiceId: body.voiceId,
+            voiceId,
             displayName: optionalString(body.displayName),
             isDefault: typeof body.isDefault === 'boolean' ? body.isDefault : undefined,
             speed: optionalMonologueSpeed(body.speed),

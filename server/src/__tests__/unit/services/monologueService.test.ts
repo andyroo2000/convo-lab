@@ -252,6 +252,23 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
   });
 
+  it('returns an app error when the LLM returns malformed monologue JSON', async () => {
+    mockGenerateCoreLlmJsonText.mockResolvedValueOnce('not json');
+
+    await expect(
+      createMonologueProject('user-1', {
+        sourceText: 'English source',
+      })
+    ).rejects.toMatchObject({
+      message: 'Monologue generator returned malformed JSON.',
+      statusCode: 502,
+    });
+
+    expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+  });
+
   it('lists active-version segment counts instead of all historical segments', async () => {
     mockPrisma.monologueProject.findMany.mockResolvedValue([
       {
@@ -293,6 +310,7 @@ describe('monologueService', () => {
       beatLabel: null,
       createdAt: now,
       updatedAt: now,
+      project: { activeVersionId: 'version-1' },
       scriptVersion: { id: 'version-1', status: 'draft' },
     });
 
@@ -302,6 +320,32 @@ describe('monologueService', () => {
         speed: 0.85,
       })
     ).rejects.toThrow('Approve the monologue script before generating audio.');
+    expect(mockSynthesizeBatchedTexts).not.toHaveBeenCalled();
+  });
+
+  it('rejects sentence audio generation for non-active script versions', async () => {
+    mockPrisma.monologueSegment.findFirst.mockResolvedValue({
+      id: 'segment-1',
+      userId: 'user-1',
+      projectId: 'project-1',
+      scriptVersionId: 'version-1',
+      ordinal: 0,
+      sourceText: 'English cue',
+      japaneseText: '日本語です。',
+      reading: 'にほんごです。',
+      beatLabel: null,
+      createdAt: now,
+      updatedAt: now,
+      project: { activeVersionId: 'version-2' },
+      scriptVersion: { id: 'version-1', status: 'approved' },
+    });
+
+    await expect(
+      generateMonologueSegmentAudioTake('user-1', 'project-1', 'segment-1', {
+        voiceId: 'ja-JP-Neural2-D',
+        speed: 0.85,
+      })
+    ).rejects.toThrow('Generate audio for the active monologue script version.');
     expect(mockSynthesizeBatchedTexts).not.toHaveBeenCalled();
   });
 
@@ -318,6 +362,7 @@ describe('monologueService', () => {
       beatLabel: null,
       createdAt: now,
       updatedAt: now,
+      project: { activeVersionId: 'version-1' },
       scriptVersion: { id: 'version-1', status: 'approved' },
     });
 
@@ -356,6 +401,7 @@ describe('monologueService', () => {
       beatLabel: null,
       createdAt: now,
       updatedAt: now,
+      project: { activeVersionId: 'version-1' },
       scriptVersion: { id: 'version-1', status: 'approved' },
     });
 
@@ -366,7 +412,12 @@ describe('monologueService', () => {
     });
 
     expect(mockPrisma.monologueAudioTake.updateMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', segmentId: 'segment-1', scope: 'sentence' },
+      where: {
+        userId: 'user-1',
+        segmentId: 'segment-1',
+        scriptVersionId: 'version-1',
+        scope: 'sentence',
+      },
       data: { isDefault: false },
     });
     expect(mockPrisma.monologueAudioTake.create).toHaveBeenCalledWith(
@@ -391,6 +442,7 @@ describe('monologueService', () => {
       beatLabel: null,
       createdAt: now,
       updatedAt: now,
+      project: { activeVersionId: 'version-1' },
       scriptVersion: { id: 'version-1', status: 'approved' },
     });
     mockPrisma.$transaction.mockRejectedValueOnce(new Error('db write failed'));
@@ -712,6 +764,7 @@ describe('monologueService', () => {
       where: {
         userId: 'user-1',
         projectId: 'project-1',
+        scriptVersionId: 'version-1',
         scope: 'sentence',
         segmentId: 'segment-1',
       },

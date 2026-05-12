@@ -16,6 +16,7 @@ const {
   getMonologueProjectMock,
   listMonologueProjectsMock,
   setMonologueDefaultAudioTakeMock,
+  updateMonologueDraftMock,
 } = vi.hoisted(() => ({
   approveMonologueScriptMock: vi.fn(),
   createMonologueProjectMock: vi.fn(),
@@ -23,6 +24,7 @@ const {
   getMonologueProjectMock: vi.fn(),
   listMonologueProjectsMock: vi.fn(),
   setMonologueDefaultAudioTakeMock: vi.fn(),
+  updateMonologueDraftMock: vi.fn(),
 }));
 
 vi.mock('../../../middleware/studyRateLimit.js', () => ({
@@ -38,7 +40,7 @@ vi.mock('../../../services/monologueService.js', () => ({
   listMonologueProjects: listMonologueProjectsMock,
   regenerateMonologueAudioTake: vi.fn(),
   setMonologueDefaultAudioTake: setMonologueDefaultAudioTakeMock,
-  updateMonologueDraft: vi.fn(),
+  updateMonologueDraft: updateMonologueDraftMock,
 }));
 
 function createApp() {
@@ -120,6 +122,48 @@ describe('study monologue routes', () => {
     expect(approveMonologueScriptMock).toHaveBeenCalledWith('user-1', 'project-1');
   });
 
+  it('updates a monologue draft', async () => {
+    updateMonologueDraftMock.mockResolvedValue({
+      id: 'project-1',
+      status: 'draft',
+    });
+
+    const response = await request(app)
+      .put('/api/study/monologues/project-1/draft')
+      .send({
+        title: 'Tokyo return',
+        fullText: '日本語です。',
+        segments: [
+          {
+            id: 'segment-1',
+            sourceText: 'English cue',
+            japaneseText: '日本語です。',
+            reading: 'にほんごです。',
+            beatLabel: 'Opening',
+          },
+        ],
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: 'project-1',
+      status: 'draft',
+    });
+    expect(updateMonologueDraftMock).toHaveBeenCalledWith('user-1', 'project-1', {
+      title: 'Tokyo return',
+      fullText: '日本語です。',
+      segments: [
+        {
+          id: 'segment-1',
+          sourceText: 'English cue',
+          japaneseText: '日本語です。',
+          reading: 'にほんごです。',
+          beatLabel: 'Opening',
+        },
+      ],
+    });
+  });
+
   it('generates a sentence audio take', async () => {
     generateMonologueSegmentAudioTakeMock.mockResolvedValue({
       id: 'project-1',
@@ -156,14 +200,17 @@ describe('study monologue routes', () => {
 
     const response = await request(app)
       .post('/api/study/monologues/project-1/segments/segment-1/audio-takes')
-      .send({ voiceId: 'fish-ren', speed: null });
+      .send({ voiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f', speed: null });
 
     expect(response.status).toBe(201);
     expect(generateMonologueSegmentAudioTakeMock).toHaveBeenCalledWith(
       'user-1',
       'project-1',
       'segment-1',
-      expect.objectContaining({ speed: undefined, voiceId: 'fish-ren' })
+      expect.objectContaining({
+        speed: undefined,
+        voiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+      })
     );
   });
 
@@ -200,6 +247,16 @@ describe('study monologue routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ message: 'voiceId is required.' });
+    expect(generateMonologueSegmentAudioTakeMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when audio generation uses a non-monologue voice id', async () => {
+    const response = await request(app)
+      .post('/api/study/monologues/project-1/segments/segment-1/audio-takes')
+      .send({ voiceId: 'ja-JP-Wavenet-D', speed: 1 });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ message: 'voiceId is not available for monologues.' });
     expect(generateMonologueSegmentAudioTakeMock).not.toHaveBeenCalled();
   });
 

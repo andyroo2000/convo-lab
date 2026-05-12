@@ -220,7 +220,12 @@ function parseGeneratedMonologue(raw: string): GeneratedMonologue {
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```$/i, '')
     .trim();
-  const parsed = JSON.parse(text) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text) as unknown;
+  } catch (error) {
+    throw new AppError('Monologue generator returned malformed JSON.', 502, { cause: error });
+  }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('Monologue generator returned invalid JSON.');
   }
@@ -679,10 +684,13 @@ export async function generateMonologueSegmentAudioTake(
 ): Promise<MonologueProjectSummary> {
   const segment = await prisma.monologueSegment.findFirst({
     where: { id: segmentId, projectId, userId },
-    include: { scriptVersion: true },
+    include: { project: { select: { activeVersionId: true } }, scriptVersion: true },
   });
   if (!segment) {
     throw new AppError('Monologue segment not found.', 404);
+  }
+  if (segment.project.activeVersionId !== segment.scriptVersionId) {
+    throw new AppError('Generate audio for the active monologue script version.', 400);
   }
   if (segment.scriptVersion.status !== 'approved') {
     throw new AppError('Approve the monologue script before generating audio.', 400);
@@ -719,7 +727,7 @@ export async function generateMonologueSegmentAudioTake(
     await prisma.$transaction(async (tx) => {
       if (makeDefault) {
         await tx.monologueAudioTake.updateMany({
-          where: { userId, segmentId, scope: 'sentence' },
+          where: { userId, segmentId, scriptVersionId: segment.scriptVersionId, scope: 'sentence' },
           data: { isDefault: false },
         });
         await tx.monologueAudioTake.deleteMany({
@@ -872,6 +880,7 @@ export async function setMonologueDefaultAudioTake(
       where: {
         userId,
         projectId,
+        scriptVersionId: take.scriptVersionId,
         scope: take.scope,
         ...(take.scope === 'sentence' ? { segmentId: take.segmentId } : { segmentId: null }),
       },
@@ -1005,6 +1014,7 @@ export async function generateMonologueFullAudioTake(
       userId,
       projectId,
       filename: `${normalizeFilename(projectId)}-full-${randomUUID()}.mp3`,
+      // V1 renders full audio synchronously; convo-lab-ygt3 tracks moving this read/render path to a job.
       buffer: await fs.readFile(outputPath),
     });
 
