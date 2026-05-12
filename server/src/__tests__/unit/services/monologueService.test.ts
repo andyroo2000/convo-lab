@@ -269,6 +269,46 @@ describe('monologueService', () => {
     expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
   });
 
+  it('returns an app error when generated monologue JSON is not an object', async () => {
+    mockGenerateCoreLlmJsonText.mockResolvedValueOnce('[]');
+
+    await expect(
+      createMonologueProject('user-1', {
+        sourceText: 'English source',
+      })
+    ).rejects.toMatchObject({
+      message: 'Monologue generator returned invalid JSON.',
+      statusCode: 502,
+    });
+
+    expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+  });
+
+  it('returns an app error when generated monologue JSON has no usable script', async () => {
+    mockGenerateCoreLlmJsonText.mockResolvedValueOnce(
+      JSON.stringify({
+        title: 'Generated title',
+        fullText: '',
+        segments: [],
+      })
+    );
+
+    await expect(
+      createMonologueProject('user-1', {
+        sourceText: 'English source',
+      })
+    ).rejects.toMatchObject({
+      message: 'Monologue generator returned no usable script.',
+      statusCode: 502,
+    });
+
+    expect(mockPrisma.monologueProject.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueScriptVersion.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueSegment.createMany).not.toHaveBeenCalled();
+  });
+
   it('lists active-version segment counts instead of all historical segments', async () => {
     mockPrisma.monologueProject.findMany.mockResolvedValue([
       {

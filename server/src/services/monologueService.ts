@@ -227,7 +227,7 @@ function parseGeneratedMonologue(raw: string): GeneratedMonologue {
     throw new AppError('Monologue generator returned malformed JSON.', 502, { cause: error });
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Monologue generator returned invalid JSON.');
+    throw new AppError('Monologue generator returned invalid JSON.', 502);
   }
   const record = parsed as Record<string, unknown>;
   const title = truncate(
@@ -254,7 +254,7 @@ function parseGeneratedMonologue(raw: string): GeneratedMonologue {
     .filter((value): value is GeneratedMonologueSegment => Boolean(value));
 
   if (!fullText || segments.length === 0) {
-    throw new Error('Monologue generator returned no usable script.');
+    throw new AppError('Monologue generator returned no usable script.', 502);
   }
 
   return { title, fullText, segments };

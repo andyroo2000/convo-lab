@@ -23,6 +23,7 @@ const MONOLOGUE_DRAFT_RATE_LIMIT_PER_MINUTE = 20;
 const MONOLOGUE_AUDIO_RATE_LIMIT_PER_MINUTE = 30;
 const MONOLOGUE_AUDIO_DEFAULT_RATE_LIMIT_PER_MINUTE = 60;
 const MONOLOGUE_ALLOWED_SPEEDS = new Set([0.75, 0.85, 1]);
+// TODO: derive from the project target language once monologues support languages beyond Japanese.
 const MONOLOGUE_ALLOWED_VOICE_IDS = new Set(getMonologueTtsVoices('ja').map((voice) => voice.id));
 
 function requireUserId(req: AuthRequest): string {
