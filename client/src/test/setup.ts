@@ -44,6 +44,11 @@ Object.defineProperty(globalThis, 'caches', {
   },
 });
 
+Object.defineProperty(HTMLMediaElement.prototype, 'load', {
+  configurable: true,
+  value: () => {},
+});
+
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
   // eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function
