@@ -161,10 +161,6 @@ export interface GenerateDialogueRequest {
   variationCount?: number;
 }
 
-export interface GenerateDialogueResponse {
-  dialogue: Dialogue;
-}
-
 export interface GenerateAudioRequest {
   episodeId: string;
   dialogueId: string;
@@ -172,24 +168,10 @@ export interface GenerateAudioRequest {
   pauseMode?: boolean;
 }
 
-export interface GenerateAudioResponse {
-  audioUrl: string;
-  duration: number;
-  sentenceTimings: Array<{
-    sentenceId: string;
-    startTime: number;
-    endTime: number;
-  }>;
-}
-
 export interface GenerateImagesRequest {
   episodeId: string;
   dialogueId: string;
   imageCount?: number;
-}
-
-export interface GenerateImagesResponse {
-  images: Image[];
 }
 
 // Pimsleur-style Course Types
@@ -253,31 +235,6 @@ export type LessonScriptUnit =
   | { type: 'marker'; label: string };
 
 // API request/response types for courses
-
-export interface CreateCourseRequest {
-  title: string;
-  description?: string;
-  episodeIds: string[];
-  nativeLanguage: LanguageCode;
-  targetLanguage: LanguageCode;
-  maxLessonDurationMinutes?: number;
-  l1VoiceId?: string;
-  jlptLevel?: string; // N5, N4, N3, N2, N1
-  speaker1Gender?: 'male' | 'female';
-  speaker2Gender?: 'male' | 'female';
-  speaker1VoiceId?: string; // Specific voice ID for Speaker 1
-  speaker2VoiceId?: string; // Specific voice ID for Speaker 2
-}
-
-export interface GenerateCourseRequest {
-  courseId: string;
-}
-
-export interface GenerateCourseResponse {
-  message: string;
-  jobId: string;
-  courseId: string;
-}
 
 export interface CourseStatusResponse {
   status: 'draft' | 'generating' | 'ready' | 'error';

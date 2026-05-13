@@ -9,28 +9,11 @@ import type { StudyMediaRef } from '@languageflow/shared/src/types';
 import {
   applyStudyCardImageToPayload,
   cardTypeForStudyCardCreationKind,
-  DEFAULT_AUDIO_RECOGNITION_VOICE_ID,
   defaultImagePlacementForStudyCardCreationKind,
   defaultVoiceIdForStudyCardCreationKind,
   isStudyCardCreationDefaultVoice,
-  mergeBlankStudyCardFormFields,
 } from '../studyCardCreationModel';
-import type { StudyCardFormPayload, StudyCardFormValues } from '../studyCardFormModel';
-
-const baseValues: StudyCardFormValues = {
-  cardType: 'recognition',
-  cueText: '会社',
-  cueReading: '',
-  cueMeaning: '',
-  answerExpression: '',
-  answerReading: '',
-  answerMeaning: 'company',
-  answerAudioVoiceId: 'ja-JP-Neural2-C',
-  answerAudioTextOverride: '',
-  notes: '',
-  sentenceJp: '',
-  sentenceEn: '',
-};
+import type { StudyCardFormPayload } from '../studyCardFormModel';
 
 const imageRef: StudyMediaRef = {
   id: 'image-1',
@@ -62,29 +45,10 @@ describe('studyCardCreationModel', () => {
     expect(MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS).toContain(
       defaultVoiceIdForStudyCardCreationKind('text-recognition')
     );
-    expect(isStudyCardCreationDefaultVoice(DEFAULT_AUDIO_RECOGNITION_VOICE_ID)).toBe(true);
+    expect(isStudyCardCreationDefaultVoice(MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0])).toBe(true);
     expect(isStudyCardCreationDefaultVoice(MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[1])).toBe(true);
     expect(isStudyCardCreationDefaultVoice(DEFAULT_NARRATOR_VOICES.ja)).toBe(true);
     expect(isStudyCardCreationDefaultVoice('custom-voice')).toBe(false);
-  });
-
-  it('merges only blank form fields from an LLM-completed draft', () => {
-    expect(
-      mergeBlankStudyCardFormFields(baseValues, {
-        ...baseValues,
-        cueText: '会社 should stay',
-        cueReading: '会社[かいしゃ]',
-        answerExpression: '会社',
-        answerMeaning: 'company should stay',
-        notes: 'Business noun.',
-      })
-    ).toMatchObject({
-      cueText: '会社',
-      cueReading: '会社[かいしゃ]',
-      answerExpression: '会社',
-      answerMeaning: 'company',
-      notes: 'Business noun.',
-    });
   });
 
   it('applies a generated image to front, back, or both sides', () => {
