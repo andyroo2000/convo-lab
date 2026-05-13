@@ -124,6 +124,7 @@ function buildClozeStudyCardRecord(restoredTextReading: string | null) {
 function buildStudyOverviewRow({
   dueCount = 0,
   failedCount = 0,
+  failedDueCount = 0,
   newCount = 0,
   learningCount = 0,
   reviewCount = dueCount,
@@ -133,6 +134,7 @@ function buildStudyOverviewRow({
 }: {
   dueCount?: number;
   failedCount?: number;
+  failedDueCount?: number;
   newCount?: number;
   learningCount?: number;
   reviewCount?: number;
@@ -143,6 +145,7 @@ function buildStudyOverviewRow({
   return {
     due_count: dueCount,
     failed_count: failedCount,
+    failed_due_count: failedDueCount,
     new_count: newCount,
     learning_count: learningCount,
     review_count: reviewCount,
@@ -376,6 +379,101 @@ describe('studySchedulerService', () => {
         }),
       })
     );
+  });
+
+  it('refreshes new-card availability after the last due card fails into a future retry', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-12T00:00:00.000Z'));
+
+    try {
+      const retryDueAt = new Date('2026-04-12T00:05:00.000Z');
+      const dueCard = {
+        id: 'card-due',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        failedAt: null,
+        answerAudioSource: 'imported',
+        promptJson: {},
+        answerJson: {},
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      };
+      mockPrisma.studySettings.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        newCardsPerDay: 35,
+      });
+      mockPrisma.studyCard.count.mockResolvedValue(0);
+      mockPrisma.studyCard.findFirst
+        .mockResolvedValueOnce(dueCard)
+        .mockResolvedValueOnce({
+          ...dueCard,
+          queueState: 'relearning',
+          dueAt: retryDueAt,
+          failedAt: new Date('2026-04-12T00:00:00.000Z'),
+        })
+        .mockResolvedValueOnce({
+          dueAt: retryDueAt,
+        });
+      mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.studyReviewLog.create.mockResolvedValue({ id: 'review-log-again' });
+      mockPrisma.$transaction.mockImplementation(
+        async (callback: (client: typeof mockPrisma) => unknown) => callback(mockPrisma)
+      );
+      mockPrisma.$queryRaw.mockResolvedValue([
+        buildStudyOverviewRow({
+          dueCount: 0,
+          failedCount: 1,
+          failedDueCount: 0,
+          newCount: 35,
+          learningCount: 1,
+          reviewCount: 0,
+          totalCards: 36,
+          nextDueAt: retryDueAt,
+        }),
+      ]);
+      mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+      const result = await recordStudyReview({
+        userId: 'user-1',
+        cardId: 'card-due',
+        grade: 'again',
+        currentOverview: {
+          dueCount: 1,
+          failedCount: 0,
+          newCount: 35,
+          newCardsPerDay: 35,
+          newCardsIntroducedToday: 0,
+          newCardsAvailableToday: 0,
+          learningCount: 0,
+          reviewCount: 1,
+          suspendedCount: 0,
+          totalCards: 36,
+          latestImport: null,
+          nextDueAt: '2026-04-12T00:00:00.000Z',
+        },
+      });
+
+      expect(result.overview.failedCount).toBe(1);
+      expect(result.overview.newCardsAvailableToday).toBe(35);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('unlocks the next vocab variant stage inside the review transaction', async () => {
@@ -1596,7 +1694,7 @@ describe('studySchedulerService', () => {
     }
   });
 
-  it('blocks new cards while failed cards are waiting for their retry due time', async () => {
+  it('introduces new cards while failed cards are waiting for their retry due time', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-12T02:00:00.000Z'));
 
@@ -1608,9 +1706,22 @@ describe('studySchedulerService', () => {
       });
       mockPrisma.studyCard.count
         .mockResolvedValueOnce(0)
-        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(0)
         .mockResolvedValueOnce(0);
-      mockPrisma.studyCard.findMany.mockResolvedValueOnce([]);
+      mockPrisma.studyCard.findMany
+        .mockResolvedValueOnce([
+          buildStudySessionCard({
+            id: 'new-1',
+            queueState: 'new',
+            newQueuePosition: 1,
+          }),
+          buildStudySessionCard({
+            id: 'new-2',
+            queueState: 'new',
+            newQueuePosition: 2,
+          }),
+        ])
+        .mockResolvedValueOnce([]);
       mockPrisma.$queryRaw.mockResolvedValue([
         buildStudyOverviewRow({
           dueCount: 0,
@@ -1624,11 +1735,67 @@ describe('studySchedulerService', () => {
 
       const session = await startStudySession('user-1', { timeZone: 'America/New_York' });
 
-      expect(session.cards).toHaveLength(0);
+      expect(session.cards.map((card) => card.id)).toEqual(['new-1', 'new-2']);
+      expect(session.overview.failedCount).toBe(1);
+      expect(session.overview.newCardsAvailableToday).toBe(10);
+      expect(session.overview.nextDueAt).toBe(nextFailedDueAt.toISOString());
+      expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            queueState: 'new',
+          }),
+          take: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+        })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('blocks new cards while failed cards are due for retry', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-12T02:00:00.000Z'));
+
+    try {
+      mockPrisma.studySettings.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+      });
+      mockPrisma.studyCard.count
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(0);
+      mockPrisma.studyCard.findMany.mockResolvedValueOnce([
+        {
+          ...buildStudySessionCard({
+            id: 'failed-1',
+            queueState: 'relearning',
+            label: 'failed one',
+          }),
+          failedAt: new Date('2026-04-12T01:59:00.000Z'),
+        },
+      ]);
+      mockPrisma.$queryRaw.mockResolvedValue([
+        buildStudyOverviewRow({
+          dueCount: 0,
+          failedCount: 1,
+          failedDueCount: 1,
+          newCount: 10,
+          totalCards: 11,
+          nextDueAt: new Date('2026-04-12T02:00:00.000Z'),
+        }),
+      ]);
+      mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+      const session = await startStudySession('user-1', { timeZone: 'America/New_York' });
+
+      expect(session.cards.map((card) => card.id)).toEqual(['failed-1']);
       expect(session.overview.failedCount).toBe(1);
       expect(session.overview.newCardsAvailableToday).toBe(0);
-      expect(session.overview.nextDueAt).toBe(nextFailedDueAt.toISOString());
-      expect(mockPrisma.studyCard.findMany).toHaveBeenCalledWith(
+      expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
+        1,
         expect.objectContaining({
           where: expect.objectContaining({
             queueState: { in: ['learning', 'review', 'relearning'] },
@@ -1636,6 +1803,7 @@ describe('studySchedulerService', () => {
               lte: new Date('2026-04-12T02:00:00.000Z'),
             },
           }),
+          take: STUDY_SESSION_READY_CARD_LIMIT,
         })
       );
     } finally {
