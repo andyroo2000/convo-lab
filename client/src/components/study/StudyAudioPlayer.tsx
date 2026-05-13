@@ -74,8 +74,18 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
 
       try {
         setErrorMessage(null);
-        audio.pause();
-        audio.currentTime = 0;
+        if (!audio.paused) {
+          audio.pause();
+        }
+        try {
+          audio.currentTime = 0;
+        } catch {
+          // Some mobile browsers reject seeking before metadata is available. Playback can
+          // still start from the beginning, so do not turn that into a failed tap.
+        }
+        if (audio.networkState === HTMLMediaElement.NETWORK_EMPTY) {
+          audio.load();
+        }
         // Autoplay and manual replay intentionally share the same error surface because
         // browsers like iOS Safari may reject play() until media is user-gesture eligible.
         await audio.play();
@@ -129,8 +139,14 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       audio.addEventListener('error', handleError);
 
       return () => {
-        audio.pause();
-        audio.currentTime = 0;
+        if (!audio.paused) {
+          audio.pause();
+        }
+        try {
+          audio.currentTime = 0;
+        } catch {
+          // Ignore mobile/browser cleanup seek failures.
+        }
         audio.removeEventListener('ended', handleEnded);
         audio.removeEventListener('pause', handlePause);
         audio.removeEventListener('play', handlePlay);
@@ -197,7 +213,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
           controls={showControls && showTimeline}
           aria-label={label}
           data-testid={testId ? `${testId}-element` : undefined}
-          className={showControls && showTimeline ? timelineClasses : 'hidden'}
+          className={showControls && showTimeline ? timelineClasses : 'sr-only'}
         >
           <source
             src={url}

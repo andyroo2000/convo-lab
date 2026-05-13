@@ -63,6 +63,10 @@ describe('StudyCardPreview', () => {
       configurable: true,
       value: vi.fn(),
     });
+    Object.defineProperty(HTMLMediaElement.prototype, 'load', {
+      configurable: true,
+      value: vi.fn(),
+    });
   });
 
   it('renders furigana as explicit ruby text on the answer side', () => {
@@ -534,6 +538,8 @@ describe('StudyCardPreview', () => {
     const audioSource = screen.getByTestId('study-answer-audio-source');
     expect(audioSource).toHaveAttribute('src', 'https://example.com/answer.mp3');
     expect(screen.getByTestId('study-answer-audio-element')).toHaveAttribute('preload', 'auto');
+    expect(screen.getByTestId('study-answer-audio-element')).toHaveClass('sr-only');
+    expect(screen.getByTestId('study-answer-audio-element')).not.toHaveClass('hidden');
   });
 
   it('only preloads answer audio metadata when the browser asks to save data', () => {
@@ -651,6 +657,85 @@ describe('StudyCardPreview', () => {
 
     await waitFor(() => expect(playMock).toHaveBeenCalledTimes(2));
     expect(audio.currentTime).toBe(0);
+  });
+
+  it('does not pause already-paused audio before replaying it', async () => {
+    const playMock = vi.fn().mockResolvedValue(undefined);
+    const pauseMock = vi.fn();
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: playMock,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+      configurable: true,
+      value: pauseMock,
+    });
+
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'prompt.mp3',
+              url: 'https://example.com/prompt.mp3',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
+
+    await waitFor(() => expect(playMock).toHaveBeenCalledTimes(1));
+    expect(pauseMock).not.toHaveBeenCalled();
+  });
+
+  it('still plays when mobile browsers reject an early seek', async () => {
+    const playMock = vi.fn().mockResolvedValue(undefined);
+    const pauseMock = vi.fn();
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: playMock,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+      configurable: true,
+      value: pauseMock,
+    });
+
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'prompt.mp3',
+              url: 'https://example.com/prompt.mp3',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        }}
+      />
+    );
+
+    const audio = screen.getByTestId('study-prompt-audio-element') as HTMLAudioElement;
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get: () => 0,
+      set: () => {
+        throw new DOMException('Cannot seek before metadata is loaded.', 'InvalidStateError');
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
+
+    await waitFor(() => expect(playMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Audio playback failed. Try again.')).not.toBeInTheDocument();
   });
 
   it('ignores a stale interrupted play request after a newer replay succeeds', async () => {
