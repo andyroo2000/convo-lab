@@ -255,6 +255,20 @@ function isFfmpegUnavailableError(error: unknown): boolean {
   );
 }
 
+function monologueDefaultTakeSignature(
+  segments: Array<{
+    id: string;
+    audioTakes: Array<{ id: string; mediaId: string }>;
+  }>
+): string {
+  return segments
+    .map((segment) => {
+      const take = segment.audioTakes[0];
+      return take ? `${segment.id}:${take.id}:${take.mediaId}` : `${segment.id}:missing`;
+    })
+    .join('|');
+}
+
 async function loadProject(userId: string, projectId: string) {
   return prisma.monologueProject.findFirst({
     where: { id: projectId, userId },
@@ -1260,6 +1274,9 @@ export async function generateMonologueFullAudioTake(
   const defaultTakes = maybeDefaultTakes.filter((take): take is DefaultSentenceTake =>
     Boolean(take)
   );
+  const expectedDefaultTakeSignature = monologueDefaultTakeSignature(
+    project.activeVersion.segments
+  );
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'monologue-render-'));
   const renderStartedAt = Date.now();
@@ -1286,6 +1303,37 @@ export async function generateMonologueFullAudioTake(
     let staleFullMedia: MonologueMediaCleanupCandidate[] = [];
     try {
       staleFullMedia = await prisma.$transaction(async (tx) => {
+        if (options.expectedScriptVersionId) {
+          const queuedProject = await tx.monologueProject.findFirst({
+            where: {
+              id: projectId,
+              userId,
+              activeVersionId,
+              status: 'rendering',
+            },
+            select: { id: true },
+          });
+          if (!queuedProject) {
+            throw new AppError('Monologue full-audio render job is stale.', 409);
+          }
+
+          const currentSegments = await tx.monologueSegment.findMany({
+            where: { userId, projectId, scriptVersionId: activeVersionId },
+            orderBy: { ordinal: 'asc' },
+            select: {
+              id: true,
+              audioTakes: {
+                where: { scope: 'sentence', isDefault: true },
+                select: { id: true, mediaId: true },
+                take: 1,
+              },
+            },
+          });
+          if (monologueDefaultTakeSignature(currentSegments) !== expectedDefaultTakeSignature) {
+            throw new AppError('Monologue full-audio render job is stale.', 409);
+          }
+        }
+
         const transactionStaleFullMedia = await listFullAudioMediaForVersion({
           userId,
           projectId,

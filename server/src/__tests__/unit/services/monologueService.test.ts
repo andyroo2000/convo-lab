@@ -34,6 +34,7 @@ const mockPrisma = vi.hoisted(() => ({
   monologueSegment: {
     createMany: vi.fn(),
     deleteMany: vi.fn(),
+    findMany: vi.fn(),
     findFirst: vi.fn(),
   },
   studyMedia: {
@@ -206,6 +207,7 @@ beforeEach(() => {
   });
   mockPrisma.monologueScriptVersion.update.mockResolvedValue({});
   mockPrisma.monologueSegment.createMany.mockResolvedValue({ count: 1 });
+  mockPrisma.monologueSegment.findMany.mockResolvedValue([]);
   mockPrisma.$transaction.mockImplementation(async (input) =>
     Array.isArray(input) ? Promise.all(input) : input(mockPrisma)
   );
@@ -1319,6 +1321,74 @@ describe('monologueService', () => {
     });
     expect(mockFfmpeg).not.toHaveBeenCalled();
     expect(mockPersistStudyMediaBuffer).not.toHaveBeenCalled();
+  });
+
+  it('rejects queued full-audio render jobs when default sentence takes change mid-render', async () => {
+    const fullProject = {
+      ...projectRecord(),
+      activeVersion: {
+        ...projectRecord().activeVersion,
+        segments: [
+          {
+            ...projectRecord().activeVersion.segments[0],
+            audioTakes: [
+              {
+                id: 'sentence-take-1',
+                userId: 'user-1',
+                projectId: 'project-1',
+                scriptVersionId: 'version-1',
+                segmentId: 'segment-1',
+                mediaId: 'sentence-media-1',
+                displayName: 'Sentence take',
+                source: 'tts',
+                provider: 'google',
+                voiceId: 'ja-JP-Neural2-D',
+                speed: 0.85,
+                scope: 'sentence',
+                isDefault: true,
+                createdAt: now,
+                updatedAt: now,
+                media: {
+                  id: 'sentence-media-1',
+                  storagePath: 'study-media/user-1/monologue-generated/segment.mp3',
+                },
+              },
+            ],
+          },
+        ],
+      },
+    };
+    mockPrisma.monologueProject.findFirst
+      .mockResolvedValueOnce(fullProject)
+      .mockResolvedValueOnce({ id: 'project-1' });
+    mockPrisma.monologueSegment.findMany.mockResolvedValueOnce([
+      {
+        id: 'segment-1',
+        audioTakes: [{ id: 'sentence-take-2', mediaId: 'sentence-media-2' }],
+      },
+    ]);
+    mockPrisma.studyMedia.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+    await expect(
+      generateMonologueFullAudioTake('user-1', 'project-1', {
+        expectedScriptVersionId: 'version-1',
+      })
+    ).rejects.toMatchObject({
+      message: 'Monologue full-audio render job is stale.',
+      statusCode: 409,
+    });
+
+    expect(mockPrisma.monologueAudioTake.create).not.toHaveBeenCalled();
+    expect(mockPrisma.monologueProject.update).not.toHaveBeenCalledWith({
+      where: { id: 'project-1' },
+      data: { status: 'ready' },
+    });
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: 'media-1',
+        monologueTakes: { none: {} },
+      },
+    });
   });
 
   it('returns a clear service error when ffmpeg is unavailable', async () => {
