@@ -759,7 +759,7 @@ const useStudyReviewSession = () => {
     const nextDueMs = nextDueAt && !Number.isNaN(nextDueAt.getTime()) ? nextDueAt.getTime() : null;
     const shouldLoadNow =
       overview.dueCount > 0 ||
-      (failedCount === 0 && newCardsAvailable > 0) ||
+      newCardsAvailable > 0 ||
       (failedCount > 0 && nextDueMs !== null && nextDueMs <= Date.now());
 
     if (shouldLoadNow) {
@@ -769,7 +769,7 @@ const useStudyReviewSession = () => {
       return undefined;
     }
 
-    if (failedCount > 0 && nextDueMs !== null) {
+    if (failedCount > 0 && newCardsAvailable <= 0 && nextDueMs !== null) {
       const delayMs = Math.max(0, Math.min(nextDueMs - Date.now() + 250, 2_147_483_647));
       const timeoutId = window.setTimeout(() => {
         runBackgroundTask(() => loadSession(), {

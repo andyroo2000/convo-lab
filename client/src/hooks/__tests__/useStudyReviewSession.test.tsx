@@ -702,6 +702,64 @@ describe('useStudyReviewSession', () => {
     expect(startStudySessionMock).toHaveBeenCalledTimes(2);
   });
 
+  it('loads new cards when only future failed retries remain', async () => {
+    const retryDueAt = new Date('2999-04-21T12:05:00.000Z').toISOString();
+    const newCard = {
+      ...baseCardTwo,
+      id: 'new-card-1',
+      state: {
+        ...baseCardTwo.state,
+        dueAt: null,
+        queueState: 'new' as const,
+        source: { type: 0 },
+      },
+    };
+
+    startStudySessionMock
+      .mockResolvedValueOnce({
+        overview: {
+          ...baseOverview,
+          dueCount: 0,
+          failedCount: 1,
+          newCount: 1,
+          newCardsAvailableToday: 1,
+          learningCount: 1,
+          reviewCount: 0,
+          totalCards: 2,
+          nextDueAt: retryDueAt,
+        },
+        cards: [],
+      })
+      .mockResolvedValueOnce({
+        overview: {
+          ...baseOverview,
+          dueCount: 0,
+          failedCount: 1,
+          newCount: 1,
+          newCardsAvailableToday: 1,
+          learningCount: 1,
+          reviewCount: 0,
+          totalCards: 2,
+          nextDueAt: retryDueAt,
+        },
+        cards: [newCard],
+      });
+    prepareStudyAnswerAudioMock.mockResolvedValue(newCard);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentCard?.id).toBe('new-card-1');
+    });
+    expect(startStudySessionMock).toHaveBeenCalledTimes(2);
+  });
+
   it('restores a buried card when undo is triggered', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),

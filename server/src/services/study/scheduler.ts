@@ -489,6 +489,7 @@ export async function getStudyOverview(
       Array<{
         due_count: bigint | number | null;
         failed_count: bigint | number | null;
+        failed_due_count: bigint | number | null;
         new_count: bigint | number | null;
         learning_count: bigint | number | null;
         review_count: bigint | number | null;
@@ -509,6 +510,13 @@ export async function getStudyOverview(
           WHEN "queueState" IN ('learning', 'review', 'relearning') AND "failedAt" IS NOT NULL THEN 1
           ELSE 0
         END), 0) AS failed_count,
+        COALESCE(SUM(CASE
+          WHEN "queueState" IN ('learning', 'review', 'relearning')
+            AND "dueAt" <= ${now}
+            AND "failedAt" IS NOT NULL
+          THEN 1
+          ELSE 0
+        END), 0) AS failed_due_count,
         COALESCE(SUM(CASE
           WHEN "queueState" = 'new' AND ("variantStatus" IS NULL OR "variantStatus" = 'available') THEN 1
           ELSE 0
@@ -533,6 +541,7 @@ export async function getStudyOverview(
   const cardOverview = cardOverviewRows[0] ?? {
     due_count: 0,
     failed_count: 0,
+    failed_due_count: 0,
     new_count: 0,
     learning_count: 0,
     review_count: 0,
@@ -543,10 +552,11 @@ export async function getStudyOverview(
   const toCount = (value: bigint | number | null | undefined): number => Number(value ?? 0);
   const dueCount = toCount(cardOverview.due_count);
   const failedCount = toCount(cardOverview.failed_count);
+  const failedDueCount = toCount(cardOverview.failed_due_count);
   const newCount = toCount(cardOverview.new_count);
   const newCardsAvailableToday = Math.min(
     newCount,
-    failedCount > 0 || dueCount > 0 ? 0 : Math.max(0, settings.newCardsPerDay - introducedToday)
+    failedDueCount > 0 || dueCount > 0 ? 0 : Math.max(0, settings.newCardsPerDay - introducedToday)
   );
 
   return {
@@ -756,11 +766,7 @@ async function getAdjustedOrFreshStudyOverview(params: {
     params.nextCard
   );
 
-  if (
-    params.refreshWhenBacklogCleared === true &&
-    adjusted.dueCount === 0 &&
-    (adjusted.failedCount ?? 0) === 0
-  ) {
+  if (params.refreshWhenBacklogCleared === true && adjusted.dueCount === 0) {
     return getStudyOverview(params.userId, params.timeZone);
   }
 
@@ -856,7 +862,7 @@ function getNewCardLimitForSession(remainingNewAllowance: number): number {
   return Math.min(STUDY_SESSION_READY_CARD_LIMIT, remainingNewAllowance);
 }
 
-async function getActiveFailedCardCount(userId: string): Promise<number> {
+async function getReadyFailedCardCount(userId: string, now: Date): Promise<number> {
   return prisma.studyCard.count({
     where: {
       userId,
@@ -865,6 +871,9 @@ async function getActiveFailedCardCount(userId: string): Promise<number> {
       },
       failedAt: {
         not: null,
+      },
+      dueAt: {
+        lte: now,
       },
     },
   });
@@ -955,7 +964,7 @@ async function fetchDueStudyCards(
 export async function startStudySession(userId: string, options: { timeZone?: string } = {}) {
   const now = new Date();
   const dayWindow = getStudyDayWindow(options.timeZone, now);
-  const [settings, introducedToday, activeFailedCount, readyNonFailedDueCount] = await Promise.all([
+  const [settings, introducedToday, readyFailedCount, readyNonFailedDueCount] = await Promise.all([
     getStudySettings(userId),
     prisma.studyCard.count({
       where: {
@@ -966,16 +975,16 @@ export async function startStudySession(userId: string, options: { timeZone?: st
         },
       },
     }),
-    getActiveFailedCardCount(userId),
+    getReadyFailedCardCount(userId, now),
     getReadyNonFailedDueCardCount(userId, now),
   ]);
 
   const remainingNewAllowance = getRemainingNewCardAllowance(settings, introducedToday);
-  const hasBacklog = activeFailedCount > 0 || readyNonFailedDueCount > 0;
-  const dueCards = hasBacklog
+  const hasReadyBacklog = readyFailedCount > 0 || readyNonFailedDueCount > 0;
+  const dueCards = hasReadyBacklog
     ? await fetchDueStudyCards(userId, now, STUDY_SESSION_READY_CARD_LIMIT)
     : [];
-  const newCards = hasBacklog
+  const newCards = hasReadyBacklog
     ? []
     : await fetchQueuedNewStudyCards(userId, getNewCardLimitForSession(remainingNewAllowance));
   const cards = [...dueCards, ...newCards];
