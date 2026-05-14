@@ -61,8 +61,17 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
     const stop = useCallback(() => {
       const audio = audioRef.current;
       if (!audio) return;
-      audio.pause();
-      audio.currentTime = 0;
+      if (!audio.paused) {
+        audio.pause();
+      }
+      try {
+        audio.currentTime = 0;
+      } catch (error) {
+        if (!(error instanceof DOMException)) {
+          throw error;
+        }
+        // Ignore mobile/browser stop seek failures.
+      }
       setPlayingState(false);
     }, [setPlayingState]);
 
