@@ -11,11 +11,10 @@ import type {
   StudyMediaRef,
 } from '@languageflow/shared/src/types';
 
-import type { StudyCardFormPayload, StudyCardFormValues } from './studyCardFormModel';
+import type { StudyCardFormPayload } from './studyCardFormModel';
 
 export const DEFAULT_STUDY_CARD_CREATION_KIND: StudyCardCreationKind = 'text-recognition';
-export const DEFAULT_STUDY_CARD_IMAGE_PLACEMENT: StudyCardImagePlacement = 'none';
-export const DEFAULT_AUDIO_RECOGNITION_VOICE_ID = MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0];
+const DEFAULT_STUDY_CARD_IMAGE_PLACEMENT: StudyCardImagePlacement = 'none';
 
 export function defaultImagePlacementForStudyCardCreationKind(
   creationKind: StudyCardCreationKind
@@ -35,12 +34,6 @@ export function cardTypeForStudyCardCreationKind(
   return 'recognition';
 }
 
-export function defaultCreationKindForCardType(cardType: StudyCardType): StudyCardCreationKind {
-  if (cardType === 'production') return 'production-text';
-  if (cardType === 'cloze') return 'cloze';
-  return DEFAULT_STUDY_CARD_CREATION_KIND;
-}
-
 export function defaultVoiceIdForStudyCardCreationKind(
   _creationKind: StudyCardCreationKind
 ): string {
@@ -52,26 +45,6 @@ export function isStudyCardCreationDefaultVoice(voiceId: string): boolean {
     voiceId === DEFAULT_NARRATOR_VOICES.ja ||
     MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS.some((manualVoiceId) => manualVoiceId === voiceId)
   );
-}
-
-export function mergeBlankStudyCardFormFields(
-  current: StudyCardFormValues,
-  completed: StudyCardFormValues
-): StudyCardFormValues {
-  const next = { ...current };
-  (Object.keys(current) as Array<keyof StudyCardFormValues>).forEach((field) => {
-    if (typeof current[field] !== 'string' || typeof completed[field] !== 'string') {
-      return;
-    }
-    if (current[field].trim().length === 0 && completed[field].trim().length > 0) {
-      next[field] = completed[field] as never;
-    }
-  });
-
-  return {
-    ...next,
-    cardType: current.cardType,
-  };
 }
 
 export function applyStudyCardImageToPayload(
