@@ -66,7 +66,10 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       }
       try {
         audio.currentTime = 0;
-      } catch {
+      } catch (error) {
+        if (!(error instanceof DOMException)) {
+          throw error;
+        }
         // Ignore mobile/browser stop seek failures.
       }
       setPlayingState(false);
