@@ -26,10 +26,3 @@ export function createWrapper(queryClient?: QueryClient) {
 
   return Wrapper;
 }
-
-// Helper to wait for queries to settle
-export async function waitForQuery(): Promise<void> {
-  await new Promise((resolve) => {
-    setTimeout(resolve, 0);
-  });
-}

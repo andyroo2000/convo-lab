@@ -1,8 +1,7 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { LocaleProvider } from './contexts/LocaleContext';
-import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
+import LocaleProvider from './contexts/LocaleContext';
 import { AudioPreviewProvider } from './contexts/AudioPreviewContext';
 import Layout from './components/common/Layout';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
@@ -210,123 +209,118 @@ const App = () => (
       <RouteSeoController />
       <AuthProvider>
         <LocaleProvider>
-          <AudioPlayerProvider>
-            <AudioPreviewProvider>
-              <PWAInstallPrompt />
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/pricing" element={<PricingPage />} />
-                  <Route path="/tools" element={<ToolsPublicLayout />}>
-                    <Route index element={<ToolsPage />} />
-                    <Route path="japanese-date" element={<JapaneseDateToolPage />} />
-                    <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
-                    <Route path="japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
-                    <Route path="japanese-money" element={<JapaneseMoneyToolPage />} />
-                    <Route path="japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
-                    <Route path="credits" element={<CreditsPage />} />
-                  </Route>
-                  <Route path="/claim-invite" element={<ClaimInvitePage />} />
-                  <Route path="/verify-email" element={<VerifyEmailPage />} />
-                  <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
-                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                  <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <AudioPreviewProvider>
+            <PWAInstallPrompt />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/tools" element={<ToolsPublicLayout />}>
+                  <Route index element={<ToolsPage />} />
+                  <Route path="japanese-date" element={<JapaneseDateToolPage />} />
+                  <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
+                  <Route path="japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
+                  <Route path="japanese-money" element={<JapaneseMoneyToolPage />} />
+                  <Route path="japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
+                  <Route path="credits" element={<CreditsPage />} />
+                </Route>
+                <Route path="/claim-invite" element={<ClaimInvitePage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
-                  {/* App Routes (Protected) */}
-                  <Route path="/app" element={<Layout />}>
-                    <Route index element={<Navigate to="/app/library" replace />} />
-                    <Route path="library" element={<LibraryPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="settings/:tab" element={<SettingsPage />} />
-                    <Route path="credits" element={<CreditsPage />} />
-                    <Route path="admin" element={<AdminPage />} />
-                    <Route path="admin/:tab" element={<AdminPage />} />
-                    <Route
-                      path="study"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyPage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="study/browse"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyBrowsePage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="study/import"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyImportPage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="study/create"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyCreatePage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="study/settings"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudySettingsPage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="study/daily-audio"
-                      element={
-                        <StudyRouteWrapper>
-                          <DailyAudioPracticePage />
-                        </StudyRouteWrapper>
-                      }
-                    />
+                {/* App Routes (Protected) */}
+                <Route path="/app" element={<Layout />}>
+                  <Route index element={<Navigate to="/app/library" replace />} />
+                  <Route path="library" element={<LibraryPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="settings/:tab" element={<SettingsPage />} />
+                  <Route path="credits" element={<CreditsPage />} />
+                  <Route path="admin" element={<AdminPage />} />
+                  <Route path="admin/:tab" element={<AdminPage />} />
+                  <Route
+                    path="study"
+                    element={
+                      <StudyRouteWrapper>
+                        <StudyPage />
+                      </StudyRouteWrapper>
+                    }
+                  />
+                  <Route
+                    path="study/browse"
+                    element={
+                      <StudyRouteWrapper>
+                        <StudyBrowsePage />
+                      </StudyRouteWrapper>
+                    }
+                  />
+                  <Route
+                    path="study/import"
+                    element={
+                      <StudyRouteWrapper>
+                        <StudyImportPage />
+                      </StudyRouteWrapper>
+                    }
+                  />
+                  <Route
+                    path="study/create"
+                    element={
+                      <StudyRouteWrapper>
+                        <StudyCreatePage />
+                      </StudyRouteWrapper>
+                    }
+                  />
+                  <Route
+                    path="study/settings"
+                    element={
+                      <StudyRouteWrapper>
+                        <StudySettingsPage />
+                      </StudyRouteWrapper>
+                    }
+                  />
+                  <Route
+                    path="study/daily-audio"
+                    element={
+                      <StudyRouteWrapper>
+                        <DailyAudioPracticePage />
+                      </StudyRouteWrapper>
+                    }
+                  />
 
-                    {/* Create - Content Creation Hub */}
-                    <Route path="create" element={<CreatePage />} />
-                    <Route path="create/dialogue" element={<DialogueCreatorPage />} />
-                    <Route
-                      path="create/audio-course"
-                      element={<Navigate to="/app/create/dialogue" replace />}
-                    />
-                    <Route path="create/audio-course/:episodeId" element={<CourseCreatorPage />} />
+                  {/* Create - Content Creation Hub */}
+                  <Route path="create" element={<CreatePage />} />
+                  <Route path="create/dialogue" element={<DialogueCreatorPage />} />
+                  <Route
+                    path="create/audio-course"
+                    element={<Navigate to="/app/create/dialogue" replace />}
+                  />
+                  <Route path="create/audio-course/:episodeId" element={<CourseCreatorPage />} />
 
-                    {/* Playback & Practice */}
-                    <Route path="playback/:episodeId" element={<PlaybackPage />} />
-                    <Route path="practice/:episodeId" element={<PracticePage />} />
-                    <Route path="courses/:courseId" element={<CoursePage />} />
+                  {/* Playback & Practice */}
+                  <Route path="playback/:episodeId" element={<PlaybackPage />} />
+                  <Route path="practice/:episodeId" element={<PracticePage />} />
+                  <Route path="courses/:courseId" element={<CoursePage />} />
 
-                    {/* Tools */}
-                    <Route path="tools" element={<ToolsPage />} />
-                    <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
-                    <Route path="tools/japanese-time" element={<JapaneseTimePracticeToolPage />} />
-                    <Route
-                      path="tools/japanese-counters"
-                      element={<JapaneseCounterPracticeToolPage />}
-                    />
-                    <Route path="tools/japanese-money" element={<JapaneseMoneyToolPage />} />
-                    <Route
-                      path="tools/japanese-verbs"
-                      element={<JapaneseVerbConjugationToolPage />}
-                    />
-                  </Route>
+                  {/* Tools */}
+                  <Route path="tools" element={<ToolsPage />} />
+                  <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
+                  <Route path="tools/japanese-time" element={<JapaneseTimePracticeToolPage />} />
+                  <Route
+                    path="tools/japanese-counters"
+                    element={<JapaneseCounterPracticeToolPage />}
+                  />
+                  <Route path="tools/japanese-money" element={<JapaneseMoneyToolPage />} />
+                  <Route path="tools/japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
+                </Route>
 
-                  {/* 404 Catch-all Route */}
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </Suspense>
-            </AudioPreviewProvider>
-          </AudioPlayerProvider>
+                {/* 404 Catch-all Route */}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </AudioPreviewProvider>
         </LocaleProvider>
       </AuthProvider>
     </BrowserRouter>

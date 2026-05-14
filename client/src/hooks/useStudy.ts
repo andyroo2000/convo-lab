@@ -29,7 +29,6 @@ import type {
   StudyManualCardDraftUpdateRequest,
   StudyCardRegenerateImageRequest,
   StudyCardSummary,
-  StudyExportManifest,
   StudyImportResult,
   StudyImportUploadReadiness,
   StudyImportUploadSession,
@@ -488,14 +487,6 @@ export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
     queryKey: ['study', 'browser', 'note', noteId ?? 'none'],
     queryFn: () => getStudyBrowserNoteDetail(noteId as string),
     enabled: enabled && Boolean(noteId),
-  });
-}
-
-export function useStudyExport(enabled: boolean) {
-  return useQuery({
-    queryKey: ['study', 'export'],
-    queryFn: () => apiRequest<StudyExportManifest>('/api/study/export'),
-    enabled,
   });
 }
 
