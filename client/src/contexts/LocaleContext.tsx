@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import type { LanguageCode } from '../types';
@@ -11,7 +11,7 @@ interface LocaleContextType {
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
-export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
+const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const [locale, setLocale] = useState<LanguageCode>('en');
@@ -43,10 +43,4 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 };
 
-export function useLocale() {
-  const context = useContext(LocaleContext);
-  if (context === undefined) {
-    throw new Error('useLocale must be used within a LocaleProvider');
-  }
-  return context;
-}
+export default LocaleProvider;

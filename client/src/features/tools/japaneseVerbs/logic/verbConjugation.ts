@@ -683,6 +683,3 @@ export function buildVerbConjugationCatalog(): VerbConjugationCatalogEntry[] {
 
   return entries;
 }
-
-/** Cached result of `buildVerbConjugationCatalog()` — safe to import without repeated computation. */
-export const VERB_CONJUGATION_CATALOG = buildVerbConjugationCatalog();
