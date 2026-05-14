@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { createRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { StudyCardFace } from '../StudyCardPreview';
+import { StudyCardFace, type AudioPlayerHandle } from '../StudyCardPreview';
 import { defineNavigatorValue } from '../../../test/utils';
 
 const { useStudyPitchAccentMock } = vi.hoisted(() => ({
@@ -736,6 +737,39 @@ describe('StudyCardPreview', () => {
 
     await waitFor(() => expect(playMock).toHaveBeenCalledTimes(1));
     expect(screen.queryByText('Audio playback failed. Try again.')).not.toBeInTheDocument();
+  });
+
+  it('stops card audio even when mobile browsers reject an early seek', () => {
+    const promptAudioRef = createRef<AudioPlayerHandle>();
+
+    render(
+      <StudyCardFace
+        side="front"
+        promptAudioRef={promptAudioRef}
+        card={{
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'prompt.mp3',
+              url: 'https://example.com/prompt.mp3',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        }}
+      />
+    );
+
+    const audio = screen.getByTestId('study-prompt-audio-element') as HTMLAudioElement;
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get: () => 0,
+      set: () => {
+        throw new DOMException('Cannot seek before metadata is loaded.', 'InvalidStateError');
+      },
+    });
+
+    expect(() => promptAudioRef.current?.stop()).not.toThrow();
   });
 
   it('ignores a stale interrupted play request after a newer replay succeeds', async () => {
