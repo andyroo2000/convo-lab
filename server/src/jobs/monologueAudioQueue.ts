@@ -38,6 +38,18 @@ function parseMonologueFullAudioRenderJobData(data: unknown): MonologueFullAudio
   return { projectId, scriptVersionId, userId };
 }
 
+function isFinalMonologueFullAudioAttempt(job: {
+  attemptsMade?: number;
+  opts?: { attempts?: number };
+}) {
+  const configuredAttempts =
+    typeof job.opts?.attempts === 'number' && Number.isFinite(job.opts.attempts)
+      ? Math.max(1, job.opts.attempts)
+      : 1;
+
+  return (job.attemptsMade ?? 0) >= configuredAttempts - 1;
+}
+
 export async function enqueueMonologueFullAudioRenderJob(data: MonologueFullAudioRenderJobData) {
   return monologueAudioQueue.add('render-full-audio', data, {
     attempts: 2,
@@ -65,7 +77,9 @@ export const monologueAudioWorker = new Worker(
       await job.updateProgress(100);
       return result;
     } catch (error) {
-      await markMonologueFullAudioRenderFailed(data.userId, data.projectId, data.scriptVersionId);
+      if (isFinalMonologueFullAudioAttempt(job)) {
+        await markMonologueFullAudioRenderFailed(data.userId, data.projectId, data.scriptVersionId);
+      }
       throw error;
     }
   },
