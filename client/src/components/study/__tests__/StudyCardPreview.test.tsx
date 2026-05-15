@@ -381,6 +381,29 @@ describe('StudyCardPreview', () => {
     );
   });
 
+  it('gives revealed focus-mode answer text enough room for descenders', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        layout="mobile-focus"
+        card={{
+          ...baseCard,
+          answer: {
+            expression: '雨が降りそうだから、傘を持って行った方がいい。',
+            expressionReading:
+              '雨[あめ]が降[ふ]りそうだから、傘[かさ]を持[も]って行[い]った方[ほう]がいい。',
+            meaning: "It looks like it's going to rain, so you should take an umbrella.",
+          },
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText("It looks like it's going to rain, so you should take an umbrella.")
+    ).toHaveClass('leading-snug', 'pb-[0.08em]');
+    expect(screen.getByTestId('study-japanese-heading')).toHaveClass('pb-[0.08em]');
+  });
+
   it('keeps helper meaning hidden on media-led prompt cards', () => {
     render(
       <StudyCardFace
