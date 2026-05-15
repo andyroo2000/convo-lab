@@ -331,7 +331,10 @@ const App = () => (
                     element={<JapaneseCounterPracticeToolPage />}
                   />
                   <Route path="tools/japanese-money" element={<JapaneseMoneyToolPage />} />
-                  <Route path="tools/japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
+                  <Route
+                    path="tools/japanese-verbs"
+                    element={<JapaneseVerbConjugationToolPage />}
+                  />
                 </Route>
 
                 {/* 404 Catch-all Route */}
