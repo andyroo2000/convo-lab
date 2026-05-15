@@ -1364,7 +1364,7 @@ describe('monologueService', () => {
     mockPrisma.monologueSegment.findMany.mockResolvedValueOnce([
       {
         id: 'segment-1',
-        audioTakes: [{ id: 'sentence-take-2', mediaId: 'sentence-media-2' }],
+        audioTakes: [{ id: 'sentence-take-2', isDefault: true, mediaId: 'sentence-media-2' }],
       },
     ]);
     mockPrisma.studyMedia.deleteMany.mockResolvedValueOnce({ count: 1 });

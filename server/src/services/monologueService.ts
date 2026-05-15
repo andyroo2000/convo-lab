@@ -258,12 +258,12 @@ function isFfmpegUnavailableError(error: unknown): boolean {
 function monologueDefaultTakeSignature(
   segments: Array<{
     id: string;
-    audioTakes: Array<{ id: string; mediaId: string }>;
+    audioTakes: Array<{ id: string; isDefault: boolean; mediaId: string }>;
   }>
 ): string {
   return segments
     .map((segment) => {
-      const take = segment.audioTakes[0];
+      const take = segment.audioTakes.find((audioTake) => audioTake.isDefault);
       return take ? `${segment.id}:${take.id}:${take.mediaId}` : `${segment.id}:missing`;
     })
     .join('|');
@@ -1324,7 +1324,7 @@ export async function generateMonologueFullAudioTake(
               id: true,
               audioTakes: {
                 where: { scope: 'sentence', isDefault: true },
-                select: { id: true, mediaId: true },
+                select: { id: true, isDefault: true, mediaId: true },
                 take: 1,
               },
             },
