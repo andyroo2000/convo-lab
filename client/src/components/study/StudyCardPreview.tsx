@@ -20,6 +20,8 @@ const isVisualProductionCueLabel = (value: string | null | undefined) =>
   Boolean(value && STUDY_CANDIDATE_VISUAL_POS_LABELS.has(value));
 
 const CLOZE_MARKUP_PATTERN = /\{\{c\d+::/;
+// Keeps glyph descenders clear when review text sits inside clipped/scrolling card containers.
+const DESCENDER_SAFE_PADDING_CLASS = 'pb-[0.08em]';
 
 const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
   const readingText = card.answer.expressionReading ?? card.prompt.cueReading;
@@ -37,7 +39,7 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
         testId="study-japanese-heading"
         autoFitSingleLine
         minFontSizePx={headingMinFontSizePx}
-        className={`study-card-reading mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
+        className={`study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
           headlineText,
           { compactMobile }
         )}`}
@@ -53,7 +55,7 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
         text={card.answer.expression}
         autoFitSingleLine
         minFontSizePx={headingMinFontSizePx}
-        className={`mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
+        className={`${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
           card.answer.expression,
           { compactMobile }
         )}`}
@@ -275,7 +277,7 @@ export const StudyCardFace = ({
         <p
           className={`mx-auto max-w-full break-words text-black md:max-w-4xl ${
             compactMobile
-              ? 'text-base leading-snug sm:text-2xl md:text-4xl'
+              ? `${DESCENDER_SAFE_PADDING_CLASS} text-base leading-snug sm:text-2xl md:text-4xl`
               : 'text-xl leading-relaxed sm:text-3xl md:text-4xl'
           }`}
         >
@@ -286,7 +288,7 @@ export const StudyCardFace = ({
         <p
           className={`mx-auto max-w-full break-words text-gray-800 md:max-w-4xl ${
             compactMobile
-              ? 'text-base leading-snug sm:text-xl md:text-3xl'
+              ? `${DESCENDER_SAFE_PADDING_CLASS} text-base leading-snug sm:text-xl md:text-3xl`
               : 'text-lg sm:text-2xl md:text-3xl'
           }`}
         >
@@ -297,7 +299,7 @@ export const StudyCardFace = ({
         <p
           className={`mx-auto max-w-full break-words text-black md:max-w-4xl ${
             compactMobile
-              ? 'text-sm leading-snug sm:text-lg md:text-xl'
+              ? `${DESCENDER_SAFE_PADDING_CLASS} text-sm leading-snug sm:text-lg md:text-xl`
               : 'text-base leading-relaxed sm:text-xl'
           }`}
         >
@@ -307,7 +309,9 @@ export const StudyCardFace = ({
       {card.answer.sentenceEn ? (
         <p
           className={`mx-auto max-w-full break-words text-gray-600 md:max-w-3xl ${
-            compactMobile ? 'text-xs leading-snug sm:text-base md:text-lg' : 'text-sm sm:text-lg'
+            compactMobile
+              ? `${DESCENDER_SAFE_PADDING_CLASS} text-xs leading-snug sm:text-base md:text-lg`
+              : 'text-sm sm:text-lg'
           }`}
         >
           {toDisplayText(card.answer.sentenceEn)}
@@ -331,7 +335,7 @@ export const StudyCardFace = ({
           <p
             className={`mx-auto max-w-4xl text-gray-800 ${
               compactMobile
-                ? 'text-base leading-snug sm:text-2xl md:text-4xl'
+                ? `${DESCENDER_SAFE_PADDING_CLASS} text-base leading-snug sm:text-2xl md:text-4xl`
                 : 'text-xl sm:text-3xl md:text-4xl'
             }`}
           >
@@ -353,7 +357,7 @@ export const StudyCardFace = ({
       <div
         className={
           compactMobile
-            ? 'w-full min-w-0 space-y-3 overflow-x-hidden text-center md:space-y-8'
+            ? 'w-full min-w-0 space-y-3 overflow-x-clip text-center md:space-y-8'
             : 'space-y-5 text-center sm:space-y-8'
         }
       >
@@ -364,7 +368,7 @@ export const StudyCardFace = ({
             testId="study-cloze-heading"
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
-            className={`study-card-reading mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
+            className={`study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
               card.answer.restoredText,
               { compactMobile }
             )}`}
@@ -411,7 +415,7 @@ export const StudyCardFace = ({
     <div
       className={
         compactMobile
-          ? 'w-full min-w-0 space-y-3 overflow-x-hidden text-center md:space-y-8'
+          ? 'w-full min-w-0 space-y-3 overflow-x-clip text-center md:space-y-8'
           : 'space-y-5 text-center sm:space-y-8'
       }
     >
