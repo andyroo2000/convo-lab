@@ -63,6 +63,10 @@ model User {
   studyVariantSentences   StudyVariantSentence[]
   studySettings           StudySettings?
   dailyAudioPractices     DailyAudioPractice[]
+  monologueProjects       MonologueProject[]
+  monologueScriptVersions MonologueScriptVersion[]
+  monologueSegments       MonologueSegment[]
+  monologueAudioTakes     MonologueAudioTake[]
 
   @@index([email])
   @@index([role])
@@ -488,11 +492,12 @@ model StudyMedia {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importJob        StudyImportJob? @relation(fields: [importJobId], references: [id], onDelete: SetNull)
-  promptAudioCards StudyCard[]     @relation("StudyPromptAudio")
-  answerAudioCards StudyCard[]     @relation("StudyAnswerAudio")
-  imageCards       StudyCard[]     @relation("StudyImageMedia")
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importJob        StudyImportJob?      @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+  promptAudioCards StudyCard[]          @relation("StudyPromptAudio")
+  answerAudioCards StudyCard[]          @relation("StudyAnswerAudio")
+  imageCards       StudyCard[]          @relation("StudyImageMedia")
+  monologueTakes   MonologueAudioTake[]
 
   @@index([userId, sourceKind])
   @@index([userId, updatedAt, id])
@@ -577,6 +582,108 @@ model StudyVariantSentence {
   @@unique([variantGroupId, ordinal])
   @@index([userId, variantGroupId])
   @@map("study_variant_sentences")
+}
+
+model MonologueProject {
+  id              String   @id @default(uuid())
+  userId          String
+  title           String
+  sourceText      String   @db.Text
+  targetLanguage  String   @default("ja")
+  nativeLanguage  String   @default("en")
+  status          String   @default("draft") // draft | approved | rendering | ready; DB check enforced in migration history.
+  activeVersionId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeVersion MonologueScriptVersion?  @relation("ActiveMonologueVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      MonologueScriptVersion[] @relation("MonologueProjectVersions")
+  segments      MonologueSegment[]
+  audioTakes    MonologueAudioTake[]
+
+  @@index([userId, id])
+  @@index([userId, updatedAt, id])
+  @@index([userId, status])
+  @@index([activeVersionId])
+  @@map("monologue_projects")
+}
+
+model MonologueScriptVersion {
+  id                     String    @id @default(uuid())
+  userId                 String
+  projectId              String
+  versionNumber          Int
+  status                 String    @default("draft")
+  fullText               String    @db.Text
+  generationMetadataJson Json?
+  approvedAt             DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project           MonologueProject     @relation("MonologueProjectVersions", fields: [projectId], references: [id], onDelete: Cascade)
+  activeForProjects MonologueProject[]   @relation("ActiveMonologueVersion")
+  segments          MonologueSegment[]
+  audioTakes        MonologueAudioTake[]
+
+  @@unique([projectId, versionNumber])
+  @@index([userId, projectId, versionNumber])
+  @@index([projectId, status])
+  @@map("monologue_script_versions")
+}
+
+model MonologueSegment {
+  id              String   @id @default(uuid())
+  userId          String
+  projectId       String
+  scriptVersionId String
+  ordinal         Int
+  sourceText      String   @db.VarChar(1000)
+  japaneseText    String   @db.VarChar(1000)
+  reading         String?  @db.VarChar(1000)
+  beatLabel       String?  @db.VarChar(120)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project       MonologueProject       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scriptVersion MonologueScriptVersion @relation(fields: [scriptVersionId], references: [id], onDelete: Cascade)
+  audioTakes    MonologueAudioTake[]
+
+  @@unique([scriptVersionId, ordinal])
+  @@index([userId, projectId, ordinal])
+  @@index([projectId, scriptVersionId])
+  @@map("monologue_segments")
+}
+
+model MonologueAudioTake {
+  id              String   @id @default(uuid())
+  userId          String
+  projectId       String
+  scriptVersionId String
+  segmentId       String?
+  mediaId         String
+  displayName     String
+  source          String   @default("tts")
+  provider        String?
+  voiceId         String?
+  speed           Float    @default(1)
+  scope           String
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project       MonologueProject       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scriptVersion MonologueScriptVersion @relation(fields: [scriptVersionId], references: [id], onDelete: Cascade)
+  segment       MonologueSegment?      @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  media         StudyMedia             @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([userId, projectId, scope])
+  @@index([scriptVersionId, segmentId])
+  @@index([mediaId])
+  @@map("monologue_audio_takes")
 }
 
 model StudyCard {

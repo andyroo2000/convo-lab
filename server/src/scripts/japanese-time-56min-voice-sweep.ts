@@ -6,7 +6,7 @@ import path from 'path';
 import { promisify } from 'util';
 
 import { Polly, SynthesizeSpeechCommand, VoiceId } from '@aws-sdk/client-polly';
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { TTS_VOICES } from '@languageflow/shared/src/constants.js';
 import { config as loadEnv } from 'dotenv';
 
 import {

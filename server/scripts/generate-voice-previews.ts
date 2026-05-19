@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Import after dotenv so env vars are available
-import { TTS_VOICES } from '../../shared/src/constants-new.js';
+import { TTS_VOICES } from '../../shared/src/constants.js';
 import {
   voiceIdToFilename,
   getProviderFromVoiceId,

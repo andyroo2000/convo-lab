@@ -54,6 +54,102 @@ export type StudyQueueState = 'new' | 'learning' | 'review' | 'relearning' | 'su
 
 export type StudyAudioSource = 'imported' | 'generated' | 'missing';
 
+export type MonologueProjectStatus = 'draft' | 'approved' | 'rendering' | 'ready';
+
+export type MonologueScriptVersionStatus = 'draft' | 'approved';
+
+export type MonologueAudioTakeSource = 'tts' | 'native' | 'self' | 'uploaded';
+
+export type MonologueAudioTakeScope = 'sentence' | 'full';
+
+export interface MonologueSegmentSummary {
+  id: string;
+  ordinal: number;
+  sourceText: string;
+  japaneseText: string;
+  reading: string | null;
+  beatLabel: string | null;
+  audioTakes: MonologueAudioTakeSummary[];
+}
+
+export interface MonologueAudioTakeSummary {
+  id: string;
+  projectId: string;
+  scriptVersionId: string;
+  segmentId: string | null;
+  displayName: string;
+  source: MonologueAudioTakeSource;
+  provider: string | null;
+  voiceId: string | null;
+  speed: number;
+  scope: MonologueAudioTakeScope;
+  isDefault: boolean;
+  audioUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MonologueScriptVersionSummary {
+  id: string;
+  versionNumber: number;
+  status: MonologueScriptVersionStatus;
+  fullText: string;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  segments: MonologueSegmentSummary[];
+}
+
+export interface MonologueProjectSummary {
+  id: string;
+  title: string;
+  sourceText: string;
+  targetLanguage: LanguageCode;
+  nativeLanguage: LanguageCode;
+  status: MonologueProjectStatus;
+  activeVersionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  activeVersion: MonologueScriptVersionSummary | null;
+  fullAudioTakes: MonologueAudioTakeSummary[];
+}
+
+export interface MonologueProjectListItem {
+  id: string;
+  title: string;
+  status: MonologueProjectStatus;
+  activeVersionId: string | null;
+  segmentCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MonologueCreateRequest {
+  sourceText: string;
+  title?: string | null;
+}
+
+export interface MonologueSegmentUpdateInput {
+  id?: string;
+  sourceText: string;
+  japaneseText: string;
+  reading?: string | null;
+  beatLabel?: string | null;
+}
+
+export interface MonologueDraftUpdateRequest {
+  title?: string;
+  fullText: string;
+  segments: MonologueSegmentUpdateInput[];
+}
+
+export interface MonologueAudioGenerateRequest {
+  displayName?: string | null;
+  isDefault?: boolean;
+  speed?: number;
+  voiceId: string;
+}
+
 export interface StudyMediaRef {
   id?: string;
   filename: string;

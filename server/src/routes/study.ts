@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { TTS_VOICES } from '@languageflow/shared/src/constants.js';
 import {
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
@@ -105,6 +105,8 @@ import {
   updateStudyCard,
 } from '../services/studyService.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
+
+import monologueRoutes from './studyMonologues.js';
 
 const router = Router();
 const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
@@ -946,6 +948,8 @@ function parseStudyReviewDurationMs(value: unknown): number | undefined {
 
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
+// Monologue Studio V1 lives under Study and intentionally shares the Study/flashcards gate.
+router.use('/monologues', monologueRoutes);
 
 router.post(
   '/imports',

@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 // Console logging is necessary in this background job worker for monitoring and debugging
 
-import { DEFAULT_SPEAKER_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { DEFAULT_SPEAKER_VOICES } from '@languageflow/shared/src/constants.js';
 import { Prisma } from '@prisma/client';
 import { Queue, Worker } from 'bullmq';
 

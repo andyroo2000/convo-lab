@@ -41,6 +41,7 @@
     "import": "取り込み",
     "create": "カード作成",
     "dailyAudio": "毎日の音声",
+    "monologues": "モノローグ",
     "settings": "設定",
     "due": "期限",
     "failed": "失敗",
@@ -50,6 +51,95 @@
     "begin": "学習を開始",
     "loading": "概要を読み込み中…",
     "empty": "`日本語` デッキを取り込むかカードを作成して、ここから学習を始めましょう。"
+  },
+  "monologueStudio": {
+    "title": "モノローグスタジオ",
+    "description": "英語の原稿から日本語のスピーチを作り、スクリプトを承認してから文ごとに練習します。",
+    "form": {
+      "title": "タイトル",
+      "titlePlaceholder": "東京の話",
+      "source": "英語の元原稿",
+      "sourcePlaceholder": "話せるようになりたい内容を書いてください…",
+      "generate": "下書きを生成",
+      "generating": "日本語の下書きを生成中…"
+    },
+    "list": {
+      "title": "あなたのモノローグ",
+      "loading": "読み込み中…",
+      "empty": "モノローグはまだありません。",
+      "sentenceCount_one": "{{count}} 文",
+      "sentenceCount_other": "{{count}} 文"
+    },
+    "errors": {
+      "create": "モノローグを作成できませんでした。",
+      "load": "モノローグを読み込めませんでした。"
+    }
+  },
+  "monologue": {
+    "loading": "モノローグを読み込み中…",
+    "version": "バージョン {{version}}",
+    "sentenceLabel": "文 {{index}}",
+    "unsavedChanges": "未保存のスクリプト編集があります。保存せずに移動しますか？",
+    "actions": {
+      "back": "モノローグスタジオに戻る",
+      "save": "下書きを保存",
+      "saving": "保存中…",
+      "saved": "保存しました",
+      "approve": "承認",
+      "approved": "承認済み",
+      "approving": "承認中…",
+      "saveBeforeApprove": "承認する前にスクリプトの編集を保存してください。"
+    },
+    "listen": {
+      "title": "聞く",
+      "empty": "すべての文の音声を生成してから、全体音声を作成します。",
+      "render": "全体音声を作成",
+      "rendering": "作成中…",
+      "renderQueued": "全体音声をバックグラウンドで作成しています。"
+    },
+    "script": {
+      "title": "スクリプト",
+      "projectTitle": "タイトル",
+      "fullJapanese": "日本語スクリプト全文"
+    },
+    "segmentFields": {
+      "beatLabel": "文 {{index}} のビートラベル",
+      "beatLabelPlaceholder": "ビートラベル",
+      "englishCue": "文 {{index}} の英語キュー",
+      "japaneseText": "文 {{index}} の日本語",
+      "reading": "文 {{index}} の読み",
+      "readingPlaceholder": "読み"
+    },
+    "controls": {
+      "voice": "音声",
+      "speed": "速度",
+      "takeName": "テイク名",
+      "makeDefault": "デフォルトにする",
+      "generate": "生成",
+      "generating": "生成中…",
+      "fishFixedSpeed": "Fish Audio のテイクは 1.0x 固定です。"
+    },
+    "audio": {
+      "title": "文ごとの音声",
+      "approveFirst": "音声を生成する前にスクリプトを承認してください。",
+      "default": "（デフォルト）",
+      "setDefault": "デフォルトにする",
+      "regenerate": "再生成"
+    },
+    "recall": {
+      "title": "文のリコール",
+      "progress": "{{count}} 文中 {{index}} 文目",
+      "reveal": "表示",
+      "hide": "答えを隠す",
+      "previous": "前へ",
+      "next": "次へ"
+    },
+    "errors": {
+      "notFound": "モノローグが見つかりません。",
+      "saveScript": "スクリプトを保存できませんでした。",
+      "fullAudio": "全体音声を作成できませんでした。",
+      "audioAction": "文の音声を更新できませんでした。"
+    }
   },
   "settings": {
     "title": "学習設定",

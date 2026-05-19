@@ -1,5 +1,5 @@
 /* eslint-disable import/order */
-import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { generateOpenAIImageBufferMock, sharpMock, webpMock } = vi.hoisted(() => ({

@@ -53,7 +53,7 @@ vi.mock('../../../../../shared/src/voiceSelection', () => ({
 }));
 
 // Mock TTS voices constants
-vi.mock('../../../../../shared/src/constants-new', () => ({
+vi.mock('../../../../../shared/src/constants', () => ({
   TTS_VOICES: {
     ja: {
       languageCode: 'ja-JP',

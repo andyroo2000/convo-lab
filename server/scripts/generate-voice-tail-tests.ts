@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Dynamic imports so dotenv has already populated env vars (storageClient reads env at import time)
-const { TTS_VOICES } = await import('../../shared/src/constants-new.js');
+const { TTS_VOICES } = await import('../../shared/src/constants.js');
 const { getProviderFromVoiceId, voiceIdToFilename } = await import(
   '../../shared/src/voiceSelection.js'
 );

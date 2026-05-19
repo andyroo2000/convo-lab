@@ -1,4 +1,4 @@
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants.js';
 import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 

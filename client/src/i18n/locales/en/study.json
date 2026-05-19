@@ -41,6 +41,7 @@
     "import": "Import",
     "create": "Create Card",
     "dailyAudio": "Daily Audio",
+    "monologues": "Monologues",
     "settings": "Settings",
     "due": "Due",
     "failed": "Failed",
@@ -50,6 +51,95 @@
     "begin": "Begin Study",
     "loading": "Loading overview…",
     "empty": "Import your `日本語` deck or create a card to start studying here."
+  },
+  "monologueStudio": {
+    "title": "Monologue Studio",
+    "description": "Build a Japanese speech from an English source, approve the script, then rehearse it sentence by sentence.",
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "Tokyo story",
+      "source": "English source monologue",
+      "sourcePlaceholder": "Write the story you want to be able to tell…",
+      "generate": "Generate draft",
+      "generating": "Generating Japanese draft…"
+    },
+    "list": {
+      "title": "Your monologues",
+      "loading": "Loading…",
+      "empty": "No monologues yet.",
+      "sentenceCount_one": "{{count}} sentence",
+      "sentenceCount_other": "{{count}} sentences"
+    },
+    "errors": {
+      "create": "Could not create monologue.",
+      "load": "Could not load monologues."
+    }
+  },
+  "monologue": {
+    "loading": "Loading monologue…",
+    "version": "version {{version}}",
+    "sentenceLabel": "Sentence {{index}}",
+    "unsavedChanges": "You have unsaved script edits. Leave without saving?",
+    "actions": {
+      "back": "Back to Monologue Studio",
+      "save": "Save draft",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "approve": "Approve",
+      "approved": "Approved",
+      "approving": "Approving…",
+      "saveBeforeApprove": "Save your script edits before approving."
+    },
+    "listen": {
+      "title": "Listen",
+      "empty": "Generate sentence audio for every segment, then render full audio.",
+      "render": "Render full monologue",
+      "rendering": "Rendering…",
+      "renderQueued": "Full audio is rendering in the background."
+    },
+    "script": {
+      "title": "Script",
+      "projectTitle": "Title",
+      "fullJapanese": "Full Japanese script"
+    },
+    "segmentFields": {
+      "beatLabel": "Sentence {{index}} beat label",
+      "beatLabelPlaceholder": "Beat label",
+      "englishCue": "Sentence {{index}} English cue",
+      "japaneseText": "Sentence {{index}} Japanese text",
+      "reading": "Sentence {{index}} reading",
+      "readingPlaceholder": "Reading"
+    },
+    "controls": {
+      "voice": "Voice",
+      "speed": "Speed",
+      "takeName": "Take name",
+      "makeDefault": "Make default",
+      "generate": "Generate",
+      "generating": "Generating…",
+      "fishFixedSpeed": "Fish Audio takes are fixed at 1.0x."
+    },
+    "audio": {
+      "title": "Sentence audio",
+      "approveFirst": "Approve the script before generating audio.",
+      "default": "(default)",
+      "setDefault": "Set default",
+      "regenerate": "Regenerate"
+    },
+    "recall": {
+      "title": "Sentence recall",
+      "progress": "Sentence {{index}} of {{count}}",
+      "reveal": "Reveal",
+      "hide": "Hide answer",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "errors": {
+      "notFound": "Monologue not found.",
+      "saveScript": "Could not save script.",
+      "fullAudio": "Could not render full audio.",
+      "audioAction": "Could not update sentence audio."
+    }
   },
   "settings": {
     "title": "Study settings",

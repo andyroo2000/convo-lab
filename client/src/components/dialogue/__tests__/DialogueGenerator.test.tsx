@@ -63,7 +63,7 @@ vi.mock('../../../contexts/AuthContext', () => ({
 }));
 
 // Mock shared constants
-vi.mock('../../../../../shared/src/constants-new', () => ({
+vi.mock('../../../../../shared/src/constants', () => ({
   SUPPORTED_LANGUAGES: {
     ja: { name: 'Japanese', nativeName: '日本語' },
     en: { name: 'English', nativeName: 'English' },

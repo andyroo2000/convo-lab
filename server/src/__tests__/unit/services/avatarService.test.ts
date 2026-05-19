@@ -65,7 +65,7 @@ vi.mock('../../../db/client.js', () => ({
 vi.stubGlobal('fetch', mockFetch);
 
 // Mock TTS_VOICES from shared constants
-vi.mock('../../../../../shared/src/constants-new.js', () => ({
+vi.mock('../../../../../shared/src/constants.js', () => ({
   TTS_VOICES: {
     ja: {
       voices: [

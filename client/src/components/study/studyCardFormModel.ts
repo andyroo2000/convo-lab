@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants';
 import { normalizeClozePayloadFields } from '@languageflow/shared/src/studyCloze';
 import type {
   StudyAnswerPayload,

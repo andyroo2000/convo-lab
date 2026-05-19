@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_NARRATOR_VOICES,
   MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
-} from '@languageflow/shared/src/constants-new';
+} from '@languageflow/shared/src/constants';
 import type { StudyManualCardDraft } from '@languageflow/shared/src/types';
 
 import StudyCreatePage from '../StudyCreatePage';

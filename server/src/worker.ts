@@ -7,6 +7,7 @@ import { dailyAudioPracticeWorker } from './jobs/dailyAudioPracticeQueue.js';
 import { dialogueWorker } from './jobs/dialogueQueue.js';
 import { emailWorker } from './jobs/emailQueue.js';
 import { imageWorker } from './jobs/imageQueue.js';
+import { monologueAudioWorker } from './jobs/monologueAudioQueue.js';
 import { studyImportWorker } from './jobs/studyImportQueue.js';
 import { studyManualCardDraftWorker } from './jobs/studyManualCardDraftQueue.js';
 import { studyVocabBundleDraftWorker } from './jobs/studyVocabBundleDraftQueue.js';
@@ -17,6 +18,7 @@ console.log('Workers initialized:', {
   courseAudioWorker: !!courseAudioWorker,
   dialogueWorker: !!dialogueWorker,
   imageWorker: !!imageWorker,
+  monologueAudioWorker: !!monologueAudioWorker,
   courseWorker: !!courseWorker,
   dailyAudioPracticeWorker: !!dailyAudioPracticeWorker,
   emailWorker: !!emailWorker,
@@ -30,6 +32,7 @@ const workers = [
   courseAudioWorker,
   dialogueWorker,
   imageWorker,
+  monologueAudioWorker,
   courseWorker,
   dailyAudioPracticeWorker,
   emailWorker,
@@ -45,6 +48,7 @@ async function areQueuesEmpty(): Promise<boolean> {
     const { courseAudioQueue } = await import('./jobs/courseAudioQueue.js');
     const { dialogueQueue } = await import('./jobs/dialogueQueue.js');
     const { imageQueue } = await import('./jobs/imageQueue.js');
+    const { monologueAudioQueue } = await import('./jobs/monologueAudioQueue.js');
     const { courseQueue } = await import('./jobs/courseQueue.js');
     const { dailyAudioPracticeQueue } = await import('./jobs/dailyAudioPracticeQueue.js');
     const { emailQueue } = await import('./jobs/emailQueue.js');
@@ -57,6 +61,7 @@ async function areQueuesEmpty(): Promise<boolean> {
       courseAudioQueue,
       dialogueQueue,
       imageQueue,
+      monologueAudioQueue,
       courseQueue,
       dailyAudioPracticeQueue,
       emailQueue,

@@ -2,6 +2,6 @@
 // This package can be used by both client and server
 
 export * from './types.js';
-export * from './constants-new.js';
+export * from './constants.js';
 export * from './studyFsrs.js';
 export * from './studyCloze.js';

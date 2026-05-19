@@ -2,7 +2,7 @@ import {
   DEFAULT_NARRATOR_VOICES,
   MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
   selectManualStudyCardDefaultVoiceId,
-} from '@languageflow/shared/src/constants-new';
+} from '@languageflow/shared/src/constants';
 import type {
   StudyCardCreationKind,
   StudyCardImagePlacement,

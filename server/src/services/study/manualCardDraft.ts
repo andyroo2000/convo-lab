@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new.js';
+import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants.js';
 import {
   normalizeClozePayloadFields,
   normalizeLooseClozeText,
