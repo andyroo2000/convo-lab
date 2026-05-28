@@ -78,16 +78,6 @@ function stripJsonFromResponse(response: string): string {
   return trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)?.[1]?.trim() ?? trimmed;
 }
 
-export function getBestManualCardAudioText(answer: StudyAnswerPayload): string | null {
-  return (
-    parseNullableString(answer.answerAudioTextOverride) ??
-    parseNullableString(answer.expression) ??
-    parseNullableString(answer.expressionReading) ??
-    parseNullableString(answer.restoredText) ??
-    parseNullableString(answer.restoredTextReading)
-  );
-}
-
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
