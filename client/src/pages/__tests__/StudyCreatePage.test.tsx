@@ -23,26 +23,18 @@ async function chooseManualCardType(name: RegExp | string) {
 }
 
 const {
-  commitCandidatesMock,
-  commitCandidatesState,
-  completeDraftMock,
-  completeDraftState,
   createManualDraftMock,
   createManualDraftState,
   createCardFromManualDraftMock,
   createCardFromManualDraftState,
-  createStudyCardMock,
   createVocabBundleDraftsMock,
   createVocabBundleDraftsState,
   deleteManualDraftMock,
   deleteManualDraftState,
   generateDraftImageMock,
   generateDraftImageState,
-  generateCandidatesState,
-  generateCandidatesMock,
   manualDraftsState,
   regenerateCandidateAudioMock,
-  regenerateCandidateImageMock,
   retryManualDraftMock,
   retryManualDraftState,
   resolveStudyCardPitchAccentMock,
@@ -50,30 +42,22 @@ const {
   updateManualDraftMutateMock,
   updateManualDraftState,
 } = vi.hoisted(() => ({
-  commitCandidatesMock: vi.fn(),
-  commitCandidatesState: { isPending: false },
-  completeDraftMock: vi.fn(),
-  completeDraftState: { error: null as Error | null, isPending: false },
   createManualDraftMock: vi.fn(),
   createManualDraftState: { error: null as Error | null, isPending: false },
   createCardFromManualDraftMock: vi.fn(),
   createCardFromManualDraftState: { isPending: false },
-  createStudyCardMock: vi.fn(),
   createVocabBundleDraftsMock: vi.fn(),
   createVocabBundleDraftsState: { error: null as Error | null, isPending: false },
   deleteManualDraftMock: vi.fn(),
   deleteManualDraftState: { isPending: false },
   generateDraftImageMock: vi.fn(),
   generateDraftImageState: { error: null as Error | null, isPending: false },
-  generateCandidatesState: { error: null as Error | null, isPending: false },
-  generateCandidatesMock: vi.fn(),
   manualDraftsState: {
     drafts: [] as StudyManualCardDraft[],
     error: null as Error | null,
     isLoading: false,
   },
   regenerateCandidateAudioMock: vi.fn(),
-  regenerateCandidateImageMock: vi.fn(),
   retryManualDraftMock: vi.fn(),
   retryManualDraftState: { isPending: false },
   resolveStudyCardPitchAccentMock: vi.fn(),
@@ -83,21 +67,6 @@ const {
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
-  useCommitStudyCardCandidates: () => ({
-    mutateAsync: commitCandidatesMock,
-    isPending: commitCandidatesState.isPending,
-    error: null,
-  }),
-  useCreateStudyCard: () => ({
-    mutateAsync: createStudyCardMock,
-    isPending: false,
-    error: null,
-  }),
-  useCompleteStudyCardDraft: () => ({
-    mutateAsync: completeDraftMock,
-    isPending: completeDraftState.isPending,
-    error: completeDraftState.error,
-  }),
   useStudyManualCardDrafts: () => ({
     data: { drafts: manualDraftsState.drafts },
     isLoading: manualDraftsState.isLoading,
@@ -139,18 +108,8 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: generateDraftImageState.isPending,
     error: generateDraftImageState.error,
   }),
-  useGenerateStudyCardCandidates: () => ({
-    mutateAsync: generateCandidatesMock,
-    isPending: generateCandidatesState.isPending,
-    error: generateCandidatesState.error,
-  }),
   useRegenerateStudyCardCandidatePreviewAudio: () => ({
     mutateAsync: regenerateCandidateAudioMock,
-    isPending: false,
-    error: null,
-  }),
-  useRegenerateStudyCardCandidatePreviewImage: () => ({
-    mutateAsync: regenerateCandidateImageMock,
     isPending: false,
     error: null,
   }),
@@ -220,17 +179,11 @@ const manualDraft = (overrides: Partial<StudyManualCardDraft> = {}): StudyManual
 
 describe('StudyCreatePage', () => {
   beforeEach(() => {
-    commitCandidatesMock.mockReset();
-    commitCandidatesState.isPending = false;
-    completeDraftMock.mockReset();
-    completeDraftState.error = null;
-    completeDraftState.isPending = false;
     createManualDraftMock.mockReset();
     createManualDraftState.error = null;
     createManualDraftState.isPending = false;
     createCardFromManualDraftMock.mockReset();
     createCardFromManualDraftState.isPending = false;
-    createStudyCardMock.mockReset();
     createVocabBundleDraftsMock.mockReset();
     createVocabBundleDraftsState.error = null;
     createVocabBundleDraftsState.isPending = false;
@@ -239,14 +192,10 @@ describe('StudyCreatePage', () => {
     generateDraftImageMock.mockReset();
     generateDraftImageState.error = null;
     generateDraftImageState.isPending = false;
-    generateCandidatesState.error = null;
-    generateCandidatesState.isPending = false;
-    generateCandidatesMock.mockReset();
     manualDraftsState.drafts = [];
     manualDraftsState.error = null;
     manualDraftsState.isLoading = false;
     regenerateCandidateAudioMock.mockReset();
-    regenerateCandidateImageMock.mockReset();
     retryManualDraftMock.mockReset();
     retryManualDraftState.isPending = false;
     resolveStudyCardPitchAccentMock.mockReset();
@@ -254,7 +203,6 @@ describe('StudyCreatePage', () => {
     updateManualDraftMutateMock.mockReset();
     updateManualDraftState.error = null;
     updateManualDraftState.isPending = false;
-    commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
     createManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
     createVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',
@@ -275,13 +223,11 @@ describe('StudyCreatePage', () => {
     createCardFromManualDraftMock.mockResolvedValue({
       card: { id: 'created-1', cardType: 'recognition' },
     });
-    createStudyCardMock.mockResolvedValue({ cardType: 'recognition' });
     deleteManualDraftMock.mockResolvedValue(undefined);
     retryManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
     updateManualDraftMock.mockImplementation(async ({ draftId, values }) =>
       manualDraft({ id: draftId, ...values })
     );
-    generateCandidatesMock.mockResolvedValue({ candidates: [], learnerContextSummary: null });
     regenerateCandidateAudioMock.mockResolvedValue({
       prompt: { cueMeaning: 'company' },
       answer: {
@@ -297,30 +243,6 @@ describe('StudyCreatePage', () => {
         source: 'generated',
       },
       previewAudioRole: 'answer',
-    });
-    regenerateCandidateImageMock.mockResolvedValue({
-      prompt: {
-        cueMeaning: '名詞',
-        cueImage: {
-          id: 'image-regenerated',
-          filename: 'candidate-regenerated.png',
-          url: '/api/study/media/image-regenerated',
-          mediaKind: 'image',
-          source: 'generated',
-        },
-      },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-      },
-      previewImage: {
-        id: 'image-regenerated',
-        filename: 'candidate-regenerated.png',
-        url: '/api/study/media/image-regenerated',
-        mediaKind: 'image',
-        source: 'generated',
-      },
-      imagePrompt: 'A clear photo of a company office sign in Japan.',
     });
     resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
       id: cardId,
@@ -365,7 +287,6 @@ describe('StudyCreatePage', () => {
       imagePlacement: 'none',
       imagePrompt: null,
     });
-    expect(createStudyCardMock).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Prompt text')).toHaveValue('');
     expect(screen.getByLabelText('Answer expression')).toHaveValue('');
     expect(

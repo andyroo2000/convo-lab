@@ -1,7 +1,6 @@
 import type { StudyCardType } from '@languageflow/shared/src/types.js';
 
 export type DailyAudioPracticeTrackMode = 'drill' | 'dialogue' | 'story';
-export type DailyAudioPracticeTrackStatus = 'draft' | 'generating' | 'ready' | 'error' | 'skipped';
 
 export const DAILY_AUDIO_TRACKS: Array<{
   mode: DailyAudioPracticeTrackMode;
