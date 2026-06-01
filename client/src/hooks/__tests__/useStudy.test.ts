@@ -3,63 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../../config';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
-  commitStudyCardCandidates,
   deleteStudyCard,
-  generateStudyCardCandidates,
   getStudyBrowser,
   getStudyImportStatus,
   regenerateStudyCardCandidatePreviewAudio,
-  regenerateStudyCardCandidatePreviewImage,
   regenerateStudyAnswerAudio,
   resolveStudyCardPitchAccent,
   startStudySession,
   undoStudyReview,
-  uploadStudyImport,
 } from '../useStudy';
 
 describe('useStudy request helpers', () => {
-  class MockXMLHttpRequest {
-    static lastInstance: MockXMLHttpRequest | null = null;
-
-    method = '';
-
-    url = '';
-
-    requestHeaders = new Map<string, string>();
-
-    status = 200;
-
-    upload = { onprogress: null as ((event: ProgressEvent<EventTarget>) => void) | null };
-
-    onerror: (() => void) | null = null;
-
-    onabort: (() => void) | null = null;
-
-    onload: (() => void) | null = null;
-
-    constructor() {
-      MockXMLHttpRequest.lastInstance = this;
-    }
-
-    open(method: string, url: string) {
-      this.method = method;
-      this.url = url;
-    }
-
-    setRequestHeader(name: string, value: string) {
-      this.requestHeaders.set(name, value);
-    }
-
-    send() {
-      this.upload.onprogress?.({
-        lengthComputable: true,
-        loaded: 1,
-        total: 1,
-      } as ProgressEvent<EventTarget>);
-      this.onload?.();
-    }
-  }
-
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
@@ -68,7 +22,6 @@ describe('useStudy request helpers', () => {
         json: async () => ({}),
       })
     );
-    vi.stubGlobal('XMLHttpRequest', MockXMLHttpRequest as unknown as typeof XMLHttpRequest);
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=test-csrf-token`;
   });
 
@@ -197,81 +150,6 @@ describe('useStudy request helpers', () => {
     );
   });
 
-  it('generates study card candidates with JSON and CSRF headers', async () => {
-    await generateStudyCardCandidates({
-      targetText: '会社',
-      context: 'Business word',
-      includeLearnerContext: true,
-    });
-
-    const fetchMock = vi.mocked(global.fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      `${API_URL}/api/study/card-candidates/generate`,
-      expect.any(Object)
-    );
-
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    const headers = new Headers(requestInit.headers);
-    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
-    expect(headers.get('Content-Type')).toBe('application/json');
-    expect(JSON.parse(String(requestInit.body))).toEqual({
-      targetText: '会社',
-      context: 'Business word',
-      includeLearnerContext: true,
-    });
-  });
-
-  it('commits selected generated candidates to the study API', async () => {
-    await commitStudyCardCandidates({
-      candidates: [
-        {
-          clientId: 'candidate-1',
-          candidateKind: 'audio-recognition',
-          cardType: 'recognition',
-          prompt: {
-            cueAudio: {
-              id: 'media-1',
-              filename: 'candidate-1.mp3',
-              url: '/api/study/media/media-1',
-              mediaKind: 'audio',
-              source: 'generated',
-            },
-          },
-          answer: { expression: '会社', meaning: 'company' },
-          previewAudio: {
-            id: 'media-1',
-            filename: 'candidate-1.mp3',
-            url: '/api/study/media/media-1',
-            mediaKind: 'audio',
-            source: 'generated',
-          },
-          previewAudioRole: 'prompt',
-        },
-      ],
-    });
-
-    const fetchMock = vi.mocked(global.fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      `${API_URL}/api/study/card-candidates/commit`,
-      expect.any(Object)
-    );
-
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    const headers = new Headers(requestInit.headers);
-    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
-    expect(headers.get('Content-Type')).toBe('application/json');
-    expect(JSON.parse(String(requestInit.body))).toEqual({
-      candidates: [
-        expect.objectContaining({
-          candidateKind: 'audio-recognition',
-          previewAudioRole: 'prompt',
-        }),
-      ],
-    });
-  });
-
   it('regenerates candidate preview audio with JSON and CSRF headers', async () => {
     await regenerateStudyCardCandidatePreviewAudio({
       candidate: {
@@ -306,119 +184,6 @@ describe('useStudy request helpers', () => {
         previewAudio: null,
       }),
     });
-  });
-
-  it('regenerates candidate preview images with JSON and CSRF headers', async () => {
-    await regenerateStudyCardCandidatePreviewImage({
-      imagePrompt: 'A simple cloudy weather image.',
-      candidate: {
-        clientId: 'candidate-1',
-        candidateKind: 'production',
-        cardType: 'production',
-        prompt: { cueMeaning: '名詞' },
-        answer: {
-          expression: '曇り',
-          meaning: 'cloudy weather',
-        },
-        previewAudio: null,
-        previewAudioRole: null,
-        imagePrompt: 'A simple cloudy weather image.',
-        previewImage: null,
-      },
-    });
-
-    const fetchMock = vi.mocked(global.fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      `${API_URL}/api/study/card-candidates/regenerate-image`,
-      expect.any(Object)
-    );
-
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    const headers = new Headers(requestInit.headers);
-    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
-    expect(headers.get('Content-Type')).toBe('application/json');
-    expect(JSON.parse(String(requestInit.body))).toEqual({
-      imagePrompt: 'A simple cloudy weather image.',
-      candidate: expect.objectContaining({
-        candidateKind: 'production',
-        imagePrompt: 'A simple cloudy weather image.',
-      }),
-    });
-  });
-
-  it('attaches the shared CSRF token header to import uploads', async () => {
-    const fetchMock = vi.mocked(global.fetch);
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          importJob: {
-            id: 'import-1',
-            status: 'pending',
-            sourceFilename: 'japanese.colpkg',
-            deckName: '日本語',
-            uploadedAt: null,
-            sourceSizeBytes: null,
-            importedAt: null,
-            errorMessage: null,
-            preview: {
-              deckName: '日本語',
-              noteCount: 0,
-              cardCount: 0,
-              reviewLogCount: 0,
-              mediaReferenceCount: 0,
-              skippedMediaCount: 0,
-              warnings: [],
-              noteTypeBreakdown: [],
-            },
-          },
-          upload: {
-            method: 'PUT',
-            url: 'https://uploads.example/import-1',
-            headers: {
-              'Content-Type': 'application/zip',
-            },
-          },
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'import-1',
-          status: 'pending',
-          sourceFilename: 'japanese.colpkg',
-          deckName: '日本語',
-          uploadedAt: new Date('2026-04-23T00:00:00.000Z').toISOString(),
-          sourceSizeBytes: 3,
-          importedAt: null,
-          errorMessage: null,
-          preview: {
-            deckName: '日本語',
-            noteCount: 0,
-            cardCount: 0,
-            reviewLogCount: 0,
-            mediaReferenceCount: 0,
-            skippedMediaCount: 0,
-            warnings: [],
-            noteTypeBreakdown: [],
-          },
-        }),
-      } as Response);
-
-    await uploadStudyImport(new File(['zip'], 'japanese.colpkg'));
-
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/study/imports`, expect.any(Object));
-
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    const headers = new Headers(requestInit.headers);
-    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
-    expect(MockXMLHttpRequest.lastInstance?.method).toBe('PUT');
-    expect(MockXMLHttpRequest.lastInstance?.url).toBe('https://uploads.example/import-1');
-    expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get('Content-Type')).toBe(
-      'application/zip'
-    );
   });
 
   it('does not attach mutation-only headers to study import status reads', async () => {

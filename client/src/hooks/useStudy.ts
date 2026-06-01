@@ -9,17 +9,8 @@ import type {
   StudyBrowserNoteDetail,
   StudyBrowserSortDirection,
   StudyBrowserSortField,
-  StudyCardCandidateCommitRequest,
-  StudyCardCandidateCommitResponse,
-  StudyCardCandidateGenerateRequest,
-  StudyCardCandidateGenerateResponse,
   StudyCardCandidatePreviewAudioRequest,
   StudyCardCandidatePreviewAudioResponse,
-  StudyCardCandidatePreviewImageRequest,
-  StudyCardCandidatePreviewImageResponse,
-  StudyCardCreationKind,
-  StudyCardDraftCompleteRequest,
-  StudyCardDraftCompleteResponse,
   StudyCardDraftImageRequest,
   StudyCardDraftImageResponse,
   StudyManualCardDraft,
@@ -49,13 +40,6 @@ import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 export interface StudySessionResponse {
   overview: StudyOverview;
   cards: StudyCardSummary[];
-}
-
-interface CreateStudyCardPayload {
-  creationKind?: StudyCardCreationKind;
-  cardType: 'recognition' | 'production' | 'cloze';
-  prompt: StudyPromptPayload;
-  answer: StudyAnswerPayload;
 }
 
 interface UpdateStudyCardPayload {
@@ -215,24 +199,6 @@ export async function resolveStudyCardPitchAccent(cardId: string): Promise<Study
   );
 }
 
-export async function generateStudyCardCandidates(
-  payload: StudyCardCandidateGenerateRequest
-): Promise<StudyCardCandidateGenerateResponse> {
-  return apiRequest<StudyCardCandidateGenerateResponse>('/api/study/card-candidates/generate', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function commitStudyCardCandidates(
-  payload: StudyCardCandidateCommitRequest
-): Promise<StudyCardCandidateCommitResponse> {
-  return apiRequest<StudyCardCandidateCommitResponse>('/api/study/card-candidates/commit', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
 export async function createStudyVocabBundleDrafts(
   payload: StudyVocabBundleGenerateRequest
 ): Promise<StudyVocabBundleDraftCreateResponse> {
@@ -255,27 +221,6 @@ export async function regenerateStudyCardCandidatePreviewAudio(
       body: JSON.stringify(payload),
     }
   );
-}
-
-export async function regenerateStudyCardCandidatePreviewImage(
-  payload: StudyCardCandidatePreviewImageRequest
-): Promise<StudyCardCandidatePreviewImageResponse> {
-  return apiRequest<StudyCardCandidatePreviewImageResponse>(
-    '/api/study/card-candidates/regenerate-image',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }
-  );
-}
-
-export async function completeStudyCardDraft(
-  payload: StudyCardDraftCompleteRequest
-): Promise<StudyCardDraftCompleteResponse> {
-  return apiRequest<StudyCardDraftCompleteResponse>('/api/study/cards/draft/complete', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
 }
 
 export async function generateStudyCardDraftImage(
@@ -516,30 +461,6 @@ export function useSubmitStudyReview() {
   });
 }
 
-export function useCreateStudyCard() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: CreateStudyCardPayload) =>
-      apiRequest<StudyCardSummary>('/api/study/cards', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-      ]);
-    },
-  });
-}
-
-export function useGenerateStudyCardCandidates() {
-  return useMutation({
-    mutationFn: generateStudyCardCandidates,
-  });
-}
-
 export function useCreateStudyVocabBundleDrafts() {
   const queryClient = useQueryClient();
 
@@ -548,12 +469,6 @@ export function useCreateStudyVocabBundleDrafts() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
-  });
-}
-
-export function useCompleteStudyCardDraft() {
-  return useMutation({
-    mutationFn: completeStudyCardDraft,
   });
 }
 
@@ -639,30 +554,9 @@ export function useDeleteStudyManualCardDraft() {
   });
 }
 
-export function useCommitStudyCardCandidates() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: commitStudyCardCandidates,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
-      ]);
-    },
-  });
-}
-
 export function useRegenerateStudyCardCandidatePreviewAudio() {
   return useMutation({
     mutationFn: regenerateStudyCardCandidatePreviewAudio,
-  });
-}
-
-export function useRegenerateStudyCardCandidatePreviewImage() {
-  return useMutation({
-    mutationFn: regenerateStudyCardCandidatePreviewImage,
   });
 }
 
@@ -834,10 +728,4 @@ export async function getStudyImportStatus(
     `/api/study/imports/${encodeURIComponent(importJobId)}`,
     init
   );
-}
-
-export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
-  const session = await createStudyImportUploadSession(file);
-  await uploadStudyImportArchive(session, file);
-  return completeStudyImportUpload(session.importJob.id);
 }
