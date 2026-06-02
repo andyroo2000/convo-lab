@@ -179,17 +179,11 @@ const manualDraft = (overrides: Partial<StudyManualCardDraft> = {}): StudyManual
 
 describe('StudyCreatePage', () => {
   beforeEach(() => {
-    commitCandidatesMock.mockReset();
-    commitCandidatesState.isPending = false;
-    completeDraftMock.mockReset();
-    completeDraftState.error = null;
-    completeDraftState.isPending = false;
     createManualDraftMock.mockReset();
     createManualDraftState.error = null;
     createManualDraftState.isPending = false;
     createCardFromManualDraftMock.mockReset();
     createCardFromManualDraftState.isPending = false;
-    createStudyCardMock.mockReset();
     createVocabBundleDraftsMock.mockReset();
     createVocabBundleDraftsState.error = null;
     createVocabBundleDraftsState.isPending = false;
@@ -198,14 +192,10 @@ describe('StudyCreatePage', () => {
     generateDraftImageMock.mockReset();
     generateDraftImageState.error = null;
     generateDraftImageState.isPending = false;
-    generateCandidatesState.error = null;
-    generateCandidatesState.isPending = false;
-    generateCandidatesMock.mockReset();
     manualDraftsState.drafts = [];
     manualDraftsState.error = null;
     manualDraftsState.isLoading = false;
     regenerateCandidateAudioMock.mockReset();
-    regenerateCandidateImageMock.mockReset();
     retryManualDraftMock.mockReset();
     retryManualDraftState.isPending = false;
     resolveStudyCardPitchAccentMock.mockReset();
@@ -213,7 +203,6 @@ describe('StudyCreatePage', () => {
     updateManualDraftMutateMock.mockReset();
     updateManualDraftState.error = null;
     updateManualDraftState.isPending = false;
-    commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
     createManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
     createVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',
@@ -234,13 +223,11 @@ describe('StudyCreatePage', () => {
     createCardFromManualDraftMock.mockResolvedValue({
       card: { id: 'created-1', cardType: 'recognition' },
     });
-    createStudyCardMock.mockResolvedValue({ cardType: 'recognition' });
     deleteManualDraftMock.mockResolvedValue(undefined);
     retryManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
     updateManualDraftMock.mockImplementation(async ({ draftId, values }) =>
       manualDraft({ id: draftId, ...values })
     );
-    generateCandidatesMock.mockResolvedValue({ candidates: [], learnerContextSummary: null });
     regenerateCandidateAudioMock.mockResolvedValue({
       prompt: { cueMeaning: 'company' },
       answer: {
@@ -256,30 +243,6 @@ describe('StudyCreatePage', () => {
         source: 'generated',
       },
       previewAudioRole: 'answer',
-    });
-    regenerateCandidateImageMock.mockResolvedValue({
-      prompt: {
-        cueMeaning: '名詞',
-        cueImage: {
-          id: 'image-regenerated',
-          filename: 'candidate-regenerated.png',
-          url: '/api/study/media/image-regenerated',
-          mediaKind: 'image',
-          source: 'generated',
-        },
-      },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-      },
-      previewImage: {
-        id: 'image-regenerated',
-        filename: 'candidate-regenerated.png',
-        url: '/api/study/media/image-regenerated',
-        mediaKind: 'image',
-        source: 'generated',
-      },
-      imagePrompt: 'A clear photo of a company office sign in Japan.',
     });
     resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
       id: cardId,
@@ -324,7 +287,6 @@ describe('StudyCreatePage', () => {
       imagePlacement: 'none',
       imagePrompt: null,
     });
-    expect(createStudyCardMock).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Prompt text')).toHaveValue('');
     expect(screen.getByLabelText('Answer expression')).toHaveValue('');
     expect(
