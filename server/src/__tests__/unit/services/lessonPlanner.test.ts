@@ -144,7 +144,7 @@ function planSingleLesson(
     title: `${episodeTitle} - Lesson ${lessonNumber}`,
     sections,
     coreItems,
-    totalEstimatedDuration: estimateLessonDuration({ sections, drillEvents } as LessonPlan),
+    totalEstimatedDuration: currentTime,
     drillEvents,
   };
 }
@@ -184,12 +184,6 @@ function splitIntoMultipleLessons(
   }
 
   return { lessons, totalCoreItems: coreItems };
-}
-
-function estimateLessonDuration(lesson: LessonPlan): number {
-  const sectionTotal = lesson.sections.reduce((sum, s) => sum + s.targetDurationSeconds, 0);
-  const drillOverhead = lesson.drillEvents.length * 12;
-  return sectionTotal + drillOverhead;
 }
 
 describe('lessonPlanner', () => {
@@ -437,42 +431,6 @@ describe('lessonPlanner', () => {
       for (let i = 1; i < drillTimes.length; i++) {
         expect(drillTimes[i]).toBeGreaterThan(drillTimes[i - 1]);
       }
-    });
-  });
-
-  describe('estimateLessonDuration', () => {
-    it('should sum section durations', () => {
-      const items = createCoreItems(3);
-      const plan = planCourse(items, 'Test');
-
-      const estimate = estimateLessonDuration(plan.lessons[0]);
-
-      // Should include section durations + drill overhead
-      expect(estimate).toBeGreaterThan(0);
-    });
-
-    it('should add overhead for drill events', () => {
-      const items = createCoreItems(5);
-      const plan = planCourse(items, 'Test');
-      const lesson = plan.lessons[0];
-
-      const estimate = estimateLessonDuration(lesson);
-      const sectionTotal = lesson.sections.reduce((sum, s) => sum + s.targetDurationSeconds, 0);
-
-      // Estimate should be greater than just sections (includes drill overhead)
-      expect(estimate).toBeGreaterThan(sectionTotal);
-    });
-
-    it('should calculate drill overhead at ~12 seconds per drill', () => {
-      const items = createCoreItems(2);
-      const plan = planCourse(items, 'Test');
-      const lesson = plan.lessons[0];
-
-      const estimate = estimateLessonDuration(lesson);
-      const sectionTotal = lesson.sections.reduce((sum, s) => sum + s.targetDurationSeconds, 0);
-      const expectedDrillOverhead = lesson.drillEvents.length * 12;
-
-      expect(estimate).toBe(sectionTotal + expectedDrillOverhead);
     });
   });
 

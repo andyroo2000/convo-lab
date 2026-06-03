@@ -263,19 +263,3 @@ function splitIntoMultipleLessons(
     totalCoreItems: coreItems,
   };
 }
-
-/**
- * Estimate total lesson duration based on sections and content
- * More accurate than simple sum of section durations
- */
-export function estimateLessonDuration(lessonPlan: LessonPlan): number {
-  // Start with section durations
-  let total = lessonPlan.sections.reduce((sum, s) => sum + s.targetDurationSeconds, 0);
-
-  // Add time for SRS drills (they're injected between sections)
-  // Each drill adds ~10-15 seconds (prompt + pause + answer + feedback)
-  const drillOverhead = lessonPlan.drillEvents.length * 12;
-  total += drillOverhead;
-
-  return total;
-}

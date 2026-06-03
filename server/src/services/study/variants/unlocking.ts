@@ -1,7 +1,5 @@
 import type { Prisma } from '@prisma/client';
 
-import { prisma } from '../../../db/client.js';
-
 import { STUDY_VOCAB_VARIANT_STAGES } from './constants.js';
 import { stageCardsAreEligible } from './eligibility.js';
 
@@ -23,19 +21,6 @@ async function getNextNewQueuePosition(
   });
 
   return (aggregate._max.newQueuePosition ?? 0) + 1;
-}
-
-export async function unlockStudyVariantStagesAfterReview(input: {
-  userId: string;
-  cardId: string;
-}): Promise<void> {
-  await prisma.$transaction(async (tx) => {
-    await unlockStudyVariantStagesAfterReviewInTransaction({
-      tx,
-      userId: input.userId,
-      cardId: input.cardId,
-    });
-  });
 }
 
 export async function unlockStudyVariantStagesAfterReviewInTransaction(input: {
