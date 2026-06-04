@@ -119,7 +119,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/middleware/impersonation.test.ts', cardId: 'convo-lab-n3h', anyCount: 10, category: 'test' },
   { file: 'server/src/__tests__/unit/config/redis.test.ts', cardId: 'convo-lab-qck', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/integration/webhooks/stripe-webhooks.test.ts', cardId: 'convo-lab-qat', anyCount: 16, category: 'test' },
-  { file: 'server/src/__tests__/fixtures/timingData.ts', cardId: 'convo-lab-pp4', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/mocks/ffmpeg.ts', cardId: 'convo-lab-q0h', anyCount: 1, category: 'test' },
 
   // Scripts
