@@ -1,8 +1,6 @@
 import {
   getAudioCachePreloadMode,
-  isSignedGoogleStorageUrlValue,
   normalizeWarmableAudioUrls,
-  shouldPreloadAudioCacheUrl,
 } from './audioCachePolicy';
 
 const PRECACHE_AUDIO_MESSAGE = 'PRECACHE_AUDIO_URLS';
@@ -36,18 +34,6 @@ export const shouldWarmAudioCache = () => {
   if (connection.saveData) return false;
 
   return !['slow-2g', '2g'].includes(String(connection.effectiveType ?? '').toLowerCase());
-};
-
-export const isSignedGoogleStorageUrl = (url: string) => {
-  if (typeof window === 'undefined') return false;
-
-  return isSignedGoogleStorageUrlValue(url, window.location.href);
-};
-
-export const shouldPreloadAudioUrl = (url: string) => {
-  if (typeof window === 'undefined') return false;
-
-  return shouldPreloadAudioCacheUrl(url, window.location.href);
 };
 
 export const getAudioPreloadMode = (url: string): 'auto' | 'metadata' | 'none' => {

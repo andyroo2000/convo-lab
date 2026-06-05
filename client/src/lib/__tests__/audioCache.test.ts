@@ -3,9 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearAudioCache,
   getAudioPreloadMode,
-  isSignedGoogleStorageUrl,
   normalizeAudioCacheUrls,
-  shouldPreloadAudioUrl,
   shouldWarmAudioCache,
   warmAudioCache,
 } from '../audioCache';
@@ -48,7 +46,6 @@ describe('audioCache', () => {
     });
 
     expect(normalizeAudioCacheUrls(['/api/study/media/1'])).toEqual([]);
-    expect(shouldPreloadAudioUrl('/api/study/media/1')).toBe(false);
     expect(getAudioPreloadMode('/api/study/media/1')).toBe('auto');
 
     await warmAudioCache(['/api/study/media/1']);
@@ -94,8 +91,6 @@ describe('audioCache', () => {
     const signedUrl =
       'https://storage.googleapis.com/convolab-storage/study-media/card/audio.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Expires=300&X-Goog-Signature=abc';
 
-    expect(isSignedGoogleStorageUrl(signedUrl)).toBe(true);
-    expect(shouldPreloadAudioUrl(signedUrl)).toBe(false);
     expect(getAudioPreloadMode(signedUrl)).toBe('none');
     expect(normalizeAudioCacheUrls([signedUrl, '/audio/1.mp3'])).toEqual([
       `${window.location.origin}/audio/1.mp3`,
