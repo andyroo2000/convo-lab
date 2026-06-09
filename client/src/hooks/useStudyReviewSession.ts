@@ -164,9 +164,8 @@ const useStudyReviewSession = () => {
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
   const currentCard = cards[currentIndex] ?? null;
-  // Keep a ref so that save/regenerate handlers always read the latest card even if
-  // a concurrent session update races with the click (stale-closure guard).
-  // Cast the initial value so TypeScript picks the MutableRefObject overload of useRef.
+  // Ref so handlers always read the live card even if a background session update
+  // races with a click (stale-closure guard). Cast needed for @types/react 18.3.5.
   const currentCardRef = useRef<StudyCardSummary | null>(
     null
   ) as MutableRefObject<StudyCardSummary | null>;
@@ -570,9 +569,7 @@ const useStudyReviewSession = () => {
 
   const saveCurrentCard = useCallback(
     async (payload: { prompt: StudyPromptPayload; answer: StudyAnswerPayload }) => {
-      // Read from ref so the handler always sees the latest card even if a concurrent
-      // session update races with this click (stale-closure guard).
-      const card = currentCardRef.current;
+      const card = currentCardRef.current; // read live value, not stale closure
       if (!card) return;
 
       stopAllAudio();
@@ -601,9 +598,7 @@ const useStudyReviewSession = () => {
       answerAudioVoiceId: string | null;
       answerAudioTextOverride: string | null;
     }) => {
-      // Read from ref so the handler always sees the latest card even if a concurrent
-      // session update races with this click (stale-closure guard).
-      const card = currentCardRef.current;
+      const card = currentCardRef.current; // read live value, not stale closure
       if (!card) return undefined;
 
       stopAllAudio();
