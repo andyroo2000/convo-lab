@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { flushSync } from 'react-dom';
 import { Rating, type Card as FsrsCard } from 'ts-fsrs';
@@ -164,6 +164,13 @@ const useStudyReviewSession = () => {
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
   const currentCard = cards[currentIndex] ?? null;
+  // Keep a ref so that save/regenerate handlers always read the latest card even if
+  // a concurrent session update races with the click (stale-closure guard).
+  // Cast the initial value so TypeScript picks the MutableRefObject overload of useRef.
+  const currentCardRef = useRef<StudyCardSummary | null>(
+    null
+  ) as MutableRefObject<StudyCardSummary | null>;
+  currentCardRef.current = currentCard;
   const reviewBusy = reviewMutation.isPending || reviewSubmitPending;
   const gradeIntervals = useMemo(() => getGradeIntervals(currentCard), [currentCard]);
   const sessionCounts = useMemo(() => {
@@ -563,22 +570,25 @@ const useStudyReviewSession = () => {
 
   const saveCurrentCard = useCallback(
     async (payload: { prompt: StudyPromptPayload; answer: StudyAnswerPayload }) => {
-      if (!currentCard) return;
+      // Read from ref so the handler always sees the latest card even if a concurrent
+      // session update races with this click (stale-closure guard).
+      const card = currentCardRef.current;
+      if (!card) return;
 
       stopAllAudio();
       const updatedCard = await updateCardMutation.mutateAsync({
-        cardId: currentCard.id,
+        cardId: card.id,
         prompt: payload.prompt,
         answer: payload.answer,
       });
       mergeCardIntoSession(updatedCard);
-      resetStudyAudioAutoplayForCard(currentCard.id);
+      resetStudyAudioAutoplayForCard(card.id);
       setEditing(false);
       setRevealed(false);
       setSessionError(null);
     },
     [
-      currentCard,
+      currentCardRef,
       mergeCardIntoSession,
       resetStudyAudioAutoplayForCard,
       stopAllAudio,
@@ -591,21 +601,24 @@ const useStudyReviewSession = () => {
       answerAudioVoiceId: string | null;
       answerAudioTextOverride: string | null;
     }) => {
-      if (!currentCard) return undefined;
+      // Read from ref so the handler always sees the latest card even if a concurrent
+      // session update races with this click (stale-closure guard).
+      const card = currentCardRef.current;
+      if (!card) return undefined;
 
       stopAllAudio();
       const updatedCard = await regenerateAudioMutation.mutateAsync({
-        cardId: currentCard.id,
+        cardId: card.id,
         answerAudioVoiceId: payload.answerAudioVoiceId,
         answerAudioTextOverride: payload.answerAudioTextOverride,
       });
       mergeCardIntoSession(updatedCard);
-      resetStudyAudioAutoplayForCard(currentCard.id);
+      resetStudyAudioAutoplayForCard(card.id);
       setSessionError(null);
       return updatedCard;
     },
     [
-      currentCard,
+      currentCardRef,
       mergeCardIntoSession,
       regenerateAudioMutation,
       resetStudyAudioAutoplayForCard,
