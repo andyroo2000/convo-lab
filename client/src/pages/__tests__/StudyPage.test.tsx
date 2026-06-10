@@ -442,10 +442,10 @@ describe('StudyPage', () => {
     expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
     expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
-    expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-clip');
+    expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
     expect(screen.getByTestId('study-focus-card-scroll')).toHaveClass(
       'study-focus-scroll',
-      'overflow-x-clip',
+      'overflow-x-hidden',
       'pb-0'
     );
     expect(screen.getByTestId('study-focus-card-scroll').className).not.toContain('pb-24');
@@ -491,7 +491,7 @@ describe('StudyPage', () => {
       'study-focus-scroll',
       'min-h-0',
       'overflow-y-auto',
-      'overflow-x-clip',
+      'overflow-x-hidden',
       'md:pb-16'
     );
     expect(gradeTray).toHaveClass('fixed');
