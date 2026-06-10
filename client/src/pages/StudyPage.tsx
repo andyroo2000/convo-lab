@@ -103,6 +103,11 @@ const StudyPage = () => {
   }
 
   if (reviewSession.focusMode) {
+    // These containers must use overflow-x-hidden, not overflow-x-clip: clip makes
+    // Chromium drop hit-testing (hover/clicks) on content that overflows the box
+    // vertically past min-h at desktop widths, leaving the editor buttons painted
+    // but unclickable on tall cards. The glyph-descender fix that motivated clip
+    // lives in StudyCardPreview.tsx instead (pb-[0.08em] on the text elements).
     return (
       <>
         <div className="fixed inset-0 z-[60] overflow-hidden bg-[#fdfbf5] md:bg-cream">
