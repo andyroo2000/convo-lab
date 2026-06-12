@@ -1254,6 +1254,58 @@
     min-height: 3rem;
   }
 
+  .retro-dialogue-create-v3-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.62rem;
+    min-height: 3.35rem;
+    padding: 0.84rem 1.55rem;
+    border: 2px solid rgba(20, 50, 86, 0.22);
+    background: var(--retro-cyan-deep);
+    color: rgba(251, 245, 224, 0.98);
+    box-shadow:
+      0 5px 0 rgba(17, 51, 92, 0.26),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1;
+    transition:
+      transform 0.16s ease,
+      box-shadow 0.16s ease,
+      filter 0.16s ease;
+  }
+
+  .retro-dialogue-create-v3-submit:hover:not(:disabled) {
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+    box-shadow:
+      0 6px 0 rgba(17, 51, 92, 0.26),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  }
+
+  .retro-dialogue-create-v3-submit:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow:
+      0 2px 0 rgba(17, 51, 92, 0.26),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+
+  .retro-dialogue-create-v3-submit:focus-visible {
+    outline: none;
+    box-shadow:
+      0 5px 0 rgba(17, 51, 92, 0.26),
+      0 0 0 3px rgba(26, 178, 209, 0.28),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+
+  .retro-dialogue-create-v3-submit:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+    transform: none;
+  }
+
   .retro-dialogue-create-v3-divider {
     border-top: 2px solid rgba(20, 50, 86, 0.14);
     padding-top: 1rem;
