@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 // Console logging is necessary for worker monitoring
 import { audioWorker } from './jobs/audioQueue.js';
+import { audioScriptWorker } from './jobs/audioScriptQueue.js';
 import { courseAudioWorker } from './jobs/courseAudioQueue.js';
 import { courseWorker } from './jobs/courseQueue.js';
 import { dailyAudioPracticeWorker } from './jobs/dailyAudioPracticeQueue.js';
@@ -14,6 +15,7 @@ import { studyVocabBundleDraftWorker } from './jobs/studyVocabBundleDraftQueue.j
 console.log('🚀 BullMQ Workers Starting...');
 console.log('Workers initialized:', {
   audioWorker: !!audioWorker,
+  audioScriptWorker: !!audioScriptWorker,
   courseAudioWorker: !!courseAudioWorker,
   dialogueWorker: !!dialogueWorker,
   imageWorker: !!imageWorker,
@@ -27,6 +29,7 @@ console.log('Workers initialized:', {
 
 const workers = [
   audioWorker,
+  audioScriptWorker,
   courseAudioWorker,
   dialogueWorker,
   imageWorker,
@@ -42,6 +45,7 @@ const workers = [
 async function areQueuesEmpty(): Promise<boolean> {
   try {
     const { audioQueue } = await import('./jobs/audioQueue.js');
+    const { audioScriptQueue } = await import('./jobs/audioScriptQueue.js');
     const { courseAudioQueue } = await import('./jobs/courseAudioQueue.js');
     const { dialogueQueue } = await import('./jobs/dialogueQueue.js');
     const { imageQueue } = await import('./jobs/imageQueue.js');
@@ -54,6 +58,7 @@ async function areQueuesEmpty(): Promise<boolean> {
 
     const queues = [
       audioQueue,
+      audioScriptQueue,
       courseAudioQueue,
       dialogueQueue,
       imageQueue,

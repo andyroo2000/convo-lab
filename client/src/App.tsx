@@ -37,6 +37,7 @@ const JapaneseVerbConjugationToolPage = lazy(
 );
 const CreatePage = lazy(() => import('./pages/CreatePage'));
 const DialogueCreatorPage = lazy(() => import('./pages/DialogueCreatorPage'));
+const ScriptCreatorPage = lazy(() => import('./pages/ScriptCreatorPage'));
 const CourseCreatorPage = lazy(() => import('./pages/CourseCreatorPage'));
 const PlaybackPage = lazy(() => import('./pages/PlaybackPage'));
 const PracticePage = lazy(() => import('./pages/PracticePage'));
@@ -293,6 +294,7 @@ const App = () => (
                   {/* Create - Content Creation Hub */}
                   <Route path="create" element={<CreatePage />} />
                   <Route path="create/dialogue" element={<DialogueCreatorPage />} />
+                  <Route path="create/script" element={<ScriptCreatorPage />} />
                   <Route
                     path="create/audio-course"
                     element={<Navigate to="/app/create/dialogue" replace />}

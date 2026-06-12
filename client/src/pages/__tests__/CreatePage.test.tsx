@@ -87,6 +87,7 @@ describe('CreatePage', () => {
       renderCreatePage();
 
       expect(screen.getByTestId('create-card-dialogues')).toBeTruthy();
+      expect(screen.getByTestId('create-card-scripts')).toBeTruthy();
       expect(screen.getByTestId('create-card-daily-audio')).toBeTruthy();
     });
   });
@@ -128,6 +129,15 @@ describe('CreatePage', () => {
       fireEvent.click(dailyAudioCard);
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/study/daily-audio');
+    });
+
+    it('should navigate to script creation on click', () => {
+      renderCreatePage();
+
+      const scriptCard = screen.getByTestId('create-card-scripts');
+      fireEvent.click(scriptCard);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/app/create/script');
     });
   });
 

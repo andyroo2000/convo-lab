@@ -73,6 +73,7 @@ describe('courseItemExtractor', () => {
     sourceText: 'Two friends talking about their weekend',
     targetLanguage: 'ja',
     nativeLanguage: 'en',
+    contentType: 'dialogue',
     jlptLevel: null,
     autoGenerateAudio: true,
     status: 'ready',

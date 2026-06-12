@@ -27,15 +27,17 @@ router.get('/', async (req: AuthRequest, res, next) => {
       const episodes = await prisma.episode.findMany({
         where: {
           userId: queryUserId,
-          dialogue: {
-            isNot: null,
-          },
+          OR: [
+            { contentType: 'dialogue', dialogue: { isNot: null } },
+            { contentType: 'script', audioScript: { isNot: null } },
+          ],
         },
         select: {
           id: true,
           title: true,
           sourceText: true,
           targetLanguage: true,
+          contentType: true,
           status: true,
           isSampleContent: true,
           createdAt: true,
@@ -45,6 +47,16 @@ router.get('/', async (req: AuthRequest, res, next) => {
               speakers: {
                 select: {
                   proficiency: true,
+                },
+              },
+            },
+          },
+          audioScript: {
+            select: {
+              status: true,
+              _count: {
+                select: {
+                  segments: true,
                 },
               },
             },
@@ -63,15 +75,26 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const episodes = await prisma.episode.findMany({
       where: {
         userId: queryUserId,
-        dialogue: {
-          isNot: null,
-        },
+        OR: [
+          { contentType: 'dialogue', dialogue: { isNot: null } },
+          { contentType: 'script', audioScript: { isNot: null } },
+        ],
       },
       include: {
         dialogue: {
           include: {
             sentences: true,
             speakers: true,
+          },
+        },
+        audioScript: {
+          include: {
+            segments: {
+              orderBy: { order: 'asc' },
+            },
+            renders: {
+              orderBy: { numericSpeed: 'asc' },
+            },
           },
         },
         images: true,
@@ -105,6 +128,16 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
               orderBy: { order: 'asc' },
             },
             speakers: true,
+          },
+        },
+        audioScript: {
+          include: {
+            segments: {
+              orderBy: { order: 'asc' },
+            },
+            renders: {
+              orderBy: { numericSpeed: 'asc' },
+            },
           },
         },
         images: {

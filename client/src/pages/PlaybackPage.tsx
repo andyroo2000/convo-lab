@@ -9,6 +9,7 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { Episode, Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
+import AudioScriptPlayback from '../components/audio/AudioScriptPlayback';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
@@ -441,6 +442,10 @@ const PlaybackPage = () => {
         </div>
       </div>
     );
+  }
+
+  if (episode.contentType === 'script') {
+    return <AudioScriptPlayback episode={episode} />;
   }
 
   const { dialogue } = episode;

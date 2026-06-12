@@ -1,0 +1,232 @@
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import type { SpeedValue } from '../common/SpeedSelector';
+import { Episode, LessonScriptUnit } from '../../types';
+import { useAudioPlayer } from '../../hooks/useAudioPlayer';
+import useWarmAudioCache from '../../hooks/useWarmAudioCache';
+import AudioPlayer from '../AudioPlayer';
+import CurrentTextDisplay from '../CurrentTextDisplay';
+import JapaneseText from '../JapaneseText';
+import SpeedSelector from '../common/SpeedSelector';
+import ViewToggleButtons from '../common/ViewToggleButtons';
+import {
+  findCurrentL2Unit,
+  normalizeTimingDataForDuration,
+  versionAudioUrl,
+} from './scriptTrackTiming';
+
+const SCRIPT_SPEED_OPTIONS = [
+  { value: '0.75x' as const, label: 'Slow', numericValue: 0.75 },
+  { value: '0.85x' as const, label: 'Medium', numericValue: 0.85 },
+  { value: '1.0x' as const, label: 'Normal', numericValue: 1.0 },
+];
+
+function speedValueToKey(speed: SpeedValue): string {
+  if (speed === '0.75x' || speed === 0.75) return '0.75';
+  if (speed === '0.85x' || speed === 'medium' || speed === 0.85) return '0.85';
+  return '1.0';
+}
+
+function buildUnits(episode: Episode, speed: number): LessonScriptUnit[] {
+  const script = episode.audioScript;
+  if (!script) return [];
+
+  const units: LessonScriptUnit[] = [];
+  script.segments.forEach((segment, index) => {
+    units.push({
+      type: 'L2',
+      text: segment.text,
+      reading: segment.reading || undefined,
+      translation: segment.translation,
+      voiceId: script.voiceId,
+      speed,
+    });
+
+    if (index < script.segments.length - 1) {
+      units.push({ type: 'pause', seconds: 0.35 });
+    }
+  });
+
+  return units;
+}
+
+interface AudioScriptPlaybackProps {
+  episode: Episode;
+}
+
+const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
+  const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
+  const [selectedSpeed, setSelectedSpeed] = useState<SpeedValue>('0.85x');
+  const [showReadings, setShowReadings] = useState(false);
+  const [showTranslations, setShowTranslations] = useState(true);
+
+  const script = episode.audioScript;
+  const readyRenders = useMemo(
+    () => script?.renders.filter((render) => render.status === 'ready') ?? [],
+    [script?.renders]
+  );
+  const warmedUrls = readyRenders
+    .map((render) => render.audioUrl)
+    .filter((url): url is string => Boolean(url));
+  useWarmAudioCache(warmedUrls, warmedUrls.length > 0);
+
+  const selectedRender = useMemo(() => {
+    const speedKey = speedValueToKey(selectedSpeed);
+    return readyRenders.find((render) => render.speed === speedKey) ?? readyRenders[0] ?? null;
+  }, [readyRenders, selectedSpeed]);
+
+  const units = useMemo(
+    () => buildUnits(episode, selectedRender?.numericSpeed ?? 0.85),
+    [episode, selectedRender?.numericSpeed]
+  );
+  const timingData = useMemo(
+    () =>
+      normalizeTimingDataForDuration(
+        selectedRender?.timingData ?? [],
+        selectedRender?.approxDurationSeconds
+      ),
+    [selectedRender?.approxDurationSeconds, selectedRender?.timingData]
+  );
+  const currentUnit = findCurrentL2Unit(units, timingData, currentTime);
+
+  const activeSegmentIndex = useMemo(() => {
+    if (!currentUnit || currentUnit.type !== 'L2') return -1;
+    return units.findIndex((unit) => unit === currentUnit) / 2;
+  }, [currentUnit, units]);
+
+  const handleSeekToSegment = (segmentIndex: number) => {
+    const unitIndex = segmentIndex * 2;
+    const timing = timingData.find((entry) => entry.unitIndex === unitIndex);
+    if (!timing) return;
+    seek(timing.startTime / 1000);
+    if (!isPlaying) {
+      play();
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, segmentIndex: number) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSeekToSegment(segmentIndex);
+    }
+  };
+
+  if (!script) {
+    return (
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="retro-paper-panel p-8 text-center">
+          <p className="text-navy">Script not found.</p>
+          <Link to="/app/library" className="btn-primary mt-4 inline-flex">
+            Back to Library
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const audioUrl = selectedRender?.audioUrl
+    ? versionAudioUrl(selectedRender.audioUrl, selectedRender.updatedAt?.toString())
+    : null;
+
+  return (
+    <div
+      className="retro-playback-v3-page w-full max-w-7xl xl:max-w-[96rem] mx-auto space-y-4"
+      data-testid="script-playback-page"
+    >
+      <div className="sticky top-[4.5rem] z-10 bg-[rgba(251,245,224,0.98)] mb-3">
+        <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+            <div className="flex-1">
+              <h1 className="retro-headline text-3xl sm:text-6xl mb-2">{episode.title}</h1>
+              <div className="inline-flex items-center gap-3 retro-caps text-[rgba(20,50,86,0.92)] text-base sm:text-xl">
+                <div className="px-3 py-2 bg-[rgba(20,50,86,0.18)] font-semibold">Script</div>
+                <div className="px-3 py-2 bg-[rgba(20,50,86,0.18)] font-semibold">
+                  {script.segments.length} lines
+                </div>
+              </div>
+            </div>
+
+            {audioUrl && (
+              <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
+                <ViewToggleButtons
+                  showReadings={showReadings}
+                  showTranslations={showTranslations}
+                  onToggleReadings={() => setShowReadings(!showReadings)}
+                  onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                  readingsLabel="Furigana"
+                />
+                <SpeedSelector
+                  selectedSpeed={selectedSpeed}
+                  onSpeedChange={setSelectedSpeed}
+                  options={SCRIPT_SPEED_OPTIONS}
+                  showLabels
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {audioUrl ? (
+          <div className="retro-paper-panel border-x-2 border-b-2 border-[rgba(20,50,86,0.12)] px-4 py-3">
+            <AudioPlayer
+              src={audioUrl}
+              audioRef={audioRef}
+              onEnded={() => {
+                pause();
+                seek(0);
+              }}
+            />
+          </div>
+        ) : (
+          <div className="retro-paper-panel bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)] p-4">
+            <p className="text-sm font-medium text-dark-brown">
+              {script.status === 'error'
+                ? script.errorMessage || 'Script audio generation failed.'
+                : 'Script audio is not ready yet.'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <CurrentTextDisplay
+        currentUnit={currentUnit}
+        targetLanguage="ja"
+        showReadings={showReadings}
+        showTranslations={showTranslations}
+      />
+
+      <div className="space-y-3">
+        {script.segments.map((segment, index) => (
+          <button
+            key={segment.id}
+            type="button"
+            onClick={() => handleSeekToSegment(index)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
+            className={`retro-paper-panel w-full text-left p-4 transition ${
+              Math.floor(activeSegmentIndex) === index
+                ? 'bg-[rgba(247,199,68,0.35)]'
+                : 'bg-[rgba(255,255,255,0.55)]'
+            }`}
+            data-testid="script-segment-row"
+          >
+            <div className="retro-caps text-sm text-[rgba(20,50,86,0.58)] mb-2">
+              Segment {index + 1}
+            </div>
+            <div className="text-2xl text-navy leading-relaxed">
+              <JapaneseText
+                text={segment.reading || segment.text}
+                showFurigana={showReadings}
+                metadata={segment.metadata}
+              />
+            </div>
+            {showTranslations && (
+              <div className="mt-2 text-base text-[rgba(20,50,86,0.72)]">{segment.translation}</div>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default AudioScriptPlayback;
