@@ -114,6 +114,17 @@ describe('japanesePronunciationOverrides', () => {
     expect(result).toBe('けさわかいものしたかったです。');
   });
 
+  it('does not duplicate numeric year surfaces when bracket readings include the year', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const result = module.applyJapanesePronunciationOverrides({
+      text: '2010年でした。',
+      reading: '2010年[二千十ねん]でした。',
+    });
+
+    expect(result).toBe('二千十ねんでした。');
+  });
+
   it('derives verb-stem overrides when generated furigana misreads 話し inflections', async () => {
     const module = await import('../../../services/japanesePronunciationOverrides.js');
 
