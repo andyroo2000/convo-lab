@@ -43,6 +43,18 @@ describe('ScriptTrackPlayer timing helpers', () => {
     expect(normalizeTimingDataForDuration(timings, 10.5)).toBe(timings);
   });
 
+  it('advances to the next subtitle when timing windows overlap', () => {
+    const timings: DailyAudioPracticeTiming[] = [
+      { unitIndex: 1, startTime: 0, endTime: 5000 },
+      { unitIndex: 2, startTime: 5000, endTime: 6000 },
+      { unitIndex: 3, startTime: 6000, endTime: 10000 },
+    ];
+
+    expect(findCurrentL2Unit(units, timings, 5.9)).toEqual(
+      expect.objectContaining({ text: '自然に話します。' })
+    );
+  });
+
   it('adds a stable version query to regenerated audio URLs', () => {
     expect(versionAudioUrl('https://example.com/drill.mp3', '2026-05-06T14:09:16.951Z')).toBe(
       'https://example.com/drill.mp3?v=2026-05-06T14%3A09%3A16.951Z'

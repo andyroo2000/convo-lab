@@ -55,7 +55,7 @@ interface AudioScriptPlaybackProps {
 }
 
 const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
-  const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
+  const { audioRef, currentTime, duration, isPlaying, seek, play, pause } = useAudioPlayer();
   const [selectedSpeed, setSelectedSpeed] = useState<SpeedValue>('0.85x');
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(true);
@@ -83,9 +83,9 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     () =>
       normalizeTimingDataForDuration(
         selectedRender?.timingData ?? [],
-        selectedRender?.approxDurationSeconds
+        duration || selectedRender?.approxDurationSeconds
       ),
-    [selectedRender?.approxDurationSeconds, selectedRender?.timingData]
+    [duration, selectedRender?.approxDurationSeconds, selectedRender?.timingData]
   );
   const currentUnit = findCurrentL2Unit(units, timingData, currentTime);
 
