@@ -21,7 +21,16 @@ import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 
-router.use(requireAuth, rateLimitStudyRoute({ key: 'script', max: 300, windowMs: 60 * 1000 }));
+router.use(
+  rateLimitStudyRoute({
+    key: 'script-anonymous',
+    max: 300,
+    windowMs: 60 * 1000,
+    allowAnonymousIdentity: true,
+  }),
+  requireAuth,
+  rateLimitStudyRoute({ key: 'script', max: 300, windowMs: 60 * 1000 })
+);
 
 type UpdateAudioScriptSegmentsParams = Parameters<typeof updateAudioScriptSegments>[0];
 
