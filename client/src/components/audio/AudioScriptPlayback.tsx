@@ -319,29 +319,28 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
               Exit
             </button>
           </div>
-          <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
-            {activeImageUrl ? (
-              <img
-                src={activeImageUrl}
-                alt={activeSegment?.translation || 'Script scene illustration'}
-                className="max-h-full max-w-full object-contain"
-                data-testid="script-cinema-image"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center px-4 text-center retro-caps text-white/45">
-                Illustration pending
-              </div>
-            )}
-            <div className="absolute inset-x-0 bottom-0 px-4 py-5 text-center sm:px-10 sm:py-7">
+          <div className="flex min-h-0 flex-1 flex-col bg-black">
+            <div className="flex min-h-0 flex-1 items-center justify-center p-2 sm:p-4">
+              {activeImageUrl ? (
+                <img
+                  src={activeImageUrl}
+                  alt={activeSegment?.translation || 'Script scene illustration'}
+                  className="max-h-full max-w-full object-contain"
+                  data-testid="script-cinema-image"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center px-4 text-center retro-caps text-white/45">
+                  Illustration pending
+                </div>
+              )}
+            </div>
+            <div
+              className="shrink-0 border-t border-white/15 bg-[#061522] px-4 py-4 text-center shadow-[0_-12px_36px_rgba(0,0,0,0.35)] sm:px-10 sm:py-5"
+              data-testid="script-cinema-caption"
+            >
               {currentUnit?.type === 'L2' && (
-                <div
-                  className="mx-auto max-w-5xl rounded-md border border-white/20 bg-[rgba(0,0,0,0.82)] px-4 py-4 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-sm sm:px-7 sm:py-5"
-                  data-testid="script-cinema-caption"
-                >
-                  <div
-                    className="text-3xl font-semibold leading-relaxed text-white sm:text-5xl"
-                    style={{ textShadow: '0 2px 10px rgba(0, 0, 0, 0.92)' }}
-                  >
+                <div className="mx-auto max-h-[34vh] max-w-5xl overflow-y-auto px-1">
+                  <div className="text-2xl font-semibold leading-relaxed text-white sm:text-4xl">
                     <JapaneseText
                       text={currentUnit.reading || currentUnit.text}
                       showFurigana={showReadings}
@@ -349,10 +348,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
                     />
                   </div>
                   {showTranslations && currentUnit.translation && (
-                    <div
-                      className="mx-auto mt-3 max-w-4xl text-lg font-medium leading-snug text-[rgba(255,255,255,0.92)] sm:text-2xl"
-                      style={{ textShadow: '0 2px 8px rgba(0, 0, 0, 0.9)' }}
-                    >
+                    <div className="mx-auto mt-2 max-w-4xl text-base font-medium leading-snug text-[rgba(255,255,255,0.86)] sm:text-xl">
                       {currentUnit.translation}
                     </div>
                   )}

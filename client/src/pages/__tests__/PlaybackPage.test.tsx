@@ -339,7 +339,7 @@ describe('PlaybackPage', () => {
       expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
     });
 
-    it('shows a full-screen image and subtitle overlay while a script is playing', async () => {
+    it('shows a full-screen image with captions below while a script is playing', async () => {
       mockAudioState.isPlaying = true;
       mockAudioState.currentTime = 0.2;
       mockGetEpisode.mockResolvedValue(mockScriptEpisode);
@@ -350,7 +350,8 @@ describe('PlaybackPage', () => {
       const image = screen.getByTestId('script-cinema-image');
       expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
       expect(image).toHaveClass('object-contain');
-      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('bg-[rgba(0,0,0,0.82)]');
+      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('shrink-0');
+      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('bg-[#061522]');
       expect(screen.getAllByText('日本[にほん]に住[す]んでいます。').length).toBeGreaterThan(0);
       expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
     });
