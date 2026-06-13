@@ -26,7 +26,8 @@ const SCRIPT_SPEED_OPTIONS = [
 function speedValueToKey(speed: SpeedValue): string {
   if (speed === '0.75x' || speed === 0.75) return '0.75';
   if (speed === '0.85x' || speed === 'medium' || speed === 0.85) return '0.85';
-  return '1.0';
+  if (speed === '1.0x' || speed === 'normal' || speed === 1.0) return '1.0';
+  throw new Error(`Unsupported script playback speed: ${String(speed)}`);
 }
 
 function buildUnits(episode: Episode, speed: number): LessonScriptUnit[] {
@@ -204,7 +205,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     return () => {
       observer.disconnect();
     };
-  }, [audioUrl, showReadings, showTranslations, selectedSpeed, activeImageUrl]);
+  }, []);
 
   useEffect(() => {
     if (!showCinemaMode) return undefined;

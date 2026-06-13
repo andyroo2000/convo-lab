@@ -237,7 +237,7 @@ model AudioScriptRender {
   status                String   @default("draft") // draft, generating, ready, error
   audioUrl              String?
   timingData            Json?
-  approxDurationSeconds Int?
+  approxDurationSeconds Float?
   errorMessage          String?  @db.Text
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt

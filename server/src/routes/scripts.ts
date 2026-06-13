@@ -22,6 +22,24 @@ const router = Router();
 
 router.use(requireAuth, rateLimitStudyRoute({ key: 'script', max: 300, windowMs: 60 * 1000 }));
 
+interface AudioScriptJobData {
+  episodeId?: unknown;
+  userId?: unknown;
+}
+
+function getAudioScriptJobData(job: { data?: unknown }): AudioScriptJobData {
+  return job.data && typeof job.data === 'object' ? (job.data as AudioScriptJobData) : {};
+}
+
+export async function assertAudioScriptJobBelongsToUser(job: { data?: unknown }, userId: string) {
+  const data = getAudioScriptJobData(job);
+  if (data.userId !== userId || typeof data.episodeId !== 'string') {
+    throw new AppError('Script audio job not found.', 404);
+  }
+
+  await getAudioScriptStatus(data.episodeId, userId);
+}
+
 router.post(
   '/',
   requireEmailVerified,
@@ -146,6 +164,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     if (!job) {
       throw new AppError('Script audio job not found.', 404);
     }
+    await assertAudioScriptJobBelongsToUser(job, req.userId!);
 
     const state = await job.getState();
     res.json({

@@ -123,23 +123,21 @@ const ScriptCreatorPage = () => {
       }
 
       setRenderStatus('Generating audio and illustrations...');
-      const [renderResponse, imagesResponse] = await Promise.all([
-        fetch(`${API_URL}/api/scripts/${episode.id}/render`, {
-          method: 'POST',
-          credentials: 'include',
-        }),
-        fetch(`${API_URL}/api/scripts/${episode.id}/images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ force: false }),
-        }),
-      ]);
-      if (!renderResponse.ok) {
-        throw new Error(await readApiError(renderResponse, 'Failed to start audio rendering.'));
-      }
+      const imagesResponse = await fetch(`${API_URL}/api/scripts/${episode.id}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ force: false }),
+      });
       if (!imagesResponse.ok) {
         throw new Error(await readApiError(imagesResponse, 'Failed to start image generation.'));
+      }
+      const renderResponse = await fetch(`${API_URL}/api/scripts/${episode.id}/render`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!renderResponse.ok) {
+        throw new Error(await readApiError(renderResponse, 'Failed to start audio rendering.'));
       }
 
       if (mountedRef.current) {

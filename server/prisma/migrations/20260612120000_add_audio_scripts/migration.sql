@@ -41,7 +41,7 @@ CREATE TABLE "audio_script_renders" (
   "status" TEXT NOT NULL DEFAULT 'draft',
   "audioUrl" TEXT,
   "timingData" JSONB,
-  "approxDurationSeconds" INTEGER,
+  "approxDurationSeconds" DOUBLE PRECISION,
   "errorMessage" TEXT,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
