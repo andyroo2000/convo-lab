@@ -1,9 +1,11 @@
+import type { CSSProperties } from 'react';
 import { LanguageMetadata } from '../types';
 
 interface JapaneseTextProps {
   text: string;
   metadata?: LanguageMetadata;
   className?: string;
+  style?: CSSProperties;
   showFurigana?: boolean;
 }
 
@@ -92,6 +94,7 @@ const JapaneseText = ({
   text,
   metadata,
   className = '',
+  style,
   showFurigana = true,
 }: JapaneseTextProps) => {
   // If showFurigana is false, use plain kanji text without readings
@@ -105,6 +108,7 @@ const JapaneseText = ({
   return (
     <span
       className={`japanese-text ${className}`}
+      style={style}
       // Intentional: Rendering furigana ruby HTML from trusted source (metadata or bracket notation)
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: htmlString }}

@@ -52,6 +52,7 @@ describe('useFeatureFlags', () => {
       const mockFlags = {
         id: 'flags-1',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         updatedAt: '2024-01-01',
       };
@@ -96,6 +97,7 @@ describe('useFeatureFlags', () => {
       const mockFlags = {
         id: 'flags-1',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: false,
         updatedAt: '2024-01-01',
       };
@@ -120,6 +122,7 @@ describe('useFeatureFlags', () => {
       const mockFlags = {
         id: 'flags-1',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: false,
         updatedAt: '2024-01-01',
       };
@@ -159,6 +162,7 @@ describe('useFeatureFlags', () => {
       const mockFlags = {
         id: 'flags-1',
         dialoguesEnabled: false,
+        scriptsEnabled: false,
         audioCourseEnabled: false,
         updatedAt: '2024-01-01',
       };
@@ -178,6 +182,7 @@ describe('useFeatureFlags', () => {
 
       // Even though all flags are false, admin should see true
       expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
+      expect(result.current.isFeatureEnabled('scriptsEnabled')).toBe(true);
       expect(result.current.isFeatureEnabled('audioCourseEnabled')).toBe(true);
     });
 
@@ -279,6 +284,7 @@ describe('useFeatureFlags', () => {
       const validFlags = {
         id: 'flags-1',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -286,6 +292,7 @@ describe('useFeatureFlags', () => {
       // Type checking - all required fields present
       expect(validFlags.id).toBeDefined();
       expect(typeof validFlags.dialoguesEnabled).toBe('boolean');
+      expect(typeof validFlags.scriptsEnabled).toBe('boolean');
       expect(typeof validFlags.audioCourseEnabled).toBe('boolean');
       expect(typeof validFlags.updatedAt).toBe('string');
     });

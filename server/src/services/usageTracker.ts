@@ -9,6 +9,7 @@ import { getMonthStart, getNextMonthStart } from '../utils/dateUtils.js';
 // Free tier: Lifetime limits per content type
 const FREE_TIER_LIFETIME_LIMITS: Record<string, number> = {
   dialogue: 2, // 2 dialogues ever
+  script: 2, // 2 pasted-Japanese scripts ever
   course: 1, // 1 audio course ever
 };
 
@@ -26,7 +27,7 @@ export interface QuotaStatus {
   unlimited?: boolean;
 }
 
-export type ContentType = 'dialogue' | 'course';
+export type ContentType = 'dialogue' | 'script' | 'course';
 
 /**
  * Check if user can generate content (quota check only)

@@ -1,6 +1,8 @@
 import type { DailyAudioPracticeTiming, LessonScriptUnit } from '../../types';
 
 const TIMING_DRIFT_TOLERANCE_MS = 1000;
+const SUBTITLE_LEAD_MS = 250;
+const SUBTITLE_HOLD_MS = 1000;
 
 export function normalizeTimingDataForDuration(
   timingData: DailyAudioPracticeTiming[],
@@ -27,17 +29,22 @@ export function findCurrentL2Unit(
   currentTimeSeconds: number
 ) {
   const currentTimeMs = currentTimeSeconds * 1000;
-  const activeTiming = timingData.find((timing) => {
+
+  for (let index = timingData.length - 1; index >= 0; index -= 1) {
+    const timing = timingData[index];
     const unit = units[timing.unitIndex];
-    return (
+
+    if (
       unit &&
       unit.type === 'L2' &&
-      currentTimeMs >= timing.startTime - 1000 &&
-      currentTimeMs < timing.endTime + 1000
-    );
-  });
+      currentTimeMs >= timing.startTime - SUBTITLE_LEAD_MS &&
+      currentTimeMs < timing.endTime + SUBTITLE_HOLD_MS
+    ) {
+      return unit;
+    }
+  }
 
-  return activeTiming ? units[activeTiming.unitIndex] : null;
+  return null;
 }
 
 export function versionAudioUrl(audioUrl: string, updatedAt?: string | null): string {

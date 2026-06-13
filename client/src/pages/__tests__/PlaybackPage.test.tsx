@@ -13,6 +13,11 @@ const mockGenerateAudio = vi.hoisted(() => vi.fn());
 const mockGenerateAllSpeedsAudio = vi.hoisted(() => vi.fn());
 const mockPollJobStatus = vi.hoisted(() => vi.fn());
 const mockAudioRef = vi.hoisted(() => vi.fn());
+const mockAudioState = vi.hoisted(() => ({
+  currentTime: 0,
+  duration: 0,
+  isPlaying: false,
+}));
 const mockSeek = vi.hoisted(() => vi.fn());
 const mockPlay = vi.hoisted(() => vi.fn());
 const mockPause = vi.hoisted(() => vi.fn());
@@ -31,8 +36,9 @@ vi.mock('../../hooks/useEpisodes', () => ({
 vi.mock('../../hooks/useAudioPlayer', () => ({
   useAudioPlayer: () => ({
     audioRef: mockAudioRef,
-    currentTime: 0,
-    isPlaying: false,
+    currentTime: mockAudioState.currentTime,
+    duration: mockAudioState.duration,
+    isPlaying: mockAudioState.isPlaying,
     seek: mockSeek,
     play: mockPlay,
     pause: mockPause,
@@ -163,9 +169,73 @@ const mockEpisode: Episode = {
   },
 };
 
+const mockScriptEpisode: Episode = {
+  id: 'script-episode-123',
+  title: 'Script Episode',
+  targetLanguage: 'ja',
+  nativeLanguage: 'en',
+  sourceText: '日本に住んでいます。',
+  status: 'ready',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  userId: 'user-123',
+  autoGenerateAudio: false,
+  contentType: 'script',
+  audioScript: {
+    id: 'script-123',
+    episodeId: 'script-episode-123',
+    status: 'ready',
+    imageStatus: 'partial',
+    imageErrorMessage: 'Some illustrations are missing.',
+    voiceId: 'ja-JP-Neural2-D',
+    voiceProvider: 'google',
+    segments: [
+      {
+        id: 'segment-1',
+        scriptId: 'script-123',
+        order: 0,
+        text: '日本に住んでいます。',
+        reading: '日本[にほん]に住[す]んでいます。',
+        translation: 'I live in Japan.',
+        imageStatus: 'ready',
+        imageMediaId: 'media-1',
+        imageMedia: {
+          id: 'media-1',
+          mediaKind: 'image',
+          contentType: 'image/webp',
+          publicUrl: null,
+          sourceFilename: 'media-1.webp',
+        },
+        metadata: { japanese: { kanji: '日本に住んでいます。', kana: '', furigana: '' } },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ],
+    renders: [
+      {
+        id: 'render-085',
+        scriptId: 'script-123',
+        speed: '0.85',
+        numericSpeed: 0.85,
+        status: 'ready',
+        audioUrl: 'https://storage.example.com/script-085.mp3',
+        approxDurationSeconds: 3,
+        timingData: [{ unitIndex: 0, startTime: 0, endTime: 2500 }],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+};
+
 describe('PlaybackPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAudioState.currentTime = 0;
+    mockAudioState.duration = 0;
+    mockAudioState.isPlaying = false;
     mockGetEpisode.mockResolvedValue(mockEpisode);
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
@@ -255,6 +325,80 @@ describe('PlaybackPage', () => {
         expect(screen.getByText('Hello')).toBeInTheDocument();
         expect(screen.getByText('How are you?')).toBeInTheDocument();
       });
+    });
+
+    it('should render script segment image and retry control for partial script images', async () => {
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      const image = await screen.findByTestId('script-active-image');
+      expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
+      expect(image).toHaveClass('object-contain');
+      expect(screen.getByTestId('script-reader-lines')).toBeInTheDocument();
+      expect(screen.getByTestId('script-button-retry-images')).toBeInTheDocument();
+      expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
+      expect(screen.queryByText('Segment 1')).not.toBeInTheDocument();
+    });
+
+    it('shows a full-screen image with legible glass captions while a script is playing', async () => {
+      mockAudioState.isPlaying = true;
+      mockAudioState.currentTime = 0.2;
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      const movieButton = await screen.findByTestId('script-button-movie-mode');
+      fireEvent.click(movieButton);
+
+      expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
+      const image = screen.getByTestId('script-cinema-image');
+      expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
+      expect(image).toHaveClass('object-contain');
+      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('backdrop-blur-md');
+      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('bg-[rgba(4,16,28,0.68)]');
+      expect(screen.getAllByText('日本[にほん]に住[す]んでいます。').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
+    });
+
+    it('toggles script playback with the spacebar on the main page', async () => {
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      expect(await screen.findByTestId('script-playback-page')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+
+      expect(mockPlay).toHaveBeenCalled();
+      expect(screen.queryByTestId('script-cinema-overlay')).not.toBeInTheDocument();
+    });
+
+    it('toggles script playback with the spacebar in cinema mode', async () => {
+      mockAudioState.isPlaying = true;
+      mockAudioState.currentTime = 0.2;
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      const movieButton = await screen.findByTestId('script-button-movie-mode');
+      fireEvent.click(movieButton);
+
+      expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+
+      expect(mockPause).toHaveBeenCalled();
+    });
+
+    it('opens movie mode from the explicit movie button and starts playback', async () => {
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      const movieButton = await screen.findByTestId('script-button-movie-mode');
+      fireEvent.click(movieButton);
+
+      expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
+      expect(mockPlay).toHaveBeenCalled();
     });
   });
 

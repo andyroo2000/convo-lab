@@ -9,6 +9,7 @@ const workerEventHandlers = vi.hoisted(
   () => new Map<string, Map<string, (...args: unknown[]) => void>>()
 );
 const mockGenerateDialogueImages = vi.hoisted(() => vi.fn());
+const mockGenerateAudioScriptSegmentImages = vi.hoisted(() => vi.fn());
 
 // Mock BullMQ
 vi.mock('bullmq', () => ({
@@ -56,6 +57,10 @@ vi.mock('../../../services/imageGenerator.js', () => ({
   generateDialogueImages: mockGenerateDialogueImages,
 }));
 
+vi.mock('../../../services/audioScriptService.js', () => ({
+  generateAudioScriptSegmentImages: mockGenerateAudioScriptSegmentImages,
+}));
+
 // Helper to create mock job
 const createMockJob = (
   overrides: Partial<{
@@ -91,6 +96,10 @@ describe('imageQueue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGenerateDialogueImages.mockResolvedValue(mockImageResult);
+    mockGenerateAudioScriptSegmentImages.mockResolvedValue({
+      episodeId: 'episode-456',
+      imageStatus: 'ready',
+    });
   });
 
   describe('queue setup', () => {
@@ -162,6 +171,28 @@ describe('imageQueue', () => {
         dialogueId: 'dialogue-789',
         imageCount: undefined,
       });
+    });
+
+    it('should call script image generation for script image jobs', async () => {
+      const processor = workerProcessors.get('image-generation')!;
+      const job = createMockJob({
+        name: 'generate-script-images',
+        data: {
+          episodeId: 'episode-456',
+          userId: 'user-123',
+          force: true,
+        },
+      });
+
+      await processor(job);
+
+      expect(mockGenerateAudioScriptSegmentImages).toHaveBeenCalledWith({
+        episodeId: 'episode-456',
+        userId: 'user-123',
+        force: true,
+        onProgress: expect.any(Function),
+      });
+      expect(mockGenerateDialogueImages).not.toHaveBeenCalled();
     });
 
     it('should update progress to 10% at start and 100% at end', async () => {

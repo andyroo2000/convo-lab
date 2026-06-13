@@ -153,6 +153,7 @@ model Episode {
   sourceText        String  @db.Text
   targetLanguage    String // Language code: 'ja'
   nativeLanguage    String // User's native language
+  contentType       String  @default("dialogue") // dialogue, script
   jlptLevel         String? // Optional JLPT level (N5-N1) for dialogue generation
   autoGenerateAudio Boolean @default(true)
   status            String  @default("draft") // draft, generating, ready, error
@@ -172,11 +173,80 @@ model Episode {
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   dialogue       Dialogue?
+  audioScript    AudioScript?
   images         Image[]
   courseEpisodes CourseEpisode[]
 
   @@index([userId])
+  @@index([contentType])
   @@index([status])
+}
+
+model AudioScript {
+  id                     String   @id @default(uuid())
+  episodeId              String   @unique
+  status                 String   @default("draft") // draft, annotated, generating, ready, error
+  imageStatus            String   @default("pending") // pending, generating, ready, partial, error
+  imageErrorMessage      String?  @db.Text
+  voiceId                String
+  voiceProvider          String   @default("google")
+  generationMetadataJson Json?
+  errorMessage           String?  @db.Text
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  episode  Episode              @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  segments AudioScriptSegment[]
+  renders  AudioScriptRender[]
+
+  @@index([status])
+  @@map("audio_scripts")
+}
+
+model AudioScriptSegment {
+  id                String    @id @default(uuid())
+  scriptId          String
+  order             Int
+  text              String    @db.Text
+  reading           String?   @db.Text
+  translation       String    @db.Text
+  imagePrompt       String?   @db.Text
+  imageStatus       String    @default("pending") // pending, generating, ready, error
+  imageErrorMessage String?   @db.Text
+  imageMediaId      String?
+  imageGeneratedAt  DateTime?
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  script     AudioScript @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  imageMedia StudyMedia? @relation("AudioScriptSegmentImage", fields: [imageMediaId], references: [id], onDelete: SetNull)
+
+  @@unique([scriptId, order])
+  @@index([scriptId, order])
+  @@index([imageMediaId])
+  @@index([scriptId, imageStatus])
+  @@map("audio_script_segments")
+}
+
+model AudioScriptRender {
+  id                    String   @id @default(uuid())
+  scriptId              String
+  speed                 String
+  numericSpeed          Float
+  status                String   @default("draft") // draft, generating, ready, error
+  audioUrl              String?
+  timingData            Json?
+  approxDurationSeconds Float?
+  errorMessage          String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  script AudioScript @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+
+  @@unique([scriptId, speed])
+  @@index([scriptId, status])
+  @@map("audio_script_renders")
 }
 
 model Dialogue {
@@ -404,6 +474,7 @@ model SpeakerAvatar {
 model FeatureFlag {
   id                 String   @id @default(uuid())
   dialoguesEnabled   Boolean  @default(true)
+  scriptsEnabled     Boolean  @default(true)
   audioCourseEnabled Boolean  @default(true)
   flashcardsEnabled  Boolean  @default(true)
   updatedAt          DateTime @updatedAt
@@ -488,11 +559,12 @@ model StudyMedia {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importJob        StudyImportJob? @relation(fields: [importJobId], references: [id], onDelete: SetNull)
-  promptAudioCards StudyCard[]     @relation("StudyPromptAudio")
-  answerAudioCards StudyCard[]     @relation("StudyAnswerAudio")
-  imageCards       StudyCard[]     @relation("StudyImageMedia")
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importJob           StudyImportJob?      @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+  promptAudioCards    StudyCard[]          @relation("StudyPromptAudio")
+  answerAudioCards    StudyCard[]          @relation("StudyAnswerAudio")
+  imageCards          StudyCard[]          @relation("StudyImageMedia")
+  audioScriptSegments AudioScriptSegment[] @relation("AudioScriptSegmentImage")
 
   @@index([userId, sourceKind])
   @@index([userId, updatedAt, id])

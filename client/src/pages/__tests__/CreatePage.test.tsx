@@ -7,6 +7,14 @@ import CreatePage from '../CreatePage';
 
 const mockNavigate = vi.fn();
 const mockUpdateUser = vi.fn();
+const mockFeatureFlags = vi.hoisted(() => ({
+  value: {
+    dialoguesEnabled: true,
+    scriptsEnabled: true,
+    audioCourseEnabled: true,
+    flashcardsEnabled: true,
+  },
+}));
 const mockUser = {
   id: 'user-1',
   name: 'Test User',
@@ -27,13 +35,10 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
   useFeatureFlags: () => ({
-    flags: {
-      dialoguesEnabled: true,
-      audioCourseEnabled: true,
-    },
+    flags: mockFeatureFlags.value,
     isLoading: false,
     error: null,
-    isFeatureEnabled: () => true,
+    isFeatureEnabled: (flag: keyof typeof mockFeatureFlags.value) => mockFeatureFlags.value[flag],
     isAdmin: false,
   }),
 }));
@@ -55,6 +60,12 @@ describe('CreatePage', () => {
 
   beforeEach(() => {
     mockNavigate.mockClear();
+    mockFeatureFlags.value = {
+      dialoguesEnabled: true,
+      scriptsEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+    };
   });
 
   describe('Poster layout', () => {
@@ -87,7 +98,17 @@ describe('CreatePage', () => {
       renderCreatePage();
 
       expect(screen.getByTestId('create-card-dialogues')).toBeTruthy();
+      expect(screen.getByTestId('create-card-scripts')).toBeTruthy();
       expect(screen.getByTestId('create-card-daily-audio')).toBeTruthy();
+    });
+
+    it('should hide script card independently from dialogue card', () => {
+      mockFeatureFlags.value.scriptsEnabled = false;
+
+      renderCreatePage();
+
+      expect(screen.getByTestId('create-card-dialogues')).toBeTruthy();
+      expect(screen.queryByTestId('create-card-scripts')).toBeNull();
     });
   });
 
@@ -128,6 +149,15 @@ describe('CreatePage', () => {
       fireEvent.click(dailyAudioCard);
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/study/daily-audio');
+    });
+
+    it('should navigate to script creation on click', () => {
+      renderCreatePage();
+
+      const scriptCard = screen.getByTestId('create-card-scripts');
+      fireEvent.click(scriptCard);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/app/create/script');
     });
   });
 

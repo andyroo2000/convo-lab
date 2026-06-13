@@ -1,12 +1,14 @@
 import { Loader } from 'lucide-react';
 
 export type SpeedValue =
+  | '0.75x'
   | '0.7x'
   | '0.85x'
   | '1.0x'
   | 'slow'
   | 'medium'
   | 'normal'
+  | 0.75
   | 0.7
   | 0.85
   | 1.0;
@@ -20,6 +22,7 @@ interface SpeedOption {
 interface SpeedSelectorProps {
   selectedSpeed: SpeedValue;
   onSpeedChange: (speed: SpeedValue) => void;
+  options?: SpeedOption[];
   disabled?: boolean;
   loading?: boolean;
   loadingSpeed?: SpeedValue;
@@ -36,6 +39,7 @@ const SPEED_OPTIONS: SpeedOption[] = [
 
 // Normalize different speed formats to our standard format
 function normalizeSpeed(speed: SpeedValue): string {
+  if (speed === 0.75) return '0.75x';
   if (speed === 'slow' || speed === 0.7) return '0.7x';
   if (speed === 'medium' || speed === 0.85) return '0.85x';
   if (speed === 'normal' || speed === 1.0) return '1.0x';
@@ -45,6 +49,7 @@ function normalizeSpeed(speed: SpeedValue): string {
 const SpeedSelector = ({
   selectedSpeed,
   onSpeedChange,
+  options = SPEED_OPTIONS,
   disabled = false,
   loading = false,
   loadingSpeed,
@@ -57,7 +62,7 @@ const SpeedSelector = ({
 
   return (
     <div className={`retro-speed-group ${className}`}>
-      {SPEED_OPTIONS.map((option) => {
+      {options.map((option) => {
         const isSelected = normalizedSelected === option.value;
         const isLoading = loading && normalizedLoading === option.value;
         const buttonLabel = showLabels ? `${option.label} (${option.value})` : option.value;

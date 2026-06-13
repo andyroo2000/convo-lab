@@ -9,6 +9,75 @@ import { normalizeJapaneseReading, parseFuriganaUnits, FuriganaUnit } from './fu
 
 const MAX_OVERRIDE_TEXT_LENGTH = 10000;
 
+function toHalfWidthDigits(value: string): string {
+  return value.replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0));
+}
+
+function readJapaneseNumberBelowTenThousand(value: number): string | null {
+  if (!Number.isInteger(value) || value < 0 || value > 9999) {
+    return null;
+  }
+  if (value === 0) {
+    return 'ぜろ';
+  }
+
+  const ones = ['', 'いち', 'に', 'さん', 'よん', 'ご', 'ろく', 'なな', 'はち', 'きゅう'];
+  const thousands = [
+    '',
+    'せん',
+    'にせん',
+    'さんぜん',
+    'よんせん',
+    'ごせん',
+    'ろくせん',
+    'ななせん',
+    'はっせん',
+    'きゅうせん',
+  ];
+  const hundreds = [
+    '',
+    'ひゃく',
+    'にひゃく',
+    'さんびゃく',
+    'よんひゃく',
+    'ごひゃく',
+    'ろっぴゃく',
+    'ななひゃく',
+    'はっぴゃく',
+    'きゅうひゃく',
+  ];
+  const tens = [
+    '',
+    'じゅう',
+    'にじゅう',
+    'さんじゅう',
+    'よんじゅう',
+    'ごじゅう',
+    'ろくじゅう',
+    'ななじゅう',
+    'はちじゅう',
+    'きゅうじゅう',
+  ];
+
+  const thousandDigit = Math.floor(value / 1000);
+  const hundredDigit = Math.floor((value % 1000) / 100);
+  const tenDigit = Math.floor((value % 100) / 10);
+  const oneDigit = value % 10;
+
+  return `${thousands[thousandDigit]}${hundreds[hundredDigit]}${tens[tenDigit]}${ones[oneDigit]}`;
+}
+
+function normalizeNumericYearUnitForTts(surface: string, reading: string): string {
+  const yearMatch = surface.match(/^([0-9０-９]{1,4})年$/);
+  if (!yearMatch || !/^(?:ねん|年)$/.test(reading)) {
+    return reading;
+  }
+
+  const yearNumber = Number.parseInt(toHalfWidthDigits(yearMatch[1]), 10);
+  const yearReading = readJapaneseNumberBelowTenThousand(yearNumber);
+  return yearReading ? `${yearReading}年` : reading;
+}
+
 function matchWordAtIndex(
   units: FuriganaUnit[],
   startIndex: number,
@@ -117,7 +186,10 @@ function applyOverridesToUnits(
     pushReadingWithOverlapCollapse(
       output,
       units[i].surface,
-      normalizeKanaParticleUnitForTts(units[i].surface, units[i].reading)
+      normalizeNumericYearUnitForTts(
+        units[i].surface,
+        normalizeKanaParticleUnitForTts(units[i].surface, units[i].reading)
+      )
     );
     i++;
   }

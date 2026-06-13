@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Headphones, MessageSquare } from 'lucide-react';
+import { FileText, Headphones, MessageSquare } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsDemo } from '../hooks/useDemo';
@@ -89,6 +89,40 @@ const CreatePage = () => {
 
                   <p className="retro-create-v3-card-description">
                     {t('create:types.dialogue.description')}
+                  </p>
+
+                  <div className="retro-create-v3-card-cta">
+                    <span className="retro-create-v3-open retro-caps">
+                      {t('create:buttons.create')}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            )}
+            {isFeatureEnabled('scriptsEnabled') && (
+              <button
+                type="button"
+                onClick={() => navigateWithViewAs('/app/create/script')}
+                className="retro-create-v3-card group"
+                data-testid="create-card-scripts"
+              >
+                <div className="retro-create-v3-card-head">
+                  <div className="retro-create-v3-card-kicker retro-caps">
+                    {t('create:kickers.script')}
+                  </div>
+                  <h2 className="retro-create-v3-card-title">{t('create:types.script.title')}</h2>
+                </div>
+
+                <div className="retro-create-v3-card-body">
+                  <div className="retro-create-v3-card-mini">
+                    <span className="retro-create-v3-icon-wrap" aria-hidden="true">
+                      <FileText className="h-4 w-4" />
+                    </span>
+                    <span className="retro-caps">{t('create:types.script.mini')}</span>
+                  </div>
+
+                  <p className="retro-create-v3-card-description">
+                    {t('create:types.script.description')}
                   </p>
 
                   <div className="retro-create-v3-card-cta">

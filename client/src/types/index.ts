@@ -16,6 +16,7 @@ export type ProficiencyLevel =
 export type ToneStyle = 'casual' | 'polite' | 'formal';
 
 export type AudioSpeed = 'slow' | 'medium' | 'normal';
+export type EpisodeContentType = 'dialogue' | 'script';
 
 export interface User {
   id: string;
@@ -46,6 +47,7 @@ export interface Episode {
   sourceText: string;
   targetLanguage: LanguageCode;
   nativeLanguage: LanguageCode;
+  contentType?: EpisodeContentType;
   jlptLevel?: string;
   autoGenerateAudio?: boolean;
   status: 'draft' | 'generating' | 'ready' | 'error';
@@ -53,6 +55,7 @@ export interface Episode {
   createdAt: Date;
   updatedAt: Date;
   dialogue?: Dialogue;
+  audioScript?: AudioScript;
   images?: Image[];
   courseEpisodes?: CourseEpisode[];
   // Legacy single-speed audio
@@ -62,6 +65,65 @@ export interface Episode {
   audioUrl_0_7?: string;
   audioUrl_0_85?: string;
   audioUrl_1_0?: string;
+}
+
+export interface AudioScript {
+  id: string;
+  episodeId: string;
+  status: 'draft' | 'annotated' | 'generating' | 'ready' | 'error';
+  imageStatus?: 'pending' | 'generating' | 'ready' | 'partial' | 'error';
+  imageErrorMessage?: string | null;
+  voiceId: string;
+  voiceProvider: 'google';
+  generationMetadataJson?: unknown;
+  errorMessage?: string | null;
+  segments: AudioScriptSegment[];
+  renders: AudioScriptRender[];
+  _count?: {
+    segments?: number;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AudioScriptSegment {
+  id: string;
+  scriptId: string;
+  order: number;
+  text: string;
+  reading?: string | null;
+  translation: string;
+  imagePrompt?: string | null;
+  imageStatus?: 'pending' | 'generating' | 'ready' | 'error';
+  imageErrorMessage?: string | null;
+  imageMediaId?: string | null;
+  imageGeneratedAt?: Date | string | null;
+  imageMedia?: StudyMedia | null;
+  metadata?: LanguageMetadata;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StudyMedia {
+  id: string;
+  mediaKind: string;
+  contentType?: string | null;
+  publicUrl?: string | null;
+  sourceFilename?: string;
+}
+
+export interface AudioScriptRender {
+  id: string;
+  scriptId: string;
+  speed: '0.75' | '0.85' | '1.0';
+  numericSpeed: number;
+  status: 'draft' | 'generating' | 'ready' | 'error';
+  audioUrl?: string | null;
+  timingData?: DailyAudioPracticeTiming[] | null;
+  approxDurationSeconds?: number | null;
+  errorMessage?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Dialogue {

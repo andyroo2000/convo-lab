@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Trash2,
+  FileText,
   MessageSquare,
   Headphones,
   Sparkles,
@@ -23,7 +24,7 @@ import ErrorDisplay from '../components/ErrorDisplay';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import { API_URL, SHOW_ONBOARDING_WELCOME } from '../config';
 
-type FilterType = 'all' | 'dialogues' | 'courses';
+type FilterType = 'all' | 'dialogues' | 'scripts' | 'courses';
 
 const LEGACY_DIALOGUE_TURN_FALLBACKS: Record<string, number> = {
   'hokkaido food trip': 15,
@@ -124,12 +125,14 @@ const LibraryPage = () => {
   const filterParamToType: Record<string, FilterType> = {
     all: 'all',
     dialogues: 'dialogues',
+    scripts: 'scripts',
     courses: 'courses',
   };
 
   const filterTypeToParam: Record<FilterType, string> = {
     all: 'all',
     dialogues: 'dialogues',
+    scripts: 'scripts',
     courses: 'courses',
   };
 
@@ -217,8 +220,16 @@ const LibraryPage = () => {
   // Memoize filtered and sorted items to avoid expensive recalculations
   const allItems = useMemo(() => {
     // Filter content based on selected filter
-    const filteredEpisodes = filter === 'courses' ? [] : episodes;
+    const filteredEpisodes =
+      filter === 'courses'
+        ? []
+        : episodes.filter((episode) => {
+            if (filter === 'dialogues') return (episode.contentType ?? 'dialogue') === 'dialogue';
+            if (filter === 'scripts') return episode.contentType === 'script';
+            return true;
+          });
     const filteredCourses = filter === 'dialogues' ? [] : courses;
+    const visibleCourses = filter === 'scripts' ? [] : filteredCourses;
 
     // Combine and sort by date
     return [
@@ -227,7 +238,7 @@ const LibraryPage = () => {
         data: ep,
         date: new Date(ep.createdAt),
       })),
-      ...filteredCourses.map((course) => ({
+      ...visibleCourses.map((course) => ({
         type: 'course' as const,
         data: course,
         date: new Date(course.createdAt),
@@ -252,8 +263,9 @@ const LibraryPage = () => {
     });
   };
 
-  const getCreateUrl = (path: '/app/create' | '/app/create/dialogue' = '/app/create/dialogue') =>
-    viewAsUserId ? `${path}?viewAs=${viewAsUserId}` : path;
+  const getCreateUrl = (
+    path: '/app/create' | '/app/create/dialogue' | '/app/create/script' = '/app/create/dialogue'
+  ) => (viewAsUserId ? `${path}?viewAs=${viewAsUserId}` : path);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds || Number.isNaN(seconds) || seconds <= 0) return '--:--';
@@ -279,6 +291,32 @@ const LibraryPage = () => {
     if (status === 'generating') return 38;
     if (status === 'draft') return 20;
     return 8;
+  };
+
+  const getEmptyTitle = () => {
+    if (filter === 'all') return t('library:emptyStates.all.title');
+    if (filter === 'dialogues') return t('library:emptyStates.dialogue.title');
+    if (filter === 'scripts') return t('library:emptyStates.script.title');
+    return t('library:emptyStates.course.title');
+  };
+
+  const getEmptyDescription = () => {
+    if (filter === 'all') return t('library:emptyStates.all.description');
+    if (filter === 'dialogues') return t('library:emptyStates.dialogue.description');
+    if (filter === 'scripts') return t('library:emptyStates.script.description');
+    return t('library:emptyStates.course.description');
+  };
+
+  const getEmptyButtonLabel = () => {
+    if (filter === 'all') return t('library:emptyStates.all.button');
+    if (filter === 'dialogues') return t('library:emptyStates.dialogue.button');
+    if (filter === 'scripts') return t('library:emptyStates.script.button');
+    return t('library:emptyStates.course.button');
+  };
+
+  const getEmptyCreateUrl = () => {
+    if (filter === 'scripts') return getCreateUrl('/app/create/script');
+    return getCreateUrl('/app/create/dialogue');
   };
 
   return (
@@ -343,6 +381,18 @@ const LibraryPage = () => {
                   {t('library:filters.dialogues')}
                 </button>
               )}
+              {isFeatureEnabled('scriptsEnabled') && (
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange('scripts')}
+                  className={`retro-library-v3-filter ${filter === 'scripts' ? 'is-active' : ''}`}
+                  data-testid="library-filter-scripts"
+                  aria-pressed={filter === 'scripts'}
+                >
+                  <FileText className="h-4 w-4" />
+                  {t('library:filters.scripts')}
+                </button>
+              )}
               {isFeatureEnabled('audioCourseEnabled') && (
                 <button
                   type="button"
@@ -361,7 +411,8 @@ const LibraryPage = () => {
               <div className="retro-library-v3-empty">
                 {filter === 'all' ? (
                   <>
-                    <p>{t('library:emptyStates.all.description')}</p>
+                    <h3 className="retro-headline text-3xl">{getEmptyTitle()}</h3>
+                    <p>{getEmptyDescription()}</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -371,31 +422,21 @@ const LibraryPage = () => {
                       className="retro-library-v3-empty-btn"
                       data-testid="library-button-browse-all"
                     >
-                      {t('library:emptyStates.all.button')}
+                      {getEmptyButtonLabel()}
                     </button>
                   </>
                 ) : (
                   <>
-                    <h3 className="retro-headline text-3xl">
-                      {filter === 'dialogues'
-                        ? t('library:emptyStates.dialogue.title')
-                        : t('library:emptyStates.course.title')}
-                    </h3>
-                    <p>
-                      {filter === 'dialogues'
-                        ? t('library:emptyStates.dialogue.description')
-                        : t('library:emptyStates.course.description')}
-                    </p>
+                    <h3 className="retro-headline text-3xl">{getEmptyTitle()}</h3>
+                    <p>{getEmptyDescription()}</p>
                     <button
                       type="button"
                       onClick={() => {
-                        window.location.href = getCreateUrl('/app/create/dialogue');
+                        window.location.href = getEmptyCreateUrl();
                       }}
                       className="retro-library-v3-empty-btn"
                     >
-                      {filter === 'dialogues'
-                        ? t('library:emptyStates.dialogue.button')
-                        : t('library:emptyStates.course.button')}
+                      {getEmptyButtonLabel()}
                     </button>
                   </>
                 )}
@@ -405,6 +446,12 @@ const LibraryPage = () => {
                 {allItems.map((item, index) => {
                   if (item.type === 'episode') {
                     const episode = item.data as Episode;
+                    const contentType = episode.contentType ?? 'dialogue';
+                    const isScript = contentType === 'script';
+                    const scriptSegmentCount =
+                      episode.audioScript?.segments?.length ??
+                      episode.audioScript?._count?.segments ??
+                      0;
                     const proficiencyLevels = episode.dialogue?.speakers
                       ? [
                           ...new Set(
@@ -412,7 +459,9 @@ const LibraryPage = () => {
                           ),
                         ]
                       : [];
-                    const sentenceCount = getDialogueTurnCount(episode);
+                    const sentenceCount = isScript
+                      ? scriptSegmentCount
+                      : getDialogueTurnCount(episode);
                     const progressStyle = {
                       '--retro-library-v3-card-pct': `${getProgressPercent(
                         episode.status,
@@ -428,30 +477,48 @@ const LibraryPage = () => {
                         data-testid="library-item"
                         data-item-id={episode.id}
                         data-updated-at={item.date.toISOString()}
-                        data-content-type="dialogue"
+                        data-content-type={contentType}
                         data-library-card-id={episode.id}
                       >
                         <div className="retro-library-v3-card-head is-dialogue">
                           <div className="retro-library-v3-card-kicker retro-caps">
-                            レッスン {index + 1}
+                            {isScript
+                              ? t('library:card.scriptKicker', { number: index + 1 })
+                              : t('library:card.lessonKicker', { number: index + 1 })}
                           </div>
                           <h3 className="retro-library-v3-card-title">{episode.title}</h3>
                           <div className="retro-library-v3-card-subtitle">
-                            {episode.sourceText || t('library:filters.dialogues')}
+                            {episode.sourceText ||
+                              (isScript
+                                ? t('library:card.scriptFallback')
+                                : t('library:filters.dialogues'))}
                           </div>
                         </div>
 
                         <div className="retro-library-v3-card-body">
                           <div className="retro-library-v3-card-mini">
                             <span className="retro-library-v3-mini-icon" aria-hidden="true">
-                              <MessagesSquare className="retro-library-v3-mini-icon-svg" />
+                              {isScript ? (
+                                <FileText className="retro-library-v3-mini-icon-svg" />
+                              ) : (
+                                <MessagesSquare className="retro-library-v3-mini-icon-svg" />
+                              )}
                             </span>
-                            <span className="retro-caps">Dialogue / Turns: {sentenceCount}</span>
+                            <span className="retro-caps">
+                              {isScript
+                                ? t('library:card.scriptSegments')
+                                : t('library:card.dialogueTurns')}
+                              : {sentenceCount}
+                            </span>
                           </div>
                           <div className="retro-library-v3-card-progress" style={progressStyle} />
                           <div className="retro-library-v3-card-meta retro-caps">
                             <span>{formatStampDate(episode.updatedAt)}</span>
-                            <span>{proficiencyLevels.join(', ') || 'Ready'}</span>
+                            <span>
+                              {isScript
+                                ? t('library:card.japanese')
+                                : proficiencyLevels.join(', ') || t('library:card.ready')}
+                            </span>
                           </div>
 
                           <div className="retro-library-v3-card-cta-row">

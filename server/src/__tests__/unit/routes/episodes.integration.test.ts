@@ -119,13 +119,17 @@ describe('Episodes Routes Integration', () => {
       expect(mockPrisma.episode.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'test-user-id',
-          dialogue: { isNot: null },
+          OR: [
+            { contentType: 'dialogue', dialogue: { isNot: null } },
+            { contentType: 'script', audioScript: { isNot: null } },
+          ],
         },
         select: {
           id: true,
           title: true,
           sourceText: true,
           targetLanguage: true,
+          contentType: true,
           status: true,
           isSampleContent: true,
           createdAt: true,
@@ -135,6 +139,18 @@ describe('Episodes Routes Integration', () => {
               speakers: {
                 select: {
                   proficiency: true,
+                },
+              },
+            },
+          },
+          audioScript: {
+            select: {
+              status: true,
+              imageStatus: true,
+              imageErrorMessage: true,
+              _count: {
+                select: {
+                  segments: true,
                 },
               },
             },
@@ -167,13 +183,37 @@ describe('Episodes Routes Integration', () => {
       expect(mockPrisma.episode.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'test-user-id',
-          dialogue: { isNot: null },
+          OR: [
+            { contentType: 'dialogue', dialogue: { isNot: null } },
+            { contentType: 'script', audioScript: { isNot: null } },
+          ],
         },
         include: {
           dialogue: {
             include: {
               sentences: true,
               speakers: true,
+            },
+          },
+          audioScript: {
+            include: {
+              segments: {
+                orderBy: { order: 'asc' },
+                include: {
+                  imageMedia: {
+                    select: {
+                      id: true,
+                      mediaKind: true,
+                      contentType: true,
+                      publicUrl: true,
+                      sourceFilename: true,
+                    },
+                  },
+                },
+              },
+              renders: {
+                orderBy: { numericSpeed: 'asc' },
+              },
             },
           },
           images: true,
@@ -235,6 +275,27 @@ describe('Episodes Routes Integration', () => {
             include: {
               sentences: { orderBy: { order: 'asc' } },
               speakers: true,
+            },
+          },
+          audioScript: {
+            include: {
+              segments: {
+                orderBy: { order: 'asc' },
+                include: {
+                  imageMedia: {
+                    select: {
+                      id: true,
+                      mediaKind: true,
+                      contentType: true,
+                      publicUrl: true,
+                      sourceFilename: true,
+                    },
+                  },
+                },
+              },
+              renders: {
+                orderBy: { numericSpeed: 'asc' },
+              },
             },
           },
           images: { orderBy: { order: 'asc' } },

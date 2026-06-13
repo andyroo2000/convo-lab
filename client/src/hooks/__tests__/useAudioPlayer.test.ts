@@ -118,9 +118,12 @@ describe('useAudioPlayer', () => {
       result.current.audioRef(mockAudioElement as HTMLAudioElement);
     });
 
-    result.current.seek(50);
+    act(() => {
+      result.current.seek(50);
+    });
 
     expect(mockAudioElement.currentTime).toBe(50);
+    expect(result.current.currentTime).toBe(50);
   });
 
   it('should update isPlaying when play event fires', () => {

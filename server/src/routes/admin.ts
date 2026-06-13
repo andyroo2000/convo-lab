@@ -657,6 +657,7 @@ router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
       flags = await prisma.featureFlag.create({
         data: {
           dialoguesEnabled: true,
+          scriptsEnabled: true,
           audioCourseEnabled: true,
           flashcardsEnabled: true,
         },
@@ -674,10 +675,11 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
   try {
     const payload = req.body as {
       dialoguesEnabled?: unknown;
+      scriptsEnabled?: unknown;
       audioCourseEnabled?: unknown;
       flashcardsEnabled?: unknown;
     };
-    const { dialoguesEnabled, audioCourseEnabled, flashcardsEnabled } = payload;
+    const { dialoguesEnabled, scriptsEnabled, audioCourseEnabled, flashcardsEnabled } = payload;
 
     // Validate boolean values
     const validateBoolean = (val: unknown, name: string) => {
@@ -687,11 +689,13 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     };
 
     validateBoolean(dialoguesEnabled, 'dialoguesEnabled');
+    validateBoolean(scriptsEnabled, 'scriptsEnabled');
     validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
     validateBoolean(flashcardsEnabled, 'flashcardsEnabled');
 
     const dialoguesEnabledValue =
       typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
+    const scriptsEnabledValue = typeof scriptsEnabled === 'boolean' ? scriptsEnabled : undefined;
     const audioCourseEnabledValue =
       typeof audioCourseEnabled === 'boolean' ? audioCourseEnabled : undefined;
     const flashcardsEnabledValue =
@@ -705,6 +709,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       flags = await prisma.featureFlag.create({
         data: {
           dialoguesEnabled: dialoguesEnabledValue ?? true,
+          scriptsEnabled: scriptsEnabledValue ?? true,
           audioCourseEnabled: audioCourseEnabledValue ?? true,
           flashcardsEnabled: flashcardsEnabledValue ?? true,
         },
@@ -715,6 +720,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
         where: { id: flags.id },
         data: {
           ...(dialoguesEnabledValue !== undefined && { dialoguesEnabled: dialoguesEnabledValue }),
+          ...(scriptsEnabledValue !== undefined && { scriptsEnabled: scriptsEnabledValue }),
           ...(audioCourseEnabledValue !== undefined && {
             audioCourseEnabled: audioCourseEnabledValue,
           }),

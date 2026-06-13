@@ -17,6 +17,7 @@ describe('featureFlags middleware', () => {
   it('allows access when the requested feature flag is enabled', async () => {
     mockPrisma.featureFlag.findFirst.mockResolvedValue({
       dialoguesEnabled: true,
+      scriptsEnabled: true,
       audioCourseEnabled: true,
       flashcardsEnabled: true,
     });
@@ -32,6 +33,7 @@ describe('featureFlags middleware', () => {
   it('blocks non-admin users when the requested feature flag is disabled', async () => {
     mockPrisma.featureFlag.findFirst.mockResolvedValue({
       dialoguesEnabled: true,
+      scriptsEnabled: true,
       audioCourseEnabled: true,
       flashcardsEnabled: false,
     });
@@ -76,6 +78,7 @@ describe('featureFlags middleware', () => {
   it('reuses cached flags inside the TTL window', async () => {
     mockPrisma.featureFlag.findFirst.mockResolvedValue({
       dialoguesEnabled: true,
+      scriptsEnabled: true,
       audioCourseEnabled: true,
       flashcardsEnabled: true,
     });
@@ -96,11 +99,13 @@ describe('featureFlags middleware', () => {
     mockPrisma.featureFlag.findFirst
       .mockResolvedValueOnce({
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
       })
       .mockResolvedValueOnce({
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
       });

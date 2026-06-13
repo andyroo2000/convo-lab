@@ -29,6 +29,55 @@ function isKanji(char: string): boolean {
   return code >= 0x4e00 && code <= 0x9fff;
 }
 
+function isDigit(char: string): boolean {
+  return /[0-9０-９]/.test(char);
+}
+
+function isAsciiLetter(char: string): boolean {
+  return /[A-Za-z]/.test(char);
+}
+
+function findAnnotatedSurfaceStart(buffer: string[]): number {
+  if (buffer.length > 0 && isDigit(buffer[buffer.length - 1])) {
+    let digitStart = buffer.length - 1;
+    while (digitStart > 0 && isDigit(buffer[digitStart - 1])) {
+      digitStart -= 1;
+    }
+
+    if (digitStart === 0 || !isAsciiLetter(buffer[digitStart - 1])) {
+      return digitStart;
+    }
+  }
+
+  let lastKanjiIdx = -1;
+  for (let j = buffer.length - 1; j >= 0; j--) {
+    if (isKanji(buffer[j])) {
+      lastKanjiIdx = j;
+      break;
+    }
+  }
+
+  if (lastKanjiIdx < 0) {
+    return buffer.length;
+  }
+
+  let annotatedStart = lastKanjiIdx;
+  while (annotatedStart > 0 && isKanji(buffer[annotatedStart - 1])) {
+    annotatedStart -= 1;
+  }
+
+  let digitStart = annotatedStart;
+  while (digitStart > 0 && isDigit(buffer[digitStart - 1])) {
+    digitStart -= 1;
+  }
+
+  if (digitStart < annotatedStart && (digitStart === 0 || !isAsciiLetter(buffer[digitStart - 1]))) {
+    return digitStart;
+  }
+
+  return annotatedStart;
+}
+
 function findReadingPrefixOverlap(
   output: string[],
   prefix: string[],
@@ -73,15 +122,9 @@ export function stripFuriganaToKana(text: string): string {
 
     if (char === '[') {
       // The bracket reading replaces the surface text in the buffer.
-      // Find the leftmost kanji in the buffer — everything from there
-      // to the end is the annotated surface (discard it).
-      let firstKanjiIdx = buffer.length;
-      for (let j = 0; j < buffer.length; j++) {
-        if (isKanji(buffer[j])) {
-          firstKanjiIdx = j;
-          break;
-        }
-      }
+      // Find the annotated surface in the buffer. Numeric expressions like
+      // 2010年[にせんじゅうねん] should consume the digits with the kanji suffix.
+      const firstKanjiIdx = findAnnotatedSurfaceStart(buffer);
 
       // Read the bracket content (the correct reading)
       const reading: string[] = [];
@@ -147,20 +190,20 @@ export function normalizeJapaneseReading(reading: string): string {
 }
 
 function splitSurfaceForReading(surface: string, reading: string): FuriganaUnit[] {
-  const match = surface.match(/([\u4e00-\u9faf]+)$/);
-  if (!match) {
-    return [{ surface, reading: surface }];
+  const annotatedStart = findAnnotatedSurfaceStart(Array.from(surface));
+  if (annotatedStart === surface.length) {
+    return [{ surface, reading: /[0-9０-９]/.test(surface) ? reading : surface }];
   }
 
-  const kanjiSegment = match[1];
-  const prefix = surface.slice(0, surface.length - kanjiSegment.length);
+  const annotatedSurface = surface.slice(annotatedStart);
+  const prefix = surface.slice(0, annotatedStart);
   const units: FuriganaUnit[] = [];
 
   if (prefix) {
     units.push({ surface: prefix, reading: prefix });
   }
 
-  units.push({ surface: kanjiSegment, reading });
+  units.push({ surface: annotatedSurface, reading });
   return units;
 }
 

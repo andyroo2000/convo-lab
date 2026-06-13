@@ -3,7 +3,17 @@
   "filters": {
     "all": "すべてのコンテンツ",
     "dialogues": "対話",
+    "scripts": "スクリプト",
     "courses": "オーディオコース"
+  },
+  "card": {
+    "scriptKicker": "スクリプト {{number}}",
+    "lessonKicker": "レッスン {{number}}",
+    "scriptFallback": "スクリプト",
+    "scriptSegments": "スクリプト / セグメント",
+    "dialogueTurns": "対話 / ターン",
+    "japanese": "日本語",
+    "ready": "準備完了"
   },
   "empty": {
     "title": "まだコンテンツがありません",
@@ -39,7 +49,13 @@
       "description": "構造化されたレッスンと発音練習を含むガイド付きオーディオコースを構築",
       "button": "始める"
     },
+    "script": {
+      "title": "まだスクリプトがありません",
+      "description": "日本語テキストを貼り付けて、タイミング付きの音声練習を作成します。",
+      "button": "スクリプトを作成"
+    },
     "all": {
+      "title": "まだコンテンツがありません",
       "description": "まだコンテンツがありません。最初の学習教材を作成して始めましょう！",
       "button": "すべてのオプションを見る"
     }

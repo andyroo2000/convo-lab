@@ -3,13 +3,19 @@
   "subtitle": "Choose an activity type to get started",
   "kickers": {
     "dialogue": "Work 1",
-    "dailyAudio": "Work 2"
+    "script": "Work 2",
+    "dailyAudio": "Work 3"
   },
   "types": {
     "dialogue": {
       "title": "Dialogue",
       "mini": "Prompt / Story / Dialogue",
       "description": "Generate AI dialogues from your own stories, calibrated to your proficiency level"
+    },
+    "script": {
+      "title": "Script",
+      "mini": "Japanese / Subtitles / Audio",
+      "description": "Paste natural Japanese and create timed listening practice with furigana and English"
     },
     "course": {
       "title": "Audio Course",

@@ -139,6 +139,12 @@ export function getSelectableTtsVoices(language: string): VoiceConfig[] {
   return getTtsVoices(language).filter((voice) => !voice.hiddenFromPicker);
 }
 
+export function getAudioScriptTtsVoices(language: string): VoiceConfig[] {
+  return getTtsVoices(language).filter(
+    (voice) => voice.provider === 'google' && voice.id.includes('-Neural2-')
+  );
+}
+
 export function getTtsVoiceById(language: string, voiceId: string): VoiceConfig | undefined {
   return getTtsVoices(language).find((voice) => voice.id === voiceId);
 }

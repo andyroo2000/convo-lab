@@ -16,6 +16,7 @@ router.get('/', requireAuth, async (_req: AuthRequest, res, next) => {
       flags = await prisma.featureFlag.create({
         data: {
           dialoguesEnabled: true,
+          scriptsEnabled: true,
           audioCourseEnabled: true,
           flashcardsEnabled: true,
         },

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 interface UseAudioPlayerReturn {
   audioRef: (element: HTMLAudioElement | null) => void;
@@ -9,6 +9,21 @@ interface UseAudioPlayerReturn {
   pause: () => void;
   seek: (time: number) => void;
 }
+
+const requestNextFrame = (callback: FrameRequestCallback): number => {
+  if (typeof window.requestAnimationFrame === 'function') {
+    return window.requestAnimationFrame(callback);
+  }
+  return window.setTimeout(() => callback(performance.now()), 16);
+};
+
+const cancelNextFrame = (frameId: number): void => {
+  if (typeof window.cancelAnimationFrame === 'function') {
+    window.cancelAnimationFrame(frameId);
+    return;
+  }
+  window.clearTimeout(frameId);
+};
 
 // Named export is intentional for hooks
 // eslint-disable-next-line import/prefer-default-export
@@ -28,6 +43,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     handleLoadedMetadata: () => {
       if (audioElementRef.current) {
         setDuration(audioElementRef.current.duration);
+        setCurrentTime(audioElementRef.current.currentTime);
       }
     },
     handlePlay: () => {
@@ -78,8 +94,35 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const seek = (time: number) => {
     if (audioElementRef.current) {
       audioElementRef.current.currentTime = time;
+      setCurrentTime(time);
     }
   };
+
+  useEffect(() => {
+    if (!isPlaying) {
+      return undefined;
+    }
+
+    let frameId: number | null = null;
+    let cancelled = false;
+
+    const updateCurrentTime = () => {
+      if (cancelled) return;
+      if (audioElementRef.current) {
+        setCurrentTime(audioElementRef.current.currentTime);
+      }
+      frameId = requestNextFrame(updateCurrentTime);
+    };
+
+    frameId = requestNextFrame(updateCurrentTime);
+
+    return () => {
+      cancelled = true;
+      if (frameId !== null) {
+        cancelNextFrame(frameId);
+      }
+    };
+  }, [isPlaying]);
 
   return {
     audioRef,

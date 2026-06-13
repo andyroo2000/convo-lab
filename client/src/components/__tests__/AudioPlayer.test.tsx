@@ -306,6 +306,12 @@ describe('AudioPlayer', () => {
       expect(wrapper.className).toContain('retro-audio-player');
     });
 
+    it('should support compact player layout', () => {
+      const { container } = renderAudioPlayer({ variant: 'compact' });
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper.className).toContain('retro-audio-player-compact');
+    });
+
     it('should have rounded-full class on play button', () => {
       renderAudioPlayer();
       const button = screen.getByTestId('audio-button-play-pause');

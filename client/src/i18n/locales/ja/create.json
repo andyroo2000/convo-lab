@@ -3,13 +3,19 @@
   "subtitle": "開始するアクティビティタイプを選択してください",
   "kickers": {
     "dialogue": "ワーク 1",
-    "dailyAudio": "ワーク 2"
+    "script": "ワーク 2",
+    "dailyAudio": "ワーク 3"
   },
   "types": {
     "dialogue": {
       "title": "対話",
       "mini": "プロンプト / ストーリー / 対話",
       "description": "あなた自身のストーリーから、あなたの習熟度に合わせてAI対話を生成します"
+    },
+    "script": {
+      "title": "スクリプト",
+      "mini": "日本語 / 字幕 / 音声",
+      "description": "自然な日本語を貼り付けて、ふりがなと英訳付きの音声練習を作成します"
     },
     "course": {
       "title": "音声コース",

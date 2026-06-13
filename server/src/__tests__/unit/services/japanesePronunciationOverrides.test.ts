@@ -114,6 +114,42 @@ describe('japanesePronunciationOverrides', () => {
     expect(result).toBe('けさわかいものしたかったです。');
   });
 
+  it('does not duplicate numeric year surfaces when bracket readings include the year', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const result = module.applyJapanesePronunciationOverrides({
+      text: '2010年でした。',
+      reading: '2010年[二千十ねん]でした。',
+    });
+
+    expect(result).toBe('二千十ねんでした。');
+  });
+
+  it('preserves number readings when year ranges annotate digits before 年', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const result = module.applyJapanesePronunciationOverrides({
+      text: '2010年から2011年まで日本に住んでいました。',
+      reading:
+        '2010[にせんじゅう]年から2011[にせんじゅういち]年まで日本[にほん]に住[す]んでいました。',
+    });
+
+    expect(result).toBe('にせんじゅう年からにせんじゅういち年までにほんにすんでいました。');
+  });
+
+  it('preserves numeric year surfaces when generated readings annotate only 年', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const result = module.applyJapanesePronunciationOverrides({
+      text: '実は、2010年から2011年まで東京に住んでいました。',
+      reading: '実[じつ]は、2010年[ねん]から2011年[ねん]まで東京[とうきょう]に住[す]んでいました。',
+    });
+
+    expect(result).toBe(
+      'じつわ、にせんじゅう年からにせんじゅういち年までとうきょうにすんでいました。'
+    );
+  });
+
   it('derives verb-stem overrides when generated furigana misreads 話し inflections', async () => {
     const module = await import('../../../services/japanesePronunciationOverrides.js');
 
