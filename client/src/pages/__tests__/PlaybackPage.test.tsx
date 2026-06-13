@@ -13,6 +13,11 @@ const mockGenerateAudio = vi.hoisted(() => vi.fn());
 const mockGenerateAllSpeedsAudio = vi.hoisted(() => vi.fn());
 const mockPollJobStatus = vi.hoisted(() => vi.fn());
 const mockAudioRef = vi.hoisted(() => vi.fn());
+const mockAudioState = vi.hoisted(() => ({
+  currentTime: 0,
+  duration: 0,
+  isPlaying: false,
+}));
 const mockSeek = vi.hoisted(() => vi.fn());
 const mockPlay = vi.hoisted(() => vi.fn());
 const mockPause = vi.hoisted(() => vi.fn());
@@ -31,8 +36,9 @@ vi.mock('../../hooks/useEpisodes', () => ({
 vi.mock('../../hooks/useAudioPlayer', () => ({
   useAudioPlayer: () => ({
     audioRef: mockAudioRef,
-    currentTime: 0,
-    isPlaying: false,
+    currentTime: mockAudioState.currentTime,
+    duration: mockAudioState.duration,
+    isPlaying: mockAudioState.isPlaying,
     seek: mockSeek,
     play: mockPlay,
     pause: mockPause,
@@ -227,6 +233,9 @@ const mockScriptEpisode: Episode = {
 describe('PlaybackPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAudioState.currentTime = 0;
+    mockAudioState.duration = 0;
+    mockAudioState.isPlaying = false;
     mockGetEpisode.mockResolvedValue(mockEpisode);
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
@@ -325,7 +334,23 @@ describe('PlaybackPage', () => {
 
       const image = await screen.findByTestId('script-active-image');
       expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
+      expect(image).toHaveClass('object-contain');
       expect(screen.getByTestId('script-button-retry-images')).toBeInTheDocument();
+      expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
+    });
+
+    it('shows a full-screen image and subtitle overlay while a script is playing', async () => {
+      mockAudioState.isPlaying = true;
+      mockAudioState.currentTime = 0.2;
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
+      const image = screen.getByTestId('script-cinema-image');
+      expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
+      expect(image).toHaveClass('object-contain');
+      expect(screen.getAllByText('日本[にほん]に住[す]んでいます。').length).toBeGreaterThan(0);
       expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
     });
   });

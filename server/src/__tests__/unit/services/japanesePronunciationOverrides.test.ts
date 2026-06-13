@@ -125,6 +125,18 @@ describe('japanesePronunciationOverrides', () => {
     expect(result).toBe('二千十ねんでした。');
   });
 
+  it('preserves number readings when year ranges annotate digits before 年', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const result = module.applyJapanesePronunciationOverrides({
+      text: '2010年から2011年まで日本に住んでいました。',
+      reading:
+        '2010[にせんじゅう]年から2011[にせんじゅういち]年まで日本[にほん]に住[す]んでいました。',
+    });
+
+    expect(result).toBe('にせんじゅう年からにせんじゅういち年までにほんにすんでいました。');
+  });
+
   it('derives verb-stem overrides when generated furigana misreads 話し inflections', async () => {
     const module = await import('../../../services/japanesePronunciationOverrides.js');
 

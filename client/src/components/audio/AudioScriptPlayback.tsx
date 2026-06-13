@@ -70,12 +70,20 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
   const [scriptOverride, setScriptOverride] = useState<AudioScript | null>(null);
   const [isRetryingImages, setIsRetryingImages] = useState(false);
   const [imageRetryError, setImageRetryError] = useState<string | null>(null);
+  const [cinemaDismissed, setCinemaDismissed] = useState(false);
 
   useEffect(() => {
     setScriptOverride(null);
     setImageRetryError(null);
     setIsRetryingImages(false);
+    setCinemaDismissed(false);
   }, [episode.id]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      setCinemaDismissed(false);
+    }
+  }, [isPlaying]);
 
   const script = scriptOverride ?? episode.audioScript;
   const readyRenders = useMemo(
@@ -121,6 +129,33 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     activeSegmentIndex >= 0 ? (script?.segments[activeSegmentIndex] ?? null) : null;
   const activeImageUrl = getSegmentImageUrl(activeSegment);
   const canRetryImages = script?.imageStatus === 'partial' || script?.imageStatus === 'error';
+  const showCinemaMode = Boolean(
+    script && selectedRender?.audioUrl && isPlaying && !cinemaDismissed
+  );
+
+  useEffect(() => {
+    if (!showCinemaMode) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showCinemaMode]);
+
+  useEffect(() => {
+    if (!showCinemaMode) return undefined;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCinemaDismissed(true);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [showCinemaMode]);
 
   const handleSeekToSegment = (segmentIndex: number) => {
     const unitIndex = segmentIndex * 2;
@@ -266,16 +301,69 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
         )}
       </div>
 
+      {showCinemaMode && (
+        <div
+          className="fixed inset-0 z-[1000] flex flex-col bg-[#061522] text-white"
+          data-testid="script-cinema-overlay"
+        >
+          <div className="flex items-center justify-between gap-3 border-b border-white/15 bg-black/30 px-4 py-3 sm:px-6">
+            <div className="min-w-0">
+              <div className="retro-caps text-xs text-white/60">Script</div>
+              <div className="truncate text-lg font-semibold">{episode.title}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCinemaDismissed(true)}
+              className="rounded border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
+            >
+              Exit
+            </button>
+          </div>
+          <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+            {activeImageUrl ? (
+              <img
+                src={activeImageUrl}
+                alt={activeSegment?.translation || 'Script scene illustration'}
+                className="max-h-full max-w-full object-contain"
+                data-testid="script-cinema-image"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center px-4 text-center retro-caps text-white/45">
+                Illustration pending
+              </div>
+            )}
+            <div className="absolute inset-x-0 bottom-0 bg-black/72 px-4 py-5 text-center shadow-[0_-14px_32px_rgba(0,0,0,0.28)] sm:px-10 sm:py-7">
+              {currentUnit?.type === 'L2' && (
+                <>
+                  <div className="mx-auto max-w-5xl text-3xl font-semibold leading-relaxed text-white sm:text-5xl">
+                    <JapaneseText
+                      text={currentUnit.reading || currentUnit.text}
+                      showFurigana={showReadings}
+                      metadata={activeSegment?.metadata}
+                    />
+                  </div>
+                  {showTranslations && currentUnit.translation && (
+                    <div className="mx-auto mt-3 max-w-4xl text-lg font-medium leading-snug text-white/88 sm:text-2xl">
+                      {currentUnit.translation}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className="retro-paper-panel overflow-hidden border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)]"
         data-testid="script-active-image-panel"
       >
-        <div className="aspect-[16/9] w-full bg-[rgba(20,50,86,0.08)]">
+        <div className="flex aspect-[16/9] w-full items-center justify-center bg-[rgba(20,50,86,0.08)]">
           {activeImageUrl ? (
             <img
               src={activeImageUrl}
               alt={activeSegment?.translation || 'Script scene illustration'}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
               data-testid="script-active-image"
             />
           ) : (

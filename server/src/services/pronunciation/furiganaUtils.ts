@@ -38,28 +38,44 @@ function isAsciiLetter(char: string): boolean {
 }
 
 function findAnnotatedSurfaceStart(buffer: string[]): number {
-  let firstKanjiIdx = buffer.length;
-  for (let j = 0; j < buffer.length; j++) {
+  if (buffer.length > 0 && isDigit(buffer[buffer.length - 1])) {
+    let digitStart = buffer.length - 1;
+    while (digitStart > 0 && isDigit(buffer[digitStart - 1])) {
+      digitStart -= 1;
+    }
+
+    if (digitStart === 0 || !isAsciiLetter(buffer[digitStart - 1])) {
+      return digitStart;
+    }
+  }
+
+  let lastKanjiIdx = -1;
+  for (let j = buffer.length - 1; j >= 0; j--) {
     if (isKanji(buffer[j])) {
-      firstKanjiIdx = j;
+      lastKanjiIdx = j;
       break;
     }
   }
 
-  if (firstKanjiIdx === buffer.length) {
-    return firstKanjiIdx;
+  if (lastKanjiIdx < 0) {
+    return buffer.length;
   }
 
-  let digitStart = firstKanjiIdx;
+  let annotatedStart = lastKanjiIdx;
+  while (annotatedStart > 0 && isKanji(buffer[annotatedStart - 1])) {
+    annotatedStart -= 1;
+  }
+
+  let digitStart = annotatedStart;
   while (digitStart > 0 && isDigit(buffer[digitStart - 1])) {
     digitStart -= 1;
   }
 
-  if (digitStart < firstKanjiIdx && (digitStart === 0 || !isAsciiLetter(buffer[digitStart - 1]))) {
+  if (digitStart < annotatedStart && (digitStart === 0 || !isAsciiLetter(buffer[digitStart - 1]))) {
     return digitStart;
   }
 
-  return firstKanjiIdx;
+  return annotatedStart;
 }
 
 function findReadingPrefixOverlap(
@@ -176,7 +192,7 @@ export function normalizeJapaneseReading(reading: string): string {
 function splitSurfaceForReading(surface: string, reading: string): FuriganaUnit[] {
   const annotatedStart = findAnnotatedSurfaceStart(Array.from(surface));
   if (annotatedStart === surface.length) {
-    return [{ surface, reading: surface }];
+    return [{ surface, reading: /[0-9０-９]/.test(surface) ? reading : surface }];
   }
 
   const annotatedSurface = surface.slice(annotatedStart);
