@@ -12,6 +12,7 @@ interface AudioPlayerProps {
   repeatMode?: RepeatMode;
   onRepeatModeChange?: (mode: RepeatMode) => void;
   onEnded?: () => void;
+  variant?: 'default' | 'compact';
 }
 
 const requestNextFrame = (callback: FrameRequestCallback): number => {
@@ -35,6 +36,7 @@ const AudioPlayer = ({
   repeatMode = 'off',
   onRepeatModeChange,
   onEnded,
+  variant = 'default',
 }: AudioPlayerProps) => {
   const { t } = useTranslation('common');
   const [currentTime, setCurrentTime] = useState(0);
@@ -163,9 +165,10 @@ const AudioPlayer = ({
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const clampedProgress = Math.max(0, Math.min(100, progress));
   const audioPreload = getAudioPreloadMode(src);
+  const isCompact = variant === 'compact';
 
   return (
-    <div className="retro-audio-player w-full">
+    <div className={`retro-audio-player w-full ${isCompact ? 'retro-audio-player-compact' : ''}`}>
       <audio ref={combinedRef} preload={audioPreload} src={src} />
 
       {/* Play/Pause Button */}
@@ -228,7 +231,7 @@ const AudioPlayer = ({
         <button
           type="button"
           onClick={toggleRepeatMode}
-          className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors flex-shrink-0 ${
+          className={`retro-audio-repeat flex items-center justify-center rounded-full transition-colors flex-shrink-0 ${
             repeatMode !== 'off'
               ? 'bg-[#1594bf] text-[#f8f2df] hover:brightness-95'
               : 'bg-[rgba(20,50,86,0.14)] text-[#173b65] hover:bg-[rgba(20,50,86,0.2)]'

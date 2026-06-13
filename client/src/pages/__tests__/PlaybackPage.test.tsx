@@ -335,25 +335,70 @@ describe('PlaybackPage', () => {
       const image = await screen.findByTestId('script-active-image');
       expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
       expect(image).toHaveClass('object-contain');
+      expect(screen.getByTestId('script-reader-lines')).toBeInTheDocument();
       expect(screen.getByTestId('script-button-retry-images')).toBeInTheDocument();
       expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
+      expect(screen.queryByText('Segment 1')).not.toBeInTheDocument();
     });
 
-    it('shows a full-screen image with captions below while a script is playing', async () => {
+    it('shows a full-screen image with legible glass captions while a script is playing', async () => {
       mockAudioState.isPlaying = true;
       mockAudioState.currentTime = 0.2;
       mockGetEpisode.mockResolvedValue(mockScriptEpisode);
 
       renderPlaybackPage('script-episode-123');
 
+      const movieButton = await screen.findByTestId('script-button-movie-mode');
+      fireEvent.click(movieButton);
+
       expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
       const image = screen.getByTestId('script-cinema-image');
       expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
       expect(image).toHaveClass('object-contain');
-      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('shrink-0');
-      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('bg-[#061522]');
+      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('backdrop-blur-md');
+      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('bg-[rgba(4,16,28,0.68)]');
       expect(screen.getAllByText('日本[にほん]に住[す]んでいます。').length).toBeGreaterThan(0);
       expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
+    });
+
+    it('toggles script playback with the spacebar on the main page', async () => {
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      expect(await screen.findByTestId('script-playback-page')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+
+      expect(mockPlay).toHaveBeenCalled();
+      expect(screen.queryByTestId('script-cinema-overlay')).not.toBeInTheDocument();
+    });
+
+    it('toggles script playback with the spacebar in cinema mode', async () => {
+      mockAudioState.isPlaying = true;
+      mockAudioState.currentTime = 0.2;
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      const movieButton = await screen.findByTestId('script-button-movie-mode');
+      fireEvent.click(movieButton);
+
+      expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+
+      expect(mockPause).toHaveBeenCalled();
+    });
+
+    it('opens movie mode from the explicit movie button and starts playback', async () => {
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+
+      const movieButton = await screen.findByTestId('script-button-movie-mode');
+      fireEvent.click(movieButton);
+
+      expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
+      expect(mockPlay).toHaveBeenCalled();
     });
   });
 

@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { SpeedValue } from '../common/SpeedSelector';
 import { AudioScript, AudioScriptSegment, Episode, LessonScriptUnit } from '../../types';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import AudioPlayer from '../AudioPlayer';
-import CurrentTextDisplay from '../CurrentTextDisplay';
 import JapaneseText from '../JapaneseText';
 import SpeedSelector from '../common/SpeedSelector';
 import ViewToggleButtons from '../common/ViewToggleButtons';
@@ -58,6 +57,18 @@ function getSegmentImageUrl(segment: AudioScriptSegment | null): string | null {
   return mediaId ? toAssetUrl(`/api/study/media/${mediaId}`) : null;
 }
 
+function shouldIgnorePlaybackShortcut(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  return (
+    target.isContentEditable ||
+    tagName === 'input' ||
+    tagName === 'textarea' ||
+    tagName === 'select' ||
+    tagName === 'button'
+  );
+}
+
 interface AudioScriptPlaybackProps {
   episode: Episode;
 }
@@ -70,20 +81,19 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
   const [scriptOverride, setScriptOverride] = useState<AudioScript | null>(null);
   const [isRetryingImages, setIsRetryingImages] = useState(false);
   const [imageRetryError, setImageRetryError] = useState<string | null>(null);
-  const [cinemaDismissed, setCinemaDismissed] = useState(false);
+  const [cinemaOpen, setCinemaOpen] = useState(false);
+  const [stickyHeaderHeight, setStickyHeaderHeight] = useState(0);
+  const [stickyImageHeight, setStickyImageHeight] = useState(0);
+  const stickyHeaderRef = useRef<HTMLDivElement | null>(null);
+  const stickyImageRef = useRef<HTMLDivElement | null>(null);
+  const segmentRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     setScriptOverride(null);
     setImageRetryError(null);
     setIsRetryingImages(false);
-    setCinemaDismissed(false);
+    setCinemaOpen(false);
   }, [episode.id]);
-
-  useEffect(() => {
-    if (!isPlaying) {
-      setCinemaDismissed(false);
-    }
-  }, [isPlaying]);
 
   const script = scriptOverride ?? episode.audioScript;
   const readyRenders = useMemo(
@@ -99,6 +109,34 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     const speedKey = speedValueToKey(selectedSpeed);
     return readyRenders.find((render) => render.speed === speedKey) ?? readyRenders[0] ?? null;
   }, [readyRenders, selectedSpeed]);
+  const audioUrl = selectedRender?.audioUrl
+    ? versionAudioUrl(selectedRender.audioUrl, selectedRender.updatedAt?.toString())
+    : null;
+
+  useEffect(() => {
+    if (!audioUrl) return undefined;
+
+    const handlePlaybackShortcut = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+      if (shouldIgnorePlaybackShortcut(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      if (isPlaying) {
+        pause();
+      } else {
+        play();
+      }
+    };
+
+    window.addEventListener('keydown', handlePlaybackShortcut);
+    return () => {
+      window.removeEventListener('keydown', handlePlaybackShortcut);
+    };
+  }, [audioUrl, isPlaying, pause, play]);
 
   const units = useMemo(
     () =>
@@ -127,11 +165,37 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
   }, [currentUnit, units]);
   const activeSegment =
     activeSegmentIndex >= 0 ? (script?.segments[activeSegmentIndex] ?? null) : null;
-  const activeImageUrl = getSegmentImageUrl(activeSegment);
+  const displaySegment = activeSegment ?? script?.segments[0] ?? null;
+  const activeImageUrl = getSegmentImageUrl(displaySegment);
   const canRetryImages = script?.imageStatus === 'partial' || script?.imageStatus === 'error';
-  const showCinemaMode = Boolean(
-    script && selectedRender?.audioUrl && isPlaying && !cinemaDismissed
-  );
+  const showCinemaMode = Boolean(script && selectedRender?.audioUrl && cinemaOpen);
+  const readerImageTop = `calc(4.5rem + ${stickyHeaderHeight}px + 0.5rem)`;
+  const readerLineScrollMarginTop = `calc(4.5rem + ${
+    stickyHeaderHeight + stickyImageHeight
+  }px + 1.5rem)`;
+
+  useEffect(() => {
+    const updateStickyMeasurements = () => {
+      setStickyHeaderHeight(stickyHeaderRef.current?.getBoundingClientRect().height ?? 0);
+      setStickyImageHeight(stickyImageRef.current?.getBoundingClientRect().height ?? 0);
+    };
+
+    updateStickyMeasurements();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateStickyMeasurements);
+      return () => {
+        window.removeEventListener('resize', updateStickyMeasurements);
+      };
+    }
+
+    const observer = new ResizeObserver(updateStickyMeasurements);
+    if (stickyHeaderRef.current) observer.observe(stickyHeaderRef.current);
+    if (stickyImageRef.current) observer.observe(stickyImageRef.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, [audioUrl, showReadings, showTranslations, selectedSpeed, activeImageUrl]);
 
   useEffect(() => {
     if (!showCinemaMode) return undefined;
@@ -144,11 +208,21 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
   }, [showCinemaMode]);
 
   useEffect(() => {
+    if (activeSegmentIndex < 0 || showCinemaMode) return;
+    const row = segmentRefs.current[activeSegmentIndex];
+    if (typeof row?.scrollIntoView !== 'function') return;
+    row.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, [activeSegmentIndex, showCinemaMode, readerLineScrollMarginTop]);
+
+  useEffect(() => {
     if (!showCinemaMode) return undefined;
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setCinemaDismissed(true);
+        setCinemaOpen(false);
       }
     };
     window.addEventListener('keydown', handleEscape);
@@ -171,6 +245,13 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       handleSeekToSegment(segmentIndex);
+    }
+  };
+
+  const openCinemaMode = () => {
+    setCinemaOpen(true);
+    if (!isPlaying) {
+      play();
     }
   };
 
@@ -237,26 +318,38 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     );
   }
 
-  const audioUrl = selectedRender?.audioUrl
-    ? versionAudioUrl(selectedRender.audioUrl, selectedRender.updatedAt?.toString())
-    : null;
-
   return (
     <div
-      className="retro-playback-v3-page w-full max-w-7xl xl:max-w-[96rem] mx-auto space-y-4"
+      className="retro-playback-v3-page w-full max-w-7xl xl:max-w-[96rem] mx-auto space-y-3"
       data-testid="script-playback-page"
     >
-      <div className="sticky top-[4.5rem] z-10 bg-[rgba(251,245,224,0.98)] mb-3">
-        <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+      <div
+        ref={stickyHeaderRef}
+        className="sticky top-[4.5rem] z-10 mb-3 bg-[rgba(251,245,224,0.98)]"
+      >
+        <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.18)] shadow-[0_6px_0_rgba(17,51,92,0.08)] px-4 py-2.5 sm:px-5">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-            <div className="flex-1">
-              <h1 className="retro-headline text-3xl sm:text-6xl mb-2">{episode.title}</h1>
-              <div className="inline-flex items-center gap-3 retro-caps text-[rgba(20,50,86,0.92)] text-base sm:text-xl">
-                <div className="px-3 py-2 bg-[rgba(20,50,86,0.18)] font-semibold">Script</div>
-                <div className="px-3 py-2 bg-[rgba(20,50,86,0.18)] font-semibold">
-                  {script.segments.length} lines
+            <div className="min-w-0 flex-1">
+              <h1 className="retro-headline text-3xl sm:text-5xl">{episode.title}</h1>
+              {audioUrl ? (
+                <div className="mt-1.5 max-w-4xl">
+                  <AudioPlayer
+                    src={audioUrl}
+                    audioRef={audioRef}
+                    variant="compact"
+                    onEnded={() => {
+                      pause();
+                      seek(0);
+                    }}
+                  />
                 </div>
-              </div>
+              ) : (
+                <div className="mt-2 bg-yellow p-3 text-sm font-medium text-dark-brown">
+                  {script.status === 'error'
+                    ? script.errorMessage || 'Script audio generation failed.'
+                    : 'Script audio is not ready yet.'}
+                </div>
+              )}
             </div>
 
             {audioUrl && (
@@ -274,31 +367,18 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
                   options={SCRIPT_SPEED_OPTIONS}
                   showLabels
                 />
+                <button
+                  type="button"
+                  onClick={openCinemaMode}
+                  className="btn-secondary inline-flex justify-center"
+                  data-testid="script-button-movie-mode"
+                >
+                  Movie mode
+                </button>
               </div>
             )}
           </div>
         </div>
-
-        {audioUrl ? (
-          <div className="retro-paper-panel border-x-2 border-b-2 border-[rgba(20,50,86,0.12)] px-4 py-3">
-            <AudioPlayer
-              src={audioUrl}
-              audioRef={audioRef}
-              onEnded={() => {
-                pause();
-                seek(0);
-              }}
-            />
-          </div>
-        ) : (
-          <div className="retro-paper-panel bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)] p-4">
-            <p className="text-sm font-medium text-dark-brown">
-              {script.status === 'error'
-                ? script.errorMessage || 'Script audio generation failed.'
-                : 'Script audio is not ready yet.'}
-            </p>
-          </div>
-        )}
       </div>
 
       {showCinemaMode && (
@@ -313,42 +393,47 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
             </div>
             <button
               type="button"
-              onClick={() => setCinemaDismissed(true)}
+              onClick={() => setCinemaOpen(false)}
               className="rounded border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
             >
               Exit
             </button>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col bg-black">
-            <div className="flex min-h-0 flex-1 items-center justify-center p-2 sm:p-4">
-              {activeImageUrl ? (
-                <img
-                  src={activeImageUrl}
-                  alt={activeSegment?.translation || 'Script scene illustration'}
-                  className="max-h-full max-w-full object-contain"
-                  data-testid="script-cinema-image"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center px-4 text-center retro-caps text-white/45">
-                  Illustration pending
-                </div>
-              )}
-            </div>
-            <div
-              className="shrink-0 border-t border-white/15 bg-[#061522] px-4 py-4 text-center shadow-[0_-12px_36px_rgba(0,0,0,0.35)] sm:px-10 sm:py-5"
-              data-testid="script-cinema-caption"
-            >
+          <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black p-2 sm:p-4">
+            {activeImageUrl ? (
+              <img
+                src={activeImageUrl}
+                alt={activeSegment?.translation || 'Script scene illustration'}
+                className="max-h-full max-w-full object-contain"
+                data-testid="script-cinema-image"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center px-4 text-center retro-caps text-white/45">
+                Illustration pending
+              </div>
+            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center px-3 sm:bottom-6 sm:px-8">
               {currentUnit?.type === 'L2' && (
-                <div className="mx-auto max-h-[34vh] max-w-5xl overflow-y-auto px-1">
-                  <div className="text-2xl font-semibold leading-relaxed text-white sm:text-4xl">
+                <div
+                  className="pointer-events-auto max-h-[34vh] w-fit max-w-[min(92vw,64rem)] overflow-y-auto rounded-md border border-white/20 bg-[rgba(4,16,28,0.68)] px-3 py-2 text-center shadow-[0_18px_52px_rgba(0,0,0,0.52)] backdrop-blur-md sm:px-5 sm:py-3"
+                  data-testid="script-cinema-caption"
+                >
+                  <div
+                    className="text-2xl font-semibold leading-relaxed text-[#fff3b0] sm:text-4xl"
+                    style={{ textShadow: '0 2px 10px rgba(0, 0, 0, 0.8)' }}
+                  >
                     <JapaneseText
                       text={currentUnit.reading || currentUnit.text}
                       showFurigana={showReadings}
                       metadata={activeSegment?.metadata}
+                      style={{ color: '#fff3b0' }}
                     />
                   </div>
                   {showTranslations && currentUnit.translation && (
-                    <div className="mx-auto mt-2 max-w-4xl text-base font-medium leading-snug text-[rgba(255,255,255,0.86)] sm:text-xl">
+                    <div
+                      className="mx-auto mt-2 max-w-4xl text-base font-medium leading-snug text-[rgba(255,255,255,0.9)] sm:text-xl"
+                      style={{ textShadow: '0 2px 8px rgba(0, 0, 0, 0.75)' }}
+                    >
                       {currentUnit.translation}
                     </div>
                   )}
@@ -360,15 +445,17 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
       )}
 
       <div
-        className="retro-paper-panel overflow-hidden border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)]"
+        ref={stickyImageRef}
+        className="retro-paper-panel sticky z-[8] mx-auto max-w-4xl overflow-hidden border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.96)] shadow-[0_10px_0_rgba(17,51,92,0.08)]"
+        style={{ top: readerImageTop }}
         data-testid="script-active-image-panel"
       >
-        <div className="flex aspect-[16/9] w-full items-center justify-center bg-[rgba(20,50,86,0.08)]">
+        <div className="flex h-[min(34vh,22rem)] min-h-[11rem] w-full items-center justify-center bg-[rgba(20,50,86,0.08)] p-2 sm:p-3">
           {activeImageUrl ? (
             <img
               src={activeImageUrl}
-              alt={activeSegment?.translation || 'Script scene illustration'}
-              className="h-full w-full object-contain"
+              alt={displaySegment?.translation || 'Script scene illustration'}
+              className="max-h-full max-w-full object-contain"
               data-testid="script-active-image"
             />
           ) : (
@@ -397,30 +484,25 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
         )}
       </div>
 
-      <CurrentTextDisplay
-        currentUnit={currentUnit}
-        targetLanguage="ja"
-        showReadings={showReadings}
-        showTranslations={showTranslations}
-      />
-
-      <div className="space-y-3">
+      <div className="mx-auto max-w-4xl space-y-3" data-testid="script-reader-lines">
         {script.segments.map((segment, index) => (
           <button
             key={segment.id}
+            ref={(element) => {
+              segmentRefs.current[index] = element;
+            }}
             type="button"
             onClick={() => handleSeekToSegment(index)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={`retro-paper-panel w-full text-left p-4 transition ${
               Math.floor(activeSegmentIndex) === index
-                ? 'bg-[rgba(247,199,68,0.35)]'
+                ? 'border-2 border-[rgba(20,50,86,0.32)] bg-[rgba(247,199,68,0.38)] shadow-[0_8px_0_rgba(17,51,92,0.12)]'
                 : 'bg-[rgba(255,255,255,0.55)]'
             }`}
+            style={{ scrollMarginTop: readerLineScrollMarginTop }}
+            data-active={Math.floor(activeSegmentIndex) === index ? 'true' : 'false'}
             data-testid="script-segment-row"
           >
-            <div className="retro-caps text-sm text-[rgba(20,50,86,0.58)] mb-2">
-              Segment {index + 1}
-            </div>
             <div className="text-2xl text-navy leading-relaxed">
               <JapaneseText
                 text={segment.reading || segment.text}
