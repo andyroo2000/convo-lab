@@ -350,6 +350,7 @@ describe('PlaybackPage', () => {
       const image = screen.getByTestId('script-cinema-image');
       expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
       expect(image).toHaveClass('object-contain');
+      expect(screen.getByTestId('script-cinema-caption')).toHaveClass('bg-[rgba(0,0,0,0.82)]');
       expect(screen.getAllByText('日本[にほん]に住[す]んでいます。').length).toBeGreaterThan(0);
       expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
     });

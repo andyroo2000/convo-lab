@@ -332,10 +332,16 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
                 Illustration pending
               </div>
             )}
-            <div className="absolute inset-x-0 bottom-0 bg-black/72 px-4 py-5 text-center shadow-[0_-14px_32px_rgba(0,0,0,0.28)] sm:px-10 sm:py-7">
+            <div className="absolute inset-x-0 bottom-0 px-4 py-5 text-center sm:px-10 sm:py-7">
               {currentUnit?.type === 'L2' && (
-                <>
-                  <div className="mx-auto max-w-5xl text-3xl font-semibold leading-relaxed text-white sm:text-5xl">
+                <div
+                  className="mx-auto max-w-5xl rounded-md border border-white/20 bg-[rgba(0,0,0,0.82)] px-4 py-4 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-sm sm:px-7 sm:py-5"
+                  data-testid="script-cinema-caption"
+                >
+                  <div
+                    className="text-3xl font-semibold leading-relaxed text-white sm:text-5xl"
+                    style={{ textShadow: '0 2px 10px rgba(0, 0, 0, 0.92)' }}
+                  >
                     <JapaneseText
                       text={currentUnit.reading || currentUnit.text}
                       showFurigana={showReadings}
@@ -343,11 +349,14 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
                     />
                   </div>
                   {showTranslations && currentUnit.translation && (
-                    <div className="mx-auto mt-3 max-w-4xl text-lg font-medium leading-snug text-white/88 sm:text-2xl">
+                    <div
+                      className="mx-auto mt-3 max-w-4xl text-lg font-medium leading-snug text-[rgba(255,255,255,0.92)] sm:text-2xl"
+                      style={{ textShadow: '0 2px 8px rgba(0, 0, 0, 0.9)' }}
+                    >
                       {currentUnit.translation}
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>
