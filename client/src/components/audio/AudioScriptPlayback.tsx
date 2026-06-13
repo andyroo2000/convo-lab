@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { SpeedValue } from '../common/SpeedSelector';
-import { Episode, LessonScriptUnit } from '../../types';
+import { AudioScript, AudioScriptSegment, Episode, LessonScriptUnit } from '../../types';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import AudioPlayer from '../AudioPlayer';
@@ -9,6 +9,8 @@ import CurrentTextDisplay from '../CurrentTextDisplay';
 import JapaneseText from '../JapaneseText';
 import SpeedSelector from '../common/SpeedSelector';
 import ViewToggleButtons from '../common/ViewToggleButtons';
+import { API_URL } from '../../config';
+import { toAssetUrl } from '../study/studyCardUtils';
 import {
   findCurrentL2Unit,
   normalizeTimingDataForDuration,
@@ -50,6 +52,12 @@ function buildUnits(episode: Episode, speed: number): LessonScriptUnit[] {
   return units;
 }
 
+function getSegmentImageUrl(segment: AudioScriptSegment | null): string | null {
+  if (!segment) return null;
+  const mediaId = segment.imageMedia?.id || segment.imageMediaId;
+  return mediaId ? toAssetUrl(`/api/study/media/${mediaId}`) : null;
+}
+
 interface AudioScriptPlaybackProps {
   episode: Episode;
 }
@@ -59,8 +67,17 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
   const [selectedSpeed, setSelectedSpeed] = useState<SpeedValue>('0.85x');
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(true);
+  const [scriptOverride, setScriptOverride] = useState<AudioScript | null>(null);
+  const [isRetryingImages, setIsRetryingImages] = useState(false);
+  const [imageRetryError, setImageRetryError] = useState<string | null>(null);
 
-  const script = episode.audioScript;
+  useEffect(() => {
+    setScriptOverride(null);
+    setImageRetryError(null);
+    setIsRetryingImages(false);
+  }, [episode.id]);
+
+  const script = scriptOverride ?? episode.audioScript;
   const readyRenders = useMemo(
     () => script?.renders.filter((render) => render.status === 'ready') ?? [],
     [script?.renders]
@@ -76,8 +93,15 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
   }, [readyRenders, selectedSpeed]);
 
   const units = useMemo(
-    () => buildUnits(episode, selectedRender?.numericSpeed ?? 0.85),
-    [episode, selectedRender?.numericSpeed]
+    () =>
+      buildUnits(
+        {
+          ...episode,
+          audioScript: script,
+        },
+        selectedRender?.numericSpeed ?? 0.85
+      ),
+    [episode, script, selectedRender?.numericSpeed]
   );
   const timingData = useMemo(
     () =>
@@ -91,8 +115,12 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
 
   const activeSegmentIndex = useMemo(() => {
     if (!currentUnit || currentUnit.type !== 'L2') return -1;
-    return units.findIndex((unit) => unit === currentUnit) / 2;
+    return Math.floor(units.findIndex((unit) => unit === currentUnit) / 2);
   }, [currentUnit, units]);
+  const activeSegment =
+    activeSegmentIndex >= 0 ? (script?.segments[activeSegmentIndex] ?? null) : null;
+  const activeImageUrl = getSegmentImageUrl(activeSegment);
+  const canRetryImages = script?.imageStatus === 'partial' || script?.imageStatus === 'error';
 
   const handleSeekToSegment = (segmentIndex: number) => {
     const unitIndex = segmentIndex * 2;
@@ -108,6 +136,56 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       handleSeekToSegment(segmentIndex);
+    }
+  };
+
+  const retryImages = async () => {
+    setImageRetryError(null);
+    setIsRetryingImages(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/scripts/${episode.id}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ force: false }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || payload?.message || 'Failed to retry images.');
+      }
+
+      const startedAt = Date.now();
+      const timeoutMs = 5 * 60 * 1000;
+      /* eslint-disable no-await-in-loop -- polling must wait between status requests */
+      while (Date.now() - startedAt < timeoutMs) {
+        const statusResponse = await fetch(`${API_URL}/api/scripts/${episode.id}/status`, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        if (!statusResponse.ok) {
+          const payload = await statusResponse.json().catch(() => null);
+          throw new Error(payload?.error || payload?.message || 'Failed to check image status.');
+        }
+        const nextScript = (await statusResponse.json()) as AudioScript;
+        setScriptOverride(nextScript);
+        if (
+          nextScript.imageStatus === 'ready' ||
+          nextScript.imageStatus === 'partial' ||
+          nextScript.imageStatus === 'error'
+        ) {
+          return;
+        }
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, 2500);
+        });
+      }
+      /* eslint-enable no-await-in-loop */
+      throw new Error('Image retry timed out. Please try again later.');
+    } catch (error) {
+      setImageRetryError(error instanceof Error ? error.message : 'Failed to retry images.');
+    } finally {
+      setIsRetryingImages(false);
     }
   };
 
@@ -184,6 +262,44 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
                 ? script.errorMessage || 'Script audio generation failed.'
                 : 'Script audio is not ready yet.'}
             </p>
+          </div>
+        )}
+      </div>
+
+      <div
+        className="retro-paper-panel overflow-hidden border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)]"
+        data-testid="script-active-image-panel"
+      >
+        <div className="aspect-[16/9] w-full bg-[rgba(20,50,86,0.08)]">
+          {activeImageUrl ? (
+            <img
+              src={activeImageUrl}
+              alt={activeSegment?.translation || 'Script scene illustration'}
+              className="h-full w-full object-cover"
+              data-testid="script-active-image"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center px-4 text-center retro-caps text-[rgba(20,50,86,0.48)]">
+              Illustration pending
+            </div>
+          )}
+        </div>
+        {(canRetryImages || imageRetryError) && (
+          <div className="flex flex-col gap-2 border-t-2 border-[rgba(20,50,86,0.08)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-medium text-[rgba(20,50,86,0.72)]">
+              {imageRetryError || script?.imageErrorMessage || 'Some illustrations are missing.'}
+            </p>
+            {canRetryImages && (
+              <button
+                type="button"
+                onClick={retryImages}
+                disabled={isRetryingImages}
+                className="btn-secondary inline-flex justify-center"
+                data-testid="script-button-retry-images"
+              >
+                {isRetryingImages ? 'Retrying...' : 'Retry images'}
+              </button>
+            )}
           </div>
         )}
       </div>

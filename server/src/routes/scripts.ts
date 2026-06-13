@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { audioScriptQueue } from '../jobs/audioScriptQueue.js';
+import { imageQueue } from '../jobs/imageQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
@@ -10,6 +11,7 @@ import {
   annotateAudioScript,
   createAudioScript,
   getAudioScriptStatus,
+  toAudioScriptResponse,
   updateAudioScriptSegments,
 } from '../services/audioScriptService.js';
 import { logGeneration } from '../services/usageTracker.js';
@@ -47,7 +49,7 @@ router.post(
   async (req: AuthRequest, res, next) => {
     try {
       const script = await annotateAudioScript(req.params.episodeId, req.userId!);
-      res.json(script);
+      res.json(toAudioScriptResponse(script));
     } catch (error) {
       next(error);
     }
@@ -68,7 +70,7 @@ router.patch('/:episodeId/segments', blockDemoUser, async (req: AuthRequest, res
       voiceId,
       segments,
     });
-    res.json(script);
+    res.json(toAudioScriptResponse(script));
   } catch (error) {
     next(error);
   }
@@ -98,10 +100,35 @@ router.post(
   }
 );
 
+router.post(
+  '/:episodeId/images',
+  requireEmailVerified,
+  blockDemoUser,
+  async (req: AuthRequest, res, next) => {
+    try {
+      await getAudioScriptStatus(req.params.episodeId, req.userId!);
+      const job = await imageQueue.add('generate-script-images', {
+        episodeId: req.params.episodeId,
+        userId: req.userId!,
+        force: Boolean(req.body?.force),
+      });
+
+      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
+
+      res.json({
+        jobId: job.id,
+        message: 'Script image generation started.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.get('/:episodeId/status', async (req: AuthRequest, res, next) => {
   try {
     const script = await getAudioScriptStatus(req.params.episodeId, req.userId!);
-    res.json(script);
+    res.json(toAudioScriptResponse(script));
   } catch (error) {
     next(error);
   }

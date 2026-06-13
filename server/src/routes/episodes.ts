@@ -54,6 +54,8 @@ router.get('/', async (req: AuthRequest, res, next) => {
           audioScript: {
             select: {
               status: true,
+              imageStatus: true,
+              imageErrorMessage: true,
               _count: {
                 select: {
                   segments: true,
@@ -91,6 +93,17 @@ router.get('/', async (req: AuthRequest, res, next) => {
           include: {
             segments: {
               orderBy: { order: 'asc' },
+              include: {
+                imageMedia: {
+                  select: {
+                    id: true,
+                    mediaKind: true,
+                    contentType: true,
+                    publicUrl: true,
+                    sourceFilename: true,
+                  },
+                },
+              },
             },
             renders: {
               orderBy: { numericSpeed: 'asc' },
@@ -134,6 +147,17 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
           include: {
             segments: {
               orderBy: { order: 'asc' },
+              include: {
+                imageMedia: {
+                  select: {
+                    id: true,
+                    mediaKind: true,
+                    contentType: true,
+                    publicUrl: true,
+                    sourceFilename: true,
+                  },
+                },
+              },
             },
             renders: {
               orderBy: { numericSpeed: 'asc' },

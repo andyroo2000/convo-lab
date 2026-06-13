@@ -1,5 +1,8 @@
+import { randomUUID } from 'node:crypto';
+
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Prisma } from '@prisma/client';
+import sharp from 'sharp';
 
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -8,6 +11,15 @@ import { assembleLessonAudio } from './audioCourseAssembler.js';
 import { generateCoreLlmJsonText } from './coreLlmClient.js';
 import { generateJapaneseReading } from './japaneseReadingGenerator.js';
 import type { LessonScriptUnit } from './lessonScriptGenerator.js';
+import { generateOpenAIImageBuffer } from './openAIClient.js';
+import { applyStudyImagePromptGuardrails } from './study/candidates/imagePromptGuardrails.js';
+import {
+  deletePersistedStudyMediaByStoragePath,
+  getStudyMediaApiPath,
+  normalizeFilename,
+  persistStudyMediaBuffer,
+  STUDY_GENERATED_IMPORT_JOB_ID,
+} from './study/shared.js';
 
 export const AUDIO_SCRIPT_DEFAULT_VOICE_ID = 'ja-JP-Neural2-D';
 export const AUDIO_SCRIPT_SPEEDS = [
@@ -18,6 +30,14 @@ export const AUDIO_SCRIPT_SPEEDS = [
 
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 const MAX_SCRIPT_CHARS = 6000;
+const AUDIO_SCRIPT_IMAGE_CONTENT_TYPE = 'image/webp';
+const AUDIO_SCRIPT_IMAGE_EXTENSION = 'webp';
+const AUDIO_SCRIPT_IMAGE_WEBP_QUALITY = 82;
+const AUDIO_SCRIPT_SUPPORTED_INPUT_IMAGE_CONTENT_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
 
 interface AudioScriptSegmentInput {
   text: string;
@@ -151,7 +171,10 @@ async function getOwnedScriptByEpisodeId(episodeId: string, userId: string) {
     },
     include: {
       episode: true,
-      segments: { orderBy: { order: 'asc' } },
+      segments: {
+        orderBy: { order: 'asc' },
+        include: { imageMedia: true },
+      },
       renders: { orderBy: { numericSpeed: 'asc' } },
     },
   });
@@ -187,7 +210,155 @@ async function replaceSegments(scriptId: string, segments: AudioScriptSegmentInp
       data: segments.map((segment, index) => toSegmentCreate(scriptId, segment, index)),
     });
     await tx.audioScriptRender.deleteMany({ where: { scriptId } });
+    await tx.audioScript.update({
+      where: { id: scriptId },
+      data: { imageStatus: 'pending', imageErrorMessage: null },
+    });
   });
+}
+
+function buildAudioScriptImagePrompt(segment: {
+  text: string;
+  translation: string;
+  imagePrompt?: string | null;
+}): string {
+  const prompt = segment.imagePrompt?.trim();
+  if (prompt) return prompt;
+
+  return [
+    `A clear story scene representing: ${segment.translation.trim()}.`,
+    `Japanese line for context: ${segment.text.trim()}.`,
+  ].join(' ');
+}
+
+async function createAudioScriptSegmentImageMedia(input: {
+  userId: string;
+  segmentId: string;
+  imagePrompt: string;
+}) {
+  const { buffer, contentType: openAIContentType } = await generateOpenAIImageBuffer(
+    applyStudyImagePromptGuardrails(input.imagePrompt)
+  );
+  if (!AUDIO_SCRIPT_SUPPORTED_INPUT_IMAGE_CONTENT_TYPES.has(openAIContentType)) {
+    throw new AppError('OpenAI returned an unsupported image format.', 502);
+  }
+
+  const webpBuffer = await sharp(buffer)
+    .webp({ quality: AUDIO_SCRIPT_IMAGE_WEBP_QUALITY })
+    .toBuffer();
+  const filename = `${normalizeFilename(input.segmentId) || 'script-segment'}-${randomUUID()}.${AUDIO_SCRIPT_IMAGE_EXTENSION}`;
+  const persisted = await persistStudyMediaBuffer({
+    userId: input.userId,
+    importJobId: STUDY_GENERATED_IMPORT_JOB_ID,
+    filename,
+    buffer: webpBuffer,
+  });
+
+  try {
+    const media = await prisma.studyMedia.create({
+      data: {
+        userId: input.userId,
+        sourceKind: 'generated',
+        sourceFilename: filename,
+        normalizedFilename: normalizeFilename(filename),
+        mediaKind: 'image',
+        contentType: AUDIO_SCRIPT_IMAGE_CONTENT_TYPE,
+        storagePath: persisted.storagePath,
+        publicUrl: persisted.publicUrl,
+      },
+    });
+
+    return {
+      id: media.id,
+      filename,
+      url: getStudyMediaApiPath(media.id),
+      storagePath: persisted.storagePath,
+    };
+  } catch (error) {
+    await deletePersistedStudyMediaByStoragePath(persisted.storagePath);
+    throw error;
+  }
+}
+
+async function cleanupReplacedAudioScriptImage(input: {
+  media: { id: string; sourceKind: string; mediaKind: string; storagePath: string | null } | null;
+  replacementImageId: string;
+}) {
+  const media = input.media;
+  if (
+    !media ||
+    media.id === input.replacementImageId ||
+    media.sourceKind !== 'generated' ||
+    media.mediaKind !== 'image' ||
+    !media.storagePath
+  ) {
+    return;
+  }
+
+  try {
+    await prisma.studyMedia.deleteMany({ where: { id: media.id } });
+    await deletePersistedStudyMediaByStoragePath(media.storagePath);
+  } catch (error) {
+    console.warn('[AudioScript] Unable to clean up replaced segment image.', error);
+  }
+}
+
+function summarizeImageStatus(
+  segments: Array<{ imageStatus: string; imageMediaId?: string | null }>
+) {
+  if (segments.length === 0) {
+    return { imageStatus: 'pending', imageErrorMessage: null };
+  }
+
+  const readyCount = segments.filter(
+    (segment) => segment.imageStatus === 'ready' && segment.imageMediaId
+  ).length;
+  if (readyCount === segments.length) {
+    return { imageStatus: 'ready', imageErrorMessage: null };
+  }
+  if (readyCount > 0) {
+    return {
+      imageStatus: 'partial',
+      imageErrorMessage: `${segments.length - readyCount} script image${segments.length - readyCount === 1 ? '' : 's'} failed or are missing.`,
+    };
+  }
+  return {
+    imageStatus: 'error',
+    imageErrorMessage: 'Script image generation failed.',
+  };
+}
+
+export function toAudioScriptResponse<T extends { segments?: Array<Record<string, unknown>> }>(
+  script: T
+): T {
+  return {
+    ...script,
+    segments: script.segments?.map((segment) => {
+      const media = segment.imageMedia as
+        | {
+            id: string;
+            mediaKind: string;
+            contentType: string | null;
+            publicUrl: string | null;
+            sourceFilename: string;
+          }
+        | null
+        | undefined;
+
+      return {
+        ...segment,
+        imageMedia: media
+          ? {
+              id: media.id,
+              mediaKind: media.mediaKind,
+              contentType: media.contentType,
+              publicUrl: media.publicUrl,
+              sourceFilename: media.sourceFilename,
+            }
+          : null,
+      };
+    }),
+  };
 }
 
 export async function createAudioScript(params: {
@@ -267,7 +438,10 @@ export async function annotateAudioScript(episodeId: string, userId: string) {
       },
       include: {
         episode: true,
-        segments: { orderBy: { order: 'asc' } },
+        segments: {
+          orderBy: { order: 'asc' },
+          include: { imageMedia: true },
+        },
         renders: { orderBy: { numericSpeed: 'asc' } },
       },
     });
@@ -321,7 +495,10 @@ export async function updateAudioScriptSegments(params: {
     },
     include: {
       episode: true,
-      segments: { orderBy: { order: 'asc' } },
+      segments: {
+        orderBy: { order: 'asc' },
+        include: { imageMedia: true },
+      },
       renders: { orderBy: { numericSpeed: 'asc' } },
     },
   });
@@ -457,6 +634,96 @@ export async function processAudioScriptRenderJob(params: {
     });
     throw error;
   }
+}
+
+export async function generateAudioScriptSegmentImages(params: {
+  episodeId: string;
+  userId: string;
+  force?: boolean;
+  onProgress?: (progress: number) => Promise<void> | void;
+}) {
+  const report = params.onProgress ?? (async () => {});
+  const script = await getOwnedScriptByEpisodeId(params.episodeId, params.userId);
+
+  if (script.segments.length === 0) {
+    throw new AppError('Annotate script segments before generating images.', 400);
+  }
+
+  await prisma.audioScript.update({
+    where: { id: script.id },
+    data: { imageStatus: 'generating', imageErrorMessage: null },
+  });
+
+  const targets = script.segments.filter(
+    (segment) => params.force || segment.imageStatus !== 'ready' || !segment.imageMediaId
+  );
+
+  if (targets.length === 0) {
+    await prisma.audioScript.update({
+      where: { id: script.id },
+      data: { imageStatus: 'ready', imageErrorMessage: null },
+    });
+    await report(100);
+    return { episodeId: script.episodeId, imageStatus: 'ready' };
+  }
+
+  await report(5);
+
+  for (const [index, segment] of targets.entries()) {
+    const previousImageMedia = segment.imageMedia;
+
+    try {
+      await prisma.audioScriptSegment.update({
+        where: { id: segment.id },
+        data: { imageStatus: 'generating', imageErrorMessage: null },
+      });
+
+      const image = await createAudioScriptSegmentImageMedia({
+        userId: params.userId,
+        segmentId: segment.id,
+        imagePrompt: buildAudioScriptImagePrompt(segment),
+      });
+
+      await prisma.audioScriptSegment.update({
+        where: { id: segment.id },
+        data: {
+          imageStatus: 'ready',
+          imageErrorMessage: null,
+          imageMediaId: image.id,
+          imageGeneratedAt: new Date(),
+        },
+      });
+      await cleanupReplacedAudioScriptImage({
+        media: previousImageMedia,
+        replacementImageId: image.id,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Script image generation failed.';
+      await prisma.audioScriptSegment.update({
+        where: { id: segment.id },
+        data: {
+          imageStatus: 'error',
+          imageErrorMessage: message,
+        },
+      });
+    }
+
+    await report(5 + Math.floor(((index + 1) / targets.length) * 90));
+  }
+
+  const refreshedSegments = await prisma.audioScriptSegment.findMany({
+    where: { scriptId: script.id },
+    orderBy: { order: 'asc' },
+    select: { imageStatus: true, imageMediaId: true },
+  });
+  const summary = summarizeImageStatus(refreshedSegments);
+  await prisma.audioScript.update({
+    where: { id: script.id },
+    data: summary,
+  });
+  await report(100);
+
+  return { episodeId: script.episodeId, imageStatus: summary.imageStatus };
 }
 
 export async function getAudioScriptStatus(episodeId: string, userId: string) {

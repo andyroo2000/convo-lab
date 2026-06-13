@@ -44,9 +44,22 @@ const ScriptCreatorPage = () => {
       const readyCount = script.renders.filter(
         (render: { status: string }) => render.status === 'ready'
       ).length;
-      setRenderStatus(`Generated ${readyCount}/3 audio tracks...`);
+      const segmentCount = Array.isArray(script.segments) ? script.segments.length : 0;
+      const imageReadyCount = Array.isArray(script.segments)
+        ? script.segments.filter(
+            (segment: { imageStatus?: string; imageMediaId?: string | null }) =>
+              segment.imageStatus === 'ready' && segment.imageMediaId
+          ).length
+        : 0;
+      const imageStatus = script.imageStatus || 'pending';
+      setRenderStatus(
+        `Generated ${readyCount}/3 audio tracks and ${imageReadyCount}/${segmentCount} illustrations...`
+      );
 
-      if (script.status === 'ready') {
+      if (
+        script.status === 'ready' &&
+        (imageStatus === 'ready' || imageStatus === 'partial' || imageStatus === 'error')
+      ) {
         const suffix = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
         navigate(`/app/playback/${id}${suffix}`);
         return;
@@ -98,13 +111,24 @@ const ScriptCreatorPage = () => {
         throw new Error(await readApiError(annotateResponse, 'Failed to annotate script.'));
       }
 
-      setRenderStatus('Generating audio at 0.75x, 0.85x, and 1.0x...');
-      const renderResponse = await fetch(`${API_URL}/api/scripts/${episode.id}/render`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      setRenderStatus('Generating audio and illustrations...');
+      const [renderResponse, imagesResponse] = await Promise.all([
+        fetch(`${API_URL}/api/scripts/${episode.id}/render`, {
+          method: 'POST',
+          credentials: 'include',
+        }),
+        fetch(`${API_URL}/api/scripts/${episode.id}/images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ force: false }),
+        }),
+      ]);
       if (!renderResponse.ok) {
         throw new Error(await readApiError(renderResponse, 'Failed to start audio rendering.'));
+      }
+      if (!imagesResponse.ok) {
+        throw new Error(await readApiError(imagesResponse, 'Failed to start image generation.'));
       }
 
       await pollUntilReady(episode.id);

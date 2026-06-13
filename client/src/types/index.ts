@@ -71,6 +71,8 @@ export interface AudioScript {
   id: string;
   episodeId: string;
   status: 'draft' | 'annotated' | 'generating' | 'ready' | 'error';
+  imageStatus?: 'pending' | 'generating' | 'ready' | 'partial' | 'error';
+  imageErrorMessage?: string | null;
   voiceId: string;
   voiceProvider: 'google';
   generationMetadataJson?: unknown;
@@ -92,9 +94,22 @@ export interface AudioScriptSegment {
   reading?: string | null;
   translation: string;
   imagePrompt?: string | null;
+  imageStatus?: 'pending' | 'generating' | 'ready' | 'error';
+  imageErrorMessage?: string | null;
+  imageMediaId?: string | null;
+  imageGeneratedAt?: Date | string | null;
+  imageMedia?: StudyMedia | null;
   metadata?: LanguageMetadata;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface StudyMedia {
+  id: string;
+  mediaKind: string;
+  contentType?: string | null;
+  publicUrl?: string | null;
+  sourceFilename?: string;
 }
 
 export interface AudioScriptRender {

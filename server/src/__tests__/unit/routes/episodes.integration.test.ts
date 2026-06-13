@@ -146,6 +146,8 @@ describe('Episodes Routes Integration', () => {
           audioScript: {
             select: {
               status: true,
+              imageStatus: true,
+              imageErrorMessage: true,
               _count: {
                 select: {
                   segments: true,
@@ -197,6 +199,17 @@ describe('Episodes Routes Integration', () => {
             include: {
               segments: {
                 orderBy: { order: 'asc' },
+                include: {
+                  imageMedia: {
+                    select: {
+                      id: true,
+                      mediaKind: true,
+                      contentType: true,
+                      publicUrl: true,
+                      sourceFilename: true,
+                    },
+                  },
+                },
               },
               renders: {
                 orderBy: { numericSpeed: 'asc' },
@@ -268,6 +281,17 @@ describe('Episodes Routes Integration', () => {
             include: {
               segments: {
                 orderBy: { order: 'asc' },
+                include: {
+                  imageMedia: {
+                    select: {
+                      id: true,
+                      mediaKind: true,
+                      contentType: true,
+                      publicUrl: true,
+                      sourceFilename: true,
+                    },
+                  },
+                },
               },
               renders: {
                 orderBy: { numericSpeed: 'asc' },
