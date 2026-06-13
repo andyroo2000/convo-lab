@@ -1,5 +1,6 @@
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Router } from 'express';
+import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
 import { audioScriptQueue } from '../jobs/audioScriptQueue.js';
 import { imageQueue } from '../jobs/imageQueue.js';
@@ -20,14 +21,15 @@ import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
+const scriptIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 router.use(
-  rateLimitStudyRoute({
-    key: 'script-anonymous',
-    max: 300,
-    windowMs: 60 * 1000,
-    allowAnonymousIdentity: true,
-  }),
+  scriptIpRateLimit,
   requireAuth,
   rateLimitStudyRoute({ key: 'script', max: 300, windowMs: 60 * 1000 })
 );
