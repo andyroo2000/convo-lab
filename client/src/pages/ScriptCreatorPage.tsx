@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection';
@@ -26,6 +26,14 @@ const ScriptCreatorPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [renderStatus, setRenderStatus] = useState('Preparing your script...');
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   async function pollUntilReady(id: string) {
     const startedAt = Date.now();
@@ -41,6 +49,7 @@ const ScriptCreatorPage = () => {
         throw new Error(await readApiError(response, 'Failed to check script status.'));
       }
       const script = await response.json();
+      if (!mountedRef.current) return;
       const readyCount = script.renders.filter(
         (render: { status: string }) => render.status === 'ready'
       ).length;
@@ -61,6 +70,7 @@ const ScriptCreatorPage = () => {
         (imageStatus === 'ready' || imageStatus === 'partial' || imageStatus === 'error')
       ) {
         const suffix = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
+        if (!mountedRef.current) return;
         navigate(`/app/playback/${id}${suffix}`);
         return;
       }
@@ -71,6 +81,7 @@ const ScriptCreatorPage = () => {
       await new Promise((resolve) => {
         window.setTimeout(resolve, 3000);
       });
+      if (!mountedRef.current) return;
     }
     /* eslint-enable no-await-in-loop */
 
@@ -131,11 +142,15 @@ const ScriptCreatorPage = () => {
         throw new Error(await readApiError(imagesResponse, 'Failed to start image generation.'));
       }
 
-      await pollUntilReady(episode.id);
+      if (mountedRef.current) {
+        await pollUntilReady(episode.id);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate script.');
-      setStep('input');
-      setRenderStatus('Preparing your script...');
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to generate script.');
+        setStep('input');
+        setRenderStatus('Preparing your script...');
+      }
     }
   };
 

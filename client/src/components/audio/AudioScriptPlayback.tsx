@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AUDIO_SCRIPT_SEGMENT_PAUSE_SECONDS } from '@languageflow/shared/src/audioScript';
 import type { SpeedValue } from '../common/SpeedSelector';
 import { AudioScript, AudioScriptSegment, Episode, LessonScriptUnit } from '../../types';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
@@ -44,7 +45,7 @@ function buildUnits(episode: Episode, speed: number): LessonScriptUnit[] {
     });
 
     if (index < script.segments.length - 1) {
-      units.push({ type: 'pause', seconds: 0.35 });
+      units.push({ type: 'pause', seconds: AUDIO_SCRIPT_SEGMENT_PAUSE_SECONDS });
     }
   });
 
@@ -87,6 +88,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
   const stickyHeaderRef = useRef<HTMLDivElement | null>(null);
   const stickyImageRef = useRef<HTMLDivElement | null>(null);
   const segmentRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     setScriptOverride(null);
@@ -94,6 +96,13 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     setIsRetryingImages(false);
     setCinemaOpen(false);
   }, [episode.id]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const script = scriptOverride ?? episode.audioScript;
   const readyRenders = useMemo(
@@ -215,7 +224,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
       behavior: 'smooth',
       block: 'start',
     });
-  }, [activeSegmentIndex, showCinemaMode, readerLineScrollMarginTop]);
+  }, [activeSegmentIndex, showCinemaMode]);
 
   useEffect(() => {
     if (!showCinemaMode) return undefined;
@@ -270,6 +279,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.error || payload?.message || 'Failed to retry images.');
       }
+      if (!mountedRef.current) return;
 
       const startedAt = Date.now();
       const timeoutMs = 5 * 60 * 1000;
@@ -284,6 +294,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
           throw new Error(payload?.error || payload?.message || 'Failed to check image status.');
         }
         const nextScript = (await statusResponse.json()) as AudioScript;
+        if (!mountedRef.current) return;
         setScriptOverride(nextScript);
         if (
           nextScript.imageStatus === 'ready' ||
@@ -299,9 +310,13 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
       /* eslint-enable no-await-in-loop */
       throw new Error('Image retry timed out. Please try again later.');
     } catch (error) {
-      setImageRetryError(error instanceof Error ? error.message : 'Failed to retry images.');
+      if (mountedRef.current) {
+        setImageRetryError(error instanceof Error ? error.message : 'Failed to retry images.');
+      }
     } finally {
-      setIsRetryingImages(false);
+      if (mountedRef.current) {
+        setIsRetryingImages(false);
+      }
     }
   };
 
@@ -495,12 +510,12 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
             onClick={() => handleSeekToSegment(index)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={`retro-paper-panel w-full text-left p-4 transition ${
-              Math.floor(activeSegmentIndex) === index
+              activeSegmentIndex === index
                 ? 'border-2 border-[rgba(20,50,86,0.32)] bg-[rgba(247,199,68,0.38)] shadow-[0_8px_0_rgba(17,51,92,0.12)]'
                 : 'bg-[rgba(255,255,255,0.55)]'
             }`}
             style={{ scrollMarginTop: readerLineScrollMarginTop }}
-            data-active={Math.floor(activeSegmentIndex) === index ? 'true' : 'false'}
+            data-active={activeSegmentIndex === index ? 'true' : 'false'}
             data-testid="script-segment-row"
           >
             <div className="text-2xl text-navy leading-relaxed">

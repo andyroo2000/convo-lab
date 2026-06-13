@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { AUDIO_SCRIPT_SEGMENT_PAUSE_SECONDS } from '@languageflow/shared/src/audioScript.js';
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Prisma } from '@prisma/client';
 import sharp from 'sharp';
@@ -522,7 +523,7 @@ export function buildAudioScriptUnits(params: {
     });
 
     if (index < params.segments.length - 1) {
-      units.push({ type: 'pause', seconds: 0.35 });
+      units.push({ type: 'pause', seconds: AUDIO_SCRIPT_SEGMENT_PAUSE_SECONDS });
     }
   });
 
@@ -552,6 +553,7 @@ export async function processAudioScriptRenderJob(params: {
   await report(5);
 
   try {
+    // Keep renders serial so one script creation cannot fan out into three concurrent TTS jobs.
     for (const [index, config] of AUDIO_SCRIPT_SPEEDS.entries()) {
       const render = await prisma.audioScriptRender.upsert({
         where: {
@@ -727,5 +729,6 @@ export async function generateAudioScriptSegmentImages(params: {
 }
 
 export async function getAudioScriptStatus(episodeId: string, userId: string) {
+  // Route-level status polling uses this public surface to keep ownership checks centralized.
   return getOwnedScriptByEpisodeId(episodeId, userId);
 }

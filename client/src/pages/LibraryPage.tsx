@@ -295,19 +295,19 @@ const LibraryPage = () => {
 
   const getEmptyTitle = () => {
     if (filter === 'dialogues') return t('library:emptyStates.dialogue.title');
-    if (filter === 'scripts') return 'No scripts yet';
+    if (filter === 'scripts') return t('library:emptyStates.script.title');
     return t('library:emptyStates.course.title');
   };
 
   const getEmptyDescription = () => {
     if (filter === 'dialogues') return t('library:emptyStates.dialogue.description');
-    if (filter === 'scripts') return 'Paste Japanese text and make a timed listening script.';
+    if (filter === 'scripts') return t('library:emptyStates.script.description');
     return t('library:emptyStates.course.description');
   };
 
   const getEmptyButtonLabel = () => {
     if (filter === 'dialogues') return t('library:emptyStates.dialogue.button');
-    if (filter === 'scripts') return 'Create Script';
+    if (filter === 'scripts') return t('library:emptyStates.script.button');
     return t('library:emptyStates.course.button');
   };
 
@@ -387,7 +387,7 @@ const LibraryPage = () => {
                   aria-pressed={filter === 'scripts'}
                 >
                   <FileText className="h-4 w-4" />
-                  Scripts
+                  {t('library:filters.scripts')}
                 </button>
               )}
               {isFeatureEnabled('audioCourseEnabled') && (

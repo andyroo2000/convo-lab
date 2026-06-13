@@ -57,25 +57,30 @@ router.post(
   }
 );
 
-router.patch('/:episodeId/segments', blockDemoUser, async (req: AuthRequest, res, next) => {
-  try {
-    const { title, voiceId, segments } = req.body;
-    if (!Array.isArray(segments)) {
-      throw new AppError('segments must be an array.', 400);
-    }
+router.patch(
+  '/:episodeId/segments',
+  requireEmailVerified,
+  blockDemoUser,
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { title, voiceId, segments } = req.body;
+      if (!Array.isArray(segments)) {
+        throw new AppError('segments must be an array.', 400);
+      }
 
-    const script = await updateAudioScriptSegments({
-      episodeId: req.params.episodeId,
-      userId: req.userId!,
-      title,
-      voiceId,
-      segments,
-    });
-    res.json(toAudioScriptResponse(script));
-  } catch (error) {
-    next(error);
+      const script = await updateAudioScriptSegments({
+        episodeId: req.params.episodeId,
+        userId: req.userId!,
+        title,
+        voiceId,
+        segments,
+      });
+      res.json(toAudioScriptResponse(script));
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 router.post(
   '/:episodeId/render',

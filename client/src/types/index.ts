@@ -115,7 +115,7 @@ export interface StudyMedia {
 export interface AudioScriptRender {
   id: string;
   scriptId: string;
-  speed: '0.75' | '0.85' | '1.0' | string;
+  speed: '0.75' | '0.85' | '1.0';
   numericSpeed: number;
   status: 'draft' | 'generating' | 'ready' | 'error';
   audioUrl?: string | null;

@@ -3,6 +3,7 @@
   "filters": {
     "all": "All Content",
     "dialogues": "Dialogues",
+    "scripts": "Scripts",
     "courses": "Audio Courses"
   },
   "empty": {
@@ -38,6 +39,11 @@
       "title": "Create Your First Audio Course",
       "description": "Build guided audio courses with structured lessons and pronunciation practice",
       "button": "Get Started"
+    },
+    "script": {
+      "title": "No scripts yet",
+      "description": "Paste Japanese text and make a timed listening script.",
+      "button": "Create Script"
     },
     "all": {
       "description": "No content yet. Get started by creating your first learning material!",
