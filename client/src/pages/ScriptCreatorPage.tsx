@@ -27,6 +27,7 @@ const ScriptCreatorPage = () => {
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [renderStatus, setRenderStatus] = useState('Preparing your script...');
   const mountedRef = useRef(true);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -89,6 +90,9 @@ const ScriptCreatorPage = () => {
   }
 
   const createAndGenerate = async () => {
+    if (submittingRef.current) {
+      return;
+    }
     if (isDemo) {
       setShowDemoModal(true);
       return;
@@ -101,6 +105,7 @@ const ScriptCreatorPage = () => {
     setError(null);
     setRenderStatus('Segmenting script and adding furigana...');
     setStep('generating');
+    submittingRef.current = true;
 
     try {
       const createResponse = await fetch(`${API_URL}/api/scripts`, {
@@ -148,6 +153,7 @@ const ScriptCreatorPage = () => {
         setError(err instanceof Error ? err.message : 'Failed to generate script.');
         setStep('input');
         setRenderStatus('Preparing your script...');
+        submittingRef.current = false;
       }
     }
   };
@@ -207,6 +213,7 @@ const ScriptCreatorPage = () => {
               <button
                 type="button"
                 onClick={createAndGenerate}
+                disabled={step !== 'input'}
                 className="retro-dialogue-create-v3-submit"
                 data-testid="script-button-generate"
               >

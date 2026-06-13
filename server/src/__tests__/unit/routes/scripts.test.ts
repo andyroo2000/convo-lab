@@ -33,7 +33,10 @@ vi.mock('../../../services/workerTrigger.js', () => ({
   triggerWorkerJob: vi.fn(),
 }));
 
-import { assertAudioScriptJobBelongsToUser } from '../../../routes/scripts.js';
+import {
+  assertAudioScriptJobBelongsToUser,
+  parseAudioScriptSegmentsPatchBody,
+} from '../../../routes/scripts.js';
 
 describe('Scripts Route Logic', () => {
   beforeEach(() => {
@@ -81,6 +84,39 @@ describe('Scripts Route Logic', () => {
       ).rejects.toMatchObject({
         statusCode: 404,
       });
+    });
+  });
+
+  describe('PATCH /:episodeId/segments validation', () => {
+    it('accepts trimmed title and known Google Neural2 voice IDs', () => {
+      const payload = parseAudioScriptSegmentsPatchBody({
+        title: '  My Script  ',
+        voiceId: ' ja-JP-Neural2-D ',
+        segments: [
+          {
+            text: '日本に住んでいます。',
+            reading: '日本[にほん]に住[す]んでいます。',
+            translation: 'I live in Japan.',
+          },
+        ],
+      });
+
+      expect(payload.title).toBe('My Script');
+      expect(payload.voiceId).toBe('ja-JP-Neural2-D');
+      expect(payload.segments).toHaveLength(1);
+    });
+
+    it('rejects empty titles and unsupported voices before service mutation', () => {
+      expect(() => parseAudioScriptSegmentsPatchBody({ title: '   ', segments: [] })).toThrowError(
+        'title must be a non-empty string when provided.'
+      );
+
+      expect(() =>
+        parseAudioScriptSegmentsPatchBody({
+          voiceId: 'ja-JP-Wavenet-A',
+          segments: [],
+        })
+      ).toThrowError('voiceId must be a supported Google Neural2 Japanese voice.');
     });
   });
 });

@@ -1,3 +1,4 @@
+import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Router } from 'express';
 
 import { audioScriptQueue } from '../jobs/audioScriptQueue.js';
@@ -21,6 +22,46 @@ import { triggerWorkerJob } from '../services/workerTrigger.js';
 const router = Router();
 
 router.use(requireAuth, rateLimitStudyRoute({ key: 'script', max: 300, windowMs: 60 * 1000 }));
+
+type UpdateAudioScriptSegmentsParams = Parameters<typeof updateAudioScriptSegments>[0];
+
+export function parseAudioScriptSegmentsPatchBody(body: unknown): {
+  title?: string;
+  voiceId?: string;
+  segments: UpdateAudioScriptSegmentsParams['segments'];
+} {
+  const raw = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
+  if (!Array.isArray(raw.segments)) {
+    throw new AppError('segments must be an array.', 400);
+  }
+
+  let title: string | undefined;
+  if (typeof raw.title !== 'undefined') {
+    if (typeof raw.title !== 'string' || raw.title.trim().length === 0) {
+      throw new AppError('title must be a non-empty string when provided.', 400);
+    }
+    title = raw.title.trim();
+  }
+
+  let voiceId: string | undefined;
+  if (typeof raw.voiceId !== 'undefined') {
+    if (typeof raw.voiceId !== 'string') {
+      throw new AppError('voiceId must be a string when provided.', 400);
+    }
+    const normalizedVoiceId = raw.voiceId.trim();
+    const allowed = getAudioScriptTtsVoices('ja').some((voice) => voice.id === normalizedVoiceId);
+    if (!allowed) {
+      throw new AppError('voiceId must be a supported Google Neural2 Japanese voice.', 400);
+    }
+    voiceId = normalizedVoiceId;
+  }
+
+  return {
+    title,
+    voiceId,
+    segments: raw.segments as UpdateAudioScriptSegmentsParams['segments'],
+  };
+}
 
 interface AudioScriptJobData {
   episodeId?: unknown;
@@ -81,10 +122,7 @@ router.patch(
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {
-      const { title, voiceId, segments } = req.body;
-      if (!Array.isArray(segments)) {
-        throw new AppError('segments must be an array.', 400);
-      }
+      const { title, voiceId, segments } = parseAudioScriptSegmentsPatchBody(req.body);
 
       const script = await updateAudioScriptSegments({
         episodeId: req.params.episodeId,

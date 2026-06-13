@@ -92,4 +92,44 @@ describe('ScriptCreatorPage', () => {
       expect.objectContaining({ method: 'POST' })
     );
   });
+
+  it('ignores rapid duplicate generate clicks while the first request is in flight', async () => {
+    let resolveCreate: (value: Response) => void = () => {};
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+      if (url === `${API_URL}/api/scripts`) {
+        return new Promise((resolve) => {
+          resolveCreate = resolve as (value: Response) => void;
+        });
+      }
+      return mockJsonResponse({});
+    });
+
+    render(
+      <MemoryRouter>
+        <ScriptCreatorPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByTestId('script-input-source-text'), {
+      target: { value: '日本に住んでいます。' },
+    });
+    const generateButton = screen.getByTestId('script-button-generate');
+    fireEvent.click(generateButton);
+    fireEvent.click(generateButton);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_URL}/api/scripts`,
+      expect.objectContaining({ method: 'POST' })
+    );
+
+    resolveCreate({
+      ok: false,
+      json: () => Promise.resolve({ error: 'stopped' }),
+    } as Response);
+
+    expect(await screen.findByText('stopped')).toBeTruthy();
+  });
 });
