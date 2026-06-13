@@ -7,6 +7,7 @@ import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import {
   annotateAudioScript,
   createAudioScript,
@@ -19,7 +20,7 @@ import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 
-router.use(requireAuth);
+router.use(requireAuth, rateLimitStudyRoute({ key: 'script', max: 300, windowMs: 60 * 1000 }));
 
 router.post(
   '/',
