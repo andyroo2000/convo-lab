@@ -294,18 +294,21 @@ const LibraryPage = () => {
   };
 
   const getEmptyTitle = () => {
+    if (filter === 'all') return t('library:emptyStates.all.title');
     if (filter === 'dialogues') return t('library:emptyStates.dialogue.title');
     if (filter === 'scripts') return t('library:emptyStates.script.title');
     return t('library:emptyStates.course.title');
   };
 
   const getEmptyDescription = () => {
+    if (filter === 'all') return t('library:emptyStates.all.description');
     if (filter === 'dialogues') return t('library:emptyStates.dialogue.description');
     if (filter === 'scripts') return t('library:emptyStates.script.description');
     return t('library:emptyStates.course.description');
   };
 
   const getEmptyButtonLabel = () => {
+    if (filter === 'all') return t('library:emptyStates.all.button');
     if (filter === 'dialogues') return t('library:emptyStates.dialogue.button');
     if (filter === 'scripts') return t('library:emptyStates.script.button');
     return t('library:emptyStates.course.button');
@@ -378,7 +381,7 @@ const LibraryPage = () => {
                   {t('library:filters.dialogues')}
                 </button>
               )}
-              {isFeatureEnabled('dialoguesEnabled') && (
+              {isFeatureEnabled('scriptsEnabled') && (
                 <button
                   type="button"
                   onClick={() => handleFilterChange('scripts')}
@@ -408,7 +411,8 @@ const LibraryPage = () => {
               <div className="retro-library-v3-empty">
                 {filter === 'all' ? (
                   <>
-                    <p>{t('library:emptyStates.all.description')}</p>
+                    <h3 className="retro-headline text-3xl">{getEmptyTitle()}</h3>
+                    <p>{getEmptyDescription()}</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -418,7 +422,7 @@ const LibraryPage = () => {
                       className="retro-library-v3-empty-btn"
                       data-testid="library-button-browse-all"
                     >
-                      {t('library:emptyStates.all.button')}
+                      {getEmptyButtonLabel()}
                     </button>
                   </>
                 ) : (
@@ -478,12 +482,16 @@ const LibraryPage = () => {
                       >
                         <div className="retro-library-v3-card-head is-dialogue">
                           <div className="retro-library-v3-card-kicker retro-caps">
-                            {isScript ? 'スクリプト' : 'レッスン'} {index + 1}
+                            {isScript
+                              ? t('library:card.scriptKicker', { number: index + 1 })
+                              : t('library:card.lessonKicker', { number: index + 1 })}
                           </div>
                           <h3 className="retro-library-v3-card-title">{episode.title}</h3>
                           <div className="retro-library-v3-card-subtitle">
                             {episode.sourceText ||
-                              (isScript ? 'Script' : t('library:filters.dialogues'))}
+                              (isScript
+                                ? t('library:card.scriptFallback')
+                                : t('library:filters.dialogues'))}
                           </div>
                         </div>
 
@@ -497,14 +505,19 @@ const LibraryPage = () => {
                               )}
                             </span>
                             <span className="retro-caps">
-                              {isScript ? 'Script / Segments' : 'Dialogue / Turns'}: {sentenceCount}
+                              {isScript
+                                ? t('library:card.scriptSegments')
+                                : t('library:card.dialogueTurns')}
+                              : {sentenceCount}
                             </span>
                           </div>
                           <div className="retro-library-v3-card-progress" style={progressStyle} />
                           <div className="retro-library-v3-card-meta retro-caps">
                             <span>{formatStampDate(episode.updatedAt)}</span>
                             <span>
-                              {isScript ? 'Japanese' : proficiencyLevels.join(', ') || 'Ready'}
+                              {isScript
+                                ? t('library:card.japanese')
+                                : proficiencyLevels.join(', ') || t('library:card.ready')}
                             </span>
                           </div>
 

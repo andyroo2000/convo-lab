@@ -399,6 +399,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       mockPrisma.featureFlag.findFirst.mockResolvedValue({
         id: 'flags-id',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
       });
@@ -415,6 +416,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       mockPrisma.featureFlag.create.mockResolvedValue({
         id: 'new-flags-id',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
       });
@@ -425,6 +427,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       expect(mockPrisma.featureFlag.create).toHaveBeenCalledWith({
         data: {
           dialoguesEnabled: true,
+          scriptsEnabled: true,
           audioCourseEnabled: true,
           flashcardsEnabled: true,
         },
@@ -437,6 +440,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       mockPrisma.featureFlag.findFirst.mockResolvedValue({
         id: 'flags-id',
         dialoguesEnabled: false,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
       });
@@ -444,6 +448,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       mockPrisma.featureFlag.update.mockResolvedValue({
         id: 'flags-id',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
       });
@@ -462,6 +467,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       mockPrisma.featureFlag.create.mockResolvedValue({
         id: 'new-flags-id',
         dialoguesEnabled: false,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
       });
@@ -479,6 +485,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       mockPrisma.featureFlag.findFirst.mockResolvedValue({
         id: 'flags-id',
         dialoguesEnabled: false,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
       });

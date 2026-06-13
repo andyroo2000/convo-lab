@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
-import { AUDIO_SCRIPT_SEGMENT_PAUSE_SECONDS } from '@languageflow/shared/src/audioScript.js';
+import {
+  AUDIO_SCRIPT_SEGMENT_PAUSE_SECONDS,
+  AUDIO_SCRIPT_SPEEDS as SHARED_AUDIO_SCRIPT_SPEEDS,
+} from '@languageflow/shared/src/audioScript.js';
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { Prisma } from '@prisma/client';
 import sharp from 'sharp';
@@ -23,11 +26,7 @@ import {
 } from './study/shared.js';
 
 export const AUDIO_SCRIPT_DEFAULT_VOICE_ID = 'ja-JP-Neural2-D';
-export const AUDIO_SCRIPT_SPEEDS = [
-  { speed: '0.75', numericSpeed: 0.75, label: 'Slow' },
-  { speed: '0.85', numericSpeed: 0.85, label: 'Medium' },
-  { speed: '1.0', numericSpeed: 1.0, label: 'Normal' },
-] as const;
+export const AUDIO_SCRIPT_SPEEDS = SHARED_AUDIO_SCRIPT_SPEEDS;
 
 const JAPANESE_TEXT_PATTERN = /[\u3040-\u30ff\u3400-\u9fff]/;
 const MAX_SCRIPT_CHARS = 6000;

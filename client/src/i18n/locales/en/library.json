@@ -6,6 +6,15 @@
     "scripts": "Scripts",
     "courses": "Audio Courses"
   },
+  "card": {
+    "scriptKicker": "Script {{number}}",
+    "lessonKicker": "Lesson {{number}}",
+    "scriptFallback": "Script",
+    "scriptSegments": "Script / Segments",
+    "dialogueTurns": "Dialogue / Turns",
+    "japanese": "Japanese",
+    "ready": "Ready"
+  },
   "empty": {
     "title": "No content yet",
     "description": "Create your first piece of content to get started",
@@ -46,6 +55,7 @@
       "button": "Create Script"
     },
     "all": {
+      "title": "No content yet",
       "description": "No content yet. Get started by creating your first learning material!",
       "button": "Browse All Options"
     }

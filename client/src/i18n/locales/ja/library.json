@@ -6,6 +6,15 @@
     "scripts": "スクリプト",
     "courses": "オーディオコース"
   },
+  "card": {
+    "scriptKicker": "スクリプト {{number}}",
+    "lessonKicker": "レッスン {{number}}",
+    "scriptFallback": "スクリプト",
+    "scriptSegments": "スクリプト / セグメント",
+    "dialogueTurns": "対話 / ターン",
+    "japanese": "日本語",
+    "ready": "準備完了"
+  },
   "empty": {
     "title": "まだコンテンツがありません",
     "description": "最初のコンテンツを作成して始めましょう",
@@ -46,6 +55,7 @@
       "button": "スクリプトを作成"
     },
     "all": {
+      "title": "まだコンテンツがありません",
       "description": "まだコンテンツがありません。最初の学習教材を作成して始めましょう！",
       "button": "すべてのオプションを見る"
     }

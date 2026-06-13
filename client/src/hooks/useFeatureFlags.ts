@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 export interface FeatureFlags {
   id: string;
   dialoguesEnabled: boolean;
+  scriptsEnabled: boolean;
   audioCourseEnabled: boolean;
   flashcardsEnabled: boolean;
   updatedAt: string;

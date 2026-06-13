@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FileText } from 'lucide-react';
+import { AUDIO_SCRIPT_SPEEDS } from '@languageflow/shared/src/audioScript';
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection';
 import VoicePreview from '../components/common/VoicePreview';
 import { API_URL } from '../config';
@@ -63,7 +64,7 @@ const ScriptCreatorPage = () => {
         : 0;
       const imageStatus = script.imageStatus || 'pending';
       setRenderStatus(
-        `Generated ${readyCount}/3 audio tracks and ${imageReadyCount}/${segmentCount} illustrations...`
+        `Generated ${readyCount}/${AUDIO_SCRIPT_SPEEDS.length} audio tracks and ${imageReadyCount}/${segmentCount} illustrations...`
       );
 
       if (

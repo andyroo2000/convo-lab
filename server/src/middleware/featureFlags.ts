@@ -5,9 +5,14 @@ import { prisma } from '../db/client.js';
 import { AuthRequest } from './auth.js';
 import { AppError } from './errorHandler.js';
 
-type FeatureFlagKey = 'dialoguesEnabled' | 'audioCourseEnabled' | 'flashcardsEnabled';
+type FeatureFlagKey =
+  | 'dialoguesEnabled'
+  | 'scriptsEnabled'
+  | 'audioCourseEnabled'
+  | 'flashcardsEnabled';
 type FeatureFlagSnapshot = {
   dialoguesEnabled: boolean;
+  scriptsEnabled: boolean;
   audioCourseEnabled: boolean;
   flashcardsEnabled: boolean;
 } | null;
@@ -28,6 +33,7 @@ async function getFeatureFlags(): Promise<FeatureFlagSnapshot> {
   const value = await prisma.featureFlag.findFirst({
     select: {
       dialoguesEnabled: true,
+      scriptsEnabled: true,
       audioCourseEnabled: true,
       flashcardsEnabled: true,
     },

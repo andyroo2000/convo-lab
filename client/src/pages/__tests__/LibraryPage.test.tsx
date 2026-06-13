@@ -1,11 +1,19 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex library page testing with dynamic content requires direct node access
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import LibraryPage from '../LibraryPage';
 
 const mockUpdateUser = vi.fn();
+const mockFeatureFlags = vi.hoisted(() => ({
+  value: {
+    dialoguesEnabled: true,
+    scriptsEnabled: true,
+    audioCourseEnabled: true,
+    flashcardsEnabled: true,
+  },
+}));
 const mockUser = {
   id: 'user-1',
   name: 'Test User',
@@ -36,13 +44,10 @@ vi.mock('../../hooks/useDemo', () => ({
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
   useFeatureFlags: () => ({
-    flags: {
-      dialoguesEnabled: true,
-      audioCourseEnabled: true,
-    },
+    flags: mockFeatureFlags.value,
     isLoading: false,
     error: null,
-    isFeatureEnabled: () => true,
+    isFeatureEnabled: (flag: keyof typeof mockFeatureFlags.value) => mockFeatureFlags.value[flag],
     isAdmin: false,
   }),
 }));
@@ -60,6 +65,15 @@ vi.mock('../../components/common/ConfirmModal', () => ({
 }));
 
 describe('LibraryPage', () => {
+  beforeEach(() => {
+    mockFeatureFlags.value = {
+      dialoguesEnabled: true,
+      scriptsEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+    };
+  });
+
   const renderLibraryPage = () =>
     render(
       <BrowserRouter>
@@ -80,7 +94,17 @@ describe('LibraryPage', () => {
 
       expect(screen.getByTestId('library-filter-all')).toBeTruthy();
       expect(screen.getByTestId('library-filter-dialogues')).toBeTruthy();
+      expect(screen.getByTestId('library-filter-scripts')).toBeTruthy();
       expect(screen.getByTestId('library-filter-courses')).toBeTruthy();
+    });
+
+    it('should hide scripts filter independently from dialogues filter', () => {
+      mockFeatureFlags.value.scriptsEnabled = false;
+
+      renderLibraryPage();
+
+      expect(screen.getByTestId('library-filter-dialogues')).toBeTruthy();
+      expect(screen.queryByTestId('library-filter-scripts')).toBeNull();
     });
 
     it('should default to all content filter selected', () => {
@@ -119,7 +143,7 @@ describe('LibraryPage', () => {
     it('should display empty state message when no content exists', () => {
       renderLibraryPage();
 
-      const emptyMessage = screen.getByText(/No content yet/i);
+      const emptyMessage = screen.getByRole('heading', { name: /No content yet/i });
       expect(emptyMessage).toBeTruthy();
     });
   });

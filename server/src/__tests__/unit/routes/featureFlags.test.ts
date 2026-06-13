@@ -12,6 +12,7 @@ describe('Feature Flags Route Logic', () => {
       const mockFlags = {
         id: 'flag-1',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -31,6 +32,7 @@ describe('Feature Flags Route Logic', () => {
       const defaultFlags = {
         id: 'new-flag-1',
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -44,6 +46,7 @@ describe('Feature Flags Route Logic', () => {
         flags = await mockPrisma.featureFlag.create({
           data: {
             dialoguesEnabled: true,
+            scriptsEnabled: true,
             audioCourseEnabled: true,
           },
         });
@@ -52,6 +55,7 @@ describe('Feature Flags Route Logic', () => {
       expect(mockPrisma.featureFlag.create).toHaveBeenCalledWith({
         data: {
           dialoguesEnabled: true,
+          scriptsEnabled: true,
           audioCourseEnabled: true,
         },
       });
@@ -63,6 +67,7 @@ describe('Feature Flags Route Logic', () => {
       const existingFlags = {
         id: 'existing-flag',
         dialoguesEnabled: false,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
       };
 
@@ -74,6 +79,7 @@ describe('Feature Flags Route Logic', () => {
         flags = await mockPrisma.featureFlag.create({
           data: {
             dialoguesEnabled: true,
+            scriptsEnabled: true,
             audioCourseEnabled: true,
           },
         });
@@ -102,6 +108,7 @@ describe('Feature Flags Route Logic', () => {
           mockPrisma.featureFlag.create({
             data: {
               dialoguesEnabled: true,
+              scriptsEnabled: true,
               audioCourseEnabled: true,
             },
           })
@@ -114,20 +121,23 @@ describe('Feature Flags Route Logic', () => {
     it('should have all features enabled by default', () => {
       const defaultFlags = {
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
       };
 
       expect(defaultFlags.dialoguesEnabled).toBe(true);
+      expect(defaultFlags.scriptsEnabled).toBe(true);
       expect(defaultFlags.audioCourseEnabled).toBe(true);
     });
   });
 
   describe('Feature Flag Structure', () => {
     it('should contain all expected feature flags', () => {
-      const expectedFlags = ['dialoguesEnabled', 'audioCourseEnabled'];
+      const expectedFlags = ['dialoguesEnabled', 'scriptsEnabled', 'audioCourseEnabled'];
 
       const flagKeys = Object.keys({
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: true,
       });
 
@@ -139,6 +149,7 @@ describe('Feature Flags Route Logic', () => {
     it('should return boolean values for all flags', () => {
       const mockFlags = {
         dialoguesEnabled: true,
+        scriptsEnabled: true,
         audioCourseEnabled: false,
       };
 

@@ -299,6 +299,7 @@ describe('Study Routes', () => {
     });
     mockPrisma.featureFlag.findFirst.mockResolvedValue({
       dialoguesEnabled: true,
+      scriptsEnabled: true,
       audioCourseEnabled: true,
       flashcardsEnabled: true,
     });
@@ -2235,6 +2236,7 @@ describe('Study Routes', () => {
   it('blocks study routes when the flashcards feature flag is disabled', async () => {
     mockPrisma.featureFlag.findFirst.mockResolvedValue({
       dialoguesEnabled: true,
+      scriptsEnabled: true,
       audioCourseEnabled: true,
       flashcardsEnabled: false,
     });

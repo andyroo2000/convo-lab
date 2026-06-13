@@ -99,7 +99,7 @@ const CreatePage = () => {
                 </div>
               </button>
             )}
-            {isFeatureEnabled('dialoguesEnabled') && (
+            {isFeatureEnabled('scriptsEnabled') && (
               <button
                 type="button"
                 onClick={() => navigateWithViewAs('/app/create/script')}
