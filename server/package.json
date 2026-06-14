@@ -24,6 +24,7 @@
     "crop:avatars": "tsx scripts/crop-avatars.ts",
     "check:metadata": "tsx scripts/check-metadata-status.ts",
     "check:prod": "tsx scripts/quick-check-prod.ts",
+    "study:import-ja-audio-drafts": "tsx src/scripts/import-japanese-audio-recognition-drafts.ts",
     "smoke:fish-audio": "tsx src/scripts/fish-audio-sample-smoke.ts",
     "smoke:fish-date-components": "tsx src/scripts/fish-audio-date-components-smoke.ts",
     "smoke:jp-date-components-qc": "tsx src/scripts/japanese-date-components-qc.ts",
