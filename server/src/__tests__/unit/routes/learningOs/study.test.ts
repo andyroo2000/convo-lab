@@ -131,8 +131,57 @@ describe('Learning OS Study proxy routes', () => {
       key: 'learning-os-read-proxy',
       max: 240,
       windowMs: 60 * 1000,
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-import-proxy',
+      max: 240,
+      windowMs: 60 * 1000,
       onBackendError: 'fail-closed',
     });
+  });
+
+  it('serializes successful upstream responses as JSON instead of forwarding content type', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/overview')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toMatch(/^application\/json/);
+    expect(response.body).toEqual({ ok: true });
+  });
+
+  it('returns a sanitized gateway error when Learning OS returns invalid JSON', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('<html>upstream error page</html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/overview')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe(
+      'Learning OS Study API returned an invalid JSON response.'
+    );
+    expect(JSON.stringify(response.body)).not.toContain('upstream error page');
   });
 
   it('returns a configuration error without falling back when upstream config is missing', async () => {

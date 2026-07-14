@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Response } from 'express';
 import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
 import { prisma } from '../../db/client.js';
@@ -14,6 +14,17 @@ const learningOsStudyIpRateLimit = createExpressRateLimit({
   limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
+});
+const learningOsStudyReadRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-read-proxy',
+  max: 240,
+  windowMs: 60 * 1000,
+});
+const learningOsStudyImportRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-import-proxy',
+  max: 240,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
 });
 
 type StudyApiChildFlag = Extract<
@@ -130,6 +141,22 @@ async function assertLearningOsStudyApiEnabled(featureFlag: StudyApiChildFlag) {
   throw new AppError('Learning OS Study API route is not enabled.', 403);
 }
 
+function rateLimitLearningOsStudyRead(req: AuthRequest, res: Response, next: NextFunction) {
+  const studyReadRoute = getStudyReadRoute(req.path);
+
+  if (!studyReadRoute) {
+    next();
+    return;
+  }
+
+  if (studyReadRoute.featureFlag === 'studyApiImports') {
+    learningOsStudyImportRateLimit(req, res, next);
+    return;
+  }
+
+  learningOsStudyReadRateLimit(req, res, next);
+}
+
 async function fetchLearningOsStudyRead(upstreamUrl: URL, apiToken: string, user: UserIdentity) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), LEARNING_OS_FETCH_TIMEOUT_MS);
@@ -167,12 +194,7 @@ router.get(
   '/*',
   learningOsStudyIpRateLimit,
   requireAuth,
-  rateLimitStudyRoute({
-    key: 'learning-os-read-proxy',
-    max: 240,
-    windowMs: 60 * 1000,
-    onBackendError: 'fail-closed',
-  }),
+  rateLimitLearningOsStudyRead,
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
@@ -207,12 +229,14 @@ router.get(
       }
 
       const responseBody = await upstreamResponse.text();
-      const contentType = upstreamResponse.headers.get('content-type');
-      if (contentType) {
-        res.type(contentType);
+      let responseJson: unknown;
+      try {
+        responseJson = responseBody.length > 0 ? JSON.parse(responseBody) : null;
+      } catch {
+        throw new AppError('Learning OS Study API returned an invalid JSON response.', 502);
       }
 
-      res.status(upstreamResponse.status).send(responseBody);
+      res.status(upstreamResponse.status).json(responseJson);
     } catch (error) {
       next(error);
     }
