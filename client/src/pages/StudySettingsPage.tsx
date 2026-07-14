@@ -156,7 +156,7 @@ const toQueuePreviewCard = (item: StudyNewCardQueueItem): StudyCardSummary => {
 
 const StudySettingsPage = () => {
   const { t } = useTranslation('study');
-  const { isFeatureEnabled } = useFeatureFlags();
+  const { flags, isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const runBackgroundTask = useStudyBackgroundTask();
   const [newCardsPerDay, setNewCardsPerDay] = useState(STUDY_NEW_CARDS_PER_DAY_DEFAULT);
@@ -401,10 +401,13 @@ const StudySettingsPage = () => {
               runBackgroundTask(
                 async () => {
                   try {
-                    const nextPage = await getStudyNewCardQueue({
-                      cursor: nextCursor,
-                      q: searchQuery,
-                    });
+                    const nextPage = await getStudyNewCardQueue(
+                      {
+                        cursor: nextCursor,
+                        q: searchQuery,
+                      },
+                      flags
+                    );
                     setQueueItems((current) => [...current, ...nextPage.items]);
                     setNextCursor(nextPage.nextCursor);
                   } finally {

@@ -19,6 +19,12 @@ router.get('/', requireAuth, async (_req: AuthRequest, res, next) => {
           scriptsEnabled: true,
           audioCourseEnabled: true,
           flashcardsEnabled: true,
+          studyApiEnabled: false,
+          studyApiSettings: false,
+          studyApiOverview: false,
+          studyApiBrowser: false,
+          studyApiNewQueue: false,
+          studyApiImports: false,
         },
       });
     }

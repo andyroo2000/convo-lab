@@ -660,6 +660,12 @@ router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
           scriptsEnabled: true,
           audioCourseEnabled: true,
           flashcardsEnabled: true,
+          studyApiEnabled: false,
+          studyApiSettings: false,
+          studyApiOverview: false,
+          studyApiBrowser: false,
+          studyApiNewQueue: false,
+          studyApiImports: false,
         },
       });
     }
@@ -678,8 +684,25 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       scriptsEnabled?: unknown;
       audioCourseEnabled?: unknown;
       flashcardsEnabled?: unknown;
+      studyApiEnabled?: unknown;
+      studyApiSettings?: unknown;
+      studyApiOverview?: unknown;
+      studyApiBrowser?: unknown;
+      studyApiNewQueue?: unknown;
+      studyApiImports?: unknown;
     };
-    const { dialoguesEnabled, scriptsEnabled, audioCourseEnabled, flashcardsEnabled } = payload;
+    const {
+      dialoguesEnabled,
+      scriptsEnabled,
+      audioCourseEnabled,
+      flashcardsEnabled,
+      studyApiEnabled,
+      studyApiSettings,
+      studyApiOverview,
+      studyApiBrowser,
+      studyApiNewQueue,
+      studyApiImports,
+    } = payload;
 
     // Validate boolean values
     const validateBoolean = (val: unknown, name: string) => {
@@ -692,6 +715,12 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(scriptsEnabled, 'scriptsEnabled');
     validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
     validateBoolean(flashcardsEnabled, 'flashcardsEnabled');
+    validateBoolean(studyApiEnabled, 'studyApiEnabled');
+    validateBoolean(studyApiSettings, 'studyApiSettings');
+    validateBoolean(studyApiOverview, 'studyApiOverview');
+    validateBoolean(studyApiBrowser, 'studyApiBrowser');
+    validateBoolean(studyApiNewQueue, 'studyApiNewQueue');
+    validateBoolean(studyApiImports, 'studyApiImports');
 
     const dialoguesEnabledValue =
       typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
@@ -700,6 +729,15 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       typeof audioCourseEnabled === 'boolean' ? audioCourseEnabled : undefined;
     const flashcardsEnabledValue =
       typeof flashcardsEnabled === 'boolean' ? flashcardsEnabled : undefined;
+    const studyApiEnabledValue = typeof studyApiEnabled === 'boolean' ? studyApiEnabled : undefined;
+    const studyApiSettingsValue =
+      typeof studyApiSettings === 'boolean' ? studyApiSettings : undefined;
+    const studyApiOverviewValue =
+      typeof studyApiOverview === 'boolean' ? studyApiOverview : undefined;
+    const studyApiBrowserValue = typeof studyApiBrowser === 'boolean' ? studyApiBrowser : undefined;
+    const studyApiNewQueueValue =
+      typeof studyApiNewQueue === 'boolean' ? studyApiNewQueue : undefined;
+    const studyApiImportsValue = typeof studyApiImports === 'boolean' ? studyApiImports : undefined;
 
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
@@ -712,6 +750,12 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           scriptsEnabled: scriptsEnabledValue ?? true,
           audioCourseEnabled: audioCourseEnabledValue ?? true,
           flashcardsEnabled: flashcardsEnabledValue ?? true,
+          studyApiEnabled: studyApiEnabledValue ?? false,
+          studyApiSettings: studyApiSettingsValue ?? false,
+          studyApiOverview: studyApiOverviewValue ?? false,
+          studyApiBrowser: studyApiBrowserValue ?? false,
+          studyApiNewQueue: studyApiNewQueueValue ?? false,
+          studyApiImports: studyApiImportsValue ?? false,
         },
       });
     } else {
@@ -727,6 +771,12 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           ...(flashcardsEnabledValue !== undefined && {
             flashcardsEnabled: flashcardsEnabledValue,
           }),
+          ...(studyApiEnabledValue !== undefined && { studyApiEnabled: studyApiEnabledValue }),
+          ...(studyApiSettingsValue !== undefined && { studyApiSettings: studyApiSettingsValue }),
+          ...(studyApiOverviewValue !== undefined && { studyApiOverview: studyApiOverviewValue }),
+          ...(studyApiBrowserValue !== undefined && { studyApiBrowser: studyApiBrowserValue }),
+          ...(studyApiNewQueueValue !== undefined && { studyApiNewQueue: studyApiNewQueueValue }),
+          ...(studyApiImportsValue !== undefined && { studyApiImports: studyApiImportsValue }),
         },
       });
     }

@@ -42,9 +42,10 @@ import type {
   StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types';
 
-import { API_URL } from '../config';
+import { API_URL, LEARNING_OS_API_TOKEN, LEARNING_OS_API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
+import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 
 export interface StudySessionResponse {
   overview: StudyOverview;
@@ -94,6 +95,31 @@ export interface StudyBrowserQuery {
   limit?: number;
 }
 
+type StudyApiReadFeature = 'settings' | 'overview' | 'browser' | 'newQueue' | 'imports';
+
+const STUDY_API_FLAG_BY_FEATURE: Record<
+  StudyApiReadFeature,
+  keyof Pick<
+    FeatureFlags,
+    | 'studyApiSettings'
+    | 'studyApiOverview'
+    | 'studyApiBrowser'
+    | 'studyApiNewQueue'
+    | 'studyApiImports'
+  >
+> = {
+  settings: 'studyApiSettings',
+  overview: 'studyApiOverview',
+  browser: 'studyApiBrowser',
+  newQueue: 'studyApiNewQueue',
+  imports: 'studyApiImports',
+};
+
+interface StudyApiRouting {
+  feature: StudyApiReadFeature;
+  flags?: FeatureFlags;
+}
+
 function withMutationHeaders(init?: RequestInit): HeadersInit {
   const headers = new Headers(init?.headers ?? {});
   const method = (init?.method ?? 'GET').toUpperCase();
@@ -106,7 +132,54 @@ function withMutationHeaders(init?: RequestInit): HeadersInit {
   return headers;
 }
 
-async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
+function shouldUseLearningOsStudyApi(routing?: StudyApiRouting): boolean {
+  if (!routing?.flags?.studyApiEnabled) {
+    return false;
+  }
+
+  return routing.flags[STUDY_API_FLAG_BY_FEATURE[routing.feature]] === true;
+}
+
+function studyApiRouteKey(feature: StudyApiReadFeature, flags?: FeatureFlags): string {
+  return shouldUseLearningOsStudyApi({ feature, flags }) ? 'learning-os' : 'convo-lab';
+}
+
+async function apiRequest<T>(
+  endpoint: string,
+  init?: RequestInit,
+  routing?: StudyApiRouting
+): Promise<T> {
+  if (shouldUseLearningOsStudyApi(routing)) {
+    if (!LEARNING_OS_API_URL || !LEARNING_OS_API_TOKEN) {
+      throw new Error('Learning OS Study API is enabled but not configured.');
+    }
+
+    const headers = new Headers(init?.headers ?? {});
+    headers.set('Accept', 'application/json');
+    headers.set('Authorization', `Bearer ${LEARNING_OS_API_TOKEN}`);
+
+    const response = await fetch(`${trimTrailingSlash(LEARNING_OS_API_URL)}${endpoint}`, {
+      ...init,
+      credentials: 'omit',
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Request failed' }));
+      throw new Error(error.message || error.error?.message || 'Request failed');
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json() as Promise<T>;
+  }
+
   const response = await fetchWithCsrf(`${API_URL}${endpoint}`, {
     ...init,
     credentials: 'include',
@@ -133,8 +206,11 @@ export async function startStudySession(): Promise<StudySessionResponse> {
   });
 }
 
-export async function getStudySettings(): Promise<StudySettings> {
-  return apiRequest<StudySettings>('/api/study/settings');
+export async function getStudySettings(flags?: FeatureFlags): Promise<StudySettings> {
+  return apiRequest<StudySettings>('/api/study/settings', undefined, {
+    feature: 'settings',
+    flags,
+  });
 }
 
 export async function updateStudySettings(payload: StudySettings): Promise<StudySettings> {
@@ -149,7 +225,8 @@ export async function getStudyNewCardQueue(
     cursor?: string | null;
     limit?: number;
     q?: string;
-  } = {}
+  } = {},
+  flags?: FeatureFlags
 ): Promise<StudyNewCardQueueResponse> {
   const searchParams = new URLSearchParams();
   if (params.cursor) searchParams.set('cursor', params.cursor);
@@ -157,7 +234,11 @@ export async function getStudyNewCardQueue(
   if (params.q?.trim()) searchParams.set('q', params.q.trim());
 
   const suffix = searchParams.toString();
-  return apiRequest<StudyNewCardQueueResponse>(`/api/study/new-queue${suffix ? `?${suffix}` : ''}`);
+  return apiRequest<StudyNewCardQueueResponse>(
+    `/api/study/new-queue${suffix ? `?${suffix}` : ''}`,
+    undefined,
+    { feature: 'newQueue', flags }
+  );
 }
 
 export async function reorderStudyNewCardQueue(cardIds: string[]) {
@@ -353,7 +434,8 @@ export async function undoStudyReview(
 }
 
 export async function getStudyBrowser(
-  query: StudyBrowserQuery = {}
+  query: StudyBrowserQuery = {},
+  flags?: FeatureFlags
 ): Promise<StudyBrowserListResponse> {
   const searchParams = new URLSearchParams();
   if (query.q) searchParams.set('q', query.q);
@@ -366,7 +448,11 @@ export async function getStudyBrowser(
   if (typeof query.limit === 'number') searchParams.set('limit', String(query.limit));
 
   const suffix = searchParams.toString();
-  return apiRequest<StudyBrowserListResponse>(`/api/study/browser${suffix ? `?${suffix}` : ''}`);
+  return apiRequest<StudyBrowserListResponse>(
+    `/api/study/browser${suffix ? `?${suffix}` : ''}`,
+    undefined,
+    { feature: 'browser', flags }
+  );
 }
 
 export async function getStudyBrowserNoteDetail(noteId: string): Promise<StudyBrowserNoteDetail> {
@@ -410,15 +496,19 @@ export async function performStudyCardAction(
 }
 
 export function useStudyOverview(enabled: boolean) {
+  const { flags } = useFeatureFlags();
   const timeZone = getDeviceStudyTimeZone();
   const searchParams = new URLSearchParams();
   if (timeZone) searchParams.set('timeZone', timeZone);
+  const routeKey = studyApiRouteKey('overview', flags);
 
   return useQuery({
-    queryKey: ['study', 'overview'],
+    queryKey: ['study', 'overview', routeKey],
     queryFn: () =>
       apiRequest<StudyOverview>(
-        `/api/study/overview${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+        `/api/study/overview${searchParams.toString() ? `?${searchParams.toString()}` : ''}`,
+        undefined,
+        { feature: 'overview', flags }
       ),
     enabled,
     // The app-wide QueryClient disables focus refetches; study counts should refresh
@@ -428,9 +518,12 @@ export function useStudyOverview(enabled: boolean) {
 }
 
 export function useStudySettings(enabled: boolean) {
+  const { flags } = useFeatureFlags();
+  const routeKey = studyApiRouteKey('settings', flags);
+
   return useQuery({
-    queryKey: ['study', 'settings'],
-    queryFn: getStudySettings,
+    queryKey: ['study', 'settings', routeKey],
+    queryFn: () => getStudySettings(flags),
     enabled,
   });
 }
@@ -439,9 +532,19 @@ export function useStudyNewCardQueue(
   enabled: boolean,
   params: { cursor?: string | null; limit?: number; q?: string } = {}
 ) {
+  const { flags } = useFeatureFlags();
+  const routeKey = studyApiRouteKey('newQueue', flags);
+
   return useQuery({
-    queryKey: ['study', 'new-queue', params.cursor ?? 'start', params.limit ?? 100, params.q ?? ''],
-    queryFn: () => getStudyNewCardQueue(params),
+    queryKey: [
+      'study',
+      'new-queue',
+      routeKey,
+      params.cursor ?? 'start',
+      params.limit ?? 100,
+      params.q ?? '',
+    ],
+    queryFn: () => getStudyNewCardQueue(params, flags),
     enabled,
   });
 }
@@ -475,9 +578,12 @@ export function useReorderStudyNewCardQueue() {
 }
 
 export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
+  const { flags } = useFeatureFlags();
+  const routeKey = studyApiRouteKey('browser', flags);
+
   return useQuery({
-    queryKey: ['study', 'browser', query],
-    queryFn: () => getStudyBrowser(query),
+    queryKey: ['study', 'browser', routeKey, query],
+    queryFn: () => getStudyBrowser(query, flags),
     enabled,
   });
 }
@@ -817,9 +923,13 @@ export async function cancelStudyImportUpload(importJobId: string): Promise<Stud
 }
 
 export async function getCurrentStudyImport(
-  init?: Pick<RequestInit, 'signal'>
+  init?: Pick<RequestInit, 'signal'>,
+  flags?: FeatureFlags
 ): Promise<StudyImportResult | null> {
-  return apiRequest<StudyImportResult | null>('/api/study/imports/current', init);
+  return apiRequest<StudyImportResult | null>('/api/study/imports/current', init, {
+    feature: 'imports',
+    flags,
+  });
 }
 
 export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
@@ -828,11 +938,13 @@ export async function getStudyImportUploadReadiness(): Promise<StudyImportUpload
 
 export async function getStudyImportStatus(
   importJobId: string,
-  init?: Pick<RequestInit, 'signal'>
+  init?: Pick<RequestInit, 'signal'>,
+  flags?: FeatureFlags
 ): Promise<StudyImportResult> {
   return apiRequest<StudyImportResult>(
     `/api/study/imports/${encodeURIComponent(importJobId)}`,
-    init
+    init,
+    { feature: 'imports', flags }
   );
 }
 

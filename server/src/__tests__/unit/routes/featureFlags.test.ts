@@ -14,6 +14,13 @@ describe('Feature Flags Route Logic', () => {
         dialoguesEnabled: true,
         scriptsEnabled: true,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
+        studyApiEnabled: false,
+        studyApiSettings: false,
+        studyApiOverview: false,
+        studyApiBrowser: false,
+        studyApiNewQueue: false,
+        studyApiImports: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -48,6 +55,13 @@ describe('Feature Flags Route Logic', () => {
             dialoguesEnabled: true,
             scriptsEnabled: true,
             audioCourseEnabled: true,
+            flashcardsEnabled: true,
+            studyApiEnabled: false,
+            studyApiSettings: false,
+            studyApiOverview: false,
+            studyApiBrowser: false,
+            studyApiNewQueue: false,
+            studyApiImports: false,
           },
         });
       }
@@ -57,6 +71,13 @@ describe('Feature Flags Route Logic', () => {
           dialoguesEnabled: true,
           scriptsEnabled: true,
           audioCourseEnabled: true,
+          flashcardsEnabled: true,
+          studyApiEnabled: false,
+          studyApiSettings: false,
+          studyApiOverview: false,
+          studyApiBrowser: false,
+          studyApiNewQueue: false,
+          studyApiImports: false,
         },
       });
       expect(flags.dialoguesEnabled).toBe(true);
@@ -110,6 +131,13 @@ describe('Feature Flags Route Logic', () => {
               dialoguesEnabled: true,
               scriptsEnabled: true,
               audioCourseEnabled: true,
+              flashcardsEnabled: true,
+              studyApiEnabled: false,
+              studyApiSettings: false,
+              studyApiOverview: false,
+              studyApiBrowser: false,
+              studyApiNewQueue: false,
+              studyApiImports: false,
             },
           })
         ).rejects.toThrow('Unique constraint violation');
@@ -123,6 +151,13 @@ describe('Feature Flags Route Logic', () => {
         dialoguesEnabled: true,
         scriptsEnabled: true,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
+        studyApiEnabled: false,
+        studyApiSettings: false,
+        studyApiOverview: false,
+        studyApiBrowser: false,
+        studyApiNewQueue: false,
+        studyApiImports: false,
       };
 
       expect(defaultFlags.dialoguesEnabled).toBe(true);
@@ -133,12 +168,30 @@ describe('Feature Flags Route Logic', () => {
 
   describe('Feature Flag Structure', () => {
     it('should contain all expected feature flags', () => {
-      const expectedFlags = ['dialoguesEnabled', 'scriptsEnabled', 'audioCourseEnabled'];
+      const expectedFlags = [
+        'dialoguesEnabled',
+        'scriptsEnabled',
+        'audioCourseEnabled',
+        'flashcardsEnabled',
+        'studyApiEnabled',
+        'studyApiSettings',
+        'studyApiOverview',
+        'studyApiBrowser',
+        'studyApiNewQueue',
+        'studyApiImports',
+      ];
 
       const flagKeys = Object.keys({
         dialoguesEnabled: true,
         scriptsEnabled: true,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
+        studyApiEnabled: false,
+        studyApiSettings: false,
+        studyApiOverview: false,
+        studyApiBrowser: false,
+        studyApiNewQueue: false,
+        studyApiImports: false,
       });
 
       expectedFlags.forEach((flag) => {

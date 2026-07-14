@@ -90,6 +90,12 @@ interface FeatureFlags {
   scriptsEnabled: boolean;
   audioCourseEnabled: boolean;
   flashcardsEnabled: boolean;
+  studyApiEnabled: boolean;
+  studyApiSettings: boolean;
+  studyApiOverview: boolean;
+  studyApiBrowser: boolean;
+  studyApiNewQueue: boolean;
+  studyApiImports: boolean;
   updatedAt: string;
 }
 
@@ -658,6 +664,30 @@ const AdminPage = () => {
   if (!user || user.role !== 'admin') {
     return null;
   }
+
+  const renderFeatureFlagToggle = (
+    key: keyof Omit<FeatureFlags, 'id' | 'updatedAt'>,
+    title: string,
+    description: string
+  ) => (
+    <div className="flex items-center justify-between gap-6 py-4 border-b border-gray-200 last:border-b-0">
+      <div>
+        <h3 className="text-base font-semibold text-navy">{title}</h3>
+        <p className="text-sm text-gray-600 mt-1">{description}</p>
+      </div>
+      <label htmlFor={`toggle-${key}`} className="relative inline-flex items-center cursor-pointer">
+        <input
+          id={`toggle-${key}`}
+          type="checkbox"
+          checked={featureFlags?.[key] ?? false}
+          onChange={(e) => updateFeatureFlag(key, e.target.checked)}
+          className="sr-only peer"
+          aria-label={`Toggle ${title}`}
+        />
+        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+      </label>
+    </div>
+  );
 
   return (
     <div className="max-w-[80rem] mx-auto retro-admin-v3-wrap">
@@ -1452,12 +1482,50 @@ const AdminPage = () => {
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                       </label>
                     </div>
+
+                    <div className="pt-6 border-t border-gray-200">
+                      <h3 className="text-base font-semibold text-navy">Learning OS Study API</h3>
+                      <p className="text-sm text-gray-600 mt-1 mb-2">
+                        Route selected read-only study views to the Learning OS API when the
+                        frontend Learning OS URL and token are configured.
+                      </p>
+                      {renderFeatureFlagToggle(
+                        'studyApiEnabled',
+                        'Enable Study API Routing',
+                        'Parent switch required before any study read endpoint can use Learning OS'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiOverview',
+                        'Study Overview',
+                        'Use Learning OS for dashboard review counts and due-card summaries'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiSettings',
+                        'Study Settings',
+                        'Use Learning OS for study preferences and daily new-card settings'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiBrowser',
+                        'Study Browser',
+                        'Use Learning OS for the card browser list endpoint'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiNewQueue',
+                        'New-Card Queue',
+                        'Use Learning OS for the reorderable new-card queue read endpoint'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiImports',
+                        'Import Status',
+                        'Use Learning OS for current import and import status polling reads'
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg retro-admin-v3-note">
                     <p className="text-sm text-blue-800">
-                      <strong>Note:</strong> These settings only affect non-admin users. As an
-                      admin, you will always see all content creation options.
+                      <strong>Note:</strong> Visibility settings only affect non-admin users. Study
+                      API routing settings apply to admin and non-admin users when enabled.
                     </p>
                   </div>
                 </div>

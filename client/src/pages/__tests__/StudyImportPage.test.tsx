@@ -21,6 +21,21 @@ const {
   uploadStudyImportArchiveMock: vi.fn(),
 }));
 
+const studyFeatureFlagsMock = vi.hoisted(() => ({
+  id: 'flags-1',
+  dialoguesEnabled: true,
+  scriptsEnabled: true,
+  audioCourseEnabled: true,
+  flashcardsEnabled: true,
+  studyApiEnabled: false,
+  studyApiSettings: false,
+  studyApiOverview: false,
+  studyApiBrowser: false,
+  studyApiNewQueue: false,
+  studyApiImports: false,
+  updatedAt: '2026-07-14T00:00:00.000Z',
+}));
+
 vi.mock('../../hooks/useStudy', () => ({
   cancelStudyImportUpload: cancelStudyImportUploadMock,
   completeStudyImportUpload: completeStudyImportUploadMock,
@@ -29,6 +44,19 @@ vi.mock('../../hooks/useStudy', () => ({
   getStudyImportStatus: getStudyImportStatusMock,
   uploadStudyImportArchive: uploadStudyImportArchiveMock,
 }));
+
+vi.mock('../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({
+    flags: studyFeatureFlagsMock,
+  }),
+}));
+
+async function waitForInitialImportResume() {
+  await waitFor(() => expect(getCurrentStudyImportMock).toHaveBeenCalled());
+  await waitFor(() =>
+    expect(screen.queryByText('Checking the latest import status…')).not.toBeInTheDocument()
+  );
+}
 
 describe('StudyImportPage', () => {
   beforeEach(() => {
@@ -48,6 +76,7 @@ describe('StudyImportPage', () => {
         <StudyImportPage />
       </BrowserRouter>
     );
+    await waitForInitialImportResume();
 
     const fileInput = screen.getByLabelText('Anki collection backup');
     fireEvent.change(fileInput, {
@@ -66,6 +95,7 @@ describe('StudyImportPage', () => {
         <StudyImportPage />
       </BrowserRouter>
     );
+    await waitForInitialImportResume();
 
     const fileInput = screen.getByLabelText('Anki collection backup');
     const largeFile = new File(['x'], 'huge.colpkg');
@@ -161,10 +191,13 @@ describe('StudyImportPage', () => {
         <StudyImportPage />
       </BrowserRouter>
     );
+    await waitForInitialImportResume();
 
     const fileInput = screen.getByLabelText('Anki collection backup');
     await userEvent.upload(fileInput, new File(['ok'], 'japanese.colpkg'));
-    await userEvent.click(screen.getByRole('button', { name: 'Import .colpkg' }));
+    const submitButton = screen.getByRole('button', { name: 'Import .colpkg' });
+    await waitFor(() => expect(submitButton).not.toBeDisabled());
+    await userEvent.click(submitButton);
 
     expect(createStudyImportUploadSessionMock).toHaveBeenCalled();
     expect(uploadStudyImportArchiveMock).toHaveBeenCalled();
@@ -239,10 +272,14 @@ describe('StudyImportPage', () => {
         <StudyImportPage />
       </BrowserRouter>
     );
+    await waitForInitialImportResume();
 
     const fileInput = screen.getByLabelText('Anki collection backup');
     await userEvent.upload(fileInput, new File(['ok'], 'japanese.colpkg'));
-    await userEvent.click(screen.getByRole('button', { name: 'Import .colpkg' }));
+    const submitButton = screen.getByRole('button', { name: 'Import .colpkg' });
+    await waitFor(() => expect(submitButton).not.toBeDisabled());
+    await userEvent.click(submitButton);
+    await waitFor(() => expect(createStudyImportUploadSessionMock).toHaveBeenCalled());
     await userEvent.click(await screen.findByRole('button', { name: 'Cancel upload' }));
 
     expect(cancelStudyImportUploadMock).toHaveBeenCalledWith('import-1');

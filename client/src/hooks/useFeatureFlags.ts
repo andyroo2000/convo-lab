@@ -8,6 +8,12 @@ export interface FeatureFlags {
   scriptsEnabled: boolean;
   audioCourseEnabled: boolean;
   flashcardsEnabled: boolean;
+  studyApiEnabled: boolean;
+  studyApiSettings: boolean;
+  studyApiOverview: boolean;
+  studyApiBrowser: boolean;
+  studyApiNewQueue: boolean;
+  studyApiImports: boolean;
   updatedAt: string;
 }
 
