@@ -23,14 +23,10 @@ import {
 
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
-  LEARNING_OS_API_URL: 'http://localhost:8000',
-  LEARNING_OS_API_TOKEN: 'test-learning-os-token',
   SHOW_ONBOARDING_WELCOME: false,
 }));
 
 describe('useStudy request helpers', () => {
-  const learningOsUrl = 'http://localhost:8000';
-
   const featureFlags = (overrides: Partial<FeatureFlags> = {}): FeatureFlags => ({
     id: 'flags-1',
     dialoguesEnabled: true,
@@ -262,7 +258,7 @@ describe('useStudy request helpers', () => {
     expect(new Headers(requestInit.headers).has('Authorization')).toBe(false);
   });
 
-  it('routes enabled read-only study endpoints to Learning OS with bearer auth', async () => {
+  it('routes enabled read-only study endpoints through the Convo Lab proxy', async () => {
     const flags = featureFlags({
       studyApiEnabled: true,
       studyApiSettings: true,
@@ -280,33 +276,33 @@ describe('useStudy request helpers', () => {
     const fetchMock = vi.mocked(global.fetch);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      `${learningOsUrl}/api/study/settings`,
-      expect.objectContaining({ credentials: 'omit' })
+      `${API_URL}/api/learning-os/study/settings`,
+      expect.objectContaining({ credentials: 'include' })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      `${learningOsUrl}/api/study/new-queue?cursor=cursor-1&q=kana`,
-      expect.objectContaining({ credentials: 'omit' })
+      `${API_URL}/api/learning-os/study/new-queue?cursor=cursor-1&q=kana`,
+      expect.objectContaining({ credentials: 'include' })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
-      `${learningOsUrl}/api/study/browser?sortField=created_on&sortDirection=desc&limit=25`,
-      expect.objectContaining({ credentials: 'omit' })
+      `${API_URL}/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25`,
+      expect.objectContaining({ credentials: 'include' })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       4,
-      `${learningOsUrl}/api/study/imports/current`,
-      expect.objectContaining({ credentials: 'omit' })
+      `${API_URL}/api/learning-os/study/imports/current`,
+      expect.objectContaining({ credentials: 'include' })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       5,
-      `${learningOsUrl}/api/study/imports/import-1`,
-      expect.objectContaining({ credentials: 'omit' })
+      `${API_URL}/api/learning-os/study/imports/import-1`,
+      expect.objectContaining({ credentials: 'include' })
     );
 
     fetchMock.mock.calls.forEach(([, requestInit]) => {
       const headers = new Headers((requestInit as RequestInit).headers);
-      expect(headers.get('Authorization')).toBe('Bearer test-learning-os-token');
+      expect(headers.has('Authorization')).toBe(false);
       expect(headers.get('Accept')).toBe('application/json');
       expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
     });

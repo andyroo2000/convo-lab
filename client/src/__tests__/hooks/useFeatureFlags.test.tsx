@@ -6,8 +6,6 @@ import { createWrapper } from './test-utils';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
-  LEARNING_OS_API_URL: 'http://localhost:8000',
-  LEARNING_OS_API_TOKEN: 'test-token',
   SHOW_ONBOARDING_WELCOME: false,
 }));
 

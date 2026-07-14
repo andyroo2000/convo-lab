@@ -42,7 +42,7 @@ import type {
   StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types';
 
-import { API_URL, LEARNING_OS_API_TOKEN, LEARNING_OS_API_URL } from '../config';
+import { API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
@@ -96,6 +96,7 @@ export interface StudyBrowserQuery {
 }
 
 type StudyApiReadFeature = 'settings' | 'overview' | 'browser' | 'newQueue' | 'imports';
+const LEARNING_OS_STUDY_PROXY_BASE = '/api/learning-os/study';
 
 const STUDY_API_FLAG_BY_FEATURE: Record<
   StudyApiReadFeature,
@@ -154,23 +155,20 @@ async function apiRequest<T>(
   routing?: StudyApiRouting
 ): Promise<T> {
   if (shouldUseLearningOsStudyApi(routing)) {
-    if (!LEARNING_OS_API_URL || !LEARNING_OS_API_TOKEN) {
-      throw new Error('Learning OS Study API is enabled but not configured.');
-    }
-
     const headers = new Headers(init?.headers ?? {});
     headers.set('Accept', 'application/json');
-    headers.set('Authorization', `Bearer ${LEARNING_OS_API_TOKEN}`);
+    const proxyEndpoint = endpoint.replace(/^\/api\/study/, LEARNING_OS_STUDY_PROXY_BASE);
 
-    const response = await fetch(`${trimTrailingSlash(LEARNING_OS_API_URL)}${endpoint}`, {
+    const response = await fetchWithCsrf(`${trimTrailingSlash(API_URL)}${proxyEndpoint}`, {
       ...init,
-      credentials: 'omit',
+      credentials: 'include',
       headers,
     });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(error.message || error.error?.message || 'Request failed');
+      const message = error.message || error.error?.message || 'Request failed';
+      throw new Error(`${message} (${String(response.status)})`);
     }
 
     if (response.status === 204) {
