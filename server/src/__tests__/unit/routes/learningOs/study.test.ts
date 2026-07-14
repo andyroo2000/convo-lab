@@ -11,6 +11,9 @@ import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPrisma = vi.hoisted(() => ({
+  featureFlag: {
+    findFirst: vi.fn(),
+  },
   user: {
     findUnique: vi.fn(),
   },
@@ -54,8 +57,25 @@ describe('Learning OS Study proxy routes', () => {
     return `token=${token}`;
   }
 
-  beforeEach(() => {
+  const enabledStudyApiFlags = {
+    dialoguesEnabled: true,
+    scriptsEnabled: true,
+    audioCourseEnabled: true,
+    flashcardsEnabled: true,
+    studyApiEnabled: true,
+    studyApiSettings: true,
+    studyApiOverview: true,
+    studyApiBrowser: true,
+    studyApiNewQueue: true,
+    studyApiImports: true,
+  };
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+    const { resetFeatureFlagCacheForTests } =
+      await import('../../../../middleware/featureFlags.js');
+    resetFeatureFlagCacheForTests();
     process.env.JWT_SECRET = 'test-secret';
     process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
     process.env.LEARNING_OS_API_TOKEN = 'server-only-token';
@@ -73,12 +93,14 @@ describe('Learning OS Study proxy routes', () => {
       email: 'learner@example.com',
       role: 'user',
     });
+    mockPrisma.featureFlag.findFirst.mockResolvedValue(enabledStudyApiFlags);
   });
 
   afterEach(() => {
     process.env.LEARNING_OS_API_URL = originalLearningOsApiUrl;
     process.env.LEARNING_OS_API_TOKEN = originalLearningOsApiToken;
     process.env.JWT_SECRET = originalJwtSecret;
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -125,6 +147,78 @@ describe('Learning OS Study proxy routes', () => {
       'Learning OS Study API is enabled but not configured.'
     );
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects direct proxy reads when the parent Study API flag is disabled', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiEnabled: false,
+    });
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/browser')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toBe('Learning OS Study API route is not enabled.');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects direct proxy reads when the endpoint Study API flag is disabled', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiBrowser: false,
+    });
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/browser')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toBe('Learning OS Study API route is not enabled.');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects query params that are not allowed for the proxied route', async () => {
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/settings?cursor=not-allowed')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toBe(
+      'Query parameter "cursor" is not allowed for this Study API route.'
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('returns a gateway timeout when the upstream Learning OS request hangs', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: URL, init?: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+      })
+    );
+    const app = await createApp();
+
+    const pendingResponse = request(app)
+      .get('/api/learning-os/study/overview?timeZone=America%2FNew_York')
+      .set('Cookie', authCookie())
+      .then((response) => response);
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    await vi.advanceTimersByTimeAsync(10_000);
+    const response = await pendingResponse;
+
+    expect(response.status).toBe(504);
+    expect(response.body.error.message).toBe('Learning OS Study API request timed out.');
   });
 
   it('rejects routes outside the read-only Study API allowlist', async () => {
