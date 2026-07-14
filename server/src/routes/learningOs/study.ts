@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
 import { prisma } from '../../db/client.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.js';
@@ -8,6 +9,12 @@ import { rateLimitStudyRoute } from '../../middleware/studyRateLimit.js';
 
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
+const learningOsStudyIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 type StudyApiChildFlag = Extract<
   FeatureFlagKey,
@@ -154,6 +161,7 @@ interface UserIdentity {
 
 router.get(
   '/*',
+  learningOsStudyIpRateLimit,
   requireAuth,
   rateLimitStudyRoute({
     key: 'learning-os-read-proxy',
