@@ -108,11 +108,15 @@ function appendQueryParams(
 
     if (Array.isArray(value)) {
       value.forEach((item) => {
-        if (typeof item === 'string') {
-          target.searchParams.append(key, item);
+        if (typeof item !== 'string') {
+          throw new AppError(`Query parameter "${key}" must be a string or list of strings.`, 400);
         }
+        target.searchParams.append(key, item);
       });
+      return;
     }
+
+    throw new AppError(`Query parameter "${key}" must be a string or list of strings.`, 400);
   });
 }
 

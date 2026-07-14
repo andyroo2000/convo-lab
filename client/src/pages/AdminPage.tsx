@@ -1487,7 +1487,7 @@ const AdminPage = () => {
                       <h3 className="text-base font-semibold text-navy">Learning OS Study API</h3>
                       <p className="text-sm text-gray-600 mt-1 mb-2">
                         Route selected read-only study views to the Learning OS API when the
-                        frontend Learning OS URL and token are configured.
+                        server-side Learning OS URL and token are configured.
                       </p>
                       {renderFeatureFlagToggle(
                         'studyApiEnabled',

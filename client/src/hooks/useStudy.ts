@@ -157,7 +157,7 @@ async function apiRequest<T>(
   if (shouldUseLearningOsStudyApi(routing)) {
     const headers = new Headers(init?.headers ?? {});
     headers.set('Accept', 'application/json');
-    const proxyEndpoint = endpoint.replace(/^\/api\/study/, LEARNING_OS_STUDY_PROXY_BASE);
+    const proxyEndpoint = endpoint.replace(/^\/api\/study(?=\/|$)/, LEARNING_OS_STUDY_PROXY_BASE);
 
     const response = await fetchWithCsrf(`${trimTrailingSlash(API_URL)}${proxyEndpoint}`, {
       ...init,

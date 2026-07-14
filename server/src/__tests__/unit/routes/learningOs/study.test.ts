@@ -35,6 +35,7 @@ describe('Learning OS Study proxy routes', () => {
 
   function createApp() {
     const app = express();
+    app.set('query parser', 'extended');
     app.use(cookieParser());
     app.use(expressJson());
 
@@ -191,6 +192,20 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.error.message).toBe(
       'Query parameter "cursor" is not allowed for this Study API route.'
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects allowed query params with nested object values', async () => {
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/browser?q[foo]=bar')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toBe(
+      'Query parameter "q" must be a string or list of strings.'
     );
     expect(global.fetch).not.toHaveBeenCalled();
   });
