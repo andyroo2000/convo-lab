@@ -67,7 +67,7 @@ const ALLOWED_STUDY_READ_ROUTES: StudyReadRoute[] = [
     queryParams: new Set(),
   },
   {
-    pattern: /^\/imports\/[^/]+$/,
+    pattern: /^\/imports\/[A-Za-z0-9_-]+$/,
     featureFlag: 'studyApiImports',
     queryParams: new Set(),
   },
@@ -196,6 +196,11 @@ router.get(
       appendQueryParams(upstreamUrl, req.query, studyReadRoute.queryParams);
 
       const upstreamResponse = await fetchLearningOsStudyRead(upstreamUrl, apiToken, user);
+
+      if (!upstreamResponse.ok) {
+        const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;
+        throw new AppError('Learning OS Study API request failed.', statusCode);
+      }
 
       const responseBody = await upstreamResponse.text();
       const contentType = upstreamResponse.headers.get('content-type');

@@ -221,6 +221,38 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.body.error.message).toBe('Learning OS Study API request timed out.');
   });
 
+  it('rejects unsafe import id path segments before building the upstream URL', async () => {
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/imports/..')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(404);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('returns a sanitized error when Learning OS returns a non-2xx response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ stack: 'internal upstream details' }), {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/imports/import_123')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe('Learning OS Study API request failed.');
+    expect(JSON.stringify(response.body)).not.toContain('internal upstream details');
+  });
+
   it('rejects routes outside the read-only Study API allowlist', async () => {
     const app = await createApp();
 
