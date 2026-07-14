@@ -6,6 +6,7 @@ import { createWrapper } from './test-utils';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
+  SHOW_ONBOARDING_WELCOME: false,
 }));
 
 // Mock AuthContext
@@ -54,6 +55,13 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: true,
         scriptsEnabled: true,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
+        studyApiEnabled: false,
+        studyApiSettings: false,
+        studyApiOverview: false,
+        studyApiBrowser: false,
+        studyApiNewQueue: false,
+        studyApiImports: false,
         updatedAt: '2024-01-01',
       };
 
@@ -99,6 +107,13 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: true,
         scriptsEnabled: true,
         audioCourseEnabled: false,
+        flashcardsEnabled: true,
+        studyApiEnabled: false,
+        studyApiSettings: false,
+        studyApiOverview: false,
+        studyApiBrowser: false,
+        studyApiNewQueue: false,
+        studyApiImports: false,
         updatedAt: '2024-01-01',
       };
 
@@ -124,6 +139,13 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: true,
         scriptsEnabled: true,
         audioCourseEnabled: false,
+        flashcardsEnabled: true,
+        studyApiEnabled: false,
+        studyApiSettings: false,
+        studyApiOverview: false,
+        studyApiBrowser: false,
+        studyApiNewQueue: false,
+        studyApiImports: false,
         updatedAt: '2024-01-01',
       };
 
@@ -164,6 +186,13 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: false,
         scriptsEnabled: false,
         audioCourseEnabled: false,
+        flashcardsEnabled: false,
+        studyApiEnabled: false,
+        studyApiSettings: false,
+        studyApiOverview: false,
+        studyApiBrowser: false,
+        studyApiNewQueue: false,
+        studyApiImports: false,
         updatedAt: '2024-01-01',
       };
 
@@ -286,6 +315,13 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: true,
         scriptsEnabled: true,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
+        studyApiEnabled: false,
+        studyApiSettings: false,
+        studyApiOverview: false,
+        studyApiBrowser: false,
+        studyApiNewQueue: false,
+        studyApiImports: false,
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
@@ -294,6 +330,13 @@ describe('useFeatureFlags', () => {
       expect(typeof validFlags.dialoguesEnabled).toBe('boolean');
       expect(typeof validFlags.scriptsEnabled).toBe('boolean');
       expect(typeof validFlags.audioCourseEnabled).toBe('boolean');
+      expect(typeof validFlags.flashcardsEnabled).toBe('boolean');
+      expect(typeof validFlags.studyApiEnabled).toBe('boolean');
+      expect(typeof validFlags.studyApiSettings).toBe('boolean');
+      expect(typeof validFlags.studyApiOverview).toBe('boolean');
+      expect(typeof validFlags.studyApiBrowser).toBe('boolean');
+      expect(typeof validFlags.studyApiNewQueue).toBe('boolean');
+      expect(typeof validFlags.studyApiImports).toBe('boolean');
       expect(typeof validFlags.updatedAt).toBe('string');
     });
   });

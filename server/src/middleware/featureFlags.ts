@@ -5,16 +5,28 @@ import { prisma } from '../db/client.js';
 import { AuthRequest } from './auth.js';
 import { AppError } from './errorHandler.js';
 
-type FeatureFlagKey =
+export type FeatureFlagKey =
   | 'dialoguesEnabled'
   | 'scriptsEnabled'
   | 'audioCourseEnabled'
-  | 'flashcardsEnabled';
-type FeatureFlagSnapshot = {
+  | 'flashcardsEnabled'
+  | 'studyApiEnabled'
+  | 'studyApiSettings'
+  | 'studyApiOverview'
+  | 'studyApiBrowser'
+  | 'studyApiNewQueue'
+  | 'studyApiImports';
+export type FeatureFlagSnapshot = {
   dialoguesEnabled: boolean;
   scriptsEnabled: boolean;
   audioCourseEnabled: boolean;
   flashcardsEnabled: boolean;
+  studyApiEnabled: boolean;
+  studyApiSettings: boolean;
+  studyApiOverview: boolean;
+  studyApiBrowser: boolean;
+  studyApiNewQueue: boolean;
+  studyApiImports: boolean;
 } | null;
 
 const FEATURE_FLAG_CACHE_TTL_MS = 30 * 1000;
@@ -24,7 +36,7 @@ let cachedFeatureFlags: {
   expiresAt: number;
 } | null = null;
 
-async function getFeatureFlags(): Promise<FeatureFlagSnapshot> {
+export async function getFeatureFlags(): Promise<FeatureFlagSnapshot> {
   const now = Date.now();
   if (cachedFeatureFlags && cachedFeatureFlags.expiresAt > now) {
     return cachedFeatureFlags.value;
@@ -36,6 +48,12 @@ async function getFeatureFlags(): Promise<FeatureFlagSnapshot> {
       scriptsEnabled: true,
       audioCourseEnabled: true,
       flashcardsEnabled: true,
+      studyApiEnabled: true,
+      studyApiSettings: true,
+      studyApiOverview: true,
+      studyApiBrowser: true,
+      studyApiNewQueue: true,
+      studyApiImports: true,
     },
   });
 

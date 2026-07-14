@@ -13,6 +13,7 @@ import {
   getStudyImportStatus,
   uploadStudyImportArchive,
 } from '../hooks/useStudy';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 const STUDY_IMPORT_ACTIVE_JOB_STORAGE_KEY = 'study.import.activeJobId';
 const STUDY_IMPORT_POLL_TIMEOUT_MS = 30 * 60 * 1000;
@@ -70,6 +71,7 @@ function isTerminalImportResult(result: StudyImportResult): boolean {
 
 const StudyImportPage = () => {
   const { t } = useTranslation('study');
+  const { flags } = useFeatureFlags();
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<ImportPhase>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -125,7 +127,7 @@ const StudyImportPage = () => {
           throw createImportPollingAbortError();
         }
 
-        const result = await getStudyImportStatus(importJobId, { signal });
+        const result = await getStudyImportStatus(importJobId, { signal }, flags);
         setImportResult(result);
 
         if (isTerminalImportResult(result)) {
@@ -141,7 +143,7 @@ const StudyImportPage = () => {
 
       throw new Error(t('import.processingTimedOut'));
     },
-    [applyTerminalResult, t]
+    [applyTerminalResult, flags, t]
   );
 
   useEffect(() => {
@@ -155,8 +157,12 @@ const StudyImportPage = () => {
         setPhase('resuming');
         const storedImportJobId = window.localStorage.getItem(STUDY_IMPORT_ACTIVE_JOB_STORAGE_KEY);
         const result = storedImportJobId
-          ? await getStudyImportStatus(storedImportJobId, { signal: pollAbortController.signal })
-          : await getCurrentStudyImport({ signal: pollAbortController.signal });
+          ? await getStudyImportStatus(
+              storedImportJobId,
+              { signal: pollAbortController.signal },
+              flags
+            )
+          : await getCurrentStudyImport({ signal: pollAbortController.signal }, flags);
 
         if (cancelled) return;
 
@@ -194,7 +200,7 @@ const StudyImportPage = () => {
         pollAbortControllerRef.current = null;
       }
     };
-  }, [applyTerminalResult, pollImportResult, storeActiveImportJob]);
+  }, [applyTerminalResult, flags, pollImportResult, storeActiveImportJob]);
 
   useEffect(
     () => () => {

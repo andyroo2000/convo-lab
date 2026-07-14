@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API_URL } from '../../config';
+import type { FeatureFlags } from '../useFeatureFlags';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
   commitStudyCardCandidates,
   deleteStudyCard,
+  getCurrentStudyImport,
+  getStudyNewCardQueue,
+  getStudySettings,
   generateStudyCardCandidates,
   getStudyBrowser,
   getStudyImportStatus,
@@ -17,7 +21,28 @@ import {
   uploadStudyImport,
 } from '../useStudy';
 
+vi.mock('../../config', () => ({
+  API_URL: 'http://localhost:3001',
+  SHOW_ONBOARDING_WELCOME: false,
+}));
+
 describe('useStudy request helpers', () => {
+  const featureFlags = (overrides: Partial<FeatureFlags> = {}): FeatureFlags => ({
+    id: 'flags-1',
+    dialoguesEnabled: true,
+    scriptsEnabled: true,
+    audioCourseEnabled: true,
+    flashcardsEnabled: true,
+    studyApiEnabled: false,
+    studyApiSettings: false,
+    studyApiOverview: false,
+    studyApiBrowser: false,
+    studyApiNewQueue: false,
+    studyApiImports: false,
+    updatedAt: new Date('2026-07-14T00:00:00.000Z').toISOString(),
+    ...overrides,
+  });
+
   class MockXMLHttpRequest {
     static lastInstance: MockXMLHttpRequest | null = null;
 
@@ -195,6 +220,92 @@ describe('useStudy request helpers', () => {
       `${API_URL}/api/study/browser?sortField=created_on&sortDirection=desc&limit=25`,
       expect.any(Object)
     );
+  });
+
+  it('uses the existing Convo Lab study API when the parent Study API flag is off', async () => {
+    await getStudySettings(
+      featureFlags({
+        studyApiEnabled: false,
+        studyApiSettings: true,
+      })
+    );
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/study/settings`, expect.any(Object));
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(requestInit.credentials).toBe('include');
+    expect(new Headers(requestInit.headers).has('Authorization')).toBe(false);
+  });
+
+  it('keeps endpoint-specific study reads on Convo Lab until their child flag is enabled', async () => {
+    await getStudyBrowser(
+      { limit: 10 },
+      featureFlags({
+        studyApiEnabled: true,
+        studyApiBrowser: false,
+      })
+    );
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/study/browser?limit=10`,
+      expect.any(Object)
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(requestInit.credentials).toBe('include');
+    expect(new Headers(requestInit.headers).has('Authorization')).toBe(false);
+  });
+
+  it('routes enabled read-only study endpoints through the Convo Lab proxy', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiSettings: true,
+      studyApiNewQueue: true,
+      studyApiBrowser: true,
+      studyApiImports: true,
+    });
+
+    await getStudySettings(flags);
+    await getStudyNewCardQueue({ cursor: 'cursor-1', q: '  kana  ' }, flags);
+    await getStudyBrowser({ sortField: 'created_on', sortDirection: 'desc', limit: 25 }, flags);
+    await getCurrentStudyImport(undefined, flags);
+    await getStudyImportStatus('import-1', undefined, flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      `${API_URL}/api/learning-os/study/settings`,
+      expect.objectContaining({ credentials: 'include' })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${API_URL}/api/learning-os/study/new-queue?cursor=cursor-1&q=kana`,
+      expect.objectContaining({ credentials: 'include' })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      `${API_URL}/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25`,
+      expect.objectContaining({ credentials: 'include' })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      `${API_URL}/api/learning-os/study/imports/current`,
+      expect.objectContaining({ credentials: 'include' })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      5,
+      `${API_URL}/api/learning-os/study/imports/import-1`,
+      expect.objectContaining({ credentials: 'include' })
+    );
+
+    fetchMock.mock.calls.forEach(([, requestInit]) => {
+      const headers = new Headers((requestInit as RequestInit).headers);
+      expect(headers.has('Authorization')).toBe(false);
+      expect(headers.get('Accept')).toBe('application/json');
+      expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
+    });
   });
 
   it('generates study card candidates with JSON and CSRF headers', async () => {

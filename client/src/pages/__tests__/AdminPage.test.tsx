@@ -122,6 +122,13 @@ const mockFeatureFlags = {
   dialoguesEnabled: true,
   scriptsEnabled: true,
   audioCourseEnabled: true,
+  flashcardsEnabled: true,
+  studyApiEnabled: false,
+  studyApiSettings: false,
+  studyApiOverview: false,
+  studyApiBrowser: false,
+  studyApiNewQueue: false,
+  studyApiImports: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 

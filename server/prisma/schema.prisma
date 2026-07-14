@@ -477,6 +477,12 @@ model FeatureFlag {
   scriptsEnabled     Boolean  @default(true)
   audioCourseEnabled Boolean  @default(true)
   flashcardsEnabled  Boolean  @default(true)
+  studyApiEnabled    Boolean  @default(false)
+  studyApiSettings   Boolean  @default(false)
+  studyApiOverview   Boolean  @default(false)
+  studyApiBrowser    Boolean  @default(false)
+  studyApiNewQueue   Boolean  @default(false)
+  studyApiImports    Boolean  @default(false)
   updatedAt          DateTime @updatedAt
 
   @@map("feature_flags")
