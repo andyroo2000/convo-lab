@@ -31,7 +31,7 @@ import dialogueRoutes from './routes/dialogue.js';
 import episodeRoutes from './routes/episodes.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
-import learningOsStudyRoutes from './routes/learningOsStudy.js';
+import learningOsStudyRoutes from './routes/learningOs/study.js';
 import scriptRoutes from './routes/scripts.js';
 import studyRoutes from './routes/study.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';

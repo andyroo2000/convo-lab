@@ -1,5 +1,11 @@
 import cookieParser from 'cookie-parser';
-import express, { json as expressJson, type ErrorRequestHandler } from 'express';
+import express, {
+  json as expressJson,
+  type ErrorRequestHandler,
+  type NextFunction,
+  type Request,
+  type Response,
+} from 'express';
 import { sign as signJwt } from 'jsonwebtoken';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,7 +16,14 @@ const mockPrisma = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
+const mockRateLimitStudyRoute = vi.hoisted(() =>
+  vi.fn((_options) => (_req: Request, _res: Response, next: NextFunction) => next())
+);
+
+vi.mock('../../../../db/client.js', () => ({ prisma: mockPrisma }));
+vi.mock('../../../../middleware/studyRateLimit.js', () => ({
+  rateLimitStudyRoute: mockRateLimitStudyRoute,
+}));
 
 describe('Learning OS Study proxy routes', () => {
   const originalLearningOsApiUrl = process.env.LEARNING_OS_API_URL;
@@ -22,7 +35,7 @@ describe('Learning OS Study proxy routes', () => {
     app.use(cookieParser());
     app.use(expressJson());
 
-    return import('../../../routes/learningOsStudy.js').then(
+    return import('../../../../routes/learningOs/study.js').then(
       ({ default: learningOsStudyRoutes }) => {
         app.use('/api/learning-os/study', learningOsStudyRoutes);
         app.use(((error: unknown, _req, res, _next) => {
@@ -90,6 +103,12 @@ describe('Learning OS Study proxy routes', () => {
       'X-Convo-Lab-User-Id': 'user-1',
       'X-Convo-Lab-User-Email': 'learner@example.com',
       'X-Convo-Lab-User-Role': 'user',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-read-proxy',
+      max: 240,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
     });
   });
 
