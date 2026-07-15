@@ -129,6 +129,8 @@ const mockFeatureFlags = {
   studyApiBrowser: false,
   studyApiNewQueue: false,
   studyApiImports: false,
+  studyApiSettingsWrite: false,
+  studyApiNewQueueWrite: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 

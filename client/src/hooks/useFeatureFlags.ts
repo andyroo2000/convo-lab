@@ -14,6 +14,8 @@ export interface FeatureFlags {
   studyApiBrowser: boolean;
   studyApiNewQueue: boolean;
   studyApiImports: boolean;
+  studyApiSettingsWrite: boolean;
+  studyApiNewQueueWrite: boolean;
   updatedAt: string;
 }
 

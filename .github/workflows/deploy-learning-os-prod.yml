@@ -36,6 +36,16 @@ on:
         required: true
         default: false
         type: boolean
+      enable_settings_write:
+        description: 'Desired state for Learning OS study-settings writes'
+        required: true
+        default: false
+        type: boolean
+      enable_new_queue_write:
+        description: 'Desired state for Learning OS new-card queue reorder writes'
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: production-deploy
@@ -63,6 +73,8 @@ jobs:
           ENABLE_OVERVIEW: ${{ inputs.enable_overview }}
           ENABLE_BROWSER: ${{ inputs.enable_browser }}
           ENABLE_NEW_QUEUE: ${{ inputs.enable_new_queue }}
+          ENABLE_SETTINGS_WRITE: ${{ inputs.enable_settings_write }}
+          ENABLE_NEW_QUEUE_WRITE: ${{ inputs.enable_new_queue_write }}
         run: |
           if ! [[ "$IMAGE_TAG" =~ ^main-[0-9a-f]{40}$ ]]; then
             echo "::error::image_tag must be an immutable main-<full-sha> tag"
@@ -86,6 +98,17 @@ jobs:
           validate_boolean_input enable_overview "$ENABLE_OVERVIEW"
           validate_boolean_input enable_browser "$ENABLE_BROWSER"
           validate_boolean_input enable_new_queue "$ENABLE_NEW_QUEUE"
+          validate_boolean_input enable_settings_write "$ENABLE_SETTINGS_WRITE"
+          validate_boolean_input enable_new_queue_write "$ENABLE_NEW_QUEUE_WRITE"
+
+          if [ "$ENABLE_SETTINGS_WRITE" = true ] && [ "$ENABLE_SETTINGS" != true ]; then
+            echo "::error::enable_settings_write requires enable_settings"
+            exit 1
+          fi
+          if [ "$ENABLE_NEW_QUEUE_WRITE" = true ] && [ "$ENABLE_NEW_QUEUE" != true ]; then
+            echo "::error::enable_new_queue_write requires enable_new_queue"
+            exit 1
+          fi
 
       - name: Set up SSH
         run: |
@@ -102,11 +125,14 @@ jobs:
           ENABLE_OVERVIEW: ${{ inputs.enable_overview }}
           ENABLE_BROWSER: ${{ inputs.enable_browser }}
           ENABLE_NEW_QUEUE: ${{ inputs.enable_new_queue }}
+          ENABLE_SETTINGS_WRITE: ${{ inputs.enable_settings_write }}
+          ENABLE_NEW_QUEUE_WRITE: ${{ inputs.enable_new_queue_write }}
         run: |
           printf -v REMOTE_ENV \
-            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_NEW_QUEUE=%q' \
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q' \
             "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$ENABLE_SETTINGS" \
-            "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_NEW_QUEUE"
+            "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_NEW_QUEUE" \
+            "$ENABLE_SETTINGS_WRITE" "$ENABLE_NEW_QUEUE_WRITE"
 
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} \
@@ -244,7 +270,7 @@ jobs:
               learning-os php artisan tinker --execute='
                 $user = App\Models\User::query()->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))->sole();
                 $user->tokens()->where("name", "convolab-proxy")->delete();
-                echo $user->createToken("convolab-proxy", ["study:read"])->plainTextToken;
+                echo $user->createToken("convolab-proxy", ["study:read", "study:write"])->plainTextToken;
               ')"
             proxy_token="$(printf '%s\n' "$proxy_token_output" \
               | grep -E '^[0-9]+\|learning_os_[[:alnum:]]{40}[0-9a-f]{8}$' \
@@ -283,9 +309,9 @@ jobs:
             flag_state="$(docker exec convolab-postgres psql \
               --username="$postgres_user" --dbname="$postgres_db" \
               --tuples-only --no-align --field-separator='|' \
-              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports" FROM "feature_flags" LIMIT 1')"
-            IFS='|' read -r previous_parent previous_settings previous_overview previous_browser previous_new_queue previous_imports <<< "$flag_state"
-            if [ -z "$previous_imports" ]; then
+              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite" FROM "feature_flags" LIMIT 1')"
+            IFS='|' read -r previous_parent previous_settings previous_overview previous_browser previous_new_queue previous_imports previous_settings_write previous_new_queue_write <<< "$flag_state"
+            if [ -z "$previous_new_queue_write" ]; then
               echo "Unable to capture the existing Study API feature flags."
               exit 1
             fi
@@ -304,6 +330,8 @@ jobs:
             previous_browser_sql="$(sql_bool "$previous_browser")"
             previous_new_queue_sql="$(sql_bool "$previous_new_queue")"
             previous_imports_sql="$(sql_bool "$previous_imports")"
+            previous_settings_write_sql="$(sql_bool "$previous_settings_write")"
+            previous_new_queue_write_sql="$(sql_bool "$previous_new_queue_write")"
 
             rollback_study_flags() {
               docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
@@ -315,6 +343,8 @@ jobs:
                       \"studyApiBrowser\" = $previous_browser_sql,
                       \"studyApiNewQueue\" = $previous_new_queue_sql,
                       \"studyApiImports\" = $previous_imports_sql,
+                      \"studyApiSettingsWrite\" = $previous_settings_write_sql,
+                      \"studyApiNewQueueWrite\" = $previous_new_queue_write_sql,
                       \"updatedAt\" = NOW();
                 " || true
               echo "Learning OS Study API flags were rolled back."
@@ -334,6 +364,8 @@ jobs:
             enable_overview_sql="$(sql_bool "$ENABLE_OVERVIEW")"
             enable_browser_sql="$(sql_bool "$ENABLE_BROWSER")"
             enable_new_queue_sql="$(sql_bool "$ENABLE_NEW_QUEUE")"
+            enable_settings_write_sql="$(sql_bool "$ENABLE_SETTINGS_WRITE")"
+            enable_new_queue_write_sql="$(sql_bool "$ENABLE_NEW_QUEUE_WRITE")"
 
             docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
               --set=ON_ERROR_STOP=1 --command="
@@ -344,16 +376,18 @@ jobs:
                     \"studyApiBrowser\" = $enable_browser_sql,
                     \"studyApiNewQueue\" = $enable_new_queue_sql,
                     \"studyApiImports\" = false,
+                    \"studyApiSettingsWrite\" = $enable_settings_write_sql,
+                    \"studyApiNewQueueWrite\" = $enable_new_queue_write_sql,
                     \"updatedAt\" = NOW();
               "
 
-            expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_new_queue_sql|false"
+            expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_new_queue_sql|false|$enable_settings_write_sql|$enable_new_queue_write_sql"
             expected_flag_state="${expected_flag_state//true/t}"
             expected_flag_state="${expected_flag_state//false/f}"
             flag_state="$(docker exec convolab-postgres psql \
               --username="$postgres_user" --dbname="$postgres_db" \
               --tuples-only --no-align --field-separator='|' \
-              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports" FROM "feature_flags" LIMIT 1')"
+              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite" FROM "feature_flags" LIMIT 1')"
             if [ "$flag_state" != "$expected_flag_state" ]; then
               echo "Unexpected Study API feature flag state: $flag_state"
               exit 1
@@ -435,7 +469,47 @@ jobs:
                 echo "$label legacy and Learning OS responses match."
               }
 
-              if [ "$ENABLE_SETTINGS" = true ]; then
+              assert_json_equal() {
+                local label="$1"
+                local expected="$2"
+                local actual="$3"
+
+                docker exec \
+                  -e EXPECTED_RESPONSE="$expected" \
+                  -e ACTUAL_RESPONSE="$actual" \
+                  "convolab-server-$active_color" \
+                  node --input-type=module --eval='
+                    import assert from "node:assert/strict";
+                    try {
+                      assert.deepStrictEqual(
+                        JSON.parse(process.env.ACTUAL_RESPONSE),
+                        JSON.parse(process.env.EXPECTED_RESPONSE),
+                      );
+                    } catch {
+                      console.error("Mutation changed the stable response contract.");
+                      process.exit(1);
+                    }
+                  '
+                echo "$label idempotent write smoke check passed."
+              }
+
+              mutate_proxy_route() {
+                local method="$1"
+                local path="$2"
+                local body="$3"
+
+                curl --fail --silent --show-error \
+                  --request "$method" \
+                  --header 'Accept: application/json' \
+                  --header 'Content-Type: application/json' \
+                  --header 'Origin: https://convo-lab.com' \
+                  --header "X-CSRF-Token: $csrf_token" \
+                  --header "Cookie: token=$auth_token; XSRF-TOKEN=$csrf_cookie_raw" \
+                  --data "$body" \
+                  "https://convo-lab.com$path"
+              }
+
+              if [ "$ENABLE_SETTINGS" = true ] && [ "$ENABLE_SETTINGS_WRITE" != true ]; then
                 compare_read_route Settings '/api/study/settings' '/api/learning-os/study/settings'
               fi
               if [ "$ENABLE_OVERVIEW" = true ]; then
@@ -450,11 +524,55 @@ jobs:
                   '/api/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
                   '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25'
               fi
-              if [ "$ENABLE_NEW_QUEUE" = true ]; then
+              if [ "$ENABLE_NEW_QUEUE" = true ] && [ "$ENABLE_NEW_QUEUE_WRITE" != true ]; then
                 compare_read_route \
                   NewQueue \
                   '/api/study/new-queue?limit=25' \
                   '/api/learning-os/study/new-queue?limit=25'
+              fi
+
+              if [ "$ENABLE_SETTINGS_WRITE" = true ] || [ "$ENABLE_NEW_QUEUE_WRITE" = true ]; then
+                csrf_cookie_jar="$(mktemp)"
+                curl --fail --silent --show-error \
+                  --cookie "token=$auth_token" \
+                  --cookie-jar "$csrf_cookie_jar" \
+                  --header 'Origin: https://convo-lab.com' \
+                  'https://convo-lab.com/api/auth/csrf' > /dev/null
+                csrf_cookie_raw="$(awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$csrf_cookie_jar")"
+                rm -f "$csrf_cookie_jar"
+                test -n "$csrf_cookie_raw"
+                csrf_token="$(docker exec \
+                  -e RAW_CSRF_TOKEN="$csrf_cookie_raw" \
+                  "convolab-server-$active_color" \
+                  node --input-type=module --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
+                test -n "$csrf_token"
+              fi
+
+              if [ "$ENABLE_SETTINGS_WRITE" = true ]; then
+                settings_before="$(fetch_read_route 'Settings write baseline' '/api/learning-os/study/settings')"
+                settings_body="$(docker exec \
+                  -e SETTINGS_RESPONSE="$settings_before" \
+                  "convolab-server-$active_color" \
+                  node --input-type=module --eval='
+                    const settings = JSON.parse(process.env.SETTINGS_RESPONSE);
+                    process.stdout.write(JSON.stringify({ newCardsPerDay: settings.newCardsPerDay }));
+                  ')"
+                settings_after="$(mutate_proxy_route PATCH '/api/learning-os/study/settings' "$settings_body")"
+                assert_json_equal Settings "$settings_before" "$settings_after"
+              fi
+
+              if [ "$ENABLE_NEW_QUEUE_WRITE" = true ]; then
+                queue_before="$(fetch_read_route 'New Queue write baseline' '/api/learning-os/study/new-queue?limit=100')"
+                queue_body="$(docker exec \
+                  -e QUEUE_RESPONSE="$queue_before" \
+                  "convolab-server-$active_color" \
+                  node --input-type=module --eval='
+                    const queue = JSON.parse(process.env.QUEUE_RESPONSE);
+                    if (!Array.isArray(queue.items) || queue.items.length < 1) process.exit(1);
+                    process.stdout.write(JSON.stringify({ cardIds: queue.items.map(({ id }) => id) }));
+                  ')"
+                queue_after="$(mutate_proxy_route POST '/api/learning-os/study/new-queue/reorder' "$queue_body")"
+                assert_json_equal 'New Queue' "$queue_before" "$queue_after"
               fi
             fi
 

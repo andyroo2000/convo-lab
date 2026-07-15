@@ -436,6 +436,8 @@ describe('Admin Routes - Critical Branch Coverage', () => {
           studyApiBrowser: false,
           studyApiNewQueue: false,
           studyApiImports: false,
+          studyApiSettingsWrite: false,
+          studyApiNewQueueWrite: false,
         },
       });
     });
