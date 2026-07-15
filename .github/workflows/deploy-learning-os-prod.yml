@@ -202,13 +202,16 @@ jobs:
               $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force
             fi
 
-            proxy_token="$($COMPOSE run --rm -T --no-deps \
+            proxy_token_output="$($COMPOSE run --rm -T --no-deps \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
               learning-os php artisan tinker --execute='
                 $user = App\Models\User::query()->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))->sole();
                 $user->tokens()->where("name", "convolab-proxy")->delete();
                 echo $user->createToken("convolab-proxy", ["study:read"])->plainTextToken;
               ')"
+            proxy_token="$(printf '%s\n' "$proxy_token_output" \
+              | grep -E '^[0-9]+\|learning_os_[[:alnum:]]{40}[0-9a-f]{8}$' \
+              | tail -1)"
             test -n "$proxy_token"
             echo "::add-mask::$proxy_token"
             upsert_env LEARNING_OS_API_TOKEN "$proxy_token"
