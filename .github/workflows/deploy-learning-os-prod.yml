@@ -93,7 +93,9 @@ jobs:
             upsert_env() {
               key="$1"
               value="$2"
-              escaped_value="${value//&/\\&}"
+              escaped_value="${value//\\/\\\\}"
+              escaped_value="${escaped_value//#/\\#}"
+              escaped_value="${escaped_value//&/\\&}"
 
               if grep -q "^${key}=" .env.production; then
                 sed -i "s#^${key}=.*#${key}=${escaped_value}#" .env.production
@@ -108,6 +110,12 @@ jobs:
               for attempt in {1..60}; do
                 status="$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo missing)"
                 echo "$container health attempt $attempt/60: $status"
+
+                if [ -z "$status" ] || [ "$status" = missing ]; then
+                  echo "$container has no Docker healthcheck; cannot health-gate it."
+                  docker logs --tail=200 "$container" || true
+                  return 1
+                fi
 
                 if [ "$status" = healthy ]; then
                   return 0

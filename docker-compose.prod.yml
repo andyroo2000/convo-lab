@@ -150,6 +150,18 @@ services:
         condition: service_healthy
     mem_limit: 768m
     mem_reservation: 256m
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "php",
+          "-r",
+          "$$context = stream_context_create(['http' => ['timeout' => 2]]); exit(@file_get_contents('http://127.0.0.1:8080/up', false, $$context) === false ? 1 : 0);",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     logging:
       driver: "json-file"
       options:

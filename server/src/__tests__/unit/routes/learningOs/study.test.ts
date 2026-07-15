@@ -250,6 +250,21 @@ describe('Learning OS Study proxy routes', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
+  it('returns a configuration error when the proxy user email is missing', async () => {
+    process.env.LEARNING_OS_PROXY_USER_EMAIL = '';
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/settings')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(503);
+    expect(response.body.error.message).toBe(
+      'Learning OS Study API is enabled but not configured.'
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it('rejects accounts other than the user represented by the initial proxy token', async () => {
     mockPrisma.user.findUnique.mockResolvedValue({
       id: 'user-2',

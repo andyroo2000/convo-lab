@@ -35,8 +35,10 @@ feature flags are global. Replace this single-user restriction only after
 Learning OS consumes a trusted per-request identity or ConvoLab provisions
 per-user upstream tokens.
 
-If the final proxy request fails, the workflow disables both settings flags
-before failing. The Learning OS API and copied database remain available for
+If any verification after enabling Settings fails, the workflow disables both
+settings flags before failing. Feature flags are cached by each ConvoLab server
+process for up to 30 seconds, so allow that window for a rollback to become
+fully inert. The Learning OS API and copied database remain available for
 diagnosis without taking the existing ConvoLab Study API offline.
 
 ## Subsequent Deployments
