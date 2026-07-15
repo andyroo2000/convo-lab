@@ -17,7 +17,22 @@ on:
         default: false
         type: boolean
       enable_settings:
-        description: 'Enable only the Learning OS settings read route after verification'
+        description: 'Desired state for the Learning OS settings read route'
+        required: true
+        default: true
+        type: boolean
+      enable_overview:
+        description: 'Desired state for the Learning OS overview read route'
+        required: true
+        default: false
+        type: boolean
+      enable_browser:
+        description: 'Desired state for the Learning OS browser list read route'
+        required: true
+        default: false
+        type: boolean
+      enable_new_queue:
+        description: 'Desired state for the Learning OS new-card queue read route'
         required: true
         default: false
         type: boolean
@@ -66,10 +81,14 @@ jobs:
           SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
           REBUILD_DATABASE: ${{ inputs.rebuild_database }}
           ENABLE_SETTINGS: ${{ inputs.enable_settings }}
+          ENABLE_OVERVIEW: ${{ inputs.enable_overview }}
+          ENABLE_BROWSER: ${{ inputs.enable_browser }}
+          ENABLE_NEW_QUEUE: ${{ inputs.enable_new_queue }}
         run: |
           printf -v REMOTE_ENV \
-            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q' \
-            "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$ENABLE_SETTINGS"
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_NEW_QUEUE=%q' \
+            "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$ENABLE_SETTINGS" \
+            "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_NEW_QUEUE"
 
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} \
@@ -243,44 +262,73 @@ jobs:
             postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
             postgres_db="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
 
-            rollback_settings_flags() {
-              docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
-                --set=ON_ERROR_STOP=1 --command='
-                  UPDATE "feature_flags"
-                  SET "studyApiEnabled" = false,
-                      "studyApiSettings" = false,
-                      "updatedAt" = NOW();
-                ' || true
-              echo "Learning OS settings flags were rolled back."
+            flag_state="$(docker exec convolab-postgres psql \
+              --username="$postgres_user" --dbname="$postgres_db" \
+              --tuples-only --no-align --field-separator='|' \
+              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports" FROM "feature_flags" LIMIT 1')"
+            IFS='|' read -r previous_parent previous_settings previous_overview previous_browser previous_new_queue previous_imports <<< "$flag_state"
+            if [ -z "$previous_imports" ]; then
+              echo "Unable to capture the existing Study API feature flags."
+              exit 1
+            fi
+
+            sql_bool() {
+              case "$1" in
+                true|t) printf 'true' ;;
+                false|f) printf 'false' ;;
+                *) echo "Invalid boolean value: $1" >&2; return 1 ;;
+              esac
             }
 
-            if [ "$ENABLE_SETTINGS" = true ]; then
-              settings_pending_verification=true
-              trap 'if [ "${settings_pending_verification:-false}" = true ]; then rollback_settings_flags; fi' ERR
-
+            rollback_study_flags() {
               docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
-                --set=ON_ERROR_STOP=1 --command='
-                  UPDATE "feature_flags"
-                  SET "studyApiEnabled" = true,
-                      "studyApiSettings" = true,
-                      "studyApiOverview" = false,
-                      "studyApiBrowser" = false,
-                      "studyApiNewQueue" = false,
-                      "studyApiImports" = false,
-                      "updatedAt" = NOW();
-                '
+                --set=ON_ERROR_STOP=1 --command="
+                  UPDATE \"feature_flags\"
+                  SET \"studyApiEnabled\" = $(sql_bool "$previous_parent"),
+                      \"studyApiSettings\" = $(sql_bool "$previous_settings"),
+                      \"studyApiOverview\" = $(sql_bool "$previous_overview"),
+                      \"studyApiBrowser\" = $(sql_bool "$previous_browser"),
+                      \"studyApiNewQueue\" = $(sql_bool "$previous_new_queue"),
+                      \"studyApiImports\" = $(sql_bool "$previous_imports"),
+                      \"updatedAt\" = NOW();
+                " || true
+              echo "Learning OS Study API flags were rolled back."
+            }
 
-              flag_state="$(docker exec convolab-postgres psql \
-                --username="$postgres_user" --dbname="$postgres_db" \
-                --tuples-only --no-align --field-separator='|' \
-                --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports" FROM "feature_flags" LIMIT 1')"
-              if [ "$flag_state" != 't|t|f|f|f|f' ]; then
-                echo "Unexpected Study API feature flag state: $flag_state"
-                rollback_settings_flags
-                settings_pending_verification=false
-                exit 1
-              fi
+            verification_pending=true
+            trap 'if [ "${verification_pending:-false}" = true ]; then rollback_study_flags; fi' EXIT
 
+            desired_parent=false
+            if [ "$ENABLE_SETTINGS" = true ] || [ "$ENABLE_OVERVIEW" = true ] \
+              || [ "$ENABLE_BROWSER" = true ] || [ "$ENABLE_NEW_QUEUE" = true ]; then
+              desired_parent=true
+            fi
+
+            docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
+              --set=ON_ERROR_STOP=1 --command="
+                UPDATE \"feature_flags\"
+                SET \"studyApiEnabled\" = $(sql_bool "$desired_parent"),
+                    \"studyApiSettings\" = $(sql_bool "$ENABLE_SETTINGS"),
+                    \"studyApiOverview\" = $(sql_bool "$ENABLE_OVERVIEW"),
+                    \"studyApiBrowser\" = $(sql_bool "$ENABLE_BROWSER"),
+                    \"studyApiNewQueue\" = $(sql_bool "$ENABLE_NEW_QUEUE"),
+                    \"studyApiImports\" = false,
+                    \"updatedAt\" = NOW();
+              "
+
+            expected_flag_state="$(sql_bool "$desired_parent")|$(sql_bool "$ENABLE_SETTINGS")|$(sql_bool "$ENABLE_OVERVIEW")|$(sql_bool "$ENABLE_BROWSER")|$(sql_bool "$ENABLE_NEW_QUEUE")|false"
+            expected_flag_state="${expected_flag_state//true/t}"
+            expected_flag_state="${expected_flag_state//false/f}"
+            flag_state="$(docker exec convolab-postgres psql \
+              --username="$postgres_user" --dbname="$postgres_db" \
+              --tuples-only --no-align --field-separator='|' \
+              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports" FROM "feature_flags" LIMIT 1')"
+            if [ "$flag_state" != "$expected_flag_state" ]; then
+              echo "Unexpected Study API feature flag state: $flag_state"
+              exit 1
+            fi
+
+            if [ "$desired_parent" = true ]; then
               user_record="$(printf '%s\n' \
                 "SELECT id, role FROM \"User\" WHERE email = :'email' LIMIT 1;" \
                 | docker exec -i convolab-postgres psql \
@@ -307,20 +355,72 @@ jobs:
               test -n "$auth_token"
               echo "::add-mask::$auth_token"
 
-              if ! curl --fail --silent --show-error \
-                --header 'Accept: application/json' \
-                --cookie "token=$auth_token" \
-                https://convo-lab.com/api/learning-os/study/settings \
-                | grep -q 'newCardsPerDay'; then
-                rollback_settings_flags
-                settings_pending_verification=false
-                echo "Learning OS proxy smoke failed."
-                exit 1
-              fi
+              compare_read_route() {
+                label="$1"
+                legacy_path="$2"
+                proxy_path="$3"
+                legacy_response="$(curl --fail --silent --show-error \
+                  --header 'Accept: application/json' \
+                  --cookie "token=$auth_token" \
+                  "https://convo-lab.com$legacy_path")"
+                proxy_response=""
 
-              settings_pending_verification=false
-              trap - ERR
+                for attempt in {1..12}; do
+                  if proxy_response="$(curl --fail --silent --show-error \
+                    --header 'Accept: application/json' \
+                    --cookie "token=$auth_token" \
+                    "https://convo-lab.com$proxy_path")"; then
+                    break
+                  fi
+                  echo "$label proxy attempt $attempt/12 failed while feature-flag caches refresh."
+                  sleep 3
+                done
+                test -n "$proxy_response"
+
+                docker exec \
+                  -e LEGACY_RESPONSE="$legacy_response" \
+                  -e PROXY_RESPONSE="$proxy_response" \
+                  "convolab-server-$active_color" \
+                  node --input-type=module --eval='
+                    import assert from "node:assert/strict";
+                    try {
+                      assert.deepStrictEqual(
+                        JSON.parse(process.env.PROXY_RESPONSE),
+                        JSON.parse(process.env.LEGACY_RESPONSE),
+                      );
+                    } catch {
+                      console.error("Legacy and Learning OS response contracts differ.");
+                      process.exit(1);
+                    }
+                  '
+                echo "$label legacy and Learning OS responses match."
+              }
+
+              if [ "$ENABLE_SETTINGS" = true ]; then
+                compare_read_route Settings '/api/study/settings' '/api/learning-os/study/settings'
+              fi
+              if [ "$ENABLE_OVERVIEW" = true ]; then
+                compare_read_route \
+                  Overview \
+                  '/api/study/overview?timeZone=America%2FNew_York' \
+                  '/api/learning-os/study/overview?timeZone=America%2FNew_York'
+              fi
+              if [ "$ENABLE_BROWSER" = true ]; then
+                compare_read_route \
+                  Browser \
+                  '/api/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
+                  '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25'
+              fi
+              if [ "$ENABLE_NEW_QUEUE" = true ]; then
+                compare_read_route \
+                  NewQueue \
+                  '/api/study/new-queue?limit=25' \
+                  '/api/learning-os/study/new-queue?limit=25'
+              fi
             fi
+
+            verification_pending=false
+            trap - EXIT
 
             $COMPOSE ps learning-os "server-$active_color"
             echo "Learning OS production deployment completed."

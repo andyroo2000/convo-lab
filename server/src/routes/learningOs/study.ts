@@ -7,6 +7,11 @@ import { AppError } from '../../middleware/errorHandler.js';
 import { getFeatureFlags, type FeatureFlagKey } from '../../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../../middleware/studyRateLimit.js';
 
+import {
+  adaptLearningOsStudyReadResponse,
+  type LearningOsStudyReadFeature,
+} from './studyReadAdapters.js';
+
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
 const learningOsStudyIpRateLimit = createExpressRateLimit({
@@ -39,23 +44,29 @@ type StudyApiChildFlag = Extract<
 interface StudyReadRoute {
   pattern: RegExp;
   featureFlag: StudyApiChildFlag;
+  responseFeature?: LearningOsStudyReadFeature;
   queryParams: ReadonlySet<string>;
+  upstreamQueryAliases?: Readonly<Record<string, string>>;
 }
 
 const ALLOWED_STUDY_READ_ROUTES: StudyReadRoute[] = [
   {
     pattern: /^\/overview$/,
     featureFlag: 'studyApiOverview',
+    responseFeature: 'overview',
     queryParams: new Set(['timeZone']),
+    upstreamQueryAliases: { timeZone: 'time_zone' },
   },
   {
     pattern: /^\/settings$/,
     featureFlag: 'studyApiSettings',
+    responseFeature: 'settings',
     queryParams: new Set(),
   },
   {
     pattern: /^\/browser$/,
     featureFlag: 'studyApiBrowser',
+    responseFeature: 'browser',
     queryParams: new Set([
       'q',
       'noteType',
@@ -70,6 +81,7 @@ const ALLOWED_STUDY_READ_ROUTES: StudyReadRoute[] = [
   {
     pattern: /^\/new-queue$/,
     featureFlag: 'studyApiNewQueue',
+    responseFeature: 'newQueue',
     queryParams: new Set(['cursor', 'limit', 'q']),
   },
   {
@@ -104,32 +116,20 @@ function getLearningOsConfig(): { apiUrl: string; apiToken: string; proxyUserEma
   };
 }
 
-function appendQueryParams(
-  target: URL,
-  query: AuthRequest['query'],
-  allowedParams: ReadonlySet<string>
-) {
+function appendQueryParams(target: URL, query: AuthRequest['query'], route: StudyReadRoute) {
   Object.entries(query).forEach(([key, value]) => {
-    if (!allowedParams.has(key)) {
+    if (!route.queryParams.has(key)) {
       throw new AppError(`Query parameter "${key}" is not allowed for this Study API route.`, 400);
     }
 
+    const upstreamKey = route.upstreamQueryAliases?.[key] ?? key;
+
     if (typeof value === 'string') {
-      target.searchParams.append(key, value);
+      target.searchParams.append(upstreamKey, value);
       return;
     }
 
-    if (Array.isArray(value)) {
-      value.forEach((item) => {
-        if (typeof item !== 'string') {
-          throw new AppError(`Query parameter "${key}" must be a string or list of strings.`, 400);
-        }
-        target.searchParams.append(key, item);
-      });
-      return;
-    }
-
-    throw new AppError(`Query parameter "${key}" must be a string or list of strings.`, 400);
+    throw new AppError(`Query parameter "${key}" must be a string.`, 400);
   });
 }
 
@@ -192,29 +192,12 @@ interface UserIdentity {
   role: string;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function adaptLearningOsStudyResponse(route: StudyReadRoute, value: unknown): unknown {
-  if (route.featureFlag !== 'studyApiSettings') {
+  if (!route.responseFeature) {
     return value;
   }
 
-  if (!isRecord(value) || !isRecord(value.data)) {
-    throw new AppError('Learning OS Study API returned an invalid settings response.', 502);
-  }
-
-  const newCardsPerDay = value.data.new_cards_per_day;
-  if (
-    typeof newCardsPerDay !== 'number' ||
-    !Number.isInteger(newCardsPerDay) ||
-    newCardsPerDay < 0
-  ) {
-    throw new AppError('Learning OS Study API returned an invalid settings response.', 502);
-  }
-
-  return { newCardsPerDay };
+  return adaptLearningOsStudyReadResponse(route.responseFeature, value);
 }
 
 router.get(
@@ -250,7 +233,7 @@ router.get(
       }
 
       const upstreamUrl = new URL(`${apiUrl}/api/study${req.path}`);
-      appendQueryParams(upstreamUrl, req.query, studyReadRoute.queryParams);
+      appendQueryParams(upstreamUrl, req.query, studyReadRoute);
 
       const upstreamResponse = await fetchLearningOsStudyRead(upstreamUrl, apiToken, user);
 

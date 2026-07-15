@@ -497,10 +497,13 @@ export type StudyBrowserSortDirection = 'asc' | 'desc';
 
 export interface StudyBrowserRow {
   noteId: string;
+  selectedCardId?: string;
   displayText: string;
   noteTypeName: string | null;
+  sourceKind?: string;
   cardCount: number;
   reviewCount: number;
+  lastReviewedAt?: string | null;
   queueSummary: Partial<Record<StudyQueueState, number>>;
   createdAt: string;
   updatedAt: string;
