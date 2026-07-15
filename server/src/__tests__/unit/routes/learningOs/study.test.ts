@@ -31,6 +31,7 @@ vi.mock('../../../../middleware/studyRateLimit.js', () => ({
 describe('Learning OS Study proxy routes', () => {
   const originalLearningOsApiUrl = process.env.LEARNING_OS_API_URL;
   const originalLearningOsApiToken = process.env.LEARNING_OS_API_TOKEN;
+  const originalLearningOsProxyUserEmail = process.env.LEARNING_OS_PROXY_USER_EMAIL;
   const originalJwtSecret = process.env.JWT_SECRET;
 
   function createApp() {
@@ -80,6 +81,7 @@ describe('Learning OS Study proxy routes', () => {
     process.env.JWT_SECRET = 'test-secret';
     process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
     process.env.LEARNING_OS_API_TOKEN = 'server-only-token';
+    process.env.LEARNING_OS_PROXY_USER_EMAIL = 'learner@example.com';
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -100,6 +102,7 @@ describe('Learning OS Study proxy routes', () => {
   afterEach(() => {
     process.env.LEARNING_OS_API_URL = originalLearningOsApiUrl;
     process.env.LEARNING_OS_API_TOKEN = originalLearningOsApiToken;
+    process.env.LEARNING_OS_PROXY_USER_EMAIL = originalLearningOsProxyUserEmail;
     process.env.JWT_SECRET = originalJwtSecret;
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -161,6 +164,54 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.body).toEqual({ ok: true });
   });
 
+  it('adapts Laravel study settings to the existing ConvoLab response contract', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              new_cards_per_day: 17,
+              created_at: '2026-07-15T12:00:00.000000Z',
+              updated_at: '2026-07-15T12:00:00.000000Z',
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/settings')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ newCardsPerDay: 17 });
+  });
+
+  it('rejects malformed Laravel study settings instead of leaking an incompatible shape', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: { new_cards_per_day: '17' } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/settings')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe(
+      'Learning OS Study API returned an invalid settings response.'
+    );
+  });
+
   it('returns a sanitized gateway error when Learning OS returns invalid JSON', async () => {
     vi.stubGlobal(
       'fetch',
@@ -195,6 +246,25 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.status).toBe(503);
     expect(response.body.error.message).toBe(
       'Learning OS Study API is enabled but not configured.'
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects accounts other than the user represented by the initial proxy token', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-2',
+      email: 'other@example.com',
+      role: 'user',
+    });
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/settings')
+      .set('Cookie', authCookie('user-2'));
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toBe(
+      'Learning OS Study API is not enabled for this account.'
     );
     expect(global.fetch).not.toHaveBeenCalled();
   });

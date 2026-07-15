@@ -43,6 +43,9 @@ x-server-environment: &server-environment
   STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
   STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
   FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY}
+  LEARNING_OS_API_URL: ${LEARNING_OS_API_URL:-http://learning-os:8080}
+  LEARNING_OS_API_TOKEN: ${LEARNING_OS_API_TOKEN:-}
+  LEARNING_OS_PROXY_USER_EMAIL: ${LEARNING_OS_PROXY_USER_EMAIL:-}
 
 x-server-service: &server-service
   image: ghcr.io/andyroo2000/convolab-server:${CONVOLAB_IMAGE_TAG:-latest}
@@ -117,6 +120,41 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  learning-os:
+    image: ghcr.io/andyroo2000/learning-os:${LEARNING_OS_IMAGE_TAG:-latest}
+    container_name: learning-os-api
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${LEARNING_OS_APP_KEY}
+      APP_URL: http://learning-os:8080
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${LEARNING_OS_DB:-learning_os}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      PGSQL_SSL_MODE: disable
+      CACHE_STORE: database
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: database
+    networks:
+      convolab-network:
+        aliases:
+          - learning-os
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 768m
+    mem_reservation: 256m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   router:
     image: nginx:1.27-alpine

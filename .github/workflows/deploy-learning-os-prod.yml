@@ -1,0 +1,318 @@
+name: Deploy Learning OS (Production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Immutable Learning OS image tag (main-<full-sha>)'
+        required: true
+        type: string
+      smoke_user_email:
+        description: 'Existing ConvoLab user used for import and proxy smoke checks'
+        required: true
+        type: string
+      rebuild_database:
+        description: 'Back up ConvoLab and rebuild the Learning OS database copy'
+        required: true
+        default: false
+        type: boolean
+      enable_settings:
+        description: 'Enable only the Learning OS settings read route after verification'
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy private API and copied database
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate inputs
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
+        run: |
+          if ! [[ "$IMAGE_TAG" =~ ^main-[0-9a-f]{40}$ ]]; then
+            echo "::error::image_tag must be an immutable main-<full-sha> tag"
+            exit 1
+          fi
+
+          if ! [[ "$SMOKE_USER_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]; then
+            echo "::error::smoke_user_email is not a valid email address"
+            exit 1
+          fi
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DROPLET_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Deploy Learning OS
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
+          REBUILD_DATABASE: ${{ inputs.rebuild_database }}
+          ENABLE_SETTINGS: ${{ inputs.enable_settings }}
+        run: |
+          printf -v REMOTE_ENV \
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q' \
+            "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$ENABLE_SETTINGS"
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} \
+            "$REMOTE_ENV bash -s" << 'ENDSSH'
+            set -euo pipefail
+
+            COMPOSE="docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production"
+            BACKUP_DIR="/opt/convolab-backups"
+            RUNTIME_DIR="/opt/convolab-runtime"
+            ACTIVE_COLOR_FILE="$RUNTIME_DIR/prod-active-color"
+            SOURCE_DB="learning_os_convolab_source"
+            TARGET_DB="learning_os"
+
+            cd /opt/convolab
+
+            git config credential.helper store
+            echo "https://${{ secrets.GH_PAT }}@github.com" > ~/.git-credentials
+            chmod 600 ~/.git-credentials
+            git fetch origin
+            git reset --hard origin/main
+
+            upsert_env() {
+              key="$1"
+              value="$2"
+              escaped_value="${value//&/\\&}"
+
+              if grep -q "^${key}=" .env.production; then
+                sed -i "s#^${key}=.*#${key}=${escaped_value}#" .env.production
+              else
+                printf '%s=%s\n' "$key" "$value" >> .env.production
+              fi
+            }
+
+            wait_for_health() {
+              container="$1"
+
+              for attempt in {1..60}; do
+                status="$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo missing)"
+                echo "$container health attempt $attempt/60: $status"
+
+                if [ "$status" = healthy ]; then
+                  return 0
+                fi
+
+                if [ "$status" = unhealthy ]; then
+                  docker logs --tail=200 "$container" || true
+                  return 1
+                fi
+
+                sleep 5
+              done
+
+              docker logs --tail=200 "$container" || true
+              return 1
+            }
+
+            upsert_env LEARNING_OS_IMAGE_TAG "$IMAGE_TAG"
+            upsert_env LEARNING_OS_DB "$TARGET_DB"
+            upsert_env LEARNING_OS_API_URL "http://learning-os:8080"
+            upsert_env LEARNING_OS_PROXY_USER_EMAIL "$SMOKE_USER_EMAIL"
+
+            if ! grep -Eq '^LEARNING_OS_APP_KEY=base64:.+$' .env.production; then
+              upsert_env LEARNING_OS_APP_KEY "base64:$(openssl rand -base64 32 | tr -d '\n')"
+            fi
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            timeout 600 $COMPOSE pull learning-os
+            $COMPOSE up -d postgres
+
+            if [ "$REBUILD_DATABASE" = true ]; then
+              mkdir -p "$BACKUP_DIR"
+              chmod 700 "$BACKUP_DIR"
+              timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+              source_dump="$BACKUP_DIR/convolab-before-learning-os-$timestamp.dump"
+
+              $COMPOSE stop learning-os 2>/dev/null || true
+
+              echo "Creating immutable ConvoLab backup: $source_dump"
+              docker exec convolab-postgres pg_dump \
+                --username="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)" \
+                --dbname="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)" \
+                --format=custom --no-owner --no-acl > "$source_dump"
+              chmod 600 "$source_dump"
+              test -s "$source_dump"
+
+              postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+
+              if docker exec convolab-postgres psql --username="$postgres_user" --tuples-only --no-align \
+                --dbname=postgres --command="SELECT 1 FROM pg_database WHERE datname = '$TARGET_DB'" | grep -qx 1; then
+                target_dump="$BACKUP_DIR/learning-os-before-rebuild-$timestamp.dump"
+                docker exec convolab-postgres pg_dump \
+                  --username="$postgres_user" --dbname="$TARGET_DB" \
+                  --format=custom --no-owner --no-acl > "$target_dump"
+                chmod 600 "$target_dump"
+                test -s "$target_dump"
+              fi
+
+              docker exec convolab-postgres dropdb --username="$postgres_user" --if-exists "$SOURCE_DB"
+              docker exec convolab-postgres dropdb --username="$postgres_user" --if-exists "$TARGET_DB"
+              docker exec convolab-postgres createdb --username="$postgres_user" "$SOURCE_DB"
+              docker exec convolab-postgres createdb --username="$postgres_user" "$TARGET_DB"
+              docker exec -i convolab-postgres pg_restore \
+                --username="$postgres_user" --dbname="$SOURCE_DB" \
+                --no-owner --no-acl < "$source_dump"
+
+              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force
+              $COMPOSE run --rm -T --no-deps learning-os \
+                php artisan rehearsal:import-convolab \
+                --source-database="$SOURCE_DB" \
+                --truncate \
+                --skip-media \
+                --allow-production \
+                --production-truncate-confirmation="TRUNCATE $TARGET_DB"
+              $COMPOSE run --rm -T --no-deps learning-os \
+                php artisan rehearsal:smoke \
+                --user-email="$SMOKE_USER_EMAIL" \
+                --allow-production \
+                --json
+
+              docker exec convolab-postgres dropdb --username="$postgres_user" "$SOURCE_DB"
+            else
+              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force
+            fi
+
+            proxy_token="$($COMPOSE run --rm -T --no-deps \
+              -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+              learning-os php artisan tinker --execute='
+                $user = App\Models\User::query()->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))->sole();
+                $user->tokens()->where("name", "convolab-proxy")->delete();
+                echo $user->createToken("convolab-proxy", ["study:read"])->plainTextToken;
+              ')"
+            test -n "$proxy_token"
+            echo "::add-mask::$proxy_token"
+            upsert_env LEARNING_OS_API_TOKEN "$proxy_token"
+
+            $COMPOSE up -d --no-deps --force-recreate learning-os
+            wait_for_health learning-os-api
+
+            docker exec -e API_TOKEN="$proxy_token" learning-os-api php -r '
+              $context = stream_context_create(["http" => [
+                  "header" => "Accept: application/json\r\nAuthorization: Bearer ".getenv("API_TOKEN")."\r\n",
+                  "timeout" => 10,
+              ]]);
+              $body = file_get_contents("http://127.0.0.1:8080/api/study/settings", false, $context);
+              if ($body === false || ! is_array(json_decode($body, true))) { exit(1); }
+            '
+
+            active_color=blue
+            if [ -s "$ACTIVE_COLOR_FILE" ]; then
+              active_color="$(cat "$ACTIVE_COLOR_FILE")"
+            fi
+            case "$active_color" in
+              blue|green) ;;
+              *) echo "Invalid active production color: $active_color"; exit 1 ;;
+            esac
+
+            $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
+            wait_for_health "convolab-server-$active_color"
+
+            postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+            postgres_db="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
+
+            rollback_settings_flags() {
+              docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
+                --set=ON_ERROR_STOP=1 --command='
+                  UPDATE "feature_flags"
+                  SET "studyApiEnabled" = false,
+                      "studyApiSettings" = false,
+                      "updatedAt" = NOW();
+                ' || true
+              echo "Learning OS settings flags were rolled back."
+            }
+
+            if [ "$ENABLE_SETTINGS" = true ]; then
+              settings_pending_verification=true
+              trap 'if [ "${settings_pending_verification:-false}" = true ]; then rollback_settings_flags; fi' ERR
+
+              docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
+                --set=ON_ERROR_STOP=1 --command='
+                  UPDATE "feature_flags"
+                  SET "studyApiEnabled" = true,
+                      "studyApiSettings" = true,
+                      "studyApiOverview" = false,
+                      "studyApiBrowser" = false,
+                      "studyApiNewQueue" = false,
+                      "studyApiImports" = false,
+                      "updatedAt" = NOW();
+                '
+
+              flag_state="$(docker exec convolab-postgres psql \
+                --username="$postgres_user" --dbname="$postgres_db" \
+                --tuples-only --no-align --field-separator='|' \
+                --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports" FROM "feature_flags" LIMIT 1')"
+              if [ "$flag_state" != 't|t|f|f|f|f' ]; then
+                echo "Unexpected Study API feature flag state: $flag_state"
+                rollback_settings_flags
+                settings_pending_verification=false
+                exit 1
+              fi
+
+              user_record="$(printf '%s\n' \
+                "SELECT id, role FROM \"User\" WHERE email = :'email' LIMIT 1;" \
+                | docker exec -i convolab-postgres psql \
+                  --username="$postgres_user" --dbname="$postgres_db" \
+                  --tuples-only --no-align --field-separator='|' \
+                  --set=email="$SMOKE_USER_EMAIL")"
+              user_id="${user_record%%|*}"
+              user_role="${user_record#*|}"
+              test -n "$user_id"
+              test "$user_role" != "$user_record"
+
+              auth_token="$(docker exec \
+                -e AUTH_USER_ID="$user_id" \
+                -e AUTH_USER_ROLE="$user_role" \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  import jwt from "jsonwebtoken";
+                  process.stdout.write(jwt.sign(
+                    { userId: process.env.AUTH_USER_ID, role: process.env.AUTH_USER_ROLE },
+                    process.env.JWT_SECRET,
+                    { expiresIn: "5m" },
+                  ));
+                ')"
+              test -n "$auth_token"
+              echo "::add-mask::$auth_token"
+
+              if ! curl --fail --silent --show-error \
+                --header 'Accept: application/json' \
+                --cookie "token=$auth_token" \
+                https://convo-lab.com/api/learning-os/study/settings \
+                | grep -q 'newCardsPerDay'; then
+                rollback_settings_flags
+                settings_pending_verification=false
+                echo "Learning OS proxy smoke failed."
+                exit 1
+              fi
+
+              settings_pending_verification=false
+              trap - ERR
+            fi
+
+            $COMPOSE ps learning-os "server-$active_color"
+            echo "Learning OS production deployment completed."
+          ENDSSH
+
+      - name: Verify ConvoLab health
+        run: curl --fail --silent --show-error https://convo-lab.com/health > /dev/null
