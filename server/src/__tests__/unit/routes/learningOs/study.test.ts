@@ -34,6 +34,49 @@ describe('Learning OS Study proxy routes', () => {
   const originalLearningOsProxyUserEmail = process.env.LEARNING_OS_PROXY_USER_EMAIL;
   const originalJwtSecret = process.env.JWT_SECRET;
 
+  const emptyBrowserResponse = {
+    rows: [],
+    total: 0,
+    limit: 50,
+    nextCursor: null,
+    filterOptions: { noteTypes: [], cardTypes: [], queueStates: [] },
+  };
+
+  const emptyOverviewResponse = {
+    data: {
+      due_count: 0,
+      failed_count: 0,
+      new_count: 0,
+      new_cards_per_day: 20,
+      new_cards_introduced_today: 0,
+      new_cards_available_today: 0,
+      learning_count: 0,
+      review_count: 0,
+      suspended_count: 0,
+      total_cards: 0,
+      latest_import: null,
+      next_due_at: null,
+    },
+  };
+
+  const newQueueResponse = {
+    items: [
+      {
+        id: 'card-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        displayText: '会社',
+        meaning: 'company',
+        queuePosition: 2,
+        createdAt: '2026-07-15T12:00:00.000000Z',
+        updatedAt: '2026-07-15T13:00:00.000000Z',
+      },
+    ],
+    total: 1,
+    limit: 25,
+    nextCursor: null,
+  };
+
   function createApp() {
     const app = express();
     app.set('query parser', 'extended');
@@ -85,7 +128,7 @@ describe('Learning OS Study proxy routes', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ ok: true }), {
+        new Response(JSON.stringify(emptyBrowserResponse), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         })
@@ -147,7 +190,7 @@ describe('Learning OS Study proxy routes', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ ok: true }), {
+        new Response(JSON.stringify(emptyOverviewResponse), {
           status: 200,
           headers: { 'content-type': 'text/html' },
         })
@@ -161,7 +204,43 @@ describe('Learning OS Study proxy routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toMatch(/^application\/json/);
-    expect(response.body).toEqual({ ok: true });
+    expect(response.body).toEqual({
+      dueCount: 0,
+      failedCount: 0,
+      newCount: 0,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 0,
+      newCardsAvailableToday: 0,
+      learningCount: 0,
+      reviewCount: 0,
+      suspendedCount: 0,
+      totalCards: 0,
+      latestImport: null,
+      nextDueAt: null,
+    });
+  });
+
+  it('translates the ConvoLab overview timezone query to the Laravel contract', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(emptyOverviewResponse), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/overview?timeZone=America%2FNew_York')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(200);
+    const [url] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe(
+      'https://learning-os.example/api/study/overview?time_zone=America%2FNew_York'
+    );
   });
 
   it('adapts Laravel study settings to the existing ConvoLab response contract', async () => {
@@ -188,6 +267,54 @@ describe('Learning OS Study proxy routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ newCardsPerDay: 17 });
+  });
+
+  it('gates and adapts the New Queue route with its supported query parameters', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiSettings: false,
+      studyApiOverview: false,
+      studyApiBrowser: false,
+      studyApiNewQueue: true,
+      studyApiImports: false,
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(newQueueResponse), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/new-queue?cursor=2&limit=25&q=%E4%BC%9A%E7%A4%BE')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(200);
+    const [url] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe(
+      'https://learning-os.example/api/study/new-queue?cursor=2&limit=25&q=%E4%BC%9A%E7%A4%BE'
+    );
+    expect(response.body).toEqual({
+      items: [
+        {
+          id: 'card-1',
+          noteId: 'note-1',
+          cardType: 'recognition',
+          displayText: '会社',
+          meaning: 'company',
+          queuePosition: 2,
+          createdAt: '2026-07-15T12:00:00.000Z',
+          updatedAt: '2026-07-15T13:00:00.000Z',
+        },
+      ],
+      total: 1,
+      limit: 25,
+      nextCursor: null,
+    });
   });
 
   it('rejects malformed Laravel study settings instead of leaking an incompatible shape', async () => {
@@ -330,16 +457,17 @@ describe('Learning OS Study proxy routes', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('rejects allowed query params with nested object values', async () => {
+  it.each([
+    '/api/learning-os/study/browser?q[foo]=bar',
+    '/api/learning-os/study/browser?q=one&q=two',
+  ])('rejects non-scalar query values before calling Learning OS', async (path) => {
     const app = await createApp();
 
-    const response = await request(app)
-      .get('/api/learning-os/study/browser?q[foo]=bar')
-      .set('Cookie', authCookie());
+    const response = await request(app).get(path).set('Cookie', authCookie());
 
     expect(response.status).toBe(400);
     expect(response.body.error.message).toBe(
-      'Query parameter "q" must be a string or list of strings.'
+      'Query parameter "q" must be provided exactly once as a string.'
     );
     expect(global.fetch).not.toHaveBeenCalled();
   });

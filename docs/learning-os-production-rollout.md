@@ -12,6 +12,9 @@ Run the `Deploy Learning OS (Production)` workflow with:
 - the ConvoLab email used for copied-data smoke checks
 - `rebuild_database: true`
 - `enable_settings: true`
+- `enable_overview: false`
+- `enable_browser: false`
+- `enable_new_queue: false`
 
 The workflow:
 
@@ -26,8 +29,9 @@ The workflow:
 6. Deletes the disposable restored source database but retains the dump.
 7. Rotates a read-scoped Sanctum token, starts the private API, and recreates
    only the active ConvoLab web color with the upstream configuration.
-8. Enables only `studyApiEnabled` and `studyApiSettings`, then verifies the
-   authenticated public ConvoLab proxy route.
+8. Applies the requested read-route flag state, then compares every enabled
+   Learning OS response with the legacy ConvoLab response for the same user and
+   query before completing.
 
 The initial proxy token represents the selected copied user. ConvoLab therefore
 rejects Learning OS proxy requests from every other account, even though the
@@ -35,11 +39,11 @@ feature flags are global. Replace this single-user restriction only after
 Learning OS consumes a trusted per-request identity or ConvoLab provisions
 per-user upstream tokens.
 
-If any verification after enabling Settings fails, the workflow disables both
-settings flags before failing. Feature flags are cached by each ConvoLab server
-process for up to 30 seconds, so allow that window for a rollback to become
-fully inert. The Learning OS API and copied database remain available for
-diagnosis without taking the existing ConvoLab Study API offline.
+If any verification fails, the workflow restores the complete Study API flag
+state captured before deployment. Feature flags are cached by each ConvoLab
+server process for up to 30 seconds, so allow that window for a rollback to
+become fully inert. The Learning OS API and copied database remain available
+for diagnosis without taking the existing ConvoLab Study API offline.
 
 ## Subsequent Deployments
 
@@ -51,9 +55,30 @@ Use `rebuild_database: true` only for an intentional new copy rehearsal. The
 workflow first backs up any existing `learning_os` database before replacing
 it.
 
+Rebuild immediately before enabling Overview, Browser, or New Queue so the
+comparison uses a fresh copy of the live ConvoLab data. Avoid studying or
+changing the queue during that short comparison window; this rollout does not
+dual-write changes between databases.
+
+The four read-route inputs describe the desired final state. Keep Settings
+enabled on later runs unless intentionally rolling it back. Enable the remaining
+routes in this order:
+
+1. Overview
+2. Browser
+3. New Queue
+
+Each enabled route receives an authenticated old-versus-new deep comparison:
+
+- Settings: the complete settings object
+- Overview: counts, limits, latest import, and next due timestamp in the same
+  `America/New_York` timezone
+- Browser: the first 25 rows, facets, totals, ordering, and cursor
+- New Queue: the first 25 cards, totals, ordering, and cursor
+
 ## Feature Flags
 
-Keep these disabled until their data dependencies are proven:
+Keep these disabled until their rollout comparison passes:
 
 - `studyApiOverview`
 - `studyApiBrowser`
@@ -64,6 +89,5 @@ Media rows are intentionally omitted because ConvoLab does not persist trusted
 byte sizes. Do not enable media-dependent reads until a separate media-byte and
 verified-size migration is complete.
 
-Rollback for the Settings slice is limited to setting `studyApiEnabled` and
-`studyApiSettings` to `false`; ConvoLab immediately returns to its existing
-Study API without a database restore.
+Rollback changes only feature flags; ConvoLab immediately returns disabled
+routes to its existing Study API without a database restore.
