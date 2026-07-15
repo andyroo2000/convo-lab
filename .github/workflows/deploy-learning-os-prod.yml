@@ -134,9 +134,12 @@ jobs:
             "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_NEW_QUEUE" \
             "$ENABLE_SETTINGS_WRITE" "$ENABLE_NEW_QUEUE_WRITE"
 
+          deployment_log="$(mktemp)"
+          trap 'rm -f "$deployment_log"' EXIT
+
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} \
-            "$REMOTE_ENV bash -s" << 'ENDSSH'
+            "$REMOTE_ENV bash -s" << 'ENDSSH' | tee "$deployment_log"
             set -euo pipefail
 
             COMPOSE="docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production"
@@ -246,23 +249,24 @@ jobs:
                 --username="$postgres_user" --dbname="$SOURCE_DB" \
                 --no-owner --no-acl < "$source_dump"
 
-              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force
+              # Compose run inherits stdin even without a TTY and could consume the remaining SSH script.
+              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
               $COMPOSE run --rm -T --no-deps learning-os \
                 php artisan rehearsal:import-convolab \
                 --source-database="$SOURCE_DB" \
                 --truncate \
                 --skip-media \
                 --allow-production \
-                --production-truncate-confirmation="TRUNCATE $TARGET_DB"
+                --production-truncate-confirmation="TRUNCATE $TARGET_DB" < /dev/null
               $COMPOSE run --rm -T --no-deps learning-os \
                 php artisan rehearsal:smoke \
                 --user-email="$SMOKE_USER_EMAIL" \
                 --allow-production \
-                --json
+                --json < /dev/null
 
               docker exec convolab-postgres dropdb --username="$postgres_user" "$SOURCE_DB"
             else
-              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force
+              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
             fi
 
             proxy_token_output="$($COMPOSE run --rm -T --no-deps \
@@ -271,7 +275,7 @@ jobs:
                 $user = App\Models\User::query()->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))->sole();
                 $user->tokens()->where("name", "convolab-proxy")->delete();
                 echo $user->createToken("convolab-proxy", ["study:read", "study:write"])->plainTextToken;
-              ')"
+              ' < /dev/null)"
             proxy_token="$(printf '%s\n' "$proxy_token_output" \
               | grep -E '^[0-9]+\|learning_os_[[:alnum:]]{40}[0-9a-f]{8}$' \
               | tail -1)"
@@ -582,6 +586,10 @@ jobs:
             $COMPOSE ps learning-os "server-$active_color"
             echo "Learning OS production deployment completed."
           ENDSSH
+
+          grep -Fqx 'Learning OS production deployment completed.' "$deployment_log"
+          rm -f "$deployment_log"
+          trap - EXIT
 
       - name: Verify ConvoLab health
         run: curl --fail --silent --show-error https://convo-lab.com/health > /dev/null
