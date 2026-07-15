@@ -129,7 +129,7 @@ function appendQueryParams(target: URL, query: AuthRequest['query'], route: Stud
       return;
     }
 
-    throw new AppError(`Query parameter "${key}" must be a string.`, 400);
+    throw new AppError(`Query parameter "${key}" must be provided exactly once as a string.`, 400);
   });
 }
 

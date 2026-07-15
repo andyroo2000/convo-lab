@@ -497,6 +497,7 @@ export type StudyBrowserSortDirection = 'asc' | 'desc';
 
 export interface StudyBrowserRow {
   noteId: string;
+  // Legacy Study responses omit these fields; the Learning OS adapter always supplies them.
   selectedCardId?: string;
   displayText: string;
   noteTypeName: string | null;

@@ -400,7 +400,9 @@ describe('Learning OS Study proxy routes', () => {
     const response = await request(app).get(path).set('Cookie', authCookie());
 
     expect(response.status).toBe(400);
-    expect(response.body.error.message).toBe('Query parameter "q" must be a string.');
+    expect(response.body.error.message).toBe(
+      'Query parameter "q" must be provided exactly once as a string.'
+    );
     expect(global.fetch).not.toHaveBeenCalled();
   });
 

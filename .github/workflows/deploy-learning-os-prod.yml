@@ -58,6 +58,11 @@ jobs:
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
           SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
+          REBUILD_DATABASE: ${{ inputs.rebuild_database }}
+          ENABLE_SETTINGS: ${{ inputs.enable_settings }}
+          ENABLE_OVERVIEW: ${{ inputs.enable_overview }}
+          ENABLE_BROWSER: ${{ inputs.enable_browser }}
+          ENABLE_NEW_QUEUE: ${{ inputs.enable_new_queue }}
         run: |
           if ! [[ "$IMAGE_TAG" =~ ^main-[0-9a-f]{40}$ ]]; then
             echo "::error::image_tag must be an immutable main-<full-sha> tag"
@@ -68,6 +73,19 @@ jobs:
             echo "::error::smoke_user_email is not a valid email address"
             exit 1
           fi
+
+          validate_boolean_input() {
+            case "$2" in
+              true|false) ;;
+              *) echo "::error::$1 must be a boolean"; exit 1 ;;
+            esac
+          }
+
+          validate_boolean_input rebuild_database "$REBUILD_DATABASE"
+          validate_boolean_input enable_settings "$ENABLE_SETTINGS"
+          validate_boolean_input enable_overview "$ENABLE_OVERVIEW"
+          validate_boolean_input enable_browser "$ENABLE_BROWSER"
+          validate_boolean_input enable_new_queue "$ENABLE_NEW_QUEUE"
 
       - name: Set up SSH
         run: |
@@ -280,16 +298,23 @@ jobs:
               esac
             }
 
+            previous_parent_sql="$(sql_bool "$previous_parent")"
+            previous_settings_sql="$(sql_bool "$previous_settings")"
+            previous_overview_sql="$(sql_bool "$previous_overview")"
+            previous_browser_sql="$(sql_bool "$previous_browser")"
+            previous_new_queue_sql="$(sql_bool "$previous_new_queue")"
+            previous_imports_sql="$(sql_bool "$previous_imports")"
+
             rollback_study_flags() {
               docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
                 --set=ON_ERROR_STOP=1 --command="
                   UPDATE \"feature_flags\"
-                  SET \"studyApiEnabled\" = $(sql_bool "$previous_parent"),
-                      \"studyApiSettings\" = $(sql_bool "$previous_settings"),
-                      \"studyApiOverview\" = $(sql_bool "$previous_overview"),
-                      \"studyApiBrowser\" = $(sql_bool "$previous_browser"),
-                      \"studyApiNewQueue\" = $(sql_bool "$previous_new_queue"),
-                      \"studyApiImports\" = $(sql_bool "$previous_imports"),
+                  SET \"studyApiEnabled\" = $previous_parent_sql,
+                      \"studyApiSettings\" = $previous_settings_sql,
+                      \"studyApiOverview\" = $previous_overview_sql,
+                      \"studyApiBrowser\" = $previous_browser_sql,
+                      \"studyApiNewQueue\" = $previous_new_queue_sql,
+                      \"studyApiImports\" = $previous_imports_sql,
                       \"updatedAt\" = NOW();
                 " || true
               echo "Learning OS Study API flags were rolled back."
@@ -304,19 +329,25 @@ jobs:
               desired_parent=true
             fi
 
+            desired_parent_sql="$(sql_bool "$desired_parent")"
+            enable_settings_sql="$(sql_bool "$ENABLE_SETTINGS")"
+            enable_overview_sql="$(sql_bool "$ENABLE_OVERVIEW")"
+            enable_browser_sql="$(sql_bool "$ENABLE_BROWSER")"
+            enable_new_queue_sql="$(sql_bool "$ENABLE_NEW_QUEUE")"
+
             docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
               --set=ON_ERROR_STOP=1 --command="
                 UPDATE \"feature_flags\"
-                SET \"studyApiEnabled\" = $(sql_bool "$desired_parent"),
-                    \"studyApiSettings\" = $(sql_bool "$ENABLE_SETTINGS"),
-                    \"studyApiOverview\" = $(sql_bool "$ENABLE_OVERVIEW"),
-                    \"studyApiBrowser\" = $(sql_bool "$ENABLE_BROWSER"),
-                    \"studyApiNewQueue\" = $(sql_bool "$ENABLE_NEW_QUEUE"),
+                SET \"studyApiEnabled\" = $desired_parent_sql,
+                    \"studyApiSettings\" = $enable_settings_sql,
+                    \"studyApiOverview\" = $enable_overview_sql,
+                    \"studyApiBrowser\" = $enable_browser_sql,
+                    \"studyApiNewQueue\" = $enable_new_queue_sql,
                     \"studyApiImports\" = false,
                     \"updatedAt\" = NOW();
               "
 
-            expected_flag_state="$(sql_bool "$desired_parent")|$(sql_bool "$ENABLE_SETTINGS")|$(sql_bool "$ENABLE_OVERVIEW")|$(sql_bool "$ENABLE_BROWSER")|$(sql_bool "$ENABLE_NEW_QUEUE")|false"
+            expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_new_queue_sql|false"
             expected_flag_state="${expected_flag_state//true/t}"
             expected_flag_state="${expected_flag_state//false/f}"
             flag_state="$(docker exec convolab-postgres psql \
@@ -355,27 +386,35 @@ jobs:
               test -n "$auth_token"
               echo "::add-mask::$auth_token"
 
-              compare_read_route() {
-                label="$1"
-                legacy_path="$2"
-                proxy_path="$3"
-                legacy_response="$(curl --fail --silent --show-error \
-                  --header 'Accept: application/json' \
-                  --cookie "token=$auth_token" \
-                  "https://convo-lab.com$legacy_path")"
-                proxy_response=""
+              fetch_read_route() {
+                local label="$1"
+                local path="$2"
+                local response=""
+                local attempt
 
                 for attempt in {1..12}; do
-                  if proxy_response="$(curl --fail --silent --show-error \
+                  if response="$(curl --fail --silent --show-error \
                     --header 'Accept: application/json' \
                     --cookie "token=$auth_token" \
-                    "https://convo-lab.com$proxy_path")"; then
-                    break
+                    "https://convo-lab.com$path")"; then
+                    printf '%s' "$response"
+                    return 0
                   fi
-                  echo "$label proxy attempt $attempt/12 failed while feature-flag caches refresh."
+                  echo "$label attempt $attempt/12 failed; retrying." >&2
                   sleep 3
                 done
-                test -n "$proxy_response"
+
+                return 1
+              }
+
+              compare_read_route() {
+                local label="$1"
+                local legacy_path="$2"
+                local proxy_path="$3"
+                local legacy_response
+                local proxy_response
+                legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
+                proxy_response="$(fetch_read_route "$label proxy" "$proxy_path")"
 
                 docker exec \
                   -e LEGACY_RESPONSE="$legacy_response" \
