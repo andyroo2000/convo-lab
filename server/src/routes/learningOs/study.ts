@@ -88,17 +88,19 @@ function getStudyReadRoute(pathname: string): StudyReadRoute | null {
   return ALLOWED_STUDY_READ_ROUTES.find((route) => route.pattern.test(pathname)) ?? null;
 }
 
-function getLearningOsConfig(): { apiUrl: string; apiToken: string } {
+function getLearningOsConfig(): { apiUrl: string; apiToken: string; proxyUserEmail: string } {
   const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
   const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
+  const proxyUserEmail = process.env.LEARNING_OS_PROXY_USER_EMAIL?.trim().toLowerCase();
 
-  if (!apiUrl || !apiToken) {
+  if (!apiUrl || !apiToken || !proxyUserEmail) {
     throw new AppError('Learning OS Study API is enabled but not configured.', 503);
   }
 
   return {
     apiUrl: apiUrl.replace(/\/+$/, ''),
     apiToken,
+    proxyUserEmail,
   };
 }
 
@@ -190,6 +192,31 @@ interface UserIdentity {
   role: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function adaptLearningOsStudyResponse(route: StudyReadRoute, value: unknown): unknown {
+  if (route.featureFlag !== 'studyApiSettings') {
+    return value;
+  }
+
+  if (!isRecord(value) || !isRecord(value.data)) {
+    throw new AppError('Learning OS Study API returned an invalid settings response.', 502);
+  }
+
+  const newCardsPerDay = value.data.new_cards_per_day;
+  if (
+    typeof newCardsPerDay !== 'number' ||
+    !Number.isInteger(newCardsPerDay) ||
+    newCardsPerDay < 0
+  ) {
+    throw new AppError('Learning OS Study API returned an invalid settings response.', 502);
+  }
+
+  return { newCardsPerDay };
+}
+
 router.get(
   '/*',
   learningOsStudyIpRateLimit,
@@ -208,7 +235,7 @@ router.get(
 
       await assertLearningOsStudyApiEnabled(studyReadRoute.featureFlag);
 
-      const { apiUrl, apiToken } = getLearningOsConfig();
+      const { apiUrl, apiToken, proxyUserEmail } = getLearningOsConfig();
       const user = await prisma.user.findUnique({
         where: { id: req.userId },
         select: { id: true, email: true, role: true },
@@ -216,6 +243,10 @@ router.get(
 
       if (!user) {
         throw new AppError('User not found', 404);
+      }
+
+      if (user.email.trim().toLowerCase() !== proxyUserEmail) {
+        throw new AppError('Learning OS Study API is not enabled for this account.', 403);
       }
 
       const upstreamUrl = new URL(`${apiUrl}/api/study${req.path}`);
@@ -236,7 +267,9 @@ router.get(
         throw new AppError('Learning OS Study API returned an invalid JSON response.', 502);
       }
 
-      res.status(upstreamResponse.status).json(responseJson);
+      res
+        .status(upstreamResponse.status)
+        .json(adaptLearningOsStudyResponse(studyReadRoute, responseJson));
     } catch (error) {
       next(error);
     }
