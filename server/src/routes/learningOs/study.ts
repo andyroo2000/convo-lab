@@ -192,7 +192,7 @@ interface UserIdentity {
   role: string;
 }
 
-function adaptLearningOsStudyResponse(route: StudyReadRoute, value: unknown): unknown {
+function adaptStudyReadRouteResponse(route: StudyReadRoute, value: unknown): unknown {
   if (!route.responseFeature) {
     return value;
   }
@@ -252,7 +252,7 @@ router.get(
 
       res
         .status(upstreamResponse.status)
-        .json(adaptLearningOsStudyResponse(studyReadRoute, responseJson));
+        .json(adaptStudyReadRouteResponse(studyReadRoute, responseJson));
     } catch (error) {
       next(error);
     }

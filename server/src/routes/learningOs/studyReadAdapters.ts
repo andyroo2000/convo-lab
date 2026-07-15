@@ -186,6 +186,7 @@ function adaptOverview(value: unknown) {
 function adaptQueueSummary(value: unknown): Record<string, number> {
   const source = record(value, 'browser');
 
+  // Fail closed so a new backend queue state cannot silently escape the shared client contract.
   return Object.fromEntries(
     Object.entries(source).map(([state, count]) => {
       if (!QUEUE_STATES.has(state)) {

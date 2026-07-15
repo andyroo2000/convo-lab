@@ -59,6 +59,24 @@ describe('Learning OS Study proxy routes', () => {
     },
   };
 
+  const newQueueResponse = {
+    items: [
+      {
+        id: 'card-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        displayText: '会社',
+        meaning: 'company',
+        queuePosition: 2,
+        createdAt: '2026-07-15T12:00:00.000000Z',
+        updatedAt: '2026-07-15T13:00:00.000000Z',
+      },
+    ],
+    total: 1,
+    limit: 25,
+    nextCursor: null,
+  };
+
   function createApp() {
     const app = express();
     app.set('query parser', 'extended');
@@ -249,6 +267,54 @@ describe('Learning OS Study proxy routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ newCardsPerDay: 17 });
+  });
+
+  it('gates and adapts the New Queue route with its supported query parameters', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiSettings: false,
+      studyApiOverview: false,
+      studyApiBrowser: false,
+      studyApiNewQueue: true,
+      studyApiImports: false,
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(newQueueResponse), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/new-queue?cursor=2&limit=25&q=%E4%BC%9A%E7%A4%BE')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(200);
+    const [url] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe(
+      'https://learning-os.example/api/study/new-queue?cursor=2&limit=25&q=%E4%BC%9A%E7%A4%BE'
+    );
+    expect(response.body).toEqual({
+      items: [
+        {
+          id: 'card-1',
+          noteId: 'note-1',
+          cardType: 'recognition',
+          displayText: '会社',
+          meaning: 'company',
+          queuePosition: 2,
+          createdAt: '2026-07-15T12:00:00.000Z',
+          updatedAt: '2026-07-15T13:00:00.000Z',
+        },
+      ],
+      total: 1,
+      limit: 25,
+      nextCursor: null,
+    });
   });
 
   it('rejects malformed Laravel study settings instead of leaking an incompatible shape', async () => {
