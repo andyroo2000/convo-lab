@@ -2,7 +2,7 @@
 
 The Learning OS API runs as an internal-only container on ConvoLab's production
 Docker network. ConvoLab remains the public edge and proxies only allowlisted,
-feature-flagged Study API reads.
+feature-flagged Study API reads and explicitly enabled low-risk writes.
 
 ## Initial Deployment
 
@@ -15,6 +15,8 @@ Run the `Deploy Learning OS (Production)` workflow with:
 - `enable_overview: false`
 - `enable_browser: false`
 - `enable_new_queue: false`
+- `enable_settings_write: false`
+- `enable_new_queue_write: false`
 
 The workflow:
 
@@ -27,9 +29,9 @@ The workflow:
    confirmation guards and `--skip-media`.
 5. Runs the Learning OS smoke harness against the copied user.
 6. Deletes the disposable restored source database but retains the dump.
-7. Rotates a read-scoped Sanctum token, starts the private API, and recreates
+7. Rotates a read/write-scoped Sanctum token, starts the private API, and recreates
    only the active ConvoLab web color with the upstream configuration.
-8. Applies the requested read-route flag state, then compares every enabled
+8. Applies the requested route flag state, then compares every enabled
    Learning OS response with the legacy ConvoLab response for the same user and
    query before completing.
 
@@ -68,13 +70,30 @@ routes in this order:
 2. Browser
 3. New Queue
 
-Each enabled route receives an authenticated old-versus-new deep comparison:
+After all four reads are stable, enable low-risk writes separately:
+
+1. `enable_settings_write` while `enable_settings` remains enabled
+2. `enable_new_queue_write` while `enable_new_queue` remains enabled
+
+Write inputs default to false and cannot be enabled unless their corresponding
+read route is enabled. The workflow rehearses each write against the copied
+Learning OS database using the current value or queue order, then verifies the
+response is unchanged. These idempotent checks exercise ConvoLab authentication,
+CSRF protection, feature gating, request adaptation, and the private API without
+intentionally changing user-visible state.
+
+Each enabled read route receives an authenticated old-versus-new deep comparison
+until its corresponding write flag is enabled:
 
 - Settings: the complete settings object
 - Overview: counts, limits, latest import, and next due timestamp in the same
   `America/New_York` timezone
 - Browser: the first 25 rows, facets, totals, ordering, and cursor
 - New Queue: the first 25 cards, totals, ordering, and cursor
+
+After write cutover, Settings and New Queue can intentionally diverge from the
+legacy database. Subsequent deploys use their idempotent write checks instead of
+requiring stale legacy data to remain equal.
 
 ## Feature Flags
 
@@ -84,10 +103,15 @@ Keep these disabled until their rollout comparison passes:
 - `studyApiBrowser`
 - `studyApiNewQueue`
 - `studyApiImports`
+- `studyApiSettingsWrite`
+- `studyApiNewQueueWrite`
 
 Media rows are intentionally omitted because ConvoLab does not persist trusted
 byte sizes. Do not enable media-dependent reads until a separate media-byte and
 verified-size migration is complete.
 
 Rollback changes only feature flags; ConvoLab immediately returns disabled
-routes to its existing Study API without a database restore.
+routes to its existing Study API without a database restore. Once a write flag
+is enabled for normal use, rollback does not copy Learning OS-only settings or
+queue changes back into the legacy database. Take a fresh source backup before
+write cutover and treat Learning OS as authoritative for each enabled write.

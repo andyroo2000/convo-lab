@@ -15,9 +15,11 @@ import {
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyAnswerAudio,
+  reorderStudyNewCardQueue,
   resolveStudyCardPitchAccent,
   startStudySession,
   undoStudyReview,
+  updateStudySettings,
   uploadStudyImport,
 } from '../useStudy';
 
@@ -39,6 +41,8 @@ describe('useStudy request helpers', () => {
     studyApiBrowser: false,
     studyApiNewQueue: false,
     studyApiImports: false,
+    studyApiSettingsWrite: false,
+    studyApiNewQueueWrite: false,
     updatedAt: new Date('2026-07-14T00:00:00.000Z').toISOString(),
     ...overrides,
   });
@@ -305,6 +309,85 @@ describe('useStudy request helpers', () => {
       expect(headers.has('Authorization')).toBe(false);
       expect(headers.get('Accept')).toBe('application/json');
       expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
+    });
+  });
+
+  it('routes settings writes independently with JSON and CSRF headers', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiSettings: true,
+      studyApiSettingsWrite: true,
+    });
+
+    await updateStudySettings({ newCardsPerDay: 23 }, flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/learning-os/study/settings`,
+      expect.any(Object)
+    );
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(requestInit.method).toBe('PATCH');
+    expect(headers.get('Accept')).toBe('application/json');
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(JSON.parse(String(requestInit.body))).toEqual({ newCardsPerDay: 23 });
+  });
+
+  it('keeps settings writes on Convo Lab until the write flag is enabled', async () => {
+    await updateStudySettings(
+      { newCardsPerDay: 23 },
+      featureFlags({
+        studyApiEnabled: true,
+        studyApiSettings: true,
+        studyApiSettingsWrite: false,
+      })
+    );
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/settings`,
+      expect.any(Object)
+    );
+  });
+
+  it('keeps settings writes on Convo Lab when the matching read flag is off', async () => {
+    await updateStudySettings(
+      { newCardsPerDay: 23 },
+      featureFlags({
+        studyApiEnabled: true,
+        studyApiSettings: false,
+        studyApiSettingsWrite: true,
+      })
+    );
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/settings`,
+      expect.any(Object)
+    );
+  });
+
+  it('routes New Queue reorders independently with JSON and CSRF headers', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiNewQueue: true,
+      studyApiNewQueueWrite: true,
+    });
+
+    await reorderStudyNewCardQueue(['01ARZ3NDEKTSV4RRFFQ69G5FAV'], flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/learning-os/study/new-queue/reorder`,
+      expect.any(Object)
+    );
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(requestInit.method).toBe('POST');
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(JSON.parse(String(requestInit.body))).toEqual({
+      cardIds: ['01ARZ3NDEKTSV4RRFFQ69G5FAV'],
     });
   });
 

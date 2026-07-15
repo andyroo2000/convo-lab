@@ -21,6 +21,8 @@ describe('Feature Flags Route Logic', () => {
         studyApiBrowser: false,
         studyApiNewQueue: false,
         studyApiImports: false,
+        studyApiSettingsWrite: false,
+        studyApiNewQueueWrite: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -62,6 +64,8 @@ describe('Feature Flags Route Logic', () => {
             studyApiBrowser: false,
             studyApiNewQueue: false,
             studyApiImports: false,
+            studyApiSettingsWrite: false,
+            studyApiNewQueueWrite: false,
           },
         });
       }
@@ -78,6 +82,8 @@ describe('Feature Flags Route Logic', () => {
           studyApiBrowser: false,
           studyApiNewQueue: false,
           studyApiImports: false,
+          studyApiSettingsWrite: false,
+          studyApiNewQueueWrite: false,
         },
       });
       expect(flags.dialoguesEnabled).toBe(true);
@@ -138,6 +144,8 @@ describe('Feature Flags Route Logic', () => {
               studyApiBrowser: false,
               studyApiNewQueue: false,
               studyApiImports: false,
+              studyApiSettingsWrite: false,
+              studyApiNewQueueWrite: false,
             },
           })
         ).rejects.toThrow('Unique constraint violation');
@@ -158,6 +166,8 @@ describe('Feature Flags Route Logic', () => {
         studyApiBrowser: false,
         studyApiNewQueue: false,
         studyApiImports: false,
+        studyApiSettingsWrite: false,
+        studyApiNewQueueWrite: false,
       };
 
       expect(defaultFlags.dialoguesEnabled).toBe(true);
@@ -179,6 +189,8 @@ describe('Feature Flags Route Logic', () => {
         'studyApiBrowser',
         'studyApiNewQueue',
         'studyApiImports',
+        'studyApiSettingsWrite',
+        'studyApiNewQueueWrite',
       ];
 
       const flagKeys = Object.keys({
@@ -192,6 +204,8 @@ describe('Feature Flags Route Logic', () => {
         studyApiBrowser: false,
         studyApiNewQueue: false,
         studyApiImports: false,
+        studyApiSettingsWrite: false,
+        studyApiNewQueueWrite: false,
       });
 
       expectedFlags.forEach((flag) => {

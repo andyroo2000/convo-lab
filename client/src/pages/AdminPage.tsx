@@ -96,6 +96,8 @@ interface FeatureFlags {
   studyApiBrowser: boolean;
   studyApiNewQueue: boolean;
   studyApiImports: boolean;
+  studyApiSettingsWrite: boolean;
+  studyApiNewQueueWrite: boolean;
   updatedAt: string;
 }
 
@@ -1486,13 +1488,13 @@ const AdminPage = () => {
                     <div className="pt-6 border-t border-gray-200">
                       <h3 className="text-base font-semibold text-navy">Learning OS Study API</h3>
                       <p className="text-sm text-gray-600 mt-1 mb-2">
-                        Route selected read-only study views to the Learning OS API when the
+                        Route selected study reads and low-risk writes to Learning OS when the
                         server-side Learning OS URL and token are configured.
                       </p>
                       {renderFeatureFlagToggle(
                         'studyApiEnabled',
                         'Enable Study API Routing',
-                        'Parent switch required before any study read endpoint can use Learning OS'
+                        'Parent switch required before any study endpoint can use Learning OS'
                       )}
                       {renderFeatureFlagToggle(
                         'studyApiOverview',
@@ -1518,6 +1520,16 @@ const AdminPage = () => {
                         'studyApiImports',
                         'Import Status',
                         'Use Learning OS for current import and import status polling reads'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiSettingsWrite',
+                        'Study Settings Writes',
+                        'Save daily new-card settings through Learning OS'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiNewQueueWrite',
+                        'New-Card Queue Writes',
+                        'Save new-card queue ordering through Learning OS'
                       )}
                     </div>
                   </div>

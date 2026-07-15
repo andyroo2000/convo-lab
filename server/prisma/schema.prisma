@@ -472,18 +472,20 @@ model SpeakerAvatar {
 // Feature Flags - Control visibility of content types for non-admin users
 
 model FeatureFlag {
-  id                 String   @id @default(uuid())
-  dialoguesEnabled   Boolean  @default(true)
-  scriptsEnabled     Boolean  @default(true)
-  audioCourseEnabled Boolean  @default(true)
-  flashcardsEnabled  Boolean  @default(true)
-  studyApiEnabled    Boolean  @default(false)
-  studyApiSettings   Boolean  @default(false)
-  studyApiOverview   Boolean  @default(false)
-  studyApiBrowser    Boolean  @default(false)
-  studyApiNewQueue   Boolean  @default(false)
-  studyApiImports    Boolean  @default(false)
-  updatedAt          DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  dialoguesEnabled      Boolean  @default(true)
+  scriptsEnabled        Boolean  @default(true)
+  audioCourseEnabled    Boolean  @default(true)
+  flashcardsEnabled     Boolean  @default(true)
+  studyApiEnabled       Boolean  @default(false)
+  studyApiSettings      Boolean  @default(false)
+  studyApiOverview      Boolean  @default(false)
+  studyApiBrowser       Boolean  @default(false)
+  studyApiNewQueue      Boolean  @default(false)
+  studyApiImports       Boolean  @default(false)
+  studyApiSettingsWrite Boolean  @default(false)
+  studyApiNewQueueWrite Boolean  @default(false)
+  updatedAt             DateTime @updatedAt
 
   @@map("feature_flags")
 }

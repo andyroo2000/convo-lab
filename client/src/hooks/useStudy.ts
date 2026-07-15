@@ -95,11 +95,18 @@ export interface StudyBrowserQuery {
   limit?: number;
 }
 
-type StudyApiReadFeature = 'settings' | 'overview' | 'browser' | 'newQueue' | 'imports';
+type StudyApiFeature =
+  | 'settings'
+  | 'overview'
+  | 'browser'
+  | 'newQueue'
+  | 'imports'
+  | 'settingsWrite'
+  | 'newQueueWrite';
 const LEARNING_OS_STUDY_PROXY_BASE = '/api/learning-os/study';
 
 const STUDY_API_FLAG_BY_FEATURE: Record<
-  StudyApiReadFeature,
+  StudyApiFeature,
   keyof Pick<
     FeatureFlags,
     | 'studyApiSettings'
@@ -107,6 +114,8 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
     | 'studyApiBrowser'
     | 'studyApiNewQueue'
     | 'studyApiImports'
+    | 'studyApiSettingsWrite'
+    | 'studyApiNewQueueWrite'
   >
 > = {
   settings: 'studyApiSettings',
@@ -114,10 +123,19 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
   browser: 'studyApiBrowser',
   newQueue: 'studyApiNewQueue',
   imports: 'studyApiImports',
+  settingsWrite: 'studyApiSettingsWrite',
+  newQueueWrite: 'studyApiNewQueueWrite',
+};
+
+const STUDY_API_READ_FLAG_BY_WRITE_FEATURE: Partial<
+  Record<StudyApiFeature, 'studyApiSettings' | 'studyApiNewQueue'>
+> = {
+  settingsWrite: 'studyApiSettings',
+  newQueueWrite: 'studyApiNewQueue',
 };
 
 interface StudyApiRouting {
-  feature: StudyApiReadFeature;
+  feature: StudyApiFeature;
   flags?: FeatureFlags;
 }
 
@@ -142,10 +160,14 @@ function shouldUseLearningOsStudyApi(routing?: StudyApiRouting): boolean {
     return false;
   }
 
-  return routing.flags[STUDY_API_FLAG_BY_FEATURE[routing.feature]] === true;
+  const readFlag = STUDY_API_READ_FLAG_BY_WRITE_FEATURE[routing.feature];
+  return (
+    routing.flags[STUDY_API_FLAG_BY_FEATURE[routing.feature]] === true &&
+    (!readFlag || routing.flags[readFlag] === true)
+  );
 }
 
-function studyApiRouteKey(feature: StudyApiReadFeature, flags?: FeatureFlags): string {
+function studyApiRouteKey(feature: StudyApiFeature, flags?: FeatureFlags): string {
   return shouldUseLearningOsStudyApi({ feature, flags }) ? 'learning-os' : 'convo-lab';
 }
 
@@ -155,7 +177,7 @@ async function apiRequest<T>(
   routing?: StudyApiRouting
 ): Promise<T> {
   if (shouldUseLearningOsStudyApi(routing)) {
-    const headers = new Headers(init?.headers ?? {});
+    const headers = new Headers(withMutationHeaders(init));
     headers.set('Accept', 'application/json');
     const proxyEndpoint = endpoint.replace(/^\/api\/study(?=\/|$)/, LEARNING_OS_STUDY_PROXY_BASE);
 
@@ -211,11 +233,18 @@ export async function getStudySettings(flags?: FeatureFlags): Promise<StudySetti
   });
 }
 
-export async function updateStudySettings(payload: StudySettings): Promise<StudySettings> {
-  return apiRequest<StudySettings>('/api/study/settings', {
-    method: 'PATCH',
-    body: JSON.stringify(payload),
-  });
+export async function updateStudySettings(
+  payload: StudySettings,
+  flags?: FeatureFlags
+): Promise<StudySettings> {
+  return apiRequest<StudySettings>(
+    '/api/study/settings',
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+    { feature: 'settingsWrite', flags }
+  );
 }
 
 export async function getStudyNewCardQueue(
@@ -239,11 +268,15 @@ export async function getStudyNewCardQueue(
   );
 }
 
-export async function reorderStudyNewCardQueue(cardIds: string[]) {
-  return apiRequest<StudyNewCardQueueResponse>('/api/study/new-queue/reorder', {
-    method: 'POST',
-    body: JSON.stringify({ cardIds }),
-  });
+export async function reorderStudyNewCardQueue(cardIds: string[], flags?: FeatureFlags) {
+  return apiRequest<StudyNewCardQueueResponse>(
+    '/api/study/new-queue/reorder',
+    {
+      method: 'POST',
+      body: JSON.stringify({ cardIds }),
+    },
+    { feature: 'newQueueWrite', flags }
+  );
 }
 
 export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
@@ -549,9 +582,10 @@ export function useStudyNewCardQueue(
 
 export function useUpdateStudySettings() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: updateStudySettings,
+    mutationFn: (payload: StudySettings) => updateStudySettings(payload, flags),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'settings'] }),
@@ -563,9 +597,10 @@ export function useUpdateStudySettings() {
 
 export function useReorderStudyNewCardQueue() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: reorderStudyNewCardQueue,
+    mutationFn: (cardIds: string[]) => reorderStudyNewCardQueue(cardIds, flags),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),

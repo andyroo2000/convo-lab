@@ -666,6 +666,8 @@ router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
           studyApiBrowser: false,
           studyApiNewQueue: false,
           studyApiImports: false,
+          studyApiSettingsWrite: false,
+          studyApiNewQueueWrite: false,
         },
       });
     }
@@ -690,6 +692,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       studyApiBrowser?: unknown;
       studyApiNewQueue?: unknown;
       studyApiImports?: unknown;
+      studyApiSettingsWrite?: unknown;
+      studyApiNewQueueWrite?: unknown;
     };
     const {
       dialoguesEnabled,
@@ -702,6 +706,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       studyApiBrowser,
       studyApiNewQueue,
       studyApiImports,
+      studyApiSettingsWrite,
+      studyApiNewQueueWrite,
     } = payload;
 
     // Validate boolean values
@@ -721,6 +727,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(studyApiBrowser, 'studyApiBrowser');
     validateBoolean(studyApiNewQueue, 'studyApiNewQueue');
     validateBoolean(studyApiImports, 'studyApiImports');
+    validateBoolean(studyApiSettingsWrite, 'studyApiSettingsWrite');
+    validateBoolean(studyApiNewQueueWrite, 'studyApiNewQueueWrite');
 
     const dialoguesEnabledValue =
       typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
@@ -738,6 +746,10 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     const studyApiNewQueueValue =
       typeof studyApiNewQueue === 'boolean' ? studyApiNewQueue : undefined;
     const studyApiImportsValue = typeof studyApiImports === 'boolean' ? studyApiImports : undefined;
+    const studyApiSettingsWriteValue =
+      typeof studyApiSettingsWrite === 'boolean' ? studyApiSettingsWrite : undefined;
+    const studyApiNewQueueWriteValue =
+      typeof studyApiNewQueueWrite === 'boolean' ? studyApiNewQueueWrite : undefined;
 
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
@@ -756,6 +768,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           studyApiBrowser: studyApiBrowserValue ?? false,
           studyApiNewQueue: studyApiNewQueueValue ?? false,
           studyApiImports: studyApiImportsValue ?? false,
+          studyApiSettingsWrite: studyApiSettingsWriteValue ?? false,
+          studyApiNewQueueWrite: studyApiNewQueueWriteValue ?? false,
         },
       });
     } else {
@@ -777,6 +791,12 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           ...(studyApiBrowserValue !== undefined && { studyApiBrowser: studyApiBrowserValue }),
           ...(studyApiNewQueueValue !== undefined && { studyApiNewQueue: studyApiNewQueueValue }),
           ...(studyApiImportsValue !== undefined && { studyApiImports: studyApiImportsValue }),
+          ...(studyApiSettingsWriteValue !== undefined && {
+            studyApiSettingsWrite: studyApiSettingsWriteValue,
+          }),
+          ...(studyApiNewQueueWriteValue !== undefined && {
+            studyApiNewQueueWrite: studyApiNewQueueWriteValue,
+          }),
         },
       });
     }

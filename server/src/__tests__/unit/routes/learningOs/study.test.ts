@@ -10,6 +10,16 @@ import { sign as signJwt } from 'jsonwebtoken';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  CSRF_TOKEN_COOKIE_NAME,
+  CSRF_TOKEN_HEADER_NAME,
+  apiCsrfErrorHandler,
+  issueCsrfTokenCookie,
+  requireApiCsrfProtection,
+} from '../../../../middleware/csrf.js';
+import { resetBrowserRuntimeTestState } from '../../../helpers/browserRuntimeTestHelper.js';
+import { getSetCookieArray } from '../../../helpers/testCookieParser.js';
+
 const mockPrisma = vi.hoisted(() => ({
   featureFlag: {
     findFirst: vi.fn(),
@@ -33,6 +43,7 @@ describe('Learning OS Study proxy routes', () => {
   const originalLearningOsApiToken = process.env.LEARNING_OS_API_TOKEN;
   const originalLearningOsProxyUserEmail = process.env.LEARNING_OS_PROXY_USER_EMAIL;
   const originalJwtSecret = process.env.JWT_SECRET;
+  const originalClientUrl = process.env.CLIENT_URL;
 
   const emptyBrowserResponse = {
     rows: [],
@@ -82,10 +93,16 @@ describe('Learning OS Study proxy routes', () => {
     app.set('query parser', 'extended');
     app.use(cookieParser());
     app.use(expressJson());
+    app.get('/api/auth/csrf', (req, res) => {
+      issueCsrfTokenCookie(req, res, 'lax');
+      res.sendStatus(204);
+    });
+    app.use('/api/learning-os/study', requireApiCsrfProtection);
 
     return import('../../../../routes/learningOs/study.js').then(
       ({ default: learningOsStudyRoutes }) => {
         app.use('/api/learning-os/study', learningOsStudyRoutes);
+        app.use(apiCsrfErrorHandler);
         app.use(((error: unknown, _req, res, _next) => {
           const appError = error as { statusCode?: number; message?: string };
           res.status(appError.statusCode ?? 500).json({
@@ -102,6 +119,23 @@ describe('Learning OS Study proxy routes', () => {
     return `token=${token}`;
   }
 
+  async function csrfAuth(app: express.Application, userId = 'user-1') {
+    const auth = authCookie(userId);
+    const csrfResponse = await request(app)
+      .get('/api/auth/csrf')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', auth);
+    const cookies = getSetCookieArray(csrfResponse.headers['set-cookie']);
+    const tokenCookie = cookies
+      .map((value) => value.split(';')[0])
+      .find((value) => value.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`));
+    const token = tokenCookie
+      ? decodeURIComponent(tokenCookie.slice(`${CSRF_TOKEN_COOKIE_NAME}=`.length))
+      : '';
+
+    return { cookies: [auth, ...cookies], token };
+  }
+
   const enabledStudyApiFlags = {
     dialoguesEnabled: true,
     scriptsEnabled: true,
@@ -113,6 +147,8 @@ describe('Learning OS Study proxy routes', () => {
     studyApiBrowser: true,
     studyApiNewQueue: true,
     studyApiImports: true,
+    studyApiSettingsWrite: true,
+    studyApiNewQueueWrite: true,
   };
 
   beforeEach(async () => {
@@ -122,6 +158,8 @@ describe('Learning OS Study proxy routes', () => {
       await import('../../../../middleware/featureFlags.js');
     resetFeatureFlagCacheForTests();
     process.env.JWT_SECRET = 'test-secret';
+    process.env.CLIENT_URL = 'http://localhost:5173';
+    resetBrowserRuntimeTestState();
     process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
     process.env.LEARNING_OS_API_TOKEN = 'server-only-token';
     process.env.LEARNING_OS_PROXY_USER_EMAIL = 'learner@example.com';
@@ -147,6 +185,8 @@ describe('Learning OS Study proxy routes', () => {
     process.env.LEARNING_OS_API_TOKEN = originalLearningOsApiToken;
     process.env.LEARNING_OS_PROXY_USER_EMAIL = originalLearningOsProxyUserEmail;
     process.env.JWT_SECRET = originalJwtSecret;
+    process.env.CLIENT_URL = originalClientUrl;
+    resetBrowserRuntimeTestState();
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -181,6 +221,18 @@ describe('Learning OS Study proxy routes', () => {
     expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
       key: 'learning-os-import-proxy',
       max: 240,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-settings-write-proxy',
+      max: 60,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-new-queue-write-proxy',
+      max: 60,
       windowMs: 60 * 1000,
       onBackendError: 'fail-closed',
     });
@@ -267,6 +319,135 @@ describe('Learning OS Study proxy routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ newCardsPerDay: 17 });
+  });
+
+  it('proxies settings writes with CSRF protection and the Laravel request contract', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: { new_cards_per_day: 23 } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .patch('/api/learning-os/study/settings')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ newCardsPerDay: 23 });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ newCardsPerDay: 23 });
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/settings');
+    expect(init.method).toBe('PATCH');
+    expect(new Headers(init.headers).get('Content-Type')).toBe('application/json');
+    expect(JSON.parse(String(init.body))).toEqual({ new_cards_per_day: 23 });
+  });
+
+  it('proxies normalized New Queue reorders without forwarding client headers', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(newQueueResponse), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const cardId = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+
+    const response = await request(app)
+      .post('/api/learning-os/study/new-queue/reorder')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .set('X-Client-Secret', 'do-not-forward')
+      .send({ cardIds: [cardId.toLowerCase()] });
+
+    expect(response.status).toBe(200);
+    const [, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(init.method).toBe('POST');
+    expect(new Headers(init.headers).has('X-Client-Secret')).toBe(false);
+    expect(JSON.parse(String(init.body))).toEqual({ cardIds: [cardId] });
+  });
+
+  it('rejects proxy writes without a matching CSRF token', async () => {
+    const app = await createApp();
+
+    const response = await request(app)
+      .patch('/api/learning-os/study/settings')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', authCookie())
+      .send({ newCardsPerDay: 23 });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toBe('Invalid CSRF token.');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid or duplicate queue ids before calling Learning OS', async () => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const cardId = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+
+    const response = await request(app)
+      .post('/api/learning-os/study/new-queue/reorder')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ cardIds: [cardId, cardId.toLowerCase()] });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toBe('cardIds must not contain duplicates.');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps writes disabled when only the corresponding read flag is enabled', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiSettings: true,
+      studyApiSettingsWrite: false,
+    });
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .patch('/api/learning-os/study/settings')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ newCardsPerDay: 23 });
+
+    expect(response.status).toBe(403);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps writes disabled when their corresponding read route is off', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiSettings: false,
+      studyApiSettingsWrite: true,
+    });
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .patch('/api/learning-os/study/settings')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ newCardsPerDay: 23 });
+
+    expect(response.status).toBe(403);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('gates and adapts the New Queue route with its supported query parameters', async () => {

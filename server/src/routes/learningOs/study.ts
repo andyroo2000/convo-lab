@@ -14,6 +14,9 @@ import {
 
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
+const MAX_NEW_QUEUE_REORDER_SIZE = 500;
+const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+
 const learningOsStudyIpRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 300,
@@ -31,6 +34,18 @@ const learningOsStudyImportRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsSettingsWriteRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-settings-write-proxy',
+  max: 60,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsNewQueueWriteRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-new-queue-write-proxy',
+  max: 60,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 
 type StudyApiChildFlag = Extract<
   FeatureFlagKey,
@@ -39,18 +54,27 @@ type StudyApiChildFlag = Extract<
   | 'studyApiBrowser'
   | 'studyApiNewQueue'
   | 'studyApiImports'
+  | 'studyApiSettingsWrite'
+  | 'studyApiNewQueueWrite'
 >;
 
-interface StudyReadRoute {
+type StudyProxyMethod = 'GET' | 'PATCH' | 'POST';
+type StudyWriteFeature = 'settingsWrite' | 'newQueueWrite';
+
+interface StudyProxyRoute {
+  method: StudyProxyMethod;
   pattern: RegExp;
   featureFlag: StudyApiChildFlag;
   responseFeature?: LearningOsStudyReadFeature;
   queryParams: ReadonlySet<string>;
   upstreamQueryAliases?: Readonly<Record<string, string>>;
+  writeFeature?: StudyWriteFeature;
+  requiredReadFlag?: Extract<FeatureFlagKey, 'studyApiSettings' | 'studyApiNewQueue'>;
 }
 
-const ALLOWED_STUDY_READ_ROUTES: StudyReadRoute[] = [
+const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
+    method: 'GET',
     pattern: /^\/overview$/,
     featureFlag: 'studyApiOverview',
     responseFeature: 'overview',
@@ -58,12 +82,23 @@ const ALLOWED_STUDY_READ_ROUTES: StudyReadRoute[] = [
     upstreamQueryAliases: { timeZone: 'time_zone' },
   },
   {
+    method: 'GET',
     pattern: /^\/settings$/,
     featureFlag: 'studyApiSettings',
     responseFeature: 'settings',
     queryParams: new Set(),
   },
   {
+    method: 'PATCH',
+    pattern: /^\/settings$/,
+    featureFlag: 'studyApiSettingsWrite',
+    responseFeature: 'settings',
+    queryParams: new Set(),
+    writeFeature: 'settingsWrite',
+    requiredReadFlag: 'studyApiSettings',
+  },
+  {
+    method: 'GET',
     pattern: /^\/browser$/,
     featureFlag: 'studyApiBrowser',
     responseFeature: 'browser',
@@ -79,25 +114,41 @@ const ALLOWED_STUDY_READ_ROUTES: StudyReadRoute[] = [
     ]),
   },
   {
+    method: 'GET',
     pattern: /^\/new-queue$/,
     featureFlag: 'studyApiNewQueue',
     responseFeature: 'newQueue',
     queryParams: new Set(['cursor', 'limit', 'q']),
   },
   {
+    method: 'POST',
+    pattern: /^\/new-queue\/reorder$/,
+    featureFlag: 'studyApiNewQueueWrite',
+    responseFeature: 'newQueue',
+    queryParams: new Set(),
+    writeFeature: 'newQueueWrite',
+    requiredReadFlag: 'studyApiNewQueue',
+  },
+  {
+    method: 'GET',
     pattern: /^\/imports\/current$/,
     featureFlag: 'studyApiImports',
     queryParams: new Set(),
   },
   {
+    method: 'GET',
     pattern: /^\/imports\/[A-Za-z0-9_-]+$/,
     featureFlag: 'studyApiImports',
     queryParams: new Set(),
   },
 ];
 
-function getStudyReadRoute(pathname: string): StudyReadRoute | null {
-  return ALLOWED_STUDY_READ_ROUTES.find((route) => route.pattern.test(pathname)) ?? null;
+function getStudyProxyRoute(method: string, pathname: string): StudyProxyRoute | null {
+  return (
+    ALLOWED_STUDY_ROUTES.find(
+      (route) => route.method === method.toUpperCase() && route.pattern.test(pathname)
+    ) ?? null
+  );
 }
 
 function getLearningOsConfig(): { apiUrl: string; apiToken: string; proxyUserEmail: string } {
@@ -116,14 +167,13 @@ function getLearningOsConfig(): { apiUrl: string; apiToken: string; proxyUserEma
   };
 }
 
-function appendQueryParams(target: URL, query: AuthRequest['query'], route: StudyReadRoute) {
+function appendQueryParams(target: URL, query: AuthRequest['query'], route: StudyProxyRoute) {
   Object.entries(query).forEach(([key, value]) => {
     if (!route.queryParams.has(key)) {
       throw new AppError(`Query parameter "${key}" is not allowed for this Study API route.`, 400);
     }
 
     const upstreamKey = route.upstreamQueryAliases?.[key] ?? key;
-
     if (typeof value === 'string') {
       target.searchParams.append(upstreamKey, value);
       return;
@@ -133,47 +183,132 @@ function appendQueryParams(target: URL, query: AuthRequest['query'], route: Stud
   });
 }
 
-async function assertLearningOsStudyApiEnabled(featureFlag: StudyApiChildFlag) {
-  const flags = await getFeatureFlags();
+function requestRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new AppError('Request body must be a JSON object.', 400);
+  }
 
-  if (flags?.studyApiEnabled === true && flags[featureFlag] === true) {
+  return value as Record<string, unknown>;
+}
+
+function adaptSettingsWriteBody(value: unknown): { new_cards_per_day: number } {
+  const body = requestRecord(value);
+  const newCardsPerDay = body.newCardsPerDay;
+
+  if (
+    !Number.isInteger(newCardsPerDay) ||
+    (newCardsPerDay as number) < 0 ||
+    (newCardsPerDay as number) > 1000
+  ) {
+    throw new AppError('newCardsPerDay must be an integer between 0 and 1000.', 400);
+  }
+
+  return { new_cards_per_day: newCardsPerDay as number };
+}
+
+function adaptNewQueueWriteBody(value: unknown): { cardIds: string[] } {
+  const cardIds = requestRecord(value).cardIds;
+  if (
+    !Array.isArray(cardIds) ||
+    cardIds.length < 1 ||
+    cardIds.length > MAX_NEW_QUEUE_REORDER_SIZE
+  ) {
+    throw new AppError(
+      `cardIds must include between 1 and ${MAX_NEW_QUEUE_REORDER_SIZE} cards.`,
+      400
+    );
+  }
+
+  const normalizedCardIds = cardIds.map((cardId) => {
+    if (typeof cardId !== 'string' || !ULID_PATTERN.test(cardId)) {
+      throw new AppError('Each cardId must be a valid ULID.', 400);
+    }
+
+    return cardId.toUpperCase();
+  });
+
+  if (new Set(normalizedCardIds).size !== normalizedCardIds.length) {
+    throw new AppError('cardIds must not contain duplicates.', 400);
+  }
+
+  return { cardIds: normalizedCardIds };
+}
+
+function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
+  if (route.writeFeature === 'settingsWrite') {
+    return adaptSettingsWriteBody(value);
+  }
+  if (route.writeFeature === 'newQueueWrite') {
+    return adaptNewQueueWriteBody(value);
+  }
+
+  return undefined;
+}
+
+async function assertLearningOsStudyApiEnabled(route: StudyProxyRoute) {
+  const flags = await getFeatureFlags();
+  if (
+    flags?.studyApiEnabled === true &&
+    flags[route.featureFlag] === true &&
+    (!route.requiredReadFlag || flags[route.requiredReadFlag] === true)
+  ) {
     return;
   }
 
   throw new AppError('Learning OS Study API route is not enabled.', 403);
 }
 
-function rateLimitLearningOsStudyRead(req: AuthRequest, res: Response, next: NextFunction) {
-  const studyReadRoute = getStudyReadRoute(req.path);
-
-  if (!studyReadRoute) {
+function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: NextFunction) {
+  const route = getStudyProxyRoute(req.method, req.path);
+  if (!route) {
     next();
     return;
   }
 
-  if (studyReadRoute.featureFlag === 'studyApiImports') {
+  if (route.featureFlag === 'studyApiImports') {
     learningOsStudyImportRateLimit(req, res, next);
-    return;
+  } else if (route.writeFeature === 'settingsWrite') {
+    learningOsSettingsWriteRateLimit(req, res, next);
+  } else if (route.writeFeature === 'newQueueWrite') {
+    learningOsNewQueueWriteRateLimit(req, res, next);
+  } else {
+    learningOsStudyReadRateLimit(req, res, next);
   }
-
-  learningOsStudyReadRateLimit(req, res, next);
 }
 
-async function fetchLearningOsStudyRead(upstreamUrl: URL, apiToken: string, user: UserIdentity) {
+interface UserIdentity {
+  id: string;
+  email: string;
+  role: string;
+}
+
+async function fetchLearningOsStudy(
+  upstreamUrl: URL,
+  apiToken: string,
+  user: UserIdentity,
+  method: StudyProxyMethod,
+  body: unknown
+) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), LEARNING_OS_FETCH_TIMEOUT_MS);
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${apiToken}`,
+    'X-Convo-Lab-User-Id': user.id,
+    'X-Convo-Lab-User-Email': user.email,
+    'X-Convo-Lab-User-Role': user.role,
+  };
+
+  if (method !== 'GET') {
+    headers['Content-Type'] = 'application/json';
+  }
 
   try {
     return await fetch(upstreamUrl, {
-      method: 'GET',
+      method,
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${apiToken}`,
-        'X-Convo-Lab-User-Id': user.id,
-        'X-Convo-Lab-User-Email': user.email,
-        'X-Convo-Lab-User-Role': user.role,
-      },
+      headers,
+      ...(method === 'GET' ? {} : { body: JSON.stringify(body) }),
     });
   } catch (error) {
     if (controller.signal.aborted) {
@@ -186,37 +321,29 @@ async function fetchLearningOsStudyRead(upstreamUrl: URL, apiToken: string, user
   }
 }
 
-interface UserIdentity {
-  id: string;
-  email: string;
-  role: string;
+function adaptStudyRouteResponse(route: StudyProxyRoute, value: unknown): unknown {
+  return route.responseFeature
+    ? adaptLearningOsStudyReadResponse(route.responseFeature, value)
+    : value;
 }
 
-function adaptStudyReadRouteResponse(route: StudyReadRoute, value: unknown): unknown {
-  if (!route.responseFeature) {
-    return value;
-  }
-
-  return adaptLearningOsStudyReadResponse(route.responseFeature, value);
-}
-
-router.get(
+router.all(
   '/*',
   learningOsStudyIpRateLimit,
   requireAuth,
-  rateLimitLearningOsStudyRead,
+  rateLimitLearningOsStudyRoute,
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
         throw new AppError('Authentication required', 401);
       }
 
-      const studyReadRoute = getStudyReadRoute(req.path);
-      if (!studyReadRoute) {
+      const route = getStudyProxyRoute(req.method, req.path);
+      if (!route) {
         throw new AppError('Learning OS Study API route is not allowed.', 404);
       }
 
-      await assertLearningOsStudyApiEnabled(studyReadRoute.featureFlag);
+      await assertLearningOsStudyApiEnabled(route);
 
       const { apiUrl, apiToken, proxyUserEmail } = getLearningOsConfig();
       const user = await prisma.user.findUnique({
@@ -227,15 +354,20 @@ router.get(
       if (!user) {
         throw new AppError('User not found', 404);
       }
-
       if (user.email.trim().toLowerCase() !== proxyUserEmail) {
         throw new AppError('Learning OS Study API is not enabled for this account.', 403);
       }
 
       const upstreamUrl = new URL(`${apiUrl}/api/study${req.path}`);
-      appendQueryParams(upstreamUrl, req.query, studyReadRoute);
-
-      const upstreamResponse = await fetchLearningOsStudyRead(upstreamUrl, apiToken, user);
+      appendQueryParams(upstreamUrl, req.query, route);
+      const body = adaptWriteBody(route, req.body);
+      const upstreamResponse = await fetchLearningOsStudy(
+        upstreamUrl,
+        apiToken,
+        user,
+        route.method,
+        body
+      );
 
       if (!upstreamResponse.ok) {
         const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;
@@ -250,9 +382,7 @@ router.get(
         throw new AppError('Learning OS Study API returned an invalid JSON response.', 502);
       }
 
-      res
-        .status(upstreamResponse.status)
-        .json(adaptStudyReadRouteResponse(studyReadRoute, responseJson));
+      res.status(upstreamResponse.status).json(adaptStudyRouteResponse(route, responseJson));
     } catch (error) {
       next(error);
     }
