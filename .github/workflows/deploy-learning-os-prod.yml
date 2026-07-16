@@ -597,8 +597,13 @@ jobs:
                 local method="$1"
                 local path="$2"
                 local body="$3"
+                local response_file
+                local status
 
-                curl --fail --silent --show-error \
+                response_file="$(mktemp)"
+                status="$(curl --silent --show-error \
+                  --output "$response_file" \
+                  --write-out '%{http_code}' \
                   --request "$method" \
                   --header 'Accept: application/json' \
                   --header 'Content-Type: application/json' \
@@ -606,7 +611,18 @@ jobs:
                   --header "X-CSRF-Token: $csrf_token" \
                   --header "Cookie: token=$auth_token; XSRF-TOKEN=$csrf_cookie_raw" \
                   --data "$body" \
-                  "https://convo-lab.com$path"
+                  "https://convo-lab.com$path")"
+
+                if [[ ! "$status" =~ ^2[0-9][0-9]$ ]]; then
+                  echo "$method $path failed with HTTP $status:" >&2
+                  cat "$response_file" >&2
+                  echo >&2
+                  rm -f "$response_file"
+                  return 1
+                fi
+
+                cat "$response_file"
+                rm -f "$response_file"
               }
 
               if [ "$ENABLE_SETTINGS" = true ] && [ "$ENABLE_SETTINGS_WRITE" != true ]; then

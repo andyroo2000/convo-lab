@@ -15,6 +15,7 @@ import {
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
 const MAX_NEW_QUEUE_REORDER_SIZE = 500;
+const MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH = 500;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 const UUID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -561,6 +562,43 @@ function adaptStudyRouteResponse(route: StudyProxyRoute, value: unknown): unknow
     : value;
 }
 
+function extractNewQueueValidationMessage(responseBody: string): string | null {
+  let response: unknown;
+  try {
+    response = JSON.parse(responseBody);
+  } catch {
+    return null;
+  }
+
+  if (typeof response !== 'object' || response === null || Array.isArray(response)) {
+    return null;
+  }
+
+  const errors = (response as Record<string, unknown>).errors;
+  if (typeof errors !== 'object' || errors === null || Array.isArray(errors)) {
+    return null;
+  }
+
+  for (const [key, messages] of Object.entries(errors)) {
+    if (!/^cardIds(?:\.\d+)?$/.test(key) || !Array.isArray(messages)) {
+      continue;
+    }
+
+    const message = messages.find(
+      (value): value is string =>
+        typeof value === 'string' &&
+        value.trim().length > 0 &&
+        value.length <= MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH &&
+        !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value)
+    );
+    if (message) {
+      return message.trim();
+    }
+  }
+
+  return null;
+}
+
 router.all(
   '/*',
   learningOsStudyIpRateLimit,
@@ -605,7 +643,14 @@ router.all(
 
       if (!upstreamResponse.ok) {
         const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;
-        throw new AppError('Learning OS Study API request failed.', statusCode);
+        const validationMessage =
+          upstreamResponse.status === 422 && route.writeFeature === 'newQueueWrite'
+            ? extractNewQueueValidationMessage(await upstreamResponse.text())
+            : null;
+        throw new AppError(
+          validationMessage ?? 'Learning OS Study API request failed.',
+          statusCode
+        );
       }
 
       const responseBody = await upstreamResponse.text();

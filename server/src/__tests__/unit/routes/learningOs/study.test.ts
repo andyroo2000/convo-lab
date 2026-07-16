@@ -1240,6 +1240,101 @@ describe('Learning OS Study proxy routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('internal upstream details');
   });
 
+  it('surfaces bounded New Queue card validation messages from Learning OS', async () => {
+    const validationMessage = 'Every reordered card must be an active new card owned by the user.';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              message: 'The given data was invalid.',
+              errors: {
+                'cardIds.0': [validationMessage],
+                internalField: ['do not expose this detail'],
+              },
+            }),
+            { status: 422, headers: { 'content-type': 'application/json' } }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ errors: { cardIds: [validationMessage] } }), {
+            status: 422,
+            headers: { 'content-type': 'application/json' },
+          })
+        )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await request(app)
+        .post('/api/learning-os/study/new-queue/reorder')
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send({ cardIds: ['01ARZ3NDEKTSV4RRFFQ69G5FAV'] });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.message).toBe(validationMessage);
+      expect(JSON.stringify(response.body)).not.toContain('internalField');
+      expect(JSON.stringify(response.body)).not.toContain('do not expose this detail');
+    }
+  });
+
+  it('sanitizes malformed, oversized, and control-character queue validation responses', async () => {
+    const oversizedMessage = 'x'.repeat(501);
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ errors: { cardIds: [oversizedMessage] } }), {
+            status: 422,
+            headers: { 'content-type': 'application/json' },
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ errors: { cardIds: 'not-an-array' } }), {
+            status: 422,
+            headers: { 'content-type': 'application/json' },
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ errors: { cardIds: ['unsafe\nlog line'] } }), {
+            status: 422,
+            headers: { 'content-type': 'application/json' },
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ errors: { cardIds: ['unsafe\u0085\u2028\u202elog line'] } }),
+            {
+              status: 422,
+              headers: { 'content-type': 'application/json' },
+            }
+          )
+        )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const requestReorder = () =>
+      request(app)
+        .post('/api/learning-os/study/new-queue/reorder')
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send({ cardIds: ['01ARZ3NDEKTSV4RRFFQ69G5FAV'] });
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const response = await requestReorder();
+      expect(response.status).toBe(422);
+      expect(response.body.error.message).toBe('Learning OS Study API request failed.');
+      expect(JSON.stringify(response.body)).not.toContain(oversizedMessage);
+    }
+  });
+
   it('rejects routes outside the read-only Study API allowlist', async () => {
     const app = await createApp();
 
