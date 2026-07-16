@@ -20,6 +20,8 @@ volumes:
       type: none
       o: bind
       device: /opt/convolab-data/redis
+  learning-os-storage:
+    driver: local
 
 x-server-environment: &server-environment
   NODE_ENV: production
@@ -74,6 +76,43 @@ x-server-service: &server-service
       max-size: "10m"
       max-file: "5"
 
+x-learning-os-environment: &learning-os-environment
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${LEARNING_OS_APP_KEY}
+  APP_URL: http://learning-os:8080
+  LOG_CHANNEL: stderr
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${LEARNING_OS_DB:-learning_os}
+  DB_USERNAME: ${POSTGRES_USER}
+  DB_PASSWORD: ${POSTGRES_PASSWORD}
+  PGSQL_SSL_MODE: disable
+  CACHE_STORE: database
+  QUEUE_CONNECTION: database
+  DB_QUEUE_RETRY_AFTER: 3660
+  SESSION_DRIVER: database
+
+x-learning-os-service: &learning-os-service
+  image: ghcr.io/andyroo2000/learning-os:${LEARNING_OS_IMAGE_TAG:-latest}
+  restart: unless-stopped
+  environment: *learning-os-environment
+  volumes:
+    - learning-os-storage:/app/storage/app
+  networks:
+    - convolab-network
+  depends_on:
+    postgres:
+      condition: service_healthy
+  mem_limit: 768m
+  mem_reservation: 256m
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -122,34 +161,12 @@ services:
         max-file: "3"
 
   learning-os:
-    image: ghcr.io/andyroo2000/learning-os:${LEARNING_OS_IMAGE_TAG:-latest}
+    <<: *learning-os-service
     container_name: learning-os-api
-    restart: unless-stopped
-    environment:
-      APP_ENV: production
-      APP_DEBUG: "false"
-      APP_KEY: ${LEARNING_OS_APP_KEY}
-      APP_URL: http://learning-os:8080
-      LOG_CHANNEL: stderr
-      DB_CONNECTION: pgsql
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_DATABASE: ${LEARNING_OS_DB:-learning_os}
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      PGSQL_SSL_MODE: disable
-      CACHE_STORE: database
-      QUEUE_CONNECTION: sync
-      SESSION_DRIVER: database
     networks:
       convolab-network:
         aliases:
           - learning-os
-    depends_on:
-      postgres:
-        condition: service_healthy
-    mem_limit: 768m
-    mem_reservation: 256m
     healthcheck:
       test:
         [
@@ -162,11 +179,33 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
+
+  learning-os-worker:
+    <<: *learning-os-service
+    container_name: learning-os-worker
+    command:
+      [
+        "php",
+        "artisan",
+        "queue:work",
+        "database",
+        "--queue=study-imports,default",
+        "--sleep=3",
+        "--tries=4",
+        "--timeout=3600",
+        "--max-time=3600",
+      ]
+    stop_grace_period: 65m
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "tr '\\0' ' ' < /proc/1/cmdline | grep -q 'artisan queue:work'",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   router:
     image: nginx:1.27-alpine
