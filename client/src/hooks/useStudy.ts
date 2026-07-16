@@ -677,9 +677,11 @@ export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
   });
 }
 
-export function useSubmitStudyReview() {
+export function useSubmitStudyReview(routingFlags?: FeatureFlags | null) {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
+  const { flags: liveFlags } = useFeatureFlags();
+  // null pins a session to the legacy API; undefined means no session snapshot exists yet.
+  const effectiveFlags = routingFlags === undefined ? liveFlags : (routingFlags ?? undefined);
 
   return useMutation({
     mutationFn: (payload: {
@@ -690,7 +692,7 @@ export function useSubmitStudyReview() {
       submitStudyReview(
         payload,
         queryClient.getQueryData<StudyOverview>(['study', 'overview']),
-        flags
+        effectiveFlags
       ),
     onSuccess: async () => {
       await Promise.all([

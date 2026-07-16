@@ -5,8 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import useStudyReviewSession from '../useStudyReviewSession';
 
-const reviewFlags = { studyApiEnabled: true, studyApiReview: true };
-
 const {
   cardActionMutateAsyncMock,
   startStudySessionMock,
@@ -17,6 +15,8 @@ const {
   deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
   warmAudioCacheMock,
+  reviewFlagsState,
+  reviewRoutingFlagsMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -27,13 +27,25 @@ const {
   deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   warmAudioCacheMock: vi.fn(),
+  reviewFlagsState: {
+    current: { studyApiEnabled: true, studyApiReview: true } as
+      | { studyApiEnabled: boolean; studyApiReview: boolean }
+      | undefined,
+    isLoading: false,
+  },
+  reviewRoutingFlagsMock: vi.fn(),
 }));
 
+const reviewFlags = { studyApiEnabled: true, studyApiReview: true };
+
 vi.mock('../useStudy', () => ({
-  useSubmitStudyReview: () => ({
-    mutateAsync: reviewMutateAsyncMock,
-    isPending: false,
-  }),
+  useSubmitStudyReview: (routingFlags: unknown) => {
+    reviewRoutingFlagsMock(routingFlags);
+    return {
+      mutateAsync: reviewMutateAsyncMock,
+      isPending: false,
+    };
+  },
   useStudyCardAction: () => ({
     mutateAsync: cardActionMutateAsyncMock,
     isPending: false,
@@ -59,7 +71,10 @@ vi.mock('../useStudy', () => ({
 }));
 
 vi.mock('../useFeatureFlags', () => ({
-  useFeatureFlags: () => ({ flags: reviewFlags }),
+  useFeatureFlags: () => ({
+    flags: reviewFlagsState.current,
+    isLoading: reviewFlagsState.isLoading,
+  }),
 }));
 
 vi.mock('../../lib/audioCache', () => ({
@@ -154,6 +169,9 @@ describe('useStudyReviewSession', () => {
     deleteStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
     warmAudioCacheMock.mockReset();
+    reviewRoutingFlagsMock.mockReset();
+    reviewFlagsState.current = reviewFlags;
+    reviewFlagsState.isLoading = false;
     warmAudioCacheMock.mockResolvedValue(undefined);
 
     startStudySessionMock.mockResolvedValue({
@@ -328,6 +346,69 @@ describe('useStudyReviewSession', () => {
       expect.objectContaining({ reviewCount: 2 }),
       reviewFlags
     );
+  });
+
+  it('pins review and undo routing when live feature flags change mid-session', async () => {
+    const { result, rerender } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    reviewFlagsState.current = { studyApiEnabled: false, studyApiReview: false };
+    rerender();
+
+    expect(startStudySessionMock).toHaveBeenCalledWith(reviewFlags);
+    expect(reviewRoutingFlagsMock).toHaveBeenLastCalledWith(reviewFlags);
+
+    act(() => result.current.revealCurrentCard());
+    await act(async () => result.current.handleGrade('good'));
+    await act(async () => result.current.handleUndo());
+
+    expect(undoStudyReviewMock).toHaveBeenCalledWith(
+      'review-log-1',
+      expect.any(Object),
+      reviewFlags
+    );
+  });
+
+  it('keeps a fail-open legacy session pinned when feature flags arrive later', async () => {
+    reviewFlagsState.current = undefined;
+    const { result, rerender } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    reviewFlagsState.current = reviewFlags;
+    rerender();
+
+    expect(startStudySessionMock).toHaveBeenCalledWith(undefined);
+    expect(reviewRoutingFlagsMock).toHaveBeenLastCalledWith(null);
+
+    act(() => result.current.revealCurrentCard());
+    await act(async () => result.current.handleGrade('good'));
+    await act(async () => result.current.handleUndo());
+
+    expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-1', expect.any(Object), undefined);
+  });
+
+  it('does not start a session while feature-flag routing is loading', async () => {
+    reviewFlagsState.current = undefined;
+    reviewFlagsState.isLoading = true;
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => result.current.enterFocusMode());
+
+    expect(startStudySessionMock).not.toHaveBeenCalled();
+    expect(result.current.focusMode).toBe(false);
+    expect(result.current.sessionError).toBe('Study routing is still loading. Please try again.');
   });
 
   it('advances without retrying when a committed review loses its card refetch race', async () => {
