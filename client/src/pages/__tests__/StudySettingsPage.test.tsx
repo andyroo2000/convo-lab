@@ -14,6 +14,8 @@ const {
   resolveStudyCardPitchAccentMock,
   useStudySettingsMock,
   useStudyNewCardQueueMock,
+  knownKanjiQueryData,
+  setManualKnownKanjiMock,
   dndContextProps,
 } = vi.hoisted(() => ({
   updateStudySettingsMock: vi.fn(),
@@ -21,6 +23,15 @@ const {
   resolveStudyCardPitchAccentMock: vi.fn(),
   useStudySettingsMock: vi.fn(),
   useStudyNewCardQueueMock: vi.fn(),
+  knownKanjiQueryData: {
+    current: {
+      version: 1,
+      kanji: [] as string[],
+      manualKanji: [] as string[],
+      wanikani: { connected: false, lastSyncedAt: null },
+    },
+  },
+  setManualKnownKanjiMock: vi.fn(),
   dndContextProps: {
     current: null as null | { onDragEnd?: (event: DragEndEvent) => void },
   },
@@ -74,6 +85,23 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
   }),
 }));
 
+vi.mock('../../hooks/useKnownKanji', () => ({
+  useKnownKanji: () => ({
+    data: knownKanjiQueryData.current,
+    enabled: true,
+    error: null,
+    isLoading: false,
+    isSuccess: true,
+  }),
+  useConnectWaniKani: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDisconnectWaniKani: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSyncWaniKani: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSetManualKnownKanji: () => ({
+    mutateAsync: setManualKnownKanjiMock,
+    isPending: false,
+  }),
+}));
+
 vi.mock('../../hooks/useStudyBackgroundTask', () => ({
   default: () => (task?: Promise<unknown> | (() => Promise<unknown> | unknown)) => {
     if (typeof task === 'function') {
@@ -122,6 +150,13 @@ describe('StudySettingsPage', () => {
   beforeEach(() => {
     updateStudySettingsMock.mockReset();
     reorderStudyNewCardQueueMock.mockReset();
+    setManualKnownKanjiMock.mockReset();
+    knownKanjiQueryData.current = {
+      version: 1,
+      kanji: [],
+      manualKanji: [],
+      wanikani: { connected: false, lastSyncedAt: null },
+    };
     resolveStudyCardPitchAccentMock.mockReset();
     resolveStudyCardPitchAccentMock.mockImplementation(async () => ({
       answer: { pitchAccent: null },
@@ -173,6 +208,33 @@ describe('StudySettingsPage', () => {
     expect(screen.getByText('会社')).toBeInTheDocument();
     expect(screen.getByText('学校')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /reorder 会社/i })).toBeInTheDocument();
+  });
+
+  it('adds an obvious manual known-kanji override', async () => {
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Known kanji'), '私');
+    await userEvent.click(screen.getByRole('button', { name: 'Add kanji' }));
+
+    await waitFor(() => {
+      expect(setManualKnownKanjiMock).toHaveBeenCalledWith({ kanji: '私', known: true });
+    });
+  });
+
+  it('removes a manual known-kanji override through settings', async () => {
+    knownKanjiQueryData.current = {
+      version: 2,
+      kanji: ['私'],
+      manualKanji: ['私'],
+      wanikani: { connected: false, lastSyncedAt: null },
+    };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove manual override for 私' }));
+
+    await waitFor(() => {
+      expect(setManualKnownKanjiMock).toHaveBeenCalledWith({ kanji: '私', known: false });
+    });
   });
 
   it('opens a reusable preview modal from a new-card queue row', async () => {

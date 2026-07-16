@@ -78,6 +78,7 @@ const toMaskedRubyText = (
     return displayText;
   }
 
+  // deriveClozePresentation masks only the active cloze, so the display has at most one marker.
   const markerIndex = displayText.indexOf('[...]');
   if (markerIndex < 0) return displayText;
 
