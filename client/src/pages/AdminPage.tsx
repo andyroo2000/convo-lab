@@ -94,6 +94,7 @@ interface FeatureFlags {
   studyApiSettings: boolean;
   studyApiOverview: boolean;
   studyApiBrowser: boolean;
+  studyApiBrowserDetail: boolean;
   studyApiNewQueue: boolean;
   studyApiImports: boolean;
   studyApiSettingsWrite: boolean;
@@ -1510,6 +1511,11 @@ const AdminPage = () => {
                         'studyApiBrowser',
                         'Study Browser',
                         'Use Learning OS for the card browser list endpoint'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiBrowserDetail',
+                        'Study Browser Detail',
+                        'Use Learning OS when opening a note in the card browser'
                       )}
                       {renderFeatureFlagToggle(
                         'studyApiNewQueue',

@@ -664,6 +664,7 @@ router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
           studyApiSettings: false,
           studyApiOverview: false,
           studyApiBrowser: false,
+          studyApiBrowserDetail: false,
           studyApiNewQueue: false,
           studyApiImports: false,
           studyApiSettingsWrite: false,
@@ -690,6 +691,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       studyApiSettings?: unknown;
       studyApiOverview?: unknown;
       studyApiBrowser?: unknown;
+      studyApiBrowserDetail?: unknown;
       studyApiNewQueue?: unknown;
       studyApiImports?: unknown;
       studyApiSettingsWrite?: unknown;
@@ -704,6 +706,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       studyApiSettings,
       studyApiOverview,
       studyApiBrowser,
+      studyApiBrowserDetail,
       studyApiNewQueue,
       studyApiImports,
       studyApiSettingsWrite,
@@ -725,6 +728,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(studyApiSettings, 'studyApiSettings');
     validateBoolean(studyApiOverview, 'studyApiOverview');
     validateBoolean(studyApiBrowser, 'studyApiBrowser');
+    validateBoolean(studyApiBrowserDetail, 'studyApiBrowserDetail');
     validateBoolean(studyApiNewQueue, 'studyApiNewQueue');
     validateBoolean(studyApiImports, 'studyApiImports');
     validateBoolean(studyApiSettingsWrite, 'studyApiSettingsWrite');
@@ -743,6 +747,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     const studyApiOverviewValue =
       typeof studyApiOverview === 'boolean' ? studyApiOverview : undefined;
     const studyApiBrowserValue = typeof studyApiBrowser === 'boolean' ? studyApiBrowser : undefined;
+    const studyApiBrowserDetailValue =
+      typeof studyApiBrowserDetail === 'boolean' ? studyApiBrowserDetail : undefined;
     const studyApiNewQueueValue =
       typeof studyApiNewQueue === 'boolean' ? studyApiNewQueue : undefined;
     const studyApiImportsValue = typeof studyApiImports === 'boolean' ? studyApiImports : undefined;
@@ -766,6 +772,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           studyApiSettings: studyApiSettingsValue ?? false,
           studyApiOverview: studyApiOverviewValue ?? false,
           studyApiBrowser: studyApiBrowserValue ?? false,
+          studyApiBrowserDetail: studyApiBrowserDetailValue ?? false,
           studyApiNewQueue: studyApiNewQueueValue ?? false,
           studyApiImports: studyApiImportsValue ?? false,
           studyApiSettingsWrite: studyApiSettingsWriteValue ?? false,
@@ -789,6 +796,9 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           ...(studyApiSettingsValue !== undefined && { studyApiSettings: studyApiSettingsValue }),
           ...(studyApiOverviewValue !== undefined && { studyApiOverview: studyApiOverviewValue }),
           ...(studyApiBrowserValue !== undefined && { studyApiBrowser: studyApiBrowserValue }),
+          ...(studyApiBrowserDetailValue !== undefined && {
+            studyApiBrowserDetail: studyApiBrowserDetailValue,
+          }),
           ...(studyApiNewQueueValue !== undefined && { studyApiNewQueue: studyApiNewQueueValue }),
           ...(studyApiImportsValue !== undefined && { studyApiImports: studyApiImportsValue }),
           ...(studyApiSettingsWriteValue !== undefined && {

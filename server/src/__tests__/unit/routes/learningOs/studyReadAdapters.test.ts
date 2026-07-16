@@ -167,6 +167,159 @@ describe('Learning OS Study read response adapters', () => {
     });
   });
 
+  it('adapts browser note detail and removes Learning OS-only card metadata', () => {
+    expect(
+      adaptLearningOsStudyReadResponse('browserDetail', {
+        noteId: 'note-1',
+        displayText: '会社',
+        noteTypeName: 'Japanese - Vocab',
+        sourceKind: 'anki_import',
+        reviewCount: 3,
+        lastReviewedAt: '2026-07-14T12:00:00.000000Z',
+        updatedAt: '2026-07-14T12:00:00.123456Z',
+        rawFields: [
+          {
+            name: 'Expression',
+            value: '会社',
+            textValue: '会社',
+            audio: null,
+            image: null,
+          },
+        ],
+        canonicalFields: [],
+        cards: [
+          {
+            id: 'card-1',
+            noteId: 'note-1',
+            cardType: 'recognition',
+            prompt: { cueText: '会社' },
+            answer: { meaning: 'company' },
+            state: {
+              dueAt: '2026-07-16T12:00:00.000000Z',
+              introducedAt: null,
+              failedAt: null,
+              queueState: 'review',
+              scheduler: { state: 2 },
+              source: {
+                noteId: '501',
+                noteGuid: 'guid-1',
+                cardId: '701',
+                deckId: '301',
+                deckName: 'Japanese',
+                notetypeId: '601',
+                notetypeName: 'Japanese - Vocab',
+                templateOrd: 0,
+                templateName: 'Card 1',
+                queue: 2,
+                type: 2,
+                due: 12,
+                ivl: 30,
+                factor: 2500,
+                reps: 7,
+                lapses: 1,
+                left: 0,
+                odue: 4,
+                odid: '901',
+              },
+              rawFsrs: { stability: 4.2 },
+            },
+            variantGroupId: null,
+            variantSentenceId: null,
+            variantKind: null,
+            variantStage: null,
+            variantStatus: null,
+            variantUnlockedAt: null,
+            answerAudioSource: 'generated',
+            createdAt: '2026-07-01T12:00:00.000000Z',
+            updatedAt: '2026-07-14T12:00:00.123456Z',
+          },
+        ],
+        cardStats: [
+          {
+            cardId: 'card-1',
+            reviewCount: 3,
+            lastReviewedAt: '2026-07-14T12:00:00.000000Z',
+          },
+        ],
+        selectedCardId: 'card-1',
+      })
+    ).toEqual({
+      noteId: 'note-1',
+      displayText: '会社',
+      noteTypeName: 'Japanese - Vocab',
+      sourceKind: 'anki_import',
+      updatedAt: '2026-07-14T12:00:00.123Z',
+      rawFields: [
+        { name: 'Expression', value: '会社', textValue: '会社', audio: null, image: null },
+      ],
+      canonicalFields: [],
+      cards: [
+        {
+          id: 'card-1',
+          noteId: 'note-1',
+          cardType: 'recognition',
+          prompt: {
+            cueText: '会社',
+            cueReading: null,
+            cueMeaning: null,
+            cueAudio: null,
+            cueImage: null,
+            clozeText: null,
+            clozeDisplayText: null,
+            clozeAnswerText: null,
+            clozeHint: null,
+            clozeResolvedHint: null,
+          },
+          answer: {
+            meaning: 'company',
+            answerAudioVoiceId: null,
+            answerAudioTextOverride: null,
+          },
+          state: {
+            dueAt: '2026-07-16T12:00:00.000Z',
+            introducedAt: null,
+            failedAt: null,
+            queueState: 'review',
+            scheduler: { state: 2 },
+            source: {
+              noteId: '501',
+              noteGuid: 'guid-1',
+              cardId: '701',
+              deckId: '301',
+              deckName: 'Japanese',
+              notetypeId: '601',
+              notetypeName: 'Japanese - Vocab',
+              templateOrd: 0,
+              templateName: 'Card 1',
+              queue: 2,
+              type: 2,
+              due: 12,
+              ivl: 30,
+              factor: 2500,
+              reps: 7,
+              lapses: 1,
+              left: 0,
+              odue: 4,
+              odid: '901',
+            },
+            rawFsrs: { stability: 4.2 },
+          },
+          answerAudioSource: 'generated',
+          createdAt: '2026-07-01T12:00:00.000Z',
+          updatedAt: '2026-07-14T12:00:00.123Z',
+        },
+      ],
+      cardStats: [
+        {
+          cardId: 'card-1',
+          reviewCount: 3,
+          lastReviewedAt: '2026-07-14T12:00:00.000Z',
+        },
+      ],
+      selectedCardId: 'card-1',
+    });
+  });
+
   it('validates and reconstructs a new-card queue page', () => {
     expect(
       adaptLearningOsStudyReadResponse('newQueue', {
@@ -225,6 +378,21 @@ describe('Learning OS Study read response adapters', () => {
         total: 1,
         limit: 100,
         nextCursor: null,
+      },
+    ],
+    [
+      'browserDetail',
+      {
+        noteId: 'note-1',
+        displayText: '会社',
+        noteTypeName: null,
+        sourceKind: 'anki_import',
+        updatedAt: '2026-07-14T12:00:00.000000Z',
+        rawFields: 'not-an-array',
+        canonicalFields: [],
+        cards: [],
+        cardStats: [],
+        selectedCardId: null,
       },
     ],
   ] as const)('rejects malformed %s payloads with a sanitized gateway error', (feature, value) => {

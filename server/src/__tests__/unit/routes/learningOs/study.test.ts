@@ -53,6 +53,19 @@ describe('Learning OS Study proxy routes', () => {
     filterOptions: { noteTypes: [], cardTypes: [], queueStates: [] },
   };
 
+  const browserDetailResponse = {
+    noteId: 'note-1',
+    displayText: '会社',
+    noteTypeName: 'Japanese - Vocab',
+    sourceKind: 'anki_import',
+    updatedAt: '2026-07-15T12:00:00.000000Z',
+    rawFields: [],
+    canonicalFields: [],
+    cards: [],
+    cardStats: [],
+    selectedCardId: null,
+  };
+
   const emptyOverviewResponse = {
     data: {
       due_count: 0,
@@ -145,6 +158,7 @@ describe('Learning OS Study proxy routes', () => {
     studyApiSettings: true,
     studyApiOverview: true,
     studyApiBrowser: true,
+    studyApiBrowserDetail: true,
     studyApiNewQueue: true,
     studyApiImports: true,
     studyApiSettingsWrite: true,
@@ -236,6 +250,58 @@ describe('Learning OS Study proxy routes', () => {
       windowMs: 60 * 1000,
       onBackendError: 'fail-closed',
     });
+  });
+
+  it('proxies Browser detail through its independent flag without query parameters', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(browserDetailResponse), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/browser/note-1')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      ...browserDetailResponse,
+      updatedAt: '2026-07-15T12:00:00.000Z',
+    });
+    const [url] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/browser/note-1');
+  });
+
+  it('keeps Browser detail disabled independently from Browser list', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiBrowser: true,
+      studyApiBrowserDetail: false,
+    });
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/browser/note-1')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(403);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects Browser detail query parameters before calling Learning OS', async () => {
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/browser/note-1?limit=1')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('serializes successful upstream responses as JSON instead of forwarding content type', async () => {

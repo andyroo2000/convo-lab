@@ -99,6 +99,7 @@ type StudyApiFeature =
   | 'settings'
   | 'overview'
   | 'browser'
+  | 'browserDetail'
   | 'newQueue'
   | 'imports'
   | 'settingsWrite'
@@ -112,6 +113,7 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
     | 'studyApiSettings'
     | 'studyApiOverview'
     | 'studyApiBrowser'
+    | 'studyApiBrowserDetail'
     | 'studyApiNewQueue'
     | 'studyApiImports'
     | 'studyApiSettingsWrite'
@@ -121,6 +123,7 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
   settings: 'studyApiSettings',
   overview: 'studyApiOverview',
   browser: 'studyApiBrowser',
+  browserDetail: 'studyApiBrowserDetail',
   newQueue: 'studyApiNewQueue',
   imports: 'studyApiImports',
   settingsWrite: 'studyApiSettingsWrite',
@@ -486,8 +489,15 @@ export async function getStudyBrowser(
   );
 }
 
-export async function getStudyBrowserNoteDetail(noteId: string): Promise<StudyBrowserNoteDetail> {
-  return apiRequest<StudyBrowserNoteDetail>(`/api/study/browser/${encodeURIComponent(noteId)}`);
+export async function getStudyBrowserNoteDetail(
+  noteId: string,
+  flags?: FeatureFlags
+): Promise<StudyBrowserNoteDetail> {
+  return apiRequest<StudyBrowserNoteDetail>(
+    `/api/study/browser/${encodeURIComponent(noteId)}`,
+    undefined,
+    { feature: 'browserDetail', flags }
+  );
 }
 
 export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
@@ -622,9 +632,12 @@ export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
 }
 
 export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
+  const { flags } = useFeatureFlags();
+  const routeKey = studyApiRouteKey('browserDetail', flags);
+
   return useQuery({
-    queryKey: ['study', 'browser', 'note', noteId ?? 'none'],
-    queryFn: () => getStudyBrowserNoteDetail(noteId as string),
+    queryKey: ['study', 'browser', 'note', routeKey, noteId ?? 'none'],
+    queryFn: () => getStudyBrowserNoteDetail(noteId as string, flags),
     enabled: enabled && Boolean(noteId),
   });
 }

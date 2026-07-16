@@ -14,6 +14,7 @@ export type FeatureFlagKey =
   | 'studyApiSettings'
   | 'studyApiOverview'
   | 'studyApiBrowser'
+  | 'studyApiBrowserDetail'
   | 'studyApiNewQueue'
   | 'studyApiImports'
   | 'studyApiSettingsWrite'
@@ -27,6 +28,7 @@ export type FeatureFlagSnapshot = {
   studyApiSettings: boolean;
   studyApiOverview: boolean;
   studyApiBrowser: boolean;
+  studyApiBrowserDetail: boolean;
   studyApiNewQueue: boolean;
   studyApiImports: boolean;
   studyApiSettingsWrite: boolean;
@@ -56,6 +58,7 @@ export async function getFeatureFlags(): Promise<FeatureFlagSnapshot> {
       studyApiSettings: true,
       studyApiOverview: true,
       studyApiBrowser: true,
+      studyApiBrowserDetail: true,
       studyApiNewQueue: true,
       studyApiImports: true,
       studyApiSettingsWrite: true,

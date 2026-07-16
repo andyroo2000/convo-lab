@@ -12,6 +12,7 @@ export interface FeatureFlags {
   studyApiSettings: boolean;
   studyApiOverview: boolean;
   studyApiBrowser: boolean;
+  studyApiBrowserDetail: boolean;
   studyApiNewQueue: boolean;
   studyApiImports: boolean;
   studyApiSettingsWrite: boolean;
