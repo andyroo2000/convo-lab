@@ -476,6 +476,14 @@ jobs:
                 return 1
               }
 
+              stream_json_pair() {
+                # Stream newline-delimited base64 so large study sessions do not exceed exec ARG_MAX.
+                printf '%s' "$1" | base64 | tr -d '\n'
+                printf '\n'
+                printf '%s' "$2" | base64 | tr -d '\n'
+                printf '\n'
+              }
+
               compare_read_route() {
                 local label="$1"
                 local legacy_path="$2"
@@ -490,13 +498,29 @@ jobs:
                 legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
                 proxy_response="$(fetch_read_route "$label proxy" "$proxy_path")"
 
-                docker exec \
-                  -e LEGACY_RESPONSE="$legacy_response" \
-                  -e PROXY_RESPONSE="$proxy_response" \
+                stream_json_pair "$legacy_response" "$proxy_response" | docker exec -i \
                   -e COMPARISON_MODE="$comparison_mode" \
                   "convolab-server-$active_color" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
+                    process.stdin.setEncoding("utf8");
+                    let input = "";
+                    for await (const chunk of process.stdin) input += chunk;
+                    const fields = input.trimEnd().split("\n");
+                    if (fields.length !== 2) {
+                      console.error("Expected exactly two framed parity responses.");
+                      process.exit(1);
+                    }
+                    const [legacyEncoded, proxyEncoded] = fields;
+                    let legacyResponse;
+                    let proxyResponse;
+                    try {
+                      legacyResponse = JSON.parse(Buffer.from(legacyEncoded, "base64"));
+                      proxyResponse = JSON.parse(Buffer.from(proxyEncoded, "base64"));
+                    } catch {
+                      console.error("Legacy or Learning OS response is not valid JSON.");
+                      process.exit(1);
+                    }
                     const normalize = (response) => {
                       if (process.env.COMPARISON_MODE !== "opaque-cursor") return response;
                       return {
@@ -523,14 +547,14 @@ jobs:
                     };
                     try {
                       assert.deepStrictEqual(
-                        normalize(JSON.parse(process.env.PROXY_RESPONSE)),
-                        normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
+                        normalize(proxyResponse),
+                        normalize(legacyResponse),
                       );
                     } catch {
                       console.error("Legacy and Learning OS response contracts differ.");
                       const paths = differingPaths(
-                        normalize(JSON.parse(process.env.PROXY_RESPONSE)),
-                        normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
+                        normalize(proxyResponse),
+                        normalize(legacyResponse),
                       );
                       console.error(`Differing JSON paths: ${paths.slice(0, 50).join(", ")}`);
                       process.exit(1);
@@ -544,17 +568,30 @@ jobs:
                 local expected="$2"
                 local actual="$3"
 
-                docker exec \
-                  -e EXPECTED_RESPONSE="$expected" \
-                  -e ACTUAL_RESPONSE="$actual" \
+                stream_json_pair "$expected" "$actual" | docker exec -i \
                   "convolab-server-$active_color" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
+                    process.stdin.setEncoding("utf8");
+                    let input = "";
+                    for await (const chunk of process.stdin) input += chunk;
+                    const fields = input.trimEnd().split("\n");
+                    if (fields.length !== 2) {
+                      console.error("Expected exactly two framed mutation responses.");
+                      process.exit(1);
+                    }
+                    const [expectedEncoded, actualEncoded] = fields;
+                    let expectedResponse;
+                    let actualResponse;
                     try {
-                      assert.deepStrictEqual(
-                        JSON.parse(process.env.ACTUAL_RESPONSE),
-                        JSON.parse(process.env.EXPECTED_RESPONSE),
-                      );
+                      expectedResponse = JSON.parse(Buffer.from(expectedEncoded, "base64"));
+                      actualResponse = JSON.parse(Buffer.from(actualEncoded, "base64"));
+                    } catch {
+                      console.error("Expected or actual mutation response is not valid JSON.");
+                      process.exit(1);
+                    }
+                    try {
+                      assert.deepStrictEqual(actualResponse, expectedResponse);
                     } catch {
                       console.error("Mutation changed the stable response contract.");
                       process.exit(1);
