@@ -8,7 +8,12 @@ import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
 import { isAudioLedPromptCard, isMediaLedPromptCard, toAssetUrl } from './studyCardUtils';
-import { getHeadlineClasses, toDisplayText, toNotesList } from './studyTextUtils';
+import {
+  getHeadlineClasses,
+  parseRubySegments,
+  toDisplayText,
+  toNotesList,
+} from './studyTextUtils';
 
 export type { AudioPlayerHandle };
 
@@ -22,6 +27,70 @@ const isVisualProductionCueLabel = (value: string | null | undefined) =>
 const CLOZE_MARKUP_PATTERN = /\{\{c\d+::/;
 // Keeps glyph descenders clear when review text sits inside clipped/scrolling card containers.
 const DESCENDER_SAFE_PADDING_CLASS = 'pb-[0.08em]';
+
+const toRubyPlainText = (value: string) =>
+  parseRubySegments(value)
+    .map((segment) => (segment.kind === 'ruby' ? segment.base : segment.text) ?? '')
+    .join('');
+
+const matchingRubyText = (plainText: string, candidates: Array<string | null | undefined>) =>
+  candidates.find(
+    (candidate) =>
+      candidate &&
+      parseRubySegments(candidate).some((segment) => segment.kind === 'ruby') &&
+      toRubyPlainText(candidate) === plainText
+  );
+
+const sliceRubyText = (value: string, start: number, end: number) => {
+  let offset = 0;
+
+  return parseRubySegments(value)
+    .map((segment) => {
+      const plain = (segment.kind === 'ruby' ? segment.base : segment.text) ?? '';
+      const segmentStart = offset;
+      const segmentEnd = offset + plain.length;
+      offset = segmentEnd;
+
+      const sliceStart = Math.max(start, segmentStart);
+      const sliceEnd = Math.min(end, segmentEnd);
+      if (sliceStart >= sliceEnd) return '';
+
+      const visible = plain.slice(sliceStart - segmentStart, sliceEnd - segmentStart);
+      if (segment.kind === 'ruby' && sliceStart === segmentStart && sliceEnd === segmentEnd) {
+        return `${visible}[${segment.reading ?? ''}]`;
+      }
+
+      return visible;
+    })
+    .join('');
+};
+
+const toMaskedRubyText = (
+  displayText: string,
+  restoredText: string | null | undefined,
+  restoredTextReading: string | null | undefined
+) => {
+  if (
+    !restoredText ||
+    !restoredTextReading ||
+    toRubyPlainText(restoredTextReading) !== restoredText
+  ) {
+    return displayText;
+  }
+
+  const markerIndex = displayText.indexOf('[...]');
+  if (markerIndex < 0) return displayText;
+
+  const prefix = displayText.slice(0, markerIndex);
+  const suffix = displayText.slice(markerIndex + '[...]'.length);
+  if (!restoredText.startsWith(prefix) || !restoredText.endsWith(suffix)) return displayText;
+
+  return `${sliceRubyText(restoredTextReading, 0, prefix.length)}[...]${sliceRubyText(
+    restoredTextReading,
+    restoredText.length - suffix.length,
+    restoredText.length
+  )}`;
+};
 
 const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
   const readingText = card.answer.expressionReading ?? card.prompt.cueReading;
@@ -126,6 +195,11 @@ export const StudyCardFace = ({
         rawDisplayText && !CLOZE_MARKUP_PATTERN.test(rawDisplayText)
           ? rawDisplayText
           : derived.displayText;
+      const clozeRubyText = toMaskedRubyText(
+        clozeDisplayText ?? '',
+        card.answer.restoredText ?? derived.restoredText,
+        card.answer.restoredTextReading
+      );
       const cueImageUrl = toAssetUrl(card.prompt.cueImage?.url);
 
       return (
@@ -145,15 +219,17 @@ export const StudyCardFace = ({
               }`}
             />
           ) : null}
-          <p
+          <StudyRubyText
+            as="p"
+            text={clozeRubyText}
+            testId="study-cloze-prompt"
             className={`mx-auto max-w-5xl leading-relaxed text-black ${
               compactMobile
                 ? 'text-2xl sm:text-4xl md:text-6xl'
                 : 'text-3xl sm:text-4xl md:text-6xl'
             }`}
-          >
-            {toDisplayText(clozeDisplayText ?? '')}
-          </p>
+            rtClassName="text-[0.34em] font-medium text-gray-500"
+          />
           {card.prompt.clozeResolvedHint ? (
             <p
               className={
@@ -236,13 +312,19 @@ export const StudyCardFace = ({
         {card.prompt.cueText ? (
           <StudyRubyText
             as="div"
-            text={card.prompt.cueText}
+            text={
+              matchingRubyText(card.prompt.cueText, [
+                card.prompt.cueReading,
+                card.answer.expressionReading,
+              ]) ?? card.prompt.cueText
+            }
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
             className={`mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
               card.prompt.cueText,
               { compactMobile }
             )}`}
+            rtClassName="text-[0.34em] font-medium text-gray-500"
           />
         ) : null}
         {card.prompt.cueMeaning ? (

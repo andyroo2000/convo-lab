@@ -3,6 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { decodeHtmlEntities, parseRubySegments, stripHtmlToText } from '../studyTextUtils';
 
 describe('studyTextUtils', () => {
+  it('keeps cloze blank markers as plain text', () => {
+    expect(parseRubySegments('試合に[...]。')).toEqual([
+      { kind: 'text', key: 'text-0', text: '試合に[...]。' },
+    ]);
+  });
+
   it('decodes named and numeric HTML entities without using innerHTML', () => {
     expect(decodeHtmlEntities('Someone&#x27;s &amp; Company')).toBe("Someone's & Company");
     expect(decodeHtmlEntities('Tom &quot;Nook&quot;')).toBe('Tom "Nook"');

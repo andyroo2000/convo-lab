@@ -175,6 +175,11 @@ export const parseRubySegments = (value?: string | null): StudyRubySegment[] => 
     const isParentheticalRuby = parentheticalReading !== undefined;
     const reading = bracketReading ?? parentheticalReading ?? '';
 
+    // Cloze blanks use `[...]`; do not interpret the ellipsis as a reading.
+    if (bracketReading === '...') {
+      return;
+    }
+
     if (isParentheticalRuby && (!isKanaReading(reading) || !KANJI_REGEX.test(base))) {
       return;
     }
