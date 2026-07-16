@@ -1354,7 +1354,7 @@ describe('StudyPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
 
     await waitFor(() => {
-      expect(screen.getByText('お風呂に虫[...]！')).toBeInTheDocument();
+      expect(screen.getByText(/\[\.\.\.\]/)).toBeInTheDocument();
     });
     expect(screen.getByText('are (existence verb)')).toBeInTheDocument();
     expect(screen.queryByText('Click or push space to reveal')).not.toBeInTheDocument();

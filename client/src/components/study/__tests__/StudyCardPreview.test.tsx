@@ -78,6 +78,13 @@ describe('StudyCardPreview', () => {
     expect(screen.getByText('company')).toBeInTheDocument();
   });
 
+  it('renders stored bracket furigana on the prompt side', () => {
+    render(<StudyCardFace card={baseCard} side="front" />);
+
+    expect(screen.getByText('会社', { selector: 'ruby' })).toBeInTheDocument();
+    expect(screen.getByText('かいしゃ', { selector: 'rt' })).toBeInTheDocument();
+  });
+
   it('renders optional answer images on cloze reveal sides', () => {
     render(
       <StudyCardFace
@@ -226,6 +233,32 @@ describe('StudyCardPreview', () => {
     expect(frontImage).toHaveClass('max-h-[50dvh]');
   });
 
+  it('renders furigana for visible kanji on masked cloze prompt sides', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          cardType: 'cloze',
+          prompt: {
+            clozeText: 'お風呂に虫{{c1::がいる}}！',
+            clozeDisplayText: 'お風呂に虫[...]！',
+          },
+          answer: {
+            restoredText: 'お風呂に虫がいる！',
+            restoredTextReading: 'お風呂[ふろ]に虫[むし]がいる！',
+            meaning: 'There are bugs in the bath!',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('ふろ', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('むし', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText(/\[\.\.\.\]/)).toBeInTheDocument();
+    expect(screen.queryByText('がいる')).not.toBeInTheDocument();
+  });
+
   it('renders Anki-style parenthetical furigana without showing raw parentheses', () => {
     render(
       <StudyCardFace
@@ -351,7 +384,7 @@ describe('StudyCardPreview', () => {
       />
     );
 
-    expect(screen.getByText('試合に[...]。')).toBeInTheDocument();
+    expect(screen.getByTestId('study-cloze-prompt')).toHaveTextContent('試合に[...]。');
     expect(screen.queryByText(/{{c1::/)).not.toBeInTheDocument();
   });
 
