@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider } from './contexts/AuthContext';
 import LocaleProvider from './contexts/LocaleContext';
 import { AudioPreviewProvider } from './contexts/AudioPreviewContext';
+import { KnownKanjiProvider } from './contexts/KnownKanjiContext';
 import Layout from './components/common/Layout';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -67,7 +68,7 @@ const SITE_URL = 'https://convo-lab.com';
 
 const StudyRouteWrapper = ({ children }: { children: ReactNode }) => (
   <StudyRouteErrorBoundary onBackToStudy={() => window.location.assign('/app/study')}>
-    {children}
+    <KnownKanjiProvider>{children}</KnownKanjiProvider>
   </StudyRouteErrorBoundary>
 );
 

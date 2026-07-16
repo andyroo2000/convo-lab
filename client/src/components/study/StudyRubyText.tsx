@@ -1,6 +1,9 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { useKnownKanjiContext } from '../../contexts/KnownKanjiContext';
 import { parseRubySegments } from './studyTextUtils';
+
+const HAN_CHARACTER_PATTERN = /\p{Unified_Ideograph}/u;
 
 interface StudyRubyTextProps {
   autoFitSingleLine?: boolean;
@@ -24,8 +27,14 @@ const StudyRubyText = ({
   const elementRef = useRef<HTMLElement | null>(null);
   const fitFontSizeRef = useRef<number | null>(null);
   const [fitFontSize, setFitFontSize] = useState<number | null>(null);
+  const [revealedSegments, setRevealedSegments] = useState<ReadonlySet<string>>(new Set());
+  const { active: knownKanjiActive, knownKanji } = useKnownKanjiContext();
 
   fitFontSizeRef.current = fitFontSize;
+
+  useEffect(() => {
+    setRevealedSegments(new Set());
+  }, [text]);
 
   const setElementRef = (node: HTMLElement | null) => {
     elementRef.current = node;
@@ -123,11 +132,48 @@ const StudyRubyText = ({
           return <Fragment key={segment.key}>{segment.text}</Fragment>;
         }
 
+        const base = segment.base ?? '';
+        const kanji = Array.from(base).filter((character) => HAN_CHARACTER_PATTERN.test(character));
+        const readingHidden =
+          knownKanjiActive &&
+          kanji.length > 0 &&
+          kanji.every((character) => knownKanji.has(character)) &&
+          !revealedSegments.has(segment.key);
+        const revealReading = () => {
+          if (!readingHidden) return;
+          setRevealedSegments((current) => new Set(current).add(segment.key));
+        };
+
         return (
-          <ruby key={segment.key} className="study-ruby">
-            {segment.base}
-            <rt className={rtClassName}>{segment.reading}</rt>
-          </ruby>
+          <span
+            key={segment.key}
+            className={readingHidden ? 'cursor-pointer' : undefined}
+            data-known-furigana-hidden={readingHidden || undefined}
+            onClick={(event) => {
+              if (!readingHidden) return;
+              event.stopPropagation();
+              revealReading();
+            }}
+            onKeyDown={(event) => {
+              if (!readingHidden || (event.key !== 'Enter' && event.key !== ' ')) return;
+              event.preventDefault();
+              event.stopPropagation();
+              revealReading();
+            }}
+            role={readingHidden ? 'button' : undefined}
+            tabIndex={readingHidden ? 0 : undefined}
+            title={readingHidden ? 'Reveal reading' : undefined}
+          >
+            <ruby className="study-ruby">
+              {base}
+              <rt
+                aria-hidden={readingHidden || undefined}
+                className={`${rtClassName ?? ''} ${readingHidden ? 'opacity-0' : ''}`.trim()}
+              >
+                {segment.reading ?? ''}
+              </rt>
+            </ruby>
+          </span>
         );
       })}
     </Component>

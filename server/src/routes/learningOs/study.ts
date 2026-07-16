@@ -59,8 +59,9 @@ type StudyApiChildFlag = Extract<
   | 'studyApiNewQueueWrite'
 >;
 
-type StudyProxyMethod = 'GET' | 'PATCH' | 'POST';
+type StudyProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 type StudyWriteFeature = 'settingsWrite' | 'newQueueWrite';
+type StudyWriteBody = 'knownKanjiManual' | 'newQueue' | 'settings' | 'wanikaniConnection';
 
 interface StudyProxyRoute {
   method: StudyProxyMethod;
@@ -70,6 +71,7 @@ interface StudyProxyRoute {
   queryParams: ReadonlySet<string>;
   upstreamQueryAliases?: Readonly<Record<string, string>>;
   writeFeature?: StudyWriteFeature;
+  writeBody?: StudyWriteBody;
   requiredReadFlag?: Extract<FeatureFlagKey, 'studyApiSettings' | 'studyApiNewQueue'>;
 }
 
@@ -96,6 +98,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     responseFeature: 'settings',
     queryParams: new Set(),
     writeFeature: 'settingsWrite',
+    writeBody: 'settings',
     requiredReadFlag: 'studyApiSettings',
   },
   {
@@ -135,6 +138,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     responseFeature: 'newQueue',
     queryParams: new Set(),
     writeFeature: 'newQueueWrite',
+    writeBody: 'newQueue',
     requiredReadFlag: 'studyApiNewQueue',
   },
   {
@@ -148,6 +152,46 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     pattern: /^\/imports\/[A-Za-z0-9_-]+$/,
     featureFlag: 'studyApiImports',
     queryParams: new Set(),
+  },
+  {
+    method: 'GET',
+    pattern: /^\/known-kanji$/,
+    featureFlag: 'studyApiSettings',
+    queryParams: new Set(),
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/known-kanji\/manual$/,
+    featureFlag: 'studyApiSettingsWrite',
+    queryParams: new Set(),
+    writeFeature: 'settingsWrite',
+    writeBody: 'knownKanjiManual',
+    requiredReadFlag: 'studyApiSettings',
+  },
+  {
+    method: 'PUT',
+    pattern: /^\/wanikani$/,
+    featureFlag: 'studyApiSettingsWrite',
+    queryParams: new Set(),
+    writeFeature: 'settingsWrite',
+    writeBody: 'wanikaniConnection',
+    requiredReadFlag: 'studyApiSettings',
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/wanikani$/,
+    featureFlag: 'studyApiSettingsWrite',
+    queryParams: new Set(),
+    writeFeature: 'settingsWrite',
+    requiredReadFlag: 'studyApiSettings',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/wanikani\/sync$/,
+    featureFlag: 'studyApiSettingsWrite',
+    queryParams: new Set(),
+    writeFeature: 'settingsWrite',
+    requiredReadFlag: 'studyApiSettings',
   },
 ];
 
@@ -242,12 +286,42 @@ function adaptNewQueueWriteBody(value: unknown): { cardIds: string[] } {
   return { cardIds: normalizedCardIds };
 }
 
+function adaptKnownKanjiManualBody(value: unknown): { kanji: string; known: boolean } {
+  const body = requestRecord(value);
+  const kanji = body.kanji;
+  const known = body.known;
+
+  if (typeof kanji !== 'string' || !/^[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]$/u.test(kanji)) {
+    throw new AppError('kanji must be exactly one kanji character.', 400);
+  }
+  if (typeof known !== 'boolean') {
+    throw new AppError('known must be a boolean.', 400);
+  }
+
+  return { kanji, known };
+}
+
+function adaptWaniKaniConnectionBody(value: unknown): { apiToken: string } {
+  const apiToken = requestRecord(value).apiToken;
+  if (typeof apiToken !== 'string' || apiToken.trim().length < 1 || apiToken.trim().length > 512) {
+    throw new AppError('apiToken must be a non-empty string no longer than 512 characters.', 400);
+  }
+
+  return { apiToken: apiToken.trim() };
+}
+
 function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
-  if (route.writeFeature === 'settingsWrite') {
+  if (route.writeBody === 'settings') {
     return adaptSettingsWriteBody(value);
   }
-  if (route.writeFeature === 'newQueueWrite') {
+  if (route.writeBody === 'newQueue') {
     return adaptNewQueueWriteBody(value);
+  }
+  if (route.writeBody === 'knownKanjiManual') {
+    return adaptKnownKanjiManualBody(value);
+  }
+  if (route.writeBody === 'wanikaniConnection') {
+    return adaptWaniKaniConnectionBody(value);
   }
 
   return undefined;
@@ -307,7 +381,7 @@ async function fetchLearningOsStudy(
     'X-Convo-Lab-User-Role': user.role,
   };
 
-  if (method !== 'GET') {
+  if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
   }
 
@@ -316,7 +390,7 @@ async function fetchLearningOsStudy(
       method,
       signal: controller.signal,
       headers,
-      ...(method === 'GET' ? {} : { body: JSON.stringify(body) }),
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   } catch (error) {
     if (controller.signal.aborted) {
