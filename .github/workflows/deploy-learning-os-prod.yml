@@ -452,6 +452,10 @@ jobs:
                 local comparison_mode="${4:-strict}"
                 local legacy_response
                 local proxy_response
+                case "$comparison_mode" in
+                  strict|opaque-cursor) ;;
+                  *) echo "Unknown response comparison mode: $comparison_mode" >&2; return 1 ;;
+                esac
                 legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
                 proxy_response="$(fetch_read_route "$label proxy" "$proxy_path")"
 
@@ -469,14 +473,35 @@ jobs:
                         nextCursor: response.nextCursor === null ? null : "<opaque-cursor>",
                       };
                     };
+                    const differingPaths = (actual, expected, path = "$") => {
+                      if (Object.is(actual, expected)) return [];
+                      if (
+                        actual === null || expected === null ||
+                        typeof actual !== "object" || typeof expected !== "object" ||
+                        Array.isArray(actual) !== Array.isArray(expected)
+                      ) return [path];
+                      if (Array.isArray(actual) && actual.length !== expected.length) {
+                        return [`${path}.length`];
+                      }
+                      const keys = new Set([...Object.keys(actual), ...Object.keys(expected)]);
+                      return [...keys].flatMap((key) =>
+                        key in actual && key in expected
+                          ? differingPaths(actual[key], expected[key], `${path}.${key}`)
+                          : [`${path}.${key}`]
+                      );
+                    };
                     try {
                       assert.deepStrictEqual(
                         normalize(JSON.parse(process.env.PROXY_RESPONSE)),
                         normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
                       );
-                    } catch (error) {
+                    } catch {
                       console.error("Legacy and Learning OS response contracts differ.");
-                      console.error(error.message);
+                      const paths = differingPaths(
+                        normalize(JSON.parse(process.env.PROXY_RESPONSE)),
+                        normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
+                      );
+                      console.error(`Differing JSON paths: ${paths.slice(0, 50).join(", ")}`);
                       process.exit(1);
                     }
                   '
