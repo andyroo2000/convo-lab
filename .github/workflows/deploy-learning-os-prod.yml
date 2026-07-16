@@ -506,7 +506,12 @@ jobs:
                     process.stdin.setEncoding("utf8");
                     let input = "";
                     for await (const chunk of process.stdin) input += chunk;
-                    const [legacyEncoded, proxyEncoded] = input.trimEnd().split("\n");
+                    const fields = input.trimEnd().split("\n");
+                    if (fields.length !== 2) {
+                      console.error("Expected exactly two framed parity responses.");
+                      process.exit(1);
+                    }
+                    const [legacyEncoded, proxyEncoded] = fields;
                     let legacyResponse;
                     let proxyResponse;
                     try {
@@ -570,12 +575,22 @@ jobs:
                     process.stdin.setEncoding("utf8");
                     let input = "";
                     for await (const chunk of process.stdin) input += chunk;
-                    const [expectedEncoded, actualEncoded] = input.trimEnd().split("\n");
+                    const fields = input.trimEnd().split("\n");
+                    if (fields.length !== 2) {
+                      console.error("Expected exactly two framed mutation responses.");
+                      process.exit(1);
+                    }
+                    const [expectedEncoded, actualEncoded] = fields;
                     let expectedResponse;
                     let actualResponse;
                     try {
                       expectedResponse = JSON.parse(Buffer.from(expectedEncoded, "base64"));
                       actualResponse = JSON.parse(Buffer.from(actualEncoded, "base64"));
+                    } catch {
+                      console.error("Expected or actual mutation response is not valid JSON.");
+                      process.exit(1);
+                    }
+                    try {
                       assert.deepStrictEqual(actualResponse, expectedResponse);
                     } catch {
                       console.error("Mutation changed the stable response contract.");
