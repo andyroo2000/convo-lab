@@ -116,7 +116,7 @@ describe('Learning OS Study read response adapters', () => {
     ).toMatchObject({ latestImport: null, nextDueAt: null, totalCards: 0 });
   });
 
-  it('validates and reconstructs a browser page', () => {
+  it('validates a browser page and preserves the legacy list shape', () => {
     expect(
       adaptLearningOsStudyReadResponse('browser', {
         rows: [
@@ -147,13 +147,10 @@ describe('Learning OS Study read response adapters', () => {
       rows: [
         {
           noteId: '1001',
-          selectedCardId: 'card-1',
           displayText: '会社',
           noteTypeName: 'Japanese - Vocab',
-          sourceKind: 'anki_import',
           cardCount: 2,
           reviewCount: 3,
-          lastReviewedAt: '2026-07-14T12:00:00.000Z',
           queueSummary: { new: 1, review: 1 },
           createdAt: '2026-07-01T12:00:00.000Z',
           updatedAt: '2026-07-14T12:00:00.000Z',
