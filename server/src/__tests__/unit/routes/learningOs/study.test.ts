@@ -371,6 +371,31 @@ describe('Learning OS Study proxy routes', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
+  it('keeps the existing Browser detail card note id contract strict', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ...browserDetailResponse,
+            cards: [{ ...compatibilityCard, noteId: null }],
+          }),
+          { status: 200 }
+        )
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/browser/note-1')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe(
+      'Learning OS Study API returned an invalid browserDetail response.'
+    );
+  });
+
   it('rejects Browser detail query parameters before calling Learning OS', async () => {
     const app = await createApp();
 
@@ -502,7 +527,7 @@ describe('Learning OS Study proxy routes', () => {
           JSON.stringify({
             data: {
               overview: emptyOverviewResponse.data,
-              cards: [compatibilityCard],
+              cards: [{ ...compatibilityCard, noteId: null }],
             },
           }),
           { status: 200, headers: { 'content-type': 'application/json' } }
@@ -535,9 +560,7 @@ describe('Learning OS Study proxy routes', () => {
         latestImport: null,
         nextDueAt: null,
       },
-      cards: [
-        expect.objectContaining({ id: compatibilityCard.id, noteId: compatibilityCard.noteId }),
-      ],
+      cards: [expect.objectContaining({ id: compatibilityCard.id, noteId: null })],
     });
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe('https://learning-os.example/api/study/session/start');

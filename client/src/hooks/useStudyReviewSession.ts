@@ -459,6 +459,8 @@ const useStudyReviewSession = () => {
         if (grade === 'again') {
           resetStudyAudioAutoplayForCard(currentCard.id);
         }
+        // A committed review must not be retried. Without the updated card, drop it for this
+        // session even for "again"; the next session will load its authoritative schedule.
         const nextCards = reviewResult.card
           ? getCardsAfterReview(cards, reviewResult.card, grade)
           : cards.filter((card) => card.id !== currentCard.id);

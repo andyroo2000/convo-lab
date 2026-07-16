@@ -395,7 +395,10 @@ function adaptBrowserCard(
 
   return {
     id: stringValue(card.id, feature),
-    noteId: nullableString(card.noteId, feature),
+    noteId:
+      feature === 'browserDetail'
+        ? stringValue(card.noteId, feature)
+        : nullableString(card.noteId, feature),
     cardType: enumString(card.cardType, CARD_TYPES, feature),
     prompt: adaptPrompt(card.prompt),
     answer: adaptAnswer(card.answer),
