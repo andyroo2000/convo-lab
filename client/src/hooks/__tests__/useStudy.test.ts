@@ -724,6 +724,9 @@ describe('useStudy request helpers', () => {
     expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get('Content-Type')).toBe(
       'application/zip'
     );
+    expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBe(
+      'test-csrf-token'
+    );
   });
 
   it('routes the complete import lifecycle through Learning OS atomically', async () => {
@@ -787,6 +790,9 @@ describe('useStudy request helpers', () => {
     );
     expect(MockXMLHttpRequest.lastInstance?.url).toBe(
       '/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload'
+    );
+    expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBe(
+      'test-csrf-token'
     );
     fetchMock.mock.calls.forEach(([, requestInit]) => {
       const headers = new Headers((requestInit as RequestInit).headers);

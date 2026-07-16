@@ -43,7 +43,7 @@ import type {
 } from '@languageflow/shared/src/types';
 
 import { API_URL } from '../config';
-import { fetchWithCsrf } from '../lib/csrf';
+import { CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 
@@ -938,6 +938,11 @@ export async function uploadStudyImportArchive(
     signal?: AbortSignal;
   } = {}
 ): Promise<void> {
+  const csrfToken = await getCsrfToken();
+  if (!csrfToken) {
+    throw new Error('Unable to initialize secure upload.');
+  }
+
   await new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest();
     const abortHandler = () => {
@@ -954,6 +959,7 @@ export async function uploadStudyImportArchive(
     Object.entries(session.upload.headers).forEach(([headerName, headerValue]) => {
       request.setRequestHeader(headerName, headerValue);
     });
+    request.setRequestHeader(CSRF_TOKEN_HEADER_NAME, csrfToken);
 
     options.signal?.addEventListener('abort', abortHandler, { once: true });
 

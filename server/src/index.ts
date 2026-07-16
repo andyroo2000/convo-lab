@@ -17,6 +17,7 @@ import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
 import { requireApiCsrfProtection } from './middleware/csrf.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { enforceDefaultRequestBodyTimeout } from './middleware/requestBodyTimeout.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import adminRoutes from './routes/admin.js';
 import adminCourseRoutes from './routes/adminCourses.js';
@@ -220,6 +221,7 @@ app.use(
 
 // Stripe webhook needs raw body for signature verification
 // Must be added BEFORE express.json()
+app.use(enforceDefaultRequestBodyTimeout());
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -378,7 +380,8 @@ const server = app.listen(PORT, () => {
   });
 });
 
-// The import proxy permits 30-minute streams; keep Node's total request timer just above that.
+// Node's requestTimeout cannot be scoped per route, so middleware restores the 5-minute
+// body deadline everywhere except the import upload path.
 server.requestTimeout = IMPORT_UPLOAD_REQUEST_TIMEOUT_MS;
 
 // Graceful shutdown
