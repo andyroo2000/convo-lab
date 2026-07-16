@@ -493,7 +493,7 @@ jobs:
                 local legacy_response
                 local proxy_response
                 case "$comparison_mode" in
-                  strict|opaque-cursor|overview-state) ;;
+                  strict|opaque-cursor|overview-state|new-queue-state) ;;
                   *) echo "Unknown response comparison mode: $comparison_mode" >&2; return 1 ;;
                 esac
                 legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
@@ -642,7 +642,8 @@ jobs:
                 compare_read_route \
                   NewQueue \
                   '/api/study/new-queue?limit=25' \
-                  '/api/learning-os/study/new-queue?limit=25'
+                  '/api/learning-os/study/new-queue?limit=25' \
+                  new-queue-state
               fi
 
               if [ "$ENABLE_SETTINGS_WRITE" = true ] || [ "$ENABLE_NEW_QUEUE_WRITE" = true ] \
