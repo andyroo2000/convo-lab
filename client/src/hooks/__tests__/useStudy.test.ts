@@ -4,6 +4,7 @@ import { API_URL } from '../../config';
 import type { FeatureFlags } from '../useFeatureFlags';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
+  cancelStudyImportUpload,
   commitStudyCardCandidates,
   deleteStudyCard,
   getCurrentStudyImport,
@@ -13,6 +14,7 @@ import {
   getStudyBrowser,
   getStudyBrowserNoteDetail,
   getStudyImportStatus,
+  getStudyImportUploadReadiness,
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyAnswerAudio,
@@ -379,6 +381,7 @@ describe('useStudy request helpers', () => {
     await getStudyBrowser({ sortField: 'created_on', sortDirection: 'desc', limit: 25 }, flags);
     await getCurrentStudyImport(undefined, flags);
     await getStudyImportStatus('import-1', undefined, flags);
+    await getStudyImportUploadReadiness(flags);
 
     const fetchMock = vi.mocked(global.fetch);
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -404,6 +407,11 @@ describe('useStudy request helpers', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       5,
       `${API_URL}/api/learning-os/study/imports/import-1`,
+      expect.objectContaining({ credentials: 'include' })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      6,
+      `${API_URL}/api/learning-os/study/imports/readiness`,
       expect.objectContaining({ credentials: 'include' })
     );
 
@@ -716,6 +724,74 @@ describe('useStudy request helpers', () => {
     expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get('Content-Type')).toBe(
       'application/zip'
     );
+  });
+
+  it('routes the complete import lifecycle through Learning OS atomically', async () => {
+    const flags = featureFlags({ studyApiEnabled: true, studyApiImports: true });
+    const fetchMock = vi.mocked(global.fetch);
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          importJob: {
+            id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+            status: 'pending',
+            sourceFilename: 'japanese.colpkg',
+            deckName: 'Japanese',
+            uploadedAt: null,
+            uploadExpiresAt: '2099-04-21T01:00:00.000Z',
+            sourceSizeBytes: null,
+            importedAt: null,
+            errorMessage: null,
+            preview: {
+              deckName: 'Japanese',
+              noteCount: 0,
+              cardCount: 0,
+              reviewLogCount: 0,
+              mediaReferenceCount: 0,
+              skippedMediaCount: 0,
+              warnings: [],
+              noteTypeBreakdown: [],
+            },
+          },
+          upload: {
+            method: 'PUT',
+            url: '/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload',
+            headers: { 'Content-Type': 'application/zip' },
+          },
+        }),
+      } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'pending' }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'failed' }) } as Response);
+
+    await uploadStudyImport(
+      new File(['zip'], 'japanese.colpkg', { type: 'application/zip' }),
+      flags
+    );
+    await cancelStudyImportUpload('01ARZ3NDEKTSV4RRFFQ69G5FAW', flags);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      `${API_URL}/api/learning-os/study/imports`,
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${API_URL}/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/complete`,
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      `${API_URL}/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/cancel`,
+      expect.any(Object)
+    );
+    expect(MockXMLHttpRequest.lastInstance?.url).toBe(
+      '/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload'
+    );
+    fetchMock.mock.calls.forEach(([, requestInit]) => {
+      const headers = new Headers((requestInit as RequestInit).headers);
+      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    });
   });
 
   it('does not attach mutation-only headers to study import status reads', async () => {

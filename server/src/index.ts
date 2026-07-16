@@ -48,6 +48,7 @@ validateProductionBrowserRuntimeConfig();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const IMPORT_UPLOAD_REQUEST_TIMEOUT_MS = 31 * 60 * 1000;
 // SEO canonicals intentionally point at the public marketing site instead of env-specific CLIENT_URL.
 const PUBLIC_MARKETING_SITE_URL = 'https://convo-lab.com';
 
@@ -366,7 +367,7 @@ if (process.env.NODE_ENV === 'production') {
 // Error handling
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`🚀 LanguageFlow Studio server running on http://localhost:${PORT}`);
   // eslint-disable-next-line no-console
@@ -376,6 +377,9 @@ app.listen(PORT, () => {
     console.warn('[Pitch accent] Kanjium accent index warm-up failed:', error);
   });
 });
+
+// The import proxy permits 30-minute streams; keep Node's total request timer just above that.
+server.requestTimeout = IMPORT_UPLOAD_REQUEST_TIMEOUT_MS;
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
