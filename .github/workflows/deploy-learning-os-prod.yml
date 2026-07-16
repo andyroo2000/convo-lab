@@ -232,7 +232,7 @@ jobs:
             fi
 
             echo "$DEPLOY_GITHUB_TOKEN" | docker login ghcr.io -u "$DEPLOY_GITHUB_ACTOR" --password-stdin
-            timeout 600 $COMPOSE pull learning-os
+            timeout 600 $COMPOSE pull learning-os learning-os-worker
             $COMPOSE up -d postgres
 
             if [ "$REBUILD_DATABASE" = true ]; then
@@ -305,8 +305,9 @@ jobs:
             echo "::add-mask::$proxy_token"
             upsert_env LEARNING_OS_API_TOKEN "$proxy_token"
 
-            $COMPOSE up -d --no-deps --force-recreate learning-os
+            $COMPOSE up -d --no-deps --force-recreate learning-os learning-os-worker
             wait_for_health learning-os-api
+            wait_for_health learning-os-worker
 
             docker exec -e API_TOKEN="$proxy_token" learning-os-api php -r '
               $context = stream_context_create(["http" => [
@@ -759,7 +760,7 @@ jobs:
             verification_pending=false
             trap - EXIT
 
-            $COMPOSE ps learning-os "server-$active_color"
+            $COMPOSE ps learning-os learning-os-worker "server-$active_color"
             echo "Learning OS production deployment completed."
           ENDSSH
 
