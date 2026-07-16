@@ -5,6 +5,7 @@ import type { StudyOverview } from '@languageflow/shared/src/types';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { KnownKanjiContextProvider } from '../../contexts/KnownKanjiContext';
 import StudyPage from '../StudyPage';
 
 async function chooseAnswerAudioVoice(name: RegExp | string) {
@@ -100,7 +101,13 @@ vi.mock('../../components/common/VoicePreview', () => ({
   default: ({ voiceId }: { voiceId: string }) => <span data-testid="voice-preview">{voiceId}</span>,
 }));
 
-const renderStudyPage = () => {
+const renderStudyPage = ({
+  knownKanji = [],
+  knownKanjiActive = false,
+}: {
+  knownKanji?: string[];
+  knownKanjiActive?: boolean;
+} = {}) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -111,9 +118,11 @@ const renderStudyPage = () => {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <StudyPage />
-      </BrowserRouter>
+      <KnownKanjiContextProvider active={knownKanjiActive} knownKanji={new Set(knownKanji)}>
+        <BrowserRouter>
+          <StudyPage />
+        </BrowserRouter>
+      </KnownKanjiContextProvider>
     </QueryClientProvider>
   );
 };
@@ -1350,18 +1359,27 @@ describe('StudyPage', () => {
       ],
     });
 
-    renderStudyPage();
+    renderStudyPage({ knownKanji: ['風', '呂', '虫'], knownKanjiActive: true });
     await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
 
     await waitFor(() => {
-      expect(screen.getByText(/\[\.\.\.\]/)).toBeInTheDocument();
+      expect(screen.getByTestId('study-cloze-prompt')).toBeInTheDocument();
     });
+    const clozePrompt = screen.getByTestId('study-cloze-prompt');
+    expect(clozePrompt).toHaveTextContent('お風呂ふろに虫むし[...]！');
     expect(screen.getByText('are (existence verb)')).toBeInTheDocument();
     expect(screen.queryByText('Click or push space to reveal')).not.toBeInTheDocument();
     expect(screen.queryByText('Tap to reveal')).not.toBeInTheDocument();
     expect(
       screen.queryByText('お風呂に虫{{c1::がいる::are (existence verb)}}！')
     ).not.toBeInTheDocument();
+
+    const bathReading = within(clozePrompt).getByText('ふろ', { selector: 'rt' });
+    expect(bathReading).toHaveClass('opacity-0');
+    await userEvent.click(within(clozePrompt).getByRole('button', { name: '風呂' }));
+    expect(bathReading).not.toHaveClass('opacity-0');
+    expect(screen.queryByText('There are bugs in the bath!')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
