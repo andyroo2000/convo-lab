@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useKnownKanji, useSyncWaniKani } from '../hooks/useKnownKanji';
@@ -30,7 +38,16 @@ export const KnownKanjiProvider = ({ children }: { children: ReactNode }) => {
   const sync = useSyncWaniKani();
   const { flags } = useFeatureFlags();
   const attemptedSyncRef = useRef<string | null>(null);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const lastSyncedAt = query.data?.wanikani.lastSyncedAt ?? null;
+
+  useEffect(
+    () => () => {
+      if (retryTimeoutRef.current !== null) clearTimeout(retryTimeoutRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     if (
@@ -44,8 +61,22 @@ export const KnownKanjiProvider = ({ children }: { children: ReactNode }) => {
     }
 
     attemptedSyncRef.current = lastSyncedAt;
-    sync.mutate(undefined, { onError: () => undefined });
-  }, [flags?.studyApiSettingsWrite, lastSyncedAt, query.data?.wanikani.connected, sync]);
+    sync.mutate(undefined, {
+      onError: () => {
+        retryTimeoutRef.current = setTimeout(() => {
+          attemptedSyncRef.current = null;
+          retryTimeoutRef.current = null;
+          setRetryNonce((value) => value + 1);
+        }, AUTO_SYNC_AFTER_MS);
+      },
+    });
+  }, [
+    flags?.studyApiSettingsWrite,
+    lastSyncedAt,
+    query.data?.wanikani.connected,
+    retryNonce,
+    sync,
+  ]);
 
   const value = useMemo<KnownKanjiContextValue>(
     () => ({

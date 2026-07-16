@@ -368,8 +368,8 @@ const StudySettingsPage = () => {
                   async () => {
                     try {
                       await connectWaniKaniMutation.mutateAsync(token);
-                      await syncWaniKaniMutation.mutateAsync();
                       setWanikaniToken('');
+                      await syncWaniKaniMutation.mutateAsync();
                     } catch (error) {
                       setKnowledgeError(
                         error instanceof Error ? error.message : t('settings.wanikaniConnectFailed')
