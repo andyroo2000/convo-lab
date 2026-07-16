@@ -12,6 +12,15 @@ on:
         required: false
         default: '300'
         type: string
+      service:
+        description: 'Container service to run the command in'
+        required: false
+        default: 'worker'
+        type: choice
+        options:
+          - worker
+          - server
+          - learning-os
 
 jobs:
   run-script:
@@ -36,11 +45,17 @@ jobs:
             echo "🚀 Running script on production..."
             echo "Command: ${{ inputs.script_command }}"
             echo "Timeout: ${{ inputs.timeout }} seconds"
+            echo "Service: ${{ inputs.service }}"
 
             cd /opt/convolab
 
-            # Run the command in the worker container with timeout
-            timeout ${{ inputs.timeout }} docker compose exec -T worker sh -c "${{ inputs.script_command }}" || {
+            service="${{ inputs.service }}"
+            if [ "$service" = "server" ]; then
+              active_color=$(cat /opt/convolab-runtime/prod-active-color)
+              service="server-$active_color"
+            fi
+
+            timeout ${{ inputs.timeout }} docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production exec -T "$service" sh -c "${{ inputs.script_command }}" < /dev/null || {
               EXIT_CODE=$?
               if [ $EXIT_CODE -eq 124 ]; then
                 echo "❌ Script timed out after ${{ inputs.timeout }} seconds"
@@ -50,6 +65,10 @@ jobs:
                 exit $EXIT_CODE
               fi
             }
+
+            if [ "${{ inputs.service }}" = "learning-os" ]; then
+              docker logs --since 10m --tail 300 learning-os-api 2>&1
+            fi
 
             echo "✅ Script completed successfully"
           ENDSSH
