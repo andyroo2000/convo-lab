@@ -477,7 +477,7 @@ jobs:
               }
 
               stream_json_pair() {
-                # Stream response bodies so large study sessions do not exceed exec ARG_MAX.
+                # Stream newline-delimited base64 so large study sessions do not exceed exec ARG_MAX.
                 printf '%s' "$1" | base64 | tr -d '\n'
                 printf '\n'
                 printf '%s' "$2" | base64 | tr -d '\n'
@@ -503,11 +503,19 @@ jobs:
                   "convolab-server-$active_color" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
+                    process.stdin.setEncoding("utf8");
                     let input = "";
                     for await (const chunk of process.stdin) input += chunk;
                     const [legacyEncoded, proxyEncoded] = input.trimEnd().split("\n");
-                    const legacyResponse = JSON.parse(Buffer.from(legacyEncoded, "base64"));
-                    const proxyResponse = JSON.parse(Buffer.from(proxyEncoded, "base64"));
+                    let legacyResponse;
+                    let proxyResponse;
+                    try {
+                      legacyResponse = JSON.parse(Buffer.from(legacyEncoded, "base64"));
+                      proxyResponse = JSON.parse(Buffer.from(proxyEncoded, "base64"));
+                    } catch {
+                      console.error("Legacy or Learning OS response is not valid JSON.");
+                      process.exit(1);
+                    }
                     const normalize = (response) => {
                       if (process.env.COMPARISON_MODE !== "opaque-cursor") return response;
                       return {
@@ -559,12 +567,15 @@ jobs:
                   "convolab-server-$active_color" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
+                    process.stdin.setEncoding("utf8");
                     let input = "";
                     for await (const chunk of process.stdin) input += chunk;
                     const [expectedEncoded, actualEncoded] = input.trimEnd().split("\n");
-                    const expectedResponse = JSON.parse(Buffer.from(expectedEncoded, "base64"));
-                    const actualResponse = JSON.parse(Buffer.from(actualEncoded, "base64"));
+                    let expectedResponse;
+                    let actualResponse;
                     try {
+                      expectedResponse = JSON.parse(Buffer.from(expectedEncoded, "base64"));
+                      actualResponse = JSON.parse(Buffer.from(actualEncoded, "base64"));
                       assert.deepStrictEqual(actualResponse, expectedResponse);
                     } catch {
                       console.error("Mutation changed the stable response contract.");
