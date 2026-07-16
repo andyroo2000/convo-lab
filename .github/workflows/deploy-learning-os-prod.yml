@@ -571,6 +571,45 @@ jobs:
                 echo "$label idempotent write smoke check passed."
               }
 
+              assert_queue_order_equal() {
+                local expected="$1"
+                local actual="$2"
+
+                stream_json_pair "$expected" "$actual" | docker exec -i \
+                  "convolab-server-$active_color" \
+                  node --input-type=module --eval='
+                    import assert from "node:assert/strict";
+                    process.stdin.setEncoding("utf8");
+                    let input = "";
+                    for await (const chunk of process.stdin) input += chunk;
+                    const fields = input.trimEnd().split("\n");
+                    if (fields.length !== 2) {
+                      console.error("Expected exactly two framed New Queue responses.");
+                      process.exit(1);
+                    }
+                    const responses = fields.map((field) =>
+                      JSON.parse(Buffer.from(field, "base64"))
+                    );
+                    const ids = (response) => {
+                      if (!Array.isArray(response.items)) {
+                        throw new TypeError("New Queue response has no items array.");
+                      }
+                      return response.items.map(({ id }) => id);
+                    };
+                    try {
+                      assert.deepStrictEqual(ids(responses[1]), ids(responses[0]));
+                    } catch (error) {
+                      console.error(
+                        error instanceof TypeError
+                          ? error.message
+                          : "New Queue reorder changed card membership or order."
+                      );
+                      process.exit(1);
+                    }
+                  '
+                echo "New Queue reorder preserved card membership and order."
+              }
+
               validate_session_response() {
                 local response="$1"
 
@@ -711,7 +750,9 @@ jobs:
                     process.stdout.write(JSON.stringify({ cardIds: queue.items.map(({ id }) => id) }));
                   ')"
                 queue_after="$(mutate_proxy_route POST '/api/learning-os/study/new-queue/reorder' "$queue_body")"
-                assert_json_equal 'New Queue' "$queue_before" "$queue_after"
+                assert_queue_order_equal "$queue_before" "$queue_after"
+                queue_stable="$(mutate_proxy_route POST '/api/learning-os/study/new-queue/reorder' "$queue_body")"
+                assert_json_equal 'New Queue' "$queue_after" "$queue_stable"
               fi
             fi
 
