@@ -171,7 +171,10 @@ function adaptLatestImport(value: unknown) {
   };
 }
 
-function adaptImportPreview(value: unknown) {
+function adaptImportPreview(
+  value: unknown,
+  feature: Extract<LearningOsStudyReadFeature, 'overview' | 'review' | 'reviewUndo'> = 'overview'
+) {
   if (value === null) {
     return {
       deckName: '日本語',
@@ -185,21 +188,21 @@ function adaptImportPreview(value: unknown) {
     };
   }
 
-  const preview = record(value, 'overview');
+  const preview = record(value, feature);
   return {
-    deckName: stringValue(preview.deckName, 'overview'),
-    cardCount: nonNegativeInteger(preview.cardCount, 'overview'),
-    noteCount: nonNegativeInteger(preview.noteCount, 'overview'),
-    reviewLogCount: nonNegativeInteger(preview.reviewLogCount, 'overview'),
-    mediaReferenceCount: nonNegativeInteger(preview.mediaReferenceCount, 'overview'),
-    skippedMediaCount: nonNegativeInteger(preview.skippedMediaCount, 'overview'),
-    warnings: stringList(preview.warnings, 'overview'),
-    noteTypeBreakdown: list(preview.noteTypeBreakdown, 'overview').map((value) => {
-      const item = record(value, 'overview');
+    deckName: stringValue(preview.deckName, feature),
+    cardCount: nonNegativeInteger(preview.cardCount, feature),
+    noteCount: nonNegativeInteger(preview.noteCount, feature),
+    reviewLogCount: nonNegativeInteger(preview.reviewLogCount, feature),
+    mediaReferenceCount: nonNegativeInteger(preview.mediaReferenceCount, feature),
+    skippedMediaCount: nonNegativeInteger(preview.skippedMediaCount, feature),
+    warnings: stringList(preview.warnings, feature),
+    noteTypeBreakdown: list(preview.noteTypeBreakdown, feature).map((value) => {
+      const item = record(value, feature);
       return {
-        notetypeName: stringValue(item.notetypeName, 'overview'),
-        noteCount: nonNegativeInteger(item.noteCount, 'overview'),
-        cardCount: nonNegativeInteger(item.cardCount, 'overview'),
+        notetypeName: stringValue(item.notetypeName, feature),
+        noteCount: nonNegativeInteger(item.noteCount, feature),
+        cardCount: nonNegativeInteger(item.cardCount, feature),
       };
     }),
   };
@@ -473,6 +476,26 @@ function adaptCompatibilityOverview(
 ) {
   const source = record(value, feature);
 
+  const latestImport = (() => {
+    if (source.latestImport === null) {
+      return null;
+    }
+
+    const importJob = record(source.latestImport, feature);
+    return {
+      id: stringValue(importJob.id, feature),
+      status: enumString(importJob.status, IMPORT_STATUSES, feature),
+      sourceFilename: stringValue(importJob.sourceFilename, feature),
+      deckName: stringValue(importJob.deckName, feature),
+      preview: adaptImportPreview(importJob.preview, feature),
+      uploadedAt: nullableIsoTimestamp(importJob.uploadedAt, feature),
+      uploadExpiresAt: nullableIsoTimestamp(importJob.uploadExpiresAt, feature),
+      sourceSizeBytes: nullableNonNegativeInteger(importJob.sourceSizeBytes, feature),
+      importedAt: nullableIsoTimestamp(importJob.completedAt, feature),
+      errorMessage: nullableString(importJob.errorMessage, feature),
+    };
+  })();
+
   return {
     dueCount: nonNegativeInteger(source.dueCount, feature),
     failedCount: nonNegativeInteger(source.failedCount, feature),
@@ -484,7 +507,7 @@ function adaptCompatibilityOverview(
     reviewCount: nonNegativeInteger(source.reviewCount, feature),
     suspendedCount: nonNegativeInteger(source.suspendedCount, feature),
     totalCards: nonNegativeInteger(source.totalCards, feature),
-    latestImport: source.latestImport ?? null,
+    latestImport,
     nextDueAt: nullableIsoTimestamp(source.nextDueAt, feature),
   };
 }

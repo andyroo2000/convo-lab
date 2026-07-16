@@ -420,9 +420,10 @@ function adaptReviewBody(value: unknown): Record<string, unknown> {
       : undefined;
   const timeZone = adaptOptionalTimeZone(body);
   const currentOverview = adaptOptionalOverview(body);
+  const normalizedCardId = ULID_PATTERN.test(cardId) ? cardId.toUpperCase() : cardId;
 
   return {
-    cardId,
+    cardId: normalizedCardId,
     grade,
     ...(normalizedDuration === undefined ? {} : { durationMs: normalizedDuration }),
     ...(timeZone === undefined ? {} : { timeZone }),

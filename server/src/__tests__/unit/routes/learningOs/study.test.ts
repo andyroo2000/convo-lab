@@ -112,7 +112,18 @@ describe('Learning OS Study proxy routes', () => {
     reviewCount: 1,
     suspendedCount: 0,
     totalCards: 3,
-    latestImport: null,
+    latestImport: {
+      id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+      status: 'completed',
+      sourceFilename: 'core.colpkg',
+      deckName: 'Core',
+      preview: null,
+      uploadedAt: '2026-07-15T10:00:00.000000Z',
+      uploadExpiresAt: null,
+      sourceSizeBytes: 1234,
+      completedAt: '2026-07-15T12:00:00.000000Z',
+      errorMessage: null,
+    },
     nextDueAt: '2026-07-17T12:00:00.000000Z',
   };
 
@@ -569,6 +580,7 @@ describe('Learning OS Study proxy routes', () => {
   });
 
   it('validates and proxies review grades with bounded duration and compatibility responses', async () => {
+    const lowercaseCardUlid = '01arz3ndektsv4rrffq69g5fax';
     const reviewResponse = {
       reviewLogId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
       card: compatibilityCard,
@@ -592,7 +604,7 @@ describe('Learning OS Study proxy routes', () => {
       .set('Cookie', cookies)
       .set(CSRF_TOKEN_HEADER_NAME, token)
       .send({
-        cardId: compatibilityCard.id,
+        cardId: lowercaseCardUlid,
         grade: 'good',
         durationMs: 9_000_000,
         timeZone: 'America/New_York',
@@ -613,12 +625,45 @@ describe('Learning OS Study proxy routes', () => {
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe('https://learning-os.example/api/study/reviews');
     expect(JSON.parse(String(init.body))).toEqual({
-      cardId: compatibilityCard.id,
+      cardId: lowercaseCardUlid.toUpperCase(),
       grade: 'good',
       durationMs: 3_600_000,
       timeZone: 'America/New_York',
       currentOverview: compatibilityOverview,
     });
+  });
+
+  it('rejects malformed review overview imports instead of passing them to the client', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            reviewLogId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+            card: compatibilityCard,
+            overview: {
+              ...compatibilityOverview,
+              latestImport: { id: 'import-without-required-fields' },
+            },
+          }),
+          { status: 200 }
+        )
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/reviews')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ cardId: compatibilityCard.id, grade: 'good' });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe(
+      'Learning OS Study API returned an invalid review response.'
+    );
   });
 
   it('preserves a committed review whose card refetch lost a race', async () => {
