@@ -465,8 +465,9 @@ jobs:
                         JSON.parse(process.env.PROXY_RESPONSE),
                         JSON.parse(process.env.LEGACY_RESPONSE),
                       );
-                    } catch {
+                    } catch (error) {
                       console.error("Legacy and Learning OS response contracts differ.");
+                      console.error(error instanceof Error ? error.message : "Unknown comparison error.");
                       process.exit(1);
                     }
                   '
