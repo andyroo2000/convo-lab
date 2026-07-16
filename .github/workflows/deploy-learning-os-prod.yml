@@ -489,77 +489,22 @@ jobs:
                 local legacy_path="$2"
                 local proxy_path="$3"
                 local comparison_mode="${4:-strict}"
+                local comparison_script
                 local legacy_response
                 local proxy_response
                 case "$comparison_mode" in
-                  strict|opaque-cursor) ;;
+                  strict|opaque-cursor|overview-state) ;;
                   *) echo "Unknown response comparison mode: $comparison_mode" >&2; return 1 ;;
                 esac
                 legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
                 proxy_response="$(fetch_read_route "$label proxy" "$proxy_path")"
 
+                comparison_script="$(cat .github/scripts/compare-study-read-responses.mjs)"
                 stream_json_pair "$legacy_response" "$proxy_response" | docker exec -i \
                   -e COMPARISON_MODE="$comparison_mode" \
+                  -e STUDY_RESPONSE_COMPARISON_CLI=true \
                   "convolab-server-$active_color" \
-                  node --input-type=module --eval='
-                    import assert from "node:assert/strict";
-                    process.stdin.setEncoding("utf8");
-                    let input = "";
-                    for await (const chunk of process.stdin) input += chunk;
-                    const fields = input.trimEnd().split("\n");
-                    if (fields.length !== 2) {
-                      console.error("Expected exactly two framed parity responses.");
-                      process.exit(1);
-                    }
-                    const [legacyEncoded, proxyEncoded] = fields;
-                    let legacyResponse;
-                    let proxyResponse;
-                    try {
-                      legacyResponse = JSON.parse(Buffer.from(legacyEncoded, "base64"));
-                      proxyResponse = JSON.parse(Buffer.from(proxyEncoded, "base64"));
-                    } catch {
-                      console.error("Legacy or Learning OS response is not valid JSON.");
-                      process.exit(1);
-                    }
-                    const normalize = (response) => {
-                      if (process.env.COMPARISON_MODE !== "opaque-cursor") return response;
-                      return {
-                        ...response,
-                        nextCursor: response.nextCursor === null ? null : "<opaque-cursor>",
-                      };
-                    };
-                    const differingPaths = (actual, expected, path = "$") => {
-                      if (Object.is(actual, expected)) return [];
-                      if (
-                        actual === null || expected === null ||
-                        typeof actual !== "object" || typeof expected !== "object" ||
-                        Array.isArray(actual) !== Array.isArray(expected)
-                      ) return [path];
-                      if (Array.isArray(actual) && actual.length !== expected.length) {
-                        return [`${path}.length`];
-                      }
-                      const keys = new Set([...Object.keys(actual), ...Object.keys(expected)]);
-                      return [...keys].flatMap((key) =>
-                        key in actual && key in expected
-                          ? differingPaths(actual[key], expected[key], `${path}.${key}`)
-                          : [`${path}.${key}`]
-                      );
-                    };
-                    try {
-                      assert.deepStrictEqual(
-                        normalize(proxyResponse),
-                        normalize(legacyResponse),
-                      );
-                    } catch {
-                      console.error("Legacy and Learning OS response contracts differ.");
-                      const paths = differingPaths(
-                        normalize(proxyResponse),
-                        normalize(legacyResponse),
-                      );
-                      console.error(`Differing JSON paths: ${paths.slice(0, 50).join(", ")}`);
-                      process.exit(1);
-                    }
-                  '
+                  node --input-type=module --eval="$comparison_script"
                 echo "$label legacy and Learning OS responses match."
               }
 
@@ -671,7 +616,8 @@ jobs:
                 compare_read_route \
                   Overview \
                   '/api/study/overview?timeZone=America%2FNew_York' \
-                  '/api/learning-os/study/overview?timeZone=America%2FNew_York'
+                  '/api/learning-os/study/overview?timeZone=America%2FNew_York' \
+                  overview-state
               fi
               if [ "$ENABLE_BROWSER" = true ]; then
                 compare_read_route \
