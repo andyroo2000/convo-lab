@@ -449,6 +449,7 @@ jobs:
                 local label="$1"
                 local legacy_path="$2"
                 local proxy_path="$3"
+                local comparison_mode="${4:-strict}"
                 local legacy_response
                 local proxy_response
                 legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
@@ -457,16 +458,25 @@ jobs:
                 docker exec \
                   -e LEGACY_RESPONSE="$legacy_response" \
                   -e PROXY_RESPONSE="$proxy_response" \
+                  -e COMPARISON_MODE="$comparison_mode" \
                   "convolab-server-$active_color" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
+                    const normalize = (response) => {
+                      if (process.env.COMPARISON_MODE !== "opaque-cursor") return response;
+                      return {
+                        ...response,
+                        nextCursor: response.nextCursor === null ? null : "<opaque-cursor>",
+                      };
+                    };
                     try {
                       assert.deepStrictEqual(
-                        JSON.parse(process.env.PROXY_RESPONSE),
-                        JSON.parse(process.env.LEGACY_RESPONSE),
+                        normalize(JSON.parse(process.env.PROXY_RESPONSE)),
+                        normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
                       );
-                    } catch {
+                    } catch (error) {
                       console.error("Legacy and Learning OS response contracts differ.");
+                      console.error(error.message);
                       process.exit(1);
                     }
                   '
@@ -526,7 +536,8 @@ jobs:
                 compare_read_route \
                   Browser \
                   '/api/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
-                  '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25'
+                  '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
+                  opaque-cursor
               fi
               if [ "$ENABLE_NEW_QUEUE" = true ] && [ "$ENABLE_NEW_QUEUE_WRITE" != true ]; then
                 compare_read_route \
