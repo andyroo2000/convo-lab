@@ -476,6 +476,14 @@ jobs:
                 return 1
               }
 
+              stream_json_pair() {
+                # Stream response bodies so large study sessions do not exceed exec ARG_MAX.
+                printf '%s' "$1" | base64 | tr -d '\n'
+                printf '\n'
+                printf '%s' "$2" | base64 | tr -d '\n'
+                printf '\n'
+              }
+
               compare_read_route() {
                 local label="$1"
                 local legacy_path="$2"
@@ -490,13 +498,16 @@ jobs:
                 legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
                 proxy_response="$(fetch_read_route "$label proxy" "$proxy_path")"
 
-                docker exec \
-                  -e LEGACY_RESPONSE="$legacy_response" \
-                  -e PROXY_RESPONSE="$proxy_response" \
+                stream_json_pair "$legacy_response" "$proxy_response" | docker exec -i \
                   -e COMPARISON_MODE="$comparison_mode" \
                   "convolab-server-$active_color" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
+                    let input = "";
+                    for await (const chunk of process.stdin) input += chunk;
+                    const [legacyEncoded, proxyEncoded] = input.trimEnd().split("\n");
+                    const legacyResponse = JSON.parse(Buffer.from(legacyEncoded, "base64"));
+                    const proxyResponse = JSON.parse(Buffer.from(proxyEncoded, "base64"));
                     const normalize = (response) => {
                       if (process.env.COMPARISON_MODE !== "opaque-cursor") return response;
                       return {
@@ -523,14 +534,14 @@ jobs:
                     };
                     try {
                       assert.deepStrictEqual(
-                        normalize(JSON.parse(process.env.PROXY_RESPONSE)),
-                        normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
+                        normalize(proxyResponse),
+                        normalize(legacyResponse),
                       );
                     } catch {
                       console.error("Legacy and Learning OS response contracts differ.");
                       const paths = differingPaths(
-                        normalize(JSON.parse(process.env.PROXY_RESPONSE)),
-                        normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
+                        normalize(proxyResponse),
+                        normalize(legacyResponse),
                       );
                       console.error(`Differing JSON paths: ${paths.slice(0, 50).join(", ")}`);
                       process.exit(1);
@@ -544,17 +555,17 @@ jobs:
                 local expected="$2"
                 local actual="$3"
 
-                docker exec \
-                  -e EXPECTED_RESPONSE="$expected" \
-                  -e ACTUAL_RESPONSE="$actual" \
+                stream_json_pair "$expected" "$actual" | docker exec -i \
                   "convolab-server-$active_color" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
+                    let input = "";
+                    for await (const chunk of process.stdin) input += chunk;
+                    const [expectedEncoded, actualEncoded] = input.trimEnd().split("\n");
+                    const expectedResponse = JSON.parse(Buffer.from(expectedEncoded, "base64"));
+                    const actualResponse = JSON.parse(Buffer.from(actualEncoded, "base64"));
                     try {
-                      assert.deepStrictEqual(
-                        JSON.parse(process.env.ACTUAL_RESPONSE),
-                        JSON.parse(process.env.EXPECTED_RESPONSE),
-                      );
+                      assert.deepStrictEqual(actualResponse, expectedResponse);
                     } catch {
                       console.error("Mutation changed the stable response contract.");
                       process.exit(1);
