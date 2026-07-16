@@ -52,6 +52,7 @@ type StudyApiChildFlag = Extract<
   | 'studyApiOverview'
   | 'studyApiSettings'
   | 'studyApiBrowser'
+  | 'studyApiBrowserDetail'
   | 'studyApiNewQueue'
   | 'studyApiImports'
   | 'studyApiSettingsWrite'
@@ -112,6 +113,13 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
       'cursor',
       'limit',
     ]),
+  },
+  {
+    method: 'GET',
+    pattern: /^\/browser\/[A-Za-z0-9-]+$/,
+    featureFlag: 'studyApiBrowserDetail',
+    responseFeature: 'browserDetail',
+    queryParams: new Set(),
   },
   {
     method: 'GET',

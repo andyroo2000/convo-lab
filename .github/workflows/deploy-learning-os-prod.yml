@@ -31,6 +31,11 @@ on:
         required: true
         default: false
         type: boolean
+      enable_browser_detail:
+        description: 'Desired state for the Learning OS browser note-detail read route'
+        required: true
+        default: false
+        type: boolean
       enable_new_queue:
         description: 'Desired state for the Learning OS new-card queue read route'
         required: true
@@ -72,6 +77,7 @@ jobs:
           ENABLE_SETTINGS: ${{ inputs.enable_settings }}
           ENABLE_OVERVIEW: ${{ inputs.enable_overview }}
           ENABLE_BROWSER: ${{ inputs.enable_browser }}
+          ENABLE_BROWSER_DETAIL: ${{ inputs.enable_browser_detail }}
           ENABLE_NEW_QUEUE: ${{ inputs.enable_new_queue }}
           ENABLE_SETTINGS_WRITE: ${{ inputs.enable_settings_write }}
           ENABLE_NEW_QUEUE_WRITE: ${{ inputs.enable_new_queue_write }}
@@ -97,6 +103,7 @@ jobs:
           validate_boolean_input enable_settings "$ENABLE_SETTINGS"
           validate_boolean_input enable_overview "$ENABLE_OVERVIEW"
           validate_boolean_input enable_browser "$ENABLE_BROWSER"
+          validate_boolean_input enable_browser_detail "$ENABLE_BROWSER_DETAIL"
           validate_boolean_input enable_new_queue "$ENABLE_NEW_QUEUE"
           validate_boolean_input enable_settings_write "$ENABLE_SETTINGS_WRITE"
           validate_boolean_input enable_new_queue_write "$ENABLE_NEW_QUEUE_WRITE"
@@ -124,14 +131,15 @@ jobs:
           ENABLE_SETTINGS: ${{ inputs.enable_settings }}
           ENABLE_OVERVIEW: ${{ inputs.enable_overview }}
           ENABLE_BROWSER: ${{ inputs.enable_browser }}
+          ENABLE_BROWSER_DETAIL: ${{ inputs.enable_browser_detail }}
           ENABLE_NEW_QUEUE: ${{ inputs.enable_new_queue }}
           ENABLE_SETTINGS_WRITE: ${{ inputs.enable_settings_write }}
           ENABLE_NEW_QUEUE_WRITE: ${{ inputs.enable_new_queue_write }}
         run: |
           printf -v REMOTE_ENV \
-            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q' \
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_BROWSER_DETAIL=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q' \
             "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$ENABLE_SETTINGS" \
-            "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_NEW_QUEUE" \
+            "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_BROWSER_DETAIL" "$ENABLE_NEW_QUEUE" \
             "$ENABLE_SETTINGS_WRITE" "$ENABLE_NEW_QUEUE_WRITE"
 
           deployment_log="$(mktemp)"
@@ -313,8 +321,8 @@ jobs:
             flag_state="$(docker exec convolab-postgres psql \
               --username="$postgres_user" --dbname="$postgres_db" \
               --tuples-only --no-align --field-separator='|' \
-              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite" FROM "feature_flags" LIMIT 1')"
-            IFS='|' read -r previous_parent previous_settings previous_overview previous_browser previous_new_queue previous_imports previous_settings_write previous_new_queue_write <<< "$flag_state"
+              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiBrowserDetail", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite" FROM "feature_flags" LIMIT 1')"
+            IFS='|' read -r previous_parent previous_settings previous_overview previous_browser previous_browser_detail previous_new_queue previous_imports previous_settings_write previous_new_queue_write <<< "$flag_state"
             if [ -z "$previous_new_queue_write" ]; then
               echo "Unable to capture the existing Study API feature flags."
               exit 1
@@ -332,6 +340,7 @@ jobs:
             previous_settings_sql="$(sql_bool "$previous_settings")"
             previous_overview_sql="$(sql_bool "$previous_overview")"
             previous_browser_sql="$(sql_bool "$previous_browser")"
+            previous_browser_detail_sql="$(sql_bool "$previous_browser_detail")"
             previous_new_queue_sql="$(sql_bool "$previous_new_queue")"
             previous_imports_sql="$(sql_bool "$previous_imports")"
             previous_settings_write_sql="$(sql_bool "$previous_settings_write")"
@@ -345,6 +354,7 @@ jobs:
                       \"studyApiSettings\" = $previous_settings_sql,
                       \"studyApiOverview\" = $previous_overview_sql,
                       \"studyApiBrowser\" = $previous_browser_sql,
+                      \"studyApiBrowserDetail\" = $previous_browser_detail_sql,
                       \"studyApiNewQueue\" = $previous_new_queue_sql,
                       \"studyApiImports\" = $previous_imports_sql,
                       \"studyApiSettingsWrite\" = $previous_settings_write_sql,
@@ -359,7 +369,8 @@ jobs:
 
             desired_parent=false
             if [ "$ENABLE_SETTINGS" = true ] || [ "$ENABLE_OVERVIEW" = true ] \
-              || [ "$ENABLE_BROWSER" = true ] || [ "$ENABLE_NEW_QUEUE" = true ]; then
+              || [ "$ENABLE_BROWSER" = true ] || [ "$ENABLE_BROWSER_DETAIL" = true ] \
+              || [ "$ENABLE_NEW_QUEUE" = true ]; then
               desired_parent=true
             fi
 
@@ -367,6 +378,7 @@ jobs:
             enable_settings_sql="$(sql_bool "$ENABLE_SETTINGS")"
             enable_overview_sql="$(sql_bool "$ENABLE_OVERVIEW")"
             enable_browser_sql="$(sql_bool "$ENABLE_BROWSER")"
+            enable_browser_detail_sql="$(sql_bool "$ENABLE_BROWSER_DETAIL")"
             enable_new_queue_sql="$(sql_bool "$ENABLE_NEW_QUEUE")"
             enable_settings_write_sql="$(sql_bool "$ENABLE_SETTINGS_WRITE")"
             enable_new_queue_write_sql="$(sql_bool "$ENABLE_NEW_QUEUE_WRITE")"
@@ -378,6 +390,7 @@ jobs:
                     \"studyApiSettings\" = $enable_settings_sql,
                     \"studyApiOverview\" = $enable_overview_sql,
                     \"studyApiBrowser\" = $enable_browser_sql,
+                    \"studyApiBrowserDetail\" = $enable_browser_detail_sql,
                     \"studyApiNewQueue\" = $enable_new_queue_sql,
                     \"studyApiImports\" = false,
                     \"studyApiSettingsWrite\" = $enable_settings_write_sql,
@@ -385,13 +398,13 @@ jobs:
                     \"updatedAt\" = NOW();
               "
 
-            expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_new_queue_sql|false|$enable_settings_write_sql|$enable_new_queue_write_sql"
+            expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|false|$enable_settings_write_sql|$enable_new_queue_write_sql"
             expected_flag_state="${expected_flag_state//true/t}"
             expected_flag_state="${expected_flag_state//false/f}"
             flag_state="$(docker exec convolab-postgres psql \
               --username="$postgres_user" --dbname="$postgres_db" \
               --tuples-only --no-align --field-separator='|' \
-              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite" FROM "feature_flags" LIMIT 1')"
+              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiBrowserDetail", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite" FROM "feature_flags" LIMIT 1')"
             if [ "$flag_state" != "$expected_flag_state" ]; then
               echo "Unexpected Study API feature flag state: $flag_state"
               exit 1
@@ -563,6 +576,27 @@ jobs:
                   '/api/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
                   '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
                   opaque-cursor
+              fi
+              if [ "$ENABLE_BROWSER_DETAIL" = true ]; then
+                browser_list="$(fetch_read_route \
+                  'Browser detail note lookup' \
+                  '/api/study/browser?sortField=created_on&sortDirection=desc&limit=1')"
+                browser_note_id="$(docker exec \
+                  -e BROWSER_RESPONSE="$browser_list" \
+                  "convolab-server-$active_color" \
+                  node --input-type=module --eval='
+                    const response = JSON.parse(process.env.BROWSER_RESPONSE);
+                    const noteId = response?.rows?.[0]?.noteId;
+                    if (typeof noteId !== "string" || !/^[A-Za-z0-9-]+$/.test(noteId)) {
+                      process.exit(1);
+                    }
+                    process.stdout.write(noteId);
+                  ')"
+                test -n "$browser_note_id"
+                compare_read_route \
+                  BrowserDetail \
+                  "/api/study/browser/$browser_note_id" \
+                  "/api/learning-os/study/browser/$browser_note_id"
               fi
               if [ "$ENABLE_NEW_QUEUE" = true ] && [ "$ENABLE_NEW_QUEUE_WRITE" != true ]; then
                 compare_read_route \

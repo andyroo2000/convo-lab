@@ -1,12 +1,26 @@
 import { AppError } from '../../middleware/errorHandler.js';
 
-export type LearningOsStudyReadFeature = 'settings' | 'overview' | 'browser' | 'newQueue';
+export type LearningOsStudyReadFeature =
+  | 'settings'
+  | 'overview'
+  | 'browser'
+  | 'browserDetail'
+  | 'newQueue';
 
 type JsonRecord = Record<string, unknown>;
 
 const IMPORT_STATUSES = new Set(['pending', 'processing', 'completed', 'failed']);
 const CARD_TYPES = new Set(['recognition', 'production', 'cloze']);
 const QUEUE_STATES = new Set(['new', 'learning', 'review', 'relearning', 'suspended', 'buried']);
+const MEDIA_KINDS = new Set(['audio', 'image', 'other']);
+const MEDIA_SOURCES = new Set([
+  'imported',
+  'generated',
+  'missing',
+  'imported_image',
+  'imported_other',
+]);
+const AUDIO_SOURCES = new Set(['imported', 'generated', 'missing']);
 const SERVER_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,6}Z$/;
 
 function invalidResponse(feature: LearningOsStudyReadFeature): never {
@@ -84,6 +98,22 @@ function nullableNonNegativeInteger(
   }
 
   return nonNegativeInteger(value, feature);
+}
+
+function integer(value: unknown, feature: LearningOsStudyReadFeature): number {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    return invalidResponse(feature);
+  }
+
+  return value;
+}
+
+function nullableInteger(value: unknown, feature: LearningOsStudyReadFeature): number | null {
+  return value === null ? null : integer(value, feature);
+}
+
+function nullableRecord(value: unknown, feature: LearningOsStudyReadFeature): JsonRecord | null {
+  return value === null ? null : record(value, feature);
 }
 
 function stringList(value: unknown, feature: LearningOsStudyReadFeature): string[] {
@@ -234,6 +264,163 @@ function adaptBrowser(value: unknown) {
   };
 }
 
+function adaptMedia(value: unknown) {
+  if (value === null) return null;
+
+  const media = record(value, 'browserDetail');
+  const id =
+    media.id === null || media.id === undefined
+      ? undefined
+      : stringValue(media.id, 'browserDetail');
+  const url = media.url === undefined ? undefined : nullableString(media.url, 'browserDetail');
+
+  return {
+    ...(id === undefined ? {} : { id }),
+    filename: stringValue(media.filename, 'browserDetail'),
+    ...(url === undefined ? {} : { url }),
+    mediaKind: enumString(media.mediaKind, MEDIA_KINDS, 'browserDetail'),
+    source: enumString(media.source, MEDIA_SOURCES, 'browserDetail'),
+  };
+}
+
+function adaptBrowserField(value: unknown) {
+  const field = record(value, 'browserDetail');
+
+  return {
+    name: stringValue(field.name, 'browserDetail'),
+    value: nullableString(field.value, 'browserDetail'),
+    textValue: nullableString(field.textValue, 'browserDetail'),
+    audio: adaptMedia(field.audio),
+    image: adaptMedia(field.image),
+  };
+}
+
+function adaptPrompt(value: unknown) {
+  const prompt = record(value, 'browserDetail');
+
+  return {
+    cueText: nullableString(prompt.cueText ?? null, 'browserDetail'),
+    cueReading: nullableString(prompt.cueReading ?? null, 'browserDetail'),
+    cueMeaning: nullableString(prompt.cueMeaning ?? null, 'browserDetail'),
+    cueAudio: adaptMedia(prompt.cueAudio ?? null),
+    cueImage: adaptMedia(prompt.cueImage ?? null),
+    clozeText: nullableString(prompt.clozeText ?? null, 'browserDetail'),
+    clozeDisplayText: nullableString(prompt.clozeDisplayText ?? null, 'browserDetail'),
+    clozeAnswerText: nullableString(prompt.clozeAnswerText ?? null, 'browserDetail'),
+    clozeHint: nullableString(prompt.clozeHint ?? null, 'browserDetail'),
+    clozeResolvedHint: nullableString(prompt.clozeResolvedHint ?? null, 'browserDetail'),
+  };
+}
+
+function optionalNullableString(source: JsonRecord, key: string) {
+  return key in source ? { [key]: nullableString(source[key], 'browserDetail') } : {};
+}
+
+function optionalMedia(source: JsonRecord, key: string) {
+  return key in source ? { [key]: adaptMedia(source[key]) } : {};
+}
+
+function adaptAnswer(value: unknown) {
+  const answer = record(value, 'browserDetail');
+
+  return {
+    ...optionalNullableString(answer, 'expression'),
+    ...optionalNullableString(answer, 'expressionReading'),
+    ...optionalNullableString(answer, 'meaning'),
+    ...optionalNullableString(answer, 'notes'),
+    ...optionalNullableString(answer, 'sentenceJp'),
+    ...optionalNullableString(answer, 'sentenceJpKana'),
+    ...optionalNullableString(answer, 'sentenceEn'),
+    ...optionalNullableString(answer, 'restoredText'),
+    ...optionalNullableString(answer, 'restoredTextReading'),
+    answerAudioVoiceId: nullableString(answer.answerAudioVoiceId ?? null, 'browserDetail'),
+    answerAudioTextOverride: nullableString(
+      answer.answerAudioTextOverride ?? null,
+      'browserDetail'
+    ),
+    ...optionalMedia(answer, 'answerAudio'),
+    ...optionalMedia(answer, 'answerImage'),
+    ...(answer.pitchAccent === undefined
+      ? {}
+      : { pitchAccent: nullableRecord(answer.pitchAccent, 'browserDetail') }),
+  };
+}
+
+function adaptSourceSnapshot(value: unknown) {
+  const source = record(value, 'browserDetail');
+
+  return {
+    noteId: nullableString(source.noteId, 'browserDetail'),
+    noteGuid: nullableString(source.noteGuid, 'browserDetail'),
+    cardId: nullableString(source.cardId, 'browserDetail'),
+    deckId: nullableString(source.deckId, 'browserDetail'),
+    deckName: nullableString(source.deckName, 'browserDetail'),
+    notetypeId: nullableString(source.notetypeId, 'browserDetail'),
+    notetypeName: nullableString(source.notetypeName, 'browserDetail'),
+    templateOrd: nullableInteger(source.templateOrd, 'browserDetail'),
+    templateName: nullableString(source.templateName, 'browserDetail'),
+    queue: nullableInteger(source.queue, 'browserDetail'),
+    type: nullableInteger(source.type, 'browserDetail'),
+    due: nullableInteger(source.due, 'browserDetail'),
+    ivl: nullableInteger(source.ivl, 'browserDetail'),
+    factor: nullableInteger(source.factor, 'browserDetail'),
+    reps: nullableInteger(source.reps, 'browserDetail'),
+    lapses: nullableInteger(source.lapses, 'browserDetail'),
+    left: nullableInteger(source.left, 'browserDetail'),
+    odue: nullableInteger(source.odue, 'browserDetail'),
+    odid: nullableString(source.odid, 'browserDetail'),
+  };
+}
+
+function adaptBrowserCard(value: unknown) {
+  const card = record(value, 'browserDetail');
+  const state = record(card.state, 'browserDetail');
+
+  return {
+    id: stringValue(card.id, 'browserDetail'),
+    noteId: stringValue(card.noteId, 'browserDetail'),
+    cardType: enumString(card.cardType, CARD_TYPES, 'browserDetail'),
+    prompt: adaptPrompt(card.prompt),
+    answer: adaptAnswer(card.answer),
+    state: {
+      dueAt: nullableIsoTimestamp(state.dueAt, 'browserDetail'),
+      introducedAt: nullableIsoTimestamp(state.introducedAt, 'browserDetail'),
+      failedAt: nullableIsoTimestamp(state.failedAt, 'browserDetail'),
+      queueState: enumString(state.queueState, QUEUE_STATES, 'browserDetail'),
+      scheduler: nullableRecord(state.scheduler, 'browserDetail'),
+      source: adaptSourceSnapshot(state.source),
+      rawFsrs: nullableRecord(state.rawFsrs, 'browserDetail'),
+    },
+    answerAudioSource: enumString(card.answerAudioSource, AUDIO_SOURCES, 'browserDetail'),
+    createdAt: isoTimestamp(card.createdAt, 'browserDetail'),
+    updatedAt: isoTimestamp(card.updatedAt, 'browserDetail'),
+  };
+}
+
+function adaptBrowserDetail(value: unknown) {
+  const detail = record(value, 'browserDetail');
+
+  return {
+    noteId: stringValue(detail.noteId, 'browserDetail'),
+    displayText: stringValue(detail.displayText, 'browserDetail'),
+    noteTypeName: nullableString(detail.noteTypeName, 'browserDetail'),
+    sourceKind: stringValue(detail.sourceKind, 'browserDetail'),
+    updatedAt: isoTimestamp(detail.updatedAt, 'browserDetail'),
+    rawFields: list(detail.rawFields, 'browserDetail').map(adaptBrowserField),
+    canonicalFields: list(detail.canonicalFields, 'browserDetail').map(adaptBrowserField),
+    cards: list(detail.cards, 'browserDetail').map(adaptBrowserCard),
+    cardStats: list(detail.cardStats, 'browserDetail').map((value) => {
+      const stats = record(value, 'browserDetail');
+      return {
+        cardId: stringValue(stats.cardId, 'browserDetail'),
+        reviewCount: nonNegativeInteger(stats.reviewCount, 'browserDetail'),
+        lastReviewedAt: nullableIsoTimestamp(stats.lastReviewedAt, 'browserDetail'),
+      };
+    }),
+    selectedCardId: nullableString(detail.selectedCardId, 'browserDetail'),
+  };
+}
+
 function adaptNewQueueItem(value: unknown) {
   const item = record(value, 'newQueue');
 
@@ -271,6 +458,8 @@ export function adaptLearningOsStudyReadResponse(
       return adaptOverview(value);
     case 'browser':
       return adaptBrowser(value);
+    case 'browserDetail':
+      return adaptBrowserDetail(value);
     case 'newQueue':
       return adaptNewQueue(value);
   }

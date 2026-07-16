@@ -481,6 +481,7 @@ model FeatureFlag {
   studyApiSettings      Boolean  @default(false)
   studyApiOverview      Boolean  @default(false)
   studyApiBrowser       Boolean  @default(false)
+  studyApiBrowserDetail Boolean  @default(false)
   studyApiNewQueue      Boolean  @default(false)
   studyApiImports       Boolean  @default(false)
   studyApiSettingsWrite Boolean  @default(false)

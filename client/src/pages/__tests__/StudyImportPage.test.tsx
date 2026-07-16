@@ -31,6 +31,7 @@ const studyFeatureFlagsMock = vi.hoisted(() => ({
   studyApiSettings: false,
   studyApiOverview: false,
   studyApiBrowser: false,
+  studyApiBrowserDetail: false,
   studyApiNewQueue: false,
   studyApiImports: false,
   studyApiSettingsWrite: false,

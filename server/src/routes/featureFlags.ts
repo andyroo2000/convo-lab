@@ -23,6 +23,7 @@ router.get('/', requireAuth, async (_req: AuthRequest, res, next) => {
           studyApiSettings: false,
           studyApiOverview: false,
           studyApiBrowser: false,
+          studyApiBrowserDetail: false,
           studyApiNewQueue: false,
           studyApiImports: false,
           studyApiSettingsWrite: false,

@@ -11,6 +11,7 @@ import {
   getStudySettings,
   generateStudyCardCandidates,
   getStudyBrowser,
+  getStudyBrowserNoteDetail,
   getStudyImportStatus,
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
@@ -39,6 +40,7 @@ describe('useStudy request helpers', () => {
     studyApiSettings: false,
     studyApiOverview: false,
     studyApiBrowser: false,
+    studyApiBrowserDetail: false,
     studyApiNewQueue: false,
     studyApiImports: false,
     studyApiSettingsWrite: false,
@@ -260,6 +262,36 @@ describe('useStudy request helpers', () => {
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(requestInit.credentials).toBe('include');
     expect(new Headers(requestInit.headers).has('Authorization')).toBe(false);
+  });
+
+  it('routes browser note detail independently from the browser list', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiBrowser: false,
+      studyApiBrowserDetail: true,
+    });
+
+    await getStudyBrowserNoteDetail('note/with spaces', flags);
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/learning-os/study/browser/note%2Fwith%20spaces`,
+      expect.objectContaining({ credentials: 'include' })
+    );
+  });
+
+  it('keeps browser note detail on Convo Lab while its flag is disabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiBrowser: true,
+      studyApiBrowserDetail: false,
+    });
+
+    await getStudyBrowserNoteDetail('note-1', flags);
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/browser/note-1`,
+      expect.any(Object)
+    );
   });
 
   it('routes enabled read-only study endpoints through the Convo Lab proxy', async () => {

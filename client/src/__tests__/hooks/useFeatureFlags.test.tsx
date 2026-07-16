@@ -60,6 +60,7 @@ describe('useFeatureFlags', () => {
         studyApiSettings: false,
         studyApiOverview: false,
         studyApiBrowser: false,
+        studyApiBrowserDetail: false,
         studyApiNewQueue: false,
         studyApiImports: false,
         studyApiSettingsWrite: false,
@@ -114,6 +115,7 @@ describe('useFeatureFlags', () => {
         studyApiSettings: false,
         studyApiOverview: false,
         studyApiBrowser: false,
+        studyApiBrowserDetail: false,
         studyApiNewQueue: false,
         studyApiImports: false,
         studyApiSettingsWrite: false,
@@ -148,6 +150,7 @@ describe('useFeatureFlags', () => {
         studyApiSettings: false,
         studyApiOverview: false,
         studyApiBrowser: false,
+        studyApiBrowserDetail: false,
         studyApiNewQueue: false,
         studyApiImports: false,
         studyApiSettingsWrite: false,
@@ -197,6 +200,7 @@ describe('useFeatureFlags', () => {
         studyApiSettings: false,
         studyApiOverview: false,
         studyApiBrowser: false,
+        studyApiBrowserDetail: false,
         studyApiNewQueue: false,
         studyApiImports: false,
         studyApiSettingsWrite: false,
@@ -328,6 +332,7 @@ describe('useFeatureFlags', () => {
         studyApiSettings: false,
         studyApiOverview: false,
         studyApiBrowser: false,
+        studyApiBrowserDetail: false,
         studyApiNewQueue: false,
         studyApiImports: false,
         studyApiSettingsWrite: false,
@@ -345,6 +350,7 @@ describe('useFeatureFlags', () => {
       expect(typeof validFlags.studyApiSettings).toBe('boolean');
       expect(typeof validFlags.studyApiOverview).toBe('boolean');
       expect(typeof validFlags.studyApiBrowser).toBe('boolean');
+      expect(typeof validFlags.studyApiBrowserDetail).toBe('boolean');
       expect(typeof validFlags.studyApiNewQueue).toBe('boolean');
       expect(typeof validFlags.studyApiImports).toBe('boolean');
       expect(typeof validFlags.studyApiSettingsWrite).toBe('boolean');
