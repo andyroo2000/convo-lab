@@ -203,13 +203,10 @@ function adaptBrowserRow(value: unknown) {
 
   return {
     noteId: stringValue(row.noteId, 'browser'),
-    selectedCardId: stringValue(row.selectedCardId, 'browser'),
     displayText: stringValue(row.displayText, 'browser'),
     noteTypeName: nullableString(row.noteTypeName, 'browser'),
-    sourceKind: stringValue(row.sourceKind, 'browser'),
     cardCount: nonNegativeInteger(row.cardCount, 'browser'),
     reviewCount: nonNegativeInteger(row.reviewCount, 'browser'),
-    lastReviewedAt: nullableIsoTimestamp(row.lastReviewedAt, 'browser'),
     queueSummary: adaptQueueSummary(row.queueSummary),
     createdAt: isoTimestamp(row.createdAt, 'browser'),
     updatedAt: isoTimestamp(row.updatedAt, 'browser'),
