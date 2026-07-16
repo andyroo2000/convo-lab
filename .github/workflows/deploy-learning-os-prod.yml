@@ -590,10 +590,36 @@ jobs:
                       console.error("Expected or actual mutation response is not valid JSON.");
                       process.exit(1);
                     }
+                    const differingPaths = (actualValue, expectedValue, path = "$") => {
+                      if (Object.is(actualValue, expectedValue)) return [];
+                      if (
+                        actualValue === null || expectedValue === null ||
+                        typeof actualValue !== "object" || typeof expectedValue !== "object" ||
+                        Array.isArray(actualValue) !== Array.isArray(expectedValue)
+                      ) return [path];
+                      if (
+                        Array.isArray(actualValue) && actualValue.length !== expectedValue.length
+                      ) return [`${path}.length`];
+                      const keys = new Set([
+                        ...Object.keys(actualValue),
+                        ...Object.keys(expectedValue),
+                      ]);
+                      return [...keys].flatMap((key) =>
+                        key in actualValue && key in expectedValue
+                          ? differingPaths(
+                              actualValue[key],
+                              expectedValue[key],
+                              `${path}.${key}`,
+                            )
+                          : [`${path}.${key}`]
+                      );
+                    };
                     try {
                       assert.deepStrictEqual(actualResponse, expectedResponse);
                     } catch {
                       console.error("Mutation changed the stable response contract.");
+                      const paths = differingPaths(actualResponse, expectedResponse);
+                      console.error(`Differing JSON paths: ${paths.slice(0, 50).join(", ")}`);
                       process.exit(1);
                     }
                   '
