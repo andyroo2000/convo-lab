@@ -52,6 +52,9 @@ describe('KnownKanjiProvider', () => {
       </KnownKanjiProvider>
     );
 
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
     expect(mutateMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -63,5 +66,32 @@ describe('KnownKanjiProvider', () => {
       await vi.advanceTimersByTimeAsync(1);
     });
     expect(mutateMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('schedules the first sync for a connected account that has never synced', async () => {
+    useKnownKanjiMock.mockReturnValue({
+      data: {
+        kanji: [],
+        wanikani: { connected: true, lastSyncedAt: null },
+      },
+      enabled: true,
+      isSuccess: true,
+    });
+
+    render(
+      <KnownKanjiProvider>
+        <div />
+      </KnownKanjiProvider>
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15 * 60 * 1000 - 1);
+    });
+    expect(mutateMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(mutateMock).toHaveBeenCalledTimes(1);
   });
 });

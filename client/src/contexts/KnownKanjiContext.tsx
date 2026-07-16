@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useKnownKanji, useSyncWaniKani } from '../hooks/useKnownKanji';
@@ -37,46 +29,33 @@ export const KnownKanjiProvider = ({ children }: { children: ReactNode }) => {
   const query = useKnownKanji();
   const sync = useSyncWaniKani();
   const { flags } = useFeatureFlags();
-  const attemptedSyncRef = useRef<string | null>(null);
-  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [retryNonce, setRetryNonce] = useState(0);
   const lastSyncedAt = query.data?.wanikani.lastSyncedAt ?? null;
-
-  useEffect(
-    () => () => {
-      if (retryTimeoutRef.current !== null) clearTimeout(retryTimeoutRef.current);
-    },
-    []
-  );
+  const connected = query.data?.wanikani.connected ?? false;
+  const mutateSync = sync.mutate;
 
   useEffect(() => {
-    if (
-      !flags?.studyApiSettingsWrite ||
-      !query.data?.wanikani.connected ||
-      !lastSyncedAt ||
-      Date.now() - new Date(lastSyncedAt).getTime() < AUTO_SYNC_AFTER_MS ||
-      attemptedSyncRef.current === lastSyncedAt
-    ) {
-      return;
-    }
+    if (!flags?.studyApiSettingsWrite || !connected) return undefined;
 
-    attemptedSyncRef.current = lastSyncedAt;
-    sync.mutate(undefined, {
-      onError: () => {
-        retryTimeoutRef.current = setTimeout(() => {
-          attemptedSyncRef.current = null;
-          retryTimeoutRef.current = null;
-          setRetryNonce((value) => value + 1);
-        }, AUTO_SYNC_AFTER_MS);
-      },
-    });
-  }, [
-    flags?.studyApiSettingsWrite,
-    lastSyncedAt,
-    query.data?.wanikani.connected,
-    retryNonce,
-    sync,
-  ]);
+    let disposed = false;
+    let timeout: ReturnType<typeof setTimeout>;
+    const elapsed = lastSyncedAt ? Date.now() - new Date(lastSyncedAt).getTime() : 0;
+
+    const runSync = () => {
+      if (disposed) return;
+      mutateSync(undefined, {
+        onError: () => {
+          if (!disposed) timeout = setTimeout(runSync, AUTO_SYNC_AFTER_MS);
+        },
+      });
+    };
+
+    timeout = setTimeout(runSync, Math.max(0, AUTO_SYNC_AFTER_MS - elapsed));
+
+    return () => {
+      disposed = true;
+      clearTimeout(timeout);
+    };
+  }, [connected, flags?.studyApiSettingsWrite, lastSyncedAt, mutateSync]);
 
   const value = useMemo<KnownKanjiContextValue>(
     () => ({
