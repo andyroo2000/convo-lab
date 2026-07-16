@@ -416,6 +416,115 @@ describe('Learning OS Study proxy routes', () => {
     expect(JSON.parse(String(init.body))).toEqual({ new_cards_per_day: 23 });
   });
 
+  it('proxies the known-kanji response without changing its contract', async () => {
+    const knownKanjiResponse = {
+      version: 3,
+      kanji: ['一', '私'],
+      manualKanji: ['私'],
+      wanikani: { connected: true, lastSyncedAt: '2026-07-16T12:00:00.000000Z' },
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(knownKanjiResponse), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/known-kanji')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(knownKanjiResponse);
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/known-kanji');
+    expect(init.method).toBe('GET');
+  });
+
+  it('validates and proxies manual known-kanji writes', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ version: 1, kanji: ['私'], manualKanji: ['私'] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .patch('/api/learning-os/study/known-kanji/manual')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ kanji: '私', known: true });
+
+    expect(response.status).toBe(200);
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/known-kanji/manual');
+    expect(init.method).toBe('PATCH');
+    expect(JSON.parse(String(init.body))).toEqual({ kanji: '私', known: true });
+  });
+
+  it('rejects invalid manual known-kanji writes before calling Learning OS', async () => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .patch('/api/learning-os/study/known-kanji/manual')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ kanji: '会社', known: true });
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('trims WaniKani tokens and forwards sync and disconnect without JSON bodies', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ wanikani: { connected: true } }), { status: 200 })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ added: 1, effectiveTotal: 1, version: 1 }), {
+            status: 200,
+          })
+        )
+        .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const authHeaders = {
+      Origin: 'http://localhost:5173',
+      Cookie: cookies,
+      [CSRF_TOKEN_HEADER_NAME]: token,
+    };
+
+    await request(app)
+      .put('/api/learning-os/study/wanikani')
+      .set(authHeaders)
+      .send({ apiToken: ' token-value ' })
+      .expect(200);
+    await request(app).post('/api/learning-os/study/wanikani/sync').set(authHeaders).expect(200);
+    await request(app).delete('/api/learning-os/study/wanikani').set(authHeaders).expect(204);
+
+    const calls = vi.mocked(global.fetch).mock.calls as [URL, RequestInit][];
+    expect(JSON.parse(String(calls[0][1].body))).toEqual({ apiToken: 'token-value' });
+    expect(calls[1][1].body).toBeUndefined();
+    expect(new Headers(calls[1][1].headers).has('Content-Type')).toBe(false);
+    expect(calls[2][1].body).toBeUndefined();
+  });
+
   it('proxies normalized New Queue reorders without forwarding client headers', async () => {
     vi.stubGlobal(
       'fetch',
