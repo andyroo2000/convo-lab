@@ -5,7 +5,10 @@ export type LearningOsStudyReadFeature =
   | 'overview'
   | 'browser'
   | 'browserDetail'
-  | 'newQueue';
+  | 'newQueue'
+  | 'session'
+  | 'review'
+  | 'reviewUndo';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -102,6 +105,14 @@ function nullableNonNegativeInteger(
 
 function integer(value: unknown, feature: LearningOsStudyReadFeature): number {
   if (typeof value !== 'number' || !Number.isInteger(value)) {
+    return invalidResponse(feature);
+  }
+
+  return value;
+}
+
+function booleanValue(value: unknown, feature: LearningOsStudyReadFeature): boolean {
+  if (typeof value !== 'boolean') {
     return invalidResponse(feature);
   }
 
@@ -372,28 +383,34 @@ function adaptSourceSnapshot(value: unknown) {
   };
 }
 
-function adaptBrowserCard(value: unknown) {
-  const card = record(value, 'browserDetail');
-  const state = record(card.state, 'browserDetail');
+function adaptBrowserCard(
+  value: unknown,
+  feature: Extract<
+    LearningOsStudyReadFeature,
+    'browserDetail' | 'session' | 'review' | 'reviewUndo'
+  > = 'browserDetail'
+) {
+  const card = record(value, feature);
+  const state = record(card.state, feature);
 
   return {
-    id: stringValue(card.id, 'browserDetail'),
-    noteId: stringValue(card.noteId, 'browserDetail'),
-    cardType: enumString(card.cardType, CARD_TYPES, 'browserDetail'),
+    id: stringValue(card.id, feature),
+    noteId: nullableString(card.noteId, feature),
+    cardType: enumString(card.cardType, CARD_TYPES, feature),
     prompt: adaptPrompt(card.prompt),
     answer: adaptAnswer(card.answer),
     state: {
-      dueAt: nullableIsoTimestamp(state.dueAt, 'browserDetail'),
-      introducedAt: nullableIsoTimestamp(state.introducedAt, 'browserDetail'),
-      failedAt: nullableIsoTimestamp(state.failedAt, 'browserDetail'),
-      queueState: enumString(state.queueState, QUEUE_STATES, 'browserDetail'),
-      scheduler: nullableRecord(state.scheduler, 'browserDetail'),
+      dueAt: nullableIsoTimestamp(state.dueAt, feature),
+      introducedAt: nullableIsoTimestamp(state.introducedAt, feature),
+      failedAt: nullableIsoTimestamp(state.failedAt, feature),
+      queueState: enumString(state.queueState, QUEUE_STATES, feature),
+      scheduler: nullableRecord(state.scheduler, feature),
       source: adaptSourceSnapshot(state.source),
-      rawFsrs: nullableRecord(state.rawFsrs, 'browserDetail'),
+      rawFsrs: nullableRecord(state.rawFsrs, feature),
     },
-    answerAudioSource: enumString(card.answerAudioSource, AUDIO_SOURCES, 'browserDetail'),
-    createdAt: isoTimestamp(card.createdAt, 'browserDetail'),
-    updatedAt: isoTimestamp(card.updatedAt, 'browserDetail'),
+    answerAudioSource: enumString(card.answerAudioSource, AUDIO_SOURCES, feature),
+    createdAt: isoTimestamp(card.createdAt, feature),
+    updatedAt: isoTimestamp(card.updatedAt, feature),
   };
 }
 
@@ -408,7 +425,7 @@ function adaptBrowserDetail(value: unknown) {
     updatedAt: isoTimestamp(detail.updatedAt, 'browserDetail'),
     rawFields: list(detail.rawFields, 'browserDetail').map(adaptBrowserField),
     canonicalFields: list(detail.canonicalFields, 'browserDetail').map(adaptBrowserField),
-    cards: list(detail.cards, 'browserDetail').map(adaptBrowserCard),
+    cards: list(detail.cards, 'browserDetail').map((card) => adaptBrowserCard(card)),
     cardStats: list(detail.cardStats, 'browserDetail').map((value) => {
       const stats = record(value, 'browserDetail');
       return {
@@ -447,6 +464,77 @@ function adaptNewQueue(value: unknown) {
   };
 }
 
+function adaptCompatibilityOverview(
+  value: unknown,
+  feature: Extract<LearningOsStudyReadFeature, 'review' | 'reviewUndo'>
+) {
+  const source = record(value, feature);
+
+  return {
+    dueCount: nonNegativeInteger(source.dueCount, feature),
+    failedCount: nonNegativeInteger(source.failedCount, feature),
+    newCount: nonNegativeInteger(source.newCount, feature),
+    newCardsPerDay: nonNegativeInteger(source.newCardsPerDay, feature),
+    newCardsIntroducedToday: nonNegativeInteger(source.newCardsIntroducedToday, feature),
+    newCardsAvailableToday: nonNegativeInteger(source.newCardsAvailableToday, feature),
+    learningCount: nonNegativeInteger(source.learningCount, feature),
+    reviewCount: nonNegativeInteger(source.reviewCount, feature),
+    suspendedCount: nonNegativeInteger(source.suspendedCount, feature),
+    totalCards: nonNegativeInteger(source.totalCards, feature),
+    latestImport: source.latestImport ?? null,
+    nextDueAt: nullableIsoTimestamp(source.nextDueAt, feature),
+  };
+}
+
+function adaptSession(value: unknown) {
+  const data = record(record(value, 'session').data, 'session');
+
+  return {
+    overview: adaptOverview({ data: data.overview }),
+    cards: list(data.cards, 'session').map((card) => adaptBrowserCard(card, 'session')),
+  };
+}
+
+function adaptReviewResult(value: unknown) {
+  const source = record(value, 'review');
+  const reviewLogId = stringValue(source.reviewLogId, 'review');
+  const overview = adaptCompatibilityOverview(source.overview, 'review');
+
+  if (source.card === null) {
+    if (
+      booleanValue(source.committed, 'review') !== true ||
+      booleanValue(source.cardFetchFailed, 'review') !== true
+    ) {
+      return invalidResponse('review');
+    }
+
+    return {
+      message: stringValue(source.message, 'review'),
+      reviewLogId,
+      committed: true,
+      cardFetchFailed: true,
+      card: null,
+      overview,
+    };
+  }
+
+  return {
+    reviewLogId,
+    card: adaptBrowserCard(source.card, 'review'),
+    overview,
+  };
+}
+
+function adaptReviewUndoResult(value: unknown) {
+  const source = record(value, 'reviewUndo');
+
+  return {
+    reviewLogId: stringValue(source.reviewLogId, 'reviewUndo'),
+    card: adaptBrowserCard(source.card, 'reviewUndo'),
+    overview: adaptCompatibilityOverview(source.overview, 'reviewUndo'),
+  };
+}
+
 export function adaptLearningOsStudyReadResponse(
   feature: LearningOsStudyReadFeature,
   value: unknown
@@ -462,5 +550,11 @@ export function adaptLearningOsStudyReadResponse(
       return adaptBrowserDetail(value);
     case 'newQueue':
       return adaptNewQueue(value);
+    case 'session':
+      return adaptSession(value);
+    case 'review':
+      return adaptReviewResult(value);
+    case 'reviewUndo':
+      return adaptReviewUndoResult(value);
   }
 }

@@ -19,6 +19,7 @@ import {
   reorderStudyNewCardQueue,
   resolveStudyCardPitchAccent,
   startStudySession,
+  submitStudyReview,
   undoStudyReview,
   updateStudySettings,
   uploadStudyImport,
@@ -45,6 +46,7 @@ describe('useStudy request helpers', () => {
     studyApiImports: false,
     studyApiSettingsWrite: false,
     studyApiNewQueueWrite: false,
+    studyApiReview: false,
     updatedAt: new Date('2026-07-14T00:00:00.000Z').toISOString(),
     ...overrides,
   });
@@ -125,6 +127,75 @@ describe('useStudy request helpers', () => {
     expect(JSON.parse(String(requestInit.body))).toEqual({
       timeZone: expect.any(String),
     });
+  });
+
+  it('routes session start and undo together when Study Review is enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiReview: true,
+    });
+
+    await startStudySession(flags);
+    await submitStudyReview(
+      { cardId: '123e4567-e89b-42d3-a456-426614174000', grade: 'good', durationMs: 1250 },
+      undefined,
+      flags
+    );
+    await undoStudyReview('review-log-1', undefined, flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      `${API_URL}/api/learning-os/study/session/start`,
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${API_URL}/api/learning-os/study/reviews`,
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      `${API_URL}/api/learning-os/study/reviews/undo`,
+      expect.any(Object)
+    );
+    fetchMock.mock.calls.forEach(([, requestInit]) => {
+      const headers = new Headers((requestInit as RequestInit).headers);
+      expect(headers.get('Content-Type')).toBe('application/json');
+      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    });
+  });
+
+  it('keeps the whole review flow on Convo Lab until its child flag is enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiReview: false,
+    });
+
+    await startStudySession(flags);
+    await submitStudyReview(
+      { cardId: '123e4567-e89b-42d3-a456-426614174000', grade: 'good' },
+      undefined,
+      flags
+    );
+    await undoStudyReview('review-log-1', undefined, flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      `${API_URL}/api/study/session/start`,
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${API_URL}/api/study/reviews`,
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      `${API_URL}/api/study/reviews/undo`,
+      expect.any(Object)
+    );
   });
 
   it('undoes study reviews with device timezone and current overview', async () => {

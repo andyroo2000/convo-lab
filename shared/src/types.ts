@@ -177,7 +177,7 @@ export interface StudyCardState {
 
 export interface StudyCardSummary {
   id: string;
-  noteId: string;
+  noteId: string | null;
   cardType: StudyCardType;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
@@ -458,8 +458,11 @@ export interface StudyReviewEvent {
 
 export interface StudyReviewResult {
   reviewLogId: string;
-  card: StudyCardSummary;
+  card: StudyCardSummary | null;
   overview: StudyOverview;
+  committed?: boolean;
+  cardFetchFailed?: boolean;
+  message?: string;
 }
 
 export interface StudyUndoReviewResult {

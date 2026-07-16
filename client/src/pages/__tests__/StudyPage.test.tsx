@@ -438,7 +438,7 @@ describe('StudyPage', () => {
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
     });
-    expect(startStudySessionMock).toHaveBeenCalledWith();
+    expect(startStudySessionMock).toHaveBeenCalledWith(undefined);
     expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
     expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
@@ -1304,7 +1304,8 @@ describe('StudyPage', () => {
         expect.objectContaining({
           dueCount: 1,
           reviewCount: 1,
-        })
+        }),
+        undefined
       );
     });
     expect(screen.getByText('company')).toBeInTheDocument();

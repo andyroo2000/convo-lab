@@ -101,6 +101,71 @@ describe('Learning OS Study proxy routes', () => {
     nextCursor: null,
   };
 
+  const compatibilityOverview = {
+    dueCount: 1,
+    failedCount: 0,
+    newCount: 2,
+    newCardsPerDay: 20,
+    newCardsIntroducedToday: 1,
+    newCardsAvailableToday: 1,
+    learningCount: 0,
+    reviewCount: 1,
+    suspendedCount: 0,
+    totalCards: 3,
+    latestImport: null,
+    nextDueAt: '2026-07-17T12:00:00.000000Z',
+  };
+
+  const compatibilityCard = {
+    id: '123e4567-e89b-42d3-a456-426614174000',
+    noteId: '123e4567-e89b-42d3-a456-426614174001',
+    cardType: 'recognition',
+    prompt: { cueText: '会社' },
+    answer: {
+      meaning: 'company',
+      answerAudioVoiceId: null,
+      answerAudioTextOverride: null,
+    },
+    state: {
+      dueAt: '2026-07-16T12:00:00.000000Z',
+      introducedAt: '2026-07-10T12:00:00.000000Z',
+      failedAt: null,
+      queueState: 'review',
+      scheduler: { state: 2, reps: 4 },
+      source: {
+        noteId: '501',
+        noteGuid: 'guid-501',
+        cardId: '701',
+        deckId: '301',
+        deckName: '日本語',
+        notetypeId: '601',
+        notetypeName: 'Japanese - Vocab',
+        templateOrd: 0,
+        templateName: 'Card 1',
+        queue: 2,
+        type: 2,
+        due: 12,
+        ivl: 30,
+        factor: 2500,
+        reps: 4,
+        lapses: 0,
+        left: 0,
+        odue: 0,
+        odid: null,
+      },
+      rawFsrs: { stability: 4.2 },
+    },
+    variantGroupId: null,
+    variantSentenceId: null,
+    variantKind: null,
+    variantStage: null,
+    variantStatus: null,
+    variantUnlockedAt: null,
+    answerAudioSource: 'missing',
+    createdAt: '2026-07-01T12:00:00.000000Z',
+    updatedAt: '2026-07-16T12:00:00.000000Z',
+  };
+
   function createApp() {
     const app = express();
     app.set('query parser', 'extended');
@@ -163,6 +228,7 @@ describe('Learning OS Study proxy routes', () => {
     studyApiImports: true,
     studyApiSettingsWrite: true,
     studyApiNewQueueWrite: true,
+    studyApiReview: true,
   };
 
   beforeEach(async () => {
@@ -247,6 +313,18 @@ describe('Learning OS Study proxy routes', () => {
     expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
       key: 'learning-os-new-queue-write-proxy',
       max: 60,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-session-start-proxy',
+      max: 30,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-review-write-proxy',
+      max: 120,
       windowMs: 60 * 1000,
       onBackendError: 'fail-closed',
     });
@@ -414,6 +492,214 @@ describe('Learning OS Study proxy routes', () => {
     expect(init.method).toBe('PATCH');
     expect(new Headers(init.headers).get('Content-Type')).toBe('application/json');
     expect(JSON.parse(String(init.body))).toEqual({ new_cards_per_day: 23 });
+  });
+
+  it('starts Learning OS study sessions and adapts the Laravel resource envelope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              overview: emptyOverviewResponse.data,
+              cards: [compatibilityCard],
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/session/start')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ timeZone: ' America/New_York ' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      overview: {
+        dueCount: 0,
+        failedCount: 0,
+        newCount: 0,
+        newCardsPerDay: 20,
+        newCardsIntroducedToday: 0,
+        newCardsAvailableToday: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 0,
+        latestImport: null,
+        nextDueAt: null,
+      },
+      cards: [
+        expect.objectContaining({ id: compatibilityCard.id, noteId: compatibilityCard.noteId }),
+      ],
+    });
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/session/start');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({ time_zone: 'America/New_York' });
+  });
+
+  it('validates and proxies review grades with bounded duration and compatibility responses', async () => {
+    const reviewResponse = {
+      reviewLogId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      card: compatibilityCard,
+      overview: compatibilityOverview,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(reviewResponse), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/reviews')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        cardId: compatibilityCard.id,
+        grade: 'good',
+        durationMs: 9_000_000,
+        timeZone: 'America/New_York',
+        currentOverview: compatibilityOverview,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        reviewLogId: reviewResponse.reviewLogId,
+        card: expect.objectContaining({ id: compatibilityCard.id }),
+        overview: expect.objectContaining({
+          reviewCount: 1,
+          nextDueAt: '2026-07-17T12:00:00.000Z',
+        }),
+      })
+    );
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/reviews');
+    expect(JSON.parse(String(init.body))).toEqual({
+      cardId: compatibilityCard.id,
+      grade: 'good',
+      durationMs: 3_600_000,
+      timeZone: 'America/New_York',
+      currentOverview: compatibilityOverview,
+    });
+  });
+
+  it('preserves a committed review whose card refetch lost a race', async () => {
+    const committedResponse = {
+      message: 'Study card not found after review.',
+      reviewLogId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      committed: true,
+      cardFetchFailed: true,
+      card: null,
+      overview: compatibilityOverview,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify(committedResponse), { status: 200 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/reviews')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ cardId: compatibilityCard.id, grade: 'good' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        reviewLogId: committedResponse.reviewLogId,
+        committed: true,
+        cardFetchFailed: true,
+        card: null,
+      })
+    );
+  });
+
+  it('normalizes and proxies review undo through the same review flag', async () => {
+    const reviewLogId = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            reviewLogId,
+            card: compatibilityCard,
+            overview: compatibilityOverview,
+          }),
+          { status: 200 }
+        )
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/reviews/undo')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ reviewLogId: reviewLogId.toLowerCase(), timeZone: 'America/New_York' });
+
+    expect(response.status).toBe(200);
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/reviews/undo');
+    expect(JSON.parse(String(init.body))).toEqual({ reviewLogId, timeZone: 'America/New_York' });
+  });
+
+  it.each([
+    ['/api/learning-os/study/reviews', { cardId: 'not-a-card', grade: 'good' }],
+    ['/api/learning-os/study/reviews', { cardId: compatibilityCard.id, grade: 'perfect' }],
+    ['/api/learning-os/study/reviews/undo', { reviewLogId: 'not-a-review' }],
+    ['/api/learning-os/study/session/start', { timeZone: 'Not/A_Zone' }],
+  ])('rejects invalid review input before calling Learning OS: %s', async (path, body) => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post(path)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps all review operations on Convo Lab when the review child flag is disabled', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiReview: false,
+    });
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/session/start')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ timeZone: 'America/New_York' });
+
+    expect(response.status).toBe(403);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('proxies the known-kanji response without changing its contract', async () => {

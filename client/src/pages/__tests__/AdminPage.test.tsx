@@ -132,6 +132,7 @@ const mockFeatureFlags = {
   studyApiImports: false,
   studyApiSettingsWrite: false,
   studyApiNewQueueWrite: false,
+  studyApiReview: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
@@ -591,6 +592,7 @@ describe('AdminPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Comprehensible Input Dialogues')).toBeInTheDocument();
         expect(screen.getByText('Guided Audio Course')).toBeInTheDocument();
+        expect(screen.getByText('Study Review')).toBeInTheDocument();
       });
     });
 

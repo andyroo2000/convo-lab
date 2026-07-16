@@ -99,6 +99,7 @@ interface FeatureFlags {
   studyApiImports: boolean;
   studyApiSettingsWrite: boolean;
   studyApiNewQueueWrite: boolean;
+  studyApiReview: boolean;
   updatedAt: string;
 }
 
@@ -1521,6 +1522,11 @@ const AdminPage = () => {
                         'studyApiNewQueue',
                         'New-Card Queue',
                         'Use Learning OS for the reorderable new-card queue read endpoint'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiReview',
+                        'Study Review',
+                        'Start sessions, submit grades, and undo reviews through Learning OS'
                       )}
                       {renderFeatureFlagToggle(
                         'studyApiImports',

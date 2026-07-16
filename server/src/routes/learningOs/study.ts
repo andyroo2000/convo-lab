@@ -15,7 +15,9 @@ import {
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
 const MAX_NEW_QUEUE_REORDER_SIZE = 500;
+const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 const learningOsStudyIpRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
@@ -46,6 +48,18 @@ const learningOsNewQueueWriteRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsStudySessionRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-session-start-proxy',
+  max: 30,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsReviewWriteRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-review-write-proxy',
+  max: 120,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 
 type StudyApiChildFlag = Extract<
   FeatureFlagKey,
@@ -57,11 +71,19 @@ type StudyApiChildFlag = Extract<
   | 'studyApiImports'
   | 'studyApiSettingsWrite'
   | 'studyApiNewQueueWrite'
+  | 'studyApiReview'
 >;
 
 type StudyProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
-type StudyWriteFeature = 'settingsWrite' | 'newQueueWrite';
-type StudyWriteBody = 'knownKanjiManual' | 'newQueue' | 'settings' | 'wanikaniConnection';
+type StudyWriteFeature = 'settingsWrite' | 'newQueueWrite' | 'reviewWrite';
+type StudyWriteBody =
+  | 'knownKanjiManual'
+  | 'newQueue'
+  | 'review'
+  | 'reviewUndo'
+  | 'session'
+  | 'settings'
+  | 'wanikaniConnection';
 
 interface StudyProxyRoute {
   method: StudyProxyMethod;
@@ -73,9 +95,39 @@ interface StudyProxyRoute {
   writeFeature?: StudyWriteFeature;
   writeBody?: StudyWriteBody;
   requiredReadFlag?: Extract<FeatureFlagKey, 'studyApiSettings' | 'studyApiNewQueue'>;
+  reviewOperation?: 'session' | 'write';
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'POST',
+    pattern: /^\/session\/start$/,
+    featureFlag: 'studyApiReview',
+    responseFeature: 'session',
+    queryParams: new Set(),
+    writeBody: 'session',
+    reviewOperation: 'session',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/reviews$/,
+    featureFlag: 'studyApiReview',
+    responseFeature: 'review',
+    queryParams: new Set(),
+    writeFeature: 'reviewWrite',
+    writeBody: 'review',
+    reviewOperation: 'write',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/reviews\/undo$/,
+    featureFlag: 'studyApiReview',
+    responseFeature: 'reviewUndo',
+    queryParams: new Set(),
+    writeFeature: 'reviewWrite',
+    writeBody: 'reviewUndo',
+    reviewOperation: 'write',
+  },
   {
     method: 'GET',
     pattern: /^\/overview$/,
@@ -310,6 +362,92 @@ function adaptWaniKaniConnectionBody(value: unknown): { apiToken: string } {
   return { apiToken: apiToken.trim() };
 }
 
+function adaptOptionalTimeZone(body: Record<string, unknown>): string | undefined {
+  const timeZone = body.timeZone;
+  if (timeZone === undefined || timeZone === null || timeZone === '') {
+    return undefined;
+  }
+  if (typeof timeZone !== 'string') {
+    throw new AppError('timeZone must be a valid IANA timezone.', 400);
+  }
+
+  const normalized = timeZone.trim();
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: normalized }).format(new Date());
+  } catch {
+    throw new AppError('timeZone must be a valid IANA timezone.', 400);
+  }
+
+  return normalized;
+}
+
+function adaptOptionalOverview(body: Record<string, unknown>): Record<string, unknown> | undefined {
+  const currentOverview = body.currentOverview;
+  if (currentOverview === undefined || currentOverview === null) {
+    return undefined;
+  }
+
+  return requestRecord(currentOverview);
+}
+
+function adaptSessionBody(value: unknown): { time_zone?: string } {
+  if (value === undefined) {
+    return {};
+  }
+
+  const body = requestRecord(value);
+  const timeZone = adaptOptionalTimeZone(body);
+
+  return timeZone === undefined ? {} : { time_zone: timeZone };
+}
+
+function adaptReviewBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  const cardId = body.cardId;
+  const grade = body.grade;
+
+  if (typeof cardId !== 'string' || (!UUID_PATTERN.test(cardId) && !ULID_PATTERN.test(cardId))) {
+    throw new AppError('cardId must be a valid Study card id.', 400);
+  }
+  if (typeof grade !== 'string' || !['again', 'hard', 'good', 'easy'].includes(grade)) {
+    throw new AppError('grade must be again, hard, good, or easy.', 400);
+  }
+
+  const durationMs = body.durationMs;
+  const normalizedDuration =
+    typeof durationMs === 'number' && Number.isFinite(durationMs)
+      ? Math.max(0, Math.min(MAX_STUDY_REVIEW_DURATION_MS, Math.trunc(durationMs)))
+      : undefined;
+  const timeZone = adaptOptionalTimeZone(body);
+  const currentOverview = adaptOptionalOverview(body);
+
+  return {
+    cardId,
+    grade,
+    ...(normalizedDuration === undefined ? {} : { durationMs: normalizedDuration }),
+    ...(timeZone === undefined ? {} : { timeZone }),
+    ...(currentOverview === undefined ? {} : { currentOverview }),
+  };
+}
+
+function adaptReviewUndoBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  const reviewLogId = body.reviewLogId;
+
+  if (typeof reviewLogId !== 'string' || !ULID_PATTERN.test(reviewLogId.trim())) {
+    throw new AppError('reviewLogId must be a valid ULID.', 400);
+  }
+
+  const timeZone = adaptOptionalTimeZone(body);
+  const currentOverview = adaptOptionalOverview(body);
+
+  return {
+    reviewLogId: reviewLogId.trim().toUpperCase(),
+    ...(timeZone === undefined ? {} : { timeZone }),
+    ...(currentOverview === undefined ? {} : { currentOverview }),
+  };
+}
+
 function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   if (route.writeBody === 'settings') {
     return adaptSettingsWriteBody(value);
@@ -322,6 +460,15 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   }
   if (route.writeBody === 'wanikaniConnection') {
     return adaptWaniKaniConnectionBody(value);
+  }
+  if (route.writeBody === 'session') {
+    return adaptSessionBody(value);
+  }
+  if (route.writeBody === 'review') {
+    return adaptReviewBody(value);
+  }
+  if (route.writeBody === 'reviewUndo') {
+    return adaptReviewUndoBody(value);
   }
 
   return undefined;
@@ -353,6 +500,10 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsSettingsWriteRateLimit(req, res, next);
   } else if (route.writeFeature === 'newQueueWrite') {
     learningOsNewQueueWriteRateLimit(req, res, next);
+  } else if (route.reviewOperation === 'session') {
+    learningOsStudySessionRateLimit(req, res, next);
+  } else if (route.reviewOperation === 'write') {
+    learningOsReviewWriteRateLimit(req, res, next);
   } else {
     learningOsStudyReadRateLimit(req, res, next);
   }

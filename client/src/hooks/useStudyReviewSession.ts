@@ -32,6 +32,7 @@ import useStudyUndoStack from './useStudyUndoStack';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
+import { useFeatureFlags } from './useFeatureFlags';
 
 const reviewScheduler = createStudyFsrsScheduler();
 
@@ -139,6 +140,7 @@ const getCardsAfterReview = (
 
 const useStudyReviewSession = () => {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
   const reviewMutation = useSubmitStudyReview();
   const cardActionMutation = useStudyCardAction();
   const updateCardMutation = useUpdateStudyCard();
@@ -354,7 +356,7 @@ const useStudyReviewSession = () => {
     setSessionError(null);
 
     try {
-      const nextSession = await startStudySession();
+      const nextSession = await startStudySession(flags);
       autoRefreshEmptySessionRef.current = nextSession.cards.length === 0;
       setSession(nextSession);
       syncOverview(nextSession.overview);
@@ -367,7 +369,7 @@ const useStudyReviewSession = () => {
     } finally {
       setSessionLoading(false);
     }
-  }, [syncOverview]);
+  }, [flags, syncOverview]);
 
   const revealCurrentCard = useCallback(() => {
     if (!currentCard || revealed || editing) return;
@@ -457,9 +459,19 @@ const useStudyReviewSession = () => {
         if (grade === 'again') {
           resetStudyAudioAutoplayForCard(currentCard.id);
         }
-        const nextCards = getCardsAfterReview(cards, reviewResult.card, grade);
+        const nextCards = reviewResult.card
+          ? getCardsAfterReview(cards, reviewResult.card, grade)
+          : cards.filter((card) => card.id !== currentCard.id);
         autoRefreshEmptySessionRef.current = nextCards.length === 0;
-        applyReviewResultToSession(reviewResult.card, grade, nextCards, reviewResult.overview);
+        if (reviewResult.card) {
+          applyReviewResultToSession(reviewResult.card, grade, nextCards, reviewResult.overview);
+        } else {
+          setSession((currentSession) =>
+            currentSession
+              ? { ...currentSession, cards: nextCards, overview: reviewResult.overview }
+              : currentSession
+          );
+        }
         syncOverview(reviewResult.overview);
         setCurrentIndex((current) => {
           const nextLength = nextCards.length;
@@ -667,7 +679,8 @@ const useStudyReviewSession = () => {
     try {
       const undoResult = await undoStudyReview(
         action.reviewLogId,
-        action.snapshot.overview ?? undefined
+        action.snapshot.overview ?? undefined,
+        flags
       );
       restoreUndoSnapshot(action.snapshot);
       syncOverview(undoResult.overview);
@@ -680,6 +693,7 @@ const useStudyReviewSession = () => {
   }, [
     popUndo,
     pushUndo,
+    flags,
     editing,
     cardActionMutation.isPending,
     restoreUndoSnapshot,

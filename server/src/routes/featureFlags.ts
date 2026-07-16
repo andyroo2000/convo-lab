@@ -28,6 +28,7 @@ router.get('/', requireAuth, async (_req: AuthRequest, res, next) => {
           studyApiImports: false,
           studyApiSettingsWrite: false,
           studyApiNewQueueWrite: false,
+          studyApiReview: false,
         },
       });
     }
