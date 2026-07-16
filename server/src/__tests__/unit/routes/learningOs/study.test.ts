@@ -1307,6 +1307,15 @@ describe('Learning OS Study proxy routes', () => {
             headers: { 'content-type': 'application/json' },
           })
         )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ errors: { cardIds: ['unsafe\u0085\u2028\u202elog line'] } }),
+            {
+              status: 422,
+              headers: { 'content-type': 'application/json' },
+            }
+          )
+        )
     );
     const app = await createApp();
     const { cookies, token } = await csrfAuth(app);
@@ -1318,7 +1327,7 @@ describe('Learning OS Study proxy routes', () => {
         .set(CSRF_TOKEN_HEADER_NAME, token)
         .send({ cardIds: ['01ARZ3NDEKTSV4RRFFQ69G5FAV'] });
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
       const response = await requestReorder();
       expect(response.status).toBe(422);
       expect(response.body.error.message).toBe('Learning OS Study API request failed.');

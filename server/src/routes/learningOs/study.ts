@@ -589,10 +589,7 @@ function extractNewQueueValidationMessage(responseBody: string): string | null {
         typeof value === 'string' &&
         value.trim().length > 0 &&
         value.length <= MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH &&
-        Array.from(value).every((character) => {
-          const codePoint = character.codePointAt(0) ?? 0;
-          return codePoint > 31 && codePoint !== 127;
-        })
+        !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value)
     );
     if (message) {
       return message.trim();
