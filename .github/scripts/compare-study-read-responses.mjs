@@ -13,8 +13,30 @@ const OVERVIEW_COUNT_FIELDS = [
   'totalCards',
 ];
 
-const COMPARISON_MODES = new Set(['strict', 'opaque-cursor', 'overview-state']);
+const CARD_TYPES = new Set(['recognition', 'production', 'cloze']);
+const COMPARISON_MODES = new Set([
+  'strict',
+  'opaque-cursor',
+  'overview-state',
+  'new-queue-state',
+]);
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+function isRecord(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isIsoTimestamp(value) {
+  return (
+    typeof value === 'string' &&
+    ISO_TIMESTAMP_PATTERN.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  );
+}
+
+function isNonNegativeInteger(value) {
+  return Number.isInteger(value) && value >= 0;
+}
 
 export function parseFramedResponses(input) {
   const fields = input.trimEnd().split('\n');
@@ -30,14 +52,14 @@ export function parseFramedResponses(input) {
 }
 
 function normalizeOverviewState(response) {
-  if (typeof response !== 'object' || response === null || Array.isArray(response)) {
+  if (!isRecord(response)) {
     throw new Error('Overview response must be a JSON object.');
   }
 
   const normalized = { ...response };
   for (const field of OVERVIEW_COUNT_FIELDS) {
     const value = response[field];
-    if (!Number.isInteger(value) || value < 0) {
+    if (!isNonNegativeInteger(value)) {
       throw new Error(`Overview field ${field} must be a non-negative integer.`);
     }
     normalized[field] = `<independent-state:${field}>`;
@@ -45,15 +67,64 @@ function normalizeOverviewState(response) {
 
   if (
     response.nextDueAt !== null &&
-    (typeof response.nextDueAt !== 'string' ||
-      !ISO_TIMESTAMP_PATTERN.test(response.nextDueAt) ||
-      Number.isNaN(Date.parse(response.nextDueAt)))
+    !isIsoTimestamp(response.nextDueAt)
   ) {
     throw new Error('Overview field nextDueAt must be null or an ISO timestamp.');
   }
   normalized.nextDueAt = '<independent-state:nextDueAt>';
 
   return normalized;
+}
+
+function normalizeNewQueueState(response) {
+  if (!isRecord(response)) {
+    throw new Error('New Queue response must be a JSON object.');
+  }
+  if (!Array.isArray(response.items)) {
+    throw new Error('New Queue field items must be an array.');
+  }
+
+  for (const [index, value] of response.items.entries()) {
+    const field = `items[${index}]`;
+    if (!isRecord(value)) {
+      throw new Error(`New Queue field ${field} must be a JSON object.`);
+    }
+    if (typeof value.id !== 'string' || typeof value.noteId !== 'string') {
+      throw new Error(`New Queue field ${field} must include string id and noteId values.`);
+    }
+    if (!CARD_TYPES.has(value.cardType)) {
+      throw new Error(`New Queue field ${field}.cardType is invalid.`);
+    }
+    if (typeof value.displayText !== 'string') {
+      throw new Error(`New Queue field ${field}.displayText must be a string.`);
+    }
+    if (value.meaning !== null && typeof value.meaning !== 'string') {
+      throw new Error(`New Queue field ${field}.meaning must be null or a string.`);
+    }
+    if (value.queuePosition !== null && !isNonNegativeInteger(value.queuePosition)) {
+      throw new Error(`New Queue field ${field}.queuePosition must be null or a non-negative integer.`);
+    }
+    if (!isIsoTimestamp(value.createdAt) || !isIsoTimestamp(value.updatedAt)) {
+      throw new Error(`New Queue field ${field} must include ISO createdAt and updatedAt timestamps.`);
+    }
+  }
+
+  if (!isNonNegativeInteger(response.total) || response.total < response.items.length) {
+    throw new Error('New Queue field total must be a valid non-negative item count.');
+  }
+  if (!isNonNegativeInteger(response.limit) || response.items.length > response.limit) {
+    throw new Error('New Queue field limit must be a valid non-negative page limit.');
+  }
+  if (response.nextCursor !== null && typeof response.nextCursor !== 'string') {
+    throw new Error('New Queue field nextCursor must be null or a string.');
+  }
+
+  return {
+    ...response,
+    items: '<independent-state:items>',
+    total: '<independent-state:total>',
+    nextCursor: '<independent-state:nextCursor>',
+  };
 }
 
 export function normalizeResponse(response, mode) {
@@ -70,6 +141,10 @@ export function normalizeResponse(response, mode) {
 
   if (mode === 'overview-state') {
     return normalizeOverviewState(response);
+  }
+
+  if (mode === 'new-queue-state') {
+    return normalizeNewQueueState(response);
   }
 
   return response;
