@@ -677,9 +677,9 @@ export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
   });
 }
 
-export function useSubmitStudyReview() {
+export function useSubmitStudyReview(routingFlags?: FeatureFlags) {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
+  const { flags: liveFlags } = useFeatureFlags();
 
   return useMutation({
     mutationFn: (payload: {
@@ -690,7 +690,7 @@ export function useSubmitStudyReview() {
       submitStudyReview(
         payload,
         queryClient.getQueryData<StudyOverview>(['study', 'overview']),
-        flags
+        routingFlags ?? liveFlags
       ),
     onSuccess: async () => {
       await Promise.all([

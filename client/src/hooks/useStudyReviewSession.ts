@@ -32,7 +32,7 @@ import useStudyUndoStack from './useStudyUndoStack';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
-import { useFeatureFlags } from './useFeatureFlags';
+import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 
 const reviewScheduler = createStudyFsrsScheduler();
 
@@ -141,7 +141,9 @@ const getCardsAfterReview = (
 const useStudyReviewSession = () => {
   const queryClient = useQueryClient();
   const { flags } = useFeatureFlags();
-  const reviewMutation = useSubmitStudyReview();
+  const [sessionRoutingFlags, setSessionRoutingFlags] = useState<FeatureFlags | null>(null);
+  const activeRoutingFlags = sessionRoutingFlags ?? flags;
+  const reviewMutation = useSubmitStudyReview(activeRoutingFlags);
   const cardActionMutation = useStudyCardAction();
   const updateCardMutation = useUpdateStudyCard();
   const deleteCardMutation = useDeleteStudyCard();
@@ -356,7 +358,7 @@ const useStudyReviewSession = () => {
     setSessionError(null);
 
     try {
-      const nextSession = await startStudySession(flags);
+      const nextSession = await startStudySession(activeRoutingFlags);
       autoRefreshEmptySessionRef.current = nextSession.cards.length === 0;
       setSession(nextSession);
       syncOverview(nextSession.overview);
@@ -369,7 +371,7 @@ const useStudyReviewSession = () => {
     } finally {
       setSessionLoading(false);
     }
-  }, [flags, syncOverview]);
+  }, [activeRoutingFlags, syncOverview]);
 
   const revealCurrentCard = useCallback(() => {
     if (!currentCard || revealed || editing) return;
@@ -411,6 +413,7 @@ const useStudyReviewSession = () => {
     stopAllAudio();
     resetUndo();
     canSurfaceAsyncSessionErrorRef.current = false;
+    setSessionRoutingFlags(null);
     setFocusMode(false);
     setSession(null);
     setSessionError(null);
@@ -682,7 +685,7 @@ const useStudyReviewSession = () => {
       const undoResult = await undoStudyReview(
         action.reviewLogId,
         action.snapshot.overview ?? undefined,
-        flags
+        activeRoutingFlags
       );
       restoreUndoSnapshot(action.snapshot);
       syncOverview(undoResult.overview);
@@ -695,7 +698,7 @@ const useStudyReviewSession = () => {
   }, [
     popUndo,
     pushUndo,
-    flags,
+    activeRoutingFlags,
     editing,
     cardActionMutation.isPending,
     restoreUndoSnapshot,
@@ -731,6 +734,12 @@ const useStudyReviewSession = () => {
   }, [answerAudioRef, editing, revealed, runBackgroundTask]);
 
   const enterFocusMode = useCallback(async () => {
+    if (!flags) {
+      setSessionError('Study routing is still loading. Please try again.');
+      return;
+    }
+
+    setSessionRoutingFlags(flags);
     stopAllAudio();
     resetStudyAudioAutoplay();
     resetUndo();
@@ -752,6 +761,7 @@ const useStudyReviewSession = () => {
       // loadSession already updates session error state for the dashboard.
     }
   }, [
+    flags,
     loadSession,
     requestMotionPermission,
     resetStudyAudioAutoplay,

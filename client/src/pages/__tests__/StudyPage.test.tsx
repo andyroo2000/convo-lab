@@ -6,6 +6,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 
 import { KnownKanjiContextProvider } from '../../contexts/KnownKanjiContext';
+import type { FeatureFlags } from '../../hooks/useFeatureFlags';
 import StudyPage from '../StudyPage';
 
 async function chooseAnswerAudioVoice(name: RegExp | string) {
@@ -25,6 +26,7 @@ const {
   regenerateStudyAnswerAudioMock,
   studyOverviewData,
   studyOverviewLoading,
+  featureFlagsData,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -49,10 +51,32 @@ const {
     } as StudyOverview | undefined,
   },
   studyOverviewLoading: { current: false },
+  featureFlagsData: {
+    current: {
+      id: 'default',
+      dialoguesEnabled: false,
+      scriptsEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+      studyApiEnabled: true,
+      studyApiSettings: true,
+      studyApiOverview: true,
+      studyApiBrowser: true,
+      studyApiBrowserDetail: true,
+      studyApiNewQueue: true,
+      studyApiImports: true,
+      studyApiSettingsWrite: true,
+      studyApiNewQueueWrite: true,
+      studyApiReview: true,
+      updatedAt: '2026-07-16T12:00:00.000Z',
+    } as FeatureFlags | undefined,
+  },
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
   useFeatureFlags: () => ({
+    flags: featureFlagsData.current,
+    isLoading: featureFlagsData.current === undefined,
     isFeatureEnabled: () => true,
   }),
 }));
@@ -347,6 +371,24 @@ describe('StudyPage', () => {
     });
     MockDeviceMotionEvent.requestPermission.mockClear();
     studyOverviewLoading.current = false;
+    featureFlagsData.current = {
+      id: 'default',
+      dialoguesEnabled: false,
+      scriptsEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+      studyApiEnabled: true,
+      studyApiSettings: true,
+      studyApiOverview: true,
+      studyApiBrowser: true,
+      studyApiBrowserDetail: true,
+      studyApiNewQueue: true,
+      studyApiImports: true,
+      studyApiSettingsWrite: true,
+      studyApiNewQueueWrite: true,
+      studyApiReview: true,
+      updatedAt: '2026-07-16T12:00:00.000Z',
+    };
     studyOverviewData.current = {
       dueCount: 4,
       newCount: 6,
@@ -428,6 +470,17 @@ describe('StudyPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps Begin Study disabled until API routing flags are loaded', async () => {
+    featureFlagsData.current = undefined;
+
+    renderStudyPage();
+
+    const beginButton = screen.getByRole('button', { name: 'Begin Study' });
+    expect(beginButton).toBeDisabled();
+    await userEvent.click(beginButton);
+    expect(startStudySessionMock).not.toHaveBeenCalled();
+  });
+
   it('starts the study session only when Begin Study is clicked', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {
@@ -447,7 +500,7 @@ describe('StudyPage', () => {
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
     });
-    expect(startStudySessionMock).toHaveBeenCalledWith(undefined);
+    expect(startStudySessionMock).toHaveBeenCalledWith(featureFlagsData.current);
     expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
     expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
@@ -1314,7 +1367,7 @@ describe('StudyPage', () => {
           dueCount: 1,
           reviewCount: 1,
         }),
-        undefined
+        featureFlagsData.current
       );
     });
     expect(screen.getByText('company')).toBeInTheDocument();

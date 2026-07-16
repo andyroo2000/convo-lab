@@ -11,6 +11,7 @@ interface StudyOverviewDashboardProps {
   error: Error | null;
   onBeginStudy: () => void;
   isStartingSession: boolean;
+  routingReady: boolean;
 }
 
 const STUDY_ACTION_CLASS =
@@ -24,11 +25,12 @@ const StudyOverviewDashboard = ({
   error,
   onBeginStudy,
   isStartingSession,
+  routingReady,
 }: StudyOverviewDashboardProps) => {
   const { t } = useTranslation('study');
   const emptyStateId = useId();
   const showEmptyState = availableCount === 0 && !loading;
-  const beginStudyDisabled = isStartingSession || showEmptyState;
+  const beginStudyDisabled = !routingReady || isStartingSession || showEmptyState;
 
   return (
     <div className="space-y-6">
