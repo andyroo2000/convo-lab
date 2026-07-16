@@ -644,13 +644,11 @@ router.all(
         body
       );
 
-      const responseBody = await upstreamResponse.text();
-
       if (!upstreamResponse.ok) {
         const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;
         const validationMessage =
           upstreamResponse.status === 422 && route.writeFeature === 'newQueueWrite'
-            ? extractNewQueueValidationMessage(responseBody)
+            ? extractNewQueueValidationMessage(await upstreamResponse.text())
             : null;
         throw new AppError(
           validationMessage ?? 'Learning OS Study API request failed.',
@@ -658,6 +656,7 @@ router.all(
         );
       }
 
+      const responseBody = await upstreamResponse.text();
       let responseJson: unknown;
       try {
         responseJson = responseBody.length > 0 ? JSON.parse(responseBody) : null;
