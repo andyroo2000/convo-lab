@@ -449,24 +449,59 @@ jobs:
                 local label="$1"
                 local legacy_path="$2"
                 local proxy_path="$3"
+                local comparison_mode="${4:-strict}"
                 local legacy_response
                 local proxy_response
+                case "$comparison_mode" in
+                  strict|opaque-cursor) ;;
+                  *) echo "Unknown response comparison mode: $comparison_mode" >&2; return 1 ;;
+                esac
                 legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
                 proxy_response="$(fetch_read_route "$label proxy" "$proxy_path")"
 
                 docker exec \
                   -e LEGACY_RESPONSE="$legacy_response" \
                   -e PROXY_RESPONSE="$proxy_response" \
+                  -e COMPARISON_MODE="$comparison_mode" \
                   "convolab-server-$active_color" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
+                    const normalize = (response) => {
+                      if (process.env.COMPARISON_MODE !== "opaque-cursor") return response;
+                      return {
+                        ...response,
+                        nextCursor: response.nextCursor === null ? null : "<opaque-cursor>",
+                      };
+                    };
+                    const differingPaths = (actual, expected, path = "$") => {
+                      if (Object.is(actual, expected)) return [];
+                      if (
+                        actual === null || expected === null ||
+                        typeof actual !== "object" || typeof expected !== "object" ||
+                        Array.isArray(actual) !== Array.isArray(expected)
+                      ) return [path];
+                      if (Array.isArray(actual) && actual.length !== expected.length) {
+                        return [`${path}.length`];
+                      }
+                      const keys = new Set([...Object.keys(actual), ...Object.keys(expected)]);
+                      return [...keys].flatMap((key) =>
+                        key in actual && key in expected
+                          ? differingPaths(actual[key], expected[key], `${path}.${key}`)
+                          : [`${path}.${key}`]
+                      );
+                    };
                     try {
                       assert.deepStrictEqual(
-                        JSON.parse(process.env.PROXY_RESPONSE),
-                        JSON.parse(process.env.LEGACY_RESPONSE),
+                        normalize(JSON.parse(process.env.PROXY_RESPONSE)),
+                        normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
                       );
                     } catch {
                       console.error("Legacy and Learning OS response contracts differ.");
+                      const paths = differingPaths(
+                        normalize(JSON.parse(process.env.PROXY_RESPONSE)),
+                        normalize(JSON.parse(process.env.LEGACY_RESPONSE)),
+                      );
+                      console.error(`Differing JSON paths: ${paths.slice(0, 50).join(", ")}`);
                       process.exit(1);
                     }
                   '
@@ -526,7 +561,8 @@ jobs:
                 compare_read_route \
                   Browser \
                   '/api/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
-                  '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25'
+                  '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
+                  opaque-cursor
               fi
               if [ "$ENABLE_NEW_QUEUE" = true ] && [ "$ENABLE_NEW_QUEUE_WRITE" != true ]; then
                 compare_read_route \
