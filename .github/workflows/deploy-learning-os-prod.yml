@@ -135,18 +135,24 @@ jobs:
           ENABLE_NEW_QUEUE: ${{ inputs.enable_new_queue }}
           ENABLE_SETTINGS_WRITE: ${{ inputs.enable_settings_write }}
           ENABLE_NEW_QUEUE_WRITE: ${{ inputs.enable_new_queue_write }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+          DEPLOY_GH_PAT: ${{ secrets.GH_PAT }}
+          DEPLOY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_GITHUB_ACTOR: ${{ github.actor }}
         run: |
           printf -v REMOTE_ENV \
-            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_BROWSER_DETAIL=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q' \
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_BROWSER_DETAIL=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q' \
             "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$ENABLE_SETTINGS" \
             "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_BROWSER_DETAIL" "$ENABLE_NEW_QUEUE" \
-            "$ENABLE_SETTINGS_WRITE" "$ENABLE_NEW_QUEUE_WRITE"
+            "$ENABLE_SETTINGS_WRITE" "$ENABLE_NEW_QUEUE_WRITE" "$DEPLOY_GH_PAT" \
+            "$DEPLOY_GITHUB_TOKEN" "$DEPLOY_GITHUB_ACTOR"
 
           deployment_log="$(mktemp)"
           trap 'rm -f "$deployment_log"' EXIT
 
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} \
+            "$DROPLET_USER@$DROPLET_HOST" \
             "$REMOTE_ENV bash -s" << 'ENDSSH' | tee "$deployment_log"
             set -euo pipefail
 
@@ -160,7 +166,7 @@ jobs:
             cd /opt/convolab
 
             git config credential.helper store
-            echo "https://${{ secrets.GH_PAT }}@github.com" > ~/.git-credentials
+            echo "https://$DEPLOY_GH_PAT@github.com" > ~/.git-credentials
             chmod 600 ~/.git-credentials
             git fetch origin
             git reset --hard origin/main
@@ -217,7 +223,7 @@ jobs:
               upsert_env LEARNING_OS_APP_KEY "base64:$(openssl rand -base64 32 | tr -d '\n')"
             fi
 
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            echo "$DEPLOY_GITHUB_TOKEN" | docker login ghcr.io -u "$DEPLOY_GITHUB_ACTOR" --password-stdin
             timeout 600 $COMPOSE pull learning-os
             $COMPOSE up -d postgres
 
@@ -578,24 +584,15 @@ jobs:
                   opaque-cursor
               fi
               if [ "$ENABLE_BROWSER_DETAIL" = true ]; then
-                browser_list="$(fetch_read_route \
-                  'Browser detail note lookup' \
-                  '/api/study/browser?sortField=created_on&sortDirection=desc&limit=1')"
-                browser_note_id="$(docker exec \
-                  -e BROWSER_RESPONSE="$browser_list" \
-                  "convolab-server-$active_color" \
-                  node --input-type=module --eval='
-                    const response = JSON.parse(process.env.BROWSER_RESPONSE);
-                    const noteId = response?.rows?.[0]?.noteId;
-                    if (typeof noteId !== "string" || !/^[A-Za-z0-9-]+$/.test(noteId)) {
-                      process.exit(1);
-                    }
-                    process.stdout.write(noteId);
+                browser_list="$(fetch_read_route 'Browser detail note lookup' '/api/study/browser?sortField=created_on&sortDirection=desc&limit=1')"
+                browser_note_id="$(docker exec -e BROWSER_RESPONSE="$browser_list" \
+                  "convolab-server-$active_color" node --input-type=module --eval='
+                    const r=JSON.parse(process.env.BROWSER_RESPONSE),n=r?.rows?.[0]?.noteId;
+                    if(typeof n!=="string"||!/^[A-Za-z0-9-]+$/.test(n))process.exit(1);
+                    process.stdout.write(n);
                   ')"
                 test -n "$browser_note_id"
-                compare_read_route \
-                  BrowserDetail \
-                  "/api/study/browser/$browser_note_id" \
+                compare_read_route BrowserDetail "/api/study/browser/$browser_note_id" \
                   "/api/learning-os/study/browser/$browser_note_id"
               fi
               if [ "$ENABLE_NEW_QUEUE" = true ] && [ "$ENABLE_NEW_QUEUE_WRITE" != true ]; then
