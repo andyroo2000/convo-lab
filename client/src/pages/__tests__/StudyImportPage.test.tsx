@@ -36,6 +36,7 @@ const studyFeatureFlagsMock = vi.hoisted(() => ({
   studyApiImports: false,
   studyApiSettingsWrite: false,
   studyApiNewQueueWrite: false,
+  studyApiReview: false,
   updatedAt: '2026-07-14T00:00:00.000Z',
 }));
 

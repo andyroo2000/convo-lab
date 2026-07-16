@@ -103,7 +103,8 @@ type StudyApiFeature =
   | 'newQueue'
   | 'imports'
   | 'settingsWrite'
-  | 'newQueueWrite';
+  | 'newQueueWrite'
+  | 'review';
 const LEARNING_OS_STUDY_PROXY_BASE = '/api/learning-os/study';
 
 const STUDY_API_FLAG_BY_FEATURE: Record<
@@ -118,6 +119,7 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
     | 'studyApiImports'
     | 'studyApiSettingsWrite'
     | 'studyApiNewQueueWrite'
+    | 'studyApiReview'
   >
 > = {
   settings: 'studyApiSettings',
@@ -128,6 +130,7 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
   imports: 'studyApiImports',
   settingsWrite: 'studyApiSettingsWrite',
   newQueueWrite: 'studyApiNewQueueWrite',
+  review: 'studyApiReview',
 };
 
 const STUDY_API_READ_FLAG_BY_WRITE_FEATURE: Partial<
@@ -221,12 +224,16 @@ async function apiRequest<T>(
   return response.json() as Promise<T>;
 }
 
-export async function startStudySession(): Promise<StudySessionResponse> {
+export async function startStudySession(flags?: FeatureFlags): Promise<StudySessionResponse> {
   const timeZone = getDeviceStudyTimeZone();
-  return apiRequest<StudySessionResponse>('/api/study/session/start', {
-    method: 'POST',
-    body: JSON.stringify({ timeZone }),
-  });
+  return apiRequest<StudySessionResponse>(
+    '/api/study/session/start',
+    {
+      method: 'POST',
+      body: JSON.stringify({ timeZone }),
+    },
+    { feature: 'review', flags }
+  );
 }
 
 export async function getStudySettings(flags?: FeatureFlags): Promise<StudySettings> {
@@ -458,13 +465,41 @@ export async function deleteStudyManualCardDraft(draftId: string): Promise<void>
 
 export async function undoStudyReview(
   reviewLogId: string,
-  currentOverview?: StudyOverview
+  currentOverview?: StudyOverview,
+  flags?: FeatureFlags
 ): Promise<StudyUndoReviewResult> {
   const timeZone = getDeviceStudyTimeZone();
-  return apiRequest<StudyUndoReviewResult>('/api/study/reviews/undo', {
-    method: 'POST',
-    body: JSON.stringify({ reviewLogId, currentOverview, timeZone }),
-  });
+  return apiRequest<StudyUndoReviewResult>(
+    '/api/study/reviews/undo',
+    {
+      method: 'POST',
+      body: JSON.stringify({ reviewLogId, currentOverview, timeZone }),
+    },
+    { feature: 'review', flags }
+  );
+}
+
+export async function submitStudyReview(
+  payload: {
+    cardId: string;
+    grade: 'again' | 'hard' | 'good' | 'easy';
+    durationMs?: number;
+  },
+  currentOverview?: StudyOverview,
+  flags?: FeatureFlags
+): Promise<StudyReviewResult> {
+  return apiRequest<StudyReviewResult>(
+    '/api/study/reviews',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...payload,
+        timeZone: getDeviceStudyTimeZone(),
+        currentOverview,
+      }),
+    },
+    { feature: 'review', flags }
+  );
 }
 
 export async function getStudyBrowser(
@@ -644,6 +679,7 @@ export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
 
 export function useSubmitStudyReview() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
     mutationFn: (payload: {
@@ -651,14 +687,11 @@ export function useSubmitStudyReview() {
       grade: 'again' | 'hard' | 'good' | 'easy';
       durationMs?: number;
     }) =>
-      apiRequest<StudyReviewResult>('/api/study/reviews', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...payload,
-          timeZone: getDeviceStudyTimeZone(),
-          currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
-        }),
-      }),
+      submitStudyReview(
+        payload,
+        queryClient.getQueryData<StudyOverview>(['study', 'overview']),
+        flags
+      ),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),

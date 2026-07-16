@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import useStudyReviewSession from '../useStudyReviewSession';
 
+const reviewFlags = { studyApiEnabled: true, studyApiReview: true };
+
 const {
   cardActionMutateAsyncMock,
   startStudySessionMock,
@@ -54,6 +56,10 @@ vi.mock('../useStudy', () => ({
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   undoStudyReview: undoStudyReviewMock,
+}));
+
+vi.mock('../useFeatureFlags', () => ({
+  useFeatureFlags: () => ({ flags: reviewFlags }),
 }));
 
 vi.mock('../../lib/audioCache', () => ({
@@ -316,6 +322,53 @@ describe('useStudyReviewSession', () => {
 
     expect(result.current.currentCard?.id).toBe('card-1');
     expect(result.current.revealed).toBe(true);
+    expect(startStudySessionMock).toHaveBeenCalledWith(reviewFlags);
+    expect(undoStudyReviewMock).toHaveBeenCalledWith(
+      'review-log-1',
+      expect.objectContaining({ reviewCount: 2 }),
+      reviewFlags
+    );
+  });
+
+  it('advances without retrying when a committed review loses its card refetch race', async () => {
+    reviewMutateAsyncMock.mockResolvedValueOnce({
+      message: 'Study card not found after review.',
+      reviewLogId: 'review-log-committed',
+      committed: true,
+      cardFetchFailed: true,
+      card: null,
+      overview: {
+        ...baseOverview,
+        dueCount: 1,
+        reviewCount: 1,
+      },
+    });
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => {
+      result.current.revealCurrentCard();
+    });
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+    expect(result.current.currentCard?.id).toBe('card-2');
+    expect(result.current.sessionCounts.reviewRemaining).toBe(1);
+
+    await act(async () => {
+      await result.current.handleUndo();
+    });
+    expect(undoStudyReviewMock).toHaveBeenCalledWith(
+      'review-log-committed',
+      expect.any(Object),
+      reviewFlags
+    );
   });
 
   it('counts only current new queue-state cards as new in the focus header', async () => {
