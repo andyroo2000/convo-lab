@@ -140,9 +140,12 @@ const getCardsAfterReview = (
 
 const useStudyReviewSession = () => {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
-  const [sessionRoutingFlags, setSessionRoutingFlags] = useState<FeatureFlags | null>(null);
-  const activeRoutingFlags = sessionRoutingFlags ?? flags;
+  const { flags, isLoading: featureFlagsLoading } = useFeatureFlags();
+  const [sessionRoutingFlags, setSessionRoutingFlags] = useState<FeatureFlags | null | undefined>(
+    undefined
+  );
+  const activeRoutingFlags = sessionRoutingFlags === undefined ? flags : sessionRoutingFlags;
+  const requestRoutingFlags = activeRoutingFlags ?? undefined;
   const reviewMutation = useSubmitStudyReview(activeRoutingFlags);
   const cardActionMutation = useStudyCardAction();
   const updateCardMutation = useUpdateStudyCard();
@@ -358,7 +361,7 @@ const useStudyReviewSession = () => {
     setSessionError(null);
 
     try {
-      const nextSession = await startStudySession(activeRoutingFlags);
+      const nextSession = await startStudySession(requestRoutingFlags);
       autoRefreshEmptySessionRef.current = nextSession.cards.length === 0;
       setSession(nextSession);
       syncOverview(nextSession.overview);
@@ -371,7 +374,7 @@ const useStudyReviewSession = () => {
     } finally {
       setSessionLoading(false);
     }
-  }, [activeRoutingFlags, syncOverview]);
+  }, [requestRoutingFlags, syncOverview]);
 
   const revealCurrentCard = useCallback(() => {
     if (!currentCard || revealed || editing) return;
@@ -413,7 +416,7 @@ const useStudyReviewSession = () => {
     stopAllAudio();
     resetUndo();
     canSurfaceAsyncSessionErrorRef.current = false;
-    setSessionRoutingFlags(null);
+    setSessionRoutingFlags(undefined);
     setFocusMode(false);
     setSession(null);
     setSessionError(null);
@@ -685,7 +688,7 @@ const useStudyReviewSession = () => {
       const undoResult = await undoStudyReview(
         action.reviewLogId,
         action.snapshot.overview ?? undefined,
-        activeRoutingFlags
+        requestRoutingFlags
       );
       restoreUndoSnapshot(action.snapshot);
       syncOverview(undoResult.overview);
@@ -698,7 +701,7 @@ const useStudyReviewSession = () => {
   }, [
     popUndo,
     pushUndo,
-    activeRoutingFlags,
+    requestRoutingFlags,
     editing,
     cardActionMutation.isPending,
     restoreUndoSnapshot,
@@ -734,12 +737,13 @@ const useStudyReviewSession = () => {
   }, [answerAudioRef, editing, revealed, runBackgroundTask]);
 
   const enterFocusMode = useCallback(async () => {
-    if (!flags) {
+    if (featureFlagsLoading) {
       setSessionError('Study routing is still loading. Please try again.');
       return;
     }
 
-    setSessionRoutingFlags(flags);
+    // A completed-but-failed flags request intentionally pins this session to the legacy API.
+    setSessionRoutingFlags(flags ?? null);
     stopAllAudio();
     resetStudyAudioAutoplay();
     resetUndo();
@@ -762,6 +766,7 @@ const useStudyReviewSession = () => {
     }
   }, [
     flags,
+    featureFlagsLoading,
     loadSession,
     requestMotionPermission,
     resetStudyAudioAutoplay,

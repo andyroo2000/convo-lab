@@ -27,6 +27,7 @@ const {
   studyOverviewData,
   studyOverviewLoading,
   featureFlagsData,
+  featureFlagsLoading,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -71,12 +72,13 @@ const {
       updatedAt: '2026-07-16T12:00:00.000Z',
     } as FeatureFlags | undefined,
   },
+  featureFlagsLoading: { current: false },
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
   useFeatureFlags: () => ({
     flags: featureFlagsData.current,
-    isLoading: featureFlagsData.current === undefined,
+    isLoading: featureFlagsLoading.current,
     isFeatureEnabled: () => true,
   }),
 }));
@@ -371,6 +373,7 @@ describe('StudyPage', () => {
     });
     MockDeviceMotionEvent.requestPermission.mockClear();
     studyOverviewLoading.current = false;
+    featureFlagsLoading.current = false;
     featureFlagsData.current = {
       id: 'default',
       dialoguesEnabled: false,
@@ -472,6 +475,7 @@ describe('StudyPage', () => {
 
   it('keeps Begin Study disabled until API routing flags are loaded', async () => {
     featureFlagsData.current = undefined;
+    featureFlagsLoading.current = true;
 
     renderStudyPage();
 
@@ -479,6 +483,23 @@ describe('StudyPage', () => {
     expect(beginButton).toBeDisabled();
     await userEvent.click(beginButton);
     expect(startStudySessionMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to legacy study routing when feature flags fail to load', async () => {
+    featureFlagsData.current = undefined;
+    featureFlagsLoading.current = false;
+    startStudySessionMock.mockResolvedValue({
+      overview: studyOverviewData.current,
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+
+    const beginButton = screen.getByRole('button', { name: 'Begin Study' });
+    expect(beginButton).toBeEnabled();
+    await userEvent.click(beginButton);
+
+    await waitFor(() => expect(startStudySessionMock).toHaveBeenCalledWith(undefined));
   });
 
   it('starts the study session only when Begin Study is clicked', async () => {
