@@ -626,6 +626,28 @@ jobs:
                 echo "$label idempotent write smoke check passed."
               }
 
+              validate_session_response() {
+                local response="$1"
+
+                printf '%s' "$response" | docker exec -i \
+                  "convolab-server-$active_color" \
+                  node --input-type=module --eval='
+                    process.stdin.setEncoding("utf8");
+                    let input = "";
+                    for await (const chunk of process.stdin) input += chunk;
+                    const response = JSON.parse(input);
+                    if (!Array.isArray(response.cards)) {
+                      console.error("Learning OS session response has no cards array.");
+                      process.exit(1);
+                    }
+                    if (response.overview === null || typeof response.overview !== "object") {
+                      console.error("Learning OS session response has no overview object.");
+                      process.exit(1);
+                    }
+                  '
+                echo "Study session Learning OS smoke check passed."
+              }
+
               mutate_proxy_route() {
                 local method="$1"
                 local path="$2"
@@ -697,9 +719,9 @@ jobs:
 
               if [ "$ENABLE_REVIEW" = true ]; then
                 session_body='{"timeZone":"America/New_York"}'
-                legacy_session="$(mutate_proxy_route POST '/api/study/session/start' "$session_body")"
+                # Session start introduces cards, so never invoke the legacy route during cutover.
                 proxy_session="$(mutate_proxy_route POST '/api/learning-os/study/session/start' "$session_body")"
-                assert_json_equal 'Study session' "$legacy_session" "$proxy_session"
+                validate_session_response "$proxy_session"
               fi
 
               if [ "$ENABLE_SETTINGS_WRITE" = true ]; then
