@@ -177,7 +177,7 @@ jobs:
               if [ -n "$KNOWLEDGE_EXPORT_DIR" ]; then
                 rm -rf "$KNOWLEDGE_EXPORT_DIR"
               fi
-              docker exec convolab-postgres rm -f \
+              docker exec -u root convolab-postgres rm -f \
                 "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
                 "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
                 "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv" 2>/dev/null || true
@@ -388,7 +388,16 @@ jobs:
                 docker cp "$KNOWLEDGE_EXPORT_DIR/kanji.csv" \
                   "convolab-postgres:$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
 
-                docker exec -i convolab-postgres psql -X --set=ON_ERROR_STOP=1 \
+                docker exec -u root convolab-postgres chown postgres:postgres \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
+                docker exec -u root convolab-postgres chmod 600 \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
+
+                docker exec -i -u postgres convolab-postgres psql -X --set=ON_ERROR_STOP=1 \
                   --username="$postgres_user" --dbname="$TARGET_DB" <<'SQL'
                   BEGIN;
 
