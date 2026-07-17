@@ -186,7 +186,7 @@ jobs:
             KNOWLEDGE_CONTAINER_PREFIX="/tmp/convolab-learning-os-knowledge"
             DRAINING_WORKER_CONTAINER_ID=""
             NEW_PROXY_TOKEN_ID=""
-            PROXY_TOKEN_ACTIVATED=false
+            PROXY_TOKEN_CUTOVER_STARTED=false
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
@@ -204,7 +204,7 @@ jobs:
             cleanup_deployment_resources() {
               cleanup_knowledge_exports
 
-              if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_ACTIVATED" != true ]; then
+              if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then
                 echo "Removing the unused Learning OS proxy token."
                 $COMPOSE run --rm -T --no-deps \
                   -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
@@ -708,6 +708,9 @@ jobs:
               *) echo "Invalid active production color: $active_color"; exit 1 ;;
             esac
 
+            # Once replacement starts, retain the new token on failure because the
+            # server may already be running with it. A later success prunes extras.
+            PROXY_TOKEN_CUTOVER_STARTED=true
             $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
             active_proxy_token="$(docker inspect \
@@ -716,7 +719,6 @@ jobs:
               | sed -n 's/^LEARNING_OS_API_TOKEN=//p' \
               | tail -1)"
             test "$active_proxy_token" = "$proxy_token"
-            PROXY_TOKEN_ACTIVATED=true
 
             docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \

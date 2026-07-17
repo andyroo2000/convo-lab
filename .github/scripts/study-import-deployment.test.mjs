@@ -101,15 +101,15 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
 
   for (const requiredContract of [
     'NEW_PROXY_TOKEN_ID=""',
-    'PROXY_TOKEN_ACTIVATED=false',
-    'if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_ACTIVATED" != true ]; then',
+    'PROXY_TOKEN_CUTOVER_STARTED=false',
+    'if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then',
     'echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;',
     'echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;',
     'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',
+    'PROXY_TOKEN_CUTOVER_STARTED=true',
     '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
     'wait_for_health "convolab-server-$active_color"',
     'test "$active_proxy_token" = "$proxy_token"',
-    'PROXY_TOKEN_ACTIVATED=true',
     '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
   ]) {
     assert.ok(
@@ -125,9 +125,10 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',
     tokenCreation
   );
+  const cutoverStarted = workflow.indexOf('PROXY_TOKEN_CUTOVER_STARTED=true', tokenConfigured);
   const serverRestarted = workflow.indexOf(
     '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
-    tokenConfigured
+    cutoverStarted
   );
   const serverHealthy = workflow.indexOf(
     'wait_for_health "convolab-server-$active_color"',
@@ -137,19 +138,18 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     'test "$active_proxy_token" = "$proxy_token"',
     serverHealthy
   );
-  const tokenActivated = workflow.indexOf('PROXY_TOKEN_ACTIVATED=true', tokenInstalled);
   const oldTokensPruned = workflow.indexOf(
     '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
-    tokenActivated
+    tokenInstalled
   );
 
   assert.ok(tokenCreation >= 0);
   assert.ok(tokenCreation < tokenConfigured);
-  assert.ok(tokenConfigured < serverRestarted);
+  assert.ok(tokenConfigured < cutoverStarted);
+  assert.ok(cutoverStarted < serverRestarted);
   assert.ok(serverRestarted < serverHealthy);
   assert.ok(serverHealthy < tokenInstalled);
-  assert.ok(tokenInstalled < tokenActivated);
-  assert.ok(tokenActivated < oldTokensPruned);
+  assert.ok(tokenInstalled < oldTokensPruned);
   assert.doesNotMatch(
     workflow.slice(tokenCreation, serverHealthy),
     /tokens\(\).*->delete\(\)/s,
