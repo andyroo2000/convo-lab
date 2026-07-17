@@ -185,6 +185,8 @@ jobs:
             KNOWLEDGE_EXPORT_DIR=""
             KNOWLEDGE_CONTAINER_PREFIX="/tmp/convolab-learning-os-knowledge"
             DRAINING_WORKER_CONTAINER_ID=""
+            NEW_PROXY_TOKEN_ID=""
+            PROXY_TOKEN_CUTOVER_STARTED=false
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
@@ -197,6 +199,26 @@ jobs:
                 "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
                 "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
                 "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv" 2>/dev/null || true
+            }
+
+            cleanup_deployment_resources() {
+              cleanup_knowledge_exports
+
+              if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then
+                echo "Removing the unused Learning OS proxy token."
+                $COMPOSE run --rm -T --no-deps \
+                  -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                  -e CONVOLAB_PROXY_TOKEN_ID="$NEW_PROXY_TOKEN_ID" \
+                  learning-os php artisan tinker --execute='
+                    $user = App\Models\User::query()
+                      ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                      ->sole();
+                    $user->tokens()
+                      ->where("name", "convolab-proxy")
+                      ->where("id", getenv("CONVOLAB_PROXY_TOKEN_ID"))
+                      ->delete();
+                  ' < /dev/null || true
+              fi
 
               if [ -n "$DRAINING_WORKER_CONTAINER_ID" ]; then
                 current_worker_id="$(docker inspect --format='{{.Id}}' learning-os-worker 2>/dev/null || true)"
@@ -209,7 +231,7 @@ jobs:
               fi
             }
 
-            trap cleanup_knowledge_exports EXIT
+            trap cleanup_deployment_resources EXIT
 
             cd /opt/convolab
 
@@ -584,12 +606,19 @@ jobs:
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
               learning-os php artisan tinker --execute='
                 $user = App\Models\User::query()->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))->sole();
-                $user->tokens()->where("name", "convolab-proxy")->delete();
-                echo $user->createToken("convolab-proxy", ["study:read", "study:write"])->plainTextToken;
+                $accessToken = $user->createToken("convolab-proxy", ["study:read", "study:write"]);
+                echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
+                echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
               ' < /dev/null)"
+            NEW_PROXY_TOKEN_ID="$(printf '%s\n' "$proxy_token_output" \
+              | sed -n 's/^PROXY_TOKEN_ID=//p' \
+              | grep -E '^[0-9]+$' \
+              | tail -1)"
             proxy_token="$(printf '%s\n' "$proxy_token_output" \
+              | sed -n 's/^PROXY_TOKEN=//p' \
               | grep -E '^[0-9]+\|learning_os_[[:alnum:]]{40}[0-9a-f]{8}$' \
               | tail -1)"
+            test -n "$NEW_PROXY_TOKEN_ID"
             test -n "$proxy_token"
             echo "::add-mask::$proxy_token"
             upsert_env LEARNING_OS_API_TOKEN "$proxy_token"
@@ -679,8 +708,32 @@ jobs:
               *) echo "Invalid active production color: $active_color"; exit 1 ;;
             esac
 
+            # Once replacement starts, retain the new token on failure because the
+            # server may already be running with it. A later success prunes extras.
+            PROXY_TOKEN_CUTOVER_STARTED=true
             $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
+            active_proxy_token="$(docker inspect \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' \
+              "convolab-server-$active_color" \
+              | sed -n 's/^LEARNING_OS_API_TOKEN=//p' \
+              | tail -1)"
+            test "$active_proxy_token" = "$proxy_token"
+
+            if ! docker exec \
+              -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+              -e CONVOLAB_PROXY_TOKEN_ID="$NEW_PROXY_TOKEN_ID" \
+              learning-os-api php artisan tinker --execute='
+                $user = App\Models\User::query()
+                  ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                  ->sole();
+                $user->tokens()
+                  ->where("name", "convolab-proxy")
+                  ->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))
+                  ->delete();
+              '; then
+              echo "::warning::Unable to prune older Learning OS proxy tokens; a later deployment will retry."
+            fi
 
             postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
             postgres_db="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
@@ -736,7 +789,7 @@ jobs:
             verification_pending=true
 
             cleanup_deployment_failure() {
-              cleanup_knowledge_exports
+              cleanup_deployment_resources
               if [ "${verification_pending:-false}" = true ]; then
                 rollback_study_flags
               fi
