@@ -12,6 +12,7 @@ ARCHIVE_DIR=""
 ARCHIVE_PATH=""
 CSRF_COOKIE_JAR=""
 SMOKE_EMAIL=""
+RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 upsert_env() {
   local key="$1"
@@ -109,7 +110,7 @@ cleanup() {
 
   if [ "$exit_status" -ne 0 ]; then
     echo "Learning OS worker logs after import smoke failure:" >&2
-    docker logs --since 10m --tail=300 learning-os-worker >&2 || true
+    docker logs --since "$RUN_STARTED_AT" --tail=300 learning-os-worker >&2 || true
   fi
 
   delete_learning_os_smoke_user || cleanup_status=1

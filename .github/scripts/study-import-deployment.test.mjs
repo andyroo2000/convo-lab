@@ -104,7 +104,8 @@ test('the lifecycle smoke script remains valid Bash', async () => {
 
   for (const requiredContract of [
     'trap cleanup EXIT',
-    'docker logs --since 10m --tail=300 learning-os-worker',
+    'RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"',
+    'docker logs --since "$RUN_STARTED_AT" --tail=300 learning-os-worker',
     'delete_learning_os_smoke_user',
     'delete_convolab_smoke_user',
     'restore_proxy_identity',
