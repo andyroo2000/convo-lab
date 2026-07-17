@@ -305,6 +305,35 @@ describe('StudyCardPreview', () => {
     expect(screen.queryByText('がいる')).not.toBeInTheDocument();
   });
 
+  it('aligns segmentation spaces before masking furigana on cloze prompt sides', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          cardType: 'cloze',
+          prompt: {
+            clozeText: '子どもが公園で{{c1::転んで}}、少し泣いてしまった。',
+            clozeDisplayText: '子どもが公園で[...]、少し泣いてしまった。',
+          },
+          answer: {
+            restoredText: '子どもが公園で転んで、少し泣いてしまった。',
+            restoredTextReading:
+              '子[こ]どもが 公園[こうえん]で 転[ころ]んで、少[すこ]し 泣[な]いてしまった。',
+            meaning: 'The child fell down at the park and ended up crying a little.',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('こ', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('こうえん', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('すこ', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('な', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.queryByText('ころ', { selector: 'rt' })).not.toBeInTheDocument();
+    expect(screen.getByText(/\[\.\.\.\]/)).toBeInTheDocument();
+  });
+
   it('renders Anki-style parenthetical furigana without showing raw parentheses', () => {
     render(
       <StudyCardFace

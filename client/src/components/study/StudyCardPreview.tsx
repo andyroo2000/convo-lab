@@ -43,6 +43,43 @@ const matchingRubyText = (plainText: string, candidates: Array<string | null | u
       toRubyMatchText(toRubyPlainText(candidate)) === toRubyMatchText(plainText)
   );
 
+const alignRubyTextToPlainText = (rubyText: string, plainText: string) => {
+  let plainIndex = 0;
+
+  const appendPlainWhitespace = (value: string) => {
+    const whitespace = plainText.slice(plainIndex).match(/^\s+/u)?.[0] ?? '';
+    plainIndex += whitespace.length;
+    return value + whitespace;
+  };
+
+  const alignedText = parseRubySegments(rubyText).reduce<string | null>((current, segment) => {
+    if (current === null) return null;
+
+    if (segment.kind === 'ruby') {
+      const aligned = appendPlainWhitespace(current);
+      const base = segment.base ?? '';
+      if (!plainText.startsWith(base, plainIndex)) return null;
+
+      plainIndex += base.length;
+      return `${aligned}${base}[${segment.reading ?? ''}]`;
+    }
+
+    return Array.from(segment.text ?? '').reduce<string | null>((text, character) => {
+      if (text === null || /\s/u.test(character)) return text;
+
+      const aligned = appendPlainWhitespace(text);
+      if (!plainText.startsWith(character, plainIndex)) return null;
+
+      plainIndex += character.length;
+      return aligned + character;
+    }, current);
+  }, '');
+
+  if (alignedText === null) return null;
+  const completeText = appendPlainWhitespace(alignedText);
+  return plainIndex === plainText.length ? completeText : null;
+};
+
 const sliceRubyText = (value: string, start: number, end: number) => {
   let offset = 0;
 
@@ -72,13 +109,12 @@ const toMaskedRubyText = (
   restoredText: string | null | undefined,
   restoredTextReading: string | null | undefined
 ) => {
-  if (
-    !restoredText ||
-    !restoredTextReading ||
-    toRubyPlainText(restoredTextReading) !== restoredText
-  ) {
+  if (!restoredText || !restoredTextReading) {
     return displayText;
   }
+
+  const alignedReading = alignRubyTextToPlainText(restoredTextReading, restoredText);
+  if (!alignedReading) return displayText;
 
   // deriveClozePresentation masks only the active cloze, so the display has at most one marker.
   const markerIndex = displayText.indexOf('[...]');
@@ -88,8 +124,8 @@ const toMaskedRubyText = (
   const suffix = displayText.slice(markerIndex + '[...]'.length);
   if (!restoredText.startsWith(prefix) || !restoredText.endsWith(suffix)) return displayText;
 
-  return `${sliceRubyText(restoredTextReading, 0, prefix.length)}[...]${sliceRubyText(
-    restoredTextReading,
+  return `${sliceRubyText(alignedReading, 0, prefix.length)}[...]${sliceRubyText(
+    alignedReading,
     restoredText.length - suffix.length,
     restoredText.length
   )}`;
