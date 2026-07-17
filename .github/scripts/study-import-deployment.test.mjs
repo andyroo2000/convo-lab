@@ -68,11 +68,19 @@ test('the production workflow wires import activation through verification and r
     '\\"studyApiImports\\" = $previous_imports_sql',
     'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|',
     'bash .github/scripts/smoke-study-import-lifecycle.sh',
+    'ensure_learning_os_service learning-os learning-os-api',
+    'ensure_learning_os_service learning-os-worker learning-os-worker',
+    'current_image="$(docker inspect --format=\'{{.Config.Image}}\' "$container" 2>/dev/null || true)"',
+    'if [ "$current_image" = "$desired_learning_os_image" ] && [ "$running" = true ]; then',
   ]) {
     assert.match(workflow, new RegExp(requiredContract.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 
   assert.doesNotMatch(workflow, /\\"studyApiImports\\" = false/);
+  assert.doesNotMatch(
+    workflow,
+    /\$COMPOSE up -d --no-deps --force-recreate learning-os learning-os-worker/
+  );
 });
 
 test('the lifecycle smoke script remains valid Bash', async () => {
