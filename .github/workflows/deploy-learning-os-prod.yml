@@ -170,6 +170,20 @@ jobs:
             ACTIVE_COLOR_FILE="$RUNTIME_DIR/prod-active-color"
             SOURCE_DB="learning_os_convolab_source"
             TARGET_DB="learning_os"
+            KNOWLEDGE_EXPORT_DIR=""
+            KNOWLEDGE_CONTAINER_PREFIX="/tmp/convolab-learning-os-knowledge"
+
+            cleanup_knowledge_exports() {
+              if [ -n "$KNOWLEDGE_EXPORT_DIR" ]; then
+                rm -rf "$KNOWLEDGE_EXPORT_DIR"
+              fi
+              docker exec -u root convolab-postgres rm -f \
+                "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
+                "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
+                "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv" 2>/dev/null || true
+            }
+
+            trap cleanup_knowledge_exports EXIT
 
             cd /opt/convolab
 
@@ -240,8 +254,11 @@ jobs:
               chmod 700 "$BACKUP_DIR"
               timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
               source_dump="$BACKUP_DIR/convolab-before-learning-os-$timestamp.dump"
+              preserved_profile_count=0
+              preserved_connection_count=0
+              preserved_kanji_count=0
 
-              $COMPOSE stop learning-os 2>/dev/null || true
+              $COMPOSE stop learning-os learning-os-worker 2>/dev/null || true
 
               echo "Creating immutable ConvoLab backup: $source_dump"
               docker exec convolab-postgres pg_dump \
@@ -261,6 +278,88 @@ jobs:
                   --format=custom --no-owner --no-acl > "$target_dump"
                 chmod 600 "$target_dump"
                 test -s "$target_dump"
+
+                knowledge_table_count="$(docker exec convolab-postgres psql \
+                  --username="$postgres_user" --dbname="$TARGET_DB" \
+                  --tuples-only --no-align \
+                  --command="
+                    SELECT count(*)
+                    FROM unnest(ARRAY[
+                      to_regclass('public.japanese_knowledge_profiles'),
+                      to_regclass('public.wanikani_connections'),
+                      to_regclass('public.user_known_kanji')
+                    ]) AS preserved_table(table_name)
+                    WHERE table_name IS NOT NULL;
+                  " | tr -d '[:space:]')"
+
+                if [ "$knowledge_table_count" = 3 ]; then
+                  KNOWLEDGE_EXPORT_DIR="$(mktemp -d "$BACKUP_DIR/learning-os-knowledge-$timestamp.XXXXXX")"
+                  chmod 700 "$KNOWLEDGE_EXPORT_DIR"
+
+                  docker exec convolab-postgres psql -X --quiet --set=ON_ERROR_STOP=1 \
+                    --username="$postgres_user" --dbname="$TARGET_DB" \
+                    --command="
+                      COPY (
+                        SELECT lower(btrim(users.email)),
+                               profiles.knowledge_version,
+                               profiles.created_at,
+                               profiles.updated_at
+                        FROM japanese_knowledge_profiles AS profiles
+                        JOIN users ON users.id = profiles.user_id
+                        ORDER BY lower(btrim(users.email))
+                      ) TO STDOUT WITH (FORMAT csv, HEADER true);
+                    " > "$KNOWLEDGE_EXPORT_DIR/profiles.csv"
+                  docker exec convolab-postgres psql -X --quiet --set=ON_ERROR_STOP=1 \
+                    --username="$postgres_user" --dbname="$TARGET_DB" \
+                    --command="
+                      COPY (
+                        SELECT lower(btrim(users.email)),
+                               connections.api_token,
+                               connections.assignments_synced_through_at,
+                               connections.last_synced_at,
+                               connections.created_at,
+                               connections.updated_at
+                        FROM wanikani_connections AS connections
+                        JOIN users ON users.id = connections.user_id
+                        ORDER BY lower(btrim(users.email))
+                      ) TO STDOUT WITH (FORMAT csv, HEADER true);
+                    " > "$KNOWLEDGE_EXPORT_DIR/connections.csv"
+                  docker exec convolab-postgres psql -X --quiet --set=ON_ERROR_STOP=1 \
+                    --username="$postgres_user" --dbname="$TARGET_DB" \
+                    --command="
+                      COPY (
+                        SELECT lower(btrim(users.email)),
+                               known.character,
+                               known.wanikani_subject_id,
+                               known.wanikani_passed_at,
+                               known.manually_added_at,
+                               known.created_at,
+                               known.updated_at
+                        FROM user_known_kanji AS known
+                        JOIN users ON users.id = known.user_id
+                        ORDER BY lower(btrim(users.email)), known.character
+                      ) TO STDOUT WITH (FORMAT csv, HEADER true);
+                    " > "$KNOWLEDGE_EXPORT_DIR/kanji.csv"
+                  chmod 600 "$KNOWLEDGE_EXPORT_DIR"/*.csv
+
+                  preserved_profile_count="$(docker exec convolab-postgres psql \
+                    --username="$postgres_user" --dbname="$TARGET_DB" \
+                    --tuples-only --no-align \
+                    --command='SELECT count(*) FROM japanese_knowledge_profiles' | tr -d '[:space:]')"
+                  preserved_connection_count="$(docker exec convolab-postgres psql \
+                    --username="$postgres_user" --dbname="$TARGET_DB" \
+                    --tuples-only --no-align \
+                    --command='SELECT count(*) FROM wanikani_connections' | tr -d '[:space:]')"
+                  preserved_kanji_count="$(docker exec convolab-postgres psql \
+                    --username="$postgres_user" --dbname="$TARGET_DB" \
+                    --tuples-only --no-align \
+                    --command='SELECT count(*) FROM user_known_kanji' | tr -d '[:space:]')"
+
+                  echo "Preserved $preserved_connection_count WaniKani connections and $preserved_kanji_count known-kanji rows."
+                elif [ "$knowledge_table_count" != 0 ]; then
+                  echo "Learning OS Japanese knowledge schema is incomplete; refusing to rebuild." >&2
+                  exit 1
+                fi
               fi
 
               docker exec convolab-postgres dropdb --username="$postgres_user" --if-exists "$SOURCE_DB"
@@ -280,6 +379,170 @@ jobs:
                 --skip-media \
                 --allow-production \
                 --production-truncate-confirmation="TRUNCATE $TARGET_DB" < /dev/null
+
+              if [ -n "$KNOWLEDGE_EXPORT_DIR" ]; then
+                docker cp "$KNOWLEDGE_EXPORT_DIR/profiles.csv" \
+                  "convolab-postgres:$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv"
+                docker cp "$KNOWLEDGE_EXPORT_DIR/connections.csv" \
+                  "convolab-postgres:$KNOWLEDGE_CONTAINER_PREFIX-connections.csv"
+                docker cp "$KNOWLEDGE_EXPORT_DIR/kanji.csv" \
+                  "convolab-postgres:$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
+
+                docker exec -u root convolab-postgres chown postgres:postgres \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
+                docker exec -u root convolab-postgres chmod 600 \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
+                  "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
+
+                docker exec -i -u postgres convolab-postgres psql -X --set=ON_ERROR_STOP=1 \
+                  --username="$postgres_user" --dbname="$TARGET_DB" <<'SQL'
+                  BEGIN;
+
+                  CREATE TEMP TABLE preserved_knowledge_profiles (
+                    email text NOT NULL,
+                    knowledge_version bigint NOT NULL,
+                    created_at timestamp,
+                    updated_at timestamp
+                  );
+                  CREATE TEMP TABLE preserved_wanikani_connections (
+                    email text NOT NULL,
+                    api_token text NOT NULL,
+                    assignments_synced_through_at timestamp(6),
+                    last_synced_at timestamp(6),
+                    created_at timestamp,
+                    updated_at timestamp
+                  );
+                  CREATE TEMP TABLE preserved_known_kanji (
+                    email text NOT NULL,
+                    character varchar(4) NOT NULL,
+                    wanikani_subject_id bigint,
+                    wanikani_passed_at timestamp(6),
+                    manually_added_at timestamp(6),
+                    created_at timestamp,
+                    updated_at timestamp
+                  );
+
+                  \copy preserved_knowledge_profiles FROM '/tmp/convolab-learning-os-knowledge-profiles.csv' WITH (FORMAT csv, HEADER true)
+                  \copy preserved_wanikani_connections FROM '/tmp/convolab-learning-os-knowledge-connections.csv' WITH (FORMAT csv, HEADER true)
+                  \copy preserved_known_kanji FROM '/tmp/convolab-learning-os-knowledge-kanji.csv' WITH (FORMAT csv, HEADER true)
+
+                  DO $restore$
+                  BEGIN
+                    IF EXISTS (
+                      SELECT 1
+                      FROM (
+                        SELECT email FROM preserved_knowledge_profiles
+                        UNION
+                        SELECT email FROM preserved_wanikani_connections
+                        UNION
+                        SELECT email FROM preserved_known_kanji
+                      ) AS preserved_users
+                      LEFT JOIN users ON lower(btrim(users.email)) = preserved_users.email
+                      WHERE users.id IS NULL
+                    ) THEN
+                      RAISE EXCEPTION 'Cannot restore Japanese knowledge for an unmatched user email';
+                    END IF;
+                  END
+                  $restore$;
+
+                  INSERT INTO japanese_knowledge_profiles (
+                    user_id, knowledge_version, created_at, updated_at
+                  )
+                  SELECT users.id,
+                         preserved.knowledge_version,
+                         preserved.created_at,
+                         preserved.updated_at
+                  FROM preserved_knowledge_profiles AS preserved
+                  JOIN users ON lower(btrim(users.email)) = preserved.email
+                  ON CONFLICT (user_id) DO UPDATE
+                  SET knowledge_version = EXCLUDED.knowledge_version,
+                      created_at = EXCLUDED.created_at,
+                      updated_at = EXCLUDED.updated_at;
+
+                  INSERT INTO wanikani_connections (
+                    user_id, api_token, assignments_synced_through_at, last_synced_at,
+                    created_at, updated_at
+                  )
+                  SELECT users.id,
+                         preserved.api_token,
+                         preserved.assignments_synced_through_at,
+                         preserved.last_synced_at,
+                         preserved.created_at,
+                         preserved.updated_at
+                  FROM preserved_wanikani_connections AS preserved
+                  JOIN users ON lower(btrim(users.email)) = preserved.email
+                  ON CONFLICT (user_id) DO UPDATE
+                  SET api_token = EXCLUDED.api_token,
+                      assignments_synced_through_at = EXCLUDED.assignments_synced_through_at,
+                      last_synced_at = EXCLUDED.last_synced_at,
+                      created_at = EXCLUDED.created_at,
+                      updated_at = EXCLUDED.updated_at;
+
+                  INSERT INTO user_known_kanji (
+                    user_id, character, wanikani_subject_id, wanikani_passed_at,
+                    manually_added_at, created_at, updated_at
+                  )
+                  SELECT users.id,
+                         preserved.character,
+                         preserved.wanikani_subject_id,
+                         preserved.wanikani_passed_at,
+                         preserved.manually_added_at,
+                         preserved.created_at,
+                         preserved.updated_at
+                  FROM preserved_known_kanji AS preserved
+                  JOIN users ON lower(btrim(users.email)) = preserved.email
+                  ON CONFLICT (user_id, character) DO UPDATE
+                  SET wanikani_subject_id = EXCLUDED.wanikani_subject_id,
+                      wanikani_passed_at = EXCLUDED.wanikani_passed_at,
+                      manually_added_at = EXCLUDED.manually_added_at,
+                      created_at = EXCLUDED.created_at,
+                      updated_at = EXCLUDED.updated_at;
+
+                  DO $verify$
+                  BEGIN
+                    IF (SELECT count(*) FROM japanese_knowledge_profiles)
+                         <> (SELECT count(*) FROM preserved_knowledge_profiles)
+                      OR (SELECT count(*) FROM wanikani_connections)
+                         <> (SELECT count(*) FROM preserved_wanikani_connections)
+                      OR (SELECT count(*) FROM user_known_kanji)
+                         <> (SELECT count(*) FROM preserved_known_kanji)
+                    THEN
+                      RAISE EXCEPTION 'Japanese knowledge restore count mismatch';
+                    END IF;
+                  END
+                  $verify$;
+
+                  COMMIT;
+          SQL
+
+                restored_profile_count="$(docker exec convolab-postgres psql \
+                  --username="$postgres_user" --dbname="$TARGET_DB" \
+                  --tuples-only --no-align \
+                  --command='SELECT count(*) FROM japanese_knowledge_profiles' | tr -d '[:space:]')"
+                restored_connection_count="$(docker exec convolab-postgres psql \
+                  --username="$postgres_user" --dbname="$TARGET_DB" \
+                  --tuples-only --no-align \
+                  --command='SELECT count(*) FROM wanikani_connections' | tr -d '[:space:]')"
+                restored_kanji_count="$(docker exec convolab-postgres psql \
+                  --username="$postgres_user" --dbname="$TARGET_DB" \
+                  --tuples-only --no-align \
+                  --command='SELECT count(*) FROM user_known_kanji' | tr -d '[:space:]')"
+
+                if [ "$restored_profile_count" != "$preserved_profile_count" ] \
+                  || [ "$restored_connection_count" != "$preserved_connection_count" ] \
+                  || [ "$restored_kanji_count" != "$preserved_kanji_count" ]; then
+                  echo "Japanese knowledge restore count mismatch." >&2
+                  exit 1
+                fi
+
+                echo "Restored $restored_connection_count WaniKani connections and $restored_kanji_count known-kanji rows."
+                cleanup_knowledge_exports
+                KNOWLEDGE_EXPORT_DIR=""
+              fi
+
               $COMPOSE run --rm -T --no-deps learning-os \
                 php artisan rehearsal:smoke \
                 --user-email="$SMOKE_USER_EMAIL" \
@@ -382,7 +645,15 @@ jobs:
             }
 
             verification_pending=true
-            trap 'if [ "${verification_pending:-false}" = true ]; then rollback_study_flags; fi' EXIT
+
+            cleanup_deployment_failure() {
+              cleanup_knowledge_exports
+              if [ "${verification_pending:-false}" = true ]; then
+                rollback_study_flags
+              fi
+            }
+
+            trap cleanup_deployment_failure EXIT
 
             desired_parent=false
             if [ "$ENABLE_SETTINGS" = true ] || [ "$ENABLE_OVERVIEW" = true ] \

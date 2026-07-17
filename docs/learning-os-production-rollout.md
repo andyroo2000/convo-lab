@@ -22,18 +22,23 @@ The workflow:
 
 1. Creates a custom-format backup of the live ConvoLab database under
    `/opt/convolab-backups` without modifying the source database.
-2. Restores that backup into a disposable `learning_os_convolab_source`
+2. When replacing an existing Learning OS database, securely exports its
+   WaniKani connection, known-kanji, and Japanese knowledge-profile rows.
+3. Restores the ConvoLab backup into a disposable `learning_os_convolab_source`
    database.
-3. Creates and migrates the separate `learning_os` target database.
-4. Imports users, settings, imports, cards, and reviews with production
+4. Creates and migrates the separate `learning_os` target database.
+5. Imports users, settings, imports, cards, and reviews with production
    confirmation guards and `--skip-media`.
-5. Runs the Learning OS smoke harness against the copied user.
-6. Deletes the disposable restored source database but retains the dump.
-7. Rotates a read/write-scoped Sanctum token, starts the private API, and recreates
+6. Restores the preserved Learning OS-owned rows by normalized user email,
+   verifies exact row counts, and removes the temporary exports. The deployment
+   aborts if any preserved account cannot be matched.
+7. Runs the Learning OS smoke harness against the copied user.
+8. Deletes the disposable restored source database but retains the dump.
+9. Rotates a read/write-scoped Sanctum token, starts the private API, and recreates
    only the active ConvoLab web color with the upstream configuration.
-8. Applies the requested route flag state, then compares every enabled
-   Learning OS response with the legacy ConvoLab response for the same user and
-   query before completing.
+10. Applies the requested route flag state, then compares every enabled
+    Learning OS response with the legacy ConvoLab response for the same user and
+    query before completing.
 
 The initial proxy token represents the selected copied user. ConvoLab therefore
 rejects Learning OS proxy requests from every other account, even though the
@@ -55,7 +60,9 @@ and recreates the active ConvoLab web container.
 
 Use `rebuild_database: true` only for an intentional new copy rehearsal. The
 workflow first backs up any existing `learning_os` database before replacing
-it.
+it. WaniKani connections, known kanji (including manual additions), and
+Japanese knowledge versions are preserved across the rebuild and remapped to
+the rebuilt users by normalized email.
 
 Rebuild immediately before enabling Overview, Browser, or New Queue so the
 comparison uses a fresh copy of the live ConvoLab data. Avoid studying or
