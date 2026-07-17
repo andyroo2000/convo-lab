@@ -69,9 +69,19 @@ test('the production workflow wires import activation through verification and r
     'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|',
     'bash .github/scripts/smoke-study-import-lifecycle.sh',
     'ensure_learning_os_service learning-os learning-os-api',
-    'ensure_learning_os_service learning-os-worker learning-os-worker',
+    'ensure_learning_os_worker',
     'current_image="$(docker inspect --format=\'{{.Config.Image}}\' "$container" 2>/dev/null || true)"',
     'if [ "$current_image" = "$desired_learning_os_image" ] && [ "$running" = true ]; then',
+    '-o ServerAliveInterval=30',
+    'docker update --restart=no "$container"',
+    'docker exec "$container" php artisan queue:restart',
+    'docker update --restart=unless-stopped "$container"',
+    'WORKER_DRAIN_ATTEMPTS=780',
+    'WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))',
+    '$container drain attempt $attempt/$WORKER_DRAIN_ATTEMPTS',
+    '$COMPOSE up -d --no-deps --force-recreate learning-os-worker',
+    'if [ "$current_worker_id" = "$DRAINING_WORKER_CONTAINER_ID" ]; then',
+    'docker start learning-os-worker',
   ]) {
     assert.match(workflow, new RegExp(requiredContract.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }

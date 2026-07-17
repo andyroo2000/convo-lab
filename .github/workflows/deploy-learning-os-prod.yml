@@ -70,7 +70,8 @@ jobs:
   deploy:
     name: Deploy private API and copied database
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 10m image pull + 65m worker drain + 10m health gates + 15m setup/smoke.
+    timeout-minutes: 100
     permissions:
       contents: read
       packages: read
@@ -167,7 +168,10 @@ jobs:
           deployment_log="$(mktemp)"
           trap 'rm -f "$deployment_log"' EXIT
 
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=150 \
             "$DROPLET_USER@$DROPLET_HOST" \
             "$REMOTE_ENV bash -s" << 'ENDSSH' | tee "$deployment_log"
             set -euo pipefail
@@ -180,6 +184,10 @@ jobs:
             TARGET_DB="learning_os"
             KNOWLEDGE_EXPORT_DIR=""
             KNOWLEDGE_CONTAINER_PREFIX="/tmp/convolab-learning-os-knowledge"
+            DRAINING_WORKER_CONTAINER_ID=""
+            WORKER_DRAIN_ATTEMPTS=780
+            WORKER_DRAIN_INTERVAL_SECONDS=5
+            WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
 
             cleanup_knowledge_exports() {
               if [ -n "$KNOWLEDGE_EXPORT_DIR" ]; then
@@ -189,6 +197,16 @@ jobs:
                 "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
                 "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
                 "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv" 2>/dev/null || true
+
+              if [ -n "$DRAINING_WORKER_CONTAINER_ID" ]; then
+                current_worker_id="$(docker inspect --format='{{.Id}}' learning-os-worker 2>/dev/null || true)"
+
+                if [ "$current_worker_id" = "$DRAINING_WORKER_CONTAINER_ID" ]; then
+                  echo "Restoring the previous Learning OS worker after an interrupted drain."
+                  docker update --restart=unless-stopped learning-os-worker >/dev/null || true
+                  docker start learning-os-worker >/dev/null || true
+                fi
+              fi
             }
 
             trap cleanup_knowledge_exports EXIT
@@ -592,10 +610,54 @@ jobs:
               $COMPOSE up -d --no-deps --force-recreate "$service"
             }
 
+            ensure_learning_os_worker() {
+              container="learning-os-worker"
+              current_image="$(docker inspect --format='{{.Config.Image}}' "$container" 2>/dev/null || true)"
+              running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
+
+              if [ "$current_image" = "$desired_learning_os_image" ] && [ "$running" = true ]; then
+                echo "Reusing running $container on immutable image $desired_learning_os_image."
+                return
+              fi
+
+              if [ "$running" = true ]; then
+                echo "Draining $container before replacing $current_image."
+                DRAINING_WORKER_CONTAINER_ID="$(docker inspect --format='{{.Id}}' "$container")"
+                docker update --restart=no "$container" >/dev/null
+
+                if ! docker exec "$container" php artisan queue:restart; then
+                  docker update --restart=unless-stopped "$container" >/dev/null || true
+                  DRAINING_WORKER_CONTAINER_ID=""
+                  return 1
+                fi
+
+                for ((attempt = 1; attempt <= WORKER_DRAIN_ATTEMPTS; attempt++)); do
+                  running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
+
+                  if [ "$running" != true ]; then
+                    break
+                  fi
+
+                  echo "$container drain attempt $attempt/$WORKER_DRAIN_ATTEMPTS: waiting for the current job to finish."
+                  sleep "$WORKER_DRAIN_INTERVAL_SECONDS"
+                done
+
+                if [ "$running" = true ]; then
+                  echo "$container did not drain within $WORKER_DRAIN_TIMEOUT_MINUTES minutes."
+                  docker update --restart=unless-stopped "$container" >/dev/null || true
+                  DRAINING_WORKER_CONTAINER_ID=""
+                  return 1
+                fi
+              fi
+
+              $COMPOSE up -d --no-deps --force-recreate learning-os-worker
+              DRAINING_WORKER_CONTAINER_ID=""
+            }
+
             # Reconcile independently so an unchanged busy worker is not drained merely
             # because the ConvoLab proxy token rotated.
             ensure_learning_os_service learning-os learning-os-api
-            ensure_learning_os_service learning-os-worker learning-os-worker
+            ensure_learning_os_worker
             wait_for_health learning-os-api
             wait_for_health learning-os-worker
 
