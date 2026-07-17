@@ -3,6 +3,26 @@ import { describe, expect, it } from 'vitest';
 import { adaptLearningOsStudyReadResponse } from '../../../../routes/learningOs/studyReadAdapters.js';
 
 describe('Learning OS Study read response adapters', () => {
+  const importJobResource = (preview: unknown = null) => ({
+    id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+    status: 'pending',
+    source_type: 'anki_colpkg',
+    source_filename: 'japanese.colpkg',
+    source_content_type: 'application/zip',
+    source_size_bytes: null,
+    deck_name: 'Japanese',
+    preview,
+    summary: null,
+    error_message: null,
+    started_at: null,
+    uploaded_at: null,
+    upload_completed_at: null,
+    upload_expires_at: '2026-07-16T13:00:00.000000Z',
+    completed_at: null,
+    created_at: '2026-07-16T12:00:00.000000Z',
+    updated_at: '2026-07-16T12:00:00.000000Z',
+  });
+
   it('adapts the Laravel settings resource', () => {
     expect(
       adaptLearningOsStudyReadResponse('settings', {
@@ -114,6 +134,93 @@ describe('Learning OS Study read response adapters', () => {
         },
       })
     ).toMatchObject({ latestImport: null, nextDueAt: null, totalCards: 0 });
+  });
+
+  it('adapts native and copied import previews to the shared client contract', () => {
+    const nativePreview = {
+      deck_name: 'Japanese',
+      card_count: 12,
+      note_count: 6,
+      review_log_count: 30,
+      media_reference_count: 4,
+      skipped_media_count: 1,
+      warnings: ['Skipped one unsafe media path.'],
+      note_type_breakdown: [{ note_type_name: 'Japanese - Vocab', note_count: 6, card_count: 12 }],
+    };
+    const copiedPreview = {
+      deckName: 'Japanese',
+      cardCount: 12,
+      noteCount: 6,
+      reviewLogCount: 30,
+      mediaReferenceCount: 4,
+      skippedMediaCount: 1,
+      warnings: ['Skipped one unsafe media path.'],
+      noteTypeBreakdown: [{ notetypeName: 'Japanese - Vocab', noteCount: 6, cardCount: 12 }],
+    };
+
+    const expectedPreview = copiedPreview;
+    expect(
+      adaptLearningOsStudyReadResponse('importJob', {
+        data: importJobResource(nativePreview),
+      })
+    ).toMatchObject({ preview: expectedPreview });
+    expect(
+      adaptLearningOsStudyReadResponse('importJob', {
+        data: importJobResource(copiedPreview),
+      })
+    ).toMatchObject({ preview: expectedPreview });
+  });
+
+  it('adapts current, readiness, and upload-session import responses', () => {
+    expect(adaptLearningOsStudyReadResponse('importCurrent', { data: null })).toBeNull();
+    expect(
+      adaptLearningOsStudyReadResponse('importReadiness', {
+        ready: false,
+        message: 'Import storage is unavailable.',
+      })
+    ).toEqual({ ready: false, message: 'Import storage is unavailable.' });
+    expect(
+      adaptLearningOsStudyReadResponse('importSession', {
+        data: {
+          import_job: importJobResource(),
+          upload: {
+            method: 'PUT',
+            url: 'https://learning-os.example/api/study/imports/private/upload',
+            headers: {
+              'Content-Type': 'application/zip',
+              Authorization: 'must-not-reach-the-browser',
+            },
+          },
+        },
+      })
+    ).toEqual({
+      importJob: expect.objectContaining({
+        id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+        sourceFilename: 'japanese.colpkg',
+        uploadExpiresAt: '2026-07-16T13:00:00.000Z',
+      }),
+      upload: {
+        method: 'PUT',
+        url: '/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload',
+        headers: { 'Content-Type': 'application/zip' },
+      },
+    });
+  });
+
+  it('rejects malformed import lifecycle responses', () => {
+    expect(() =>
+      adaptLearningOsStudyReadResponse('importSession', {
+        data: {
+          import_job: importJobResource(),
+          upload: { method: 'POST', url: 'https://example.test', headers: {} },
+        },
+      })
+    ).toThrow('Learning OS Study API returned an invalid importSession response.');
+    expect(() =>
+      adaptLearningOsStudyReadResponse('importJob', {
+        data: { ...importJobResource(), source_size_bytes: -1 },
+      })
+    ).toThrow('Learning OS Study API returned an invalid importJob response.');
   });
 
   it('validates a browser page and preserves the legacy list shape', () => {

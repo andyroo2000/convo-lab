@@ -43,7 +43,7 @@ import type {
 } from '@languageflow/shared/src/types';
 
 import { API_URL } from '../config';
-import { fetchWithCsrf } from '../lib/csrf';
+import { CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 
@@ -914,15 +914,20 @@ export function useStudyCardAction() {
 }
 
 export async function createStudyImportUploadSession(
-  file: File
+  file: File,
+  flags?: FeatureFlags
 ): Promise<StudyImportUploadSession> {
-  return apiRequest<StudyImportUploadSession>('/api/study/imports', {
-    method: 'POST',
-    body: JSON.stringify({
-      filename: file.name,
-      contentType: file.type || 'application/octet-stream',
-    }),
-  });
+  return apiRequest<StudyImportUploadSession>(
+    '/api/study/imports',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type || 'application/octet-stream',
+      }),
+    },
+    { feature: 'imports', flags }
+  );
 }
 
 export async function uploadStudyImportArchive(
@@ -933,6 +938,11 @@ export async function uploadStudyImportArchive(
     signal?: AbortSignal;
   } = {}
 ): Promise<void> {
+  const csrfToken = await getCsrfToken();
+  if (!csrfToken) {
+    throw new Error('Unable to initialize secure upload.');
+  }
+
   await new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest();
     const abortHandler = () => {
@@ -949,6 +959,7 @@ export async function uploadStudyImportArchive(
     Object.entries(session.upload.headers).forEach(([headerName, headerValue]) => {
       request.setRequestHeader(headerName, headerValue);
     });
+    request.setRequestHeader(CSRF_TOKEN_HEADER_NAME, csrfToken);
 
     options.signal?.addEventListener('abort', abortHandler, { once: true });
 
@@ -985,21 +996,29 @@ export async function uploadStudyImportArchive(
   });
 }
 
-export async function completeStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
+export async function completeStudyImportUpload(
+  importJobId: string,
+  flags?: FeatureFlags
+): Promise<StudyImportResult> {
   return apiRequest<StudyImportResult>(
     `/api/study/imports/${encodeURIComponent(importJobId)}/complete`,
     {
       method: 'POST',
-    }
+    },
+    { feature: 'imports', flags }
   );
 }
 
-export async function cancelStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
+export async function cancelStudyImportUpload(
+  importJobId: string,
+  flags?: FeatureFlags
+): Promise<StudyImportResult> {
   return apiRequest<StudyImportResult>(
     `/api/study/imports/${encodeURIComponent(importJobId)}/cancel`,
     {
       method: 'POST',
-    }
+    },
+    { feature: 'imports', flags }
   );
 }
 
@@ -1013,8 +1032,13 @@ export async function getCurrentStudyImport(
   });
 }
 
-export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
-  return apiRequest<StudyImportUploadReadiness>('/api/study/imports/readiness');
+export async function getStudyImportUploadReadiness(
+  flags?: FeatureFlags
+): Promise<StudyImportUploadReadiness> {
+  return apiRequest<StudyImportUploadReadiness>('/api/study/imports/readiness', undefined, {
+    feature: 'imports',
+    flags,
+  });
 }
 
 export async function getStudyImportStatus(
@@ -1029,8 +1053,11 @@ export async function getStudyImportStatus(
   );
 }
 
-export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
-  const session = await createStudyImportUploadSession(file);
+export async function uploadStudyImport(
+  file: File,
+  flags?: FeatureFlags
+): Promise<StudyImportResult> {
+  const session = await createStudyImportUploadSession(file, flags);
   await uploadStudyImportArchive(session, file);
-  return completeStudyImportUpload(session.importJob.id);
+  return completeStudyImportUpload(session.importJob.id, flags);
 }

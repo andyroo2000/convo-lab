@@ -81,6 +81,7 @@ const StudyImportPage = () => {
   const pollAbortControllerRef = useRef<AbortController | null>(null);
   const activeImportJobIdRef = useRef<string | null>(null);
   const phaseRef = useRef<ImportPhase>('idle');
+  const flagsRef = useRef(flags);
 
   const isBusy =
     phase === 'resuming' ||
@@ -92,6 +93,10 @@ const StudyImportPage = () => {
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
+
+  useEffect(() => {
+    flagsRef.current = flags;
+  }, [flags]);
 
   const clearActiveImportJob = useCallback(() => {
     activeImportJobIdRef.current = null;
@@ -210,7 +215,7 @@ const StudyImportPage = () => {
       uploadAbortControllerRef.current?.abort();
       const importJobId = activeImportJobIdRef.current;
       if (importJobId) {
-        cancelStudyImportUpload(importJobId).catch(() => {});
+        cancelStudyImportUpload(importJobId, flagsRef.current).catch(() => {});
       }
     },
     []
@@ -228,7 +233,7 @@ const StudyImportPage = () => {
 
     try {
       setPhase('cancelling');
-      const result = await cancelStudyImportUpload(importJobId);
+      const result = await cancelStudyImportUpload(importJobId, flags);
       setImportResult(result);
       setError(result.errorMessage ?? t('import.uploadCancelled'));
     } catch (err) {
@@ -259,7 +264,7 @@ const StudyImportPage = () => {
       setImportResult(null);
       const uploadAbortController = new AbortController();
       uploadAbortControllerRef.current = uploadAbortController;
-      const session = await createStudyImportUploadSession(file);
+      const session = await createStudyImportUploadSession(file, flags);
       storeActiveImportJob(session.importJob.id);
       setImportResult(session.importJob);
       await uploadStudyImportArchive(session, file, {
@@ -269,7 +274,7 @@ const StudyImportPage = () => {
       uploadAbortControllerRef.current = null;
 
       setPhase('queued');
-      const queuedResult = await completeStudyImportUpload(session.importJob.id);
+      const queuedResult = await completeStudyImportUpload(session.importJob.id, flags);
       setImportResult(queuedResult);
 
       const pollAbortController = new AbortController();
@@ -294,7 +299,7 @@ const StudyImportPage = () => {
       setError(err instanceof Error ? err.message : t('import.failed'));
       const importJobId = activeImportJobIdRef.current;
       if (hadActiveUpload && importJobId) {
-        await cancelStudyImportUpload(importJobId).catch(() => {});
+        await cancelStudyImportUpload(importJobId, flags).catch(() => {});
         clearActiveImportJob();
       }
     }

@@ -14,11 +14,21 @@ import {
 
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
+const LEARNING_OS_IMPORT_UPLOAD_TIMEOUT_MS = 30 * 60 * 1000;
+const MAX_STUDY_IMPORT_UPLOAD_BYTES = 2_147_483_648;
 const MAX_NEW_QUEUE_REORDER_SIZE = 500;
 const MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH = 500;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 const UUID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const STUDY_IMPORT_ULID_SEGMENT = '[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}';
+const STUDY_IMPORT_ID_SEGMENT = `(?:${STUDY_IMPORT_ULID_SEGMENT}|[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})`;
+const STUDY_IMPORT_CONTENT_TYPES = new Set([
+  'application/octet-stream',
+  'application/zip',
+  'application/x-zip-compressed',
+  'multipart/x-zip',
+]);
 
 const learningOsStudyIpRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
@@ -84,6 +94,7 @@ type StudyWriteBody =
   | 'reviewUndo'
   | 'session'
   | 'settings'
+  | 'importCreate'
   | 'wanikaniConnection';
 
 interface StudyProxyRoute {
@@ -97,6 +108,7 @@ interface StudyProxyRoute {
   writeBody?: StudyWriteBody;
   requiredReadFlag?: Extract<FeatureFlagKey, 'studyApiSettings' | 'studyApiNewQueue'>;
   reviewOperation?: 'session' | 'write';
+  importUpload?: boolean;
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
@@ -195,15 +207,54 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     requiredReadFlag: 'studyApiNewQueue',
   },
   {
-    method: 'GET',
-    pattern: /^\/imports\/current$/,
+    method: 'POST',
+    pattern: /^\/imports$/,
     featureFlag: 'studyApiImports',
+    responseFeature: 'importSession',
+    queryParams: new Set(),
+    writeBody: 'importCreate',
+  },
+  {
+    method: 'GET',
+    pattern: /^\/imports\/readiness$/,
+    featureFlag: 'studyApiImports',
+    responseFeature: 'importReadiness',
     queryParams: new Set(),
   },
   {
     method: 'GET',
-    pattern: /^\/imports\/[A-Za-z0-9_-]+$/,
+    pattern: /^\/imports\/current$/,
     featureFlag: 'studyApiImports',
+    responseFeature: 'importCurrent',
+    queryParams: new Set(),
+  },
+  {
+    method: 'PUT',
+    pattern: new RegExp(`^/imports/${STUDY_IMPORT_ULID_SEGMENT}/upload$`),
+    featureFlag: 'studyApiImports',
+    responseFeature: 'importJob',
+    queryParams: new Set(),
+    importUpload: true,
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/imports/${STUDY_IMPORT_ULID_SEGMENT}/complete$`),
+    featureFlag: 'studyApiImports',
+    responseFeature: 'importJob',
+    queryParams: new Set(),
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/imports/${STUDY_IMPORT_ULID_SEGMENT}/cancel$`),
+    featureFlag: 'studyApiImports',
+    responseFeature: 'importJob',
+    queryParams: new Set(),
+  },
+  {
+    method: 'GET',
+    pattern: new RegExp(`^/imports/${STUDY_IMPORT_ID_SEGMENT}$`),
+    featureFlag: 'studyApiImports',
+    responseFeature: 'importJob',
     queryParams: new Set(),
   },
   {
@@ -450,6 +501,35 @@ function adaptReviewUndoBody(value: unknown): Record<string, unknown> {
   };
 }
 
+function adaptImportCreateBody(value: unknown): { filename: string; content_type?: string } {
+  const body = requestRecord(value);
+  const filename = body.filename;
+  const contentType = body.contentType;
+  const normalizedFilename = typeof filename === 'string' ? filename.trim() : '';
+  const normalizedContentType =
+    typeof contentType === 'string' ? contentType.trim().toLowerCase() : undefined;
+
+  if (
+    normalizedFilename.length < 1 ||
+    normalizedFilename.length > 255 ||
+    /[\\/]/.test(normalizedFilename) ||
+    !normalizedFilename.toLowerCase().endsWith('.colpkg')
+  ) {
+    throw new AppError('filename must be a valid .colpkg filename.', 400);
+  }
+  if (
+    contentType !== undefined &&
+    (normalizedContentType === undefined || !STUDY_IMPORT_CONTENT_TYPES.has(normalizedContentType))
+  ) {
+    throw new AppError('contentType must be a supported archive content type.', 400);
+  }
+
+  return {
+    filename: normalizedFilename,
+    ...(normalizedContentType === undefined ? {} : { content_type: normalizedContentType }),
+  };
+}
+
 function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   if (route.writeBody === 'settings') {
     return adaptSettingsWriteBody(value);
@@ -471,6 +551,9 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   }
   if (route.writeBody === 'reviewUndo') {
     return adaptReviewUndoBody(value);
+  }
+  if (route.writeBody === 'importCreate') {
+    return adaptImportCreateBody(value);
   }
 
   return undefined;
@@ -556,6 +639,74 @@ async function fetchLearningOsStudy(
   }
 }
 
+function importUploadHeaders(req: AuthRequest): Record<string, string> {
+  const contentType = req.header('Content-Type')?.trim().toLowerCase();
+  if (!contentType || !STUDY_IMPORT_CONTENT_TYPES.has(contentType)) {
+    throw new AppError('Only .colpkg Anki collection backups are accepted.', 400);
+  }
+
+  const contentLength = req.header('Content-Length')?.trim();
+  if (contentLength !== undefined) {
+    const normalizedLength = contentLength.replace(/^0+(?=\d)/, '');
+    const maxLength = String(MAX_STUDY_IMPORT_UPLOAD_BYTES);
+    if (
+      !/^\d+$/.test(contentLength) ||
+      normalizedLength.length > maxLength.length ||
+      (normalizedLength.length === maxLength.length && normalizedLength > maxLength)
+    ) {
+      throw new AppError(
+        `Study import upload must not exceed ${String(MAX_STUDY_IMPORT_UPLOAD_BYTES)} bytes.`,
+        400
+      );
+    }
+  }
+
+  return {
+    'Content-Type': contentType,
+    ...(contentLength === undefined ? {} : { 'Content-Length': contentLength }),
+  };
+}
+
+async function fetchLearningOsStudyImportUpload(
+  upstreamUrl: URL,
+  apiToken: string,
+  user: UserIdentity,
+  req: AuthRequest
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), LEARNING_OS_IMPORT_UPLOAD_TIMEOUT_MS);
+  const abortUpstream = () => controller.abort();
+  req.once('aborted', abortUpstream);
+
+  try {
+    const requestInit = {
+      method: 'PUT',
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${apiToken}`,
+        'X-Convo-Lab-User-Id': user.id,
+        'X-Convo-Lab-User-Email': user.email,
+        'X-Convo-Lab-User-Role': user.role,
+        ...importUploadHeaders(req),
+      },
+      body: req,
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' };
+
+    return await fetch(upstreamUrl, requestInit);
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new AppError('Learning OS Study import upload timed out or was interrupted.', 504);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    req.off('aborted', abortUpstream);
+  }
+}
+
 function adaptStudyRouteResponse(route: StudyProxyRoute, value: unknown): unknown {
   return route.responseFeature
     ? adaptLearningOsStudyReadResponse(route.responseFeature, value)
@@ -632,14 +783,10 @@ router.all(
 
       const upstreamUrl = new URL(`${apiUrl}/api/study${req.path}`);
       appendQueryParams(upstreamUrl, req.query, route);
-      const body = adaptWriteBody(route, req.body);
-      const upstreamResponse = await fetchLearningOsStudy(
-        upstreamUrl,
-        apiToken,
-        user,
-        route.method,
-        body
-      );
+      const body = route.importUpload ? undefined : adaptWriteBody(route, req.body);
+      const upstreamResponse = route.importUpload
+        ? await fetchLearningOsStudyImportUpload(upstreamUrl, apiToken, user, req)
+        : await fetchLearningOsStudy(upstreamUrl, apiToken, user, route.method, body);
 
       if (!upstreamResponse.ok) {
         const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;

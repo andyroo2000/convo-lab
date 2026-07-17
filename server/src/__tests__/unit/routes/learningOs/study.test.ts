@@ -83,6 +83,26 @@ describe('Learning OS Study proxy routes', () => {
     },
   };
 
+  const importJobResource = {
+    id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+    status: 'pending',
+    source_type: 'anki_colpkg',
+    source_filename: 'japanese.colpkg',
+    source_content_type: 'application/zip',
+    source_size_bytes: null,
+    deck_name: 'Japanese',
+    preview: null,
+    summary: null,
+    error_message: null,
+    started_at: null,
+    uploaded_at: null,
+    upload_completed_at: null,
+    upload_expires_at: '2026-07-16T13:00:00.000000Z',
+    completed_at: null,
+    created_at: '2026-07-16T12:00:00.000000Z',
+    updated_at: '2026-07-16T12:00:00.000000Z',
+  };
+
   const newQueueResponse = {
     items: [
       {
@@ -1208,6 +1228,211 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.body.error.message).toBe('Learning OS Study API request timed out.');
   });
 
+  it('creates an import session and replaces the private upstream upload URL', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              import_job: importJobResource,
+              upload: {
+                method: 'PUT',
+                url: 'https://learning-os.example/api/study/imports/private/upload',
+                headers: { 'Content-Type': 'application/zip' },
+              },
+            },
+          }),
+          { status: 201 }
+        )
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/imports')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ filename: ' japanese.colpkg ', contentType: ' Application/ZIP ' });
+
+    expect(response.status).toBe(201);
+    expect(response.body.upload).toEqual({
+      method: 'PUT',
+      url: '/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload',
+      headers: { 'Content-Type': 'application/zip' },
+    });
+    expect(JSON.stringify(response.body)).not.toContain('learning-os.example');
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/imports');
+    expect(JSON.parse(String(init.body))).toEqual({
+      filename: 'japanese.colpkg',
+      content_type: 'application/zip',
+    });
+  });
+
+  it('streams import bytes with only allowlisted headers and adapts the result', async () => {
+    const uploadedChunks: Buffer[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: URL, init?: RequestInit & { duplex?: string }) => {
+        for await (const chunk of init?.body as unknown as AsyncIterable<Buffer>) {
+          uploadedChunks.push(Buffer.from(chunk));
+        }
+
+        return new Response(JSON.stringify({ data: importJobResource }), { status: 200 });
+      })
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const archive = Buffer.from('PK\u0003\u0004test-archive');
+
+    const response = await request(app)
+      .put('/api/learning-os/study/imports/01arz3ndektsv4rrffq69g5faw/upload')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .set('Content-Type', 'application/zip')
+      .set('X-Client-Secret', 'do-not-forward')
+      .send(archive);
+
+    expect(response.status).toBe(200);
+    expect(Buffer.concat(uploadedChunks)).toEqual(archive);
+    expect(response.body).toMatchObject({
+      id: importJobResource.id,
+      sourceFilename: 'japanese.colpkg',
+    });
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [
+      URL,
+      RequestInit & { duplex?: string },
+    ];
+    expect(url.toString()).toBe(
+      'https://learning-os.example/api/study/imports/01arz3ndektsv4rrffq69g5faw/upload'
+    );
+    expect(init.duplex).toBe('half');
+    const headers = new Headers(init.headers);
+    expect(headers.get('Content-Type')).toBe('application/zip');
+    expect(headers.get('Content-Length')).toBe(String(archive.length));
+    expect(headers.has('X-Client-Secret')).toBe(false);
+  });
+
+  it.each([
+    ['text/plain', '12'],
+    ['application/zip', '2147483649'],
+    ['application/zip', '9'.repeat(10_000)],
+  ])(
+    'rejects invalid import upload headers before streaming: %s %s',
+    async (contentType, contentLength) => {
+      const app = await createApp();
+      const { cookies, token } = await csrfAuth(app);
+
+      const response = await request(app)
+        .put('/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload')
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .set('Content-Type', contentType)
+        .set('Content-Length', contentLength);
+
+      expect(response.status).toBe(400);
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
+  );
+
+  it('proxies current, status, readiness, complete, and cancel through one import flag', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ data: null }), { status: 200 }))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ data: importJobResource }), { status: 200 })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ ready: true, message: null }), { status: 200 })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ data: importJobResource }), { status: 200 })
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              data: { ...importJobResource, status: 'failed', error_message: 'Cancelled.' },
+            }),
+            { status: 200 }
+          )
+        )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const authHeaders = {
+      Origin: 'http://localhost:5173',
+      Cookie: cookies,
+      [CSRF_TOKEN_HEADER_NAME]: token,
+    };
+
+    await request(app)
+      .get('/api/learning-os/study/imports/current')
+      .set('Cookie', authCookie())
+      .expect(200, null);
+    await request(app)
+      .get('/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW')
+      .set('Cookie', authCookie())
+      .expect(200);
+    await request(app)
+      .get('/api/learning-os/study/imports/readiness')
+      .set('Cookie', authCookie())
+      .expect(200, { ready: true, message: null });
+    await request(app)
+      .post('/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/complete')
+      .set(authHeaders)
+      .expect(200);
+    await request(app)
+      .post('/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/cancel')
+      .set(authHeaders)
+      .expect(200);
+
+    expect(
+      vi
+        .mocked(global.fetch)
+        .mock.calls.map(([url, init]) => [
+          (url as URL).pathname,
+          (init as RequestInit).method,
+          (init as RequestInit).body,
+        ])
+    ).toEqual([
+      ['/api/study/imports/current', 'GET', undefined],
+      ['/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW', 'GET', undefined],
+      ['/api/study/imports/readiness', 'GET', undefined],
+      ['/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/complete', 'POST', undefined],
+      ['/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/cancel', 'POST', undefined],
+    ]);
+  });
+
+  it('keeps every import lifecycle route disabled under the shared child flag', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiImports: false,
+    });
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const readResponse = await request(app)
+      .get('/api/learning-os/study/imports/current')
+      .set('Cookie', authCookie());
+    const writeResponse = await request(app)
+      .post('/api/learning-os/study/imports')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ filename: 'japanese.colpkg' });
+
+    expect(readResponse.status).toBe(403);
+    expect(writeResponse.status).toBe(403);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it('rejects unsafe import id path segments before building the upstream URL', async () => {
     const app = await createApp();
 
@@ -1232,7 +1457,7 @@ describe('Learning OS Study proxy routes', () => {
     const app = await createApp();
 
     const response = await request(app)
-      .get('/api/learning-os/study/imports/import_123')
+      .get('/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW')
       .set('Cookie', authCookie());
 
     expect(response.status).toBe(502);

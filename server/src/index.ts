@@ -17,6 +17,7 @@ import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
 import { requireApiCsrfProtection } from './middleware/csrf.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { enforceDefaultRequestBodyTimeout } from './middleware/requestBodyTimeout.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import adminRoutes from './routes/admin.js';
 import adminCourseRoutes from './routes/adminCourses.js';
@@ -48,6 +49,7 @@ validateProductionBrowserRuntimeConfig();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const IMPORT_UPLOAD_REQUEST_TIMEOUT_MS = 31 * 60 * 1000;
 // SEO canonicals intentionally point at the public marketing site instead of env-specific CLIENT_URL.
 const PUBLIC_MARKETING_SITE_URL = 'https://convo-lab.com';
 
@@ -219,6 +221,7 @@ app.use(
 
 // Stripe webhook needs raw body for signature verification
 // Must be added BEFORE express.json()
+app.use(enforceDefaultRequestBodyTimeout());
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -366,7 +369,7 @@ if (process.env.NODE_ENV === 'production') {
 // Error handling
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`🚀 LanguageFlow Studio server running on http://localhost:${PORT}`);
   // eslint-disable-next-line no-console
@@ -376,6 +379,10 @@ app.listen(PORT, () => {
     console.warn('[Pitch accent] Kanjium accent index warm-up failed:', error);
   });
 });
+
+// Node's requestTimeout cannot be scoped per route, so middleware restores the 5-minute
+// body deadline everywhere except the import upload path.
+server.requestTimeout = IMPORT_UPLOAD_REQUEST_TIMEOUT_MS;
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

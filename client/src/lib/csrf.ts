@@ -122,6 +122,10 @@ async function bootstrapCsrfToken(
   return csrfBootstrapPromise;
 }
 
+export async function getCsrfToken(): Promise<string | null> {
+  return bootstrapCsrfToken(globalThis.fetch.bind(globalThis));
+}
+
 async function buildCsrfHeaders(
   originalFetch: typeof fetch,
   input: RequestInfo | URL,

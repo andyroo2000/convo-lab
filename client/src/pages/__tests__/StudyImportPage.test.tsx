@@ -203,7 +203,10 @@ describe('StudyImportPage', () => {
     await waitFor(() => expect(submitButton).not.toBeDisabled());
     await userEvent.click(submitButton);
 
-    expect(createStudyImportUploadSessionMock).toHaveBeenCalled();
+    expect(createStudyImportUploadSessionMock).toHaveBeenCalledWith(
+      expect.any(File),
+      studyFeatureFlagsMock
+    );
     expect(uploadStudyImportArchiveMock).toHaveBeenCalled();
     expect(uploadStudyImportArchiveMock.mock.calls[0][2]).toEqual(
       expect.objectContaining({
@@ -211,7 +214,7 @@ describe('StudyImportPage', () => {
         signal: expect.any(AbortSignal),
       })
     );
-    expect(completeStudyImportUploadMock).toHaveBeenCalledWith('import-1');
+    expect(completeStudyImportUploadMock).toHaveBeenCalledWith('import-1', studyFeatureFlagsMock);
     expect(
       await screen.findByText('Imported 6 cards and 3 review logs from 日本語.')
     ).toBeInTheDocument();
@@ -286,7 +289,7 @@ describe('StudyImportPage', () => {
     await waitFor(() => expect(createStudyImportUploadSessionMock).toHaveBeenCalled());
     await userEvent.click(await screen.findByRole('button', { name: 'Cancel upload' }));
 
-    expect(cancelStudyImportUploadMock).toHaveBeenCalledWith('import-1');
+    expect(cancelStudyImportUploadMock).toHaveBeenCalledWith('import-1', studyFeatureFlagsMock);
     expect(await screen.findByText('Study import upload was cancelled.')).toBeInTheDocument();
   });
 

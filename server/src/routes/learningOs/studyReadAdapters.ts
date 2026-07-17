@@ -6,6 +6,10 @@ export type LearningOsStudyReadFeature =
   | 'browser'
   | 'browserDetail'
   | 'newQueue'
+  | 'importJob'
+  | 'importCurrent'
+  | 'importReadiness'
+  | 'importSession'
   | 'session'
   | 'review'
   | 'reviewUndo';
@@ -127,6 +131,10 @@ function nullableRecord(value: unknown, feature: LearningOsStudyReadFeature): Js
   return value === null ? null : record(value, feature);
 }
 
+function aliasedValue(source: JsonRecord, camelCase: string, snakeCase: string): unknown {
+  return camelCase in source ? source[camelCase] : source[snakeCase];
+}
+
 function stringList(value: unknown, feature: LearningOsStudyReadFeature): string[] {
   return list(value, feature).map((item) => stringValue(item, feature));
 }
@@ -158,13 +166,14 @@ function adaptLatestImport(value: unknown) {
   }
 
   const source = record(value, 'overview');
-  const preview = adaptImportPreview(source.preview);
+  const deckName = stringValue(source.deck_name, 'overview');
+  const preview = adaptImportPreview(source.preview, 'overview', deckName);
 
   return {
     id: stringValue(source.id, 'overview'),
     status: enumString(source.status, IMPORT_STATUSES, 'overview'),
     sourceFilename: stringValue(source.source_filename, 'overview'),
-    deckName: stringValue(source.deck_name, 'overview'),
+    deckName,
     preview,
     importedAt: nullableIsoTimestamp(source.completed_at, 'overview'),
     errorMessage: nullableString(source.error_message, 'overview'),
@@ -173,11 +182,15 @@ function adaptLatestImport(value: unknown) {
 
 function adaptImportPreview(
   value: unknown,
-  feature: Extract<LearningOsStudyReadFeature, 'overview' | 'review' | 'reviewUndo'> = 'overview'
+  feature: Extract<
+    LearningOsStudyReadFeature,
+    'overview' | 'importJob' | 'importCurrent' | 'importSession' | 'review' | 'reviewUndo'
+  > = 'overview',
+  fallbackDeckName = '日本語'
 ) {
   if (value === null) {
     return {
-      deckName: '日本語',
+      deckName: fallbackDeckName,
       cardCount: 0,
       noteCount: 0,
       reviewLogCount: 0,
@@ -190,21 +203,92 @@ function adaptImportPreview(
 
   const preview = record(value, feature);
   return {
-    deckName: stringValue(preview.deckName, feature),
-    cardCount: nonNegativeInteger(preview.cardCount, feature),
-    noteCount: nonNegativeInteger(preview.noteCount, feature),
-    reviewLogCount: nonNegativeInteger(preview.reviewLogCount, feature),
-    mediaReferenceCount: nonNegativeInteger(preview.mediaReferenceCount, feature),
-    skippedMediaCount: nonNegativeInteger(preview.skippedMediaCount, feature),
+    deckName: stringValue(aliasedValue(preview, 'deckName', 'deck_name'), feature),
+    cardCount: nonNegativeInteger(aliasedValue(preview, 'cardCount', 'card_count'), feature),
+    noteCount: nonNegativeInteger(aliasedValue(preview, 'noteCount', 'note_count'), feature),
+    reviewLogCount: nonNegativeInteger(
+      aliasedValue(preview, 'reviewLogCount', 'review_log_count'),
+      feature
+    ),
+    mediaReferenceCount: nonNegativeInteger(
+      aliasedValue(preview, 'mediaReferenceCount', 'media_reference_count'),
+      feature
+    ),
+    skippedMediaCount: nonNegativeInteger(
+      aliasedValue(preview, 'skippedMediaCount', 'skipped_media_count'),
+      feature
+    ),
     warnings: stringList(preview.warnings, feature),
-    noteTypeBreakdown: list(preview.noteTypeBreakdown, feature).map((value) => {
+    noteTypeBreakdown: list(
+      aliasedValue(preview, 'noteTypeBreakdown', 'note_type_breakdown'),
+      feature
+    ).map((value) => {
       const item = record(value, feature);
       return {
-        notetypeName: stringValue(item.notetypeName, feature),
-        noteCount: nonNegativeInteger(item.noteCount, feature),
-        cardCount: nonNegativeInteger(item.cardCount, feature),
+        notetypeName: stringValue(aliasedValue(item, 'notetypeName', 'note_type_name'), feature),
+        noteCount: nonNegativeInteger(aliasedValue(item, 'noteCount', 'note_count'), feature),
+        cardCount: nonNegativeInteger(aliasedValue(item, 'cardCount', 'card_count'), feature),
       };
     }),
+  };
+}
+
+function adaptImportJobData(
+  value: unknown,
+  feature: Extract<LearningOsStudyReadFeature, 'importJob' | 'importCurrent' | 'importSession'>
+) {
+  const source = record(value, feature);
+  const deckName = stringValue(source.deck_name, feature);
+
+  return {
+    id: stringValue(source.id, feature),
+    status: enumString(source.status, IMPORT_STATUSES, feature),
+    sourceFilename: stringValue(source.source_filename, feature),
+    deckName,
+    preview: adaptImportPreview(source.preview, feature, deckName),
+    uploadedAt: nullableIsoTimestamp(source.uploaded_at, feature),
+    uploadExpiresAt: nullableIsoTimestamp(source.upload_expires_at, feature),
+    sourceSizeBytes: nullableNonNegativeInteger(source.source_size_bytes, feature),
+    importedAt: nullableIsoTimestamp(source.completed_at, feature),
+    errorMessage: nullableString(source.error_message, feature),
+  };
+}
+
+function adaptImportJob(value: unknown) {
+  return adaptImportJobData(record(value, 'importJob').data, 'importJob');
+}
+
+function adaptCurrentImport(value: unknown) {
+  const data = record(value, 'importCurrent').data;
+  return data === null ? null : adaptImportJobData(data, 'importCurrent');
+}
+
+function adaptImportReadiness(value: unknown) {
+  const source = record(value, 'importReadiness');
+  return {
+    ready: booleanValue(source.ready, 'importReadiness'),
+    message: nullableString(source.message, 'importReadiness'),
+  };
+}
+
+function adaptImportSession(value: unknown) {
+  const data = record(record(value, 'importSession').data, 'importSession');
+  const importJob = adaptImportJobData(data.import_job, 'importSession');
+  const upload = record(data.upload, 'importSession');
+  const headers = record(upload.headers, 'importSession');
+
+  if (stringValue(upload.method, 'importSession') !== 'PUT') {
+    return invalidResponse('importSession');
+  }
+
+  const contentType = stringValue(headers['Content-Type'], 'importSession');
+  return {
+    importJob,
+    upload: {
+      method: 'PUT' as const,
+      url: `/api/learning-os/study/imports/${encodeURIComponent(importJob.id)}/upload`,
+      headers: { 'Content-Type': contentType },
+    },
   };
 }
 
@@ -487,7 +571,11 @@ function adaptCompatibilityOverview(
       status: enumString(importJob.status, IMPORT_STATUSES, feature),
       sourceFilename: stringValue(importJob.sourceFilename, feature),
       deckName: stringValue(importJob.deckName, feature),
-      preview: adaptImportPreview(importJob.preview, feature),
+      preview: adaptImportPreview(
+        importJob.preview,
+        feature,
+        stringValue(importJob.deckName, feature)
+      ),
       uploadedAt: nullableIsoTimestamp(importJob.uploadedAt, feature),
       uploadExpiresAt: nullableIsoTimestamp(importJob.uploadExpiresAt, feature),
       sourceSizeBytes: nullableNonNegativeInteger(importJob.sourceSizeBytes, feature),
@@ -576,6 +664,14 @@ export function adaptLearningOsStudyReadResponse(
       return adaptBrowserDetail(value);
     case 'newQueue':
       return adaptNewQueue(value);
+    case 'importJob':
+      return adaptImportJob(value);
+    case 'importCurrent':
+      return adaptCurrentImport(value);
+    case 'importReadiness':
+      return adaptImportReadiness(value);
+    case 'importSession':
+      return adaptImportSession(value);
     case 'session':
       return adaptSession(value);
     case 'review':
