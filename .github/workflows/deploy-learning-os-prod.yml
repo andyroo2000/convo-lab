@@ -720,7 +720,7 @@ jobs:
               | tail -1)"
             test "$active_proxy_token" = "$proxy_token"
 
-            docker exec \
+            if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
               -e CONVOLAB_PROXY_TOKEN_ID="$NEW_PROXY_TOKEN_ID" \
               learning-os-api php artisan tinker --execute='
@@ -731,7 +731,9 @@ jobs:
                   ->where("name", "convolab-proxy")
                   ->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))
                   ->delete();
-              '
+              '; then
+              echo "::warning::Unable to prune older Learning OS proxy tokens; a later deployment will retry."
+            fi
 
             postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
             postgres_db="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"

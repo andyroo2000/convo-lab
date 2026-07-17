@@ -110,7 +110,9 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
     'wait_for_health "convolab-server-$active_color"',
     'test "$active_proxy_token" = "$proxy_token"',
+    'if ! docker exec',
     '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
+    'Unable to prune older Learning OS proxy tokens; a later deployment will retry.',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
