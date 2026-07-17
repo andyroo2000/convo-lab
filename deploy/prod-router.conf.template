@@ -22,6 +22,7 @@ server {
         return 200 "ok\n";
     }
 
+    # Keep this regex synchronized with studyRouteContract.ts; its contract test enforces equality.
     location ~ "^/api/learning-os/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$" {
         client_max_body_size 2g;
         proxy_pass $convolab_upstream;
