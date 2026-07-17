@@ -576,7 +576,26 @@ jobs:
             echo "::add-mask::$proxy_token"
             upsert_env LEARNING_OS_API_TOKEN "$proxy_token"
 
-            $COMPOSE up -d --no-deps --force-recreate learning-os learning-os-worker
+            desired_learning_os_image="ghcr.io/andyroo2000/learning-os:$IMAGE_TAG"
+
+            ensure_learning_os_service() {
+              service="$1"
+              container="$2"
+              current_image="$(docker inspect --format='{{.Config.Image}}' "$container" 2>/dev/null || true)"
+              running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
+
+              if [ "$current_image" = "$desired_learning_os_image" ] && [ "$running" = true ]; then
+                echo "Reusing running $container on immutable image $desired_learning_os_image."
+                return
+              fi
+
+              $COMPOSE up -d --no-deps --force-recreate "$service"
+            }
+
+            # Reconcile independently so an unchanged busy worker is not drained merely
+            # because the ConvoLab proxy token rotated.
+            ensure_learning_os_service learning-os learning-os-api
+            ensure_learning_os_service learning-os-worker learning-os-worker
             wait_for_health learning-os-api
             wait_for_health learning-os-worker
 
