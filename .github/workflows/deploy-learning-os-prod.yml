@@ -70,7 +70,8 @@ jobs:
   deploy:
     name: Deploy private API and copied database
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    # 10m image pull + 65m worker drain + 10m health gates + 15m setup/smoke.
+    timeout-minutes: 100
     permissions:
       contents: read
       packages: read
@@ -184,6 +185,9 @@ jobs:
             KNOWLEDGE_EXPORT_DIR=""
             KNOWLEDGE_CONTAINER_PREFIX="/tmp/convolab-learning-os-knowledge"
             DRAINING_WORKER_CONTAINER_ID=""
+            WORKER_DRAIN_ATTEMPTS=780
+            WORKER_DRAIN_INTERVAL_SECONDS=5
+            WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
 
             cleanup_knowledge_exports() {
               if [ -n "$KNOWLEDGE_EXPORT_DIR" ]; then
@@ -627,19 +631,19 @@ jobs:
                   return 1
                 fi
 
-                for attempt in {1..780}; do
+                for ((attempt = 1; attempt <= WORKER_DRAIN_ATTEMPTS; attempt++)); do
                   running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
 
                   if [ "$running" != true ]; then
                     break
                   fi
 
-                  echo "$container drain attempt $attempt/780: waiting for the current job to finish."
-                  sleep 5
+                  echo "$container drain attempt $attempt/$WORKER_DRAIN_ATTEMPTS: waiting for the current job to finish."
+                  sleep "$WORKER_DRAIN_INTERVAL_SECONDS"
                 done
 
                 if [ "$running" = true ]; then
-                  echo "$container did not drain within 65 minutes."
+                  echo "$container did not drain within $WORKER_DRAIN_TIMEOUT_MINUTES minutes."
                   docker update --restart=unless-stopped "$container" >/dev/null || true
                   DRAINING_WORKER_CONTAINER_ID=""
                   return 1
