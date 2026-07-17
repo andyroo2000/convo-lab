@@ -17,6 +17,7 @@ Run the `Deploy Learning OS (Production)` workflow with:
 - `enable_new_queue: false`
 - `enable_settings_write: false`
 - `enable_new_queue_write: false`
+- `enable_imports: false`
 
 The workflow:
 
@@ -81,13 +82,30 @@ After all four reads are stable, enable low-risk writes separately:
 
 1. `enable_settings_write` while `enable_settings` remains enabled
 2. `enable_new_queue_write` while `enable_new_queue` remains enabled
+3. `enable_imports`
 
-Write inputs default to false and cannot be enabled unless their corresponding
-read route is enabled. The workflow rehearses each write against the copied
-Learning OS database using the current value or queue order, then verifies the
-response is unchanged. These idempotent checks exercise ConvoLab authentication,
-CSRF protection, feature gating, request adaptation, and the private API without
-intentionally changing user-visible state.
+The settings and queue write inputs default to false and cannot be enabled
+unless their corresponding read route is enabled. The workflow rehearses each
+of those writes against the copied Learning OS database using the current value
+or queue order, then verifies the response is unchanged. These idempotent checks
+exercise ConvoLab authentication, CSRF protection, feature gating, request
+adaptation, and the private API without intentionally changing user-visible
+state.
+
+When `enable_imports` is true, the workflow performs a complete import
+lifecycle through ConvoLab's public proxy. It creates short-lived users in both
+databases, temporarily rotates the single-user proxy identity, and generates a
+disposable `.colpkg` containing two notes, three cards, two review logs, and a
+32 MiB stored media entry. The smoke checks readiness, streams the upload,
+completes and polls the queued import, verifies Learning OS's persisted import
+summary, and cancels a second import. It does not require any other Study API
+child flag to be enabled.
+
+The lifecycle script restores the original proxy identity and removes the
+temporary users, uploaded archive, and imported media on both success and
+failure. A cleanup failure fails the deployment. The outer deployment trap then
+restores the complete previous feature-flag state, so imports are not left
+enabled after an incomplete verification.
 
 Each enabled read route receives an authenticated old-versus-new deep comparison
 until its corresponding write flag is enabled:
@@ -116,6 +134,11 @@ Keep these disabled until their rollout comparison passes:
 Media rows are intentionally omitted because ConvoLab does not persist trusted
 byte sizes. Do not enable media-dependent reads until a separate media-byte and
 verified-size migration is complete.
+
+The import smoke fixture is independent of that legacy media migration: its
+bytes are uploaded directly to Learning OS and removed with the disposable
+smoke account. Enabling `studyApiImports` permits new Learning OS imports but
+does not make missing media from the copied ConvoLab database available.
 
 Rollback changes only feature flags; ConvoLab immediately returns disabled
 routes to its existing Study API without a database restore. Once a write flag
