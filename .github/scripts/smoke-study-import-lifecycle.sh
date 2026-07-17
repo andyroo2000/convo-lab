@@ -107,6 +107,11 @@ cleanup() {
   trap - EXIT
   set +e
 
+  if [ "$exit_status" -ne 0 ]; then
+    echo "Learning OS worker logs after import smoke failure:" >&2
+    docker logs --since 10m --tail=300 learning-os-worker >&2 || true
+  fi
+
   delete_learning_os_smoke_user || cleanup_status=1
   delete_convolab_smoke_user || cleanup_status=1
   if [ -n "$ARCHIVE_DIR" ]; then
@@ -132,6 +137,7 @@ ARCHIVE_PATH="$ARCHIVE_DIR/deployment-import-smoke.colpkg"
 
 python3 .github/scripts/create-study-import-smoke-archive.py "$ARCHIVE_PATH" >/dev/null
 archive_size="$(wc -c < "$ARCHIVE_PATH" | tr -d '[:space:]')"
+archive_sha256="$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')"
 
 convolab_user_id="$(docker exec -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" "$SERVER_CONTAINER" \
   node --input-type=module --eval='
@@ -259,6 +265,31 @@ curl --fail --silent --show-error \
   --header "Cookie: token=$auth_token; XSRF-TOKEN=$csrf_cookie_raw" \
   --upload-file "$ARCHIVE_PATH" \
   "https://convo-lab.com/api/learning-os/study/imports/$import_job_id/upload" >/dev/null
+
+stored_sha256_output="$(docker exec -e IMPORT_JOB_ID="$import_job_id" learning-os-api \
+  php artisan tinker --execute='
+    $job = App\Domain\Study\Models\StudyImportJob::query()
+        ->findOrFail(getenv("IMPORT_JOB_ID"));
+    $stream = Illuminate\Support\Facades\Storage::disk("study-imports")
+        ->readStream($job->source_object_path);
+    if (! is_resource($stream)) {
+        throw new RuntimeException("Uploaded import archive could not be opened.");
+    }
+    try {
+        $hash = hash_init("sha256");
+        hash_update_stream($hash, $stream);
+        echo "IMPORT_SMOKE_SHA256=".hash_final($hash);
+    } finally {
+        fclose($stream);
+    }
+  ' < /dev/null)"
+stored_archive_sha256="$(printf '%s\n' "$stored_sha256_output" \
+  | sed -n 's/^IMPORT_SMOKE_SHA256=//p' | tail -1)"
+test -n "$stored_archive_sha256"
+if [ "$stored_archive_sha256" != "$archive_sha256" ]; then
+  echo "Uploaded import archive checksum mismatch: expected $archive_sha256, got $stored_archive_sha256" >&2
+  exit 1
+fi
 
 complete_response="$(mutate_route POST \
   "/api/learning-os/study/imports/$import_job_id/complete")"
