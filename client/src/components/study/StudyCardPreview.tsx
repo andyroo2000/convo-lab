@@ -33,12 +33,14 @@ const toRubyPlainText = (value: string) =>
     .map((segment) => (segment.kind === 'ruby' ? segment.base : segment.text) ?? '')
     .join('');
 
+const toRubyMatchText = (value: string) => value.replace(/\s+/gu, '');
+
 const matchingRubyText = (plainText: string, candidates: Array<string | null | undefined>) =>
   candidates.find(
     (candidate) =>
       candidate &&
       parseRubySegments(candidate).some((segment) => segment.kind === 'ruby') &&
-      toRubyPlainText(candidate) === plainText
+      toRubyMatchText(toRubyPlainText(candidate)) === toRubyMatchText(plainText)
   );
 
 const sliceRubyText = (value: string, start: number, end: number) => {
