@@ -10,6 +10,8 @@ import {
 } from '../../../../routes/learningOs/studyRouteContract.js';
 
 const VALID_ULID = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
+const NGINX_CONTRACT_COMMENT =
+  '# Keep this regex synchronized with studyRouteContract.ts; its contract test enforces equality.';
 
 describe('Learning OS study route contract', () => {
   it('uses the same strict upload shape for router-relative and public paths', () => {
@@ -19,9 +21,15 @@ describe('Learning OS study route contract', () => {
         `/api/learning-os/study/imports/${VALID_ULID}/upload`
       )
     ).toBe(true);
+    expect(
+      LEARNING_OS_IMPORT_UPLOAD_PUBLIC_PATH_PATTERN.test(
+        `/api/learning-os/study/imports/${VALID_ULID.toLowerCase()}/upload`
+      )
+    ).toBe(true);
 
     for (const invalidPath of [
       '/api/learning-os/study/imports/not-an-id/upload',
+      `/API/learning-os/study/imports/${VALID_ULID}/upload`,
       `/api/learning-os/study/imports/${VALID_ULID}/complete`,
       `/api/learning-os/study/imports/${VALID_ULID}/upload/extra`,
     ]) {
@@ -34,7 +42,12 @@ describe('Learning OS study route contract', () => {
       new URL('../../../../../../deploy/prod-router.conf.template', import.meta.url)
     );
     const routerTemplate = readFileSync(routerTemplatePath, 'utf8');
-    const locationMatch = routerTemplate.match(/^\s*location\s+~\s+"([^"]+)"\s+\{$/m);
+    const contractCommentIndex = routerTemplate.indexOf(NGINX_CONTRACT_COMMENT);
+
+    expect(contractCommentIndex).toBeGreaterThanOrEqual(0);
+
+    const contractBlock = routerTemplate.slice(contractCommentIndex);
+    const locationMatch = contractBlock.match(/^\s*location\s+~\s+"([^"]+)"\s+\{$/m);
 
     expect(locationMatch?.[1]).toBe(LEARNING_OS_IMPORT_UPLOAD_PUBLIC_PATH_SOURCE);
   });
