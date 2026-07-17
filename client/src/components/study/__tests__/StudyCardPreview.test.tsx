@@ -85,6 +85,52 @@ describe('StudyCardPreview', () => {
     expect(screen.getByText('かいしゃ', { selector: 'rt' })).toBeInTheDocument();
   });
 
+  it('renders recognition prompt furigana when stored readings contain segmentation spaces', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          prompt: {
+            cueText: '子どもが公園で転んで、少し泣いてしまった。',
+            cueReading:
+              '子[こ]どもが 公園[こうえん]で 転[ころ]んで、少[すこ]し 泣[な]いてしまった。',
+          },
+          answer: {
+            expression: '子どもが公園で転んで、少し泣いてしまった。',
+            expressionReading:
+              '子[こ]どもが 公園[こうえん]で 転[ころ]んで、少[すこ]し 泣[な]いてしまった。',
+            meaning: 'The child fell down at the park and ended up crying a little.',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('こ', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('こうえん', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('ころ', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('すこ', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('な', { selector: 'rt' })).toBeInTheDocument();
+  });
+
+  it('does not replace prompt kanji with an unannotated kana reading', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            expressionReading: undefined,
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('会社')).toBeInTheDocument();
+    expect(screen.queryByText('かいしゃ')).not.toBeInTheDocument();
+  });
+
   it('renders optional answer images on cloze reveal sides', () => {
     render(
       <StudyCardFace
