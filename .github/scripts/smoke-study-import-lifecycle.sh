@@ -51,9 +51,7 @@ wait_for_health() {
 delete_learning_os_smoke_user() {
   [ -n "$SMOKE_EMAIL" ] || return 0
 
-  # The single-quoted program is PHP; its dollar expressions must not expand in Bash.
-  # shellcheck disable=SC2016
-  $COMPOSE run --rm -T --no-deps -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os \
+  docker exec -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
     php artisan tinker --execute='
       $user = App\Models\User::query()->where("email", getenv("IMPORT_SMOKE_EMAIL"))->first();
       if ($user !== null) {

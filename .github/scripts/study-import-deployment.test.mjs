@@ -89,6 +89,7 @@ test('the lifecycle smoke script remains valid Bash', async () => {
     'delete_learning_os_smoke_user',
     'delete_convolab_smoke_user',
     'restore_proxy_identity',
+    'docker exec -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api',
     '/api/learning-os/study/imports/readiness',
     "/api/learning-os/study/imports'",
     '/api/learning-os/study/imports/$import_job_id/upload',
