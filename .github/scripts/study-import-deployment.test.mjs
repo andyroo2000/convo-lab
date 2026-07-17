@@ -93,6 +93,70 @@ test('the production workflow wires import activation through verification and r
   );
 });
 
+test('the production workflow overlaps proxy tokens through a healthy server cutover', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'NEW_PROXY_TOKEN_ID=""',
+    'PROXY_TOKEN_ACTIVATED=false',
+    'if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_ACTIVATED" != true ]; then',
+    'echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;',
+    'echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;',
+    'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',
+    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
+    'wait_for_health "convolab-server-$active_color"',
+    'test "$active_proxy_token" = "$proxy_token"',
+    'PROXY_TOKEN_ACTIVATED=true',
+    '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
+  ]) {
+    assert.ok(
+      workflow.includes(requiredContract),
+      `Missing token rotation contract: ${requiredContract}`
+    );
+  }
+
+  const tokenCreation = workflow.indexOf(
+    '$accessToken = $user->createToken("convolab-proxy", ["study:read", "study:write"]);'
+  );
+  const tokenConfigured = workflow.indexOf(
+    'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',
+    tokenCreation
+  );
+  const serverRestarted = workflow.indexOf(
+    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
+    tokenConfigured
+  );
+  const serverHealthy = workflow.indexOf(
+    'wait_for_health "convolab-server-$active_color"',
+    serverRestarted
+  );
+  const tokenInstalled = workflow.indexOf(
+    'test "$active_proxy_token" = "$proxy_token"',
+    serverHealthy
+  );
+  const tokenActivated = workflow.indexOf('PROXY_TOKEN_ACTIVATED=true', tokenInstalled);
+  const oldTokensPruned = workflow.indexOf(
+    '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
+    tokenActivated
+  );
+
+  assert.ok(tokenCreation >= 0);
+  assert.ok(tokenCreation < tokenConfigured);
+  assert.ok(tokenConfigured < serverRestarted);
+  assert.ok(serverRestarted < serverHealthy);
+  assert.ok(serverHealthy < tokenInstalled);
+  assert.ok(tokenInstalled < tokenActivated);
+  assert.ok(tokenActivated < oldTokensPruned);
+  assert.doesNotMatch(
+    workflow.slice(tokenCreation, serverHealthy),
+    /tokens\(\).*->delete\(\)/s,
+    'The active proxy token must not be revoked before the replacement server is healthy'
+  );
+});
+
 test('the lifecycle smoke script remains valid Bash', async () => {
   const scriptPath = path.join(
     repositoryRoot,
