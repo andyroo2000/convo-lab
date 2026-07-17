@@ -11,6 +11,11 @@ import {
   adaptLearningOsStudyReadResponse,
   type LearningOsStudyReadFeature,
 } from './studyReadAdapters.js';
+import {
+  STUDY_IMPORT_ID_SEGMENT,
+  STUDY_IMPORT_ULID_SEGMENT,
+  STUDY_IMPORT_UPLOAD_PATH_PATTERN,
+} from './studyRouteContract.js';
 
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
@@ -21,8 +26,6 @@ const MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH = 500;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 const UUID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-const STUDY_IMPORT_ULID_SEGMENT = '[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}';
-const STUDY_IMPORT_ID_SEGMENT = `(?:${STUDY_IMPORT_ULID_SEGMENT}|[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})`;
 const STUDY_IMPORT_CONTENT_TYPES = new Set([
   'application/octet-stream',
   'application/zip',
@@ -230,7 +233,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'PUT',
-    pattern: new RegExp(`^/imports/${STUDY_IMPORT_ULID_SEGMENT}/upload$`),
+    pattern: STUDY_IMPORT_UPLOAD_PATH_PATTERN,
     featureFlag: 'studyApiImports',
     responseFeature: 'importJob',
     queryParams: new Set(),
