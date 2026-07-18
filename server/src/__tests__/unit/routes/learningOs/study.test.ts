@@ -2315,6 +2315,27 @@ describe('Learning OS Study proxy routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('internal upstream details');
   });
 
+  it('maps an upstream Learning OS authentication failure to a gateway error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: 'Unauthenticated.' }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/overview')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe('Learning OS Study API request failed.');
+    expect(JSON.stringify(response.body)).not.toContain('Unauthenticated');
+  });
+
   it('surfaces bounded New Queue card validation messages from Learning OS', async () => {
     const validationMessage = 'Every reordered card must be an active new card owned by the user.';
     vi.stubGlobal(

@@ -1700,7 +1700,10 @@ router.all(
           );
 
       if (!upstreamResponse.ok) {
-        const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;
+        const statusCode =
+          upstreamResponse.status === 401 || upstreamResponse.status >= 500
+            ? 502
+            : upstreamResponse.status;
         const validationMessage =
           upstreamResponse.status === 422 && route.writeFeature === 'newQueueWrite'
             ? extractNewQueueValidationMessage(await upstreamResponse.text())

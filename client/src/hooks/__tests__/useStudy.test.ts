@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API_URL } from '../../config';
 import type { FeatureFlags } from '../useFeatureFlags';
+import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
   cancelStudyImportUpload,
@@ -530,7 +531,7 @@ describe('useStudy request helpers', () => {
 
   it('notifies the app when a Study request finds an expired session', async () => {
     const listener = vi.fn();
-    window.addEventListener('convo-lab:auth-session-expired', listener);
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, listener);
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: false,
       status: 401,
@@ -540,7 +541,22 @@ describe('useStudy request helpers', () => {
     await expect(getStudySettings()).rejects.toThrow('Authentication required');
 
     expect(listener).toHaveBeenCalledTimes(1);
-    window.removeEventListener('convo-lab:auth-session-expired', listener);
+    window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, listener);
+  });
+
+  it('keeps the session when a Study request returns a gateway error', async () => {
+    const listener = vi.fn();
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, listener);
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: async () => ({ error: { message: 'Learning OS Study API request failed.' } }),
+    } as Response);
+
+    await expect(getStudySettings()).rejects.toThrow('Learning OS Study API request failed.');
+
+    expect(listener).not.toHaveBeenCalled();
+    window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, listener);
   });
 
   it('keeps manual-card drafts on Convo Lab until their child flag is enabled', async () => {
