@@ -851,6 +851,9 @@ jobs:
             }
 
             cleanup_deployment_failure() {
+              exit_code=$?
+              set +e
+
               if [ -n "${card_draft_smoke_id:-}" ] \
                 && declare -F mutate_proxy_route > /dev/null; then
                 mutate_proxy_route \
@@ -859,10 +862,12 @@ jobs:
                   '{}' > /dev/null || true
               fi
               cleanup_media_smoke
-              cleanup_deployment_resources
               if [ "${verification_pending:-false}" = true ]; then
                 rollback_study_flags
               fi
+              cleanup_deployment_resources
+
+              return "$exit_code"
             }
 
             trap cleanup_deployment_failure EXIT
@@ -1332,7 +1337,9 @@ jobs:
                     $path = "deployment-smoke/".Illuminate\Support\Str::ulid().".bin";
                     $disk = Illuminate\Support\Facades\Storage::disk("media");
                     try {
-                      $disk->put($path, $contents);
+                      if (! $disk->put($path, $contents)) {
+                        throw new RuntimeException("Unable to write the media smoke file.");
+                      }
                       $media = App\Domain\Media\Models\MediaAsset::query()->create([
                         "user_id" => $user->getKey(),
                         "disk" => "media",
@@ -1350,9 +1357,11 @@ jobs:
                   ')"
                 media_smoke_id="$(printf '%s\n' "$media_smoke_output" \
                   | sed -n 's/^MEDIA_SMOKE_ID=//p' \
-                  | grep -E '^[0-9A-HJKMNP-TV-Z]{26}$' \
                   | tail -1)"
-                test -n "$media_smoke_id"
+                if ! [[ "$media_smoke_id" =~ ^[0-9a-hjkmnp-tv-z]{26}$ ]]; then
+                  echo "Learning OS returned an invalid media smoke ULID: ${media_smoke_id:-<empty>}" >&2
+                  exit 1
+                fi
 
                 media_smoke_body="$(mktemp)"
                 media_smoke_headers="$(mktemp)"
