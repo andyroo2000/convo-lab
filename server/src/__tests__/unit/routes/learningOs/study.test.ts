@@ -1201,7 +1201,7 @@ describe('Learning OS Study proxy routes', () => {
     ]);
     expect(calls[0]?.[1].body).toBeUndefined();
     expect(JSON.parse(String(calls[1]?.[1].body))).toEqual({
-      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
       answerAudioTextOverride: ' かいしゃ ',
     });
     expect(invokedRateLimitKeys).toEqual([
@@ -1215,7 +1215,7 @@ describe('Learning OS Study proxy routes', () => {
     ['regenerate-answer-audio', { unexpected: true }],
     ['regenerate-answer-audio', { answerAudioVoiceId: 'not-a-voice' }],
     ['regenerate-answer-audio', { answerAudioVoiceId: [] }],
-    ['regenerate-answer-audio', { answerAudioTextOverride: 'a'.repeat(15_001) }],
+    ['regenerate-answer-audio', { answerAudioTextOverride: 'a'.repeat(501) }],
   ])('rejects invalid %s bodies before calling Learning OS', async (operation, body) => {
     const app = await createApp();
     const { cookies, token } = await csrfAuth(app);
@@ -1253,7 +1253,7 @@ describe('Learning OS Study proxy routes', () => {
       answerAudioVoiceId: null,
       answerAudioTextOverride: null,
     });
-    const boundaryText = '会'.repeat(15_000);
+    const boundaryText = '会'.repeat(500);
     const boundaryResponse = await sendRegenerate({
       answerAudioTextOverride: boundaryText,
     });
@@ -1269,6 +1269,31 @@ describe('Learning OS Study proxy routes', () => {
       answerAudioTextOverride: boundaryText,
     });
   });
+
+  it.each(['Takumi', 'Kazuha', 'Tomoko'])(
+    'migrates the legacy Polly voice %s before forwarding regeneration',
+    async (voiceId) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(new Response(JSON.stringify(compatibilityCard), { status: 200 }))
+      );
+      const app = await createApp();
+      const { cookies, token } = await csrfAuth(app);
+
+      const response = await request(app)
+        .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`)
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send({ answerAudioVoiceId: voiceId });
+
+      expect(response.status).toBe(200);
+      const call = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+      expect(JSON.parse(String(call[1].body))).toEqual({
+        answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+      });
+    }
+  );
 
   it.each([
     [{ cardType: 'recognition', prompt: {}, answer: {} }],
@@ -2385,7 +2410,9 @@ describe('Learning OS Study proxy routes', () => {
   });
 
   it.each([
+    `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/preview-audio`,
     `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/preview-image`,
+    `/api/learning-os/study/cards/${compatibilityCard.id}/prepare-answer-audio`,
     `/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`,
   ])(
     'allows provider-backed generation to run beyond the default proxy timeout: %s',

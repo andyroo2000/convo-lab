@@ -2,6 +2,10 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import {
+  MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
+  TTS_VOICES,
+} from '@languageflow/shared/src/constants-new.js';
+import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
@@ -46,7 +50,7 @@ const LEARNING_OS_IMPORT_UPLOAD_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_STUDY_IMPORT_UPLOAD_BYTES = 2_147_483_648;
 const MAX_NEW_QUEUE_REORDER_SIZE = 500;
 const MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH = 500;
-const MAX_STUDY_ANSWER_AUDIO_TEXT_LENGTH = 15_000;
+const MAX_STUDY_ANSWER_AUDIO_TEXT_LENGTH = 500;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
 const MAX_STUDY_DRAFT_IMAGE_PROMPT_LENGTH = 1000;
@@ -77,8 +81,10 @@ const STUDY_CARD_DRAFT_MEDIA_SOURCES = new Set([
   'imported_image',
   'imported_other',
 ]);
-const STUDY_ANSWER_AUDIO_VOICE_PATTERN =
-  /^(?:fishaudio:[a-f0-9]{32}|ja-JP-(?:Neural2|Wavenet)-[A-D])$/i;
+const STUDY_JA_TTS_VOICE_IDS = new Set<string>(TTS_VOICES.ja.voices.map((voice) => voice.id));
+const STUDY_ANSWER_AUDIO_FISH_VOICE_IDS = new Set<string>(
+  TTS_VOICES.ja.voices.filter((voice) => voice.provider === 'fishaudio').map((voice) => voice.id)
+);
 
 const learningOsStudyIpRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
@@ -994,11 +1000,13 @@ function adaptAnswerAudioRegenerateBody(value: unknown): Record<string, unknown>
   }
 
   const voiceId = body.answerAudioVoiceId;
-  if (
-    voiceId !== undefined &&
-    voiceId !== null &&
-    (typeof voiceId !== 'string' || !STUDY_ANSWER_AUDIO_VOICE_PATTERN.test(voiceId.trim()))
-  ) {
+  const normalizedVoiceId =
+    typeof voiceId === 'string' && STUDY_JA_TTS_VOICE_IDS.has(voiceId.trim())
+      ? STUDY_ANSWER_AUDIO_FISH_VOICE_IDS.has(voiceId.trim())
+        ? voiceId.trim()
+        : MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0]
+      : null;
+  if (voiceId !== undefined && voiceId !== null && normalizedVoiceId === null) {
     throw new AppError('answerAudioVoiceId is not supported.', 400);
   }
 
@@ -1018,7 +1026,7 @@ function adaptAnswerAudioRegenerateBody(value: unknown): Record<string, unknown>
   return {
     ...(voiceId === undefined
       ? {}
-      : { answerAudioVoiceId: typeof voiceId === 'string' ? voiceId.trim() : null }),
+      : { answerAudioVoiceId: voiceId === null ? null : normalizedVoiceId }),
     ...(textOverride === undefined ? {} : { answerAudioTextOverride: textOverride }),
   };
 }
