@@ -511,25 +511,28 @@ describe('Learning OS Study proxy routes', () => {
   );
 
   it('fails closed for invalid media headers and a disabled media flag', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
+    const fetchMock = vi.fn();
+    for (const contentType of ['text/html', 'image/svg+xml']) {
+      fetchMock.mockResolvedValueOnce(
         new Response('<script>alert(1)</script>', {
           status: 200,
-          headers: { 'content-type': 'text/html' },
+          headers: { 'content-type': contentType },
         })
-      )
-    );
+      );
+    }
+    vi.stubGlobal('fetch', fetchMock);
     const app = await createApp();
 
-    const invalidHeaders = await request(app)
-      .get('/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAV')
-      .set('Cookie', authCookie());
+    for (const mediaId of ['01ARZ3NDEKTSV4RRFFQ69G5FAV', '01ARZ3NDEKTSV4RRFFQ69G5FAX']) {
+      const invalidHeaders = await request(app)
+        .get(`/api/learning-os/study/media/${mediaId}`)
+        .set('Cookie', authCookie());
 
-    expect(invalidHeaders.status).toBe(502);
-    expect(invalidHeaders.body.error.message).toBe(
-      'Learning OS Study API returned invalid media headers.'
-    );
+      expect(invalidHeaders.status).toBe(502);
+      expect(invalidHeaders.body.error.message).toBe(
+        'Learning OS Study API returned invalid media headers.'
+      );
+    }
 
     mockPrisma.featureFlag.findFirst.mockResolvedValue({
       ...enabledStudyApiFlags,
@@ -544,7 +547,7 @@ describe('Learning OS Study proxy routes', () => {
       .set('Cookie', authCookie());
 
     expect(disabled.status).toBe(403);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('proxies Browser detail through its independent flag without query parameters', async () => {

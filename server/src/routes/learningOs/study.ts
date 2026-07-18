@@ -1368,6 +1368,7 @@ async function streamLearningOsStudyMedia(
   if (
     !contentType ||
     !safeMediaResponseHeader('content-type', contentType) ||
+    /^image\/svg\+xml(?:\s*;|$)/i.test(contentType) ||
     (!/^(?:audio|image|video)\//i.test(contentType) &&
       !/^application\/octet-stream(?:\s*;|$)/i.test(contentType))
   ) {
