@@ -7,6 +7,10 @@ const cardWritesMigrationPath = new URL(
   '../../../../prisma/migrations/20260718143000_add_study_api_card_writes_feature_flag/migration.sql',
   import.meta.url
 );
+const cardDraftsMigrationPath = new URL(
+  '../../../../prisma/migrations/20260718160000_add_study_api_card_drafts_feature_flag/migration.sql',
+  import.meta.url
+);
 
 describe('feature flag schema', () => {
   it('keeps the Postgres-safe card-write flag migration aligned with Prisma', async () => {
@@ -19,6 +23,19 @@ describe('feature flag schema', () => {
     expect(migration.trim()).toBe(
       'ALTER TABLE "feature_flags"\n' +
         '  ADD COLUMN "studyApiCardWrites" BOOLEAN NOT NULL DEFAULT false;'
+    );
+  });
+
+  it('keeps the Postgres-safe card-draft flag migration aligned with Prisma', async () => {
+    const [schema, migration] = await Promise.all([
+      readFile(schemaPath, 'utf8'),
+      readFile(cardDraftsMigrationPath, 'utf8'),
+    ]);
+
+    expect(schema).toContain('studyApiCardDrafts    Boolean  @default(false)');
+    expect(migration.trim()).toBe(
+      'ALTER TABLE "feature_flags"\n' +
+        '  ADD COLUMN "studyApiCardDrafts" BOOLEAN NOT NULL DEFAULT false;'
     );
   });
 });

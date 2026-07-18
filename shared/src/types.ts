@@ -377,7 +377,7 @@ export interface StudyManualCardDraft {
 
 export interface StudyManualCardDraftListResponse {
   drafts: StudyManualCardDraft[];
-  total: number;
+  total: number | null;
   limit: number;
   nextCursor: string | null;
 }

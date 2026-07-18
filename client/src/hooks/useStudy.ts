@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { ulid } from 'ulid';
 import type {
   StudyAnswerPayload,
@@ -107,7 +108,8 @@ type StudyApiFeature =
   | 'settingsWrite'
   | 'newQueueWrite'
   | 'review'
-  | 'cardWrites';
+  | 'cardWrites'
+  | 'cardDrafts';
 const LEARNING_OS_STUDY_PROXY_BASE = '/api/learning-os/study';
 
 const STUDY_API_FLAG_BY_FEATURE: Record<
@@ -124,6 +126,7 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
     | 'studyApiNewQueueWrite'
     | 'studyApiReview'
     | 'studyApiCardWrites'
+    | 'studyApiCardDrafts'
   >
 > = {
   settings: 'studyApiSettings',
@@ -136,6 +139,7 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
   newQueueWrite: 'studyApiNewQueueWrite',
   review: 'studyApiReview',
   cardWrites: 'studyApiCardWrites',
+  cardDrafts: 'studyApiCardDrafts',
 };
 
 const STUDY_API_READ_FLAG_BY_WRITE_FEATURE: Partial<
@@ -414,58 +418,95 @@ export async function generateStudyCardDraftImage(
   });
 }
 
+export function createStudyCardId(): string {
+  return ulid();
+}
+
 export async function getStudyManualCardDrafts(
-  params: { cursor?: string | null; limit?: number } = {}
+  params: { cursor?: string | null; limit?: number } = {},
+  flags?: FeatureFlags
 ): Promise<StudyManualCardDraftListResponse> {
   const searchParams = new URLSearchParams();
   if (params.cursor) searchParams.set('cursor', params.cursor);
   if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit));
   const suffix = searchParams.toString();
   return apiRequest<StudyManualCardDraftListResponse>(
-    `/api/study/card-drafts${suffix ? `?${suffix}` : ''}`
+    `/api/study/card-drafts${suffix ? `?${suffix}` : ''}`,
+    undefined,
+    { feature: 'cardDrafts', flags }
   );
 }
 
 export async function createStudyManualCardDraft(
-  payload: StudyManualCardDraftCreateRequest
+  payload: StudyManualCardDraftCreateRequest,
+  flags?: FeatureFlags
 ): Promise<StudyManualCardDraft> {
-  return apiRequest<StudyManualCardDraft>('/api/study/card-drafts', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  return apiRequest<StudyManualCardDraft>(
+    '/api/study/card-drafts',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    { feature: 'cardDrafts', flags }
+  );
 }
 
-export async function updateStudyManualCardDraft(payload: {
-  draftId: string;
-  values: StudyManualCardDraftUpdateRequest;
-}): Promise<StudyManualCardDraft> {
-  return apiRequest<StudyManualCardDraft>(`/api/study/card-drafts/${payload.draftId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(payload.values),
-  });
+export async function updateStudyManualCardDraft(
+  payload: {
+    draftId: string;
+    values: StudyManualCardDraftUpdateRequest;
+  },
+  flags?: FeatureFlags
+): Promise<StudyManualCardDraft> {
+  return apiRequest<StudyManualCardDraft>(
+    `/api/study/card-drafts/${payload.draftId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload.values),
+    },
+    { feature: 'cardDrafts', flags }
+  );
 }
 
-export async function retryStudyManualCardDraft(draftId: string): Promise<StudyManualCardDraft> {
-  return apiRequest<StudyManualCardDraft>(`/api/study/card-drafts/${draftId}/retry`, {
-    method: 'POST',
-  });
+export async function retryStudyManualCardDraft(
+  draftId: string,
+  flags?: FeatureFlags
+): Promise<StudyManualCardDraft> {
+  return apiRequest<StudyManualCardDraft>(
+    `/api/study/card-drafts/${draftId}/retry`,
+    {
+      method: 'POST',
+    },
+    { feature: 'cardDrafts', flags }
+  );
 }
 
 export async function createCardFromStudyManualCardDraft(
-  draftId: string
+  draftId: string,
+  cardId = createStudyCardId(),
+  flags?: FeatureFlags
 ): Promise<StudyManualCardDraftCreateCardResponse> {
   return apiRequest<StudyManualCardDraftCreateCardResponse>(
     `/api/study/card-drafts/${draftId}/create-card`,
     {
       method: 'POST',
-    }
+      body: JSON.stringify({ id: cardId }),
+    },
+    { feature: 'cardDrafts', flags }
   );
 }
 
-export async function deleteStudyManualCardDraft(draftId: string): Promise<void> {
-  await apiRequest<unknown>(`/api/study/card-drafts/${draftId}`, {
-    method: 'DELETE',
-  });
+export async function deleteStudyManualCardDraft(
+  draftId: string,
+  flags?: FeatureFlags
+): Promise<void> {
+  await apiRequest<unknown>(
+    `/api/study/card-drafts/${draftId}`,
+    {
+      method: 'DELETE',
+    },
+    { feature: 'cardDrafts', flags }
+  );
 }
 
 export async function undoStudyReview(
@@ -552,10 +593,6 @@ export async function createStudyCard(
     },
     { feature: 'cardWrites', flags }
   );
-}
-
-export function createStudyCardId(): string {
-  return ulid();
 }
 
 export async function updateStudyCard(
@@ -784,9 +821,12 @@ export function useGenerateStudyCardDraftImage() {
 }
 
 export function useStudyManualCardDrafts(enabled: boolean) {
+  const { flags } = useFeatureFlags();
+  const routeKey = studyApiRouteKey('cardDrafts', flags);
+
   return useInfiniteQuery({
-    queryKey: ['study', 'manual-card-drafts'],
-    queryFn: ({ pageParam }) => getStudyManualCardDrafts({ cursor: pageParam, limit: 200 }),
+    queryKey: ['study', 'manual-card-drafts', routeKey],
+    queryFn: ({ pageParam }) => getStudyManualCardDrafts({ cursor: pageParam, limit: 200 }, flags),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled,
@@ -801,9 +841,11 @@ export function useStudyManualCardDrafts(enabled: boolean) {
 
 export function useCreateStudyManualCardDraft() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: createStudyManualCardDraft,
+    mutationFn: (payload: StudyManualCardDraftCreateRequest) =>
+      createStudyManualCardDraft(payload, flags),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
@@ -812,9 +854,11 @@ export function useCreateStudyManualCardDraft() {
 
 export function useUpdateStudyManualCardDraft() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: updateStudyManualCardDraft,
+    mutationFn: (payload: { draftId: string; values: StudyManualCardDraftUpdateRequest }) =>
+      updateStudyManualCardDraft(payload, flags),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
@@ -823,9 +867,10 @@ export function useUpdateStudyManualCardDraft() {
 
 export function useRetryStudyManualCardDraft() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: retryStudyManualCardDraft,
+    mutationFn: (draftId: string) => retryStudyManualCardDraft(draftId, flags),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
@@ -834,10 +879,17 @@ export function useRetryStudyManualCardDraft() {
 
 export function useCreateCardFromStudyManualCardDraft() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
+  const pendingCardIds = useRef(new Map<string, string>());
 
   return useMutation({
-    mutationFn: createCardFromStudyManualCardDraft,
-    onSuccess: async () => {
+    mutationFn: (draftId: string) => {
+      const cardId = pendingCardIds.current.get(draftId) ?? createStudyCardId();
+      pendingCardIds.current.set(draftId, cardId);
+      return createCardFromStudyManualCardDraft(draftId, cardId, flags);
+    },
+    onSuccess: async (_result, draftId) => {
+      pendingCardIds.current.delete(draftId);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
@@ -850,9 +902,10 @@ export function useCreateCardFromStudyManualCardDraft() {
 
 export function useDeleteStudyManualCardDraft() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: deleteStudyManualCardDraft,
+    mutationFn: (draftId: string) => deleteStudyManualCardDraft(draftId, flags),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },

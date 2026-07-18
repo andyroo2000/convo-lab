@@ -105,13 +105,46 @@ test('the production workflow wires card-write activation through verification a
     'validate_boolean_input enable_card_writes "$ENABLE_CARD_WRITES"',
     '\\"studyApiCardWrites\\" = $enable_card_writes_sql',
     '\\"studyApiCardWrites\\" = $previous_card_writes_sql',
-    '|| [ "$ENABLE_CARD_WRITES" = true ] || [ "$ENABLE_IMPORTS" = true ]; then',
-    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql"',
+    '|| [ "$ENABLE_CARD_WRITES" = true ] || [ "$ENABLE_CARD_DRAFTS" = true ]',
+    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql|$enable_card_drafts_sql"',
   ]) {
     assert.ok(workflow.includes(requiredContract), `Missing card-write contract: ${requiredContract}`);
   }
 
   assert.doesNotMatch(workflow, /\\"studyApiCardWrites\\" = false/);
+});
+
+test('the production workflow wires card-draft activation through disposable verification and rollback', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'enable_card_drafts:',
+    'ENABLE_CARD_DRAFTS: ${{ inputs.enable_card_drafts }}',
+    'validate_boolean_input enable_card_drafts "$ENABLE_CARD_DRAFTS"',
+    '\\"studyApiCardDrafts\\" = $enable_card_drafts_sql',
+    '\\"studyApiCardDrafts\\" = $previous_card_drafts_sql',
+    "mutate_proxy_route POST '/api/learning-os/study/card-drafts'",
+    "'/api/learning-os/study/card-drafts?limit=200'",
+    '"/api/learning-os/study/card-drafts/$draft_id"',
+    'card_draft_smoke_id="$draft_id"',
+    '"/api/learning-os/study/card-drafts/$card_draft_smoke_id"',
+    'card_draft_smoke_id=',
+    'Study card draft lifecycle smoke check passed.',
+  ]) {
+    assert.ok(
+      workflow.includes(requiredContract),
+      `Missing card-draft contract: ${requiredContract}`
+    );
+  }
+
+  assert.doesNotMatch(workflow, /\\"studyApiCardDrafts\\" = false/);
+  assert.ok(
+    workflow.indexOf('mutate_proxy_route DELETE') <
+      workflow.indexOf('Study card draft lifecycle smoke check passed.')
+  );
 });
 
 test('the production workflow tolerates intentional browser drift after card-write cutover', async () => {
