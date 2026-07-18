@@ -28,9 +28,13 @@ const mockPrisma = vi.hoisted(() => ({
     findUnique: vi.fn(),
   },
 }));
+const invokedRateLimitKeys = vi.hoisted(() => [] as string[]);
 
 const mockRateLimitStudyRoute = vi.hoisted(() =>
-  vi.fn((_options) => (_req: Request, _res: Response, next: NextFunction) => next())
+  vi.fn((options: { key: string }) => (_req: Request, _res: Response, next: NextFunction) => {
+    invokedRateLimitKeys.push(options.key);
+    next();
+  })
 );
 
 vi.mock('../../../../db/client.js', () => ({ prisma: mockPrisma }));
@@ -260,10 +264,12 @@ describe('Learning OS Study proxy routes', () => {
     studyApiSettingsWrite: true,
     studyApiNewQueueWrite: true,
     studyApiReview: true,
+    studyApiCardWrites: true,
   };
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    invokedRateLimitKeys.length = 0;
     vi.useRealTimers();
     const { resetFeatureFlagCacheForTests } =
       await import('../../../../middleware/featureFlags.js');
@@ -355,6 +361,30 @@ describe('Learning OS Study proxy routes', () => {
     });
     expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
       key: 'learning-os-review-write-proxy',
+      max: 120,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-card-create-proxy',
+      max: 120,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-card-update-proxy',
+      max: 120,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-card-delete-proxy',
+      max: 60,
+      windowMs: 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-card-action-proxy',
       max: 120,
       windowMs: 60 * 1000,
       onBackendError: 'fail-closed',
@@ -787,6 +817,214 @@ describe('Learning OS Study proxy routes', () => {
       .send({ timeZone: 'America/New_York' });
 
     expect(response.status).toBe(403);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('proxies idempotent card creates with normalized ULIDs and compatibility payloads', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(compatibilityCard), {
+          status: 201,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/cards')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        id: '01arz3ndektsv4rrffq69g5fav',
+        creationKind: 'TEXT-RECOGNITION',
+        cardType: 'recognition',
+        prompt: { text: '会社' },
+        answer: { text: 'company' },
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual(compatibilityCard);
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/study/cards');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({
+      id: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      creationKind: 'text-recognition',
+      cardType: 'recognition',
+      prompt: { text: '会社' },
+      answer: { text: 'company' },
+    });
+    expect(invokedRateLimitKeys).toEqual(['learning-os-card-create-proxy']);
+  });
+
+  it('proxies card updates, actions, and idempotent deletes through one child flag', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify(compatibilityCard), { status: 200 }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ card: compatibilityCard, overview: compatibilityOverview }),
+            { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const updateResponse = await request(app)
+      .patch(`/api/learning-os/study/cards/${compatibilityCard.id}`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ prompt: { text: '会社' }, answer: { text: 'updated company' } });
+    const actionResponse = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/actions`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        action: 'SET_DUE',
+        mode: 'TOMORROW',
+        timeZone: 'America/New_York',
+        currentOverview: compatibilityOverview,
+      });
+    const deleteResponse = await request(app)
+      .delete(`/api/learning-os/study/cards/${compatibilityCard.id}`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
+
+    expect(updateResponse.status).toBe(200);
+    expect(actionResponse.status).toBe(200);
+    expect(deleteResponse.status).toBe(204);
+    const calls = vi.mocked(global.fetch).mock.calls as [URL, RequestInit][];
+    expect(calls.map(([url]) => url.toString())).toEqual([
+      `https://learning-os.example/api/study/cards/${compatibilityCard.id}`,
+      `https://learning-os.example/api/study/cards/${compatibilityCard.id}/actions`,
+      `https://learning-os.example/api/study/cards/${compatibilityCard.id}`,
+    ]);
+    expect(JSON.parse(String(calls[1]?.[1].body))).toEqual({
+      action: 'set_due',
+      mode: 'tomorrow',
+      timeZone: 'America/New_York',
+      currentOverview: compatibilityOverview,
+    });
+    expect(calls.map(([, init]) => init.method)).toEqual(['PATCH', 'POST', 'DELETE']);
+    expect(invokedRateLimitKeys).toEqual([
+      'learning-os-card-update-proxy',
+      'learning-os-card-action-proxy',
+      'learning-os-card-delete-proxy',
+    ]);
+  });
+
+  it.each([
+    [{ cardType: 'recognition', prompt: {}, answer: {} }],
+    [{ id: 'not-a-ulid', cardType: 'recognition', prompt: {}, answer: {} }],
+    [{ id: '01ARZ3NDEKTSV4RRFFQ69G5FAV', cardType: 'unknown', prompt: {}, answer: {} }],
+    [
+      {
+        creationKind: 'text-recognition',
+        cardType: 'cloze',
+        prompt: {},
+        answer: {},
+      },
+    ],
+    [{ cardType: 'recognition', prompt: '会社', answer: {} }],
+  ])('rejects invalid card create bodies before calling Learning OS', async (body) => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/cards')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      {
+        nested: {
+          nested: { nested: { nested: { nested: { nested: { nested: { nested: {} } } } } } },
+        },
+      },
+      { text: 'company' },
+      '8 levels deep or fewer',
+    ],
+    [{ text: '会社' }, { text: 'x'.repeat(65 * 1024) }, '64 KB or smaller'],
+  ])(
+    'enforces the shared card payload envelope before calling Learning OS',
+    async (prompt, answer, message) => {
+      const app = await createApp();
+      const { cookies, token } = await csrfAuth(app);
+
+      const response = await request(app)
+        .post('/api/learning-os/study/cards')
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send({ cardType: 'recognition', prompt, answer });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(message);
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    [{ action: 'set_due', mode: 'tomorrow', timeZone: 'Not/A_Zone' }],
+    [{ action: 'set_due', mode: 'custom_date', dueAt: 'tomorrow' }],
+    [{ action: 'set_due', mode: 'custom_date', dueAt: '2099-01-01T00:00:00Z' }],
+    [{ action: 'archive' }],
+  ])('rejects invalid card actions before calling Learning OS', async (body) => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/actions`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps every card write disabled under the shared child flag', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiCardWrites: false,
+    });
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const createResponse = await request(app)
+      .post('/api/learning-os/study/cards')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ cardType: 'recognition', prompt: { text: '会社' }, answer: { text: 'company' } });
+    const updateResponse = await request(app)
+      .patch(`/api/learning-os/study/cards/${compatibilityCard.id}`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ prompt: { text: '会社' }, answer: { text: 'company' } });
+
+    expect(createResponse.status).toBe(403);
+    expect(updateResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
