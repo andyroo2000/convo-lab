@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import {
-  MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
+  DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
   TTS_VOICES,
 } from '@languageflow/shared/src/constants-new.js';
 import {
@@ -1009,7 +1009,7 @@ function adaptAnswerAudioRegenerateBody(value: unknown): Record<string, unknown>
     trimmedVoiceId !== null && STUDY_ANSWER_AUDIO_FISH_VOICE_IDS.has(trimmedVoiceId)
       ? trimmedVoiceId
       : trimmedVoiceId !== null && STUDY_ANSWER_AUDIO_LEGACY_VOICE_IDS.has(trimmedVoiceId)
-        ? MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0]
+        ? DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID
         : null;
   if (voiceId !== undefined && voiceId !== null && normalizedVoiceId === null) {
     throw new AppError('answerAudioVoiceId is not supported.', 400);
