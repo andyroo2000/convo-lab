@@ -82,6 +82,9 @@ test('the production workflow wires import activation through verification and r
     '$COMPOSE up -d --no-deps --force-recreate learning-os-worker',
     'if [ "$current_worker_id" = "$DRAINING_WORKER_CONTAINER_ID" ]; then',
     'docker start learning-os-worker',
+    'current_command="$(docker inspect --format=\'{{join .Config.Cmd " "}}\' "$container" 2>/dev/null || true)"',
+    'desired_queue_argument="--queue=study-imports,study-card-drafts,default"',
+    '&& [[ " $current_command " == *" $desired_queue_argument "* ]]; then',
   ]) {
     assert.match(workflow, new RegExp(requiredContract.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
