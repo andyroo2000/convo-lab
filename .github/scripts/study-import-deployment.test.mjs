@@ -163,7 +163,11 @@ test('the production workflow streams and cleans up disposable Learning OS media
     '\\"studyApiMedia\\" = $enable_media_sql',
     '\\"studyApiMedia\\" = $previous_media_sql',
     'cleanup_media_smoke',
+    'cleanup_deployment_failure() {\n              exit_code=$?\n              set +e',
+    'if (! $disk->put($path, $contents))',
     'App\\Domain\\Media\\Models\\MediaAsset::query()->create',
+    '[[ "$media_smoke_id" =~ ^[0-9a-hjkmnp-tv-z]{26}$ ]]',
+    'Learning OS returned an invalid media smoke ULID:',
     '"https://convo-lab.com/api/learning-os/study/media/$media_smoke_id"',
     'Study media streaming smoke check passed.',
   ]) {
@@ -171,6 +175,19 @@ test('the production workflow streams and cleans up disposable Learning OS media
   }
 
   assert.doesNotMatch(workflow, /\\"studyApiMedia\\" = false/);
+  const mediaSmokeBlock = workflow.slice(
+    workflow.indexOf('if [ "$ENABLE_MEDIA" = true ]; then'),
+    workflow.indexOf('if [ "$ENABLE_IMPORTS" = true ]; then')
+  );
+  assert.doesNotMatch(mediaSmokeBlock, /\^\[0-9A-HJKMNP-TV-Z\]\{26\}\$/);
+  const failureCleanupBlock = workflow.slice(
+    workflow.indexOf('cleanup_deployment_failure() {'),
+    workflow.indexOf('trap cleanup_deployment_failure EXIT')
+  );
+  assert.ok(
+    failureCleanupBlock.indexOf('rollback_study_flags') <
+      failureCleanupBlock.indexOf('cleanup_deployment_resources')
+  );
   const mediaRequestIndex = workflow.indexOf(
     '"https://convo-lab.com/api/learning-os/study/media/$media_smoke_id"'
   );
