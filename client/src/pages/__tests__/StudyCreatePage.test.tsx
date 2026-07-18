@@ -134,7 +134,7 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: deleteManualDraftState.isPending,
     error: null,
   }),
-  useGenerateStudyCardDraftImage: () => ({
+  useGenerateStudyManualCardDraftPreviewImage: () => ({
     mutateAsync: generateDraftImageMock,
     isPending: generateDraftImageState.isPending,
     error: generateDraftImageState.error,
@@ -144,7 +144,7 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: generateCandidatesState.isPending,
     error: generateCandidatesState.error,
   }),
-  useRegenerateStudyCardCandidatePreviewAudio: () => ({
+  useGenerateStudyManualCardDraftPreviewAudio: () => ({
     mutateAsync: regenerateCandidateAudioMock,
     isPending: false,
     error: null,
@@ -283,12 +283,6 @@ describe('StudyCreatePage', () => {
     );
     generateCandidatesMock.mockResolvedValue({ candidates: [], learnerContextSummary: null });
     regenerateCandidateAudioMock.mockResolvedValue({
-      prompt: { cueMeaning: 'company' },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-      },
       previewAudio: {
         id: 'media-regenerated',
         filename: 'candidate-regenerated.mp3',
@@ -790,15 +784,22 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getByTestId('study-manual-draft-row'));
     await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
 
+    expect(updateManualDraftMock).toHaveBeenCalledWith(
+      expect.objectContaining({ draftId: 'draft-1' })
+    );
     expect(regenerateCandidateAudioMock).toHaveBeenCalledWith({
-      candidate: expect.objectContaining({
-        candidateKind: 'text-recognition',
-        cardType: 'recognition',
-        answer: expect.objectContaining({
-          expression: '会社',
+      draftId: 'draft-1',
+      legacyRequest: {
+        candidate: expect.objectContaining({
+          candidateKind: 'text-recognition',
+          cardType: 'recognition',
+          answer: expect.objectContaining({ expression: '会社' }),
         }),
-      }),
+      },
     });
+    expect(updateManualDraftMock.mock.invocationCallOrder[0]).toBeLessThan(
+      regenerateCandidateAudioMock.mock.invocationCallOrder[0] as number
+    );
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
       'http://localhost:3001/api/study/media/media-regenerated'
@@ -890,35 +891,14 @@ describe('StudyCreatePage', () => {
     expect(screen.getByLabelText('Image placement')).toHaveValue('both');
   });
 
-  it('clears production-image preview state when switching to another manual kind', async () => {
-    generateDraftImageMock.mockResolvedValue({
-      previewImage: {
-        id: 'manual-image',
-        filename: 'manual-image.webp',
-        url: '/api/study/media/manual-image',
-        mediaKind: 'image',
-        source: 'generated',
-      },
-      imagePrompt: 'A realistic photo of cloudy weather over Tokyo. No text.',
-      imagePlacement: 'prompt',
-    });
-
+  it('disables preview media generation until a manual draft is persisted', async () => {
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
     await chooseManualCardType(/Production from image/);
-    await userEvent.type(
-      screen.getByLabelText('Image prompt'),
-      'A realistic photo of cloudy weather over Tokyo. No text.'
-    );
-    await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
-    expect(screen.getByAltText('Generated card prompt')).toBeInTheDocument();
 
-    await chooseManualCardType(/Text recognition/);
-
-    expect(screen.queryByAltText('Generated card prompt')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Image prompt')).toHaveValue('');
-    expect(screen.getByLabelText('Image placement')).toHaveValue('none');
+    expect(screen.getByRole('button', { name: 'Regenerate audio' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate image' })).toBeDisabled();
   });
 
   it('generates a manual image from the edited prompt before create', async () => {
@@ -934,9 +914,17 @@ describe('StudyCreatePage', () => {
       imagePlacement: 'both',
     });
 
+    manualDraftsState.drafts = [
+      manualDraft({
+        imagePrompt: 'A realistic photo of a company office. No text.',
+        imagePlacement: 'both',
+      }),
+    ];
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.clear(screen.getByLabelText('Image prompt'));
     await userEvent.type(
       screen.getByLabelText('Image prompt'),
       'A construction paper illustration of a company office. No text.'
@@ -944,10 +932,23 @@ describe('StudyCreatePage', () => {
     await userEvent.selectOptions(screen.getByLabelText('Image placement'), 'both');
     await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
 
-    expect(generateDraftImageMock).toHaveBeenCalledWith({
-      imagePrompt: 'A construction paper illustration of a company office. No text.',
-      imagePlacement: 'both',
+    expect(updateManualDraftMock).toHaveBeenCalledWith({
+      draftId: 'draft-1',
+      values: expect.objectContaining({
+        imagePrompt: 'A construction paper illustration of a company office. No text.',
+        imagePlacement: 'both',
+      }),
     });
+    expect(generateDraftImageMock).toHaveBeenCalledWith({
+      draftId: 'draft-1',
+      legacyRequest: {
+        imagePrompt: 'A construction paper illustration of a company office. No text.',
+        imagePlacement: 'both',
+      },
+    });
+    expect(updateManualDraftMock.mock.invocationCallOrder[0]).toBeLessThan(
+      generateDraftImageMock.mock.invocationCallOrder[0] as number
+    );
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
       'http://localhost:3001/api/study/media/manual-image'

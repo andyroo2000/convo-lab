@@ -23,6 +23,8 @@ import {
   getStudyImportStatus,
   getStudyImportUploadReadiness,
   getStudyManualCardDrafts,
+  generateStudyManualCardDraftPreviewAudio,
+  generateStudyManualCardDraftPreviewImage,
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyAnswerAudio,
@@ -480,6 +482,98 @@ describe('useStudy request helpers', () => {
       id: cardId,
     });
     expect((fetchMock.mock.calls[5]?.[1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('routes draft preview media generation with the card-drafts flag and no body', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardDrafts: true,
+    });
+    const draftId = '01ARZ3NDEKTSV4RRFFQ69G5FAX';
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          previewAudio: { id: 'audio-1' },
+          previewAudioRole: 'answer',
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          imagePrompt: 'Office',
+          imagePlacement: 'prompt',
+          previewImage: { id: 'image-1' },
+        }),
+      } as Response);
+
+    await generateStudyManualCardDraftPreviewAudio(
+      {
+        draftId,
+        legacyRequest: {
+          candidate: {
+            clientId: 'candidate-1',
+            candidateKind: 'text-recognition',
+            cardType: 'recognition',
+            prompt: { cueText: '会社' },
+            answer: { meaning: 'company' },
+          },
+        },
+      },
+      flags
+    );
+    await generateStudyManualCardDraftPreviewImage(
+      {
+        draftId,
+        legacyRequest: { imagePrompt: 'Office', imagePlacement: 'prompt' },
+      },
+      flags
+    );
+
+    const { calls } = vi.mocked(global.fetch).mock;
+    expect(calls.map(([url]) => url)).toEqual([
+      `${API_URL}/api/learning-os/study/card-drafts/${draftId}/preview-audio`,
+      `${API_URL}/api/learning-os/study/card-drafts/${draftId}/preview-image`,
+    ]);
+    expect(calls.map(([, init]) => init)).toEqual([
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    ]);
+    expect(
+      calls.every(([, init]) => !Object.prototype.hasOwnProperty.call(init as object, 'body'))
+    ).toBe(true);
+  });
+
+  it('keeps draft preview media on Convo Lab until card drafts are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardDrafts: false,
+    });
+    const draftId = '01ARZ3NDEKTSV4RRFFQ69G5FAX';
+
+    const candidate = {
+      clientId: 'candidate-1',
+      candidateKind: 'text-recognition' as const,
+      cardType: 'recognition' as const,
+      prompt: { cueText: '会社' },
+      answer: { meaning: 'company' },
+    };
+    await generateStudyManualCardDraftPreviewAudio(
+      { draftId, legacyRequest: { candidate } },
+      flags
+    );
+    await generateStudyManualCardDraftPreviewImage(
+      {
+        draftId,
+        legacyRequest: { imagePrompt: 'Office', imagePlacement: 'prompt' },
+      },
+      flags
+    );
+
+    expect(vi.mocked(global.fetch).mock.calls.map(([url]) => url)).toEqual([
+      `${API_URL}/api/study/card-candidates/regenerate-audio`,
+      `${API_URL}/api/study/cards/draft/image`,
+    ]);
   });
 
   it('routes vocab bundle draft creation with the manual-card draft feature', async () => {

@@ -1391,6 +1391,184 @@ describe('Learning OS Study proxy routes', () => {
     ]);
   });
 
+  it('proxies draft preview audio and image through one guarded media budget', async () => {
+    const audioId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
+    const imageId = '01ARZ3NDEKTSV4RRFFQ69G5FAY';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              previewAudio: {
+                id: audioId.toLowerCase(),
+                filename: 'company.mp3',
+                url: `/api/study/media/${audioId.toLowerCase()}`,
+                mediaKind: 'audio',
+                source: 'generated',
+              },
+              previewAudioRole: 'answer',
+            })
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              imagePrompt: 'A commuter entering a Tokyo office.',
+              imagePlacement: 'prompt',
+              previewImage: {
+                id: imageId.toLowerCase(),
+                filename: 'office.webp',
+                url: `/api/study/media/${imageId.toLowerCase()}`,
+                mediaKind: 'image',
+                source: 'generated',
+              },
+            })
+          )
+        )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const draftId = compatibilityCardDraft.id.toLowerCase();
+    const requestHeaders = {
+      Origin: 'http://localhost:5173',
+      Cookie: cookies,
+      [CSRF_TOKEN_HEADER_NAME]: token,
+    };
+
+    const audioResponse = await request(app)
+      .post(`/api/learning-os/study/card-drafts/${draftId}/preview-audio`)
+      .set(requestHeaders);
+    const imageResponse = await request(app)
+      .post(`/api/learning-os/study/card-drafts/${draftId}/preview-image`)
+      .set(requestHeaders);
+
+    expect(audioResponse.status).toBe(200);
+    expect(audioResponse.body).toEqual({
+      previewAudio: {
+        id: audioId,
+        filename: 'company.mp3',
+        url: `/api/learning-os/study/media/${audioId}`,
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+      previewAudioRole: 'answer',
+    });
+    expect(imageResponse.status).toBe(200);
+    expect(imageResponse.body).toEqual({
+      imagePrompt: 'A commuter entering a Tokyo office.',
+      imagePlacement: 'prompt',
+      previewImage: {
+        id: imageId,
+        filename: 'office.webp',
+        url: `/api/learning-os/study/media/${imageId}`,
+        mediaKind: 'image',
+        source: 'generated',
+      },
+    });
+
+    const calls = vi.mocked(global.fetch).mock.calls as [URL, RequestInit][];
+    expect(calls.map(([url]) => url.toString())).toEqual([
+      `https://learning-os.example/api/study/card-drafts/${compatibilityCardDraft.id}/preview-audio`,
+      `https://learning-os.example/api/study/card-drafts/${compatibilityCardDraft.id}/preview-image`,
+    ]);
+    expect(calls.every(([, init]) => init.body === undefined)).toBe(true);
+    expect(
+      calls.every(([, init]) => !(init.headers as Record<string, string>)['Content-Type'])
+    ).toBe(true);
+    expect(invokedRateLimitKeys).toEqual([
+      'learning-os-card-draft-preview-media-proxy',
+      'learning-os-card-draft-preview-media-proxy',
+    ]);
+  });
+
+  it.each(['preview-audio', 'preview-image'])(
+    'rejects non-empty %s request bodies before calling Learning OS',
+    async (operation) => {
+      const app = await createApp();
+      const { cookies, token } = await csrfAuth(app);
+
+      const response = await request(app)
+        .post(`/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/${operation}`)
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send({ override: true });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toBe('Request body must be empty.');
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    [
+      'preview-audio',
+      {
+        previewAudio: {
+          id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+          filename: 'company.mp3',
+          url: '/api/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+          mediaKind: 'audio',
+          source: 'imported',
+        },
+        previewAudioRole: 'answer',
+      },
+    ],
+    [
+      'preview-audio',
+      {
+        previewAudio: null,
+        previewAudioRole: 'answer',
+      },
+    ],
+    [
+      'preview-image',
+      {
+        imagePrompt: 'Office',
+        imagePlacement: 'none',
+        previewImage: {
+          id: '01ARZ3NDEKTSV4RRFFQ69G5FAY',
+          filename: 'office.webp',
+          url: '/api/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAY',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+    ],
+    [
+      'preview-image',
+      {
+        imagePrompt: 'Office',
+        imagePlacement: 'prompt',
+        previewImage: {
+          id: 'not-a-ulid',
+          filename: 'office.webp',
+          url: '/api/study/media/not-a-ulid',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+    ],
+  ])('rejects invalid %s upstream response contracts', async (operation, body) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post(`/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/${operation}`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toContain(`card draft ${operation.replace('-', ' ')}`);
+  });
+
   it('creates vocab bundle drafts through Learning OS under the card-drafts flag', async () => {
     const groupId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
     vi.stubGlobal(
@@ -2078,6 +2256,39 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.body.error.message).toBe('Learning OS Study API request timed out.');
   });
 
+  it('allows provider-backed draft previews to run beyond the default proxy timeout', async () => {
+    vi.useFakeTimers();
+    const upstream = { signal: null as AbortSignal | null };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: URL, init?: RequestInit) => {
+        upstream.signal = init?.signal ?? null;
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+      })
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const pendingResponse = request(app)
+      .post(`/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/preview-image`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .then((response) => response);
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(upstream.signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(110_000);
+    const response = await pendingResponse;
+
+    expect(response.status).toBe(504);
+    expect(response.body.error.message).toBe('Learning OS Study API request timed out.');
+  });
+
   it('creates an import session and replaces the private upstream upload URL', async () => {
     vi.stubGlobal(
       'fetch',
@@ -2158,7 +2369,7 @@ describe('Learning OS Study proxy routes', () => {
       RequestInit & { duplex?: string },
     ];
     expect(url.toString()).toBe(
-      'https://learning-os.example/api/study/imports/01arz3ndektsv4rrffq69g5faw/upload'
+      'https://learning-os.example/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload'
     );
     expect(init.duplex).toBe('half');
     const headers = new Headers(init.headers);

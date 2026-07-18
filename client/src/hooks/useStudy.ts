@@ -24,6 +24,7 @@ import type {
   StudyCardDraftCompleteResponse,
   StudyCardDraftImageRequest,
   StudyCardDraftImageResponse,
+  StudyCardDraftPreviewAudioResponse,
   StudyManualCardDraft,
   StudyManualCardDraftCreateCardResponse,
   StudyManualCardDraftCreateRequest,
@@ -421,6 +422,42 @@ export async function generateStudyCardDraftImage(
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function generateStudyManualCardDraftPreviewAudio(
+  payload: {
+    draftId: string;
+    legacyRequest: StudyCardCandidatePreviewAudioRequest;
+  },
+  flags?: FeatureFlags
+): Promise<StudyCardDraftPreviewAudioResponse> {
+  if (!shouldUseLearningOsStudyApi({ feature: 'cardDrafts', flags })) {
+    return regenerateStudyCardCandidatePreviewAudio(payload.legacyRequest);
+  }
+
+  return apiRequest<StudyCardDraftPreviewAudioResponse>(
+    `/api/study/card-drafts/${encodeURIComponent(payload.draftId)}/preview-audio`,
+    { method: 'POST' },
+    { feature: 'cardDrafts', flags }
+  );
+}
+
+export async function generateStudyManualCardDraftPreviewImage(
+  payload: {
+    draftId: string;
+    legacyRequest: StudyCardDraftImageRequest;
+  },
+  flags?: FeatureFlags
+): Promise<StudyCardDraftImageResponse> {
+  if (!shouldUseLearningOsStudyApi({ feature: 'cardDrafts', flags })) {
+    return generateStudyCardDraftImage(payload.legacyRequest);
+  }
+
+  return apiRequest<StudyCardDraftImageResponse>(
+    `/api/study/card-drafts/${encodeURIComponent(payload.draftId)}/preview-image`,
+    { method: 'POST' },
+    { feature: 'cardDrafts', flags }
+  );
 }
 
 export function createStudyCardId(): string {
@@ -824,6 +861,34 @@ export function useCompleteStudyCardDraft() {
 export function useGenerateStudyCardDraftImage() {
   return useMutation({
     mutationFn: generateStudyCardDraftImage,
+  });
+}
+
+export function useGenerateStudyManualCardDraftPreviewAudio() {
+  const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
+
+  return useMutation({
+    mutationFn: (payload: {
+      draftId: string;
+      legacyRequest: StudyCardCandidatePreviewAudioRequest;
+    }) => generateStudyManualCardDraftPreviewAudio(payload, flags),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+    },
+  });
+}
+
+export function useGenerateStudyManualCardDraftPreviewImage() {
+  const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
+
+  return useMutation({
+    mutationFn: (payload: { draftId: string; legacyRequest: StudyCardDraftImageRequest }) =>
+      generateStudyManualCardDraftPreviewImage(payload, flags),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+    },
   });
 }
 

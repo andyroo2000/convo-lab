@@ -96,6 +96,10 @@ x-learning-os-environment: &learning-os-environment
   OPENAI_API_KEY: ${OPENAI_API_KEY}
   STUDY_CARD_GENERATOR_MODEL: ${STUDY_CARD_GENERATOR_MODEL:-gpt-5.5}
   STUDY_CARD_GENERATOR_REASONING_EFFORT: ${STUDY_CARD_GENERATOR_REASONING_EFFORT:-medium}
+  STUDY_CARD_IMAGE_GENERATOR_MODEL: ${STUDY_CARD_IMAGE_GENERATOR_MODEL:-gpt-image-1}
+  FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY}
+  FISH_AUDIO_API_BASE_URL: ${FISH_AUDIO_API_BASE_URL:-https://api.fish.audio}
+  FISH_AUDIO_BACKEND: ${FISH_AUDIO_BACKEND:-s1}
 
 x-learning-os-service: &learning-os-service
   image: ghcr.io/andyroo2000/learning-os:${LEARNING_OS_IMAGE_TAG:-latest}

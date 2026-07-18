@@ -24,6 +24,7 @@ import {
 import { STUDY_VOCAB_VARIANT_KINDS_BY_STAGE } from '../../services/study/variants/constants.js';
 
 import {
+  rewriteLearningOsStudyMediaUrl,
   rewriteStudyCardDraftMediaUrls,
   rewriteStudyCardMediaUrls,
   STUDY_ULID_SEGMENT,
@@ -40,6 +41,7 @@ import {
 
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
+const LEARNING_OS_PREVIEW_MEDIA_TIMEOUT_MS = 120_000;
 const LEARNING_OS_IMPORT_UPLOAD_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_STUDY_IMPORT_UPLOAD_BYTES = 2_147_483_648;
 const MAX_NEW_QUEUE_REORDER_SIZE = 500;
@@ -181,6 +183,12 @@ const learningOsCardDraftDeleteRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsCardDraftPreviewMediaRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-draft-preview-media-proxy',
+  max: 10,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 
 type StudyApiChildFlag = Extract<
   FeatureFlagKey,
@@ -212,8 +220,10 @@ type StudyWriteFeature =
   | 'cardDraftUpdate'
   | 'cardDraftRetry'
   | 'cardDraftCommit'
-  | 'cardDraftDelete';
+  | 'cardDraftDelete'
+  | 'cardDraftPreviewMedia';
 type StudyWriteBody =
+  | 'empty'
   | 'cardCreate'
   | 'cardUpdate'
   | 'cardAction'
@@ -243,12 +253,15 @@ interface StudyProxyRoute {
   reviewOperation?: 'session' | 'write';
   importUpload?: boolean;
   mediaResponse?: boolean;
+  timeoutMs?: number;
   responseAdapter?:
     | 'card'
     | 'cardAction'
     | 'cardDraft'
     | 'cardDraftCommit'
     | 'cardDraftList'
+    | 'cardDraftPreviewAudio'
+    | 'cardDraftPreviewImage'
     | 'vocabBundleDraftCreate';
 }
 
@@ -301,6 +314,26 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardDraftRetry',
     responseAdapter: 'cardDraft',
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/preview-audio$`, 'i'),
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'cardDraftPreviewMedia',
+    writeBody: 'empty',
+    responseAdapter: 'cardDraftPreviewAudio',
+    timeoutMs: LEARNING_OS_PREVIEW_MEDIA_TIMEOUT_MS,
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/preview-image$`, 'i'),
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'cardDraftPreviewMedia',
+    writeBody: 'empty',
+    responseAdapter: 'cardDraftPreviewImage',
+    timeoutMs: LEARNING_OS_PREVIEW_MEDIA_TIMEOUT_MS,
   },
   {
     method: 'POST',
@@ -547,6 +580,13 @@ function getStudyProxyRoute(method: string, pathname: string): StudyProxyRoute |
   );
 }
 
+function normalizeStudyProxyPath(pathname: string): string {
+  return pathname
+    .split('/')
+    .map((segment) => (ULID_PATTERN.test(segment) ? segment.toUpperCase() : segment))
+    .join('/');
+}
+
 function getLearningOsConfig(): { apiUrl: string; apiToken: string; proxyUserEmail: string } {
   const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
   const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
@@ -585,6 +625,17 @@ function requestRecord(value: unknown): Record<string, unknown> {
   }
 
   return value as Record<string, unknown>;
+}
+
+function adaptEmptyBody(value: unknown): undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (Object.keys(requestRecord(value)).length > 0) {
+    throw new AppError('Request body must be empty.', 400);
+  }
+
+  return undefined;
 }
 
 function adaptStudyCardPayloads(value: unknown): {
@@ -1085,6 +1136,9 @@ function adaptImportCreateBody(value: unknown): { filename: string; content_type
 }
 
 function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
+  if (route.writeBody === 'empty') {
+    return adaptEmptyBody(value);
+  }
   if (route.writeBody === 'cardCreate') {
     return adaptCardCreateBody(value);
   }
@@ -1186,6 +1240,8 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsCardDraftCommitRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftDelete') {
     learningOsCardDraftDeleteRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardDraftPreviewMedia') {
+    learningOsCardDraftPreviewMediaRateLimit(req, res, next);
   } else {
     learningOsStudyReadRateLimit(req, res, next);
   }
@@ -1203,10 +1259,11 @@ async function fetchLearningOsStudy(
   user: UserIdentity,
   method: StudyProxyMethod,
   body: unknown,
-  additionalHeaders: Readonly<Record<string, string>> = {}
+  additionalHeaders: Readonly<Record<string, string>> = {},
+  timeoutMs = LEARNING_OS_FETCH_TIMEOUT_MS
 ) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), LEARNING_OS_FETCH_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const headers: Record<string, string> = {
     ...additionalHeaders,
     Accept: additionalHeaders.Accept ?? 'application/json',
@@ -1339,6 +1396,50 @@ function adaptStudyRouteResponse(
   if (route.responseAdapter === 'cardDraft') {
     assertCardDraftResponse(value);
     return rewriteStudyCardDraftMediaUrls(value);
+  }
+  if (route.responseAdapter === 'cardDraftPreviewAudio') {
+    const response = upstreamResponseRecord(value, 'card draft preview audio');
+    if (
+      Object.keys(response).some((key) => key !== 'previewAudio' && key !== 'previewAudioRole') ||
+      !validGeneratedPreviewMediaRef(response.previewAudio, 'audio') ||
+      (response.previewAudioRole !== 'prompt' && response.previewAudioRole !== 'answer')
+    ) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid card draft preview audio response.',
+        502
+      );
+    }
+
+    return {
+      previewAudio: normalizeGeneratedPreviewMediaRef(response.previewAudio),
+      previewAudioRole: response.previewAudioRole,
+    };
+  }
+  if (route.responseAdapter === 'cardDraftPreviewImage') {
+    const response = upstreamResponseRecord(value, 'card draft preview image');
+    if (
+      Object.keys(response).some(
+        (key) => key !== 'imagePrompt' && key !== 'imagePlacement' && key !== 'previewImage'
+      ) ||
+      typeof response.imagePrompt !== 'string' ||
+      response.imagePrompt.trim().length === 0 ||
+      response.imagePrompt.length > MAX_STUDY_DRAFT_IMAGE_PROMPT_LENGTH ||
+      typeof response.imagePlacement !== 'string' ||
+      !STUDY_CARD_IMAGE_PLACEMENTS.has(response.imagePlacement) ||
+      response.imagePlacement === 'none' ||
+      !validGeneratedPreviewMediaRef(response.previewImage, 'image')
+    ) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid card draft preview image response.',
+        502
+      );
+    }
+
+    return {
+      imagePrompt: response.imagePrompt,
+      imagePlacement: response.imagePlacement,
+      previewImage: normalizeGeneratedPreviewMediaRef(response.previewImage),
+    };
   }
   if (route.responseAdapter === 'cardDraftList') {
     const response = upstreamResponseRecord(value, 'card draft list');
@@ -1570,6 +1671,39 @@ function validCardDraftMediaRef(value: unknown, mediaKind: 'audio' | 'image'): b
   );
 }
 
+function validGeneratedPreviewMediaRef(value: unknown, mediaKind: 'audio' | 'image'): boolean {
+  if (!validCardDraftMediaRef(value, mediaKind) || value === null) {
+    return false;
+  }
+  const media = value as Record<string, unknown>;
+  const allowedKeys = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
+  const expectedExtension = mediaKind === 'audio' ? '.mp3' : '.webp';
+
+  return (
+    !Object.keys(media).some((key) => !allowedKeys.has(key)) &&
+    typeof media.id === 'string' &&
+    ULID_PATTERN.test(media.id) &&
+    typeof media.url === 'string' &&
+    media.url.length > 0 &&
+    media.url.length <= MAX_STUDY_DRAFT_MEDIA_URL_LENGTH &&
+    media.url.toUpperCase() === `/API/STUDY/MEDIA/${media.id.toUpperCase()}` &&
+    typeof media.filename === 'string' &&
+    media.filename.length <= MAX_STUDY_DRAFT_MEDIA_FILENAME_LENGTH &&
+    !/[\\/\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(media.filename) &&
+    media.filename.toLowerCase().endsWith(expectedExtension) &&
+    media.source === 'generated'
+  );
+}
+
+function normalizeGeneratedPreviewMediaRef(value: unknown): Record<string, unknown> {
+  const media = value as Record<string, unknown>;
+  return {
+    ...media,
+    id: (media.id as string).toUpperCase(),
+    url: rewriteLearningOsStudyMediaUrl(media.url as string),
+  };
+}
+
 function validNullableString(value: unknown): boolean {
   return value === null || typeof value === 'string';
 }
@@ -1685,7 +1819,8 @@ router.all(
         throw new AppError('Learning OS Study API is not enabled for this account.', 403);
       }
 
-      const upstreamUrl = new URL(`${apiUrl}/api/study${req.path}`);
+      const normalizedPath = normalizeStudyProxyPath(req.path);
+      const upstreamUrl = new URL(`${apiUrl}/api/study${normalizedPath}`);
       appendQueryParams(upstreamUrl, req.query, route);
       const body = route.importUpload ? undefined : adaptWriteBody(route, req.body);
       const upstreamResponse = route.importUpload
@@ -1696,7 +1831,8 @@ router.all(
             user,
             route.method,
             body,
-            route.mediaResponse ? mediaRequestHeaders(req) : undefined
+            route.mediaResponse ? mediaRequestHeaders(req) : undefined,
+            route.timeoutMs
           );
 
       if (!upstreamResponse.ok) {
@@ -1729,7 +1865,7 @@ router.all(
 
       res
         .status(upstreamResponse.status)
-        .json(adaptStudyRouteResponse(route, responseJson, req.path));
+        .json(adaptStudyRouteResponse(route, responseJson, normalizedPath));
     } catch (error) {
       if (res.headersSent) {
         res.destroy(error instanceof Error ? error : undefined);
