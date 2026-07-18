@@ -1133,12 +1133,12 @@ async function fetchLearningOsStudy(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), LEARNING_OS_FETCH_TIMEOUT_MS);
   const headers: Record<string, string> = {
-    Accept: 'application/json',
+    ...additionalHeaders,
+    Accept: additionalHeaders.Accept ?? 'application/json',
     Authorization: `Bearer ${apiToken}`,
     'X-Convo-Lab-User-Id': user.id,
     'X-Convo-Lab-User-Email': user.email,
     'X-Convo-Lab-User-Role': user.role,
-    ...additionalHeaders,
   };
 
   if (body !== undefined) {
