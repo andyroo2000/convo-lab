@@ -1148,6 +1148,159 @@ describe('Learning OS Study proxy routes', () => {
     ]);
   });
 
+  it('proxies answer-audio preparation and regeneration through the card-write flag', async () => {
+    const generatedCard = {
+      ...compatibilityCard,
+      answer: {
+        ...compatibilityCard.answer,
+        answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+        answerAudio: {
+          id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+          filename: 'answer.mp3',
+          url: '/api/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      answerAudioSource: 'generated',
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify(generatedCard), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify(generatedCard), { status: 200 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const prepareResponse = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/prepare-answer-audio`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
+    const regenerateResponse = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        answerAudioVoiceId: ' ja-JP-Neural2-C ',
+        answerAudioTextOverride: ' かいしゃ ',
+      });
+
+    expect(prepareResponse.status).toBe(200);
+    expect(regenerateResponse.status).toBe(200);
+    expect(regenerateResponse.body.answer.answerAudio.url).toBe(
+      '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW'
+    );
+    const calls = vi.mocked(global.fetch).mock.calls as [URL, RequestInit][];
+    expect(calls.map(([url]) => url.toString())).toEqual([
+      `https://learning-os.example/api/study/cards/${compatibilityCard.id}/prepare-answer-audio`,
+      `https://learning-os.example/api/study/cards/${compatibilityCard.id}/regenerate-answer-audio`,
+    ]);
+    expect(calls[0]?.[1].body).toBeUndefined();
+    expect(JSON.parse(String(calls[1]?.[1].body))).toEqual({
+      answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+      answerAudioTextOverride: ' かいしゃ ',
+    });
+    expect(invokedRateLimitKeys).toEqual([
+      'learning-os-card-answer-audio-proxy',
+      'learning-os-card-answer-audio-proxy',
+    ]);
+  });
+
+  it.each([
+    ['prepare-answer-audio', { unexpected: true }],
+    ['regenerate-answer-audio', { unexpected: true }],
+    ['regenerate-answer-audio', { answerAudioVoiceId: 'not-a-voice' }],
+    ['regenerate-answer-audio', { answerAudioVoiceId: [] }],
+    ['regenerate-answer-audio', { answerAudioTextOverride: 'a'.repeat(501) }],
+  ])('rejects invalid %s bodies before calling Learning OS', async (operation, body) => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/${operation}`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('preserves nullable overrides and accepts the answer-audio text boundary', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify(compatibilityCard), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify(compatibilityCard), { status: 200 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const sendRegenerate = (body: Record<string, unknown>) =>
+      request(app)
+        .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`)
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send(body);
+
+    const nullableResponse = await sendRegenerate({
+      answerAudioVoiceId: null,
+      answerAudioTextOverride: null,
+    });
+    const boundaryText = '会'.repeat(500);
+    const boundaryResponse = await sendRegenerate({
+      answerAudioTextOverride: boundaryText,
+    });
+
+    expect(nullableResponse.status).toBe(200);
+    expect(boundaryResponse.status).toBe(200);
+    const calls = vi.mocked(global.fetch).mock.calls as [URL, RequestInit][];
+    expect(JSON.parse(String(calls[0]?.[1].body))).toEqual({
+      answerAudioVoiceId: null,
+      answerAudioTextOverride: null,
+    });
+    expect(JSON.parse(String(calls[1]?.[1].body))).toEqual({
+      answerAudioTextOverride: boundaryText,
+    });
+  });
+
+  it.each([
+    ['ja-JP-Wavenet-C', 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f'],
+    ['ja-JP-Neural2-B', 'fishaudio:9639f090aa6346329d7d3aca7e6b7226'],
+    ['Takumi', 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f'],
+    ['Kazuha', 'fishaudio:9639f090aa6346329d7d3aca7e6b7226'],
+    ['Tomoko', 'fishaudio:9639f090aa6346329d7d3aca7e6b7226'],
+  ])(
+    'migrates the legacy voice %s to its matching Fish voice',
+    async (voiceId, expectedVoiceId) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(new Response(JSON.stringify(compatibilityCard), { status: 200 }))
+      );
+      const app = await createApp();
+      const { cookies, token } = await csrfAuth(app);
+
+      const response = await request(app)
+        .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`)
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send({ answerAudioVoiceId: voiceId });
+
+      expect(response.status).toBe(200);
+      const call = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+      expect(JSON.parse(String(call[1].body))).toEqual({
+        answerAudioVoiceId: expectedVoiceId,
+      });
+    }
+  );
+
   it.each([
     [{ cardType: 'recognition', prompt: {}, answer: {} }],
     [{ id: 'not-a-ulid', cardType: 'recognition', prompt: {}, answer: {} }],
@@ -1246,9 +1399,22 @@ describe('Learning OS Study proxy routes', () => {
       .set('Cookie', cookies)
       .set(CSRF_TOKEN_HEADER_NAME, token)
       .send({ prompt: { text: '会社' }, answer: { text: 'company' } });
+    const prepareResponse = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/prepare-answer-audio`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
+    const regenerateResponse = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f' });
 
     expect(createResponse.status).toBe(403);
     expect(updateResponse.status).toBe(403);
+    expect(prepareResponse.status).toBe(403);
+    expect(regenerateResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -2256,38 +2422,46 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.body.error.message).toBe('Learning OS Study API request timed out.');
   });
 
-  it('allows provider-backed draft previews to run beyond the default proxy timeout', async () => {
-    vi.useFakeTimers();
-    const upstream = { signal: null as AbortSignal | null };
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((_url: URL, init?: RequestInit) => {
-        upstream.signal = init?.signal ?? null;
-        return new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => {
-            reject(new DOMException('Aborted', 'AbortError'));
+  it.each([
+    `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/preview-audio`,
+    `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/preview-image`,
+    `/api/learning-os/study/cards/${compatibilityCard.id}/prepare-answer-audio`,
+    `/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`,
+  ])(
+    'allows provider-backed generation to run beyond the default proxy timeout: %s',
+    async (path) => {
+      vi.useFakeTimers();
+      const upstream = { signal: null as AbortSignal | null };
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((_url: URL, init?: RequestInit) => {
+          upstream.signal = init?.signal ?? null;
+          return new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('Aborted', 'AbortError'));
+            });
           });
-        });
-      })
-    );
-    const app = await createApp();
-    const { cookies, token } = await csrfAuth(app);
+        })
+      );
+      const app = await createApp();
+      const { cookies, token } = await csrfAuth(app);
 
-    const pendingResponse = request(app)
-      .post(`/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/preview-image`)
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .then((response) => response);
-    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-    await vi.advanceTimersByTimeAsync(10_000);
-    expect(upstream.signal?.aborted).toBe(false);
-    await vi.advanceTimersByTimeAsync(110_000);
-    const response = await pendingResponse;
+      const pendingResponse = request(app)
+        .post(path)
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .then((response) => response);
+      await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(upstream.signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(110_000);
+      const response = await pendingResponse;
 
-    expect(response.status).toBe(504);
-    expect(response.body.error.message).toBe('Learning OS Study API request timed out.');
-  });
+      expect(response.status).toBe(504);
+      expect(response.body.error.message).toBe('Learning OS Study API request timed out.');
+    }
+  );
 
   it('creates an import session and replaces the private upstream upload URL', async () => {
     vi.stubGlobal(

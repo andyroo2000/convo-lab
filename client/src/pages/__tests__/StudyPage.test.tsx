@@ -670,7 +670,7 @@ describe('StudyPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     await waitFor(() => {
-      expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1');
+      expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1', featureFlagsData.current);
     });
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Replay answer audio' })).toBeEnabled();

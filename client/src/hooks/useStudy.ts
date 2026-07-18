@@ -49,6 +49,7 @@ import { API_URL } from '../config';
 import { CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
+import resolveEffectiveFeatureFlags from './featureFlagRouting';
 import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 
 export interface StudySessionResponse {
@@ -302,17 +303,22 @@ export async function reorderStudyNewCardQueue(cardIds: string[], flags?: Featur
   );
 }
 
-export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
+export async function prepareStudyAnswerAudio(
+  cardId: string,
+  flags?: FeatureFlags
+): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
     `/api/study/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`,
     {
       method: 'POST',
-    }
+    },
+    { feature: 'cardWrites', flags }
   );
 }
 
 export async function regenerateStudyAnswerAudio(
-  payload: RegenerateStudyAnswerAudioPayload
+  payload: RegenerateStudyAnswerAudioPayload,
+  flags?: FeatureFlags
 ): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
     `/api/study/cards/${encodeURIComponent(payload.cardId)}/regenerate-answer-audio`,
@@ -322,7 +328,8 @@ export async function regenerateStudyAnswerAudio(
         answerAudioVoiceId: payload.answerAudioVoiceId,
         answerAudioTextOverride: payload.answerAudioTextOverride,
       }),
-    }
+    },
+    { feature: 'cardWrites', flags }
   );
 }
 
@@ -795,8 +802,7 @@ export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
 export function useSubmitStudyReview(routingFlags?: FeatureFlags | null) {
   const queryClient = useQueryClient();
   const { flags: liveFlags } = useFeatureFlags();
-  // null pins a session to the legacy API; undefined means no session snapshot exists yet.
-  const effectiveFlags = routingFlags === undefined ? liveFlags : (routingFlags ?? undefined);
+  const effectiveFlags = resolveEffectiveFeatureFlags(liveFlags, routingFlags);
 
   return useMutation({
     mutationFn: (payload: {
@@ -1043,9 +1049,13 @@ export function useDeleteStudyCard() {
   });
 }
 
-export function useRegenerateStudyAnswerAudio() {
+export function useRegenerateStudyAnswerAudio(routingFlags?: FeatureFlags | null) {
+  const { flags: liveFlags } = useFeatureFlags();
+  const effectiveFlags = resolveEffectiveFeatureFlags(liveFlags, routingFlags);
+
   return useMutation({
-    mutationFn: regenerateStudyAnswerAudio,
+    mutationFn: (payload: RegenerateStudyAnswerAudioPayload) =>
+      regenerateStudyAnswerAudio(payload, effectiveFlags),
   });
 }
 

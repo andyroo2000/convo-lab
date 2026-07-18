@@ -150,7 +150,7 @@ const useStudyReviewSession = () => {
   const cardActionMutation = useStudyCardAction();
   const updateCardMutation = useUpdateStudyCard();
   const deleteCardMutation = useDeleteStudyCard();
-  const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
+  const regenerateAudioMutation = useRegenerateStudyAnswerAudio(activeRoutingFlags);
   const [focusMode, setFocusMode] = useState(false);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -318,6 +318,7 @@ const useStudyReviewSession = () => {
 
   const ensureAnswerAudioPrepared = useStudyAnswerAudioPrep({
     enabled: focusMode,
+    routingFlags: activeRoutingFlags,
     mergeCardIntoSession,
     onError: reportAsyncSessionError,
   });

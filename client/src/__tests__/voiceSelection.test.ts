@@ -23,12 +23,11 @@ describe('voiceSelection', () => {
       id: 'Takumi',
       hiddenFromPicker: true,
     });
-    expect(selectableVoiceIds).toEqual(
-      expect.arrayContaining([...visibleFishVoiceIds, 'ja-JP-Wavenet-C'])
-    );
+    expect(selectableVoiceIds).toEqual(visibleFishVoiceIds);
     expect(selectableVoiceIds).not.toEqual(
       expect.arrayContaining([
         'ja-JP-Neural2-B',
+        'ja-JP-Wavenet-C',
         'ja-JP-Wavenet-D',
         'ja-JP-Neural2-D',
         'Takumi',
