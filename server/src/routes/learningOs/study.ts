@@ -1172,6 +1172,7 @@ function mediaRequestHeaders(req: AuthRequest): Record<string, string> {
   }
 
   return {
+    // Accept is advisory, so malformed or oversized values use the neutral media fallback.
     Accept: accept && accept.length <= 1024 && !/[\r\n]/.test(accept) ? accept : '*/*',
     ...(range === undefined ? {} : { Range: range }),
   };

@@ -441,11 +441,12 @@ describe('Learning OS Study proxy routes', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         new Response(Uint8Array.from([0, 1, 2, 255]), {
-          status: 200,
+          status: 206,
           headers: {
             'cache-control': 'private, max-age=15552000, immutable',
             'content-disposition': 'inline; filename=word.mp3',
             'content-length': '4',
+            'content-range': 'bytes 0-3/100',
             'content-type': 'audio/mpeg',
             etag: '"media-etag"',
             'last-modified': 'Sat, 18 Jul 2026 12:00:00 GMT',
@@ -463,10 +464,11 @@ describe('Learning OS Study proxy routes', () => {
       .set('Range', 'bytes=0-3')
       .buffer(true);
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(206);
     expect(response.body).toEqual(Buffer.from([0, 1, 2, 255]));
     expect(response.headers['content-type']).toBe('audio/mpeg');
     expect(response.headers['content-length']).toBe('4');
+    expect(response.headers['content-range']).toBe('bytes 0-3/100');
     expect(response.headers['content-disposition']).toBe('inline; filename=word.mp3');
     expect(response.headers['cache-control']).toBe('private, max-age=15552000, immutable');
     expect(response.headers.etag).toBe('"media-etag"');
