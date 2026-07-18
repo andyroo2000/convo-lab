@@ -289,6 +289,7 @@ describe('Learning OS Study proxy routes', () => {
     studyApiReview: true,
     studyApiCardWrites: true,
     studyApiCardDrafts: true,
+    studyApiMedia: true,
   };
 
   beforeEach(async () => {
@@ -360,6 +361,11 @@ describe('Learning OS Study proxy routes', () => {
       windowMs: 60 * 1000,
     });
     expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-media-proxy',
+      max: 600,
+      windowMs: 60 * 1000,
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
       key: 'learning-os-import-proxy',
       max: 240,
       windowMs: 60 * 1000,
@@ -427,6 +433,121 @@ describe('Learning OS Study proxy routes', () => {
         onBackendError: 'fail-closed',
       });
     }
+  });
+
+  it('streams Learning OS-owned media with safe response headers', async () => {
+    const mediaId = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(Uint8Array.from([0, 1, 2, 255]), {
+          status: 206,
+          headers: {
+            'cache-control': 'private, max-age=15552000, immutable',
+            'content-disposition': 'inline; filename=word.mp3',
+            'content-length': '4',
+            'content-range': 'bytes 0-3/100',
+            'content-type': 'audio/mpeg',
+            etag: '"media-etag"',
+            'last-modified': 'Sat, 18 Jul 2026 12:00:00 GMT',
+            'set-cookie': 'upstream=must-not-leak',
+          },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get(`/api/learning-os/study/media/${mediaId}`)
+      .set('Cookie', authCookie())
+      .set('Accept', 'audio/mpeg')
+      .set('Range', 'bytes=0-3')
+      .buffer(true);
+
+    expect(response.status).toBe(206);
+    expect(response.body).toEqual(Buffer.from([0, 1, 2, 255]));
+    expect(response.headers['content-type']).toBe('audio/mpeg');
+    expect(response.headers['content-length']).toBe('4');
+    expect(response.headers['content-range']).toBe('bytes 0-3/100');
+    expect(response.headers['content-disposition']).toBe('inline; filename=word.mp3');
+    expect(response.headers['cache-control']).toBe('private, max-age=15552000, immutable');
+    expect(response.headers.etag).toBe('"media-etag"');
+    expect(response.headers['last-modified']).toBe('Sat, 18 Jul 2026 12:00:00 GMT');
+    expect(response.headers['content-security-policy']).toBe("sandbox; default-src 'none'");
+    expect(response.headers['cross-origin-resource-policy']).toBe('same-origin');
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['set-cookie']).toBeUndefined();
+
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe(`https://learning-os.example/api/study/media/${mediaId}`);
+    expect(init).toMatchObject({
+      method: 'GET',
+      headers: {
+        Accept: 'audio/mpeg',
+        Authorization: 'Bearer server-only-token',
+        Range: 'bytes=0-3',
+        'X-Convo-Lab-User-Id': 'user-1',
+        'X-Convo-Lab-User-Email': 'learner@example.com',
+        'X-Convo-Lab-User-Role': 'user',
+      },
+    });
+    expect(invokedRateLimitKeys).toEqual(['learning-os-media-proxy']);
+  });
+
+  it.each(['items=0-1', 'bytes=-', 'bytes=0-1,4-5'])(
+    'rejects malformed media byte range %s before forwarding',
+    async (range) => {
+      const app = await createApp();
+
+      const response = await request(app)
+        .get('/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAV')
+        .set('Cookie', authCookie())
+        .set('Range', range);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toBe('Invalid Study media byte range.');
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
+  );
+
+  it('fails closed for invalid media headers and a disabled media flag', async () => {
+    const fetchMock = vi.fn();
+    for (const contentType of ['text/html', 'image/svg+xml']) {
+      fetchMock.mockResolvedValueOnce(
+        new Response('<script>alert(1)</script>', {
+          status: 200,
+          headers: { 'content-type': contentType },
+        })
+      );
+    }
+    vi.stubGlobal('fetch', fetchMock);
+    const app = await createApp();
+
+    for (const mediaId of ['01ARZ3NDEKTSV4RRFFQ69G5FAV', '01ARZ3NDEKTSV4RRFFQ69G5FAX']) {
+      const invalidHeaders = await request(app)
+        .get(`/api/learning-os/study/media/${mediaId}`)
+        .set('Cookie', authCookie());
+
+      expect(invalidHeaders.status).toBe(502);
+      expect(invalidHeaders.body.error.message).toBe(
+        'Learning OS Study API returned invalid media headers.'
+      );
+    }
+
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiMedia: false,
+    });
+    const { resetFeatureFlagCacheForTests } =
+      await import('../../../../middleware/featureFlags.js');
+    resetFeatureFlagCacheForTests();
+
+    const disabled = await request(app)
+      .get('/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW')
+      .set('Cookie', authCookie());
+
+    expect(disabled.status).toBe(403);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('proxies Browser detail through its independent flag without query parameters', async () => {
@@ -859,10 +980,23 @@ describe('Learning OS Study proxy routes', () => {
   });
 
   it('proxies idempotent card creates with normalized ULIDs and compatibility payloads', async () => {
+    const cardWithLearningOsMedia = {
+      ...compatibilityCard,
+      prompt: {
+        ...compatibilityCard.prompt,
+        cueAudio: {
+          id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+          filename: 'word.mp3',
+          url: '/api/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+          mediaKind: 'audio',
+          source: 'imported',
+        },
+      },
+    };
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(compatibilityCard), {
+        new Response(JSON.stringify(cardWithLearningOsMedia), {
           status: 201,
           headers: { 'content-type': 'application/json' },
         })
@@ -885,7 +1019,16 @@ describe('Learning OS Study proxy routes', () => {
       });
 
     expect(response.status).toBe(201);
-    expect(response.body).toEqual(compatibilityCard);
+    expect(response.body).toEqual({
+      ...cardWithLearningOsMedia,
+      prompt: {
+        ...cardWithLearningOsMedia.prompt,
+        cueAudio: {
+          ...cardWithLearningOsMedia.prompt.cueAudio,
+          url: '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+        },
+      },
+    });
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe('https://learning-os.example/api/study/cards');
     expect(init.method).toBe('POST');

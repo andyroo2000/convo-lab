@@ -61,6 +61,7 @@ describe('useStudy request helpers', () => {
     studyApiReview: false,
     studyApiCardWrites: false,
     studyApiCardDrafts: false,
+    studyApiMedia: false,
     updatedAt: new Date('2026-07-14T00:00:00.000Z').toISOString(),
     ...overrides,
   });

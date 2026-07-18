@@ -71,6 +71,7 @@ const {
       studyApiReview: true,
       studyApiCardWrites: true,
       studyApiCardDrafts: true,
+      studyApiMedia: true,
       updatedAt: '2026-07-16T12:00:00.000Z',
     } as FeatureFlags | undefined,
   },
@@ -394,6 +395,7 @@ describe('StudyPage', () => {
       studyApiReview: true,
       studyApiCardWrites: true,
       studyApiCardDrafts: true,
+      studyApiMedia: true,
       updatedAt: '2026-07-16T12:00:00.000Z',
     };
     studyOverviewData.current = {

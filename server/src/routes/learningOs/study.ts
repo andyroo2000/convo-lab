@@ -1,3 +1,6 @@
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+
 import type { StudyCardCreationKind } from '@languageflow/shared/src/types.js';
 import { Router, type NextFunction, type Response } from 'express';
 import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
@@ -13,6 +16,11 @@ import {
   STUDY_CARD_CREATION_KINDS,
 } from '../../services/study/shared/candidates.js';
 
+import {
+  rewriteStudyCardDraftMediaUrls,
+  rewriteStudyCardMediaUrls,
+  STUDY_ULID_SEGMENT,
+} from './studyMediaUrls.js';
 import {
   adaptLearningOsStudyReadResponse,
   type LearningOsStudyReadFeature,
@@ -35,11 +43,10 @@ const MAX_STUDY_DRAFT_IMAGE_PROMPT_LENGTH = 1000;
 const MAX_STUDY_DRAFT_MEDIA_FILENAME_LENGTH = 255;
 const MAX_STUDY_DRAFT_MEDIA_ID_LENGTH = 255;
 const MAX_STUDY_DRAFT_MEDIA_URL_LENGTH = 4096;
-const ULID_SEGMENT = '[0-9A-HJKMNP-TV-Z]{26}';
 const UUID_SEGMENT = '[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}';
-const ULID_PATTERN = new RegExp(`^${ULID_SEGMENT}$`, 'i');
+const ULID_PATTERN = new RegExp(`^${STUDY_ULID_SEGMENT}$`, 'i');
 const UUID_PATTERN = new RegExp(`^${UUID_SEGMENT}$`, 'i');
-const STUDY_CARD_ID_SEGMENT = `(?:${ULID_SEGMENT}|${UUID_SEGMENT})`;
+const STUDY_CARD_ID_SEGMENT = `(?:${STUDY_ULID_SEGMENT}|${UUID_SEGMENT})`;
 const STRICT_ISO_DATETIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 const STUDY_IMPORT_CONTENT_TYPES = new Set([
@@ -70,6 +77,11 @@ const learningOsStudyIpRateLimit = createExpressRateLimit({
 const learningOsStudyReadRateLimit = rateLimitStudyRoute({
   key: 'learning-os-read-proxy',
   max: 240,
+  windowMs: 60 * 1000,
+});
+const learningOsStudyMediaRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-media-proxy',
+  max: 600,
   windowMs: 60 * 1000,
 });
 const learningOsStudyImportRateLimit = rateLimitStudyRoute({
@@ -170,6 +182,7 @@ type StudyApiChildFlag = Extract<
   | 'studyApiReview'
   | 'studyApiCardWrites'
   | 'studyApiCardDrafts'
+  | 'studyApiMedia'
 >;
 
 type StudyProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
@@ -214,10 +227,18 @@ interface StudyProxyRoute {
   requiredReadFlag?: Extract<FeatureFlagKey, 'studyApiSettings' | 'studyApiNewQueue'>;
   reviewOperation?: 'session' | 'write';
   importUpload?: boolean;
-  responseAdapter?: 'cardDraft' | 'cardDraftCommit' | 'cardDraftList';
+  mediaResponse?: boolean;
+  responseAdapter?: 'card' | 'cardAction' | 'cardDraft' | 'cardDraftCommit' | 'cardDraftList';
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'GET',
+    pattern: new RegExp(`^/media/${STUDY_ULID_SEGMENT}$`, 'i'),
+    featureFlag: 'studyApiMedia',
+    queryParams: new Set(),
+    mediaResponse: true,
+  },
   {
     method: 'GET',
     pattern: /^\/card-drafts$/,
@@ -236,7 +257,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'PATCH',
-    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}$`, 'i'),
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}$`, 'i'),
     featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftUpdate',
@@ -245,7 +266,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'POST',
-    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}/retry$`, 'i'),
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/retry$`, 'i'),
     featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftRetry',
@@ -253,7 +274,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'POST',
-    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}/create-card$`, 'i'),
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/create-card$`, 'i'),
     featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftCommit',
@@ -262,7 +283,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'DELETE',
-    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}$`, 'i'),
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}$`, 'i'),
     featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftDelete',
@@ -274,6 +295,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardCreate',
     writeBody: 'cardCreate',
+    responseAdapter: 'card',
   },
   {
     method: 'PATCH',
@@ -282,6 +304,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardUpdate',
     writeBody: 'cardUpdate',
+    responseAdapter: 'card',
   },
   {
     method: 'DELETE',
@@ -297,6 +320,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardAction',
     writeBody: 'cardAction',
+    responseAdapter: 'cardAction',
   },
   {
     method: 'POST',
@@ -1060,7 +1084,9 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     return;
   }
 
-  if (route.featureFlag === 'studyApiImports') {
+  if (route.mediaResponse) {
+    learningOsStudyMediaRateLimit(req, res, next);
+  } else if (route.featureFlag === 'studyApiImports') {
     learningOsStudyImportRateLimit(req, res, next);
   } else if (route.writeFeature === 'settingsWrite') {
     learningOsSettingsWriteRateLimit(req, res, next);
@@ -1104,12 +1130,14 @@ async function fetchLearningOsStudy(
   apiToken: string,
   user: UserIdentity,
   method: StudyProxyMethod,
-  body: unknown
+  body: unknown,
+  additionalHeaders: Readonly<Record<string, string>> = {}
 ) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), LEARNING_OS_FETCH_TIMEOUT_MS);
   const headers: Record<string, string> = {
-    Accept: 'application/json',
+    ...additionalHeaders,
+    Accept: additionalHeaders.Accept ?? 'application/json',
     Authorization: `Bearer ${apiToken}`,
     'X-Convo-Lab-User-Id': user.id,
     'X-Convo-Lab-User-Email': user.email,
@@ -1136,6 +1164,21 @@ async function fetchLearningOsStudy(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function mediaRequestHeaders(req: AuthRequest): Record<string, string> {
+  const accept = req.header('Accept')?.trim();
+  const range = req.header('Range')?.trim();
+
+  if (range !== undefined && (range.length > 100 || !/^bytes=(?:\d+-\d*|-\d+)$/.test(range))) {
+    throw new AppError('Invalid Study media byte range.', 400);
+  }
+
+  return {
+    // Accept is advisory, so malformed or oversized values use the neutral media fallback.
+    Accept: accept && accept.length <= 1024 && !/[\r\n]/.test(accept) ? accept : '*/*',
+    ...(range === undefined ? {} : { Range: range }),
+  };
 }
 
 function importUploadHeaders(req: AuthRequest): Record<string, string> {
@@ -1211,9 +1254,19 @@ function adaptStudyRouteResponse(
   value: unknown,
   pathname: string
 ): unknown {
+  if (route.responseAdapter === 'card') {
+    return rewriteStudyCardMediaUrls(value);
+  }
+  if (route.responseAdapter === 'cardAction') {
+    const response = upstreamResponseRecord(value, 'card action');
+    return {
+      ...response,
+      card: rewriteStudyCardMediaUrls(response.card),
+    };
+  }
   if (route.responseAdapter === 'cardDraft') {
     assertCardDraftResponse(value);
-    return value;
+    return rewriteStudyCardDraftMediaUrls(value);
   }
   if (route.responseAdapter === 'cardDraftList') {
     const response = upstreamResponseRecord(value, 'card draft list');
@@ -1243,7 +1296,10 @@ function adaptStudyRouteResponse(
       );
     }
 
-    return value;
+    return {
+      ...response,
+      drafts: response.drafts.map(rewriteStudyCardDraftMediaUrls),
+    };
   }
   if (route.responseAdapter === 'cardDraftCommit') {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -1264,7 +1320,9 @@ function adaptStudyRouteResponse(
         502
       );
     }
-    const match = pathname.match(new RegExp(`^/card-drafts/(${ULID_SEGMENT})/create-card$`, 'i'));
+    const match = pathname.match(
+      new RegExp(`^/card-drafts/(${STUDY_ULID_SEGMENT})/create-card$`, 'i')
+    );
     if (!match?.[1]) {
       throw new AppError(
         'Learning OS Study API returned an invalid card draft commit response.',
@@ -1272,12 +1330,71 @@ function adaptStudyRouteResponse(
       );
     }
 
-    return { card, draftId: match[1].toUpperCase() };
+    return {
+      card: rewriteStudyCardMediaUrls(card),
+      draftId: match[1].toUpperCase(),
+    };
   }
 
   return route.responseFeature
     ? adaptLearningOsStudyReadResponse(route.responseFeature, value)
     : value;
+}
+
+const FORWARDED_MEDIA_RESPONSE_HEADERS = [
+  'accept-ranges',
+  'cache-control',
+  'content-disposition',
+  'content-length',
+  'content-range',
+  'content-type',
+  'etag',
+  'last-modified',
+] as const;
+
+function safeMediaResponseHeader(name: string, value: string): boolean {
+  if (value.length === 0 || value.length > 1024 || /[\r\n]/.test(value)) {
+    return false;
+  }
+
+  return name !== 'content-length' || /^\d+$/.test(value);
+}
+
+async function streamLearningOsStudyMedia(
+  upstreamResponse: globalThis.Response,
+  res: Response
+): Promise<void> {
+  const contentType = upstreamResponse.headers.get('content-type');
+  if (
+    !contentType ||
+    !safeMediaResponseHeader('content-type', contentType) ||
+    /^image\/svg\+xml(?:\s*;|$)/i.test(contentType) ||
+    (!/^(?:audio|image|video)\//i.test(contentType) &&
+      !/^application\/octet-stream(?:\s*;|$)/i.test(contentType))
+  ) {
+    throw new AppError('Learning OS Study API returned invalid media headers.', 502);
+  }
+
+  for (const name of FORWARDED_MEDIA_RESPONSE_HEADERS) {
+    const value = upstreamResponse.headers.get(name);
+    if (value !== null && safeMediaResponseHeader(name, value)) {
+      res.setHeader(name, value);
+    }
+  }
+  res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.status(upstreamResponse.status);
+
+  if (!upstreamResponse.body) {
+    res.end();
+    return;
+  }
+
+  await pipeline(
+    Readable.fromWeb(upstreamResponse.body as Parameters<typeof Readable.fromWeb>[0]),
+    res
+  );
 }
 
 function upstreamResponseRecord(value: unknown, feature: string): Record<string, unknown> {
@@ -1427,7 +1544,14 @@ router.all(
       const body = route.importUpload ? undefined : adaptWriteBody(route, req.body);
       const upstreamResponse = route.importUpload
         ? await fetchLearningOsStudyImportUpload(upstreamUrl, apiToken, user, req)
-        : await fetchLearningOsStudy(upstreamUrl, apiToken, user, route.method, body);
+        : await fetchLearningOsStudy(
+            upstreamUrl,
+            apiToken,
+            user,
+            route.method,
+            body,
+            route.mediaResponse ? mediaRequestHeaders(req) : undefined
+          );
 
       if (!upstreamResponse.ok) {
         const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;
@@ -1439,6 +1563,11 @@ router.all(
           validationMessage ?? 'Learning OS Study API request failed.',
           statusCode
         );
+      }
+
+      if (route.mediaResponse) {
+        await streamLearningOsStudyMedia(upstreamResponse, res);
+        return;
       }
 
       const responseBody = await upstreamResponse.text();
@@ -1453,6 +1582,10 @@ router.all(
         .status(upstreamResponse.status)
         .json(adaptStudyRouteResponse(route, responseJson, req.path));
     } catch (error) {
+      if (res.headersSent) {
+        res.destroy(error instanceof Error ? error : undefined);
+        return;
+      }
       next(error);
     }
   }

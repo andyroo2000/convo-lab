@@ -102,6 +102,7 @@ interface FeatureFlags {
   studyApiReview: boolean;
   studyApiCardWrites: boolean;
   studyApiCardDrafts: boolean;
+  studyApiMedia: boolean;
   updatedAt: string;
 }
 
@@ -1539,6 +1540,11 @@ const AdminPage = () => {
                         'studyApiCardDrafts',
                         'Study Card Drafts',
                         'Create, autosave, retry, commit, and delete manual drafts through Learning OS'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiMedia',
+                        'Study Media',
+                        'Stream Learning OS-owned study audio and images through the authenticated proxy'
                       )}
                       {renderFeatureFlagToggle(
                         'studyApiImports',

@@ -289,7 +289,13 @@ describe('Learning OS Study read response adapters', () => {
             name: 'Expression',
             value: '会社',
             textValue: '会社',
-            audio: null,
+            audio: {
+              id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+              filename: 'word.mp3',
+              url: '/api/study/media/01arz3ndektsv4rrffq69g5faw',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
             image: null,
           },
         ],
@@ -299,7 +305,16 @@ describe('Learning OS Study read response adapters', () => {
             id: 'card-1',
             noteId: 'note-1',
             cardType: 'recognition',
-            prompt: { cueText: '会社' },
+            prompt: {
+              cueText: '会社',
+              cueAudio: {
+                id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+                filename: 'word.mp3',
+                url: '/api/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+                mediaKind: 'audio',
+                source: 'imported',
+              },
+            },
             answer: { meaning: 'company' },
             state: {
               dueAt: '2026-07-16T12:00:00.000000Z',
@@ -357,7 +372,19 @@ describe('Learning OS Study read response adapters', () => {
       sourceKind: 'anki_import',
       updatedAt: '2026-07-14T12:00:00.123Z',
       rawFields: [
-        { name: 'Expression', value: '会社', textValue: '会社', audio: null, image: null },
+        {
+          name: 'Expression',
+          value: '会社',
+          textValue: '会社',
+          audio: {
+            id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+            filename: 'word.mp3',
+            url: '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+            mediaKind: 'audio',
+            source: 'imported',
+          },
+          image: null,
+        },
       ],
       canonicalFields: [],
       cards: [
@@ -369,7 +396,13 @@ describe('Learning OS Study read response adapters', () => {
             cueText: '会社',
             cueReading: null,
             cueMeaning: null,
-            cueAudio: null,
+            cueAudio: {
+              id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+              filename: 'word.mp3',
+              url: '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
             cueImage: null,
             clozeText: null,
             clozeDisplayText: null,

@@ -67,6 +67,7 @@ describe('useFeatureFlags', () => {
         studyApiNewQueueWrite: false,
         studyApiReview: false,
         studyApiCardDrafts: false,
+        studyApiMedia: false,
         updatedAt: '2024-01-01',
       };
 
@@ -124,6 +125,7 @@ describe('useFeatureFlags', () => {
         studyApiNewQueueWrite: false,
         studyApiReview: false,
         studyApiCardDrafts: false,
+        studyApiMedia: false,
         updatedAt: '2024-01-01',
       };
 
@@ -161,6 +163,7 @@ describe('useFeatureFlags', () => {
         studyApiNewQueueWrite: false,
         studyApiReview: false,
         studyApiCardDrafts: false,
+        studyApiMedia: false,
         updatedAt: '2024-01-01',
       };
 
@@ -213,6 +216,7 @@ describe('useFeatureFlags', () => {
         studyApiNewQueueWrite: false,
         studyApiReview: false,
         studyApiCardDrafts: false,
+        studyApiMedia: false,
         updatedAt: '2024-01-01',
       };
 
@@ -347,6 +351,7 @@ describe('useFeatureFlags', () => {
         studyApiNewQueueWrite: false,
         studyApiReview: false,
         studyApiCardDrafts: false,
+        studyApiMedia: false,
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
@@ -367,6 +372,7 @@ describe('useFeatureFlags', () => {
       expect(typeof validFlags.studyApiNewQueueWrite).toBe('boolean');
       expect(typeof validFlags.studyApiReview).toBe('boolean');
       expect(typeof validFlags.studyApiCardDrafts).toBe('boolean');
+      expect(typeof validFlags.studyApiMedia).toBe('boolean');
       expect(typeof validFlags.updatedAt).toBe('string');
     });
   });
