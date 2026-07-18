@@ -1,3 +1,4 @@
+import type { StudyCardCreationKind } from '@languageflow/shared/src/types.js';
 import { Router, type NextFunction, type Response } from 'express';
 import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
@@ -7,6 +8,10 @@ import { AppError } from '../../middleware/errorHandler.js';
 import { getFeatureFlags, type FeatureFlagKey } from '../../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../../middleware/studyRateLimit.js';
 import { assertStudyCardPayloadContract } from '../../services/study/cardPayloadContract.js';
+import {
+  cardTypeForStudyCardCreationKind,
+  STUDY_CARD_CREATION_KINDS,
+} from '../../services/study/shared/candidates.js';
 
 import {
   adaptLearningOsStudyReadResponse,
@@ -38,13 +43,6 @@ const STUDY_IMPORT_CONTENT_TYPES = new Set([
   'application/zip',
   'application/x-zip-compressed',
   'multipart/x-zip',
-]);
-const STUDY_CARD_CREATION_KINDS = new Set([
-  'text-recognition',
-  'audio-recognition',
-  'production-text',
-  'production-image',
-  'cloze',
 ]);
 const STUDY_CARD_TYPES = new Set(['recognition', 'production', 'cloze']);
 const STUDY_CARD_ACTIONS = new Set(['suspend', 'unsuspend', 'forget', 'set_due']);
@@ -447,30 +445,41 @@ function adaptCardCreateBody(value: unknown): Record<string, unknown> {
   const id = body.id;
   const creationKind = body.creationKind;
   const cardType = body.cardType;
+  const normalizedCreationKind =
+    typeof creationKind === 'string' ? creationKind.trim().toLowerCase() : undefined;
+  const normalizedCardType =
+    typeof cardType === 'string' ? cardType.trim().toLowerCase() : undefined;
 
   if (id !== undefined && (typeof id !== 'string' || !ULID_PATTERN.test(id.trim()))) {
     throw new AppError('id must be a valid ULID.', 400);
   }
   if (
     creationKind !== undefined &&
-    (typeof creationKind !== 'string' ||
-      !STUDY_CARD_CREATION_KINDS.has(creationKind.trim().toLowerCase()))
+    (normalizedCreationKind === undefined ||
+      !STUDY_CARD_CREATION_KINDS.has(normalizedCreationKind as StudyCardCreationKind))
   ) {
     throw new AppError('creationKind is not supported.', 400);
   }
   if (
-    creationKind === undefined &&
-    (typeof cardType !== 'string' || !STUDY_CARD_TYPES.has(cardType.trim().toLowerCase()))
+    (creationKind === undefined && normalizedCardType === undefined) ||
+    (cardType !== undefined &&
+      (normalizedCardType === undefined || !STUDY_CARD_TYPES.has(normalizedCardType)))
   ) {
     throw new AppError('cardType must be recognition, production, or cloze.', 400);
+  }
+  if (
+    normalizedCreationKind !== undefined &&
+    normalizedCardType !== undefined &&
+    cardTypeForStudyCardCreationKind(normalizedCreationKind as StudyCardCreationKind) !==
+      normalizedCardType
+  ) {
+    throw new AppError('cardType must match creationKind.', 400);
   }
 
   return {
     ...(typeof id === 'string' ? { id: id.trim().toUpperCase() } : {}),
-    ...(typeof creationKind === 'string'
-      ? { creationKind: creationKind.trim().toLowerCase() }
-      : {}),
-    ...(typeof cardType === 'string' ? { cardType: cardType.trim().toLowerCase() } : {}),
+    ...(normalizedCreationKind === undefined ? {} : { creationKind: normalizedCreationKind }),
+    ...(normalizedCardType === undefined ? {} : { cardType: normalizedCardType }),
     ...payloads,
   };
 }
@@ -510,7 +519,7 @@ function adaptCardActionBody(value: unknown): Record<string, unknown> {
   }
   if (mode === 'custom_date') {
     const maxDueAt = new Date();
-    maxDueAt.setUTCFullYear(maxDueAt.getUTCFullYear() + MAX_STUDY_SET_DUE_FUTURE_YEARS);
+    maxDueAt.setFullYear(maxDueAt.getFullYear() + MAX_STUDY_SET_DUE_FUTURE_YEARS);
     if (Date.parse(dueAt as string) > maxDueAt.getTime()) {
       throw new AppError(
         `dueAt must be within ${String(MAX_STUDY_SET_DUE_FUTURE_YEARS)} years.`,

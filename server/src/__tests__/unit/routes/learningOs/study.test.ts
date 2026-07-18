@@ -927,6 +927,14 @@ describe('Learning OS Study proxy routes', () => {
   it.each([
     [{ id: 'not-a-ulid', cardType: 'recognition', prompt: {}, answer: {} }],
     [{ cardType: 'unknown', prompt: {}, answer: {} }],
+    [
+      {
+        creationKind: 'text-recognition',
+        cardType: 'cloze',
+        prompt: {},
+        answer: {},
+      },
+    ],
     [{ cardType: 'recognition', prompt: '会社', answer: {} }],
   ])('rejects invalid card create bodies before calling Learning OS', async (body) => {
     const app = await createApp();
