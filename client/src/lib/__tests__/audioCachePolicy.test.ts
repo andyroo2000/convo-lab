@@ -14,6 +14,12 @@ const signedGcsUrl =
 describe('audioCachePolicy', () => {
   it('excludes redirected study media API URLs from client warming but allows element preloading', () => {
     expect(normalizeWarmableAudioUrls(['/api/study/media/123'], APP_ORIGIN)).toEqual([]);
+    expect(
+      normalizeWarmableAudioUrls(
+        ['/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW'],
+        APP_ORIGIN
+      )
+    ).toEqual([]);
     expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, true)).toBe('auto');
     expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, false)).toBe('metadata');
   });
@@ -38,6 +44,15 @@ describe('audioCachePolicy', () => {
       isServiceWorkerAudioRoute({
         request: new Request(`${APP_ORIGIN}/api/study/media/123`),
         url: new URL(`${APP_ORIGIN}/api/study/media/123`),
+        sameOrigin: true,
+      })
+    ).toBe(false);
+    expect(
+      isServiceWorkerAudioRoute({
+        request: new Request(
+          `${APP_ORIGIN}/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW`
+        ),
+        url: new URL(`${APP_ORIGIN}/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW`),
         sameOrigin: true,
       })
     ).toBe(false);

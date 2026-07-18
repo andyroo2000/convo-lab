@@ -109,7 +109,7 @@ test('the production workflow wires card-write activation through verification a
     '\\"studyApiCardWrites\\" = $enable_card_writes_sql',
     '\\"studyApiCardWrites\\" = $previous_card_writes_sql',
     '|| [ "$ENABLE_CARD_WRITES" = true ] || [ "$ENABLE_CARD_DRAFTS" = true ]',
-    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql|$enable_card_drafts_sql"',
+    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql|$enable_card_drafts_sql|$enable_media_sql"',
   ]) {
     assert.ok(workflow.includes(requiredContract), `Missing card-write contract: ${requiredContract}`);
   }
@@ -147,6 +147,40 @@ test('the production workflow wires card-draft activation through disposable ver
   assert.ok(
     workflow.indexOf('mutate_proxy_route DELETE') <
       workflow.indexOf('Study card draft lifecycle smoke check passed.')
+  );
+});
+
+test('the production workflow streams and cleans up disposable Learning OS media', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'enable_media:',
+    'ENABLE_MEDIA: ${{ inputs.enable_media }}',
+    'validate_boolean_input enable_media "$ENABLE_MEDIA"',
+    '\\"studyApiMedia\\" = $enable_media_sql',
+    '\\"studyApiMedia\\" = $previous_media_sql',
+    'cleanup_media_smoke',
+    'App\\Domain\\Media\\Models\\MediaAsset::query()->create',
+    '"https://convo-lab.com/api/learning-os/study/media/$media_smoke_id"',
+    'Study media streaming smoke check passed.',
+  ]) {
+    assert.ok(workflow.includes(requiredContract), `Missing media contract: ${requiredContract}`);
+  }
+
+  assert.doesNotMatch(workflow, /\\"studyApiMedia\\" = false/);
+  const mediaRequestIndex = workflow.indexOf(
+    '"https://convo-lab.com/api/learning-os/study/media/$media_smoke_id"'
+  );
+  const mediaPassedIndex = workflow.indexOf('Study media streaming smoke check passed.');
+  const cleanupInvocationIndex = workflow.lastIndexOf(
+    'cleanup_media_smoke',
+    mediaPassedIndex
+  );
+  assert.ok(
+    mediaRequestIndex < cleanupInvocationIndex && cleanupInvocationIndex < mediaPassedIndex
   );
 });
 

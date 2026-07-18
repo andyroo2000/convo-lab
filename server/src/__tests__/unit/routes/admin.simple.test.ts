@@ -442,6 +442,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
           studyApiReview: false,
           studyApiCardWrites: false,
           studyApiCardDrafts: false,
+          studyApiMedia: false,
         },
       });
     });
@@ -487,6 +488,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         studyApiReview: false,
         studyApiCardWrites: false,
         studyApiCardDrafts: false,
+        studyApiMedia: false,
       });
 
       mockPrisma.featureFlag.update.mockResolvedValue({
@@ -501,6 +503,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         studyApiReview: true,
         studyApiCardWrites: true,
         studyApiCardDrafts: true,
+        studyApiMedia: true,
       });
 
       const response = await request(app).patch('/admin/feature-flags').send({
@@ -510,6 +513,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         studyApiReview: true,
         studyApiCardWrites: true,
         studyApiCardDrafts: true,
+        studyApiMedia: true,
       });
 
       expect(response.status).toBe(200);
@@ -522,6 +526,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
           studyApiReview: true,
           studyApiCardWrites: true,
           studyApiCardDrafts: true,
+          studyApiMedia: true,
         },
       });
     });

@@ -1,3 +1,6 @@
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+
 import type { StudyCardCreationKind } from '@languageflow/shared/src/types.js';
 import { Router, type NextFunction, type Response } from 'express';
 import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
@@ -13,6 +16,7 @@ import {
   STUDY_CARD_CREATION_KINDS,
 } from '../../services/study/shared/candidates.js';
 
+import { rewriteStudyCardDraftMediaUrls, rewriteStudyCardMediaUrls } from './studyMediaUrls.js';
 import {
   adaptLearningOsStudyReadResponse,
   type LearningOsStudyReadFeature,
@@ -170,6 +174,7 @@ type StudyApiChildFlag = Extract<
   | 'studyApiReview'
   | 'studyApiCardWrites'
   | 'studyApiCardDrafts'
+  | 'studyApiMedia'
 >;
 
 type StudyProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
@@ -214,10 +219,18 @@ interface StudyProxyRoute {
   requiredReadFlag?: Extract<FeatureFlagKey, 'studyApiSettings' | 'studyApiNewQueue'>;
   reviewOperation?: 'session' | 'write';
   importUpload?: boolean;
-  responseAdapter?: 'cardDraft' | 'cardDraftCommit' | 'cardDraftList';
+  mediaResponse?: boolean;
+  responseAdapter?: 'card' | 'cardAction' | 'cardDraft' | 'cardDraftCommit' | 'cardDraftList';
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'GET',
+    pattern: new RegExp(`^/media/${ULID_SEGMENT}$`, 'i'),
+    featureFlag: 'studyApiMedia',
+    queryParams: new Set(),
+    mediaResponse: true,
+  },
   {
     method: 'GET',
     pattern: /^\/card-drafts$/,
@@ -274,6 +287,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardCreate',
     writeBody: 'cardCreate',
+    responseAdapter: 'card',
   },
   {
     method: 'PATCH',
@@ -282,6 +296,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardUpdate',
     writeBody: 'cardUpdate',
+    responseAdapter: 'card',
   },
   {
     method: 'DELETE',
@@ -297,6 +312,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardAction',
     writeBody: 'cardAction',
+    responseAdapter: 'cardAction',
   },
   {
     method: 'POST',
@@ -1104,7 +1120,8 @@ async function fetchLearningOsStudy(
   apiToken: string,
   user: UserIdentity,
   method: StudyProxyMethod,
-  body: unknown
+  body: unknown,
+  additionalHeaders: Readonly<Record<string, string>> = {}
 ) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), LEARNING_OS_FETCH_TIMEOUT_MS);
@@ -1114,6 +1131,7 @@ async function fetchLearningOsStudy(
     'X-Convo-Lab-User-Id': user.id,
     'X-Convo-Lab-User-Email': user.email,
     'X-Convo-Lab-User-Role': user.role,
+    ...additionalHeaders,
   };
 
   if (body !== undefined) {
@@ -1136,6 +1154,20 @@ async function fetchLearningOsStudy(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function mediaRequestHeaders(req: AuthRequest): Record<string, string> {
+  const accept = req.header('Accept')?.trim();
+  const range = req.header('Range')?.trim();
+
+  if (range !== undefined && (range.length > 100 || !/^bytes=(?:\d+-\d*|-\d+)$/.test(range))) {
+    throw new AppError('Invalid Study media byte range.', 400);
+  }
+
+  return {
+    Accept: accept && accept.length <= 1024 && !/[\r\n]/.test(accept) ? accept : '*/*',
+    ...(range === undefined ? {} : { Range: range }),
+  };
 }
 
 function importUploadHeaders(req: AuthRequest): Record<string, string> {
@@ -1211,9 +1243,19 @@ function adaptStudyRouteResponse(
   value: unknown,
   pathname: string
 ): unknown {
+  if (route.responseAdapter === 'card') {
+    return rewriteStudyCardMediaUrls(value);
+  }
+  if (route.responseAdapter === 'cardAction') {
+    const response = upstreamResponseRecord(value, 'card action');
+    return {
+      ...response,
+      card: rewriteStudyCardMediaUrls(response.card),
+    };
+  }
   if (route.responseAdapter === 'cardDraft') {
     assertCardDraftResponse(value);
-    return value;
+    return rewriteStudyCardDraftMediaUrls(value);
   }
   if (route.responseAdapter === 'cardDraftList') {
     const response = upstreamResponseRecord(value, 'card draft list');
@@ -1243,7 +1285,10 @@ function adaptStudyRouteResponse(
       );
     }
 
-    return value;
+    return {
+      ...response,
+      drafts: response.drafts.map(rewriteStudyCardDraftMediaUrls),
+    };
   }
   if (route.responseAdapter === 'cardDraftCommit') {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -1272,12 +1317,70 @@ function adaptStudyRouteResponse(
       );
     }
 
-    return { card, draftId: match[1].toUpperCase() };
+    return {
+      card: rewriteStudyCardMediaUrls(card),
+      draftId: match[1].toUpperCase(),
+    };
   }
 
   return route.responseFeature
     ? adaptLearningOsStudyReadResponse(route.responseFeature, value)
     : value;
+}
+
+const FORWARDED_MEDIA_RESPONSE_HEADERS = [
+  'accept-ranges',
+  'cache-control',
+  'content-disposition',
+  'content-length',
+  'content-range',
+  'content-type',
+  'etag',
+  'last-modified',
+] as const;
+
+function safeMediaResponseHeader(name: string, value: string): boolean {
+  if (value.length === 0 || value.length > 1024 || /[\r\n]/.test(value)) {
+    return false;
+  }
+
+  return name !== 'content-length' || /^\d+$/.test(value);
+}
+
+async function streamLearningOsStudyMedia(
+  upstreamResponse: globalThis.Response,
+  res: Response
+): Promise<void> {
+  const contentType = upstreamResponse.headers.get('content-type');
+  if (
+    !contentType ||
+    !safeMediaResponseHeader('content-type', contentType) ||
+    (!/^(?:audio|image|video)\//i.test(contentType) &&
+      !/^application\/octet-stream(?:\s*;|$)/i.test(contentType))
+  ) {
+    throw new AppError('Learning OS Study API returned invalid media headers.', 502);
+  }
+
+  for (const name of FORWARDED_MEDIA_RESPONSE_HEADERS) {
+    const value = upstreamResponse.headers.get(name);
+    if (value !== null && safeMediaResponseHeader(name, value)) {
+      res.setHeader(name, value);
+    }
+  }
+  res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.status(upstreamResponse.status);
+
+  if (!upstreamResponse.body) {
+    res.end();
+    return;
+  }
+
+  await pipeline(
+    Readable.fromWeb(upstreamResponse.body as Parameters<typeof Readable.fromWeb>[0]),
+    res
+  );
 }
 
 function upstreamResponseRecord(value: unknown, feature: string): Record<string, unknown> {
@@ -1427,7 +1530,14 @@ router.all(
       const body = route.importUpload ? undefined : adaptWriteBody(route, req.body);
       const upstreamResponse = route.importUpload
         ? await fetchLearningOsStudyImportUpload(upstreamUrl, apiToken, user, req)
-        : await fetchLearningOsStudy(upstreamUrl, apiToken, user, route.method, body);
+        : await fetchLearningOsStudy(
+            upstreamUrl,
+            apiToken,
+            user,
+            route.method,
+            body,
+            route.mediaResponse ? mediaRequestHeaders(req) : undefined
+          );
 
       if (!upstreamResponse.ok) {
         const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;
@@ -1439,6 +1549,11 @@ router.all(
           validationMessage ?? 'Learning OS Study API request failed.',
           statusCode
         );
+      }
+
+      if (route.mediaResponse) {
+        await streamLearningOsStudyMedia(upstreamResponse, res);
+        return;
       }
 
       const responseBody = await upstreamResponse.text();
@@ -1453,6 +1568,10 @@ router.all(
         .status(upstreamResponse.status)
         .json(adaptStudyRouteResponse(route, responseJson, req.path));
     } catch (error) {
+      if (res.headersSent) {
+        res.destroy(error instanceof Error ? error : undefined);
+        return;
+      }
       next(error);
     }
   }

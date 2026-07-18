@@ -31,6 +31,7 @@ router.get('/', requireAuth, async (_req: AuthRequest, res, next) => {
           studyApiReview: false,
           studyApiCardWrites: false,
           studyApiCardDrafts: false,
+          studyApiMedia: false,
         },
       });
     }

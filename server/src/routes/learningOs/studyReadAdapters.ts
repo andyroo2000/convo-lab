@@ -1,5 +1,7 @@
 import { AppError } from '../../middleware/errorHandler.js';
 
+import { rewriteLearningOsStudyMediaUrl } from './studyMediaUrls.js';
+
 export type LearningOsStudyReadFeature =
   | 'settings'
   | 'overview'
@@ -370,7 +372,10 @@ function adaptMedia(value: unknown) {
     media.id === null || media.id === undefined
       ? undefined
       : stringValue(media.id, 'browserDetail');
-  const url = media.url === undefined ? undefined : nullableString(media.url, 'browserDetail');
+  const url =
+    media.url === undefined
+      ? undefined
+      : rewriteLearningOsStudyMediaUrl(nullableString(media.url, 'browserDetail'));
 
   return {
     ...(id === undefined ? {} : { id }),

@@ -20,6 +20,7 @@ export interface FeatureFlags {
   studyApiReview: boolean;
   studyApiCardWrites: boolean;
   studyApiCardDrafts: boolean;
+  studyApiMedia: boolean;
   updatedAt: string;
 }
 

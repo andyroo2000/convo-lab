@@ -135,6 +135,7 @@ const mockFeatureFlags = {
   studyApiReview: false,
   studyApiCardWrites: false,
   studyApiCardDrafts: false,
+  studyApiMedia: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
@@ -596,6 +597,7 @@ describe('AdminPage', () => {
         expect(screen.getByText('Guided Audio Course')).toBeInTheDocument();
         expect(screen.getByText('Study Review')).toBeInTheDocument();
         expect(screen.getByText('Study Card Writes')).toBeInTheDocument();
+        expect(screen.getByText('Study Media')).toBeInTheDocument();
       });
     });
 

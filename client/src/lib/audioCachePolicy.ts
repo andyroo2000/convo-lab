@@ -27,7 +27,11 @@ export const isSignedGoogleStorageUrlValue = (url: string | URL, baseHref: strin
 
 export const isStudyMediaApiUrl = (url: string | URL, baseHref: string) => {
   const parsed = toUrl(url, baseHref);
-  return Boolean(parsed?.pathname.startsWith('/api/study/media/'));
+  return Boolean(
+    parsed &&
+    (parsed.pathname.startsWith('/api/study/media/') ||
+      parsed.pathname.startsWith('/api/learning-os/study/media/'))
+  );
 };
 
 export const shouldPreloadAudioCacheUrl = (url: string | URL, baseHref: string) => {
