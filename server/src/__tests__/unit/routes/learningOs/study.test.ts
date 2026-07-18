@@ -420,6 +420,7 @@ describe('Learning OS Study proxy routes', () => {
       onBackendError: 'fail-closed',
     });
     for (const [key, max] of [
+      ['learning-os-vocab-bundle-draft-create-proxy', 20],
       ['learning-os-card-draft-create-proxy', 60],
       ['learning-os-card-draft-update-proxy', 120],
       ['learning-os-card-draft-retry-proxy', 30],
@@ -1348,6 +1349,132 @@ describe('Learning OS Study proxy routes', () => {
     ]);
   });
 
+  it('creates vocab bundle drafts through Learning OS under the card-drafts flag', async () => {
+    const groupId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            groupId: groupId.toLowerCase(),
+            drafts: Array.from({ length: 11 }, () => ({
+              ...compatibilityCardDraft,
+              status: 'generating',
+              variantGroupId: groupId,
+              variantKind: 'sentence_audio_recognition',
+              variantStage: 1,
+              variantStatus: 'available',
+            })),
+          }),
+          { status: 201 }
+        )
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/card-candidates/vocab-bundle/drafts')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        targetWord: ' 会社 ',
+        sourceSentence: ' 会社で働きます。 ',
+        context: ' work ',
+        includeLearnerContext: false,
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.groupId).toBe(groupId);
+    expect(response.body.drafts).toHaveLength(11);
+    const [upstreamUrl, upstreamInit] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(upstreamUrl.toString()).toBe(
+      'https://learning-os.example/api/study/card-candidates/vocab-bundle/drafts'
+    );
+    expect(JSON.parse(String(upstreamInit.body))).toEqual({
+      targetWord: '会社',
+      sourceSentence: '会社で働きます。',
+      context: 'work',
+      includeLearnerContext: false,
+    });
+    expect(invokedRateLimitKeys).toEqual(['learning-os-vocab-bundle-draft-create-proxy']);
+  });
+
+  it.each([
+    [{ targetWord: ' ' }, 'targetWord is required.'],
+    [{ targetWord: '会社', includeLearnerContext: 'yes' }, 'includeLearnerContext'],
+    [{ targetWord: '会社', context: 'x'.repeat(2001) }, 'context'],
+  ])('rejects invalid vocab bundle draft input before forwarding', async (body, message) => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/card-candidates/vocab-bundle/drafts')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toContain(message);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed vocab bundle draft response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ groupId: 'not-a-ulid', drafts: [] }), {
+          status: 201,
+        })
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/card-candidates/vocab-bundle/drafts')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ targetWord: '会社' });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toContain('invalid vocab bundle draft response');
+  });
+
+  it('rejects vocab bundle drafts that do not belong to the returned group', async () => {
+    const groupId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            groupId,
+            drafts: Array.from({ length: 11 }, () => ({
+              ...compatibilityCardDraft,
+              variantGroupId: '01ARZ3NDEKTSV4RRFFQ69G5FAZ',
+            })),
+          }),
+          { status: 201 }
+        )
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/card-candidates/vocab-bundle/drafts')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ targetWord: '会社' });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toContain('invalid vocab bundle draft response');
+  });
+
   it.each([
     [
       '/api/learning-os/study/card-drafts',
@@ -1383,12 +1510,20 @@ describe('Learning OS Study proxy routes', () => {
       studyApiCardDrafts: false,
     });
     const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
 
-    const response = await request(app)
+    const listResponse = await request(app)
       .get('/api/learning-os/study/card-drafts')
       .set('Cookie', authCookie());
+    const bundleResponse = await request(app)
+      .post('/api/learning-os/study/card-candidates/vocab-bundle/drafts')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ targetWord: '会社' });
 
-    expect(response.status).toBe(403);
+    expect(listResponse.status).toBe(403);
+    expect(bundleResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 

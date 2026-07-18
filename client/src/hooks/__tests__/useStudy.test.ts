@@ -10,6 +10,7 @@ import {
   createStudyCard,
   createStudyCardId,
   createStudyManualCardDraft,
+  createStudyVocabBundleDrafts,
   deleteStudyManualCardDraft,
   deleteStudyCard,
   getCurrentStudyImport,
@@ -478,6 +479,68 @@ describe('useStudy request helpers', () => {
       id: cardId,
     });
     expect((fetchMock.mock.calls[5]?.[1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('routes vocab bundle draft creation with the manual-card draft feature', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardDrafts: true,
+    });
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        groupId: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+        drafts: [],
+      }),
+    } as Response);
+
+    await createStudyVocabBundleDrafts(
+      {
+        targetWord: '会社',
+        sourceSentence: '会社で働きます。',
+        context: 'work',
+        includeLearnerContext: false,
+      },
+      flags
+    );
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/learning-os/study/card-candidates/vocab-bundle/drafts`,
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      })
+    );
+  });
+
+  it('keeps vocab bundle draft creation on Convo Lab until card drafts are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardDrafts: false,
+    });
+
+    await createStudyVocabBundleDrafts({ targetWord: '会社' }, flags);
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/card-candidates/vocab-bundle/drafts`,
+      expect.any(Object)
+    );
+  });
+
+  it('notifies the app when a Study request finds an expired session', async () => {
+    const listener = vi.fn();
+    window.addEventListener('convo-lab:auth-session-expired', listener);
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: { message: 'Authentication required' } }),
+    } as Response);
+
+    await expect(getStudySettings()).rejects.toThrow('Authentication required');
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener('convo-lab:auth-session-expired', listener);
   });
 
   it('keeps manual-card drafts on Convo Lab until their child flag is enabled', async () => {

@@ -3,6 +3,7 @@ import { User } from '../types';
 import { API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
 import { clearAudioCache } from '../lib/audioCache';
+import { AUTH_SESSION_EXPIRED_EVENT } from '../lib/authSession';
 
 interface AuthContextType {
   user: User | null;
@@ -41,6 +42,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+      } else if (response.status === 401) {
+        setUser(null);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -53,6 +56,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Check for existing session
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+    };
+
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => {
+      window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
+    };
+  }, []);
 
   const login = async (email: string, password: string) => {
     const response = await fetchWithCsrf(`${API_URL}/api/auth/login`, {

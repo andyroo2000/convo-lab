@@ -46,6 +46,7 @@ import type {
 
 import { API_URL } from '../config';
 import { CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
+import { notifyAuthSessionExpired } from '../lib/authSession';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 
@@ -202,6 +203,7 @@ async function apiRequest<T>(
       headers,
     });
 
+    notifyAuthSessionExpired(response);
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Request failed' }));
       const message = error.message || error.error?.message || 'Request failed';
@@ -221,6 +223,7 @@ async function apiRequest<T>(
     headers: withMutationHeaders(init),
   });
 
+  notifyAuthSessionExpired(response);
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
     throw new Error(error.message || error.error?.message || 'Request failed');
@@ -365,14 +368,16 @@ export async function commitStudyCardCandidates(
 }
 
 export async function createStudyVocabBundleDrafts(
-  payload: StudyVocabBundleGenerateRequest
+  payload: StudyVocabBundleGenerateRequest,
+  flags?: FeatureFlags
 ): Promise<StudyVocabBundleDraftCreateResponse> {
   return apiRequest<StudyVocabBundleDraftCreateResponse>(
     '/api/study/card-candidates/vocab-bundle/drafts',
     {
       method: 'POST',
       body: JSON.stringify(payload),
-    }
+    },
+    { feature: 'cardDrafts', flags }
   );
 }
 
@@ -799,9 +804,11 @@ export function useGenerateStudyCardCandidates() {
 
 export function useCreateStudyVocabBundleDrafts() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: createStudyVocabBundleDrafts,
+    mutationFn: (payload: StudyVocabBundleGenerateRequest) =>
+      createStudyVocabBundleDrafts(payload, flags),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },

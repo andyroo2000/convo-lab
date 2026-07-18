@@ -1,6 +1,11 @@
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
+import {
+  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
+  STUDY_VOCAB_BUNDLE_CARD_COUNT,
+} from '@languageflow/shared/src/studyConstants.js';
 import type { StudyCardCreationKind } from '@languageflow/shared/src/types.js';
 import { Router, type NextFunction, type Response } from 'express';
 import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
@@ -144,6 +149,12 @@ const learningOsCardDraftCreateRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsVocabBundleDraftCreateRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-vocab-bundle-draft-create-proxy',
+  max: 20,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 const learningOsCardDraftUpdateRateLimit = rateLimitStudyRoute({
   key: 'learning-os-card-draft-update-proxy',
   max: 120,
@@ -194,6 +205,7 @@ type StudyWriteFeature =
   | 'cardUpdate'
   | 'cardDelete'
   | 'cardAction'
+  | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
   | 'cardDraftRetry'
@@ -203,6 +215,7 @@ type StudyWriteBody =
   | 'cardCreate'
   | 'cardUpdate'
   | 'cardAction'
+  | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
   | 'cardDraftCommit'
@@ -228,10 +241,25 @@ interface StudyProxyRoute {
   reviewOperation?: 'session' | 'write';
   importUpload?: boolean;
   mediaResponse?: boolean;
-  responseAdapter?: 'card' | 'cardAction' | 'cardDraft' | 'cardDraftCommit' | 'cardDraftList';
+  responseAdapter?:
+    | 'card'
+    | 'cardAction'
+    | 'cardDraft'
+    | 'cardDraftCommit'
+    | 'cardDraftList'
+    | 'vocabBundleDraftCreate';
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'POST',
+    pattern: /^\/card-candidates\/vocab-bundle\/drafts$/,
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'vocabBundleDraftCreate',
+    writeBody: 'vocabBundleDraftCreate',
+    responseAdapter: 'vocabBundleDraftCreate',
+  },
   {
     method: 'GET',
     pattern: new RegExp(`^/media/${STUDY_ULID_SEGMENT}$`, 'i'),
@@ -725,6 +753,49 @@ function adaptCardDraftCreateBody(value: unknown): Record<string, unknown> {
   };
 }
 
+function adaptVocabBundleDraftCreateBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  if (typeof body.targetWord !== 'string' || body.targetWord.trim() === '') {
+    throw new AppError('targetWord is required.', 400);
+  }
+  const targetWord = body.targetWord.trim();
+  if (targetWord.length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
+    throw new AppError(
+      `targetWord must be a string no longer than ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters.`,
+      400
+    );
+  }
+
+  const sourceSentence =
+    typeof body.sourceSentence === 'string'
+      ? normalizedOptionalString(
+          body.sourceSentence.trim(),
+          'sourceSentence',
+          STUDY_CANDIDATE_TARGET_MAX_LENGTH
+        )
+      : normalizedOptionalString(
+          body.sourceSentence,
+          'sourceSentence',
+          STUDY_CANDIDATE_TARGET_MAX_LENGTH
+        );
+  const context =
+    typeof body.context === 'string'
+      ? normalizedOptionalString(body.context.trim(), 'context', STUDY_CANDIDATE_CONTEXT_MAX_LENGTH)
+      : normalizedOptionalString(body.context, 'context', STUDY_CANDIDATE_CONTEXT_MAX_LENGTH);
+  if (body.includeLearnerContext !== undefined && typeof body.includeLearnerContext !== 'boolean') {
+    throw new AppError('includeLearnerContext must be a boolean.', 400);
+  }
+
+  return {
+    targetWord,
+    ...(sourceSentence === undefined ? {} : { sourceSentence }),
+    ...(context === undefined ? {} : { context }),
+    ...(body.includeLearnerContext === undefined
+      ? {}
+      : { includeLearnerContext: body.includeLearnerContext }),
+  };
+}
+
 function adaptCardDraftUpdateBody(value: unknown): Record<string, unknown> {
   const body = requestRecord(value);
   const hasPrompt = Object.hasOwn(body, 'prompt');
@@ -1027,6 +1098,9 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   if (route.writeBody === 'cardAction') {
     return adaptCardActionBody(value);
   }
+  if (route.writeBody === 'vocabBundleDraftCreate') {
+    return adaptVocabBundleDraftCreateBody(value);
+  }
   if (route.writeBody === 'cardDraftCreate') {
     return adaptCardDraftCreateBody(value);
   }
@@ -1104,6 +1178,8 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsCardDeleteRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardAction') {
     learningOsCardActionRateLimit(req, res, next);
+  } else if (route.writeFeature === 'vocabBundleDraftCreate') {
+    learningOsVocabBundleDraftCreateRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftCreate') {
     learningOsCardDraftCreateRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftUpdate') {
@@ -1298,6 +1374,41 @@ function adaptStudyRouteResponse(
 
     return {
       ...response,
+      drafts: response.drafts.map(rewriteStudyCardDraftMediaUrls),
+    };
+  }
+  if (route.responseAdapter === 'vocabBundleDraftCreate') {
+    const response = upstreamResponseRecord(value, 'vocab bundle draft create');
+    const groupId = response.groupId;
+    if (
+      typeof groupId !== 'string' ||
+      !ULID_PATTERN.test(groupId) ||
+      !Array.isArray(response.drafts) ||
+      response.drafts.length !== STUDY_VOCAB_BUNDLE_CARD_COUNT ||
+      !response.drafts.every((draft) => {
+        try {
+          assertCardDraftResponse(draft);
+          return (
+            typeof draft === 'object' &&
+            draft !== null &&
+            !Array.isArray(draft) &&
+            typeof draft.variantGroupId === 'string' &&
+            draft.variantGroupId.toUpperCase() === groupId.toUpperCase()
+          );
+        } catch {
+          return false;
+        }
+      })
+    ) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid vocab bundle draft response.',
+        502
+      );
+    }
+
+    return {
+      ...response,
+      groupId: groupId.toUpperCase(),
       drafts: response.drafts.map(rewriteStudyCardDraftMediaUrls),
     };
   }
