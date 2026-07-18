@@ -3,6 +3,7 @@ import { pipeline } from 'node:stream/promises';
 
 import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_VOCAB_BUNDLE_CARD_COUNT,
 } from '@languageflow/shared/src/studyConstants.js';
@@ -20,6 +21,7 @@ import {
   cardTypeForStudyCardCreationKind,
   STUDY_CARD_CREATION_KINDS,
 } from '../../services/study/shared/candidates.js';
+import { STUDY_VOCAB_VARIANT_KINDS_BY_STAGE } from '../../services/study/variants/constants.js';
 
 import {
   rewriteStudyCardDraftMediaUrls,
@@ -766,22 +768,16 @@ function adaptVocabBundleDraftCreateBody(value: unknown): Record<string, unknown
     );
   }
 
-  const sourceSentence =
-    typeof body.sourceSentence === 'string'
-      ? normalizedOptionalString(
-          body.sourceSentence.trim(),
-          'sourceSentence',
-          STUDY_CANDIDATE_TARGET_MAX_LENGTH
-        )
-      : normalizedOptionalString(
-          body.sourceSentence,
-          'sourceSentence',
-          STUDY_CANDIDATE_TARGET_MAX_LENGTH
-        );
-  const context =
-    typeof body.context === 'string'
-      ? normalizedOptionalString(body.context.trim(), 'context', STUDY_CANDIDATE_CONTEXT_MAX_LENGTH)
-      : normalizedOptionalString(body.context, 'context', STUDY_CANDIDATE_CONTEXT_MAX_LENGTH);
+  const sourceSentence = normalizedOptionalString(
+    body.sourceSentence,
+    'sourceSentence',
+    STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH
+  );
+  const context = normalizedOptionalString(
+    body.context,
+    'context',
+    STUDY_CANDIDATE_CONTEXT_MAX_LENGTH
+  );
   if (body.includeLearnerContext !== undefined && typeof body.includeLearnerContext !== 'boolean') {
     throw new AppError('includeLearnerContext must be a boolean.', 400);
   }
@@ -1380,26 +1376,65 @@ function adaptStudyRouteResponse(
   if (route.responseAdapter === 'vocabBundleDraftCreate') {
     const response = upstreamResponseRecord(value, 'vocab bundle draft create');
     const groupId = response.groupId;
-    if (
-      typeof groupId !== 'string' ||
-      !ULID_PATTERN.test(groupId) ||
-      !Array.isArray(response.drafts) ||
-      response.drafts.length !== STUDY_VOCAB_BUNDLE_CARD_COUNT ||
-      !response.drafts.every((draft) => {
+    if (typeof groupId !== 'string' || !ULID_PATTERN.test(groupId)) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid vocab bundle draft response.',
+        502
+      );
+    }
+
+    const normalizedGroupId = groupId.toUpperCase();
+    const drafts = response.drafts;
+    if (!Array.isArray(drafts)) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid vocab bundle draft response.',
+        502
+      );
+    }
+
+    const stageCounts = new Map<number, number>();
+    const validDrafts =
+      drafts.length === STUDY_VOCAB_BUNDLE_CARD_COUNT &&
+      drafts.every((draft) => {
         try {
           assertCardDraftResponse(draft);
-          return (
-            typeof draft === 'object' &&
-            draft !== null &&
-            !Array.isArray(draft) &&
-            typeof draft.variantGroupId === 'string' &&
-            draft.variantGroupId.toUpperCase() === groupId.toUpperCase()
-          );
+          const record = draft as Record<string, unknown>;
+          const stage = record.variantStage;
+          const expectedKind =
+            typeof stage === 'number' ? STUDY_VOCAB_VARIANT_KINDS_BY_STAGE[stage] : undefined;
+          const expectedStatus = stage === 1 ? 'available' : 'locked';
+          const usesSentence = stage === 1 || stage === 2 || stage === 5;
+          const valid =
+            Number.isInteger(stage) &&
+            expectedKind !== undefined &&
+            record.variantKind === expectedKind &&
+            record.variantStatus === expectedStatus &&
+            typeof record.variantGroupId === 'string' &&
+            record.variantGroupId.toUpperCase() === normalizedGroupId &&
+            (usesSentence
+              ? typeof record.variantSentenceId === 'string' &&
+                ULID_PATTERN.test(record.variantSentenceId)
+              : record.variantSentenceId === null) &&
+            (stage === 1
+              ? validTimestamp(record.variantUnlockedAt)
+              : record.variantUnlockedAt === null);
+
+          if (valid && typeof stage === 'number') {
+            stageCounts.set(stage, (stageCounts.get(stage) ?? 0) + 1);
+          }
+          return valid;
         } catch {
           return false;
         }
-      })
-    ) {
+      });
+    const validStageCounts =
+      stageCounts.get(1) === 3 &&
+      stageCounts.get(2) === 3 &&
+      stageCounts.get(3) === 1 &&
+      stageCounts.get(4) === 1 &&
+      stageCounts.get(5) === 3;
+
+    if (!validDrafts || !validStageCounts) {
       throw new AppError(
         'Learning OS Study API returned an invalid vocab bundle draft response.',
         502
@@ -1408,8 +1443,8 @@ function adaptStudyRouteResponse(
 
     return {
       ...response,
-      groupId: groupId.toUpperCase(),
-      drafts: response.drafts.map(rewriteStudyCardDraftMediaUrls),
+      groupId: normalizedGroupId,
+      drafts: drafts.map(rewriteStudyCardDraftMediaUrls),
     };
   }
   if (route.responseAdapter === 'cardDraftCommit') {

@@ -223,6 +223,48 @@ describe('Learning OS Study proxy routes', () => {
     createdAt: '2026-07-18T12:00:00.000000Z',
     updatedAt: '2026-07-18T12:00:00.000000Z',
   };
+  const compatibilityVocabBundleDrafts = (groupId: string) =>
+    [
+      ...Array.from({ length: 3 }, () => ({
+        stage: 1,
+        kind: 'sentence_audio_recognition',
+        status: 'available',
+        sentenceId: '01ARZ3NDEKTSV4RRFFQ69G5FAY',
+      })),
+      ...Array.from({ length: 3 }, () => ({
+        stage: 2,
+        kind: 'sentence_text_recognition',
+        status: 'locked',
+        sentenceId: '01ARZ3NDEKTSV4RRFFQ69G5FAY',
+      })),
+      {
+        stage: 3,
+        kind: 'word_audio_recognition',
+        status: 'locked',
+        sentenceId: null,
+      },
+      {
+        stage: 4,
+        kind: 'word_text_recognition',
+        status: 'locked',
+        sentenceId: null,
+      },
+      ...Array.from({ length: 3 }, () => ({
+        stage: 5,
+        kind: 'sentence_cloze',
+        status: 'locked',
+        sentenceId: '01ARZ3NDEKTSV4RRFFQ69G5FAY',
+      })),
+    ].map(({ stage, kind, status, sentenceId }) => ({
+      ...compatibilityCardDraft,
+      status: 'generating',
+      variantGroupId: groupId,
+      variantSentenceId: sentenceId,
+      variantKind: kind,
+      variantStage: stage,
+      variantStatus: status,
+      variantUnlockedAt: stage === 1 ? '2026-07-18T12:00:00.000000Z' : null,
+    }));
 
   function createApp() {
     const app = express();
@@ -1357,14 +1399,7 @@ describe('Learning OS Study proxy routes', () => {
         new Response(
           JSON.stringify({
             groupId: groupId.toLowerCase(),
-            drafts: Array.from({ length: 11 }, () => ({
-              ...compatibilityCardDraft,
-              status: 'generating',
-              variantGroupId: groupId,
-              variantKind: 'sentence_audio_recognition',
-              variantStage: 1,
-              variantStatus: 'available',
-            })),
+            drafts: compatibilityVocabBundleDrafts(groupId),
           }),
           { status: 201 }
         )
@@ -1404,6 +1439,7 @@ describe('Learning OS Study proxy routes', () => {
   it.each([
     [{ targetWord: ' ' }, 'targetWord is required.'],
     [{ targetWord: '会社', includeLearnerContext: 'yes' }, 'includeLearnerContext'],
+    [{ targetWord: '会社', sourceSentence: 'x'.repeat(501) }, 'sourceSentence'],
     [{ targetWord: '会社', context: 'x'.repeat(2001) }, 'context'],
   ])('rejects invalid vocab bundle draft input before forwarding', async (body, message) => {
     const app = await createApp();
@@ -1452,13 +1488,43 @@ describe('Learning OS Study proxy routes', () => {
         new Response(
           JSON.stringify({
             groupId,
-            drafts: Array.from({ length: 11 }, () => ({
-              ...compatibilityCardDraft,
+            drafts: compatibilityVocabBundleDrafts(groupId).map((draft) => ({
+              ...draft,
               variantGroupId: '01ARZ3NDEKTSV4RRFFQ69G5FAZ',
             })),
           }),
           { status: 201 }
         )
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/card-candidates/vocab-bundle/drafts')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ targetWord: '会社' });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toContain('invalid vocab bundle draft response');
+  });
+
+  it.each([
+    ['variant kind', { variantKind: 'word_text_recognition' }],
+    ['variant stage', { variantStage: 9 }],
+    ['variant status', { variantStatus: 'available' }],
+  ])('rejects a malformed vocab bundle draft %s', async (_field, override) => {
+    const groupId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
+    const drafts = compatibilityVocabBundleDrafts(groupId);
+    drafts[3] = { ...drafts[3], ...override };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ groupId, drafts }), {
+          status: 201,
+        })
       )
     );
     const app = await createApp();
