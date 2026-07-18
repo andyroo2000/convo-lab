@@ -670,6 +670,7 @@ router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
           studyApiSettingsWrite: false,
           studyApiNewQueueWrite: false,
           studyApiReview: false,
+          studyApiCardWrites: false,
         },
       });
     }
@@ -698,6 +699,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       studyApiSettingsWrite?: unknown;
       studyApiNewQueueWrite?: unknown;
       studyApiReview?: unknown;
+      studyApiCardWrites?: unknown;
     };
     const {
       dialoguesEnabled,
@@ -714,6 +716,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       studyApiSettingsWrite,
       studyApiNewQueueWrite,
       studyApiReview,
+      studyApiCardWrites,
     } = payload;
 
     // Validate boolean values
@@ -737,6 +740,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(studyApiSettingsWrite, 'studyApiSettingsWrite');
     validateBoolean(studyApiNewQueueWrite, 'studyApiNewQueueWrite');
     validateBoolean(studyApiReview, 'studyApiReview');
+    validateBoolean(studyApiCardWrites, 'studyApiCardWrites');
 
     const dialoguesEnabledValue =
       typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
@@ -761,6 +765,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     const studyApiNewQueueWriteValue =
       typeof studyApiNewQueueWrite === 'boolean' ? studyApiNewQueueWrite : undefined;
     const studyApiReviewValue = typeof studyApiReview === 'boolean' ? studyApiReview : undefined;
+    const studyApiCardWritesValue =
+      typeof studyApiCardWrites === 'boolean' ? studyApiCardWrites : undefined;
 
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
@@ -783,6 +789,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           studyApiSettingsWrite: studyApiSettingsWriteValue ?? false,
           studyApiNewQueueWrite: studyApiNewQueueWriteValue ?? false,
           studyApiReview: studyApiReviewValue ?? false,
+          studyApiCardWrites: studyApiCardWritesValue ?? false,
         },
       });
     } else {
@@ -815,6 +822,9 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           }),
           ...(studyApiReviewValue !== undefined && {
             studyApiReview: studyApiReviewValue,
+          }),
+          ...(studyApiCardWritesValue !== undefined && {
+            studyApiCardWrites: studyApiCardWritesValue,
           }),
         },
       });

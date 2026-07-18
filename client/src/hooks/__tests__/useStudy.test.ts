@@ -6,6 +6,7 @@ import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
   cancelStudyImportUpload,
   commitStudyCardCandidates,
+  createStudyCard,
   deleteStudyCard,
   getCurrentStudyImport,
   getStudyNewCardQueue,
@@ -20,9 +21,11 @@ import {
   regenerateStudyAnswerAudio,
   reorderStudyNewCardQueue,
   resolveStudyCardPitchAccent,
+  performStudyCardAction,
   startStudySession,
   submitStudyReview,
   undoStudyReview,
+  updateStudyCard,
   updateStudySettings,
   uploadStudyImport,
 } from '../useStudy';
@@ -49,6 +52,7 @@ describe('useStudy request helpers', () => {
     studyApiSettingsWrite: false,
     studyApiNewQueueWrite: false,
     studyApiReview: false,
+    studyApiCardWrites: false,
     updatedAt: new Date('2026-07-14T00:00:00.000Z').toISOString(),
     ...overrides,
   });
@@ -286,6 +290,81 @@ describe('useStudy request helpers', () => {
     expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     expect(headers.get('Content-Type')).toBeNull();
     expect(requestInit.method).toBe('DELETE');
+  });
+
+  it('routes idempotent card writes together when the child flag is enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: true,
+    });
+    vi.mocked(global.fetch)
+      .mockImplementationOnce(async (_url, init) => {
+        const body = JSON.parse(String(init?.body));
+        return {
+          ok: true,
+          json: async () => ({ id: body.id }),
+        } as Response;
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: '01ARZ3NDEKTSV4RRFFQ69G5FAV' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ card: { id: '01ARZ3NDEKTSV4RRFFQ69G5FAV' }, overview: {} }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: async () => ({}),
+      } as Response);
+
+    const prompt = { cueText: '会社' };
+    const answer = { meaning: 'company' };
+    const created = await createStudyCard({ cardType: 'recognition', prompt, answer }, flags);
+    const cardId = created.id;
+    await updateStudyCard({ cardId, prompt, answer }, flags);
+    await performStudyCardAction({ cardId, action: 'suspend' }, flags);
+    await deleteStudyCard(cardId, flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      `${API_URL}/api/learning-os/study/cards`,
+      `${API_URL}/api/learning-os/study/cards/${cardId}`,
+      `${API_URL}/api/learning-os/study/cards/${cardId}/actions`,
+      `${API_URL}/api/learning-os/study/cards/${cardId}`,
+    ]);
+    const createBody = JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body));
+    expect(createBody).toMatchObject({ cardType: 'recognition', prompt, answer });
+    expect(createBody.id).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+    expect(createBody.id).toBe(cardId);
+    expect((fetchMock.mock.calls[3]?.[1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('keeps all card writes on Convo Lab until the child flag is enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: false,
+    });
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      status: 204,
+      json: async () => ({ id: 'card-1', card: { id: 'card-1' }, overview: {} }),
+    } as Response);
+
+    const prompt = { cueText: '会社' };
+    const answer = { meaning: 'company' };
+    await createStudyCard({ cardType: 'recognition', prompt, answer }, flags);
+    await updateStudyCard({ cardId: 'card-1', prompt, answer }, flags);
+    await performStudyCardAction({ cardId: 'card-1', action: 'suspend' }, flags);
+    await deleteStudyCard('card-1', flags);
+
+    expect(vi.mocked(global.fetch).mock.calls.map(([url]) => url)).toEqual([
+      `${API_URL}/api/study/cards`,
+      `${API_URL}/api/study/cards/card-1`,
+      `${API_URL}/api/study/cards/card-1/actions`,
+      `${API_URL}/api/study/cards/card-1`,
+    ]);
   });
 
   it('passes browser sort params to the study API', async () => {

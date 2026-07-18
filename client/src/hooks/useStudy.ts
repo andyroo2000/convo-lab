@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ulid } from 'ulid';
 import type {
   StudyAnswerPayload,
   StudyCardActionName,
@@ -104,7 +105,8 @@ type StudyApiFeature =
   | 'imports'
   | 'settingsWrite'
   | 'newQueueWrite'
-  | 'review';
+  | 'review'
+  | 'cardWrites';
 const LEARNING_OS_STUDY_PROXY_BASE = '/api/learning-os/study';
 
 const STUDY_API_FLAG_BY_FEATURE: Record<
@@ -120,6 +122,7 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
     | 'studyApiSettingsWrite'
     | 'studyApiNewQueueWrite'
     | 'studyApiReview'
+    | 'studyApiCardWrites'
   >
 > = {
   settings: 'studyApiSettings',
@@ -131,6 +134,7 @@ const STUDY_API_FLAG_BY_FEATURE: Record<
   settingsWrite: 'studyApiSettingsWrite',
   newQueueWrite: 'studyApiNewQueueWrite',
   review: 'studyApiReview',
+  cardWrites: 'studyApiCardWrites',
 };
 
 const STUDY_API_READ_FLAG_BY_WRITE_FEATURE: Partial<
@@ -535,24 +539,53 @@ export async function getStudyBrowserNoteDetail(
   );
 }
 
-export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(`/api/study/cards/${encodeURIComponent(payload.cardId)}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      prompt: payload.prompt,
-      answer: payload.answer,
-    }),
-  });
+export async function createStudyCard(
+  payload: CreateStudyCardPayload,
+  flags?: FeatureFlags
+): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>(
+    '/api/study/cards',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...payload,
+        id: ulid(),
+      }),
+    },
+    { feature: 'cardWrites', flags }
+  );
 }
 
-export async function deleteStudyCard(cardId: string): Promise<void> {
-  await apiRequest<unknown>(`/api/study/cards/${encodeURIComponent(cardId)}`, {
-    method: 'DELETE',
-  });
+export async function updateStudyCard(
+  payload: UpdateStudyCardPayload,
+  flags?: FeatureFlags
+): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>(
+    `/api/study/cards/${encodeURIComponent(payload.cardId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        prompt: payload.prompt,
+        answer: payload.answer,
+      }),
+    },
+    { feature: 'cardWrites', flags }
+  );
+}
+
+export async function deleteStudyCard(cardId: string, flags?: FeatureFlags): Promise<void> {
+  await apiRequest<unknown>(
+    `/api/study/cards/${encodeURIComponent(cardId)}`,
+    {
+      method: 'DELETE',
+    },
+    { feature: 'cardWrites', flags }
+  );
 }
 
 export async function performStudyCardAction(
-  payload: StudyCardActionPayload
+  payload: StudyCardActionPayload,
+  flags?: FeatureFlags
 ): Promise<StudyCardActionResult> {
   const request: StudyCardActionRequest = {
     action: payload.action,
@@ -567,7 +600,8 @@ export async function performStudyCardAction(
     {
       method: 'POST',
       body: JSON.stringify(request),
-    }
+    },
+    { feature: 'cardWrites', flags }
   );
 }
 
@@ -705,13 +739,10 @@ export function useSubmitStudyReview(routingFlags?: FeatureFlags | null) {
 
 export function useCreateStudyCard() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: CreateStudyCardPayload) =>
-      apiRequest<StudyCardSummary>('/api/study/cards', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
+    mutationFn: (payload: CreateStudyCardPayload) => createStudyCard(payload, flags),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
@@ -855,9 +886,10 @@ export function useRegenerateStudyCardCandidatePreviewImage() {
 
 export function useUpdateStudyCard() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: updateStudyCard,
+    mutationFn: (payload: UpdateStudyCardPayload) => updateStudyCard(payload, flags),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
@@ -869,9 +901,10 @@ export function useUpdateStudyCard() {
 
 export function useDeleteStudyCard() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: deleteStudyCard,
+    mutationFn: (cardId: string) => deleteStudyCard(cardId, flags),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
@@ -897,13 +930,17 @@ export function useRegenerateStudyCardImage() {
 
 export function useStudyCardAction() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
 
   return useMutation({
     mutationFn: (payload: StudyCardActionPayload) =>
-      performStudyCardAction({
-        ...payload,
-        currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
-      }),
+      performStudyCardAction(
+        {
+          ...payload,
+          currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
+        },
+        flags
+      ),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),

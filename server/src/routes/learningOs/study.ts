@@ -6,6 +6,7 @@ import { requireAuth, type AuthRequest } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import { getFeatureFlags, type FeatureFlagKey } from '../../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../../middleware/studyRateLimit.js';
+import { assertStudyCardPayloadContract } from '../../services/study/cardPayloadContract.js';
 
 import {
   adaptLearningOsStudyReadResponse,
@@ -24,14 +25,30 @@ const MAX_STUDY_IMPORT_UPLOAD_BYTES = 2_147_483_648;
 const MAX_NEW_QUEUE_REORDER_SIZE = 500;
 const MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH = 500;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
-const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
-const UUID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
+const ULID_SEGMENT = '[0-9A-HJKMNP-TV-Z]{26}';
+const UUID_SEGMENT = '[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}';
+const ULID_PATTERN = new RegExp(`^${ULID_SEGMENT}$`, 'i');
+const UUID_PATTERN = new RegExp(`^${UUID_SEGMENT}$`, 'i');
+const STUDY_CARD_ID_SEGMENT = `(?:${ULID_SEGMENT}|${UUID_SEGMENT})`;
+const STRICT_ISO_DATETIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 const STUDY_IMPORT_CONTENT_TYPES = new Set([
   'application/octet-stream',
   'application/zip',
   'application/x-zip-compressed',
   'multipart/x-zip',
 ]);
+const STUDY_CARD_CREATION_KINDS = new Set([
+  'text-recognition',
+  'audio-recognition',
+  'production-text',
+  'production-image',
+  'cloze',
+]);
+const STUDY_CARD_TYPES = new Set(['recognition', 'production', 'cloze']);
+const STUDY_CARD_ACTIONS = new Set(['suspend', 'unsuspend', 'forget', 'set_due']);
+const STUDY_CARD_SET_DUE_MODES = new Set(['now', 'tomorrow', 'custom_date']);
 
 const learningOsStudyIpRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
@@ -74,6 +91,30 @@ const learningOsReviewWriteRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsCardCreateRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-create-proxy',
+  max: 120,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsCardUpdateRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-update-proxy',
+  max: 120,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsCardDeleteRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-delete-proxy',
+  max: 60,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsCardActionRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-action-proxy',
+  max: 120,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 
 type StudyApiChildFlag = Extract<
   FeatureFlagKey,
@@ -86,11 +127,22 @@ type StudyApiChildFlag = Extract<
   | 'studyApiSettingsWrite'
   | 'studyApiNewQueueWrite'
   | 'studyApiReview'
+  | 'studyApiCardWrites'
 >;
 
 type StudyProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
-type StudyWriteFeature = 'settingsWrite' | 'newQueueWrite' | 'reviewWrite';
+type StudyWriteFeature =
+  | 'settingsWrite'
+  | 'newQueueWrite'
+  | 'reviewWrite'
+  | 'cardCreate'
+  | 'cardUpdate'
+  | 'cardDelete'
+  | 'cardAction';
 type StudyWriteBody =
+  | 'cardCreate'
+  | 'cardUpdate'
+  | 'cardAction'
   | 'knownKanjiManual'
   | 'newQueue'
   | 'review'
@@ -115,6 +167,37 @@ interface StudyProxyRoute {
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'POST',
+    pattern: /^\/cards$/,
+    featureFlag: 'studyApiCardWrites',
+    queryParams: new Set(),
+    writeFeature: 'cardCreate',
+    writeBody: 'cardCreate',
+  },
+  {
+    method: 'PATCH',
+    pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}$`, 'i'),
+    featureFlag: 'studyApiCardWrites',
+    queryParams: new Set(),
+    writeFeature: 'cardUpdate',
+    writeBody: 'cardUpdate',
+  },
+  {
+    method: 'DELETE',
+    pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}$`, 'i'),
+    featureFlag: 'studyApiCardWrites',
+    queryParams: new Set(),
+    writeFeature: 'cardDelete',
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/actions$`, 'i'),
+    featureFlag: 'studyApiCardWrites',
+    queryParams: new Set(),
+    writeFeature: 'cardAction',
+    writeBody: 'cardAction',
+  },
   {
     method: 'POST',
     pattern: /^\/session\/start$/,
@@ -350,6 +433,106 @@ function requestRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function adaptStudyCardPayloads(value: unknown): {
+  prompt: Record<string, unknown>;
+  answer: Record<string, unknown>;
+} {
+  const body = requestRecord(value);
+  return assertStudyCardPayloadContract(body.prompt, body.answer);
+}
+
+function adaptCardCreateBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  const payloads = adaptStudyCardPayloads(body);
+  const id = body.id;
+  const creationKind = body.creationKind;
+  const cardType = body.cardType;
+
+  if (id !== undefined && (typeof id !== 'string' || !ULID_PATTERN.test(id.trim()))) {
+    throw new AppError('id must be a valid ULID.', 400);
+  }
+  if (
+    creationKind !== undefined &&
+    (typeof creationKind !== 'string' ||
+      !STUDY_CARD_CREATION_KINDS.has(creationKind.trim().toLowerCase()))
+  ) {
+    throw new AppError('creationKind is not supported.', 400);
+  }
+  if (
+    creationKind === undefined &&
+    (typeof cardType !== 'string' || !STUDY_CARD_TYPES.has(cardType.trim().toLowerCase()))
+  ) {
+    throw new AppError('cardType must be recognition, production, or cloze.', 400);
+  }
+
+  return {
+    ...(typeof id === 'string' ? { id: id.trim().toUpperCase() } : {}),
+    ...(typeof creationKind === 'string'
+      ? { creationKind: creationKind.trim().toLowerCase() }
+      : {}),
+    ...(typeof cardType === 'string' ? { cardType: cardType.trim().toLowerCase() } : {}),
+    ...payloads,
+  };
+}
+
+function adaptCardUpdateBody(value: unknown): Record<string, unknown> {
+  return adaptStudyCardPayloads(value);
+}
+
+function adaptCardActionBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  const action = typeof body.action === 'string' ? body.action.trim().toLowerCase() : '';
+  if (!STUDY_CARD_ACTIONS.has(action)) {
+    throw new AppError('action must be suspend, unsuspend, forget, or set_due.', 400);
+  }
+
+  const currentOverview = adaptOptionalOverview(body);
+  if (action !== 'set_due') {
+    return {
+      action,
+      ...(currentOverview === undefined ? {} : { currentOverview }),
+    };
+  }
+
+  const mode = typeof body.mode === 'string' ? body.mode.trim().toLowerCase() : '';
+  if (!STUDY_CARD_SET_DUE_MODES.has(mode)) {
+    throw new AppError('mode must be now, tomorrow, or custom_date for set_due.', 400);
+  }
+
+  const dueAt = body.dueAt;
+  if (
+    mode === 'custom_date' &&
+    (typeof dueAt !== 'string' ||
+      !STRICT_ISO_DATETIME_PATTERN.test(dueAt.trim()) ||
+      Number.isNaN(Date.parse(dueAt)))
+  ) {
+    throw new AppError('dueAt must be a valid ISO-8601 datetime for custom_date.', 400);
+  }
+  if (mode === 'custom_date') {
+    const maxDueAt = new Date();
+    maxDueAt.setUTCFullYear(maxDueAt.getUTCFullYear() + MAX_STUDY_SET_DUE_FUTURE_YEARS);
+    if (Date.parse(dueAt as string) > maxDueAt.getTime()) {
+      throw new AppError(
+        `dueAt must be within ${String(MAX_STUDY_SET_DUE_FUTURE_YEARS)} years.`,
+        400
+      );
+    }
+  }
+
+  const timeZone = adaptOptionalTimeZone(body);
+  if (mode === 'tomorrow' && timeZone === undefined) {
+    throw new AppError('timeZone must be a valid IANA timezone for tomorrow.', 400);
+  }
+
+  return {
+    action,
+    mode,
+    ...(mode === 'custom_date' ? { dueAt: (dueAt as string).trim() } : {}),
+    ...(timeZone === undefined ? {} : { timeZone }),
+    ...(currentOverview === undefined ? {} : { currentOverview }),
+  };
+}
+
 function adaptSettingsWriteBody(value: unknown): { new_cards_per_day: number } {
   const body = requestRecord(value);
   const newCardsPerDay = body.newCardsPerDay;
@@ -534,6 +717,15 @@ function adaptImportCreateBody(value: unknown): { filename: string; content_type
 }
 
 function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
+  if (route.writeBody === 'cardCreate') {
+    return adaptCardCreateBody(value);
+  }
+  if (route.writeBody === 'cardUpdate') {
+    return adaptCardUpdateBody(value);
+  }
+  if (route.writeBody === 'cardAction') {
+    return adaptCardActionBody(value);
+  }
   if (route.writeBody === 'settings') {
     return adaptSettingsWriteBody(value);
   }
@@ -592,6 +784,14 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsStudySessionRateLimit(req, res, next);
   } else if (route.reviewOperation === 'write') {
     learningOsReviewWriteRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardCreate') {
+    learningOsCardCreateRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardUpdate') {
+    learningOsCardUpdateRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardDelete') {
+    learningOsCardDeleteRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardAction') {
+    learningOsCardActionRateLimit(req, res, next);
   } else {
     learningOsStudyReadRateLimit(req, res, next);
   }

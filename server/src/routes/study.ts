@@ -49,6 +49,7 @@ import {
   STUDY_BROWSER_SORT_DIRECTIONS,
   STUDY_BROWSER_SORT_FIELDS,
 } from '../services/study/browserSort.js';
+import { assertStudyCardPayloadContract } from '../services/study/cardPayloadContract.js';
 import {
   cardTypeForStudyCardCandidateKind,
   cardTypeForStudyCardCreationKind,
@@ -107,8 +108,6 @@ import {
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
-const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
-const MAX_STUDY_CARD_PAYLOAD_DEPTH = 8;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
@@ -647,61 +646,15 @@ function isStrictIsoDateTime(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value);
 }
 
-function exceedsMaxJsonDepth(
-  value: unknown,
-  maxDepth: number,
-  currentDepth: number = 1,
-  seen: WeakSet<object> = new WeakSet()
-): boolean {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-
-  if (currentDepth > maxDepth) {
-    return true;
-  }
-
-  if (seen.has(value)) {
-    return false;
-  }
-
-  seen.add(value);
-  const children = Array.isArray(value) ? value : Object.values(value);
-  return children.some((child) => exceedsMaxJsonDepth(child, maxDepth, currentDepth + 1, seen));
-}
-
 function parseStudyCardPayloads(
   prompt: unknown,
   answer: unknown
 ): { prompt: StudyPromptPayload; answer: StudyAnswerPayload } {
-  if (!isPlainObject(prompt) || !isPlainObject(answer)) {
-    throw new AppError('prompt and answer payloads are required.', 400);
-  }
-
-  if (
-    exceedsMaxJsonDepth(prompt, MAX_STUDY_CARD_PAYLOAD_DEPTH) ||
-    exceedsMaxJsonDepth(answer, MAX_STUDY_CARD_PAYLOAD_DEPTH)
-  ) {
-    throw new AppError(
-      `Study card payloads must be ${String(MAX_STUDY_CARD_PAYLOAD_DEPTH)} levels deep or fewer.`,
-      400
-    );
-  }
-
-  const serializedPayload = JSON.stringify({ prompt, answer });
-  if (
-    typeof serializedPayload !== 'string' ||
-    Buffer.byteLength(serializedPayload, 'utf8') > MAX_STUDY_CARD_PAYLOAD_BYTES
-  ) {
-    throw new AppError(
-      `Study card payloads must be ${String(Math.floor(MAX_STUDY_CARD_PAYLOAD_BYTES / 1024))} KB or smaller.`,
-      400
-    );
-  }
+  const payloads = assertStudyCardPayloadContract(prompt, answer);
 
   return {
-    prompt: parseStudyPromptPayload(prompt),
-    answer: parseStudyAnswerPayload(answer),
+    prompt: parseStudyPromptPayload(payloads.prompt),
+    answer: parseStudyAnswerPayload(payloads.answer),
   };
 }
 

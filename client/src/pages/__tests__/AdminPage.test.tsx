@@ -133,6 +133,7 @@ const mockFeatureFlags = {
   studyApiSettingsWrite: false,
   studyApiNewQueueWrite: false,
   studyApiReview: false,
+  studyApiCardWrites: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
@@ -593,6 +594,7 @@ describe('AdminPage', () => {
         expect(screen.getByText('Comprehensible Input Dialogues')).toBeInTheDocument();
         expect(screen.getByText('Guided Audio Course')).toBeInTheDocument();
         expect(screen.getByText('Study Review')).toBeInTheDocument();
+        expect(screen.getByText('Study Card Writes')).toBeInTheDocument();
       });
     });
 

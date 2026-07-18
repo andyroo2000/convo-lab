@@ -487,6 +487,7 @@ model FeatureFlag {
   studyApiSettingsWrite Boolean  @default(false)
   studyApiNewQueueWrite Boolean  @default(false)
   studyApiReview        Boolean  @default(false)
+  studyApiCardWrites    Boolean  @default(false)
   updatedAt             DateTime @updatedAt
 
   @@map("feature_flags")

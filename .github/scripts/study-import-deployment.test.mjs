@@ -93,6 +93,27 @@ test('the production workflow wires import activation through verification and r
   );
 });
 
+test('the production workflow wires card-write activation through verification and rollback', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'enable_card_writes:',
+    'ENABLE_CARD_WRITES: ${{ inputs.enable_card_writes }}',
+    'validate_boolean_input enable_card_writes "$ENABLE_CARD_WRITES"',
+    '\\"studyApiCardWrites\\" = $enable_card_writes_sql',
+    '\\"studyApiCardWrites\\" = $previous_card_writes_sql',
+    '|| [ "$ENABLE_CARD_WRITES" = true ] || [ "$ENABLE_IMPORTS" = true ]; then',
+    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql"',
+  ]) {
+    assert.ok(workflow.includes(requiredContract), `Missing card-write contract: ${requiredContract}`);
+  }
+
+  assert.doesNotMatch(workflow, /\\"studyApiCardWrites\\" = false/);
+});
+
 test('the production workflow overlaps proxy tokens through a healthy server cutover', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
