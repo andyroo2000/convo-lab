@@ -2369,7 +2369,7 @@ describe('Learning OS Study proxy routes', () => {
       RequestInit & { duplex?: string },
     ];
     expect(url.toString()).toBe(
-      'https://learning-os.example/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload'
+      'https://learning-os.example/api/study/imports/01arz3ndektsv4rrffq69g5faw/upload'
     );
     expect(init.duplex).toBe('half');
     const headers = new Headers(init.headers);

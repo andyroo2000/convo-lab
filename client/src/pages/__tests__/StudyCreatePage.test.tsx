@@ -818,6 +818,20 @@ describe('StudyCreatePage', () => {
     );
   });
 
+  it('does not generate preview media when persisting the current draft fails', async () => {
+    manualDraftsState.drafts = [manualDraft()];
+    updateManualDraftMock.mockRejectedValueOnce(new Error('Draft save failed'));
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+
+    await waitFor(() => expect(updateManualDraftMock).toHaveBeenCalledTimes(1));
+    expect(regenerateCandidateAudioMock).not.toHaveBeenCalled();
+  });
+
   it('opens the reusable card preview for manually entered fields', async () => {
     renderPage();
 

@@ -253,6 +253,7 @@ interface StudyProxyRoute {
   reviewOperation?: 'session' | 'write';
   importUpload?: boolean;
   mediaResponse?: boolean;
+  normalizeUlidPath?: boolean;
   timeoutMs?: number;
   responseAdapter?:
     | 'card'
@@ -323,6 +324,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     writeFeature: 'cardDraftPreviewMedia',
     writeBody: 'empty',
     responseAdapter: 'cardDraftPreviewAudio',
+    normalizeUlidPath: true,
     timeoutMs: LEARNING_OS_PREVIEW_MEDIA_TIMEOUT_MS,
   },
   {
@@ -333,6 +335,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     writeFeature: 'cardDraftPreviewMedia',
     writeBody: 'empty',
     responseAdapter: 'cardDraftPreviewImage',
+    normalizeUlidPath: true,
     timeoutMs: LEARNING_OS_PREVIEW_MEDIA_TIMEOUT_MS,
   },
   {
@@ -1677,6 +1680,7 @@ function validGeneratedPreviewMediaRef(value: unknown, mediaKind: 'audio' | 'ima
   }
   const media = value as Record<string, unknown>;
   const allowedKeys = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
+  // Learning OS explicitly requests MP3/WebP output; provider model selection does not vary it.
   const expectedExtension = mediaKind === 'audio' ? '.mp3' : '.webp';
 
   return (
@@ -1819,8 +1823,8 @@ router.all(
         throw new AppError('Learning OS Study API is not enabled for this account.', 403);
       }
 
-      const normalizedPath = normalizeStudyProxyPath(req.path);
-      const upstreamUrl = new URL(`${apiUrl}/api/study${normalizedPath}`);
+      const upstreamPath = route.normalizeUlidPath ? normalizeStudyProxyPath(req.path) : req.path;
+      const upstreamUrl = new URL(`${apiUrl}/api/study${upstreamPath}`);
       appendQueryParams(upstreamUrl, req.query, route);
       const body = route.importUpload ? undefined : adaptWriteBody(route, req.body);
       const upstreamResponse = route.importUpload
@@ -1865,7 +1869,7 @@ router.all(
 
       res
         .status(upstreamResponse.status)
-        .json(adaptStudyRouteResponse(route, responseJson, normalizedPath));
+        .json(adaptStudyRouteResponse(route, responseJson, upstreamPath));
     } catch (error) {
       if (res.headersSent) {
         res.destroy(error instanceof Error ? error : undefined);
