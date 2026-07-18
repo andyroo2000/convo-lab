@@ -76,6 +76,11 @@ const learningOsStudyReadRateLimit = rateLimitStudyRoute({
   max: 240,
   windowMs: 60 * 1000,
 });
+const learningOsStudyMediaRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-media-proxy',
+  max: 600,
+  windowMs: 60 * 1000,
+});
 const learningOsStudyImportRateLimit = rateLimitStudyRoute({
   key: 'learning-os-import-proxy',
   max: 240,
@@ -1076,7 +1081,9 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     return;
   }
 
-  if (route.featureFlag === 'studyApiImports') {
+  if (route.mediaResponse) {
+    learningOsStudyMediaRateLimit(req, res, next);
+  } else if (route.featureFlag === 'studyApiImports') {
     learningOsStudyImportRateLimit(req, res, next);
   } else if (route.writeFeature === 'settingsWrite') {
     learningOsSettingsWriteRateLimit(req, res, next);

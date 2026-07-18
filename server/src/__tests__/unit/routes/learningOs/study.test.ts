@@ -361,6 +361,11 @@ describe('Learning OS Study proxy routes', () => {
       windowMs: 60 * 1000,
     });
     expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-media-proxy',
+      max: 600,
+      windowMs: 60 * 1000,
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
       key: 'learning-os-import-proxy',
       max: 240,
       windowMs: 60 * 1000,
@@ -484,7 +489,7 @@ describe('Learning OS Study proxy routes', () => {
         'X-Convo-Lab-User-Role': 'user',
       },
     });
-    expect(invokedRateLimitKeys).toEqual(['learning-os-read-proxy']);
+    expect(invokedRateLimitKeys).toEqual(['learning-os-media-proxy']);
   });
 
   it.each(['items=0-1', 'bytes=-', 'bytes=0-1,4-5'])(
