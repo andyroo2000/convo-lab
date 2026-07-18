@@ -301,6 +301,11 @@ export interface StudyCardCandidatePreviewAudioResponse {
   previewAudioRole: 'prompt' | 'answer' | null;
 }
 
+export interface StudyCardDraftPreviewAudioResponse {
+  previewAudio: StudyMediaRef | null;
+  previewAudioRole: 'prompt' | 'answer' | null;
+}
+
 export interface StudyCardCandidatePreviewImageRequest {
   candidate: StudyCardCandidateCommitItem;
   imagePrompt: string;

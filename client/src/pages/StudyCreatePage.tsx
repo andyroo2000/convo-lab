@@ -40,11 +40,11 @@ import {
   useCreateStudyManualCardDraft,
   useCreateStudyVocabBundleDrafts,
   useDeleteStudyManualCardDraft,
-  useGenerateStudyCardDraftImage,
+  useGenerateStudyManualCardDraftPreviewAudio,
+  useGenerateStudyManualCardDraftPreviewImage,
   useRetryStudyManualCardDraft,
   useStudyManualCardDrafts,
   useUpdateStudyManualCardDraft,
-  useRegenerateStudyCardCandidatePreviewAudio,
 } from '../hooks/useStudy';
 
 type CreateMode = 'generate' | 'manual';
@@ -55,6 +55,15 @@ const STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS = new Set<keyof StudyCardFormValues
   'answerAudioVoiceId',
   'answerAudioTextOverride',
 ]);
+
+function candidateKindForManualCreationKind(
+  creationKind: StudyCardCreationKind
+): StudyCardCandidateKind {
+  if (creationKind === 'production-text' || creationKind === 'production-image') {
+    return 'production';
+  }
+  return creationKind;
+}
 
 function getDraftFormValues(result: StudyCardDraftCompleteResponse | StudyManualCardDraft) {
   return getStudyCardFormValues({
@@ -76,15 +85,6 @@ function getDraftFormValues(result: StudyCardDraftCompleteResponse | StudyManual
       updatedAt: '1970-01-01T00:00:00.000Z',
     },
   });
-}
-
-function candidateKindForManualCreationKind(
-  creationKind: StudyCardCreationKind
-): StudyCardCandidateKind {
-  if (creationKind === 'production-text' || creationKind === 'production-image') {
-    return 'production';
-  }
-  return creationKind;
 }
 
 function creationKindLabelKey(creationKind: StudyCardCreationKind) {
@@ -148,8 +148,8 @@ const StudyCreatePage = () => {
   const retryDraft = useRetryStudyManualCardDraft();
   const createCardFromDraft = useCreateCardFromStudyManualCardDraft();
   const createVocabBundleDrafts = useCreateStudyVocabBundleDrafts();
-  const generateDraftImage = useGenerateStudyCardDraftImage();
-  const regenerateManualAudio = useRegenerateStudyCardCandidatePreviewAudio();
+  const generateDraftImage = useGenerateStudyManualCardDraftPreviewImage();
+  const regenerateManualAudio = useGenerateStudyManualCardDraftPreviewAudio();
   const [manualDefaultVoiceId] = useState(() => selectManualStudyCardDefaultVoiceId());
   const [mode, setMode] = useState<CreateMode>('generate');
   const [creationKind, setCreationKind] = useState<StudyCardCreationKind>(
@@ -423,11 +423,37 @@ const StudyCreatePage = () => {
     }
   };
 
+  const persistSelectedManualDraft = async () => {
+    if (!selectedManualDraft) return null;
+    if (manualAutosaveTimeoutRef.current !== null) {
+      window.clearTimeout(manualAutosaveTimeoutRef.current);
+      manualAutosaveTimeoutRef.current = null;
+    }
+    await manualAutosavePromiseRef.current;
+    await updateDraft.mutateAsync({
+      draftId: selectedManualDraft.id,
+      values: {
+        prompt: manualPayload.prompt,
+        answer: manualPayload.answer,
+        imagePlacement: manualImagePlacement,
+        imagePrompt: manualImagePrompt.trim() || null,
+        previewAudio: manualPreviewAudio,
+        previewAudioRole: manualPreviewAudioRole,
+        previewImage: manualPreviewImage,
+      },
+    });
+
+    return selectedManualDraft.id;
+  };
+
   const handleRegenerateManualAudio = async () => {
     setManualSuccess(null);
     try {
+      const draftId = await persistSelectedManualDraft();
+      if (!draftId) return;
       const result = await regenerateManualAudio.mutateAsync({
-        candidate: manualAudioCandidate,
+        draftId,
+        legacyRequest: { candidate: manualAudioCandidate },
       });
       setManualPreviewAudio(result.previewAudio);
       setManualPreviewAudioRole(result.previewAudioRole);
@@ -439,9 +465,14 @@ const StudyCreatePage = () => {
   const handleGenerateManualImage = async () => {
     setManualSuccess(null);
     try {
+      const draftId = await persistSelectedManualDraft();
+      if (!draftId) return;
       const result = await generateDraftImage.mutateAsync({
-        imagePrompt: manualImagePrompt,
-        imagePlacement: manualImagePlacement,
+        draftId,
+        legacyRequest: {
+          imagePrompt: manualImagePrompt,
+          imagePlacement: manualImagePlacement,
+        },
       });
       setManualImagePrompt(result.imagePrompt);
       setManualImagePlacement(result.imagePlacement);
@@ -846,7 +877,9 @@ const StudyCreatePage = () => {
                 />
 
                 <StudyCandidatePreviewAudio
-                  isRegenerateDisabled={isSelectedManualDraftGenerating || isManualActionBusy}
+                  isRegenerateDisabled={
+                    !selectedManualDraft || isSelectedManualDraftGenerating || isManualActionBusy
+                  }
                   isRegenerating={regenerateManualAudio.isPending}
                   label={t('create.playPreview')}
                   onRegenerate={handleRegenerateManualAudio}
@@ -877,7 +910,9 @@ const StudyCreatePage = () => {
                   imagePrompt={manualImagePrompt}
                   imagePromptId="study-manual-image-prompt"
                   imagePromptLabel={t('create.imagePrompt')}
-                  isRegenerateDisabled={isSelectedManualDraftGenerating || isManualActionBusy}
+                  isRegenerateDisabled={
+                    !selectedManualDraft || isSelectedManualDraftGenerating || isManualActionBusy
+                  }
                   isRegenerating={generateDraftImage.isPending}
                   onImagePlacementChange={setManualImagePlacement}
                   onImagePromptChange={(value) => {
