@@ -1,3 +1,4 @@
+import { STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH } from '@languageflow/shared/src/studyConstants.js';
 import type { StudyManualCardDraftCreateRequest } from '@languageflow/shared/src/types.js';
 import { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -205,6 +206,28 @@ describe('studyVocabBundleService', () => {
         }),
       ]),
     });
+  });
+
+  it('rejects an overlong source sentence before starting draft persistence', async () => {
+    const { createStudyVocabBundleDrafts } =
+      await import('../../../services/studyVocabBundleService.js');
+
+    await expect(
+      createStudyVocabBundleDrafts({
+        userId: 'user-1',
+        request: {
+          targetWord: '営業する',
+          sourceSentence: 'あ'.repeat(STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH + 1),
+          context: null,
+          includeLearnerContext: true,
+        },
+      })
+    ).rejects.toThrow(
+      `sourceSentence must be ${String(STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH)} characters or fewer.`
+    );
+
+    expect(mockPrisma.studyVariantGroup.create).not.toHaveBeenCalled();
+    expect(createGeneratingManualCardDraftsInTransactionMock).not.toHaveBeenCalled();
   });
 
   it('processes queued vocab bundle drafts without re-enabling omitted learner context', async () => {

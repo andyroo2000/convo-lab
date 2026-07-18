@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { AuthProvider, useAuth } from '../AuthContext';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
+import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -64,6 +65,58 @@ describe('AuthContext', () => {
       });
 
       expect(result.current.user).toEqual(mockUser);
+    });
+
+    it('should clear a stale user when an API request reports an expired session', async () => {
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'user',
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockUser,
+      });
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.user).toEqual(mockUser);
+      });
+      act(() => {
+        window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
+      });
+
+      expect(result.current.user).toBe(null);
+    });
+
+    it('should clear a stale user when an auth refresh returns unauthorized', async () => {
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'user',
+      };
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUser,
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json: async () => ({ error: 'Not authenticated' }),
+        });
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.user).toEqual(mockUser);
+      });
+      await act(async () => {
+        await result.current.refreshUser();
+      });
+
+      expect(result.current.user).toBe(null);
     });
   });
 

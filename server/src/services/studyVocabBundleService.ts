@@ -1,6 +1,7 @@
 import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new.js';
 import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants.js';
 import type {
@@ -276,9 +277,12 @@ async function generateStudyVocabBundle(input: {
       400
     );
   }
-  if (request.sourceSentence && request.sourceSentence.length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
+  if (
+    request.sourceSentence &&
+    request.sourceSentence.length > STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH
+  ) {
     throw new AppError(
-      `sourceSentence must be ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters or fewer.`,
+      `sourceSentence must be ${String(STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH)} characters or fewer.`,
       400
     );
   }
@@ -340,9 +344,12 @@ export async function createStudyVocabBundleDrafts(input: {
       400
     );
   }
-  if (request.sourceSentence && request.sourceSentence.length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
+  if (
+    request.sourceSentence &&
+    request.sourceSentence.length > STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH
+  ) {
     throw new AppError(
-      `sourceSentence must be ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters or fewer.`,
+      `sourceSentence must be ${String(STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH)} characters or fewer.`,
       400
     );
   }

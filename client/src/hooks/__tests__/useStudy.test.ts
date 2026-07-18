@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API_URL } from '../../config';
 import type { FeatureFlags } from '../useFeatureFlags';
+import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
   cancelStudyImportUpload,
@@ -10,6 +11,7 @@ import {
   createStudyCard,
   createStudyCardId,
   createStudyManualCardDraft,
+  createStudyVocabBundleDrafts,
   deleteStudyManualCardDraft,
   deleteStudyCard,
   getCurrentStudyImport,
@@ -478,6 +480,83 @@ describe('useStudy request helpers', () => {
       id: cardId,
     });
     expect((fetchMock.mock.calls[5]?.[1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('routes vocab bundle draft creation with the manual-card draft feature', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardDrafts: true,
+    });
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        groupId: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+        drafts: [],
+      }),
+    } as Response);
+
+    await createStudyVocabBundleDrafts(
+      {
+        targetWord: '会社',
+        sourceSentence: '会社で働きます。',
+        context: 'work',
+        includeLearnerContext: false,
+      },
+      flags
+    );
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/learning-os/study/card-candidates/vocab-bundle/drafts`,
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      })
+    );
+  });
+
+  it('keeps vocab bundle draft creation on Convo Lab until card drafts are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardDrafts: false,
+    });
+
+    await createStudyVocabBundleDrafts({ targetWord: '会社' }, flags);
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/card-candidates/vocab-bundle/drafts`,
+      expect.any(Object)
+    );
+  });
+
+  it('notifies the app when a Study request finds an expired session', async () => {
+    const listener = vi.fn();
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, listener);
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: { message: 'Authentication required' } }),
+    } as Response);
+
+    await expect(getStudySettings()).rejects.toThrow('Authentication required');
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, listener);
+  });
+
+  it('keeps the session when a Study request returns a gateway error', async () => {
+    const listener = vi.fn();
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, listener);
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: async () => ({ error: { message: 'Learning OS Study API request failed.' } }),
+    } as Response);
+
+    await expect(getStudySettings()).rejects.toThrow('Learning OS Study API request failed.');
+
+    expect(listener).not.toHaveBeenCalled();
+    window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, listener);
   });
 
   it('keeps manual-card drafts on Convo Lab until their child flag is enabled', async () => {

@@ -1,6 +1,12 @@
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
+import {
+  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH,
+  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
+  STUDY_VOCAB_BUNDLE_CARD_COUNT,
+} from '@languageflow/shared/src/studyConstants.js';
 import type { StudyCardCreationKind } from '@languageflow/shared/src/types.js';
 import { Router, type NextFunction, type Response } from 'express';
 import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
@@ -15,6 +21,7 @@ import {
   cardTypeForStudyCardCreationKind,
   STUDY_CARD_CREATION_KINDS,
 } from '../../services/study/shared/candidates.js';
+import { STUDY_VOCAB_VARIANT_KINDS_BY_STAGE } from '../../services/study/variants/constants.js';
 
 import {
   rewriteStudyCardDraftMediaUrls,
@@ -144,6 +151,12 @@ const learningOsCardDraftCreateRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsVocabBundleDraftCreateRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-vocab-bundle-draft-create-proxy',
+  max: 20,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 const learningOsCardDraftUpdateRateLimit = rateLimitStudyRoute({
   key: 'learning-os-card-draft-update-proxy',
   max: 120,
@@ -194,6 +207,7 @@ type StudyWriteFeature =
   | 'cardUpdate'
   | 'cardDelete'
   | 'cardAction'
+  | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
   | 'cardDraftRetry'
@@ -203,6 +217,7 @@ type StudyWriteBody =
   | 'cardCreate'
   | 'cardUpdate'
   | 'cardAction'
+  | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
   | 'cardDraftCommit'
@@ -228,10 +243,25 @@ interface StudyProxyRoute {
   reviewOperation?: 'session' | 'write';
   importUpload?: boolean;
   mediaResponse?: boolean;
-  responseAdapter?: 'card' | 'cardAction' | 'cardDraft' | 'cardDraftCommit' | 'cardDraftList';
+  responseAdapter?:
+    | 'card'
+    | 'cardAction'
+    | 'cardDraft'
+    | 'cardDraftCommit'
+    | 'cardDraftList'
+    | 'vocabBundleDraftCreate';
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'POST',
+    pattern: /^\/card-candidates\/vocab-bundle\/drafts$/,
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'vocabBundleDraftCreate',
+    writeBody: 'vocabBundleDraftCreate',
+    responseAdapter: 'vocabBundleDraftCreate',
+  },
   {
     method: 'GET',
     pattern: new RegExp(`^/media/${STUDY_ULID_SEGMENT}$`, 'i'),
@@ -725,6 +755,43 @@ function adaptCardDraftCreateBody(value: unknown): Record<string, unknown> {
   };
 }
 
+function adaptVocabBundleDraftCreateBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  if (typeof body.targetWord !== 'string' || body.targetWord.trim() === '') {
+    throw new AppError('targetWord is required.', 400);
+  }
+  const targetWord = body.targetWord.trim();
+  if (targetWord.length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
+    throw new AppError(
+      `targetWord must be a string no longer than ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters.`,
+      400
+    );
+  }
+
+  const sourceSentence = normalizedOptionalString(
+    body.sourceSentence,
+    'sourceSentence',
+    STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH
+  );
+  const context = normalizedOptionalString(
+    body.context,
+    'context',
+    STUDY_CANDIDATE_CONTEXT_MAX_LENGTH
+  );
+  if (body.includeLearnerContext !== undefined && typeof body.includeLearnerContext !== 'boolean') {
+    throw new AppError('includeLearnerContext must be a boolean.', 400);
+  }
+
+  return {
+    targetWord,
+    ...(sourceSentence === undefined ? {} : { sourceSentence }),
+    ...(context === undefined ? {} : { context }),
+    ...(body.includeLearnerContext === undefined
+      ? {}
+      : { includeLearnerContext: body.includeLearnerContext }),
+  };
+}
+
 function adaptCardDraftUpdateBody(value: unknown): Record<string, unknown> {
   const body = requestRecord(value);
   const hasPrompt = Object.hasOwn(body, 'prompt');
@@ -1027,6 +1094,9 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   if (route.writeBody === 'cardAction') {
     return adaptCardActionBody(value);
   }
+  if (route.writeBody === 'vocabBundleDraftCreate') {
+    return adaptVocabBundleDraftCreateBody(value);
+  }
   if (route.writeBody === 'cardDraftCreate') {
     return adaptCardDraftCreateBody(value);
   }
@@ -1104,6 +1174,8 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsCardDeleteRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardAction') {
     learningOsCardActionRateLimit(req, res, next);
+  } else if (route.writeFeature === 'vocabBundleDraftCreate') {
+    learningOsVocabBundleDraftCreateRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftCreate') {
     learningOsCardDraftCreateRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftUpdate') {
@@ -1299,6 +1371,80 @@ function adaptStudyRouteResponse(
     return {
       ...response,
       drafts: response.drafts.map(rewriteStudyCardDraftMediaUrls),
+    };
+  }
+  if (route.responseAdapter === 'vocabBundleDraftCreate') {
+    const response = upstreamResponseRecord(value, 'vocab bundle draft create');
+    const groupId = response.groupId;
+    if (typeof groupId !== 'string' || !ULID_PATTERN.test(groupId)) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid vocab bundle draft response.',
+        502
+      );
+    }
+
+    const normalizedGroupId = groupId.toUpperCase();
+    const drafts = response.drafts;
+    if (!Array.isArray(drafts)) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid vocab bundle draft response.',
+        502
+      );
+    }
+
+    const stageCounts = new Map<number, number>();
+    const validDrafts =
+      drafts.length === STUDY_VOCAB_BUNDLE_CARD_COUNT &&
+      drafts.every((draft) => {
+        try {
+          assertCardDraftResponse(draft);
+          const record = draft as Record<string, unknown>;
+          const stage = record.variantStage;
+          const expectedKind =
+            typeof stage === 'number' ? STUDY_VOCAB_VARIANT_KINDS_BY_STAGE[stage] : undefined;
+          const expectedStatus = stage === 1 ? 'available' : 'locked';
+          const usesSentence = stage === 1 || stage === 2 || stage === 5;
+          const valid =
+            Number.isInteger(stage) &&
+            expectedKind !== undefined &&
+            record.variantKind === expectedKind &&
+            record.variantStatus === expectedStatus &&
+            typeof record.variantGroupId === 'string' &&
+            record.variantGroupId.toUpperCase() === normalizedGroupId &&
+            (usesSentence
+              ? typeof record.variantSentenceId === 'string' &&
+                ULID_PATTERN.test(record.variantSentenceId)
+              : record.variantSentenceId === null) &&
+            (stage === 1
+              ? validTimestamp(record.variantUnlockedAt)
+              : record.variantUnlockedAt === null);
+
+          if (valid && typeof stage === 'number') {
+            stageCounts.set(stage, (stageCounts.get(stage) ?? 0) + 1);
+          }
+          return valid;
+        } catch {
+          return false;
+        }
+      });
+    const validStageCounts =
+      stageCounts.get(1) === 3 &&
+      stageCounts.get(2) === 3 &&
+      stageCounts.get(3) === 1 &&
+      stageCounts.get(4) === 1 &&
+      stageCounts.get(5) === 3;
+
+    if (!validDrafts || !validStageCounts) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid vocab bundle draft response.',
+        502
+      );
+    }
+
+    return {
+      ...response,
+      groupId: normalizedGroupId,
+      drafts: drafts.map(rewriteStudyCardDraftMediaUrls),
     };
   }
   if (route.responseAdapter === 'cardDraftCommit') {
@@ -1554,7 +1700,10 @@ router.all(
           );
 
       if (!upstreamResponse.ok) {
-        const statusCode = upstreamResponse.status >= 500 ? 502 : upstreamResponse.status;
+        const statusCode =
+          upstreamResponse.status === 401 || upstreamResponse.status >= 500
+            ? 502
+            : upstreamResponse.status;
         const validationMessage =
           upstreamResponse.status === 422 && route.writeFeature === 'newQueueWrite'
             ? extractNewQueueValidationMessage(await upstreamResponse.text())

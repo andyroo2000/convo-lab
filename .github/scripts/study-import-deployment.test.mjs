@@ -205,6 +205,10 @@ test('the production worker consumes Learning OS card-draft jobs', async () => {
   const compose = await readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8');
 
   assert.match(compose, /"--queue=study-imports,study-card-drafts,default"/);
+  assert.match(
+    compose,
+    /x-learning-os-environment:[\s\S]*OPENAI_API_KEY: \$\{OPENAI_API_KEY\}[\s\S]*STUDY_CARD_GENERATOR_MODEL: \$\{STUDY_CARD_GENERATOR_MODEL:-gpt-5\.5\}[\s\S]*STUDY_CARD_GENERATOR_REASONING_EFFORT: \$\{STUDY_CARD_GENERATOR_REASONING_EFFORT:-medium\}/
+  );
 });
 
 test('the production workflow tolerates intentional browser drift after card-write cutover', async () => {
