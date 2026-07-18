@@ -114,6 +114,45 @@ test('the production workflow wires card-write activation through verification a
   assert.doesNotMatch(workflow, /\\"studyApiCardWrites\\" = false/);
 });
 
+test('the production workflow tolerates intentional browser drift after card-write cutover', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'Browser Learning OS independent-state smoke check passed.',
+    "browser_list_path='/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=1'",
+    "browser_list_path='/api/study/browser?sortField=created_on&sortDirection=desc&limit=1'",
+    'Browser detail Learning OS independent-state smoke check passed.',
+  ]) {
+    assert.ok(
+      workflow.includes(requiredContract),
+      `Missing post-cutover browser smoke contract: ${requiredContract}`
+    );
+  }
+
+  const browserBlock = workflow.slice(
+    workflow.indexOf('if [ "$ENABLE_BROWSER" = true ]; then'),
+    workflow.indexOf('if [ "$ENABLE_NEW_QUEUE" = true ]')
+  );
+
+  assert.match(browserBlock, /if \[ "\$ENABLE_CARD_WRITES" = true \]; then/);
+  assert.match(
+    browserBlock,
+    /fetch_read_route[\s\S]*?\/api\/learning-os\/study\/browser\?sortField=created_on/
+  );
+  assert.match(browserBlock, /else[\s\S]*?compare_read_route[\s\S]*?opaque-cursor/);
+  assert.match(
+    browserBlock,
+    /Browser detail Learning OS[\s\S]*?\/api\/learning-os\/study\/browser\/\$browser_note_id/
+  );
+  assert.match(
+    browserBlock,
+    /else[\s\S]*?compare_read_route BrowserDetail "\/api\/study\/browser\/\$browser_note_id"/
+  );
+});
+
 test('the production workflow overlaps proxy tokens through a healthy server cutover', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),

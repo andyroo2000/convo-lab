@@ -1104,14 +1104,27 @@ jobs:
                   overview-state
               fi
               if [ "$ENABLE_BROWSER" = true ]; then
-                compare_read_route \
-                  Browser \
-                  '/api/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
-                  '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
-                  opaque-cursor
+                if [ "$ENABLE_CARD_WRITES" = true ]; then
+                  fetch_read_route \
+                    'Browser Learning OS' \
+                    '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
+                    > /dev/null
+                  echo "Browser Learning OS independent-state smoke check passed."
+                else
+                  compare_read_route \
+                    Browser \
+                    '/api/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
+                    '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
+                    opaque-cursor
+                fi
               fi
               if [ "$ENABLE_BROWSER_DETAIL" = true ]; then
-                browser_list="$(fetch_read_route 'Browser detail note lookup' '/api/study/browser?sortField=created_on&sortDirection=desc&limit=1')"
+                if [ "$ENABLE_CARD_WRITES" = true ]; then
+                  browser_list_path='/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=1'
+                else
+                  browser_list_path='/api/study/browser?sortField=created_on&sortDirection=desc&limit=1'
+                fi
+                browser_list="$(fetch_read_route 'Browser detail note lookup' "$browser_list_path")"
                 browser_note_id="$(docker exec -e BROWSER_RESPONSE="$browser_list" \
                   "convolab-server-$active_color" node --input-type=module --eval='
                     const r=JSON.parse(process.env.BROWSER_RESPONSE),n=r?.rows?.[0]?.noteId;
@@ -1119,8 +1132,16 @@ jobs:
                     process.stdout.write(n);
                   ')"
                 test -n "$browser_note_id"
-                compare_read_route BrowserDetail "/api/study/browser/$browser_note_id" \
-                  "/api/learning-os/study/browser/$browser_note_id"
+                if [ "$ENABLE_CARD_WRITES" = true ]; then
+                  fetch_read_route \
+                    'Browser detail Learning OS' \
+                    "/api/learning-os/study/browser/$browser_note_id" \
+                    > /dev/null
+                  echo "Browser detail Learning OS independent-state smoke check passed."
+                else
+                  compare_read_route BrowserDetail "/api/study/browser/$browser_note_id" \
+                    "/api/learning-os/study/browser/$browser_note_id"
+                fi
               fi
               if [ "$ENABLE_NEW_QUEUE" = true ] && [ "$ENABLE_NEW_QUEUE_WRITE" != true ]; then
                 compare_read_route \
