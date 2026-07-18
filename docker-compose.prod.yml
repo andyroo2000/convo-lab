@@ -189,7 +189,7 @@ services:
         "artisan",
         "queue:work",
         "database",
-        "--queue=study-imports,default",
+        "--queue=study-imports,study-card-drafts,default",
         "--sleep=3",
         "--tries=4",
         "--timeout=3600",

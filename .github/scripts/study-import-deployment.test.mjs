@@ -147,6 +147,12 @@ test('the production workflow wires card-draft activation through disposable ver
   );
 });
 
+test('the production worker consumes Learning OS card-draft jobs', async () => {
+  const compose = await readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8');
+
+  assert.match(compose, /"--queue=study-imports,study-card-drafts,default"/);
+});
+
 test('the production workflow tolerates intentional browser drift after card-write cutover', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
