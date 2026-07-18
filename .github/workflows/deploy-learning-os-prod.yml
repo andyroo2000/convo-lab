@@ -660,8 +660,12 @@ jobs:
               container="learning-os-worker"
               current_image="$(docker inspect --format='{{.Config.Image}}' "$container" 2>/dev/null || true)"
               running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
+              current_command="$(docker inspect --format='{{join .Config.Cmd " "}}' "$container" 2>/dev/null || true)"
+              desired_queue_argument="--queue=study-imports,study-card-drafts,default"
 
-              if [ "$current_image" = "$desired_learning_os_image" ] && [ "$running" = true ]; then
+              if [ "$current_image" = "$desired_learning_os_image" ] \
+                && [ "$running" = true ] \
+                && [[ " $current_command " == *" $desired_queue_argument "* ]]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
               fi
