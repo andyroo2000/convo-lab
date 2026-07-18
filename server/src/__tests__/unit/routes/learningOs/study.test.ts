@@ -1270,9 +1270,15 @@ describe('Learning OS Study proxy routes', () => {
     });
   });
 
-  it.each(['ja-JP-Wavenet-C', 'Takumi', 'Kazuha', 'Tomoko'])(
-    'migrates the legacy voice %s before forwarding regeneration',
-    async (voiceId) => {
+  it.each([
+    ['ja-JP-Wavenet-C', 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f'],
+    ['ja-JP-Neural2-B', 'fishaudio:9639f090aa6346329d7d3aca7e6b7226'],
+    ['Takumi', 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f'],
+    ['Kazuha', 'fishaudio:9639f090aa6346329d7d3aca7e6b7226'],
+    ['Tomoko', 'fishaudio:9639f090aa6346329d7d3aca7e6b7226'],
+  ])(
+    'migrates the legacy voice %s to its matching Fish voice',
+    async (voiceId, expectedVoiceId) => {
       vi.stubGlobal(
         'fetch',
         vi.fn().mockResolvedValue(new Response(JSON.stringify(compatibilityCard), { status: 200 }))
@@ -1290,7 +1296,7 @@ describe('Learning OS Study proxy routes', () => {
       expect(response.status).toBe(200);
       const call = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
       expect(JSON.parse(String(call[1].body))).toEqual({
-        answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+        answerAudioVoiceId: expectedVoiceId,
       });
     }
   );

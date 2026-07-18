@@ -3,6 +3,7 @@ import { pipeline } from 'node:stream/promises';
 
 import {
   DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
+  STUDY_ANSWER_AUDIO_FEMALE_VOICE_ID,
   TTS_VOICES,
 } from '@languageflow/shared/src/constants-new.js';
 import {
@@ -81,13 +82,19 @@ const STUDY_CARD_DRAFT_MEDIA_SOURCES = new Set([
   'imported_image',
   'imported_other',
 ]);
+// Study cards are Japanese-only; expand these derived catalogs with the route contract if that changes.
 const STUDY_ANSWER_AUDIO_FISH_VOICE_IDS = new Set<string>(
   TTS_VOICES.ja.voices.filter((voice) => voice.provider === 'fishaudio').map((voice) => voice.id)
 );
-const STUDY_ANSWER_AUDIO_LEGACY_VOICE_IDS = new Set<string>(
+const STUDY_ANSWER_AUDIO_LEGACY_VOICE_MIGRATIONS = new Map<string, string>(
   TTS_VOICES.ja.voices
     .filter((voice) => 'hiddenFromPicker' in voice && voice.hiddenFromPicker)
-    .map((voice) => voice.id)
+    .map((voice) => [
+      voice.id,
+      voice.gender === 'female'
+        ? STUDY_ANSWER_AUDIO_FEMALE_VOICE_ID
+        : DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
+    ])
 );
 
 const learningOsStudyIpRateLimit = createExpressRateLimit({
@@ -1008,9 +1015,7 @@ function adaptAnswerAudioRegenerateBody(value: unknown): Record<string, unknown>
   const normalizedVoiceId =
     trimmedVoiceId !== null && STUDY_ANSWER_AUDIO_FISH_VOICE_IDS.has(trimmedVoiceId)
       ? trimmedVoiceId
-      : trimmedVoiceId !== null && STUDY_ANSWER_AUDIO_LEGACY_VOICE_IDS.has(trimmedVoiceId)
-        ? DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID
-        : null;
+      : (STUDY_ANSWER_AUDIO_LEGACY_VOICE_MIGRATIONS.get(trimmedVoiceId ?? '') ?? null);
   if (voiceId !== undefined && voiceId !== null && normalizedVoiceId === null) {
     throw new AppError('answerAudioVoiceId is not supported.', 400);
   }
