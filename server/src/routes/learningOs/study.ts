@@ -450,7 +450,7 @@ function adaptCardCreateBody(value: unknown): Record<string, unknown> {
   const normalizedCardType =
     typeof cardType === 'string' ? cardType.trim().toLowerCase() : undefined;
 
-  if (id !== undefined && (typeof id !== 'string' || !ULID_PATTERN.test(id.trim()))) {
+  if (typeof id !== 'string' || !ULID_PATTERN.test(id.trim())) {
     throw new AppError('id must be a valid ULID.', 400);
   }
   if (
@@ -479,7 +479,7 @@ function adaptCardCreateBody(value: unknown): Record<string, unknown> {
   }
 
   return {
-    ...(typeof id === 'string' ? { id: id.trim().toUpperCase() } : {}),
+    id: id.trim().toUpperCase(),
     ...(normalizedCreationKind === undefined ? {} : { creationKind: normalizedCreationKind }),
     ...(normalizedCardType === undefined ? {} : { cardType: normalizedCardType }),
     ...payloads,

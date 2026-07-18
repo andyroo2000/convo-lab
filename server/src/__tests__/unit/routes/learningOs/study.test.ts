@@ -925,8 +925,9 @@ describe('Learning OS Study proxy routes', () => {
   });
 
   it.each([
+    [{ cardType: 'recognition', prompt: {}, answer: {} }],
     [{ id: 'not-a-ulid', cardType: 'recognition', prompt: {}, answer: {} }],
-    [{ cardType: 'unknown', prompt: {}, answer: {} }],
+    [{ id: '01ARZ3NDEKTSV4RRFFQ69G5FAV', cardType: 'unknown', prompt: {}, answer: {} }],
     [
       {
         creationKind: 'text-recognition',
