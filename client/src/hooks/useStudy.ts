@@ -53,7 +53,8 @@ export interface StudySessionResponse {
   cards: StudyCardSummary[];
 }
 
-interface CreateStudyCardPayload {
+export interface CreateStudyCardPayload {
+  id: string;
   creationKind?: StudyCardCreationKind;
   cardType: 'recognition' | 'production' | 'cloze';
   prompt: StudyPromptPayload;
@@ -547,13 +548,14 @@ export async function createStudyCard(
     '/api/study/cards',
     {
       method: 'POST',
-      body: JSON.stringify({
-        ...payload,
-        id: ulid(),
-      }),
+      body: JSON.stringify(payload),
     },
     { feature: 'cardWrites', flags }
   );
+}
+
+export function createStudyCardId(): string {
+  return ulid();
 }
 
 export async function updateStudyCard(

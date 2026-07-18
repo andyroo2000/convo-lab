@@ -460,10 +460,12 @@ function adaptCardCreateBody(value: unknown): Record<string, unknown> {
   ) {
     throw new AppError('creationKind is not supported.', 400);
   }
+  if (creationKind === undefined && normalizedCardType === undefined) {
+    throw new AppError('cardType must be recognition, production, or cloze.', 400);
+  }
   if (
-    (creationKind === undefined && normalizedCardType === undefined) ||
-    (cardType !== undefined &&
-      (normalizedCardType === undefined || !STUDY_CARD_TYPES.has(normalizedCardType)))
+    cardType !== undefined &&
+    (normalizedCardType === undefined || !STUDY_CARD_TYPES.has(normalizedCardType))
   ) {
     throw new AppError('cardType must be recognition, production, or cloze.', 400);
   }

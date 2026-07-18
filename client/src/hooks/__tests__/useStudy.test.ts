@@ -7,6 +7,7 @@ import {
   cancelStudyImportUpload,
   commitStudyCardCandidates,
   createStudyCard,
+  createStudyCardId,
   deleteStudyCard,
   getCurrentStudyImport,
   getStudyNewCardQueue,
@@ -321,7 +322,8 @@ describe('useStudy request helpers', () => {
 
     const prompt = { cueText: '会社' };
     const answer = { meaning: 'company' };
-    const created = await createStudyCard({ cardType: 'recognition', prompt, answer }, flags);
+    const id = createStudyCardId();
+    const created = await createStudyCard({ id, cardType: 'recognition', prompt, answer }, flags);
     const cardId = created.id;
     await updateStudyCard({ cardId, prompt, answer }, flags);
     await performStudyCardAction({ cardId, action: 'suspend' }, flags);
@@ -337,8 +339,36 @@ describe('useStudy request helpers', () => {
     const createBody = JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body));
     expect(createBody).toMatchObject({ cardType: 'recognition', prompt, answer });
     expect(createBody.id).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+    expect(createBody.id).toBe(id);
     expect(createBody.id).toBe(cardId);
     expect((fetchMock.mock.calls[3]?.[1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('reuses a caller-owned card ID when the same create is retried', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: true,
+    });
+    vi.mocked(global.fetch)
+      .mockRejectedValueOnce(new TypeError('Network request failed'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: '01ARZ3NDEKTSV4RRFFQ69G5FAV' }),
+      } as Response);
+    const payload = {
+      id: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      cardType: 'recognition' as const,
+      prompt: { cueText: '会社' },
+      answer: { meaning: 'company' },
+    };
+
+    await expect(createStudyCard(payload, flags)).rejects.toThrow('Network request failed');
+    await createStudyCard(payload, flags);
+
+    const requestIds = vi
+      .mocked(global.fetch)
+      .mock.calls.map(([, init]) => JSON.parse(String((init as RequestInit).body)).id);
+    expect(requestIds).toEqual([payload.id, payload.id]);
   });
 
   it('keeps all card writes on Convo Lab until the child flag is enabled', async () => {
@@ -354,7 +384,10 @@ describe('useStudy request helpers', () => {
 
     const prompt = { cueText: '会社' };
     const answer = { meaning: 'company' };
-    await createStudyCard({ cardType: 'recognition', prompt, answer }, flags);
+    await createStudyCard(
+      { id: createStudyCardId(), cardType: 'recognition', prompt, answer },
+      flags
+    );
     await updateStudyCard({ cardId: 'card-1', prompt, answer }, flags);
     await performStudyCardAction({ cardId: 'card-1', action: 'suspend' }, flags);
     await deleteStudyCard('card-1', flags);

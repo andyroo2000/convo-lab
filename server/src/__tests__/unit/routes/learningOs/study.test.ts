@@ -1009,14 +1009,21 @@ describe('Learning OS Study proxy routes', () => {
     const app = await createApp();
     const { cookies, token } = await csrfAuth(app);
 
-    const response = await request(app)
+    const createResponse = await request(app)
       .post('/api/learning-os/study/cards')
       .set('Origin', 'http://localhost:5173')
       .set('Cookie', cookies)
       .set(CSRF_TOKEN_HEADER_NAME, token)
       .send({ cardType: 'recognition', prompt: { text: '会社' }, answer: { text: 'company' } });
+    const updateResponse = await request(app)
+      .patch(`/api/learning-os/study/cards/${compatibilityCard.id}`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ prompt: { text: '会社' }, answer: { text: 'company' } });
 
-    expect(response.status).toBe(403);
+    expect(createResponse.status).toBe(403);
+    expect(updateResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
