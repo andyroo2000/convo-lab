@@ -1,11 +1,39 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import {
+  DEFAULT_NARRATOR_VOICES,
+  DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
+  TTS_VOICES,
+} from '@languageflow/shared/src/constants-new';
 import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
 import { buildStudyCardFormPayload, getStudyCardFormValues } from '../studyCardFormModel';
 
 describe('studyCardFormModel', () => {
+  it('defaults new and voice-less cards to the canonical Study Fish voice', () => {
+    expect(getStudyCardFormValues().answerAudioVoiceId).toBe(DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID);
+    expect(
+      getStudyCardFormValues({
+        card: {
+          id: 'card-voice-less',
+          noteId: 'note-voice-less',
+          cardType: 'recognition',
+          prompt: { cueText: '会社' },
+          answer: { expression: '会社' },
+          state: {
+            dueAt: null,
+            queueState: 'new',
+            scheduler: null,
+            source: {},
+          },
+          answerAudioSource: 'missing',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }).answerAudioVoiceId
+    ).toBe(DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID);
+  });
+
   it('builds a recognition payload with null-normalized optional fields', () => {
     const payload = buildStudyCardFormPayload({
       cardType: 'recognition',
@@ -257,7 +285,7 @@ describe('studyCardFormModel', () => {
     });
   });
 
-  it('limits Japanese Google voice options while preserving Fish Audio voices', () => {
+  it('offers only Fish voices while preserving legacy Japanese voices in the catalog', () => {
     const japaneseVoices = TTS_VOICES.ja.voices;
     const selectableJapaneseVoices = getSelectableTtsVoices('ja');
     const fishAudioVoiceIds = japaneseVoices
@@ -270,10 +298,7 @@ describe('studyCardFormModel', () => {
     expect(selectableJapaneseVoices.map((voice) => voice.id)).toEqual(
       expect.arrayContaining(fishAudioVoiceIds)
     );
-    expect(selectableGoogleVoices.map((voice) => voice.description)).toEqual([
-      'Google: Shohei - Young TV announcer',
-    ]);
-    expect(selectableGoogleVoices.map((voice) => voice.id)).toEqual(['ja-JP-Wavenet-C']);
+    expect(selectableGoogleVoices).toEqual([]);
     expect(
       japaneseVoices
         .filter((voice) => 'hiddenFromPicker' in voice && voice.hiddenFromPicker)
@@ -282,6 +307,7 @@ describe('studyCardFormModel', () => {
       'ja-JP-Wavenet-A',
       'ja-JP-Wavenet-B',
       'ja-JP-Neural2-B',
+      'ja-JP-Wavenet-C',
       'ja-JP-Wavenet-D',
       'ja-JP-Neural2-C',
       'ja-JP-Neural2-D',

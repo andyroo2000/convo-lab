@@ -187,6 +187,7 @@ export const TTS_VOICES = {
         gender: 'male',
         description: 'Google: Shohei - Young TV announcer',
         provider: 'google',
+        hiddenFromPicker: true,
       },
       {
         id: 'ja-JP-Wavenet-D',
@@ -245,6 +246,8 @@ export const MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS = [
   'fishaudio:abb4362e736f40b7b5716f4fafcafa9f', // Ren - Wiry and assertive
   'fishaudio:9639f090aa6346329d7d3aca7e6b7226', // Yumi - Young Tokyo mother
 ] as const;
+
+export const DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID = MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0];
 
 export function selectManualStudyCardDefaultVoiceId(randomValue = Math.random()): string {
   const boundedRandomValue = Math.min(Math.max(randomValue, 0), 0.999999999999);

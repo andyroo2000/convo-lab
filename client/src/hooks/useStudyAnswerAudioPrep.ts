@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
+import resolveEffectiveFeatureFlags from './featureFlagRouting';
 import { prepareStudyAnswerAudio } from './useStudy';
 import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 import { toAssetUrl } from '../components/study/studyCardUtils';
@@ -29,7 +30,7 @@ export default function useStudyAnswerAudioPrep({
   onError,
 }: UseStudyAnswerAudioPrepOptions) {
   const { flags: liveFlags } = useFeatureFlags();
-  const effectiveFlags = routingFlags === undefined ? liveFlags : (routingFlags ?? undefined);
+  const effectiveFlags = resolveEffectiveFeatureFlags(liveFlags, routingFlags);
   const inFlightAudioPrep = useRef<Map<string, Promise<StudyCardSummary>>>(new Map());
   const isMountedRef = useRef(true);
   const enabledRef = useRef(enabled);

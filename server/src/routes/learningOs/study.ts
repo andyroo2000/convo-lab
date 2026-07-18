@@ -81,9 +81,13 @@ const STUDY_CARD_DRAFT_MEDIA_SOURCES = new Set([
   'imported_image',
   'imported_other',
 ]);
-const STUDY_JA_TTS_VOICE_IDS = new Set<string>(TTS_VOICES.ja.voices.map((voice) => voice.id));
 const STUDY_ANSWER_AUDIO_FISH_VOICE_IDS = new Set<string>(
   TTS_VOICES.ja.voices.filter((voice) => voice.provider === 'fishaudio').map((voice) => voice.id)
+);
+const STUDY_ANSWER_AUDIO_LEGACY_VOICE_IDS = new Set<string>(
+  TTS_VOICES.ja.voices
+    .filter((voice) => 'hiddenFromPicker' in voice && voice.hiddenFromPicker)
+    .map((voice) => voice.id)
 );
 
 const learningOsStudyIpRateLimit = createExpressRateLimit({
@@ -1000,12 +1004,13 @@ function adaptAnswerAudioRegenerateBody(value: unknown): Record<string, unknown>
   }
 
   const voiceId = body.answerAudioVoiceId;
+  const trimmedVoiceId = typeof voiceId === 'string' ? voiceId.trim() : null;
   const normalizedVoiceId =
-    typeof voiceId === 'string' && STUDY_JA_TTS_VOICE_IDS.has(voiceId.trim())
-      ? STUDY_ANSWER_AUDIO_FISH_VOICE_IDS.has(voiceId.trim())
-        ? voiceId.trim()
-        : MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0]
-      : null;
+    trimmedVoiceId !== null && STUDY_ANSWER_AUDIO_FISH_VOICE_IDS.has(trimmedVoiceId)
+      ? trimmedVoiceId
+      : trimmedVoiceId !== null && STUDY_ANSWER_AUDIO_LEGACY_VOICE_IDS.has(trimmedVoiceId)
+        ? MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0]
+        : null;
   if (voiceId !== undefined && voiceId !== null && normalizedVoiceId === null) {
     throw new AppError('answerAudioVoiceId is not supported.', 400);
   }

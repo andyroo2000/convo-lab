@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import { DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID } from '@languageflow/shared/src/constants-new';
 import { normalizeClozePayloadFields } from '@languageflow/shared/src/studyCloze';
 import type {
   StudyAnswerPayload,
@@ -42,7 +42,7 @@ const emptyToNull = (value: string) => (value === '' ? null : value);
 export const getStudyCardFormValues = ({
   card,
   initialCardType = 'recognition',
-  initialAnswerAudioVoiceId = DEFAULT_NARRATOR_VOICES.ja,
+  initialAnswerAudioVoiceId = DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
 }: StudyCardFormConfig = {}): StudyCardFormValues => {
   if (card) {
     if (card.cardType === 'cloze') {
@@ -54,7 +54,7 @@ export const getStudyCardFormValues = ({
         answerExpression: card.answer.restoredText ?? '',
         answerReading: card.answer.restoredTextReading ?? '',
         answerMeaning: card.answer.meaning ?? '',
-        answerAudioVoiceId: card.answer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja,
+        answerAudioVoiceId: card.answer.answerAudioVoiceId ?? DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
         answerAudioTextOverride: card.answer.answerAudioTextOverride ?? '',
         notes: card.answer.notes ?? '',
         sentenceJp: '',
@@ -70,7 +70,7 @@ export const getStudyCardFormValues = ({
       answerExpression: card.answer.expression ?? '',
       answerReading: card.answer.expressionReading ?? '',
       answerMeaning: card.answer.meaning ?? '',
-      answerAudioVoiceId: card.answer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja,
+      answerAudioVoiceId: card.answer.answerAudioVoiceId ?? DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
       answerAudioTextOverride: card.answer.answerAudioTextOverride ?? '',
       notes: card.answer.notes ?? '',
       sentenceJp: card.answer.sentenceJp ?? '',

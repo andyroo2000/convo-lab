@@ -1270,8 +1270,8 @@ describe('Learning OS Study proxy routes', () => {
     });
   });
 
-  it.each(['Takumi', 'Kazuha', 'Tomoko'])(
-    'migrates the legacy Polly voice %s before forwarding regeneration',
+  it.each(['ja-JP-Wavenet-C', 'Takumi', 'Kazuha', 'Tomoko'])(
+    'migrates the legacy voice %s before forwarding regeneration',
     async (voiceId) => {
       vi.stubGlobal(
         'fetch',
@@ -1398,10 +1398,17 @@ describe('Learning OS Study proxy routes', () => {
       .set('Origin', 'http://localhost:5173')
       .set('Cookie', cookies)
       .set(CSRF_TOKEN_HEADER_NAME, token);
+    const regenerateResponse = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f' });
 
     expect(createResponse.status).toBe(403);
     expect(updateResponse.status).toBe(403);
     expect(prepareResponse.status).toBe(403);
+    expect(regenerateResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
