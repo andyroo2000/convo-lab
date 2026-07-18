@@ -31,6 +31,10 @@ const MAX_NEW_QUEUE_REORDER_SIZE = 500;
 const MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH = 500;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
+const MAX_STUDY_DRAFT_IMAGE_PROMPT_LENGTH = 1000;
+const MAX_STUDY_DRAFT_MEDIA_FILENAME_LENGTH = 255;
+const MAX_STUDY_DRAFT_MEDIA_ID_LENGTH = 255;
+const MAX_STUDY_DRAFT_MEDIA_URL_LENGTH = 4096;
 const ULID_SEGMENT = '[0-9A-HJKMNP-TV-Z]{26}';
 const UUID_SEGMENT = '[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}';
 const ULID_PATTERN = new RegExp(`^${ULID_SEGMENT}$`, 'i');
@@ -47,6 +51,15 @@ const STUDY_IMPORT_CONTENT_TYPES = new Set([
 const STUDY_CARD_TYPES = new Set(['recognition', 'production', 'cloze']);
 const STUDY_CARD_ACTIONS = new Set(['suspend', 'unsuspend', 'forget', 'set_due']);
 const STUDY_CARD_SET_DUE_MODES = new Set(['now', 'tomorrow', 'custom_date']);
+const STUDY_CARD_IMAGE_PLACEMENTS = new Set(['none', 'prompt', 'answer', 'both']);
+const STUDY_CARD_DRAFT_AUDIO_ROLES = new Set(['prompt', 'answer']);
+const STUDY_CARD_DRAFT_MEDIA_SOURCES = new Set([
+  'imported',
+  'generated',
+  'missing',
+  'imported_image',
+  'imported_other',
+]);
 
 const learningOsStudyIpRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
@@ -113,6 +126,36 @@ const learningOsCardActionRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsCardDraftCreateRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-draft-create-proxy',
+  max: 60,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsCardDraftUpdateRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-draft-update-proxy',
+  max: 120,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsCardDraftRetryRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-draft-retry-proxy',
+  max: 30,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsCardDraftCommitRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-draft-commit-proxy',
+  max: 60,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
+const learningOsCardDraftDeleteRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-draft-delete-proxy',
+  max: 60,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 
 type StudyApiChildFlag = Extract<
   FeatureFlagKey,
@@ -126,6 +169,7 @@ type StudyApiChildFlag = Extract<
   | 'studyApiNewQueueWrite'
   | 'studyApiReview'
   | 'studyApiCardWrites'
+  | 'studyApiCardDrafts'
 >;
 
 type StudyProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
@@ -136,11 +180,19 @@ type StudyWriteFeature =
   | 'cardCreate'
   | 'cardUpdate'
   | 'cardDelete'
-  | 'cardAction';
+  | 'cardAction'
+  | 'cardDraftCreate'
+  | 'cardDraftUpdate'
+  | 'cardDraftRetry'
+  | 'cardDraftCommit'
+  | 'cardDraftDelete';
 type StudyWriteBody =
   | 'cardCreate'
   | 'cardUpdate'
   | 'cardAction'
+  | 'cardDraftCreate'
+  | 'cardDraftUpdate'
+  | 'cardDraftCommit'
   | 'knownKanjiManual'
   | 'newQueue'
   | 'review'
@@ -162,9 +214,59 @@ interface StudyProxyRoute {
   requiredReadFlag?: Extract<FeatureFlagKey, 'studyApiSettings' | 'studyApiNewQueue'>;
   reviewOperation?: 'session' | 'write';
   importUpload?: boolean;
+  responseAdapter?: 'cardDraft' | 'cardDraftCommit' | 'cardDraftList';
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'GET',
+    pattern: /^\/card-drafts$/,
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(['cursor', 'limit']),
+    responseAdapter: 'cardDraftList',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/card-drafts$/,
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'cardDraftCreate',
+    writeBody: 'cardDraftCreate',
+    responseAdapter: 'cardDraft',
+  },
+  {
+    method: 'PATCH',
+    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}$`, 'i'),
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'cardDraftUpdate',
+    writeBody: 'cardDraftUpdate',
+    responseAdapter: 'cardDraft',
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}/retry$`, 'i'),
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'cardDraftRetry',
+    responseAdapter: 'cardDraft',
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}/create-card$`, 'i'),
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'cardDraftCommit',
+    writeBody: 'cardDraftCommit',
+    responseAdapter: 'cardDraftCommit',
+  },
+  {
+    method: 'DELETE',
+    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}$`, 'i'),
+    featureFlag: 'studyApiCardDrafts',
+    queryParams: new Set(),
+    writeFeature: 'cardDraftDelete',
+  },
   {
     method: 'POST',
     pattern: /^\/cards$/,
@@ -486,6 +588,170 @@ function adaptCardCreateBody(value: unknown): Record<string, unknown> {
   };
 }
 
+function normalizedOptionalString(
+  value: unknown,
+  field: string,
+  maxLength: number
+): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== 'string' || value.length > maxLength) {
+    throw new AppError(
+      `${field} must be a string no longer than ${String(maxLength)} characters.`,
+      400
+    );
+  }
+
+  const normalized = value.trim();
+  return normalized === '' ? null : normalized;
+}
+
+function adaptCardDraftImagePlacement(value: unknown): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  if (!STUDY_CARD_IMAGE_PLACEMENTS.has(normalized)) {
+    throw new AppError('imagePlacement must be none, prompt, answer, or both.', 400);
+  }
+
+  return normalized;
+}
+
+function adaptCardDraftMediaRef(
+  value: unknown,
+  field: 'previewAudio' | 'previewImage',
+  mediaKind: 'audio' | 'image'
+): Record<string, unknown> | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  const media = requestRecord(value);
+  const allowedKeys = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
+  if (Object.keys(media).some((key) => !allowedKeys.has(key))) {
+    throw new AppError(`${field} contains an unsupported field.`, 400);
+  }
+
+  const filename = normalizedOptionalString(
+    media.filename,
+    `${field}.filename`,
+    MAX_STUDY_DRAFT_MEDIA_FILENAME_LENGTH
+  );
+  const id = normalizedOptionalString(media.id, `${field}.id`, MAX_STUDY_DRAFT_MEDIA_ID_LENGTH);
+  const url = normalizedOptionalString(media.url, `${field}.url`, MAX_STUDY_DRAFT_MEDIA_URL_LENGTH);
+  const source = typeof media.source === 'string' ? media.source.trim().toLowerCase() : '';
+  if (!filename) {
+    throw new AppError(`${field}.filename is required.`, 400);
+  }
+  if (media.mediaKind !== mediaKind) {
+    throw new AppError(`${field}.mediaKind must be ${mediaKind}.`, 400);
+  }
+  if (!STUDY_CARD_DRAFT_MEDIA_SOURCES.has(source)) {
+    throw new AppError(`${field}.source is not supported.`, 400);
+  }
+
+  return {
+    ...(id === undefined || id === null ? {} : { id }),
+    filename,
+    ...(url === undefined ? {} : { url }),
+    mediaKind,
+    source,
+  };
+}
+
+function adaptCardDraftCreateBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  const payloads = adaptStudyCardPayloads(body);
+  const creationKind =
+    typeof body.creationKind === 'string' ? body.creationKind.trim().toLowerCase() : '';
+  const cardType = typeof body.cardType === 'string' ? body.cardType.trim().toLowerCase() : '';
+  if (!STUDY_CARD_CREATION_KINDS.has(creationKind as StudyCardCreationKind)) {
+    throw new AppError('creationKind is not supported.', 400);
+  }
+  if (!STUDY_CARD_TYPES.has(cardType)) {
+    throw new AppError('cardType must be recognition, production, or cloze.', 400);
+  }
+  if (cardTypeForStudyCardCreationKind(creationKind as StudyCardCreationKind) !== cardType) {
+    throw new AppError('cardType must match creationKind.', 400);
+  }
+
+  const imagePlacement = adaptCardDraftImagePlacement(body.imagePlacement);
+  const imagePrompt = normalizedOptionalString(
+    body.imagePrompt,
+    'imagePrompt',
+    MAX_STUDY_DRAFT_IMAGE_PROMPT_LENGTH
+  );
+
+  return {
+    creationKind,
+    cardType,
+    ...payloads,
+    ...(imagePlacement === undefined ? {} : { imagePlacement }),
+    ...(imagePrompt === undefined ? {} : { imagePrompt }),
+  };
+}
+
+function adaptCardDraftUpdateBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  const hasPrompt = Object.hasOwn(body, 'prompt');
+  const hasAnswer = Object.hasOwn(body, 'answer');
+  if (hasPrompt !== hasAnswer) {
+    throw new AppError('prompt and answer payloads are required together.', 400);
+  }
+
+  const payloads = hasPrompt ? adaptStudyCardPayloads(body) : undefined;
+  const imagePlacement = adaptCardDraftImagePlacement(body.imagePlacement);
+  const imagePrompt = normalizedOptionalString(
+    body.imagePrompt,
+    'imagePrompt',
+    MAX_STUDY_DRAFT_IMAGE_PROMPT_LENGTH
+  );
+  const previewAudio = adaptCardDraftMediaRef(body.previewAudio, 'previewAudio', 'audio');
+  const previewImage = adaptCardDraftMediaRef(body.previewImage, 'previewImage', 'image');
+  let previewAudioRole: string | null | undefined = body.previewAudioRole as
+    | string
+    | null
+    | undefined;
+  if (previewAudioRole !== undefined && previewAudioRole !== null) {
+    previewAudioRole =
+      typeof previewAudioRole === 'string' ? previewAudioRole.trim().toLowerCase() : '';
+    if (!STUDY_CARD_DRAFT_AUDIO_ROLES.has(previewAudioRole)) {
+      throw new AppError('previewAudioRole must be prompt or answer.', 400);
+    }
+  }
+  if (previewAudioRole !== undefined && previewAudioRole !== null && previewAudio === null) {
+    throw new AppError('previewAudioRole requires previewAudio.', 400);
+  }
+
+  return {
+    ...(payloads ?? {}),
+    ...(imagePlacement === undefined ? {} : { imagePlacement }),
+    ...(imagePrompt === undefined ? {} : { imagePrompt }),
+    ...(previewAudio === undefined ? {} : { previewAudio }),
+    ...(previewAudioRole === undefined ? {} : { previewAudioRole }),
+    ...(previewImage === undefined ? {} : { previewImage }),
+  };
+}
+
+function adaptCardDraftCommitBody(value: unknown): { id: string } {
+  const id = requestRecord(value).id;
+  if (typeof id !== 'string' || !ULID_PATTERN.test(id.trim())) {
+    throw new AppError('id must be a valid ULID.', 400);
+  }
+
+  return { id: id.trim().toUpperCase() };
+}
+
 function adaptCardUpdateBody(value: unknown): Record<string, unknown> {
   return adaptStudyCardPayloads(value);
 }
@@ -737,6 +1003,15 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   if (route.writeBody === 'cardAction') {
     return adaptCardActionBody(value);
   }
+  if (route.writeBody === 'cardDraftCreate') {
+    return adaptCardDraftCreateBody(value);
+  }
+  if (route.writeBody === 'cardDraftUpdate') {
+    return adaptCardDraftUpdateBody(value);
+  }
+  if (route.writeBody === 'cardDraftCommit') {
+    return adaptCardDraftCommitBody(value);
+  }
   if (route.writeBody === 'settings') {
     return adaptSettingsWriteBody(value);
   }
@@ -803,6 +1078,16 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsCardDeleteRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardAction') {
     learningOsCardActionRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardDraftCreate') {
+    learningOsCardDraftCreateRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardDraftUpdate') {
+    learningOsCardDraftUpdateRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardDraftRetry') {
+    learningOsCardDraftRetryRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardDraftCommit') {
+    learningOsCardDraftCommitRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardDraftDelete') {
+    learningOsCardDraftDeleteRateLimit(req, res, next);
   } else {
     learningOsStudyReadRateLimit(req, res, next);
   }
@@ -921,10 +1206,152 @@ async function fetchLearningOsStudyImportUpload(
   }
 }
 
-function adaptStudyRouteResponse(route: StudyProxyRoute, value: unknown): unknown {
+function adaptStudyRouteResponse(
+  route: StudyProxyRoute,
+  value: unknown,
+  pathname: string
+): unknown {
+  if (route.responseAdapter === 'cardDraft') {
+    assertCardDraftResponse(value);
+    return value;
+  }
+  if (route.responseAdapter === 'cardDraftList') {
+    const response = upstreamResponseRecord(value, 'card draft list');
+    if (
+      !Array.isArray(response.drafts) ||
+      !response.drafts.every((draft) => {
+        try {
+          assertCardDraftResponse(draft);
+          return true;
+        } catch {
+          return false;
+        }
+      }) ||
+      (response.total !== null &&
+        (typeof response.total !== 'number' ||
+          !Number.isInteger(response.total) ||
+          response.total < 0)) ||
+      typeof response.limit !== 'number' ||
+      !Number.isInteger(response.limit) ||
+      response.limit < 1 ||
+      response.limit > 2000 ||
+      (response.nextCursor !== null && typeof response.nextCursor !== 'string')
+    ) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid card draft list response.',
+        502
+      );
+    }
+
+    return value;
+  }
+  if (route.responseAdapter === 'cardDraftCommit') {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid card draft commit response.',
+        502
+      );
+    }
+    const card = value as Record<string, unknown>;
+    if (
+      typeof card.id !== 'string' ||
+      !ULID_PATTERN.test(card.id) ||
+      typeof card.cardType !== 'string' ||
+      !STUDY_CARD_TYPES.has(card.cardType)
+    ) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid card draft commit response.',
+        502
+      );
+    }
+    const match = pathname.match(new RegExp(`^/card-drafts/(${ULID_SEGMENT})/create-card$`, 'i'));
+    if (!match?.[1]) {
+      throw new AppError(
+        'Learning OS Study API returned an invalid card draft commit response.',
+        502
+      );
+    }
+
+    return { card, draftId: match[1].toUpperCase() };
+  }
+
   return route.responseFeature
     ? adaptLearningOsStudyReadResponse(route.responseFeature, value)
     : value;
+}
+
+function upstreamResponseRecord(value: unknown, feature: string): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new AppError(`Learning OS Study API returned an invalid ${feature} response.`, 502);
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function validCardDraftMediaRef(value: unknown, mediaKind: 'audio' | 'image'): boolean {
+  if (value === null) {
+    return true;
+  }
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const media = value as Record<string, unknown>;
+  return (
+    typeof media.filename === 'string' &&
+    media.filename.length > 0 &&
+    media.mediaKind === mediaKind &&
+    typeof media.source === 'string' &&
+    STUDY_CARD_DRAFT_MEDIA_SOURCES.has(media.source) &&
+    (media.id === undefined || media.id === null || typeof media.id === 'string') &&
+    (media.url === undefined || media.url === null || typeof media.url === 'string')
+  );
+}
+
+function validNullableString(value: unknown): boolean {
+  return value === null || typeof value === 'string';
+}
+
+function validTimestamp(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    STRICT_ISO_DATETIME_PATTERN.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  );
+}
+
+function assertCardDraftResponse(value: unknown): void {
+  const draft = upstreamResponseRecord(value, 'card draft');
+  const creationKind = typeof draft.creationKind === 'string' ? draft.creationKind : '';
+  const expectedCardType = STUDY_CARD_CREATION_KINDS.has(creationKind as StudyCardCreationKind)
+    ? cardTypeForStudyCardCreationKind(creationKind as StudyCardCreationKind)
+    : null;
+  if (
+    typeof draft.id !== 'string' ||
+    !ULID_PATTERN.test(draft.id) ||
+    typeof draft.status !== 'string' ||
+    !['generating', 'ready', 'error'].includes(draft.status) ||
+    expectedCardType === null ||
+    draft.cardType !== expectedCardType ||
+    typeof draft.prompt !== 'object' ||
+    draft.prompt === null ||
+    Array.isArray(draft.prompt) ||
+    typeof draft.answer !== 'object' ||
+    draft.answer === null ||
+    Array.isArray(draft.answer) ||
+    typeof draft.imagePlacement !== 'string' ||
+    !STUDY_CARD_IMAGE_PLACEMENTS.has(draft.imagePlacement) ||
+    !validNullableString(draft.imagePrompt) ||
+    !validCardDraftMediaRef(draft.previewAudio, 'audio') ||
+    (draft.previewAudioRole !== null &&
+      (typeof draft.previewAudioRole !== 'string' ||
+        !STUDY_CARD_DRAFT_AUDIO_ROLES.has(draft.previewAudioRole))) ||
+    !validCardDraftMediaRef(draft.previewImage, 'image') ||
+    !validNullableString(draft.errorMessage) ||
+    !validTimestamp(draft.createdAt) ||
+    !validTimestamp(draft.updatedAt)
+  ) {
+    throw new AppError('Learning OS Study API returned an invalid card draft response.', 502);
+  }
 }
 
 function extractNewQueueValidationMessage(responseBody: string): string | null {
@@ -1022,7 +1449,9 @@ router.all(
         throw new AppError('Learning OS Study API returned an invalid JSON response.', 502);
       }
 
-      res.status(upstreamResponse.status).json(adaptStudyRouteResponse(route, responseJson));
+      res
+        .status(upstreamResponse.status)
+        .json(adaptStudyRouteResponse(route, responseJson, req.path));
     } catch (error) {
       next(error);
     }

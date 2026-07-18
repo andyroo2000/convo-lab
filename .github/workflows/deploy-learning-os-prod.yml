@@ -61,6 +61,11 @@ on:
         required: true
         default: false
         type: boolean
+      enable_card_drafts:
+        description: 'Desired state for Learning OS manual card draft lifecycle routes'
+        required: true
+        default: false
+        type: boolean
       enable_imports:
         description: 'Desired state for Learning OS import lifecycle routes'
         required: true
@@ -99,6 +104,7 @@ jobs:
           ENABLE_NEW_QUEUE_WRITE: ${{ inputs.enable_new_queue_write }}
           ENABLE_REVIEW: ${{ inputs.enable_review }}
           ENABLE_CARD_WRITES: ${{ inputs.enable_card_writes }}
+          ENABLE_CARD_DRAFTS: ${{ inputs.enable_card_drafts }}
           ENABLE_IMPORTS: ${{ inputs.enable_imports }}
         run: |
           if ! [[ "$IMAGE_TAG" =~ ^main-[0-9a-f]{40}$ ]]; then
@@ -128,6 +134,7 @@ jobs:
           validate_boolean_input enable_new_queue_write "$ENABLE_NEW_QUEUE_WRITE"
           validate_boolean_input enable_review "$ENABLE_REVIEW"
           validate_boolean_input enable_card_writes "$ENABLE_CARD_WRITES"
+          validate_boolean_input enable_card_drafts "$ENABLE_CARD_DRAFTS"
           validate_boolean_input enable_imports "$ENABLE_IMPORTS"
 
           if [ "$ENABLE_SETTINGS_WRITE" = true ] && [ "$ENABLE_SETTINGS" != true ]; then
@@ -159,6 +166,7 @@ jobs:
           ENABLE_NEW_QUEUE_WRITE: ${{ inputs.enable_new_queue_write }}
           ENABLE_REVIEW: ${{ inputs.enable_review }}
           ENABLE_CARD_WRITES: ${{ inputs.enable_card_writes }}
+          ENABLE_CARD_DRAFTS: ${{ inputs.enable_card_drafts }}
           ENABLE_IMPORTS: ${{ inputs.enable_imports }}
           DROPLET_USER: ${{ secrets.DROPLET_USER }}
           DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
@@ -167,11 +175,11 @@ jobs:
           DEPLOY_GITHUB_ACTOR: ${{ github.actor }}
         run: |
           printf -v REMOTE_ENV \
-            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_BROWSER_DETAIL=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q ENABLE_REVIEW=%q ENABLE_CARD_WRITES=%q ENABLE_IMPORTS=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q' \
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_BROWSER_DETAIL=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q ENABLE_REVIEW=%q ENABLE_CARD_WRITES=%q ENABLE_CARD_DRAFTS=%q ENABLE_IMPORTS=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q' \
             "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$ENABLE_SETTINGS" \
             "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_BROWSER_DETAIL" "$ENABLE_NEW_QUEUE" \
             "$ENABLE_SETTINGS_WRITE" "$ENABLE_NEW_QUEUE_WRITE" "$ENABLE_REVIEW" \
-            "$ENABLE_CARD_WRITES" "$ENABLE_IMPORTS" \
+            "$ENABLE_CARD_WRITES" "$ENABLE_CARD_DRAFTS" "$ENABLE_IMPORTS" \
             "$DEPLOY_GH_PAT" "$DEPLOY_GITHUB_TOKEN" "$DEPLOY_GITHUB_ACTOR"
 
           deployment_log="$(mktemp)"
@@ -750,9 +758,9 @@ jobs:
             flag_state="$(docker exec convolab-postgres psql \
               --username="$postgres_user" --dbname="$postgres_db" \
               --tuples-only --no-align --field-separator='|' \
-              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiBrowserDetail", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite", "studyApiReview", "studyApiCardWrites" FROM "feature_flags" LIMIT 1')"
-            IFS='|' read -r previous_parent previous_settings previous_overview previous_browser previous_browser_detail previous_new_queue previous_imports previous_settings_write previous_new_queue_write previous_review previous_card_writes <<< "$flag_state"
-            if [ -z "$previous_card_writes" ]; then
+              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiBrowserDetail", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite", "studyApiReview", "studyApiCardWrites", "studyApiCardDrafts" FROM "feature_flags" LIMIT 1')"
+            IFS='|' read -r previous_parent previous_settings previous_overview previous_browser previous_browser_detail previous_new_queue previous_imports previous_settings_write previous_new_queue_write previous_review previous_card_writes previous_card_drafts <<< "$flag_state"
+            if [ -z "$previous_card_drafts" ]; then
               echo "Unable to capture the existing Study API feature flags."
               exit 1
             fi
@@ -776,6 +784,7 @@ jobs:
             previous_new_queue_write_sql="$(sql_bool "$previous_new_queue_write")"
             previous_review_sql="$(sql_bool "$previous_review")"
             previous_card_writes_sql="$(sql_bool "$previous_card_writes")"
+            previous_card_drafts_sql="$(sql_bool "$previous_card_drafts")"
 
             rollback_study_flags() {
               docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
@@ -792,14 +801,23 @@ jobs:
                       \"studyApiNewQueueWrite\" = $previous_new_queue_write_sql,
                       \"studyApiReview\" = $previous_review_sql,
                       \"studyApiCardWrites\" = $previous_card_writes_sql,
+                      \"studyApiCardDrafts\" = $previous_card_drafts_sql,
                       \"updatedAt\" = NOW();
                 " || true
               echo "Learning OS Study API flags were rolled back."
             }
 
             verification_pending=true
+            card_draft_smoke_id=
 
             cleanup_deployment_failure() {
+              if [ -n "${card_draft_smoke_id:-}" ] \
+                && declare -F mutate_proxy_route > /dev/null; then
+                mutate_proxy_route \
+                  DELETE \
+                  "/api/learning-os/study/card-drafts/$card_draft_smoke_id" \
+                  '{}' > /dev/null || true
+              fi
               cleanup_deployment_resources
               if [ "${verification_pending:-false}" = true ]; then
                 rollback_study_flags
@@ -812,7 +830,8 @@ jobs:
             if [ "$ENABLE_SETTINGS" = true ] || [ "$ENABLE_OVERVIEW" = true ] \
               || [ "$ENABLE_BROWSER" = true ] || [ "$ENABLE_BROWSER_DETAIL" = true ] \
               || [ "$ENABLE_NEW_QUEUE" = true ] || [ "$ENABLE_REVIEW" = true ] \
-              || [ "$ENABLE_CARD_WRITES" = true ] || [ "$ENABLE_IMPORTS" = true ]; then
+              || [ "$ENABLE_CARD_WRITES" = true ] || [ "$ENABLE_CARD_DRAFTS" = true ] \
+              || [ "$ENABLE_IMPORTS" = true ]; then
               desired_parent=true
             fi
 
@@ -826,6 +845,7 @@ jobs:
             enable_new_queue_write_sql="$(sql_bool "$ENABLE_NEW_QUEUE_WRITE")"
             enable_review_sql="$(sql_bool "$ENABLE_REVIEW")"
             enable_card_writes_sql="$(sql_bool "$ENABLE_CARD_WRITES")"
+            enable_card_drafts_sql="$(sql_bool "$ENABLE_CARD_DRAFTS")"
             enable_imports_sql="$(sql_bool "$ENABLE_IMPORTS")"
 
             docker exec convolab-postgres psql --username="$postgres_user" --dbname="$postgres_db" \
@@ -842,16 +862,17 @@ jobs:
                     \"studyApiNewQueueWrite\" = $enable_new_queue_write_sql,
                     \"studyApiReview\" = $enable_review_sql,
                     \"studyApiCardWrites\" = $enable_card_writes_sql,
+                    \"studyApiCardDrafts\" = $enable_card_drafts_sql,
                     \"updatedAt\" = NOW();
               "
 
-            expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql"
+            expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql|$enable_card_drafts_sql"
             expected_flag_state="${expected_flag_state//true/t}"
             expected_flag_state="${expected_flag_state//false/f}"
             flag_state="$(docker exec convolab-postgres psql \
               --username="$postgres_user" --dbname="$postgres_db" \
               --tuples-only --no-align --field-separator='|' \
-              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiBrowserDetail", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite", "studyApiReview", "studyApiCardWrites" FROM "feature_flags" LIMIT 1')"
+              --command='SELECT "studyApiEnabled", "studyApiSettings", "studyApiOverview", "studyApiBrowser", "studyApiBrowserDetail", "studyApiNewQueue", "studyApiImports", "studyApiSettingsWrite", "studyApiNewQueueWrite", "studyApiReview", "studyApiCardWrites", "studyApiCardDrafts" FROM "feature_flags" LIMIT 1')"
             if [ "$flag_state" != "$expected_flag_state" ]; then
               echo "Unexpected Study API feature flag state: $flag_state"
               exit 1
@@ -1152,7 +1173,8 @@ jobs:
               fi
 
               if [ "$ENABLE_SETTINGS_WRITE" = true ] || [ "$ENABLE_NEW_QUEUE_WRITE" = true ] \
-                || [ "$ENABLE_REVIEW" = true ] || [ "$ENABLE_CARD_WRITES" = true ]; then
+                || [ "$ENABLE_REVIEW" = true ] || [ "$ENABLE_CARD_WRITES" = true ] \
+                || [ "$ENABLE_CARD_DRAFTS" = true ]; then
                 csrf_cookie_jar="$(mktemp)"
                 curl --fail --silent --show-error \
                   --cookie "token=$auth_token" \
@@ -1203,6 +1225,56 @@ jobs:
                 assert_queue_order_equal "$queue_before" "$queue_after"
                 queue_stable="$(mutate_proxy_route POST '/api/learning-os/study/new-queue/reorder' "$queue_body")"
                 assert_json_equal 'New Queue' "$queue_after" "$queue_stable"
+              fi
+
+              if [ "$ENABLE_CARD_DRAFTS" = true ]; then
+                draft_body='{"creationKind":"text-recognition","cardType":"recognition","prompt":{"cueText":"Learning OS draft smoke"},"answer":{"meaning":"temporary deployment check"},"imagePlacement":"none","imagePrompt":null}'
+                draft_response="$(mutate_proxy_route POST '/api/learning-os/study/card-drafts' "$draft_body")"
+                draft_id="$(docker exec -e DRAFT_RESPONSE="$draft_response" \
+                  "convolab-server-$active_color" node --input-type=module --eval='
+                    const draft = JSON.parse(process.env.DRAFT_RESPONSE);
+                    if (typeof draft.id !== "string" || !/^[0-9A-HJKMNP-TV-Z]{26}$/i.test(draft.id)) {
+                      process.exit(1);
+                    }
+                    process.stdout.write(draft.id);
+                  ')"
+                test -n "$draft_id"
+                card_draft_smoke_id="$draft_id"
+
+                for attempt in {1..12}; do
+                  draft_list="$(fetch_read_route \
+                    'Card draft list' \
+                    '/api/learning-os/study/card-drafts?limit=200')"
+                  draft_status="$(docker exec \
+                    -e DRAFT_RESPONSE="$draft_list" \
+                    -e DRAFT_ID="$draft_id" \
+                    "convolab-server-$active_color" node --input-type=module --eval='
+                      const response = JSON.parse(process.env.DRAFT_RESPONSE);
+                      const draft = response.drafts?.find(({ id }) => id === process.env.DRAFT_ID);
+                      process.stdout.write(typeof draft?.status === "string" ? draft.status : "");
+                    ')"
+                  if [ "$draft_status" = ready ] || [ "$draft_status" = error ]; then
+                    break
+                  fi
+                  echo "Card draft processing attempt $attempt/12: ${draft_status:-missing}"
+                  sleep 2
+                done
+                if [ "$draft_status" != ready ] && [ "$draft_status" != error ]; then
+                  echo "Card draft did not reach an editable state."
+                  exit 1
+                fi
+
+                draft_update='{"prompt":{"cueText":"Learning OS draft smoke"},"answer":{"meaning":"updated temporary deployment check"},"imagePlacement":"none","imagePrompt":null,"previewAudio":null,"previewAudioRole":null,"previewImage":null}'
+                mutate_proxy_route \
+                  PATCH \
+                  "/api/learning-os/study/card-drafts/$draft_id" \
+                  "$draft_update" > /dev/null
+                mutate_proxy_route \
+                  DELETE \
+                  "/api/learning-os/study/card-drafts/$draft_id" \
+                  '{}' > /dev/null
+                card_draft_smoke_id=
+                echo "Study card draft lifecycle smoke check passed."
               fi
 
               if [ "$ENABLE_IMPORTS" = true ]; then

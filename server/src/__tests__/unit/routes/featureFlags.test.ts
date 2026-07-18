@@ -26,6 +26,7 @@ describe('Feature Flags Route Logic', () => {
         studyApiNewQueueWrite: false,
         studyApiReview: false,
         studyApiCardWrites: false,
+        studyApiCardDrafts: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -72,6 +73,7 @@ describe('Feature Flags Route Logic', () => {
             studyApiNewQueueWrite: false,
             studyApiReview: false,
             studyApiCardWrites: false,
+            studyApiCardDrafts: false,
           },
         });
       }
@@ -93,6 +95,7 @@ describe('Feature Flags Route Logic', () => {
           studyApiNewQueueWrite: false,
           studyApiReview: false,
           studyApiCardWrites: false,
+          studyApiCardDrafts: false,
         },
       });
       expect(flags.dialoguesEnabled).toBe(true);
@@ -158,6 +161,7 @@ describe('Feature Flags Route Logic', () => {
               studyApiNewQueueWrite: false,
               studyApiReview: false,
               studyApiCardWrites: false,
+              studyApiCardDrafts: false,
             },
           })
         ).rejects.toThrow('Unique constraint violation');
@@ -183,6 +187,7 @@ describe('Feature Flags Route Logic', () => {
         studyApiNewQueueWrite: false,
         studyApiReview: false,
         studyApiCardWrites: false,
+        studyApiCardDrafts: false,
       };
 
       expect(defaultFlags.dialoguesEnabled).toBe(true);
@@ -209,6 +214,7 @@ describe('Feature Flags Route Logic', () => {
         'studyApiNewQueueWrite',
         'studyApiReview',
         'studyApiCardWrites',
+        'studyApiCardDrafts',
       ];
 
       const flagKeys = Object.keys({
@@ -227,6 +233,7 @@ describe('Feature Flags Route Logic', () => {
         studyApiNewQueueWrite: false,
         studyApiReview: false,
         studyApiCardWrites: false,
+        studyApiCardDrafts: false,
       });
 
       expectedFlags.forEach((flag) => {

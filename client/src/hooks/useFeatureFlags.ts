@@ -19,6 +19,7 @@ export interface FeatureFlags {
   studyApiNewQueueWrite: boolean;
   studyApiReview: boolean;
   studyApiCardWrites: boolean;
+  studyApiCardDrafts: boolean;
   updatedAt: string;
 }
 

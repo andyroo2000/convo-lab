@@ -101,6 +101,7 @@ interface FeatureFlags {
   studyApiNewQueueWrite: boolean;
   studyApiReview: boolean;
   studyApiCardWrites: boolean;
+  studyApiCardDrafts: boolean;
   updatedAt: string;
 }
 
@@ -1533,6 +1534,11 @@ const AdminPage = () => {
                         'studyApiCardWrites',
                         'Study Card Writes',
                         'Create, edit, delete, and manage card state through Learning OS'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiCardDrafts',
+                        'Study Card Drafts',
+                        'Create, autosave, retry, commit, and delete manual drafts through Learning OS'
                       )}
                       {renderFeatureFlagToggle(
                         'studyApiImports',

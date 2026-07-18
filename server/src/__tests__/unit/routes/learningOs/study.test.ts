@@ -200,6 +200,29 @@ describe('Learning OS Study proxy routes', () => {
     createdAt: '2026-07-01T12:00:00.000000Z',
     updatedAt: '2026-07-16T12:00:00.000000Z',
   };
+  const compatibilityCardDraft = {
+    id: '01ARZ3NDEKTSV4RRFFQ69G5FAX',
+    status: 'ready',
+    creationKind: 'text-recognition',
+    cardType: 'recognition',
+    prompt: { cueText: '会社' },
+    answer: { meaning: 'company' },
+    imagePlacement: 'none',
+    imagePrompt: null,
+    previewAudio: null,
+    previewAudioRole: null,
+    previewImage: null,
+    variantGroupId: null,
+    variantSentenceId: null,
+    variantKind: null,
+    variantStage: null,
+    variantStatus: null,
+    variantUnlockedAt: null,
+    errorMessage: null,
+    committedCardId: null,
+    createdAt: '2026-07-18T12:00:00.000000Z',
+    updatedAt: '2026-07-18T12:00:00.000000Z',
+  };
 
   function createApp() {
     const app = express();
@@ -265,6 +288,7 @@ describe('Learning OS Study proxy routes', () => {
     studyApiNewQueueWrite: true,
     studyApiReview: true,
     studyApiCardWrites: true,
+    studyApiCardDrafts: true,
   };
 
   beforeEach(async () => {
@@ -389,6 +413,20 @@ describe('Learning OS Study proxy routes', () => {
       windowMs: 60 * 1000,
       onBackendError: 'fail-closed',
     });
+    for (const [key, max] of [
+      ['learning-os-card-draft-create-proxy', 60],
+      ['learning-os-card-draft-update-proxy', 120],
+      ['learning-os-card-draft-retry-proxy', 30],
+      ['learning-os-card-draft-commit-proxy', 60],
+      ['learning-os-card-draft-delete-proxy', 60],
+    ] as const) {
+      expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+        key,
+        max,
+        windowMs: 60 * 1000,
+        onBackendError: 'fail-closed',
+      });
+    }
   });
 
   it('proxies Browser detail through its independent flag without query parameters', async () => {
@@ -1026,6 +1064,236 @@ describe('Learning OS Study proxy routes', () => {
     expect(createResponse.status).toBe(403);
     expect(updateResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('proxies the complete durable card-draft lifecycle under one child flag', async () => {
+    const cardId = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              drafts: [compatibilityCardDraft],
+              total: 1,
+              limit: 200,
+              nextCursor: null,
+            }),
+            { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(compatibilityCardDraft), { status: 201 })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(compatibilityCardDraft), { status: 200 })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ ...compatibilityCardDraft, status: 'generating' }), {
+            status: 200,
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ ...compatibilityCard, id: cardId }), { status: 201 })
+        )
+        .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const draftPath = `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}`;
+
+    const listResponse = await request(app)
+      .get('/api/learning-os/study/card-drafts?limit=200')
+      .set('Cookie', authCookie());
+    const createResponse = await request(app)
+      .post('/api/learning-os/study/card-drafts')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        creationKind: 'TEXT-RECOGNITION',
+        cardType: 'RECOGNITION',
+        prompt: { cueText: '会社' },
+        answer: { meaning: 'company' },
+        imagePlacement: 'NONE',
+        imagePrompt: '  office building  ',
+      });
+    const updateResponse = await request(app)
+      .patch(draftPath)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        prompt: { cueText: '会社' },
+        answer: { meaning: 'business' },
+        previewAudio: {
+          id: 'audio-1',
+          filename: 'company.mp3',
+          url: null,
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'ANSWER',
+      });
+    const retryResponse = await request(app)
+      .post(`${draftPath}/retry`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({});
+    const commitResponse = await request(app)
+      .post(`${draftPath}/create-card`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ id: cardId.toLowerCase() });
+    const deleteResponse = await request(app)
+      .delete(draftPath)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
+
+    expect(listResponse.body.drafts).toEqual([compatibilityCardDraft]);
+    expect(createResponse.status).toBe(201);
+    expect(updateResponse.status).toBe(200);
+    expect(retryResponse.status).toBe(200);
+    expect(commitResponse.status).toBe(201);
+    expect(commitResponse.body).toEqual({
+      card: { ...compatibilityCard, id: cardId },
+      draftId: compatibilityCardDraft.id,
+    });
+    expect(deleteResponse.status).toBe(204);
+
+    const calls = vi.mocked(global.fetch).mock.calls as [URL, RequestInit][];
+    expect(calls.map(([url]) => url.toString())).toEqual([
+      'https://learning-os.example/api/study/card-drafts?limit=200',
+      'https://learning-os.example/api/study/card-drafts',
+      `https://learning-os.example/api/study/card-drafts/${compatibilityCardDraft.id}`,
+      `https://learning-os.example/api/study/card-drafts/${compatibilityCardDraft.id}/retry`,
+      `https://learning-os.example/api/study/card-drafts/${compatibilityCardDraft.id}/create-card`,
+      `https://learning-os.example/api/study/card-drafts/${compatibilityCardDraft.id}`,
+    ]);
+    expect(JSON.parse(String(calls[1]?.[1].body))).toEqual({
+      creationKind: 'text-recognition',
+      cardType: 'recognition',
+      prompt: { cueText: '会社' },
+      answer: { meaning: 'company' },
+      imagePlacement: 'none',
+      imagePrompt: 'office building',
+    });
+    expect(JSON.parse(String(calls[2]?.[1].body))).toEqual({
+      prompt: { cueText: '会社' },
+      answer: { meaning: 'business' },
+      previewAudio: {
+        id: 'audio-1',
+        filename: 'company.mp3',
+        url: null,
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+      previewAudioRole: 'answer',
+    });
+    expect(JSON.parse(String(calls[4]?.[1].body))).toEqual({ id: cardId });
+    expect(invokedRateLimitKeys).toEqual([
+      'learning-os-read-proxy',
+      'learning-os-card-draft-create-proxy',
+      'learning-os-card-draft-update-proxy',
+      'learning-os-card-draft-retry-proxy',
+      'learning-os-card-draft-commit-proxy',
+      'learning-os-card-draft-delete-proxy',
+    ]);
+  });
+
+  it.each([
+    [
+      '/api/learning-os/study/card-drafts',
+      { creationKind: 'text-recognition', cardType: 'cloze', prompt: {}, answer: {} },
+    ],
+    [
+      `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}`,
+      { prompt: {}, previewAudioRole: 'front' },
+    ],
+    [
+      `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/create-card`,
+      { id: 'not-a-ulid' },
+    ],
+  ])('rejects invalid card-draft writes before forwarding', async (path, body) => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    const method = path.endsWith(compatibilityCardDraft.id) ? 'patch' : 'post';
+
+    const response = await request(app)
+      [method](path)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps every card-draft route disabled under its child flag', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiCardDrafts: false,
+    });
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/card-drafts')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(403);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'list',
+      '/api/learning-os/study/card-drafts',
+      {
+        drafts: [{ ...compatibilityCardDraft, id: 'not-a-ulid' }],
+        total: 1,
+        limit: 25,
+        nextCursor: null,
+      },
+    ],
+    [
+      'commit',
+      `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/create-card`,
+      { ...compatibilityCard, id: 'not-a-ulid' },
+    ],
+  ])('rejects a malformed card-draft %s response', async (operation, path, upstreamBody) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(upstreamBody), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    let response;
+    if (operation === 'commit') {
+      const { cookies, token } = await csrfAuth(app);
+      response = await request(app)
+        .post(path)
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookies)
+        .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send({ id: '01ARZ3NDEKTSV4RRFFQ69G5FAV' });
+    } else {
+      response = await request(app).get(path).set('Cookie', authCookie());
+    }
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe(
+      `Learning OS Study API returned an invalid card draft ${operation} response.`
+    );
   });
 
   it('proxies the known-kanji response without changing its contract', async () => {

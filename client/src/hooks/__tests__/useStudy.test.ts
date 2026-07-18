@@ -6,8 +6,11 @@ import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
   cancelStudyImportUpload,
   commitStudyCardCandidates,
+  createCardFromStudyManualCardDraft,
   createStudyCard,
   createStudyCardId,
+  createStudyManualCardDraft,
+  deleteStudyManualCardDraft,
   deleteStudyCard,
   getCurrentStudyImport,
   getStudyNewCardQueue,
@@ -17,6 +20,7 @@ import {
   getStudyBrowserNoteDetail,
   getStudyImportStatus,
   getStudyImportUploadReadiness,
+  getStudyManualCardDrafts,
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyAnswerAudio,
@@ -25,8 +29,10 @@ import {
   performStudyCardAction,
   startStudySession,
   submitStudyReview,
+  retryStudyManualCardDraft,
   undoStudyReview,
   updateStudyCard,
+  updateStudyManualCardDraft,
   updateStudySettings,
   uploadStudyImport,
 } from '../useStudy';
@@ -54,6 +60,7 @@ describe('useStudy request helpers', () => {
     studyApiNewQueueWrite: false,
     studyApiReview: false,
     studyApiCardWrites: false,
+    studyApiCardDrafts: false,
     updatedAt: new Date('2026-07-14T00:00:00.000Z').toISOString(),
     ...overrides,
   });
@@ -398,6 +405,96 @@ describe('useStudy request helpers', () => {
       `${API_URL}/api/study/cards/card-1/actions`,
       `${API_URL}/api/study/cards/card-1`,
     ]);
+  });
+
+  it('routes the durable manual-card draft lifecycle together when enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardDrafts: true,
+    });
+    const draftId = '01ARZ3NDEKTSV4RRFFQ69G5FAX';
+    const cardId = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ drafts: [], total: 0, limit: 200, nextCursor: null }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: draftId }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: draftId }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: draftId, status: 'generating' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ card: { id: cardId }, draftId }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: async () => ({}),
+      } as Response);
+
+    const createPayload = {
+      creationKind: 'text-recognition' as const,
+      cardType: 'recognition' as const,
+      prompt: { cueText: '会社' },
+      answer: { meaning: 'company' },
+      imagePlacement: 'none' as const,
+    };
+    await getStudyManualCardDrafts({ limit: 200 }, flags);
+    await createStudyManualCardDraft(createPayload, flags);
+    await updateStudyManualCardDraft(
+      {
+        draftId,
+        values: {
+          prompt: createPayload.prompt,
+          answer: { meaning: 'business' },
+        },
+      },
+      flags
+    );
+    await retryStudyManualCardDraft(draftId, flags);
+    await createCardFromStudyManualCardDraft(draftId, cardId, flags);
+    await deleteStudyManualCardDraft(draftId, flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      `${API_URL}/api/learning-os/study/card-drafts?limit=200`,
+      `${API_URL}/api/learning-os/study/card-drafts`,
+      `${API_URL}/api/learning-os/study/card-drafts/${draftId}`,
+      `${API_URL}/api/learning-os/study/card-drafts/${draftId}/retry`,
+      `${API_URL}/api/learning-os/study/card-drafts/${draftId}/create-card`,
+      `${API_URL}/api/learning-os/study/card-drafts/${draftId}`,
+    ]);
+    expect(JSON.parse(String((fetchMock.mock.calls[4]?.[1] as RequestInit).body))).toEqual({
+      id: cardId,
+    });
+    expect((fetchMock.mock.calls[5]?.[1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('keeps manual-card drafts on Convo Lab until their child flag is enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardDrafts: false,
+    });
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ drafts: [], total: 0, limit: 200, nextCursor: null }),
+    } as Response);
+
+    await getStudyManualCardDrafts({ limit: 200 }, flags);
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/card-drafts?limit=200`,
+      expect.objectContaining({ credentials: 'include' })
+    );
   });
 
   it('passes browser sort params to the study API', async () => {
