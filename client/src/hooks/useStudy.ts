@@ -302,17 +302,22 @@ export async function reorderStudyNewCardQueue(cardIds: string[], flags?: Featur
   );
 }
 
-export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
+export async function prepareStudyAnswerAudio(
+  cardId: string,
+  flags?: FeatureFlags
+): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
     `/api/study/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`,
     {
       method: 'POST',
-    }
+    },
+    { feature: 'cardWrites', flags }
   );
 }
 
 export async function regenerateStudyAnswerAudio(
-  payload: RegenerateStudyAnswerAudioPayload
+  payload: RegenerateStudyAnswerAudioPayload,
+  flags?: FeatureFlags
 ): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
     `/api/study/cards/${encodeURIComponent(payload.cardId)}/regenerate-answer-audio`,
@@ -322,7 +327,8 @@ export async function regenerateStudyAnswerAudio(
         answerAudioVoiceId: payload.answerAudioVoiceId,
         answerAudioTextOverride: payload.answerAudioTextOverride,
       }),
-    }
+    },
+    { feature: 'cardWrites', flags }
   );
 }
 
@@ -1043,9 +1049,13 @@ export function useDeleteStudyCard() {
   });
 }
 
-export function useRegenerateStudyAnswerAudio() {
+export function useRegenerateStudyAnswerAudio(routingFlags?: FeatureFlags | null) {
+  const { flags: liveFlags } = useFeatureFlags();
+  const effectiveFlags = routingFlags === undefined ? liveFlags : (routingFlags ?? undefined);
+
   return useMutation({
-    mutationFn: regenerateStudyAnswerAudio,
+    mutationFn: (payload: RegenerateStudyAnswerAudioPayload) =>
+      regenerateStudyAnswerAudio(payload, effectiveFlags),
   });
 }
 

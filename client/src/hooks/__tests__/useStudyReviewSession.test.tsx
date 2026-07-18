@@ -17,6 +17,7 @@ const {
   warmAudioCacheMock,
   reviewFlagsState,
   reviewRoutingFlagsMock,
+  regenerateRoutingFlagsMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -34,6 +35,7 @@ const {
     isLoading: false,
   },
   reviewRoutingFlagsMock: vi.fn(),
+  regenerateRoutingFlagsMock: vi.fn(),
 }));
 
 const reviewFlags = { studyApiEnabled: true, studyApiReview: true };
@@ -60,11 +62,14 @@ vi.mock('../useStudy', () => ({
     isPending: false,
     error: null,
   }),
-  useRegenerateStudyAnswerAudio: () => ({
-    mutateAsync: regenerateStudyAnswerAudioMock,
-    isPending: false,
-    error: null,
-  }),
+  useRegenerateStudyAnswerAudio: (routingFlags: unknown) => {
+    regenerateRoutingFlagsMock(routingFlags);
+    return {
+      mutateAsync: regenerateStudyAnswerAudioMock,
+      isPending: false,
+      error: null,
+    };
+  },
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   undoStudyReview: undoStudyReviewMock,
@@ -170,6 +175,7 @@ describe('useStudyReviewSession', () => {
     regenerateStudyAnswerAudioMock.mockReset();
     warmAudioCacheMock.mockReset();
     reviewRoutingFlagsMock.mockReset();
+    regenerateRoutingFlagsMock.mockReset();
     reviewFlagsState.current = reviewFlags;
     reviewFlagsState.isLoading = false;
     warmAudioCacheMock.mockResolvedValue(undefined);
@@ -362,8 +368,12 @@ describe('useStudyReviewSession', () => {
 
     expect(startStudySessionMock).toHaveBeenCalledWith(reviewFlags);
     expect(reviewRoutingFlagsMock).toHaveBeenLastCalledWith(reviewFlags);
+    expect(regenerateRoutingFlagsMock).toHaveBeenLastCalledWith(reviewFlags);
 
     act(() => result.current.revealCurrentCard());
+    await waitFor(() =>
+      expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1', reviewFlags)
+    );
     await act(async () => result.current.handleGrade('good'));
     await act(async () => result.current.handleUndo());
 
@@ -389,8 +399,12 @@ describe('useStudyReviewSession', () => {
 
     expect(startStudySessionMock).toHaveBeenCalledWith(undefined);
     expect(reviewRoutingFlagsMock).toHaveBeenLastCalledWith(null);
+    expect(regenerateRoutingFlagsMock).toHaveBeenLastCalledWith(null);
 
     act(() => result.current.revealCurrentCard());
+    await waitFor(() =>
+      expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1', undefined)
+    );
     await act(async () => result.current.handleGrade('good'));
     await act(async () => result.current.handleUndo());
 

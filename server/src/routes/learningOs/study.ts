@@ -41,11 +41,12 @@ import {
 
 const router = Router();
 const LEARNING_OS_FETCH_TIMEOUT_MS = 10_000;
-const LEARNING_OS_PREVIEW_MEDIA_TIMEOUT_MS = 120_000;
+const LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS = 120_000;
 const LEARNING_OS_IMPORT_UPLOAD_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_STUDY_IMPORT_UPLOAD_BYTES = 2_147_483_648;
 const MAX_NEW_QUEUE_REORDER_SIZE = 500;
 const MAX_UPSTREAM_VALIDATION_MESSAGE_LENGTH = 500;
+const MAX_STUDY_ANSWER_AUDIO_TEXT_LENGTH = 15_000;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
 const MAX_STUDY_DRAFT_IMAGE_PROMPT_LENGTH = 1000;
@@ -76,6 +77,8 @@ const STUDY_CARD_DRAFT_MEDIA_SOURCES = new Set([
   'imported_image',
   'imported_other',
 ]);
+const STUDY_ANSWER_AUDIO_VOICE_PATTERN =
+  /^(?:fishaudio:[a-f0-9]{32}|ja-JP-(?:Neural2|Wavenet)-[A-D])$/i;
 
 const learningOsStudyIpRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
@@ -147,6 +150,12 @@ const learningOsCardActionRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsCardAnswerAudioRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-answer-audio-proxy',
+  max: 30,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 const learningOsCardDraftCreateRateLimit = rateLimitStudyRoute({
   key: 'learning-os-card-draft-create-proxy',
   max: 60,
@@ -215,6 +224,7 @@ type StudyWriteFeature =
   | 'cardUpdate'
   | 'cardDelete'
   | 'cardAction'
+  | 'cardAnswerAudio'
   | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
@@ -227,6 +237,7 @@ type StudyWriteBody =
   | 'cardCreate'
   | 'cardUpdate'
   | 'cardAction'
+  | 'answerAudioRegenerate'
   | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
@@ -325,7 +336,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     writeBody: 'empty',
     responseAdapter: 'cardDraftPreviewAudio',
     normalizeUlidPath: true,
-    timeoutMs: LEARNING_OS_PREVIEW_MEDIA_TIMEOUT_MS,
+    timeoutMs: LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS,
   },
   {
     method: 'POST',
@@ -336,7 +347,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     writeBody: 'empty',
     responseAdapter: 'cardDraftPreviewImage',
     normalizeUlidPath: true,
-    timeoutMs: LEARNING_OS_PREVIEW_MEDIA_TIMEOUT_MS,
+    timeoutMs: LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS,
   },
   {
     method: 'POST',
@@ -387,6 +398,26 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     writeFeature: 'cardAction',
     writeBody: 'cardAction',
     responseAdapter: 'cardAction',
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/prepare-answer-audio$`, 'i'),
+    featureFlag: 'studyApiCardWrites',
+    queryParams: new Set(),
+    writeFeature: 'cardAnswerAudio',
+    writeBody: 'empty',
+    responseAdapter: 'card',
+    timeoutMs: LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS,
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/regenerate-answer-audio$`, 'i'),
+    featureFlag: 'studyApiCardWrites',
+    queryParams: new Set(),
+    writeFeature: 'cardAnswerAudio',
+    writeBody: 'answerAudioRegenerate',
+    responseAdapter: 'card',
+    timeoutMs: LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS,
   },
   {
     method: 'POST',
@@ -955,6 +986,43 @@ function adaptCardActionBody(value: unknown): Record<string, unknown> {
   };
 }
 
+function adaptAnswerAudioRegenerateBody(value: unknown): Record<string, unknown> {
+  const body = requestRecord(value);
+  const allowedKeys = new Set(['answerAudioVoiceId', 'answerAudioTextOverride']);
+  if (Object.keys(body).some((key) => !allowedKeys.has(key))) {
+    throw new AppError('Answer audio regeneration contains an unsupported field.', 400);
+  }
+
+  const voiceId = body.answerAudioVoiceId;
+  if (
+    voiceId !== undefined &&
+    voiceId !== null &&
+    (typeof voiceId !== 'string' || !STUDY_ANSWER_AUDIO_VOICE_PATTERN.test(voiceId.trim()))
+  ) {
+    throw new AppError('answerAudioVoiceId is not supported.', 400);
+  }
+
+  const textOverride = body.answerAudioTextOverride;
+  if (
+    textOverride !== undefined &&
+    textOverride !== null &&
+    (typeof textOverride !== 'string' ||
+      Array.from(textOverride).length > MAX_STUDY_ANSWER_AUDIO_TEXT_LENGTH)
+  ) {
+    throw new AppError(
+      `answerAudioTextOverride must be a string no longer than ${String(MAX_STUDY_ANSWER_AUDIO_TEXT_LENGTH)} characters.`,
+      400
+    );
+  }
+
+  return {
+    ...(voiceId === undefined
+      ? {}
+      : { answerAudioVoiceId: typeof voiceId === 'string' ? voiceId.trim() : null }),
+    ...(textOverride === undefined ? {} : { answerAudioTextOverride: textOverride }),
+  };
+}
+
 function adaptSettingsWriteBody(value: unknown): { new_cards_per_day: number } {
   const body = requestRecord(value);
   const newCardsPerDay = body.newCardsPerDay;
@@ -1151,6 +1219,9 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   if (route.writeBody === 'cardAction') {
     return adaptCardActionBody(value);
   }
+  if (route.writeBody === 'answerAudioRegenerate') {
+    return adaptAnswerAudioRegenerateBody(value);
+  }
   if (route.writeBody === 'vocabBundleDraftCreate') {
     return adaptVocabBundleDraftCreateBody(value);
   }
@@ -1231,6 +1302,8 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsCardDeleteRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardAction') {
     learningOsCardActionRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardAnswerAudio') {
+    learningOsCardAnswerAudioRateLimit(req, res, next);
   } else if (route.writeFeature === 'vocabBundleDraftCreate') {
     learningOsVocabBundleDraftCreateRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftCreate') {

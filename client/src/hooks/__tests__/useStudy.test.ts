@@ -31,6 +31,7 @@ import {
   reorderStudyNewCardQueue,
   resolveStudyCardPitchAccent,
   performStudyCardAction,
+  prepareStudyAnswerAudio,
   startStudySession,
   submitStudyReview,
   retryStudyManualCardDraft,
@@ -267,6 +268,54 @@ describe('useStudy request helpers', () => {
       answerAudioVoiceId: 'ja-JP-Neural2-C',
       answerAudioTextOverride: 'かいしゃ',
     });
+  });
+
+  it('routes answer-audio preparation and regeneration together when card writes are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: true,
+    });
+
+    await prepareStudyAnswerAudio('card-1', flags);
+    await regenerateStudyAnswerAudio(
+      {
+        cardId: 'card-1',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
+      },
+      flags
+    );
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      `${API_URL}/api/learning-os/study/cards/card-1/prepare-answer-audio`,
+      `${API_URL}/api/learning-os/study/cards/card-1/regenerate-answer-audio`,
+    ]);
+    expect((fetchMock.mock.calls[0]?.[1] as RequestInit).method).toBe('POST');
+    expect(JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body))).toEqual({
+      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioTextOverride: 'かいしゃ',
+    });
+    fetchMock.mock.calls.forEach(([, requestInit]) => {
+      const headers = new Headers((requestInit as RequestInit).headers);
+      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    });
+  });
+
+  it('keeps answer-audio operations on Convo Lab until card writes are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: false,
+    });
+
+    await prepareStudyAnswerAudio('card-1', flags);
+    await regenerateStudyAnswerAudio({ cardId: 'card-1' }, flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      `${API_URL}/api/study/cards/card-1/prepare-answer-audio`,
+      `${API_URL}/api/study/cards/card-1/regenerate-answer-audio`,
+    ]);
   });
 
   it('requests study-card pitch accent resolution with CSRF headers', async () => {

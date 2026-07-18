@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import { prepareStudyAnswerAudio } from './useStudy';
+import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import { warmAudioCache } from '../lib/audioCache';
 
@@ -16,15 +17,19 @@ function delay(ms: number) {
 
 interface UseStudyAnswerAudioPrepOptions {
   enabled: boolean;
+  routingFlags?: FeatureFlags | null;
   mergeCardIntoSession: (updatedCard: StudyCardSummary) => void;
   onError: (message: string) => void;
 }
 
 export default function useStudyAnswerAudioPrep({
   enabled,
+  routingFlags,
   mergeCardIntoSession,
   onError,
 }: UseStudyAnswerAudioPrepOptions) {
+  const { flags: liveFlags } = useFeatureFlags();
+  const effectiveFlags = routingFlags === undefined ? liveFlags : (routingFlags ?? undefined);
   const inFlightAudioPrep = useRef<Map<string, Promise<StudyCardSummary>>>(new Map());
   const isMountedRef = useRef(true);
   const enabledRef = useRef(enabled);
@@ -51,7 +56,7 @@ export default function useStudyAnswerAudioPrep({
 
       const request = (async () => {
         const attemptPrepare = async (attempt: number): Promise<StudyCardSummary> => {
-          const updatedCard = await prepareStudyAnswerAudio(cardId);
+          const updatedCard = await prepareStudyAnswerAudio(cardId, effectiveFlags);
 
           if (isMountedRef.current && enabledRef.current) {
             mergeCardIntoSession(updatedCard);
@@ -89,6 +94,6 @@ export default function useStudyAnswerAudioPrep({
       inFlightAudioPrep.current.set(cardId, request);
       return request;
     },
-    [mergeCardIntoSession, onError]
+    [effectiveFlags, mergeCardIntoSession, onError]
   );
 }
