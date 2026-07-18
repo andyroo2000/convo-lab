@@ -332,6 +332,12 @@ test('the lifecycle smoke script remains valid Bash', async () => {
     'delete_learning_os_smoke_user',
     'delete_convolab_smoke_user',
     'restore_proxy_identity',
+    'wait_for_public_csrf',
+    'for attempt in {1..12}; do',
+    'Public ConvoLab CSRF readiness attempt $attempt/12 failed; retrying.',
+    '--cookie "token=$auth_token"',
+    '--cookie-jar "$CSRF_COOKIE_JAR"',
+    "'https://convo-lab.com/api/auth/csrf'",
     'docker exec -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api',
     '/api/learning-os/study/imports/readiness',
     "/api/learning-os/study/imports'",
@@ -346,4 +352,17 @@ test('the lifecycle smoke script remains valid Bash', async () => {
   ]) {
     assert.ok(script.includes(requiredContract), `Missing lifecycle contract: ${requiredContract}`);
   }
+
+  const temporaryServerRestart = script.indexOf(
+    '$COMPOSE up -d --no-deps --force-recreate "server-$ACTIVE_COLOR"',
+    script.indexOf('upsert_env LEARNING_OS_PROXY_USER_EMAIL "$SMOKE_EMAIL"')
+  );
+  const containerHealthy = script.indexOf('wait_for_health "$SERVER_CONTAINER"', temporaryServerRestart);
+  const publicCsrfReady = script.indexOf('wait_for_public_csrf', containerHealthy);
+  const csrfCookieRead = script.indexOf('csrf_cookie_raw="$(awk', publicCsrfReady);
+
+  assert.ok(temporaryServerRestart >= 0);
+  assert.ok(temporaryServerRestart < containerHealthy);
+  assert.ok(containerHealthy < publicCsrfReady);
+  assert.ok(publicCsrfReady < csrfCookieRead);
 });

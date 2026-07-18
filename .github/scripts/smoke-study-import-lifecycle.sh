@@ -49,6 +49,25 @@ wait_for_health() {
   return 1
 }
 
+wait_for_public_csrf() {
+  local attempt
+
+  for attempt in {1..12}; do
+    if curl --fail --silent --show-error \
+      --cookie "token=$auth_token" \
+      --cookie-jar "$CSRF_COOKIE_JAR" \
+      --header 'Origin: https://convo-lab.com' \
+      'https://convo-lab.com/api/auth/csrf' >/dev/null; then
+      return 0
+    fi
+
+    echo "Public ConvoLab CSRF readiness attempt $attempt/12 failed; retrying." >&2
+    sleep 3
+  done
+
+  return 1
+}
+
 delete_learning_os_smoke_user() {
   [ -n "$SMOKE_EMAIL" ] || return 0
 
@@ -195,11 +214,7 @@ test -n "$auth_token"
 echo "::add-mask::$auth_token"
 
 CSRF_COOKIE_JAR="$(mktemp)"
-curl --fail --silent --show-error \
-  --cookie "token=$auth_token" \
-  --cookie-jar "$CSRF_COOKIE_JAR" \
-  --header 'Origin: https://convo-lab.com' \
-  'https://convo-lab.com/api/auth/csrf' >/dev/null
+wait_for_public_csrf
 csrf_cookie_raw="$(awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$CSRF_COOKIE_JAR")"
 rm -f "$CSRF_COOKIE_JAR"
 CSRF_COOKIE_JAR=""
