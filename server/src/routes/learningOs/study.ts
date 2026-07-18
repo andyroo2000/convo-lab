@@ -16,7 +16,11 @@ import {
   STUDY_CARD_CREATION_KINDS,
 } from '../../services/study/shared/candidates.js';
 
-import { rewriteStudyCardDraftMediaUrls, rewriteStudyCardMediaUrls } from './studyMediaUrls.js';
+import {
+  rewriteStudyCardDraftMediaUrls,
+  rewriteStudyCardMediaUrls,
+  STUDY_ULID_SEGMENT,
+} from './studyMediaUrls.js';
 import {
   adaptLearningOsStudyReadResponse,
   type LearningOsStudyReadFeature,
@@ -39,11 +43,10 @@ const MAX_STUDY_DRAFT_IMAGE_PROMPT_LENGTH = 1000;
 const MAX_STUDY_DRAFT_MEDIA_FILENAME_LENGTH = 255;
 const MAX_STUDY_DRAFT_MEDIA_ID_LENGTH = 255;
 const MAX_STUDY_DRAFT_MEDIA_URL_LENGTH = 4096;
-const ULID_SEGMENT = '[0-9A-HJKMNP-TV-Z]{26}';
 const UUID_SEGMENT = '[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}';
-const ULID_PATTERN = new RegExp(`^${ULID_SEGMENT}$`, 'i');
+const ULID_PATTERN = new RegExp(`^${STUDY_ULID_SEGMENT}$`, 'i');
 const UUID_PATTERN = new RegExp(`^${UUID_SEGMENT}$`, 'i');
-const STUDY_CARD_ID_SEGMENT = `(?:${ULID_SEGMENT}|${UUID_SEGMENT})`;
+const STUDY_CARD_ID_SEGMENT = `(?:${STUDY_ULID_SEGMENT}|${UUID_SEGMENT})`;
 const STRICT_ISO_DATETIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 const STUDY_IMPORT_CONTENT_TYPES = new Set([
@@ -231,7 +234,7 @@ interface StudyProxyRoute {
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
-    pattern: new RegExp(`^/media/${ULID_SEGMENT}$`, 'i'),
+    pattern: new RegExp(`^/media/${STUDY_ULID_SEGMENT}$`, 'i'),
     featureFlag: 'studyApiMedia',
     queryParams: new Set(),
     mediaResponse: true,
@@ -254,7 +257,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'PATCH',
-    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}$`, 'i'),
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}$`, 'i'),
     featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftUpdate',
@@ -263,7 +266,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'POST',
-    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}/retry$`, 'i'),
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/retry$`, 'i'),
     featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftRetry',
@@ -271,7 +274,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'POST',
-    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}/create-card$`, 'i'),
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/create-card$`, 'i'),
     featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftCommit',
@@ -280,7 +283,7 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   },
   {
     method: 'DELETE',
-    pattern: new RegExp(`^/card-drafts/${ULID_SEGMENT}$`, 'i'),
+    pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}$`, 'i'),
     featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftDelete',
@@ -1317,7 +1320,9 @@ function adaptStudyRouteResponse(
         502
       );
     }
-    const match = pathname.match(new RegExp(`^/card-drafts/(${ULID_SEGMENT})/create-card$`, 'i'));
+    const match = pathname.match(
+      new RegExp(`^/card-drafts/(${STUDY_ULID_SEGMENT})/create-card$`, 'i')
+    );
     if (!match?.[1]) {
       throw new AppError(
         'Learning OS Study API returned an invalid card draft commit response.',

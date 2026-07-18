@@ -1,5 +1,5 @@
-const ULID_SEGMENT = '[0-9A-HJKMNP-TV-Z]{26}';
-const LEARNING_OS_STUDY_MEDIA_PATH = new RegExp(`^/api/study/media/(${ULID_SEGMENT})$`, 'i');
+export const STUDY_ULID_SEGMENT = '[0-9A-HJKMNP-TV-Z]{26}';
+const LEARNING_OS_STUDY_MEDIA_PATH = new RegExp(`^/api/study/media/(${STUDY_ULID_SEGMENT})$`, 'i');
 
 export function rewriteLearningOsStudyMediaUrl(value: string | null): string | null {
   if (value === null) {
