@@ -21,6 +21,7 @@ export interface FeatureFlags {
   studyApiCardWrites: boolean;
   studyApiCardDrafts: boolean;
   studyApiMedia: boolean;
+  studyApiDailyAudio: boolean;
   updatedAt: string;
 }
 

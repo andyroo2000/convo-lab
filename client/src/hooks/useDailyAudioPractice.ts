@@ -2,20 +2,26 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { API_URL } from '../config';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
+import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import type {
   DailyAudioPractice,
   DailyAudioPracticeStatusResponse,
   DailyAudioPracticeTrack,
 } from '../types';
+import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 
 const DEFAULT_DAILY_AUDIO_DURATION_MINUTES = 30;
+const LEARNING_OS_DAILY_AUDIO_PROXY_BASE = '/api/learning-os/study/daily-audio-practice';
 
 export const dailyAudioPracticeKeys = {
   all: ['daily-audio-practice'] as const,
-  list: () => [...dailyAudioPracticeKeys.all, 'list'] as const,
-  detail: (id: string) => [...dailyAudioPracticeKeys.all, 'detail', id] as const,
-  status: (id: string) => [...dailyAudioPracticeKeys.all, 'status', id] as const,
+  list: (source?: 'convo-lab' | 'learning-os') =>
+    [...dailyAudioPracticeKeys.all, 'list', ...(source ? [source] : [])] as const,
+  detail: (id: string, source?: 'convo-lab' | 'learning-os') =>
+    [...dailyAudioPracticeKeys.all, 'detail', id, ...(source ? [source] : [])] as const,
+  status: (id: string, source?: 'convo-lab' | 'learning-os') =>
+    [...dailyAudioPracticeKeys.all, 'status', id, ...(source ? [source] : [])] as const,
 };
 
 function normalizeTracks(tracks: DailyAudioPracticeTrack[] = []) {
@@ -34,6 +40,25 @@ function extractErrorMessage(errorBody: unknown): string {
   return 'Request failed';
 }
 
+function shouldUseLearningOsDailyAudio(flags?: FeatureFlags): boolean {
+  return flags?.studyApiEnabled === true && flags.studyApiDailyAudio === true;
+}
+
+function dailyAudioApiSource(flags?: FeatureFlags): 'convo-lab' | 'learning-os' {
+  return shouldUseLearningOsDailyAudio(flags) ? 'learning-os' : 'convo-lab';
+}
+
+function readEndpoint(endpoint: string, flags?: FeatureFlags): string {
+  if (!shouldUseLearningOsDailyAudio(flags)) {
+    return endpoint;
+  }
+
+  return endpoint.replace(
+    /^\/api\/daily-audio-practice(?=\/|$)/,
+    LEARNING_OS_DAILY_AUDIO_PROXY_BASE
+  );
+}
+
 async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers ?? {});
   if (init?.body && !headers.has('Content-Type')) {
@@ -46,6 +71,7 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
     headers,
   });
 
+  notifyAuthSessionExpired(response);
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({ message: 'Request failed' }));
     throw new Error(extractErrorMessage(errorBody));
@@ -54,18 +80,24 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function fetchRecentDailyAudioPractice() {
-  const practices = await apiRequest<DailyAudioPractice[]>('/api/daily-audio-practice');
+async function fetchRecentDailyAudioPractice(flags?: FeatureFlags) {
+  const practices = await apiRequest<DailyAudioPractice[]>(
+    readEndpoint('/api/daily-audio-practice', flags)
+  );
   return practices.map((practice) => ({ ...practice, tracks: normalizeTracks(practice.tracks) }));
 }
 
-async function fetchDailyAudioPractice(id: string) {
-  const practice = await apiRequest<DailyAudioPractice>(`/api/daily-audio-practice/${id}`);
+async function fetchDailyAudioPractice(id: string, flags?: FeatureFlags) {
+  const practice = await apiRequest<DailyAudioPractice>(
+    readEndpoint(`/api/daily-audio-practice/${encodeURIComponent(id)}`, flags)
+  );
   return { ...practice, tracks: normalizeTracks(practice.tracks) };
 }
 
-async function fetchDailyAudioPracticeStatus(id: string) {
-  return apiRequest<DailyAudioPracticeStatusResponse>(`/api/daily-audio-practice/${id}/status`);
+async function fetchDailyAudioPracticeStatus(id: string, flags?: FeatureFlags) {
+  return apiRequest<DailyAudioPracticeStatusResponse>(
+    readEndpoint(`/api/daily-audio-practice/${encodeURIComponent(id)}/status`, flags)
+  );
 }
 
 async function createDailyAudioPractice() {
@@ -79,24 +111,33 @@ async function createDailyAudioPractice() {
 }
 
 export function useRecentDailyAudioPractice() {
+  const { flags } = useFeatureFlags();
+  const source = dailyAudioApiSource(flags);
+
   return useQuery({
-    queryKey: dailyAudioPracticeKeys.list(),
-    queryFn: fetchRecentDailyAudioPractice,
+    queryKey: dailyAudioPracticeKeys.list(source),
+    queryFn: () => fetchRecentDailyAudioPractice(flags),
   });
 }
 
 export function useDailyAudioPractice(id: string | undefined) {
+  const { flags } = useFeatureFlags();
+  const source = dailyAudioApiSource(flags);
+
   return useQuery({
-    queryKey: dailyAudioPracticeKeys.detail(id ?? 'pending'),
-    queryFn: () => fetchDailyAudioPractice(id!),
+    queryKey: dailyAudioPracticeKeys.detail(id ?? 'pending', source),
+    queryFn: () => fetchDailyAudioPractice(id!, flags),
     enabled: Boolean(id),
   });
 }
 
 export function useDailyAudioPracticeStatus(id: string | undefined, enabled: boolean) {
+  const { flags } = useFeatureFlags();
+  const source = dailyAudioApiSource(flags);
+
   return useQuery({
-    queryKey: dailyAudioPracticeKeys.status(id ?? 'pending'),
-    queryFn: () => fetchDailyAudioPracticeStatus(id!),
+    queryKey: dailyAudioPracticeKeys.status(id ?? 'pending', source),
+    queryFn: () => fetchDailyAudioPracticeStatus(id!, flags),
     enabled: Boolean(id) && enabled,
     refetchInterval: enabled ? 5000 : false,
   });

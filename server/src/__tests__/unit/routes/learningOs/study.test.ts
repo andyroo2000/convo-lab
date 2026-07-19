@@ -347,6 +347,7 @@ describe('Learning OS Study proxy routes', () => {
     studyApiCardWrites: true,
     studyApiCardDrafts: true,
     studyApiMedia: true,
+    studyApiDailyAudio: true,
   };
 
   beforeEach(async () => {
@@ -740,6 +741,159 @@ describe('Learning OS Study proxy routes', () => {
     expect(url.toString()).toBe(
       'https://learning-os.example/api/study/overview?time_zone=America%2FNew_York'
     );
+  });
+
+  it('proxies Daily Audio list reads to the non-Study Learning OS API namespace', async () => {
+    const dailyAudioPractices = [
+      {
+        id: '123e4567-e89b-42d3-a456-426614174100',
+        userId: 'user-1',
+        practiceDate: '2026-07-18',
+        status: 'ready',
+        targetDurationMinutes: 30,
+        targetLanguage: 'ja',
+        nativeLanguage: 'en',
+        sourceCardIdsJson: [],
+        selectionSummaryJson: null,
+        errorMessage: null,
+        createdAt: '2026-07-18T12:00:00.000Z',
+        updatedAt: '2026-07-18T12:00:00.000Z',
+        tracks: [],
+      },
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(dailyAudioPractices), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/daily-audio-practice')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(dailyAudioPractices);
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/daily-audio-practice');
+    expect(init.headers).toEqual(
+      expect.objectContaining({
+        Authorization: 'Bearer server-only-token',
+        'X-Convo-Lab-User-Id': 'user-1',
+        'X-Convo-Lab-User-Email': 'learner@example.com',
+      })
+    );
+  });
+
+  it.each(['', '/status'])(
+    'proxies Daily Audio practice%s reads using a strict UUID path',
+    async (suffix) => {
+      const practiceId = '123e4567-e89b-42d3-a456-426614174100';
+      const responseBody =
+        suffix === '/status'
+          ? {
+              id: practiceId,
+              status: 'ready',
+              progress: null,
+              tracks: [],
+            }
+          : {
+              id: practiceId,
+              userId: 'user-1',
+              practiceDate: '2026-07-18',
+              status: 'ready',
+              targetDurationMinutes: 30,
+              targetLanguage: 'ja',
+              nativeLanguage: 'en',
+              sourceCardIdsJson: [],
+              selectionSummaryJson: null,
+              errorMessage: null,
+              createdAt: '2026-07-18T12:00:00.000Z',
+              updatedAt: '2026-07-18T12:00:00.000Z',
+              tracks: [],
+            };
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(responseBody), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        )
+      );
+      const app = await createApp();
+
+      const response = await request(app)
+        .get(`/api/learning-os/study/daily-audio-practice/${practiceId}${suffix}`)
+        .set('Cookie', authCookie());
+
+      expect(response.status).toBe(200);
+      const [url] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+      expect(url.toString()).toBe(
+        `https://learning-os.example/api/daily-audio-practice/${practiceId}${suffix}`
+      );
+    }
+  );
+
+  it('rejects malformed Daily Audio IDs before calling Learning OS', async () => {
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/daily-audio-practice/not-a-uuid')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.message).toBe('Learning OS Study API route is not allowed.');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('normalizes uppercase Daily Audio UUIDs before forwarding them', async () => {
+    const practiceId = '123E4567-E89B-42D3-A456-426614174100';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            id: practiceId.toLowerCase(),
+            status: 'ready',
+            progress: null,
+            tracks: [],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+      )
+    );
+    const app = await createApp();
+
+    await request(app)
+      .get(`/api/learning-os/study/daily-audio-practice/${practiceId}/status`)
+      .set('Cookie', authCookie())
+      .expect(200);
+
+    const [url] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe(
+      `https://learning-os.example/api/daily-audio-practice/${practiceId.toLowerCase()}/status`
+    );
+  });
+
+  it('rejects Daily Audio proxy reads when their child flag is disabled', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      ...enabledStudyApiFlags,
+      studyApiDailyAudio: false,
+    });
+    const app = await createApp();
+
+    const response = await request(app)
+      .get('/api/learning-os/study/daily-audio-practice')
+      .set('Cookie', authCookie());
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toBe('Learning OS Study API route is not enabled.');
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('adapts Laravel study settings to the existing ConvoLab response contract', async () => {

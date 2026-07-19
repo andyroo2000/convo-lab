@@ -15,6 +15,10 @@ const mediaMigrationPath = new URL(
   '../../../../prisma/migrations/20260718190000_add_study_api_media_feature_flag/migration.sql',
   import.meta.url
 );
+const dailyAudioMigrationPath = new URL(
+  '../../../../prisma/migrations/20260719023000_add_study_api_daily_audio_feature_flag/migration.sql',
+  import.meta.url
+);
 
 describe('feature flag schema', () => {
   it('keeps the Postgres-safe card-write flag migration aligned with Prisma', async () => {
@@ -53,6 +57,19 @@ describe('feature flag schema', () => {
     expect(migration.trim()).toBe(
       'ALTER TABLE "feature_flags"\n' +
         '  ADD COLUMN "studyApiMedia" BOOLEAN NOT NULL DEFAULT false;'
+    );
+  });
+
+  it('keeps the Postgres-safe Daily Audio flag migration aligned with Prisma', async () => {
+    const [schema, migration] = await Promise.all([
+      readFile(schemaPath, 'utf8'),
+      readFile(dailyAudioMigrationPath, 'utf8'),
+    ]);
+
+    expect(schema).toContain('studyApiDailyAudio    Boolean  @default(false)');
+    expect(migration.trim()).toBe(
+      'ALTER TABLE "feature_flags"\n' +
+        '  ADD COLUMN "studyApiDailyAudio" BOOLEAN NOT NULL DEFAULT false;'
     );
   });
 });

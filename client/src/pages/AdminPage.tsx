@@ -103,6 +103,7 @@ interface FeatureFlags {
   studyApiCardWrites: boolean;
   studyApiCardDrafts: boolean;
   studyApiMedia: boolean;
+  studyApiDailyAudio: boolean;
   updatedAt: string;
 }
 
@@ -1545,6 +1546,11 @@ const AdminPage = () => {
                         'studyApiMedia',
                         'Study Media',
                         'Stream Learning OS-owned study audio and images through the authenticated proxy'
+                      )}
+                      {renderFeatureFlagToggle(
+                        'studyApiDailyAudio',
+                        'Daily Audio Reads',
+                        'Load Daily Audio lists, details, and generation status from Learning OS'
                       )}
                       {renderFeatureFlagToggle(
                         'studyApiImports',
