@@ -1,11 +1,7 @@
 import path from 'path';
 
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
-import {
-  STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
-  STUDY_EXPORT_PAGE_SIZE_DEFAULT,
-  STUDY_EXPORT_PAGE_SIZE_MAX,
-} from '@languageflow/shared/src/studyConstants.js';
+import { STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH } from '@languageflow/shared/src/studyConstants.js';
 import type {
   JapanesePitchAccentResolvedBy,
   JapanesePitchAccentUnresolvedReason,
@@ -37,11 +33,6 @@ import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
   createStudyImportUploadSession,
-  exportStudyData,
-  exportStudyCardsSection,
-  exportStudyImportsSection,
-  exportStudyMediaSection,
-  exportStudyReviewLogsSection,
   getCurrentStudyImportJob,
   getStudyMediaAccess,
   getStudyImportJob,
@@ -61,7 +52,6 @@ import { triggerWorkerJob } from '../services/workerTrigger.js';
 const router = Router();
 const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
 const STUDY_QUERY_PARAM_MAX_LENGTH = 200;
-const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE =
   'Could not queue draft generation. Please retry this draft.';
 const VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE =
@@ -529,25 +519,6 @@ function parseStudyAnswerPayload(value: Record<string, unknown>): StudyAnswerPay
     answerImage: parseOptionalStudyMediaRef('answer', 'answerImage', value.answerImage),
     pitchAccent: parsePitchAccentPayload(value.pitchAccent),
   };
-}
-
-function parseCursorQueryParam(name: string, value: unknown): string | undefined {
-  if (typeof value === 'undefined') {
-    return undefined;
-  }
-
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new AppError(`${name} must be a non-empty string.`, 400);
-  }
-
-  if (value.length > STUDY_CURSOR_QUERY_MAX_LENGTH) {
-    throw new AppError(
-      `${name} must be ${String(STUDY_CURSOR_QUERY_MAX_LENGTH)} characters or fewer.`,
-      400
-    );
-  }
-
-  return value;
 }
 
 function parseStudyCardPayloads(
@@ -1077,101 +1048,5 @@ router.get(
     }
   }
 );
-
-router.get('/export', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-    const manifest = await exportStudyData(req.userId);
-    res.json(manifest);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/export/cards', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const result = await exportStudyCardsSection({
-      userId: req.userId,
-      cursor: parseCursorQueryParam('cursor', req.query.cursor),
-      limit: parsePaginationLimit(
-        req.query.limit,
-        STUDY_EXPORT_PAGE_SIZE_DEFAULT,
-        STUDY_EXPORT_PAGE_SIZE_MAX
-      ),
-    });
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/export/review-logs', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const result = await exportStudyReviewLogsSection({
-      userId: req.userId,
-      cursor: parseCursorQueryParam('cursor', req.query.cursor),
-      limit: parsePaginationLimit(
-        req.query.limit,
-        STUDY_EXPORT_PAGE_SIZE_DEFAULT,
-        STUDY_EXPORT_PAGE_SIZE_MAX
-      ),
-    });
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/export/media', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const result = await exportStudyMediaSection({
-      userId: req.userId,
-      cursor: parseCursorQueryParam('cursor', req.query.cursor),
-      limit: parsePaginationLimit(
-        req.query.limit,
-        STUDY_EXPORT_PAGE_SIZE_DEFAULT,
-        STUDY_EXPORT_PAGE_SIZE_MAX
-      ),
-    });
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/export/imports', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const result = await exportStudyImportsSection({
-      userId: req.userId,
-      cursor: parseCursorQueryParam('cursor', req.query.cursor),
-      limit: parsePaginationLimit(
-        req.query.limit,
-        STUDY_EXPORT_PAGE_SIZE_DEFAULT,
-        STUDY_EXPORT_PAGE_SIZE_MAX
-      ),
-    });
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
 
 export default router;
