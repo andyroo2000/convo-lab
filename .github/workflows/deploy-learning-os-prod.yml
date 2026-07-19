@@ -227,6 +227,7 @@ jobs:
             KNOWLEDGE_EXPORT_DIR=""
             KNOWLEDGE_CONTAINER_PREFIX="/tmp/convolab-learning-os-knowledge"
             MEDIA_EXPORT_DIR=""
+            MEDIA_MISSING_MANIFEST_CONTAINER="/tmp/convolab-learning-os-missing-media.json"
             SOURCE_DATABASE_CREATED=false
             DRAINING_WORKER_CONTAINER_ID=""
             NEW_PROXY_TOKEN_ID=""
@@ -250,6 +251,8 @@ jobs:
                 rm -rf "$MEDIA_EXPORT_DIR"
                 MEDIA_EXPORT_DIR=""
               fi
+              docker exec -u root convolab-postgres rm -f \
+                "$MEDIA_MISSING_MANIFEST_CONTAINER" 2>/dev/null || true
             }
 
             cleanup_media_import_resources() {
@@ -380,7 +383,7 @@ jobs:
             }
 
             import_historical_media() {
-              local active_color media_files media_manifest postgres_user target_dump timestamp unavailable_media_count
+              local active_color media_files media_manifest missing_media_count missing_media_manifest postgres_user target_dump timestamp unavailable_media_count
 
               postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
               active_color=blue
@@ -408,6 +411,7 @@ jobs:
               MEDIA_EXPORT_DIR="$(mktemp -d "$RUNTIME_DIR/convolab-media-import.XXXXXX")"
               chmod 700 "$MEDIA_EXPORT_DIR"
               media_manifest="$MEDIA_EXPORT_DIR/manifest.json"
+              missing_media_manifest="$MEDIA_EXPORT_DIR/missing.json"
               media_files="$MEDIA_EXPORT_DIR/files"
 
               unavailable_media_count="$(docker exec convolab-postgres psql \
@@ -440,8 +444,38 @@ jobs:
                 "server-$active_color" \
                 node scripts/export-convolab-study-media.mjs \
                 --manifest /export/manifest.json \
+                --missing-manifest /export/missing.json \
                 --output-root /export/files \
                 --concurrency 8 < /dev/null
+
+              docker cp "$missing_media_manifest" \
+                "convolab-postgres:$MEDIA_MISSING_MANIFEST_CONTAINER"
+              docker exec -u root convolab-postgres chmod 644 \
+                "$MEDIA_MISSING_MANIFEST_CONTAINER"
+              missing_media_count="$(docker exec convolab-postgres psql \
+                --username="$postgres_user" --dbname="$SOURCE_DB" \
+                --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+                --command="
+                  WITH missing_paths AS (
+                    SELECT jsonb_array_elements_text(
+                      pg_read_file('$MEDIA_MISSING_MANIFEST_CONTAINER')::jsonb
+                    ) AS storage_path
+                  ),
+                  unavailable_rows AS (
+                    UPDATE study_media
+                    SET \"storagePath\" = NULL
+                    WHERE \"storagePath\" IN (
+                      SELECT storage_path FROM missing_paths
+                    )
+                    RETURNING 1
+                  )
+                  SELECT count(*) FROM unavailable_rows;
+                " | tr -d '[:space:]')"
+              docker exec -u root convolab-postgres rm -f \
+                "$MEDIA_MISSING_MANIFEST_CONTAINER"
+              if [ "$missing_media_count" != 0 ]; then
+                echo "Skipping $missing_media_count ConvoLab media rows whose GCS objects are missing."
+              fi
 
               $COMPOSE run --rm -T --no-deps \
                 --volume "$media_files:/tmp/convolab-media:ro" \
