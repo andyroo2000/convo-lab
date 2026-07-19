@@ -109,7 +109,7 @@ test('the production workflow wires card-write activation through verification a
     '\\"studyApiCardWrites\\" = $enable_card_writes_sql',
     '\\"studyApiCardWrites\\" = $previous_card_writes_sql',
     '|| [ "$ENABLE_CARD_WRITES" = true ] || [ "$ENABLE_CARD_DRAFTS" = true ]',
-    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql|$enable_card_drafts_sql|$enable_media_sql"',
+    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql|$enable_card_drafts_sql|$enable_media_sql|$enable_daily_audio_sql"',
   ]) {
     assert.ok(workflow.includes(requiredContract), `Missing card-write contract: ${requiredContract}`);
   }
@@ -199,6 +199,83 @@ test('the production workflow streams and cleans up disposable Learning OS media
   assert.ok(
     mediaRequestIndex < cleanupInvocationIndex && cleanupInvocationIndex < mediaPassedIndex
   );
+});
+
+test('the production workflow snapshots and imports historical GCS media explicitly', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'import_historical_media:',
+    'IMPORT_HISTORICAL_MEDIA: ${{ inputs.import_historical_media }}',
+    'validate_boolean_input import_historical_media "$IMPORT_HISTORICAL_MEDIA"',
+    'restore_convolab_source_copy',
+    'SOURCE_DATABASE_CREATED=true',
+    'cleanup_media_export',
+    'cleanup_media_import_resources',
+    'learning-os-before-media-import-$timestamp.dump',
+    'json_agg(paths.storage_path ORDER BY paths.storage_path)',
+    '"server-$active_color"',
+    'node scripts/export-convolab-study-media.mjs',
+    '--volume "$MEDIA_EXPORT_DIR:/export"',
+    '--volume "$media_files:/tmp/convolab-media:ro"',
+    'php artisan migration:import-convolab-media',
+    '--production-confirmation="IMPORT MEDIA INTO $TARGET_DB"',
+    'Verified ConvoLab historical media import completed.',
+    'smoke_learning_os',
+  ]) {
+    assert.ok(
+      workflow.includes(requiredContract),
+      `Missing historical media import contract: ${requiredContract}`
+    );
+  }
+
+  const mediaOnlyBranch = workflow.slice(
+    workflow.indexOf('else\n              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate'),
+    workflow.indexOf('proxy_token_output=')
+  );
+  const databaseBranchIndex = workflow.indexOf('if [ "$REBUILD_DATABASE" = true ]; then');
+  const sharedPostgresUserIndex = workflow.indexOf(
+    'postgres_user="$(sed -n \'s/^POSTGRES_USER=//p\' .env.production | tail -1)"\n' +
+      '            test -n "$postgres_user"'
+  );
+  assert.ok(sharedPostgresUserIndex >= 0);
+  assert.ok(sharedPostgresUserIndex < databaseBranchIndex);
+  assert.ok(
+    mediaOnlyBranch.indexOf('restore_convolab_source_copy') <
+      mediaOnlyBranch.indexOf('import_historical_media')
+  );
+  assert.match(
+    mediaOnlyBranch,
+    /dropdb --username="\$postgres_user" "\$SOURCE_DB"[\s\S]*smoke_learning_os/
+  );
+  assert.doesNotMatch(
+    mediaOnlyBranch,
+    /dropdb --username="\$postgres_user" --if-exists "\$TARGET_DB"/
+  );
+  assert.ok(
+    workflow.indexOf('cleanup_media_import_resources') <
+      workflow.indexOf('if [ -n "$NEW_PROXY_TOKEN_ID" ]')
+  );
+
+  const rebuildBranch = workflow.slice(
+    workflow.indexOf('if [ "$REBUILD_DATABASE" = true ]; then'),
+    workflow.indexOf('else\n              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate')
+  );
+  assert.ok(
+    rebuildBranch.indexOf('import_historical_media') <
+      rebuildBranch.indexOf('smoke_learning_os')
+  );
+
+  const mediaImportFunction = workflow.slice(
+    workflow.indexOf('import_historical_media() {'),
+    workflow.indexOf('smoke_learning_os() {')
+  );
+  assert.match(mediaImportFunction, /case "\$active_color" in[\s\S]*blue\|green/);
+  assert.match(mediaImportFunction, /"server-\$active_color"/);
+  assert.doesNotMatch(mediaImportFunction, /\bserver-blue\b/);
 });
 
 test('the production worker consumes Learning OS card-draft jobs', async () => {
