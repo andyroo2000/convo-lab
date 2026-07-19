@@ -1442,10 +1442,11 @@ jobs:
                 daily_audio_list="$(
                   fetch_read_route 'Daily Audio practice lookup' '/api/daily-audio-practice'
                 )"
-                daily_audio_id="$(docker exec \
-                  -e DAILY_AUDIO_RESPONSE="$daily_audio_list" \
+                daily_audio_id="$(printf '%s' "$daily_audio_list" | docker exec -i \
                   "convolab-server-$active_color" node --input-type=module --eval='
-                    const practices = JSON.parse(process.env.DAILY_AUDIO_RESPONSE);
+                    const chunks = [];
+                    for await (const chunk of process.stdin) chunks.push(chunk);
+                    const practices = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                     if (!Array.isArray(practices)) process.exit(1);
                     const practice = practices.find((value) =>
                       Array.isArray(value?.tracks) &&
@@ -1478,10 +1479,11 @@ jobs:
                     'Daily Audio historical track lookup' \
                     "/api/learning-os/study/daily-audio-practice/$daily_audio_id"
                 )"
-                daily_audio_track_url="$(docker exec \
-                  -e DAILY_AUDIO_DETAIL="$daily_audio_detail" \
+                daily_audio_track_url="$(printf '%s' "$daily_audio_detail" | docker exec -i \
                   "convolab-server-$active_color" node --input-type=module --eval='
-                    const practice = JSON.parse(process.env.DAILY_AUDIO_DETAIL);
+                    const chunks = [];
+                    for await (const chunk of process.stdin) chunks.push(chunk);
+                    const practice = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                     const track = practice?.tracks?.find((value) =>
                       value?.status === "ready" && typeof value.audioUrl === "string"
                     );
@@ -1512,10 +1514,11 @@ jobs:
                     'Daily Audio status Learning OS' \
                     "/api/learning-os/study/daily-audio-practice/$daily_audio_id/status"
                 )"
-                docker exec \
-                  -e DAILY_AUDIO_STATUS="$daily_audio_status" \
+                printf '%s' "$daily_audio_status" | docker exec -i \
                   "convolab-server-$active_color" node --input-type=module --eval='
-                    const response = JSON.parse(process.env.DAILY_AUDIO_STATUS);
+                    const chunks = [];
+                    for await (const chunk of process.stdin) chunks.push(chunk);
+                    const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                     const statuses = new Set(["draft", "generating", "ready", "error"]);
                     if (
                       typeof response?.id !== "string" ||
