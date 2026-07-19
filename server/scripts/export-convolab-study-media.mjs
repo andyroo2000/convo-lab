@@ -9,6 +9,7 @@ import {
   rename,
   rm,
   stat,
+  writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -122,6 +123,7 @@ async function downloadObject({ bucket, exportRoot, storagePath }) {
 export async function exportStudyMedia({
   bucket,
   manifestPath,
+  missingManifestPath,
   outputRoot,
   concurrency = DEFAULT_CONCURRENCY,
 }) {
@@ -137,22 +139,42 @@ export async function exportStudyMedia({
   );
   const workerCount = Math.min(requestedConcurrency, storagePaths.length);
   let nextIndex = 0;
+  let downloadedFiles = 0;
   let totalBytes = 0;
+  const missingStoragePaths = [];
 
   async function worker() {
     while (nextIndex < storagePaths.length) {
       const storagePath = storagePaths[nextIndex];
       nextIndex += 1;
-      const downloadedBytes = await downloadObject({ bucket, exportRoot, storagePath });
-      totalBytes += downloadedBytes;
+
+      try {
+        const downloadedBytes = await downloadObject({ bucket, exportRoot, storagePath });
+        downloadedFiles += 1;
+        totalBytes += downloadedBytes;
+      } catch (error) {
+        if (error?.code !== 404 && error?.code !== '404') {
+          throw error;
+        }
+
+        missingStoragePaths.push(storagePath);
+      }
     }
   }
 
   await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  missingStoragePaths.sort();
+
+  if (missingManifestPath) {
+    await writeFile(missingManifestPath, `${JSON.stringify(missingStoragePaths)}\n`, {
+      mode: 0o600,
+    });
+  }
 
   return {
     bucket: bucket.name,
-    files: storagePaths.length,
+    files: downloadedFiles,
+    missingFiles: missingStoragePaths.length,
     bytes: totalBytes,
     outputRoot: exportRoot,
   };
@@ -178,6 +200,7 @@ function parseArguments(argv) {
 export async function main(argv = process.argv.slice(2)) {
   const options = parseArguments(argv);
   const manifestPath = options.get('manifest');
+  const missingManifestPath = options.get('missing-manifest');
   const outputRoot = options.get('output-root');
   const bucketName = process.env.GCS_BUCKET_NAME;
 
@@ -197,6 +220,7 @@ export async function main(argv = process.argv.slice(2)) {
   const result = await exportStudyMedia({
     bucket: storage.bucket(bucketName),
     manifestPath,
+    missingManifestPath,
     outputRoot,
     concurrency: options.get('concurrency') ?? DEFAULT_CONCURRENCY,
   });
