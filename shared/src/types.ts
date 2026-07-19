@@ -216,17 +216,6 @@ export interface StudyCardCandidate {
   imagePrompt?: string | null;
 }
 
-export interface StudyCardCandidateGenerateRequest {
-  targetText: string;
-  context?: string | null;
-  includeLearnerContext?: boolean;
-}
-
-export interface StudyCardCandidateGenerateResponse {
-  candidates: StudyCardCandidate[];
-  learnerContextSummary?: string | null;
-}
-
 export interface StudyCardCandidateCommitItem {
   clientId: string;
   candidateKind: StudyCardCandidateKind;
@@ -237,14 +226,6 @@ export interface StudyCardCandidateCommitItem {
   previewAudioRole?: 'prompt' | 'answer' | null;
   previewImage?: StudyMediaRef | null;
   imagePrompt?: string | null;
-}
-
-export interface StudyCardCandidateCommitRequest {
-  candidates: StudyCardCandidateCommitItem[];
-}
-
-export interface StudyCardCandidateCommitResponse {
-  cards: StudyCardSummary[];
 }
 
 export interface StudyVocabBundleGenerateRequest {
@@ -290,32 +271,9 @@ export interface StudyVocabBundleDraftCreateResponse {
   drafts: StudyManualCardDraft[];
 }
 
-export interface StudyCardCandidatePreviewAudioRequest {
-  candidate: StudyCardCandidateCommitItem;
-}
-
-export interface StudyCardCandidatePreviewAudioResponse {
-  prompt: StudyPromptPayload;
-  answer: StudyAnswerPayload;
-  previewAudio: StudyMediaRef | null;
-  previewAudioRole: 'prompt' | 'answer' | null;
-}
-
 export interface StudyCardDraftPreviewAudioResponse {
   previewAudio: StudyMediaRef | null;
   previewAudioRole: 'prompt' | 'answer' | null;
-}
-
-export interface StudyCardCandidatePreviewImageRequest {
-  candidate: StudyCardCandidateCommitItem;
-  imagePrompt: string;
-}
-
-export interface StudyCardCandidatePreviewImageResponse {
-  prompt: StudyPromptPayload;
-  answer: StudyAnswerPayload;
-  previewImage: StudyMediaRef;
-  imagePrompt: string;
 }
 
 export interface StudyCardRegenerateImageRequest {
