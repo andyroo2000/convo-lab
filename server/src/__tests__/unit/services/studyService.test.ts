@@ -6,8 +6,5 @@ import * as studyService from '../../../services/studyService.js';
 describe('studyService barrel', () => {
   it('re-exports media functions from the media service', () => {
     expect(studyService.getStudyMediaAccess).toBe(studyMediaService.getStudyMediaAccess);
-    expect(studyService.prepareStudyCardAnswerAudio).toBe(
-      studyMediaService.prepareStudyCardAnswerAudio
-    );
   });
 });

@@ -1,17 +1,9 @@
-import type { StudyAnswerPayload, StudyCardSummary } from '@languageflow/shared/src/types.js';
-
 import { prisma } from '../../db/client.js';
-import { AppError } from '../../middleware/errorHandler.js';
 import { downloadFromGCSPath, getSignedReadUrl } from '../storageClient.js';
 
-import type {
-  RegenerateStudyCardAnswerAudioInput,
-  StudyCardWithRelations,
-  StudyMediaAccessResult,
-} from './shared.js';
+import type { StudyMediaAccessResult } from './shared.js';
 import {
   backfillImportedStudyMedia,
-  buildStudyCardSearchText,
   ensureGeneratedAnswerAudio,
   findAccessibleLocalStudyMediaPath,
   getContentType,
@@ -25,12 +17,7 @@ import {
   STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS,
   STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
   studyMediaRedirectCache,
-  toPrismaJson,
-  toStudyCardSummary,
-  normalizeStudyCardPayload,
 } from './shared.js';
-
-export { ensureGeneratedAnswerAudio, ensureStudyCardMediaAvailable } from './shared.js';
 
 // Best-effort process-local shortcut; Redis is the authoritative cross-process cooldown.
 const generatedAudioRepairFailureCooldowns = new Map<string, number>();
@@ -160,104 +147,6 @@ function scheduleGeneratedAnswerAudioRepair(userId: string, mediaId: string): vo
   void repairGeneratedAnswerAudioAccess(userId, mediaId).catch((error) => {
     console.warn('[Study] Unable to schedule generated answer-audio repair:', error);
   });
-}
-
-export async function prepareStudyCardAnswerAudio(
-  userId: string,
-  cardId: string
-): Promise<StudyCardSummary> {
-  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
-    where: {
-      id: cardId,
-      userId,
-    },
-    include: {
-      note: true,
-      promptAudioMedia: true,
-      answerAudioMedia: true,
-      imageMedia: true,
-    },
-  });
-
-  if (!existing) {
-    throw new AppError('Study card not found.', 404);
-  }
-
-  void ensureGeneratedAnswerAudio(userId, cardId).catch((error) => {
-    console.warn('[Study] Unable to prepare answer audio in background:', error);
-  });
-
-  return await toStudyCardSummary(existing);
-}
-
-export async function regenerateStudyCardAnswerAudio(
-  input: RegenerateStudyCardAnswerAudioInput
-): Promise<StudyCardSummary> {
-  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
-    where: {
-      id: input.cardId,
-      userId: input.userId,
-    },
-    include: {
-      note: true,
-      promptAudioMedia: true,
-      answerAudioMedia: true,
-      imageMedia: true,
-    },
-  });
-
-  if (!existing) {
-    throw new AppError('Study card not found.', 404);
-  }
-
-  const normalized = await normalizeStudyCardPayload(existing);
-  const nextAnswer: StudyAnswerPayload = {
-    ...normalized.answer,
-    ...(typeof input.answerAudioVoiceId !== 'undefined'
-      ? { answerAudioVoiceId: input.answerAudioVoiceId }
-      : {}),
-    ...(typeof input.answerAudioTextOverride !== 'undefined'
-      ? { answerAudioTextOverride: input.answerAudioTextOverride }
-      : {}),
-  };
-
-  const updatedCardResult = await prisma.studyCard.updateMany({
-    where: { id: input.cardId, userId: input.userId },
-    data: {
-      answerJson: toPrismaJson(nextAnswer),
-      searchText: buildStudyCardSearchText({
-        prompt: normalized.prompt,
-        answer: nextAnswer,
-      }),
-    },
-  });
-
-  if (updatedCardResult.count !== 1) {
-    throw new AppError('Study card not found.', 404);
-  }
-
-  // This synchronous regeneration lets the editor preview fresh audio immediately.
-  // If synthesis fails, the saved voice/override remain but the previous audio stays playable.
-  await ensureGeneratedAnswerAudio(input.userId, input.cardId, { force: true });
-
-  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
-    where: {
-      id: input.cardId,
-      userId: input.userId,
-    },
-    include: {
-      note: true,
-      promptAudioMedia: true,
-      answerAudioMedia: true,
-      imageMedia: true,
-    },
-  });
-
-  if (!refreshed) {
-    throw new AppError('Study card not found after audio regeneration.', 404);
-  }
-
-  return await toStudyCardSummary(refreshed);
 }
 
 export async function getStudyMediaAccess(
