@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
-import { useFeatureFlags } from './useFeatureFlags';
 
 export interface KnownKanjiResponse {
   version: number;
@@ -45,16 +44,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function useKnownKanji() {
-  const { flags } = useFeatureFlags();
-  const enabled = Boolean(flags?.studyApiEnabled && flags.studyApiSettings);
-  const query = useQuery({
+  return useQuery({
     queryKey: KNOWN_KANJI_QUERY_KEY,
     queryFn: () => request<KnownKanjiResponse>(KNOWN_KANJI_ENDPOINT),
-    enabled,
     staleTime: 5 * 60 * 1000,
   });
-
-  return { ...query, enabled };
 }
 
 export function useConnectWaniKani() {

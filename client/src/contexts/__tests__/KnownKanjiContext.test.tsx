@@ -10,10 +10,6 @@ const { mutateMock, useKnownKanjiMock } = vi.hoisted(() => ({
 
 const syncMutation = { mutate: mutateMock };
 
-vi.mock('../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: () => ({ flags: { studyApiSettingsWrite: true } }),
-}));
-
 vi.mock('../../hooks/useKnownKanji', () => ({
   useKnownKanji: () => useKnownKanjiMock(),
   useSyncWaniKani: () => syncMutation,

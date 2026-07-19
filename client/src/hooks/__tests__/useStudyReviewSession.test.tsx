@@ -15,9 +15,6 @@ const {
   deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
   warmAudioCacheMock,
-  reviewFlagsState,
-  reviewRoutingFlagsMock,
-  regenerateRoutingFlagsMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -28,26 +25,13 @@ const {
   deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   warmAudioCacheMock: vi.fn(),
-  reviewFlagsState: {
-    current: { studyApiEnabled: true, studyApiReview: true } as
-      | { studyApiEnabled: boolean; studyApiReview: boolean }
-      | undefined,
-    isLoading: false,
-  },
-  reviewRoutingFlagsMock: vi.fn(),
-  regenerateRoutingFlagsMock: vi.fn(),
 }));
 
-const reviewFlags = { studyApiEnabled: true, studyApiReview: true };
-
 vi.mock('../useStudy', () => ({
-  useSubmitStudyReview: (routingFlags: unknown) => {
-    reviewRoutingFlagsMock(routingFlags);
-    return {
-      mutateAsync: reviewMutateAsyncMock,
-      isPending: false,
-    };
-  },
+  useSubmitStudyReview: () => ({
+    mutateAsync: reviewMutateAsyncMock,
+    isPending: false,
+  }),
   useStudyCardAction: () => ({
     mutateAsync: cardActionMutateAsyncMock,
     isPending: false,
@@ -62,24 +46,14 @@ vi.mock('../useStudy', () => ({
     isPending: false,
     error: null,
   }),
-  useRegenerateStudyAnswerAudio: (routingFlags: unknown) => {
-    regenerateRoutingFlagsMock(routingFlags);
-    return {
-      mutateAsync: regenerateStudyAnswerAudioMock,
-      isPending: false,
-      error: null,
-    };
-  },
+  useRegenerateStudyAnswerAudio: () => ({
+    mutateAsync: regenerateStudyAnswerAudioMock,
+    isPending: false,
+    error: null,
+  }),
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   undoStudyReview: undoStudyReviewMock,
-}));
-
-vi.mock('../useFeatureFlags', () => ({
-  useFeatureFlags: () => ({
-    flags: reviewFlagsState.current,
-    isLoading: reviewFlagsState.isLoading,
-  }),
 }));
 
 vi.mock('../../lib/audioCache', () => ({
@@ -174,10 +148,6 @@ describe('useStudyReviewSession', () => {
     deleteStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
     warmAudioCacheMock.mockReset();
-    reviewRoutingFlagsMock.mockReset();
-    regenerateRoutingFlagsMock.mockReset();
-    reviewFlagsState.current = reviewFlags;
-    reviewFlagsState.isLoading = false;
     warmAudioCacheMock.mockResolvedValue(undefined);
 
     startStudySessionMock.mockResolvedValue({
@@ -346,83 +316,11 @@ describe('useStudyReviewSession', () => {
 
     expect(result.current.currentCard?.id).toBe('card-1');
     expect(result.current.revealed).toBe(true);
-    expect(startStudySessionMock).toHaveBeenCalledWith(reviewFlags);
+    expect(startStudySessionMock).toHaveBeenCalledWith();
     expect(undoStudyReviewMock).toHaveBeenCalledWith(
       'review-log-1',
-      expect.objectContaining({ reviewCount: 2 }),
-      reviewFlags
+      expect.objectContaining({ reviewCount: 2 })
     );
-  });
-
-  it('pins review and undo routing when live feature flags change mid-session', async () => {
-    const { result, rerender } = renderHook(() => useStudyReviewSession(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.enterFocusMode();
-    });
-
-    reviewFlagsState.current = { studyApiEnabled: false, studyApiReview: false };
-    rerender();
-
-    expect(startStudySessionMock).toHaveBeenCalledWith(reviewFlags);
-    expect(reviewRoutingFlagsMock).toHaveBeenLastCalledWith(reviewFlags);
-    expect(regenerateRoutingFlagsMock).toHaveBeenLastCalledWith(reviewFlags);
-
-    act(() => result.current.revealCurrentCard());
-    await waitFor(() =>
-      expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1', reviewFlags)
-    );
-    await act(async () => result.current.handleGrade('good'));
-    await act(async () => result.current.handleUndo());
-
-    expect(undoStudyReviewMock).toHaveBeenCalledWith(
-      'review-log-1',
-      expect.any(Object),
-      reviewFlags
-    );
-  });
-
-  it('keeps a fail-open legacy session pinned when feature flags arrive later', async () => {
-    reviewFlagsState.current = undefined;
-    const { result, rerender } = renderHook(() => useStudyReviewSession(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.enterFocusMode();
-    });
-
-    reviewFlagsState.current = reviewFlags;
-    rerender();
-
-    expect(startStudySessionMock).toHaveBeenCalledWith(undefined);
-    expect(reviewRoutingFlagsMock).toHaveBeenLastCalledWith(null);
-    expect(regenerateRoutingFlagsMock).toHaveBeenLastCalledWith(null);
-
-    act(() => result.current.revealCurrentCard());
-    await waitFor(() =>
-      expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1', undefined)
-    );
-    await act(async () => result.current.handleGrade('good'));
-    await act(async () => result.current.handleUndo());
-
-    expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-1', expect.any(Object), undefined);
-  });
-
-  it('does not start a session while feature-flag routing is loading', async () => {
-    reviewFlagsState.current = undefined;
-    reviewFlagsState.isLoading = true;
-    const { result } = renderHook(() => useStudyReviewSession(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => result.current.enterFocusMode());
-
-    expect(startStudySessionMock).not.toHaveBeenCalled();
-    expect(result.current.focusMode).toBe(false);
-    expect(result.current.sessionError).toBe('Study routing is still loading. Please try again.');
   });
 
   it('advances without retrying when a committed review loses its card refetch race', async () => {
@@ -459,11 +357,7 @@ describe('useStudyReviewSession', () => {
     await act(async () => {
       await result.current.handleUndo();
     });
-    expect(undoStudyReviewMock).toHaveBeenCalledWith(
-      'review-log-committed',
-      expect.any(Object),
-      reviewFlags
-    );
+    expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-committed', expect.any(Object));
   });
 
   it('counts only current new queue-state cards as new in the focus header', async () => {

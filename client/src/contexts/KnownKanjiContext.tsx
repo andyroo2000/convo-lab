@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 
-import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useKnownKanji, useSyncWaniKani } from '../hooks/useKnownKanji';
 
 const AUTO_SYNC_AFTER_MS = 15 * 60 * 1000;
@@ -28,13 +27,12 @@ export const KnownKanjiContextProvider = ({
 export const KnownKanjiProvider = ({ children }: { children: ReactNode }) => {
   const query = useKnownKanji();
   const sync = useSyncWaniKani();
-  const { flags } = useFeatureFlags();
   const lastSyncedAt = query.data?.wanikani.lastSyncedAt ?? null;
   const connected = query.data?.wanikani.connected ?? false;
   const mutateSync = sync.mutate;
 
   useEffect(() => {
-    if (!flags?.studyApiSettingsWrite || !connected) return undefined;
+    if (!connected) return undefined;
 
     let disposed = false;
     let timeout: ReturnType<typeof setTimeout>;
@@ -55,14 +53,14 @@ export const KnownKanjiProvider = ({ children }: { children: ReactNode }) => {
       disposed = true;
       clearTimeout(timeout);
     };
-  }, [connected, flags?.studyApiSettingsWrite, lastSyncedAt, mutateSync]);
+  }, [connected, lastSyncedAt, mutateSync]);
 
   const value = useMemo<KnownKanjiContextValue>(
     () => ({
-      active: query.enabled && query.isSuccess,
+      active: query.isSuccess,
       knownKanji: new Set(query.data?.kanji ?? []),
     }),
-    [query.data?.kanji, query.enabled, query.isSuccess]
+    [query.data?.kanji, query.isSuccess]
   );
 
   return <KnownKanjiContextProvider {...value}>{children}</KnownKanjiContextProvider>;
