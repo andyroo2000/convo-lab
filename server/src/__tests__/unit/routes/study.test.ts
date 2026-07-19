@@ -27,13 +27,11 @@ import { mockPrisma } from '../../setup.js';
 
 const {
   createRedisConnectionMock,
-  createStudyVocabBundleDraftsMock,
   execMock,
   createManualCardDraftMock,
   createStudyCardFromManualDraftMock,
   deleteManualCardDraftMock,
   enqueueStudyManualCardDraftJobMock,
-  enqueueStudyVocabBundleDraftJobMock,
   expireAtMock,
   getStudyMediaAccessMock,
   listManualCardDraftsMock,
@@ -43,13 +41,11 @@ const {
   updateManualCardDraftMock,
 } = vi.hoisted(() => ({
   createRedisConnectionMock: vi.fn(),
-  createStudyVocabBundleDraftsMock: vi.fn(),
   execMock: vi.fn(),
   createManualCardDraftMock: vi.fn(),
   createStudyCardFromManualDraftMock: vi.fn(),
   deleteManualCardDraftMock: vi.fn(),
   enqueueStudyManualCardDraftJobMock: vi.fn(),
-  enqueueStudyVocabBundleDraftJobMock: vi.fn(),
   expireAtMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
   listManualCardDraftsMock: vi.fn(),
@@ -70,7 +66,6 @@ vi.mock('../../../middleware/auth.js', () => ({
 vi.mock('../../../services/studyService.js', () => ({
   createManualCardDraft: createManualCardDraftMock,
   createStudyCardFromManualDraft: createStudyCardFromManualDraftMock,
-  createStudyVocabBundleDrafts: createStudyVocabBundleDraftsMock,
   deleteManualCardDraft: deleteManualCardDraftMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
   listManualCardDrafts: listManualCardDraftsMock,
@@ -85,10 +80,6 @@ vi.mock('../../../config/redis.js', () => ({
 
 vi.mock('../../../jobs/studyManualCardDraftQueue.js', () => ({
   enqueueStudyManualCardDraftJob: enqueueStudyManualCardDraftJobMock,
-}));
-
-vi.mock('../../../jobs/studyVocabBundleDraftQueue.js', () => ({
-  enqueueStudyVocabBundleDraftJob: enqueueStudyVocabBundleDraftJobMock,
 }));
 
 vi.mock('../../../services/workerTrigger.js', () => ({
@@ -117,12 +108,10 @@ describe('Study Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    createStudyVocabBundleDraftsMock.mockReset();
     createManualCardDraftMock.mockReset();
     createStudyCardFromManualDraftMock.mockReset();
     deleteManualCardDraftMock.mockReset();
     enqueueStudyManualCardDraftJobMock.mockReset();
-    enqueueStudyVocabBundleDraftJobMock.mockReset();
     listManualCardDraftsMock.mockReset();
     resetManualCardDraftForRetryMock.mockReset();
     triggerWorkerJobMock.mockReset();
@@ -215,38 +204,6 @@ describe('Study Routes', () => {
     vi.useRealTimers();
     process.env = originalEnv;
     resetBrowserRuntimeTestState();
-  });
-
-  it('queues generated vocab bundles as async manual drafts', async () => {
-    createStudyVocabBundleDraftsMock.mockResolvedValue({
-      groupId: 'group-1',
-      drafts: [{ id: 'draft-1', status: 'generating' }],
-    });
-    enqueueStudyVocabBundleDraftJobMock.mockResolvedValue(undefined);
-    triggerWorkerJobMock.mockResolvedValue(undefined);
-
-    const response = await withMutationCsrf(
-      request(app).post('/study/card-candidates/vocab-bundle/drafts')
-    ).send({
-      targetWord: ' 営業する ',
-      sourceSentence: ' 営業の仕事は楽しいです。 ',
-      context: ' Business chapter ',
-      includeLearnerContext: false,
-    });
-
-    expect(response.status).toBe(201);
-    expect(response.body.groupId).toBe('group-1');
-    expect(createStudyVocabBundleDraftsMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      request: {
-        targetWord: ' 営業する ',
-        sourceSentence: ' 営業の仕事は楽しいです。 ',
-        context: ' Business chapter ',
-        includeLearnerContext: false,
-      },
-    });
-    expect(enqueueStudyVocabBundleDraftJobMock).toHaveBeenCalledWith('group-1');
-    expect(triggerWorkerJobMock).toHaveBeenCalled();
   });
 
   it('creates a manual card draft, enqueues completion, and returns immediately', async () => {
@@ -508,6 +465,7 @@ describe('Study Routes', () => {
     ['post', '/study/cards/draft/complete'],
     ['post', '/study/cards/draft/image'],
     ['post', '/study/card-candidates/commit'],
+    ['post', '/study/card-candidates/vocab-bundle/drafts'],
     ['post', '/study/imports'],
     ['post', '/study/imports/import-1/complete'],
     ['post', '/study/imports/import-1/cancel'],

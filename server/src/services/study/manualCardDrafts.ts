@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import type {
   StudyCardCreationKind,
   StudyCardImagePlacement,
@@ -13,7 +11,6 @@ import type {
   StudyVocabVariantKind,
   StudyVocabVariantStatus,
 } from '@languageflow/shared/src/types.js';
-import { Prisma } from '@prisma/client';
 
 import { prisma } from '../../db/client.js';
 import { AppError } from '../../middleware/errorHandler.js';
@@ -82,17 +79,6 @@ export interface StudyManualCardDraftListResult {
   limit: number;
   nextCursor: string | null;
 }
-
-export interface GeneratingManualCardDraftInput extends StudyManualCardDraftCreateRequest {
-  variantGroupId?: string | null;
-  variantSentenceId?: string | null;
-  variantKind?: StudyVocabVariantKind | null;
-  variantStage?: number | null;
-  variantStatus?: StudyVocabVariantStatus | null;
-  variantUnlockedAt?: Date | null;
-}
-
-type ManualCardDraftTx = Prisma.TransactionClient;
 
 function parseDraftStatus(value: string): StudyManualCardDraftStatus {
   if (STUDY_MANUAL_CARD_DRAFT_STATUSES.has(value as StudyManualCardDraftStatus)) {
@@ -303,66 +289,6 @@ export async function listManualCardDrafts(
   };
 }
 
-export async function createGeneratingManualCardDraftsInTransaction(input: {
-  tx: ManualCardDraftTx;
-  userId: string;
-  drafts: GeneratingManualCardDraftInput[];
-}): Promise<StudyManualCardDraft[]> {
-  if (input.drafts.length === 0) return [];
-
-  const normalizedDrafts = input.drafts.map((requestedDraft) => {
-    const creationKind = parseCreationKind(requestedDraft.creationKind);
-    const requestedCardType = parseCardType(requestedDraft.cardType);
-    const cardType = cardTypeForStudyCardCreationKind(creationKind);
-    validateCreationKindAndCardType({ creationKind, cardType: requestedCardType });
-    return {
-      id: randomUUID(),
-      userId: input.userId,
-      status: 'generating',
-      creationKind,
-      cardType,
-      promptJson: toPrismaJson(requestedDraft.prompt),
-      answerJson: toPrismaJson(requestedDraft.answer),
-      imagePlacement: parseImagePlacement(requestedDraft.imagePlacement ?? 'none'),
-      imagePrompt: requestedDraft.imagePrompt?.trim() || null,
-      previewAudioJson: toNullablePrismaJson(null),
-      previewAudioRole: null,
-      previewImageJson: toNullablePrismaJson(null),
-      variantGroupId: requestedDraft.variantGroupId ?? null,
-      variantSentenceId: requestedDraft.variantSentenceId ?? null,
-      variantKind: requestedDraft.variantKind ?? null,
-      variantStage: requestedDraft.variantStage ?? null,
-      variantStatus: requestedDraft.variantStatus ?? null,
-      variantUnlockedAt: requestedDraft.variantUnlockedAt ?? null,
-      errorMessage: null,
-    };
-  });
-
-  const existingDraftCount = await input.tx.studyCardDraft.count({
-    where: { userId: input.userId },
-  });
-  if (existingDraftCount + normalizedDrafts.length > MAX_MANUAL_CARD_DRAFTS_PER_USER) {
-    throw new AppError('Draft queue is full. Delete some drafts before adding more.', 409);
-  }
-
-  await input.tx.studyCardDraft.createMany({ data: normalizedDrafts });
-  const createdRecords = await input.tx.studyCardDraft.findMany({
-    where: { id: { in: normalizedDrafts.map((draft) => draft.id) }, userId: input.userId },
-  });
-  const recordsById = new Map(
-    createdRecords.map((draft) => [draft.id, draft as StudyManualCardDraftRecord])
-  );
-  const created = normalizedDrafts.map((draft) => {
-    const record = recordsById.get(draft.id);
-    if (!record) {
-      throw new Error('Created study card draft could not be reloaded.');
-    }
-    return record;
-  });
-
-  return created.map((draft) => toManualCardDraft(draft));
-}
-
 export async function createManualCardDraft(input: {
   userId: string;
   request: StudyManualCardDraftCreateRequest;
@@ -479,47 +405,6 @@ export async function markManualCardDraftError(input: {
   });
 
   return toManualCardDraft(updated as StudyManualCardDraftRecord);
-}
-
-export async function markManualCardDraftsForVariantGroupError(input: {
-  userId: string;
-  variantGroupId: string;
-  errorMessage: string;
-}): Promise<StudyManualCardDraft[]> {
-  const drafts = await prisma.$transaction(async (tx) => {
-    const generatingDrafts = await tx.studyCardDraft.findMany({
-      where: {
-        userId: input.userId,
-        variantGroupId: input.variantGroupId,
-        status: 'generating',
-      },
-      select: { id: true },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-    const draftIds = generatingDrafts.map((draft) => draft.id);
-    if (draftIds.length === 0) return [];
-
-    await tx.studyCardDraft.updateMany({
-      where: {
-        userId: input.userId,
-        id: { in: draftIds },
-      },
-      data: {
-        status: 'error',
-        errorMessage: input.errorMessage,
-      },
-    });
-
-    return tx.studyCardDraft.findMany({
-      where: {
-        userId: input.userId,
-        id: { in: draftIds },
-      },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-  });
-
-  return drafts.map((draft) => toManualCardDraft(draft as StudyManualCardDraftRecord));
 }
 
 export async function deleteManualCardDraft(input: {

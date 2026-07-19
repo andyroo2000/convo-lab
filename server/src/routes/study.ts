@@ -13,12 +13,10 @@ import type {
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
-  StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types.js';
 import { Router } from 'express';
 
 import { enqueueStudyManualCardDraftJob } from '../jobs/studyManualCardDraftQueue.js';
-import { enqueueStudyVocabBundleDraftJob } from '../jobs/studyVocabBundleDraftQueue.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
@@ -31,13 +29,11 @@ import {
 } from '../services/study/shared.js';
 import {
   getStudyMediaAccess,
-  createStudyVocabBundleDrafts,
   createManualCardDraft,
   createStudyCardFromManualDraft,
   deleteManualCardDraft,
   listManualCardDrafts,
   markManualCardDraftError,
-  markManualCardDraftsForVariantGroupError,
   resetManualCardDraftForRetry,
   updateManualCardDraft,
 } from '../services/studyService.js';
@@ -48,8 +44,6 @@ const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
 const STUDY_QUERY_PARAM_MAX_LENGTH = 200;
 const MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE =
   'Could not queue draft generation. Please retry this draft.';
-const VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE =
-  'Could not queue vocab bundle generation. Please retry these drafts.';
 
 async function enqueueOrMarkDraftError<T>(input: {
   enqueue: () => Promise<unknown>;
@@ -617,71 +611,6 @@ function parseStudyCardCandidatePreviewRole(value: unknown): 'prompt' | 'answer'
 
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
-
-// Candidate routes intentionally rely on the global flashcardsEnabled gate above;
-// no separate rollout flag is needed for this flashcards-only surface.
-router.post(
-  '/card-candidates/vocab-bundle/drafts',
-  rateLimitStudyRoute({ key: 'vocab-bundle-drafts', max: 20, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-      const userId = req.userId;
-
-      const body = req.body as Partial<StudyVocabBundleGenerateRequest>;
-      if (typeof body.targetWord !== 'string') {
-        throw new AppError('targetWord is required.', 400);
-      }
-      if (
-        typeof body.sourceSentence !== 'undefined' &&
-        body.sourceSentence !== null &&
-        typeof body.sourceSentence !== 'string'
-      ) {
-        throw new AppError('sourceSentence must be a string or null.', 400);
-      }
-      if (
-        typeof body.context !== 'undefined' &&
-        body.context !== null &&
-        typeof body.context !== 'string'
-      ) {
-        throw new AppError('context must be a string or null.', 400);
-      }
-
-      const result = await createStudyVocabBundleDrafts({
-        userId,
-        request: {
-          targetWord: body.targetWord,
-          sourceSentence: body.sourceSentence ?? null,
-          context: body.context ?? null,
-          includeLearnerContext:
-            typeof body.includeLearnerContext === 'boolean' ? body.includeLearnerContext : true,
-        },
-      });
-      const enqueueResult = await enqueueOrMarkDraftError({
-        enqueue: () => enqueueStudyVocabBundleDraftJob(result.groupId),
-        markError: () =>
-          markManualCardDraftsForVariantGroupError({
-            userId,
-            variantGroupId: result.groupId,
-            errorMessage: VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE,
-          }),
-        enqueueLogMessage: 'Failed to enqueue study vocab bundle draft job:',
-        markErrorLogMessage: 'Failed to mark study vocab bundle drafts as error:',
-      });
-      if (enqueueResult.queued === false) {
-        res.status(201).json({ ...result, drafts: enqueueResult.result });
-        return;
-      }
-      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
-
-      res.status(201).json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 router.post(
   '/card-drafts',
