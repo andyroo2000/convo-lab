@@ -16,6 +16,11 @@ on:
         required: true
         default: false
         type: boolean
+      import_historical_media:
+        description: 'Snapshot ConvoLab and import its verified GCS study media'
+        required: true
+        default: false
+        type: boolean
       enable_settings:
         description: 'Desired state for the Learning OS settings read route'
         required: true
@@ -105,6 +110,7 @@ jobs:
           IMAGE_TAG: ${{ inputs.image_tag }}
           SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
           REBUILD_DATABASE: ${{ inputs.rebuild_database }}
+          IMPORT_HISTORICAL_MEDIA: ${{ inputs.import_historical_media }}
           ENABLE_SETTINGS: ${{ inputs.enable_settings }}
           ENABLE_OVERVIEW: ${{ inputs.enable_overview }}
           ENABLE_BROWSER: ${{ inputs.enable_browser }}
@@ -137,6 +143,7 @@ jobs:
           }
 
           validate_boolean_input rebuild_database "$REBUILD_DATABASE"
+          validate_boolean_input import_historical_media "$IMPORT_HISTORICAL_MEDIA"
           validate_boolean_input enable_settings "$ENABLE_SETTINGS"
           validate_boolean_input enable_overview "$ENABLE_OVERVIEW"
           validate_boolean_input enable_browser "$ENABLE_BROWSER"
@@ -171,6 +178,7 @@ jobs:
           IMAGE_TAG: ${{ inputs.image_tag }}
           SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
           REBUILD_DATABASE: ${{ inputs.rebuild_database }}
+          IMPORT_HISTORICAL_MEDIA: ${{ inputs.import_historical_media }}
           ENABLE_SETTINGS: ${{ inputs.enable_settings }}
           ENABLE_OVERVIEW: ${{ inputs.enable_overview }}
           ENABLE_BROWSER: ${{ inputs.enable_browser }}
@@ -191,8 +199,8 @@ jobs:
           DEPLOY_GITHUB_ACTOR: ${{ github.actor }}
         run: |
           printf -v REMOTE_ENV \
-            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_BROWSER_DETAIL=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q ENABLE_REVIEW=%q ENABLE_CARD_WRITES=%q ENABLE_CARD_DRAFTS=%q ENABLE_MEDIA=%q ENABLE_DAILY_AUDIO=%q ENABLE_IMPORTS=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q' \
-            "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$ENABLE_SETTINGS" \
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q IMPORT_HISTORICAL_MEDIA=%q ENABLE_SETTINGS=%q ENABLE_OVERVIEW=%q ENABLE_BROWSER=%q ENABLE_BROWSER_DETAIL=%q ENABLE_NEW_QUEUE=%q ENABLE_SETTINGS_WRITE=%q ENABLE_NEW_QUEUE_WRITE=%q ENABLE_REVIEW=%q ENABLE_CARD_WRITES=%q ENABLE_CARD_DRAFTS=%q ENABLE_MEDIA=%q ENABLE_DAILY_AUDIO=%q ENABLE_IMPORTS=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q' \
+            "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$IMPORT_HISTORICAL_MEDIA" "$ENABLE_SETTINGS" \
             "$ENABLE_OVERVIEW" "$ENABLE_BROWSER" "$ENABLE_BROWSER_DETAIL" "$ENABLE_NEW_QUEUE" \
             "$ENABLE_SETTINGS_WRITE" "$ENABLE_NEW_QUEUE_WRITE" "$ENABLE_REVIEW" \
             "$ENABLE_CARD_WRITES" "$ENABLE_CARD_DRAFTS" "$ENABLE_MEDIA" "$ENABLE_DAILY_AUDIO" \
@@ -218,6 +226,8 @@ jobs:
             TARGET_DB="learning_os"
             KNOWLEDGE_EXPORT_DIR=""
             KNOWLEDGE_CONTAINER_PREFIX="/tmp/convolab-learning-os-knowledge"
+            MEDIA_EXPORT_DIR=""
+            SOURCE_DATABASE_CREATED=false
             DRAINING_WORKER_CONTAINER_ID=""
             NEW_PROXY_TOKEN_ID=""
             PROXY_TOKEN_CUTOVER_STARTED=false
@@ -235,8 +245,26 @@ jobs:
                 "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv" 2>/dev/null || true
             }
 
+            cleanup_media_export() {
+              if [ -n "$MEDIA_EXPORT_DIR" ]; then
+                rm -rf "$MEDIA_EXPORT_DIR"
+                MEDIA_EXPORT_DIR=""
+              fi
+            }
+
+            cleanup_media_import_resources() {
+              cleanup_media_export
+              if [ "$SOURCE_DATABASE_CREATED" = true ]; then
+                postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+                docker exec convolab-postgres dropdb \
+                  --username="$postgres_user" --if-exists "$SOURCE_DB" 2>/dev/null || true
+                SOURCE_DATABASE_CREATED=false
+              fi
+            }
+
             cleanup_deployment_resources() {
               cleanup_knowledge_exports
+              cleanup_media_import_resources
 
               if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then
                 echo "Removing the unused Learning OS proxy token."
@@ -316,6 +344,98 @@ jobs:
 
               docker logs --tail=200 "$container" || true
               return 1
+            }
+
+            restore_convolab_source_copy() {
+              mkdir -p "$BACKUP_DIR"
+              chmod 700 "$BACKUP_DIR"
+              timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+              source_dump="$BACKUP_DIR/convolab-before-media-import-$timestamp.dump"
+              postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+              postgres_database="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
+
+              echo "Creating immutable ConvoLab media source backup: $source_dump"
+              docker exec convolab-postgres pg_dump \
+                --username="$postgres_user" \
+                --dbname="$postgres_database" \
+                --format=custom --no-owner --no-acl > "$source_dump"
+              chmod 600 "$source_dump"
+              test -s "$source_dump"
+
+              docker exec convolab-postgres dropdb \
+                --username="$postgres_user" --if-exists "$SOURCE_DB"
+              docker exec convolab-postgres createdb \
+                --username="$postgres_user" "$SOURCE_DB"
+              SOURCE_DATABASE_CREATED=true
+              docker exec -i convolab-postgres pg_restore \
+                --username="$postgres_user" --dbname="$SOURCE_DB" \
+                --no-owner --no-acl < "$source_dump"
+            }
+
+            import_historical_media() {
+              postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+              timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+              target_dump="$BACKUP_DIR/learning-os-before-media-import-$timestamp.dump"
+              mkdir -p "$BACKUP_DIR"
+              chmod 700 "$BACKUP_DIR"
+
+              echo "Creating immutable Learning OS media import backup: $target_dump"
+              docker exec convolab-postgres pg_dump \
+                --username="$postgres_user" --dbname="$TARGET_DB" \
+                --format=custom --no-owner --no-acl > "$target_dump"
+              chmod 600 "$target_dump"
+              test -s "$target_dump"
+
+              mkdir -p "$RUNTIME_DIR"
+              chmod 700 "$RUNTIME_DIR"
+              MEDIA_EXPORT_DIR="$(mktemp -d "$RUNTIME_DIR/convolab-media-import.XXXXXX")"
+              chmod 700 "$MEDIA_EXPORT_DIR"
+              media_manifest="$MEDIA_EXPORT_DIR/manifest.json"
+              media_files="$MEDIA_EXPORT_DIR/files"
+
+              invalid_media_path_count="$(docker exec convolab-postgres psql \
+                --username="$postgres_user" --dbname="$SOURCE_DB" \
+                --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+                --command='SELECT count(*) FROM study_media WHERE "storagePath" IS NULL OR length(btrim("storagePath")) = 0' | tr -d '[:space:]')"
+              if [ "$invalid_media_path_count" != 0 ]; then
+                echo "ConvoLab has $invalid_media_path_count media rows without storage paths." >&2
+                return 1
+              fi
+
+              docker exec convolab-postgres psql \
+                --username="$postgres_user" --dbname="$SOURCE_DB" \
+                --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+                --command='
+                  SELECT coalesce(
+                    json_agg(paths.storage_path ORDER BY paths.storage_path),
+                    json_build_array()
+                  )
+                  FROM (
+                    SELECT DISTINCT "storagePath" AS storage_path
+                    FROM study_media
+                  ) AS paths;
+                ' > "$media_manifest"
+              chmod 600 "$media_manifest"
+
+              $COMPOSE run --rm -T --no-deps \
+                --volume "$MEDIA_EXPORT_DIR:/export" \
+                server-blue \
+                node scripts/export-convolab-study-media.mjs \
+                --manifest /export/manifest.json \
+                --output-root /export/files \
+                --concurrency 8 < /dev/null
+
+              $COMPOSE run --rm -T --no-deps \
+                --volume "$media_files:/tmp/convolab-media:ro" \
+                learning-os \
+                php artisan migration:import-convolab-media \
+                --source-database="$SOURCE_DB" \
+                --source-media-root=/tmp/convolab-media \
+                --allow-production \
+                --production-confirmation="IMPORT MEDIA INTO $TARGET_DB" < /dev/null
+
+              cleanup_media_export
+              echo "Verified ConvoLab historical media import completed."
             }
 
             upsert_env LEARNING_OS_IMAGE_TAG "$IMAGE_TAG"
@@ -447,6 +567,7 @@ jobs:
               docker exec convolab-postgres dropdb --username="$postgres_user" --if-exists "$SOURCE_DB"
               docker exec convolab-postgres dropdb --username="$postgres_user" --if-exists "$TARGET_DB"
               docker exec convolab-postgres createdb --username="$postgres_user" "$SOURCE_DB"
+              SOURCE_DATABASE_CREATED=true
               docker exec convolab-postgres createdb --username="$postgres_user" "$TARGET_DB"
               docker exec -i convolab-postgres pg_restore \
                 --username="$postgres_user" --dbname="$SOURCE_DB" \
@@ -631,9 +752,26 @@ jobs:
                 --allow-production \
                 --json < /dev/null
 
+              if [ "$IMPORT_HISTORICAL_MEDIA" = true ]; then
+                import_historical_media
+              fi
+
               docker exec convolab-postgres dropdb --username="$postgres_user" "$SOURCE_DB"
+              SOURCE_DATABASE_CREATED=false
             else
               $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
+
+              if [ "$IMPORT_HISTORICAL_MEDIA" = true ]; then
+                restore_convolab_source_copy
+                import_historical_media
+                docker exec convolab-postgres dropdb --username="$postgres_user" "$SOURCE_DB"
+                SOURCE_DATABASE_CREATED=false
+                $COMPOSE run --rm -T --no-deps learning-os \
+                  php artisan rehearsal:smoke \
+                  --user-email="$SMOKE_USER_EMAIL" \
+                  --allow-production \
+                  --json < /dev/null
+              fi
             fi
 
             proxy_token_output="$($COMPOSE run --rm -T --no-deps \
