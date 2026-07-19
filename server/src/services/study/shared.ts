@@ -1,19 +1,15 @@
 export type {
   CreateStudyCardInput,
   JsonRecord,
-  ParsedImportDataset,
   StudyCardWithRelations,
   RegenerateStudyCardAnswerAudioInput,
-  StudyImportErrorWithMedia,
   StudyImportJobRecord,
   StudyMediaAccessResult,
   StudyMediaRecord,
   StudyReviewLogRecord,
   UpdateStudyCardInput,
   PerformStudyCardActionInput,
-  ParsedAnkiMediaRecord,
   PersistedStudyMediaRecord,
-  StudyImportWarningAccumulator,
 } from './shared/types.js';
 
 export {
@@ -42,7 +38,6 @@ export {
   toBigIntOrNull,
   toNullablePrismaJson,
   toPrismaJson,
-  toSafeStudyImportError,
 } from './shared/guards.js';
 
 export {
@@ -79,11 +74,8 @@ export {
 } from './shared/paths.js';
 
 export {
-  createStudyImportWarningAccumulator,
-  recordStudyImportWarning,
   toBoundedReviewRawPayload,
   toConvolabReviewRawPayload,
-  toImportReviewRawPayload,
   toStudyFsrsState,
   toStudyImportPreview,
   toStudyReviewEvent,
@@ -103,9 +95,7 @@ export {
 export {
   buildStudyCardSearchText,
   buildStudyNoteSearchText,
-  getSqlJs,
   normalizeClozePayload,
-  parseColpkgUpload,
 } from './shared/importHelpers.js';
 
 export {
