@@ -49,6 +49,7 @@ test('exports valid media and records missing GCS objects', async () => {
       await writeFile(
         manifestPath,
         JSON.stringify([
+          'daily-audio-practice/practice/missing.mp3',
           'study-media/user/missing.mp3',
           'study-media/user/present.mp3',
         ])
@@ -57,6 +58,10 @@ test('exports valid media and records missing GCS objects', async () => {
       const result = await exportStudyMedia({
         bucket: fakeBucket(
           new Map([
+            [
+              'daily-audio-practice/practice/missing.mp3',
+              missingError,
+            ],
             ['study-media/user/missing.mp3', missingError],
             ['study-media/user/present.mp3', 'present-bytes'],
           ])
@@ -68,8 +73,9 @@ test('exports valid media and records missing GCS objects', async () => {
       });
 
       assert.equal(result.files, 1);
-      assert.equal(result.missingFiles, 1);
+      assert.equal(result.missingFiles, 2);
       assert.deepEqual(JSON.parse(await readFile(missingManifestPath, 'utf8')), [
+        'daily-audio-practice/practice/missing.mp3',
         'study-media/user/missing.mp3',
       ]);
       assert.equal(

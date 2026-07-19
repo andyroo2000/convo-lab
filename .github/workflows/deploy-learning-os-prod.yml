@@ -383,7 +383,7 @@ jobs:
             }
 
             import_historical_media() {
-              local active_color media_files media_manifest missing_media_count missing_media_manifest postgres_user target_dump timestamp unavailable_media_count
+              local active_color gcs_bucket media_files media_manifest missing_daily_audio_count missing_media_count missing_media_manifest postgres_user target_dump timestamp unavailable_media_count
 
               postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
               active_color=blue
@@ -414,6 +414,14 @@ jobs:
               missing_media_manifest="$MEDIA_EXPORT_DIR/missing.json"
               media_files="$MEDIA_EXPORT_DIR/files"
 
+              gcs_bucket="$($COMPOSE run --rm -T --no-deps \
+                "server-$active_color" \
+                sh -c 'printf "%s" "$GCS_BUCKET_NAME"' < /dev/null)"
+              if ! [[ "$gcs_bucket" =~ ^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$ ]]; then
+                echo "The active ConvoLab server has an invalid GCS bucket name." >&2
+                return 1
+              fi
+
               unavailable_media_count="$(docker exec convolab-postgres psql \
                 --username="$postgres_user" --dbname="$SOURCE_DB" \
                 --tuples-only --no-align --set=ON_ERROR_STOP=1 \
@@ -425,6 +433,7 @@ jobs:
               docker exec convolab-postgres psql \
                 --username="$postgres_user" --dbname="$SOURCE_DB" \
                 --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+                --set=gcs_bucket="$gcs_bucket" \
                 --command='
                   SELECT coalesce(
                     json_agg(paths.storage_path ORDER BY paths.storage_path),
@@ -435,6 +444,26 @@ jobs:
                     FROM study_media
                     WHERE "storagePath" IS NOT NULL
                       AND length(btrim("storagePath")) > 0
+                    UNION
+                    SELECT DISTINCT
+                      CASE
+                        WHEN left(
+                          "audioUrl",
+                          length(
+                            '"'"'https://storage.googleapis.com/'"'"' || :'"'"'gcs_bucket'"'"' || '"'"'/'"'"'
+                          )
+                        ) = '"'"'https://storage.googleapis.com/'"'"' || :'"'"'gcs_bucket'"'"' || '"'"'/'"'"'
+                        THEN substring(
+                          "audioUrl"
+                          FROM length(
+                            '"'"'https://storage.googleapis.com/'"'"' || :'"'"'gcs_bucket'"'"' || '"'"'/'"'"'
+                          ) + 1
+                        )
+                        ELSE "audioUrl"
+                      END AS storage_path
+                    FROM daily_audio_practice_tracks
+                    WHERE status = '"'"'ready'"'"'
+                      AND "audioUrl" IS NOT NULL
                   ) AS paths;
                 ' > "$media_manifest"
               chmod 600 "$media_manifest"
@@ -452,6 +481,21 @@ jobs:
                 "convolab-postgres:$MEDIA_MISSING_MANIFEST_CONTAINER"
               docker exec -u root convolab-postgres chmod 644 \
                 "$MEDIA_MISSING_MANIFEST_CONTAINER"
+              missing_daily_audio_count="$(docker exec convolab-postgres psql \
+                --username="$postgres_user" --dbname="$SOURCE_DB" \
+                --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+                --command="
+                  SELECT count(*)
+                  FROM jsonb_array_elements_text(
+                    pg_read_file('$MEDIA_MISSING_MANIFEST_CONTAINER')::jsonb
+                  ) AS missing(storage_path)
+                  WHERE storage_path LIKE 'daily-audio-practice/%';
+                " | tr -d '[:space:]')"
+              if [ "$missing_daily_audio_count" != 0 ]; then
+                echo "Missing $missing_daily_audio_count historical Daily Audio GCS objects." >&2
+                return 1
+              fi
+
               missing_media_count="$(docker exec convolab-postgres psql \
                 --username="$postgres_user" --dbname="$SOURCE_DB" \
                 --tuples-only --no-align --set=ON_ERROR_STOP=1 \
@@ -486,8 +530,18 @@ jobs:
                 --allow-production \
                 --production-confirmation="IMPORT MEDIA INTO $TARGET_DB" < /dev/null
 
+              $COMPOSE run --rm -T --no-deps \
+                --volume "$media_files:/tmp/convolab-media:ro" \
+                learning-os \
+                php artisan migration:import-convolab-daily-audio \
+                --source-database="$SOURCE_DB" \
+                --source-media-root=/tmp/convolab-media \
+                --source-bucket="$gcs_bucket" \
+                --allow-production \
+                --production-confirmation="IMPORT DAILY AUDIO INTO $TARGET_DB" < /dev/null
+
               cleanup_media_export
-              echo "Verified ConvoLab historical media import completed."
+              echo "Verified ConvoLab historical study and Daily Audio media import completed."
             }
 
             smoke_learning_os() {
@@ -1023,6 +1077,15 @@ jobs:
             media_smoke_id=
             media_smoke_body=
             media_smoke_headers=
+            daily_audio_smoke_body=
+            daily_audio_smoke_headers=
+
+            cleanup_daily_audio_smoke() {
+              [ -z "${daily_audio_smoke_body:-}" ] || rm -f "$daily_audio_smoke_body"
+              [ -z "${daily_audio_smoke_headers:-}" ] || rm -f "$daily_audio_smoke_headers"
+              daily_audio_smoke_body=
+              daily_audio_smoke_headers=
+            }
 
             cleanup_media_smoke() {
               [ -z "${media_smoke_body:-}" ] || rm -f "$media_smoke_body"
@@ -1058,6 +1121,7 @@ jobs:
                   "/api/learning-os/study/card-drafts/$card_draft_smoke_id" \
                   '{}' > /dev/null || true
               fi
+              cleanup_daily_audio_smoke
               cleanup_media_smoke
               if [ "${verification_pending:-false}" = true ]; then
                 rollback_study_flags
@@ -1191,7 +1255,7 @@ jobs:
                 local legacy_response
                 local proxy_response
                 case "$comparison_mode" in
-                  strict|opaque-cursor|overview-state|new-queue-state) ;;
+                  strict|opaque-cursor|overview-state|new-queue-state|daily-audio-media) ;;
                   *) echo "Unknown response comparison mode: $comparison_mode" >&2; return 1 ;;
                 esac
                 legacy_response="$(fetch_read_route "$label legacy" "$legacy_path")"
@@ -1376,7 +1440,8 @@ jobs:
                 compare_read_route \
                   DailyAudioList \
                   '/api/daily-audio-practice' \
-                  '/api/learning-os/study/daily-audio-practice'
+                  '/api/learning-os/study/daily-audio-practice' \
+                  daily-audio-media
 
                 daily_audio_list="$(
                   fetch_read_route 'Daily Audio practice lookup' '/api/daily-audio-practice'
@@ -1386,7 +1451,13 @@ jobs:
                   "convolab-server-$active_color" node --input-type=module --eval='
                     const practices = JSON.parse(process.env.DAILY_AUDIO_RESPONSE);
                     if (!Array.isArray(practices)) process.exit(1);
-                    const id = practices[0]?.id;
+                    const practice = practices.find((value) =>
+                      Array.isArray(value?.tracks) &&
+                      value.tracks.some((track) =>
+                        track?.status === "ready" && typeof track.audioUrl === "string"
+                      )
+                    );
+                    const id = practice?.id;
                     if (id === undefined) process.exit(0);
                     if (
                       typeof id !== "string" ||
@@ -1395,30 +1466,68 @@ jobs:
                     process.stdout.write(id);
                   ')"
 
-                if [ -n "$daily_audio_id" ]; then
-                  compare_read_route \
-                    DailyAudioDetail \
-                    "/api/daily-audio-practice/$daily_audio_id" \
-                    "/api/learning-os/study/daily-audio-practice/$daily_audio_id"
-
-                  daily_audio_status="$(
-                    fetch_read_route \
-                      'Daily Audio status Learning OS' \
-                      "/api/learning-os/study/daily-audio-practice/$daily_audio_id/status"
-                  )"
-                  docker exec \
-                    -e DAILY_AUDIO_STATUS="$daily_audio_status" \
-                    "convolab-server-$active_color" node --input-type=module --eval='
-                      const response = JSON.parse(process.env.DAILY_AUDIO_STATUS);
-                      const statuses = new Set(["draft", "generating", "ready", "error"]);
-                      if (
-                        typeof response?.id !== "string" ||
-                        !statuses.has(response.status) ||
-                        !(response.progress === null || Number.isInteger(response.progress)) ||
-                        !Array.isArray(response.tracks)
-                      ) process.exit(1);
-                    '
+                if [ -z "$daily_audio_id" ]; then
+                  echo "No historical ready Daily Audio practice is available for streaming verification." >&2
+                  exit 1
                 fi
+
+                compare_read_route \
+                  DailyAudioDetail \
+                  "/api/daily-audio-practice/$daily_audio_id" \
+                  "/api/learning-os/study/daily-audio-practice/$daily_audio_id" \
+                  daily-audio-media
+
+                daily_audio_detail="$(
+                  fetch_read_route \
+                    'Daily Audio historical track lookup' \
+                    "/api/learning-os/study/daily-audio-practice/$daily_audio_id"
+                )"
+                daily_audio_track_url="$(docker exec \
+                  -e DAILY_AUDIO_DETAIL="$daily_audio_detail" \
+                  "convolab-server-$active_color" node --input-type=module --eval='
+                    const practice = JSON.parse(process.env.DAILY_AUDIO_DETAIL);
+                    const track = practice?.tracks?.find((value) =>
+                      value?.status === "ready" && typeof value.audioUrl === "string"
+                    );
+                    const path = track?.audioUrl;
+                    if (
+                      typeof path !== "string" ||
+                      !/^\/api\/learning-os\/study\/daily-audio-practice\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/tracks\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/audio$/.test(path)
+                    ) process.exit(1);
+                    process.stdout.write(path);
+                  ')"
+                daily_audio_smoke_body="$(mktemp)"
+                daily_audio_smoke_headers="$(mktemp)"
+                curl --fail --silent --show-error \
+                  --dump-header "$daily_audio_smoke_headers" \
+                  --output "$daily_audio_smoke_body" \
+                  --cookie "token=$auth_token" \
+                  "https://convo-lab.com$daily_audio_track_url"
+                test -s "$daily_audio_smoke_body"
+                grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$daily_audio_smoke_headers"
+                grep -Eiq "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" "$daily_audio_smoke_headers"
+                grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$daily_audio_smoke_headers"
+                grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$' "$daily_audio_smoke_headers"
+                cleanup_daily_audio_smoke
+                echo "Historical Daily Audio streaming smoke check passed."
+
+                daily_audio_status="$(
+                  fetch_read_route \
+                    'Daily Audio status Learning OS' \
+                    "/api/learning-os/study/daily-audio-practice/$daily_audio_id/status"
+                )"
+                docker exec \
+                  -e DAILY_AUDIO_STATUS="$daily_audio_status" \
+                  "convolab-server-$active_color" node --input-type=module --eval='
+                    const response = JSON.parse(process.env.DAILY_AUDIO_STATUS);
+                    const statuses = new Set(["draft", "generating", "ready", "error"]);
+                    if (
+                      typeof response?.id !== "string" ||
+                      !statuses.has(response.status) ||
+                      !(response.progress === null || Number.isInteger(response.progress)) ||
+                      !Array.isArray(response.tracks)
+                    ) process.exit(1);
+                  '
                 echo "Daily Audio Learning OS read smoke checks passed."
               fi
               if [ "$ENABLE_BROWSER" = true ]; then

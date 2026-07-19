@@ -11,14 +11,19 @@ import {
   validateStoragePaths,
 } from '../../server/scripts/export-convolab-study-media.mjs';
 
-test('normalizes, sorts, and deduplicates safe study media paths', () => {
+test('normalizes, sorts, and deduplicates safe study and Daily Audio paths', () => {
   assert.deepEqual(
     validateStoragePaths([
       'study-media/user-2/image.webp',
+      'daily-audio-practice/practice-1/drill.mp3',
       'study-media/user-1/audio.mp3',
       'study-media/user-2/image.webp',
     ]),
-    ['study-media/user-1/audio.mp3', 'study-media/user-2/image.webp']
+    [
+      'daily-audio-practice/practice-1/drill.mp3',
+      'study-media/user-1/audio.mp3',
+      'study-media/user-2/image.webp',
+    ]
   );
 });
 
@@ -31,6 +36,8 @@ test('rejects unsafe or malformed manifest entries', () => {
     ['study-media/../secret'],
     ['study-media//file.mp3'],
     ['study-media\\file.mp3'],
+    ['daily-audio-practice/../secret.mp3'],
+    ['daily-audio-practice//drill.mp3'],
     ['other-prefix/file.mp3'],
   ]) {
     assert.throws(() => validateStoragePaths(manifest));
@@ -48,6 +55,10 @@ test('validates concurrency and keeps resolved paths inside the export root', ()
     resolveExportPath(root, 'study-media/user/file.mp3'),
     path.join(root, 'study-media/user/file.mp3')
   );
+  assert.equal(
+    resolveExportPath(root, 'daily-audio-practice/practice/drill.mp3'),
+    path.join(root, 'daily-audio-practice/practice/drill.mp3')
+  );
 });
 
 test('exports manifest objects with bounded concurrency and byte accounting', async () => {
@@ -56,6 +67,7 @@ test('exports manifest objects with bounded concurrency and byte accounting', as
   const outputRoot = path.join(directory, 'files');
   const activeDownloads = { current: 0, maximum: 0 };
   const objects = new Map([
+    ['daily-audio-practice/practice/drill.mp3', Buffer.from('drill')],
     ['study-media/user/audio.mp3', Buffer.from('audio')],
     ['study-media/user/image.webp', Buffer.from('image-data')],
   ]);
@@ -95,8 +107,9 @@ test('exports manifest objects with bounded concurrency and byte accounting', as
 
     assert.deepEqual(result, {
       bucket: 'test-bucket',
-      files: 2,
-      bytes: 15,
+      files: 3,
+      missingFiles: 0,
+      bytes: 20,
       outputRoot: await realpath(outputRoot),
     });
     assert.equal(activeDownloads.maximum, 2);
@@ -107,6 +120,13 @@ test('exports manifest objects with bounded concurrency and byte accounting', as
     assert.equal(
       await readFile(path.join(outputRoot, 'study-media/user/image.webp'), 'utf8'),
       'image-data'
+    );
+    assert.equal(
+      await readFile(
+        path.join(outputRoot, 'daily-audio-practice/practice/drill.mp3'),
+        'utf8'
+      ),
+      'drill'
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

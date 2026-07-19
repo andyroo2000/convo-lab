@@ -136,3 +136,86 @@ test('new queue state mode validates independently evolving response shapes', ()
     /total must be a valid non-negative item count/
   );
 });
+
+test('daily audio media mode ignores authenticated URL ownership but keeps other fields strict', () => {
+  const practice = {
+    id: 'practice-1',
+    status: 'ready',
+    tracks: [
+      { id: 'track-1', status: 'ready', audioUrl: 'https://storage.googleapis.com/audio.mp3' },
+      { id: 'track-2', status: 'skipped', audioUrl: null },
+    ],
+  };
+
+  compareResponses(
+    {
+      ...practice,
+      tracks: [
+        {
+          ...practice.tracks[0],
+          audioUrl: '/api/learning-os/study/daily-audio-practice/practice-1/tracks/track-1/audio',
+        },
+        practice.tracks[1],
+      ],
+    },
+    practice,
+    'daily-audio-media'
+  );
+
+  assert.throws(
+    () =>
+      compareResponses(
+        { ...practice, status: 'error' },
+        practice,
+        'daily-audio-media'
+      ),
+    /Differing JSON paths: \$\.status/
+  );
+  assert.throws(
+    () =>
+      normalizeResponse(
+        { ...practice, tracks: [{ ...practice.tracks[0], audioUrl: 42 }] },
+        'daily-audio-media'
+      ),
+    /audioUrl must be null or a string/
+  );
+});
+
+test('daily audio media mode normalizes practice arrays used by the list route', () => {
+  const practices = [
+    {
+      id: 'practice-1',
+      status: 'ready',
+      tracks: [
+        {
+          id: 'track-1',
+          status: 'ready',
+          audioUrl: 'https://storage.googleapis.com/bucket/daily-audio-practice/track-1.mp3',
+        },
+      ],
+    },
+    {
+      id: 'practice-2',
+      status: 'draft',
+      tracks: [{ id: 'track-2', status: 'pending', audioUrl: null }],
+    },
+  ];
+
+  compareResponses(
+    [
+      {
+        ...practices[0],
+        tracks: [
+          {
+            ...practices[0].tracks[0],
+            audioUrl:
+              '/api/learning-os/study/daily-audio-practice/practice-1/tracks/track-1/audio',
+          },
+        ],
+      },
+      practices[1],
+    ],
+    practices,
+    'daily-audio-media'
+  );
+});
