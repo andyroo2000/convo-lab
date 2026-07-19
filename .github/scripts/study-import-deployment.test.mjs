@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import test from 'node:test';
+import YAML from 'yaml';
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
@@ -220,12 +221,13 @@ test('the production workflow snapshots and imports historical GCS media explici
     'Skipping $unavailable_media_count unavailable ConvoLab media rows without storage paths.',
     'gcs_bucket="$($COMPOSE run --rm -T --no-deps',
     'sh -c \'printf "%s" "$GCS_BUCKET_NAME"\'',
+    'expected_audio_prefix="https://storage.googleapis.com/$gcs_bucket/"',
     'json_agg(paths.storage_path ORDER BY paths.storage_path)',
-    'WHERE "storagePath" IS NOT NULL',
-    'AND length(btrim("storagePath")) > 0',
+    'WHERE \\"storagePath\\" IS NOT NULL',
+    'AND length(btrim(\\"storagePath\\")) > 0',
     'FROM daily_audio_practice_tracks',
-    'WHERE status = \'"\'"\'ready\'"\'"\'',
-    'AND "audioUrl" IS NOT NULL',
+    "WHERE status = 'ready'",
+    'AND \\"audioUrl\\" IS NOT NULL',
     '"server-$active_color"',
     'node scripts/export-convolab-study-media.mjs',
     '--missing-manifest /export/missing.json',
@@ -294,6 +296,11 @@ test('the production workflow snapshots and imports historical GCS media explici
   );
   assert.match(mediaImportFunction, /case "\$active_color" in[\s\S]*blue\|green/);
   assert.match(mediaImportFunction, /"server-\$active_color"/);
+  assert.ok(
+    mediaImportFunction.indexOf('if ! [[ "$gcs_bucket" =~') <
+      mediaImportFunction.indexOf('expected_audio_prefix=')
+  );
+  assert.doesNotMatch(mediaImportFunction, /:'gcs_bucket'/);
   assert.doesNotMatch(mediaImportFunction, /\bserver-blue\b/);
   assert.doesNotMatch(
     mediaImportFunction,
@@ -307,6 +314,20 @@ test('the production workflow snapshots and imports historical GCS media explici
     mediaImportFunction.indexOf('migration:import-convolab-media') <
       mediaImportFunction.indexOf('migration:import-convolab-daily-audio')
   );
+});
+
+test('the production deployment step remains valid Bash', async () => {
+  const workflowPath = path.join(
+    repositoryRoot,
+    '.github/workflows/deploy-learning-os-prod.yml'
+  );
+  const workflow = YAML.parse(await readFile(workflowPath, 'utf8'));
+  const deployStep = workflow.jobs.deploy.steps.find(
+    (step) => step.name === 'Deploy Learning OS'
+  );
+
+  assert.equal(typeof deployStep?.run, 'string');
+  await execFileAsync('bash', ['-n', '-c', deployStep.run]);
 });
 
 test('the production workflow migrates and streams Daily Audio before accepting cutover', async () => {

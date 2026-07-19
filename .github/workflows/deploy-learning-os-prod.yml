@@ -421,6 +421,7 @@ jobs:
                 echo "The active ConvoLab server has an invalid GCS bucket name." >&2
                 return 1
               fi
+              expected_audio_prefix="https://storage.googleapis.com/$gcs_bucket/"
 
               unavailable_media_count="$(docker exec convolab-postgres psql \
                 --username="$postgres_user" --dbname="$SOURCE_DB" \
@@ -433,39 +434,34 @@ jobs:
               docker exec convolab-postgres psql \
                 --username="$postgres_user" --dbname="$SOURCE_DB" \
                 --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-                --set=gcs_bucket="$gcs_bucket" \
-                --command='
+                --command="
                   SELECT coalesce(
                     json_agg(paths.storage_path ORDER BY paths.storage_path),
                     json_build_array()
                   )
                   FROM (
-                    SELECT DISTINCT "storagePath" AS storage_path
+                    SELECT DISTINCT \"storagePath\" AS storage_path
                     FROM study_media
-                    WHERE "storagePath" IS NOT NULL
-                      AND length(btrim("storagePath")) > 0
+                    WHERE \"storagePath\" IS NOT NULL
+                      AND length(btrim(\"storagePath\")) > 0
                     UNION
                     SELECT DISTINCT
                       CASE
                         WHEN left(
-                          "audioUrl",
-                          length(
-                            '"'"'https://storage.googleapis.com/'"'"' || :'"'"'gcs_bucket'"'"' || '"'"'/'"'"'
-                          )
-                        ) = '"'"'https://storage.googleapis.com/'"'"' || :'"'"'gcs_bucket'"'"' || '"'"'/'"'"'
+                          \"audioUrl\",
+                          length('$expected_audio_prefix')
+                        ) = '$expected_audio_prefix'
                         THEN substring(
-                          "audioUrl"
-                          FROM length(
-                            '"'"'https://storage.googleapis.com/'"'"' || :'"'"'gcs_bucket'"'"' || '"'"'/'"'"'
-                          ) + 1
+                          \"audioUrl\"
+                          FROM length('$expected_audio_prefix') + 1
                         )
-                        ELSE "audioUrl"
+                        ELSE \"audioUrl\"
                       END AS storage_path
                     FROM daily_audio_practice_tracks
-                    WHERE status = '"'"'ready'"'"'
-                      AND "audioUrl" IS NOT NULL
+                    WHERE status = 'ready'
+                      AND \"audioUrl\" IS NOT NULL
                   ) AS paths;
-                ' > "$media_manifest"
+                " > "$media_manifest"
               chmod 600 "$media_manifest"
 
               $COMPOSE run --rm -T --no-deps \
