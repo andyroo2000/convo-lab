@@ -1549,8 +1549,8 @@ const AdminPage = () => {
                       )}
                       {renderFeatureFlagToggle(
                         'studyApiDailyAudio',
-                        'Daily Audio Reads',
-                        'Load Daily Audio lists, details, and generation status from Learning OS'
+                        'Daily Audio',
+                        'Create, load, monitor, and play Daily Audio practices through Learning OS'
                       )}
                       {renderFeatureFlagToggle(
                         'studyApiImports',

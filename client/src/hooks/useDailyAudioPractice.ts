@@ -48,7 +48,7 @@ function dailyAudioApiSource(flags?: FeatureFlags): 'convo-lab' | 'learning-os' 
   return shouldUseLearningOsDailyAudio(flags) ? 'learning-os' : 'convo-lab';
 }
 
-function readEndpoint(endpoint: string, flags?: FeatureFlags): string {
+function dailyAudioEndpoint(endpoint: string, flags?: FeatureFlags): string {
   if (!shouldUseLearningOsDailyAudio(flags)) {
     return endpoint;
   }
@@ -82,26 +82,26 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
 
 async function fetchRecentDailyAudioPractice(flags?: FeatureFlags) {
   const practices = await apiRequest<DailyAudioPractice[]>(
-    readEndpoint('/api/daily-audio-practice', flags)
+    dailyAudioEndpoint('/api/daily-audio-practice', flags)
   );
   return practices.map((practice) => ({ ...practice, tracks: normalizeTracks(practice.tracks) }));
 }
 
 async function fetchDailyAudioPractice(id: string, flags?: FeatureFlags) {
   const practice = await apiRequest<DailyAudioPractice>(
-    readEndpoint(`/api/daily-audio-practice/${encodeURIComponent(id)}`, flags)
+    dailyAudioEndpoint(`/api/daily-audio-practice/${encodeURIComponent(id)}`, flags)
   );
   return { ...practice, tracks: normalizeTracks(practice.tracks) };
 }
 
 async function fetchDailyAudioPracticeStatus(id: string, flags?: FeatureFlags) {
   return apiRequest<DailyAudioPracticeStatusResponse>(
-    readEndpoint(`/api/daily-audio-practice/${encodeURIComponent(id)}/status`, flags)
+    dailyAudioEndpoint(`/api/daily-audio-practice/${encodeURIComponent(id)}/status`, flags)
   );
 }
 
-async function createDailyAudioPractice() {
-  return apiRequest<DailyAudioPractice>('/api/daily-audio-practice', {
+async function createDailyAudioPractice(flags?: FeatureFlags) {
+  return apiRequest<DailyAudioPractice>(dailyAudioEndpoint('/api/daily-audio-practice', flags), {
     method: 'POST',
     body: JSON.stringify({
       timeZone: getDeviceStudyTimeZone(),
@@ -149,7 +149,7 @@ export function useCreateDailyAudioPractice() {
   const source = dailyAudioApiSource(flags);
 
   return useMutation({
-    mutationFn: createDailyAudioPractice,
+    mutationFn: () => createDailyAudioPractice(flags),
     onSuccess: (practice) => {
       queryClient.setQueryData(dailyAudioPracticeKeys.detail(practice.id, source), {
         ...practice,

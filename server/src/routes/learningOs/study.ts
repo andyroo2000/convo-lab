@@ -29,10 +29,7 @@ import {
 } from '../../services/study/shared/candidates.js';
 import { STUDY_VOCAB_VARIANT_KINDS_BY_STAGE } from '../../services/study/variants/constants.js';
 
-import {
-  adaptDailyAudioReadResponse,
-  type DailyAudioReadResponse,
-} from './dailyAudioReadAdapter.js';
+import { adaptDailyAudioResponse, type DailyAudioResponse } from './dailyAudioAdapter.js';
 import {
   rewriteLearningOsStudyMediaUrl,
   rewriteStudyCardDraftMediaUrls,
@@ -119,6 +116,12 @@ const learningOsStudyMediaRateLimit = rateLimitStudyRoute({
   key: 'learning-os-media-proxy',
   max: 600,
   windowMs: 60 * 1000,
+});
+const learningOsDailyAudioGenerationRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-daily-audio-generation-proxy',
+  max: 10,
+  windowMs: 60 * 60 * 1000,
+  onBackendError: 'fail-closed',
 });
 const learningOsStudyImportRateLimit = rateLimitStudyRoute({
   key: 'learning-os-import-proxy',
@@ -270,7 +273,8 @@ type StudyWriteFeature =
   | 'cardDraftRetry'
   | 'cardDraftCommit'
   | 'cardDraftDelete'
-  | 'cardDraftPreviewMedia';
+  | 'cardDraftPreviewMedia'
+  | 'dailyAudioCreate';
 type StudyWriteBody =
   | 'empty'
   | 'cardCreate'
@@ -289,7 +293,8 @@ type StudyWriteBody =
   | 'session'
   | 'settings'
   | 'importCreate'
-  | 'wanikaniConnection';
+  | 'wanikaniConnection'
+  | 'dailyAudioCreate';
 
 interface StudyProxyRoute {
   method: StudyProxyMethod;
@@ -317,10 +322,20 @@ interface StudyProxyRoute {
     | 'cardDraftPreviewAudio'
     | 'cardDraftPreviewImage'
     | 'vocabBundleDraftCreate'
-    | `dailyAudio:${DailyAudioReadResponse}`;
+    | `dailyAudio:${DailyAudioResponse}`;
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'POST',
+    pattern: /^\/daily-audio-practice$/,
+    featureFlag: 'studyApiDailyAudio',
+    queryParams: new Set(),
+    writeFeature: 'dailyAudioCreate',
+    writeBody: 'dailyAudioCreate',
+    upstreamApiPrefix: '/api',
+    responseAdapter: 'dailyAudio:detail',
+  },
   {
     method: 'GET',
     pattern: /^\/daily-audio-practice$/,
@@ -336,6 +351,18 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     upstreamApiPrefix: '/api',
     responseAdapter: 'dailyAudio:status',
+    normalizeUuidPath: true,
+  },
+  {
+    method: 'GET',
+    pattern: new RegExp(
+      `^/daily-audio-practice/${DAILY_AUDIO_UUID_SEGMENT}/tracks/${DAILY_AUDIO_UUID_SEGMENT}/audio$`,
+      'i'
+    ),
+    featureFlag: 'studyApiDailyAudio',
+    queryParams: new Set(),
+    upstreamApiPrefix: '/api',
+    mediaResponse: true,
     normalizeUuidPath: true,
   },
   {
@@ -1333,6 +1360,40 @@ function adaptImportCreateBody(value: unknown): { filename: string; content_type
   };
 }
 
+function adaptDailyAudioCreateBody(value: unknown): Record<string, unknown> {
+  if (value === undefined) {
+    return {};
+  }
+
+  const body = requestRecord(value);
+  const allowedKeys = new Set(['timeZone', 'targetDurationMinutes']);
+  if (Object.keys(body).some((key) => !allowedKeys.has(key))) {
+    throw new AppError('Daily Audio request contains unsupported fields.', 400);
+  }
+
+  const timeZone = adaptOptionalTimeZone(body);
+  if (timeZone !== undefined && timeZone.length > 64) {
+    throw new AppError('timeZone must be a valid IANA timezone no longer than 64 characters.', 400);
+  }
+  const targetDurationMinutes = body.targetDurationMinutes;
+  if (
+    targetDurationMinutes !== undefined &&
+    targetDurationMinutes !== null &&
+    (!Number.isInteger(targetDurationMinutes) ||
+      (targetDurationMinutes as number) < 5 ||
+      (targetDurationMinutes as number) > 60)
+  ) {
+    throw new AppError('targetDurationMinutes must be an integer from 5 to 60.', 400);
+  }
+
+  return {
+    ...(timeZone === undefined ? {} : { timeZone }),
+    ...(targetDurationMinutes === undefined || targetDurationMinutes === null
+      ? {}
+      : { targetDurationMinutes }),
+  };
+}
+
 function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   if (route.writeBody === 'empty') {
     return adaptEmptyBody(value);
@@ -1387,6 +1448,9 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   }
   if (route.writeBody === 'importCreate') {
     return adaptImportCreateBody(value);
+  }
+  if (route.writeBody === 'dailyAudioCreate') {
+    return adaptDailyAudioCreateBody(value);
   }
 
   return undefined;
@@ -1452,6 +1516,8 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsCardDraftDeleteRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftPreviewMedia') {
     learningOsCardDraftPreviewMediaRateLimit(req, res, next);
+  } else if (route.writeFeature === 'dailyAudioCreate') {
+    learningOsDailyAudioGenerationRateLimit(req, res, next);
   } else {
     learningOsStudyReadRateLimit(req, res, next);
   }
@@ -1594,8 +1660,8 @@ function adaptStudyRouteResponse(
   pathname: string
 ): unknown {
   if (route.responseAdapter?.startsWith('dailyAudio:')) {
-    return adaptDailyAudioReadResponse(
-      route.responseAdapter.slice('dailyAudio:'.length) as DailyAudioReadResponse,
+    return adaptDailyAudioResponse(
+      route.responseAdapter.slice('dailyAudio:'.length) as DailyAudioResponse,
       value
     );
   }

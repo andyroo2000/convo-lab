@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { adaptDailyAudioReadResponse } from '../../../../routes/learningOs/dailyAudioReadAdapter.js';
+import { adaptDailyAudioResponse } from '../../../../routes/learningOs/dailyAudioAdapter.js';
 
 const practiceId = '123e4567-e89b-42d3-a456-426614174100';
 const trackId = '123e4567-e89b-42d3-a456-426614174101';
+const upstreamAudioUrl = `/api/daily-audio-practice/${practiceId}/tracks/${trackId}/audio`;
+const proxyAudioUrl = `/api/learning-os/study/daily-audio-practice/${practiceId}/tracks/${trackId}/audio`;
 
 const summaryTrack = {
   id: trackId,
@@ -12,7 +14,7 @@ const summaryTrack = {
   status: 'ready',
   title: 'Focused drill',
   sortOrder: 0,
-  audioUrl: '/api/daily-audio-practice/tracks/track/audio',
+  audioUrl: upstreamAudioUrl,
   approxDurationSeconds: 120,
   errorMessage: null,
   createdAt: '2026-07-18T12:00:00.000Z',
@@ -42,7 +44,12 @@ describe('Daily Audio Learning OS response adapter', () => {
   it('accepts the exact list summary contract', () => {
     const response = [{ ...practiceFields, tracks: [summaryTrack] }];
 
-    expect(adaptDailyAudioReadResponse('list', response)).toBe(response);
+    expect(adaptDailyAudioResponse('list', response)).toEqual([
+      {
+        ...practiceFields,
+        tracks: [{ ...summaryTrack, audioUrl: proxyAudioUrl }],
+      },
+    ]);
   });
 
   it('accepts ULID source card IDs created by Learning OS', () => {
@@ -54,7 +61,13 @@ describe('Daily Audio Learning OS response adapter', () => {
       },
     ];
 
-    expect(adaptDailyAudioReadResponse('list', response)).toBe(response);
+    expect(adaptDailyAudioResponse('list', response)).toEqual([
+      {
+        ...practiceFields,
+        sourceCardIdsJson: ['01JZ6J0F2DTQ6VDHEB5KZ7R3WX'],
+        tracks: [{ ...summaryTrack, audioUrl: proxyAudioUrl }],
+      },
+    ]);
   });
 
   it('accepts the exact detail contract', () => {
@@ -70,7 +83,18 @@ describe('Daily Audio Learning OS response adapter', () => {
       ],
     };
 
-    expect(adaptDailyAudioReadResponse('detail', response)).toBe(response);
+    expect(adaptDailyAudioResponse('detail', response)).toEqual({
+      ...practiceFields,
+      tracks: [
+        {
+          ...summaryTrack,
+          audioUrl: proxyAudioUrl,
+          scriptUnitsJson: [],
+          timingData: [],
+          generationMetadataJson: {},
+        },
+      ],
+    });
   });
 
   it('accepts the exact generation status contract', () => {
@@ -83,19 +107,57 @@ describe('Daily Audio Learning OS response adapter', () => {
           id: trackId,
           mode: 'drill',
           status: 'ready',
-          audioUrl: null,
+          audioUrl: upstreamAudioUrl,
           approxDurationSeconds: null,
         },
       ],
     };
 
-    expect(adaptDailyAudioReadResponse('status', response)).toBe(response);
+    expect(adaptDailyAudioResponse('status', response)).toEqual({
+      ...response,
+      tracks: [{ ...response.tracks[0], audioUrl: proxyAudioUrl }],
+    });
+  });
+
+  it('preserves imported legacy storage URLs', () => {
+    const response = [
+      {
+        ...practiceFields,
+        tracks: [{ ...summaryTrack, audioUrl: '/uploads/daily-audio/drill.mp3' }],
+      },
+    ];
+
+    expect(adaptDailyAudioResponse('list', response)).toEqual(response);
   });
 
   it.each([
     ['list', { data: [] }],
     ['list', [{ ...practiceFields, tracks: [], unexpected: 'field' }]],
     ['list', [{ ...practiceFields, sourceCardIdsJson: ['not-a-card-id'], tracks: [] }]],
+    [
+      'list',
+      [
+        {
+          ...practiceFields,
+          tracks: [{ ...summaryTrack, practiceId: '123e4567-e89b-42d3-a456-426614174999' }],
+        },
+      ],
+    ],
+    [
+      'list',
+      [
+        {
+          ...practiceFields,
+          tracks: [
+            {
+              ...summaryTrack,
+              audioUrl:
+                '/api/daily-audio-practice/123e4567-e89b-42d3-a456-426614174999/tracks/123e4567-e89b-42d3-a456-426614174998/audio',
+            },
+          ],
+        },
+      ],
+    ],
     ['detail', { ...practiceFields, tracks: [summaryTrack] }],
     [
       'status',
@@ -116,7 +178,7 @@ describe('Daily Audio Learning OS response adapter', () => {
       },
     ],
   ] as const)('rejects an incompatible %s response', (kind, response) => {
-    expect(() => adaptDailyAudioReadResponse(kind, response)).toThrow(
+    expect(() => adaptDailyAudioResponse(kind, response)).toThrow(
       `Learning OS Study API returned an invalid Daily Audio ${kind} response.`
     );
   });

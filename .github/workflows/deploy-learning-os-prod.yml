@@ -72,7 +72,7 @@ on:
         default: false
         type: boolean
       enable_daily_audio:
-        description: 'Desired state for Learning OS Daily Audio list, detail, and status reads'
+        description: 'Desired state for Learning OS Daily Audio lifecycle routes'
         required: true
         default: false
         type: boolean

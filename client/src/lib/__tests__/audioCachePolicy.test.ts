@@ -20,6 +20,14 @@ describe('audioCachePolicy', () => {
         APP_ORIGIN
       )
     ).toEqual([]);
+    expect(
+      normalizeWarmableAudioUrls(
+        [
+          '/api/learning-os/study/daily-audio-practice/123e4567-e89b-42d3-a456-426614174100/tracks/123e4567-e89b-42d3-a456-426614174101/audio',
+        ],
+        APP_ORIGIN
+      )
+    ).toEqual([]);
     expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, true)).toBe('auto');
     expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, false)).toBe('metadata');
   });
@@ -53,6 +61,17 @@ describe('audioCachePolicy', () => {
           `${APP_ORIGIN}/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW`
         ),
         url: new URL(`${APP_ORIGIN}/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW`),
+        sameOrigin: true,
+      })
+    ).toBe(false);
+    const dailyAudioUrl =
+      `${APP_ORIGIN}/api/learning-os/study/daily-audio-practice/` +
+      '123e4567-e89b-42d3-a456-426614174100/tracks/' +
+      '123e4567-e89b-42d3-a456-426614174101/audio';
+    expect(
+      isServiceWorkerAudioRoute({
+        request: new Request(dailyAudioUrl),
+        url: new URL(dailyAudioUrl),
         sameOrigin: true,
       })
     ).toBe(false);

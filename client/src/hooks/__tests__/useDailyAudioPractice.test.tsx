@@ -204,7 +204,7 @@ describe('Daily Audio API routing', () => {
     );
   });
 
-  it('keeps generation POSTs on Convo Lab when read routing is enabled', async () => {
+  it('routes generation POSTs through Learning OS when Daily Audio routing is enabled', async () => {
     featureFlagState.flags = flags({
       studyApiEnabled: true,
       studyApiDailyAudio: true,
@@ -226,15 +226,11 @@ describe('Daily Audio API routing', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:3001/api/daily-audio-practice',
+      'http://localhost:3001/api/learning-os/study/daily-audio-practice',
       expect.objectContaining({
         method: 'POST',
         credentials: 'include',
       })
-    );
-    expect(mockFetch).not.toHaveBeenCalledWith(
-      expect.stringContaining('/api/learning-os/study/daily-audio-practice'),
-      expect.anything()
     );
     expect(
       queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId, 'learning-os'))
@@ -243,6 +239,26 @@ describe('Daily Audio API routing', () => {
       tracks: [...practice.tracks].sort((left, right) => left.sortOrder - right.sortOrder),
     });
     expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toBeUndefined();
+  });
+
+  it('keeps generation POSTs on Convo Lab while Daily Audio routing is disabled', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(practice));
+
+    const { result } = renderHook(() => useCreateDailyAudioPractice(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:3001/api/daily-audio-practice',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      })
+    );
   });
 
   it('notifies the app when a Daily Audio read finds an expired Convo Lab session', async () => {
