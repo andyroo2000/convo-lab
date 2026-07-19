@@ -20,7 +20,6 @@ import {
   findAccessibleLocalStudyMediaPath,
   persistStudyMediaBuffer,
   STUDY_AUDIO_REPAIR_FAILURE_COOLDOWN_MS,
-  toStudyCardSummary,
 } from '../../../services/study/shared.js';
 
 async function withStudyMediaEnv<T>(
@@ -92,75 +91,6 @@ describe('studyMediaService', () => {
 
     await expect(getStudyMediaAccess('user-1', 'media-1')).resolves.toBeNull();
     expect(getSignedReadUrlMock).not.toHaveBeenCalled();
-  });
-
-  it('uses regenerated answer audio for existing mismatched recognition cards', async () => {
-    const answerAudio = {
-      id: 'media-answer',
-      filename: 'answer.mp3',
-      url: '/api/study/media/media-answer',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-    const cardRecord = {
-      id: 'card-mismatch',
-      userId: 'user-1',
-      noteId: 'note-1',
-      cardType: 'recognition',
-      queueState: 'review',
-      answerAudioSource: 'generated',
-      promptJson: {
-        cueAudio: {
-          id: 'media-prompt',
-          filename: 'prompt.mp3',
-          url: '/api/study/media/media-prompt',
-          mediaKind: 'audio',
-          source: 'generated',
-        },
-        cueImage: {
-          id: 'image-1',
-          filename: 'front.webp',
-          url: '/api/study/media/image-1',
-          mediaKind: 'image',
-          source: 'generated',
-        },
-      },
-      answerJson: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudio,
-      },
-      schedulerStateJson: {
-        due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-        stability: 10,
-        difficulty: 4,
-        elapsed_days: 4,
-        scheduled_days: 10,
-        learning_steps: 0,
-        reps: 6,
-        lapses: 1,
-        state: 2,
-        last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-      },
-      dueAt: new Date('2026-04-12T00:00:00.000Z'),
-      introducedAt: null,
-      createdAt: new Date('2026-04-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-      promptAudioMedia: null,
-      answerAudioMedia: null,
-      imageMedia: null,
-      note: {
-        id: 'note-1',
-        rawFieldsJson: {},
-        canonicalFieldsJson: {},
-      },
-    } as unknown as Parameters<typeof toStudyCardSummary>[0];
-
-    const card = await toStudyCardSummary(cardRecord);
-
-    expect(card.prompt.cueAudio?.id).toBe('media-answer');
-    expect(card.prompt.cueImage?.id).toBe('image-1');
-    expect(card.answer.answerAudio?.id).toBe('media-answer');
   });
 
   it('keeps a local mirror when persisting GCS-backed media in development', async () => {

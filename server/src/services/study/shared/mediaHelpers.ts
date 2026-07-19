@@ -36,7 +36,6 @@ import {
   shouldMirrorStudyMediaLocally,
   studyMediaRedirectCache,
 } from './paths.js';
-import { getBestAnswerAudioText } from './time.js';
 import type { PersistedStudyMediaRecord } from './types.js';
 
 const generatedAnswerAudioInFlight = new Map<
@@ -49,6 +48,17 @@ const generatedAnswerAudioInFlight = new Map<
 // This only deduplicates answer-audio generation within the current server process.
 
 let studyAudioRedisClient: ReturnType<typeof createRedisConnection> | null = null;
+
+function getBestAnswerAudioText(answer: StudyAnswerPayload): string | null {
+  return (
+    answer.answerAudioTextOverride ??
+    answer.restoredText ??
+    answer.expression ??
+    answer.sentenceJp ??
+    answer.meaning ??
+    null
+  );
+}
 
 export function getStudyAudioRedisClient() {
   if (!studyAudioRedisClient) {

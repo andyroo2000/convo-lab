@@ -1,34 +1,6 @@
-import type {
-  StudyAudioSource,
-  StudyCardType,
-  StudyImportResult,
-  StudyMediaRef,
-  StudyOverview,
-  StudyQueueState,
-  StudyReviewEvent,
-} from '@languageflow/shared/src/types.js';
 import { Prisma } from '@prisma/client';
 
 import type { JsonRecord } from './types.js';
-
-const STUDY_CARD_TYPES: StudyCardType[] = ['recognition', 'production', 'cloze'];
-const STUDY_QUEUE_STATES: StudyQueueState[] = [
-  'new',
-  'learning',
-  'review',
-  'relearning',
-  'suspended',
-  'buried',
-];
-const STUDY_AUDIO_SOURCES: StudyAudioSource[] = ['imported', 'generated', 'missing'];
-const STUDY_IMPORT_STATUSES: StudyImportResult['status'][] = [
-  'pending',
-  'processing',
-  'completed',
-  'failed',
-];
-const STUDY_REVIEW_SOURCES: StudyReviewEvent['source'][] = ['anki_import', 'convolab'];
-const STUDY_MEDIA_KINDS: StudyMediaRef['mediaKind'][] = ['audio', 'image', 'other'];
 
 function stripNullChars(value: string): string {
   return value.replaceAll('\0', '');
@@ -36,79 +8,6 @@ function stripNullChars(value: string): string {
 
 export function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null;
-}
-
-function isStudyCardType(value: unknown): value is StudyCardType {
-  return typeof value === 'string' && STUDY_CARD_TYPES.includes(value as StudyCardType);
-}
-
-export function parseStudyCardType(
-  value: unknown,
-  fallback: StudyCardType = 'recognition'
-): StudyCardType {
-  return isStudyCardType(value) ? value : fallback;
-}
-
-function isStudyQueueState(value: unknown): value is StudyQueueState {
-  return typeof value === 'string' && STUDY_QUEUE_STATES.includes(value as StudyQueueState);
-}
-
-export function parseStudyQueueState(
-  value: unknown,
-  fallback: StudyQueueState = 'review'
-): StudyQueueState {
-  return isStudyQueueState(value) ? value : fallback;
-}
-
-function isStudyAudioSource(value: unknown): value is StudyAudioSource {
-  return typeof value === 'string' && STUDY_AUDIO_SOURCES.includes(value as StudyAudioSource);
-}
-
-export function parseStudyAudioSource(
-  value: unknown,
-  fallback: StudyAudioSource = 'missing'
-): StudyAudioSource {
-  return isStudyAudioSource(value) ? value : fallback;
-}
-
-function isStudyImportStatus(value: unknown): value is StudyImportResult['status'] {
-  return (
-    typeof value === 'string' &&
-    STUDY_IMPORT_STATUSES.includes(value as StudyImportResult['status'])
-  );
-}
-
-export function parseStudyImportStatus(
-  value: unknown,
-  fallback: StudyImportResult['status'] = 'failed'
-): StudyImportResult['status'] {
-  return isStudyImportStatus(value) ? value : fallback;
-}
-
-function isStudyReviewSource(value: unknown): value is StudyReviewEvent['source'] {
-  return (
-    typeof value === 'string' && STUDY_REVIEW_SOURCES.includes(value as StudyReviewEvent['source'])
-  );
-}
-
-export function parseStudyReviewSource(
-  value: unknown,
-  fallback: StudyReviewEvent['source'] = 'convolab'
-): StudyReviewEvent['source'] {
-  return isStudyReviewSource(value) ? value : fallback;
-}
-
-function isStudyMediaKind(value: unknown): value is StudyMediaRef['mediaKind'] {
-  return (
-    typeof value === 'string' && STUDY_MEDIA_KINDS.includes(value as StudyMediaRef['mediaKind'])
-  );
-}
-
-export function parseStudyMediaKind(
-  value: unknown,
-  fallback: StudyMediaRef['mediaKind'] = 'other'
-): StudyMediaRef['mediaKind'] {
-  return isStudyMediaKind(value) ? value : fallback;
 }
 
 export function sanitizeText(value: string | null | undefined): string | null {
@@ -136,72 +35,4 @@ function sanitizeJsonValue(value: unknown): unknown {
 
 export function toPrismaJson(value: unknown): Prisma.InputJsonValue {
   return sanitizeJsonValue(value) as Prisma.InputJsonValue;
-}
-
-export function toNullablePrismaJson(
-  value: unknown
-): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
-  if (typeof value === 'undefined') return undefined;
-  if (value === null) return Prisma.JsonNull;
-  return sanitizeJsonValue(value) as Prisma.InputJsonValue;
-}
-
-export function toBigIntOrNull(value: number | null | undefined): bigint | null {
-  return typeof value === 'number' ? BigInt(value) : null;
-}
-
-export function parseJsonRecord(raw: string): JsonRecord | null {
-  if (!raw || raw === '{}') return null;
-  try {
-    const parsed = JSON.parse(stripNullChars(raw)) as unknown;
-    return isRecord(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-export function parseOptionalStudyOverview(value: unknown): StudyOverview | undefined {
-  if (!isRecord(value)) return undefined;
-
-  const readFiniteNumber = (candidate: unknown): number | null =>
-    typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : null;
-  const dueCount = readFiniteNumber(value.dueCount);
-  const failedCount = readFiniteNumber(value.failedCount);
-  const newCount = readFiniteNumber(value.newCount);
-  const learningCount = readFiniteNumber(value.learningCount);
-  const reviewCount = readFiniteNumber(value.reviewCount);
-  const suspendedCount = readFiniteNumber(value.suspendedCount);
-  const totalCards = readFiniteNumber(value.totalCards);
-  const newCardsPerDay = readFiniteNumber(value.newCardsPerDay);
-  const newCardsIntroducedToday = readFiniteNumber(value.newCardsIntroducedToday);
-  const newCardsAvailableToday = readFiniteNumber(value.newCardsAvailableToday);
-
-  if (
-    dueCount === null ||
-    newCount === null ||
-    learningCount === null ||
-    reviewCount === null ||
-    suspendedCount === null ||
-    totalCards === null
-  ) {
-    return undefined;
-  }
-
-  const nextDueAt: string | null =
-    typeof value.nextDueAt === 'string' ? value.nextDueAt : value.nextDueAt === null ? null : null;
-
-  return {
-    dueCount,
-    failedCount: failedCount ?? undefined,
-    newCount,
-    learningCount,
-    reviewCount,
-    suspendedCount,
-    totalCards,
-    newCardsPerDay: newCardsPerDay ?? undefined,
-    newCardsIntroducedToday: newCardsIntroducedToday ?? undefined,
-    newCardsAvailableToday: newCardsAvailableToday ?? undefined,
-    latestImport: null,
-    nextDueAt,
-  };
 }

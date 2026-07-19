@@ -1,8 +1,6 @@
 import { decode } from 'html-entities';
 import { parseDocument } from 'htmlparser2';
 
-import { isRecord } from './guards.js';
-
 interface ParsedHtmlNode {
   type?: string;
   name?: string;
@@ -74,37 +72,6 @@ function htmlToPlainText(raw: string): string {
 export function stripHtml(raw: string | null | undefined): string | null {
   if (!raw) return null;
   return htmlToPlainText(raw);
-}
-
-function appendSearchTextFragments(value: unknown, fragments: string[]) {
-  if (typeof value === 'string') {
-    const normalized = stripHtml(value) ?? value;
-    if (normalized.trim()) {
-      fragments.push(normalized.trim());
-    }
-    return;
-  }
-
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    fragments.push(String(value));
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach((entry) => appendSearchTextFragments(entry, fragments));
-    return;
-  }
-
-  if (isRecord(value)) {
-    Object.values(value).forEach((entry) => appendSearchTextFragments(entry, fragments));
-  }
-}
-
-export function toSearchText(...values: unknown[]): string {
-  const fragments: string[] = [];
-  values.forEach((value) => appendSearchTextFragments(value, fragments));
-
-  return fragments.join('\n').replace(/\s+/g, ' ').trim();
 }
 
 export function noteFieldValueToString(value: unknown): string | null {
