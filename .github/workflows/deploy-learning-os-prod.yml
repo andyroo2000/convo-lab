@@ -1000,8 +1000,8 @@ jobs:
                 return 1
               }
 
-            stream_json_pair() {
-              # Stream newline-delimited base64 so large responses do not exceed exec ARG_MAX.
+              stream_json_pair() {
+                # Stream newline-delimited base64 so large responses do not exceed exec ARG_MAX.
                 printf '%s' "$1" | base64 | tr -d '\n'
                 printf '\n'
                 printf '%s' "$2" | base64 | tr -d '\n'
