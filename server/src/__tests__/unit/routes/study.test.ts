@@ -25,35 +25,14 @@ import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHe
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 import { mockPrisma } from '../../setup.js';
 
-const {
-  createRedisConnectionMock,
-  execMock,
-  createManualCardDraftMock,
-  createStudyCardFromManualDraftMock,
-  deleteManualCardDraftMock,
-  enqueueStudyManualCardDraftJobMock,
-  expireAtMock,
-  getStudyMediaAccessMock,
-  listManualCardDraftsMock,
-  multiMock,
-  resetManualCardDraftForRetryMock,
-  triggerWorkerJobMock,
-  updateManualCardDraftMock,
-} = vi.hoisted(() => ({
-  createRedisConnectionMock: vi.fn(),
-  execMock: vi.fn(),
-  createManualCardDraftMock: vi.fn(),
-  createStudyCardFromManualDraftMock: vi.fn(),
-  deleteManualCardDraftMock: vi.fn(),
-  enqueueStudyManualCardDraftJobMock: vi.fn(),
-  expireAtMock: vi.fn(),
-  getStudyMediaAccessMock: vi.fn(),
-  listManualCardDraftsMock: vi.fn(),
-  multiMock: vi.fn(),
-  resetManualCardDraftForRetryMock: vi.fn(),
-  triggerWorkerJobMock: vi.fn(),
-  updateManualCardDraftMock: vi.fn(),
-}));
+const { createRedisConnectionMock, execMock, expireAtMock, getStudyMediaAccessMock, multiMock } =
+  vi.hoisted(() => ({
+    createRedisConnectionMock: vi.fn(),
+    execMock: vi.fn(),
+    expireAtMock: vi.fn(),
+    getStudyMediaAccessMock: vi.fn(),
+    multiMock: vi.fn(),
+  }));
 
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: (req: Request, _res: Response, next: NextFunction) => {
@@ -64,26 +43,12 @@ vi.mock('../../../middleware/auth.js', () => ({
 }));
 
 vi.mock('../../../services/studyService.js', () => ({
-  createManualCardDraft: createManualCardDraftMock,
-  createStudyCardFromManualDraft: createStudyCardFromManualDraftMock,
-  deleteManualCardDraft: deleteManualCardDraftMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
-  listManualCardDrafts: listManualCardDraftsMock,
-  resetManualCardDraftForRetry: resetManualCardDraftForRetryMock,
-  updateManualCardDraft: updateManualCardDraftMock,
 }));
 
 vi.mock('../../../config/redis.js', () => ({
   createRedisConnection: createRedisConnectionMock,
   defaultWorkerSettings: { concurrency: 1 },
-}));
-
-vi.mock('../../../jobs/studyManualCardDraftQueue.js', () => ({
-  enqueueStudyManualCardDraftJob: enqueueStudyManualCardDraftJobMock,
-}));
-
-vi.mock('../../../services/workerTrigger.js', () => ({
-  triggerWorkerJob: triggerWorkerJobMock,
 }));
 
 describe('Study Routes', () => {
@@ -108,14 +73,6 @@ describe('Study Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    createManualCardDraftMock.mockReset();
-    createStudyCardFromManualDraftMock.mockReset();
-    deleteManualCardDraftMock.mockReset();
-    enqueueStudyManualCardDraftJobMock.mockReset();
-    listManualCardDraftsMock.mockReset();
-    resetManualCardDraftForRetryMock.mockReset();
-    triggerWorkerJobMock.mockReset();
-    updateManualCardDraftMock.mockReset();
     process.env = {
       ...originalEnv,
       CLIENT_URL: 'http://localhost:5173',
@@ -143,7 +100,6 @@ describe('Study Routes', () => {
     createRedisConnectionMock.mockReturnValue({
       multi: multiMock,
     });
-    triggerWorkerJobMock.mockResolvedValue(undefined);
     getStudyMediaAccessMock.mockResolvedValue(null);
     temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'study-route-test-'));
     vi.useFakeTimers();
@@ -206,151 +162,6 @@ describe('Study Routes', () => {
     resetBrowserRuntimeTestState();
   });
 
-  it('creates a manual card draft, enqueues completion, and returns immediately', async () => {
-    createManualCardDraftMock.mockResolvedValue({
-      id: 'draft-1',
-      status: 'generating',
-      creationKind: 'cloze',
-      cardType: 'cloze',
-      prompt: { clozeText: '試合に[勝ちました]。' },
-      answer: {},
-      imagePlacement: 'both',
-      imagePrompt: null,
-      previewAudio: null,
-      previewAudioRole: null,
-      previewImage: null,
-      errorMessage: null,
-      createdAt: '2026-05-08T12:00:00.000Z',
-      updatedAt: '2026-05-08T12:00:00.000Z',
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/card-drafts')).send({
-      creationKind: 'cloze',
-      cardType: 'cloze',
-      prompt: { clozeText: '試合に[勝ちました]。' },
-      answer: {},
-      imagePlacement: 'both',
-      imagePrompt: null,
-    });
-
-    expect(response.status).toBe(201);
-    expect(response.body.id).toBe('draft-1');
-    expect(createManualCardDraftMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      request: expect.objectContaining({
-        creationKind: 'cloze',
-        cardType: 'cloze',
-        imagePlacement: 'both',
-      }),
-    });
-    expect(enqueueStudyManualCardDraftJobMock).toHaveBeenCalledWith('draft-1');
-    expect(triggerWorkerJobMock).toHaveBeenCalled();
-  });
-
-  it('lists, autosaves, retries, creates, and deletes manual card drafts', async () => {
-    const draft = {
-      id: 'draft-1',
-      status: 'ready',
-      creationKind: 'text-recognition',
-      cardType: 'recognition',
-      prompt: { cueText: '会社' },
-      answer: { expression: '会社', meaning: 'company' },
-      imagePlacement: 'none',
-      imagePrompt: null,
-      previewAudio: null,
-      previewAudioRole: null,
-      previewImage: null,
-      errorMessage: null,
-      createdAt: '2026-05-08T12:00:00.000Z',
-      updatedAt: '2026-05-08T12:00:00.000Z',
-    };
-    listManualCardDraftsMock.mockResolvedValue({
-      drafts: [draft],
-      total: 1,
-      limit: 200,
-      nextCursor: null,
-    });
-    updateManualCardDraftMock.mockResolvedValue({
-      ...draft,
-      answer: { expression: '会社', meaning: 'business' },
-    });
-    resetManualCardDraftForRetryMock.mockResolvedValue({ ...draft, status: 'generating' });
-    createStudyCardFromManualDraftMock.mockResolvedValue({
-      draftId: 'draft-1',
-      card: { id: 'card-1', cardType: 'recognition' },
-    });
-    deleteManualCardDraftMock.mockResolvedValue(undefined);
-
-    const listResponse = await request(app).get('/study/card-drafts');
-    expect(listResponse.status).toBe(200);
-    expect(listResponse.body.drafts).toHaveLength(1);
-    expect(listManualCardDraftsMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cursor: undefined,
-      limit: 200,
-    });
-
-    const patchResponse = await withMutationCsrf(
-      request(app).patch('/study/card-drafts/draft-1')
-    ).send({
-      prompt: { cueText: '会社' },
-      answer: { expression: '会社', meaning: 'business' },
-      imagePlacement: 'none',
-      imagePrompt: null,
-      previewAudio: null,
-      previewAudioRole: null,
-      previewImage: null,
-    });
-    expect(patchResponse.status).toBe(200);
-    expect(updateManualCardDraftMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      draftId: 'draft-1',
-      request: expect.objectContaining({
-        answer: { expression: '会社', meaning: 'business' },
-      }),
-    });
-
-    const retryResponse = await withMutationCsrf(
-      request(app).post('/study/card-drafts/draft-1/retry')
-    ).send({});
-    expect(retryResponse.status).toBe(200);
-    expect(resetManualCardDraftForRetryMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      draftId: 'draft-1',
-    });
-    expect(enqueueStudyManualCardDraftJobMock).toHaveBeenCalledWith('draft-1');
-
-    const createResponse = await withMutationCsrf(
-      request(app).post('/study/card-drafts/draft-1/create-card')
-    ).send({});
-    expect(createResponse.status).toBe(201);
-    expect(createResponse.body.card.id).toBe('card-1');
-    expect(createStudyCardFromManualDraftMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      draftId: 'draft-1',
-    });
-
-    const deleteResponse = await withMutationCsrf(
-      request(app).delete('/study/card-drafts/draft-1')
-    );
-    expect(deleteResponse.status).toBe(204);
-    expect(deleteManualCardDraftMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      draftId: 'draft-1',
-    });
-  });
-
-  it('rejects malformed manual draft autosave payloads', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/card-drafts/draft-1')).send({
-      prompt: { cueText: '会社' },
-      answer: { expression: '会社' },
-      previewAudioRole: 'front',
-    });
-
-    expect(response.status).toBe(400);
-    expect(updateManualCardDraftMock).not.toHaveBeenCalled();
-  });
-
   it('serves authenticated study media through the study media route', async () => {
     getStudyMediaAccessMock.mockResolvedValue({
       type: 'redirect',
@@ -404,17 +215,6 @@ describe('Study Routes', () => {
     expect(response.body.message).toContain('not enabled');
   });
 
-  it('blocks study mutation routes for cross-origin requests', async () => {
-    const response = await withMutationCsrf(
-      request(app).post('/study/card-drafts'),
-      'https://evil.example.com'
-    ).send({});
-
-    expect(response.status).toBe(403);
-    expect(response.body.message).toContain('Invalid request origin');
-    expect(createManualCardDraftMock).not.toHaveBeenCalled();
-  });
-
   it('allows read-only study routes without same-origin mutation headers', async () => {
     vi.useRealTimers();
     getStudyMediaAccessMock.mockResolvedValue(null);
@@ -439,6 +239,7 @@ describe('Study Routes', () => {
     '/study/imports/readiness',
     '/study/imports/current',
     '/study/imports/import-1',
+    '/study/card-drafts',
   ])('does not expose the retired read route %s', async (path) => {
     const response = await request(app).get(path);
 
@@ -466,6 +267,11 @@ describe('Study Routes', () => {
     ['post', '/study/cards/draft/image'],
     ['post', '/study/card-candidates/commit'],
     ['post', '/study/card-candidates/vocab-bundle/drafts'],
+    ['post', '/study/card-drafts'],
+    ['patch', '/study/card-drafts/draft-1'],
+    ['post', '/study/card-drafts/draft-1/retry'],
+    ['post', '/study/card-drafts/draft-1/create-card'],
+    ['delete', '/study/card-drafts/draft-1'],
     ['post', '/study/imports'],
     ['post', '/study/imports/import-1/complete'],
     ['post', '/study/imports/import-1/cancel'],
@@ -473,30 +279,6 @@ describe('Study Routes', () => {
     const response = await withMutationCsrf(request(app)[method](path)).send({});
 
     expect(response.status).toBe(404);
-  });
-
-  it('rejects mutation requests when Origin is absent', async () => {
-    const response = await request(app)
-      .post('/study/card-drafts')
-      .set('Cookie', csrfCookies)
-      .set(CSRF_TOKEN_HEADER_NAME, csrfToken)
-      .send({});
-
-    expect(response.status).toBe(403);
-    expect(response.body.message).toContain('Invalid request origin');
-    expect(createManualCardDraftMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects mutation requests when the study CSRF header is missing', async () => {
-    const response = await request(app)
-      .post('/study/card-drafts')
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', csrfCookies)
-      .send({});
-
-    expect(response.status).toBe(403);
-    expect(response.body.message).toContain('Invalid CSRF token');
-    expect(createManualCardDraftMock).not.toHaveBeenCalled();
   });
 
   it('sanitizes media filenames used in the Content-Disposition header', async () => {
