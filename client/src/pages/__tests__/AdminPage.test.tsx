@@ -136,6 +136,7 @@ const mockFeatureFlags = {
   studyApiCardWrites: false,
   studyApiCardDrafts: false,
   studyApiMedia: false,
+  studyApiDailyAudio: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
@@ -598,6 +599,7 @@ describe('AdminPage', () => {
         expect(screen.getByText('Study Review')).toBeInTheDocument();
         expect(screen.getByText('Study Card Writes')).toBeInTheDocument();
         expect(screen.getByText('Study Media')).toBeInTheDocument();
+        expect(screen.getByText('Daily Audio Reads')).toBeInTheDocument();
       });
     });
 

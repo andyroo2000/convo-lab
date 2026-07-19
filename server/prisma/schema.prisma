@@ -490,6 +490,7 @@ model FeatureFlag {
   studyApiCardWrites    Boolean  @default(false)
   studyApiCardDrafts    Boolean  @default(false)
   studyApiMedia         Boolean  @default(false)
+  studyApiDailyAudio    Boolean  @default(false)
   updatedAt             DateTime @updatedAt
 
   @@map("feature_flags")

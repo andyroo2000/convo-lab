@@ -673,6 +673,7 @@ router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
           studyApiCardWrites: false,
           studyApiCardDrafts: false,
           studyApiMedia: false,
+          studyApiDailyAudio: false,
         },
       });
     }
@@ -704,6 +705,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       studyApiCardWrites?: unknown;
       studyApiCardDrafts?: unknown;
       studyApiMedia?: unknown;
+      studyApiDailyAudio?: unknown;
     };
     const {
       dialoguesEnabled,
@@ -723,6 +725,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       studyApiCardWrites,
       studyApiCardDrafts,
       studyApiMedia,
+      studyApiDailyAudio,
     } = payload;
 
     // Validate boolean values
@@ -749,6 +752,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(studyApiCardWrites, 'studyApiCardWrites');
     validateBoolean(studyApiCardDrafts, 'studyApiCardDrafts');
     validateBoolean(studyApiMedia, 'studyApiMedia');
+    validateBoolean(studyApiDailyAudio, 'studyApiDailyAudio');
 
     const dialoguesEnabledValue =
       typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
@@ -778,6 +782,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     const studyApiCardDraftsValue =
       typeof studyApiCardDrafts === 'boolean' ? studyApiCardDrafts : undefined;
     const studyApiMediaValue = typeof studyApiMedia === 'boolean' ? studyApiMedia : undefined;
+    const studyApiDailyAudioValue =
+      typeof studyApiDailyAudio === 'boolean' ? studyApiDailyAudio : undefined;
 
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
@@ -803,6 +809,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           studyApiCardWrites: studyApiCardWritesValue ?? false,
           studyApiCardDrafts: studyApiCardDraftsValue ?? false,
           studyApiMedia: studyApiMediaValue ?? false,
+          studyApiDailyAudio: studyApiDailyAudioValue ?? false,
         },
       });
     } else {
@@ -844,6 +851,9 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           }),
           ...(studyApiMediaValue !== undefined && {
             studyApiMedia: studyApiMediaValue,
+          }),
+          ...(studyApiDailyAudioValue !== undefined && {
+            studyApiDailyAudio: studyApiDailyAudioValue,
           }),
         },
       });

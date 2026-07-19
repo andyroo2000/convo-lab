@@ -30,6 +30,10 @@ import {
 import { STUDY_VOCAB_VARIANT_KINDS_BY_STAGE } from '../../services/study/variants/constants.js';
 
 import {
+  adaptDailyAudioReadResponse,
+  type DailyAudioReadResponse,
+} from './dailyAudioReadAdapter.js';
+import {
   rewriteLearningOsStudyMediaUrl,
   rewriteStudyCardDraftMediaUrls,
   rewriteStudyCardMediaUrls,
@@ -60,6 +64,8 @@ const MAX_STUDY_DRAFT_MEDIA_FILENAME_LENGTH = 255;
 const MAX_STUDY_DRAFT_MEDIA_ID_LENGTH = 255;
 const MAX_STUDY_DRAFT_MEDIA_URL_LENGTH = 4096;
 const UUID_SEGMENT = '[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}';
+const DAILY_AUDIO_UUID_SEGMENT =
+  '[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 const ULID_PATTERN = new RegExp(`^${STUDY_ULID_SEGMENT}$`, 'i');
 const UUID_PATTERN = new RegExp(`^${UUID_SEGMENT}$`, 'i');
 const STUDY_CARD_ID_SEGMENT = `(?:${STUDY_ULID_SEGMENT}|${UUID_SEGMENT})`;
@@ -243,6 +249,7 @@ type StudyApiChildFlag = Extract<
   | 'studyApiCardWrites'
   | 'studyApiCardDrafts'
   | 'studyApiMedia'
+  | 'studyApiDailyAudio'
 >;
 
 type StudyProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
@@ -298,6 +305,8 @@ interface StudyProxyRoute {
   importUpload?: boolean;
   mediaResponse?: boolean;
   normalizeUlidPath?: boolean;
+  normalizeUuidPath?: boolean;
+  upstreamApiPrefix?: '/api' | '/api/study';
   timeoutMs?: number;
   responseAdapter?:
     | 'card'
@@ -307,10 +316,37 @@ interface StudyProxyRoute {
     | 'cardDraftList'
     | 'cardDraftPreviewAudio'
     | 'cardDraftPreviewImage'
-    | 'vocabBundleDraftCreate';
+    | 'vocabBundleDraftCreate'
+    | `dailyAudio:${DailyAudioReadResponse}`;
 }
 
 const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
+  {
+    method: 'GET',
+    pattern: /^\/daily-audio-practice$/,
+    featureFlag: 'studyApiDailyAudio',
+    queryParams: new Set(),
+    upstreamApiPrefix: '/api',
+    responseAdapter: 'dailyAudio:list',
+  },
+  {
+    method: 'GET',
+    pattern: new RegExp(`^/daily-audio-practice/${DAILY_AUDIO_UUID_SEGMENT}/status$`, 'i'),
+    featureFlag: 'studyApiDailyAudio',
+    queryParams: new Set(),
+    upstreamApiPrefix: '/api',
+    responseAdapter: 'dailyAudio:status',
+    normalizeUuidPath: true,
+  },
+  {
+    method: 'GET',
+    pattern: new RegExp(`^/daily-audio-practice/${DAILY_AUDIO_UUID_SEGMENT}$`, 'i'),
+    featureFlag: 'studyApiDailyAudio',
+    queryParams: new Set(),
+    upstreamApiPrefix: '/api',
+    responseAdapter: 'dailyAudio:detail',
+    normalizeUuidPath: true,
+  },
   {
     method: 'POST',
     pattern: /^\/card-candidates\/vocab-bundle\/drafts$/,
@@ -671,6 +707,13 @@ function normalizeStudyProxyPath(pathname: string): string {
   return pathname
     .split('/')
     .map((segment) => (ULID_PATTERN.test(segment) ? segment.toUpperCase() : segment))
+    .join('/');
+}
+
+function normalizeUuidProxyPath(pathname: string): string {
+  return pathname
+    .split('/')
+    .map((segment) => (UUID_PATTERN.test(segment) ? segment.toLowerCase() : segment))
     .join('/');
 }
 
@@ -1550,6 +1593,12 @@ function adaptStudyRouteResponse(
   value: unknown,
   pathname: string
 ): unknown {
+  if (route.responseAdapter?.startsWith('dailyAudio:')) {
+    return adaptDailyAudioReadResponse(
+      route.responseAdapter.slice('dailyAudio:'.length) as DailyAudioReadResponse,
+      value
+    );
+  }
   if (route.responseAdapter === 'card') {
     return rewriteStudyCardMediaUrls(value);
   }
@@ -1987,8 +2036,14 @@ router.all(
         throw new AppError('Learning OS Study API is not enabled for this account.', 403);
       }
 
-      const upstreamPath = route.normalizeUlidPath ? normalizeStudyProxyPath(req.path) : req.path;
-      const upstreamUrl = new URL(`${apiUrl}/api/study${upstreamPath}`);
+      const upstreamPath = route.normalizeUlidPath
+        ? normalizeStudyProxyPath(req.path)
+        : route.normalizeUuidPath
+          ? normalizeUuidProxyPath(req.path)
+          : req.path;
+      const upstreamUrl = new URL(
+        `${apiUrl}${route.upstreamApiPrefix ?? '/api/study'}${upstreamPath}`
+      );
       appendQueryParams(upstreamUrl, req.query, route);
       const body = route.importUpload ? undefined : adaptWriteBody(route, req.body);
       const upstreamResponse = route.importUpload

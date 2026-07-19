@@ -22,7 +22,8 @@ export type FeatureFlagKey =
   | 'studyApiReview'
   | 'studyApiCardWrites'
   | 'studyApiCardDrafts'
-  | 'studyApiMedia';
+  | 'studyApiMedia'
+  | 'studyApiDailyAudio';
 export type FeatureFlagSnapshot = {
   dialoguesEnabled: boolean;
   scriptsEnabled: boolean;
@@ -41,6 +42,7 @@ export type FeatureFlagSnapshot = {
   studyApiCardWrites: boolean;
   studyApiCardDrafts: boolean;
   studyApiMedia: boolean;
+  studyApiDailyAudio: boolean;
 } | null;
 
 const FEATURE_FLAG_CACHE_TTL_MS = 30 * 1000;
@@ -75,6 +77,7 @@ export async function getFeatureFlags(): Promise<FeatureFlagSnapshot> {
       studyApiCardWrites: true,
       studyApiCardDrafts: true,
       studyApiMedia: true,
+      studyApiDailyAudio: true,
     },
   });
 
