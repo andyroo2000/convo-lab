@@ -224,7 +224,7 @@ test('the production workflow snapshots and imports historical GCS media explici
     'WHERE "storagePath" IS NOT NULL',
     'AND length(btrim("storagePath")) > 0',
     'FROM daily_audio_practice_tracks',
-    'WHERE status = \'"\'"\'ready\'"\'"\' OR "audioUrl" IS NOT NULL',
+    'WHERE "audioUrl" IS NOT NULL',
     '"server-$active_color"',
     'node scripts/export-convolab-study-media.mjs',
     '--missing-manifest /export/missing.json',
@@ -325,6 +325,7 @@ test('the production workflow migrates and streams Daily Audio before accepting 
     'DailyAudioDetail',
     'daily-audio-media',
     'Daily Audio historical track lookup',
+    'No historical ready Daily Audio practice is available for streaming verification.',
     'daily_audio_smoke_body="$(mktemp)"',
     '"https://convo-lab.com$daily_audio_track_url"',
     "grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)'",
@@ -340,6 +341,10 @@ test('the production workflow migrates and streams Daily Audio before accepting 
   const dailyAudioBlock = workflow.slice(
     workflow.indexOf('if [ "$ENABLE_DAILY_AUDIO" = true ]; then'),
     workflow.indexOf('if [ "$ENABLE_BROWSER" = true ]; then')
+  );
+  assert.ok(
+    dailyAudioBlock.indexOf('if [ -z "$daily_audio_id" ]; then') <
+      dailyAudioBlock.indexOf('DailyAudioDetail')
   );
   assert.ok(
     dailyAudioBlock.indexOf('DailyAudioDetail') <

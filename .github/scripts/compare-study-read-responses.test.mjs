@@ -180,3 +180,42 @@ test('daily audio media mode ignores authenticated URL ownership but keeps other
     /audioUrl must be null or a string/
   );
 });
+
+test('daily audio media mode normalizes practice arrays used by the list route', () => {
+  const practices = [
+    {
+      id: 'practice-1',
+      status: 'ready',
+      tracks: [
+        {
+          id: 'track-1',
+          status: 'ready',
+          audioUrl: 'https://storage.googleapis.com/bucket/daily-audio-practice/track-1.mp3',
+        },
+      ],
+    },
+    {
+      id: 'practice-2',
+      status: 'draft',
+      tracks: [{ id: 'track-2', status: 'pending', audioUrl: null }],
+    },
+  ];
+
+  compareResponses(
+    [
+      {
+        ...practices[0],
+        tracks: [
+          {
+            ...practices[0].tracks[0],
+            audioUrl:
+              '/api/learning-os/study/daily-audio-practice/practice-1/tracks/track-1/audio',
+          },
+        ],
+      },
+      practices[1],
+    ],
+    practices,
+    'daily-audio-media'
+  );
+});

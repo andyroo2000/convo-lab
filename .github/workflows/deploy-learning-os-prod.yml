@@ -462,7 +462,7 @@ jobs:
                         ELSE "audioUrl"
                       END AS storage_path
                     FROM daily_audio_practice_tracks
-                    WHERE status = '"'"'ready'"'"' OR "audioUrl" IS NOT NULL
+                    WHERE "audioUrl" IS NOT NULL
                   ) AS paths;
                 ' > "$media_manifest"
               chmod 600 "$media_manifest"
@@ -1464,6 +1464,11 @@ jobs:
                     ) process.exit(1);
                     process.stdout.write(id);
                   ')"
+
+                if [ -z "$daily_audio_id" ]; then
+                  echo "No historical ready Daily Audio practice is available for streaming verification." >&2
+                  exit 1
+                fi
 
                 if [ -n "$daily_audio_id" ]; then
                   compare_read_route \
