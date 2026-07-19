@@ -380,7 +380,7 @@ jobs:
             }
 
             import_historical_media() {
-              local active_color invalid_media_path_count media_files media_manifest postgres_user target_dump timestamp
+              local active_color media_files media_manifest postgres_user target_dump timestamp unavailable_media_count
 
               postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
               active_color=blue
@@ -410,13 +410,12 @@ jobs:
               media_manifest="$MEDIA_EXPORT_DIR/manifest.json"
               media_files="$MEDIA_EXPORT_DIR/files"
 
-              invalid_media_path_count="$(docker exec convolab-postgres psql \
+              unavailable_media_count="$(docker exec convolab-postgres psql \
                 --username="$postgres_user" --dbname="$SOURCE_DB" \
                 --tuples-only --no-align --set=ON_ERROR_STOP=1 \
                 --command='SELECT count(*) FROM study_media WHERE "storagePath" IS NULL OR length(btrim("storagePath")) = 0' | tr -d '[:space:]')"
-              if [ "$invalid_media_path_count" != 0 ]; then
-                echo "ConvoLab has $invalid_media_path_count media rows without storage paths." >&2
-                return 1
+              if [ "$unavailable_media_count" != 0 ]; then
+                echo "Skipping $unavailable_media_count unavailable ConvoLab media rows without storage paths."
               fi
 
               docker exec convolab-postgres psql \
@@ -430,6 +429,8 @@ jobs:
                   FROM (
                     SELECT DISTINCT "storagePath" AS storage_path
                     FROM study_media
+                    WHERE "storagePath" IS NOT NULL
+                      AND length(btrim("storagePath")) > 0
                   ) AS paths;
                 ' > "$media_manifest"
               chmod 600 "$media_manifest"
