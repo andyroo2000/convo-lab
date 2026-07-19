@@ -16,7 +16,6 @@ import { synthesizeBatchedTexts } from '../../batchedTTSClient.js';
 import { uploadBufferToGCSPath } from '../../storageClient.js';
 
 import { isAudioRecognitionPrompt } from './audioRecognitionUtils.js';
-import { mergeStudyMediaRecord } from './cardMappers.js';
 import {
   STUDY_AUDIO_LOCK_POLL_INTERVAL_MS,
   STUDY_AUDIO_LOCK_TTL_MS,
@@ -38,7 +37,7 @@ import {
   studyMediaRedirectCache,
 } from './paths.js';
 import { getBestAnswerAudioText } from './time.js';
-import type { PersistedStudyMediaRecord, StudyCardWithRelations } from './types.js';
+import type { PersistedStudyMediaRecord } from './types.js';
 
 const generatedAnswerAudioInFlight = new Map<
   string,
@@ -370,53 +369,6 @@ export async function backfillImportedStudyMedia(
         storagePath: persisted.storagePath,
         publicUrl: persisted.publicUrl,
       },
-    })
-  );
-}
-
-export async function ensureStudyCardMediaAvailable(
-  cards: StudyCardWithRelations[]
-): Promise<void> {
-  const mediaRecords = cards.flatMap((card) => {
-    const collected: PersistedStudyMediaRecord[] = [];
-    const promptAudioMedia = parsePersistedStudyMediaRecord(card.promptAudioMedia);
-    if (promptAudioMedia) {
-      collected.push(promptAudioMedia);
-    }
-    const answerAudioMedia = parsePersistedStudyMediaRecord(card.answerAudioMedia);
-    if (answerAudioMedia) {
-      collected.push(answerAudioMedia);
-    }
-    const imageMedia = parsePersistedStudyMediaRecord(card.imageMedia);
-    if (imageMedia) {
-      collected.push(imageMedia);
-    }
-    return collected;
-  });
-
-  const uniqueMedia = new Map<string, PersistedStudyMediaRecord>();
-  for (const media of mediaRecords) {
-    if (media.id && !uniqueMedia.has(media.id)) {
-      uniqueMedia.set(media.id, media);
-    }
-  }
-
-  await Promise.all(
-    Array.from(uniqueMedia.values()).map(async (media) => {
-      const updated = await backfillImportedStudyMedia(media);
-      if (!updated) return;
-
-      for (const card of cards) {
-        if (isRecord(card.promptAudioMedia) && card.promptAudioMedia.id === media.id) {
-          card.promptAudioMedia = mergeStudyMediaRecord(card.promptAudioMedia, updated);
-        }
-        if (isRecord(card.answerAudioMedia) && card.answerAudioMedia.id === media.id) {
-          card.answerAudioMedia = mergeStudyMediaRecord(card.answerAudioMedia, updated);
-        }
-        if (isRecord(card.imageMedia) && card.imageMedia.id === media.id) {
-          card.imageMedia = mergeStudyMediaRecord(card.imageMedia, updated);
-        }
-      }
     })
   );
 }

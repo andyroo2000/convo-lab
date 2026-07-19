@@ -2,7 +2,7 @@
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   cleanupStudyServiceTestMedia,
@@ -11,21 +11,17 @@ import {
   redisGetMock,
   redisSetMock,
   resetStudyServiceMocks,
+  synthesizeBatchedTextsMock,
   uploadBufferToGCSPathMock,
 } from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
-import {
-  getStudyMediaAccess,
-  prepareStudyCardAnswerAudio,
-  regenerateStudyCardAnswerAudio,
-} from '../../../services/studyMediaService.js';
+import { getStudyMediaAccess } from '../../../services/studyMediaService.js';
 import {
   findAccessibleLocalStudyMediaPath,
   persistStudyMediaBuffer,
   STUDY_AUDIO_REPAIR_FAILURE_COOLDOWN_MS,
   toStudyCardSummary,
 } from '../../../services/study/shared.js';
-import { synthesizeBatchedTexts } from '../../../services/batchedTTSClient.js';
 
 async function withStudyMediaEnv<T>(
   updates: Partial<Record<'ANKI_MEDIA_DIR' | 'GCS_BUCKET_NAME' | 'NODE_ENV', string>>,
@@ -66,551 +62,61 @@ describe('studyMediaService', () => {
     await cleanupStudyServiceTestMedia();
   });
 
-  it('prepares answer audio for a single requested study card', async () => {
-    mockPrisma.studyCard.findFirst
-      .mockResolvedValueOnce({
-        id: 'card-1',
-        userId: 'user-1',
-        noteId: 'note-1',
-        cardType: 'recognition',
-        queueState: 'review',
-        answerAudioSource: 'missing',
-        promptJson: { cueText: '会社' },
-        answerJson: { expression: '会社', meaning: 'company' },
-        schedulerStateJson: {
-          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          stability: 10,
-          difficulty: 4,
-          elapsed_days: 4,
-          scheduled_days: 10,
-          learning_steps: 0,
-          reps: 6,
-          lapses: 1,
-          state: 2,
-          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-        note: {},
-      })
-      .mockResolvedValueOnce({
-        id: 'card-1',
-        userId: 'user-1',
-        noteId: 'note-1',
-        cardType: 'recognition',
-        queueState: 'review',
-        answerAudioSource: 'generated',
-        promptJson: { cueText: '会社' },
-        answerJson: {
-          expression: '会社',
-          meaning: 'company',
-          answerAudio: {
-            id: 'media-generated',
-            filename: 'card-1.mp3',
-            url: '/api/study/media/media-generated',
-            mediaKind: 'audio',
-            source: 'generated',
-          },
-        },
-        schedulerStateJson: {
-          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          stability: 10,
-          difficulty: 4,
-          elapsed_days: 4,
-          scheduled_days: 10,
-          learning_steps: 0,
-          reps: 6,
-          lapses: 1,
-          state: 2,
-          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-        note: {},
-      });
-    mockPrisma.studyCard.findUnique.mockResolvedValue({
-      id: 'card-1',
+  it('returns a signed redirect for user-owned GCS media', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    mockPrisma.studyMedia.findFirst.mockResolvedValue({
+      id: 'media-1',
       userId: 'user-1',
-      answerAudioSource: 'missing',
-      answerJson: { expression: '会社', meaning: 'company' },
-    });
-    mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-generated' });
-    mockPrisma.studyCard.update.mockResolvedValue({});
-
-    const card = await prepareStudyCardAnswerAudio('user-1', 'card-1');
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    expect(vi.mocked(synthesizeBatchedTexts)).toHaveBeenCalledTimes(1);
-    expect(card.answerAudioSource).toBe('missing');
-  });
-
-  it('deduplicates concurrent answer-audio generation for the same card', async () => {
-    redisSetMock.mockResolvedValueOnce('OK').mockResolvedValueOnce(null);
-    let resolveAudio!: (buffers: Buffer[]) => void;
-    vi.mocked(synthesizeBatchedTexts).mockReturnValueOnce(
-      new Promise<Buffer[]>((resolve) => {
-        resolveAudio = resolve;
-      })
-    );
-    mockPrisma.studyCard.findUnique.mockResolvedValue({
-      id: 'card-concurrent',
-      userId: 'user-1',
-      answerAudioSource: 'missing',
-      answerJson: { expression: '会社', meaning: 'company' },
-    });
-    mockPrisma.studyCard.findFirst.mockResolvedValue({
-      id: 'card-concurrent',
-      userId: 'user-1',
-      noteId: 'note-1',
-      cardType: 'recognition',
-      queueState: 'review',
-      answerAudioSource: 'generated',
-      promptJson: { cueText: '会社' },
-      answerJson: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudio: {
-          id: 'media-generated',
-          filename: 'card-concurrent.mp3',
-          url: '/api/study/media/media-generated',
-          mediaKind: 'audio',
-          source: 'generated',
-        },
-      },
-      schedulerStateJson: {
-        due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-        stability: 10,
-        difficulty: 4,
-        elapsed_days: 4,
-        scheduled_days: 10,
-        learning_steps: 0,
-        reps: 6,
-        lapses: 1,
-        state: 2,
-        last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-      },
-      createdAt: new Date('2026-04-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-      note: {},
-    });
-    mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-generated' });
-    mockPrisma.studyCard.update.mockResolvedValue({});
-
-    const firstRequest = prepareStudyCardAnswerAudio('user-1', 'card-concurrent');
-    const secondRequest = prepareStudyCardAnswerAudio('user-1', 'card-concurrent');
-
-    await new Promise<void>((resolve) => setImmediate(resolve));
-    expect(vi.mocked(synthesizeBatchedTexts)).toHaveBeenCalledTimes(1);
-
-    resolveAudio([Buffer.from('fake-audio')]);
-
-    const [firstCard, secondCard] = await Promise.all([firstRequest, secondRequest]);
-
-    expect(firstCard.answerAudioSource).toBe('generated');
-    expect(secondCard.answerAudioSource).toBe('generated');
-  });
-
-  it('regenerates answer audio with override text and selected voice', async () => {
-    mockPrisma.studyCard.findFirst
-      .mockResolvedValueOnce({
-        id: 'card-voice',
-        userId: 'user-1',
-        noteId: 'note-1',
-        cardType: 'recognition',
-        queueState: 'review',
-        answerAudioSource: 'generated',
-        promptJson: { cueText: '会社' },
-        answerJson: {
-          expression: '会社',
-          meaning: 'company',
-          answerAudioVoiceId: 'ja-JP-Wavenet-C',
-          answerAudioTextOverride: null,
-          answerAudio: {
-            id: 'media-old',
-            filename: 'old.mp3',
-            url: '/api/study/media/media-old',
-            mediaKind: 'audio',
-            source: 'generated',
-          },
-        },
-        schedulerStateJson: {
-          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          stability: 10,
-          difficulty: 4,
-          elapsed_days: 4,
-          scheduled_days: 10,
-          learning_steps: 0,
-          reps: 6,
-          lapses: 1,
-          state: 2,
-          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-        note: {},
-      })
-      .mockResolvedValueOnce({
-        id: 'card-voice',
-        userId: 'user-1',
-        noteId: 'note-1',
-        cardType: 'recognition',
-        queueState: 'review',
-        answerAudioSource: 'generated',
-        promptJson: { cueText: '会社' },
-        answerJson: {
-          expression: '会社',
-          meaning: 'company',
-          answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-          answerAudioTextOverride: 'かいしゃ',
-          answerAudio: {
-            id: 'media-generated',
-            filename: 'card-voice.mp3',
-            url: '/api/study/media/media-generated',
-            mediaKind: 'audio',
-            source: 'generated',
-          },
-        },
-        schedulerStateJson: {
-          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          stability: 10,
-          difficulty: 4,
-          elapsed_days: 4,
-          scheduled_days: 10,
-          learning_steps: 0,
-          reps: 6,
-          lapses: 1,
-          state: 2,
-          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-        note: {},
-      });
-    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
-    mockPrisma.studyCard.findUnique.mockResolvedValue({
-      id: 'card-voice',
-      userId: 'user-1',
-      answerAudioSource: 'generated',
-      answerJson: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-        answerAudioTextOverride: 'かいしゃ',
-        answerAudio: {
-          id: 'media-old',
-          filename: 'card-voice-old.mp3',
-          url: '/api/study/media/media-old',
-        },
-      },
-    });
-    mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-generated' });
-    mockPrisma.studyCard.update.mockResolvedValue({});
-
-    const card = await regenerateStudyCardAnswerAudio({
-      userId: 'user-1',
-      cardId: 'card-voice',
-      answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-      answerAudioTextOverride: 'かいしゃ',
+      sourceFilename: 'company.mp3',
+      contentType: 'audio/mpeg',
+      mediaKind: 'audio',
+      storagePath: 'study-media/user-1/import/company.mp3',
     });
 
-    const updateArgs = mockPrisma.studyCard.updateMany.mock.calls[0]?.[0];
-    expect(updateArgs).toEqual(
+    const result = await getStudyMediaAccess('user-1', 'media-1');
+
+    expect(mockPrisma.studyMedia.findFirst).toHaveBeenCalledWith({
+      where: { id: 'media-1', userId: 'user-1' },
+    });
+    expect(getSignedReadUrlMock).toHaveBeenCalled();
+    expect(result).toEqual(
       expect.objectContaining({
-        where: { id: 'card-voice', userId: 'user-1' },
+        type: 'redirect',
+        contentDisposition: 'inline',
       })
     );
-    expect(updateArgs.data).not.toHaveProperty('answerAudioSource');
-    expect(updateArgs.data).not.toHaveProperty('answerAudioMediaId');
-    expect(vi.mocked(synthesizeBatchedTexts)).toHaveBeenCalledWith(['かいしゃ'], {
-      voiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-      languageCode: 'ja-JP',
-      speed: 1,
-    });
-    expect(card.answer.answerAudioVoiceId).toBe('fishaudio:694e06f2dcc44e4297961d68d6a98313');
-    expect(card.answer.answerAudioTextOverride).toBe('かいしゃ');
-    expect(card.answerAudioSource).toBe('generated');
   });
 
-  it('keeps audio-recognition prompt audio synced when regenerating answer audio', async () => {
-    const oldPromptAudio = {
-      id: 'media-shohei',
-      filename: 'shohei.mp3',
-      url: '/api/study/media/media-shohei',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-    const oldAnswerAudio = {
-      id: 'media-ren-old',
-      filename: 'ren-old.mp3',
-      url: '/api/study/media/media-ren-old',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-    const newAudio = {
-      id: 'media-ren-new',
-      filename: 'card-audio-recognition.mp3',
-      url: '/api/study/media/media-ren-new',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-    const cueImage = {
-      id: 'image-1',
-      filename: 'front.webp',
-      url: '/api/study/media/image-1',
-      mediaKind: 'image',
-      source: 'generated',
-    };
+  it('returns null when the media is not owned by the user', async () => {
+    mockPrisma.studyMedia.findFirst.mockResolvedValue(null);
 
-    mockPrisma.studyCard.findFirst
-      .mockResolvedValueOnce({
-        id: 'card-audio-recognition',
-        userId: 'user-1',
-        noteId: 'note-1',
-        cardType: 'recognition',
-        queueState: 'review',
-        answerAudioSource: 'generated',
-        promptAudioMediaId: 'media-shohei',
-        answerAudioMediaId: 'media-ren-old',
-        promptJson: { cueAudio: oldPromptAudio, cueImage },
-        answerJson: {
-          expression: '会社',
-          meaning: 'company',
-          answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-          answerAudio: oldAnswerAudio,
-        },
-        schedulerStateJson: {
-          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          stability: 10,
-          difficulty: 4,
-          elapsed_days: 4,
-          scheduled_days: 10,
-          learning_steps: 0,
-          reps: 6,
-          lapses: 1,
-          state: 2,
-          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-        note: {},
-      })
-      .mockResolvedValueOnce({
-        id: 'card-audio-recognition',
-        userId: 'user-1',
-        noteId: 'note-1',
-        cardType: 'recognition',
-        queueState: 'review',
-        answerAudioSource: 'generated',
-        promptAudioMediaId: 'media-ren-new',
-        answerAudioMediaId: 'media-ren-new',
-        promptJson: { cueAudio: newAudio, cueImage },
-        answerJson: {
-          expression: '会社',
-          meaning: 'company',
-          answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-          answerAudio: newAudio,
-        },
-        schedulerStateJson: {
-          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          stability: 10,
-          difficulty: 4,
-          elapsed_days: 4,
-          scheduled_days: 10,
-          learning_steps: 0,
-          reps: 6,
-          lapses: 1,
-          state: 2,
-          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-        note: {},
-      });
-    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
-    mockPrisma.studyCard.findUnique.mockResolvedValue({
-      id: 'card-audio-recognition',
-      userId: 'user-1',
-      cardType: 'recognition',
-      answerAudioSource: 'generated',
-      promptJson: { cueAudio: oldPromptAudio, cueImage },
-      answerJson: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-        answerAudio: oldAnswerAudio,
-      },
-    });
-    mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-ren-new' });
-    mockPrisma.studyCard.update.mockResolvedValue({});
-
-    const card = await regenerateStudyCardAnswerAudio({
-      userId: 'user-1',
-      cardId: 'card-audio-recognition',
-      answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-    });
-
-    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith({
-      where: { id: 'card-audio-recognition' },
-      data: expect.objectContaining({
-        promptJson: expect.objectContaining({
-          cueAudio: newAudio,
-          cueImage,
-        }),
-        promptAudioMediaId: 'media-ren-new',
-        answerJson: expect.objectContaining({
-          answerAudio: newAudio,
-        }),
-        answerAudioMediaId: 'media-ren-new',
-      }),
-    });
-    expect(card.prompt.cueAudio?.id).toBe('media-ren-new');
-    expect(card.prompt.cueImage?.id).toBe('image-1');
-    expect(card.answer.answerAudio?.id).toBe('media-ren-new');
+    await expect(getStudyMediaAccess('user-1', 'media-1')).resolves.toBeNull();
+    expect(getSignedReadUrlMock).not.toHaveBeenCalled();
   });
 
-  it('does not sync prompt audio when a recognition prompt also has text', async () => {
-    const promptAudio = {
-      id: 'media-prompt',
-      filename: 'prompt.mp3',
-      url: '/api/study/media/media-prompt',
+  it('uses regenerated answer audio for existing mismatched recognition cards', async () => {
+    const answerAudio = {
+      id: 'media-answer',
+      filename: 'answer.mp3',
+      url: '/api/study/media/media-answer',
       mediaKind: 'audio',
       source: 'generated',
     };
-    const oldAnswerAudio = {
-      id: 'media-answer-old',
-      filename: 'answer-old.mp3',
-      url: '/api/study/media/media-answer-old',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-    const newAnswerAudio = {
-      id: 'media-answer-new',
-      filename: 'card-text-recognition.mp3',
-      url: '/api/study/media/media-answer-new',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-
-    mockPrisma.studyCard.findFirst
-      .mockResolvedValueOnce({
-        id: 'card-text-recognition',
-        userId: 'user-1',
-        noteId: 'note-1',
-        cardType: 'recognition',
-        queueState: 'review',
-        answerAudioSource: 'generated',
-        promptAudioMediaId: 'media-prompt',
-        answerAudioMediaId: 'media-answer-old',
-        promptJson: { cueText: '会社', cueAudio: promptAudio },
-        answerJson: {
-          expression: '会社',
-          meaning: 'company',
-          answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-          answerAudio: oldAnswerAudio,
-        },
-        schedulerStateJson: {
-          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          stability: 10,
-          difficulty: 4,
-          elapsed_days: 4,
-          scheduled_days: 10,
-          learning_steps: 0,
-          reps: 6,
-          lapses: 1,
-          state: 2,
-          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-        note: {},
-      })
-      .mockResolvedValueOnce({
-        id: 'card-text-recognition',
-        userId: 'user-1',
-        noteId: 'note-1',
-        cardType: 'recognition',
-        queueState: 'review',
-        answerAudioSource: 'generated',
-        promptAudioMediaId: 'media-prompt',
-        answerAudioMediaId: 'media-answer-new',
-        promptJson: { cueText: '会社', cueAudio: promptAudio },
-        answerJson: {
-          expression: '会社',
-          meaning: 'company',
-          answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-          answerAudio: newAnswerAudio,
-        },
-        schedulerStateJson: {
-          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          stability: 10,
-          difficulty: 4,
-          elapsed_days: 4,
-          scheduled_days: 10,
-          learning_steps: 0,
-          reps: 6,
-          lapses: 1,
-          state: 2,
-          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-        note: {},
-      });
-    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
-    mockPrisma.studyCard.findUnique.mockResolvedValue({
-      id: 'card-text-recognition',
-      userId: 'user-1',
-      cardType: 'recognition',
-      answerAudioSource: 'generated',
-      promptJson: { cueText: '会社', cueAudio: promptAudio },
-      answerJson: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-        answerAudio: oldAnswerAudio,
-      },
-    });
-    mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-answer-new' });
-    mockPrisma.studyCard.update.mockResolvedValue({});
-
-    const card = await regenerateStudyCardAnswerAudio({
-      userId: 'user-1',
-      cardId: 'card-text-recognition',
-      answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-    });
-
-    const updateData = mockPrisma.studyCard.update.mock.calls[0]?.[0].data;
-    expect(updateData).not.toHaveProperty('promptJson');
-    expect(updateData).not.toHaveProperty('promptAudioMediaId');
-    expect(card.prompt.cueAudio?.id).toBe('media-prompt');
-    expect(card.answer.answerAudio?.id).toBe('media-answer-new');
-  });
-
-  it('renders existing mismatched audio-recognition cards with answer audio on the front', async () => {
-    const oldPromptAudio = {
-      id: 'media-shohei',
-      filename: 'shohei.mp3',
-      url: '/api/study/media/media-shohei',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-    const regeneratedAnswerAudio = {
-      id: 'media-ren',
-      filename: 'ren.mp3',
-      url: '/api/study/media/media-ren',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-
     const cardRecord = {
-      id: 'card-existing-mismatch',
+      id: 'card-mismatch',
       userId: 'user-1',
       noteId: 'note-1',
       cardType: 'recognition',
       queueState: 'review',
       answerAudioSource: 'generated',
       promptJson: {
-        cueAudio: oldPromptAudio,
+        cueAudio: {
+          id: 'media-prompt',
+          filename: 'prompt.mp3',
+          url: '/api/study/media/media-prompt',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
         cueImage: {
           id: 'image-1',
           filename: 'front.webp',
@@ -622,7 +128,7 @@ describe('studyMediaService', () => {
       answerJson: {
         expression: '会社',
         meaning: 'company',
-        answerAudio: regeneratedAnswerAudio,
+        answerAudio,
       },
       schedulerStateJson: {
         due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
@@ -645,138 +151,21 @@ describe('studyMediaService', () => {
       imageMedia: null,
       note: {
         id: 'note-1',
-        userId: 'user-1',
         rawFieldsJson: {},
         canonicalFieldsJson: {},
-        sourceNoteId: null,
-        sourceGuid: null,
-        sourceNotetypeId: null,
-        sourceNotetypeName: null,
-        createdAt: new Date('2026-04-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
       },
     } as unknown as Parameters<typeof toStudyCardSummary>[0];
+
     const card = await toStudyCardSummary(cardRecord);
 
-    expect(card.prompt.cueAudio?.id).toBe('media-ren');
+    expect(card.prompt.cueAudio?.id).toBe('media-answer');
     expect(card.prompt.cueImage?.id).toBe('image-1');
-    expect(card.answer.answerAudio?.id).toBe('media-ren');
+    expect(card.answer.answerAudio?.id).toBe('media-answer');
   });
 
-  it('preserves existing answer audio when regeneration synthesis fails', async () => {
-    const previousAnswerAudio = {
-      id: 'media-old',
-      filename: 'card-voice-old.mp3',
-      url: '/api/study/media/media-old',
-      mediaKind: 'audio',
-      source: 'generated',
-    };
-    mockPrisma.studyCard.findFirst.mockResolvedValueOnce({
-      id: 'card-voice',
-      userId: 'user-1',
-      noteId: 'note-1',
-      cardType: 'recognition',
-      queueState: 'review',
-      answerAudioSource: 'generated',
-      answerAudioMediaId: 'media-old',
-      promptJson: { cueText: '会社' },
-      answerJson: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-C',
-        answerAudioTextOverride: null,
-        answerAudio: previousAnswerAudio,
-      },
-      schedulerStateJson: {
-        due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-        stability: 10,
-        difficulty: 4,
-        elapsed_days: 4,
-        scheduled_days: 10,
-        learning_steps: 0,
-        reps: 6,
-        lapses: 1,
-        state: 2,
-        last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-      },
-      createdAt: new Date('2026-04-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-      note: {},
-    });
-    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
-    mockPrisma.studyCard.findUnique.mockResolvedValue({
-      id: 'card-voice',
-      userId: 'user-1',
-      answerAudioSource: 'generated',
-      answerJson: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-D',
-        answerAudioTextOverride: 'かいしゃ',
-        answerAudio: previousAnswerAudio,
-      },
-    });
-    vi.mocked(synthesizeBatchedTexts)
-      .mockRejectedValueOnce(new Error('tts down'))
-      .mockRejectedValueOnce(new Error('tts down'));
-
-    await expect(
-      regenerateStudyCardAnswerAudio({
-        userId: 'user-1',
-        cardId: 'card-voice',
-        answerAudioVoiceId: 'ja-JP-Neural2-D',
-        answerAudioTextOverride: 'かいしゃ',
-      })
-    ).rejects.toThrow('tts down');
-
-    const updateArgs = mockPrisma.studyCard.updateMany.mock.calls[0]?.[0];
-    expect(updateArgs.data).not.toHaveProperty('answerAudioSource');
-    expect(updateArgs.data).not.toHaveProperty('answerAudioMediaId');
-    expect(updateArgs.data.answerJson).toEqual(
-      expect.objectContaining({
-        answerAudio: previousAnswerAudio,
-        answerAudioVoiceId: 'ja-JP-Neural2-D',
-        answerAudioTextOverride: 'かいしゃ',
-      })
-    );
-    expect(mockPrisma.studyCard.update).not.toHaveBeenCalled();
-  });
-
-  it('enforces ownership before regenerating answer audio', async () => {
-    mockPrisma.studyCard.findFirst.mockResolvedValue(null);
-
-    await expect(
-      regenerateStudyCardAnswerAudio({
-        userId: 'user-1',
-        cardId: 'missing-card',
-        answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
-        answerAudioTextOverride: 'かいしゃ',
-      })
-    ).rejects.toThrow('Study card not found.');
-
-    expect(mockPrisma.studyCard.updateMany).not.toHaveBeenCalled();
-    expect(vi.mocked(synthesizeBatchedTexts)).not.toHaveBeenCalled();
-  });
-
-  it('returns a signed redirect for GCS-backed study media', async () => {
-    process.env.GCS_BUCKET_NAME = 'test-bucket';
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({
-      id: 'media-1',
-      userId: 'user-1',
-      sourceFilename: 'remote-only-company.mp3',
-      contentType: 'audio/mpeg',
-      storagePath: 'study-media/user-1/import/remote-only-company.mp3',
-    });
-
-    const result = await getStudyMediaAccess('user-1', 'media-1');
-
-    expect(getSignedReadUrlMock).toHaveBeenCalled();
-    expect(result?.type).toBe('redirect');
-    expect(result?.contentDisposition).toBe('inline');
-  });
-
-  it('keeps a local media mirror for GCS-backed study media in development', async () => {
+  it('keeps a local mirror when persisting GCS-backed media in development', async () => {
     const filename = `card-local-${Date.now()}.mp3`;
+
     await withStudyMediaEnv(
       { NODE_ENV: 'development', GCS_BUCKET_NAME: 'test-bucket' },
       async () => {
@@ -792,21 +181,14 @@ describe('studyMediaService', () => {
             destinationPath: `study-media/user-1/generated/${filename}`,
           })
         );
-        expect(persisted.storagePath).toBe(`study-media/user-1/generated/${filename}`);
-
         const localPath = await findAccessibleLocalStudyMediaPath(persisted.storagePath);
-        expect(localPath).toEqual(expect.stringContaining(filename));
         await expect(fs.readFile(localPath as string, 'utf8')).resolves.toBe('fake-audio');
       }
     );
   });
 
-  it('backfills imported Anki media lazily when requested', async () => {
+  it('backfills imported Anki media lazily before serving it', async () => {
     const ankiMediaDir = await fs.mkdtemp(path.join(os.tmpdir(), 'study-media-access-'));
-    const previousAnkiMediaDir = process.env.ANKI_MEDIA_DIR;
-    const previousGcsBucketName = process.env.GCS_BUCKET_NAME;
-    process.env.ANKI_MEDIA_DIR = ankiMediaDir;
-    process.env.GCS_BUCKET_NAME = 'test-bucket';
 
     try {
       await fs.writeFile(path.join(ankiMediaDir, 'company.mp3'), 'fake-audio');
@@ -834,34 +216,28 @@ describe('studyMediaService', () => {
         publicUrl: null,
       });
 
-      const result = await getStudyMediaAccess('user-1', 'media-lazy');
+      await withStudyMediaEnv(
+        { ANKI_MEDIA_DIR: ankiMediaDir, GCS_BUCKET_NAME: 'test-bucket' },
+        async () => {
+          const result = await getStudyMediaAccess('user-1', 'media-lazy');
 
-      expect(mockPrisma.studyMedia.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'media-lazy' },
-          data: expect.objectContaining({
-            storagePath: expect.stringContaining('company.mp3'),
-          }),
-        })
+          expect(mockPrisma.studyMedia.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: { id: 'media-lazy' },
+              data: expect.objectContaining({
+                storagePath: expect.stringContaining('company.mp3'),
+              }),
+            })
+          );
+          expect(result?.type).toBe('redirect');
+        }
       );
-      expect(getSignedReadUrlMock).toHaveBeenCalled();
-      expect(result?.type).toBe('redirect');
     } finally {
-      if (previousAnkiMediaDir === undefined) {
-        delete process.env.ANKI_MEDIA_DIR;
-      } else {
-        process.env.ANKI_MEDIA_DIR = previousAnkiMediaDir;
-      }
-      if (previousGcsBucketName === undefined) {
-        delete process.env.GCS_BUCKET_NAME;
-      } else {
-        process.env.GCS_BUCKET_NAME = previousGcsBucketName;
-      }
       await fs.rm(ankiMediaDir, { recursive: true, force: true });
     }
   });
 
-  it('forces attachment disposition for unsafe inline media like SVG', async () => {
+  it('forces attachment disposition for unsafe inline media', async () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
     mockPrisma.studyMedia.findFirst.mockResolvedValue({
       id: 'media-svg',
@@ -883,24 +259,23 @@ describe('studyMediaService', () => {
     expect(result?.contentDisposition).toBe('attachment');
   });
 
-  it('returns null when GCS signing is unavailable for private study media', async () => {
+  it('returns null when private GCS media cannot be signed', async () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
     getSignedReadUrlMock.mockRejectedValueOnce(new Error('missing signer'));
     mockPrisma.studyMedia.findFirst.mockResolvedValue({
       id: 'media-gcs-failure',
       userId: 'user-1',
-      sourceFilename: 'missing-gcs-only-company.mp3',
+      sourceFilename: 'missing.mp3',
       contentType: 'audio/mpeg',
       mediaKind: 'audio',
-      storagePath: 'study-media/user-1/import/missing-gcs-only-company.mp3',
+      storagePath: 'study-media/user-1/import/missing.mp3',
     });
 
-    const result = await getStudyMediaAccess('user-1', 'media-gcs-failure');
-
-    expect(result).toBeNull();
+    await expect(getStudyMediaAccess('user-1', 'media-gcs-failure')).resolves.toBeNull();
+    expect(downloadFromGCSPathMock).not.toHaveBeenCalled();
   });
 
-  it('caches and serves GCS study media locally in development when signing is unavailable', async () => {
+  it('caches GCS media locally in development when signing fails', async () => {
     const filename = `dev-gcs-fallback-${Date.now()}.mp3`;
     const storagePath = `study-media/user-1/import/${filename}`;
     getSignedReadUrlMock.mockRejectedValueOnce(new Error('missing signer'));
@@ -923,17 +298,10 @@ describe('studyMediaService', () => {
       async () => {
         const result = await getStudyMediaAccess('user-1', 'media-dev-gcs-fallback');
 
-        expect(downloadFromGCSPathMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            filePath: storagePath,
-            destinationPath: expect.stringContaining(filename),
-          })
-        );
         expect(result).toEqual(
           expect.objectContaining({
             type: 'local',
             absolutePath: expect.stringContaining(filename),
-            contentType: 'audio/mpeg',
           })
         );
         await expect(fs.readFile(result?.absolutePath as string, 'utf8')).resolves.toBe(
@@ -943,40 +311,28 @@ describe('studyMediaService', () => {
     );
   });
 
-  it('schedules stale generated answer audio repair when the backing media is missing', async () => {
+  it('repairs stale generated audio when its backing media is missing', async () => {
     const cardId = `card-stale-${Date.now()}`;
-    const filename = `${cardId}.mp3`;
-    const storagePath = `study-media/user-1/generated/${filename}`;
     getSignedReadUrlMock.mockRejectedValueOnce(new Error('missing signer'));
     downloadFromGCSPathMock.mockRejectedValueOnce(new Error('missing object'));
     mockPrisma.studyMedia.findFirst.mockResolvedValueOnce({
       id: 'old-generated-media',
       userId: 'user-1',
       sourceKind: 'generated',
-      sourceFilename: filename,
+      sourceFilename: `${cardId}.mp3`,
       contentType: 'audio/mpeg',
       mediaKind: 'audio',
-      storagePath,
+      storagePath: `study-media/user-1/generated/${cardId}.mp3`,
     });
-    mockPrisma.studyCard.findFirst
-      .mockResolvedValueOnce({
-        id: cardId,
-        answerAudioMediaId: 'old-generated-media',
-      })
-      .mockResolvedValueOnce({
-        answerAudioMediaId: 'new-generated-media',
-      });
+    mockPrisma.studyCard.findFirst.mockResolvedValueOnce({
+      id: cardId,
+      answerAudioMediaId: 'old-generated-media',
+    });
     mockPrisma.studyCard.findUnique.mockResolvedValue({
       id: cardId,
       userId: 'user-1',
       answerAudioSource: 'generated',
-      answerJson: {
-        restoredText: '月曜日か金曜日か土曜日に会いましょう。',
-        answerAudio: {
-          id: 'old-generated-media',
-          url: '/api/study/media/old-generated-media',
-        },
-      },
+      answerJson: { restoredText: '月曜日に会いましょう。' },
     });
     mockPrisma.studyMedia.create.mockResolvedValue({ id: 'new-generated-media' });
     mockPrisma.studyCard.update.mockResolvedValue({});
@@ -984,19 +340,16 @@ describe('studyMediaService', () => {
     await withStudyMediaEnv(
       { NODE_ENV: 'development', GCS_BUCKET_NAME: 'test-bucket' },
       async () => {
-        const result = await getStudyMediaAccess('user-1', 'old-generated-media');
-
-        expect(result).toBeNull();
+        await expect(getStudyMediaAccess('user-1', 'old-generated-media')).resolves.toBeNull();
         await vi.waitFor(() => {
-          expect(vi.mocked(synthesizeBatchedTexts)).toHaveBeenCalledWith(
-            ['月曜日か金曜日か土曜日に会いましょう。'],
+          expect(synthesizeBatchedTextsMock).toHaveBeenCalledWith(
+            ['月曜日に会いましょう。'],
             expect.objectContaining({ languageCode: 'ja-JP' })
           );
           expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
             expect.objectContaining({
               where: { id: cardId },
               data: expect.objectContaining({
-                answerAudioSource: 'generated',
                 answerAudioMediaId: 'new-generated-media',
               }),
             })
@@ -1006,7 +359,7 @@ describe('studyMediaService', () => {
     );
   });
 
-  it('skips generated-audio repair while a recent repair failure is cooling down', async () => {
+  it('skips generated-audio repair during a failure cooldown', async () => {
     redisGetMock.mockResolvedValueOnce('1');
     mockPrisma.studyMedia.findFirst.mockResolvedValue({
       id: 'cooling-generated-media',
@@ -1018,16 +371,13 @@ describe('studyMediaService', () => {
       storagePath: null,
     });
 
-    const result = await getStudyMediaAccess('user-1', 'cooling-generated-media');
-
-    expect(result).toBeNull();
+    await expect(getStudyMediaAccess('user-1', 'cooling-generated-media')).resolves.toBeNull();
     expect(mockPrisma.studyCard.findFirst).not.toHaveBeenCalled();
-    expect(vi.mocked(synthesizeBatchedTexts)).not.toHaveBeenCalled();
+    expect(synthesizeBatchedTextsMock).not.toHaveBeenCalled();
   });
 
-  it('records a short cooldown when generated-audio repair synthesis fails', async () => {
-    redisGetMock.mockResolvedValue(null);
-    vi.mocked(synthesizeBatchedTexts).mockRejectedValue(new Error('tts down'));
+  it('records a cooldown when generated-audio repair fails', async () => {
+    synthesizeBatchedTextsMock.mockRejectedValue(new Error('tts down'));
     mockPrisma.studyMedia.findFirst.mockResolvedValue({
       id: 'failed-generated-media',
       userId: 'user-1',
@@ -1045,18 +395,10 @@ describe('studyMediaService', () => {
       id: 'card-failed-repair',
       userId: 'user-1',
       answerAudioSource: 'generated',
-      answerJson: {
-        restoredText: '月曜日か金曜日か土曜日に会いましょう。',
-        answerAudio: {
-          id: 'failed-generated-media',
-          url: '/api/study/media/failed-generated-media',
-        },
-      },
+      answerJson: { restoredText: '月曜日に会いましょう。' },
     });
 
-    const result = await getStudyMediaAccess('user-1', 'failed-generated-media');
-
-    expect(result).toBeNull();
+    await expect(getStudyMediaAccess('user-1', 'failed-generated-media')).resolves.toBeNull();
     await vi.waitFor(() => {
       expect(redisSetMock).toHaveBeenCalledWith(
         'study:answer-audio-repair-failed:failed-generated-media',

@@ -2,7 +2,6 @@ export type {
   CreateStudyCardInput,
   JsonRecord,
   StudyCardWithRelations,
-  RegenerateStudyCardAnswerAudioInput,
   StudyImportJobRecord,
   StudyMediaAccessResult,
   StudyMediaRecord,
@@ -106,7 +105,6 @@ export {
 export {
   backfillImportedStudyMedia,
   ensureGeneratedAnswerAudio,
-  ensureStudyCardMediaAvailable,
   getStudyAudioRedisClient,
   persistStudyMediaBuffer,
 } from './shared/mediaHelpers.js';
