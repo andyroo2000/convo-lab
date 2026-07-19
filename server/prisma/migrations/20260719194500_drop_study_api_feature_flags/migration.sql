@@ -1,0 +1,15 @@
+ALTER TABLE "feature_flags"
+  DROP COLUMN "studyApiEnabled",
+  DROP COLUMN "studyApiSettings",
+  DROP COLUMN "studyApiOverview",
+  DROP COLUMN "studyApiBrowser",
+  DROP COLUMN "studyApiBrowserDetail",
+  DROP COLUMN "studyApiNewQueue",
+  DROP COLUMN "studyApiImports",
+  DROP COLUMN "studyApiSettingsWrite",
+  DROP COLUMN "studyApiNewQueueWrite",
+  DROP COLUMN "studyApiReview",
+  DROP COLUMN "studyApiCardWrites",
+  DROP COLUMN "studyApiCardDrafts",
+  DROP COLUMN "studyApiMedia",
+  DROP COLUMN "studyApiDailyAudio";
