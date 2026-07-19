@@ -145,11 +145,13 @@ export function useDailyAudioPracticeStatus(id: string | undefined, enabled: boo
 
 export function useCreateDailyAudioPractice() {
   const queryClient = useQueryClient();
+  const { flags } = useFeatureFlags();
+  const source = dailyAudioApiSource(flags);
 
   return useMutation({
     mutationFn: createDailyAudioPractice,
     onSuccess: (practice) => {
-      queryClient.setQueryData(dailyAudioPracticeKeys.detail(practice.id), {
+      queryClient.setQueryData(dailyAudioPracticeKeys.detail(practice.id, source), {
         ...practice,
         tracks: normalizeTracks(practice.tracks),
       });

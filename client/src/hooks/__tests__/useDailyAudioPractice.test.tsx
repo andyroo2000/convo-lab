@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CSRF_TOKEN_COOKIE_NAME } from '../../lib/csrf';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 import {
+  dailyAudioPracticeKeys,
   useCreateDailyAudioPractice,
   useDailyAudioPractice,
   useDailyAudioPracticeStatus,
@@ -101,14 +102,14 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function createWrapper() {
-  const queryClient = new QueryClient({
+function createWrapper(
+  queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
-  });
-
+  })
+) {
   const Wrapper = ({ children }: PropsWithChildren) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
@@ -210,8 +211,14 @@ describe('Daily Audio API routing', () => {
     });
     mockFetch.mockResolvedValueOnce(jsonResponse(practice));
 
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
     const { result } = renderHook(() => useCreateDailyAudioPractice(), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper(queryClient),
     });
 
     await act(async () => {
@@ -229,6 +236,13 @@ describe('Daily Audio API routing', () => {
       expect.stringContaining('/api/learning-os/study/daily-audio-practice'),
       expect.anything()
     );
+    expect(
+      queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId, 'learning-os'))
+    ).toEqual({
+      ...practice,
+      tracks: [...practice.tracks].sort((left, right) => left.sortOrder - right.sortOrder),
+    });
+    expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toBeUndefined();
   });
 
   it('notifies the app when a Daily Audio read finds an expired Convo Lab session', async () => {
