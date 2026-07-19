@@ -2,11 +2,7 @@ import path from 'path';
 
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import {
-  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
-  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
-  STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT,
   STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
-  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
   STUDY_EXPORT_PAGE_SIZE_MAX,
 } from '@languageflow/shared/src/studyConstants.js';
@@ -14,13 +10,7 @@ import type {
   JapanesePitchAccentResolvedBy,
   JapanesePitchAccentUnresolvedReason,
   StudyAnswerPayload,
-  StudyCardCandidateCommitItem,
-  StudyCardCandidateKind,
-  StudyCardCandidatePreviewAudioRequest,
-  StudyCardCandidatePreviewImageRequest,
   StudyCardCreationKind,
-  StudyCardDraftCompleteRequest,
-  StudyCardDraftImageRequest,
   StudyCardImagePlacement,
   StudyManualCardDraftCreateRequest,
   StudyManualCardDraftUpdateRequest,
@@ -39,16 +29,13 @@ import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import { assertStudyCardPayloadContract } from '../services/study/cardPayloadContract.js';
 import {
-  cardTypeForStudyCardCandidateKind,
   cardTypeForStudyCardCreationKind,
-  STUDY_CARD_CANDIDATE_KINDS,
   STUDY_CARD_CREATION_KINDS,
   STUDY_CARD_IMAGE_PLACEMENTS,
 } from '../services/study/shared.js';
 import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
-  completeManualStudyCardDraft,
   createStudyImportUploadSession,
   exportStudyData,
   exportStudyCardsSection,
@@ -59,18 +46,13 @@ import {
   getStudyMediaAccess,
   getStudyImportJob,
   getStudyImportUploadReadiness,
-  commitStudyCardCandidates,
   createStudyVocabBundleDrafts,
-  generateStudyCardCandidates,
-  generateManualStudyCardDraftImage,
   createManualCardDraft,
   createStudyCardFromManualDraft,
   deleteManualCardDraft,
   listManualCardDrafts,
   markManualCardDraftError,
   markManualCardDraftsForVariantGroupError,
-  regenerateStudyCardCandidatePreviewAudio,
-  regenerateStudyCardCandidatePreviewImage,
   resetManualCardDraftForRetry,
   updateManualCardDraft,
 } from '../services/studyService.js';
@@ -84,11 +66,6 @@ const MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE =
   'Could not queue draft generation. Please retry this draft.';
 const VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE =
   'Could not queue vocab bundle generation. Please retry these drafts.';
-// Tune with STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT, which caps automatic lazy backfill.
-const STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE = Math.max(
-  10,
-  STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT
-);
 
 async function enqueueOrMarkDraftError<T>(input: {
   enqueue: () => Promise<unknown>;
@@ -585,20 +562,6 @@ function parseStudyCardPayloads(
   };
 }
 
-function parseStudyCardCandidateKind(value: unknown): StudyCardCandidateKind {
-  if (
-    typeof value !== 'string' ||
-    !STUDY_CARD_CANDIDATE_KINDS.has(value as StudyCardCandidateKind)
-  ) {
-    throw new AppError(
-      'candidateKind must be text-recognition, audio-recognition, production, or cloze.',
-      400
-    );
-  }
-
-  return value as StudyCardCandidateKind;
-}
-
 function parseStudyCardCreationKind(value: unknown): StudyCardCreationKind {
   if (typeof value !== 'string' || !STUDY_CARD_CREATION_KINDS.has(value as StudyCardCreationKind)) {
     throw new AppError(
@@ -622,36 +585,6 @@ function parseStudyCardImagePlacement(value: unknown): StudyCardImagePlacement {
   }
 
   return value as StudyCardImagePlacement;
-}
-
-function parseStudyCardDraftCompleteRequest(value: unknown): StudyCardDraftCompleteRequest {
-  if (!isPlainObject(value)) {
-    throw new AppError('Study card draft request body must be an object.', 400);
-  }
-
-  const creationKind = parseStudyCardCreationKind(value.creationKind);
-  const expectedCardType = cardTypeForStudyCardCreationKind(creationKind);
-
-  const payloads = parseStudyCardPayloads(value.prompt, value.answer);
-  const imagePrompt = parseOptionalNullableStringField('draft', 'imagePrompt', value.imagePrompt);
-  if (
-    typeof imagePrompt === 'string' &&
-    imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH
-  ) {
-    throw new AppError(
-      `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
-      400
-    );
-  }
-
-  return {
-    creationKind,
-    cardType: expectedCardType,
-    prompt: payloads.prompt,
-    answer: payloads.answer,
-    imagePlacement: parseStudyCardImagePlacement(value.imagePlacement),
-    imagePrompt: imagePrompt ?? null,
-  };
 }
 
 function parseStudyManualCardDraftCreateRequest(value: unknown): StudyManualCardDraftCreateRequest {
@@ -753,67 +686,6 @@ function parseStudyCardCandidatePreviewRole(value: unknown): 'prompt' | 'answer'
   }
 
   return value as 'prompt' | 'answer';
-}
-
-function parseStudyCardCandidateCommitItems(value: unknown): StudyCardCandidateCommitItem[] {
-  if (!Array.isArray(value)) {
-    throw new AppError('candidates must be an array.', 400);
-  }
-  if (value.length > STUDY_CANDIDATE_COMMIT_MAX_COUNT) {
-    throw new AppError(
-      `candidates must include no more than ${String(STUDY_CANDIDATE_COMMIT_MAX_COUNT)} cards.`,
-      400
-    );
-  }
-
-  return value.map((item, index) => {
-    if (!isPlainObject(item)) {
-      throw new AppError(`candidates[${String(index)}] must be an object.`, 400);
-    }
-
-    const candidateKind = parseStudyCardCandidateKind(item.candidateKind);
-    const cardType = String(item.cardType);
-    const expectedCardType = cardTypeForStudyCardCandidateKind(candidateKind);
-    if (cardType !== expectedCardType) {
-      throw new AppError('cardType must match candidateKind.', 400);
-    }
-
-    const payloads = parseStudyCardPayloads(item.prompt, item.answer);
-    const previewAudio = parseOptionalStudyMediaRef('candidate', 'previewAudio', item.previewAudio);
-    const previewImage = parseOptionalStudyMediaRef('candidate', 'previewImage', item.previewImage);
-    if (previewImage?.mediaKind && previewImage.mediaKind !== 'image') {
-      throw new AppError('candidate.previewImage.mediaKind must be image.', 400);
-    }
-    const imagePrompt = parseOptionalNullableStringField(
-      'candidate',
-      'imagePrompt',
-      item.imagePrompt
-    );
-    if (
-      typeof imagePrompt === 'string' &&
-      imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH
-    ) {
-      throw new AppError(
-        `candidate.imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
-        400
-      );
-    }
-
-    return {
-      clientId:
-        typeof item.clientId === 'string' && item.clientId
-          ? item.clientId
-          : `candidate-${String(index + 1)}`,
-      candidateKind,
-      cardType: expectedCardType,
-      prompt: payloads.prompt,
-      answer: payloads.answer,
-      previewAudio: previewAudio ?? null,
-      previewAudioRole: parseStudyCardCandidatePreviewRole(item.previewAudioRole),
-      previewImage: previewImage ?? null,
-      imagePrompt: imagePrompt ?? null,
-    };
-  });
 }
 
 router.use(requireAuth);
@@ -1009,136 +881,6 @@ router.post(
 );
 
 router.post(
-  '/card-candidates/generate',
-  rateLimitStudyRoute({ key: 'card-candidate-generate', max: 20, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const { targetText, context, includeLearnerContext } = req.body as {
-        targetText?: unknown;
-        context?: unknown;
-        includeLearnerContext?: unknown;
-      };
-
-      if (typeof targetText !== 'string') {
-        throw new AppError('targetText is required.', 400);
-      }
-      const trimmedTargetText = targetText.trim();
-      // Keep cheap route-level size checks here so oversized requests fail before
-      // learner-context or LLM work can start.
-      if (!trimmedTargetText) {
-        throw new AppError('targetText is required.', 400);
-      }
-      if (trimmedTargetText.length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
-        throw new AppError(
-          `targetText must be ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters or fewer.`,
-          400
-        );
-      }
-      if (typeof context !== 'undefined' && context !== null && typeof context !== 'string') {
-        throw new AppError('context must be a string or null.', 400);
-      }
-      const trimmedContext = typeof context === 'string' ? context.trim() : null;
-      if (
-        typeof trimmedContext === 'string' &&
-        trimmedContext.length > STUDY_CANDIDATE_CONTEXT_MAX_LENGTH
-      ) {
-        throw new AppError(
-          `context must be ${String(STUDY_CANDIDATE_CONTEXT_MAX_LENGTH)} characters or fewer.`,
-          400
-        );
-      }
-      if (
-        typeof includeLearnerContext !== 'undefined' &&
-        typeof includeLearnerContext !== 'boolean'
-      ) {
-        throw new AppError('includeLearnerContext must be a boolean.', 400);
-      }
-
-      const result = await generateStudyCardCandidates({
-        userId: req.userId,
-        request: {
-          targetText: trimmedTargetText,
-          context: trimmedContext,
-          includeLearnerContext:
-            typeof includeLearnerContext === 'boolean' ? includeLearnerContext : true,
-        },
-      });
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/card-candidates/regenerate-audio',
-  rateLimitStudyRoute({ key: 'card-candidate-regenerate-audio', max: 30, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const body = req.body as Partial<StudyCardCandidatePreviewAudioRequest>;
-      if (!isPlainObject(body.candidate)) {
-        throw new AppError('candidate must be an object.', 400);
-      }
-
-      const [candidate] = parseStudyCardCandidateCommitItems([body.candidate]);
-      const result = await regenerateStudyCardCandidatePreviewAudio({
-        userId: req.userId,
-        candidate,
-      });
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/card-candidates/regenerate-image',
-  rateLimitStudyRoute({
-    key: 'card-candidate-regenerate-image',
-    max: STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE,
-    windowMs: 60 * 1000,
-  }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const body = req.body as Partial<StudyCardCandidatePreviewImageRequest>;
-      if (!isPlainObject(body.candidate)) {
-        throw new AppError('candidate must be an object.', 400);
-      }
-      const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt.trim() : '';
-      if (!imagePrompt) {
-        throw new AppError('imagePrompt is required.', 400);
-      }
-
-      const [candidate] = parseStudyCardCandidateCommitItems([body.candidate]);
-      const result = await regenerateStudyCardCandidatePreviewImage({
-        userId: req.userId,
-        candidate,
-        imagePrompt,
-      });
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
   '/card-drafts',
   rateLimitStudyRoute({ key: 'manual-card-draft-create', max: 60, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
@@ -1293,85 +1035,6 @@ router.delete(
         draftId: req.params.draftId,
       });
       res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/cards/draft/complete',
-  rateLimitStudyRoute({ key: 'card-draft-complete', max: 30, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const request = parseStudyCardDraftCompleteRequest(req.body);
-      const result = await completeManualStudyCardDraft({
-        userId: req.userId,
-        request,
-      });
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/cards/draft/image',
-  rateLimitStudyRoute({
-    key: 'card-draft-image',
-    max: STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE,
-    windowMs: 60 * 1000,
-  }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const body = isPlainObject(req.body) ? (req.body as Partial<StudyCardDraftImageRequest>) : {};
-      const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt.trim() : '';
-      if (!imagePrompt) {
-        throw new AppError('imagePrompt is required.', 400);
-      }
-
-      const result = await generateManualStudyCardDraftImage({
-        userId: req.userId,
-        imagePrompt,
-        imagePlacement: parseStudyCardImagePlacement(body.imagePlacement),
-      });
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/card-candidates/commit',
-  rateLimitStudyRoute({ key: 'card-candidate-commit', max: 30, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const candidates = parseStudyCardCandidateCommitItems(
-        (req.body as { candidates?: unknown }).candidates
-      );
-
-      const result = await commitStudyCardCandidates({
-        userId: req.userId,
-        candidates,
-      });
-
-      res.status(201).json(result);
     } catch (error) {
       next(error);
     }
