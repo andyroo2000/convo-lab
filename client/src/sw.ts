@@ -19,6 +19,7 @@ declare let self: ServiceWorkerGlobalScope & {
 };
 
 const AUDIO_CACHE_NAME = 'audio-cache';
+const LEGACY_API_CACHE_NAME = 'api-cache';
 const AUDIO_MESSAGE_TYPES = new Set(['PRECACHE_AUDIO_URLS', 'CLEAR_AUDIO_CACHE']);
 
 self.__WB_DISABLE_DEV_LOGS = true;
@@ -28,6 +29,10 @@ clientsClaim();
 cleanupOutdatedCaches();
 
 precacheAndRoute(self.__WB_MANIFEST);
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.delete(LEGACY_API_CACHE_NAME));
+});
 
 const audioStrategy = new CacheFirst({
   cacheName: AUDIO_CACHE_NAME,
@@ -76,20 +81,6 @@ registerRoute(
       }),
       new CacheableResponsePlugin({
         statuses: [0, 200],
-      }),
-    ],
-  })
-);
-
-registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
-  new NetworkFirst({
-    cacheName: 'api-cache',
-    networkTimeoutSeconds: 10,
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 50,
-        maxAgeSeconds: 60 * 5,
       }),
     ],
   })
