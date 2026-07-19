@@ -9,6 +9,11 @@ import express, {
 import request from 'supertest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import {
+  CLIENT_FEATURE_FLAG_SELECT,
+  DEFAULT_CLIENT_FEATURE_FLAGS,
+} from '../../../services/featureFlags.js';
+
 // Mock Prisma client
 const mockPrisma = vi.hoisted(() => ({
   user: {
@@ -425,26 +430,8 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(200);
       expect(mockPrisma.featureFlag.create).toHaveBeenCalledWith({
-        data: {
-          dialoguesEnabled: true,
-          scriptsEnabled: true,
-          audioCourseEnabled: true,
-          flashcardsEnabled: true,
-          studyApiEnabled: false,
-          studyApiSettings: false,
-          studyApiOverview: false,
-          studyApiBrowser: false,
-          studyApiBrowserDetail: false,
-          studyApiNewQueue: false,
-          studyApiImports: false,
-          studyApiSettingsWrite: false,
-          studyApiNewQueueWrite: false,
-          studyApiReview: false,
-          studyApiCardWrites: false,
-          studyApiCardDrafts: false,
-          studyApiMedia: false,
-          studyApiDailyAudio: false,
-        },
+        data: DEFAULT_CLIENT_FEATURE_FLAGS,
+        select: CLIENT_FEATURE_FLAG_SELECT,
       });
     });
   });
@@ -474,66 +461,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       expect(response.status).toBe(200);
       expect(mockPrisma.featureFlag.update).toHaveBeenCalled();
       expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
-    });
-
-    it('should update Learning OS Study API flags', async () => {
-      mockPrisma.featureFlag.findFirst.mockResolvedValue({
-        id: 'flags-id',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-        studyApiEnabled: false,
-        studyApiOverview: false,
-        studyApiBrowserDetail: false,
-        studyApiReview: false,
-        studyApiCardWrites: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
-      });
-
-      mockPrisma.featureFlag.update.mockResolvedValue({
-        id: 'flags-id',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-        studyApiEnabled: true,
-        studyApiOverview: true,
-        studyApiBrowserDetail: true,
-        studyApiReview: true,
-        studyApiCardWrites: true,
-        studyApiCardDrafts: true,
-        studyApiMedia: true,
-        studyApiDailyAudio: true,
-      });
-
-      const response = await request(app).patch('/admin/feature-flags').send({
-        studyApiEnabled: true,
-        studyApiOverview: true,
-        studyApiBrowserDetail: true,
-        studyApiReview: true,
-        studyApiCardWrites: true,
-        studyApiCardDrafts: true,
-        studyApiMedia: true,
-        studyApiDailyAudio: true,
-      });
-
-      expect(response.status).toBe(200);
-      expect(mockPrisma.featureFlag.update).toHaveBeenCalledWith({
-        where: { id: 'flags-id' },
-        data: {
-          studyApiEnabled: true,
-          studyApiOverview: true,
-          studyApiBrowserDetail: true,
-          studyApiReview: true,
-          studyApiCardWrites: true,
-          studyApiCardDrafts: true,
-          studyApiMedia: true,
-          studyApiDailyAudio: true,
-        },
-      });
     });
 
     it('should create flags on first update if none exist', async () => {

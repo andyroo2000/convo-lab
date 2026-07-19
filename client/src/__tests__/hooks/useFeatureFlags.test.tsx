@@ -56,19 +56,6 @@ describe('useFeatureFlags', () => {
         scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
-        studyApiEnabled: false,
-        studyApiSettings: false,
-        studyApiOverview: false,
-        studyApiBrowser: false,
-        studyApiBrowserDetail: false,
-        studyApiNewQueue: false,
-        studyApiImports: false,
-        studyApiSettingsWrite: false,
-        studyApiNewQueueWrite: false,
-        studyApiReview: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
         updatedAt: '2024-01-01',
       };
 
@@ -115,19 +102,6 @@ describe('useFeatureFlags', () => {
         scriptsEnabled: true,
         audioCourseEnabled: false,
         flashcardsEnabled: true,
-        studyApiEnabled: false,
-        studyApiSettings: false,
-        studyApiOverview: false,
-        studyApiBrowser: false,
-        studyApiBrowserDetail: false,
-        studyApiNewQueue: false,
-        studyApiImports: false,
-        studyApiSettingsWrite: false,
-        studyApiNewQueueWrite: false,
-        studyApiReview: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
         updatedAt: '2024-01-01',
       };
 
@@ -154,19 +128,6 @@ describe('useFeatureFlags', () => {
         scriptsEnabled: true,
         audioCourseEnabled: false,
         flashcardsEnabled: true,
-        studyApiEnabled: false,
-        studyApiSettings: false,
-        studyApiOverview: false,
-        studyApiBrowser: false,
-        studyApiBrowserDetail: false,
-        studyApiNewQueue: false,
-        studyApiImports: false,
-        studyApiSettingsWrite: false,
-        studyApiNewQueueWrite: false,
-        studyApiReview: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
         updatedAt: '2024-01-01',
       };
 
@@ -208,19 +169,6 @@ describe('useFeatureFlags', () => {
         scriptsEnabled: false,
         audioCourseEnabled: false,
         flashcardsEnabled: false,
-        studyApiEnabled: false,
-        studyApiSettings: false,
-        studyApiOverview: false,
-        studyApiBrowser: false,
-        studyApiBrowserDetail: false,
-        studyApiNewQueue: false,
-        studyApiImports: false,
-        studyApiSettingsWrite: false,
-        studyApiNewQueueWrite: false,
-        studyApiReview: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
         updatedAt: '2024-01-01',
       };
 
@@ -344,19 +292,6 @@ describe('useFeatureFlags', () => {
         scriptsEnabled: true,
         audioCourseEnabled: true,
         flashcardsEnabled: true,
-        studyApiEnabled: false,
-        studyApiSettings: false,
-        studyApiOverview: false,
-        studyApiBrowser: false,
-        studyApiBrowserDetail: false,
-        studyApiNewQueue: false,
-        studyApiImports: false,
-        studyApiSettingsWrite: false,
-        studyApiNewQueueWrite: false,
-        studyApiReview: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
@@ -366,19 +301,6 @@ describe('useFeatureFlags', () => {
       expect(typeof validFlags.scriptsEnabled).toBe('boolean');
       expect(typeof validFlags.audioCourseEnabled).toBe('boolean');
       expect(typeof validFlags.flashcardsEnabled).toBe('boolean');
-      expect(typeof validFlags.studyApiEnabled).toBe('boolean');
-      expect(typeof validFlags.studyApiSettings).toBe('boolean');
-      expect(typeof validFlags.studyApiOverview).toBe('boolean');
-      expect(typeof validFlags.studyApiBrowser).toBe('boolean');
-      expect(typeof validFlags.studyApiBrowserDetail).toBe('boolean');
-      expect(typeof validFlags.studyApiNewQueue).toBe('boolean');
-      expect(typeof validFlags.studyApiImports).toBe('boolean');
-      expect(typeof validFlags.studyApiSettingsWrite).toBe('boolean');
-      expect(typeof validFlags.studyApiNewQueueWrite).toBe('boolean');
-      expect(typeof validFlags.studyApiReview).toBe('boolean');
-      expect(typeof validFlags.studyApiCardDrafts).toBe('boolean');
-      expect(typeof validFlags.studyApiMedia).toBe('boolean');
-      expect(typeof validFlags.studyApiDailyAudio).toBe('boolean');
       expect(typeof validFlags.updatedAt).toBe('string');
     });
   });

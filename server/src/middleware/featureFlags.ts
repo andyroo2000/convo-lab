@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 
 import { prisma } from '../db/client.js';
+import { CLIENT_FEATURE_FLAG_SELECT } from '../services/featureFlags.js';
 
 import { AuthRequest } from './auth.js';
 import { AppError } from './errorHandler.js';
@@ -9,40 +10,12 @@ export type FeatureFlagKey =
   | 'dialoguesEnabled'
   | 'scriptsEnabled'
   | 'audioCourseEnabled'
-  | 'flashcardsEnabled'
-  | 'studyApiEnabled'
-  | 'studyApiSettings'
-  | 'studyApiOverview'
-  | 'studyApiBrowser'
-  | 'studyApiBrowserDetail'
-  | 'studyApiNewQueue'
-  | 'studyApiImports'
-  | 'studyApiSettingsWrite'
-  | 'studyApiNewQueueWrite'
-  | 'studyApiReview'
-  | 'studyApiCardWrites'
-  | 'studyApiCardDrafts'
-  | 'studyApiMedia'
-  | 'studyApiDailyAudio';
+  | 'flashcardsEnabled';
 export type FeatureFlagSnapshot = {
   dialoguesEnabled: boolean;
   scriptsEnabled: boolean;
   audioCourseEnabled: boolean;
   flashcardsEnabled: boolean;
-  studyApiEnabled: boolean;
-  studyApiSettings: boolean;
-  studyApiOverview: boolean;
-  studyApiBrowser: boolean;
-  studyApiBrowserDetail: boolean;
-  studyApiNewQueue: boolean;
-  studyApiImports: boolean;
-  studyApiSettingsWrite: boolean;
-  studyApiNewQueueWrite: boolean;
-  studyApiReview: boolean;
-  studyApiCardWrites: boolean;
-  studyApiCardDrafts: boolean;
-  studyApiMedia: boolean;
-  studyApiDailyAudio: boolean;
 } | null;
 
 const FEATURE_FLAG_CACHE_TTL_MS = 30 * 1000;
@@ -59,26 +32,7 @@ export async function getFeatureFlags(): Promise<FeatureFlagSnapshot> {
   }
 
   const value = await prisma.featureFlag.findFirst({
-    select: {
-      dialoguesEnabled: true,
-      scriptsEnabled: true,
-      audioCourseEnabled: true,
-      flashcardsEnabled: true,
-      studyApiEnabled: true,
-      studyApiSettings: true,
-      studyApiOverview: true,
-      studyApiBrowser: true,
-      studyApiBrowserDetail: true,
-      studyApiNewQueue: true,
-      studyApiImports: true,
-      studyApiSettingsWrite: true,
-      studyApiNewQueueWrite: true,
-      studyApiReview: true,
-      studyApiCardWrites: true,
-      studyApiCardDrafts: true,
-      studyApiMedia: true,
-      studyApiDailyAudio: true,
-    },
+    select: CLIENT_FEATURE_FLAG_SELECT,
   });
 
   cachedFeatureFlags = {

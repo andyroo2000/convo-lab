@@ -20,7 +20,6 @@ import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 import { prisma } from '../../db/client.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/errorHandler.js';
-import { getFeatureFlags, type FeatureFlagKey } from '../../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../../middleware/studyRateLimit.js';
 import { assertStudyCardPayloadContract } from '../../services/study/cardPayloadContract.js';
 import {
@@ -238,23 +237,6 @@ const learningOsCardDraftPreviewMediaRateLimit = rateLimitStudyRoute({
   onBackendError: 'fail-closed',
 });
 
-type StudyApiChildFlag = Extract<
-  FeatureFlagKey,
-  | 'studyApiOverview'
-  | 'studyApiSettings'
-  | 'studyApiBrowser'
-  | 'studyApiBrowserDetail'
-  | 'studyApiNewQueue'
-  | 'studyApiImports'
-  | 'studyApiSettingsWrite'
-  | 'studyApiNewQueueWrite'
-  | 'studyApiReview'
-  | 'studyApiCardWrites'
-  | 'studyApiCardDrafts'
-  | 'studyApiMedia'
-  | 'studyApiDailyAudio'
->;
-
 type StudyProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 type StudyWriteFeature =
   | 'settingsWrite'
@@ -299,13 +281,12 @@ type StudyWriteBody =
 interface StudyProxyRoute {
   method: StudyProxyMethod;
   pattern: RegExp;
-  featureFlag: StudyApiChildFlag;
+  rateLimitCategory?: 'import';
   responseFeature?: LearningOsStudyReadFeature;
   queryParams: ReadonlySet<string>;
   upstreamQueryAliases?: Readonly<Record<string, string>>;
   writeFeature?: StudyWriteFeature;
   writeBody?: StudyWriteBody;
-  requiredReadFlag?: Extract<FeatureFlagKey, 'studyApiSettings' | 'studyApiNewQueue'>;
   reviewOperation?: 'session' | 'write';
   importUpload?: boolean;
   mediaResponse?: boolean;
@@ -329,7 +310,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: /^\/daily-audio-practice$/,
-    featureFlag: 'studyApiDailyAudio',
     queryParams: new Set(),
     writeFeature: 'dailyAudioCreate',
     writeBody: 'dailyAudioCreate',
@@ -339,7 +319,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
     pattern: /^\/daily-audio-practice$/,
-    featureFlag: 'studyApiDailyAudio',
     queryParams: new Set(),
     upstreamApiPrefix: '/api',
     responseAdapter: 'dailyAudio:list',
@@ -347,7 +326,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
     pattern: new RegExp(`^/daily-audio-practice/${DAILY_AUDIO_UUID_SEGMENT}/status$`, 'i'),
-    featureFlag: 'studyApiDailyAudio',
     queryParams: new Set(),
     upstreamApiPrefix: '/api',
     responseAdapter: 'dailyAudio:status',
@@ -359,7 +337,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
       `^/daily-audio-practice/${DAILY_AUDIO_UUID_SEGMENT}/tracks/${DAILY_AUDIO_UUID_SEGMENT}/audio$`,
       'i'
     ),
-    featureFlag: 'studyApiDailyAudio',
     queryParams: new Set(),
     upstreamApiPrefix: '/api',
     mediaResponse: true,
@@ -368,7 +345,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
     pattern: new RegExp(`^/daily-audio-practice/${DAILY_AUDIO_UUID_SEGMENT}$`, 'i'),
-    featureFlag: 'studyApiDailyAudio',
     queryParams: new Set(),
     upstreamApiPrefix: '/api',
     responseAdapter: 'dailyAudio:detail',
@@ -377,7 +353,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: /^\/card-candidates\/vocab-bundle\/drafts$/,
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'vocabBundleDraftCreate',
     writeBody: 'vocabBundleDraftCreate',
@@ -386,21 +361,18 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
     pattern: new RegExp(`^/media/${STUDY_ULID_SEGMENT}$`, 'i'),
-    featureFlag: 'studyApiMedia',
     queryParams: new Set(),
     mediaResponse: true,
   },
   {
     method: 'GET',
     pattern: /^\/card-drafts$/,
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(['cursor', 'limit']),
     responseAdapter: 'cardDraftList',
   },
   {
     method: 'POST',
     pattern: /^\/card-drafts$/,
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftCreate',
     writeBody: 'cardDraftCreate',
@@ -409,7 +381,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'PATCH',
     pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}$`, 'i'),
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftUpdate',
     writeBody: 'cardDraftUpdate',
@@ -418,7 +389,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/retry$`, 'i'),
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftRetry',
     responseAdapter: 'cardDraft',
@@ -426,7 +396,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/preview-audio$`, 'i'),
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftPreviewMedia',
     writeBody: 'empty',
@@ -437,7 +406,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/preview-image$`, 'i'),
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftPreviewMedia',
     writeBody: 'empty',
@@ -448,7 +416,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}/create-card$`, 'i'),
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftCommit',
     writeBody: 'cardDraftCommit',
@@ -457,14 +424,12 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'DELETE',
     pattern: new RegExp(`^/card-drafts/${STUDY_ULID_SEGMENT}$`, 'i'),
-    featureFlag: 'studyApiCardDrafts',
     queryParams: new Set(),
     writeFeature: 'cardDraftDelete',
   },
   {
     method: 'POST',
     pattern: /^\/cards$/,
-    featureFlag: 'studyApiCardWrites',
     queryParams: new Set(),
     writeFeature: 'cardCreate',
     writeBody: 'cardCreate',
@@ -473,7 +438,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'PATCH',
     pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}$`, 'i'),
-    featureFlag: 'studyApiCardWrites',
     queryParams: new Set(),
     writeFeature: 'cardUpdate',
     writeBody: 'cardUpdate',
@@ -482,14 +446,12 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'DELETE',
     pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}$`, 'i'),
-    featureFlag: 'studyApiCardWrites',
     queryParams: new Set(),
     writeFeature: 'cardDelete',
   },
   {
     method: 'POST',
     pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/actions$`, 'i'),
-    featureFlag: 'studyApiCardWrites',
     queryParams: new Set(),
     writeFeature: 'cardAction',
     writeBody: 'cardAction',
@@ -498,7 +460,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/prepare-answer-audio$`, 'i'),
-    featureFlag: 'studyApiCardWrites',
     queryParams: new Set(),
     writeFeature: 'cardAnswerAudio',
     writeBody: 'empty',
@@ -508,7 +469,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/regenerate-answer-audio$`, 'i'),
-    featureFlag: 'studyApiCardWrites',
     queryParams: new Set(),
     writeFeature: 'cardAnswerAudio',
     writeBody: 'answerAudioRegenerate',
@@ -518,7 +478,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/regenerate-image$`, 'i'),
-    featureFlag: 'studyApiCardWrites',
     queryParams: new Set(),
     writeFeature: 'cardImage',
     writeBody: 'imageRegenerate',
@@ -528,7 +487,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/pitch-accent$`, 'i'),
-    featureFlag: 'studyApiCardWrites',
     queryParams: new Set(),
     writeFeature: 'cardPitchAccent',
     writeBody: 'empty',
@@ -538,7 +496,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: /^\/session\/start$/,
-    featureFlag: 'studyApiReview',
     responseFeature: 'session',
     queryParams: new Set(),
     writeBody: 'session',
@@ -547,7 +504,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: /^\/reviews$/,
-    featureFlag: 'studyApiReview',
     responseFeature: 'review',
     queryParams: new Set(),
     writeFeature: 'reviewWrite',
@@ -557,7 +513,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: /^\/reviews\/undo$/,
-    featureFlag: 'studyApiReview',
     responseFeature: 'reviewUndo',
     queryParams: new Set(),
     writeFeature: 'reviewWrite',
@@ -567,7 +522,6 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
     pattern: /^\/overview$/,
-    featureFlag: 'studyApiOverview',
     responseFeature: 'overview',
     queryParams: new Set(['timeZone']),
     upstreamQueryAliases: { timeZone: 'time_zone' },
@@ -575,24 +529,20 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
     pattern: /^\/settings$/,
-    featureFlag: 'studyApiSettings',
     responseFeature: 'settings',
     queryParams: new Set(),
   },
   {
     method: 'PATCH',
     pattern: /^\/settings$/,
-    featureFlag: 'studyApiSettingsWrite',
     responseFeature: 'settings',
     queryParams: new Set(),
     writeFeature: 'settingsWrite',
     writeBody: 'settings',
-    requiredReadFlag: 'studyApiSettings',
   },
   {
     method: 'GET',
     pattern: /^\/browser$/,
-    featureFlag: 'studyApiBrowser',
     responseFeature: 'browser',
     queryParams: new Set([
       'q',
@@ -608,31 +558,27 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
     pattern: /^\/browser\/[A-Za-z0-9-]+$/,
-    featureFlag: 'studyApiBrowserDetail',
     responseFeature: 'browserDetail',
     queryParams: new Set(),
   },
   {
     method: 'GET',
     pattern: /^\/new-queue$/,
-    featureFlag: 'studyApiNewQueue',
     responseFeature: 'newQueue',
     queryParams: new Set(['cursor', 'limit', 'q']),
   },
   {
     method: 'POST',
     pattern: /^\/new-queue\/reorder$/,
-    featureFlag: 'studyApiNewQueueWrite',
     responseFeature: 'newQueue',
     queryParams: new Set(),
     writeFeature: 'newQueueWrite',
     writeBody: 'newQueue',
-    requiredReadFlag: 'studyApiNewQueue',
   },
   {
     method: 'POST',
     pattern: /^\/imports$/,
-    featureFlag: 'studyApiImports',
+    rateLimitCategory: 'import',
     responseFeature: 'importSession',
     queryParams: new Set(),
     writeBody: 'importCreate',
@@ -640,21 +586,21 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'GET',
     pattern: /^\/imports\/readiness$/,
-    featureFlag: 'studyApiImports',
+    rateLimitCategory: 'import',
     responseFeature: 'importReadiness',
     queryParams: new Set(),
   },
   {
     method: 'GET',
     pattern: /^\/imports\/current$/,
-    featureFlag: 'studyApiImports',
+    rateLimitCategory: 'import',
     responseFeature: 'importCurrent',
     queryParams: new Set(),
   },
   {
     method: 'PUT',
     pattern: STUDY_IMPORT_UPLOAD_PATH_PATTERN,
-    featureFlag: 'studyApiImports',
+    rateLimitCategory: 'import',
     responseFeature: 'importJob',
     queryParams: new Set(),
     importUpload: true,
@@ -662,63 +608,54 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
   {
     method: 'POST',
     pattern: new RegExp(`^/imports/${STUDY_IMPORT_ULID_SEGMENT}/complete$`),
-    featureFlag: 'studyApiImports',
+    rateLimitCategory: 'import',
     responseFeature: 'importJob',
     queryParams: new Set(),
   },
   {
     method: 'POST',
     pattern: new RegExp(`^/imports/${STUDY_IMPORT_ULID_SEGMENT}/cancel$`),
-    featureFlag: 'studyApiImports',
+    rateLimitCategory: 'import',
     responseFeature: 'importJob',
     queryParams: new Set(),
   },
   {
     method: 'GET',
     pattern: new RegExp(`^/imports/${STUDY_IMPORT_ID_SEGMENT}$`),
-    featureFlag: 'studyApiImports',
+    rateLimitCategory: 'import',
     responseFeature: 'importJob',
     queryParams: new Set(),
   },
   {
     method: 'GET',
     pattern: /^\/known-kanji$/,
-    featureFlag: 'studyApiSettings',
     queryParams: new Set(),
   },
   {
     method: 'PATCH',
     pattern: /^\/known-kanji\/manual$/,
-    featureFlag: 'studyApiSettingsWrite',
     queryParams: new Set(),
     writeFeature: 'settingsWrite',
     writeBody: 'knownKanjiManual',
-    requiredReadFlag: 'studyApiSettings',
   },
   {
     method: 'PUT',
     pattern: /^\/wanikani$/,
-    featureFlag: 'studyApiSettingsWrite',
     queryParams: new Set(),
     writeFeature: 'settingsWrite',
     writeBody: 'wanikaniConnection',
-    requiredReadFlag: 'studyApiSettings',
   },
   {
     method: 'DELETE',
     pattern: /^\/wanikani$/,
-    featureFlag: 'studyApiSettingsWrite',
     queryParams: new Set(),
     writeFeature: 'settingsWrite',
-    requiredReadFlag: 'studyApiSettings',
   },
   {
     method: 'POST',
     pattern: /^\/wanikani\/sync$/,
-    featureFlag: 'studyApiSettingsWrite',
     queryParams: new Set(),
     writeFeature: 'settingsWrite',
-    requiredReadFlag: 'studyApiSettings',
   },
 ];
 
@@ -1456,19 +1393,6 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   return undefined;
 }
 
-async function assertLearningOsStudyApiEnabled(route: StudyProxyRoute) {
-  const flags = await getFeatureFlags();
-  if (
-    flags?.studyApiEnabled === true &&
-    flags[route.featureFlag] === true &&
-    (!route.requiredReadFlag || flags[route.requiredReadFlag] === true)
-  ) {
-    return;
-  }
-
-  throw new AppError('Learning OS Study API route is not enabled.', 403);
-}
-
 function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: NextFunction) {
   const route = getStudyProxyRoute(req.method, req.path);
   if (!route) {
@@ -1478,7 +1402,7 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
 
   if (route.mediaResponse) {
     learningOsStudyMediaRateLimit(req, res, next);
-  } else if (route.featureFlag === 'studyApiImports') {
+  } else if (route.rateLimitCategory === 'import') {
     learningOsStudyImportRateLimit(req, res, next);
   } else if (route.writeFeature === 'settingsWrite') {
     learningOsSettingsWriteRateLimit(req, res, next);
@@ -2086,8 +2010,6 @@ router.all(
       if (!route) {
         throw new AppError('Learning OS Study API route is not allowed.', 404);
       }
-
-      await assertLearningOsStudyApiEnabled(route);
 
       const { apiUrl, apiToken, proxyUserEmail } = getLearningOsConfig();
       const user = await prisma.user.findUnique({

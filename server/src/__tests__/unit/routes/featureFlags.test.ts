@@ -1,270 +1,124 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import express, {
+  json as expressJson,
+  type ErrorRequestHandler,
+  type NextFunction,
+  type Request,
+  type Response,
+} from 'express';
+import request from 'supertest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  CLIENT_FEATURE_FLAG_SELECT,
+  DEFAULT_CLIENT_FEATURE_FLAGS,
+} from '../../../services/featureFlags.js';
 import { mockPrisma } from '../../setup.js';
 
-describe('Feature Flags Route Logic', () => {
+const mockRequireAuth = vi.hoisted(() =>
+  vi.fn((_req: Request, _res: Response, next: NextFunction) => next())
+);
+
+vi.mock('../../../middleware/auth.js', () => ({
+  requireAuth: mockRequireAuth,
+}));
+
+const existingFlags = {
+  id: 'flag-1',
+  dialoguesEnabled: true,
+  scriptsEnabled: false,
+  audioCourseEnabled: true,
+  flashcardsEnabled: false,
+  updatedAt: new Date('2026-07-19T12:00:00.000Z'),
+};
+
+describe('Feature Flags Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('GET / - Get Feature Flags', () => {
-    it('should return existing feature flags', async () => {
-      const mockFlags = {
-        id: 'flag-1',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-        studyApiEnabled: false,
-        studyApiSettings: false,
-        studyApiOverview: false,
-        studyApiBrowser: false,
-        studyApiBrowserDetail: false,
-        studyApiNewQueue: false,
-        studyApiImports: false,
-        studyApiSettingsWrite: false,
-        studyApiNewQueueWrite: false,
-        studyApiReview: false,
-        studyApiCardWrites: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+  async function createApp() {
+    const { default: featureFlagsRouter } = await import('../../../routes/featureFlags.js');
+    const app = express();
 
-      mockPrisma.featureFlag.findFirst.mockResolvedValue(mockFlags);
+    app.use(expressJson());
+    app.use('/feature-flags', featureFlagsRouter);
+    app.use(((error: Error, _req: Request, res: Response, _next: NextFunction) => {
+      res.status(500).json({ error: error.message });
+    }) as ErrorRequestHandler);
 
-      const flags = await mockPrisma.featureFlag.findFirst();
+    return app;
+  }
 
-      expect(flags).toBeDefined();
-      expect(flags?.dialoguesEnabled).toBe(true);
+  it('requires authentication and returns only the client feature-flag projection', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue(existingFlags);
+    const app = await createApp();
+
+    const response = await request(app).get('/feature-flags');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      ...existingFlags,
+      updatedAt: existingFlags.updatedAt.toISOString(),
     });
-
-    it('should create default flags if none exist', async () => {
-      mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
-
-      const defaultFlags = {
-        id: 'new-flag-1',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPrisma.featureFlag.create.mockResolvedValue(defaultFlags);
-
-      // Simulate the route logic
-      let flags = await mockPrisma.featureFlag.findFirst();
-      if (!flags) {
-        flags = await mockPrisma.featureFlag.create({
-          data: {
-            dialoguesEnabled: true,
-            scriptsEnabled: true,
-            audioCourseEnabled: true,
-            flashcardsEnabled: true,
-            studyApiEnabled: false,
-            studyApiSettings: false,
-            studyApiOverview: false,
-            studyApiBrowser: false,
-            studyApiBrowserDetail: false,
-            studyApiNewQueue: false,
-            studyApiImports: false,
-            studyApiSettingsWrite: false,
-            studyApiNewQueueWrite: false,
-            studyApiReview: false,
-            studyApiCardWrites: false,
-            studyApiCardDrafts: false,
-            studyApiMedia: false,
-            studyApiDailyAudio: false,
-          },
-        });
-      }
-
-      expect(mockPrisma.featureFlag.create).toHaveBeenCalledWith({
-        data: {
-          dialoguesEnabled: true,
-          scriptsEnabled: true,
-          audioCourseEnabled: true,
-          flashcardsEnabled: true,
-          studyApiEnabled: false,
-          studyApiSettings: false,
-          studyApiOverview: false,
-          studyApiBrowser: false,
-          studyApiBrowserDetail: false,
-          studyApiNewQueue: false,
-          studyApiImports: false,
-          studyApiSettingsWrite: false,
-          studyApiNewQueueWrite: false,
-          studyApiReview: false,
-          studyApiCardWrites: false,
-          studyApiCardDrafts: false,
-          studyApiMedia: false,
-          studyApiDailyAudio: false,
-        },
-      });
-      expect(flags.dialoguesEnabled).toBe(true);
-      expect(flags.audioCourseEnabled).toBe(true);
+    expect(mockRequireAuth).toHaveBeenCalledOnce();
+    expect(mockPrisma.featureFlag.findFirst).toHaveBeenCalledWith({
+      select: CLIENT_FEATURE_FLAG_SELECT,
     });
+    expect(CLIENT_FEATURE_FLAG_SELECT).not.toHaveProperty('studyApiEnabled');
+  });
 
-    it('should use existing flags without creating new ones', async () => {
-      const existingFlags = {
-        id: 'existing-flag',
-        dialoguesEnabled: false,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-      };
-
-      mockPrisma.featureFlag.findFirst.mockResolvedValue(existingFlags);
-
-      // Simulate the route logic
-      let flags = await mockPrisma.featureFlag.findFirst();
-      if (!flags) {
-        flags = await mockPrisma.featureFlag.create({
-          data: {
-            dialoguesEnabled: true,
-            scriptsEnabled: true,
-            audioCourseEnabled: true,
-          },
-        });
-      }
-
-      expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
-      expect(flags.dialoguesEnabled).toBe(false);
+  it('creates and returns the client defaults when no row exists', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
+    mockPrisma.featureFlag.create.mockResolvedValue({
+      ...existingFlags,
+      scriptsEnabled: true,
+      flashcardsEnabled: true,
     });
+    const app = await createApp();
 
-    it('should handle database errors gracefully', async () => {
-      mockPrisma.featureFlag.findFirst.mockRejectedValue(new Error('Database connection failed'));
+    const response = await request(app).get('/feature-flags');
 
-      await expect(mockPrisma.featureFlag.findFirst()).rejects.toThrow(
-        'Database connection failed'
-      );
+    expect(response.status).toBe(200);
+    expect(mockPrisma.featureFlag.create).toHaveBeenCalledWith({
+      data: DEFAULT_CLIENT_FEATURE_FLAGS,
+      select: CLIENT_FEATURE_FLAG_SELECT,
     });
-
-    it('should handle create errors when no flags exist', async () => {
-      mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
-      mockPrisma.featureFlag.create.mockRejectedValue(new Error('Unique constraint violation'));
-
-      // Simulate route logic
-      const flags = await mockPrisma.featureFlag.findFirst();
-      if (!flags) {
-        await expect(
-          mockPrisma.featureFlag.create({
-            data: {
-              dialoguesEnabled: true,
-              scriptsEnabled: true,
-              audioCourseEnabled: true,
-              flashcardsEnabled: true,
-              studyApiEnabled: false,
-              studyApiSettings: false,
-              studyApiOverview: false,
-              studyApiBrowser: false,
-              studyApiBrowserDetail: false,
-              studyApiNewQueue: false,
-              studyApiImports: false,
-              studyApiSettingsWrite: false,
-              studyApiNewQueueWrite: false,
-              studyApiReview: false,
-              studyApiCardWrites: false,
-              studyApiCardDrafts: false,
-              studyApiMedia: false,
-              studyApiDailyAudio: false,
-            },
-          })
-        ).rejects.toThrow('Unique constraint violation');
-      }
+    expect(DEFAULT_CLIENT_FEATURE_FLAGS).toEqual({
+      dialoguesEnabled: true,
+      scriptsEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
     });
   });
 
-  describe('Default Flag Values', () => {
-    it('should have all features enabled by default', () => {
-      const defaultFlags = {
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-        studyApiEnabled: false,
-        studyApiSettings: false,
-        studyApiOverview: false,
-        studyApiBrowser: false,
-        studyApiBrowserDetail: false,
-        studyApiNewQueue: false,
-        studyApiImports: false,
-        studyApiSettingsWrite: false,
-        studyApiNewQueueWrite: false,
-        studyApiReview: false,
-        studyApiCardWrites: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
-      };
+  it('does not create a second row when flags already exist', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue(existingFlags);
+    const app = await createApp();
 
-      expect(defaultFlags.dialoguesEnabled).toBe(true);
-      expect(defaultFlags.scriptsEnabled).toBe(true);
-      expect(defaultFlags.audioCourseEnabled).toBe(true);
-    });
+    await request(app).get('/feature-flags').expect(200);
+
+    expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
   });
 
-  describe('Feature Flag Structure', () => {
-    it('should contain all expected feature flags', () => {
-      const expectedFlags = [
-        'dialoguesEnabled',
-        'scriptsEnabled',
-        'audioCourseEnabled',
-        'flashcardsEnabled',
-        'studyApiEnabled',
-        'studyApiSettings',
-        'studyApiOverview',
-        'studyApiBrowser',
-        'studyApiBrowserDetail',
-        'studyApiNewQueue',
-        'studyApiImports',
-        'studyApiSettingsWrite',
-        'studyApiNewQueueWrite',
-        'studyApiReview',
-        'studyApiCardWrites',
-        'studyApiCardDrafts',
-        'studyApiMedia',
-        'studyApiDailyAudio',
-      ];
+  it('forwards lookup failures to the application error handler', async () => {
+    mockPrisma.featureFlag.findFirst.mockRejectedValue(new Error('Database connection failed'));
+    const app = await createApp();
 
-      const flagKeys = Object.keys({
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-        studyApiEnabled: false,
-        studyApiSettings: false,
-        studyApiOverview: false,
-        studyApiBrowser: false,
-        studyApiBrowserDetail: false,
-        studyApiNewQueue: false,
-        studyApiImports: false,
-        studyApiSettingsWrite: false,
-        studyApiNewQueueWrite: false,
-        studyApiReview: false,
-        studyApiCardWrites: false,
-        studyApiCardDrafts: false,
-        studyApiMedia: false,
-        studyApiDailyAudio: false,
-      });
+    const response = await request(app).get('/feature-flags');
 
-      expectedFlags.forEach((flag) => {
-        expect(flagKeys).toContain(flag);
-      });
-    });
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Database connection failed' });
+    expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
+  });
 
-    it('should return boolean values for all flags', () => {
-      const mockFlags = {
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: false,
-      };
+  it('forwards default creation failures to the application error handler', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
+    mockPrisma.featureFlag.create.mockRejectedValue(new Error('Unique constraint violation'));
+    const app = await createApp();
 
-      Object.values(mockFlags).forEach((value) => {
-        expect(typeof value).toBe('boolean');
-      });
-    });
+    const response = await request(app).get('/feature-flags');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Unique constraint violation' });
   });
 });
