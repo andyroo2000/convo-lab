@@ -362,6 +362,10 @@ test('the production workflow migrates and streams Daily Audio before accepting 
     'daily-audio-media',
     'Daily Audio historical track lookup',
     'No historical ready Daily Audio practice is available for streaming verification.',
+    `printf '%s' "$daily_audio_list" | docker exec -i`,
+    `printf '%s' "$daily_audio_detail" | docker exec -i`,
+    `printf '%s' "$daily_audio_status" | docker exec -i`,
+    'for await (const chunk of process.stdin) chunks.push(chunk);',
     'daily_audio_smoke_body="$(mktemp)"',
     '"https://convo-lab.com$daily_audio_track_url"',
     "grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)'",
@@ -386,6 +390,11 @@ test('the production workflow migrates and streams Daily Audio before accepting 
       dailyAudioBlock.indexOf('DailyAudioDetail')
   );
   assert.doesNotMatch(dailyAudioBlock, /if \[ -n "\$daily_audio_id" \]; then/);
+  assert.doesNotMatch(
+    dailyAudioBlock,
+    /DAILY_AUDIO_(?:RESPONSE|DETAIL|STATUS)=/,
+    'Daily Audio JSON must use stdin so large production payloads cannot exceed ARG_MAX'
+  );
   assert.ok(
     dailyAudioBlock.indexOf('DailyAudioDetail') <
       dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
