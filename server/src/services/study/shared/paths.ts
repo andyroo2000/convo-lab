@@ -39,17 +39,6 @@ export function isSafeZipBasename(value: string): boolean {
   return !isUnsafeZipPath(normalized) && !normalized.includes('/');
 }
 
-export function isAllowedStudyImportZipEntryName(value: string): boolean {
-  const normalized = normalizeZipPath(value);
-  return (
-    normalized === 'collection.anki21b' ||
-    normalized === 'collection.anki21' ||
-    normalized === 'collection.anki2' ||
-    normalized === 'media' ||
-    isSafeZipBasename(normalized)
-  );
-}
-
 export function sanitizePathSegment(value: string): string {
   const base = path.basename(stripNullChars(value));
   const normalized = base.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -246,11 +235,4 @@ export function getContentType(filename: string): string {
   if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
   if (lower.endsWith('.gif')) return 'image/gif';
   return 'application/octet-stream';
-}
-
-export function getMediaKind(filename: string): 'audio' | 'image' | 'other' {
-  const contentType = getContentType(filename);
-  if (contentType.startsWith('audio/')) return 'audio';
-  if (contentType.startsWith('image/')) return 'image';
-  return 'other';
 }

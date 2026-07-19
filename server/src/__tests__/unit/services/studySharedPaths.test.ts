@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   findAccessibleLocalStudyMediaPath,
-  isAllowedStudyImportZipEntryName,
   isSafeZipBasename,
   isUnsafeZipPath,
   normalizeFilename,
@@ -35,13 +34,6 @@ describe('study shared paths', () => {
     expect(isUnsafeZipPath('/tmp/evil')).toBe(true);
     expect(isUnsafeZipPath('C:\\evil')).toBe(true);
     expect(isUnsafeZipPath('media/safe.mp3')).toBe(false);
-  });
-
-  it('only allows study import archive entries that match the allowlist', () => {
-    expect(isAllowedStudyImportZipEntryName('collection.anki21')).toBe(true);
-    expect(isAllowedStudyImportZipEntryName('media')).toBe(true);
-    expect(isAllowedStudyImportZipEntryName('safe.mp3')).toBe(true);
-    expect(isAllowedStudyImportZipEntryName('../../evil.mp3')).toBe(false);
   });
 
   it('normalizes filenames and safe basenames', () => {
