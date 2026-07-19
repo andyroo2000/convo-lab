@@ -24,7 +24,6 @@ import type {
   StudyCardImagePlacement,
   StudyManualCardDraftCreateRequest,
   StudyManualCardDraftUpdateRequest,
-  StudyCardRegenerateImageRequest,
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
@@ -42,7 +41,6 @@ import { assertStudyCardPayloadContract } from '../services/study/cardPayloadCon
 import {
   cardTypeForStudyCardCandidateKind,
   cardTypeForStudyCardCreationKind,
-  parseOptionalStudyOverview,
   STUDY_CARD_CANDIDATE_KINDS,
   STUDY_CARD_CREATION_KINDS,
   STUDY_CARD_IMAGE_PLACEMENTS,
@@ -51,9 +49,7 @@ import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
   completeManualStudyCardDraft,
-  createManualStudyCard,
   createStudyImportUploadSession,
-  deleteStudyCard,
   exportStudyData,
   exportStudyCardsSection,
   exportStudyImportsSection,
@@ -73,30 +69,17 @@ import {
   listManualCardDrafts,
   markManualCardDraftError,
   markManualCardDraftsForVariantGroupError,
-  performStudyCardAction,
-  prepareStudyCardAnswerAudio,
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
-  regenerateStudyCardAnswerAudio,
-  regenerateStudyCardImage,
-  recordStudyReview,
   resetManualCardDraftForRetry,
-  resolveStudyCardPitchAccent,
-  reorderStudyNewCardQueue,
-  startStudySession,
-  undoStudyReview,
   updateManualCardDraft,
-  updateStudySettings,
-  updateStudyCard,
 } from '../services/studyService.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
-const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
 const STUDY_QUERY_PARAM_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
-const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
 const MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE =
   'Could not queue draft generation. Please retry this draft.';
 const VOCAB_BUNDLE_DRAFT_ENQUEUE_ERROR_MESSAGE =
@@ -106,9 +89,6 @@ const STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE = Math.max(
   10,
   STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT
 );
-// Keep a separate name so persisted-card regeneration can diverge from preview regeneration later.
-const STUDY_CARD_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE =
-  STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE;
 
 async function enqueueOrMarkDraftError<T>(input: {
   enqueue: () => Promise<unknown>;
@@ -130,14 +110,6 @@ async function enqueueOrMarkDraftError<T>(input: {
   }
 }
 
-function isValidIanaTimeZone(value: string): boolean {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: value }).format(new Date());
-    return true;
-  } catch {
-    return false;
-  }
-}
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
 const STUDY_CARD_CANDIDATE_PREVIEW_ROLES = new Set(['prompt', 'answer']);
 const STUDY_IMPORT_MIME_TYPES = new Set([
@@ -264,23 +236,6 @@ function parsePaginationLimit(value: unknown, defaultSize: number, maxSize: numb
   }
 
   return parsed;
-}
-
-function parseOptionalTimeZone(value: unknown): string | undefined {
-  if (typeof value === 'undefined') {
-    return undefined;
-  }
-
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new AppError('timeZone must be a valid IANA timezone.', 400);
-  }
-
-  const trimmed = value.trim();
-  if (!isValidIanaTimeZone(trimmed)) {
-    throw new AppError('timeZone must be a valid IANA timezone.', 400);
-  }
-
-  return trimmed;
 }
 
 function parseBoundedStringQueryParam(name: string, value: unknown): string | undefined {
@@ -618,10 +573,6 @@ function parseCursorQueryParam(name: string, value: unknown): string | undefined
   return value;
 }
 
-function isStrictIsoDateTime(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value);
-}
-
 function parseStudyCardPayloads(
   prompt: unknown,
   answer: unknown
@@ -865,14 +816,6 @@ function parseStudyCardCandidateCommitItems(value: unknown): StudyCardCandidateC
   });
 }
 
-function parseStudyReviewDurationMs(value: unknown): number | undefined {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return undefined;
-  }
-
-  return Math.max(0, Math.min(MAX_STUDY_REVIEW_DURATION_MS, Math.trunc(value)));
-}
-
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
 
@@ -999,149 +942,6 @@ router.get('/imports/:id', async (req: AuthRequest, res, next) => {
     next(error);
   }
 });
-
-router.patch(
-  '/settings',
-  rateLimitStudyRoute({ key: 'settings', max: 60, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const { newCardsPerDay } = req.body as { newCardsPerDay?: unknown };
-      res.json(
-        await updateStudySettings({
-          userId: req.userId,
-          newCardsPerDay,
-        })
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/new-queue/reorder',
-  rateLimitStudyRoute({ key: 'new-queue-reorder', max: 60, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const { cardIds } = req.body as { cardIds?: unknown };
-      if (
-        !Array.isArray(cardIds) ||
-        cardIds.some((cardId) => typeof cardId !== 'string' || cardId.length === 0)
-      ) {
-        res.status(400).json({ message: 'cardIds must be a non-empty array of card ids.' });
-        return;
-      }
-
-      res.json(await reorderStudyNewCardQueue({ userId: req.userId, cardIds }));
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/session/start',
-  rateLimitStudyRoute({ key: 'session-start', max: 30, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-      const session = await startStudySession(req.userId, {
-        timeZone: parseOptionalTimeZone((req.body as { timeZone?: unknown } | undefined)?.timeZone),
-      });
-      res.json(session);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/reviews',
-  rateLimitStudyRoute({ key: 'reviews', max: 120, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const { cardId, grade, durationMs, timeZone } = req.body as {
-        cardId?: unknown;
-        grade?: unknown;
-        durationMs?: unknown;
-        timeZone?: unknown;
-      };
-
-      if (typeof cardId !== 'string' || !cardId) {
-        res.status(400).json({ message: 'cardId is required.' });
-        return;
-      }
-      if (!['again', 'hard', 'good', 'easy'].includes(String(grade))) {
-        res.status(400).json({ message: 'grade must be again, hard, good, or easy.' });
-        return;
-      }
-
-      const reviewResult = await recordStudyReview({
-        userId: req.userId,
-        cardId,
-        grade: grade as 'again' | 'hard' | 'good' | 'easy',
-        durationMs: parseStudyReviewDurationMs(durationMs),
-        timeZone: parseOptionalTimeZone(timeZone),
-        currentOverview: parseOptionalStudyOverview(
-          (req.body as { currentOverview?: unknown }).currentOverview
-        ),
-      });
-
-      res.json(reviewResult);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/reviews/undo',
-  rateLimitStudyRoute({ key: 'review-undo', max: 120, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const { reviewLogId, timeZone } = req.body as {
-        reviewLogId?: unknown;
-        timeZone?: unknown;
-      };
-
-      if (typeof reviewLogId !== 'string' || !reviewLogId) {
-        res.status(400).json({ message: 'reviewLogId is required.' });
-        return;
-      }
-
-      const undoResult = await undoStudyReview({
-        userId: req.userId,
-        reviewLogId,
-        timeZone: parseOptionalTimeZone(timeZone),
-        currentOverview: parseOptionalStudyOverview(
-          (req.body as { currentOverview?: unknown }).currentOverview
-        ),
-      });
-
-      res.json(undoResult);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 // Candidate routes intentionally rely on the global flashcardsEnabled gate above;
 // no separate rollout flag is needed for this flashcards-only surface.
@@ -1572,322 +1372,6 @@ router.post(
       });
 
       res.status(201).json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/cards',
-  rateLimitStudyRoute({ key: 'card-create', max: 120, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const {
-        creationKind: rawCreationKind,
-        cardType: rawCardType,
-        prompt,
-        answer,
-      } = req.body as {
-        creationKind?: unknown;
-        cardType?: unknown;
-        prompt?: unknown;
-        answer?: unknown;
-      };
-
-      const payloads = parseStudyCardPayloads(prompt, answer);
-      const creationKind =
-        // Legacy callers only send the persisted card type; infer the creation behavior.
-        typeof rawCreationKind === 'undefined'
-          ? rawCardType === 'production'
-            ? 'production-text'
-            : rawCardType === 'cloze'
-              ? 'cloze'
-              : 'text-recognition'
-          : parseStudyCardCreationKind(rawCreationKind);
-      const cardType =
-        typeof rawCreationKind === 'undefined'
-          ? String(rawCardType)
-          : cardTypeForStudyCardCreationKind(creationKind);
-
-      if (!['recognition', 'production', 'cloze'].includes(cardType)) {
-        res.status(400).json({ message: 'cardType must be recognition, production, or cloze.' });
-        return;
-      }
-
-      const createdCard = await createManualStudyCard({
-        userId: req.userId,
-        creationKind,
-        cardType: cardType as StudyCardType,
-        prompt: payloads.prompt,
-        answer: payloads.answer,
-      });
-
-      res.status(201).json(createdCard);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.patch(
-  '/cards/:cardId',
-  rateLimitStudyRoute({ key: 'card-update', max: 120, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const { prompt, answer } = req.body as {
-        prompt?: unknown;
-        answer?: unknown;
-      };
-
-      if (!req.params.cardId) {
-        res.status(400).json({ message: 'cardId is required.' });
-        return;
-      }
-
-      const payloads = parseStudyCardPayloads(prompt, answer);
-
-      const updatedCard = await updateStudyCard({
-        userId: req.userId,
-        cardId: req.params.cardId,
-        prompt: payloads.prompt,
-        answer: payloads.answer,
-      });
-
-      res.json(updatedCard);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.delete(
-  '/cards/:cardId',
-  rateLimitStudyRoute({ key: 'card-delete', max: 60, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      await deleteStudyCard({
-        userId: req.userId,
-        cardId: req.params.cardId,
-      });
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/cards/:cardId/pitch-accent',
-  rateLimitStudyRoute({ key: 'card-pitch-accent', max: 60, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      if (!req.params.cardId) {
-        res.status(400).json({ message: 'cardId is required.' });
-        return;
-      }
-
-      const card = await resolveStudyCardPitchAccent({
-        userId: req.userId,
-        cardId: req.params.cardId,
-      });
-      res.json(card);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/cards/:cardId/actions',
-  rateLimitStudyRoute({ key: 'card-action', max: 120, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const { action, mode, dueAt, timeZone } = req.body as {
-        action?: unknown;
-        mode?: unknown;
-        dueAt?: unknown;
-        timeZone?: unknown;
-      };
-
-      if (!req.params.cardId) {
-        res.status(400).json({ message: 'cardId is required.' });
-        return;
-      }
-
-      if (!['suspend', 'unsuspend', 'forget', 'set_due'].includes(String(action))) {
-        res.status(400).json({ message: 'action must be suspend, unsuspend, forget, or set_due.' });
-        return;
-      }
-
-      if (action === 'set_due') {
-        if (!['now', 'tomorrow', 'custom_date'].includes(String(mode))) {
-          res
-            .status(400)
-            .json({ message: 'mode must be now, tomorrow, or custom_date for set_due.' });
-          return;
-        }
-
-        if (
-          mode === 'custom_date' &&
-          (typeof dueAt !== 'string' ||
-            !isStrictIsoDateTime(dueAt) ||
-            Number.isNaN(Date.parse(dueAt)))
-        ) {
-          res
-            .status(400)
-            .json({ message: 'dueAt must be a valid ISO-8601 datetime for custom_date.' });
-          return;
-        }
-
-        if (typeof dueAt === 'string') {
-          const dueAtMs = Date.parse(dueAt);
-          const maxDueAt = new Date();
-          maxDueAt.setFullYear(maxDueAt.getFullYear() + MAX_STUDY_SET_DUE_FUTURE_YEARS);
-          if (dueAtMs > maxDueAt.getTime()) {
-            res.status(400).json({
-              message: `dueAt must be within ${String(MAX_STUDY_SET_DUE_FUTURE_YEARS)} years.`,
-            });
-            return;
-          }
-        }
-
-        if (typeof dueAt !== 'undefined' && typeof dueAt !== 'string') {
-          res
-            .status(400)
-            .json({ message: 'dueAt must be a valid ISO-8601 datetime for custom_date.' });
-          return;
-        }
-
-        if (
-          mode === 'tomorrow' &&
-          (typeof timeZone !== 'string' || !isValidIanaTimeZone(timeZone))
-        ) {
-          res.status(400).json({ message: 'timeZone must be a valid IANA timezone for tomorrow.' });
-          return;
-        }
-      }
-
-      const result = await performStudyCardAction({
-        userId: req.userId,
-        cardId: req.params.cardId,
-        action: action as 'suspend' | 'unsuspend' | 'forget' | 'set_due',
-        mode: mode as 'now' | 'tomorrow' | 'custom_date' | undefined,
-        dueAt: typeof dueAt === 'string' ? dueAt : undefined,
-        timeZone: typeof timeZone === 'string' ? timeZone : undefined,
-        currentOverview: parseOptionalStudyOverview(
-          (req.body as { currentOverview?: unknown }).currentOverview
-        ),
-      });
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/cards/:cardId/prepare-answer-audio',
-  rateLimitStudyRoute({ key: 'prepare-answer-audio', max: 30, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      if (!req.params.cardId) {
-        res.status(400).json({ message: 'cardId is required.' });
-        return;
-      }
-
-      const card = await prepareStudyCardAnswerAudio(req.userId, req.params.cardId);
-      res.json(card);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/cards/:cardId/regenerate-answer-audio',
-  rateLimitStudyRoute({ key: 'regenerate-answer-audio', max: 30, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const body = isPlainObject(req.body) ? req.body : {};
-      const answerAudioVoiceId = parseOptionalAnswerAudioVoiceId(body.answerAudioVoiceId);
-      const answerAudioTextOverride = parseOptionalAnswerAudioTextOverride(
-        body.answerAudioTextOverride
-      );
-
-      const card = await regenerateStudyCardAnswerAudio({
-        userId: req.userId,
-        cardId: req.params.cardId,
-        answerAudioVoiceId,
-        answerAudioTextOverride,
-      });
-      res.json(card);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/cards/:cardId/regenerate-image',
-  rateLimitStudyRoute({
-    key: 'regenerate-card-image',
-    max: STUDY_CARD_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE,
-    windowMs: 60 * 1000,
-  }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const body = isPlainObject(req.body)
-        ? (req.body as Partial<StudyCardRegenerateImageRequest>)
-        : {};
-      const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt : '';
-      if (!imagePrompt.trim()) {
-        throw new AppError('imagePrompt is required.', 400);
-      }
-      if (body.imageRole !== 'prompt' && body.imageRole !== 'answer' && body.imageRole !== 'both') {
-        throw new AppError('imageRole must be prompt, answer, or both.', 400);
-      }
-
-      const card = await regenerateStudyCardImage({
-        userId: req.userId,
-        cardId: req.params.cardId,
-        imagePrompt,
-        imageRole: body.imageRole,
-      });
-      res.json(card);
     } catch (error) {
       next(error);
     }
