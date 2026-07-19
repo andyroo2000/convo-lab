@@ -316,7 +316,7 @@ test('the production workflow snapshots and imports historical GCS media explici
   );
 });
 
-test('the production deployment step remains valid Bash', async () => {
+test('the production deployment wrapper and remote script remain valid Bash', async () => {
   const workflowPath = path.join(
     repositoryRoot,
     '.github/workflows/deploy-learning-os-prod.yml'
@@ -328,6 +328,20 @@ test('the production deployment step remains valid Bash', async () => {
 
   assert.equal(typeof deployStep?.run, 'string');
   await execFileAsync('bash', ['-n', '-c', deployStep.run]);
+
+  const heredocMarker = "<< 'ENDSSH'";
+  const heredocStart = deployStep.run.indexOf(heredocMarker);
+  const remoteScriptStart = deployStep.run.indexOf('\n', heredocStart) + 1;
+  const remoteScriptEnd = deployStep.run.indexOf('\nENDSSH\n', remoteScriptStart);
+
+  assert.ok(heredocStart >= 0);
+  assert.ok(remoteScriptStart > heredocStart);
+  assert.ok(remoteScriptEnd > remoteScriptStart);
+  await execFileAsync('bash', [
+    '-n',
+    '-c',
+    deployStep.run.slice(remoteScriptStart, remoteScriptEnd),
+  ]);
 });
 
 test('the production workflow migrates and streams Daily Audio before accepting cutover', async () => {
