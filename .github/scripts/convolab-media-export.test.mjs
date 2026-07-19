@@ -6,14 +6,14 @@ import test from 'node:test';
 
 import {
   exportStudyMedia,
-  normalizeStoragePaths,
   parsePositiveInteger,
   resolveExportPath,
+  validateStoragePaths,
 } from '../../server/scripts/export-convolab-study-media.mjs';
 
 test('normalizes, sorts, and deduplicates safe study media paths', () => {
   assert.deepEqual(
-    normalizeStoragePaths([
+    validateStoragePaths([
       'study-media/user-2/image.webp',
       'study-media/user-1/audio.mp3',
       'study-media/user-2/image.webp',
@@ -33,7 +33,7 @@ test('rejects unsafe or malformed manifest entries', () => {
     ['study-media\\file.mp3'],
     ['other-prefix/file.mp3'],
   ]) {
-    assert.throws(() => normalizeStoragePaths(manifest));
+    assert.throws(() => validateStoragePaths(manifest));
   }
 });
 

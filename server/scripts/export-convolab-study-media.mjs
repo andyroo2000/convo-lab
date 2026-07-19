@@ -33,7 +33,7 @@ export function parsePositiveInteger(value, name, maximum = Number.MAX_SAFE_INTE
   return parsed;
 }
 
-export function normalizeStoragePaths(manifest) {
+export function validateStoragePaths(manifest) {
   if (!Array.isArray(manifest)) {
     throw new Error('The media manifest must be a JSON array.');
   }
@@ -43,22 +43,22 @@ export function normalizeStoragePaths(manifest) {
       throw new Error(`Media manifest entry ${index} must be a string.`);
     }
 
-    const normalized = value.trim().replaceAll('\\', '/');
-    const segments = normalized.split('/');
+    const segments = value.split('/');
 
     if (
-      normalized !== value ||
-      normalized.length === 0 ||
-      normalized.length > MAX_STORAGE_PATH_LENGTH ||
-      normalized.includes('\0') ||
-      path.posix.isAbsolute(normalized) ||
-      !normalized.startsWith('study-media/') ||
+      value !== value.trim() ||
+      value.length === 0 ||
+      value.length > MAX_STORAGE_PATH_LENGTH ||
+      value.includes('\0') ||
+      value.includes('\\') ||
+      path.posix.isAbsolute(value) ||
+      !value.startsWith('study-media/') ||
       segments.some((segment) => segment === '' || segment === '.' || segment === '..')
     ) {
       throw new Error(`Media manifest entry ${index} has an unsafe storage path.`);
     }
 
-    return normalized;
+    return value;
   });
 
   return [...new Set(paths)].sort();
@@ -127,7 +127,7 @@ export async function exportStudyMedia({
 }) {
   await access(manifestPath, fsConstants.R_OK);
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-  const storagePaths = normalizeStoragePaths(manifest);
+  const storagePaths = validateStoragePaths(manifest);
 
   const exportRoot = await assertEmptyDirectory(outputRoot);
   const requestedConcurrency = parsePositiveInteger(

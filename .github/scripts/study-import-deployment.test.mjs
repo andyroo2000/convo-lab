@@ -223,6 +223,7 @@ test('the production workflow snapshots and imports historical GCS media explici
     'php artisan migration:import-convolab-media',
     '--production-confirmation="IMPORT MEDIA INTO $TARGET_DB"',
     'Verified ConvoLab historical media import completed.',
+    'smoke_learning_os',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
@@ -245,6 +246,15 @@ test('the production workflow snapshots and imports historical GCS media explici
   assert.ok(
     workflow.indexOf('cleanup_media_import_resources') <
       workflow.indexOf('if [ -n "$NEW_PROXY_TOKEN_ID" ]')
+  );
+
+  const rebuildBranch = workflow.slice(
+    workflow.indexOf('if [ "$REBUILD_DATABASE" = true ]; then'),
+    workflow.indexOf('else\n              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate')
+  );
+  assert.ok(
+    rebuildBranch.indexOf('import_historical_media') <
+      rebuildBranch.indexOf('smoke_learning_os')
   );
 });
 

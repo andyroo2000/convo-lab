@@ -253,6 +253,8 @@ jobs:
             }
 
             cleanup_media_import_resources() {
+              local postgres_user
+
               cleanup_media_export
               if [ "$SOURCE_DATABASE_CREATED" = true ]; then
                 postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
@@ -347,6 +349,8 @@ jobs:
             }
 
             restore_convolab_source_copy() {
+              local postgres_database postgres_user source_dump timestamp
+
               mkdir -p "$BACKUP_DIR"
               chmod 700 "$BACKUP_DIR"
               timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -373,6 +377,8 @@ jobs:
             }
 
             import_historical_media() {
+              local invalid_media_path_count media_files media_manifest postgres_user target_dump timestamp
+
               postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
               timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
               target_dump="$BACKUP_DIR/learning-os-before-media-import-$timestamp.dump"
@@ -436,6 +442,14 @@ jobs:
 
               cleanup_media_export
               echo "Verified ConvoLab historical media import completed."
+            }
+
+            smoke_learning_os() {
+              $COMPOSE run --rm -T --no-deps learning-os \
+                php artisan rehearsal:smoke \
+                --user-email="$SMOKE_USER_EMAIL" \
+                --allow-production \
+                --json < /dev/null
             }
 
             upsert_env LEARNING_OS_IMAGE_TAG "$IMAGE_TAG"
@@ -746,16 +760,11 @@ jobs:
                 KNOWLEDGE_EXPORT_DIR=""
               fi
 
-              $COMPOSE run --rm -T --no-deps learning-os \
-                php artisan rehearsal:smoke \
-                --user-email="$SMOKE_USER_EMAIL" \
-                --allow-production \
-                --json < /dev/null
-
               if [ "$IMPORT_HISTORICAL_MEDIA" = true ]; then
                 import_historical_media
               fi
 
+              smoke_learning_os
               docker exec convolab-postgres dropdb --username="$postgres_user" "$SOURCE_DB"
               SOURCE_DATABASE_CREATED=false
             else
@@ -766,11 +775,7 @@ jobs:
                 import_historical_media
                 docker exec convolab-postgres dropdb --username="$postgres_user" "$SOURCE_DB"
                 SOURCE_DATABASE_CREATED=false
-                $COMPOSE run --rm -T --no-deps learning-os \
-                  php artisan rehearsal:smoke \
-                  --user-email="$SMOKE_USER_EMAIL" \
-                  --allow-production \
-                  --json < /dev/null
+                smoke_learning_os
               fi
             fi
 
