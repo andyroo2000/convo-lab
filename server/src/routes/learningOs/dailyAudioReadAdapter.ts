@@ -1,8 +1,11 @@
 import { AppError } from '../../middleware/errorHandler.js';
 
+import { STUDY_ULID_SEGMENT } from './studyMediaUrls.js';
+
 export type DailyAudioReadResponse = 'list' | 'detail' | 'status';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ULID_PATTERN = new RegExp(`^${STUDY_ULID_SEGMENT}$`, 'i');
 const PRACTICE_STATUSES = new Set(['draft', 'generating', 'ready', 'error']);
 const TRACK_MODES = new Set(['drill', 'dialogue', 'story']);
 const TRACK_STATUSES = new Set(['draft', 'generating', 'ready', 'error', 'skipped']);
@@ -65,6 +68,10 @@ function hasExactKeys(value: Record<string, unknown>, expected: ReadonlySet<stri
 
 function isUuid(value: unknown): value is string {
   return typeof value === 'string' && UUID_PATTERN.test(value);
+}
+
+function isStudyCardId(value: unknown): value is string {
+  return isUuid(value) || (typeof value === 'string' && ULID_PATTERN.test(value));
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -141,7 +148,8 @@ function isPractice(
     isNonEmptyString(practice.targetLanguage) &&
     isNonEmptyString(practice.nativeLanguage) &&
     (practice.sourceCardIdsJson === null ||
-      (Array.isArray(practice.sourceCardIdsJson) && practice.sourceCardIdsJson.every(isUuid))) &&
+      (Array.isArray(practice.sourceCardIdsJson) &&
+        practice.sourceCardIdsJson.every(isStudyCardId))) &&
     isJsonContainerOrNull(practice.selectionSummaryJson) &&
     isNullableString(practice.errorMessage) &&
     isTimestamp(practice.createdAt) &&

@@ -45,6 +45,18 @@ describe('Daily Audio Learning OS response adapter', () => {
     expect(adaptDailyAudioReadResponse('list', response)).toBe(response);
   });
 
+  it('accepts ULID source card IDs created by Learning OS', () => {
+    const response = [
+      {
+        ...practiceFields,
+        sourceCardIdsJson: ['01JZ6J0F2DTQ6VDHEB5KZ7R3WX'],
+        tracks: [summaryTrack],
+      },
+    ];
+
+    expect(adaptDailyAudioReadResponse('list', response)).toBe(response);
+  });
+
   it('accepts the exact detail contract', () => {
     const response = {
       ...practiceFields,
@@ -83,6 +95,7 @@ describe('Daily Audio Learning OS response adapter', () => {
   it.each([
     ['list', { data: [] }],
     ['list', [{ ...practiceFields, tracks: [], unexpected: 'field' }]],
+    ['list', [{ ...practiceFields, sourceCardIdsJson: ['not-a-card-id'], tracks: [] }]],
     ['detail', { ...practiceFields, tracks: [summaryTrack] }],
     [
       'status',
