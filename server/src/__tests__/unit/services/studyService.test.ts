@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import * as studyBrowserService from '../../../services/studyBrowserService.js';
 import * as studyExportService from '../../../services/studyExportService.js';
 import * as studyImportService from '../../../services/studyImportService.js';
 import * as studyMediaService from '../../../services/studyMediaService.js';
@@ -39,11 +38,7 @@ describe('studyService barrel', () => {
     );
   });
 
-  it('re-exports browser and export functions from their domain services', () => {
-    expect(studyService.getStudyBrowserList).toBe(studyBrowserService.getStudyBrowserList);
-    expect(studyService.getStudyBrowserNoteDetail).toBe(
-      studyBrowserService.getStudyBrowserNoteDetail
-    );
+  it('re-exports export functions from the export service', () => {
     expect(studyService.exportStudyData).toBe(studyExportService.exportStudyData);
     expect(studyService.exportStudyCardsSection).toBe(studyExportService.exportStudyCardsSection);
     expect(studyService.exportStudyReviewLogsSection).toBe(

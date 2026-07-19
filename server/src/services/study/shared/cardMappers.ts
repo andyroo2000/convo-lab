@@ -1,6 +1,5 @@
 import type {
   StudyAnswerPayload,
-  StudyBrowserField,
   StudyCardSummary,
   StudyMediaRef,
   StudyPromptPayload,
@@ -19,12 +18,10 @@ import {
 } from './guards.js';
 import { normalizeClozePayload } from './importHelpers.js';
 import { getStudyMediaApiPath } from './paths.js';
-import { noteFieldValueToString, stripHtml } from './text.js';
+import { stripHtml } from './text.js';
 import { getRequiredSchedulerState } from './time.js';
 import type {
   PersistedStudyMediaRecord,
-  StudyBrowserListCardRecord,
-  StudyBrowserListNoteRecord,
   StudyCardWithRelations,
   StudyMediaRecord,
 } from './types.js';
@@ -217,36 +214,6 @@ export async function toStudyCardSummary(
   };
 }
 
-export function getNoteDisplayText(
-  note: Pick<StudyBrowserListNoteRecord, 'id' | 'rawFieldsJson'>,
-  cards: Array<Pick<StudyBrowserListCardRecord, 'promptJson' | 'answerJson'>>
-): string {
-  const rawFields = isRecord(note.rawFieldsJson) ? note.rawFieldsJson : {};
-  const candidates = [
-    noteFieldValueToString(rawFields.Expression),
-    noteFieldValueToString(rawFields.Text),
-    noteFieldValueToString(rawFields.AnswerExpression),
-  ];
-
-  for (const candidate of candidates) {
-    const stripped = stripHtml(candidate) ?? candidate;
-    if (stripped) return stripped;
-  }
-
-  for (const card of cards) {
-    const prompt = isRecord(card.promptJson) ? card.promptJson : {};
-    const answer = isRecord(card.answerJson) ? card.answerJson : {};
-    const next =
-      noteFieldValueToString(prompt.cueText) ??
-      noteFieldValueToString(prompt.clozeDisplayText) ??
-      noteFieldValueToString(answer.expression) ??
-      noteFieldValueToString(answer.restoredText);
-    if (next) return stripHtml(next) ?? next;
-  }
-
-  return typeof note.id === 'string' ? note.id : 'Untitled note';
-}
-
 export function buildMediaLookup(cards: StudyCardSummary[]): Map<string, StudyMediaRef> {
   const media = new Map<string, StudyMediaRef>();
 
@@ -266,34 +233,6 @@ export function buildMediaLookup(cards: StudyCardSummary[]): Map<string, StudyMe
   }
 
   return media;
-}
-
-export function toStudyBrowserField(
-  name: string,
-  value: unknown,
-  mediaLookup: Map<string, StudyMediaRef>
-): StudyBrowserField {
-  const stringValue = noteFieldValueToString(value);
-  const audio = stringValue
-    ? (stringValue
-        .match(/\[sound:([^\]]+)\]/g)
-        ?.map((match) => match.slice(7, -1))
-        .map((filename) => mediaLookup.get(filename))
-        .find((entry): entry is StudyMediaRef => Boolean(entry)) ?? null)
-    : null;
-  const image = stringValue
-    ? (Array.from(stringValue.matchAll(/<img[^>]+src=["']([^"']+)["']/gi), (match) => match[1])
-        .map((filename) => mediaLookup.get(filename))
-        .find((entry): entry is StudyMediaRef => Boolean(entry)) ?? null)
-    : null;
-
-  return {
-    name,
-    value: stringValue,
-    textValue: stringValue ? (stripHtml(stringValue) ?? stringValue) : null,
-    audio,
-    image,
-  };
 }
 
 export function mergeStudyMediaRecord(

@@ -53,13 +53,9 @@ const {
   exportStudyImportsSectionMock,
   exportStudyMediaSectionMock,
   exportStudyReviewLogsSectionMock,
-  getStudyBrowserListMock,
-  getStudyBrowserNoteDetailMock,
   getCurrentStudyImportJobMock,
-  getStudyNewCardQueueMock,
   getStudyMediaAccessMock,
   getStudyImportUploadReadinessMock,
-  getStudySettingsMock,
   generateStudyCardCandidatesMock,
   generateManualStudyCardDraftImageMock,
   listManualCardDraftsMock,
@@ -102,13 +98,9 @@ const {
   exportStudyImportsSectionMock: vi.fn(),
   exportStudyMediaSectionMock: vi.fn(),
   exportStudyReviewLogsSectionMock: vi.fn(),
-  getStudyBrowserListMock: vi.fn(),
-  getStudyBrowserNoteDetailMock: vi.fn(),
   getCurrentStudyImportJobMock: vi.fn(),
-  getStudyNewCardQueueMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
   getStudyImportUploadReadinessMock: vi.fn(),
-  getStudySettingsMock: vi.fn(),
   generateStudyCardCandidatesMock: vi.fn(),
   generateManualStudyCardDraftImageMock: vi.fn(),
   listManualCardDraftsMock: vi.fn(),
@@ -157,15 +149,10 @@ vi.mock('../../../services/studyService.js', () => ({
   exportStudyImportsSection: exportStudyImportsSectionMock,
   exportStudyMediaSection: exportStudyMediaSectionMock,
   exportStudyReviewLogsSection: exportStudyReviewLogsSectionMock,
-  getStudyBrowserList: getStudyBrowserListMock,
-  getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
   getCurrentStudyImportJob: getCurrentStudyImportJobMock,
-  getStudyNewCardQueue: getStudyNewCardQueueMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
   getStudyImportJob: vi.fn(),
   getStudyImportUploadReadiness: getStudyImportUploadReadinessMock,
-  getStudyOverview: vi.fn(),
-  getStudySettings: getStudySettingsMock,
   generateStudyCardCandidates: generateStudyCardCandidatesMock,
   generateManualStudyCardDraftImage: generateManualStudyCardDraftImageMock,
   listManualCardDrafts: listManualCardDraftsMock,
@@ -307,6 +294,9 @@ describe('Study Routes', () => {
     const module = await import('../../../routes/study.js');
     studyRouter = module.default;
     app.use('/study', studyRouter);
+    app.use((_req, res) => {
+      res.status(404).json({ message: 'Not found.' });
+    });
     app.use(apiCsrfErrorHandler);
     app.use(((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -382,20 +372,14 @@ describe('Study Routes', () => {
     });
   });
 
-  it('reads and updates study settings', async () => {
-    getStudySettingsMock.mockResolvedValue({ newCardsPerDay: 20 });
+  it('updates study settings', async () => {
     updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 12 });
-
-    const getResponse = await request(app).get('/study/settings');
-    expect(getResponse.status).toBe(200);
-    expect(getResponse.body).toEqual({ newCardsPerDay: 20 });
-    expect(multiMock).toHaveBeenCalledTimes(1);
 
     const patchResponse = await withMutationCsrf(request(app).patch('/study/settings')).send({
       newCardsPerDay: 12,
     });
     expect(patchResponse.status).toBe(200);
-    expect(multiMock).toHaveBeenCalledTimes(2);
+    expect(multiMock).toHaveBeenCalledTimes(1);
     expect(updateStudySettingsMock).toHaveBeenCalledWith({
       userId: 'user-1',
       newCardsPerDay: 12,
@@ -421,28 +405,12 @@ describe('Study Routes', () => {
     });
   });
 
-  it('lists and reorders the new-card queue', async () => {
-    getStudyNewCardQueueMock.mockResolvedValue({
-      items: [],
-      total: 0,
-      limit: 100,
-      nextCursor: null,
-    });
+  it('reorders the new-card queue', async () => {
     reorderStudyNewCardQueueMock.mockResolvedValue({
       items: [],
       total: 0,
       limit: 100,
       nextCursor: null,
-    });
-
-    const listResponse = await request(app).get('/study/new-queue?q=会社');
-    expect(listResponse.status).toBe(200);
-    expect(multiMock).toHaveBeenCalledTimes(1);
-    expect(getStudyNewCardQueueMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cursor: undefined,
-      limit: 100,
-      q: '会社',
     });
 
     const reorderResponse = await withMutationCsrf(
@@ -1838,45 +1806,6 @@ describe('Study Routes', () => {
     expect(performStudyCardActionMock).not.toHaveBeenCalled();
   });
 
-  it('passes browser list query params through to the service', async () => {
-    getStudyBrowserListMock.mockResolvedValue({
-      rows: [],
-      total: 0,
-      limit: 25,
-      nextCursor: 'cursor-2',
-      filterOptions: {
-        noteTypes: [],
-        cardTypes: [],
-        queueStates: [],
-      },
-    });
-
-    const response = await request(app).get(
-      '/study/browser?q=%E4%BC%9A%E7%A4%BE&noteType=Japanese%20-%20Vocab&cardType=recognition&queueState=review&sortField=created_on&sortDirection=desc&cursor=cursor-1&limit=25'
-    );
-
-    expect(response.status).toBe(200);
-    expect(getStudyBrowserListMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      q: '会社',
-      noteType: 'Japanese - Vocab',
-      cardType: 'recognition',
-      queueState: 'review',
-      sortField: 'created_on',
-      sortDirection: 'desc',
-      cursor: 'cursor-1',
-      limit: 25,
-    });
-  });
-
-  it('rejects invalid browser sort params', async () => {
-    const response = await request(app).get('/study/browser?sortField=bad&sortDirection=sideways');
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('sortField must be');
-    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
-  });
-
   it('deletes owned study cards', async () => {
     deleteStudyCardMock.mockResolvedValue(undefined);
 
@@ -1897,63 +1826,6 @@ describe('Study Routes', () => {
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('CSRF');
     expect(deleteStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects browser queries longer than 200 characters', async () => {
-    const response = await request(app).get(`/study/browser?q=${'あ'.repeat(201)}`);
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('200 characters or fewer');
-    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects browser cursors longer than 1000 characters', async () => {
-    const response = await request(app).get(`/study/browser?cursor=${'a'.repeat(1001)}`);
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('cursor must be 1000 characters or fewer');
-    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects browser noteType values longer than 200 characters', async () => {
-    const response = await request(app).get(`/study/browser?noteType=${'a'.repeat(201)}`);
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('noteType must be 200 characters or fewer');
-    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects invalid browser limit values', async () => {
-    const response = await request(app).get('/study/browser?limit=0');
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('limit must be a positive integer');
-    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects browser limits larger than 100', async () => {
-    const response = await request(app).get('/study/browser?limit=101');
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('limit must be 100 or fewer');
-    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects non-numeric browser limit values', async () => {
-    const response = await request(app).get('/study/browser?limit=abc');
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('limit must be a positive integer');
-    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
-  });
-
-  it('returns 404 when a browser note detail is missing', async () => {
-    getStudyBrowserNoteDetailMock.mockResolvedValue(null);
-
-    const response = await request(app).get('/study/browser/missing-note');
-
-    expect(response.status).toBe(404);
-    expect(response.body.message).toContain('Study note not found');
   });
 
   it('rejects non-.colpkg upload session requests before creation', async () => {
@@ -2241,7 +2113,7 @@ describe('Study Routes', () => {
       flashcardsEnabled: false,
     });
 
-    const response = await request(app).get('/study/browser');
+    const response = await request(app).get('/study/imports/readiness');
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('not enabled');
@@ -2250,7 +2122,7 @@ describe('Study Routes', () => {
   it('blocks study routes when the flashcards feature flag row is missing', async () => {
     mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
 
-    const response = await request(app).get('/study/browser');
+    const response = await request(app).get('/study/imports/readiness');
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('not enabled');
@@ -2268,49 +2140,27 @@ describe('Study Routes', () => {
   });
 
   it('allows read-only study routes without same-origin mutation headers', async () => {
-    getStudyBrowserListMock.mockResolvedValue({
-      rows: [],
-      total: 0,
-      limit: 100,
-      nextCursor: null,
-      filterOptions: {
-        noteTypes: [],
-        cardTypes: [],
-        queueStates: [],
-      },
+    getStudyImportUploadReadinessMock.mockResolvedValue({
+      ready: true,
+      message: null,
     });
 
-    const response = await request(app).get('/study/browser');
+    const response = await request(app).get('/study/imports/readiness');
 
     expect(response.status).toBe(200);
-    expect(getStudyBrowserListMock).toHaveBeenCalled();
+    expect(getStudyImportUploadReadinessMock).toHaveBeenCalled();
   });
 
-  it('defaults browser cursor pagination when cursor and limit are omitted', async () => {
-    getStudyBrowserListMock.mockResolvedValue({
-      rows: [],
-      total: 0,
-      limit: 100,
-      nextCursor: null,
-      filterOptions: {
-        noteTypes: [],
-        cardTypes: [],
-        queueStates: [],
-      },
-    });
+  it.each([
+    '/study/overview',
+    '/study/settings',
+    '/study/new-queue',
+    '/study/browser',
+    '/study/browser/note-1',
+  ])('does not expose the retired read route %s', async (path) => {
+    const response = await request(app).get(path);
 
-    const response = await request(app).get('/study/browser');
-
-    expect(response.status).toBe(200);
-    expect(getStudyBrowserListMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      q: undefined,
-      noteType: undefined,
-      cardType: undefined,
-      queueState: undefined,
-      cursor: undefined,
-      limit: 100,
-    });
+    expect(response.status).toBe(404);
   });
 
   it('rejects mutation requests when Origin is absent', async () => {
