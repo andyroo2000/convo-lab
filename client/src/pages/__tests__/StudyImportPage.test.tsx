@@ -21,25 +21,6 @@ const {
   uploadStudyImportArchiveMock: vi.fn(),
 }));
 
-const studyFeatureFlagsMock = vi.hoisted(() => ({
-  id: 'flags-1',
-  dialoguesEnabled: true,
-  scriptsEnabled: true,
-  audioCourseEnabled: true,
-  flashcardsEnabled: true,
-  studyApiEnabled: false,
-  studyApiSettings: false,
-  studyApiOverview: false,
-  studyApiBrowser: false,
-  studyApiBrowserDetail: false,
-  studyApiNewQueue: false,
-  studyApiImports: false,
-  studyApiSettingsWrite: false,
-  studyApiNewQueueWrite: false,
-  studyApiReview: false,
-  updatedAt: '2026-07-14T00:00:00.000Z',
-}));
-
 vi.mock('../../hooks/useStudy', () => ({
   cancelStudyImportUpload: cancelStudyImportUploadMock,
   completeStudyImportUpload: completeStudyImportUploadMock,
@@ -47,12 +28,6 @@ vi.mock('../../hooks/useStudy', () => ({
   getCurrentStudyImport: getCurrentStudyImportMock,
   getStudyImportStatus: getStudyImportStatusMock,
   uploadStudyImportArchive: uploadStudyImportArchiveMock,
-}));
-
-vi.mock('../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: () => ({
-    flags: studyFeatureFlagsMock,
-  }),
 }));
 
 async function waitForInitialImportResume() {
@@ -203,10 +178,7 @@ describe('StudyImportPage', () => {
     await waitFor(() => expect(submitButton).not.toBeDisabled());
     await userEvent.click(submitButton);
 
-    expect(createStudyImportUploadSessionMock).toHaveBeenCalledWith(
-      expect.any(File),
-      studyFeatureFlagsMock
-    );
+    expect(createStudyImportUploadSessionMock).toHaveBeenCalledWith(expect.any(File));
     expect(uploadStudyImportArchiveMock).toHaveBeenCalled();
     expect(uploadStudyImportArchiveMock.mock.calls[0][2]).toEqual(
       expect.objectContaining({
@@ -214,7 +186,7 @@ describe('StudyImportPage', () => {
         signal: expect.any(AbortSignal),
       })
     );
-    expect(completeStudyImportUploadMock).toHaveBeenCalledWith('import-1', studyFeatureFlagsMock);
+    expect(completeStudyImportUploadMock).toHaveBeenCalledWith('import-1');
     expect(
       await screen.findByText('Imported 6 cards and 3 review logs from 日本語.')
     ).toBeInTheDocument();
@@ -289,7 +261,7 @@ describe('StudyImportPage', () => {
     await waitFor(() => expect(createStudyImportUploadSessionMock).toHaveBeenCalled());
     await userEvent.click(await screen.findByRole('button', { name: 'Cancel upload' }));
 
-    expect(cancelStudyImportUploadMock).toHaveBeenCalledWith('import-1', studyFeatureFlagsMock);
+    expect(cancelStudyImportUploadMock).toHaveBeenCalledWith('import-1');
     expect(await screen.findByText('Study import upload was cancelled.')).toBeInTheDocument();
   });
 

@@ -13,7 +13,6 @@ import {
   getStudyImportStatus,
   uploadStudyImportArchive,
 } from '../hooks/useStudy';
-import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 const STUDY_IMPORT_ACTIVE_JOB_STORAGE_KEY = 'study.import.activeJobId';
 const STUDY_IMPORT_POLL_TIMEOUT_MS = 30 * 60 * 1000;
@@ -71,7 +70,6 @@ function isTerminalImportResult(result: StudyImportResult): boolean {
 
 const StudyImportPage = () => {
   const { t } = useTranslation('study');
-  const { flags } = useFeatureFlags();
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<ImportPhase>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -81,7 +79,6 @@ const StudyImportPage = () => {
   const pollAbortControllerRef = useRef<AbortController | null>(null);
   const activeImportJobIdRef = useRef<string | null>(null);
   const phaseRef = useRef<ImportPhase>('idle');
-  const flagsRef = useRef(flags);
 
   const isBusy =
     phase === 'resuming' ||
@@ -93,10 +90,6 @@ const StudyImportPage = () => {
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
-
-  useEffect(() => {
-    flagsRef.current = flags;
-  }, [flags]);
 
   const clearActiveImportJob = useCallback(() => {
     activeImportJobIdRef.current = null;
@@ -132,7 +125,7 @@ const StudyImportPage = () => {
           throw createImportPollingAbortError();
         }
 
-        const result = await getStudyImportStatus(importJobId, { signal }, flags);
+        const result = await getStudyImportStatus(importJobId, { signal });
         setImportResult(result);
 
         if (isTerminalImportResult(result)) {
@@ -148,7 +141,7 @@ const StudyImportPage = () => {
 
       throw new Error(t('import.processingTimedOut'));
     },
-    [applyTerminalResult, flags, t]
+    [applyTerminalResult, t]
   );
 
   useEffect(() => {
@@ -162,12 +155,10 @@ const StudyImportPage = () => {
         setPhase('resuming');
         const storedImportJobId = window.localStorage.getItem(STUDY_IMPORT_ACTIVE_JOB_STORAGE_KEY);
         const result = storedImportJobId
-          ? await getStudyImportStatus(
-              storedImportJobId,
-              { signal: pollAbortController.signal },
-              flags
-            )
-          : await getCurrentStudyImport({ signal: pollAbortController.signal }, flags);
+          ? await getStudyImportStatus(storedImportJobId, {
+              signal: pollAbortController.signal,
+            })
+          : await getCurrentStudyImport({ signal: pollAbortController.signal });
 
         if (cancelled) return;
 
@@ -205,7 +196,7 @@ const StudyImportPage = () => {
         pollAbortControllerRef.current = null;
       }
     };
-  }, [applyTerminalResult, flags, pollImportResult, storeActiveImportJob]);
+  }, [applyTerminalResult, pollImportResult, storeActiveImportJob]);
 
   useEffect(
     () => () => {
@@ -215,7 +206,7 @@ const StudyImportPage = () => {
       uploadAbortControllerRef.current?.abort();
       const importJobId = activeImportJobIdRef.current;
       if (importJobId) {
-        cancelStudyImportUpload(importJobId, flagsRef.current).catch(() => {});
+        cancelStudyImportUpload(importJobId).catch(() => {});
       }
     },
     []
@@ -233,7 +224,7 @@ const StudyImportPage = () => {
 
     try {
       setPhase('cancelling');
-      const result = await cancelStudyImportUpload(importJobId, flags);
+      const result = await cancelStudyImportUpload(importJobId);
       setImportResult(result);
       setError(result.errorMessage ?? t('import.uploadCancelled'));
     } catch (err) {
@@ -264,7 +255,7 @@ const StudyImportPage = () => {
       setImportResult(null);
       const uploadAbortController = new AbortController();
       uploadAbortControllerRef.current = uploadAbortController;
-      const session = await createStudyImportUploadSession(file, flags);
+      const session = await createStudyImportUploadSession(file);
       storeActiveImportJob(session.importJob.id);
       setImportResult(session.importJob);
       await uploadStudyImportArchive(session, file, {
@@ -274,7 +265,7 @@ const StudyImportPage = () => {
       uploadAbortControllerRef.current = null;
 
       setPhase('queued');
-      const queuedResult = await completeStudyImportUpload(session.importJob.id, flags);
+      const queuedResult = await completeStudyImportUpload(session.importJob.id);
       setImportResult(queuedResult);
 
       const pollAbortController = new AbortController();
@@ -299,7 +290,7 @@ const StudyImportPage = () => {
       setError(err instanceof Error ? err.message : t('import.failed'));
       const importJobId = activeImportJobIdRef.current;
       if (hadActiveUpload && importJobId) {
-        await cancelStudyImportUpload(importJobId, flags).catch(() => {});
+        await cancelStudyImportUpload(importJobId).catch(() => {});
         clearActiveImportJob();
       }
     }

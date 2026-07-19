@@ -12,23 +12,10 @@ import {
   useDailyAudioPracticeStatus,
   useRecentDailyAudioPractice,
 } from '../useDailyAudioPractice';
-import type { FeatureFlags } from '../useFeatureFlags';
 
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
   SHOW_ONBOARDING_WELCOME: false,
-}));
-
-const featureFlagState = vi.hoisted(() => ({
-  flags: undefined as FeatureFlags | undefined,
-}));
-
-vi.mock('../useFeatureFlags', () => ({
-  useFeatureFlags: () => ({
-    flags: featureFlagState.flags,
-    isLoading: false,
-    error: null,
-  }),
 }));
 
 const practiceId = '123e4567-e89b-42d3-a456-426614174100';
@@ -69,32 +56,6 @@ const practice = {
   ],
 };
 
-function flags(overrides: Partial<FeatureFlags> = {}): FeatureFlags {
-  return {
-    id: 'flags-1',
-    dialoguesEnabled: true,
-    scriptsEnabled: true,
-    audioCourseEnabled: true,
-    flashcardsEnabled: true,
-    studyApiEnabled: false,
-    studyApiSettings: false,
-    studyApiOverview: false,
-    studyApiBrowser: false,
-    studyApiBrowserDetail: false,
-    studyApiNewQueue: false,
-    studyApiImports: false,
-    studyApiSettingsWrite: false,
-    studyApiNewQueueWrite: false,
-    studyApiReview: false,
-    studyApiCardWrites: false,
-    studyApiCardDrafts: false,
-    studyApiMedia: false,
-    studyApiDailyAudio: false,
-    updatedAt: '2026-07-18T12:00:00.000Z',
-    ...overrides,
-  };
-}
-
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -117,12 +78,11 @@ function createWrapper(
   return Wrapper;
 }
 
-describe('Daily Audio API routing', () => {
+describe('Daily Audio API requests', () => {
   const mockFetch = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    featureFlagState.flags = flags();
     vi.stubGlobal('fetch', mockFetch);
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=test-csrf-token; path=/`;
   });
@@ -132,27 +92,7 @@ describe('Daily Audio API routing', () => {
     vi.unstubAllGlobals();
   });
 
-  it('uses legacy list reads while either Daily Audio routing flag is disabled', async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([practice]));
-
-    const { result } = renderHook(() => useRecentDailyAudioPractice(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:3001/api/daily-audio-practice',
-      expect.objectContaining({ credentials: 'include' })
-    );
-    expect(result.current.data?.[0]?.tracks.map((track) => track.sortOrder)).toEqual([1, 2]);
-  });
-
-  it('routes list reads through Learning OS when both flags are enabled', async () => {
-    featureFlagState.flags = flags({
-      studyApiEnabled: true,
-      studyApiDailyAudio: true,
-    });
+  it('loads sorted list reads through Learning OS', async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse([practice]));
 
     const { result } = renderHook(() => useRecentDailyAudioPractice(), {
@@ -165,13 +105,10 @@ describe('Daily Audio API routing', () => {
       'http://localhost:3001/api/learning-os/study/daily-audio-practice',
       expect.objectContaining({ credentials: 'include' })
     );
+    expect(result.current.data?.[0]?.tracks.map((track) => track.sortOrder)).toEqual([1, 2]);
   });
 
   it('routes detail and status reads through Learning OS with encoded IDs', async () => {
-    featureFlagState.flags = flags({
-      studyApiEnabled: true,
-      studyApiDailyAudio: true,
-    });
     mockFetch.mockResolvedValueOnce(jsonResponse(practice)).mockResolvedValueOnce(
       jsonResponse({
         id: practiceId,
@@ -204,11 +141,7 @@ describe('Daily Audio API routing', () => {
     );
   });
 
-  it('routes generation POSTs through Learning OS when Daily Audio routing is enabled', async () => {
-    featureFlagState.flags = flags({
-      studyApiEnabled: true,
-      studyApiDailyAudio: true,
-    });
+  it('routes generation POSTs through Learning OS', async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse(practice));
 
     const queryClient = new QueryClient({
@@ -232,33 +165,10 @@ describe('Daily Audio API routing', () => {
         credentials: 'include',
       })
     );
-    expect(
-      queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId, 'learning-os'))
-    ).toEqual({
+    expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toEqual({
       ...practice,
       tracks: [...practice.tracks].sort((left, right) => left.sortOrder - right.sortOrder),
     });
-    expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toBeUndefined();
-  });
-
-  it('keeps generation POSTs on Convo Lab while Daily Audio routing is disabled', async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse(practice));
-
-    const { result } = renderHook(() => useCreateDailyAudioPractice(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.mutateAsync();
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:3001/api/daily-audio-practice',
-      expect.objectContaining({
-        method: 'POST',
-        credentials: 'include',
-      })
-    );
   });
 
   it('notifies the app when a Daily Audio read finds an expired Convo Lab session', async () => {

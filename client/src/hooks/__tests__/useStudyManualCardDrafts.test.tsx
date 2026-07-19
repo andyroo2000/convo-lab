@@ -11,15 +11,6 @@ vi.mock('../../config', () => ({
   SHOW_ONBOARDING_WELCOME: false,
 }));
 
-vi.mock('../useFeatureFlags', () => ({
-  useFeatureFlags: () => ({
-    flags: {
-      studyApiEnabled: true,
-      studyApiCardDrafts: true,
-    },
-  }),
-}));
-
 describe('manual card draft mutations', () => {
   beforeEach(() => {
     vi.restoreAllMocks();

@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new';
 import type {
-  StudyCardCandidateKind,
-  StudyCardCandidateCommitItem,
   StudyCardCreationKind,
-  StudyCardDraftCompleteResponse,
   StudyCardImagePlacement,
   StudyManualCardDraft,
   StudyCardSummary,
@@ -56,16 +53,7 @@ const STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS = new Set<keyof StudyCardFormValues
   'answerAudioTextOverride',
 ]);
 
-function candidateKindForManualCreationKind(
-  creationKind: StudyCardCreationKind
-): StudyCardCandidateKind {
-  if (creationKind === 'production-text' || creationKind === 'production-image') {
-    return 'production';
-  }
-  return creationKind;
-}
-
-function getDraftFormValues(result: StudyCardDraftCompleteResponse | StudyManualCardDraft) {
+function getDraftFormValues(result: StudyManualCardDraft) {
   return getStudyCardFormValues({
     card: {
       id: 'manual-draft',
@@ -234,17 +222,6 @@ const StudyCreatePage = () => {
     answerAudioSource: 'missing',
     createdAt: '1970-01-01T00:00:00.000Z',
     updatedAt: '1970-01-01T00:00:00.000Z',
-  };
-  const manualAudioCandidate: StudyCardCandidateCommitItem = {
-    clientId: selectedManualDraft ? `manual-draft-${selectedManualDraft.id}` : 'manual-draft',
-    candidateKind: candidateKindForManualCreationKind(creationKind),
-    cardType: manualCardType,
-    prompt: manualPayloadWithoutMedia.prompt,
-    answer: manualPayloadWithoutMedia.answer,
-    previewAudio: manualPreviewAudio,
-    previewAudioRole: manualPreviewAudioRole,
-    previewImage: manualPreviewImage,
-    imagePrompt: manualImagePrompt.trim() || null,
   };
   const isReviewingManualDraft = Boolean(selectedManualDraft);
   const isSelectedManualDraftGenerating = selectedManualDraft?.status === 'generating';
@@ -451,10 +428,7 @@ const StudyCreatePage = () => {
     try {
       const draftId = await persistSelectedManualDraft();
       if (!draftId) return;
-      const result = await regenerateManualAudio.mutateAsync({
-        draftId,
-        legacyRequest: { candidate: manualAudioCandidate },
-      });
+      const result = await regenerateManualAudio.mutateAsync(draftId);
       setManualPreviewAudio(result.previewAudio);
       setManualPreviewAudioRole(result.previewAudioRole);
     } catch {
@@ -467,13 +441,7 @@ const StudyCreatePage = () => {
     try {
       const draftId = await persistSelectedManualDraft();
       if (!draftId) return;
-      const result = await generateDraftImage.mutateAsync({
-        draftId,
-        legacyRequest: {
-          imagePrompt: manualImagePrompt,
-          imagePlacement: manualImagePlacement,
-        },
-      });
+      const result = await generateDraftImage.mutateAsync(draftId);
       setManualImagePrompt(result.imagePrompt);
       setManualImagePlacement(result.imagePlacement);
       setManualPreviewImage(result.previewImage);

@@ -11,18 +11,7 @@ import type {
   StudyBrowserNoteDetail,
   StudyBrowserSortDirection,
   StudyBrowserSortField,
-  StudyCardCandidateCommitRequest,
-  StudyCardCandidateCommitResponse,
-  StudyCardCandidateGenerateRequest,
-  StudyCardCandidateGenerateResponse,
-  StudyCardCandidatePreviewAudioRequest,
-  StudyCardCandidatePreviewAudioResponse,
-  StudyCardCandidatePreviewImageRequest,
-  StudyCardCandidatePreviewImageResponse,
   StudyCardCreationKind,
-  StudyCardDraftCompleteRequest,
-  StudyCardDraftCompleteResponse,
-  StudyCardDraftImageRequest,
   StudyCardDraftImageResponse,
   StudyCardDraftPreviewAudioResponse,
   StudyManualCardDraft,
@@ -49,8 +38,6 @@ import { API_URL } from '../config';
 import { CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
-import resolveEffectiveFeatureFlags from './featureFlagRouting';
-import { useFeatureFlags, type FeatureFlags } from './useFeatureFlags';
 
 export interface StudySessionResponse {
   overview: StudyOverview;
@@ -101,61 +88,7 @@ export interface StudyBrowserQuery {
   limit?: number;
 }
 
-type StudyApiFeature =
-  | 'settings'
-  | 'overview'
-  | 'browser'
-  | 'browserDetail'
-  | 'newQueue'
-  | 'imports'
-  | 'settingsWrite'
-  | 'newQueueWrite'
-  | 'review'
-  | 'cardWrites'
-  | 'cardDrafts';
 const LEARNING_OS_STUDY_PROXY_BASE = '/api/learning-os/study';
-
-const STUDY_API_FLAG_BY_FEATURE: Record<
-  StudyApiFeature,
-  keyof Pick<
-    FeatureFlags,
-    | 'studyApiSettings'
-    | 'studyApiOverview'
-    | 'studyApiBrowser'
-    | 'studyApiBrowserDetail'
-    | 'studyApiNewQueue'
-    | 'studyApiImports'
-    | 'studyApiSettingsWrite'
-    | 'studyApiNewQueueWrite'
-    | 'studyApiReview'
-    | 'studyApiCardWrites'
-    | 'studyApiCardDrafts'
-  >
-> = {
-  settings: 'studyApiSettings',
-  overview: 'studyApiOverview',
-  browser: 'studyApiBrowser',
-  browserDetail: 'studyApiBrowserDetail',
-  newQueue: 'studyApiNewQueue',
-  imports: 'studyApiImports',
-  settingsWrite: 'studyApiSettingsWrite',
-  newQueueWrite: 'studyApiNewQueueWrite',
-  review: 'studyApiReview',
-  cardWrites: 'studyApiCardWrites',
-  cardDrafts: 'studyApiCardDrafts',
-};
-
-const STUDY_API_READ_FLAG_BY_WRITE_FEATURE: Partial<
-  Record<StudyApiFeature, 'studyApiSettings' | 'studyApiNewQueue'>
-> = {
-  settingsWrite: 'studyApiSettings',
-  newQueueWrite: 'studyApiNewQueue',
-};
-
-interface StudyApiRouting {
-  feature: StudyApiFeature;
-  flags?: FeatureFlags;
-}
 
 function withMutationHeaders(init?: RequestInit): HeadersInit {
   const headers = new Headers(init?.headers ?? {});
@@ -173,62 +106,21 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
-function shouldUseLearningOsStudyApi(routing?: StudyApiRouting): boolean {
-  if (!routing?.flags?.studyApiEnabled) {
-    return false;
-  }
-
-  const readFlag = STUDY_API_READ_FLAG_BY_WRITE_FEATURE[routing.feature];
-  return (
-    routing.flags[STUDY_API_FLAG_BY_FEATURE[routing.feature]] === true &&
-    (!readFlag || routing.flags[readFlag] === true)
-  );
-}
-
-function studyApiRouteKey(feature: StudyApiFeature, flags?: FeatureFlags): string {
-  return shouldUseLearningOsStudyApi({ feature, flags }) ? 'learning-os' : 'convo-lab';
-}
-
-async function apiRequest<T>(
-  endpoint: string,
-  init?: RequestInit,
-  routing?: StudyApiRouting
-): Promise<T> {
-  if (shouldUseLearningOsStudyApi(routing)) {
-    const headers = new Headers(withMutationHeaders(init));
-    headers.set('Accept', 'application/json');
-    const proxyEndpoint = endpoint.replace(/^\/api\/study(?=\/|$)/, LEARNING_OS_STUDY_PROXY_BASE);
-
-    const response = await fetchWithCsrf(`${trimTrailingSlash(API_URL)}${proxyEndpoint}`, {
-      ...init,
-      credentials: 'include',
-      headers,
-    });
-
-    notifyAuthSessionExpired(response);
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Request failed' }));
-      const message = error.message || error.error?.message || 'Request failed';
-      throw new Error(`${message} (${String(response.status)})`);
-    }
-
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    return response.json() as Promise<T>;
-  }
-
-  const response = await fetchWithCsrf(`${API_URL}${endpoint}`, {
+async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(withMutationHeaders(init));
+  headers.set('Accept', 'application/json');
+  const proxyEndpoint = `${LEARNING_OS_STUDY_PROXY_BASE}${endpoint}`;
+  const response = await fetchWithCsrf(`${trimTrailingSlash(API_URL)}${proxyEndpoint}`, {
     ...init,
     credentials: 'include',
-    headers: withMutationHeaders(init),
+    headers,
   });
 
   notifyAuthSessionExpired(response);
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || error.error?.message || 'Request failed');
+    const message = error.message || error.error?.message || 'Request failed';
+    throw new Error(`${message} (${String(response.status)})`);
   }
 
   if (response.status === 204) {
@@ -238,37 +130,23 @@ async function apiRequest<T>(
   return response.json() as Promise<T>;
 }
 
-export async function startStudySession(flags?: FeatureFlags): Promise<StudySessionResponse> {
+export async function startStudySession(): Promise<StudySessionResponse> {
   const timeZone = getDeviceStudyTimeZone();
-  return apiRequest<StudySessionResponse>(
-    '/api/study/session/start',
-    {
-      method: 'POST',
-      body: JSON.stringify({ timeZone }),
-    },
-    { feature: 'review', flags }
-  );
-}
-
-export async function getStudySettings(flags?: FeatureFlags): Promise<StudySettings> {
-  return apiRequest<StudySettings>('/api/study/settings', undefined, {
-    feature: 'settings',
-    flags,
+  return apiRequest<StudySessionResponse>('/session/start', {
+    method: 'POST',
+    body: JSON.stringify({ timeZone }),
   });
 }
 
-export async function updateStudySettings(
-  payload: StudySettings,
-  flags?: FeatureFlags
-): Promise<StudySettings> {
-  return apiRequest<StudySettings>(
-    '/api/study/settings',
-    {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    },
-    { feature: 'settingsWrite', flags }
-  );
+export async function getStudySettings(): Promise<StudySettings> {
+  return apiRequest<StudySettings>('/settings');
+}
+
+export async function updateStudySettings(payload: StudySettings): Promise<StudySettings> {
+  return apiRequest<StudySettings>('/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function getStudyNewCardQueue(
@@ -276,8 +154,7 @@ export async function getStudyNewCardQueue(
     cursor?: string | null;
     limit?: number;
     q?: string;
-  } = {},
-  flags?: FeatureFlags
+  } = {}
 ): Promise<StudyNewCardQueueResponse> {
   const searchParams = new URLSearchParams();
   if (params.cursor) searchParams.set('cursor', params.cursor);
@@ -285,191 +162,82 @@ export async function getStudyNewCardQueue(
   if (params.q?.trim()) searchParams.set('q', params.q.trim());
 
   const suffix = searchParams.toString();
-  return apiRequest<StudyNewCardQueueResponse>(
-    `/api/study/new-queue${suffix ? `?${suffix}` : ''}`,
-    undefined,
-    { feature: 'newQueue', flags }
-  );
+  return apiRequest<StudyNewCardQueueResponse>(`/new-queue${suffix ? `?${suffix}` : ''}`);
 }
 
-export async function reorderStudyNewCardQueue(cardIds: string[], flags?: FeatureFlags) {
-  return apiRequest<StudyNewCardQueueResponse>(
-    '/api/study/new-queue/reorder',
-    {
-      method: 'POST',
-      body: JSON.stringify({ cardIds }),
-    },
-    { feature: 'newQueueWrite', flags }
-  );
+export async function reorderStudyNewCardQueue(cardIds: string[]) {
+  return apiRequest<StudyNewCardQueueResponse>('/new-queue/reorder', {
+    method: 'POST',
+    body: JSON.stringify({ cardIds }),
+  });
 }
 
-export async function prepareStudyAnswerAudio(
-  cardId: string,
-  flags?: FeatureFlags
-): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(
-    `/api/study/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`,
-    {
-      method: 'POST',
-    },
-    { feature: 'cardWrites', flags }
-  );
+export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>(`/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`, {
+    method: 'POST',
+  });
 }
 
 export async function regenerateStudyAnswerAudio(
-  payload: RegenerateStudyAnswerAudioPayload,
-  flags?: FeatureFlags
+  payload: RegenerateStudyAnswerAudioPayload
 ): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
-    `/api/study/cards/${encodeURIComponent(payload.cardId)}/regenerate-answer-audio`,
+    `/cards/${encodeURIComponent(payload.cardId)}/regenerate-answer-audio`,
     {
       method: 'POST',
       body: JSON.stringify({
         answerAudioVoiceId: payload.answerAudioVoiceId,
         answerAudioTextOverride: payload.answerAudioTextOverride,
       }),
-    },
-    { feature: 'cardWrites', flags }
+    }
   );
 }
 
 export async function regenerateStudyCardImage(
-  payload: RegenerateStudyCardImagePayload,
-  flags?: FeatureFlags
+  payload: RegenerateStudyCardImagePayload
 ): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
-    `/api/study/cards/${encodeURIComponent(payload.cardId)}/regenerate-image`,
+    `/cards/${encodeURIComponent(payload.cardId)}/regenerate-image`,
     {
       method: 'POST',
       body: JSON.stringify({
         imagePrompt: payload.imagePrompt,
         imageRole: payload.imageRole,
       }),
-    },
-    { feature: 'cardWrites', flags }
+    }
   );
 }
 
-export async function resolveStudyCardPitchAccent(
-  cardId: string,
-  flags?: FeatureFlags
-): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(
-    `/api/study/cards/${encodeURIComponent(cardId)}/pitch-accent`,
-    {
-      method: 'POST',
-    },
-    { feature: 'cardWrites', flags }
-  );
-}
-
-export async function generateStudyCardCandidates(
-  payload: StudyCardCandidateGenerateRequest
-): Promise<StudyCardCandidateGenerateResponse> {
-  return apiRequest<StudyCardCandidateGenerateResponse>('/api/study/card-candidates/generate', {
+export async function resolveStudyCardPitchAccent(cardId: string): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>(`/cards/${encodeURIComponent(cardId)}/pitch-accent`, {
     method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function commitStudyCardCandidates(
-  payload: StudyCardCandidateCommitRequest
-): Promise<StudyCardCandidateCommitResponse> {
-  return apiRequest<StudyCardCandidateCommitResponse>('/api/study/card-candidates/commit', {
-    method: 'POST',
-    body: JSON.stringify(payload),
   });
 }
 
 export async function createStudyVocabBundleDrafts(
-  payload: StudyVocabBundleGenerateRequest,
-  flags?: FeatureFlags
+  payload: StudyVocabBundleGenerateRequest
 ): Promise<StudyVocabBundleDraftCreateResponse> {
-  return apiRequest<StudyVocabBundleDraftCreateResponse>(
-    '/api/study/card-candidates/vocab-bundle/drafts',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-    { feature: 'cardDrafts', flags }
-  );
-}
-
-export async function regenerateStudyCardCandidatePreviewAudio(
-  payload: StudyCardCandidatePreviewAudioRequest
-): Promise<StudyCardCandidatePreviewAudioResponse> {
-  return apiRequest<StudyCardCandidatePreviewAudioResponse>(
-    '/api/study/card-candidates/regenerate-audio',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }
-  );
-}
-
-export async function regenerateStudyCardCandidatePreviewImage(
-  payload: StudyCardCandidatePreviewImageRequest
-): Promise<StudyCardCandidatePreviewImageResponse> {
-  return apiRequest<StudyCardCandidatePreviewImageResponse>(
-    '/api/study/card-candidates/regenerate-image',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }
-  );
-}
-
-export async function completeStudyCardDraft(
-  payload: StudyCardDraftCompleteRequest
-): Promise<StudyCardDraftCompleteResponse> {
-  return apiRequest<StudyCardDraftCompleteResponse>('/api/study/cards/draft/complete', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function generateStudyCardDraftImage(
-  payload: StudyCardDraftImageRequest
-): Promise<StudyCardDraftImageResponse> {
-  return apiRequest<StudyCardDraftImageResponse>('/api/study/cards/draft/image', {
+  return apiRequest<StudyVocabBundleDraftCreateResponse>('/card-candidates/vocab-bundle/drafts', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export async function generateStudyManualCardDraftPreviewAudio(
-  payload: {
-    draftId: string;
-    legacyRequest: StudyCardCandidatePreviewAudioRequest;
-  },
-  flags?: FeatureFlags
+  draftId: string
 ): Promise<StudyCardDraftPreviewAudioResponse> {
-  if (!shouldUseLearningOsStudyApi({ feature: 'cardDrafts', flags })) {
-    return regenerateStudyCardCandidatePreviewAudio(payload.legacyRequest);
-  }
-
   return apiRequest<StudyCardDraftPreviewAudioResponse>(
-    `/api/study/card-drafts/${encodeURIComponent(payload.draftId)}/preview-audio`,
-    { method: 'POST' },
-    { feature: 'cardDrafts', flags }
+    `/card-drafts/${encodeURIComponent(draftId)}/preview-audio`,
+    { method: 'POST' }
   );
 }
 
 export async function generateStudyManualCardDraftPreviewImage(
-  payload: {
-    draftId: string;
-    legacyRequest: StudyCardDraftImageRequest;
-  },
-  flags?: FeatureFlags
+  draftId: string
 ): Promise<StudyCardDraftImageResponse> {
-  if (!shouldUseLearningOsStudyApi({ feature: 'cardDrafts', flags })) {
-    return generateStudyCardDraftImage(payload.legacyRequest);
-  }
-
   return apiRequest<StudyCardDraftImageResponse>(
-    `/api/study/card-drafts/${encodeURIComponent(payload.draftId)}/preview-image`,
-    { method: 'POST' },
-    { feature: 'cardDrafts', flags }
+    `/card-drafts/${encodeURIComponent(draftId)}/preview-image`,
+    { method: 'POST' }
   );
 }
 
@@ -478,106 +246,65 @@ export function createStudyCardId(): string {
 }
 
 export async function getStudyManualCardDrafts(
-  params: { cursor?: string | null; limit?: number } = {},
-  flags?: FeatureFlags
+  params: { cursor?: string | null; limit?: number } = {}
 ): Promise<StudyManualCardDraftListResponse> {
   const searchParams = new URLSearchParams();
   if (params.cursor) searchParams.set('cursor', params.cursor);
   if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit));
   const suffix = searchParams.toString();
-  return apiRequest<StudyManualCardDraftListResponse>(
-    `/api/study/card-drafts${suffix ? `?${suffix}` : ''}`,
-    undefined,
-    { feature: 'cardDrafts', flags }
-  );
+  return apiRequest<StudyManualCardDraftListResponse>(`/card-drafts${suffix ? `?${suffix}` : ''}`);
 }
 
 export async function createStudyManualCardDraft(
-  payload: StudyManualCardDraftCreateRequest,
-  flags?: FeatureFlags
+  payload: StudyManualCardDraftCreateRequest
 ): Promise<StudyManualCardDraft> {
-  return apiRequest<StudyManualCardDraft>(
-    '/api/study/card-drafts',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-    { feature: 'cardDrafts', flags }
-  );
+  return apiRequest<StudyManualCardDraft>('/card-drafts', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
-export async function updateStudyManualCardDraft(
-  payload: {
-    draftId: string;
-    values: StudyManualCardDraftUpdateRequest;
-  },
-  flags?: FeatureFlags
-): Promise<StudyManualCardDraft> {
-  return apiRequest<StudyManualCardDraft>(
-    `/api/study/card-drafts/${payload.draftId}`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify(payload.values),
-    },
-    { feature: 'cardDrafts', flags }
-  );
+export async function updateStudyManualCardDraft(payload: {
+  draftId: string;
+  values: StudyManualCardDraftUpdateRequest;
+}): Promise<StudyManualCardDraft> {
+  return apiRequest<StudyManualCardDraft>(`/card-drafts/${payload.draftId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload.values),
+  });
 }
 
-export async function retryStudyManualCardDraft(
-  draftId: string,
-  flags?: FeatureFlags
-): Promise<StudyManualCardDraft> {
-  return apiRequest<StudyManualCardDraft>(
-    `/api/study/card-drafts/${draftId}/retry`,
-    {
-      method: 'POST',
-    },
-    { feature: 'cardDrafts', flags }
-  );
+export async function retryStudyManualCardDraft(draftId: string): Promise<StudyManualCardDraft> {
+  return apiRequest<StudyManualCardDraft>(`/card-drafts/${draftId}/retry`, {
+    method: 'POST',
+  });
 }
 
 export async function createCardFromStudyManualCardDraft(
   draftId: string,
-  cardId = createStudyCardId(),
-  flags?: FeatureFlags
+  cardId = createStudyCardId()
 ): Promise<StudyManualCardDraftCreateCardResponse> {
-  return apiRequest<StudyManualCardDraftCreateCardResponse>(
-    `/api/study/card-drafts/${draftId}/create-card`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ id: cardId }),
-    },
-    { feature: 'cardDrafts', flags }
-  );
+  return apiRequest<StudyManualCardDraftCreateCardResponse>(`/card-drafts/${draftId}/create-card`, {
+    method: 'POST',
+    body: JSON.stringify({ id: cardId }),
+  });
 }
 
-export async function deleteStudyManualCardDraft(
-  draftId: string,
-  flags?: FeatureFlags
-): Promise<void> {
-  await apiRequest<unknown>(
-    `/api/study/card-drafts/${draftId}`,
-    {
-      method: 'DELETE',
-    },
-    { feature: 'cardDrafts', flags }
-  );
+export async function deleteStudyManualCardDraft(draftId: string): Promise<void> {
+  await apiRequest<unknown>(`/card-drafts/${draftId}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function undoStudyReview(
   reviewLogId: string,
-  currentOverview?: StudyOverview,
-  flags?: FeatureFlags
+  currentOverview?: StudyOverview
 ): Promise<StudyUndoReviewResult> {
   const timeZone = getDeviceStudyTimeZone();
-  return apiRequest<StudyUndoReviewResult>(
-    '/api/study/reviews/undo',
-    {
-      method: 'POST',
-      body: JSON.stringify({ reviewLogId, currentOverview, timeZone }),
-    },
-    { feature: 'review', flags }
-  );
+  return apiRequest<StudyUndoReviewResult>('/reviews/undo', {
+    method: 'POST',
+    body: JSON.stringify({ reviewLogId, currentOverview, timeZone }),
+  });
 }
 
 export async function submitStudyReview(
@@ -586,26 +313,20 @@ export async function submitStudyReview(
     grade: 'again' | 'hard' | 'good' | 'easy';
     durationMs?: number;
   },
-  currentOverview?: StudyOverview,
-  flags?: FeatureFlags
+  currentOverview?: StudyOverview
 ): Promise<StudyReviewResult> {
-  return apiRequest<StudyReviewResult>(
-    '/api/study/reviews',
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        ...payload,
-        timeZone: getDeviceStudyTimeZone(),
-        currentOverview,
-      }),
-    },
-    { feature: 'review', flags }
-  );
+  return apiRequest<StudyReviewResult>('/reviews', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      timeZone: getDeviceStudyTimeZone(),
+      currentOverview,
+    }),
+  });
 }
 
 export async function getStudyBrowser(
-  query: StudyBrowserQuery = {},
-  flags?: FeatureFlags
+  query: StudyBrowserQuery = {}
 ): Promise<StudyBrowserListResponse> {
   const searchParams = new URLSearchParams();
   if (query.q) searchParams.set('q', query.q);
@@ -618,68 +339,38 @@ export async function getStudyBrowser(
   if (typeof query.limit === 'number') searchParams.set('limit', String(query.limit));
 
   const suffix = searchParams.toString();
-  return apiRequest<StudyBrowserListResponse>(
-    `/api/study/browser${suffix ? `?${suffix}` : ''}`,
-    undefined,
-    { feature: 'browser', flags }
-  );
+  return apiRequest<StudyBrowserListResponse>(`/browser${suffix ? `?${suffix}` : ''}`);
 }
 
-export async function getStudyBrowserNoteDetail(
-  noteId: string,
-  flags?: FeatureFlags
-): Promise<StudyBrowserNoteDetail> {
-  return apiRequest<StudyBrowserNoteDetail>(
-    `/api/study/browser/${encodeURIComponent(noteId)}`,
-    undefined,
-    { feature: 'browserDetail', flags }
-  );
+export async function getStudyBrowserNoteDetail(noteId: string): Promise<StudyBrowserNoteDetail> {
+  return apiRequest<StudyBrowserNoteDetail>(`/browser/${encodeURIComponent(noteId)}`);
 }
 
-export async function createStudyCard(
-  payload: CreateStudyCardPayload,
-  flags?: FeatureFlags
-): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(
-    '/api/study/cards',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-    { feature: 'cardWrites', flags }
-  );
+export async function createStudyCard(payload: CreateStudyCardPayload): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>('/cards', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
-export async function updateStudyCard(
-  payload: UpdateStudyCardPayload,
-  flags?: FeatureFlags
-): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(
-    `/api/study/cards/${encodeURIComponent(payload.cardId)}`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify({
-        prompt: payload.prompt,
-        answer: payload.answer,
-      }),
-    },
-    { feature: 'cardWrites', flags }
-  );
+export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>(`/cards/${encodeURIComponent(payload.cardId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      prompt: payload.prompt,
+      answer: payload.answer,
+    }),
+  });
 }
 
-export async function deleteStudyCard(cardId: string, flags?: FeatureFlags): Promise<void> {
-  await apiRequest<unknown>(
-    `/api/study/cards/${encodeURIComponent(cardId)}`,
-    {
-      method: 'DELETE',
-    },
-    { feature: 'cardWrites', flags }
-  );
+export async function deleteStudyCard(cardId: string): Promise<void> {
+  await apiRequest<unknown>(`/cards/${encodeURIComponent(cardId)}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function performStudyCardAction(
-  payload: StudyCardActionPayload,
-  flags?: FeatureFlags
+  payload: StudyCardActionPayload
 ): Promise<StudyCardActionResult> {
   const request: StudyCardActionRequest = {
     action: payload.action,
@@ -689,30 +380,22 @@ export async function performStudyCardAction(
     currentOverview: payload.currentOverview,
   };
 
-  return apiRequest<StudyCardActionResult>(
-    `/api/study/cards/${encodeURIComponent(payload.cardId)}/actions`,
-    {
-      method: 'POST',
-      body: JSON.stringify(request),
-    },
-    { feature: 'cardWrites', flags }
-  );
+  return apiRequest<StudyCardActionResult>(`/cards/${encodeURIComponent(payload.cardId)}/actions`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
 }
 
 export function useStudyOverview(enabled: boolean) {
-  const { flags } = useFeatureFlags();
   const timeZone = getDeviceStudyTimeZone();
   const searchParams = new URLSearchParams();
   if (timeZone) searchParams.set('timeZone', timeZone);
-  const routeKey = studyApiRouteKey('overview', flags);
 
   return useQuery({
-    queryKey: ['study', 'overview', routeKey],
+    queryKey: ['study', 'overview'],
     queryFn: () =>
       apiRequest<StudyOverview>(
-        `/api/study/overview${searchParams.toString() ? `?${searchParams.toString()}` : ''}`,
-        undefined,
-        { feature: 'overview', flags }
+        `/overview${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
       ),
     enabled,
     // The app-wide QueryClient disables focus refetches; study counts should refresh
@@ -722,12 +405,9 @@ export function useStudyOverview(enabled: boolean) {
 }
 
 export function useStudySettings(enabled: boolean) {
-  const { flags } = useFeatureFlags();
-  const routeKey = studyApiRouteKey('settings', flags);
-
   return useQuery({
-    queryKey: ['study', 'settings', routeKey],
-    queryFn: () => getStudySettings(flags),
+    queryKey: ['study', 'settings'],
+    queryFn: getStudySettings,
     enabled,
   });
 }
@@ -736,29 +416,18 @@ export function useStudyNewCardQueue(
   enabled: boolean,
   params: { cursor?: string | null; limit?: number; q?: string } = {}
 ) {
-  const { flags } = useFeatureFlags();
-  const routeKey = studyApiRouteKey('newQueue', flags);
-
   return useQuery({
-    queryKey: [
-      'study',
-      'new-queue',
-      routeKey,
-      params.cursor ?? 'start',
-      params.limit ?? 100,
-      params.q ?? '',
-    ],
-    queryFn: () => getStudyNewCardQueue(params, flags),
+    queryKey: ['study', 'new-queue', params.cursor ?? 'start', params.limit ?? 100, params.q ?? ''],
+    queryFn: () => getStudyNewCardQueue(params),
     enabled,
   });
 }
 
 export function useUpdateStudySettings() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: StudySettings) => updateStudySettings(payload, flags),
+    mutationFn: updateStudySettings,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'settings'] }),
@@ -770,10 +439,9 @@ export function useUpdateStudySettings() {
 
 export function useReorderStudyNewCardQueue() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (cardIds: string[]) => reorderStudyNewCardQueue(cardIds, flags),
+    mutationFn: reorderStudyNewCardQueue,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
@@ -784,31 +452,23 @@ export function useReorderStudyNewCardQueue() {
 }
 
 export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
-  const { flags } = useFeatureFlags();
-  const routeKey = studyApiRouteKey('browser', flags);
-
   return useQuery({
-    queryKey: ['study', 'browser', routeKey, query],
-    queryFn: () => getStudyBrowser(query, flags),
+    queryKey: ['study', 'browser', query],
+    queryFn: () => getStudyBrowser(query),
     enabled,
   });
 }
 
 export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
-  const { flags } = useFeatureFlags();
-  const routeKey = studyApiRouteKey('browserDetail', flags);
-
   return useQuery({
-    queryKey: ['study', 'browser', 'note', routeKey, noteId ?? 'none'],
-    queryFn: () => getStudyBrowserNoteDetail(noteId as string, flags),
+    queryKey: ['study', 'browser', 'note', noteId ?? 'none'],
+    queryFn: () => getStudyBrowserNoteDetail(noteId as string),
     enabled: enabled && Boolean(noteId),
   });
 }
 
-export function useSubmitStudyReview(routingFlags?: FeatureFlags | null) {
+export function useSubmitStudyReview() {
   const queryClient = useQueryClient();
-  const { flags: liveFlags } = useFeatureFlags();
-  const effectiveFlags = resolveEffectiveFeatureFlags(liveFlags, routingFlags);
 
   return useMutation({
     mutationFn: (payload: {
@@ -816,11 +476,7 @@ export function useSubmitStudyReview(routingFlags?: FeatureFlags | null) {
       grade: 'again' | 'hard' | 'good' | 'easy';
       durationMs?: number;
     }) =>
-      submitStudyReview(
-        payload,
-        queryClient.getQueryData<StudyOverview>(['study', 'overview']),
-        effectiveFlags
-      ),
+      submitStudyReview(payload, queryClient.getQueryData<StudyOverview>(['study', 'overview'])),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
@@ -832,10 +488,9 @@ export function useSubmitStudyReview(routingFlags?: FeatureFlags | null) {
 
 export function useCreateStudyCard() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: CreateStudyCardPayload) => createStudyCard(payload, flags),
+    mutationFn: createStudyCard,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
@@ -845,46 +500,22 @@ export function useCreateStudyCard() {
   });
 }
 
-export function useGenerateStudyCardCandidates() {
-  return useMutation({
-    mutationFn: generateStudyCardCandidates,
-  });
-}
-
 export function useCreateStudyVocabBundleDrafts() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: StudyVocabBundleGenerateRequest) =>
-      createStudyVocabBundleDrafts(payload, flags),
+    mutationFn: createStudyVocabBundleDrafts,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
   });
 }
 
-export function useCompleteStudyCardDraft() {
-  return useMutation({
-    mutationFn: completeStudyCardDraft,
-  });
-}
-
-export function useGenerateStudyCardDraftImage() {
-  return useMutation({
-    mutationFn: generateStudyCardDraftImage,
-  });
-}
-
 export function useGenerateStudyManualCardDraftPreviewAudio() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: {
-      draftId: string;
-      legacyRequest: StudyCardCandidatePreviewAudioRequest;
-    }) => generateStudyManualCardDraftPreviewAudio(payload, flags),
+    mutationFn: generateStudyManualCardDraftPreviewAudio,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
@@ -893,11 +524,9 @@ export function useGenerateStudyManualCardDraftPreviewAudio() {
 
 export function useGenerateStudyManualCardDraftPreviewImage() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: { draftId: string; legacyRequest: StudyCardDraftImageRequest }) =>
-      generateStudyManualCardDraftPreviewImage(payload, flags),
+    mutationFn: generateStudyManualCardDraftPreviewImage,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
@@ -905,12 +534,9 @@ export function useGenerateStudyManualCardDraftPreviewImage() {
 }
 
 export function useStudyManualCardDrafts(enabled: boolean) {
-  const { flags } = useFeatureFlags();
-  const routeKey = studyApiRouteKey('cardDrafts', flags);
-
   return useInfiniteQuery({
-    queryKey: ['study', 'manual-card-drafts', routeKey],
-    queryFn: ({ pageParam }) => getStudyManualCardDrafts({ cursor: pageParam, limit: 200 }, flags),
+    queryKey: ['study', 'manual-card-drafts'],
+    queryFn: ({ pageParam }) => getStudyManualCardDrafts({ cursor: pageParam, limit: 200 }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled,
@@ -925,11 +551,9 @@ export function useStudyManualCardDrafts(enabled: boolean) {
 
 export function useCreateStudyManualCardDraft() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: StudyManualCardDraftCreateRequest) =>
-      createStudyManualCardDraft(payload, flags),
+    mutationFn: createStudyManualCardDraft,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
@@ -938,11 +562,9 @@ export function useCreateStudyManualCardDraft() {
 
 export function useUpdateStudyManualCardDraft() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: { draftId: string; values: StudyManualCardDraftUpdateRequest }) =>
-      updateStudyManualCardDraft(payload, flags),
+    mutationFn: updateStudyManualCardDraft,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
@@ -951,10 +573,9 @@ export function useUpdateStudyManualCardDraft() {
 
 export function useRetryStudyManualCardDraft() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (draftId: string) => retryStudyManualCardDraft(draftId, flags),
+    mutationFn: retryStudyManualCardDraft,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
@@ -963,14 +584,13 @@ export function useRetryStudyManualCardDraft() {
 
 export function useCreateCardFromStudyManualCardDraft() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
   const pendingCardIds = useRef(new Map<string, string>());
 
   return useMutation({
     mutationFn: (draftId: string) => {
       const cardId = pendingCardIds.current.get(draftId) ?? createStudyCardId();
       pendingCardIds.current.set(draftId, cardId);
-      return createCardFromStudyManualCardDraft(draftId, cardId, flags);
+      return createCardFromStudyManualCardDraft(draftId, cardId);
     },
     onSuccess: async (_result, draftId) => {
       pendingCardIds.current.delete(draftId);
@@ -986,49 +606,20 @@ export function useCreateCardFromStudyManualCardDraft() {
 
 export function useDeleteStudyManualCardDraft() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (draftId: string) => deleteStudyManualCardDraft(draftId, flags),
+    mutationFn: deleteStudyManualCardDraft,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
     },
   });
 }
 
-export function useCommitStudyCardCandidates() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: commitStudyCardCandidates,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
-      ]);
-    },
-  });
-}
-
-export function useRegenerateStudyCardCandidatePreviewAudio() {
-  return useMutation({
-    mutationFn: regenerateStudyCardCandidatePreviewAudio,
-  });
-}
-
-export function useRegenerateStudyCardCandidatePreviewImage() {
-  return useMutation({
-    mutationFn: regenerateStudyCardCandidatePreviewImage,
-  });
-}
-
 export function useUpdateStudyCard() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (payload: UpdateStudyCardPayload) => updateStudyCard(payload, flags),
+    mutationFn: updateStudyCard,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
@@ -1040,10 +631,9 @@ export function useUpdateStudyCard() {
 
 export function useDeleteStudyCard() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
-    mutationFn: (cardId: string) => deleteStudyCard(cardId, flags),
+    mutationFn: deleteStudyCard,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
@@ -1055,39 +645,27 @@ export function useDeleteStudyCard() {
   });
 }
 
-export function useRegenerateStudyAnswerAudio(routingFlags?: FeatureFlags | null) {
-  const { flags: liveFlags } = useFeatureFlags();
-  const effectiveFlags = resolveEffectiveFeatureFlags(liveFlags, routingFlags);
-
+export function useRegenerateStudyAnswerAudio() {
   return useMutation({
-    mutationFn: (payload: RegenerateStudyAnswerAudioPayload) =>
-      regenerateStudyAnswerAudio(payload, effectiveFlags),
+    mutationFn: regenerateStudyAnswerAudio,
   });
 }
 
-export function useRegenerateStudyCardImage(routingFlags?: FeatureFlags | null) {
-  const { flags: liveFlags } = useFeatureFlags();
-  const effectiveFlags = resolveEffectiveFeatureFlags(liveFlags, routingFlags);
-
+export function useRegenerateStudyCardImage() {
   return useMutation({
-    mutationFn: (payload: RegenerateStudyCardImagePayload) =>
-      regenerateStudyCardImage(payload, effectiveFlags),
+    mutationFn: regenerateStudyCardImage,
   });
 }
 
 export function useStudyCardAction() {
   const queryClient = useQueryClient();
-  const { flags } = useFeatureFlags();
 
   return useMutation({
     mutationFn: (payload: StudyCardActionPayload) =>
-      performStudyCardAction(
-        {
-          ...payload,
-          currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
-        },
-        flags
-      ),
+      performStudyCardAction({
+        ...payload,
+        currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
+      }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
@@ -1098,20 +676,15 @@ export function useStudyCardAction() {
 }
 
 export async function createStudyImportUploadSession(
-  file: File,
-  flags?: FeatureFlags
+  file: File
 ): Promise<StudyImportUploadSession> {
-  return apiRequest<StudyImportUploadSession>(
-    '/api/study/imports',
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        filename: file.name,
-        contentType: file.type || 'application/octet-stream',
-      }),
-    },
-    { feature: 'imports', flags }
-  );
+  return apiRequest<StudyImportUploadSession>('/imports', {
+    method: 'POST',
+    body: JSON.stringify({
+      filename: file.name,
+      contentType: file.type || 'application/octet-stream',
+    }),
+  });
 }
 
 export async function uploadStudyImportArchive(
@@ -1180,68 +753,37 @@ export async function uploadStudyImportArchive(
   });
 }
 
-export async function completeStudyImportUpload(
-  importJobId: string,
-  flags?: FeatureFlags
-): Promise<StudyImportResult> {
-  return apiRequest<StudyImportResult>(
-    `/api/study/imports/${encodeURIComponent(importJobId)}/complete`,
-    {
-      method: 'POST',
-    },
-    { feature: 'imports', flags }
-  );
+export async function completeStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
+  return apiRequest<StudyImportResult>(`/imports/${encodeURIComponent(importJobId)}/complete`, {
+    method: 'POST',
+  });
 }
 
-export async function cancelStudyImportUpload(
-  importJobId: string,
-  flags?: FeatureFlags
-): Promise<StudyImportResult> {
-  return apiRequest<StudyImportResult>(
-    `/api/study/imports/${encodeURIComponent(importJobId)}/cancel`,
-    {
-      method: 'POST',
-    },
-    { feature: 'imports', flags }
-  );
+export async function cancelStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
+  return apiRequest<StudyImportResult>(`/imports/${encodeURIComponent(importJobId)}/cancel`, {
+    method: 'POST',
+  });
 }
 
 export async function getCurrentStudyImport(
-  init?: Pick<RequestInit, 'signal'>,
-  flags?: FeatureFlags
+  init?: Pick<RequestInit, 'signal'>
 ): Promise<StudyImportResult | null> {
-  return apiRequest<StudyImportResult | null>('/api/study/imports/current', init, {
-    feature: 'imports',
-    flags,
-  });
+  return apiRequest<StudyImportResult | null>('/imports/current', init);
 }
 
-export async function getStudyImportUploadReadiness(
-  flags?: FeatureFlags
-): Promise<StudyImportUploadReadiness> {
-  return apiRequest<StudyImportUploadReadiness>('/api/study/imports/readiness', undefined, {
-    feature: 'imports',
-    flags,
-  });
+export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
+  return apiRequest<StudyImportUploadReadiness>('/imports/readiness');
 }
 
 export async function getStudyImportStatus(
   importJobId: string,
-  init?: Pick<RequestInit, 'signal'>,
-  flags?: FeatureFlags
+  init?: Pick<RequestInit, 'signal'>
 ): Promise<StudyImportResult> {
-  return apiRequest<StudyImportResult>(
-    `/api/study/imports/${encodeURIComponent(importJobId)}`,
-    init,
-    { feature: 'imports', flags }
-  );
+  return apiRequest<StudyImportResult>(`/imports/${encodeURIComponent(importJobId)}`, init);
 }
 
-export async function uploadStudyImport(
-  file: File,
-  flags?: FeatureFlags
-): Promise<StudyImportResult> {
-  const session = await createStudyImportUploadSession(file, flags);
+export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
+  const session = await createStudyImportUploadSession(file);
   await uploadStudyImportArchive(session, file);
-  return completeStudyImportUpload(session.importJob.id, flags);
+  return completeStudyImportUpload(session.importJob.id);
 }

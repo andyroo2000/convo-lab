@@ -18,7 +18,7 @@ import useStudyReviewSession from '../hooks/useStudyReviewSession';
 const StudyPage = () => {
   const { t } = useTranslation('study');
   const navigate = useNavigate();
-  const { isFeatureEnabled, isLoading: featureFlagsLoading } = useFeatureFlags();
+  const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
   const availableCount =
@@ -321,7 +321,6 @@ const StudyPage = () => {
         });
       }}
       isStartingSession={reviewSession.sessionLoading}
-      routingReady={!featureFlagsLoading}
     />
   );
 };
