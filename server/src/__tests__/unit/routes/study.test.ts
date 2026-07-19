@@ -26,9 +26,6 @@ import { getSetCookieArray, testCookieParser } from '../../helpers/testCookiePar
 import { mockPrisma } from '../../setup.js';
 
 const {
-  cancelStudyImportUploadMock,
-  completeStudyImportUploadMock,
-  createStudyImportUploadSessionMock,
   createRedisConnectionMock,
   createStudyVocabBundleDraftsMock,
   execMock,
@@ -38,18 +35,13 @@ const {
   enqueueStudyManualCardDraftJobMock,
   enqueueStudyVocabBundleDraftJobMock,
   expireAtMock,
-  getCurrentStudyImportJobMock,
   getStudyMediaAccessMock,
-  getStudyImportUploadReadinessMock,
   listManualCardDraftsMock,
   multiMock,
   resetManualCardDraftForRetryMock,
   triggerWorkerJobMock,
   updateManualCardDraftMock,
 } = vi.hoisted(() => ({
-  cancelStudyImportUploadMock: vi.fn(),
-  completeStudyImportUploadMock: vi.fn(),
-  createStudyImportUploadSessionMock: vi.fn(),
   createRedisConnectionMock: vi.fn(),
   createStudyVocabBundleDraftsMock: vi.fn(),
   execMock: vi.fn(),
@@ -59,9 +51,7 @@ const {
   enqueueStudyManualCardDraftJobMock: vi.fn(),
   enqueueStudyVocabBundleDraftJobMock: vi.fn(),
   expireAtMock: vi.fn(),
-  getCurrentStudyImportJobMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
-  getStudyImportUploadReadinessMock: vi.fn(),
   listManualCardDraftsMock: vi.fn(),
   multiMock: vi.fn(),
   resetManualCardDraftForRetryMock: vi.fn(),
@@ -78,17 +68,11 @@ vi.mock('../../../middleware/auth.js', () => ({
 }));
 
 vi.mock('../../../services/studyService.js', () => ({
-  cancelStudyImportUpload: cancelStudyImportUploadMock,
-  completeStudyImportUpload: completeStudyImportUploadMock,
   createManualCardDraft: createManualCardDraftMock,
   createStudyCardFromManualDraft: createStudyCardFromManualDraftMock,
   createStudyVocabBundleDrafts: createStudyVocabBundleDraftsMock,
   deleteManualCardDraft: deleteManualCardDraftMock,
-  createStudyImportUploadSession: createStudyImportUploadSessionMock,
-  getCurrentStudyImportJob: getCurrentStudyImportJobMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
-  getStudyImportJob: vi.fn(),
-  getStudyImportUploadReadiness: getStudyImportUploadReadinessMock,
   listManualCardDrafts: listManualCardDraftsMock,
   resetManualCardDraftForRetry: resetManualCardDraftForRetryMock,
   updateManualCardDraft: updateManualCardDraftMock,
@@ -133,12 +117,9 @@ describe('Study Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    cancelStudyImportUploadMock.mockReset();
     createStudyVocabBundleDraftsMock.mockReset();
     createManualCardDraftMock.mockReset();
     createStudyCardFromManualDraftMock.mockReset();
-    createStudyImportUploadSessionMock.mockReset();
-    completeStudyImportUploadMock.mockReset();
     deleteManualCardDraftMock.mockReset();
     enqueueStudyManualCardDraftJobMock.mockReset();
     enqueueStudyVocabBundleDraftJobMock.mockReset();
@@ -146,8 +127,6 @@ describe('Study Routes', () => {
     resetManualCardDraftForRetryMock.mockReset();
     triggerWorkerJobMock.mockReset();
     updateManualCardDraftMock.mockReset();
-    getCurrentStudyImportJobMock.mockReset();
-    getStudyImportUploadReadinessMock.mockReset();
     process.env = {
       ...originalEnv,
       CLIENT_URL: 'http://localhost:5173',
@@ -415,195 +394,6 @@ describe('Study Routes', () => {
     expect(updateManualCardDraftMock).not.toHaveBeenCalled();
   });
 
-  it('rejects non-.colpkg upload session requests before creation', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/imports')).send({
-      filename: 'anki-export.txt',
-      contentType: 'application/zip',
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('Only .colpkg Anki collection backups are accepted');
-    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
-  });
-
-  it('creates a study import upload session', async () => {
-    createStudyImportUploadSessionMock.mockResolvedValueOnce({
-      importJob: {
-        id: 'import-1',
-        status: 'pending',
-        sourceFilename: 'anki-export.colpkg',
-        deckName: '日本語',
-        preview: {
-          deckName: '日本語',
-          cardCount: 0,
-          noteCount: 0,
-          reviewLogCount: 0,
-          mediaReferenceCount: 0,
-          skippedMediaCount: 0,
-          warnings: [],
-          noteTypeBreakdown: [],
-        },
-        uploadedAt: null,
-        uploadExpiresAt: '2026-04-21T01:00:00.000Z',
-        sourceSizeBytes: null,
-        importedAt: null,
-        errorMessage: null,
-      },
-      upload: {
-        method: 'PUT',
-        url: 'https://uploads.example/import-1',
-        headers: {
-          'Content-Type': 'application/zip',
-        },
-      },
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/imports')).send({
-      filename: 'anki-export.colpkg',
-      contentType: 'application/zip',
-    });
-
-    expect(response.status).toBe(201);
-    expect(createStudyImportUploadSessionMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      filename: 'anki-export.colpkg',
-      contentType: 'application/zip',
-    });
-    expect(response.body.upload.url).toContain('uploads.example');
-  });
-
-  it('completes a study import upload and enqueues processing', async () => {
-    completeStudyImportUploadMock.mockResolvedValueOnce({
-      id: 'import-1',
-      status: 'pending',
-      sourceFilename: 'anki-export.colpkg',
-      deckName: '日本語',
-      preview: {
-        deckName: '日本語',
-        cardCount: 0,
-        noteCount: 0,
-        reviewLogCount: 0,
-        mediaReferenceCount: 0,
-        skippedMediaCount: 0,
-        warnings: [],
-        noteTypeBreakdown: [],
-      },
-      uploadedAt: new Date('2026-04-21T00:00:00.000Z').toISOString(),
-      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
-      sourceSizeBytes: 1024,
-      importedAt: null,
-      errorMessage: null,
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/imports/import-1/complete'));
-
-    expect(response.status).toBe(202);
-    expect(completeStudyImportUploadMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      importJobId: 'import-1',
-    });
-    expect(response.body.id).toBe('import-1');
-  });
-
-  it('returns the current pending or processing study import', async () => {
-    getCurrentStudyImportJobMock.mockResolvedValueOnce({
-      id: 'import-1',
-      status: 'processing',
-      sourceFilename: 'anki-export.colpkg',
-      deckName: '日本語',
-      preview: {
-        deckName: '日本語',
-        cardCount: 0,
-        noteCount: 0,
-        reviewLogCount: 0,
-        mediaReferenceCount: 0,
-        skippedMediaCount: 0,
-        warnings: [],
-        noteTypeBreakdown: [],
-      },
-      uploadedAt: '2026-04-21T00:00:00.000Z',
-      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
-      sourceSizeBytes: 1024,
-      importedAt: null,
-      errorMessage: null,
-    });
-
-    const response = await request(app).get('/study/imports/current');
-
-    expect(response.status).toBe(200);
-    expect(getCurrentStudyImportJobMock).toHaveBeenCalledWith('user-1');
-    expect(response.body.id).toBe('import-1');
-  });
-
-  it('returns study import upload readiness', async () => {
-    getStudyImportUploadReadinessMock.mockResolvedValueOnce({
-      ready: false,
-      message: 'Configure the storage bucket CORS policy.',
-    });
-
-    const response = await request(app).get('/study/imports/readiness');
-
-    expect(response.status).toBe(200);
-    expect(response.body.ready).toBe(false);
-    expect(response.body.message).toContain('CORS');
-  });
-
-  it('cancels a pending study import upload', async () => {
-    cancelStudyImportUploadMock.mockResolvedValueOnce({
-      id: 'import-1',
-      status: 'failed',
-      sourceFilename: 'anki-export.colpkg',
-      deckName: '日本語',
-      preview: {
-        deckName: '日本語',
-        cardCount: 0,
-        noteCount: 0,
-        reviewLogCount: 0,
-        mediaReferenceCount: 0,
-        skippedMediaCount: 0,
-        warnings: [],
-        noteTypeBreakdown: [],
-      },
-      uploadedAt: null,
-      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
-      sourceSizeBytes: null,
-      importedAt: null,
-      errorMessage: 'Study import upload was cancelled.',
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/imports/import-1/cancel'));
-
-    expect(response.status).toBe(200);
-    expect(cancelStudyImportUploadMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      importJobId: 'import-1',
-    });
-    expect(response.body.status).toBe('failed');
-  });
-
-  it('returns 503 for import cancellation when study rate limiting is unavailable', async () => {
-    execMock.mockRejectedValueOnce(new Error('redis unavailable'));
-
-    const response = await withMutationCsrf(request(app).post('/study/imports/import-1/cancel'));
-
-    expect(response.status).toBe(503);
-    expect(response.body.message).toContain('rate limiting is temporarily unavailable');
-    expect(cancelStudyImportUploadMock).not.toHaveBeenCalled();
-  });
-
-  it('returns 503 for imports when study rate limiting is unavailable', async () => {
-    execMock.mockRejectedValueOnce(new Error('redis unavailable'));
-
-    const response = await withMutationCsrf(request(app).post('/study/imports')).send({
-      filename: 'anki-export.colpkg',
-      contentType: 'application/zip',
-    });
-
-    expect(response.status).toBe(503);
-    expect(response.body.message).toContain('rate limiting is temporarily unavailable');
-    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
-  });
-
   it('serves authenticated study media through the study media route', async () => {
     getStudyMediaAccessMock.mockResolvedValue({
       type: 'redirect',
@@ -642,7 +432,7 @@ describe('Study Routes', () => {
       flashcardsEnabled: false,
     });
 
-    const response = await request(app).get('/study/imports/readiness');
+    const response = await request(app).get('/study/media/media-1');
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('not enabled');
@@ -651,7 +441,7 @@ describe('Study Routes', () => {
   it('blocks study routes when the flashcards feature flag row is missing', async () => {
     mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
 
-    const response = await request(app).get('/study/imports/readiness');
+    const response = await request(app).get('/study/media/media-1');
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('not enabled');
@@ -659,25 +449,23 @@ describe('Study Routes', () => {
 
   it('blocks study mutation routes for cross-origin requests', async () => {
     const response = await withMutationCsrf(
-      request(app).post('/study/imports'),
+      request(app).post('/study/card-drafts'),
       'https://evil.example.com'
     ).send({});
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('Invalid request origin');
-    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
+    expect(createManualCardDraftMock).not.toHaveBeenCalled();
   });
 
   it('allows read-only study routes without same-origin mutation headers', async () => {
-    getStudyImportUploadReadinessMock.mockResolvedValue({
-      ready: true,
-      message: null,
-    });
+    vi.useRealTimers();
+    getStudyMediaAccessMock.mockResolvedValue(null);
 
-    const response = await request(app).get('/study/imports/readiness');
+    const response = await request(app).get('/study/media/media-1');
 
-    expect(response.status).toBe(200);
-    expect(getStudyImportUploadReadinessMock).toHaveBeenCalled();
+    expect(response.status).toBe(404);
+    expect(getStudyMediaAccessMock).toHaveBeenCalled();
   });
 
   it.each([
@@ -691,6 +479,9 @@ describe('Study Routes', () => {
     '/study/export/review-logs',
     '/study/export/media',
     '/study/export/imports',
+    '/study/imports/readiness',
+    '/study/imports/current',
+    '/study/imports/import-1',
   ])('does not expose the retired read route %s', async (path) => {
     const response = await request(app).get(path);
 
@@ -717,6 +508,9 @@ describe('Study Routes', () => {
     ['post', '/study/cards/draft/complete'],
     ['post', '/study/cards/draft/image'],
     ['post', '/study/card-candidates/commit'],
+    ['post', '/study/imports'],
+    ['post', '/study/imports/import-1/complete'],
+    ['post', '/study/imports/import-1/cancel'],
   ] as const)('does not expose the retired mutation route %s %s', async (method, path) => {
     const response = await withMutationCsrf(request(app)[method](path)).send({});
 
@@ -725,26 +519,26 @@ describe('Study Routes', () => {
 
   it('rejects mutation requests when Origin is absent', async () => {
     const response = await request(app)
-      .post('/study/imports')
+      .post('/study/card-drafts')
       .set('Cookie', csrfCookies)
       .set(CSRF_TOKEN_HEADER_NAME, csrfToken)
       .send({});
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('Invalid request origin');
-    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
+    expect(createManualCardDraftMock).not.toHaveBeenCalled();
   });
 
   it('rejects mutation requests when the study CSRF header is missing', async () => {
     const response = await request(app)
-      .post('/study/imports')
+      .post('/study/card-drafts')
       .set('Origin', 'http://localhost:5173')
       .set('Cookie', csrfCookies)
       .send({});
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('Invalid CSRF token');
-    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
+    expect(createManualCardDraftMock).not.toHaveBeenCalled();
   });
 
   it('sanitizes media filenames used in the Content-Disposition header', async () => {

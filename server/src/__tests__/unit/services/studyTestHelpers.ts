@@ -32,12 +32,6 @@ export const {
   uploadBufferToGCSPathMock,
 } = storageMocks;
 
-const queueMocks = vi.hoisted(() => ({
-  enqueueStudyImportJobMock: vi.fn(),
-}));
-
-export const { enqueueStudyImportJobMock } = queueMocks;
-
 const redisMocks = vi.hoisted(() => ({
   createRedisConnectionMock: vi.fn(),
   redisDelMock: vi.fn(),
@@ -88,12 +82,6 @@ vi.mock('../../../services/storageClient.js', () => ({
 
 vi.mock('../../../config/redis.js', () => ({
   createRedisConnection: createRedisConnectionMock,
-}));
-
-vi.mock('../../../jobs/studyImportQueue.js', () => ({
-  enqueueStudyImportJob: enqueueStudyImportJobMock,
-  studyImportQueue: {},
-  studyImportWorker: {},
 }));
 
 const FIELD_SEPARATOR = String.fromCharCode(31);
@@ -523,7 +511,6 @@ export function resetStudyServiceMocks() {
     url: 'https://uploads.example/import-job-1',
     filePath: 'study/imports/user-1/import-job-1/japanese.colpkg',
   });
-  enqueueStudyImportJobMock.mockResolvedValue({ id: 'import-job-1' });
   getSignedReadUrlMock.mockResolvedValue({
     url: 'https://signed.example.com/study-media',
     expiresAt: '2099-01-01T00:00:00.000Z',
