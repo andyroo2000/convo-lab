@@ -216,7 +216,10 @@ test('the production workflow snapshots and imports historical GCS media explici
     'cleanup_media_export',
     'cleanup_media_import_resources',
     'learning-os-before-media-import-$timestamp.dump',
+    'Skipping $unavailable_media_count unavailable ConvoLab media rows without storage paths.',
     'json_agg(paths.storage_path ORDER BY paths.storage_path)',
+    'WHERE "storagePath" IS NOT NULL',
+    'AND length(btrim("storagePath")) > 0',
     '"server-$active_color"',
     'node scripts/export-convolab-study-media.mjs',
     '--volume "$MEDIA_EXPORT_DIR:/export"',
@@ -276,6 +279,10 @@ test('the production workflow snapshots and imports historical GCS media explici
   assert.match(mediaImportFunction, /case "\$active_color" in[\s\S]*blue\|green/);
   assert.match(mediaImportFunction, /"server-\$active_color"/);
   assert.doesNotMatch(mediaImportFunction, /\bserver-blue\b/);
+  assert.doesNotMatch(
+    mediaImportFunction,
+    /unavailable_media_count[\s\S]*media rows without storage paths\." >&2[\s\S]*return 1/
+  );
 });
 
 test('the production worker consumes Learning OS card-draft jobs', async () => {
