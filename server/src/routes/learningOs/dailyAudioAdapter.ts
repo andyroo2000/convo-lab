@@ -2,10 +2,12 @@ import { AppError } from '../../middleware/errorHandler.js';
 
 import { STUDY_ULID_SEGMENT } from './studyMediaUrls.js';
 
-export type DailyAudioReadResponse = 'list' | 'detail' | 'status';
+export type DailyAudioResponse = 'list' | 'detail' | 'status';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ULID_PATTERN = new RegExp(`^${STUDY_ULID_SEGMENT}$`, 'i');
+const DAILY_AUDIO_API_PREFIX = '/api/daily-audio-practice/';
+const DAILY_AUDIO_PROXY_PREFIX = '/api/learning-os/study/daily-audio-practice/';
 const PRACTICE_STATUSES = new Set(['draft', 'generating', 'ready', 'error']);
 const TRACK_MODES = new Set(['drill', 'dialogue', 'story']);
 const TRACK_STATUSES = new Set(['draft', 'generating', 'ready', 'error', 'skipped']);
@@ -46,14 +48,14 @@ const DETAIL_TRACK_KEYS = new Set([
 const STATUS_KEYS = new Set(['id', 'status', 'progress', 'tracks']);
 const STATUS_TRACK_KEYS = new Set(['id', 'mode', 'status', 'audioUrl', 'approxDurationSeconds']);
 
-function invalidResponse(response: DailyAudioReadResponse): never {
+function invalidResponse(response: DailyAudioResponse): never {
   throw new AppError(
     `Learning OS Study API returned an invalid Daily Audio ${response} response.`,
     502
   );
 }
 
-function record(value: unknown, response: DailyAudioReadResponse): Record<string, unknown> {
+function record(value: unknown, response: DailyAudioResponse): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     invalidResponse(response);
   }
@@ -96,7 +98,7 @@ function isJsonContainerOrNull(value: unknown): boolean {
 
 function isTrack(
   value: unknown,
-  response: Extract<DailyAudioReadResponse, 'list' | 'detail'>
+  response: Extract<DailyAudioResponse, 'list' | 'detail'>
 ): boolean {
   const track = record(value, response);
   const expectedKeys = response === 'list' ? SUMMARY_TRACK_KEYS : DETAIL_TRACK_KEYS;
@@ -131,7 +133,7 @@ function isTrack(
 
 function isPractice(
   value: unknown,
-  response: Extract<DailyAudioReadResponse, 'list' | 'detail'>
+  response: Extract<DailyAudioResponse, 'list' | 'detail'>
 ): boolean {
   const practice = record(value, response);
   return (
@@ -155,7 +157,10 @@ function isPractice(
     isTimestamp(practice.createdAt) &&
     isTimestamp(practice.updatedAt) &&
     Array.isArray(practice.tracks) &&
-    practice.tracks.every((track) => isTrack(track, response))
+    practice.tracks.every(
+      (track) =>
+        isTrack(track, response) && (track as Record<string, unknown>).practiceId === practice.id
+    )
   );
 }
 
@@ -190,10 +195,47 @@ function isStatus(value: unknown): boolean {
   );
 }
 
-export function adaptDailyAudioReadResponse(
-  response: DailyAudioReadResponse,
-  value: unknown
-): unknown {
+function rewriteTrackAudioUrl(
+  audioUrl: unknown,
+  practiceId: string,
+  trackId: string,
+  response: DailyAudioResponse
+): string | null {
+  if (audioUrl === null) {
+    return null;
+  }
+  if (typeof audioUrl !== 'string') {
+    invalidResponse(response);
+  }
+
+  const expectedPath = `${DAILY_AUDIO_API_PREFIX}${practiceId}/tracks/${trackId}/audio`;
+  if (audioUrl.toLowerCase() === expectedPath.toLowerCase()) {
+    return `${DAILY_AUDIO_PROXY_PREFIX}${practiceId.toLowerCase()}/tracks/${trackId.toLowerCase()}/audio`;
+  }
+
+  // Preserve imported legacy storage URLs, but fail closed for malformed Learning OS audio paths.
+  if (audioUrl.toLowerCase().startsWith(DAILY_AUDIO_API_PREFIX)) {
+    invalidResponse(response);
+  }
+
+  return audioUrl;
+}
+
+function rewritePracticeAudioUrls(
+  value: Record<string, unknown>,
+  response: Extract<DailyAudioResponse, 'list' | 'detail'>
+): Record<string, unknown> {
+  const practiceId = value.id as string;
+  return {
+    ...value,
+    tracks: (value.tracks as Array<Record<string, unknown>>).map((track) => ({
+      ...track,
+      audioUrl: rewriteTrackAudioUrl(track.audioUrl, practiceId, track.id as string, response),
+    })),
+  };
+}
+
+export function adaptDailyAudioResponse(response: DailyAudioResponse, value: unknown): unknown {
   const valid =
     response === 'list'
       ? Array.isArray(value) && value.every((practice) => isPractice(practice, 'list'))
@@ -205,5 +247,22 @@ export function adaptDailyAudioReadResponse(
     invalidResponse(response);
   }
 
-  return value;
+  if (response === 'list') {
+    return (value as Array<Record<string, unknown>>).map((practice) =>
+      rewritePracticeAudioUrls(practice, response)
+    );
+  }
+  if (response === 'detail') {
+    return rewritePracticeAudioUrls(value as Record<string, unknown>, response);
+  }
+
+  const status = value as Record<string, unknown>;
+  const practiceId = status.id as string;
+  return {
+    ...status,
+    tracks: (status.tracks as Array<Record<string, unknown>>).map((track) => ({
+      ...track,
+      audioUrl: rewriteTrackAudioUrl(track.audioUrl, practiceId, track.id as string, response),
+    })),
+  };
 }

@@ -424,6 +424,12 @@ describe('Learning OS Study proxy routes', () => {
       windowMs: 60 * 1000,
     });
     expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
+      key: 'learning-os-daily-audio-generation-proxy',
+      max: 10,
+      windowMs: 60 * 60 * 1000,
+      onBackendError: 'fail-closed',
+    });
+    expect(mockRateLimitStudyRoute).toHaveBeenCalledWith({
       key: 'learning-os-import-proxy',
       max: 240,
       windowMs: 60 * 1000,
@@ -787,6 +793,145 @@ describe('Learning OS Study proxy routes', () => {
         'X-Convo-Lab-User-Email': 'learner@example.com',
       })
     );
+  });
+
+  it('proxies Daily Audio generation with strict input and rewrites generated audio URLs', async () => {
+    const practiceId = '123e4567-e89b-42d3-a456-426614174100';
+    const trackId = '123e4567-e89b-42d3-a456-426614174101';
+    const generatedPractice = {
+      id: practiceId,
+      userId: 'user-1',
+      practiceDate: '2026-07-18',
+      status: 'generating',
+      targetDurationMinutes: 30,
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      sourceCardIdsJson: [],
+      selectionSummaryJson: null,
+      errorMessage: null,
+      createdAt: '2026-07-18T12:00:00.000Z',
+      updatedAt: '2026-07-18T12:00:00.000Z',
+      tracks: [
+        {
+          id: trackId,
+          practiceId,
+          mode: 'drill',
+          status: 'ready',
+          title: 'Drills',
+          sortOrder: 0,
+          scriptUnitsJson: [],
+          audioUrl: `/api/daily-audio-practice/${practiceId}/tracks/${trackId}/audio`,
+          timingData: [],
+          approxDurationSeconds: 120,
+          generationMetadataJson: {},
+          errorMessage: null,
+          createdAt: '2026-07-18T12:00:00.000Z',
+          updatedAt: '2026-07-18T12:00:00.000Z',
+        },
+      ],
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(generatedPractice), {
+          status: 202,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post('/api/learning-os/study/daily-audio-practice')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        timeZone: ' America/New_York ',
+        targetDurationMinutes: 30,
+      });
+
+    expect(response.status).toBe(202);
+    expect(response.body.tracks[0].audioUrl).toBe(
+      `/api/learning-os/study/daily-audio-practice/${practiceId}/tracks/${trackId}/audio`
+    );
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/daily-audio-practice');
+    expect(init).toMatchObject({
+      method: 'POST',
+      headers: expect.objectContaining({
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify({
+        timeZone: 'America/New_York',
+        targetDurationMinutes: 30,
+      }),
+    });
+    expect(invokedRateLimitKeys).toEqual(['learning-os-daily-audio-generation-proxy']);
+  });
+
+  it.each([
+    [{ timeZone: 'Not/A_Time_Zone' }, 'timeZone must be a valid IANA timezone.'],
+    [{ targetDurationMinutes: '30' }, 'targetDurationMinutes must be an integer from 5 to 60.'],
+    [{ targetDurationMinutes: 4 }, 'targetDurationMinutes must be an integer from 5 to 60.'],
+    [{ unexpected: true }, 'Daily Audio request contains unsupported fields.'],
+  ])('rejects invalid Daily Audio generation input %# before forwarding', async (body, message) => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+    vi.mocked(global.fetch).mockClear();
+
+    const response = await request(app)
+      .post('/api/learning-os/study/daily-audio-practice')
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toBe(message);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('streams Daily Audio track audio through the authenticated Learning OS proxy', async () => {
+    const practiceId = '123E4567-E89B-42D3-A456-426614174100';
+    const trackId = '123E4567-E89B-42D3-A456-426614174101';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(Uint8Array.from([73, 68, 51]), {
+          status: 200,
+          headers: {
+            'content-disposition': 'inline; filename=daily-audio-drill.mp3',
+            'content-length': '3',
+            'content-type': 'audio/mpeg',
+          },
+        })
+      )
+    );
+    const app = await createApp();
+
+    const response = await request(app)
+      .get(`/api/learning-os/study/daily-audio-practice/${practiceId}/tracks/${trackId}/audio`)
+      .set('Cookie', authCookie())
+      .set('Accept', 'audio/mpeg')
+      .buffer(true);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(Buffer.from([73, 68, 51]));
+    expect(response.headers['content-type']).toBe('audio/mpeg');
+    expect(response.headers['content-disposition']).toBe('inline; filename=daily-audio-drill.mp3');
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe(
+      `https://learning-os.example/api/daily-audio-practice/${practiceId.toLowerCase()}/tracks/${trackId.toLowerCase()}/audio`
+    );
+    expect(init.headers).toEqual(
+      expect.objectContaining({
+        Accept: 'audio/mpeg',
+        Authorization: 'Bearer server-only-token',
+      })
+    );
+    expect(invokedRateLimitKeys).toEqual(['learning-os-media-proxy']);
   });
 
   it.each(['', '/status'])(

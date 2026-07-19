@@ -599,7 +599,7 @@ describe('AdminPage', () => {
         expect(screen.getByText('Study Review')).toBeInTheDocument();
         expect(screen.getByText('Study Card Writes')).toBeInTheDocument();
         expect(screen.getByText('Study Media')).toBeInTheDocument();
-        expect(screen.getByText('Daily Audio Reads')).toBeInTheDocument();
+        expect(screen.getByText('Daily Audio')).toBeInTheDocument();
       });
     });
 
