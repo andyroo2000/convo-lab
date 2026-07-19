@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -72,6 +72,12 @@ test('exports valid media and records missing GCS objects', async () => {
     assert.equal(
       await readFile(path.join(outputRoot, 'study-media/user/present.mp3'), 'utf8'),
       'present-bytes'
+    );
+    assert.equal((await stat(outputRoot)).mode & 0o777, 0o755);
+    assert.equal((await stat(path.join(outputRoot, 'study-media/user'))).mode & 0o777, 0o755);
+    assert.equal(
+      (await stat(path.join(outputRoot, 'study-media/user/present.mp3'))).mode & 0o777,
+      0o644
     );
   });
 });

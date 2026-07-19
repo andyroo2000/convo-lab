@@ -1,6 +1,7 @@
 import { constants as fsConstants } from 'node:fs';
 import {
   access,
+  chmod,
   lstat,
   mkdir,
   readFile,
@@ -77,13 +78,15 @@ export function resolveExportPath(root, storagePath) {
 }
 
 async function assertEmptyDirectory(directory) {
-  await mkdir(directory, { recursive: true, mode: 0o700 });
+  await mkdir(directory, { recursive: true, mode: 0o755 });
   const resolved = await realpath(directory);
   const contents = await readdir(resolved);
 
   if (contents.length > 0) {
     throw new Error(`Export root must be empty: ${resolved}`);
   }
+
+  await chmod(resolved, 0o755);
 
   return resolved;
 }
@@ -93,7 +96,7 @@ async function downloadObject({ bucket, exportRoot, storagePath }) {
   const parent = path.dirname(destination);
   const partial = `${destination}.partial`;
 
-  await mkdir(parent, { recursive: true, mode: 0o700 });
+  await mkdir(parent, { recursive: true, mode: 0o755 });
 
   try {
     await lstat(destination);
@@ -112,6 +115,7 @@ async function downloadObject({ bucket, exportRoot, storagePath }) {
       throw new Error(`Downloaded media is empty or not a regular file: ${storagePath}`);
     }
 
+    await chmod(partial, 0o644);
     await rename(partial, destination);
     return downloaded.size;
   } catch (error) {
