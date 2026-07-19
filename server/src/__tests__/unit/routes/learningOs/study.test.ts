@@ -1210,6 +1210,72 @@ describe('Learning OS Study proxy routes', () => {
     ]);
   });
 
+  it('proxies card-image regeneration through the card-write flag', async () => {
+    const generatedCard = {
+      ...compatibilityCard,
+      answer: {
+        ...compatibilityCard.answer,
+        answerImage: {
+          id: '01ARZ3NDEKTSV4RRFFQ69G5FAY',
+          filename: 'answer.webp',
+          url: '/api/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAY',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify(generatedCard), { status: 200 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-image`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({
+        imagePrompt: '  A company office in Tokyo.  ',
+        imageRole: 'answer',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.answer.answerImage.url).toBe(
+      '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAY'
+    );
+    const call = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(call[0].toString()).toBe(
+      `https://learning-os.example/api/study/cards/${compatibilityCard.id}/regenerate-image`
+    );
+    expect(JSON.parse(String(call[1].body))).toEqual({
+      imagePrompt: 'A company office in Tokyo.',
+      imageRole: 'answer',
+    });
+    expect(invokedRateLimitKeys).toEqual(['learning-os-card-image-proxy']);
+  });
+
+  it.each([
+    [{ imagePrompt: '', imageRole: 'prompt' }],
+    [{ imagePrompt: 'An office.', imageRole: 'none' }],
+    [{ imagePrompt: 'An office.', imageRole: 'prompt', unexpected: true }],
+    [{ imagePrompt: 'a'.repeat(1001), imageRole: 'prompt' }],
+  ])('rejects invalid card-image regeneration bodies before calling Learning OS', async (body) => {
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-image`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['prepare-answer-audio', { unexpected: true }],
     ['regenerate-answer-audio', { unexpected: true }],
@@ -1410,11 +1476,18 @@ describe('Learning OS Study proxy routes', () => {
       .set('Cookie', cookies)
       .set(CSRF_TOKEN_HEADER_NAME, token)
       .send({ answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f' });
+    const imageResponse = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-image`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token)
+      .send({ imagePrompt: 'A company office.', imageRole: 'answer' });
 
     expect(createResponse.status).toBe(403);
     expect(updateResponse.status).toBe(403);
     expect(prepareResponse.status).toBe(403);
     expect(regenerateResponse.status).toBe(403);
+    expect(imageResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -2427,6 +2500,7 @@ describe('Learning OS Study proxy routes', () => {
     `/api/learning-os/study/card-drafts/${compatibilityCardDraft.id}/preview-image`,
     `/api/learning-os/study/cards/${compatibilityCard.id}/prepare-answer-audio`,
     `/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`,
+    `/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-image`,
   ])(
     'allows provider-backed generation to run beyond the default proxy timeout: %s',
     async (path) => {
@@ -2451,6 +2525,11 @@ describe('Learning OS Study proxy routes', () => {
         .set('Origin', 'http://localhost:5173')
         .set('Cookie', cookies)
         .set(CSRF_TOKEN_HEADER_NAME, token)
+        .send(
+          path.endsWith('/regenerate-image')
+            ? { imagePrompt: 'A company office in Tokyo.', imageRole: 'answer' }
+            : {}
+        )
         .then((response) => response);
       await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
       await vi.advanceTimersByTimeAsync(10_000);

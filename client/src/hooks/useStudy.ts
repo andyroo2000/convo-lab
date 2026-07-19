@@ -334,7 +334,8 @@ export async function regenerateStudyAnswerAudio(
 }
 
 export async function regenerateStudyCardImage(
-  payload: RegenerateStudyCardImagePayload
+  payload: RegenerateStudyCardImagePayload,
+  flags?: FeatureFlags
 ): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
     `/api/study/cards/${encodeURIComponent(payload.cardId)}/regenerate-image`,
@@ -344,7 +345,8 @@ export async function regenerateStudyCardImage(
         imagePrompt: payload.imagePrompt,
         imageRole: payload.imageRole,
       }),
-    }
+    },
+    { feature: 'cardWrites', flags }
   );
 }
 
@@ -1059,9 +1061,13 @@ export function useRegenerateStudyAnswerAudio(routingFlags?: FeatureFlags | null
   });
 }
 
-export function useRegenerateStudyCardImage() {
+export function useRegenerateStudyCardImage(routingFlags?: FeatureFlags | null) {
+  const { flags: liveFlags } = useFeatureFlags();
+  const effectiveFlags = resolveEffectiveFeatureFlags(liveFlags, routingFlags);
+
   return useMutation({
-    mutationFn: regenerateStudyCardImage,
+    mutationFn: (payload: RegenerateStudyCardImagePayload) =>
+      regenerateStudyCardImage(payload, effectiveFlags),
   });
 }
 
