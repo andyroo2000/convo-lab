@@ -1,6 +1,7 @@
 import { constants as fsConstants } from 'node:fs';
 import {
   access,
+  chmod,
   lstat,
   mkdir,
   readFile,
@@ -77,7 +78,7 @@ export function resolveExportPath(root, storagePath) {
 }
 
 async function assertEmptyDirectory(directory) {
-  await mkdir(directory, { recursive: true, mode: 0o700 });
+  await mkdir(directory, { recursive: true, mode: 0o755 });
   const resolved = await realpath(directory);
   const contents = await readdir(resolved);
 
@@ -85,7 +86,21 @@ async function assertEmptyDirectory(directory) {
     throw new Error(`Export root must be empty: ${resolved}`);
   }
 
+  // Recursive mkdir does not update an existing directory and applies the process umask.
+  await chmod(resolved, 0o755);
+
   return resolved;
+}
+
+async function ensureSharedDirectory(exportRoot, directory) {
+  const relative = path.relative(exportRoot, directory);
+  let current = exportRoot;
+
+  for (const segment of relative.split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    await mkdir(current, { recursive: true, mode: 0o755 });
+    await chmod(current, 0o755);
+  }
 }
 
 async function downloadObject({ bucket, exportRoot, storagePath }) {
@@ -93,7 +108,7 @@ async function downloadObject({ bucket, exportRoot, storagePath }) {
   const parent = path.dirname(destination);
   const partial = `${destination}.partial`;
 
-  await mkdir(parent, { recursive: true, mode: 0o700 });
+  await ensureSharedDirectory(exportRoot, parent);
 
   try {
     await lstat(destination);
@@ -112,6 +127,7 @@ async function downloadObject({ bucket, exportRoot, storagePath }) {
       throw new Error(`Downloaded media is empty or not a regular file: ${storagePath}`);
     }
 
+    await chmod(partial, 0o644);
     await rename(partial, destination);
     return downloaded.size;
   } catch (error) {

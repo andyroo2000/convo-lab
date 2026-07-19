@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -42,37 +42,53 @@ test('exports valid media and records missing GCS objects', async () => {
     const missingManifestPath = path.join(directory, 'missing.json');
     const outputRoot = path.join(directory, 'files');
     const missingError = Object.assign(new Error('No such object'), { code: 404 });
+    const originalUmask = process.umask(0o077);
 
-    await writeFile(
-      manifestPath,
-      JSON.stringify([
-        'study-media/user/missing.mp3',
-        'study-media/user/present.mp3',
-      ])
-    );
-
-    const result = await exportStudyMedia({
-      bucket: fakeBucket(
-        new Map([
-          ['study-media/user/missing.mp3', missingError],
-          ['study-media/user/present.mp3', 'present-bytes'],
+    try {
+      await mkdir(outputRoot, { mode: 0o700 });
+      await writeFile(
+        manifestPath,
+        JSON.stringify([
+          'study-media/user/missing.mp3',
+          'study-media/user/present.mp3',
         ])
-      ),
-      manifestPath,
-      missingManifestPath,
-      outputRoot,
-      concurrency: 2,
-    });
+      );
 
-    assert.equal(result.files, 1);
-    assert.equal(result.missingFiles, 1);
-    assert.deepEqual(JSON.parse(await readFile(missingManifestPath, 'utf8')), [
-      'study-media/user/missing.mp3',
-    ]);
-    assert.equal(
-      await readFile(path.join(outputRoot, 'study-media/user/present.mp3'), 'utf8'),
-      'present-bytes'
-    );
+      const result = await exportStudyMedia({
+        bucket: fakeBucket(
+          new Map([
+            ['study-media/user/missing.mp3', missingError],
+            ['study-media/user/present.mp3', 'present-bytes'],
+          ])
+        ),
+        manifestPath,
+        missingManifestPath,
+        outputRoot,
+        concurrency: 2,
+      });
+
+      assert.equal(result.files, 1);
+      assert.equal(result.missingFiles, 1);
+      assert.deepEqual(JSON.parse(await readFile(missingManifestPath, 'utf8')), [
+        'study-media/user/missing.mp3',
+      ]);
+      assert.equal(
+        await readFile(path.join(outputRoot, 'study-media/user/present.mp3'), 'utf8'),
+        'present-bytes'
+      );
+      assert.equal((await stat(outputRoot)).mode & 0o777, 0o755);
+      assert.equal((await stat(path.join(outputRoot, 'study-media'))).mode & 0o777, 0o755);
+      assert.equal(
+        (await stat(path.join(outputRoot, 'study-media/user'))).mode & 0o777,
+        0o755
+      );
+      assert.equal(
+        (await stat(path.join(outputRoot, 'study-media/user/present.mp3'))).mode & 0o777,
+        0o644
+      );
+    } finally {
+      process.umask(originalUmask);
+    }
   });
 });
 
