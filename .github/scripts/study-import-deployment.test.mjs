@@ -218,21 +218,30 @@ test('the production workflow snapshots and imports historical GCS media explici
     'MEDIA_MISSING_MANIFEST_CONTAINER="/tmp/convolab-learning-os-missing-media.json"',
     'learning-os-before-media-import-$timestamp.dump',
     'Skipping $unavailable_media_count unavailable ConvoLab media rows without storage paths.',
+    'gcs_bucket="$($COMPOSE run --rm -T --no-deps',
+    'sh -c \'printf "%s" "$GCS_BUCKET_NAME"\'',
     'json_agg(paths.storage_path ORDER BY paths.storage_path)',
     'WHERE "storagePath" IS NOT NULL',
     'AND length(btrim("storagePath")) > 0',
+    'FROM daily_audio_practice_tracks',
+    'WHERE status = \'"\'"\'ready\'"\'"\' OR "audioUrl" IS NOT NULL',
     '"server-$active_color"',
     'node scripts/export-convolab-study-media.mjs',
     '--missing-manifest /export/missing.json',
     'convolab-postgres chmod 644',
     'pg_read_file(\'$MEDIA_MISSING_MANIFEST_CONTAINER\')::jsonb',
+    "WHERE storage_path LIKE 'daily-audio-practice/%'",
+    'Missing $missing_daily_audio_count historical Daily Audio GCS objects.',
     'SET \\"storagePath\\" = NULL',
     'Skipping $missing_media_count ConvoLab media rows whose GCS objects are missing.',
     '--volume "$MEDIA_EXPORT_DIR:/export"',
     '--volume "$media_files:/tmp/convolab-media:ro"',
     'php artisan migration:import-convolab-media',
     '--production-confirmation="IMPORT MEDIA INTO $TARGET_DB"',
-    'Verified ConvoLab historical media import completed.',
+    'php artisan migration:import-convolab-daily-audio',
+    '--source-bucket="$gcs_bucket"',
+    '--production-confirmation="IMPORT DAILY AUDIO INTO $TARGET_DB"',
+    'Verified ConvoLab historical study and Daily Audio media import completed.',
     'smoke_learning_os',
   ]) {
     assert.ok(
@@ -289,6 +298,58 @@ test('the production workflow snapshots and imports historical GCS media explici
     mediaImportFunction,
     /unavailable_media_count[\s\S]*media rows without storage paths\." >&2[\s\S]*return 1/
   );
+  assert.ok(
+    mediaImportFunction.indexOf('missing_daily_audio_count=') <
+      mediaImportFunction.indexOf('UPDATE study_media')
+  );
+  assert.ok(
+    mediaImportFunction.indexOf('migration:import-convolab-media') <
+      mediaImportFunction.indexOf('migration:import-convolab-daily-audio')
+  );
+});
+
+test('the production workflow migrates and streams Daily Audio before accepting cutover', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'enable_daily_audio:',
+    'ENABLE_DAILY_AUDIO: ${{ inputs.enable_daily_audio }}',
+    'validate_boolean_input enable_daily_audio "$ENABLE_DAILY_AUDIO"',
+    '\\"studyApiDailyAudio\\" = $enable_daily_audio_sql',
+    '\\"studyApiDailyAudio\\" = $previous_daily_audio_sql',
+    'strict|opaque-cursor|overview-state|new-queue-state|daily-audio-media',
+    'DailyAudioList',
+    'DailyAudioDetail',
+    'daily-audio-media',
+    'Daily Audio historical track lookup',
+    'daily_audio_smoke_body="$(mktemp)"',
+    '"https://convo-lab.com$daily_audio_track_url"',
+    "grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)'",
+    'cleanup_daily_audio_smoke',
+    'Historical Daily Audio streaming smoke check passed.',
+  ]) {
+    assert.ok(
+      workflow.includes(requiredContract),
+      `Missing Daily Audio cutover contract: ${requiredContract}`
+    );
+  }
+
+  const dailyAudioBlock = workflow.slice(
+    workflow.indexOf('if [ "$ENABLE_DAILY_AUDIO" = true ]; then'),
+    workflow.indexOf('if [ "$ENABLE_BROWSER" = true ]; then')
+  );
+  assert.ok(
+    dailyAudioBlock.indexOf('DailyAudioDetail') <
+      dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
+  );
+  assert.ok(
+    dailyAudioBlock.indexOf('test -s "$daily_audio_smoke_body"') <
+      dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
+  );
+  assert.doesNotMatch(workflow, /\\"studyApiDailyAudio\\" = false/);
 });
 
 test('the production worker consumes Learning OS card-draft jobs', async () => {

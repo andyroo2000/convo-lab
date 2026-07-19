@@ -18,6 +18,7 @@ import { pathToFileURL } from 'node:url';
 const DEFAULT_CONCURRENCY = 8;
 const MAX_CONCURRENCY = 32;
 const MAX_STORAGE_PATH_LENGTH = 1024;
+const ALLOWED_STORAGE_PATH_PREFIXES = ['study-media/', 'daily-audio-practice/'];
 
 export function parsePositiveInteger(value, name, maximum = Number.MAX_SAFE_INTEGER) {
   const normalized = String(value);
@@ -54,7 +55,7 @@ export function validateStoragePaths(manifest) {
       value.includes('\0') ||
       value.includes('\\') ||
       path.posix.isAbsolute(value) ||
-      !value.startsWith('study-media/') ||
+      !ALLOWED_STORAGE_PATH_PREFIXES.some((prefix) => value.startsWith(prefix)) ||
       segments.some((segment) => segment === '' || segment === '.' || segment === '..')
     ) {
       throw new Error(`Media manifest entry ${index} has an unsafe storage path.`);

@@ -136,3 +136,47 @@ test('new queue state mode validates independently evolving response shapes', ()
     /total must be a valid non-negative item count/
   );
 });
+
+test('daily audio media mode ignores authenticated URL ownership but keeps other fields strict', () => {
+  const practice = {
+    id: 'practice-1',
+    status: 'ready',
+    tracks: [
+      { id: 'track-1', status: 'ready', audioUrl: 'https://storage.googleapis.com/audio.mp3' },
+      { id: 'track-2', status: 'skipped', audioUrl: null },
+    ],
+  };
+
+  compareResponses(
+    {
+      ...practice,
+      tracks: [
+        {
+          ...practice.tracks[0],
+          audioUrl: '/api/learning-os/study/daily-audio-practice/practice-1/tracks/track-1/audio',
+        },
+        practice.tracks[1],
+      ],
+    },
+    practice,
+    'daily-audio-media'
+  );
+
+  assert.throws(
+    () =>
+      compareResponses(
+        { ...practice, status: 'error' },
+        practice,
+        'daily-audio-media'
+      ),
+    /Differing JSON paths: \$\.status/
+  );
+  assert.throws(
+    () =>
+      normalizeResponse(
+        { ...practice, tracks: [{ ...practice.tracks[0], audioUrl: 42 }] },
+        'daily-audio-media'
+      ),
+    /audioUrl must be null or a string/
+  );
+});

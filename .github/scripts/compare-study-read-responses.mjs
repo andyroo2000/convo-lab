@@ -19,6 +19,7 @@ const COMPARISON_MODES = new Set([
   'opaque-cursor',
   'overview-state',
   'new-queue-state',
+  'daily-audio-media',
 ]);
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -127,6 +128,41 @@ function normalizeNewQueueState(response) {
   };
 }
 
+function normalizeDailyAudioMedia(response) {
+  const practices = Array.isArray(response) ? response : [response];
+
+  for (const [practiceIndex, practice] of practices.entries()) {
+    if (!isRecord(practice) || !Array.isArray(practice.tracks)) {
+      throw new Error(
+        `Daily Audio practice ${practiceIndex} must be an object with a tracks array.`
+      );
+    }
+
+    for (const [trackIndex, track] of practice.tracks.entries()) {
+      if (!isRecord(track)) {
+        throw new Error(
+          `Daily Audio practice ${practiceIndex} track ${trackIndex} must be an object.`
+        );
+      }
+      if (track.audioUrl !== null && typeof track.audioUrl !== 'string') {
+        throw new Error(
+          `Daily Audio practice ${practiceIndex} track ${trackIndex} audioUrl must be null or a string.`
+        );
+      }
+    }
+  }
+
+  const normalized = practices.map((practice) => ({
+    ...practice,
+    tracks: practice.tracks.map((track) => ({
+      ...track,
+      audioUrl: track.audioUrl === null ? null : '<authenticated-audio-url>',
+    })),
+  }));
+
+  return Array.isArray(response) ? normalized : normalized[0];
+}
+
 export function normalizeResponse(response, mode) {
   if (!COMPARISON_MODES.has(mode)) {
     throw new Error(`Unknown response comparison mode: ${mode}`);
@@ -145,6 +181,10 @@ export function normalizeResponse(response, mode) {
 
   if (mode === 'new-queue-state') {
     return normalizeNewQueueState(response);
+  }
+
+  if (mode === 'daily-audio-media') {
+    return normalizeDailyAudioMedia(response);
   }
 
   return response;
