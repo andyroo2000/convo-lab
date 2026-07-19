@@ -90,20 +90,6 @@ interface FeatureFlags {
   scriptsEnabled: boolean;
   audioCourseEnabled: boolean;
   flashcardsEnabled: boolean;
-  studyApiEnabled: boolean;
-  studyApiSettings: boolean;
-  studyApiOverview: boolean;
-  studyApiBrowser: boolean;
-  studyApiBrowserDetail: boolean;
-  studyApiNewQueue: boolean;
-  studyApiImports: boolean;
-  studyApiSettingsWrite: boolean;
-  studyApiNewQueueWrite: boolean;
-  studyApiReview: boolean;
-  studyApiCardWrites: boolean;
-  studyApiCardDrafts: boolean;
-  studyApiMedia: boolean;
-  studyApiDailyAudio: boolean;
   updatedAt: string;
 }
 
@@ -672,30 +658,6 @@ const AdminPage = () => {
   if (!user || user.role !== 'admin') {
     return null;
   }
-
-  const renderFeatureFlagToggle = (
-    key: keyof Omit<FeatureFlags, 'id' | 'updatedAt'>,
-    title: string,
-    description: string
-  ) => (
-    <div className="flex items-center justify-between gap-6 py-4 border-b border-gray-200 last:border-b-0">
-      <div>
-        <h3 className="text-base font-semibold text-navy">{title}</h3>
-        <p className="text-sm text-gray-600 mt-1">{description}</p>
-      </div>
-      <label htmlFor={`toggle-${key}`} className="relative inline-flex items-center cursor-pointer">
-        <input
-          id={`toggle-${key}`}
-          type="checkbox"
-          checked={featureFlags?.[key] ?? false}
-          onChange={(e) => updateFeatureFlag(key, e.target.checked)}
-          className="sr-only peer"
-          aria-label={`Toggle ${title}`}
-        />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-      </label>
-    </div>
-  );
 
   return (
     <div className="max-w-[80rem] mx-auto retro-admin-v3-wrap">
@@ -1490,90 +1452,11 @@ const AdminPage = () => {
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                       </label>
                     </div>
-
-                    <div className="pt-6 border-t border-gray-200">
-                      <h3 className="text-base font-semibold text-navy">Learning OS Study API</h3>
-                      <p className="text-sm text-gray-600 mt-1 mb-2">
-                        Route selected study reads and low-risk writes to Learning OS when the
-                        server-side Learning OS URL and token are configured.
-                      </p>
-                      {renderFeatureFlagToggle(
-                        'studyApiEnabled',
-                        'Enable Study API Routing',
-                        'Parent switch required before any study endpoint can use Learning OS'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiOverview',
-                        'Study Overview',
-                        'Use Learning OS for dashboard review counts and due-card summaries'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiSettings',
-                        'Study Settings',
-                        'Use Learning OS for study preferences and daily new-card settings'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiBrowser',
-                        'Study Browser',
-                        'Use Learning OS for the card browser list endpoint'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiBrowserDetail',
-                        'Study Browser Detail',
-                        'Use Learning OS when opening a note in the card browser'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiNewQueue',
-                        'New-Card Queue',
-                        'Use Learning OS for the reorderable new-card queue read endpoint'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiReview',
-                        'Study Review',
-                        'Start sessions, submit grades, and undo reviews through Learning OS'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiCardWrites',
-                        'Study Card Writes',
-                        'Create, edit, delete, and manage card state through Learning OS'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiCardDrafts',
-                        'Study Card Drafts',
-                        'Create, autosave, retry, commit, and delete manual drafts through Learning OS'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiMedia',
-                        'Study Media',
-                        'Stream Learning OS-owned study audio and images through the authenticated proxy'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiDailyAudio',
-                        'Daily Audio',
-                        'Create, load, monitor, and play Daily Audio practices through Learning OS'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiImports',
-                        'Import Status',
-                        'Use Learning OS for current import and import status polling reads'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiSettingsWrite',
-                        'Study Settings Writes',
-                        'Save daily new-card settings through Learning OS'
-                      )}
-                      {renderFeatureFlagToggle(
-                        'studyApiNewQueueWrite',
-                        'New-Card Queue Writes',
-                        'Save new-card queue ordering through Learning OS'
-                      )}
-                    </div>
                   </div>
 
                   <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg retro-admin-v3-note">
                     <p className="text-sm text-blue-800">
-                      <strong>Note:</strong> Visibility settings only affect non-admin users. Study
-                      API routing settings apply to admin and non-admin users when enabled.
+                      <strong>Note:</strong> Visibility settings only affect non-admin users.
                     </p>
                   </div>
                 </div>

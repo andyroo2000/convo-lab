@@ -329,34 +329,10 @@ describe('Learning OS Study proxy routes', () => {
     return { cookies: [auth, ...cookies], token };
   }
 
-  const enabledStudyApiFlags = {
-    dialoguesEnabled: true,
-    scriptsEnabled: true,
-    audioCourseEnabled: true,
-    flashcardsEnabled: true,
-    studyApiEnabled: true,
-    studyApiSettings: true,
-    studyApiOverview: true,
-    studyApiBrowser: true,
-    studyApiBrowserDetail: true,
-    studyApiNewQueue: true,
-    studyApiImports: true,
-    studyApiSettingsWrite: true,
-    studyApiNewQueueWrite: true,
-    studyApiReview: true,
-    studyApiCardWrites: true,
-    studyApiCardDrafts: true,
-    studyApiMedia: true,
-    studyApiDailyAudio: true,
-  };
-
   beforeEach(async () => {
     vi.clearAllMocks();
     invokedRateLimitKeys.length = 0;
     vi.useRealTimers();
-    const { resetFeatureFlagCacheForTests } =
-      await import('../../../../middleware/featureFlags.js');
-    resetFeatureFlagCacheForTests();
     process.env.JWT_SECRET = 'test-secret';
     process.env.CLIENT_URL = 'http://localhost:5173';
     resetBrowserRuntimeTestState();
@@ -377,7 +353,6 @@ describe('Learning OS Study proxy routes', () => {
       email: 'learner@example.com',
       role: 'user',
     });
-    mockPrisma.featureFlag.findFirst.mockResolvedValue(enabledStudyApiFlags);
   });
 
   afterEach(() => {
@@ -400,6 +375,7 @@ describe('Learning OS Study proxy routes', () => {
 
     expect(response.status).toBe(200);
     expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.featureFlag.findFirst).not.toHaveBeenCalled();
 
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe(
@@ -575,7 +551,7 @@ describe('Learning OS Study proxy routes', () => {
     }
   );
 
-  it('fails closed for invalid media headers and a disabled media flag', async () => {
+  it('fails closed for invalid media headers', async () => {
     const fetchMock = vi.fn();
     for (const contentType of ['text/html', 'image/svg+xml']) {
       fetchMock.mockResolvedValueOnce(
@@ -598,24 +574,9 @@ describe('Learning OS Study proxy routes', () => {
         'Learning OS Study API returned invalid media headers.'
       );
     }
-
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiMedia: false,
-    });
-    const { resetFeatureFlagCacheForTests } =
-      await import('../../../../middleware/featureFlags.js');
-    resetFeatureFlagCacheForTests();
-
-    const disabled = await request(app)
-      .get('/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW')
-      .set('Cookie', authCookie());
-
-    expect(disabled.status).toBe(403);
-    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('proxies Browser detail through its independent flag without query parameters', async () => {
+  it('proxies Browser detail without query parameters', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -638,22 +599,6 @@ describe('Learning OS Study proxy routes', () => {
     });
     const [url] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe('https://learning-os.example/api/study/browser/note-1');
-  });
-
-  it('keeps Browser detail disabled independently from Browser list', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiBrowser: true,
-      studyApiBrowserDetail: false,
-    });
-    const app = await createApp();
-
-    const response = await request(app)
-      .get('/api/learning-os/study/browser/note-1')
-      .set('Cookie', authCookie());
-
-    expect(response.status).toBe(403);
-    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('keeps the existing Browser detail card note id contract strict', async () => {
@@ -1025,22 +970,6 @@ describe('Learning OS Study proxy routes', () => {
     );
   });
 
-  it('rejects Daily Audio proxy reads when their child flag is disabled', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiDailyAudio: false,
-    });
-    const app = await createApp();
-
-    const response = await request(app)
-      .get('/api/learning-os/study/daily-audio-practice')
-      .set('Cookie', authCookie());
-
-    expect(response.status).toBe(403);
-    expect(response.body.error.message).toBe('Learning OS Study API route is not enabled.');
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
   it('adapts Laravel study settings to the existing ConvoLab response contract', async () => {
     vi.stubGlobal(
       'fetch',
@@ -1266,7 +1195,7 @@ describe('Learning OS Study proxy routes', () => {
     );
   });
 
-  it('normalizes and proxies review undo through the same review flag', async () => {
+  it('normalizes and proxies review undo', async () => {
     const reviewLogId = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
     vi.stubGlobal(
       'fetch',
@@ -1314,25 +1243,6 @@ describe('Learning OS Study proxy routes', () => {
       .send(body);
 
     expect(response.status).toBe(400);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('keeps all review operations on Convo Lab when the review child flag is disabled', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiReview: false,
-    });
-    const app = await createApp();
-    const { cookies, token } = await csrfAuth(app);
-
-    const response = await request(app)
-      .post('/api/learning-os/study/session/start')
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ timeZone: 'America/New_York' });
-
-    expect(response.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -1399,7 +1309,7 @@ describe('Learning OS Study proxy routes', () => {
     expect(invokedRateLimitKeys).toEqual(['learning-os-card-create-proxy']);
   });
 
-  it('proxies card updates, actions, and idempotent deletes through one child flag', async () => {
+  it('proxies card updates, actions, and idempotent deletes', async () => {
     vi.stubGlobal(
       'fetch',
       vi
@@ -1462,7 +1372,7 @@ describe('Learning OS Study proxy routes', () => {
     ]);
   });
 
-  it('proxies answer-audio preparation and regeneration through the card-write flag', async () => {
+  it('proxies answer-audio preparation and regeneration', async () => {
     const generatedCard = {
       ...compatibilityCard,
       answer: {
@@ -1524,7 +1434,7 @@ describe('Learning OS Study proxy routes', () => {
     ]);
   });
 
-  it('proxies card-image regeneration through the card-write flag', async () => {
+  it('proxies card-image regeneration', async () => {
     const generatedCard = {
       ...compatibilityCard,
       answer: {
@@ -1570,7 +1480,7 @@ describe('Learning OS Study proxy routes', () => {
     expect(invokedRateLimitKeys).toEqual(['learning-os-card-image-proxy']);
   });
 
-  it('proxies pitch-accent resolution through the card-write flag', async () => {
+  it('proxies pitch-accent resolution', async () => {
     const resolvedCard = {
       ...compatibilityCard,
       answer: {
@@ -1807,59 +1717,7 @@ describe('Learning OS Study proxy routes', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('keeps every card write disabled under the shared child flag', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiCardWrites: false,
-    });
-    const app = await createApp();
-    const { cookies, token } = await csrfAuth(app);
-
-    const createResponse = await request(app)
-      .post('/api/learning-os/study/cards')
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ cardType: 'recognition', prompt: { text: '会社' }, answer: { text: 'company' } });
-    const updateResponse = await request(app)
-      .patch(`/api/learning-os/study/cards/${compatibilityCard.id}`)
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ prompt: { text: '会社' }, answer: { text: 'company' } });
-    const prepareResponse = await request(app)
-      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/prepare-answer-audio`)
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token);
-    const regenerateResponse = await request(app)
-      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`)
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ answerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f' });
-    const imageResponse = await request(app)
-      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-image`)
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ imagePrompt: 'A company office.', imageRole: 'answer' });
-    const pitchAccentResponse = await request(app)
-      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/pitch-accent`)
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token);
-
-    expect(createResponse.status).toBe(403);
-    expect(updateResponse.status).toBe(403);
-    expect(prepareResponse.status).toBe(403);
-    expect(regenerateResponse.status).toBe(403);
-    expect(imageResponse.status).toBe(403);
-    expect(pitchAccentResponse.status).toBe(403);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('proxies the complete durable card-draft lifecycle under one child flag', async () => {
+  it('proxies the complete durable card-draft lifecycle', async () => {
     const cardId = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
     vi.stubGlobal(
       'fetch',
@@ -2176,7 +2034,7 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.body.error.message).toContain(`card draft ${operation.replace('-', ' ')}`);
   });
 
-  it('creates vocab bundle drafts through Learning OS under the card-drafts flag', async () => {
+  it('creates vocab bundle drafts through Learning OS', async () => {
     const groupId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
     vi.stubGlobal(
       'fetch',
@@ -2352,29 +2210,6 @@ describe('Learning OS Study proxy routes', () => {
       .send(body);
 
     expect(response.status).toBe(400);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('keeps every card-draft route disabled under its child flag', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiCardDrafts: false,
-    });
-    const app = await createApp();
-    const { cookies, token } = await csrfAuth(app);
-
-    const listResponse = await request(app)
-      .get('/api/learning-os/study/card-drafts')
-      .set('Cookie', authCookie());
-    const bundleResponse = await request(app)
-      .post('/api/learning-os/study/card-candidates/vocab-bundle/drafts')
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ targetWord: '会社' });
-
-    expect(listResponse.status).toBe(403);
-    expect(bundleResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -2594,55 +2429,7 @@ describe('Learning OS Study proxy routes', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('keeps writes disabled when only the corresponding read flag is enabled', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiSettings: true,
-      studyApiSettingsWrite: false,
-    });
-    const app = await createApp();
-    const { cookies, token } = await csrfAuth(app);
-
-    const response = await request(app)
-      .patch('/api/learning-os/study/settings')
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ newCardsPerDay: 23 });
-
-    expect(response.status).toBe(403);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('keeps writes disabled when their corresponding read route is off', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiSettings: false,
-      studyApiSettingsWrite: true,
-    });
-    const app = await createApp();
-    const { cookies, token } = await csrfAuth(app);
-
-    const response = await request(app)
-      .patch('/api/learning-os/study/settings')
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ newCardsPerDay: 23 });
-
-    expect(response.status).toBe(403);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('gates and adapts the New Queue route with its supported query parameters', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiSettings: false,
-      studyApiOverview: false,
-      studyApiBrowser: false,
-      studyApiNewQueue: true,
-      studyApiImports: false,
-    });
+  it('adapts the New Queue route with its supported query parameters', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -2773,38 +2560,6 @@ describe('Learning OS Study proxy routes', () => {
     expect(response.body.error.message).toBe(
       'Learning OS Study API is not enabled for this account.'
     );
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('rejects direct proxy reads when the parent Study API flag is disabled', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiEnabled: false,
-    });
-    const app = await createApp();
-
-    const response = await request(app)
-      .get('/api/learning-os/study/browser')
-      .set('Cookie', authCookie());
-
-    expect(response.status).toBe(403);
-    expect(response.body.error.message).toBe('Learning OS Study API route is not enabled.');
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('rejects direct proxy reads when the endpoint Study API flag is disabled', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiBrowser: false,
-    });
-    const app = await createApp();
-
-    const response = await request(app)
-      .get('/api/learning-os/study/browser')
-      .set('Cookie', authCookie());
-
-    expect(response.status).toBe(403);
-    expect(response.body.error.message).toBe('Learning OS Study API route is not enabled.');
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -2953,6 +2708,7 @@ describe('Learning OS Study proxy routes', () => {
       filename: 'japanese.colpkg',
       content_type: 'application/zip',
     });
+    expect(invokedRateLimitKeys).toEqual(['learning-os-import-proxy']);
   });
 
   it('streams import bytes with only allowlisted headers and adapts the result', async () => {
@@ -2998,6 +2754,7 @@ describe('Learning OS Study proxy routes', () => {
     expect(headers.get('Content-Type')).toBe('application/zip');
     expect(headers.get('Content-Length')).toBe(String(archive.length));
     expect(headers.has('X-Client-Secret')).toBe(false);
+    expect(invokedRateLimitKeys).toEqual(['learning-os-import-proxy']);
   });
 
   it.each([
@@ -3023,7 +2780,7 @@ describe('Learning OS Study proxy routes', () => {
     }
   );
 
-  it('proxies current, status, readiness, complete, and cancel through one import flag', async () => {
+  it('proxies current, status, readiness, complete, and cancel', async () => {
     vi.stubGlobal(
       'fetch',
       vi
@@ -3091,29 +2848,7 @@ describe('Learning OS Study proxy routes', () => {
       ['/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/complete', 'POST', undefined],
       ['/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/cancel', 'POST', undefined],
     ]);
-  });
-
-  it('keeps every import lifecycle route disabled under the shared child flag', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue({
-      ...enabledStudyApiFlags,
-      studyApiImports: false,
-    });
-    const app = await createApp();
-    const { cookies, token } = await csrfAuth(app);
-
-    const readResponse = await request(app)
-      .get('/api/learning-os/study/imports/current')
-      .set('Cookie', authCookie());
-    const writeResponse = await request(app)
-      .post('/api/learning-os/study/imports')
-      .set('Origin', 'http://localhost:5173')
-      .set('Cookie', cookies)
-      .set(CSRF_TOKEN_HEADER_NAME, token)
-      .send({ filename: 'japanese.colpkg' });
-
-    expect(readResponse.status).toBe(403);
-    expect(writeResponse.status).toBe(403);
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(invokedRateLimitKeys).toEqual(Array(5).fill('learning-os-import-proxy'));
   });
 
   it('rejects unsafe import id path segments before building the upstream URL', async () => {

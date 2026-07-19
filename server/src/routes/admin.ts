@@ -17,6 +17,10 @@ import {
   getAllSpeakerAvatars,
 } from '../services/avatarService.js';
 import {
+  CLIENT_FEATURE_FLAG_SELECT,
+  DEFAULT_CLIENT_FEATURE_FLAGS,
+} from '../services/featureFlags.js';
+import {
   getJapanesePronunciationDictionary,
   updateJapanesePronunciationDictionary,
 } from '../services/japanesePronunciationOverrides.js';
@@ -650,31 +654,15 @@ router.post(
 router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
   try {
     // Feature flags is a singleton - get the first (and only) row
-    let flags = await prisma.featureFlag.findFirst();
+    let flags = await prisma.featureFlag.findFirst({
+      select: CLIENT_FEATURE_FLAG_SELECT,
+    });
 
     // If no flags exist, create default (all enabled)
     if (!flags) {
       flags = await prisma.featureFlag.create({
-        data: {
-          dialoguesEnabled: true,
-          scriptsEnabled: true,
-          audioCourseEnabled: true,
-          flashcardsEnabled: true,
-          studyApiEnabled: false,
-          studyApiSettings: false,
-          studyApiOverview: false,
-          studyApiBrowser: false,
-          studyApiBrowserDetail: false,
-          studyApiNewQueue: false,
-          studyApiImports: false,
-          studyApiSettingsWrite: false,
-          studyApiNewQueueWrite: false,
-          studyApiReview: false,
-          studyApiCardWrites: false,
-          studyApiCardDrafts: false,
-          studyApiMedia: false,
-          studyApiDailyAudio: false,
-        },
+        data: DEFAULT_CLIENT_FEATURE_FLAGS,
+        select: CLIENT_FEATURE_FLAG_SELECT,
       });
     }
 
@@ -692,41 +680,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       scriptsEnabled?: unknown;
       audioCourseEnabled?: unknown;
       flashcardsEnabled?: unknown;
-      studyApiEnabled?: unknown;
-      studyApiSettings?: unknown;
-      studyApiOverview?: unknown;
-      studyApiBrowser?: unknown;
-      studyApiBrowserDetail?: unknown;
-      studyApiNewQueue?: unknown;
-      studyApiImports?: unknown;
-      studyApiSettingsWrite?: unknown;
-      studyApiNewQueueWrite?: unknown;
-      studyApiReview?: unknown;
-      studyApiCardWrites?: unknown;
-      studyApiCardDrafts?: unknown;
-      studyApiMedia?: unknown;
-      studyApiDailyAudio?: unknown;
     };
-    const {
-      dialoguesEnabled,
-      scriptsEnabled,
-      audioCourseEnabled,
-      flashcardsEnabled,
-      studyApiEnabled,
-      studyApiSettings,
-      studyApiOverview,
-      studyApiBrowser,
-      studyApiBrowserDetail,
-      studyApiNewQueue,
-      studyApiImports,
-      studyApiSettingsWrite,
-      studyApiNewQueueWrite,
-      studyApiReview,
-      studyApiCardWrites,
-      studyApiCardDrafts,
-      studyApiMedia,
-      studyApiDailyAudio,
-    } = payload;
+    const { dialoguesEnabled, scriptsEnabled, audioCourseEnabled, flashcardsEnabled } = payload;
 
     // Validate boolean values
     const validateBoolean = (val: unknown, name: string) => {
@@ -739,20 +694,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(scriptsEnabled, 'scriptsEnabled');
     validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
     validateBoolean(flashcardsEnabled, 'flashcardsEnabled');
-    validateBoolean(studyApiEnabled, 'studyApiEnabled');
-    validateBoolean(studyApiSettings, 'studyApiSettings');
-    validateBoolean(studyApiOverview, 'studyApiOverview');
-    validateBoolean(studyApiBrowser, 'studyApiBrowser');
-    validateBoolean(studyApiBrowserDetail, 'studyApiBrowserDetail');
-    validateBoolean(studyApiNewQueue, 'studyApiNewQueue');
-    validateBoolean(studyApiImports, 'studyApiImports');
-    validateBoolean(studyApiSettingsWrite, 'studyApiSettingsWrite');
-    validateBoolean(studyApiNewQueueWrite, 'studyApiNewQueueWrite');
-    validateBoolean(studyApiReview, 'studyApiReview');
-    validateBoolean(studyApiCardWrites, 'studyApiCardWrites');
-    validateBoolean(studyApiCardDrafts, 'studyApiCardDrafts');
-    validateBoolean(studyApiMedia, 'studyApiMedia');
-    validateBoolean(studyApiDailyAudio, 'studyApiDailyAudio');
 
     const dialoguesEnabledValue =
       typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
@@ -761,32 +702,11 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       typeof audioCourseEnabled === 'boolean' ? audioCourseEnabled : undefined;
     const flashcardsEnabledValue =
       typeof flashcardsEnabled === 'boolean' ? flashcardsEnabled : undefined;
-    const studyApiEnabledValue = typeof studyApiEnabled === 'boolean' ? studyApiEnabled : undefined;
-    const studyApiSettingsValue =
-      typeof studyApiSettings === 'boolean' ? studyApiSettings : undefined;
-    const studyApiOverviewValue =
-      typeof studyApiOverview === 'boolean' ? studyApiOverview : undefined;
-    const studyApiBrowserValue = typeof studyApiBrowser === 'boolean' ? studyApiBrowser : undefined;
-    const studyApiBrowserDetailValue =
-      typeof studyApiBrowserDetail === 'boolean' ? studyApiBrowserDetail : undefined;
-    const studyApiNewQueueValue =
-      typeof studyApiNewQueue === 'boolean' ? studyApiNewQueue : undefined;
-    const studyApiImportsValue = typeof studyApiImports === 'boolean' ? studyApiImports : undefined;
-    const studyApiSettingsWriteValue =
-      typeof studyApiSettingsWrite === 'boolean' ? studyApiSettingsWrite : undefined;
-    const studyApiNewQueueWriteValue =
-      typeof studyApiNewQueueWrite === 'boolean' ? studyApiNewQueueWrite : undefined;
-    const studyApiReviewValue = typeof studyApiReview === 'boolean' ? studyApiReview : undefined;
-    const studyApiCardWritesValue =
-      typeof studyApiCardWrites === 'boolean' ? studyApiCardWrites : undefined;
-    const studyApiCardDraftsValue =
-      typeof studyApiCardDrafts === 'boolean' ? studyApiCardDrafts : undefined;
-    const studyApiMediaValue = typeof studyApiMedia === 'boolean' ? studyApiMedia : undefined;
-    const studyApiDailyAudioValue =
-      typeof studyApiDailyAudio === 'boolean' ? studyApiDailyAudio : undefined;
 
     // Get or create feature flags
-    let flags = await prisma.featureFlag.findFirst();
+    let flags = await prisma.featureFlag.findFirst({
+      select: CLIENT_FEATURE_FLAG_SELECT,
+    });
 
     if (!flags) {
       // Create with provided values (defaults to true for any undefined)
@@ -796,21 +716,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           scriptsEnabled: scriptsEnabledValue ?? true,
           audioCourseEnabled: audioCourseEnabledValue ?? true,
           flashcardsEnabled: flashcardsEnabledValue ?? true,
-          studyApiEnabled: studyApiEnabledValue ?? false,
-          studyApiSettings: studyApiSettingsValue ?? false,
-          studyApiOverview: studyApiOverviewValue ?? false,
-          studyApiBrowser: studyApiBrowserValue ?? false,
-          studyApiBrowserDetail: studyApiBrowserDetailValue ?? false,
-          studyApiNewQueue: studyApiNewQueueValue ?? false,
-          studyApiImports: studyApiImportsValue ?? false,
-          studyApiSettingsWrite: studyApiSettingsWriteValue ?? false,
-          studyApiNewQueueWrite: studyApiNewQueueWriteValue ?? false,
-          studyApiReview: studyApiReviewValue ?? false,
-          studyApiCardWrites: studyApiCardWritesValue ?? false,
-          studyApiCardDrafts: studyApiCardDraftsValue ?? false,
-          studyApiMedia: studyApiMediaValue ?? false,
-          studyApiDailyAudio: studyApiDailyAudioValue ?? false,
         },
+        select: CLIENT_FEATURE_FLAG_SELECT,
       });
     } else {
       // Update existing flags
@@ -825,37 +732,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           ...(flashcardsEnabledValue !== undefined && {
             flashcardsEnabled: flashcardsEnabledValue,
           }),
-          ...(studyApiEnabledValue !== undefined && { studyApiEnabled: studyApiEnabledValue }),
-          ...(studyApiSettingsValue !== undefined && { studyApiSettings: studyApiSettingsValue }),
-          ...(studyApiOverviewValue !== undefined && { studyApiOverview: studyApiOverviewValue }),
-          ...(studyApiBrowserValue !== undefined && { studyApiBrowser: studyApiBrowserValue }),
-          ...(studyApiBrowserDetailValue !== undefined && {
-            studyApiBrowserDetail: studyApiBrowserDetailValue,
-          }),
-          ...(studyApiNewQueueValue !== undefined && { studyApiNewQueue: studyApiNewQueueValue }),
-          ...(studyApiImportsValue !== undefined && { studyApiImports: studyApiImportsValue }),
-          ...(studyApiSettingsWriteValue !== undefined && {
-            studyApiSettingsWrite: studyApiSettingsWriteValue,
-          }),
-          ...(studyApiNewQueueWriteValue !== undefined && {
-            studyApiNewQueueWrite: studyApiNewQueueWriteValue,
-          }),
-          ...(studyApiReviewValue !== undefined && {
-            studyApiReview: studyApiReviewValue,
-          }),
-          ...(studyApiCardWritesValue !== undefined && {
-            studyApiCardWrites: studyApiCardWritesValue,
-          }),
-          ...(studyApiCardDraftsValue !== undefined && {
-            studyApiCardDrafts: studyApiCardDraftsValue,
-          }),
-          ...(studyApiMediaValue !== undefined && {
-            studyApiMedia: studyApiMediaValue,
-          }),
-          ...(studyApiDailyAudioValue !== undefined && {
-            studyApiDailyAudio: studyApiDailyAudioValue,
-          }),
         },
+        select: CLIENT_FEATURE_FLAG_SELECT,
       });
     }
 

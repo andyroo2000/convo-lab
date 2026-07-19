@@ -123,20 +123,6 @@ const mockFeatureFlags = {
   scriptsEnabled: true,
   audioCourseEnabled: true,
   flashcardsEnabled: true,
-  studyApiEnabled: false,
-  studyApiSettings: false,
-  studyApiOverview: false,
-  studyApiBrowser: false,
-  studyApiBrowserDetail: false,
-  studyApiNewQueue: false,
-  studyApiImports: false,
-  studyApiSettingsWrite: false,
-  studyApiNewQueueWrite: false,
-  studyApiReview: false,
-  studyApiCardWrites: false,
-  studyApiCardDrafts: false,
-  studyApiMedia: false,
-  studyApiDailyAudio: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
@@ -596,10 +582,9 @@ describe('AdminPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Comprehensible Input Dialogues')).toBeInTheDocument();
         expect(screen.getByText('Guided Audio Course')).toBeInTheDocument();
-        expect(screen.getByText('Study Review')).toBeInTheDocument();
-        expect(screen.getByText('Study Card Writes')).toBeInTheDocument();
-        expect(screen.getByText('Study Media')).toBeInTheDocument();
-        expect(screen.getByText('Daily Audio')).toBeInTheDocument();
+        expect(screen.getByText('Study / Flashcards')).toBeInTheDocument();
+        expect(screen.queryByText('Learning OS Study API')).not.toBeInTheDocument();
+        expect(screen.queryByText('Study Review')).not.toBeInTheDocument();
       });
     });
 
