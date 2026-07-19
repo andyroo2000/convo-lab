@@ -40,11 +40,8 @@ const {
   completeManualStudyCardDraftMock,
   createStudyVocabBundleDraftsMock,
   execMock,
-  createStudyCardMock,
   createManualCardDraftMock,
   createStudyCardFromManualDraftMock,
-  createManualStudyCardMock,
-  deleteStudyCardMock,
   deleteManualCardDraftMock,
   enqueueStudyManualCardDraftJobMock,
   enqueueStudyVocabBundleDraftJobMock,
@@ -60,22 +57,11 @@ const {
   generateManualStudyCardDraftImageMock,
   listManualCardDraftsMock,
   multiMock,
-  performStudyCardActionMock,
-  prepareStudyCardAnswerAudioMock,
   regenerateStudyCardCandidatePreviewAudioMock,
   regenerateStudyCardCandidatePreviewImageMock,
-  recordStudyReviewMock,
-  regenerateStudyCardAnswerAudioMock,
-  regenerateStudyCardImageMock,
-  resolveStudyCardPitchAccentMock,
   resetManualCardDraftForRetryMock,
-  reorderStudyNewCardQueueMock,
-  startStudySessionMock,
   triggerWorkerJobMock,
-  undoStudyReviewMock,
   updateManualCardDraftMock,
-  updateStudySettingsMock,
-  updateStudyCardMock,
 } = vi.hoisted(() => ({
   cancelStudyImportUploadMock: vi.fn(),
   completeStudyImportUploadMock: vi.fn(),
@@ -85,11 +71,8 @@ const {
   completeManualStudyCardDraftMock: vi.fn(),
   createStudyVocabBundleDraftsMock: vi.fn(),
   execMock: vi.fn(),
-  createStudyCardMock: vi.fn(),
   createManualCardDraftMock: vi.fn(),
   createStudyCardFromManualDraftMock: vi.fn(),
-  createManualStudyCardMock: vi.fn(),
-  deleteStudyCardMock: vi.fn(),
   deleteManualCardDraftMock: vi.fn(),
   enqueueStudyManualCardDraftJobMock: vi.fn(),
   enqueueStudyVocabBundleDraftJobMock: vi.fn(),
@@ -105,22 +88,11 @@ const {
   generateManualStudyCardDraftImageMock: vi.fn(),
   listManualCardDraftsMock: vi.fn(),
   multiMock: vi.fn(),
-  performStudyCardActionMock: vi.fn(),
-  prepareStudyCardAnswerAudioMock: vi.fn(),
   regenerateStudyCardCandidatePreviewAudioMock: vi.fn(),
   regenerateStudyCardCandidatePreviewImageMock: vi.fn(),
-  recordStudyReviewMock: vi.fn(),
-  regenerateStudyCardAnswerAudioMock: vi.fn(),
-  regenerateStudyCardImageMock: vi.fn(),
-  resolveStudyCardPitchAccentMock: vi.fn(),
   resetManualCardDraftForRetryMock: vi.fn(),
-  reorderStudyNewCardQueueMock: vi.fn(),
-  startStudySessionMock: vi.fn(),
   triggerWorkerJobMock: vi.fn(),
-  undoStudyReviewMock: vi.fn(),
   updateManualCardDraftMock: vi.fn(),
-  updateStudySettingsMock: vi.fn(),
-  updateStudyCardMock: vi.fn(),
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
@@ -137,11 +109,8 @@ vi.mock('../../../services/studyService.js', () => ({
   completeManualStudyCardDraft: completeManualStudyCardDraftMock,
   createManualCardDraft: createManualCardDraftMock,
   createStudyCardFromManualDraft: createStudyCardFromManualDraftMock,
-  createManualStudyCard: createManualStudyCardMock,
-  createStudyCard: createStudyCardMock,
   createStudyVocabBundleDrafts: createStudyVocabBundleDraftsMock,
   deleteManualCardDraft: deleteManualCardDraftMock,
-  deleteStudyCard: deleteStudyCardMock,
   commitStudyCardCandidates: commitStudyCardCandidatesMock,
   createStudyImportUploadSession: createStudyImportUploadSessionMock,
   exportStudyData: vi.fn(),
@@ -156,21 +125,10 @@ vi.mock('../../../services/studyService.js', () => ({
   generateStudyCardCandidates: generateStudyCardCandidatesMock,
   generateManualStudyCardDraftImage: generateManualStudyCardDraftImageMock,
   listManualCardDrafts: listManualCardDraftsMock,
-  performStudyCardAction: performStudyCardActionMock,
-  prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   regenerateStudyCardCandidatePreviewAudio: regenerateStudyCardCandidatePreviewAudioMock,
   regenerateStudyCardCandidatePreviewImage: regenerateStudyCardCandidatePreviewImageMock,
-  recordStudyReview: recordStudyReviewMock,
-  regenerateStudyCardAnswerAudio: regenerateStudyCardAnswerAudioMock,
-  regenerateStudyCardImage: regenerateStudyCardImageMock,
-  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   resetManualCardDraftForRetry: resetManualCardDraftForRetryMock,
-  reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
-  startStudySession: startStudySessionMock,
-  undoStudyReview: undoStudyReviewMock,
   updateManualCardDraft: updateManualCardDraftMock,
-  updateStudySettings: updateStudySettingsMock,
-  updateStudyCard: updateStudyCardMock,
 }));
 
 vi.mock('../../../config/redis.js', () => ({
@@ -218,11 +176,9 @@ describe('Study Routes', () => {
     createStudyVocabBundleDraftsMock.mockReset();
     createManualCardDraftMock.mockReset();
     createStudyCardFromManualDraftMock.mockReset();
-    createManualStudyCardMock.mockReset();
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
     deleteManualCardDraftMock.mockReset();
-    deleteStudyCardMock.mockReset();
     enqueueStudyManualCardDraftJobMock.mockReset();
     enqueueStudyVocabBundleDraftJobMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
@@ -230,11 +186,8 @@ describe('Study Routes', () => {
     listManualCardDraftsMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
-    regenerateStudyCardImageMock.mockReset();
     resetManualCardDraftForRetryMock.mockReset();
-    resolveStudyCardPitchAccentMock.mockReset();
     triggerWorkerJobMock.mockReset();
-    undoStudyReviewMock.mockReset();
     updateManualCardDraftMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
@@ -326,496 +279,6 @@ describe('Study Routes', () => {
     vi.useRealTimers();
     process.env = originalEnv;
     resetBrowserRuntimeTestState();
-  });
-
-  it('starts study sessions without trusting client-provided batch sizes', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 1,
-        newCount: 1,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 2,
-      },
-      cards: [],
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/session/start')).send({
-      limit: 999,
-    });
-
-    expect(response.status).toBe(200);
-    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', { timeZone: undefined });
-  });
-
-  it('passes a valid device timezone when starting study sessions', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 1,
-        newCount: 1,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 2,
-      },
-      cards: [],
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/session/start')).send({
-      timeZone: 'America/New_York',
-    });
-
-    expect(response.status).toBe(200);
-    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', {
-      timeZone: 'America/New_York',
-    });
-  });
-
-  it('updates study settings', async () => {
-    updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 12 });
-
-    const patchResponse = await withMutationCsrf(request(app).patch('/study/settings')).send({
-      newCardsPerDay: 12,
-    });
-    expect(patchResponse.status).toBe(200);
-    expect(multiMock).toHaveBeenCalledTimes(1);
-    expect(updateStudySettingsMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      newCardsPerDay: 12,
-    });
-  });
-
-  it('lets the study settings service own daily-limit validation', async () => {
-    const validationError = Object.assign(
-      new Error('newCardsPerDay must be an integer between 0 and 1000.'),
-      { statusCode: 400 }
-    );
-    updateStudySettingsMock.mockRejectedValue(validationError);
-
-    const response = await withMutationCsrf(request(app).patch('/study/settings')).send({
-      newCardsPerDay: 1001,
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('newCardsPerDay must be an integer');
-    expect(updateStudySettingsMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      newCardsPerDay: 1001,
-    });
-  });
-
-  it('reorders the new-card queue', async () => {
-    reorderStudyNewCardQueueMock.mockResolvedValue({
-      items: [],
-      total: 0,
-      limit: 100,
-      nextCursor: null,
-    });
-
-    const reorderResponse = await withMutationCsrf(
-      request(app).post('/study/new-queue/reorder')
-    ).send({
-      cardIds: ['card-2', 'card-1'],
-    });
-    expect(reorderResponse.status).toBe(200);
-    expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardIds: ['card-2', 'card-1'],
-    });
-  });
-
-  it('rejects malformed reorder card ids before calling the service', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/new-queue/reorder')).send({
-      cardIds: ['card-1', ''],
-    });
-
-    expect(response.status).toBe(400);
-    expect(reorderStudyNewCardQueueMock).not.toHaveBeenCalled();
-  });
-
-  it('lets the study scheduler service own reorder length validation', async () => {
-    const validationError = Object.assign(
-      new Error('cardIds must include between 1 and 500 cards.'),
-      {
-        statusCode: 400,
-      }
-    );
-    reorderStudyNewCardQueueMock.mockRejectedValue(validationError);
-    const cardIds = Array.from({ length: 501 }, (_, index) => `card-${index + 1}`);
-
-    const response = await withMutationCsrf(request(app).post('/study/new-queue/reorder')).send({
-      cardIds,
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('cardIds must include');
-    expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardIds,
-    });
-  });
-
-  it('rejects invalid review grades', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/reviews')).send({
-      cardId: 'card-1',
-      grade: 'nope',
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('grade must be again, hard, good, or easy');
-    expect(recordStudyReviewMock).not.toHaveBeenCalled();
-  });
-
-  it('clamps review durationMs to a safe upper bound before calling the service', async () => {
-    recordStudyReviewMock.mockResolvedValue({
-      reviewLogId: 'review-log-1',
-      card: { id: 'card-1' },
-      overview: {
-        dueCount: 0,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 0,
-        suspendedCount: 0,
-        totalCards: 1,
-      },
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/reviews')).send({
-      cardId: 'card-1',
-      grade: 'good',
-      durationMs: Number.MAX_SAFE_INTEGER,
-    });
-
-    expect(response.status).toBe(200);
-    expect(recordStudyReviewMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-      grade: 'good',
-      durationMs: 3_600_000,
-      timeZone: undefined,
-      currentOverview: undefined,
-    });
-  });
-
-  it('passes timezone through when undoing a study review', async () => {
-    undoStudyReviewMock.mockResolvedValue({
-      reviewLogId: 'review-log-1',
-      card: { id: 'card-1' },
-      overview: {
-        dueCount: 1,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 1,
-      },
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/reviews/undo')).send({
-      reviewLogId: 'review-log-1',
-      timeZone: 'America/New_York',
-    });
-
-    expect(response.status).toBe(200);
-    expect(undoStudyReviewMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      reviewLogId: 'review-log-1',
-      timeZone: 'America/New_York',
-      currentOverview: undefined,
-    });
-  });
-
-  it('rejects invalid undo timezones before calling the service', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/reviews/undo')).send({
-      reviewLogId: 'review-log-1',
-      timeZone: 'Not/AZone',
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('timeZone must be a valid IANA timezone');
-    expect(undoStudyReviewMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects invalid edit payloads', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: 'bad',
-      answer: null,
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('prompt and answer payloads are required');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects create payloads with unsupported prompt fields', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/cards')).send({
-      cardType: 'recognition',
-      prompt: { cueText: '会社', unexpected: 'nope' },
-      answer: { meaning: 'company' },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('prompt contains unsupported field');
-    expect(createManualStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects update payloads with invalid media refs', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: {
-        cueAudio: {
-          filename: 'audio.mp3',
-          mediaKind: 'bad',
-          source: 'generated',
-        },
-      },
-      answer: { meaning: 'company' },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain(
-      'prompt.cueAudio.mediaKind must be audio, image, or other'
-    );
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('resolves and caches pitch accent data for a study card', async () => {
-    resolveStudyCardPitchAccentMock.mockResolvedValue({
-      id: 'card-1',
-      answer: {
-        expression: '会社',
-        pitchAccent: {
-          status: 'resolved',
-          expression: '会社',
-          reading: 'かいしゃ',
-          pitchNum: 0,
-          morae: ['か', 'い', 'しゃ'],
-          pattern: [0, 1, 1],
-          patternName: '平板',
-          source: 'kanjium',
-          resolvedBy: 'local-reading',
-        },
-      },
-    });
-
-    const response = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/pitch-accent')
-    ).send({});
-
-    expect(response.status).toBe(200);
-    expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-    });
-    expect(response.body.answer.pitchAccent).toMatchObject({
-      status: 'resolved',
-      reading: 'かいしゃ',
-    });
-  });
-
-  it('allows cached pitch accent data in card answer payloads', async () => {
-    updateStudyCardMock.mockResolvedValue({ id: 'card-1' });
-
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: '会社' },
-      answer: {
-        expression: '会社',
-        pitchAccent: {
-          status: 'unresolved',
-          expression: '会社',
-          reason: 'not-found',
-          source: 'kanjium',
-          resolvedBy: 'none',
-        },
-      },
-    });
-
-    expect(response.status).toBe(200);
-    expect(updateStudyCardMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        answer: expect.objectContaining({
-          pitchAccent: expect.objectContaining({ status: 'unresolved' }),
-        }),
-      })
-    );
-  });
-
-  it('rejects cached resolved pitch accent payloads with unsupported resolution metadata', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: '会社' },
-      answer: {
-        expression: '会社',
-        pitchAccent: {
-          status: 'resolved',
-          expression: '会社',
-          reading: 'かいしゃ',
-          pitchNum: 0,
-          morae: ['か', 'い', 'しゃ'],
-          pattern: [0, 1, 1],
-          patternName: '平板',
-          source: 'kanjium',
-          resolvedBy: 'future-method',
-        },
-      },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('answer.pitchAccent.resolvedBy is not supported');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects cached resolved pitch accent payloads with negative pitch numbers', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: '会社' },
-      answer: {
-        expression: '会社',
-        pitchAccent: {
-          status: 'resolved',
-          expression: '会社',
-          reading: 'かいしゃ',
-          pitchNum: -1,
-          morae: ['か', 'い', 'しゃ'],
-          pattern: [0, 1, 1],
-          patternName: '平板',
-          source: 'kanjium',
-          resolvedBy: 'local-reading',
-        },
-      },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('answer.pitchAccent.pitchNum must be a non-negative');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects cached pitch accent payloads from unsupported sources', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: '会社' },
-      answer: {
-        expression: '会社',
-        pitchAccent: {
-          status: 'resolved',
-          expression: '会社',
-          reading: 'かいしゃ',
-          pitchNum: 0,
-          morae: ['か', 'い', 'しゃ'],
-          pattern: [0, 1, 1],
-          patternName: '平板',
-          source: 'other',
-          resolvedBy: 'local-reading',
-        },
-      },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('answer.pitchAccent.source is not supported');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects cached pitch accent payloads with mismatched mora and pattern lengths', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: '会社' },
-      answer: {
-        expression: '会社',
-        pitchAccent: {
-          status: 'resolved',
-          expression: '会社',
-          reading: 'かいしゃ',
-          pitchNum: 0,
-          morae: ['か', 'い', 'しゃ'],
-          pattern: [0, 1],
-          patternName: '平板',
-          source: 'kanjium',
-          resolvedBy: 'local-reading',
-        },
-      },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('morae and pattern must have equal length');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects cached pitch accent payloads with oversized mora arrays', async () => {
-    const morae = Array.from({ length: 65 }, () => 'あ');
-
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: '長い' },
-      answer: {
-        expression: '長い',
-        pitchAccent: {
-          status: 'resolved',
-          expression: '長い',
-          reading: 'ながい',
-          pitchNum: 0,
-          morae,
-          pattern: morae.map(() => 1),
-          patternName: '平板',
-          source: 'kanjium',
-          resolvedBy: 'local-reading',
-        },
-      },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('answer.pitchAccent.morae must contain 1-64 items');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects cached pitch accent payloads with oversized pattern names', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: '会社' },
-      answer: {
-        expression: '会社',
-        pitchAccent: {
-          status: 'resolved',
-          expression: '会社',
-          reading: 'かいしゃ',
-          pitchNum: 0,
-          morae: ['か', 'い', 'しゃ'],
-          pattern: [0, 1, 1],
-          patternName: 'a'.repeat(65),
-          source: 'kanjium',
-          resolvedBy: 'local-reading',
-        },
-      },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('answer.pitchAccent.patternName must be 64 characters');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects cached pitch accent payloads with unsupported unresolved reasons', async () => {
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: '会社' },
-      answer: {
-        expression: '会社',
-        pitchAccent: {
-          status: 'unresolved',
-          expression: '会社',
-          reason: 'invalid-pattern',
-          source: 'kanjium',
-          resolvedBy: 'none',
-        },
-      },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('answer.pitchAccent.reason is not supported');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects oversized create payloads before hitting the service', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/cards')).send({
-      cardType: 'recognition',
-      prompt: { cueText: 'a'.repeat(70 * 1024) },
-      answer: { meaning: 'company' },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('64 KB or smaller');
-    expect(createManualStudyCardMock).not.toHaveBeenCalled();
   });
 
   it('generates study card candidates with learner context enabled by default', async () => {
@@ -1443,391 +906,6 @@ describe('Study Routes', () => {
     expect(commitStudyCardCandidatesMock).not.toHaveBeenCalled();
   });
 
-  it('rejects overly deep update payloads before hitting the service', async () => {
-    const tooDeepPrompt = {
-      level1: {
-        level2: {
-          level3: {
-            level4: {
-              level5: {
-                level6: {
-                  level7: {
-                    level8: {
-                      level9: 'too deep',
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    };
-
-    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: tooDeepPrompt,
-      answer: { meaning: 'company' },
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('8 levels deep or fewer');
-    expect(updateStudyCardMock).not.toHaveBeenCalled();
-  });
-
-  it('passes answer-audio settings through create and update payloads', async () => {
-    createManualStudyCardMock.mockResolvedValue({ id: 'created-card' });
-    updateStudyCardMock.mockResolvedValue({ id: 'card-1' });
-
-    const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
-      cardType: 'recognition',
-      prompt: { cueText: 'company' },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Wavenet-D',
-        answerAudioTextOverride: 'かいしゃ',
-      },
-    });
-    expect(createResponse.status).toBe(201);
-    expect(createManualStudyCardMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      creationKind: 'text-recognition',
-      cardType: 'recognition',
-      prompt: { cueText: 'company' },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Wavenet-D',
-        answerAudioTextOverride: 'かいしゃ',
-      },
-    });
-
-    const updateResponse = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
-      prompt: { cueText: 'company' },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-B',
-        answerAudioTextOverride: 'かぶしきがいしゃ',
-      },
-    });
-    expect(updateResponse.status).toBe(200);
-    expect(updateStudyCardMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-      prompt: { cueText: 'company' },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-B',
-        answerAudioTextOverride: 'かぶしきがいしゃ',
-      },
-    });
-  });
-
-  it('derives manual create card type from creation kind when client state is stale', async () => {
-    createManualStudyCardMock.mockResolvedValue({ id: 'created-card' });
-
-    const response = await withMutationCsrf(request(app).post('/study/cards')).send({
-      creationKind: 'production-image',
-      cardType: 'recognition',
-      prompt: { cueText: 'company' },
-      answer: { expression: '会社', meaning: 'company' },
-    });
-
-    expect(response.status).toBe(201);
-    expect(createManualStudyCardMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      creationKind: 'production-image',
-      cardType: 'production',
-      prompt: { cueText: 'company' },
-      answer: { expression: '会社', meaning: 'company' },
-    });
-  });
-
-  it('rejects unknown answer-audio voices before create or regenerate', async () => {
-    const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
-      cardType: 'recognition',
-      prompt: { cueText: 'company' },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'not-a-voice',
-      },
-    });
-
-    expect(createResponse.status).toBe(400);
-    expect(createResponse.body.message).toContain('known TTS voice ID');
-    expect(createManualStudyCardMock).not.toHaveBeenCalled();
-
-    const regenerateResponse = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/regenerate-answer-audio')
-    ).send({
-      answerAudioVoiceId: 'not-a-voice',
-    });
-
-    expect(regenerateResponse.status).toBe(400);
-    expect(regenerateStudyCardAnswerAudioMock).not.toHaveBeenCalled();
-  });
-
-  it('accepts known legacy answer-audio voices that are hidden from the picker', async () => {
-    createManualStudyCardMock.mockResolvedValue({ id: 'created-card' });
-    regenerateStudyCardAnswerAudioMock.mockResolvedValue({
-      id: 'card-1',
-      answerAudioSource: 'generated',
-    });
-
-    const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
-      cardType: 'recognition',
-      prompt: { cueText: 'company' },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-D',
-      },
-    });
-
-    expect(createResponse.status).toBe(201);
-    expect(createManualStudyCardMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        answer: expect.objectContaining({
-          answerAudioVoiceId: 'ja-JP-Neural2-D',
-        }),
-      })
-    );
-
-    const regenerateResponse = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/regenerate-answer-audio')
-    ).send({
-      answerAudioVoiceId: 'ja-JP-Neural2-D',
-    });
-
-    expect(regenerateResponse.status).toBe(200);
-    expect(regenerateStudyCardAnswerAudioMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        answerAudioVoiceId: 'ja-JP-Neural2-D',
-      })
-    );
-  });
-
-  it('rejects oversized answer-audio text overrides before create or regenerate', async () => {
-    const oversizedOverride = 'あ'.repeat(501);
-    const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
-      cardType: 'recognition',
-      prompt: { cueText: 'company' },
-      answer: {
-        expression: '会社',
-        meaning: 'company',
-        answerAudioTextOverride: oversizedOverride,
-      },
-    });
-
-    expect(createResponse.status).toBe(400);
-    expect(createResponse.body.message).toContain('500 characters or fewer');
-    expect(createManualStudyCardMock).not.toHaveBeenCalled();
-
-    const regenerateResponse = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/regenerate-answer-audio')
-    ).send({
-      answerAudioTextOverride: oversizedOverride,
-    });
-
-    expect(regenerateResponse.status).toBe(400);
-    expect(regenerateStudyCardAnswerAudioMock).not.toHaveBeenCalled();
-  });
-
-  it('regenerates answer audio for an owned study card', async () => {
-    regenerateStudyCardAnswerAudioMock.mockResolvedValue({
-      id: 'card-1',
-      answerAudioSource: 'generated',
-    });
-
-    const response = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/regenerate-answer-audio')
-    ).send({
-      answerAudioVoiceId: 'ja-JP-Wavenet-D',
-      answerAudioTextOverride: 'かいしゃ',
-    });
-
-    expect(response.status).toBe(200);
-    expect(regenerateStudyCardAnswerAudioMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-      answerAudioVoiceId: 'ja-JP-Wavenet-D',
-      answerAudioTextOverride: 'かいしゃ',
-    });
-  });
-
-  it('regenerates an existing study card image for the requested side', async () => {
-    regenerateStudyCardImageMock.mockResolvedValue({
-      id: 'card-1',
-      prompt: {
-        cueImage: {
-          id: 'image-new',
-          filename: 'image-new.webp',
-          url: '/api/study/media/image-new',
-          mediaKind: 'image',
-          source: 'generated',
-        },
-      },
-      answer: {},
-    });
-
-    const response = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/regenerate-image')
-    ).send({
-      imagePrompt: '  A natural street scene showing cloudy weather.  ',
-      imageRole: 'prompt',
-    });
-
-    expect(response.status).toBe(200);
-    expect(regenerateStudyCardImageMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-      imagePrompt: '  A natural street scene showing cloudy weather.  ',
-      imageRole: 'prompt',
-    });
-  });
-
-  it('allows regenerating an existing study card image for both sides', async () => {
-    regenerateStudyCardImageMock.mockResolvedValue({
-      id: 'card-1',
-      prompt: { cueImage: { id: 'image-new' } },
-      answer: { answerImage: { id: 'image-new' } },
-    });
-
-    const response = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/regenerate-image')
-    ).send({
-      imagePrompt: 'A natural street scene showing cloudy weather.',
-      imageRole: 'both',
-    });
-
-    expect(response.status).toBe(200);
-    expect(regenerateStudyCardImageMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-      imagePrompt: 'A natural street scene showing cloudy weather.',
-      imageRole: 'both',
-    });
-  });
-
-  it('rejects study card image regeneration without a valid image role', async () => {
-    const response = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/regenerate-image')
-    ).send({
-      imagePrompt: 'A natural street scene showing cloudy weather.',
-      imageRole: 'sideways',
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toBe('imageRole must be prompt, answer, or both.');
-    expect(regenerateStudyCardImageMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects study card image regeneration with an empty image prompt', async () => {
-    const response = await withMutationCsrf(
-      request(app).post('/study/cards/card-1/regenerate-image')
-    ).send({
-      imagePrompt: '   ',
-      imageRole: 'prompt',
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toBe('imagePrompt is required.');
-    expect(regenerateStudyCardImageMock).not.toHaveBeenCalled();
-  });
-
-  it('passes card actions through to the service', async () => {
-    performStudyCardActionMock.mockResolvedValue({
-      card: { id: 'card-1' },
-      overview: {
-        dueCount: 0,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 0,
-        suspendedCount: 1,
-        totalCards: 1,
-      },
-    });
-
-    const response = await withMutationCsrf(request(app).post('/study/cards/card-1/actions')).send({
-      action: 'set_due',
-      mode: 'tomorrow',
-      timeZone: 'America/New_York',
-    });
-
-    expect(response.status).toBe(200);
-    expect(performStudyCardActionMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-      action: 'set_due',
-      mode: 'tomorrow',
-      dueAt: undefined,
-      timeZone: 'America/New_York',
-    });
-  });
-
-  it('rejects set_due tomorrow without a valid timezone', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/cards/card-1/actions')).send({
-      action: 'set_due',
-      mode: 'tomorrow',
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('timeZone must be a valid IANA timezone');
-    expect(performStudyCardActionMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects invalid set_due payloads', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/cards/card-1/actions')).send({
-      action: 'set_due',
-      mode: 'custom_date',
-      dueAt: 'bad-date',
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('dueAt must be a valid ISO-8601 datetime');
-    expect(performStudyCardActionMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects set_due custom dates more than 10 years in the future', async () => {
-    const farFuture = new Date();
-    farFuture.setFullYear(farFuture.getFullYear() + 11);
-
-    const response = await withMutationCsrf(request(app).post('/study/cards/card-1/actions')).send({
-      action: 'set_due',
-      mode: 'custom_date',
-      dueAt: farFuture.toISOString(),
-    });
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('within 10 years');
-    expect(performStudyCardActionMock).not.toHaveBeenCalled();
-  });
-
-  it('deletes owned study cards', async () => {
-    deleteStudyCardMock.mockResolvedValue(undefined);
-
-    const response = await withMutationCsrf(request(app).delete('/study/cards/card-1'));
-
-    expect(response.status).toBe(204);
-    expect(deleteStudyCardMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-    });
-  });
-
-  it('rejects card deletion without a CSRF token', async () => {
-    const response = await request(app)
-      .delete('/study/cards/card-1')
-      .set('Origin', 'http://localhost:5173');
-
-    expect(response.status).toBe(403);
-    expect(response.body.message).toContain('CSRF');
-    expect(deleteStudyCardMock).not.toHaveBeenCalled();
-  });
-
   it('rejects non-.colpkg upload session requests before creation', async () => {
     const response = await withMutationCsrf(request(app).post('/study/imports')).send({
       filename: 'anki-export.txt',
@@ -2130,13 +1208,13 @@ describe('Study Routes', () => {
 
   it('blocks study mutation routes for cross-origin requests', async () => {
     const response = await withMutationCsrf(
-      request(app).post('/study/session/start'),
+      request(app).post('/study/imports'),
       'https://evil.example.com'
-    ).send({ limit: 10 });
+    ).send({});
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('Invalid request origin');
-    expect(startStudySessionMock).not.toHaveBeenCalled();
+    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
   });
 
   it('allows read-only study routes without same-origin mutation headers', async () => {
@@ -2163,38 +1241,48 @@ describe('Study Routes', () => {
     expect(response.status).toBe(404);
   });
 
-  it('rejects mutation requests when Origin is absent', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 1,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 1,
-      },
-      cards: [],
-    });
+  it.each([
+    ['patch', '/study/settings'],
+    ['post', '/study/new-queue/reorder'],
+    ['post', '/study/session/start'],
+    ['post', '/study/reviews'],
+    ['post', '/study/reviews/undo'],
+    ['post', '/study/cards'],
+    ['patch', '/study/cards/card-1'],
+    ['delete', '/study/cards/card-1'],
+    ['post', '/study/cards/card-1/pitch-accent'],
+    ['post', '/study/cards/card-1/actions'],
+    ['post', '/study/cards/card-1/prepare-answer-audio'],
+    ['post', '/study/cards/card-1/regenerate-answer-audio'],
+    ['post', '/study/cards/card-1/regenerate-image'],
+  ] as const)('does not expose the retired mutation route %s %s', async (method, path) => {
+    const response = await withMutationCsrf(request(app)[method](path)).send({});
 
-    const response = await withMutationCsrf(
-      request(app).post('/study/session/start'),
-      'https://evil.example.com'
-    ).send({ limit: 10 });
+    expect(response.status).toBe(404);
+  });
+
+  it('rejects mutation requests when Origin is absent', async () => {
+    const response = await request(app)
+      .post('/study/imports')
+      .set('Cookie', csrfCookies)
+      .set(CSRF_TOKEN_HEADER_NAME, csrfToken)
+      .send({});
 
     expect(response.status).toBe(403);
-    expect(startStudySessionMock).not.toHaveBeenCalled();
+    expect(response.body.message).toContain('Invalid request origin');
+    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
   });
 
   it('rejects mutation requests when the study CSRF header is missing', async () => {
     const response = await request(app)
-      .post('/study/session/start')
+      .post('/study/imports')
       .set('Origin', 'http://localhost:5173')
       .set('Cookie', csrfCookies)
-      .send({ limit: 10 });
+      .send({});
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('Invalid CSRF token');
-    expect(startStudySessionMock).not.toHaveBeenCalled();
+    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
   });
 
   it('sanitizes media filenames used in the Content-Disposition header', async () => {

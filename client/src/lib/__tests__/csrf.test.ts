@@ -201,7 +201,7 @@ describe('csrf helpers', () => {
     vi.stubGlobal('fetch', originalFetch);
 
     installCsrfFetch();
-    await fetch(`${API_URL}/api/study/session/start`, {
+    await fetch(`${API_URL}/api/learning-os/study/session/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
