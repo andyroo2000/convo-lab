@@ -305,6 +305,9 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
+            postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+            test -n "$postgres_user"
+
             upsert_env() {
               key="$1"
               value="$2"
@@ -377,9 +380,17 @@ jobs:
             }
 
             import_historical_media() {
-              local invalid_media_path_count media_files media_manifest postgres_user target_dump timestamp
+              local active_color invalid_media_path_count media_files media_manifest postgres_user target_dump timestamp
 
               postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+              active_color=blue
+              if [ -f "$ACTIVE_COLOR_FILE" ]; then
+                active_color="$(cat "$ACTIVE_COLOR_FILE")"
+              fi
+              case "$active_color" in
+                blue|green) ;;
+                *) echo "Invalid active production color: $active_color" >&2; return 1 ;;
+              esac
               timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
               target_dump="$BACKUP_DIR/learning-os-before-media-import-$timestamp.dump"
               mkdir -p "$BACKUP_DIR"
@@ -425,7 +436,7 @@ jobs:
 
               $COMPOSE run --rm -T --no-deps \
                 --volume "$MEDIA_EXPORT_DIR:/export" \
-                server-blue \
+                "server-$active_color" \
                 node scripts/export-convolab-study-media.mjs \
                 --manifest /export/manifest.json \
                 --output-root /export/files \
@@ -483,8 +494,6 @@ jobs:
                 --format=custom --no-owner --no-acl > "$source_dump"
               chmod 600 "$source_dump"
               test -s "$source_dump"
-
-              postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
 
               if docker exec convolab-postgres psql --username="$postgres_user" --tuples-only --no-align \
                 --dbname=postgres --command="SELECT 1 FROM pg_database WHERE datname = '$TARGET_DB'" | grep -qx 1; then
@@ -916,7 +925,6 @@ jobs:
               echo "::warning::Unable to prune older Learning OS proxy tokens; a later deployment will retry."
             fi
 
-            postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
             postgres_db="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
 
             flag_state="$(docker exec convolab-postgres psql \

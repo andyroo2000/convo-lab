@@ -217,6 +217,7 @@ test('the production workflow snapshots and imports historical GCS media explici
     'cleanup_media_import_resources',
     'learning-os-before-media-import-$timestamp.dump',
     'json_agg(paths.storage_path ORDER BY paths.storage_path)',
+    '"server-$active_color"',
     'node scripts/export-convolab-study-media.mjs',
     '--volume "$MEDIA_EXPORT_DIR:/export"',
     '--volume "$media_files:/tmp/convolab-media:ro"',
@@ -235,9 +236,20 @@ test('the production workflow snapshots and imports historical GCS media explici
     workflow.indexOf('else\n              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate'),
     workflow.indexOf('proxy_token_output=')
   );
+  const databaseBranchIndex = workflow.indexOf('if [ "$REBUILD_DATABASE" = true ]; then');
+  const sharedPostgresUserIndex = workflow.indexOf(
+    'postgres_user="$(sed -n \'s/^POSTGRES_USER=//p\' .env.production | tail -1)"\n' +
+      '            test -n "$postgres_user"'
+  );
+  assert.ok(sharedPostgresUserIndex >= 0);
+  assert.ok(sharedPostgresUserIndex < databaseBranchIndex);
   assert.ok(
     mediaOnlyBranch.indexOf('restore_convolab_source_copy') <
       mediaOnlyBranch.indexOf('import_historical_media')
+  );
+  assert.match(
+    mediaOnlyBranch,
+    /dropdb --username="\$postgres_user" "\$SOURCE_DB"[\s\S]*smoke_learning_os/
   );
   assert.doesNotMatch(
     mediaOnlyBranch,
@@ -256,6 +268,14 @@ test('the production workflow snapshots and imports historical GCS media explici
     rebuildBranch.indexOf('import_historical_media') <
       rebuildBranch.indexOf('smoke_learning_os')
   );
+
+  const mediaImportFunction = workflow.slice(
+    workflow.indexOf('import_historical_media() {'),
+    workflow.indexOf('smoke_learning_os() {')
+  );
+  assert.match(mediaImportFunction, /case "\$active_color" in[\s\S]*blue\|green/);
+  assert.match(mediaImportFunction, /"server-\$active_color"/);
+  assert.doesNotMatch(mediaImportFunction, /\bserver-blue\b/);
 });
 
 test('the production worker consumes Learning OS card-draft jobs', async () => {
