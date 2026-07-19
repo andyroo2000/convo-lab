@@ -28,6 +28,7 @@ import {
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyAnswerAudio,
+  regenerateStudyCardImage,
   reorderStudyNewCardQueue,
   resolveStudyCardPitchAccent,
   performStudyCardAction,
@@ -316,6 +317,58 @@ describe('useStudy request helpers', () => {
       `${API_URL}/api/study/cards/card-1/prepare-answer-audio`,
       `${API_URL}/api/study/cards/card-1/regenerate-answer-audio`,
     ]);
+  });
+
+  it('routes card-image regeneration through Learning OS when card writes are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: true,
+    });
+
+    await regenerateStudyCardImage(
+      {
+        cardId: 'card-1',
+        imagePrompt: 'A company office in Tokyo.',
+        imageRole: 'answer',
+      },
+      flags
+    );
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/learning-os/study/cards/card-1/regenerate-image`,
+      expect.any(Object)
+    );
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(requestInit.method).toBe('POST');
+    expect(JSON.parse(String(requestInit.body))).toEqual({
+      imagePrompt: 'A company office in Tokyo.',
+      imageRole: 'answer',
+    });
+    const headers = new Headers(requestInit.headers);
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBe('application/json');
+  });
+
+  it('keeps card-image regeneration on Convo Lab until card writes are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: false,
+    });
+
+    await regenerateStudyCardImage(
+      {
+        cardId: 'card-1',
+        imagePrompt: 'A company office in Tokyo.',
+        imageRole: 'answer',
+      },
+      flags
+    );
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/cards/card-1/regenerate-image`,
+      expect.any(Object)
+    );
   });
 
   it('requests study-card pitch accent resolution with CSRF headers', async () => {

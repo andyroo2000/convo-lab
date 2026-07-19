@@ -8,6 +8,7 @@ import {
 } from '@languageflow/shared/src/constants-new.js';
 import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
   STUDY_CANDIDATE_SOURCE_SENTENCE_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_VOCAB_BUNDLE_CARD_COUNT,
@@ -173,6 +174,12 @@ const learningOsCardAnswerAudioRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsCardImageRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-image-proxy',
+  max: 10,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 const learningOsCardDraftCreateRateLimit = rateLimitStudyRoute({
   key: 'learning-os-card-draft-create-proxy',
   max: 60,
@@ -242,6 +249,7 @@ type StudyWriteFeature =
   | 'cardDelete'
   | 'cardAction'
   | 'cardAnswerAudio'
+  | 'cardImage'
   | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
@@ -255,6 +263,7 @@ type StudyWriteBody =
   | 'cardUpdate'
   | 'cardAction'
   | 'answerAudioRegenerate'
+  | 'imageRegenerate'
   | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
@@ -433,6 +442,16 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardAnswerAudio',
     writeBody: 'answerAudioRegenerate',
+    responseAdapter: 'card',
+    timeoutMs: LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS,
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/regenerate-image$`, 'i'),
+    featureFlag: 'studyApiCardWrites',
+    queryParams: new Set(),
+    writeFeature: 'cardImage',
+    writeBody: 'imageRegenerate',
     responseAdapter: 'card',
     timeoutMs: LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS,
   },
@@ -1041,6 +1060,36 @@ function adaptAnswerAudioRegenerateBody(value: unknown): Record<string, unknown>
   };
 }
 
+function adaptImageRegenerateBody(value: unknown): {
+  imagePrompt: string;
+  imageRole: 'prompt' | 'answer' | 'both';
+} {
+  const body = requestRecord(value);
+  const allowedKeys = new Set(['imagePrompt', 'imageRole']);
+  if (Object.keys(body).some((key) => !allowedKeys.has(key))) {
+    throw new AppError('Image regeneration contains an unsupported field.', 400);
+  }
+
+  const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt.trim() : '';
+  if (
+    imagePrompt.length < 1 ||
+    Array.from(imagePrompt).length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH
+  ) {
+    throw new AppError(
+      `imagePrompt must be a non-empty string no longer than ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters.`,
+      400
+    );
+  }
+  if (body.imageRole !== 'prompt' && body.imageRole !== 'answer' && body.imageRole !== 'both') {
+    throw new AppError('imageRole must be prompt, answer, or both.', 400);
+  }
+
+  return {
+    imagePrompt,
+    imageRole: body.imageRole,
+  };
+}
+
 function adaptSettingsWriteBody(value: unknown): { new_cards_per_day: number } {
   const body = requestRecord(value);
   const newCardsPerDay = body.newCardsPerDay;
@@ -1240,6 +1289,9 @@ function adaptWriteBody(route: StudyProxyRoute, value: unknown): unknown {
   if (route.writeBody === 'answerAudioRegenerate') {
     return adaptAnswerAudioRegenerateBody(value);
   }
+  if (route.writeBody === 'imageRegenerate') {
+    return adaptImageRegenerateBody(value);
+  }
   if (route.writeBody === 'vocabBundleDraftCreate') {
     return adaptVocabBundleDraftCreateBody(value);
   }
@@ -1322,6 +1374,8 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsCardActionRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardAnswerAudio') {
     learningOsCardAnswerAudioRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardImage') {
+    learningOsCardImageRateLimit(req, res, next);
   } else if (route.writeFeature === 'vocabBundleDraftCreate') {
     learningOsVocabBundleDraftCreateRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftCreate') {
