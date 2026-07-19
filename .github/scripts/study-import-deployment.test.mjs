@@ -55,19 +55,19 @@ with zipfile.ZipFile(${JSON.stringify(archivePath)}) as archive:
   }
 });
 
-test('the production workflow wires import activation through verification and rollback', async () => {
+test('the production workflow verifies the always-on Study API without rollout flags', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
     'utf8'
   );
 
   for (const requiredContract of [
-    'enable_imports:',
-    'ENABLE_IMPORTS: ${{ inputs.enable_imports }}',
-    'validate_boolean_input enable_imports "$ENABLE_IMPORTS"',
-    '\\"studyApiImports\\" = $enable_imports_sql',
-    '\\"studyApiImports\\" = $previous_imports_sql',
-    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|',
+    "'Overview Learning OS'",
+    "'Browser Learning OS'",
+    "'Browser detail Learning OS'",
+    "mutate_proxy_route POST '/api/learning-os/study/session/start'",
+    "mutate_proxy_route PATCH '/api/learning-os/study/settings'",
+    "mutate_proxy_route POST '/api/learning-os/study/new-queue/reorder'",
     'bash .github/scripts/smoke-study-import-lifecycle.sh',
     'ensure_learning_os_service learning-os learning-os-api',
     'ensure_learning_os_worker',
@@ -90,46 +90,25 @@ test('the production workflow wires import activation through verification and r
     assert.match(workflow, new RegExp(requiredContract.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 
-  assert.doesNotMatch(workflow, /\\"studyApiImports\\" = false/);
+  assert.doesNotMatch(workflow, /enable_(?:settings|overview|browser|new_queue|review|card|media|daily_audio|imports)/);
+  assert.doesNotMatch(workflow, /ENABLE_(?:SETTINGS|OVERVIEW|BROWSER|NEW_QUEUE|REVIEW|CARD|MEDIA|DAILY_AUDIO|IMPORTS)/);
+  assert.doesNotMatch(workflow, /studyApi[A-Z]/);
+  assert.doesNotMatch(workflow, /rollback_study_flags|flag_state|desired_parent/);
+  assert.doesNotMatch(workflow, /['"]\/api\/study\/(?:settings|overview|browser|new-queue)/);
+  assert.doesNotMatch(workflow, /\/api\/daily-audio-practice/);
   assert.doesNotMatch(
     workflow,
     /\$COMPOSE up -d --no-deps --force-recreate learning-os learning-os-worker/
   );
 });
 
-test('the production workflow wires card-write activation through verification and rollback', async () => {
+test('the production workflow verifies and cleans up a disposable card draft', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
     'utf8'
   );
 
   for (const requiredContract of [
-    'enable_card_writes:',
-    'ENABLE_CARD_WRITES: ${{ inputs.enable_card_writes }}',
-    'validate_boolean_input enable_card_writes "$ENABLE_CARD_WRITES"',
-    '\\"studyApiCardWrites\\" = $enable_card_writes_sql',
-    '\\"studyApiCardWrites\\" = $previous_card_writes_sql',
-    '|| [ "$ENABLE_CARD_WRITES" = true ] || [ "$ENABLE_CARD_DRAFTS" = true ]',
-    'expected_flag_state="$desired_parent_sql|$enable_settings_sql|$enable_overview_sql|$enable_browser_sql|$enable_browser_detail_sql|$enable_new_queue_sql|$enable_imports_sql|$enable_settings_write_sql|$enable_new_queue_write_sql|$enable_review_sql|$enable_card_writes_sql|$enable_card_drafts_sql|$enable_media_sql|$enable_daily_audio_sql"',
-  ]) {
-    assert.ok(workflow.includes(requiredContract), `Missing card-write contract: ${requiredContract}`);
-  }
-
-  assert.doesNotMatch(workflow, /\\"studyApiCardWrites\\" = false/);
-});
-
-test('the production workflow wires card-draft activation through disposable verification and rollback', async () => {
-  const workflow = await readFile(
-    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-    'utf8'
-  );
-
-  for (const requiredContract of [
-    'enable_card_drafts:',
-    'ENABLE_CARD_DRAFTS: ${{ inputs.enable_card_drafts }}',
-    'validate_boolean_input enable_card_drafts "$ENABLE_CARD_DRAFTS"',
-    '\\"studyApiCardDrafts\\" = $enable_card_drafts_sql',
-    '\\"studyApiCardDrafts\\" = $previous_card_drafts_sql',
     "mutate_proxy_route POST '/api/learning-os/study/card-drafts'",
     "'/api/learning-os/study/card-drafts?limit=200'",
     '"/api/learning-os/study/card-drafts/$draft_id"',
@@ -144,7 +123,6 @@ test('the production workflow wires card-draft activation through disposable ver
     );
   }
 
-  assert.doesNotMatch(workflow, /\\"studyApiCardDrafts\\" = false/);
   assert.ok(
     workflow.indexOf('mutate_proxy_route DELETE') <
       workflow.indexOf('Study card draft lifecycle smoke check passed.')
@@ -158,11 +136,6 @@ test('the production workflow streams and cleans up disposable Learning OS media
   );
 
   for (const requiredContract of [
-    'enable_media:',
-    'ENABLE_MEDIA: ${{ inputs.enable_media }}',
-    'validate_boolean_input enable_media "$ENABLE_MEDIA"',
-    '\\"studyApiMedia\\" = $enable_media_sql',
-    '\\"studyApiMedia\\" = $previous_media_sql',
     'cleanup_media_smoke',
     'cleanup_deployment_failure() {\n              exit_code=$?\n              set +e',
     'if (! $disk->put($path, $contents))',
@@ -175,20 +148,17 @@ test('the production workflow streams and cleans up disposable Learning OS media
     assert.ok(workflow.includes(requiredContract), `Missing media contract: ${requiredContract}`);
   }
 
-  assert.doesNotMatch(workflow, /\\"studyApiMedia\\" = false/);
   const mediaSmokeBlock = workflow.slice(
-    workflow.indexOf('if [ "$ENABLE_MEDIA" = true ]; then'),
-    workflow.indexOf('if [ "$ENABLE_IMPORTS" = true ]; then')
+    workflow.indexOf('media_smoke_output='),
+    workflow.indexOf('ACTIVE_COLOR="$active_color"')
   );
   assert.doesNotMatch(mediaSmokeBlock, /\^\[0-9A-HJKMNP-TV-Z\]\{26\}\$/);
   const failureCleanupBlock = workflow.slice(
     workflow.indexOf('cleanup_deployment_failure() {'),
     workflow.indexOf('trap cleanup_deployment_failure EXIT')
   );
-  assert.ok(
-    failureCleanupBlock.indexOf('rollback_study_flags') <
-      failureCleanupBlock.indexOf('cleanup_deployment_resources')
-  );
+  assert.doesNotMatch(failureCleanupBlock, /rollback_study_flags|feature.flags?/i);
+  assert.match(failureCleanupBlock, /cleanup_deployment_resources/);
   const mediaRequestIndex = workflow.indexOf(
     '"https://convo-lab.com/api/learning-os/study/media/$media_smoke_id"'
   );
@@ -344,22 +314,14 @@ test('the production deployment wrapper and remote script remain valid Bash', as
   ]);
 });
 
-test('the production workflow migrates and streams Daily Audio before accepting cutover', async () => {
+test('the production workflow verifies migrated Daily Audio through Learning OS', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
     'utf8'
   );
 
   for (const requiredContract of [
-    'enable_daily_audio:',
-    'ENABLE_DAILY_AUDIO: ${{ inputs.enable_daily_audio }}',
-    'validate_boolean_input enable_daily_audio "$ENABLE_DAILY_AUDIO"',
-    '\\"studyApiDailyAudio\\" = $enable_daily_audio_sql',
-    '\\"studyApiDailyAudio\\" = $previous_daily_audio_sql',
-    'strict|opaque-cursor|overview-state|new-queue-state|daily-audio-media',
-    'DailyAudioList',
-    'DailyAudioDetail',
-    'daily-audio-media',
+    "'/api/learning-os/study/daily-audio-practice'",
     'Daily Audio historical track lookup',
     'No historical ready Daily Audio practice is available for streaming verification.',
     `printf '%s' "$daily_audio_list" | docker exec -i`,
@@ -382,12 +344,12 @@ test('the production workflow migrates and streams Daily Audio before accepting 
   }
 
   const dailyAudioBlock = workflow.slice(
-    workflow.indexOf('if [ "$ENABLE_DAILY_AUDIO" = true ]; then'),
-    workflow.indexOf('if [ "$ENABLE_BROWSER" = true ]; then')
+    workflow.indexOf('daily_audio_list='),
+    workflow.indexOf("'Browser Learning OS'")
   );
   assert.ok(
     dailyAudioBlock.indexOf('if [ -z "$daily_audio_id" ]; then') <
-      dailyAudioBlock.indexOf('DailyAudioDetail')
+      dailyAudioBlock.indexOf('Daily Audio historical track lookup')
   );
   assert.doesNotMatch(dailyAudioBlock, /if \[ -n "\$daily_audio_id" \]; then/);
   assert.doesNotMatch(
@@ -396,14 +358,13 @@ test('the production workflow migrates and streams Daily Audio before accepting 
     'Daily Audio JSON must use stdin so large production payloads cannot exceed ARG_MAX'
   );
   assert.ok(
-    dailyAudioBlock.indexOf('DailyAudioDetail') <
+    dailyAudioBlock.indexOf('Daily Audio historical track lookup') <
       dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
   );
   assert.ok(
     dailyAudioBlock.indexOf('test -s "$daily_audio_smoke_body"') <
       dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
   );
-  assert.doesNotMatch(workflow, /\\"studyApiDailyAudio\\" = false/);
 });
 
 test('the production worker consumes Learning OS card-draft jobs', async () => {
@@ -416,7 +377,7 @@ test('the production worker consumes Learning OS card-draft jobs', async () => {
   );
 });
 
-test('the production workflow tolerates intentional browser drift after card-write cutover', async () => {
+test('the production workflow verifies browser routes against Learning OS state', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
     'utf8'
@@ -424,8 +385,7 @@ test('the production workflow tolerates intentional browser drift after card-wri
 
   for (const requiredContract of [
     'Browser Learning OS independent-state smoke check passed.',
-    "browser_list_path='/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=1'",
-    "browser_list_path='/api/study/browser?sortField=created_on&sortDirection=desc&limit=1'",
+    "'/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=1'",
     'Browser detail Learning OS independent-state smoke check passed.',
   ]) {
     assert.ok(
@@ -435,24 +395,19 @@ test('the production workflow tolerates intentional browser drift after card-wri
   }
 
   const browserBlock = workflow.slice(
-    workflow.indexOf('if [ "$ENABLE_BROWSER" = true ]; then'),
-    workflow.indexOf('if [ "$ENABLE_NEW_QUEUE" = true ]')
+    workflow.indexOf("'Browser Learning OS'"),
+    workflow.indexOf('csrf_cookie_jar=')
   );
 
-  assert.match(browserBlock, /if \[ "\$ENABLE_CARD_WRITES" = true \]; then/);
   assert.match(
     browserBlock,
     /fetch_read_route[\s\S]*?\/api\/learning-os\/study\/browser\?sortField=created_on/
   );
-  assert.match(browserBlock, /else[\s\S]*?compare_read_route[\s\S]*?opaque-cursor/);
   assert.match(
     browserBlock,
     /Browser detail Learning OS[\s\S]*?\/api\/learning-os\/study\/browser\/\$browser_note_id/
   );
-  assert.match(
-    browserBlock,
-    /else[\s\S]*?compare_read_route BrowserDetail "\/api\/study\/browser\/\$browser_note_id"/
-  );
+  assert.doesNotMatch(browserBlock, /\/api\/study\/browser|compare_read_route|ENABLE_/);
 });
 
 test('the production workflow overlaps proxy tokens through a healthy server cutover', async () => {

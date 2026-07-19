@@ -64,7 +64,14 @@ describe('Feature Flags Route', () => {
     expect(mockPrisma.featureFlag.findFirst).toHaveBeenCalledWith({
       select: CLIENT_FEATURE_FLAG_SELECT,
     });
-    expect(CLIENT_FEATURE_FLAG_SELECT).not.toHaveProperty('studyApiEnabled');
+    expect(CLIENT_FEATURE_FLAG_SELECT).toEqual({
+      id: true,
+      dialoguesEnabled: true,
+      scriptsEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+      updatedAt: true,
+    });
   });
 
   it('creates and returns the client defaults when no row exists', async () => {
