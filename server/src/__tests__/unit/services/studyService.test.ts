@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import * as studyMediaService from '../../../services/studyMediaService.js';
 import * as studySchedulerService from '../../../services/studySchedulerService.js';
 import * as studyService from '../../../services/studyService.js';
-import * as studyVocabBundleService from '../../../services/studyVocabBundleService.js';
 
 describe('studyService barrel', () => {
   it('re-exports media functions from the media service', () => {
@@ -26,15 +25,6 @@ describe('studyService barrel', () => {
     expect(studyService.getStudyNewCardQueue).toBe(studySchedulerService.getStudyNewCardQueue);
     expect(studyService.reorderStudyNewCardQueue).toBe(
       studySchedulerService.reorderStudyNewCardQueue
-    );
-  });
-
-  it('re-exports vocab bundle functions from the vocab bundle service', () => {
-    expect(studyService.createStudyVocabBundleDrafts).toBe(
-      studyVocabBundleService.createStudyVocabBundleDrafts
-    );
-    expect(studyService.processStudyVocabBundleDrafts).toBe(
-      studyVocabBundleService.processStudyVocabBundleDrafts
     );
   });
 });

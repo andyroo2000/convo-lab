@@ -158,50 +158,6 @@ export async function generateCandidatePreviewImage(input: {
   });
 }
 
-export async function addPreviewAudio(
-  userId: string,
-  candidate: StudyCardCandidate
-): Promise<StudyCardCandidate> {
-  try {
-    const previewAudio = await synthesizeCandidatePreviewAudio(userId, candidate);
-    if (!previewAudio) {
-      return {
-        ...candidate,
-        warnings: [...(candidate.warnings ?? []), 'No audio text was available for preview.'],
-      };
-    }
-
-    if (candidate.candidateKind === 'audio-recognition') {
-      return {
-        ...candidate,
-        prompt: {
-          ...candidate.prompt,
-          cueAudio: previewAudio,
-        },
-        previewAudio,
-        previewAudioRole: 'prompt',
-      };
-    }
-
-    return {
-      ...candidate,
-      answer: {
-        ...candidate.answer,
-        answerAudio: previewAudio,
-      },
-      previewAudio,
-      previewAudioRole: 'answer',
-    };
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('[Study candidates] Failed to generate preview audio.', error);
-    return {
-      ...candidate,
-      warnings: [...(candidate.warnings ?? []), 'Audio preview could not be generated.'],
-    };
-  }
-}
-
 export async function getOwnedPreviewMediaIds(input: {
   userId: string;
   mediaIds: string[];

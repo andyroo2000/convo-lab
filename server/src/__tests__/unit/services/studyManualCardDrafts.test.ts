@@ -41,7 +41,6 @@ describe('manual card draft persistence service', () => {
     mockPrisma.studyCardDraft.findFirst.mockReset();
     mockPrisma.studyCardDraft.findUnique.mockReset();
     mockPrisma.studyCardDraft.create.mockReset();
-    mockPrisma.studyCardDraft.createMany.mockReset();
     mockPrisma.studyCardDraft.update.mockReset();
     mockPrisma.studyCardDraft.updateMany.mockReset();
     mockPrisma.studyCardDraft.delete.mockReset();
@@ -167,34 +166,6 @@ describe('manual card draft persistence service', () => {
     expect(mockPrisma.studyCardDraft.create).not.toHaveBeenCalled();
   });
 
-  it('fails batch draft creation if created records cannot be reloaded', async () => {
-    mockPrisma.studyCardDraft.count.mockResolvedValue(0);
-    mockPrisma.studyCardDraft.createMany.mockResolvedValue({ count: 1 });
-    mockPrisma.studyCardDraft.findMany.mockResolvedValue([]);
-    const { createGeneratingManualCardDraftsInTransaction } =
-      await import('../../../services/study/manualCardDrafts.js');
-    const tx = mockPrisma as unknown as Parameters<
-      typeof createGeneratingManualCardDraftsInTransaction
-    >[0]['tx'];
-
-    await expect(
-      createGeneratingManualCardDraftsInTransaction({
-        tx,
-        userId: 'user-1',
-        drafts: [
-          {
-            creationKind: 'text-recognition',
-            cardType: 'recognition',
-            prompt: { cueText: '会社' },
-            answer: { expression: '会社', meaning: 'company' },
-            imagePlacement: 'none',
-            imagePrompt: null,
-          },
-        ],
-      })
-    ).rejects.toThrow('Created study card draft could not be reloaded.');
-  });
-
   it('rejects draft creation when the supplied card type does not match the creation kind', async () => {
     const { createManualCardDraft } = await import('../../../services/study/manualCardDrafts.js');
 
@@ -310,81 +281,6 @@ describe('manual card draft persistence service', () => {
         errorMessage: 'Could not queue draft generation.',
       },
     });
-  });
-
-  it('marks vocab bundle drafts failed when group queueing cannot start', async () => {
-    mockPrisma.studyCardDraft.updateMany.mockResolvedValue({ count: 2 });
-    mockPrisma.studyCardDraft.findMany.mockResolvedValueOnce([
-      { id: 'draft-1' },
-      { id: 'draft-2' },
-    ]);
-    mockPrisma.studyCardDraft.findMany.mockResolvedValueOnce([
-      draftRecord({
-        id: 'draft-1',
-        status: 'error',
-        variantGroupId: 'group-1',
-        errorMessage: 'Could not queue vocab bundle generation.',
-      }),
-      draftRecord({
-        id: 'draft-2',
-        status: 'error',
-        variantGroupId: 'group-1',
-        errorMessage: 'Could not queue vocab bundle generation.',
-      }),
-    ]);
-    const { markManualCardDraftsForVariantGroupError } =
-      await import('../../../services/study/manualCardDrafts.js');
-
-    const result = await markManualCardDraftsForVariantGroupError({
-      userId: 'user-1',
-      variantGroupId: 'group-1',
-      errorMessage: 'Could not queue vocab bundle generation.',
-    });
-
-    expect(result).toHaveLength(2);
-    expect(result.every((draft) => draft.status === 'error')).toBe(true);
-    expect(mockPrisma.studyCardDraft.findMany).toHaveBeenNthCalledWith(1, {
-      where: {
-        userId: 'user-1',
-        variantGroupId: 'group-1',
-        status: 'generating',
-      },
-      select: { id: true },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-    expect(mockPrisma.studyCardDraft.updateMany).toHaveBeenCalledWith({
-      where: {
-        userId: 'user-1',
-        id: { in: ['draft-1', 'draft-2'] },
-      },
-      data: {
-        status: 'error',
-        errorMessage: 'Could not queue vocab bundle generation.',
-      },
-    });
-    expect(mockPrisma.studyCardDraft.findMany).toHaveBeenNthCalledWith(2, {
-      where: {
-        userId: 'user-1',
-        id: { in: ['draft-1', 'draft-2'] },
-      },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-  });
-
-  it('returns no vocab bundle drafts when no generating drafts were marked', async () => {
-    mockPrisma.studyCardDraft.findMany.mockResolvedValueOnce([]);
-    const { markManualCardDraftsForVariantGroupError } =
-      await import('../../../services/study/manualCardDrafts.js');
-
-    const result = await markManualCardDraftsForVariantGroupError({
-      userId: 'user-1',
-      variantGroupId: 'group-1',
-      errorMessage: 'Could not queue vocab bundle generation.',
-    });
-
-    expect(result).toEqual([]);
-    expect(mockPrisma.studyCardDraft.updateMany).not.toHaveBeenCalled();
-    expect(mockPrisma.studyCardDraft.findMany).toHaveBeenCalledTimes(1);
   });
 
   it('retries failed drafts', async () => {
