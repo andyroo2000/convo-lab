@@ -157,6 +157,10 @@ vi.mock('../../hooks/useStudy', () => ({
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
 }));
 
+vi.mock('../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({ flags: undefined, isLoading: false }),
+}));
+
 vi.mock('../../components/common/VoicePreview', () => ({
   default: ({ voiceId }: { voiceId: string }) => <span data-testid="voice-preview">{voiceId}</span>,
 }));

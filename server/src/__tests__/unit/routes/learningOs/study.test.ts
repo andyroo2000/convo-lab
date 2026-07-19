@@ -29,11 +29,26 @@ const mockPrisma = vi.hoisted(() => ({
   },
 }));
 const invokedRateLimitKeys = vi.hoisted(() => [] as string[]);
+const rateLimitOptionsByKey = vi.hoisted(
+  () =>
+    new Map<
+      string,
+      {
+        key: string;
+        max: number;
+        windowMs: number;
+        onBackendError?: string;
+      }
+    >()
+);
 
 const mockRateLimitStudyRoute = vi.hoisted(() =>
-  vi.fn((options: { key: string }) => (_req: Request, _res: Response, next: NextFunction) => {
-    invokedRateLimitKeys.push(options.key);
-    next();
+  vi.fn((options: { key: string; max: number; windowMs: number; onBackendError?: string }) => {
+    rateLimitOptionsByKey.set(options.key, options);
+    return (_req: Request, _res: Response, next: NextFunction) => {
+      invokedRateLimitKeys.push(options.key);
+      next();
+    };
   })
 );
 
@@ -1256,6 +1271,53 @@ describe('Learning OS Study proxy routes', () => {
     expect(invokedRateLimitKeys).toEqual(['learning-os-card-image-proxy']);
   });
 
+  it('proxies pitch-accent resolution through the card-write flag', async () => {
+    const resolvedCard = {
+      ...compatibilityCard,
+      answer: {
+        ...compatibilityCard.answer,
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: 0,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1, 1],
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify(resolvedCard), { status: 200 }))
+    );
+    const app = await createApp();
+    const { cookies, token } = await csrfAuth(app);
+
+    const response = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/pitch-accent`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
+
+    expect(response.status).toBe(200);
+    expect(response.body.answer.pitchAccent).toEqual(resolvedCard.answer.pitchAccent);
+    const call = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(call[0].toString()).toBe(
+      `https://learning-os.example/api/study/cards/${compatibilityCard.id}/pitch-accent`
+    );
+    expect(call[1].body).toBeUndefined();
+    expect(invokedRateLimitKeys).toEqual(['learning-os-card-pitch-accent-proxy']);
+    expect(rateLimitOptionsByKey.get('learning-os-card-pitch-accent-proxy')).toEqual({
+      key: 'learning-os-card-pitch-accent-proxy',
+      max: 30,
+      windowMs: 60_000,
+      onBackendError: 'fail-closed',
+    });
+  });
+
   it.each([
     [{ imagePrompt: '', imageRole: 'prompt' }],
     [{ imagePrompt: 'An office.', imageRole: 'none' }],
@@ -1278,6 +1340,7 @@ describe('Learning OS Study proxy routes', () => {
 
   it.each([
     ['prepare-answer-audio', { unexpected: true }],
+    ['pitch-accent', { unexpected: true }],
     ['regenerate-answer-audio', { unexpected: true }],
     ['regenerate-answer-audio', { answerAudioVoiceId: 'not-a-voice' }],
     ['regenerate-answer-audio', { answerAudioVoiceId: [] }],
@@ -1482,12 +1545,18 @@ describe('Learning OS Study proxy routes', () => {
       .set('Cookie', cookies)
       .set(CSRF_TOKEN_HEADER_NAME, token)
       .send({ imagePrompt: 'A company office.', imageRole: 'answer' });
+    const pitchAccentResponse = await request(app)
+      .post(`/api/learning-os/study/cards/${compatibilityCard.id}/pitch-accent`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Cookie', cookies)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
 
     expect(createResponse.status).toBe(403);
     expect(updateResponse.status).toBe(403);
     expect(prepareResponse.status).toBe(403);
     expect(regenerateResponse.status).toBe(403);
     expect(imageResponse.status).toBe(403);
+    expect(pitchAccentResponse.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -2501,6 +2570,7 @@ describe('Learning OS Study proxy routes', () => {
     `/api/learning-os/study/cards/${compatibilityCard.id}/prepare-answer-audio`,
     `/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-answer-audio`,
     `/api/learning-os/study/cards/${compatibilityCard.id}/regenerate-image`,
+    `/api/learning-os/study/cards/${compatibilityCard.id}/pitch-accent`,
   ])(
     'allows provider-backed generation to run beyond the default proxy timeout: %s',
     async (path) => {

@@ -388,6 +388,41 @@ describe('useStudy request helpers', () => {
     expect(requestInit.method).toBe('POST');
   });
 
+  it('routes pitch-accent resolution through Learning OS when card writes are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: true,
+    });
+
+    await resolveStudyCardPitchAccent('card-1', flags);
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/learning-os/study/cards/card-1/pitch-accent`,
+      expect.any(Object)
+    );
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(requestInit.method).toBe('POST');
+    expect(requestInit.body).toBeUndefined();
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBeNull();
+  });
+
+  it('keeps pitch-accent resolution on Convo Lab until card writes are enabled', async () => {
+    const flags = featureFlags({
+      studyApiEnabled: true,
+      studyApiCardWrites: false,
+    });
+
+    await resolveStudyCardPitchAccent('card-1', flags);
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/cards/card-1/pitch-accent`,
+      expect.any(Object)
+    );
+  });
+
   it('deletes study cards with CSRF headers', async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
