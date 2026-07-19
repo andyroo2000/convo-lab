@@ -86,9 +86,21 @@ async function assertEmptyDirectory(directory) {
     throw new Error(`Export root must be empty: ${resolved}`);
   }
 
+  // Recursive mkdir does not update an existing directory and applies the process umask.
   await chmod(resolved, 0o755);
 
   return resolved;
+}
+
+async function ensureSharedDirectory(exportRoot, directory) {
+  const relative = path.relative(exportRoot, directory);
+  let current = exportRoot;
+
+  for (const segment of relative.split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    await mkdir(current, { recursive: true, mode: 0o755 });
+    await chmod(current, 0o755);
+  }
 }
 
 async function downloadObject({ bucket, exportRoot, storagePath }) {
@@ -96,7 +108,7 @@ async function downloadObject({ bucket, exportRoot, storagePath }) {
   const parent = path.dirname(destination);
   const partial = `${destination}.partial`;
 
-  await mkdir(parent, { recursive: true, mode: 0o755 });
+  await ensureSharedDirectory(exportRoot, parent);
 
   try {
     await lstat(destination);
