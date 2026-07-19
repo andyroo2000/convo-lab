@@ -1,20 +1,13 @@
-import { STUDY_CANDIDATE_COMMIT_MAX_COUNT } from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
   StudyCardCandidateCommitItem,
-  StudyCardCandidateCommitResponse,
   StudyPromptPayload,
 } from '@languageflow/shared/src/types.js';
 
 import { AppError } from '../../../middleware/errorHandler.js';
-import { createStudyCard } from '../../studySchedulerService.js';
 import { cardTypeForStudyCardCandidateKind, STUDY_CARD_CANDIDATE_KINDS } from '../shared.js';
 
-import {
-  getCandidatePreviewAudioText,
-  getOwnedPreviewMediaIds,
-  synthesizeCandidatePreviewAudio,
-} from './previewMedia.js';
+import { getCandidatePreviewAudioText, synthesizeCandidatePreviewAudio } from './previewMedia.js';
 
 export type ResolvedStudyCardCandidateCommitItem = {
   item: StudyCardCandidateCommitItem;
@@ -74,80 +67,4 @@ export async function resolveStudyCardCandidateCommitItem(input: {
     previewAudioRole: resolvedPreviewAudioRole ?? null,
     previewImageId: item.previewImage?.id ?? item.prompt.cueImage?.id ?? null,
   };
-}
-
-export async function commitStudyCardCandidates(input: {
-  userId: string;
-  candidates: StudyCardCandidateCommitItem[];
-}): Promise<StudyCardCandidateCommitResponse> {
-  if (!Array.isArray(input.candidates) || input.candidates.length === 0) {
-    throw new AppError('At least one candidate is required.', 400);
-  }
-  if (input.candidates.length > STUDY_CANDIDATE_COMMIT_MAX_COUNT) {
-    throw new AppError(
-      `A maximum of ${String(STUDY_CANDIDATE_COMMIT_MAX_COUNT)} candidates can be added at once.`,
-      400
-    );
-  }
-
-  const resolvedItems = [];
-  for (const item of input.candidates) {
-    // Keep this sequential so a commit cannot fan out several missing-preview TTS calls at once.
-    resolvedItems.push(await resolveStudyCardCandidateCommitItem({ userId: input.userId, item }));
-  }
-
-  const previewAudioIds = resolvedItems.flatMap((item) =>
-    item.previewAudioId ? [item.previewAudioId] : []
-  );
-  const previewImageIds = resolvedItems.flatMap((item) =>
-    item.previewImageId ? [item.previewImageId] : []
-  );
-  const [ownedPreviewAudioIds, ownedPreviewImageIds] = await Promise.all([
-    getOwnedPreviewMediaIds({
-      userId: input.userId,
-      mediaIds: previewAudioIds,
-      mediaKind: 'audio',
-      errorMessage: 'Preview audio was not found for this user.',
-    }),
-    getOwnedPreviewMediaIds({
-      userId: input.userId,
-      mediaIds: previewImageIds,
-      mediaKind: 'image',
-      errorMessage: 'Preview image was not found for this user.',
-    }),
-  ]);
-
-  const cards = [];
-  for (const resolved of resolvedItems) {
-    const previewMediaId =
-      resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)
-        ? resolved.previewAudioId
-        : null;
-    const imageMediaId =
-      resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
-        ? resolved.previewImageId
-        : null;
-    const promptAudioMediaId =
-      resolved.previewAudioRole === 'prompt' || resolved.item.candidateKind === 'audio-recognition'
-        ? previewMediaId
-        : null;
-    // Listening cards intentionally reuse the same synthesized Japanese audio for the
-    // front cue and answer replay, while keeping the JSON payload answer free of cue-audio refs.
-    const answerAudioMediaId =
-      resolved.previewAudioRole === 'answer' || resolved.item.candidateKind === 'audio-recognition'
-        ? previewMediaId
-        : null;
-    const card = await createStudyCard({
-      userId: input.userId,
-      cardType: resolved.item.cardType,
-      prompt: resolved.prompt,
-      answer: resolved.answer,
-      promptAudioMediaId,
-      answerAudioMediaId,
-      imageMediaId,
-    });
-    cards.push(card);
-  }
-
-  return { cards };
 }
