@@ -329,6 +329,9 @@ test('the production workflow migrates and streams Daily Audio before accepting 
     'daily_audio_smoke_body="$(mktemp)"',
     '"https://convo-lab.com$daily_audio_track_url"',
     "grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)'",
+    "grep -Eiq \"^content-security-policy: sandbox; default-src 'none'[[:space:]]*$\"",
+    "grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$'",
+    "grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$'",
     'cleanup_daily_audio_smoke',
     'Historical Daily Audio streaming smoke check passed.',
   ]) {
@@ -346,6 +349,7 @@ test('the production workflow migrates and streams Daily Audio before accepting 
     dailyAudioBlock.indexOf('if [ -z "$daily_audio_id" ]; then') <
       dailyAudioBlock.indexOf('DailyAudioDetail')
   );
+  assert.doesNotMatch(dailyAudioBlock, /if \[ -n "\$daily_audio_id" \]; then/);
   assert.ok(
     dailyAudioBlock.indexOf('DailyAudioDetail') <
       dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
