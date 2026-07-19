@@ -8,8 +8,6 @@ import type {
   StudyQueueState,
   StudyAnswerPayload,
   StudyAudioSource,
-  StudyBrowserSortDirection,
-  StudyBrowserSortField,
   StudyFsrsState,
   StudyPromptPayload,
   StudyVocabVariantKind,
@@ -33,43 +31,6 @@ export type StudyCardWithRelations = Prisma.StudyCardGetPayload<{
     imageMedia: true;
   };
 }>;
-export type StudyBrowserListCardRecord = Prisma.StudyCardGetPayload<{
-  select: {
-    id: true;
-    cardType: true;
-    queueState: true;
-    promptJson: true;
-    answerJson: true;
-    updatedAt: true;
-  };
-}>;
-export type StudyBrowserListNoteRecord = Prisma.StudyNoteGetPayload<{
-  include: {
-    cards: {
-      select: {
-        id: true;
-        cardType: true;
-        queueState: true;
-        promptJson: true;
-        answerJson: true;
-        updatedAt: true;
-      };
-    };
-  };
-}>;
-export type StudyBrowserDetailNoteRecord = Prisma.StudyNoteGetPayload<{
-  include: {
-    cards: {
-      include: {
-        note: true;
-        promptAudioMedia: true;
-        answerAudioMedia: true;
-        imageMedia: true;
-      };
-    };
-  };
-}>;
-
 export interface QueryRow {
   [key: string]: string | number | Uint8Array | null;
 }
@@ -249,14 +210,6 @@ export interface PerformStudyCardActionInput {
   dueAt?: string;
   timeZone?: string;
   currentOverview?: StudyOverview;
-}
-
-export interface StudyBrowserCursor {
-  updatedAt?: string;
-  sortField?: StudyBrowserSortField;
-  sortDirection?: StudyBrowserSortDirection;
-  sortValue?: string | number;
-  id: string;
 }
 
 export interface CachedStudyMediaRedirect {

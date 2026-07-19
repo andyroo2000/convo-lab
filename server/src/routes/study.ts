@@ -2,8 +2,6 @@ import path from 'path';
 
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import {
-  STUDY_BROWSER_PAGE_SIZE_DEFAULT,
-  STUDY_BROWSER_PAGE_SIZE_MAX,
   STUDY_CANDIDATE_COMMIT_MAX_COUNT,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT,
@@ -11,8 +9,6 @@ import {
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
   STUDY_EXPORT_PAGE_SIZE_MAX,
-  STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
-  STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
 } from '@languageflow/shared/src/studyConstants.js';
 import type {
   JapanesePitchAccentResolvedBy,
@@ -29,12 +25,9 @@ import type {
   StudyManualCardDraftCreateRequest,
   StudyManualCardDraftUpdateRequest,
   StudyCardRegenerateImageRequest,
-  StudyBrowserSortDirection,
-  StudyBrowserSortField,
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
-  StudyQueueState,
   StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types.js';
 import { Router } from 'express';
@@ -45,10 +38,6 @@ import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
-import {
-  STUDY_BROWSER_SORT_DIRECTIONS,
-  STUDY_BROWSER_SORT_FIELDS,
-} from '../services/study/browserSort.js';
 import { assertStudyCardPayloadContract } from '../services/study/cardPayloadContract.js';
 import {
   cardTypeForStudyCardCandidateKind,
@@ -70,15 +59,10 @@ import {
   exportStudyImportsSection,
   exportStudyMediaSection,
   exportStudyReviewLogsSection,
-  getStudyBrowserList,
-  getStudyBrowserNoteDetail,
   getCurrentStudyImportJob,
-  getStudyNewCardQueue,
   getStudyMediaAccess,
   getStudyImportJob,
   getStudyImportUploadReadiness,
-  getStudyOverview,
-  getStudySettings,
   commitStudyCardCandidates,
   createStudyVocabBundleDrafts,
   generateStudyCardCandidates,
@@ -110,7 +94,7 @@ import { triggerWorkerJob } from '../services/workerTrigger.js';
 const router = Router();
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
-const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
+const STUDY_QUERY_PARAM_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
 const MANUAL_DRAFT_ENQUEUE_ERROR_MESSAGE =
@@ -155,14 +139,6 @@ function isValidIanaTimeZone(value: string): boolean {
   }
 }
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
-const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
-  'new',
-  'learning',
-  'review',
-  'relearning',
-  'suspended',
-  'buried',
-]);
 const STUDY_CARD_CANDIDATE_PREVIEW_ROLES = new Set(['prompt', 'answer']);
 const STUDY_IMPORT_MIME_TYPES = new Set([
   '',
@@ -321,9 +297,9 @@ function parseBoundedStringQueryParam(name: string, value: unknown): string | un
     return undefined;
   }
 
-  if (trimmed.length > STUDY_BROWSER_QUERY_MAX_LENGTH) {
+  if (trimmed.length > STUDY_QUERY_PARAM_MAX_LENGTH) {
     throw new AppError(
-      `${name} must be ${String(STUDY_BROWSER_QUERY_MAX_LENGTH)} characters or fewer.`,
+      `${name} must be ${String(STUDY_QUERY_PARAM_MAX_LENGTH)} characters or fewer.`,
       400
     );
   }
@@ -1024,34 +1000,6 @@ router.get('/imports/:id', async (req: AuthRequest, res, next) => {
   }
 });
 
-router.get('/overview', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-    const overview = await getStudyOverview(req.userId, parseOptionalTimeZone(req.query.timeZone));
-    res.json(overview);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get(
-  '/settings',
-  rateLimitStudyRoute({ key: 'settings-read', max: 120, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      res.json(await getStudySettings(req.userId));
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
 router.patch(
   '/settings',
   rateLimitStudyRoute({ key: 'settings', max: 60, windowMs: 60 * 1000 }),
@@ -1066,33 +1014,6 @@ router.patch(
         await updateStudySettings({
           userId: req.userId,
           newCardsPerDay,
-        })
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.get(
-  '/new-queue',
-  rateLimitStudyRoute({ key: 'new-queue', max: 120, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      res.json(
-        await getStudyNewCardQueue({
-          userId: req.userId,
-          cursor: parseBoundedStringQueryParam('cursor', req.query.cursor),
-          limit: parsePaginationLimit(
-            req.query.limit,
-            STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
-            STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX
-          ),
-          q: parseBoundedStringQueryParam('q', req.query.q),
         })
       );
     } catch (error) {
@@ -1972,96 +1893,6 @@ router.post(
     }
   }
 );
-
-router.get('/browser', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const q = parseBoundedStringQueryParam('q', req.query.q);
-    const noteType = parseBoundedStringQueryParam('noteType', req.query.noteType);
-    const cursor = parseCursorQueryParam('cursor', req.query.cursor);
-    const limit = parsePaginationLimit(
-      req.query.limit,
-      STUDY_BROWSER_PAGE_SIZE_DEFAULT,
-      STUDY_BROWSER_PAGE_SIZE_MAX
-    );
-
-    const cardType =
-      typeof req.query.cardType === 'undefined' ? undefined : String(req.query.cardType);
-    if (typeof cardType !== 'undefined' && !STUDY_CARD_TYPES.has(cardType as StudyCardType)) {
-      throw new AppError('cardType must be recognition, production, or cloze.', 400);
-    }
-
-    const queueState =
-      typeof req.query.queueState === 'undefined' ? undefined : String(req.query.queueState);
-    if (
-      typeof queueState !== 'undefined' &&
-      !STUDY_QUEUE_STATES.has(queueState as StudyQueueState)
-    ) {
-      throw new AppError(
-        'queueState must be new, learning, review, relearning, suspended, or buried.',
-        400
-      );
-    }
-
-    const sortField =
-      typeof req.query.sortField === 'undefined' ? undefined : String(req.query.sortField);
-    if (
-      typeof sortField !== 'undefined' &&
-      !STUDY_BROWSER_SORT_FIELDS.has(sortField as StudyBrowserSortField)
-    ) {
-      throw new AppError(
-        'sortField must be created_on, updated_on, sort_field, note_type, card_count, or review_count.',
-        400
-      );
-    }
-
-    const sortDirection =
-      typeof req.query.sortDirection === 'undefined' ? undefined : String(req.query.sortDirection);
-    if (
-      typeof sortDirection !== 'undefined' &&
-      !STUDY_BROWSER_SORT_DIRECTIONS.has(sortDirection as StudyBrowserSortDirection)
-    ) {
-      throw new AppError('sortDirection must be asc or desc.', 400);
-    }
-
-    const result = await getStudyBrowserList({
-      userId: req.userId,
-      q,
-      noteType,
-      cardType: cardType as StudyCardType | undefined,
-      queueState: queueState as StudyQueueState | undefined,
-      cursor,
-      limit,
-      sortField: sortField as StudyBrowserSortField | undefined,
-      sortDirection: sortDirection as StudyBrowserSortDirection | undefined,
-    });
-
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/browser/:noteId', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const result = await getStudyBrowserNoteDetail(req.userId, req.params.noteId);
-    if (!result) {
-      res.status(404).json({ message: 'Study note not found.' });
-      return;
-    }
-
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
 
 router.get(
   '/media/:mediaId',

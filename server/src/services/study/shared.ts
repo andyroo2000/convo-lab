@@ -2,9 +2,6 @@ export type {
   CreateStudyCardInput,
   JsonRecord,
   ParsedImportDataset,
-  StudyBrowserDetailNoteRecord,
-  StudyBrowserListCardRecord,
-  StudyBrowserListNoteRecord,
   StudyCardWithRelations,
   RegenerateStudyCardAnswerAudioInput,
   StudyImportErrorWithMedia,
@@ -14,7 +11,6 @@ export type {
   StudyReviewLogRecord,
   UpdateStudyCardInput,
   PerformStudyCardActionInput,
-  StudyBrowserCursor,
   StudyExportCursor,
   ParsedAnkiMediaRecord,
   PersistedStudyMediaRecord,
@@ -52,12 +48,7 @@ export {
   toSafeStudyImportError,
 } from './shared/guards.js';
 
-export {
-  decodeStudyBrowserCursor,
-  decodeStudyExportCursor,
-  encodeStudyBrowserCursor,
-  encodeStudyExportCursor,
-} from './shared/cursors.js';
+export { decodeStudyExportCursor, encodeStudyExportCursor } from './shared/cursors.js';
 
 export {
   cardTypeForStudyCardCreationKind,
@@ -124,10 +115,8 @@ export {
 
 export {
   buildMediaLookup,
-  getNoteDisplayText,
   mergeStudyMediaRecord,
   normalizeStudyCardPayload,
-  toStudyBrowserField,
   toStudyCardSummary,
 } from './shared/cardMappers.js';
 
