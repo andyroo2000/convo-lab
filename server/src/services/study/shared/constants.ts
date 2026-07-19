@@ -1,5 +1,4 @@
 export const ANKI_DECK_NAME = '日本語';
-export const FIELD_SEPARATOR = String.fromCharCode(31);
 export const STUDY_GENERATED_IMPORT_JOB_ID = 'generated';
 // Keep ready study sessions bounded while still covering a realistic full due-card sitting.
 export const STUDY_SESSION_READY_CARD_LIMIT = 300;
@@ -11,5 +10,3 @@ export const STUDY_AUDIO_LOCK_TTL_MS = 15 * 1000;
 export const STUDY_AUDIO_LOCK_POLL_INTERVAL_MS = 250;
 export const STUDY_AUDIO_REPAIR_FAILURE_COOLDOWN_MS = 15 * 60 * 1000;
 export const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
-export const STUDY_IMPORT_WARNING_LIMIT = 10;
-export const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;

@@ -30,13 +30,7 @@ import {
   STUDY_CARD_IMAGE_PLACEMENTS,
 } from '../services/study/shared.js';
 import {
-  cancelStudyImportUpload,
-  completeStudyImportUpload,
-  createStudyImportUploadSession,
-  getCurrentStudyImportJob,
   getStudyMediaAccess,
-  getStudyImportJob,
-  getStudyImportUploadReadiness,
   createStudyVocabBundleDrafts,
   createManualCardDraft,
   createStudyCardFromManualDraft,
@@ -79,13 +73,6 @@ async function enqueueOrMarkDraftError<T>(input: {
 
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
 const STUDY_CARD_CANDIDATE_PREVIEW_ROLES = new Set(['prompt', 'answer']);
-const STUDY_IMPORT_MIME_TYPES = new Set([
-  '',
-  'application/zip',
-  'application/x-zip-compressed',
-  'application/octet-stream',
-  'multipart/x-zip',
-]);
 const STUDY_MEDIA_KINDS = new Set<StudyMediaRef['mediaKind']>(['audio', 'image', 'other']);
 const STUDY_MEDIA_SOURCES = new Set<StudyMediaRef['source']>([
   'imported',
@@ -155,37 +142,6 @@ function parsePositiveIntegerQueryParam(name: string, value: unknown): number | 
   }
 
   return parsed;
-}
-
-function parseStudyImportCreateRequest(body: unknown): {
-  filename: string;
-  contentType?: string;
-} {
-  if (!isPlainObject(body)) {
-    throw new AppError('Study import request body must be an object.', 400);
-  }
-
-  const { filename, contentType } = body;
-  if (typeof filename !== 'string' || filename.trim().length === 0) {
-    throw new AppError('filename is required.', 400);
-  }
-  if (!filename.trim().toLowerCase().endsWith('.colpkg')) {
-    throw new AppError('Only .colpkg Anki collection backups are accepted.', 400);
-  }
-
-  if (typeof contentType !== 'undefined' && typeof contentType !== 'string') {
-    throw new AppError('contentType must be a string when provided.', 400);
-  }
-
-  const normalizedContentType = typeof contentType === 'string' ? contentType.toLowerCase() : '';
-  if (typeof contentType === 'string' && !STUDY_IMPORT_MIME_TYPES.has(normalizedContentType)) {
-    throw new AppError('Only .colpkg Anki collection backups are accepted.', 400);
-  }
-
-  return {
-    filename: filename.trim(),
-    contentType: typeof contentType === 'string' ? normalizedContentType : undefined,
-  };
 }
 
 function parsePaginationLimit(value: unknown, defaultSize: number, maxSize: number): number {
@@ -661,130 +617,6 @@ function parseStudyCardCandidatePreviewRole(value: unknown): 'prompt' | 'answer'
 
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
-
-router.post(
-  '/imports',
-  rateLimitStudyRoute({
-    key: 'import',
-    max: 3,
-    windowMs: 10 * 60 * 1000,
-    onBackendError: 'fail-closed',
-  }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-      const request = parseStudyImportCreateRequest(req.body);
-      const result = await createStudyImportUploadSession({
-        userId: req.userId,
-        filename: request.filename,
-        contentType: request.contentType,
-      });
-
-      res.status(201).json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.get('/imports/readiness', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const result = await getStudyImportUploadReadiness();
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/imports/current', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const result = await getCurrentStudyImportJob(req.userId);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post(
-  '/imports/:id/complete',
-  rateLimitStudyRoute({
-    key: 'import-complete',
-    max: 10,
-    windowMs: 10 * 60 * 1000,
-    onBackendError: 'fail-closed',
-  }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const result = await completeStudyImportUpload({
-        userId: req.userId,
-        importJobId: req.params.id,
-      });
-
-      res
-        .status(result.status === 'pending' || result.status === 'processing' ? 202 : 200)
-        .json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/imports/:id/cancel',
-  rateLimitStudyRoute({
-    key: 'import-cancel',
-    max: 20,
-    windowMs: 60 * 1000,
-    onBackendError: 'fail-closed',
-  }),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!req.userId) {
-        throw new AppError('Authenticated user is required.', 401);
-      }
-
-      const result = await cancelStudyImportUpload({
-        userId: req.userId,
-        importJobId: req.params.id,
-      });
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.get('/imports/:id', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-    const result = await getStudyImportJob(req.userId, req.params.id);
-    if (!result) {
-      res.status(404).json({ message: 'Study import not found.' });
-      return;
-    }
-
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Candidate routes intentionally rely on the global flashcardsEnabled gate above;
 // no separate rollout flag is needed for this flashcards-only surface.

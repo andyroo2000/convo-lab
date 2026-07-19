@@ -8,7 +8,6 @@ import { dailyAudioPracticeWorker } from './jobs/dailyAudioPracticeQueue.js';
 import { dialogueWorker } from './jobs/dialogueQueue.js';
 import { emailWorker } from './jobs/emailQueue.js';
 import { imageWorker } from './jobs/imageQueue.js';
-import { studyImportWorker } from './jobs/studyImportQueue.js';
 import { studyManualCardDraftWorker } from './jobs/studyManualCardDraftQueue.js';
 import { studyVocabBundleDraftWorker } from './jobs/studyVocabBundleDraftQueue.js';
 
@@ -24,7 +23,6 @@ console.log('Workers initialized:', {
   emailWorker: !!emailWorker,
   studyManualCardDraftWorker: !!studyManualCardDraftWorker,
   studyVocabBundleDraftWorker: !!studyVocabBundleDraftWorker,
-  studyImportWorker: !!studyImportWorker,
 });
 
 const workers = [
@@ -38,7 +36,6 @@ const workers = [
   emailWorker,
   studyManualCardDraftWorker,
   studyVocabBundleDraftWorker,
-  studyImportWorker,
 ];
 
 // Check if all queues are empty
@@ -54,7 +51,6 @@ async function areQueuesEmpty(): Promise<boolean> {
     const { emailQueue } = await import('./jobs/emailQueue.js');
     const { studyManualCardDraftQueue } = await import('./jobs/studyManualCardDraftQueue.js');
     const { studyVocabBundleDraftQueue } = await import('./jobs/studyVocabBundleDraftQueue.js');
-    const { studyImportQueue } = await import('./jobs/studyImportQueue.js');
 
     const queues = [
       audioQueue,
@@ -67,7 +63,6 @@ async function areQueuesEmpty(): Promise<boolean> {
       emailQueue,
       studyManualCardDraftQueue,
       studyVocabBundleDraftQueue,
-      studyImportQueue,
     ];
 
     const counts = await Promise.all(

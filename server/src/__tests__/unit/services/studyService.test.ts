@@ -1,19 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import * as studyImportService from '../../../services/studyImportService.js';
 import * as studyMediaService from '../../../services/studyMediaService.js';
 import * as studySchedulerService from '../../../services/studySchedulerService.js';
 import * as studyService from '../../../services/studyService.js';
 import * as studyVocabBundleService from '../../../services/studyVocabBundleService.js';
 
 describe('studyService barrel', () => {
-  it('re-exports import functions from the import service', () => {
-    expect(studyService.importJapaneseStudyColpkg).toBe(
-      studyImportService.importJapaneseStudyColpkg
-    );
-    expect(studyService.getStudyImportJob).toBe(studyImportService.getStudyImportJob);
-  });
-
   it('re-exports media functions from the media service', () => {
     expect(studyService.getStudyMediaAccess).toBe(studyMediaService.getStudyMediaAccess);
     expect(studyService.prepareStudyCardAnswerAudio).toBe(

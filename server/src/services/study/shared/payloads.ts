@@ -5,13 +5,9 @@ import {
 import type { StudyFsrsState, StudyImportPreview } from '@languageflow/shared/src/types.js';
 import { Prisma } from '@prisma/client';
 
-import {
-  ANKI_DECK_NAME,
-  STUDY_IMPORT_WARNING_LIMIT,
-  STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES,
-} from './constants.js';
+import { ANKI_DECK_NAME, STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES } from './constants.js';
 import { isRecord, parseStudyReviewSource } from './guards.js';
-import type { JsonRecord, StudyImportWarningAccumulator, StudyReviewLogRecord } from './types.js';
+import type { JsonRecord, StudyReviewLogRecord } from './types.js';
 
 export function toBoundedReviewRawPayload(
   payload: JsonRecord,
@@ -26,33 +22,6 @@ export function toBoundedReviewRawPayload(
     ...fallback,
     truncated: true,
   } as Prisma.InputJsonValue;
-}
-
-export function toImportReviewRawPayload(log: {
-  sourceReviewId: number;
-  sourceCardId: number;
-  sourceEase: number;
-  sourceInterval: number;
-  sourceLastInterval: number;
-  sourceFactor: number;
-  sourceTimeMs: number;
-  sourceReviewType: number;
-}): Prisma.InputJsonValue {
-  const payload = {
-    reviewId: log.sourceReviewId,
-    cardId: log.sourceCardId,
-    ease: log.sourceEase,
-    ivl: log.sourceInterval,
-    lastIvl: log.sourceLastInterval,
-    factor: log.sourceFactor,
-    time: log.sourceTimeMs,
-    type: log.sourceReviewType,
-  };
-
-  return toBoundedReviewRawPayload(payload, {
-    reviewId: log.sourceReviewId,
-    cardId: log.sourceCardId,
-  });
 }
 
 export function toConvolabReviewRawPayload(params: {
@@ -129,32 +98,6 @@ export function toStudyImportPreview(
         })
       : fallback.noteTypeBreakdown,
   };
-}
-
-export function createStudyImportWarningAccumulator(): StudyImportWarningAccumulator {
-  return {
-    skippedMediaCount: 0,
-    warnings: [],
-  };
-}
-
-export function recordStudyImportWarning(
-  accumulator: StudyImportWarningAccumulator,
-  filename: string,
-  reason: string,
-  options?: {
-    countsAsSkippedMedia?: boolean;
-  }
-) {
-  if (options?.countsAsSkippedMedia ?? true) {
-    accumulator.skippedMediaCount += 1;
-  }
-
-  if (accumulator.warnings.length >= STUDY_IMPORT_WARNING_LIMIT) {
-    return;
-  }
-
-  accumulator.warnings.push(`${filename}: ${reason}`);
 }
 
 export function toStudyFsrsState(
