@@ -180,6 +180,12 @@ const learningOsCardImageRateLimit = rateLimitStudyRoute({
   windowMs: 60 * 1000,
   onBackendError: 'fail-closed',
 });
+const learningOsCardPitchAccentRateLimit = rateLimitStudyRoute({
+  key: 'learning-os-card-pitch-accent-proxy',
+  max: 30,
+  windowMs: 60 * 1000,
+  onBackendError: 'fail-closed',
+});
 const learningOsCardDraftCreateRateLimit = rateLimitStudyRoute({
   key: 'learning-os-card-draft-create-proxy',
   max: 60,
@@ -250,6 +256,7 @@ type StudyWriteFeature =
   | 'cardAction'
   | 'cardAnswerAudio'
   | 'cardImage'
+  | 'cardPitchAccent'
   | 'vocabBundleDraftCreate'
   | 'cardDraftCreate'
   | 'cardDraftUpdate'
@@ -452,6 +459,16 @@ const ALLOWED_STUDY_ROUTES: StudyProxyRoute[] = [
     queryParams: new Set(),
     writeFeature: 'cardImage',
     writeBody: 'imageRegenerate',
+    responseAdapter: 'card',
+    timeoutMs: LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS,
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/cards/${STUDY_CARD_ID_SEGMENT}/pitch-accent$`, 'i'),
+    featureFlag: 'studyApiCardWrites',
+    queryParams: new Set(),
+    writeFeature: 'cardPitchAccent',
+    writeBody: 'empty',
     responseAdapter: 'card',
     timeoutMs: LEARNING_OS_GENERATED_MEDIA_TIMEOUT_MS,
   },
@@ -1376,6 +1393,8 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
     learningOsCardAnswerAudioRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardImage') {
     learningOsCardImageRateLimit(req, res, next);
+  } else if (route.writeFeature === 'cardPitchAccent') {
+    learningOsCardPitchAccentRateLimit(req, res, next);
   } else if (route.writeFeature === 'vocabBundleDraftCreate') {
     learningOsVocabBundleDraftCreateRateLimit(req, res, next);
   } else if (route.writeFeature === 'cardDraftCreate') {

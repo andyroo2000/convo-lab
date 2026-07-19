@@ -350,12 +350,16 @@ export async function regenerateStudyCardImage(
   );
 }
 
-export async function resolveStudyCardPitchAccent(cardId: string): Promise<StudyCardSummary> {
+export async function resolveStudyCardPitchAccent(
+  cardId: string,
+  flags?: FeatureFlags
+): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(
     `/api/study/cards/${encodeURIComponent(cardId)}/pitch-accent`,
     {
       method: 'POST',
-    }
+    },
+    { feature: 'cardWrites', flags }
   );
 }
 

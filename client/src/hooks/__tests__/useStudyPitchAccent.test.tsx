@@ -5,12 +5,26 @@ import type { JapanesePitchAccentPayload, StudyCardSummary } from '@languageflow
 import { createWrapper } from '../../__tests__/hooks/test-utils';
 import useStudyPitchAccent from '../useStudyPitchAccent';
 
-const { resolveStudyCardPitchAccentMock } = vi.hoisted(() => ({
+const { resolveStudyCardPitchAccentMock, featureFlags, featureFlagState } = vi.hoisted(() => ({
   resolveStudyCardPitchAccentMock: vi.fn(),
+  featureFlags: {
+    studyApiEnabled: true,
+    studyApiCardWrites: true,
+  },
+  featureFlagState: {
+    flags: {
+      studyApiEnabled: true,
+      studyApiCardWrites: true,
+    },
+    isLoading: false,
+  },
 }));
 
 vi.mock('../useStudy', () => ({
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
+}));
+vi.mock('../useFeatureFlags', () => ({
+  useFeatureFlags: () => featureFlagState,
 }));
 
 function buildCard(id: string): StudyCardSummary {
@@ -55,6 +69,32 @@ const unresolvedPitchAccent: JapanesePitchAccentPayload = {
 describe('useStudyPitchAccent', () => {
   beforeEach(() => {
     resolveStudyCardPitchAccentMock.mockReset();
+    featureFlagState.flags = featureFlags;
+    featureFlagState.isLoading = false;
+  });
+
+  it('waits for feature flags before choosing the pitch-accent backend', async () => {
+    featureFlagState.isLoading = true;
+    resolveStudyCardPitchAccentMock.mockResolvedValueOnce({
+      ...buildCard('card-1'),
+      answer: {
+        ...buildCard('card-1').answer,
+        pitchAccent: resolvedPitchAccent,
+      },
+    });
+
+    const { rerender } = renderHook(() => useStudyPitchAccent(buildCard('card-1'), true), {
+      wrapper: createWrapper(),
+    });
+
+    expect(resolveStudyCardPitchAccentMock).not.toHaveBeenCalled();
+
+    featureFlagState.isLoading = false;
+    rerender();
+
+    await waitFor(() => {
+      expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith('card-1', featureFlags);
+    });
   });
 
   it('fetches the next card after a previous pitch accent request fails', async () => {
@@ -74,21 +114,13 @@ describe('useStudyPitchAccent', () => {
     });
 
     await waitFor(() => {
-      expect(resolveStudyCardPitchAccentMock).toHaveBeenNthCalledWith(
-        1,
-        'card-1',
-        expect.objectContaining({ client: expect.any(Object) })
-      );
+      expect(resolveStudyCardPitchAccentMock).toHaveBeenNthCalledWith(1, 'card-1', featureFlags);
     });
 
     rerender({ card: buildCard('card-2') });
 
     await waitFor(() => {
-      expect(resolveStudyCardPitchAccentMock).toHaveBeenNthCalledWith(
-        2,
-        'card-2',
-        expect.objectContaining({ client: expect.any(Object) })
-      );
+      expect(resolveStudyCardPitchAccentMock).toHaveBeenNthCalledWith(2, 'card-2', featureFlags);
     });
   });
 
@@ -134,10 +166,7 @@ describe('useStudyPitchAccent', () => {
     });
 
     await waitFor(() => {
-      expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith(
-        'card-1',
-        expect.objectContaining({ client: expect.any(Object) })
-      );
+      expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith('card-1', featureFlags);
     });
 
     await waitFor(() => {
