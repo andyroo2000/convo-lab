@@ -8,7 +8,6 @@ import { dailyAudioPracticeWorker } from './jobs/dailyAudioPracticeQueue.js';
 import { dialogueWorker } from './jobs/dialogueQueue.js';
 import { emailWorker } from './jobs/emailQueue.js';
 import { imageWorker } from './jobs/imageQueue.js';
-import { studyManualCardDraftWorker } from './jobs/studyManualCardDraftQueue.js';
 
 console.log('🚀 BullMQ Workers Starting...');
 console.log('Workers initialized:', {
@@ -20,7 +19,6 @@ console.log('Workers initialized:', {
   courseWorker: !!courseWorker,
   dailyAudioPracticeWorker: !!dailyAudioPracticeWorker,
   emailWorker: !!emailWorker,
-  studyManualCardDraftWorker: !!studyManualCardDraftWorker,
 });
 
 const workers = [
@@ -32,7 +30,6 @@ const workers = [
   courseWorker,
   dailyAudioPracticeWorker,
   emailWorker,
-  studyManualCardDraftWorker,
 ];
 
 // Check if all queues are empty
@@ -46,7 +43,6 @@ async function areQueuesEmpty(): Promise<boolean> {
     const { courseQueue } = await import('./jobs/courseQueue.js');
     const { dailyAudioPracticeQueue } = await import('./jobs/dailyAudioPracticeQueue.js');
     const { emailQueue } = await import('./jobs/emailQueue.js');
-    const { studyManualCardDraftQueue } = await import('./jobs/studyManualCardDraftQueue.js');
 
     const queues = [
       audioQueue,
@@ -57,7 +53,6 @@ async function areQueuesEmpty(): Promise<boolean> {
       courseQueue,
       dailyAudioPracticeQueue,
       emailQueue,
-      studyManualCardDraftQueue,
     ];
 
     const counts = await Promise.all(
