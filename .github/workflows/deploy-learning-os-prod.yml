@@ -462,7 +462,8 @@ jobs:
                         ELSE "audioUrl"
                       END AS storage_path
                     FROM daily_audio_practice_tracks
-                    WHERE "audioUrl" IS NOT NULL
+                    WHERE status = '"'"'ready'"'"'
+                      AND "audioUrl" IS NOT NULL
                   ) AS paths;
                 ' > "$media_manifest"
               chmod 600 "$media_manifest"
