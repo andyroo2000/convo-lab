@@ -1,8 +1,3 @@
-import {
-  STUDY_EXPORT_PAGE_SIZE_DEFAULT,
-  STUDY_EXPORT_PAGE_SIZE_MAX,
-} from '@languageflow/shared/src/studyConstants.js';
-
 export const ANKI_DECK_NAME = '日本語';
 export const FIELD_SEPARATOR = String.fromCharCode(31);
 export const STUDY_GENERATED_IMPORT_JOB_ID = 'generated';
@@ -18,5 +13,3 @@ export const STUDY_AUDIO_REPAIR_FAILURE_COOLDOWN_MS = 15 * 60 * 1000;
 export const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
 export const STUDY_IMPORT_WARNING_LIMIT = 10;
 export const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;
-export const STUDY_EXPORT_SECTION_LIMIT_DEFAULT = STUDY_EXPORT_PAGE_SIZE_DEFAULT;
-export const STUDY_EXPORT_SECTION_LIMIT_MAX = STUDY_EXPORT_PAGE_SIZE_MAX;

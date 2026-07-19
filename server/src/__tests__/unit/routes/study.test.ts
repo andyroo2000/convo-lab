@@ -38,10 +38,6 @@ const {
   enqueueStudyManualCardDraftJobMock,
   enqueueStudyVocabBundleDraftJobMock,
   expireAtMock,
-  exportStudyCardsSectionMock,
-  exportStudyImportsSectionMock,
-  exportStudyMediaSectionMock,
-  exportStudyReviewLogsSectionMock,
   getCurrentStudyImportJobMock,
   getStudyMediaAccessMock,
   getStudyImportUploadReadinessMock,
@@ -63,10 +59,6 @@ const {
   enqueueStudyManualCardDraftJobMock: vi.fn(),
   enqueueStudyVocabBundleDraftJobMock: vi.fn(),
   expireAtMock: vi.fn(),
-  exportStudyCardsSectionMock: vi.fn(),
-  exportStudyImportsSectionMock: vi.fn(),
-  exportStudyMediaSectionMock: vi.fn(),
-  exportStudyReviewLogsSectionMock: vi.fn(),
   getCurrentStudyImportJobMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
   getStudyImportUploadReadinessMock: vi.fn(),
@@ -93,11 +85,6 @@ vi.mock('../../../services/studyService.js', () => ({
   createStudyVocabBundleDrafts: createStudyVocabBundleDraftsMock,
   deleteManualCardDraft: deleteManualCardDraftMock,
   createStudyImportUploadSession: createStudyImportUploadSessionMock,
-  exportStudyData: vi.fn(),
-  exportStudyCardsSection: exportStudyCardsSectionMock,
-  exportStudyImportsSection: exportStudyImportsSectionMock,
-  exportStudyMediaSection: exportStudyMediaSectionMock,
-  exportStudyReviewLogsSection: exportStudyReviewLogsSectionMock,
   getCurrentStudyImportJob: getCurrentStudyImportJobMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
   getStudyImportJob: vi.fn(),
@@ -634,6 +621,7 @@ describe('Study Routes', () => {
   });
 
   it('rate limits repeated study media reads', async () => {
+    vi.useRealTimers();
     execMock.mockResolvedValueOnce([
       [null, 241],
       [null, 1],
@@ -644,65 +632,6 @@ describe('Study Routes', () => {
     expect(response.status).toBe(429);
     expect(response.body.message).toContain('Too many study requests');
     expect(getStudyMediaAccessMock).not.toHaveBeenCalled();
-  });
-
-  it('returns the lightweight study export manifest', async () => {
-    const { exportStudyData } = await import('../../../services/studyService.js');
-    vi.mocked(exportStudyData).mockResolvedValue({
-      exportedAt: '2026-04-21T12:00:00.000Z',
-      sections: {
-        cards: { total: 10 },
-        reviewLogs: { total: 20 },
-        media: { total: 5 },
-        imports: { total: 1 },
-      },
-    });
-
-    const response = await request(app).get('/study/export');
-
-    expect(response.status).toBe(200);
-    expect(response.body.sections.cards.total).toBe(10);
-    expect(exportStudyData).toHaveBeenCalledWith('user-1');
-  });
-
-  it('passes export cards pagination params through to the service', async () => {
-    exportStudyCardsSectionMock.mockResolvedValue({
-      items: [],
-      nextCursor: 'cursor-2',
-    });
-
-    const response = await request(app).get('/study/export/cards?cursor=cursor-1&limit=250');
-
-    expect(response.status).toBe(200);
-    expect(exportStudyCardsSectionMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cursor: 'cursor-1',
-      limit: 250,
-    });
-  });
-
-  it('rejects export cursors longer than 1000 characters', async () => {
-    const response = await request(app).get(`/study/export/cards?cursor=${'a'.repeat(1001)}`);
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('cursor must be 1000 characters or fewer');
-    expect(exportStudyCardsSectionMock).not.toHaveBeenCalled();
-  });
-
-  it('defaults export section pagination when omitted', async () => {
-    exportStudyReviewLogsSectionMock.mockResolvedValue({
-      items: [],
-      nextCursor: null,
-    });
-
-    const response = await request(app).get('/study/export/review-logs');
-
-    expect(response.status).toBe(200);
-    expect(exportStudyReviewLogsSectionMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cursor: undefined,
-      limit: 500,
-    });
   });
 
   it('blocks study routes when the flashcards feature flag is disabled', async () => {
@@ -757,6 +686,11 @@ describe('Study Routes', () => {
     '/study/new-queue',
     '/study/browser',
     '/study/browser/note-1',
+    '/study/export',
+    '/study/export/cards',
+    '/study/export/review-logs',
+    '/study/export/media',
+    '/study/export/imports',
   ])('does not expose the retired read route %s', async (path) => {
     const response = await request(app).get(path);
 

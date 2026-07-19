@@ -158,11 +158,6 @@ export interface StudyImportWarningAccumulator {
   warnings: string[];
 }
 
-export interface StudyExportCursor {
-  timestamp: string;
-  id: string;
-}
-
 export type StudyImportErrorWithMedia = AppError & {
   persistedMediaStoragePaths?: string[];
 };

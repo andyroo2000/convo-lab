@@ -6,8 +6,6 @@ export {
   STUDY_IMPORT_UPLOAD_SESSION_TTL_MS,
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
-  STUDY_EXPORT_PAGE_SIZE_DEFAULT,
-  STUDY_EXPORT_PAGE_SIZE_MAX,
   STUDY_NEW_CARDS_PER_DAY_DEFAULT,
   STUDY_NEW_CARDS_PER_DAY_MAX,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
@@ -553,27 +551,4 @@ export interface StudyImportUploadSession {
     url: string;
     headers: Record<string, string>;
   };
-}
-
-export interface StudyExportManifest {
-  exportedAt: string;
-  sections: {
-    cards: {
-      total: number;
-    };
-    reviewLogs: {
-      total: number;
-    };
-    media: {
-      total: number;
-    };
-    imports: {
-      total: number;
-    };
-  };
-}
-
-export interface StudyExportSectionResponse<T> {
-  items: T[];
-  nextCursor: string | null;
 }

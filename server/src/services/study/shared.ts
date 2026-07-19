@@ -11,7 +11,6 @@ export type {
   StudyReviewLogRecord,
   UpdateStudyCardInput,
   PerformStudyCardActionInput,
-  StudyExportCursor,
   ParsedAnkiMediaRecord,
   PersistedStudyMediaRecord,
   StudyImportWarningAccumulator,
@@ -27,8 +26,6 @@ export {
   STUDY_SESSION_READY_CARD_LIMIT,
   STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS,
   STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
-  STUDY_EXPORT_SECTION_LIMIT_DEFAULT,
-  STUDY_EXPORT_SECTION_LIMIT_MAX,
 } from './shared/constants.js';
 
 export {
@@ -47,8 +44,6 @@ export {
   toPrismaJson,
   toSafeStudyImportError,
 } from './shared/guards.js';
-
-export { decodeStudyExportCursor, encodeStudyExportCursor } from './shared/cursors.js';
 
 export {
   cardTypeForStudyCardCreationKind,
