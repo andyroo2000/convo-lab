@@ -298,6 +298,51 @@ describe('toolAudio route', () => {
       });
   });
 
+  it('preserves per-client rate limiting before proxying to Learning OS', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '1';
+    await mountToolAudioApp();
+    const path = '/tools-audio/japanese/minute/44.mp3';
+    fetchMock.mockResolvedValueOnce(
+      Response.json({
+        mode: 'passthrough',
+        ttlSeconds: 43_200,
+        urls: {
+          [path]: {
+            url: path,
+            expiresAt: '2100-01-01T00:00:00.000Z',
+          },
+        },
+      })
+    );
+
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: [path] })
+      .expect(200);
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: [path] })
+      .expect(429)
+      .expect('Retry-After', /.+/);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a Learning OS URL with a path prefix instead of silently discarding it', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://gateway.example/learning-os';
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: ['/tools-audio/japanese/minute/44.mp3'] })
+      .expect(503);
+
+    expect(response.body.error.message).toContain('enabled but not configured');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('rejects malformed successful responses from Learning OS', async () => {
     process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
     process.env.LEARNING_OS_API_URL = 'https://learning-os.example';

@@ -56,7 +56,8 @@ function buildLearningOsStaticMediaUrl(request: StaticMediaProxyRequest): URL {
     apiUrl.username ||
     apiUrl.password ||
     apiUrl.search ||
-    apiUrl.hash
+    apiUrl.hash ||
+    apiUrl.pathname !== '/'
   ) {
     throw new AppError(`${API_LABEL} is enabled but not configured.`, 503);
   }

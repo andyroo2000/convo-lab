@@ -212,6 +212,18 @@ const toBucketObjectPath = (requestPath: string): string => {
 // validation, file allowlisting, and per-IP rate limiting.
 router.post('/signed-urls', async (req, res, next) => {
   try {
+    const { maxRequests, windowMs } = SIGNED_URL_RATE_LIMIT_CONFIG;
+    const nowMs = Date.now();
+    const clientIp = getClientIp(req.ip, req.socket.remoteAddress);
+
+    if (applySignedUrlRateLimit(clientIp, nowMs, windowMs, maxRequests)) {
+      const retryAfterSeconds = getRateLimitRetryAfterSeconds(clientIp, nowMs, windowMs);
+      res.set('Retry-After', `${retryAfterSeconds}`);
+      return res.status(429).json({
+        error: 'Too many signed-url requests. Please retry shortly.',
+      });
+    }
+
     if (isLearningOsStaticMediaProxyEnabled()) {
       const upstreamResponse = await fetchLearningOsStaticMedia({
         operation: 'tool-audio',
@@ -243,18 +255,6 @@ router.post('/signed-urls', async (req, res, next) => {
       }
 
       return res.json(await parseSignedUrlResponse(upstreamResponse, requestedPaths));
-    }
-
-    const { maxRequests, windowMs } = SIGNED_URL_RATE_LIMIT_CONFIG;
-    const nowMs = Date.now();
-    const clientIp = getClientIp(req.ip, req.socket.remoteAddress);
-
-    if (applySignedUrlRateLimit(clientIp, nowMs, windowMs, maxRequests)) {
-      const retryAfterSeconds = getRateLimitRetryAfterSeconds(clientIp, nowMs, windowMs);
-      res.set('Retry-After', `${retryAfterSeconds}`);
-      return res.status(429).json({
-        error: 'Too many signed-url requests. Please retry shortly.',
-      });
     }
 
     const body = req.body as SignedUrlRequestBody | null;
