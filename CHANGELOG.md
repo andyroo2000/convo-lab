@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **[removal]** Retire the one-time legacy app-container handoff now that production uses the blue/green nginx router
 - **[removal]** Remove the retired ConvoLab database rebuild and historical media import deployment paths after the Learning OS production cutover
 - **[removal]** Retire the legacy ConvoLab Study media route cache policy and contract the old Audio Script media database reference after the Learning OS cutover
 

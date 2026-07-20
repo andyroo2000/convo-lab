@@ -13,15 +13,12 @@ container to become healthy, reloads the router to the new color, verifies
 Redis stay running during deploys. The worker is recreated after web traffic
 has already switched.
 
-The first rollout from the legacy single-container shape may include one brief
-cutover while the old `convolab-server` app container is replaced by the nginx
-router. Future successful deploys should not drop web traffic during the app
-switch.
-
 The GitHub Actions workflow is the authoritative way to start or switch the
 production web stack. It creates `/opt/convolab-runtime/prod-router/default.conf`
-before starting the router; a manual `docker compose up` on a fresh droplet will
-fail until that config exists.
+before starting the router and can bootstrap a fresh production stack. If a
+container named `convolab-server` exists without the expected router role, the
+workflow stops for manual inspection rather than replacing the unexpected
+container.
 
 ## Memory budget
 
