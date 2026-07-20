@@ -23,15 +23,67 @@ const studyCardTypeCheckMigrationPath = new URL(
   '../../../../prisma/migrations/20260422213000_add_study_card_type_check/migration.sql',
   import.meta.url
 );
+const retiredStudyModels = [
+  'StudySettings',
+  'DailyAudioPractice',
+  'DailyAudioPracticeTrack',
+  'StudyImportJob',
+  'StudyNote',
+  'StudyCardDraft',
+  'StudyVariantGroup',
+  'StudyVariantSentence',
+  'StudyCard',
+  'StudyReviewLog',
+] as const;
+const ignoredUserRelations = [
+  /studyNotes\s+StudyNote\[\]\s+@ignore/,
+  /studyCards\s+StudyCard\[\]\s+@ignore/,
+  /studyReviewLogs\s+StudyReviewLog\[\]\s+@ignore/,
+  /studyImportJobs\s+StudyImportJob\[\]\s+@ignore/,
+  /studyCardDrafts\s+StudyCardDraft\[\]\s+@ignore/,
+  /studyVariantGroups\s+StudyVariantGroup\[\]\s+@ignore/,
+  /studyVariantSentences\s+StudyVariantSentence\[\]\s+@ignore/,
+  /studySettings\s+StudySettings\?\s+@ignore/,
+  /dailyAudioPractices\s+DailyAudioPractice\[\]\s+@ignore/,
+];
+
+function modelBlock(schema: string, modelName: string): string {
+  const match = new RegExp(`model ${modelName} \\{([\\s\\S]*?)\\n\\}`).exec(schema);
+  expect(match, `${modelName} must remain represented in the Prisma schema`).not.toBeNull();
+  return match?.[0] ?? '';
+}
 
 describe('study schema verification', () => {
-  it('keeps the StudyCard(noteId) index in both schema and migration history', async () => {
-    const [schema, migration] = await Promise.all([
-      readFile(schemaPath, 'utf8'),
-      readFile(migrationPath, 'utf8'),
-    ]);
+  it('excludes Learning OS-owned models from Prisma Client without dropping their schema history', async () => {
+    const schema = await readFile(schemaPath, 'utf8');
 
-    expect(schema).toContain('@@index([noteId])');
+    for (const modelName of retiredStudyModels) {
+      expect(modelBlock(schema, modelName)).toContain('@@ignore');
+    }
+
+    const user = modelBlock(schema, 'User');
+    for (const ignoredRelation of ignoredUserRelations) {
+      expect(user).toMatch(ignoredRelation);
+    }
+    expect(user).toMatch(/studyMedia\s+StudyMedia\[\]/);
+    expect(user).not.toMatch(/studyMedia\s+StudyMedia\[\]\s+@ignore/);
+  });
+
+  it('keeps StudyMedia active for Audio Script while ignoring retired Study relations', async () => {
+    const schema = await readFile(schemaPath, 'utf8');
+    const studyMedia = modelBlock(schema, 'StudyMedia');
+
+    expect(studyMedia).not.toContain('@@ignore');
+    expect(studyMedia).toMatch(/importJob\s+StudyImportJob\?.+@ignore/);
+    expect(studyMedia).toMatch(/promptAudioCards\s+StudyCard\[\].+@ignore/);
+    expect(studyMedia).toMatch(/answerAudioCards\s+StudyCard\[\].+@ignore/);
+    expect(studyMedia).toMatch(/imageCards\s+StudyCard\[\].+@ignore/);
+    expect(studyMedia).toMatch(/audioScriptSegments\s+AudioScriptSegment\[\]/);
+  });
+
+  it('keeps the StudyCard(noteId) index in migration history', async () => {
+    const migration = await readFile(migrationPath, 'utf8');
+
     expect(migration).toContain(
       'CREATE INDEX "study_cards_noteId_idx" ON "study_cards"("noteId");'
     );
@@ -70,14 +122,8 @@ describe('study schema verification', () => {
   });
 
   it('keeps the StudyCard cardType check constraint migration', async () => {
-    const [schema, migration] = await Promise.all([
-      readFile(schemaPath, 'utf8'),
-      readFile(studyCardTypeCheckMigrationPath, 'utf8'),
-    ]);
+    const migration = await readFile(studyCardTypeCheckMigrationPath, 'utf8');
 
-    expect(schema).toContain(
-      'cardType             String // recognition | production | cloze; DB check enforced in migration history.'
-    );
     expect(migration).toContain('ADD CONSTRAINT "study_cards_card_type_check"');
     expect(migration).toContain('"cardType" IN (');
     expect(migration).toContain("'recognition'");
