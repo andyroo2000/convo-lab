@@ -220,22 +220,6 @@ jobs:
               write_active_color "$previous_color"
             }
 
-            restore_legacy_app() {
-              docker rm -f convolab-server 2>/dev/null || true
-              if ! docker rename convolab-server-legacy-cutover convolab-server; then
-                echo "❌ Failed to restore legacy app container name from convolab-server-legacy-cutover."
-                return 1
-              fi
-              if ! docker start convolab-server; then
-                echo "❌ Failed to restart restored legacy app container."
-                return 1
-              fi
-              if ! verify_public_health; then
-                echo "❌ Legacy app was restored, but public health is still failing."
-                return 1
-              fi
-            }
-
             active_color="blue"
             if [ -s "$ACTIVE_COLOR_FILE" ]; then
               active_color="$(cat "$ACTIVE_COLOR_FILE")"
@@ -289,28 +273,22 @@ jobs:
             $COMPOSE up -d --no-deps "server-$inactive_color"
             wait_for_container_health "convolab-server-$inactive_color"
 
-            legacy_cutover=false
-            render_router_config "$inactive_color"
             router_role="$(docker inspect -f '{{index .Config.Labels "convolab.role"}}' convolab-server 2>/dev/null || true)"
             if [ "$router_role" = "router" ]; then
               echo "🔀 Reloading router to $inactive_color..."
+              render_router_config "$inactive_color"
               reload_router
             elif docker inspect convolab-server >/dev/null 2>&1; then
-              echo "🔀 Performing one-time cutover from legacy app container to router..."
-              legacy_cutover=true
-              docker rm -f convolab-server-legacy-cutover 2>/dev/null || true
-              docker rename convolab-server convolab-server-legacy-cutover
-              docker stop convolab-server-legacy-cutover
-              $COMPOSE up -d --no-deps router
-              if ! wait_for_container_health convolab-server; then
-                echo "↩️ Router failed to become healthy; restoring legacy app container..."
-                if ! restore_legacy_app; then
-                  echo "❌ Legacy app restore failed after router health failure."
-                fi
-                exit 1
+              echo "❌ convolab-server exists without the expected router role."
+              echo "Refusing to replace an unexpected production container automatically."
+              echo "🧹 Removing the inactive app started for this aborted deploy..."
+              if ! docker rm -f "convolab-server-$inactive_color"; then
+                echo "⚠️ Failed to remove convolab-server-$inactive_color; manual cleanup is required."
               fi
+              exit 1
             else
               echo "🔀 Starting router for new production stack..."
+              render_router_config "$inactive_color"
               $COMPOSE up -d --no-deps router
               if ! wait_for_container_health convolab-server; then
                 echo "❌ Router failed to become healthy on the fresh production stack."
@@ -320,24 +298,13 @@ jobs:
 
             if ! verify_public_health; then
               echo "❌ Public health failed after switching to $inactive_color."
-              if [ "$legacy_cutover" = "true" ]; then
-                echo "↩️ Restoring legacy app container after failed first router cutover..."
-                if ! restore_legacy_app; then
-                  echo "❌ Legacy app restore failed after public health failure."
-                fi
-              else
-                if ! rollback_router "$active_color"; then
-                  echo "❌ Rollback also failed; manual intervention is required."
-                fi
+              if ! rollback_router "$active_color"; then
+                echo "❌ Rollback also failed; manual intervention is required."
               fi
               exit 1
             fi
 
             write_active_color "$inactive_color"
-
-            if [ "$legacy_cutover" = "true" ]; then
-              docker rm -f convolab-server-legacy-cutover 2>/dev/null || true
-            fi
 
             echo "🛑 Stopping old web color if present..."
             if docker inspect "convolab-server-$active_color" >/dev/null 2>&1; then
