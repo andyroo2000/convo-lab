@@ -225,8 +225,15 @@ jobs:
               container="$2"
               current_image="$(docker inspect --format='{{.Config.Image}}' "$container" 2>/dev/null || true)"
               running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
+              current_proxy_user_email="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^CONVOLAB_PROXY_USER_EMAIL=//p' \
+                | tail -1)"
 
-              if [ "$current_image" = "$desired_learning_os_image" ] && [ "$running" = true ]; then
+              if [ "$current_image" = "$desired_learning_os_image" ] \
+                && [ "$running" = true ] \
+                && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
               fi
