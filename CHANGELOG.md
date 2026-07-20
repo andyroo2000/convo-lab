@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Removed
+
+- **[removal]** Retire the legacy ConvoLab Study media route cache policy and contract the old Audio Script media database reference after the Learning OS cutover
+
 ### Fixed
 
 - **[fix]** Widen Japanese Money receipt cards for large-amount tiers (≥ 10M yen) — amounts were cut off at the card boundary and kana readings required a horizontal scrollbar; cards now expand to invoice-style width with wrapping text

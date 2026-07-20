@@ -7,6 +7,10 @@ const migrationPath = new URL(
   '../../../../prisma/migrations/20260719230000_extract_audio_script_media/migration.sql',
   import.meta.url
 );
+const contractMigrationPath = new URL(
+  '../../../../prisma/migrations/20260720031500_drop_legacy_audio_script_media_reference/migration.sql',
+  import.meta.url
+);
 
 describe('audio script media schema', () => {
   it('maps the public image relation only to Audio Script-owned media', async () => {
@@ -57,5 +61,27 @@ describe('audio script media schema', () => {
 
     expect(identifiers.length).toBeGreaterThan(0);
     expect(identifiers.every((identifier) => Buffer.byteLength(identifier) <= 63)).toBe(true);
+  });
+
+  it('contracts the legacy relation only after verifying its backfill', async () => {
+    const migration = await readFile(contractMigrationPath, 'utf8');
+    const guardIndex = migration.indexOf('"imageMediaId" IS NOT NULL');
+    const constraintIndex = migration.indexOf(
+      'DROP CONSTRAINT IF EXISTS "audio_script_segments_imageMediaId_fkey"'
+    );
+    const indexIndex = migration.indexOf(
+      'DROP INDEX IF EXISTS "audio_script_segments_imageMediaId_idx"'
+    );
+    const columnIndex = migration.indexOf('DROP COLUMN IF EXISTS "imageMediaId"');
+
+    expect(migration.trimStart().indexOf('BEGIN;')).toBeGreaterThanOrEqual(0);
+    expect(migration.trimEnd().endsWith('COMMIT;')).toBe(true);
+    expect(guardIndex).toBeGreaterThanOrEqual(0);
+    expect(migration).toContain('"audioScriptMediaId" IS NULL');
+    expect(migration).not.toContain('"imageMediaId" <> "audioScriptMediaId"');
+    expect(constraintIndex).toBeGreaterThan(guardIndex);
+    expect(indexIndex).toBeGreaterThan(constraintIndex);
+    expect(columnIndex).toBeGreaterThan(indexIndex);
+    expect(migration).not.toMatch(/DROP TABLE\s+"?study_media"?/i);
   });
 });

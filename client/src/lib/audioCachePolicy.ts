@@ -30,7 +30,6 @@ export const isPrivateMediaApiUrl = (url: string | URL, baseHref: string) => {
   return Boolean(
     parsed &&
     (parsed.pathname.startsWith('/api/scripts/media/') ||
-      parsed.pathname.startsWith('/api/study/media/') ||
       parsed.pathname.startsWith('/api/learning-os/study/media/') ||
       (parsed.pathname.startsWith('/api/learning-os/study/daily-audio-practice/') &&
         parsed.pathname.endsWith('/audio')))

@@ -18,7 +18,7 @@ import type { StudyCardFormPayload } from '../studyCardFormModel';
 const imageRef: StudyMediaRef = {
   id: 'image-1',
   filename: 'image.webp',
-  url: '/api/study/media/image-1',
+  url: '/api/learning-os/study/media/image-1',
   mediaKind: 'image',
   source: 'generated',
 };
