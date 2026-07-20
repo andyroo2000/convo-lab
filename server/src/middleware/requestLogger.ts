@@ -6,20 +6,29 @@ import { buildBackendRouteUsageEvent } from '../migration/backendRouteUsage.js';
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
+  const queryIndex = req.originalUrl?.indexOf('?') ?? -1;
+  const requestPath = req.originalUrl
+    ? req.originalUrl.slice(0, queryIndex === -1 ? undefined : queryIndex)
+    : req.path;
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
+    console.log(`${req.method} ${requestPath} ${res.statusCode} - ${duration}ms`);
 
-    const routeUsage = buildBackendRouteUsageEvent(req.method, req.path, res.statusCode, duration);
+    const routeUsage = buildBackendRouteUsageEvent(
+      req.method,
+      requestPath,
+      res.statusCode,
+      duration
+    );
     if (routeUsage) {
       console.log(JSON.stringify(routeUsage));
     }
 
     // Warn about slow requests (5s for signup, 2s for others)
-    const slowThreshold = req.path.includes('/auth/signup') ? 5000 : 2000;
+    const slowThreshold = requestPath.includes('/auth/signup') ? 5000 : 2000;
     if (duration > slowThreshold) {
-      console.warn(`[SLOW] ${req.method} ${req.path} took ${duration}ms`);
+      console.warn(`[SLOW] ${req.method} ${requestPath} took ${duration}ms`);
     }
   });
 
