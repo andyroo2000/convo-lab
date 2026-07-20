@@ -87,6 +87,7 @@ describe('Feature Flags Route', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(featureFlags);
+    expect(response.headers['ratelimit-limit']).toBe('120');
     expect(mockRequireAuth).toHaveBeenCalledOnce();
     expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'user-1' },

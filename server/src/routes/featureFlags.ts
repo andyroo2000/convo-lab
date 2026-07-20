@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -10,6 +11,12 @@ import {
 const router = Router();
 const LEARNING_OS_FEATURE_FLAGS_TIMEOUT_MS = 10_000;
 const ISO_MILLISECOND_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const featureFlagsIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 interface ClientFeatureFlags {
   id: string;
@@ -53,7 +60,7 @@ function adaptFeatureFlagsResponse(value: unknown): ClientFeatureFlags {
 }
 
 // Public endpoint - get feature flags (available to all authenticated users)
-router.get('/', requireAuth, async (req: AuthRequest, res, next) => {
+router.get('/', featureFlagsIpRateLimit, requireAuth, async (req: AuthRequest, res, next) => {
   try {
     if (!req.userId) {
       throw new AppError('Authentication required', 401);
