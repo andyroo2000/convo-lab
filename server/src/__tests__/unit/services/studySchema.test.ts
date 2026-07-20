@@ -36,16 +36,16 @@ const retiredStudyModels = [
   'StudyReviewLog',
 ] as const;
 const ignoredUserRelations = [
-  ['studyNotes', 'StudyNote[]'],
-  ['studyCards', 'StudyCard[]'],
-  ['studyReviewLogs', 'StudyReviewLog[]'],
-  ['studyImportJobs', 'StudyImportJob[]'],
-  ['studyCardDrafts', 'StudyCardDraft[]'],
-  ['studyVariantGroups', 'StudyVariantGroup[]'],
-  ['studyVariantSentences', 'StudyVariantSentence[]'],
-  ['studySettings', 'StudySettings?'],
-  ['dailyAudioPractices', 'DailyAudioPractice[]'],
-] as const;
+  /studyNotes\s+StudyNote\[\]\s+@ignore/,
+  /studyCards\s+StudyCard\[\]\s+@ignore/,
+  /studyReviewLogs\s+StudyReviewLog\[\]\s+@ignore/,
+  /studyImportJobs\s+StudyImportJob\[\]\s+@ignore/,
+  /studyCardDrafts\s+StudyCardDraft\[\]\s+@ignore/,
+  /studyVariantGroups\s+StudyVariantGroup\[\]\s+@ignore/,
+  /studyVariantSentences\s+StudyVariantSentence\[\]\s+@ignore/,
+  /studySettings\s+StudySettings\?\s+@ignore/,
+  /dailyAudioPractices\s+DailyAudioPractice\[\]\s+@ignore/,
+];
 
 function modelBlock(schema: string, modelName: string): string {
   const match = new RegExp(`model ${modelName} \\{([\\s\\S]*?)\\n\\}`).exec(schema);
@@ -62,9 +62,8 @@ describe('study schema verification', () => {
     }
 
     const user = modelBlock(schema, 'User');
-    for (const [relationName, relationType] of ignoredUserRelations) {
-      const escapedType = relationType.replace(/[?[\]]/g, '\\$&');
-      expect(user).toMatch(new RegExp(`${relationName}\\s+${escapedType}\\s+@ignore`));
+    for (const ignoredRelation of ignoredUserRelations) {
+      expect(user).toMatch(ignoredRelation);
     }
     expect(user).toMatch(/studyMedia\s+StudyMedia\[\]/);
     expect(user).not.toMatch(/studyMedia\s+StudyMedia\[\]\s+@ignore/);
