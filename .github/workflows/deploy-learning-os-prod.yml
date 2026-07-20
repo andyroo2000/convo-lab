@@ -87,6 +87,9 @@ jobs:
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
+            GCS_CREDENTIAL_PATH="server/gcloud-key.json"
+            # The Learning OS image runs as Debian's www-data user.
+            LEARNING_OS_RUNTIME_UID=33
 
             cleanup_deployment_resources() {
               if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then
@@ -125,6 +128,16 @@ jobs:
             chmod 600 ~/.git-credentials
             git fetch origin
             git reset --hard origin/main
+
+            if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then
+              echo "Learning OS GCS credentials are missing or empty."
+              exit 1
+            fi
+            chown "$LEARNING_OS_RUNTIME_UID:$LEARNING_OS_RUNTIME_UID" "$GCS_CREDENTIAL_PATH"
+            chmod 600 "$GCS_CREDENTIAL_PATH"
+            test "$(stat -c '%u:%g' "$GCS_CREDENTIAL_PATH")" = \
+              "$LEARNING_OS_RUNTIME_UID:$LEARNING_OS_RUNTIME_UID"
+            test "$(stat -c '%a' "$GCS_CREDENTIAL_PATH")" = 600
 
             upsert_env() {
               key="$1"

@@ -91,6 +91,13 @@ test('the production workflow verifies the always-on Study API without rollout f
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
     '[ "$current_config_revision" = "static-media-v2" ]',
+    'GCS_CREDENTIAL_PATH="server/gcloud-key.json"',
+    'LEARNING_OS_RUNTIME_UID=33',
+    'if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then',
+    'chown "$LEARNING_OS_RUNTIME_UID:$LEARNING_OS_RUNTIME_UID" "$GCS_CREDENTIAL_PATH"',
+    'chmod 600 "$GCS_CREDENTIAL_PATH"',
+    'test "$(stat -c \'%u:%g\' "$GCS_CREDENTIAL_PATH")" =',
+    'test "$(stat -c \'%a\' "$GCS_CREDENTIAL_PATH")" = 600',
     '| tail -1 || true)"',
     '-o ServerAliveInterval=30',
     'docker update --restart=no "$container"',
@@ -135,6 +142,16 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.ok(postgresUserAssignment >= 0);
   assert.ok(postgresUserUse > postgresUserAssignment);
+
+  const credentialCheck = workflow.indexOf('if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then');
+  const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
+  const migration = workflow.indexOf(
+    '$COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force'
+  );
+
+  assert.ok(credentialCheck >= 0);
+  assert.ok(imagePull > credentialCheck);
+  assert.ok(migration > credentialCheck);
 });
 
 test('the production stack wires and smokes Learning OS static media', async () => {
