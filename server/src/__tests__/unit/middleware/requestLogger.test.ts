@@ -57,6 +57,56 @@ describe('requestLogger Middleware', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith('GET /api/test 200 - 150ms');
   });
 
+  it('emits normalized backend migration telemetry without concrete route parameters', () => {
+    mockReq.path = '/api/episodes/episode-123';
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1150);
+
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
+
+    const finishCallback = mockRes.on.mock.calls[0][1];
+    finishCallback();
+
+    const structuredLog = consoleLogSpy.mock.calls
+      .map(([value]) => value)
+      .find((value) => typeof value === 'string' && value.startsWith('{'));
+    expect(structuredLog).toBeDefined();
+    expect(structuredLog).not.toContain('episode-123');
+    expect(JSON.parse(structuredLog as string)).toEqual({
+      event: 'backend_route_usage',
+      schemaVersion: 1,
+      routeId: 'episodes.show',
+      surfaceId: 'episodes',
+      domain: 'content',
+      migrationWave: 'content',
+      runtimeOwner: 'express',
+      method: 'GET',
+      normalizedPath: '/api/episodes/:id',
+      statusCode: 200,
+      durationMs: 150,
+    });
+  });
+
+  it('marks unknown API routes as unclassified without logging their concrete path in telemetry', () => {
+    mockReq.path = '/api/unknown/private-value';
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1010);
+
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
+
+    const finishCallback = mockRes.on.mock.calls[0][1];
+    finishCallback();
+
+    const structuredLog = consoleLogSpy.mock.calls
+      .map(([value]) => value)
+      .find((value) => typeof value === 'string' && value.startsWith('{'));
+    const event = JSON.parse(structuredLog as string);
+    expect(event).toMatchObject({
+      routeId: 'unclassified',
+      surfaceId: 'unclassified',
+      normalizedPath: 'unclassified',
+    });
+    expect(structuredLog).not.toContain('private-value');
+  });
+
   it('should log correct method for POST requests', () => {
     mockReq.method = 'POST';
 

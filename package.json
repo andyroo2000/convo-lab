@@ -69,6 +69,7 @@
     "harness:type-safety:source": "npx ts-node scripts/type-safety-harness.ts --category source",
     "harness:type-safety:tests": "npx ts-node scripts/type-safety-harness.ts --category test",
     "harness:type-safety:scripts": "npx ts-node scripts/type-safety-harness.ts --category script",
+    "migration:route-usage": "tsx server/scripts/backend-route-usage-report.ts",
     "kanban": "cd tools/kanban && npm install --silent && npx tsx server.ts",
     "prepare": "husky"
   },
