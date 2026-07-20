@@ -17,6 +17,8 @@ export async function fetchLearningOsStaticMedia(
   const body = request.operation === 'tool-audio' ? request.body : undefined;
 
   try {
+    // These upstream endpoints are public by design. Convo Lab applies its own
+    // path validation and per-client rate limit without forwarding credentials.
     return await fetch(upstreamUrl, {
       method: request.operation === 'avatar' ? 'GET' : 'POST',
       redirect: 'manual',

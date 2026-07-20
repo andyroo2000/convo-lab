@@ -1,6 +1,9 @@
 import { Router } from 'express';
 
-import { isLearningOsStaticMediaProxyEnabled } from '../config/staticMediaRouting.js';
+import {
+  getExpectedStaticMediaGcsPath,
+  isLearningOsStaticMediaProxyEnabled,
+} from '../config/staticMediaRouting.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { fetchLearningOsStaticMedia } from '../services/learningOsStaticMediaProxy.js';
 import { gcsFileExists, getSignedReadUrl } from '../services/storageClient.js';
@@ -388,11 +391,14 @@ const isAllowedToolAudioUrl = (requestPath: string, resolvedUrl: string): boolea
 
   try {
     const url = new URL(resolvedUrl);
+    const expectedPath = getExpectedStaticMediaGcsPath(toBucketObjectPath(requestPath));
     return (
+      expectedPath !== null &&
       url.protocol === 'https:' &&
       url.hostname === 'storage.googleapis.com' &&
       !url.username &&
-      !url.password
+      !url.password &&
+      url.pathname === expectedPath
     );
   } catch {
     return false;

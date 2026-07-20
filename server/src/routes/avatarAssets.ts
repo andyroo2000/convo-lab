@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import {
+  getExpectedStaticMediaGcsPath,
   isLearningOsStaticMediaProxyEnabled,
   isStaticMediaAvatarPath,
 } from '../config/staticMediaRouting.js';
@@ -10,7 +11,6 @@ import { gcsFileExists, getSignedReadUrl } from '../services/storageClient.js';
 
 const router = Router();
 
-const LOCAL_AVATAR_LOCATION_PATTERN = /^\/avatars\/(?:voices\/)?[a-z]{2}-[a-z0-9-]+\.jpg(?![\s\S])/;
 const DEFAULT_TTL_SECONDS = 12 * 60 * 60;
 const MIN_TTL_SECONDS = 5 * 60;
 const MAX_TTL_SECONDS = 24 * 60 * 60;
@@ -74,7 +74,7 @@ router.get('/*', async (req, res, next) => {
       }
 
       const location = upstreamResponse.headers.get('location');
-      if (!location || !isAllowedAvatarRedirect(location)) {
+      if (!location || !isAllowedAvatarRedirect(location, avatarPath)) {
         throw new AppError('Learning OS Static Media API returned an invalid redirect.', 502);
       }
 
@@ -119,18 +119,21 @@ router.get('/*', async (req, res, next) => {
   }
 });
 
-const isAllowedAvatarRedirect = (location: string): boolean => {
-  if (LOCAL_AVATAR_LOCATION_PATTERN.test(location)) {
+const isAllowedAvatarRedirect = (location: string, avatarPath: string): boolean => {
+  if (location === `/avatars/${avatarPath}`) {
     return true;
   }
 
   try {
     const url = new URL(location);
+    const expectedPath = getExpectedStaticMediaGcsPath(`${getAvatarGcsRoot()}/${avatarPath}`);
     return (
+      expectedPath !== null &&
       url.protocol === 'https:' &&
       url.hostname === 'storage.googleapis.com' &&
       !url.username &&
-      !url.password
+      !url.password &&
+      url.pathname === expectedPath
     );
   } catch {
     return false;

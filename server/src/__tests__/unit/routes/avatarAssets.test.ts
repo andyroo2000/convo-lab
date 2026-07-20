@@ -34,6 +34,8 @@ describe('avatarAssets route', () => {
   beforeEach(async () => {
     process.env = { ...originalEnv };
     process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'false';
+    process.env.GCS_BUCKET_NAME = 'convolab-storage';
+    process.env.AVATARS_GCS_ROOT = 'avatars';
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
     await mountAvatarAssetsApp();
@@ -143,6 +145,24 @@ describe('avatarAssets route', () => {
       new Response(null, {
         status: 302,
         headers: { location: 'https://attacker.example/avatar.jpg' },
+      })
+    );
+
+    const response = await request(app).get('/api/avatars/voices/ja-shohei.jpg').expect(502);
+
+    expect(response.body.error.message).toContain('invalid redirect');
+  });
+
+  it('rejects Learning OS redirects to a different GCS bucket', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, {
+        status: 302,
+        headers: {
+          location:
+            'https://storage.googleapis.com/other-bucket/avatars/voices/ja-shohei.jpg?signature=secret',
+        },
       })
     );
 

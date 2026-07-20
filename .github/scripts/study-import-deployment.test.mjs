@@ -160,6 +160,15 @@ test('the production stack wires and smokes Learning OS static media', async () 
     assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
   }
 
+  const serverEnvironment = compose.slice(
+    compose.indexOf('x-server-environment:'),
+    compose.indexOf('x-server-service:')
+  );
+  assert.ok(serverEnvironment.includes('AVATARS_GCS_ROOT: ${AVATARS_GCS_ROOT:-avatars}'));
+  assert.ok(
+    serverEnvironment.includes('TOOLS_AUDIO_GCS_ROOT: ${TOOLS_AUDIO_GCS_ROOT:-tools-audio}')
+  );
+
   assert.match(
     stageCompose,
     /LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:\s*['"]false['"]/

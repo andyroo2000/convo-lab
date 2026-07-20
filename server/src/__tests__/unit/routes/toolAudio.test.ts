@@ -32,6 +32,8 @@ describe('toolAudio route', () => {
   beforeEach(async () => {
     process.env = { ...originalEnv };
     process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'false';
+    process.env.GCS_BUCKET_NAME = 'convolab-storage';
+    process.env.TOOLS_AUDIO_GCS_ROOT = 'tools-audio';
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '500';
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
     vi.stubGlobal('fetch', fetchMock);
@@ -362,6 +364,31 @@ describe('toolAudio route', () => {
     const response = await request(app)
       .post('/api/tools-audio/signed-urls')
       .send({ paths: ['/tools-audio/japanese/minute/44.mp3'] })
+      .expect(502);
+
+    expect(response.body.error.message).toContain('invalid response');
+  });
+
+  it('rejects signed URLs for a different GCS bucket', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
+    const path = '/tools-audio/japanese/minute/44.mp3';
+    fetchMock.mockResolvedValueOnce(
+      Response.json({
+        mode: 'signed',
+        ttlSeconds: 43_200,
+        urls: {
+          [path]: {
+            url: `https://storage.googleapis.com/other-bucket${path}?signature=secret`,
+            expiresAt: '2100-01-01T00:00:00.000Z',
+          },
+        },
+      })
+    );
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: [path] })
       .expect(502);
 
     expect(response.body.error.message).toContain('invalid response');

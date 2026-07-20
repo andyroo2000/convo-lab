@@ -5,3 +5,20 @@ export const isLearningOsStaticMediaProxyEnabled = (): boolean =>
 
 export const isStaticMediaAvatarPath = (path: string): boolean =>
   AVATAR_PATH_PATTERN.test(path) && !path.includes('..') && !path.includes('\\');
+
+export const getExpectedStaticMediaGcsPath = (objectPath: string): string | null => {
+  const bucket = process.env.GCS_BUCKET_NAME?.trim();
+  const segments = bucket ? [bucket, ...objectPath.split('/')] : [];
+
+  if (
+    segments.length < 2 ||
+    segments.some(
+      (segment) =>
+        !segment || segment === '.' || segment === '..' || /[\\\p{Cc}\p{Cf}]/u.test(segment)
+    )
+  ) {
+    return null;
+  }
+
+  return `/${segments.map((segment) => encodeURIComponent(segment)).join('/')}`;
+};
