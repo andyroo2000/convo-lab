@@ -55,6 +55,20 @@ with zipfile.ZipFile(${JSON.stringify(archivePath)}) as archive:
   }
 });
 
+test('the staging workflow recovers the failed Audio Script media migration before retrying', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy.yml'),
+    'utf8'
+  );
+  const migration = '20260719230000_extract_audio_script_media';
+  const resolveIndex = workflow.indexOf(migration);
+  const startIndex = workflow.indexOf('# Start containers');
+
+  assert.ok(resolveIndex >= 0);
+  assert.ok(workflow.includes('npx prisma migrate resolve --rolled-back "$failed_migration"'));
+  assert.ok(startIndex > resolveIndex);
+});
+
 test('the production workflow verifies the always-on Study API without rollout flags', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),

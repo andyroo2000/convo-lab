@@ -1,6 +1,10 @@
 -- Expand first: the legacy imageMediaId reference stays populated until every deployed
 -- ConvoLab instance reads from the Audio Script-owned relation.
-CREATE TABLE "audio_script_media" (
+-- The IF NOT EXISTS guards also let a failed non-transactional deployment retry after
+-- Prisma marks the failed migration as rolled back.
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS "audio_script_media" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "sourceKind" TEXT NOT NULL DEFAULT 'generated',
@@ -17,7 +21,7 @@ CREATE TABLE "audio_script_media" (
 );
 
 ALTER TABLE "audio_script_segments"
-  ADD COLUMN "audioScriptMediaId" TEXT;
+  ADD COLUMN IF NOT EXISTS "audioScriptMediaId" TEXT;
 
 INSERT INTO "audio_script_media" (
     "id",
@@ -49,24 +53,49 @@ WHERE EXISTS (
     SELECT 1
     FROM "audio_script_segments" AS segment
     WHERE segment."imageMediaId" = media."id"
-);
+)
+ON CONFLICT ("id") DO NOTHING;
 
 UPDATE "audio_script_segments"
 SET "audioScriptMediaId" = "imageMediaId"
 WHERE "imageMediaId" IS NOT NULL;
 
-CREATE INDEX "audio_script_media_userId_updatedAt_id_idx"
+CREATE INDEX IF NOT EXISTS "audio_script_media_userId_updatedAt_id_idx"
   ON "audio_script_media"("userId", "updatedAt", "id");
-CREATE INDEX "audio_script_media_normalizedFilename_idx"
+CREATE INDEX IF NOT EXISTS "audio_script_media_normalizedFilename_idx"
   ON "audio_script_media"("normalizedFilename");
-CREATE INDEX "audio_script_segments_audioScriptMediaId_idx"
+CREATE INDEX IF NOT EXISTS "audio_script_segments_audioScriptMediaId_idx"
   ON "audio_script_segments"("audioScriptMediaId");
 
-ALTER TABLE "audio_script_media"
-  ADD CONSTRAINT "audio_script_media_userId_fkey"
-  FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'audio_script_media_userId_fkey'
+      AND conrelid = '"audio_script_media"'::regclass
+  ) THEN
+    ALTER TABLE "audio_script_media"
+      ADD CONSTRAINT "audio_script_media_userId_fkey"
+      FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END
+$$;
 
-ALTER TABLE "audio_script_segments"
-  ADD CONSTRAINT "audio_script_segments_audioScriptMediaId_fkey"
-  FOREIGN KEY ("audioScriptMediaId") REFERENCES "audio_script_media"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'audio_script_segments_audioScriptMediaId_fkey'
+      AND conrelid = '"audio_script_segments"'::regclass
+  ) THEN
+    ALTER TABLE "audio_script_segments"
+      ADD CONSTRAINT "audio_script_segments_audioScriptMediaId_fkey"
+      FOREIGN KEY ("audioScriptMediaId") REFERENCES "audio_script_media"("id")
+      ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END
+$$;
+
+COMMIT;
