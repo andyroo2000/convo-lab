@@ -197,9 +197,10 @@ describe('study media access', () => {
             absolutePath: expect.stringContaining(filename),
           })
         );
-        await expect(fs.readFile(result?.absolutePath as string, 'utf8')).resolves.toBe(
-          'cached-audio'
-        );
+        if (result?.type !== 'local') {
+          throw new Error('Expected locally cached study media.');
+        }
+        await expect(fs.readFile(result.absolutePath, 'utf8')).resolves.toBe('cached-audio');
       }
     );
   });
