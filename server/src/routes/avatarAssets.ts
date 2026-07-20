@@ -1,13 +1,15 @@
 import { Router } from 'express';
 
-import { isLearningOsStaticMediaProxyEnabled } from '../config/staticMediaRouting.js';
+import {
+  isLearningOsStaticMediaProxyEnabled,
+  isStaticMediaAvatarPath,
+} from '../config/staticMediaRouting.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { fetchLearningOsStaticMedia } from '../services/learningOsStaticMediaProxy.js';
 import { gcsFileExists, getSignedReadUrl } from '../services/storageClient.js';
 
 const router = Router();
 
-const AVATAR_PATH_PATTERN = /^(?:voices\/)?[a-z]{2}-[a-z0-9-]+\.jpg(?![\s\S])/;
 const LOCAL_AVATAR_LOCATION_PATTERN = /^\/avatars\/(?:voices\/)?[a-z]{2}-[a-z0-9-]+\.jpg(?![\s\S])/;
 const DEFAULT_TTL_SECONDS = 12 * 60 * 60;
 const MIN_TTL_SECONDS = 5 * 60;
@@ -41,9 +43,6 @@ const shouldSignAvatarUrls = (): boolean => {
 const getAvatarGcsRoot = (): string =>
   (process.env.AVATARS_GCS_ROOT || 'avatars').replace(/^\/+|\/+$/g, '');
 
-const isSafeAvatarPath = (path: string): boolean =>
-  AVATAR_PATH_PATTERN.test(path) && !path.includes('..') && !path.includes('\\');
-
 const getPublicGcsUrl = (bucketPath: string): string | null => {
   const bucketName = process.env.GCS_BUCKET_NAME;
   if (!bucketName) {
@@ -57,14 +56,14 @@ router.get('/*', async (req, res, next) => {
   try {
     const avatarPath = req.path.replace(/^\/+/, '');
 
-    if (!isSafeAvatarPath(avatarPath)) {
+    if (!isStaticMediaAvatarPath(avatarPath)) {
       return res.status(404).json({ error: 'Avatar not found' });
     }
 
     if (isLearningOsStaticMediaProxyEnabled()) {
       const upstreamResponse = await fetchLearningOsStaticMedia({
-        method: 'GET',
-        path: `/api/avatars/${avatarPath}`,
+        operation: 'avatar',
+        avatarPath,
       });
 
       if (upstreamResponse.status === 404) {
@@ -108,7 +107,7 @@ router.get('/*', async (req, res, next) => {
       res.set('Cache-Control', 'private, max-age=300');
       return res.redirect(302, signed.url);
     } catch (error) {
-      console.warn(`[Avatar Assets] Signed URL failed for ${avatarPath}:`, error);
+      console.warn('[Avatar Assets] Signed URL failed:', { avatarPath, error });
       const publicUrl = getPublicGcsUrl(bucketPath);
       if (publicUrl) {
         return res.redirect(302, publicUrl);

@@ -1,26 +1,24 @@
+import { isStaticMediaAvatarPath } from '../config/staticMediaRouting.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 const API_LABEL = 'Learning OS Static Media API';
 const REQUEST_TIMEOUT_MS = 10_000;
 
-interface StaticMediaProxyRequest {
-  method: 'GET' | 'POST';
-  path: string;
-  body?: unknown;
-}
+type StaticMediaProxyRequest =
+  | { operation: 'avatar'; avatarPath: string }
+  | { operation: 'tool-audio'; body: unknown };
 
-export async function fetchLearningOsStaticMedia({
-  method,
-  path,
-  body,
-}: StaticMediaProxyRequest): Promise<Response> {
-  const upstreamUrl = buildLearningOsStaticMediaUrl(path);
+export async function fetchLearningOsStaticMedia(
+  request: StaticMediaProxyRequest
+): Promise<Response> {
+  const upstreamUrl = buildLearningOsStaticMediaUrl(request);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const body = request.operation === 'tool-audio' ? request.body : undefined;
 
   try {
     return await fetch(upstreamUrl, {
-      method,
+      method: request.operation === 'avatar' ? 'GET' : 'POST',
       redirect: 'manual',
       signal: controller.signal,
       headers: {
@@ -40,7 +38,7 @@ export async function fetchLearningOsStaticMedia({
   }
 }
 
-function buildLearningOsStaticMediaUrl(path: string): URL {
+function buildLearningOsStaticMediaUrl(request: StaticMediaProxyRequest): URL {
   const configuredUrl = process.env.LEARNING_OS_API_URL?.trim();
   if (!configuredUrl) {
     throw new AppError(`${API_LABEL} is enabled but not configured.`, 503);
@@ -63,5 +61,19 @@ function buildLearningOsStaticMediaUrl(path: string): URL {
     throw new AppError(`${API_LABEL} is enabled but not configured.`, 503);
   }
 
-  return new URL(path, `${apiUrl.href.replace(/\/+$/, '')}/`);
+  if (request.operation === 'avatar') {
+    if (!isStaticMediaAvatarPath(request.avatarPath)) {
+      throw new AppError(`${API_LABEL} received an invalid avatar path.`, 500);
+    }
+
+    const encodedAvatarPath = request.avatarPath
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+    apiUrl.pathname = `/api/avatars/${encodedAvatarPath}`;
+  } else {
+    apiUrl.pathname = '/api/tools-audio/signed-urls';
+  }
+
+  return apiUrl;
 }

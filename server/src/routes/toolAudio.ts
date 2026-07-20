@@ -214,8 +214,7 @@ router.post('/signed-urls', async (req, res, next) => {
   try {
     if (isLearningOsStaticMediaProxyEnabled()) {
       const upstreamResponse = await fetchLearningOsStaticMedia({
-        method: 'POST',
-        path: '/api/tools-audio/signed-urls',
+        operation: 'tool-audio',
         body: req.body,
       });
 
