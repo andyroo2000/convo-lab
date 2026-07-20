@@ -17,10 +17,15 @@ import type { StudyCardCreationKind } from '@languageflow/shared/src/types.js';
 import { Router, type NextFunction, type Response } from 'express';
 import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
-import { prisma } from '../../db/client.js';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import { rateLimitStudyRoute } from '../../middleware/studyRateLimit.js';
+import {
+  fetchLearningOsProxy,
+  learningOsProxyHeaders,
+  resolveLearningOsProxyContext,
+  type LearningOsProxyUser,
+} from '../../services/learningOsProxy.js';
 import { assertStudyCardPayloadContract } from '../../services/study/cardPayloadContract.js';
 import {
   cardTypeForStudyCardCreationKind,
@@ -679,22 +684,6 @@ function normalizeUuidProxyPath(pathname: string): string {
     .split('/')
     .map((segment) => (UUID_PATTERN.test(segment) ? segment.toLowerCase() : segment))
     .join('/');
-}
-
-function getLearningOsConfig(): { apiUrl: string; apiToken: string; proxyUserEmail: string } {
-  const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
-  const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
-  const proxyUserEmail = process.env.LEARNING_OS_PROXY_USER_EMAIL?.trim().toLowerCase();
-
-  if (!apiUrl || !apiToken || !proxyUserEmail) {
-    throw new AppError('Learning OS Study API is enabled but not configured.', 503);
-  }
-
-  return {
-    apiUrl: apiUrl.replace(/\/+$/, ''),
-    apiToken,
-    proxyUserEmail,
-  };
 }
 
 function appendQueryParams(target: URL, query: AuthRequest['query'], route: StudyProxyRoute) {
@@ -1447,54 +1436,6 @@ function rateLimitLearningOsStudyRoute(req: AuthRequest, res: Response, next: Ne
   }
 }
 
-interface UserIdentity {
-  id: string;
-  email: string;
-  role: string;
-}
-
-async function fetchLearningOsStudy(
-  upstreamUrl: URL,
-  apiToken: string,
-  user: UserIdentity,
-  method: StudyProxyMethod,
-  body: unknown,
-  additionalHeaders: Readonly<Record<string, string>> = {},
-  timeoutMs = LEARNING_OS_FETCH_TIMEOUT_MS
-) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const headers: Record<string, string> = {
-    ...additionalHeaders,
-    Accept: additionalHeaders.Accept ?? 'application/json',
-    Authorization: `Bearer ${apiToken}`,
-    'X-Convo-Lab-User-Id': user.id,
-    'X-Convo-Lab-User-Email': user.email,
-    'X-Convo-Lab-User-Role': user.role,
-  };
-
-  if (body !== undefined) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  try {
-    return await fetch(upstreamUrl, {
-      method,
-      signal: controller.signal,
-      headers,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-  } catch (error) {
-    if (controller.signal.aborted) {
-      throw new AppError('Learning OS Study API request timed out.', 504);
-    }
-
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 function mediaRequestHeaders(req: AuthRequest): Record<string, string> {
   const accept = req.header('Accept')?.trim();
   const range = req.header('Range')?.trim();
@@ -1541,7 +1482,7 @@ function importUploadHeaders(req: AuthRequest): Record<string, string> {
 async function fetchLearningOsStudyImportUpload(
   upstreamUrl: URL,
   apiToken: string,
-  user: UserIdentity,
+  user: LearningOsProxyUser,
   req: AuthRequest
 ) {
   const controller = new AbortController();
@@ -1553,14 +1494,7 @@ async function fetchLearningOsStudyImportUpload(
     const requestInit = {
       method: 'PUT',
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${apiToken}`,
-        'X-Convo-Lab-User-Id': user.id,
-        'X-Convo-Lab-User-Email': user.email,
-        'X-Convo-Lab-User-Role': user.role,
-        ...importUploadHeaders(req),
-      },
+      headers: learningOsProxyHeaders(apiToken, user, importUploadHeaders(req)),
       body: req,
       duplex: 'half',
     } as RequestInit & { duplex: 'half' };
@@ -2011,18 +1945,10 @@ router.all(
         throw new AppError('Learning OS Study API route is not allowed.', 404);
       }
 
-      const { apiUrl, apiToken, proxyUserEmail } = getLearningOsConfig();
-      const user = await prisma.user.findUnique({
-        where: { id: req.userId },
-        select: { id: true, email: true, role: true },
-      });
-
-      if (!user) {
-        throw new AppError('User not found', 404);
-      }
-      if (user.email.trim().toLowerCase() !== proxyUserEmail) {
-        throw new AppError('Learning OS Study API is not enabled for this account.', 403);
-      }
+      const {
+        config: { apiUrl, apiToken },
+        user,
+      } = await resolveLearningOsProxyContext(req.userId, 'Learning OS Study API');
 
       const upstreamPath = route.normalizeUlidPath
         ? normalizeStudyProxyPath(req.path)
@@ -2036,15 +1962,16 @@ router.all(
       const body = route.importUpload ? undefined : adaptWriteBody(route, req.body);
       const upstreamResponse = route.importUpload
         ? await fetchLearningOsStudyImportUpload(upstreamUrl, apiToken, user, req)
-        : await fetchLearningOsStudy(
+        : await fetchLearningOsProxy({
             upstreamUrl,
             apiToken,
             user,
-            route.method,
+            method: route.method,
             body,
-            route.mediaResponse ? mediaRequestHeaders(req) : undefined,
-            route.timeoutMs
-          );
+            additionalHeaders: route.mediaResponse ? mediaRequestHeaders(req) : undefined,
+            timeoutMs: route.timeoutMs ?? LEARNING_OS_FETCH_TIMEOUT_MS,
+            timeoutMessage: 'Learning OS Study API request timed out.',
+          });
 
       if (!upstreamResponse.ok) {
         const statusCode =

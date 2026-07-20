@@ -1,39 +1,72 @@
 import express, {
   json as expressJson,
-  type ErrorRequestHandler,
   type NextFunction,
   type Request,
   type Response,
 } from 'express';
 import request from 'supertest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  CLIENT_FEATURE_FLAG_SELECT,
-  DEFAULT_CLIENT_FEATURE_FLAGS,
-} from '../../../services/featureFlags.js';
+import { errorHandler } from '../../../middleware/errorHandler.js';
 import { mockPrisma } from '../../setup.js';
 
+interface MockAuthRequest extends Request {
+  userId?: string;
+}
+
 const mockRequireAuth = vi.hoisted(() =>
-  vi.fn((_req: Request, _res: Response, next: NextFunction) => next())
+  vi.fn((req: MockAuthRequest, _res: Response, next: NextFunction) => {
+    req.userId = 'user-1';
+    next();
+  })
 );
 
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: mockRequireAuth,
 }));
 
-const existingFlags = {
+const featureFlags = {
   id: 'flag-1',
   dialoguesEnabled: true,
   scriptsEnabled: false,
   audioCourseEnabled: true,
   flashcardsEnabled: false,
-  updatedAt: new Date('2026-07-19T12:00:00.000Z'),
+  updatedAt: '2026-07-19T12:00:00.000Z',
 };
 
 describe('Feature Flags Route', () => {
+  const originalLearningOsApiUrl = process.env.LEARNING_OS_API_URL;
+  const originalLearningOsApiToken = process.env.LEARNING_OS_API_TOKEN;
+  const originalLearningOsProxyUserEmail = process.env.LEARNING_OS_PROXY_USER_EMAIL;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example/';
+    process.env.LEARNING_OS_API_TOKEN = 'server-only-token';
+    process.env.LEARNING_OS_PROXY_USER_EMAIL = 'learner@example.com';
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'proxy-user',
+      email: 'learner@example.com',
+      role: 'admin',
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(featureFlags), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+  });
+
+  afterEach(() => {
+    process.env.LEARNING_OS_API_URL = originalLearningOsApiUrl;
+    process.env.LEARNING_OS_API_TOKEN = originalLearningOsApiToken;
+    process.env.LEARNING_OS_PROXY_USER_EMAIL = originalLearningOsProxyUserEmail;
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   async function createApp() {
@@ -42,90 +75,205 @@ describe('Feature Flags Route', () => {
 
     app.use(expressJson());
     app.use('/feature-flags', featureFlagsRouter);
-    app.use(((error: Error, _req: Request, res: Response, _next: NextFunction) => {
-      res.status(500).json({ error: error.message });
-    }) as ErrorRequestHandler);
+    app.use(errorHandler);
 
     return app;
   }
 
-  it('requires authentication and returns only the client feature-flag projection', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue(existingFlags);
+  it('proxies the authenticated client contract with server-side identity headers', async () => {
     const app = await createApp();
 
     const response = await request(app).get('/feature-flags');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      ...existingFlags,
-      updatedAt: existingFlags.updatedAt.toISOString(),
-    });
+    expect(response.body).toEqual(featureFlags);
+    expect(response.headers['ratelimit-limit']).toBe('120');
     expect(mockRequireAuth).toHaveBeenCalledOnce();
-    expect(mockPrisma.featureFlag.findFirst).toHaveBeenCalledWith({
-      select: CLIENT_FEATURE_FLAG_SELECT,
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'learner@example.com' },
+      select: { id: true, email: true, role: true },
     });
-    expect(CLIENT_FEATURE_FLAG_SELECT).toEqual({
-      id: true,
-      dialoguesEnabled: true,
-      scriptsEnabled: true,
-      audioCourseEnabled: true,
-      flashcardsEnabled: true,
-      updatedAt: true,
+    expect(mockPrisma.featureFlag.findFirst).not.toHaveBeenCalled();
+    expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalledOnce();
+
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/feature-flags');
+    expect(init).toMatchObject({
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer server-only-token',
+        'X-Convo-Lab-User-Id': 'proxy-user',
+        'X-Convo-Lab-User-Email': 'learner@example.com',
+        'X-Convo-Lab-User-Role': 'admin',
+      },
     });
   });
 
-  it('creates and returns the client defaults when no row exists', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
-    mockPrisma.featureFlag.create.mockResolvedValue({
-      ...existingFlags,
+  it('returns the all-enabled default row materialized by Learning OS', async () => {
+    const defaults = {
+      ...featureFlags,
+      id: 'default',
       scriptsEnabled: true,
       flashcardsEnabled: true,
-    });
+    };
+    vi.mocked(global.fetch).mockResolvedValue(
+      new Response(JSON.stringify(defaults), { status: 200 })
+    );
     const app = await createApp();
 
     const response = await request(app).get('/feature-flags');
 
     expect(response.status).toBe(200);
-    expect(mockPrisma.featureFlag.create).toHaveBeenCalledWith({
-      data: DEFAULT_CLIENT_FEATURE_FLAGS,
-      select: CLIENT_FEATURE_FLAG_SELECT,
-    });
-    expect(DEFAULT_CLIENT_FEATURE_FLAGS).toEqual({
-      dialoguesEnabled: true,
-      scriptsEnabled: true,
-      audioCourseEnabled: true,
-      flashcardsEnabled: true,
-    });
-  });
-
-  it('does not create a second row when flags already exist', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue(existingFlags);
-    const app = await createApp();
-
-    await request(app).get('/feature-flags').expect(200);
-
+    expect(response.body).toEqual(defaults);
     expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
   });
 
-  it('forwards lookup failures to the application error handler', async () => {
-    mockPrisma.featureFlag.findFirst.mockRejectedValue(new Error('Database connection failed'));
+  it('projects away fields outside the established browser contract', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      new Response(JSON.stringify({ ...featureFlags, internalValue: 'private' }), {
+        status: 200,
+      })
+    );
     const app = await createApp();
 
     const response = await request(app).get('/feature-flags');
 
-    expect(response.status).toBe(500);
-    expect(response.body).toEqual({ error: 'Database connection failed' });
-    expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(featureFlags);
+    expect(JSON.stringify(response.body)).not.toContain('private');
   });
 
-  it('forwards default creation failures to the application error handler', async () => {
-    mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
-    mockPrisma.featureFlag.create.mockRejectedValue(new Error('Unique constraint violation'));
+  it('rejects requests when authentication does not supply a user id', async () => {
+    mockRequireAuth.mockImplementationOnce(
+      (_req: MockAuthRequest, _res: Response, next: NextFunction) => next()
+    );
     const app = await createApp();
 
     const response = await request(app).get('/feature-flags');
 
-    expect(response.status).toBe(500);
-    expect(response.body).toEqual({ error: 'Unique constraint violation' });
+    expect(response.status).toBe(401);
+    expect(response.body.error.message).toBe('Authentication required');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('returns a configuration error without falling back to Prisma', async () => {
+    process.env.LEARNING_OS_API_TOKEN = '';
+    const app = await createApp();
+
+    const response = await request(app).get('/feature-flags');
+
+    expect(response.status).toBe(503);
+    expect(response.body.error.message).toBe(
+      'Learning OS Feature Flags API is enabled but not configured.'
+    );
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.featureFlag.findFirst).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the configured service account is unavailable', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    const app = await createApp();
+
+    const response = await request(app).get('/feature-flags');
+
+    expect(response.status).toBe(503);
+    expect(response.body.error.message).toBe(
+      'Learning OS Feature Flags API proxy account is unavailable.'
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { value: null, label: 'null' },
+    { value: { data: featureFlags }, label: 'wrapped' },
+    { value: { ...featureFlags, id: '' }, label: 'blank id' },
+    { value: { ...featureFlags, id: ' \t ' }, label: 'control id' },
+    { value: { ...featureFlags, dialoguesEnabled: 'true' }, label: 'string boolean' },
+    { value: { ...featureFlags, updatedAt: '2026-07-19T12:00:00Z' }, label: 'wrong precision' },
+    { value: { ...featureFlags, updatedAt: '2026-07-19T12:00:00.000Zjunk' }, label: 'bad date' },
+  ])('rejects an invalid $label upstream contract', async ({ value }) => {
+    vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify(value), { status: 200 }));
+    const app = await createApp();
+
+    const response = await request(app).get('/feature-flags');
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe(
+      'Learning OS Feature Flags API returned an invalid response.'
+    );
+  });
+
+  it('returns a sanitized gateway error for invalid upstream JSON', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      new Response('<html>private upstream response</html>', { status: 200 })
+    );
+    const app = await createApp();
+
+    const response = await request(app).get('/feature-flags');
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe(
+      'Learning OS Feature Flags API returned invalid JSON.'
+    );
+    expect(JSON.stringify(response.body)).not.toContain('private upstream response');
+  });
+
+  it.each([
+    { upstreamStatus: 401, expectedStatus: 502 },
+    { upstreamStatus: 403, expectedStatus: 502 },
+    { upstreamStatus: 500, expectedStatus: 502 },
+  ])(
+    'maps upstream $upstreamStatus to a sanitized $expectedStatus response',
+    async ({ upstreamStatus, expectedStatus }) => {
+      vi.mocked(global.fetch).mockResolvedValue(
+        new Response('private upstream failure', { status: upstreamStatus })
+      );
+      const app = await createApp();
+
+      const response = await request(app).get('/feature-flags');
+
+      expect(response.status).toBe(expectedStatus);
+      expect(response.body.error.message).toBe('Learning OS Feature Flags API request failed.');
+      expect(JSON.stringify(response.body)).not.toContain('private upstream failure');
+    }
+  );
+
+  it('returns a sanitized gateway error for upstream network failures', async () => {
+    vi.mocked(global.fetch).mockRejectedValue(new Error('private DNS failure'));
+    const app = await createApp();
+
+    const response = await request(app).get('/feature-flags');
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe('Learning OS Feature Flags API is unavailable.');
+    expect(JSON.stringify(response.body)).not.toContain('private DNS failure');
+  });
+
+  it('returns a gateway timeout when Learning OS hangs', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: URL, init?: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+      })
+    );
+    const app = await createApp();
+
+    const pendingResponse = request(app)
+      .get('/feature-flags')
+      .then((response) => response);
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledOnce());
+    await vi.advanceTimersByTimeAsync(10_000);
+    const response = await pendingResponse;
+
+    expect(response.status).toBe(504);
+    expect(response.body.error.message).toBe('Learning OS Feature Flags API request timed out.');
   });
 });

@@ -21,6 +21,7 @@ import { enforceDefaultRequestBodyTimeout } from './middleware/requestBodyTimeou
 import { requestLogger } from './middleware/requestLogger.js';
 import adminRoutes from './routes/admin.js';
 import adminCourseRoutes from './routes/adminCourses.js';
+import adminFeatureFlagRoutes from './routes/adminFeatureFlags.js';
 import adminScriptLabRoutes from './routes/adminScriptLab.js';
 import audioRoutes from './routes/audio.js';
 import authRoutes from './routes/auth.js';
@@ -283,6 +284,7 @@ app.use('/api/learning-os/study', learningOsStudyRoutes);
 app.use('/api/tools-audio', toolAudioRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/feature-flags', adminFeatureFlagRoutes);
 app.use('/api/admin/courses', adminCourseRoutes);
 app.use('/api/admin/script-lab', adminScriptLabRoutes);
 app.use('/api/feature-flags', featureFlagRoutes);

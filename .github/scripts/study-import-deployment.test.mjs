@@ -364,6 +364,10 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     'NEW_PROXY_TOKEN_ID=""',
     'PROXY_TOKEN_CUTOVER_STARTED=false',
     'if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then',
+    '"study:read",',
+    '"study:write",',
+    '"feature-flags:read",',
+    '"feature-flags:write",',
     'echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;',
     'echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;',
     'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',
@@ -382,7 +386,7 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
   }
 
   const tokenCreation = workflow.indexOf(
-    '$accessToken = $user->createToken("convolab-proxy", ["study:read", "study:write"]);'
+    '$accessToken = $user->createToken("convolab-proxy", ['
   );
   const tokenConfigured = workflow.indexOf(
     'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',

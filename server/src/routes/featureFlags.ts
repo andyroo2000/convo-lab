@@ -1,31 +1,26 @@
 import { Router } from 'express';
+import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
-import { prisma } from '../db/client.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import {
-  CLIENT_FEATURE_FLAG_SELECT,
-  DEFAULT_CLIENT_FEATURE_FLAGS,
-} from '../services/featureFlags.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { getLearningOsFeatureFlags } from '../services/featureFlagsProxy.js';
 
 const router = Router();
+const featureFlagsIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Public endpoint - get feature flags (available to all authenticated users)
-router.get('/', requireAuth, async (_req: AuthRequest, res, next) => {
+router.get('/', featureFlagsIpRateLimit, requireAuth, async (req: AuthRequest, res, next) => {
   try {
-    // Feature flags is a singleton - get the first (and only) row
-    let flags = await prisma.featureFlag.findFirst({
-      select: CLIENT_FEATURE_FLAG_SELECT,
-    });
-
-    // If no flags exist, create default (all enabled)
-    if (!flags) {
-      flags = await prisma.featureFlag.create({
-        data: DEFAULT_CLIENT_FEATURE_FLAGS,
-        select: CLIENT_FEATURE_FLAG_SELECT,
-      });
+    if (!req.userId) {
+      throw new AppError('Authentication required', 401);
     }
 
-    res.json(flags);
+    res.json(await getLearningOsFeatureFlags());
   } catch (error) {
     next(error);
   }
