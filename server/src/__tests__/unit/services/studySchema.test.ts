@@ -65,23 +65,20 @@ describe('study schema verification', () => {
     for (const ignoredRelation of ignoredUserRelations) {
       expect(user).toMatch(ignoredRelation);
     }
-    expect(user).toMatch(/studyMedia\s+StudyMedia\[\]/);
-    expect(user).not.toMatch(/studyMedia\s+StudyMedia\[\]\s+@ignore/);
+    expect(user).toMatch(/studyMedia\s+StudyMedia\[\]\s+@ignore/);
     expect(user).toMatch(/audioScriptMedia\s+AudioScriptMedia\[\]/);
   });
 
-  it('keeps StudyMedia active only as the temporary Audio Script rollback bridge', async () => {
+  it('excludes StudyMedia from Prisma Client after retiring the Audio Script rollback bridge', async () => {
     const schema = await readFile(schemaPath, 'utf8');
     const studyMedia = modelBlock(schema, 'StudyMedia');
 
-    expect(studyMedia).not.toContain('@@ignore');
+    expect(studyMedia).toContain('@@ignore');
     expect(studyMedia).toMatch(/importJob\s+StudyImportJob\?.+@ignore/);
     expect(studyMedia).toMatch(/promptAudioCards\s+StudyCard\[\].+@ignore/);
     expect(studyMedia).toMatch(/answerAudioCards\s+StudyCard\[\].+@ignore/);
     expect(studyMedia).toMatch(/imageCards\s+StudyCard\[\].+@ignore/);
-    expect(studyMedia).toMatch(
-      /audioScriptSegments\s+AudioScriptSegment\[\]\s+@relation\("AudioScriptSegmentLegacyImage"\)/
-    );
+    expect(studyMedia).not.toContain('audioScriptSegments');
     expect(modelBlock(schema, 'AudioScriptMedia')).not.toContain('@@ignore');
   });
 

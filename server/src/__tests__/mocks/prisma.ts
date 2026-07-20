@@ -70,16 +70,6 @@ const mockPrismaBase = {
     update: vi.fn(),
     upsert: vi.fn(),
   },
-  studyMedia: {
-    findUnique: vi.fn(),
-    findFirst: vi.fn(),
-    findMany: vi.fn(),
-    create: vi.fn(),
-    createMany: vi.fn(),
-    update: vi.fn(),
-    deleteMany: vi.fn(),
-    count: vi.fn(),
-  },
   audioScript: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),

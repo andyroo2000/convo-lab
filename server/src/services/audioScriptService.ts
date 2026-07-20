@@ -255,24 +255,19 @@ async function createAudioScriptSegmentImageMedia(input: {
   });
 
   try {
-    const id = randomUUID();
-    const sharedData = {
-      id,
-      userId: input.userId,
-      sourceKind: 'generated',
-      sourceFilename: filename,
-      normalizedFilename: normalizeFilename(filename),
-      mediaKind: 'image',
-      contentType: AUDIO_SCRIPT_IMAGE_CONTENT_TYPE,
-      storagePath: persisted.storagePath,
-      publicUrl: persisted.publicUrl,
-    };
-    const [, media] = await prisma.$transaction([
-      prisma.studyMedia.create({
-        data: sharedData,
-      }),
-      prisma.audioScriptMedia.create({ data: sharedData }),
-    ]);
+    const media = await prisma.audioScriptMedia.create({
+      data: {
+        id: randomUUID(),
+        userId: input.userId,
+        sourceKind: 'generated',
+        sourceFilename: filename,
+        normalizedFilename: normalizeFilename(filename),
+        mediaKind: 'image',
+        contentType: AUDIO_SCRIPT_IMAGE_CONTENT_TYPE,
+        storagePath: persisted.storagePath,
+        publicUrl: persisted.publicUrl,
+      },
+    });
 
     return {
       id: media.id,
@@ -307,10 +302,7 @@ async function cleanupReplacedAudioScriptImage(input: {
   }
 
   try {
-    await prisma.$transaction([
-      prisma.audioScriptMedia.deleteMany({ where: { id: media.id } }),
-      prisma.studyMedia.deleteMany({ where: { id: media.id } }),
-    ]);
+    await prisma.audioScriptMedia.deleteMany({ where: { id: media.id } });
     await deletePersistedStudyMediaByStoragePath(media.storagePath);
   } catch (error) {
     console.warn('[AudioScript] Unable to clean up replaced segment image.', error);
@@ -348,11 +340,6 @@ export function toAudioScriptResponse<T extends { segments?: Array<Record<string
   return {
     ...script,
     segments: script.segments?.map((segment) => {
-      const {
-        legacyImageMedia: _legacyImageMedia,
-        legacyImageMediaId: _legacyImageMediaId,
-        ...publicSegment
-      } = segment;
       const media = segment.imageMedia as
         | {
             id: string;
@@ -365,7 +352,7 @@ export function toAudioScriptResponse<T extends { segments?: Array<Record<string
         | undefined;
 
       return {
-        ...publicSegment,
+        ...segment,
         imageMedia: media
           ? {
               id: media.id,
@@ -710,7 +697,6 @@ export async function generateAudioScriptSegmentImages(params: {
           imageStatus: 'ready',
           imageErrorMessage: null,
           imageMediaId: image.id,
-          legacyImageMediaId: image.id,
           imageGeneratedAt: new Date(),
         },
       });

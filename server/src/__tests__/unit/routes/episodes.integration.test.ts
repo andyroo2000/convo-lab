@@ -177,7 +177,6 @@ describe('Episodes Routes Integration', () => {
               {
                 id: 'segment-1',
                 imageMediaId: 'media-1',
-                legacyImageMediaId: 'media-1',
                 imageMedia: {
                   id: 'media-1',
                   mediaKind: 'image',

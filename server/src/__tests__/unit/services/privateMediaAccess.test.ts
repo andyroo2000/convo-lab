@@ -1,6 +1,7 @@
 /* eslint-disable import/order */
 import { promises as fs } from 'fs';
 import path from 'path';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -10,15 +11,15 @@ import {
   resetStudyServiceMocks,
   uploadBufferToGCSPathMock,
 } from './studyTestHelpers.js';
-import { mockPrisma } from '../../setup.js';
-import { getStudyMediaAccess } from '../../../services/study/media.js';
+import { getPrivateMediaAccess } from '../../../services/privateMediaAccess.js';
 import {
   findAccessibleLocalStudyMediaPath,
   persistStudyMediaBuffer,
+  studyMediaRedirectCache,
 } from '../../../services/study/shared.js';
 
-async function withStudyMediaEnv<T>(
-  updates: Partial<Record<'ANKI_MEDIA_DIR' | 'GCS_BUCKET_NAME' | 'NODE_ENV', string>>,
+async function withPrivateMediaEnv<T>(
+  updates: Partial<Record<'GCS_BUCKET_NAME' | 'NODE_ENV', string>>,
   task: () => Promise<T>
 ): Promise<T> {
   const previousValues = new Map<keyof typeof updates, string | undefined>();
@@ -47,32 +48,44 @@ async function withStudyMediaEnv<T>(
   }
 }
 
-describe('study media access', () => {
+function mediaRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'media-1',
+    sourceFilename: 'segment.webp',
+    contentType: 'image/webp',
+    storagePath: 'study-media/user-1/generated/segment.webp',
+    ...overrides,
+  };
+}
+
+const imageAccessOptions = {
+  cacheNamespace: 'audio-script',
+  logContext: 'AudioScript',
+  mediaKind: 'image',
+};
+
+describe('private media access', () => {
   beforeEach(() => {
     resetStudyServiceMocks();
+    studyMediaRedirectCache.clear();
   });
 
   afterEach(async () => {
     await cleanupStudyServiceTestMedia();
   });
 
-  it('returns a signed redirect for user-owned GCS media', async () => {
+  it('returns a signed redirect for GCS-backed media', async () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({
-      id: 'media-1',
-      userId: 'user-1',
-      sourceFilename: 'company.mp3',
-      contentType: 'audio/mpeg',
-      mediaKind: 'audio',
-      storagePath: 'study-media/user-1/import/company.mp3',
-    });
 
-    const result = await getStudyMediaAccess('user-1', 'media-1');
+    const result = await getPrivateMediaAccess(mediaRecord(), imageAccessOptions);
 
-    expect(mockPrisma.studyMedia.findFirst).toHaveBeenCalledWith({
-      where: { id: 'media-1', userId: 'user-1' },
-    });
-    expect(getSignedReadUrlMock).toHaveBeenCalled();
+    expect(getSignedReadUrlMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filePath: 'study-media/user-1/generated/segment.webp',
+        responseDisposition: 'inline; filename="segment.webp"',
+        responseType: 'image/webp',
+      })
+    );
     expect(result).toEqual(
       expect.objectContaining({
         type: 'redirect',
@@ -81,42 +94,17 @@ describe('study media access', () => {
     );
   });
 
-  it('returns null when the media is not owned by the user', async () => {
-    mockPrisma.studyMedia.findFirst.mockResolvedValue(null);
-
-    await expect(getStudyMediaAccess('user-1', 'media-1')).resolves.toBeNull();
-    expect(getSignedReadUrlMock).not.toHaveBeenCalled();
-  });
-
-  it('does not recover legacy media rows without durable storage', async () => {
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({
-      id: 'legacy-media',
-      userId: 'user-1',
-      sourceKind: 'anki_import',
-      sourceFilename: 'missing.mp3',
-      contentType: 'audio/mpeg',
-      mediaKind: 'audio',
-      storagePath: null,
-      publicUrl: null,
-    });
-
-    await expect(getStudyMediaAccess('user-1', 'legacy-media')).resolves.toBeNull();
-    expect(mockPrisma.studyMedia.update).not.toHaveBeenCalled();
-    expect(getSignedReadUrlMock).not.toHaveBeenCalled();
-    expect(downloadFromGCSPathMock).not.toHaveBeenCalled();
-  });
-
   it('keeps a local mirror when persisting GCS-backed media in development', async () => {
-    const filename = `card-local-${Date.now()}.mp3`;
+    const filename = `audio-script-local-${Date.now()}.webp`;
 
-    await withStudyMediaEnv(
+    await withPrivateMediaEnv(
       { NODE_ENV: 'development', GCS_BUCKET_NAME: 'test-bucket' },
       async () => {
         const persisted = await persistStudyMediaBuffer({
           userId: 'user-1',
           importJobId: 'generated',
           filename,
-          buffer: Buffer.from('fake-audio'),
+          buffer: Buffer.from('fake-image'),
         });
 
         expect(uploadBufferToGCSPathMock).toHaveBeenCalledWith(
@@ -125,23 +113,22 @@ describe('study media access', () => {
           })
         );
         const localPath = await findAccessibleLocalStudyMediaPath(persisted.storagePath);
-        await expect(fs.readFile(localPath as string, 'utf8')).resolves.toBe('fake-audio');
+        await expect(fs.readFile(localPath as string, 'utf8')).resolves.toBe('fake-image');
       }
     );
   });
 
   it('forces attachment disposition for unsafe inline media', async () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({
-      id: 'media-svg',
-      userId: 'user-1',
-      sourceFilename: 'diagram.svg',
-      contentType: 'image/svg+xml',
-      mediaKind: 'other',
-      storagePath: 'study-media/user-1/import/diagram.svg',
-    });
 
-    const result = await getStudyMediaAccess('user-1', 'media-svg');
+    const result = await getPrivateMediaAccess(
+      mediaRecord({
+        sourceFilename: 'diagram.svg',
+        contentType: 'image/svg+xml',
+        storagePath: 'study-media/user-1/generated/diagram.svg',
+      }),
+      imageAccessOptions
+    );
 
     expect(getSignedReadUrlMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -155,41 +142,28 @@ describe('study media access', () => {
   it('returns null when private GCS media cannot be signed', async () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
     getSignedReadUrlMock.mockRejectedValueOnce(new Error('missing signer'));
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({
-      id: 'media-gcs-failure',
-      userId: 'user-1',
-      sourceFilename: 'missing.mp3',
-      contentType: 'audio/mpeg',
-      mediaKind: 'audio',
-      storagePath: 'study-media/user-1/import/missing.mp3',
-    });
 
-    await expect(getStudyMediaAccess('user-1', 'media-gcs-failure')).resolves.toBeNull();
+    await expect(getPrivateMediaAccess(mediaRecord(), imageAccessOptions)).resolves.toBeNull();
     expect(downloadFromGCSPathMock).not.toHaveBeenCalled();
   });
 
   it('caches GCS media locally in development when signing fails', async () => {
-    const filename = `dev-gcs-fallback-${Date.now()}.mp3`;
-    const storagePath = `study-media/user-1/import/${filename}`;
+    const filename = `dev-gcs-fallback-${Date.now()}.webp`;
+    const storagePath = `study-media/user-1/generated/${filename}`;
     getSignedReadUrlMock.mockRejectedValueOnce(new Error('missing signer'));
     downloadFromGCSPathMock.mockImplementationOnce(async ({ destinationPath }) => {
       await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-      await fs.writeFile(destinationPath, 'cached-audio');
+      await fs.writeFile(destinationPath, 'cached-image');
       return destinationPath;
     });
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({
-      id: 'media-dev-gcs-fallback',
-      userId: 'user-1',
-      sourceFilename: filename,
-      contentType: 'audio/mpeg',
-      mediaKind: 'audio',
-      storagePath,
-    });
 
-    await withStudyMediaEnv(
+    await withPrivateMediaEnv(
       { NODE_ENV: 'development', GCS_BUCKET_NAME: 'test-bucket' },
       async () => {
-        const result = await getStudyMediaAccess('user-1', 'media-dev-gcs-fallback');
+        const result = await getPrivateMediaAccess(
+          mediaRecord({ sourceFilename: filename, storagePath }),
+          imageAccessOptions
+        );
 
         expect(result).toEqual(
           expect.objectContaining({
@@ -198,9 +172,9 @@ describe('study media access', () => {
           })
         );
         if (result?.type !== 'local') {
-          throw new Error('Expected locally cached study media.');
+          throw new Error('Expected locally cached private media.');
         }
-        await expect(fs.readFile(result.absolutePath, 'utf8')).resolves.toBe('cached-audio');
+        await expect(fs.readFile(result.absolutePath, 'utf8')).resolves.toBe('cached-image');
       }
     );
   });

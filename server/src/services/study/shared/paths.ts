@@ -157,10 +157,6 @@ export async function deletePersistedStudyMediaByStoragePath(storagePath: string
   }
 }
 
-export function getStudyMediaApiPath(mediaId: string): string {
-  return `/api/study/media/${encodeURIComponent(mediaId)}`;
-}
-
 export function getContentType(filename: string): string {
   const lower = filename.toLowerCase();
   if (lower.endsWith('.mp3')) return 'audio/mpeg';
