@@ -114,6 +114,18 @@ test('the production workflow verifies the always-on Study API without rollout f
     workflow,
     /\$COMPOSE up -d --no-deps --force-recreate learning-os learning-os-worker/
   );
+
+  const verifyStudyApi = workflow.slice(
+    workflow.indexOf('verify_study_api() {'),
+    workflow.indexOf('fetch_read_route() {')
+  );
+  const postgresUserAssignment = verifyStudyApi.indexOf(
+    'postgres_user="$(sed -n \'s/^POSTGRES_USER=//p\' .env.production | tail -1)"'
+  );
+  const postgresUserUse = verifyStudyApi.indexOf('--username="$postgres_user"');
+
+  assert.ok(postgresUserAssignment >= 0);
+  assert.ok(postgresUserUse > postgresUserAssignment);
 });
 
 test('the production workflow verifies and cleans up a disposable card draft', async () => {

@@ -389,6 +389,11 @@ jobs:
             trap cleanup_deployment_failure EXIT
 
             verify_study_api() {
+              local postgres_user
+
+              postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+              test -n "$postgres_user"
+
               user_record="$(printf '%s\n' \
                 "SELECT id, role FROM \"User\" WHERE email = :'email' LIMIT 1;" \
                 | docker exec -i convolab-postgres psql \
