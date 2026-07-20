@@ -122,7 +122,9 @@ describe('browser runtime config', () => {
   it('normalizes app URLs that omit a leading slash', () => {
     process.env.NODE_ENV = 'development';
 
-    expect(buildClientAppUrl('pricing')).toBe('http://localhost:5173/pricing');
+    expect(buildClientAppUrl('app/settings/profile')).toBe(
+      'http://localhost:5173/app/settings/profile'
+    );
   });
 
   it('rejects absolute URLs passed to buildClientAppUrl', () => {

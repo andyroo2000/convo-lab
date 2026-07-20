@@ -1,23 +1,17 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Trash2, Lock, Camera, CreditCard } from 'lucide-react';
+import { User, Trash2, Lock, Camera } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import { API_URL } from '../config';
 
-type Tab = 'profile' | 'security' | 'billing' | 'danger';
-
-interface SubscriptionStatus {
-  status?: string;
-  currentPeriodEnd?: string;
-  cancelAtPeriodEnd?: boolean;
-}
+type Tab = 'profile' | 'security' | 'danger';
 
 const SettingsPage = () => {
   const { t } = useTranslation(['settings', 'common']);
-  const { user, updateUser, deleteAccount, changePassword, refreshUser } = useAuth();
+  const { user, updateUser, deleteAccount, changePassword } = useAuth();
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'profile';
@@ -96,69 +90,11 @@ const SettingsPage = () => {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperImageUrl, setCropperImageUrl] = useState('');
 
-  // Billing state
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
-  const [loadingSubscription, setLoadingSubscription] = useState(false);
-  const [billingError, setBillingError] = useState<string | null>(null);
-
   useEffect(() => {
-    if (tab === 'language') {
+    if (tab === 'language' || tab === 'billing') {
       navigate('/app/settings/profile', { replace: true });
     }
   }, [tab, navigate]);
-
-  // Fetch subscription status
-  const fetchSubscriptionStatus = useCallback(async () => {
-    setLoadingSubscription(true);
-    setBillingError(null);
-
-    try {
-      const response = await fetch(`${API_URL}/api/billing/subscription-status`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscription status');
-      }
-
-      const data = await response.json();
-      setSubscriptionStatus(data);
-    } catch (err) {
-      setBillingError(t('settings:billing.errors.loadSubscription'));
-    } finally {
-      setLoadingSubscription(false);
-    }
-  }, [t]);
-
-  // Open Stripe customer portal
-  const handleManageSubscription = async () => {
-    setLoadingSubscription(true);
-    setBillingError(null);
-
-    try {
-      const response = await fetch(`${API_URL}/api/billing/create-portal-session`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create portal session');
-      }
-
-      const { url } = await response.json();
-      window.location.href = url;
-    } catch (err) {
-      setBillingError(
-        err instanceof Error ? err.message : t('settings:billing.errors.createPortal')
-      );
-      setLoadingSubscription(false);
-    }
-  };
-
-  // Upgrade to Pro
-  const handleUpgradeToPro = () => {
-    navigate('/pricing');
-  };
 
   // Initialize form with user data
   useEffect(() => {
@@ -167,15 +103,6 @@ const SettingsPage = () => {
       setSelectedColor(user.avatarColor || 'indigo');
     }
   }, [user]);
-
-  // Fetch subscription status when billing tab is active
-  useEffect(() => {
-    if (activeTab === 'billing') {
-      // Refresh user data to get latest tier info
-      refreshUser();
-      fetchSubscriptionStatus();
-    }
-  }, [activeTab, fetchSubscriptionStatus, refreshUser]);
 
   const hasChanges = () => {
     if (!user) return false;
@@ -357,15 +284,6 @@ const SettingsPage = () => {
             >
               <Lock className="w-4 h-4" />
               <span>{t('settings:tabs.security')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/app/settings/billing')}
-              className={getTabButtonClass('billing')}
-              data-testid="settings-tab-billing"
-            >
-              <CreditCard className="w-4 h-4" />
-              <span>{t('settings:tabs.billing')}</span>
             </button>
             <button
               type="button"
@@ -586,133 +504,6 @@ const SettingsPage = () => {
                       : t('settings:security.changeButton')}
                   </button>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Billing Card */}
-          {activeTab === 'billing' && (
-            <div className="max-w-4xl mx-auto">
-              <div className="retro-settings-panel retro-paper-panel mb-6">
-                <h2 className="retro-headline text-3xl mb-6">{t('settings:billing.title')}</h2>
-
-                {billingError && (
-                  <div className="retro-settings-alert is-error mb-6">
-                    <p className="text-sm">{billingError}</p>
-                  </div>
-                )}
-
-                {loadingSubscription ? (
-                  <div className="text-center py-8">
-                    <div className="loading-spinner w-8 h-8 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-4" />
-                    <p className="text-medium-brown">{t('settings:billing.loading')}</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Current Plan */}
-                    <div className="mb-8">
-                      <h3 className="retro-settings-section-title mb-4">
-                        {t('settings:billing.currentPlan.title')}
-                      </h3>
-                      <div className="retro-settings-subpanel">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <p className="text-2xl font-bold text-dark-brown capitalize">
-                              {user?.tier === 'pro'
-                                ? t('settings:billing.currentPlan.pro')
-                                : t('settings:billing.currentPlan.free')}{' '}
-                              {t('settings:billing.currentPlan.plan')}
-                            </p>
-                            <p className="text-medium-brown">
-                              {user?.tier === 'pro'
-                                ? t('settings:billing.currentPlan.proPrice')
-                                : t('settings:billing.currentPlan.freePrice')}
-                            </p>
-                          </div>
-                          {subscriptionStatus?.status && (
-                            <span
-                              className={`px-3 py-1 rounded-full text-sm font-semibold ${(() => {
-                                if (subscriptionStatus.status === 'active')
-                                  return 'bg-green-100 text-green-700';
-                                if (subscriptionStatus.status === 'past_due')
-                                  return 'bg-yellow-100 text-yellow-700';
-                                return 'bg-gray-100 text-gray-700';
-                              })()}`}
-                            >
-                              {subscriptionStatus.status}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mb-4">
-                          <p className="retro-settings-label mb-2">
-                            {t('settings:billing.currentPlan.limit')}
-                          </p>
-                          <p className="text-lg font-semibold text-dark-brown">
-                            {user?.tier === 'pro' ? '30' : '5'}{' '}
-                            {t('settings:billing.currentPlan.generations')}
-                          </p>
-                        </div>
-
-                        {subscriptionStatus?.currentPeriodEnd && (
-                          <p className="text-sm text-medium-brown">
-                            {subscriptionStatus.cancelAtPeriodEnd
-                              ? `${t('settings:billing.currentPlan.cancelsOn')} ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`
-                              : `${t('settings:billing.currentPlan.renewsOn')} ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="space-y-4">
-                      {user?.tier === 'free' ? (
-                        <div>
-                          <button
-                            type="button"
-                            onClick={handleUpgradeToPro}
-                            className="retro-settings-btn-primary w-full"
-                          >
-                            {t('settings:billing.actions.upgrade')}
-                          </button>
-                          <p className="text-sm text-medium-brown mt-2 text-center">
-                            {t('settings:billing.actions.upgradeHelper')}
-                          </p>
-                        </div>
-                      ) : (
-                        <div>
-                          <button
-                            type="button"
-                            onClick={handleManageSubscription}
-                            disabled={loadingSubscription}
-                            className="retro-settings-btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {loadingSubscription
-                              ? t('settings:billing.loading')
-                              : t('settings:billing.actions.manage')}
-                          </button>
-                          <p className="text-sm text-medium-brown mt-2 text-center">
-                            {t('settings:billing.actions.manageHelper')}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Plan Comparison */}
-                    <div className="mt-8 pt-8 retro-settings-divider">
-                      <h3 className="retro-settings-section-title mb-4">
-                        {t('settings:billing.comparison.title')}
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => navigate('/pricing')}
-                        className="retro-settings-link-btn"
-                      >
-                        {t('settings:billing.comparison.viewAll')}
-                      </button>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           )}

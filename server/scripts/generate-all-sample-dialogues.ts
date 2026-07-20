@@ -105,7 +105,6 @@ async function findOrCreateSystemUser() {
         password: '',
         name: 'System',
         role: 'admin',
-        tier: 'pro',
         onboardingCompleted: true,
         preferredStudyLanguage: 'ja',
         preferredNativeLanguage: 'en',

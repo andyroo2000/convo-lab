@@ -62,7 +62,7 @@ describe('QuotaBadge', () => {
     });
 
     render(<QuotaBadge />);
-    expect(screen.getByText(/10\/20 generations left this week/)).toBeTruthy();
+    expect(screen.getByText(/10\/20 generations left this month/)).toBeTruthy();
   });
 
   it('should show blue badge when usage < 80%', () => {
@@ -134,7 +134,7 @@ describe('QuotaBadge', () => {
     });
 
     render(<QuotaBadge />);
-    expect(screen.getByText(/0\/20 generations left this week/)).toBeTruthy();
+    expect(screen.getByText(/0\/20 generations left this month/)).toBeTruthy();
     const badge = screen.getByText(/0\/20/).closest('div');
     expect(badge?.className).toContain('bg-red-100');
   });

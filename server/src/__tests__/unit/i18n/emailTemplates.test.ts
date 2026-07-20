@@ -5,26 +5,13 @@ import {
   generatePasswordResetEmail,
   generateWelcomeEmail,
   generatePasswordChangedEmail,
-  generateSubscriptionConfirmedEmail,
-  generatePaymentFailedEmail,
-  generateSubscriptionCanceledEmail,
-  generateQuotaWarningEmail,
 } from '../../../i18n/emailTemplates.js';
 
 interface TranslationParams {
   name?: string;
-  tier?: string;
   supportEmail?: string;
-  weeklyLimit?: number;
   appUrl?: string;
-  billingUrl?: string;
-  used?: number;
-  limit?: number;
-  pricingUrl?: string;
   count?: number;
-  percentage?: number;
-  remaining?: number;
-  resetDate?: string;
 }
 
 // Mock i18n
@@ -58,48 +45,6 @@ const mockTranslations: Record<string, Record<string, (params?: TranslationParam
     'passwordChanged.body': () => 'Your password was changed',
     'passwordChanged.warning': () => 'Contact support if not you',
     'passwordChanged.supportEmail': (p?: TranslationParams) => p?.supportEmail ?? '',
-    'subscriptionConfirmed.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
-    'subscriptionConfirmed.title': () => 'Subscription Confirmed',
-    'subscriptionConfirmed.body': (p?: TranslationParams) => `Welcome to ${p?.tier} tier`,
-    'subscriptionConfirmed.benefits': () => 'Your Benefits',
-    'subscriptionConfirmed.benefit1': () => '30 generations per week',
-    'subscriptionConfirmed.benefit2': () => 'Priority support',
-    'subscriptionConfirmed.benefit3': () => 'All features included',
-    'subscriptionConfirmed.button': () => 'Start Creating',
-    'subscriptionConfirmed.footer': () => 'ConvoLab Team',
-    'paymentFailed.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
-    'paymentFailed.title': () => 'Payment Failed',
-    'paymentFailed.body': () => 'Payment could not be processed',
-    'paymentFailed.reasons': () => 'Common reasons',
-    'paymentFailed.reason1': () => 'Insufficient funds',
-    'paymentFailed.reason2': () => 'Card expired',
-    'paymentFailed.reason3': () => 'Card declined',
-    'paymentFailed.action': () => 'Update payment method',
-    'paymentFailed.button': () => 'Update Payment',
-    'paymentFailed.footer': () => 'ConvoLab Team',
-    'subscriptionCanceled.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
-    'subscriptionCanceled.title': () => 'Subscription Canceled',
-    'subscriptionCanceled.body': () =>
-      'Your premium access will continue until the end of your billing period',
-    'subscriptionCanceled.freeTierTitle': () => 'Free Tier Benefits',
-    'subscriptionCanceled.generations': (p?: TranslationParams) =>
-      `${p?.count} generations per week`,
-    'subscriptionCanceled.contentTypes': () => 'All content types available',
-    'subscriptionCanceled.support': () => 'Community support',
-    'subscriptionCanceled.sorryToSeeYouGo': () => "We're sorry to see you go",
-    'subscriptionCanceled.reactivateNote': () =>
-      'You can reactivate anytime from your billing page',
-    'subscriptionCanceled.button': () => 'Manage Billing',
-    'subscriptionCanceled.footer': () => 'ConvoLab Team',
-    'quotaWarning.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
-    'quotaWarning.title': () => 'Quota Warning',
-    'quotaWarning.body': (p?: TranslationParams) => `${p?.percentage}% of quota used`,
-    'quotaWarning.remaining': (p?: TranslationParams) => `${p?.remaining} generations left`,
-    'quotaWarning.reset': (p?: TranslationParams) => `Resets on ${p?.resetDate}`,
-    'quotaWarning.upgradeTitle': () => 'Upgrade to Pro',
-    'quotaWarning.upgradeBody': () => 'Get 30 generations per week',
-    'quotaWarning.upgradeButton': () => 'Upgrade Now',
-    'quotaWarning.footer': () => 'ConvoLab Team',
   },
 };
 
@@ -332,99 +277,6 @@ describe('emailTemplates - XSS Prevention', () => {
     });
   });
 
-  describe('generateSubscriptionConfirmedEmail', () => {
-    it('should generate LTR email and escape XSS in name', () => {
-      const html = generateSubscriptionConfirmedEmail({
-        name: '<script>alert(1)</script>',
-        tier: 'pro',
-        weeklyLimit: 30,
-        appUrl: 'https://example.com/app',
-        locale: 'en',
-      });
-
-      expect(html).toContain('dir="ltr"');
-      expect(html).toContain('&lt;script&gt;');
-      expect(html).not.toContain('<script>alert(1)</script>');
-    });
-  });
-
-  describe('generatePaymentFailedEmail', () => {
-    it('should generate LTR email and escape XSS', () => {
-      const html = generatePaymentFailedEmail({
-        name: '<img src=x onerror=alert(1)>',
-        billingUrl: 'https://example.com/billing',
-        supportEmail: 'support@example.com',
-        locale: 'en',
-      });
-
-      expect(html).toContain('dir="ltr"');
-      expect(html).toContain('&lt;img');
-      expect(html).not.toContain('<img src=x onerror=alert(1)>');
-    });
-  });
-
-  describe('generateSubscriptionCanceledEmail', () => {
-    it('should generate LTR email and escape XSS', () => {
-      const html = generateSubscriptionCanceledEmail({
-        name: '<img src=x onerror=alert(1)>',
-        billingUrl: 'https://example.com/billing',
-        locale: 'en',
-      });
-
-      expect(html).toContain('dir="ltr"');
-      expect(html).toContain('&lt;img');
-      expect(html).not.toContain('<img src=x onerror=alert(1)>');
-    });
-  });
-
-  describe('generateQuotaWarningEmail', () => {
-    it('should show percentage and remaining count for free tier with upgrade prompt', () => {
-      const html = generateQuotaWarningEmail({
-        name: 'Frank',
-        used: 4,
-        limit: 5,
-        percentage: 80,
-        tier: 'free',
-        locale: 'en',
-        pricingUrl: 'https://example.com/pricing',
-      });
-
-      expect(html).toContain('dir="ltr"');
-      expect(html).toContain('Upgrade to Pro');
-      expect(html).toContain('Get 30 generations per week');
-    });
-
-    it('should NOT show upgrade prompt for pro tier', () => {
-      const html = generateQuotaWarningEmail({
-        name: 'Grace',
-        used: 27,
-        limit: 30,
-        percentage: 90,
-        tier: 'pro',
-        locale: 'en',
-        pricingUrl: 'https://example.com/pricing',
-      });
-
-      expect(html).toContain('dir="ltr"');
-      expect(html).not.toContain('Upgrade to Pro');
-    });
-
-    it('should escape XSS in name', () => {
-      const html = generateQuotaWarningEmail({
-        name: '<script>alert(1)</script>',
-        used: 4,
-        limit: 5,
-        percentage: 80,
-        tier: 'free',
-        locale: 'en',
-        pricingUrl: 'https://example.com/pricing',
-      });
-
-      expect(html).toContain('&lt;script&gt;');
-      expect(html).not.toContain('<script>alert(1)</script>');
-    });
-  });
-
   describe('HTML Structure Validation', () => {
     it('should generate valid HTML with DOCTYPE', () => {
       const html = generateVerificationEmail({
@@ -449,10 +301,8 @@ describe('emailTemplates - XSS Prevention', () => {
     });
 
     it('should use semantic HTML structure', () => {
-      const html = generateSubscriptionConfirmedEmail({
+      const html = generateWelcomeEmail({
         name: 'Test',
-        tier: 'pro',
-        weeklyLimit: 30,
         appUrl: 'https://example.com/app',
         locale: 'en',
       });

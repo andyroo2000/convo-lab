@@ -25,7 +25,6 @@ import adminScriptLabRoutes from './routes/adminScriptLab.js';
 import audioRoutes from './routes/audio.js';
 import authRoutes from './routes/auth.js';
 import avatarAssetRoutes from './routes/avatarAssets.js';
-import billingRoutes from './routes/billing.js';
 import courseRoutes from './routes/courses.js';
 import dialogueRoutes from './routes/dialogue.js';
 import episodeRoutes from './routes/episodes.js';
@@ -65,13 +64,6 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
       'Practice Japanese date, time, money, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
     robots: 'index,follow',
     canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/`,
-  },
-  '/pricing': {
-    title: 'Pricing | ConvoLab',
-    description:
-      'Compare ConvoLab plans for Japanese language practice, AI dialogue generation, and audio tools.',
-    robots: 'index,follow',
-    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/pricing`,
   },
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
@@ -217,11 +209,7 @@ app.use(
   })
 );
 
-// Stripe webhook needs raw body for signature verification
-// Must be added BEFORE express.json()
 app.use(enforceDefaultRequestBodyTimeout());
-app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -285,7 +273,6 @@ app.get('/health', async (_req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', verificationRoutes);
-app.use('/api', billingRoutes);
 app.use('/api/episodes', episodeRoutes);
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);

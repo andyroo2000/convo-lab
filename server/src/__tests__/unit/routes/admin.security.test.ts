@@ -37,21 +37,10 @@ const mockPrisma = vi.hoisted(() => ({
     findMany: vi.fn(),
     count: vi.fn(),
   },
-  subscriptionEvent: {
-    create: vi.fn(),
-  },
 }));
 
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
-}));
-
-vi.mock('stripe', () => ({
-  default: vi.fn(() => ({
-    subscriptions: {
-      cancel: vi.fn(),
-    },
-  })),
 }));
 
 vi.mock('../../../services/japanesePronunciationOverrides.js', () => ({
@@ -186,68 +175,6 @@ describe('Admin Security Tests', () => {
     });
   });
 
-  describe('Admin Subscription Tier Management', () => {
-    it('should block non-admin from updating user tier', async () => {
-      currentUserId = 'non-admin-456';
-
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: currentUserId,
-        email: 'user@example.com',
-        role: 'user',
-      });
-
-      const response = await request(app)
-        .post('/api/admin/users/target-user-123/tier')
-        .send({ tier: 'pro', reason: 'Unauthorized attempt' })
-        .expect(403);
-
-      expect(response.body.error.message).toBe('Admin access required');
-      expect(mockPrisma.user.update).not.toHaveBeenCalled();
-    });
-
-    it('should allow admin to update user tier', async () => {
-      currentUserId = 'admin-789';
-
-      // First call: verify admin role
-      // Second call: find target user
-      mockPrisma.user.findUnique
-        .mockResolvedValueOnce({
-          id: currentUserId,
-          email: 'admin@example.com',
-          role: 'admin',
-        })
-        .mockResolvedValueOnce({
-          id: 'target-user-123',
-          email: 'target@example.com',
-          tier: 'free',
-        });
-
-      mockPrisma.user.update.mockResolvedValue({
-        id: 'target-user-123',
-        email: 'target@example.com',
-        tier: 'pro',
-      });
-
-      mockPrisma.subscriptionEvent.create.mockResolvedValue({
-        id: 'event-1',
-        userId: 'target-user-123',
-        eventType: 'admin_override',
-        fromTier: 'free',
-        toTier: 'pro',
-        stripeEventId: 'admin:admin-789:Manual upgrade',
-        createdAt: new Date(),
-      });
-
-      const response = await request(app)
-        .post('/api/admin/users/target-user-123/tier')
-        .send({ tier: 'pro', reason: 'Manual upgrade' })
-        .expect(200);
-
-      expect(response.body.message).toBe('User tier updated from free to pro');
-      expect(mockPrisma.user.update).toHaveBeenCalled();
-    });
-  });
-
   describe('Admin User Listing', () => {
     it('should block non-admin from viewing user list', async () => {
       currentUserId = 'non-admin-999';
@@ -278,7 +205,6 @@ describe('Admin Security Tests', () => {
           id: 'user-1',
           email: 'user1@example.com',
           name: 'User One',
-          tier: 'free',
           role: 'user',
           createdAt: new Date(),
         },

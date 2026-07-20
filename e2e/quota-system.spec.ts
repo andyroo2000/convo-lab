@@ -13,7 +13,7 @@ import {
 
 /**
  * E2E Tests for Quota System
- * Tests tier-based quota enforcement (free: lifetime per-type, paid: 30/month), cooldown periods, and admin bypass
+ * Tests monthly quota enforcement, cooldown periods, and admin bypass.
  */
 
 test.describe('Quota System', () => {
@@ -28,7 +28,6 @@ test.describe('Quota System', () => {
 
       const quotaText = await waitForQuotaBadge(page);
       expect(quotaText).toBeTruthy();
-      // Badge should show quota info (format depends on tier - free tier shows per-type, paid shows combined)
       expect(quotaText).toMatch(/\d+/); // Should contain numbers
     });
 
@@ -56,7 +55,7 @@ test.describe('Quota System', () => {
     test('should show blue badge when usage < 80%', async ({ page }) => {
       await loginAsUser(page);
 
-      // Set quota to 1/2 for dialogues (50% usage - should be blue)
+      // One generation used is below 80% of the default monthly limit.
       const userId = 'test-user-id'; // You'll need to get actual user ID
       await clearUserQuota(page, userId);
       await setUserQuota(page, userId, 1);
@@ -67,23 +66,27 @@ test.describe('Quota System', () => {
       const badgeClass = await badge.getAttribute('class');
 
       expect(badgeClass).toContain('bg-blue');
-      expect(await badge.textContent()).toContain('1/2');
+      expect(await badge.textContent()).toContain('29/30');
     });
 
-    // Note: Skipping 80-89% orange badge test for free tier dialogue quota
-    // Free tier has only 2 dialogues lifetime, so percentages are: 0/2=0%, 1/2=50%, 2/2=100%
-    // There's no way to achieve 80-89% usage with only 2 items
-    test.skip('should show orange badge with "Running low" when usage 80-89%', async ({ page }) => {
-      // This test would need a paid tier user with 30/month quota to test 80-89% range (24-26 used)
+    test('should show orange badge with "Running low" when usage 80-89%', async ({ page }) => {
       await loginAsUser(page);
+
+      const userId = 'test-user-id';
+      await setUserQuota(page, userId, 24);
+      await page.reload();
+
+      const badge = page.locator('[data-testid="quota-badge"]').first();
+      expect(await badge.getAttribute('class')).toContain('bg-orange');
+      expect(await badge.textContent()).toContain('6/30');
     });
 
     test('should show red badge with "Low quota" when usage >= 90%', async ({ page }) => {
       await loginAsUser(page);
 
-      // Set quota to 2/2 for dialogues (100% usage - should be red)
+      // Twenty-seven generations is 90% of the default monthly limit.
       const userId = 'test-user-id';
-      await setUserQuota(page, userId, 2);
+      await setUserQuota(page, userId, 27);
 
       await page.reload();
 
@@ -138,9 +141,9 @@ test.describe('Quota System', () => {
     test('should block generation when quota exhausted', async ({ page }) => {
       await loginAsUser(page);
 
-      // Set quota to 2/2 (exhausted for free tier dialogues)
+      // Exhaust the default monthly limit.
       const userId = 'test-user-id';
-      await setUserQuota(page, userId, 2);
+      await setUserQuota(page, userId, 30);
 
       await page.reload();
 
@@ -154,14 +157,10 @@ test.describe('Quota System', () => {
         .locator('[data-testid="error-display"]')
         .textContent({ timeout: 5000 });
       expect(errorText).toContain('Quota exceeded');
-      expect(errorText).toContain('2 of 2');
+      expect(errorText).toContain('30 of 30');
     });
 
-    // Note: Free tier quotas are lifetime limits and never reset
-    // Paid tier quotas reset on the 1st of each month
     test.skip('should show quota reset date in error message', async ({ page }) => {
-      // This test would need to be updated for paid tier (monthly reset)
-      // or removed since free tier quotas don't reset
       await loginAsUser(page);
     });
   });

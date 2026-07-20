@@ -18,7 +18,7 @@ import { AppError } from './errorHandler.js';
 
 /**
  * Factory function to create rate limiting middleware for a specific content type.
- * Checks both quota (free: lifetime per-type, paid: monthly combined) and cooldown.
+ * Checks both the monthly generation quota and cooldown.
  * Admins are exempt from all limits.
  *
  * @param contentType - The type of content being generated
@@ -61,7 +61,7 @@ export function rateLimitGeneration(contentType: ContentType) {
         );
       }
 
-      // Check quota (content-type-specific for free tier, monthly combined for paid tier)
+      // Check the monthly quota shared by all generation content types.
       const quotaStatus = await checkGenerationLimit(req.userId, contentType);
       if (!quotaStatus.allowed) {
         throw new AppError(

@@ -33,7 +33,7 @@ export const defaultWorkerSettings: Partial<WorkerOptions> = {
   // Examples:
   // 5000 (5s) = fast for testing, ~103K cmds/day (~$15/mo)
   // 30000 (30s) = balanced, ~17K cmds/day (~$3-5/mo)
-  // 60000 (60s) = efficient, ~8.6K cmds/day (free tier)
+  // 60000 (60s) = efficient, approximately 8.6K commands per day.
   // 300000 (5min) = idle mode, ~1.7K cmds/day (minimal cost)
 
   // Rate limiter for job processing (doesn't affect idle polling)

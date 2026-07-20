@@ -4,7 +4,6 @@
   "tabs": {
     "profile": "プロフィール",
     "security": "セキュリティ",
-    "billing": "請求",
     "danger": "危険ゾーン"
   },
   "profile": {
@@ -62,36 +61,6 @@
       "required": "すべてのパスワードフィールドが必要です",
       "tooShort": "新しいパスワードは8文字以上である必要があります",
       "mismatch": "新しいパスワードが一致しません"
-    }
-  },
-  "billing": {
-    "title": "請求とサブスクリプション",
-    "loading": "サブスクリプション情報を読み込み中...",
-    "currentPlan": {
-      "title": "現在のプラン",
-      "free": "無料",
-      "pro": "プロ",
-      "plan": "プラン",
-      "freePrice": "永久無料",
-      "proPrice": "$7/月",
-      "limit": "週間生成制限",
-      "generations": "週あたりの生成回数",
-      "cancelsOn": "キャンセル日",
-      "renewsOn": "更新日"
-    },
-    "actions": {
-      "upgrade": "プロにアップグレード（$7/月）",
-      "upgradeHelper": "週30回の生成と優先サポートを取得",
-      "manage": "サブスクリプションを管理",
-      "manageHelper": "支払い方法の更新、請求書の表示、またはサブスクリプションのキャンセル"
-    },
-    "comparison": {
-      "title": "別のプランが必要ですか？",
-      "viewAll": "すべてのプランを表示 →"
-    },
-    "errors": {
-      "loadSubscription": "サブスクリプション情報の読み込みに失敗しました",
-      "createPortal": "請求ポータルを開けませんでした"
     }
   },
   "danger": {

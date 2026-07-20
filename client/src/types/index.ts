@@ -26,7 +26,6 @@ export interface User {
   avatarColor?: string;
   avatarUrl?: string;
   role: 'user' | 'moderator' | 'admin' | 'demo';
-  tier: 'free' | 'pro';
   preferredStudyLanguage?: LanguageCode;
   preferredNativeLanguage?: LanguageCode;
   proficiencyLevel?: ProficiencyLevel;
@@ -35,7 +34,6 @@ export interface User {
   seenCustomContentGuide?: boolean;
   emailVerified?: boolean;
   emailVerifiedAt?: Date;
-  isTestUser?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

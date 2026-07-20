@@ -32,15 +32,6 @@ interface UserData {
   avatarColor?: string;
   avatarUrl?: string;
   role: string;
-  tier: 'free' | 'pro';
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
-  stripeSubscriptionStatus?: string;
-  stripePriceId?: string;
-  subscriptionStartedAt?: string;
-  subscriptionExpiresAt?: string;
-  subscriptionCanceledAt?: string;
-  isTestUser?: boolean;
   createdAt: string;
   _count: {
     episodes: number;
@@ -106,8 +97,6 @@ const AdminPage = () => {
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'users';
   const [users, setUsers] = useState<UserData[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
-  const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro' | 'canceled'>('all');
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [speakerAvatars, setSpeakerAvatars] = useState<SpeakerAvatar[]>([]);
@@ -183,28 +172,6 @@ const AdminPage = () => {
         return 'retro-admin-v3-badge retro-admin-v3-badge-demo';
       default:
         return 'retro-admin-v3-badge retro-admin-v3-badge-user';
-    }
-  };
-
-  const getTierBadgeClass = (tier: 'free' | 'pro'): string => {
-    if (tier === 'pro') {
-      return 'retro-admin-v3-badge retro-admin-v3-badge-pro';
-    }
-    return 'retro-admin-v3-badge retro-admin-v3-badge-free';
-  };
-
-  const getSubscriptionStatusClass = (status: string): string => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'past_due':
-        return 'bg-orange-100 text-orange-800';
-      case 'canceled':
-        return 'bg-red-100 text-red-800';
-      case 'trialing':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -640,21 +607,6 @@ const AdminPage = () => {
   }, [activeTab]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
-  // Filter users based on tier
-  useEffect(() => {
-    if (tierFilter === 'all') {
-      setFilteredUsers(users);
-    } else if (tierFilter === 'canceled') {
-      setFilteredUsers(
-        users.filter(
-          (u) => u.subscriptionCanceledAt !== null && u.subscriptionCanceledAt !== undefined
-        )
-      );
-    } else {
-      setFilteredUsers(users.filter((u) => u.tier === tierFilter));
-    }
-  }, [users, tierFilter]);
-
   if (!user || user.role !== 'admin') {
     return null;
   }
@@ -734,38 +686,6 @@ const AdminPage = () => {
           {/* Users Tab */}
           {activeTab === 'users' && (
             <div className="retro-admin-v3-pane">
-              {/* Tier Filter Buttons */}
-              <div className="retro-admin-v3-filter-row mb-4">
-                <button
-                  type="button"
-                  onClick={() => setTierFilter('all')}
-                  className={`retro-admin-v3-chip ${tierFilter === 'all' ? 'is-active' : ''}`}
-                >
-                  All Users
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTierFilter('free')}
-                  className={`retro-admin-v3-chip ${tierFilter === 'free' ? 'is-active' : ''}`}
-                >
-                  Free Tier
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTierFilter('pro')}
-                  className={`retro-admin-v3-chip ${tierFilter === 'pro' ? 'is-active' : ''}`}
-                >
-                  Pro Tier
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTierFilter('canceled')}
-                  className={`retro-admin-v3-chip ${tierFilter === 'canceled' ? 'is-active' : ''}`}
-                >
-                  Canceled
-                </button>
-              </div>
-
               <div className="retro-admin-v3-search-row mb-6">
                 <div className="relative flex-1 min-w-[20rem]">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -801,18 +721,6 @@ const AdminPage = () => {
                           Role
                         </th>
                         <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Tier
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Test User
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Sub Status
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Quota
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                           Content
                         </th>
                         <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
@@ -824,7 +732,7 @@ const AdminPage = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredUsers.map((u) => (
+                      {users.map((u) => (
                         <tr
                           key={u.id}
                           className="hover:bg-gray-50 cursor-pointer"
@@ -848,40 +756,6 @@ const AdminPage = () => {
                             >
                               {u.role}
                             </span>
-                          </td>
-                          <td className="px-3 sm:px-6 py-4">
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getTierBadgeClass(
-                                u.tier
-                              )}`}
-                            >
-                              {u.tier}
-                            </span>
-                          </td>
-                          <td className="px-3 sm:px-6 py-4">
-                            {u.isTestUser ? (
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                Test
-                              </span>
-                            ) : (
-                              <span className="text-sm text-gray-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-3 sm:px-6 py-4">
-                            {u.stripeSubscriptionStatus ? (
-                              <span
-                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getSubscriptionStatusClass(
-                                  u.stripeSubscriptionStatus
-                                )}`}
-                              >
-                                {u.stripeSubscriptionStatus}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-gray-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                            {u.tier === 'pro' ? '30/week' : '5/week'}
                           </td>
                           <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                             {u._count.episodes + u._count.courses} items
@@ -924,7 +798,7 @@ const AdminPage = () => {
                     </tbody>
                   </table>
 
-                  {filteredUsers.length === 0 && (
+                  {users.length === 0 && (
                     <div className="text-center py-12 text-gray-500">No users found</div>
                   )}
                 </div>
@@ -1556,27 +1430,18 @@ const AdminPage = () => {
         title={cropperTitle}
       />
 
-      {/* Subscription Details Modal */}
+      {/* User Details Modal */}
       {selectedUserId &&
         (() => {
           const selectedUser = users.find((u) => u.id === selectedUserId);
           if (!selectedUser) return null;
-
-          const formatSubscriptionDate = (dateString: string | undefined) => {
-            if (!dateString) return '-';
-            return new Date(dateString).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            });
-          };
 
           return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-navy">Subscription Details</h2>
+                    <h2 className="text-2xl font-bold text-navy">User Details</h2>
                     <button
                       type="button"
                       onClick={() => setSelectedUserId(null)}
@@ -1612,127 +1477,11 @@ const AdminPage = () => {
                       <p>
                         <span className="font-medium">Role:</span> {selectedUser.role}
                       </p>
-                      <p>
-                        <span className="font-medium">Tier:</span> {selectedUser.tier}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Subscription Details */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold text-navy mb-2">Subscription Details</h3>
-                    <div className="space-y-2 text-sm">
-                      {selectedUser.stripeCustomerId && (
-                        <p>
-                          <span className="font-medium">Stripe Customer ID:</span>{' '}
-                          <a
-                            href={`https://dashboard.stripe.com/customers/${selectedUser.stripeCustomerId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo hover:text-dark-periwinkle"
-                          >
-                            {selectedUser.stripeCustomerId}
-                          </a>
-                        </p>
-                      )}
-                      {selectedUser.stripeSubscriptionId && (
-                        <p>
-                          <span className="font-medium">Subscription ID:</span>{' '}
-                          <a
-                            href={`https://dashboard.stripe.com/subscriptions/${selectedUser.stripeSubscriptionId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo hover:text-dark-periwinkle"
-                          >
-                            {selectedUser.stripeSubscriptionId}
-                          </a>
-                        </p>
-                      )}
-                      {selectedUser.stripeSubscriptionStatus && (
-                        <p>
-                          <span className="font-medium">Status:</span>{' '}
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusClass(
-                              selectedUser.stripeSubscriptionStatus
-                            )}`}
-                          >
-                            {selectedUser.stripeSubscriptionStatus}
-                          </span>
-                        </p>
-                      )}
-                      <p>
-                        <span className="font-medium">Started:</span>{' '}
-                        {formatSubscriptionDate(selectedUser.subscriptionStartedAt)}
-                      </p>
-                      <p>
-                        <span className="font-medium">Current period ends:</span>{' '}
-                        {formatSubscriptionDate(selectedUser.subscriptionExpiresAt)}
-                      </p>
-                      <p>
-                        <span className="font-medium">Canceled at:</span>{' '}
-                        {formatSubscriptionDate(selectedUser.subscriptionCanceledAt)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Test User Settings */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold text-navy mb-2">Test User Settings</h3>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-700">
-                          Test users can access the $0.01/month test tier
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const response = await fetch(
-                              `${API_URL}/api/admin/users/${selectedUser.id}/test-user`,
-                              {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
-                                body: JSON.stringify({ isTestUser: !selectedUser.isTestUser }),
-                              }
-                            );
-                            if (!response.ok) throw new Error('Failed to update test user status');
-
-                            showToast('Test user status updated', 'success');
-                            fetchUsers(); // Refresh user list
-                            setSelectedUserId(null); // Close modal
-                          } catch (err) {
-                            showToast(
-                              err instanceof Error ? err.message : 'Failed to update',
-                              'error'
-                            );
-                          }
-                        }}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                          selectedUser.isTestUser
-                            ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                            : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                        }`}
-                      >
-                        {selectedUser.isTestUser ? 'Disable Test User' : 'Enable Test User'}
-                      </button>
                     </div>
                   </div>
 
                   {/* Admin Actions */}
                   <div className="flex gap-3">
-                    {selectedUser.stripeCustomerId && (
-                      <a
-                        href={`https://dashboard.stripe.com/customers/${selectedUser.stripeCustomerId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-primary flex items-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View in Stripe
-                      </a>
-                    )}
                     <button
                       type="button"
                       onClick={() => navigate(`/app/library?viewAs=${selectedUser.id}`)}

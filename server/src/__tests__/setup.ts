@@ -67,19 +67,7 @@ i18next.init({
         rateLimit: {
           cooldown: 'Please wait {{seconds}} seconds before generating more content.',
           quotaExceeded:
-            "Weekly quota exceeded. You've used {{used}} of {{limit}} content generations this week.",
-        },
-        billing: {
-          priceIdRequired: 'Price ID is required',
-          invalidPriceId: 'Invalid price ID',
-          testTierOnly: 'Test tier is only available for test users',
-          checkoutFailed: 'Failed to create checkout session',
-          portalFailed: 'Failed to create portal session',
-          subscriptionFailed: 'Failed to get subscription status',
-          noSignature: 'No signature provided',
-          webhookSecretMissing: 'Webhook secret not configured',
-          signatureVerificationFailed: 'Signature verification failed',
-          webhookProcessingFailed: 'Failed to process webhook',
+            "Monthly quota exceeded. You've used {{used}} of {{limit}} content generations this month.",
         },
       },
     },
@@ -203,14 +191,6 @@ const mockPrismaBase = {
     upsert: vi.fn(),
     deleteMany: vi.fn(),
     count: vi.fn(),
-  },
-  subscriptionEvent: {
-    findUnique: vi.fn(),
-    findFirst: vi.fn(),
-    findMany: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
   },
   generationLog: {
     findUnique: vi.fn(),

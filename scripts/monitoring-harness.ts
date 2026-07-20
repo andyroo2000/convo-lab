@@ -264,7 +264,7 @@ Focus on the 3 most critical monitoring areas. Skip performance, metrics, tracin
    - Dialogues generated
    - Audio files created
    - User sign-ups
-   - Subscription conversions
+   - Monthly generation utilization
 4. Infrastructure metrics:
    - Memory usage
    - CPU usage

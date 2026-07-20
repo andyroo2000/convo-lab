@@ -25,11 +25,11 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 - **Mobile Optimized**: 44px touch targets for comfortable mobile use
 - **Standalone Mode**: Launches without browser chrome when installed
 
-### Tier System
+### Generation Limits
 
-- **Free Tier**: 2 dialogues + 1 audio course (lifetime)
-- **Paid Tier ($10/month)**: 30 content generations per month
-- **Admin**: Unlimited access
+- Authenticated users share one monthly generation limit across content types
+- Configure the limit with `MONTHLY_GENERATION_LIMIT` (defaults to `30`)
+- Admin users have unlimited access
 
 ## Tech Stack
 
@@ -130,47 +130,6 @@ ConvoLab works as a Progressive Web App, providing a native app-like experience 
 
 - **Client**: http://localhost:5173
 - **Server**: http://localhost:3001
-
-### Testing Stripe Subscriptions Locally
-
-To test subscription flows in local development:
-
-1. **Start the Stripe webhook listener** (in a separate terminal):
-
-   ```bash
-   stripe listen --forward-to localhost:3001/api/webhooks/stripe
-   ```
-
-   This will output a webhook signing secret like `whsec_...` - copy this to your `.env`:
-
-   ```bash
-   STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
-   ```
-
-2. **Set up test products in Stripe Dashboard** (Test mode):
-   - Create a "ConvoLab Pro" product at $7/month
-   - Create a "ConvoLab Test" product at $0.01/month (for testing)
-   - Copy the price IDs to your `.env`:
-     ```bash
-     STRIPE_PRICE_PRO_MONTHLY=price_test_...
-     STRIPE_PRICE_TEST_MONTHLY=price_test_...
-     ```
-
-3. **Enable test tier for a user**:
-   - Log in to admin panel at `/admin`
-   - Find the user and click to view details
-   - Toggle "Enable Test User" to allow them to see the test tier
-
-4. **Test the checkout flow**:
-   - As a test user, go to `/pricing`
-   - Click "Test Checkout" on the $0.01 tier
-   - Use Stripe test card: `4242 4242 4242 4242`
-   - Any future expiry date and any CVC
-
-5. **Verify webhook events**:
-   - Check the terminal running `stripe listen` for webhook events
-   - Verify subscription status in Stripe Dashboard
-   - Confirm user tier updated to "pro" in your database
 
 ## Language Support
 

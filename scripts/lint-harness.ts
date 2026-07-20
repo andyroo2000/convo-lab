@@ -435,8 +435,8 @@ Do NOT auto-fix @typescript-eslint/no-explicit-any:
 - Instead: Add TODO comments
 
 \`\`\`typescript
-// TODO: Type this properly - looks like Stripe subscription object
-const subscription: Stripe.Subscription = await stripe.subscriptions.retrieve(id);
+// TODO: Replace this unknown with the validated API response type.
+const response: unknown = await externalClient.fetch(id);
 \`\`\`
 
 Create follow-up issue for TypeScript migration.

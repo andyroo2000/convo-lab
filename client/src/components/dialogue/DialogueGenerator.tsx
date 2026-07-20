@@ -16,7 +16,7 @@ import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
-import UpgradePrompt from '../common/UpgradePrompt';
+import QuotaLimitPrompt from '../common/QuotaLimitPrompt';
 import VoicePreview from '../common/VoicePreview';
 
 interface SpeakerFormData {
@@ -48,7 +48,7 @@ const DialogueGenerator = () => {
   } = useEpisodes();
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [showQuotaLimitPrompt, setShowQuotaLimitPrompt] = useState(false);
   const [courseError, setCourseError] = useState<string | null>(null);
 
   const [sourceText, setSourceText] = useState('');
@@ -78,10 +78,10 @@ const DialogueGenerator = () => {
   });
   const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
 
-  // Show upgrade prompt when quota is exceeded
+  // Show the reset information when the operational quota is exceeded.
   useEffect(() => {
     if (errorMetadata?.status === 429 && errorMetadata?.quota) {
-      setShowUpgradePrompt(true);
+      setShowQuotaLimitPrompt(true);
     }
   }, [errorMetadata]);
 
@@ -763,10 +763,9 @@ const DialogueGenerator = () => {
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
 
-      {/* Upgrade Prompt Modal */}
-      {showUpgradePrompt && errorMetadata?.quota && (
-        <UpgradePrompt
-          onClose={() => setShowUpgradePrompt(false)}
+      {showQuotaLimitPrompt && errorMetadata?.quota && (
+        <QuotaLimitPrompt
+          onClose={() => setShowQuotaLimitPrompt(false)}
           quotaUsed={errorMetadata.quota.used}
           quotaLimit={errorMetadata.quota.limit}
         />
