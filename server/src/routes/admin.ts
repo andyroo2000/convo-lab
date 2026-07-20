@@ -16,10 +16,6 @@ import {
   getAllSpeakerAvatars,
 } from '../services/avatarService.js';
 import {
-  CLIENT_FEATURE_FLAG_SELECT,
-  DEFAULT_CLIENT_FEATURE_FLAGS,
-} from '../services/featureFlags.js';
-import {
   getJapanesePronunciationDictionary,
   updateJapanesePronunciationDictionary,
 } from '../services/japanesePronunciationOverrides.js';
@@ -445,103 +441,6 @@ router.post(
     }
   }
 );
-
-// ============================================
-// Feature Flag Routes
-// ============================================
-
-// Get feature flags
-router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
-  try {
-    // Feature flags is a singleton - get the first (and only) row
-    let flags = await prisma.featureFlag.findFirst({
-      select: CLIENT_FEATURE_FLAG_SELECT,
-    });
-
-    // If no flags exist, create default (all enabled)
-    if (!flags) {
-      flags = await prisma.featureFlag.create({
-        data: DEFAULT_CLIENT_FEATURE_FLAGS,
-        select: CLIENT_FEATURE_FLAG_SELECT,
-      });
-    }
-
-    res.json(flags);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Update feature flags
-router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
-  try {
-    const payload = req.body as {
-      dialoguesEnabled?: unknown;
-      scriptsEnabled?: unknown;
-      audioCourseEnabled?: unknown;
-      flashcardsEnabled?: unknown;
-    };
-    const { dialoguesEnabled, scriptsEnabled, audioCourseEnabled, flashcardsEnabled } = payload;
-
-    // Validate boolean values
-    const validateBoolean = (val: unknown, name: string) => {
-      if (val !== undefined && typeof val !== 'boolean') {
-        throw new AppError(`${name} must be a boolean`, 400);
-      }
-    };
-
-    validateBoolean(dialoguesEnabled, 'dialoguesEnabled');
-    validateBoolean(scriptsEnabled, 'scriptsEnabled');
-    validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
-    validateBoolean(flashcardsEnabled, 'flashcardsEnabled');
-
-    const dialoguesEnabledValue =
-      typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
-    const scriptsEnabledValue = typeof scriptsEnabled === 'boolean' ? scriptsEnabled : undefined;
-    const audioCourseEnabledValue =
-      typeof audioCourseEnabled === 'boolean' ? audioCourseEnabled : undefined;
-    const flashcardsEnabledValue =
-      typeof flashcardsEnabled === 'boolean' ? flashcardsEnabled : undefined;
-
-    // Get or create feature flags
-    let flags = await prisma.featureFlag.findFirst({
-      select: CLIENT_FEATURE_FLAG_SELECT,
-    });
-
-    if (!flags) {
-      // Create with provided values (defaults to true for any undefined)
-      flags = await prisma.featureFlag.create({
-        data: {
-          dialoguesEnabled: dialoguesEnabledValue ?? true,
-          scriptsEnabled: scriptsEnabledValue ?? true,
-          audioCourseEnabled: audioCourseEnabledValue ?? true,
-          flashcardsEnabled: flashcardsEnabledValue ?? true,
-        },
-        select: CLIENT_FEATURE_FLAG_SELECT,
-      });
-    } else {
-      // Update existing flags
-      flags = await prisma.featureFlag.update({
-        where: { id: flags.id },
-        data: {
-          ...(dialoguesEnabledValue !== undefined && { dialoguesEnabled: dialoguesEnabledValue }),
-          ...(scriptsEnabledValue !== undefined && { scriptsEnabled: scriptsEnabledValue }),
-          ...(audioCourseEnabledValue !== undefined && {
-            audioCourseEnabled: audioCourseEnabledValue,
-          }),
-          ...(flashcardsEnabledValue !== undefined && {
-            flashcardsEnabled: flashcardsEnabledValue,
-          }),
-        },
-        select: CLIENT_FEATURE_FLAG_SELECT,
-      });
-    }
-
-    res.json(flags);
-  } catch (error) {
-    next(error);
-  }
-});
 
 // ============================================
 // Pronunciation Dictionary Routes

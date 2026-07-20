@@ -46,9 +46,9 @@ describe('Feature Flags Route', () => {
     process.env.LEARNING_OS_API_TOKEN = 'server-only-token';
     process.env.LEARNING_OS_PROXY_USER_EMAIL = 'learner@example.com';
     mockPrisma.user.findUnique.mockResolvedValue({
-      id: 'user-1',
+      id: 'proxy-user',
       email: 'learner@example.com',
-      role: 'user',
+      role: 'admin',
     });
     vi.stubGlobal(
       'fetch',
@@ -90,7 +90,7 @@ describe('Feature Flags Route', () => {
     expect(response.headers['ratelimit-limit']).toBe('120');
     expect(mockRequireAuth).toHaveBeenCalledOnce();
     expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
-      where: { id: 'user-1' },
+      where: { email: 'learner@example.com' },
       select: { id: true, email: true, role: true },
     });
     expect(mockPrisma.featureFlag.findFirst).not.toHaveBeenCalled();
@@ -104,9 +104,9 @@ describe('Feature Flags Route', () => {
       headers: {
         Accept: 'application/json',
         Authorization: 'Bearer server-only-token',
-        'X-Convo-Lab-User-Id': 'user-1',
+        'X-Convo-Lab-User-Id': 'proxy-user',
         'X-Convo-Lab-User-Email': 'learner@example.com',
-        'X-Convo-Lab-User-Role': 'user',
+        'X-Convo-Lab-User-Role': 'admin',
       },
     });
   });
@@ -173,31 +173,16 @@ describe('Feature Flags Route', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('rejects accounts other than the configured proxy user', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({
-      id: 'user-2',
-      email: 'other@example.com',
-      role: 'user',
-    });
-    const app = await createApp();
-
-    const response = await request(app).get('/feature-flags');
-
-    expect(response.status).toBe(403);
-    expect(response.body.error.message).toBe(
-      'Learning OS Feature Flags API is not enabled for this account.'
-    );
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('returns a hidden not-found response when the authenticated user no longer exists', async () => {
+  it('fails closed when the configured service account is unavailable', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
     const app = await createApp();
 
     const response = await request(app).get('/feature-flags');
 
-    expect(response.status).toBe(404);
-    expect(response.body.error.message).toBe('User not found');
+    expect(response.status).toBe(503);
+    expect(response.body.error.message).toBe(
+      'Learning OS Feature Flags API proxy account is unavailable.'
+    );
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -238,7 +223,7 @@ describe('Feature Flags Route', () => {
 
   it.each([
     { upstreamStatus: 401, expectedStatus: 502 },
-    { upstreamStatus: 403, expectedStatus: 403 },
+    { upstreamStatus: 403, expectedStatus: 502 },
     { upstreamStatus: 500, expectedStatus: 502 },
   ])(
     'maps upstream $upstreamStatus to a sanitized $expectedStatus response',
@@ -255,6 +240,17 @@ describe('Feature Flags Route', () => {
       expect(JSON.stringify(response.body)).not.toContain('private upstream failure');
     }
   );
+
+  it('returns a sanitized gateway error for upstream network failures', async () => {
+    vi.mocked(global.fetch).mockRejectedValue(new Error('private DNS failure'));
+    const app = await createApp();
+
+    const response = await request(app).get('/feature-flags');
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toBe('Learning OS Feature Flags API is unavailable.');
+    expect(JSON.stringify(response.body)).not.toContain('private DNS failure');
+  });
 
   it('returns a gateway timeout when Learning OS hangs', async () => {
     vi.useFakeTimers();

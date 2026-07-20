@@ -21,6 +21,7 @@ interface LearningOsProxyRequest {
   additionalHeaders?: Readonly<Record<string, string>>;
   timeoutMs: number;
   timeoutMessage: string;
+  networkErrorMessage?: string;
 }
 
 export function getLearningOsProxyConfig(apiLabel: string): LearningOsProxyConfig & {
@@ -61,6 +62,22 @@ export async function resolveLearningOsProxyContext(
   return { config, user };
 }
 
+export async function resolveLearningOsServiceProxyContext(
+  apiLabel: string
+): Promise<{ config: LearningOsProxyConfig; user: LearningOsProxyUser }> {
+  const { proxyUserEmail, ...config } = getLearningOsProxyConfig(apiLabel);
+  const user = await prisma.user.findUnique({
+    where: { email: proxyUserEmail },
+    select: { id: true, email: true, role: true },
+  });
+
+  if (!user) {
+    throw new AppError(`${apiLabel} proxy account is unavailable.`, 503);
+  }
+
+  return { config, user };
+}
+
 export function learningOsProxyHeaders(
   apiToken: string,
   user: LearningOsProxyUser,
@@ -85,6 +102,7 @@ export async function fetchLearningOsProxy({
   additionalHeaders,
   timeoutMs,
   timeoutMessage,
+  networkErrorMessage,
 }: LearningOsProxyRequest): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -104,6 +122,9 @@ export async function fetchLearningOsProxy({
   } catch (error) {
     if (controller.signal.aborted) {
       throw new AppError(timeoutMessage, 504);
+    }
+    if (networkErrorMessage) {
+      throw new AppError(networkErrorMessage, 502);
     }
 
     throw error;

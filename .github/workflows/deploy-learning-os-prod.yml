@@ -196,7 +196,12 @@ jobs:
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
               learning-os php artisan tinker --execute='
                 $user = App\Models\User::query()->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))->sole();
-                $accessToken = $user->createToken("convolab-proxy", ["study:read", "study:write"]);
+                $accessToken = $user->createToken("convolab-proxy", [
+                  "study:read",
+                  "study:write",
+                  "feature-flags:read",
+                  "feature-flags:write",
+                ]);
                 echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
                 echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
               ' < /dev/null)"
@@ -291,6 +296,35 @@ jobs:
               ]]);
               $body = file_get_contents("http://127.0.0.1:8080/api/study/settings", false, $context);
               if ($body === false || ! is_array(json_decode($body, true))) { exit(1); }
+
+              $featureFlags = file_get_contents(
+                "http://127.0.0.1:8080/api/feature-flags",
+                false,
+                $context,
+              );
+              if ($featureFlags === false || ! is_array(json_decode($featureFlags, true))) {
+                exit(1);
+              }
+
+              $patchContext = stream_context_create(["http" => [
+                  "method" => "PATCH",
+                  "header" => "Accept: application/json\r\n".
+                    "Content-Type: application/json\r\n".
+                    "Authorization: Bearer ".getenv("API_TOKEN")."\r\n",
+                  "content" => "{}",
+                  "timeout" => 10,
+              ]]);
+              $updatedFeatureFlags = file_get_contents(
+                "http://127.0.0.1:8080/api/feature-flags",
+                false,
+                $patchContext,
+              );
+              if (
+                $updatedFeatureFlags === false
+                || json_decode($updatedFeatureFlags, true) !== json_decode($featureFlags, true)
+              ) {
+                exit(1);
+              }
             '
 
             active_color=blue

@@ -9,11 +9,6 @@ import express, {
 import request from 'supertest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import {
-  CLIENT_FEATURE_FLAG_SELECT,
-  DEFAULT_CLIENT_FEATURE_FLAGS,
-} from '../../../services/featureFlags.js';
-
 // Mock Prisma client
 const mockPrisma = vi.hoisted(() => ({
   user: {
@@ -61,7 +56,6 @@ const mockUpdatePronunciationDictionary = vi.hoisted(() =>
     })
   )
 );
-
 vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
 
 // Mock auth middleware to inject test user
@@ -389,106 +383,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('already exists');
-    });
-  });
-
-  describe('GET /feature-flags - Create defaults if missing', () => {
-    it('should return existing flags', async () => {
-      mockPrisma.featureFlag.findFirst.mockResolvedValue({
-        id: 'flags-id',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-      });
-
-      const response = await request(app).get('/admin/feature-flags');
-
-      expect(response.status).toBe(200);
-      expect(response.body.dialoguesEnabled).toBe(true);
-      expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
-    });
-
-    it('should create default flags if none exist', async () => {
-      mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
-      mockPrisma.featureFlag.create.mockResolvedValue({
-        id: 'new-flags-id',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-      });
-
-      const response = await request(app).get('/admin/feature-flags');
-
-      expect(response.status).toBe(200);
-      expect(mockPrisma.featureFlag.create).toHaveBeenCalledWith({
-        data: DEFAULT_CLIENT_FEATURE_FLAGS,
-        select: CLIENT_FEATURE_FLAG_SELECT,
-      });
-    });
-  });
-
-  describe('PATCH /feature-flags - Update vs create', () => {
-    it('should update existing flags', async () => {
-      mockPrisma.featureFlag.findFirst.mockResolvedValue({
-        id: 'flags-id',
-        dialoguesEnabled: false,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-      });
-
-      mockPrisma.featureFlag.update.mockResolvedValue({
-        id: 'flags-id',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-      });
-
-      const response = await request(app)
-        .patch('/admin/feature-flags')
-        .send({ dialoguesEnabled: true });
-
-      expect(response.status).toBe(200);
-      expect(mockPrisma.featureFlag.update).toHaveBeenCalled();
-      expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
-    });
-
-    it('should create flags on first update if none exist', async () => {
-      mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
-      mockPrisma.featureFlag.create.mockResolvedValue({
-        id: 'new-flags-id',
-        dialoguesEnabled: false,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-      });
-
-      const response = await request(app)
-        .patch('/admin/feature-flags')
-        .send({ dialoguesEnabled: false });
-
-      expect(response.status).toBe(200);
-      expect(mockPrisma.featureFlag.create).toHaveBeenCalled();
-      expect(mockPrisma.featureFlag.update).not.toHaveBeenCalled();
-    });
-
-    it('should validate boolean types', async () => {
-      mockPrisma.featureFlag.findFirst.mockResolvedValue({
-        id: 'flags-id',
-        dialoguesEnabled: false,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
-        flashcardsEnabled: true,
-      });
-
-      const response = await request(app)
-        .patch('/admin/feature-flags')
-        .send({ dialoguesEnabled: 'not-a-boolean' });
-
-      expect(response.status).toBe(400);
     });
   });
 

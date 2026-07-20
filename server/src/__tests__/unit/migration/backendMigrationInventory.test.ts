@@ -109,6 +109,20 @@ describe('backend migration inventory', () => {
     });
   });
 
+  it.each([
+    ['GET', 'admin.feature-flags.show'],
+    ['PATCH', 'admin.feature-flags.update'],
+  ])('records the %s admin feature-flags contract as Learning OS-owned', (method, routeId) => {
+    expect(findBackendMigrationRoute(method, '/api/admin/feature-flags')).toMatchObject({
+      route: { id: routeId, method, path: '/api/admin/feature-flags' },
+      surface: {
+        id: 'admin-feature-flags',
+        migrationWave: 'pattern',
+        runtimeOwner: 'learning-os-proxy',
+      },
+    });
+  });
+
   it('does not classify unknown methods or paths', () => {
     expect(findBackendMigrationRoute('POST', '/api/episodes/episode-123')).toBeNull();
     expect(findBackendMigrationRoute('GET', '/api/not-in-inventory')).toBeNull();
