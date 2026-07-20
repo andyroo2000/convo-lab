@@ -195,8 +195,18 @@
       "sourceFile": "server/src/routes/courses.ts",
       "mountPath": "/api/courses",
       "routes": [
-        { "id": "courses.index", "method": "GET", "path": "/api/courses" },
-        { "id": "courses.show", "method": "GET", "path": "/api/courses/:id" },
+        {
+          "id": "courses.index",
+          "method": "GET",
+          "path": "/api/courses",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "courses.show",
+          "method": "GET",
+          "path": "/api/courses/:id",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "courses.store", "method": "POST", "path": "/api/courses" },
         { "id": "courses.generate", "method": "POST", "path": "/api/courses/:id/generate" },
         { "id": "courses.status", "method": "GET", "path": "/api/courses/:id/status" },

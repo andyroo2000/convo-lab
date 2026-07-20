@@ -51,8 +51,9 @@ path is actually served by Learning OS. Compatibility code in Express does not
 count as migrated unless it forwards to Learning OS.
 
 Use a route-level `runtimeOwner` only while a router is split between services.
-The Episode surface uses this temporary representation while its GET routes are
-proxied and its write routes remain in Express.
+The Episode and Course surfaces use this temporary representation while their
+list/detail GET routes are proxied and their write and generation routes remain
+in Express.
 
 ## Route Usage Telemetry
 
