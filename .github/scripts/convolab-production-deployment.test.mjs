@@ -42,7 +42,7 @@ test('the production deployment wrapper and remote script remain valid Bash', as
 
 test('the production workflow retains blue-green switching and rollback contracts', async () => {
   const { script } = await readDeployment();
-  const switchStart = script.indexOf('render_router_config "$inactive_color"');
+  const switchStart = script.indexOf('router_role="$(docker inspect');
   const publicHealthCheck = script.indexOf('if ! verify_public_health; then', switchStart);
   const activeColorWrite = script.indexOf(
     'write_active_color "$inactive_color"',
@@ -56,11 +56,11 @@ test('the production workflow retains blue-green switching and rollback contract
   const switchBlock = script.slice(switchStart, activeColorWrite);
   assert.match(
     switchBlock,
-    /if \[ "\$router_role" = "router" \]; then[\s\S]*?reload_router/
+    /if \[ "\$router_role" = "router" \]; then[\s\S]*?render_router_config "\$inactive_color"\s+reload_router/
   );
   assert.match(
     switchBlock,
-    /else\s+echo ".*Starting router for new production stack.*"\s+\$COMPOSE up -d --no-deps router\s+if ! wait_for_container_health convolab-server; then/
+    /else\s+echo ".*Starting router for new production stack.*"\s+render_router_config "\$inactive_color"\s+\$COMPOSE up -d --no-deps router\s+if ! wait_for_container_health convolab-server; then/
   );
   assert.match(
     switchBlock,
@@ -69,10 +69,14 @@ test('the production workflow retains blue-green switching and rollback contract
 });
 
 test('the production workflow rejects unexpected containers without legacy cutover behavior', async () => {
-  const { source } = await readDeployment();
+  const { source, script } = await readDeployment();
 
   assert.match(source, /convolab-server exists without the expected router role/);
   assert.match(source, /Refusing to replace an unexpected production container automatically/);
+  assert.match(
+    script,
+    /elif docker inspect convolab-server[^]*?then\s+echo ".*without the expected router role.*"\s+echo "Refusing[^]*?"\s+exit 1\s+else/
+  );
 
   for (const retiredContract of [
     'restore_legacy_app',

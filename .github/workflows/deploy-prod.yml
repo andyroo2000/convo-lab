@@ -273,10 +273,10 @@ jobs:
             $COMPOSE up -d --no-deps "server-$inactive_color"
             wait_for_container_health "convolab-server-$inactive_color"
 
-            render_router_config "$inactive_color"
             router_role="$(docker inspect -f '{{index .Config.Labels "convolab.role"}}' convolab-server 2>/dev/null || true)"
             if [ "$router_role" = "router" ]; then
               echo "🔀 Reloading router to $inactive_color..."
+              render_router_config "$inactive_color"
               reload_router
             elif docker inspect convolab-server >/dev/null 2>&1; then
               echo "❌ convolab-server exists without the expected router role."
@@ -284,6 +284,7 @@ jobs:
               exit 1
             else
               echo "🔀 Starting router for new production stack..."
+              render_router_config "$inactive_color"
               $COMPOSE up -d --no-deps router
               if ! wait_for_container_health convolab-server; then
                 echo "❌ Router failed to become healthy on the fresh production stack."
