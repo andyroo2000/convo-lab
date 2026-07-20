@@ -1,10 +1,14 @@
 import { Router } from 'express';
 
+import { isLearningOsStaticMediaProxyEnabled } from '../config/staticMediaRouting.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { fetchLearningOsStaticMedia } from '../services/learningOsStaticMediaProxy.js';
 import { gcsFileExists, getSignedReadUrl } from '../services/storageClient.js';
 
 const router = Router();
 
-const TOOLS_AUDIO_PATH_PATTERN = /^\/tools-audio\/[a-zA-Z0-9/_-]+\.mp3$/;
+const TOOLS_AUDIO_PATH_PATTERN = /^\/tools-audio\/[a-zA-Z0-9/_-]+\.mp3(?![\s\S])/;
+const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z(?![\s\S])/;
 const DEFAULT_TTL_SECONDS = 12 * 60 * 60;
 const MIN_TTL_SECONDS = 5 * 60;
 const MAX_TTL_SECONDS = 24 * 60 * 60;
@@ -23,6 +27,12 @@ type RateLimitEntry = {
 
 interface SignedUrlRequestBody {
   paths?: unknown;
+}
+
+interface SignedUrlResponse {
+  mode: 'passthrough' | 'signed';
+  ttlSeconds: number;
+  urls: Record<string, { url: string; expiresAt: string }>;
 }
 
 const toPathArray = (value: unknown): string[] | null => {
@@ -200,67 +210,194 @@ const toBucketObjectPath = (requestPath: string): string => {
 
 // Public-by-design endpoint for static practice audio; constrained by strict path
 // validation, file allowlisting, and per-IP rate limiting.
-router.post('/signed-urls', async (req, res) => {
-  const { maxRequests, windowMs } = SIGNED_URL_RATE_LIMIT_CONFIG;
-  const nowMs = Date.now();
-  const clientIp = getClientIp(req.ip, req.socket.remoteAddress);
+router.post('/signed-urls', async (req, res, next) => {
+  try {
+    if (isLearningOsStaticMediaProxyEnabled()) {
+      const upstreamResponse = await fetchLearningOsStaticMedia({
+        method: 'POST',
+        path: '/api/tools-audio/signed-urls',
+        body: req.body,
+      });
 
-  if (applySignedUrlRateLimit(clientIp, nowMs, windowMs, maxRequests)) {
-    const retryAfterSeconds = getRateLimitRetryAfterSeconds(clientIp, nowMs, windowMs);
-    res.set('Retry-After', `${retryAfterSeconds}`);
-    return res.status(429).json({
-      error: 'Too many signed-url requests. Please retry shortly.',
-    });
-  }
-
-  const body = req.body as SignedUrlRequestBody | null;
-  const paths = toPathArray(body?.paths);
-
-  if (!paths) {
-    return res.status(400).json({
-      error: `paths must be an array of 1-${MAX_PATHS_PER_REQUEST} valid /tools-audio/*.mp3 values`,
-    });
-  }
-
-  const ttlSeconds = parseTtlSeconds();
-  const defaultExpiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
-
-  if (!shouldSignAudioUrls()) {
-    return res.json({
-      mode: 'passthrough',
-      ttlSeconds,
-      urls: Object.fromEntries(
-        paths.map((path) => [path, { url: path, expiresAt: defaultExpiresAt }])
-      ),
-    });
-  }
-
-  const resolvedEntries = await Promise.all(
-    paths.map(async (path) => {
-      try {
-        const bucketPath = toBucketObjectPath(path);
-        const exists = await gcsFileExists(bucketPath);
-        if (!exists) {
-          return [path, { url: path, expiresAt: defaultExpiresAt }] as const;
+      if (upstreamResponse.status === 400) {
+        return res.status(400).json({
+          error: `paths must be an array of 1-${MAX_PATHS_PER_REQUEST} valid /tools-audio/*.mp3 values`,
+        });
+      }
+      if (upstreamResponse.status === 429) {
+        const retryAfter = upstreamResponse.headers.get('retry-after');
+        if (retryAfter && /^\d+$/.test(retryAfter)) {
+          res.set('Retry-After', retryAfter);
         }
 
-        const signed = await getSignedReadUrl({
-          filePath: bucketPath,
-          expiresInSeconds: ttlSeconds,
+        return res.status(429).json({
+          error: 'Too many signed-url requests. Please retry shortly.',
         });
-        return [path, signed] as const;
-      } catch (error) {
-        console.warn(`[Tool Audio] Signed URL fallback for ${path}:`, error);
-        return [path, { url: path, expiresAt: defaultExpiresAt }] as const;
       }
-    })
-  );
+      if (!upstreamResponse.ok) {
+        throw new AppError('Learning OS Static Media API request failed.', 502);
+      }
 
-  return res.json({
-    mode: 'signed',
-    ttlSeconds,
-    urls: Object.fromEntries(resolvedEntries),
-  });
+      const requestedPaths = toPathArray((req.body as SignedUrlRequestBody | null)?.paths);
+      if (!requestedPaths) {
+        throw new AppError('Learning OS Static Media API returned an invalid response.', 502);
+      }
+
+      return res.json(await parseSignedUrlResponse(upstreamResponse, requestedPaths));
+    }
+
+    const { maxRequests, windowMs } = SIGNED_URL_RATE_LIMIT_CONFIG;
+    const nowMs = Date.now();
+    const clientIp = getClientIp(req.ip, req.socket.remoteAddress);
+
+    if (applySignedUrlRateLimit(clientIp, nowMs, windowMs, maxRequests)) {
+      const retryAfterSeconds = getRateLimitRetryAfterSeconds(clientIp, nowMs, windowMs);
+      res.set('Retry-After', `${retryAfterSeconds}`);
+      return res.status(429).json({
+        error: 'Too many signed-url requests. Please retry shortly.',
+      });
+    }
+
+    const body = req.body as SignedUrlRequestBody | null;
+    const paths = toPathArray(body?.paths);
+
+    if (!paths) {
+      return res.status(400).json({
+        error: `paths must be an array of 1-${MAX_PATHS_PER_REQUEST} valid /tools-audio/*.mp3 values`,
+      });
+    }
+
+    const ttlSeconds = parseTtlSeconds();
+    const defaultExpiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+
+    if (!shouldSignAudioUrls()) {
+      return res.json({
+        mode: 'passthrough',
+        ttlSeconds,
+        urls: Object.fromEntries(
+          paths.map((path) => [path, { url: path, expiresAt: defaultExpiresAt }])
+        ),
+      });
+    }
+
+    const resolvedEntries = await Promise.all(
+      paths.map(async (path) => {
+        try {
+          const bucketPath = toBucketObjectPath(path);
+          const exists = await gcsFileExists(bucketPath);
+          if (!exists) {
+            return [path, { url: path, expiresAt: defaultExpiresAt }] as const;
+          }
+
+          const signed = await getSignedReadUrl({
+            filePath: bucketPath,
+            expiresInSeconds: ttlSeconds,
+          });
+          return [path, signed] as const;
+        } catch (error) {
+          console.warn(`[Tool Audio] Signed URL fallback for ${path}:`, error);
+          return [path, { url: path, expiresAt: defaultExpiresAt }] as const;
+        }
+      })
+    );
+
+    return res.json({
+      mode: 'signed',
+      ttlSeconds,
+      urls: Object.fromEntries(resolvedEntries),
+    });
+  } catch (error) {
+    return next(error);
+  }
 });
+
+const parseSignedUrlResponse = async (
+  response: Response,
+  requestedPaths: string[]
+): Promise<SignedUrlResponse> => {
+  let value: unknown;
+  try {
+    value = JSON.parse(await response.text());
+  } catch {
+    throw new AppError('Learning OS Static Media API returned invalid JSON.', 502);
+  }
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new AppError('Learning OS Static Media API returned an invalid response.', 502);
+  }
+
+  const payload = value as Record<string, unknown>;
+  if (
+    (payload.mode !== 'passthrough' && payload.mode !== 'signed') ||
+    !Number.isInteger(payload.ttlSeconds) ||
+    (payload.ttlSeconds as number) < MIN_TTL_SECONDS ||
+    (payload.ttlSeconds as number) > MAX_TTL_SECONDS ||
+    !payload.urls ||
+    typeof payload.urls !== 'object' ||
+    Array.isArray(payload.urls)
+  ) {
+    throw new AppError('Learning OS Static Media API returned an invalid response.', 502);
+  }
+
+  const entries = Object.entries(payload.urls as Record<string, unknown>);
+  const expectedPaths = new Set(requestedPaths);
+  if (
+    entries.length !== expectedPaths.size ||
+    entries.length < 1 ||
+    entries.length > MAX_PATHS_PER_REQUEST ||
+    entries.some(([path]) => !expectedPaths.has(path))
+  ) {
+    throw new AppError('Learning OS Static Media API returned an invalid response.', 502);
+  }
+
+  const urls: SignedUrlResponse['urls'] = {};
+  for (const [path, entry] of entries) {
+    if (
+      !TOOLS_AUDIO_PATH_PATTERN.test(path) ||
+      !entry ||
+      typeof entry !== 'object' ||
+      Array.isArray(entry)
+    ) {
+      throw new AppError('Learning OS Static Media API returned an invalid response.', 502);
+    }
+
+    const resolved = entry as Record<string, unknown>;
+    if (
+      typeof resolved.url !== 'string' ||
+      !isAllowedToolAudioUrl(path, resolved.url) ||
+      typeof resolved.expiresAt !== 'string' ||
+      !ISO_TIMESTAMP_PATTERN.test(resolved.expiresAt) ||
+      Number.isNaN(Date.parse(resolved.expiresAt))
+    ) {
+      throw new AppError('Learning OS Static Media API returned an invalid response.', 502);
+    }
+
+    urls[path] = { url: resolved.url, expiresAt: resolved.expiresAt };
+  }
+
+  return {
+    mode: payload.mode,
+    ttlSeconds: payload.ttlSeconds as number,
+    urls,
+  };
+};
+
+const isAllowedToolAudioUrl = (requestPath: string, resolvedUrl: string): boolean => {
+  if (resolvedUrl === requestPath) {
+    return true;
+  }
+
+  try {
+    const url = new URL(resolvedUrl);
+    return (
+      url.protocol === 'https:' &&
+      url.hostname === 'storage.googleapis.com' &&
+      !url.username &&
+      !url.password
+    );
+  } catch {
+    return false;
+  }
+};
 
 export default router;

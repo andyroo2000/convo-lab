@@ -129,8 +129,8 @@
     {
       "id": "avatars",
       "domain": "media",
-      "migrationWave": "content",
-      "runtimeOwner": "express",
+      "migrationWave": "complete",
+      "runtimeOwner": "learning-os-proxy",
       "sourceFile": "server/src/routes/avatarAssets.ts",
       "mountPath": "/api/avatars",
       "routes": [{ "id": "avatars.show", "method": "GET", "path": "/api/avatars/*" }]
@@ -165,8 +165,8 @@
     {
       "id": "tool-audio",
       "domain": "media",
-      "migrationWave": "content",
-      "runtimeOwner": "express",
+      "migrationWave": "complete",
+      "runtimeOwner": "learning-os-proxy",
       "sourceFile": "server/src/routes/toolAudio.ts",
       "mountPath": "/api/tools-audio",
       "routes": [

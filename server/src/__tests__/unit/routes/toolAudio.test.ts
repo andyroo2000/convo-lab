@@ -15,26 +15,33 @@ vi.mock('../../../services/storageClient.js', () => ({
 describe('toolAudio route', () => {
   let app: Application;
   const originalEnv = process.env;
+  const fetchMock = vi.fn();
 
   const mountToolAudioApp = async () => {
     vi.resetModules();
     const { default: toolAudioRoutes } = await import('../../../routes/toolAudio.js');
+    const { errorHandler } = await import('../../../middleware/errorHandler.js');
     app = express();
     app.use(json());
     app.use('/api/tools-audio', toolAudioRoutes);
+    app.use(errorHandler);
     storageClientMocks.gcsFileExists.mockResolvedValue(true);
     storageClientMocks.getSignedReadUrl.mockReset();
   };
 
   beforeEach(async () => {
     process.env = { ...originalEnv };
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'false';
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '500';
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
+    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockReset();
     await mountToolAudioApp();
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    vi.unstubAllGlobals();
   });
 
   it('returns passthrough URLs when signing is disabled', async () => {
@@ -224,5 +231,132 @@ describe('toolAudio route', () => {
       .send(payload)
       .expect(429)
       .expect('Retry-After', /.+/);
+  });
+
+  it('proxies signed URL batches through Learning OS without service credentials', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example/';
+    const path = '/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3';
+    const upstreamBody = {
+      mode: 'signed',
+      ttlSeconds: 43_200,
+      urls: {
+        [path]: {
+          url: `https://storage.googleapis.com/convolab-storage${path}?signature=secret`,
+          expiresAt: '2100-01-01T00:00:00.000000Z',
+        },
+      },
+    };
+    fetchMock.mockResolvedValueOnce(Response.json(upstreamBody));
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: [path] })
+      .expect(200);
+
+    expect(response.body).toEqual(upstreamBody);
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL('https://learning-os.example/api/tools-audio/signed-urls'),
+      expect.objectContaining({
+        method: 'POST',
+        redirect: 'manual',
+        body: JSON.stringify({ paths: [path] }),
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      })
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).not.toHaveProperty('Authorization');
+    expect(storageClientMocks.gcsFileExists).not.toHaveBeenCalled();
+  });
+
+  it('preserves Learning OS validation and rate-limit contracts', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
+    const payload = { paths: ['/tools-audio/japanese/minute/44.mp3'] };
+    fetchMock
+      .mockResolvedValueOnce(Response.json({ error: 'upstream detail' }, { status: 400 }))
+      .mockResolvedValueOnce(
+        Response.json(
+          { error: 'Too many signed-url requests. Please retry shortly.' },
+          { status: 429, headers: { 'retry-after': '37' } }
+        )
+      );
+
+    await request(app).post('/api/tools-audio/signed-urls').send({ paths: 'invalid' }).expect(400, {
+      error: 'paths must be an array of 1-60 valid /tools-audio/*.mp3 values',
+    });
+
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send(payload)
+      .expect(429)
+      .expect('Retry-After', '37')
+      .expect({
+        error: 'Too many signed-url requests. Please retry shortly.',
+      });
+  });
+
+  it('rejects malformed successful responses from Learning OS', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
+    fetchMock.mockResolvedValueOnce(
+      Response.json({
+        mode: 'signed',
+        ttlSeconds: 43_200,
+        urls: {
+          '/tools-audio/japanese/minute/44.mp3': {
+            url: 'https://attacker.example/audio.mp3',
+            expiresAt: '2100-01-01T00:00:00.000Z',
+          },
+        },
+      })
+    );
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: ['/tools-audio/japanese/minute/44.mp3'] })
+      .expect(502);
+
+    expect(response.body.error.message).toContain('invalid response');
+  });
+
+  it('rejects successful responses that omit or replace requested paths', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
+    const requestedPath = '/tools-audio/japanese/minute/44.mp3';
+    fetchMock.mockResolvedValueOnce(
+      Response.json({
+        mode: 'signed',
+        ttlSeconds: 43_200,
+        urls: {
+          '/tools-audio/japanese/minute/45.mp3': {
+            url: 'https://storage.googleapis.com/convolab-storage/tools-audio/japanese/minute/45.mp3?signature=secret',
+            expiresAt: '2100-01-01T00:00:00.000Z',
+          },
+        },
+      })
+    );
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: [requestedPath] })
+      .expect(502);
+
+    expect(response.body.error.message).toContain('invalid response');
+  });
+
+  it('returns a gateway error when Learning OS is unavailable', async () => {
+    process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
+    fetchMock.mockRejectedValueOnce(new Error('network down'));
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: ['/tools-audio/japanese/minute/44.mp3'] })
+      .expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Static Media API is unavailable.');
   });
 });

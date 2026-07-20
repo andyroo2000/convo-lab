@@ -230,10 +230,16 @@ jobs:
                 "$container" 2>/dev/null \
                 | sed -n 's/^CONVOLAB_PROXY_USER_EMAIL=//p' \
                 | tail -1 || true)"
+              current_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
-                && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ]; then
+                && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ] \
+                && [ "$current_config_revision" = "static-media-v1" ]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
               fi
@@ -246,10 +252,16 @@ jobs:
               current_image="$(docker inspect --format='{{.Config.Image}}' "$container" 2>/dev/null || true)"
               running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
               current_command="$(docker inspect --format='{{join .Config.Cmd " "}}' "$container" 2>/dev/null || true)"
+              current_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
               desired_queue_argument="--queue=study-imports,study-card-drafts,default"
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
+                && [ "$current_config_revision" = "static-media-v1" ] \
                 && [[ " $current_command " == *" $desired_queue_argument "* ]]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
@@ -354,6 +366,12 @@ jobs:
               | sed -n 's/^LEARNING_OS_API_TOKEN=//p' \
               | tail -1)"
             test "$active_proxy_token" = "$proxy_token"
+            active_static_media_proxy="$(docker inspect \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' \
+              "convolab-server-$active_color" \
+              | sed -n 's/^LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED=//p' \
+              | tail -1)"
+            test "$active_static_media_proxy" = true
 
             if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
@@ -772,6 +790,49 @@ jobs:
                 "convolab-server-$active_color" \
                 node --input-type=module --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
               test -n "$csrf_token"
+
+              gcs_bucket="$(sed -n 's/^GCS_BUCKET_NAME=//p' .env.production | tail -1)"
+              test -n "$gcs_bucket"
+              avatar_headers="$(mktemp)"
+              avatar_status="$(curl --silent --show-error \
+                --dump-header "$avatar_headers" \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                'https://convo-lab.com/api/avatars/voices/ja-shohei.jpg')"
+              test "$avatar_status" = 302
+              avatar_location="$(sed -n 's/^[Ll]ocation: //p' "$avatar_headers" | tr -d '\r' | tail -1)"
+              case "$avatar_location" in
+                "https://storage.googleapis.com/$gcs_bucket/avatars/voices/ja-shohei.jpg?"*) ;;
+                *) exit 1 ;;
+              esac
+              grep -Eiq '^cache-control: .*private' "$avatar_headers"
+              rm -f "$avatar_headers"
+              echo "Avatar Learning OS proxy smoke check passed."
+
+              tool_audio_body='{"paths":["/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3"]}'
+              tool_audio_response="$(mutate_proxy_route \
+                POST \
+                '/api/tools-audio/signed-urls' \
+                "$tool_audio_body")"
+              docker exec \
+                -e TOOL_AUDIO_RESPONSE="$tool_audio_response" \
+                -e GCS_BUCKET="$gcs_bucket" \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  const response = JSON.parse(process.env.TOOL_AUDIO_RESPONSE);
+                  const path = "/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3";
+                  if (
+                    response?.mode !== "signed"
+                    || !Number.isInteger(response?.ttlSeconds)
+                    || response.ttlSeconds < 300
+                    || response.ttlSeconds > 86400
+                    || typeof response?.urls?.[path]?.expiresAt !== "string"
+                    || !response?.urls?.[path]?.url?.startsWith(
+                      `https://storage.googleapis.com/${process.env.GCS_BUCKET}/tools-audio/`
+                    )
+                  ) process.exit(1);
+                '
+              echo "Tool Audio Learning OS proxy smoke check passed."
 
               session_body='{"timeZone":"America/New_York"}'
               proxy_session="$(mutate_proxy_route POST '/api/learning-os/study/session/start' "$session_body")"
