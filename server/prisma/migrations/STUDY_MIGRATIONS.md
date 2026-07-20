@@ -17,9 +17,20 @@ Corrective migrations worth calling out:
 - `20260422213000_add_study_card_type_check`
   Adds the DB-level `cardType` discriminator check that matches route/service validation.
 
+Order-sensitive Audio Script media migrations:
+
+- Deploy `20260719230000_extract_audio_script_media`, then deploy the server and worker code that
+  reads and writes only `audioScriptMediaId`, before applying
+  `20260720031500_drop_legacy_audio_script_media_reference`.
+- The contract migration refuses to drop a populated legacy reference when `audioScriptMediaId`
+  is null. Differing non-null IDs are allowed because an image replaced after the code cutover
+  updates only the authoritative Audio Script relation.
+
 Rollback expectations:
 
 - Roll back the entire study migration chain together with the study feature if a deploy needs to
   be reverted.
 - Do not manually remove only the corrective fix-up migrations while keeping later schema state;
   they are part of the supported study schema baseline.
+- The Audio Script contract migration is destructive and has no down migration. After it is
+  applied, restoring the legacy column and its data requires the pre-deployment database snapshot.
