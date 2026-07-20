@@ -53,16 +53,16 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   subscriptionEvents      SubscriptionEvent[]
   oauthAccounts           OAuthAccount[]
-  studyNotes              StudyNote[]
-  studyCards              StudyCard[]
-  studyReviewLogs         StudyReviewLog[]
+  studyNotes              StudyNote[]              @ignore
+  studyCards              StudyCard[]              @ignore
+  studyReviewLogs         StudyReviewLog[]         @ignore
   studyMedia              StudyMedia[]
-  studyImportJobs         StudyImportJob[]
-  studyCardDrafts         StudyCardDraft[]
-  studyVariantGroups      StudyVariantGroup[]
-  studyVariantSentences   StudyVariantSentence[]
-  studySettings           StudySettings?
-  dailyAudioPractices     DailyAudioPractice[]
+  studyImportJobs         StudyImportJob[]         @ignore
+  studyCardDrafts         StudyCardDraft[]         @ignore
+  studyVariantGroups      StudyVariantGroup[]      @ignore
+  studyVariantSentences   StudyVariantSentence[]   @ignore
+  studySettings           StudySettings?           @ignore
+  dailyAudioPractices     DailyAudioPractice[]     @ignore
 
   @@index([email])
   @@index([role])
@@ -74,6 +74,8 @@ model User {
   @@index([isTestUser])
 }
 
+// Learning OS owns this table. Keep it represented for migration history and copied-database
+// compatibility, but exclude its retired ConvoLab delegate from Prisma Client.
 model StudySettings {
   userId         String   @id
   newCardsPerDay Int      @default(20)
@@ -83,6 +85,7 @@ model StudySettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("study_settings")
+  @@ignore
 }
 
 model InviteCode {
@@ -405,6 +408,8 @@ model CourseCoreItem {
   @@index([courseId])
 }
 
+// Learning OS owns Daily Audio persistence. These models remain for migration history and
+// copied-database compatibility, but ConvoLab must not generate delegates for them.
 model DailyAudioPractice {
   id                    String   @id @default(uuid())
   userId                String
@@ -426,6 +431,7 @@ model DailyAudioPractice {
   @@index([userId, status, practiceDate])
   @@index([status])
   @@map("daily_audio_practices")
+  @@ignore
 }
 
 model DailyAudioPracticeTrack {
@@ -450,6 +456,7 @@ model DailyAudioPracticeTrack {
   @@index([practiceId, sortOrder])
   @@index([status])
   @@map("daily_audio_practice_tracks")
+  @@ignore
 }
 
 // Speaker Avatar Models - Store avatars in GCS
@@ -482,6 +489,8 @@ model FeatureFlag {
   @@map("feature_flags")
 }
 
+// Learning OS owns the Study data cluster below. Keep the physical schema represented for
+// migrations, restored databases, and rollback while excluding retired ConvoLab delegates.
 model StudyImportJob {
   id                String    @id @default(uuid())
   userId            String
@@ -513,6 +522,7 @@ model StudyImportJob {
   @@index([userId, updatedAt, id])
   @@index([status])
   @@map("study_import_jobs")
+  @@ignore
 }
 
 model StudyNote {
@@ -542,6 +552,7 @@ model StudyNote {
   @@index([userId, sourceNotetypeName, updatedAt, id])
   @@index([importJobId])
   @@map("study_notes")
+  @@ignore
 }
 
 model StudyMedia {
@@ -560,10 +571,10 @@ model StudyMedia {
   updatedAt          DateTime @updatedAt
 
   user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importJob           StudyImportJob?      @relation(fields: [importJobId], references: [id], onDelete: SetNull)
-  promptAudioCards    StudyCard[]          @relation("StudyPromptAudio")
-  answerAudioCards    StudyCard[]          @relation("StudyAnswerAudio")
-  imageCards          StudyCard[]          @relation("StudyImageMedia")
+  importJob           StudyImportJob?      @relation(fields: [importJobId], references: [id], onDelete: SetNull) @ignore
+  promptAudioCards    StudyCard[]          @relation("StudyPromptAudio") @ignore
+  answerAudioCards    StudyCard[]          @relation("StudyAnswerAudio") @ignore
+  imageCards          StudyCard[]          @relation("StudyImageMedia") @ignore
   audioScriptSegments AudioScriptSegment[] @relation("AudioScriptSegmentImage")
 
   @@index([userId, sourceKind])
@@ -605,6 +616,7 @@ model StudyCardDraft {
   @@index([variantGroupId])
   @@index([variantSentenceId])
   @@map("study_card_drafts")
+  @@ignore
 }
 
 model StudyVariantGroup {
@@ -627,6 +639,7 @@ model StudyVariantGroup {
   @@index([userId, createdAt])
   @@index([userId, targetWord])
   @@map("study_variant_groups")
+  @@ignore
 }
 
 model StudyVariantSentence {
@@ -649,6 +662,7 @@ model StudyVariantSentence {
   @@unique([variantGroupId, ordinal])
   @@index([userId, variantGroupId])
   @@map("study_variant_sentences")
+  @@ignore
 }
 
 model StudyCard {
@@ -722,6 +736,7 @@ model StudyCard {
   @@index([noteId])
   @@index([importJobId])
   @@map("study_cards")
+  @@ignore
 }
 
 model StudyReviewLog {
@@ -754,6 +769,7 @@ model StudyReviewLog {
   @@index([userId, reviewedAt, id])
   @@index([importJobId])
   @@map("study_review_logs")
+  @@ignore
 }
 
 // Admin Audit Log - Track admin actions for compliance and security
