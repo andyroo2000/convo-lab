@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, Router } from 'express';
+import request from 'supertest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { requestLogger } from '../../../middleware/requestLogger.js';
@@ -84,6 +85,35 @@ describe('requestLogger Middleware', () => {
       statusCode: 200,
       durationMs: 150,
     });
+  });
+
+  it('classifies successful mounted routes using the full original request path', async () => {
+    const app = express();
+    const router = Router();
+    router.post('/signed-urls', (_req, res) => res.status(200).json({ urls: [] }));
+    app.use(requestLogger);
+    app.use('/api/tools-audio', router);
+
+    await request(app).post('/api/tools-audio/signed-urls?source=tool').expect(200);
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/^POST \/api\/tools-audio\/signed-urls 200 - \d+ms$/)
+    );
+    const structuredLog = consoleLogSpy.mock.calls
+      .map(([value]) => value)
+      .find(
+        (value) =>
+          typeof value === 'string' &&
+          value.includes('"event":"backend_route_usage"') &&
+          value.includes('"routeId":"tool-audio.signed-urls"')
+      );
+    expect(structuredLog).toBeDefined();
+    expect(JSON.parse(structuredLog as string)).toMatchObject({
+      routeId: 'tool-audio.signed-urls',
+      normalizedPath: '/api/tools-audio/signed-urls',
+      statusCode: 200,
+    });
+    expect(structuredLog).not.toContain('source=tool');
   });
 
   it('marks unknown API routes as unclassified without logging their concrete path in telemetry', () => {
