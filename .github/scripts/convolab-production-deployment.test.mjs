@@ -75,7 +75,7 @@ test('the production workflow rejects unexpected containers without legacy cutov
   assert.match(source, /Refusing to replace an unexpected production container automatically/);
   assert.match(
     script,
-    /elif docker inspect convolab-server[^]*?then\s+echo ".*without the expected router role.*"\s+echo "Refusing[^]*?"\s+exit 1\s+else/
+    /elif docker inspect convolab-server[^]*?then\s+echo ".*without the expected router role.*"\s+echo "Refusing[^]*?"\s+echo ".*Removing the inactive app[^]*?"\s+if ! docker rm -f "convolab-server-\$inactive_color"; then[^]*?fi\s+exit 1\s+else/
   );
 
   for (const retiredContract of [

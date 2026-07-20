@@ -281,6 +281,10 @@ jobs:
             elif docker inspect convolab-server >/dev/null 2>&1; then
               echo "❌ convolab-server exists without the expected router role."
               echo "Refusing to replace an unexpected production container automatically."
+              echo "🧹 Removing the inactive app started for this aborted deploy..."
+              if ! docker rm -f "convolab-server-$inactive_color"; then
+                echo "⚠️ Failed to remove convolab-server-$inactive_color; manual cleanup is required."
+              fi
               exit 1
             else
               echo "🔀 Starting router for new production stack..."
