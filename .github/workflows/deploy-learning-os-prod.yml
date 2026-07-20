@@ -239,7 +239,7 @@ jobs:
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
                 && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ] \
-                && [ "$current_config_revision" = "static-media-v1" ]; then
+                && [ "$current_config_revision" = "static-media-v2" ]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
               fi
@@ -261,7 +261,7 @@ jobs:
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
-                && [ "$current_config_revision" = "static-media-v1" ] \
+                && [ "$current_config_revision" = "static-media-v2" ] \
                 && [[ " $current_command " == *" $desired_queue_argument "* ]]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
