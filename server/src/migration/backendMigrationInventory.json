@@ -64,8 +64,18 @@
       "sourceFile": "server/src/routes/episodes.ts",
       "mountPath": "/api/episodes",
       "routes": [
-        { "id": "episodes.index", "method": "GET", "path": "/api/episodes" },
-        { "id": "episodes.show", "method": "GET", "path": "/api/episodes/:id" },
+        {
+          "id": "episodes.index",
+          "method": "GET",
+          "path": "/api/episodes",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "episodes.show",
+          "method": "GET",
+          "path": "/api/episodes/:id",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "episodes.store", "method": "POST", "path": "/api/episodes" },
         { "id": "episodes.update", "method": "PATCH", "path": "/api/episodes/:id" },
         { "id": "episodes.delete", "method": "DELETE", "path": "/api/episodes/:id" }

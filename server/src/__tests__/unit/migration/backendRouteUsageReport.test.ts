@@ -29,7 +29,7 @@ describe('backend route usage telemetry', () => {
         surfaceId: 'episodes',
         domain: 'content',
         migrationWave: 'content',
-        runtimeOwner: 'express',
+        runtimeOwner: 'learning-os-proxy',
         method: 'GET',
         normalizedPath: '/api/episodes/:id',
         requests: 2,

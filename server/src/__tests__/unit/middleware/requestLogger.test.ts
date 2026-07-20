@@ -79,7 +79,7 @@ describe('requestLogger Middleware', () => {
       surfaceId: 'episodes',
       domain: 'content',
       migrationWave: 'content',
-      runtimeOwner: 'express',
+      runtimeOwner: 'learning-os-proxy',
       method: 'GET',
       normalizedPath: '/api/episodes/:id',
       statusCode: 200,

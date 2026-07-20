@@ -14,6 +14,7 @@ export interface BackendMigrationRoute {
   id: string;
   method: string;
   path: string;
+  runtimeOwner?: BackendRuntimeOwner;
 }
 
 export interface BackendMigrationSurface {
@@ -34,7 +35,7 @@ export interface BackendMigrationInventory {
 
 export interface MatchedBackendMigrationRoute {
   route: BackendMigrationRoute;
-  surface: BackendMigrationSurface;
+  surface: BackendMigrationSurface & { runtimeOwner: BackendRuntimeOwner };
 }
 
 const require = createRequire(import.meta.url);
@@ -83,5 +84,13 @@ export const findBackendMigrationRoute = (
     methodRoutes.find(({ pattern }) => pattern.test(path)) ??
     allMethodRoutes.find(({ pattern }) => pattern.test(path));
 
-  return match ? { route: match.route, surface: match.surface } : null;
+  return match
+    ? {
+        route: match.route,
+        surface: {
+          ...match.surface,
+          runtimeOwner: match.route.runtimeOwner ?? match.surface.runtimeOwner,
+        },
+      }
+    : null;
 };

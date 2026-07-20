@@ -205,6 +205,16 @@ jobs:
 
             $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
 
+            source_db="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
+            test -n "$source_db"
+            test "$source_db" != "$TARGET_DB"
+            $COMPOSE run --rm -T --no-deps learning-os \
+              php artisan content:import-convolab-episodes \
+              --source-database="$source_db" \
+              --truncate \
+              --allow-production \
+              --production-truncate-confirmation="TRUNCATE $TARGET_DB" < /dev/null
+
             proxy_token_output="$($COMPOSE run --rm -T --no-deps \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
               learning-os php artisan tinker --execute='
@@ -401,7 +411,7 @@ jobs:
               echo "::warning::Unable to prune older Learning OS proxy tokens; a later deployment will retry."
             fi
 
-            postgres_db="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
+            postgres_db="$source_db"
 
             card_draft_smoke_id=
             media_smoke_id=
@@ -681,6 +691,43 @@ jobs:
                 'Overview Learning OS' \
                 '/api/learning-os/study/overview?timeZone=America%2FNew_York' \
                 > /dev/null
+
+              episode_list="$(fetch_read_route \
+                'Episode list Learning OS' \
+                '/api/episodes?library=true&limit=1&offset=0')"
+              episode_id="$(printf '%s' "$episode_list" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const episodes = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (!Array.isArray(episodes)) process.exit(1);
+                  if (episodes.length === 0) process.exit(0);
+                  const id = episodes[0]?.id;
+                  if (
+                    typeof id !== "string" ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+                  ) process.exit(1);
+                  process.stdout.write(id);
+                ')"
+              if [ -n "$episode_id" ]; then
+                episode_detail="$(fetch_read_route \
+                  'Episode detail Learning OS' \
+                  "/api/episodes/$episode_id")"
+                printf '%s' "$episode_detail" | docker exec -i \
+                  -e EXPECTED_EPISODE_ID="$episode_id" \
+                  "convolab-server-$active_color" node --input-type=module --eval='
+                    const chunks = [];
+                    for await (const chunk of process.stdin) chunks.push(chunk);
+                    const episode = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                    if (
+                      episode === null ||
+                      typeof episode !== "object" ||
+                      Array.isArray(episode) ||
+                      episode.id !== process.env.EXPECTED_EPISODE_ID
+                    ) process.exit(1);
+                  '
+              fi
+              echo "Episode Learning OS read smoke checks passed."
 
               daily_audio_list="$(
                 fetch_read_route \

@@ -79,6 +79,10 @@ describe('backend migration inventory', () => {
   it('resolves concrete dynamic paths to stable inventory routes', () => {
     expect(findBackendMigrationRoute('GET', '/api/episodes/episode-123')).toMatchObject({
       route: { id: 'episodes.show', path: '/api/episodes/:id' },
+      surface: { id: 'episodes', runtimeOwner: 'learning-os-proxy' },
+    });
+    expect(findBackendMigrationRoute('DELETE', '/api/episodes/episode-123')).toMatchObject({
+      route: { id: 'episodes.delete', path: '/api/episodes/:id' },
       surface: { id: 'episodes', runtimeOwner: 'express' },
     });
     expect(findBackendMigrationRoute('DELETE', '/api/admin/invite-codes/invite-123')).toMatchObject(

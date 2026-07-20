@@ -8,13 +8,14 @@ import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import { API_URL } from '../config';
 
 type Tab = 'profile' | 'security' | 'danger';
+const SETTINGS_TABS = new Set<string>(['profile', 'security', 'danger']);
 
 const SettingsPage = () => {
   const { t } = useTranslation(['settings', 'common']);
   const { user, updateUser, deleteAccount, changePassword } = useAuth();
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
-  const activeTab: Tab = (tab as Tab) || 'profile';
+  const activeTab: Tab = SETTINGS_TABS.has(tab ?? '') ? (tab as Tab) : 'profile';
 
   const AVATAR_COLORS = useMemo(
     () => [
@@ -91,7 +92,7 @@ const SettingsPage = () => {
   const [cropperImageUrl, setCropperImageUrl] = useState('');
 
   useEffect(() => {
-    if (tab === 'language' || tab === 'billing') {
+    if (tab && !SETTINGS_TABS.has(tab)) {
       navigate('/app/settings/profile', { replace: true });
     }
   }, [tab, navigate]);

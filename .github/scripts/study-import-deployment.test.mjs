@@ -154,6 +154,35 @@ test('the production workflow verifies the always-on Study API without rollout f
   assert.ok(migration > credentialCheck);
 });
 
+test('the production workflow refreshes and verifies Learning OS Episode reads', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'php artisan content:import-convolab-episodes',
+    '--source-database="$source_db"',
+    '--production-truncate-confirmation="TRUNCATE $TARGET_DB"',
+    "'Episode list Learning OS'",
+    "'/api/episodes?library=true&limit=1&offset=0'",
+    "'Episode detail Learning OS'",
+    'Episode Learning OS read smoke checks passed.',
+  ]) {
+    assert.ok(workflow.includes(requiredContract), requiredContract);
+  }
+
+  const migration = workflow.indexOf('php artisan migrate --force');
+  const episodeImport = workflow.indexOf('php artisan content:import-convolab-episodes');
+  const tokenCutover = workflow.indexOf('PROXY_TOKEN_CUTOVER_STARTED=true');
+  const episodeSmoke = workflow.indexOf('Episode Learning OS read smoke checks passed.');
+
+  assert.ok(migration >= 0);
+  assert.ok(migration < episodeImport);
+  assert.ok(episodeImport < tokenCutover);
+  assert.ok(tokenCutover < episodeSmoke);
+});
+
 test('the production stack wires and smokes Learning OS static media', async () => {
   const compose = await readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8');
   const workflow = await readFile(

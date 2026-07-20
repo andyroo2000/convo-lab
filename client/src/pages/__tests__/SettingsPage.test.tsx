@@ -73,7 +73,7 @@ describe('SettingsPage', () => {
       expect(screen.getByTestId('settings-tab-danger')).toBeInTheDocument();
     });
 
-    it('should redirect language tab to profile', () => {
+    it('should redirect unknown tabs to profile', () => {
       renderWithRouter('/app/settings/language');
       expect(mockNavigate).toHaveBeenCalledWith('/app/settings/profile', { replace: true });
     });
