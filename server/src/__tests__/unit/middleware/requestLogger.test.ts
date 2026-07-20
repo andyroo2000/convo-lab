@@ -116,6 +116,26 @@ describe('requestLogger Middleware', () => {
     expect(structuredLog).not.toContain('source=tool');
   });
 
+  it('preserves network-path references instead of interpreting them as URL authorities', () => {
+    const networkPathRequest = {
+      method: 'GET',
+      path: '/secret',
+      originalUrl: '//evil.example/../secret?probe=true',
+    };
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1010);
+
+    requestLogger(
+      networkPathRequest as unknown as Request,
+      mockRes as unknown as Response,
+      mockNext
+    );
+
+    const finishCallback = mockRes.on.mock.calls[0][1];
+    finishCallback();
+
+    expect(consoleLogSpy).toHaveBeenCalledWith('GET //evil.example/../secret 200 - 10ms');
+  });
+
   it('marks unknown API routes as unclassified without logging their concrete path in telemetry', () => {
     mockReq.path = '/api/unknown/private-value';
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1010);

@@ -6,8 +6,9 @@ import { buildBackendRouteUsageEvent } from '../migration/backendRouteUsage.js';
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
+  const queryIndex = req.originalUrl?.indexOf('?') ?? -1;
   const requestPath = req.originalUrl
-    ? new URL(req.originalUrl, 'http://localhost').pathname
+    ? req.originalUrl.slice(0, queryIndex === -1 ? undefined : queryIndex)
     : req.path;
 
   res.on('finish', () => {
