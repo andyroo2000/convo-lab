@@ -6,7 +6,7 @@ import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
-import { getStudyMediaAccess } from '../services/studyService.js';
+import { getStudyMediaAccess } from '../services/study/media.js';
 
 const router = Router();
 

@@ -1,25 +1,20 @@
 /* eslint-disable import/order */
 import { promises as fs } from 'fs';
-import os from 'os';
 import path from 'path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   cleanupStudyServiceTestMedia,
   downloadFromGCSPathMock,
   getSignedReadUrlMock,
-  redisGetMock,
-  redisSetMock,
   resetStudyServiceMocks,
-  synthesizeBatchedTextsMock,
   uploadBufferToGCSPathMock,
 } from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
-import { getStudyMediaAccess } from '../../../services/studyMediaService.js';
+import { getStudyMediaAccess } from '../../../services/study/media.js';
 import {
   findAccessibleLocalStudyMediaPath,
   persistStudyMediaBuffer,
-  STUDY_AUDIO_REPAIR_FAILURE_COOLDOWN_MS,
 } from '../../../services/study/shared.js';
 
 async function withStudyMediaEnv<T>(
@@ -52,7 +47,7 @@ async function withStudyMediaEnv<T>(
   }
 }
 
-describe('studyMediaService', () => {
+describe('study media access', () => {
   beforeEach(() => {
     resetStudyServiceMocks();
   });
@@ -93,6 +88,24 @@ describe('studyMediaService', () => {
     expect(getSignedReadUrlMock).not.toHaveBeenCalled();
   });
 
+  it('does not recover legacy media rows without durable storage', async () => {
+    mockPrisma.studyMedia.findFirst.mockResolvedValue({
+      id: 'legacy-media',
+      userId: 'user-1',
+      sourceKind: 'anki_import',
+      sourceFilename: 'missing.mp3',
+      contentType: 'audio/mpeg',
+      mediaKind: 'audio',
+      storagePath: null,
+      publicUrl: null,
+    });
+
+    await expect(getStudyMediaAccess('user-1', 'legacy-media')).resolves.toBeNull();
+    expect(mockPrisma.studyMedia.update).not.toHaveBeenCalled();
+    expect(getSignedReadUrlMock).not.toHaveBeenCalled();
+    expect(downloadFromGCSPathMock).not.toHaveBeenCalled();
+  });
+
   it('keeps a local mirror when persisting GCS-backed media in development', async () => {
     const filename = `card-local-${Date.now()}.mp3`;
 
@@ -115,56 +128,6 @@ describe('studyMediaService', () => {
         await expect(fs.readFile(localPath as string, 'utf8')).resolves.toBe('fake-audio');
       }
     );
-  });
-
-  it('backfills imported Anki media lazily before serving it', async () => {
-    const ankiMediaDir = await fs.mkdtemp(path.join(os.tmpdir(), 'study-media-access-'));
-
-    try {
-      await fs.writeFile(path.join(ankiMediaDir, 'company.mp3'), 'fake-audio');
-      mockPrisma.studyMedia.findFirst.mockResolvedValue({
-        id: 'media-lazy',
-        userId: 'user-1',
-        importJobId: 'import-1',
-        sourceKind: 'anki_import',
-        sourceFilename: 'company.mp3',
-        normalizedFilename: 'company.mp3',
-        mediaKind: 'audio',
-        contentType: 'audio/mpeg',
-        storagePath: null,
-        publicUrl: null,
-      });
-      mockPrisma.studyMedia.update.mockResolvedValue({
-        id: 'media-lazy',
-        userId: 'user-1',
-        importJobId: 'import-1',
-        sourceKind: 'anki_import',
-        sourceFilename: 'company.mp3',
-        normalizedFilename: 'company.mp3',
-        mediaKind: 'audio',
-        storagePath: 'study-media/user-1/import-1/company.mp3',
-        publicUrl: null,
-      });
-
-      await withStudyMediaEnv(
-        { ANKI_MEDIA_DIR: ankiMediaDir, GCS_BUCKET_NAME: 'test-bucket' },
-        async () => {
-          const result = await getStudyMediaAccess('user-1', 'media-lazy');
-
-          expect(mockPrisma.studyMedia.update).toHaveBeenCalledWith(
-            expect.objectContaining({
-              where: { id: 'media-lazy' },
-              data: expect.objectContaining({
-                storagePath: expect.stringContaining('company.mp3'),
-              }),
-            })
-          );
-          expect(result?.type).toBe('redirect');
-        }
-      );
-    } finally {
-      await fs.rm(ankiMediaDir, { recursive: true, force: true });
-    }
   });
 
   it('forces attachment disposition for unsafe inline media', async () => {
@@ -239,103 +202,5 @@ describe('studyMediaService', () => {
         );
       }
     );
-  });
-
-  it('repairs stale generated audio when its backing media is missing', async () => {
-    const cardId = `card-stale-${Date.now()}`;
-    getSignedReadUrlMock.mockRejectedValueOnce(new Error('missing signer'));
-    downloadFromGCSPathMock.mockRejectedValueOnce(new Error('missing object'));
-    mockPrisma.studyMedia.findFirst.mockResolvedValueOnce({
-      id: 'old-generated-media',
-      userId: 'user-1',
-      sourceKind: 'generated',
-      sourceFilename: `${cardId}.mp3`,
-      contentType: 'audio/mpeg',
-      mediaKind: 'audio',
-      storagePath: `study-media/user-1/generated/${cardId}.mp3`,
-    });
-    mockPrisma.studyCard.findFirst.mockResolvedValueOnce({
-      id: cardId,
-      answerAudioMediaId: 'old-generated-media',
-    });
-    mockPrisma.studyCard.findUnique.mockResolvedValue({
-      id: cardId,
-      userId: 'user-1',
-      answerAudioSource: 'generated',
-      answerJson: { restoredText: '月曜日に会いましょう。' },
-    });
-    mockPrisma.studyMedia.create.mockResolvedValue({ id: 'new-generated-media' });
-    mockPrisma.studyCard.update.mockResolvedValue({});
-
-    await withStudyMediaEnv(
-      { NODE_ENV: 'development', GCS_BUCKET_NAME: 'test-bucket' },
-      async () => {
-        await expect(getStudyMediaAccess('user-1', 'old-generated-media')).resolves.toBeNull();
-        await vi.waitFor(() => {
-          expect(synthesizeBatchedTextsMock).toHaveBeenCalledWith(
-            ['月曜日に会いましょう。'],
-            expect.objectContaining({ languageCode: 'ja-JP' })
-          );
-          expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
-            expect.objectContaining({
-              where: { id: cardId },
-              data: expect.objectContaining({
-                answerAudioMediaId: 'new-generated-media',
-              }),
-            })
-          );
-        });
-      }
-    );
-  });
-
-  it('skips generated-audio repair during a failure cooldown', async () => {
-    redisGetMock.mockResolvedValueOnce('1');
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({
-      id: 'cooling-generated-media',
-      userId: 'user-1',
-      sourceKind: 'generated',
-      sourceFilename: 'cooling-generated-media.mp3',
-      contentType: 'audio/mpeg',
-      mediaKind: 'audio',
-      storagePath: null,
-    });
-
-    await expect(getStudyMediaAccess('user-1', 'cooling-generated-media')).resolves.toBeNull();
-    expect(mockPrisma.studyCard.findFirst).not.toHaveBeenCalled();
-    expect(synthesizeBatchedTextsMock).not.toHaveBeenCalled();
-  });
-
-  it('records a cooldown when generated-audio repair fails', async () => {
-    synthesizeBatchedTextsMock.mockRejectedValue(new Error('tts down'));
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({
-      id: 'failed-generated-media',
-      userId: 'user-1',
-      sourceKind: 'generated',
-      sourceFilename: 'failed-generated-media.mp3',
-      contentType: 'audio/mpeg',
-      mediaKind: 'audio',
-      storagePath: null,
-    });
-    mockPrisma.studyCard.findFirst.mockResolvedValue({
-      id: 'card-failed-repair',
-      answerAudioMediaId: 'failed-generated-media',
-    });
-    mockPrisma.studyCard.findUnique.mockResolvedValue({
-      id: 'card-failed-repair',
-      userId: 'user-1',
-      answerAudioSource: 'generated',
-      answerJson: { restoredText: '月曜日に会いましょう。' },
-    });
-
-    await expect(getStudyMediaAccess('user-1', 'failed-generated-media')).resolves.toBeNull();
-    await vi.waitFor(() => {
-      expect(redisSetMock).toHaveBeenCalledWith(
-        'study:answer-audio-repair-failed:failed-generated-media',
-        '1',
-        'PX',
-        STUDY_AUDIO_REPAIR_FAILURE_COOLDOWN_MS
-      );
-    });
   });
 });

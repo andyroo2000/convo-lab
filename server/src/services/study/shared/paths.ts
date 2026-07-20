@@ -1,12 +1,10 @@
 import { promises as fs } from 'fs';
-import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { deleteFromGCSPath } from '../../storageClient.js';
 
 import { STUDY_MEDIA_REDIRECT_CACHE_MAX_ENTRIES } from './constants.js';
-import { sanitizeText } from './guards.js';
 import type { CachedStudyMediaRedirect } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,11 +32,6 @@ export function isUnsafeZipPath(value: string): boolean {
   return normalized.split('/').some((segment) => segment === '.' || segment === '..');
 }
 
-export function isSafeZipBasename(value: string): boolean {
-  const normalized = normalizeZipPath(value);
-  return !isUnsafeZipPath(normalized) && !normalized.includes('/');
-}
-
 export function sanitizePathSegment(value: string): string {
   const base = path.basename(stripNullChars(value));
   const normalized = base.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -47,10 +40,6 @@ export function sanitizePathSegment(value: string): string {
 
 export function getPrivateStudyMediaRoot(): string {
   return path.join(__dirname, '../../../storage');
-}
-
-export function getLegacyPublicStudyMediaRoot(): string {
-  return path.join(__dirname, '../../../public');
 }
 
 export function shouldMirrorStudyMediaLocally(): boolean {
@@ -68,10 +57,6 @@ export function shouldMirrorStudyMediaLocally(): boolean {
 
 function getWorkspacePrivateStudyMediaRoot(): string {
   return path.join(process.cwd(), 'storage');
-}
-
-function getWorkspacePublicStudyMediaRoot(): string {
-  return path.join(process.cwd(), 'public');
 }
 
 function normalizeStoragePath(storagePath: string): string {
@@ -122,8 +107,6 @@ export async function findAccessibleLocalStudyMediaPath(
   const candidatePaths = [
     resolveStudyMediaAbsolutePath(getPrivateStudyMediaRoot(), storagePath),
     resolveStudyMediaAbsolutePath(getWorkspacePrivateStudyMediaRoot(), storagePath),
-    resolveStudyMediaAbsolutePath(getLegacyPublicStudyMediaRoot(), storagePath),
-    resolveStudyMediaAbsolutePath(getWorkspacePublicStudyMediaRoot(), storagePath),
   ].filter((value): value is string => Boolean(value));
 
   for (const candidate of candidatePaths) {
@@ -176,54 +159,6 @@ export async function deletePersistedStudyMediaByStoragePath(storagePath: string
 
 export function getStudyMediaApiPath(mediaId: string): string {
   return `/api/study/media/${encodeURIComponent(mediaId)}`;
-}
-
-export function getDefaultAnkiMediaDirectory(): string | null {
-  if (process.platform !== 'darwin') {
-    return null;
-  }
-
-  // This macOS Anki path is a local development convenience fallback only.
-  const defaultDir = path.join(
-    os.homedir(),
-    'Library',
-    'Application Support',
-    'Anki2',
-    'User 1',
-    'collection.media'
-  );
-  return defaultDir;
-}
-
-export async function findLocalAnkiMediaFile(filename: string): Promise<string | null> {
-  const configuredDir = sanitizeText(process.env.ANKI_MEDIA_DIR ?? '');
-  const normalizedFilename = normalizeZipPath(filename);
-
-  if (!isSafeZipBasename(normalizedFilename)) {
-    return null;
-  }
-
-  const candidateDirs = [configuredDir, getDefaultAnkiMediaDirectory()].filter(
-    (value): value is string => Boolean(value)
-  );
-
-  for (const dir of candidateDirs) {
-    const resolvedDir = path.resolve(dir);
-    const absolutePath = path.resolve(resolvedDir, normalizedFilename);
-
-    if (!absolutePath.startsWith(`${resolvedDir}${path.sep}`) && absolutePath !== resolvedDir) {
-      continue;
-    }
-
-    try {
-      await fs.access(absolutePath);
-      return absolutePath;
-    } catch {
-      continue;
-    }
-  }
-
-  return null;
 }
 
 export function getContentType(filename: string): string {
