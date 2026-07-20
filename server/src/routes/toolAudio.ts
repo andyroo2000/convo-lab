@@ -227,10 +227,18 @@ router.post('/signed-urls', async (req, res, next) => {
       });
     }
 
+    const body = req.body as SignedUrlRequestBody | null;
+    const paths = toPathArray(body?.paths);
+    if (!paths) {
+      return res.status(400).json({
+        error: `paths must be an array of 1-${MAX_PATHS_PER_REQUEST} valid /tools-audio/*.mp3 values`,
+      });
+    }
+
     if (isLearningOsStaticMediaProxyEnabled()) {
       const upstreamResponse = await fetchLearningOsStaticMedia({
         operation: 'tool-audio',
-        body: req.body,
+        body: { paths },
       });
 
       if (upstreamResponse.status === 400) {
@@ -252,21 +260,7 @@ router.post('/signed-urls', async (req, res, next) => {
         throw new AppError('Learning OS Static Media API request failed.', 502);
       }
 
-      const requestedPaths = toPathArray((req.body as SignedUrlRequestBody | null)?.paths);
-      if (!requestedPaths) {
-        throw new AppError('Learning OS Static Media API returned an invalid response.', 502);
-      }
-
-      return res.json(await parseSignedUrlResponse(upstreamResponse, requestedPaths));
-    }
-
-    const body = req.body as SignedUrlRequestBody | null;
-    const paths = toPathArray(body?.paths);
-
-    if (!paths) {
-      return res.status(400).json({
-        error: `paths must be an array of 1-${MAX_PATHS_PER_REQUEST} valid /tools-audio/*.mp3 values`,
-      });
+      return res.json(await parseSignedUrlResponse(upstreamResponse, paths));
     }
 
     const ttlSeconds = parseTtlSeconds();

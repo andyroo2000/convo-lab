@@ -277,18 +277,17 @@ describe('toolAudio route', () => {
     process.env.LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED = 'true';
     process.env.LEARNING_OS_API_URL = 'https://learning-os.example';
     const payload = { paths: ['/tools-audio/japanese/minute/44.mp3'] };
-    fetchMock
-      .mockResolvedValueOnce(Response.json({ error: 'upstream detail' }, { status: 400 }))
-      .mockResolvedValueOnce(
-        Response.json(
-          { error: 'Too many signed-url requests. Please retry shortly.' },
-          { status: 429, headers: { 'retry-after': '37' } }
-        )
-      );
+    fetchMock.mockResolvedValueOnce(
+      Response.json(
+        { error: 'Too many signed-url requests. Please retry shortly.' },
+        { status: 429, headers: { 'retry-after': '37' } }
+      )
+    );
 
     await request(app).post('/api/tools-audio/signed-urls').send({ paths: 'invalid' }).expect(400, {
       error: 'paths must be an array of 1-60 valid /tools-audio/*.mp3 values',
     });
+    expect(fetchMock).not.toHaveBeenCalled();
 
     await request(app)
       .post('/api/tools-audio/signed-urls')
