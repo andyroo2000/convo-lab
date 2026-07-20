@@ -108,7 +108,6 @@ describe('audioScriptService', () => {
     mockPrisma.audioScriptMedia.create.mockImplementation(async ({ data }) => ({
       ...data,
     }));
-    mockPrisma.studyMedia.create.mockImplementation(async ({ data }) => ({ ...data }));
   });
 
   it('uses the requested Google Neural2 script speeds', () => {
@@ -165,15 +164,13 @@ describe('audioScriptService', () => {
     ]);
   });
 
-  it('does not expose the temporary rollback relation in script responses', () => {
+  it('exposes only Audio Script-owned image media in script responses', () => {
     const response = toAudioScriptResponse({
       id: 'script-1',
       segments: [
         {
           id: 'segment-1',
           imageMediaId: 'media-1',
-          legacyImageMediaId: 'media-1',
-          legacyImageMedia: { id: 'media-1' },
           imageMedia: {
             id: 'media-1',
             mediaKind: 'image',
@@ -188,9 +185,14 @@ describe('audioScriptService', () => {
     expect(response.segments?.[0]).toMatchObject({
       id: 'segment-1',
       imageMediaId: 'media-1',
+      imageMedia: {
+        id: 'media-1',
+        mediaKind: 'image',
+        contentType: 'image/webp',
+        publicUrl: null,
+        sourceFilename: 'segment.webp',
+      },
     });
-    expect(response.segments?.[0]).not.toHaveProperty('legacyImageMediaId');
-    expect(response.segments?.[0]).not.toHaveProperty('legacyImageMedia');
   });
 
   it('generates one guarded image per pending script segment', async () => {
@@ -214,25 +216,16 @@ describe('audioScriptService', () => {
     );
     expect(sharpMock).toHaveBeenCalledWith(Buffer.from('fake-png'));
     expect(webpMock).toHaveBeenCalledWith({ quality: 82 });
-    expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(2);
     expect(mockPrisma.audioScriptMedia.create).toHaveBeenCalledTimes(2);
-    expect(mockPrisma.studyMedia.create.mock.calls[0]?.[0].data.id).toBe(
-      mockPrisma.audioScriptMedia.create.mock.calls[0]?.[0].data.id
-    );
     expect(mockPrisma.audioScriptSegment.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'segment-1' },
         data: expect.objectContaining({
           imageStatus: 'ready',
           imageMediaId: expect.any(String),
-          legacyImageMediaId: expect.any(String),
         }),
       })
     );
-    const firstSegmentUpdate = mockPrisma.audioScriptSegment.update.mock.calls.find(
-      ([input]) => input.where.id === 'segment-1' && input.data.imageStatus === 'ready'
-    )?.[0].data;
-    expect(firstSegmentUpdate?.imageMediaId).toBe(firstSegmentUpdate?.legacyImageMediaId);
     expect(mockPrisma.audioScript.update).toHaveBeenLastCalledWith({
       where: { id: 'script-1' },
       data: { imageStatus: 'ready', imageErrorMessage: null },
@@ -336,7 +329,7 @@ describe('audioScriptService', () => {
     });
   });
 
-  it('removes persisted bytes when the compatibility media transaction fails', async () => {
+  it('removes persisted bytes when the Audio Script media insert fails', async () => {
     mockPrisma.audioScript.findFirst.mockResolvedValue(
       buildScriptFixture({
         segments: [buildScriptFixture().segments[0]],
@@ -352,7 +345,6 @@ describe('audioScriptService', () => {
       userId: 'user-1',
     });
 
-    expect(mockPrisma.$transaction).toHaveBeenCalled();
     expect(deletePersistedStudyMediaByStoragePathMock).toHaveBeenCalledWith(
       'generated/script.webp'
     );
@@ -365,7 +357,7 @@ describe('audioScriptService', () => {
     });
   });
 
-  it('deletes both compatibility records after replacing a generated script image', async () => {
+  it('deletes the replaced Audio Script media record and persisted bytes', async () => {
     mockPrisma.audioScript.findFirst.mockResolvedValue(
       buildScriptFixture({
         segments: [
@@ -394,9 +386,6 @@ describe('audioScriptService', () => {
     });
 
     expect(mockPrisma.audioScriptMedia.deleteMany).toHaveBeenCalledWith({
-      where: { id: 'old-media' },
-    });
-    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
       where: { id: 'old-media' },
     });
     expect(deletePersistedStudyMediaByStoragePathMock).toHaveBeenCalledWith(

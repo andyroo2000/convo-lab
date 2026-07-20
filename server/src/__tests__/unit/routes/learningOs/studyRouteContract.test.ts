@@ -14,6 +14,15 @@ const NGINX_CONTRACT_COMMENT =
   '# Keep this regex synchronized with studyRouteContract.ts; its contract test enforces equality.';
 
 describe('Learning OS study route contract', () => {
+  it('mounts only the Learning OS-backed Study API', () => {
+    const serverEntryPath = fileURLToPath(new URL('../../../../index.ts', import.meta.url));
+    const serverEntry = readFileSync(serverEntryPath, 'utf8');
+
+    expect(serverEntry).toContain("app.use('/api/learning-os/study', learningOsStudyRoutes)");
+    expect(serverEntry).not.toMatch(/app\.use\(['"]\/api\/study['"]/);
+    expect(serverEntry).not.toMatch(/from ['"]\.\/routes\/study\.js['"]/);
+  });
+
   it('uses the same strict upload shape for router-relative and public paths', () => {
     expect(STUDY_IMPORT_UPLOAD_PATH_PATTERN.test(`/imports/${VALID_ULID}/upload`)).toBe(true);
     expect(

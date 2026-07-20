@@ -9,15 +9,13 @@ const migrationPath = new URL(
 );
 
 describe('audio script media schema', () => {
-  it('maps the public image relation to the new column while retaining the rollback column', async () => {
+  it('maps the public image relation only to Audio Script-owned media', async () => {
     const schema = await readFile(schemaPath, 'utf8');
 
     expect(schema).toContain('model AudioScriptMedia {');
-    expect(schema).toContain('imageMediaId       String?   @map("audioScriptMediaId")');
-    expect(schema).toContain('legacyImageMediaId String?   @map("imageMediaId")');
-    expect(schema).toContain(
-      'legacyImageMedia StudyMedia?       @relation("AudioScriptSegmentLegacyImage"'
-    );
+    expect(schema).toContain('imageMediaId      String?   @map("audioScriptMediaId")');
+    expect(schema).not.toContain('legacyImageMediaId');
+    expect(schema).not.toContain('legacyImageMedia StudyMedia?');
   });
 
   it('uses a Postgres-safe expand migration that backfills before adding the new foreign key', async () => {

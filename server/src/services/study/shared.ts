@@ -9,7 +9,6 @@ export {
   findAccessibleLocalStudyMediaPath,
   getContentType,
   getPrivateStudyMediaRoot,
-  getStudyMediaApiPath,
   hasConfiguredStudyGcsStorage,
   isUnsafeZipPath,
   normalizeFilename,
