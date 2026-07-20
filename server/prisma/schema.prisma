@@ -31,17 +31,6 @@ model User {
   // OAuth fields
   googleId String? @unique
 
-  // Subscription fields
-  tier                     String    @default("free") // "free", "pro"
-  stripeCustomerId         String?   @unique
-  stripeSubscriptionId     String?   @unique
-  stripeSubscriptionStatus String? // "active", "canceled", "past_due", "incomplete"
-  stripePriceId            String? // Track which price they're on
-  subscriptionStartedAt    DateTime?
-  subscriptionExpiresAt    DateTime?
-  subscriptionCanceledAt   DateTime?
-  isTestUser               Boolean   @default(false) // Test users can access $0.01/month test tier
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -51,7 +40,6 @@ model User {
   generationLogs          GenerationLog[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
-  subscriptionEvents      SubscriptionEvent[]
   oauthAccounts           OAuthAccount[]
   audioScriptMedia        AudioScriptMedia[]
   studyNotes              StudyNote[]              @ignore
@@ -69,10 +57,6 @@ model User {
   @@index([role])
   @@index([emailVerified])
   @@index([googleId])
-  @@index([tier])
-  @@index([stripeCustomerId])
-  @@index([stripeSubscriptionId])
-  @@index([isTestUser])
 }
 
 // Learning OS owns this table. Keep it represented for migration history and copied-database
@@ -130,24 +114,6 @@ model PasswordResetToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("password_reset_tokens")
-}
-
-model SubscriptionEvent {
-  id            String   @id @default(uuid())
-  userId        String
-  eventType     String // "subscribed", "upgraded", "downgraded", "canceled", "reactivated"
-  fromTier      String?
-  toTier        String
-  stripeEventId String?  @unique
-  metadata      Json?
-  createdAt     DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([eventType])
-  @@index([createdAt])
-  @@map("subscription_events")
 }
 
 model Episode {

@@ -784,7 +784,7 @@ describe('DialogueGenerator', () => {
   });
 });
 
-describe('DialogueGenerator - Upgrade Prompt', () => {
+describe('DialogueGenerator - Quota Limit Prompt', () => {
   const renderDialogueGenerator = () =>
     render(
       <MemoryRouter>
@@ -810,12 +810,12 @@ describe('DialogueGenerator - Upgrade Prompt', () => {
     vi.useRealTimers();
   });
 
-  it('should not show upgrade prompt initially', () => {
+  it('should not show the quota limit prompt initially', () => {
     renderDialogueGenerator();
-    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monthly Limit Reached/i)).not.toBeInTheDocument();
   });
 
-  it('should show upgrade prompt when generateDialogue returns 429 with quota metadata', async () => {
+  it('should show the quota limit prompt when generateDialogue returns 429 with quota metadata', async () => {
     // Set up quota error
     mockErrorMetadata = {
       status: 429,
@@ -843,11 +843,11 @@ describe('DialogueGenerator - Upgrade Prompt', () => {
     });
 
     // Modal should appear
-    expect(screen.getByText(/Quota Limit Reached/i)).toBeInTheDocument();
-    expect(screen.getByText(/You've used 5 of 5 generations/)).toBeInTheDocument();
+    expect(screen.getByText(/Monthly Limit Reached/i)).toBeInTheDocument();
+    expect(screen.getByText(/You've used 5 of 5 generations this month/)).toBeInTheDocument();
   });
 
-  it('should not show upgrade prompt for non-429 errors', async () => {
+  it('should not show the quota limit prompt for non-429 errors', async () => {
     mockErrorMetadata = {
       status: 500,
       message: 'Server error',
@@ -867,10 +867,10 @@ describe('DialogueGenerator - Upgrade Prompt', () => {
       await Promise.resolve();
     });
 
-    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monthly Limit Reached/i)).not.toBeInTheDocument();
   });
 
-  it('should not show upgrade prompt when errorMetadata has no quota field', async () => {
+  it('should not show the quota limit prompt when errorMetadata has no quota field', async () => {
     mockErrorMetadata = {
       status: 429,
       message: 'Quota exceeded',
@@ -891,10 +891,10 @@ describe('DialogueGenerator - Upgrade Prompt', () => {
       await Promise.resolve();
     });
 
-    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monthly Limit Reached/i)).not.toBeInTheDocument();
   });
 
-  it('should close upgrade prompt when close button clicked', async () => {
+  it('should close the quota limit prompt when close button clicked', async () => {
     mockErrorMetadata = {
       status: 429,
       message: 'Quota exceeded',
@@ -919,14 +919,14 @@ describe('DialogueGenerator - Upgrade Prompt', () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText(/Quota Limit Reached/i)).toBeInTheDocument();
+    expect(screen.getByText(/Monthly Limit Reached/i)).toBeInTheDocument();
 
     // Click close button
     const closeButton = screen.getByLabelText('Close');
     fireEvent.click(closeButton);
 
     // Modal should be hidden
-    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monthly Limit Reached/i)).not.toBeInTheDocument();
   });
 });
 

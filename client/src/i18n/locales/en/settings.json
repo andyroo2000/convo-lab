@@ -4,7 +4,6 @@
   "tabs": {
     "profile": "Profile",
     "security": "Security",
-    "billing": "Billing",
     "danger": "Danger Zone"
   },
   "profile": {
@@ -62,36 +61,6 @@
       "required": "All password fields are required",
       "tooShort": "New password must be at least 8 characters",
       "mismatch": "New passwords do not match"
-    }
-  },
-  "billing": {
-    "title": "Billing & Subscription",
-    "loading": "Loading subscription info...",
-    "currentPlan": {
-      "title": "Current Plan",
-      "free": "Free",
-      "pro": "Pro",
-      "plan": "Plan",
-      "freePrice": "Free forever",
-      "proPrice": "$10/month",
-      "limit": "Weekly generation limit",
-      "generations": "generations per week",
-      "cancelsOn": "Cancels on",
-      "renewsOn": "Renews on"
-    },
-    "actions": {
-      "upgrade": "Upgrade to Pro ($10/month)",
-      "upgradeHelper": "Get 30 generations per month and access to all features",
-      "manage": "Manage Subscription",
-      "manageHelper": "Update payment method, view invoices, or cancel subscription"
-    },
-    "comparison": {
-      "title": "Need a different plan?",
-      "viewAll": "View all plans →"
-    },
-    "errors": {
-      "loadSubscription": "Failed to load subscription information",
-      "createPortal": "Failed to open billing portal"
     }
   },
   "danger": {

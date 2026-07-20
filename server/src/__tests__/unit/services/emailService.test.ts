@@ -58,11 +58,6 @@ vi.mock('../../../i18n/index.js', () => {
       'passwordReset.subject': () => 'Reset your ConvoLab password',
       'welcome.subject': () => 'Welcome to ConvoLab!',
       'passwordChanged.subject': () => 'Your ConvoLab password was changed',
-      'subscriptionConfirmed.subject': (p) => `Welcome to ConvoLab ${p?.tier || 'Pro'}!`,
-      'paymentFailed.subject': () => 'ConvoLab payment failed - Action required',
-      'subscriptionCanceled.subject': () => 'Your ConvoLab subscription has been canceled',
-      'quotaWarning.subject': (p) =>
-        `You've used ${p?.percentage || 80}% of your weekly ConvoLab quota`,
     };
     return translations[key] ? translations[key](params) : key;
   });
@@ -93,33 +88,6 @@ vi.mock('../../../i18n/emailTemplates.js', () => ({
   generatePasswordChangedEmail: vi.fn(
     (params: { locale: string; name: string; supportEmail: string }) =>
       `<html>Password Changed for ${params.name}</html>`
-  ),
-  generateSubscriptionConfirmedEmail: vi.fn(
-    (params: { locale: string; name: string; tier: string; weeklyLimit: number; appUrl: string }) =>
-      `<html>Subscription Confirmed for ${params.tier} - ${params.weeklyLimit} generations per week</html>`
-  ),
-  generatePaymentFailedEmail: vi.fn(
-    (params: { locale: string; name: string; billingUrl: string; supportEmail: string }) =>
-      `<html>Payment Failed for ${params.name}</html>`
-  ),
-  generateSubscriptionCanceledEmail: vi.fn(
-    (params: { locale: string; name: string; billingUrl: string }) =>
-      `<html>Subscription Canceled for ${params.name} - downgraded to the Free tier</html>`
-  ),
-  generateQuotaWarningEmail: vi.fn(
-    (params: {
-      locale: string;
-      name: string;
-      used: number;
-      limit: number;
-      percentage: number;
-      tier: string;
-      pricingUrl: string;
-    }) => {
-      const upgradeText =
-        params.tier === 'free' ? 'Upgrade to Pro for 30 generations per week' : '';
-      return `<html>Quota Warning ${params.percentage}% for ${params.name} - Used: ${params.used}/${params.limit} - ${params.tier} tier - quota resets every Monday${upgradeText ? ` - ${upgradeText}` : ''}</html>`;
-    }
   ),
 }));
 
@@ -476,90 +444,6 @@ describe('Email Service', () => {
       await expect(
         emailService.sendPasswordChangedEmail('test@example.com', 'Test User')
       ).resolves.not.toThrow();
-    });
-  });
-
-  describe('sendSubscriptionConfirmedEmail', () => {
-    it('should send subscription confirmed email for pro tier', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendSubscriptionConfirmedEmail('test@example.com', 'Test User', 'pro');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.to).toBe('test@example.com');
-      expect(emailCall.subject).toBe('Welcome to ConvoLab Pro!');
-      expect(emailCall.html).toContain('30 generations per week');
-    });
-
-    it('should send subscription confirmed email for free tier', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendSubscriptionConfirmedEmail('test@example.com', 'Test User', 'free');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.html).toContain('5 generations per week');
-    });
-  });
-
-  describe('sendPaymentFailedEmail', () => {
-    it('should send payment failed notification', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendPaymentFailedEmail('test@example.com', 'Test User');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.to).toBe('test@example.com');
-      expect(emailCall.subject).toContain('payment failed');
-    });
-  });
-
-  describe('sendSubscriptionCanceledEmail', () => {
-    it('should send subscription canceled notification', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendSubscriptionCanceledEmail('test@example.com', 'Test User');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.to).toBe('test@example.com');
-      expect(emailCall.subject).toContain('canceled');
-      expect(emailCall.html).toContain('downgraded to the Free tier');
-    });
-  });
-
-  describe('sendQuotaWarningEmail', () => {
-    it('should send quota warning for free tier with upgrade prompt', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendQuotaWarningEmail('test@example.com', 'Test User', 4, 5, 'free');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.subject).toContain('80%');
-      expect(emailCall.html).toContain('Upgrade to Pro');
-    });
-
-    it('should send quota warning for pro tier without upgrade prompt', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendQuotaWarningEmail('test@example.com', 'Test User', 24, 30, 'pro');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.html).not.toContain('Upgrade to Pro');
-      expect(emailCall.html).toContain('quota resets');
-    });
-
-    it('should calculate percentage correctly', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendQuotaWarningEmail('test@example.com', 'Test User', 4, 5, 'free');
-
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.subject).toContain('80%');
     });
   });
 });

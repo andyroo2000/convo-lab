@@ -21,7 +21,6 @@ async function listAllUsers() {
         name: true,
         displayName: true,
         role: true,
-        tier: true,
         createdAt: true,
         _count: {
           select: {
@@ -49,7 +48,7 @@ async function listAllUsers() {
       if (user.displayName && user.displayName !== user.name) {
         console.log(`   Display Name: ${user.displayName}`);
       }
-      console.log(`   Role: ${user.role} | Tier: ${user.tier}`);
+      console.log(`   Role: ${user.role}`);
       console.log(`   Created: ${user.createdAt.toISOString()}`);
       console.log(`   Content: ${user._count.episodes} dialogs, ${user._count.courses} courses`);
       console.log(`   Generation logs: ${user._count.generationLogs}`);

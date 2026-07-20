@@ -16,7 +16,7 @@ import {
 import { AppError } from './errorHandler.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const CSRF_EXEMPT_PATHS = new Set(['/webhooks/stripe', '/tools/analytics']);
+const CSRF_EXEMPT_PATHS = new Set(['/tools/analytics']);
 
 export const CSRF_TOKEN_COOKIE_NAME = 'XSRF-TOKEN';
 export const CSRF_TOKEN_HEADER_NAME = 'x-csrf-token';

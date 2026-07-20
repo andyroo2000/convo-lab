@@ -12,7 +12,7 @@
  *   npm run harness:type-safety -- --concurrency 10      # 10 parallel sessions
  *   npm run harness:type-safety -- --model claude-opus-4-20250514  # Use Opus
  *   npm run harness:type-safety -- --max-turns 50        # Custom max turns per file
- *   npm run harness:type-safety -- --file server/src/services/stripeService.ts  # Single file
+ *   npm run harness:type-safety -- --file server/src/services/usageTracker.ts  # Single file
  *   npm run harness:type-safety -- --category tests      # Only test files
  *   npm run harness:type-safety -- --category source     # Only source files
  *   npm run harness:type-safety -- --category scripts    # Only script files
@@ -74,13 +74,11 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/services/conversationalLessonScriptGenerator.ts', cardId: 'convo-lab-242', anyCount: 1, category: 'source' },
   { file: 'server/src/services/workerTrigger.ts', cardId: 'convo-lab-6zp', anyCount: 1, category: 'source' },
   { file: 'server/src/services/courseItemExtractor.ts', cardId: 'convo-lab-2lr', anyCount: 10, category: 'source' },
-  { file: 'server/src/services/stripeService.ts', cardId: 'convo-lab-3im', anyCount: 6, category: 'source' },
   { file: 'server/src/services/ttsProviders/PollyTTSProvider.ts', cardId: 'convo-lab-slh', anyCount: 1, category: 'source' },
   { file: 'server/src/config/passport.ts', cardId: 'convo-lab-vls', anyCount: 1, category: 'source' },
   { file: 'server/src/middleware/impersonation.ts', cardId: 'convo-lab-wnw', anyCount: 1, category: 'source' },
   { file: 'server/src/middleware/errorHandler.ts', cardId: 'convo-lab-ju2', anyCount: 2, category: 'source' },
   { file: 'server/src/routes/admin.ts', cardId: 'convo-lab-1oe', anyCount: 2, category: 'source' },
-  { file: 'server/src/routes/billing.ts', cardId: 'convo-lab-4mx', anyCount: 1, category: 'source' },
   { file: 'server/src/routes/courses.ts', cardId: 'convo-lab-8vh', anyCount: 1, category: 'source' },
 
   // Client test files
@@ -96,16 +94,13 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/routes/admin.security.test.ts', cardId: 'convo-lab-fo4', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/admin.simple.test.ts', cardId: 'convo-lab-qh5', anyCount: 4, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/admin.test.ts', cardId: 'convo-lab-wek', anyCount: 2, category: 'test' },
-  { file: 'server/src/__tests__/unit/routes/admin-subscription.test.ts', cardId: 'convo-lab-0yq', anyCount: 3, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/episodes.integration.test.ts', cardId: 'convo-lab-3wl', anyCount: 6, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/episodes.test.ts', cardId: 'convo-lab-1l6', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/dialogue.test.ts', cardId: 'convo-lab-2dq', anyCount: 3, category: 'test' },
-  { file: 'server/src/__tests__/unit/routes/billing.test.ts', cardId: 'convo-lab-6mk', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/courses.test.ts', cardId: 'convo-lab-hd5', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/audio.test.ts', cardId: 'convo-lab-b2a', anyCount: 10, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/images.test.ts', cardId: 'convo-lab-5op', anyCount: 9, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/verification.test.ts', cardId: 'convo-lab-18q', anyCount: 1, category: 'test' },
-  { file: 'server/src/__tests__/unit/services/stripeService.test.ts', cardId: 'convo-lab-s7z', anyCount: 9, category: 'test' },
   { file: 'server/src/__tests__/unit/services/lessonScriptGenerator.test.ts', cardId: 'convo-lab-c1e', anyCount: 19, category: 'test' },
   { file: 'server/src/__tests__/unit/services/ttsClient.test.ts', cardId: 'convo-lab-3tp', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/emailService.test.ts', cardId: 'convo-lab-zru', anyCount: 11, category: 'test' },
@@ -118,7 +113,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/middleware/auth.test.ts', cardId: 'convo-lab-dro', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/middleware/impersonation.test.ts', cardId: 'convo-lab-n3h', anyCount: 10, category: 'test' },
   { file: 'server/src/__tests__/unit/config/redis.test.ts', cardId: 'convo-lab-qck', anyCount: 1, category: 'test' },
-  { file: 'server/src/__tests__/integration/webhooks/stripe-webhooks.test.ts', cardId: 'convo-lab-qat', anyCount: 16, category: 'test' },
   { file: 'server/src/__tests__/fixtures/timingData.ts', cardId: 'convo-lab-pp4', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/mocks/ffmpeg.ts', cardId: 'convo-lab-q0h', anyCount: 1, category: 'test' },
 

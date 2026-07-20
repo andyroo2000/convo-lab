@@ -65,18 +65,6 @@
     "jobNotFound": "Job not found",
     "noStory": "{{type}} has no story"
   },
-  "billing": {
-    "priceIdRequired": "Price ID is required",
-    "invalidPriceId": "Invalid price ID",
-    "testTierOnly": "Test tier is only available for test users",
-    "checkoutFailed": "Failed to create checkout session",
-    "portalFailed": "Failed to create portal session",
-    "subscriptionFailed": "Failed to get subscription status",
-    "noSignature": "No signature provided",
-    "webhookSecretMissing": "Webhook secret not configured",
-    "signatureVerificationFailed": "Signature verification failed",
-    "webhookProcessingFailed": "Failed to process webhook"
-  },
   "errors": {
     "internal": "Internal server error",
     "authRequired": "Authentication required"

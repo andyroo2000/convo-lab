@@ -88,7 +88,7 @@ vi.mock('../../common/DemoRestrictionModal', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-describe('CourseGenerator - Upgrade Prompt', () => {
+describe('CourseGenerator - Quota Limit Prompt', () => {
   const renderCourseGenerator = () =>
     render(
       <AudioPreviewProvider>
@@ -116,12 +116,12 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     vi.restoreAllMocks();
   });
 
-  it('should not show upgrade prompt initially', () => {
+  it('should not show the quota limit prompt initially', () => {
     renderCourseGenerator();
-    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monthly Limit Reached/i)).not.toBeInTheDocument();
   });
 
-  it('should show upgrade prompt when API returns 429 with quota metadata', async () => {
+  it('should show the quota limit prompt when API returns 429 with quota metadata', async () => {
     // First call: create course (succeeds)
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -161,11 +161,11 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     fireEvent.click(createButton);
 
     // Modal should appear
-    await screen.findByText(/Quota Limit Reached/i);
-    expect(screen.getByText(/You've used 5 of 5 generations/)).toBeInTheDocument();
+    await screen.findByText(/Monthly Limit Reached/i);
+    expect(screen.getByText(/You've used 5 of 5 generations this month/)).toBeInTheDocument();
   });
 
-  it('should not show upgrade prompt for non-429 errors', async () => {
+  it('should not show the quota limit prompt for non-429 errors', async () => {
     // First call: create course (succeeds)
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -200,10 +200,10 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
-    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monthly Limit Reached/i)).not.toBeInTheDocument();
   });
 
-  it('should not show upgrade prompt when errorMetadata has no quota field', async () => {
+  it('should not show the quota limit prompt when errorMetadata has no quota field', async () => {
     // First call: create course (succeeds)
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -239,10 +239,10 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
-    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monthly Limit Reached/i)).not.toBeInTheDocument();
   });
 
-  it('should close upgrade prompt when close button clicked', async () => {
+  it('should close the quota limit prompt when close button clicked', async () => {
     // First call: create course (succeeds)
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -279,17 +279,17 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     const createButton = screen.getByRole('button', { name: /create/i });
     fireEvent.click(createButton);
 
-    await screen.findByText(/Quota Limit Reached/i);
+    await screen.findByText(/Monthly Limit Reached/i);
 
     // Click close button
     const closeButton = screen.getByLabelText('Close');
     fireEvent.click(closeButton);
 
     // Modal should be hidden
-    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Monthly Limit Reached/i)).not.toBeInTheDocument();
   });
 
-  it('should pass correct quota values to UpgradePrompt', async () => {
+  it('should pass the correct values to the quota limit prompt', async () => {
     // First call: create course (succeeds)
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -327,6 +327,6 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     fireEvent.click(createButton);
 
     // Check that correct quota values are displayed
-    await screen.findByText(/You've used 3 of 5 generations/);
+    await screen.findByText(/You've used 3 of 5 generations this month/);
   });
 });

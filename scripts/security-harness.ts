@@ -203,7 +203,7 @@ Skip dependency scanning. Focus on code-level security issues.
 
 ### PHASE 7: Third-Party Dependencies
 1. Review sensitive integrations:
-   - Stripe payment handling
+   - Google OAuth
    - Google Cloud TTS
    - Redis connection security
    - Database connection security

@@ -44,7 +44,6 @@ async function seedE2EUsers() {
       where: { email: TEST_USER_EMAIL },
       update: {
         role: 'user',
-        tier: 'free',
         password: testUserHashedPassword,
         emailVerified: true,
       },
@@ -53,7 +52,6 @@ async function seedE2EUsers() {
         password: testUserHashedPassword,
         name: 'Test User',
         role: 'user',
-        tier: 'free',
         onboardingCompleted: true,
         preferredStudyLanguage: 'ja',
         preferredNativeLanguage: 'en',
@@ -67,7 +65,6 @@ async function seedE2EUsers() {
     console.log('   Email:    ' + TEST_USER_EMAIL);
     console.log('   Password: ' + TEST_USER_PASSWORD);
     console.log('   Role:     ' + testUser.role);
-    console.log('   Tier:     ' + testUser.tier);
     console.log('   ID:       ' + testUser.id);
     console.log('');
 
@@ -76,7 +73,6 @@ async function seedE2EUsers() {
       where: { email: ADMIN_EMAIL },
       update: {
         role: 'admin',
-        tier: 'free',
         password: adminHashedPassword,
         emailVerified: true,
       },
@@ -85,7 +81,6 @@ async function seedE2EUsers() {
         password: adminHashedPassword,
         name: 'Admin User',
         role: 'admin',
-        tier: 'free',
         onboardingCompleted: true,
         preferredStudyLanguage: 'ja',
         preferredNativeLanguage: 'en',
@@ -99,7 +94,6 @@ async function seedE2EUsers() {
     console.log('   Email:    ' + ADMIN_EMAIL);
     console.log('   Password: ' + ADMIN_PASSWORD);
     console.log('   Role:     ' + adminUser.role);
-    console.log('   Tier:     ' + adminUser.tier);
     console.log('   ID:       ' + adminUser.id);
     console.log('');
 

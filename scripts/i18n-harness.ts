@@ -68,7 +68,7 @@ async function runI18nHarness(options: HarnessOptions = {}) {
   const prompt = `
 You are running an autonomous i18n translation checker for ConvoLab.
 
-## CRITICAL: You MUST process ALL 12 locale files
+## CRITICAL: You MUST process ALL 11 locale files
 
 Process EVERY file in this EXACT order. Do NOT skip any file:
 
@@ -82,12 +82,11 @@ Process EVERY file in this EXACT order. Do NOT skip any file:
 8. library.json
 9. notFound.json
 10. onboarding.json
-11. pricing.json
-12. settings.json
+11. settings.json
 
 ## Your Task
 
-For EACH of the 12 files above, you must:
+For EACH of the 11 files above, you must:
 
 ### 1. Read the English source file
 - Read client/src/i18n/locales/en/[filename]

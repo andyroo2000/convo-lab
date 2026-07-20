@@ -7,7 +7,6 @@ Viewport baseline: iPhone 13 (`390x844`) via Playwright
 
 - [x] `/` (`LandingPage`) reviewed and mobile-optimized.
 - [x] `/login` (`LoginPage`) reviewed and mobile-optimized.
-- [x] `/pricing` (`PricingPage`) reviewed and mobile-optimized.
 - [x] `/tools` (`ToolsDirectoryPage`) reviewed and mobile-optimized.
 - [x] `/tools/japanese-date` (`JapaneseDateToolPage`) reviewed and mobile-optimized.
 - [x] `/forgot-password` (`ForgotPasswordPage`) reviewed and mobile spacing optimized.

@@ -60,7 +60,6 @@ async function findOrCreateSystemUser() {
         password: '', // No password - system user can't log in
         name: 'System',
         role: 'admin',
-        tier: 'pro',
         onboardingCompleted: true,
         preferredStudyLanguage: 'ja',
         preferredNativeLanguage: 'en',

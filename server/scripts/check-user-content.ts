@@ -29,7 +29,6 @@ async function checkUserContent() {
         name: true,
         displayName: true,
         role: true,
-        tier: true,
         createdAt: true,
         preferredStudyLanguage: true,
         preferredNativeLanguage: true,
@@ -48,7 +47,7 @@ async function checkUserContent() {
     if (user.displayName) {
       console.log(`   Display Name: ${user.displayName}`);
     }
-    console.log(`   Role: ${user.role} | Tier: ${user.tier}`);
+    console.log(`   Role: ${user.role}`);
     console.log(`   Study Language: ${user.preferredStudyLanguage}`);
     console.log(`   Native Language: ${user.preferredNativeLanguage}`);
     console.log(`   Proficiency: ${user.proficiencyLevel}`);
