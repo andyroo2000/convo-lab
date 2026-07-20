@@ -42,7 +42,7 @@ vi.mock('../../../middleware/auth.js', () => ({
   AuthRequest: class {},
 }));
 
-vi.mock('../../../services/studyService.js', () => ({
+vi.mock('../../../services/study/media.js', () => ({
   getStudyMediaAccess: getStudyMediaAccessMock,
 }));
 
