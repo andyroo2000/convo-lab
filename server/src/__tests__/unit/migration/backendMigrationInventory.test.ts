@@ -1,0 +1,119 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { describe, expect, it } from 'vitest';
+
+import {
+  backendMigrationInventory,
+  findBackendMigrationRoute,
+} from '../../../migration/backendMigrationInventory.js';
+
+const repositoryRoot = fileURLToPath(new URL('../../../../../', import.meta.url));
+const routerDeclarationPattern = /router\.(get|post|put|patch|delete|all)\(\s*['"]([^'"]+)['"]/g;
+const routeImportPattern = /import\s+(\w+)\s+from\s+['"]\.\/routes\/([^'"]+)\.js['"]/g;
+const routeMountPattern = /app\.use\(\s*['"]([^'"]+)['"]\s*,\s*(\w+)\s*\)/g;
+
+const joinRoutePath = (mountPath: string, routePath: string): string => {
+  const suffix = routePath === '/' ? '' : routePath;
+  return `${mountPath}${suffix}`.replace(/\/+/g, '/');
+};
+
+describe('backend migration inventory', () => {
+  it('has unique stable surface, route, and method/path identifiers', () => {
+    const surfaces = backendMigrationInventory.surfaces;
+    const routes = surfaces.flatMap((surface) => surface.routes);
+
+    expect(new Set(surfaces.map(({ id }) => id)).size).toBe(surfaces.length);
+    expect(new Set(routes.map(({ id }) => id)).size).toBe(routes.length);
+    expect(
+      new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
+    ).toBe(routes.length);
+    expect(routes.length).toBeGreaterThan(80);
+  });
+
+  it('accounts for every literal route declared by each inventoried Express router', () => {
+    for (const surface of backendMigrationInventory.surfaces) {
+      const sourcePath = path.join(repositoryRoot, surface.sourceFile);
+      expect(fs.existsSync(sourcePath), surface.sourceFile).toBe(true);
+
+      const source = fs.readFileSync(sourcePath, 'utf8');
+      const declaredRoutes = [...source.matchAll(routerDeclarationPattern)]
+        .map((match) => ({
+          method: match[1].toUpperCase(),
+          path: joinRoutePath(surface.mountPath, match[2]),
+        }))
+        .sort((left, right) =>
+          `${left.method} ${left.path}`.localeCompare(`${right.method} ${right.path}`)
+        );
+      const inventoriedRoutes = surface.routes
+        .map(({ method, path: routePath }) => ({ method, path: routePath }))
+        .sort((left, right) =>
+          `${left.method} ${left.path}`.localeCompare(`${right.method} ${right.path}`)
+        );
+
+      expect(inventoriedRoutes, surface.sourceFile).toEqual(declaredRoutes);
+    }
+  });
+
+  it('accounts for every API router mounted by the server entrypoint', () => {
+    const serverEntry = fs.readFileSync(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8');
+    const routeImports = new Map(
+      [...serverEntry.matchAll(routeImportPattern)].map((match) => [
+        match[1],
+        `server/src/routes/${match[2]}.ts`,
+      ])
+    );
+    const mountedRouters = [...serverEntry.matchAll(routeMountPattern)]
+      .filter((match) => match[1] === '/api' || match[1].startsWith('/api/'))
+      .map((match) => ({
+        mountPath: match[1],
+        sourceFile: routeImports.get(match[2]),
+      }))
+      .filter(
+        (mount): mount is { mountPath: string; sourceFile: string } =>
+          mount.sourceFile !== undefined
+      )
+      .sort((left, right) =>
+        `${left.mountPath} ${left.sourceFile}`.localeCompare(
+          `${right.mountPath} ${right.sourceFile}`
+        )
+      );
+    const inventoriedRouters = backendMigrationInventory.surfaces
+      .map(({ mountPath, sourceFile }) => ({ mountPath, sourceFile }))
+      .sort((left, right) =>
+        `${left.mountPath} ${left.sourceFile}`.localeCompare(
+          `${right.mountPath} ${right.sourceFile}`
+        )
+      );
+
+    expect(inventoriedRouters).toEqual(mountedRouters);
+  });
+
+  it('resolves concrete dynamic paths to stable inventory routes', () => {
+    expect(findBackendMigrationRoute('GET', '/api/episodes/episode-123')).toMatchObject({
+      route: { id: 'episodes.show', path: '/api/episodes/:id' },
+      surface: { id: 'episodes', runtimeOwner: 'express' },
+    });
+    expect(findBackendMigrationRoute('DELETE', '/api/admin/invite-codes/invite-123')).toMatchObject(
+      {
+        route: { id: 'admin.invites.delete' },
+        surface: { id: 'admin', migrationWave: 'admin' },
+      }
+    );
+  });
+
+  it('matches every method through the Learning OS Study proxy wildcard', () => {
+    expect(
+      findBackendMigrationRoute('PATCH', '/api/learning-os/study/cards/card-123')
+    ).toMatchObject({
+      route: { id: 'study.proxy', method: 'ALL' },
+      surface: { id: 'study', runtimeOwner: 'learning-os-proxy' },
+    });
+  });
+
+  it('does not classify unknown methods or paths', () => {
+    expect(findBackendMigrationRoute('POST', '/api/episodes/episode-123')).toBeNull();
+    expect(findBackendMigrationRoute('GET', '/api/not-in-inventory')).toBeNull();
+  });
+});

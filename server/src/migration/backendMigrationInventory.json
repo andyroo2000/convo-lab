@@ -1,0 +1,416 @@
+{
+  "schemaVersion": 1,
+  "targetService": "learning-os",
+  "surfaces": [
+    {
+      "id": "auth",
+      "domain": "identity",
+      "migrationWave": "authentication",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/auth.ts",
+      "mountPath": "/api/auth",
+      "routes": [
+        { "id": "auth.signup", "method": "POST", "path": "/api/auth/signup" },
+        { "id": "auth.login", "method": "POST", "path": "/api/auth/login" },
+        { "id": "auth.logout", "method": "POST", "path": "/api/auth/logout" },
+        { "id": "auth.csrf", "method": "GET", "path": "/api/auth/csrf" },
+        { "id": "auth.me.show", "method": "GET", "path": "/api/auth/me" },
+        { "id": "auth.me.update", "method": "PATCH", "path": "/api/auth/me" },
+        { "id": "auth.password.change", "method": "PATCH", "path": "/api/auth/change-password" },
+        { "id": "auth.me.delete", "method": "DELETE", "path": "/api/auth/me" },
+        { "id": "auth.quota.show", "method": "GET", "path": "/api/auth/me/quota" },
+        { "id": "auth.google.start", "method": "GET", "path": "/api/auth/google" },
+        { "id": "auth.google.callback", "method": "GET", "path": "/api/auth/google/callback" },
+        {
+          "id": "auth.google.disconnect",
+          "method": "POST",
+          "path": "/api/auth/disconnect/google"
+        },
+        { "id": "auth.invite.claim", "method": "POST", "path": "/api/auth/claim-invite" }
+      ]
+    },
+    {
+      "id": "verification",
+      "domain": "identity",
+      "migrationWave": "authentication",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/verification.ts",
+      "mountPath": "/api",
+      "routes": [
+        { "id": "verification.send", "method": "POST", "path": "/api/verification/send" },
+        { "id": "verification.verify", "method": "GET", "path": "/api/verification/:token" },
+        {
+          "id": "password-reset.request",
+          "method": "POST",
+          "path": "/api/password-reset/request"
+        },
+        {
+          "id": "password-reset.show",
+          "method": "GET",
+          "path": "/api/password-reset/:token"
+        },
+        {
+          "id": "password-reset.verify",
+          "method": "POST",
+          "path": "/api/password-reset/verify"
+        }
+      ]
+    },
+    {
+      "id": "episodes",
+      "domain": "content",
+      "migrationWave": "content",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/episodes.ts",
+      "mountPath": "/api/episodes",
+      "routes": [
+        { "id": "episodes.index", "method": "GET", "path": "/api/episodes" },
+        { "id": "episodes.show", "method": "GET", "path": "/api/episodes/:id" },
+        { "id": "episodes.store", "method": "POST", "path": "/api/episodes" },
+        { "id": "episodes.update", "method": "PATCH", "path": "/api/episodes/:id" },
+        { "id": "episodes.delete", "method": "DELETE", "path": "/api/episodes/:id" }
+      ]
+    },
+    {
+      "id": "dialogue",
+      "domain": "generation",
+      "migrationWave": "content",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/dialogue.ts",
+      "mountPath": "/api/dialogue",
+      "routes": [
+        { "id": "dialogue.generate", "method": "POST", "path": "/api/dialogue/generate" },
+        { "id": "dialogue.job.show", "method": "GET", "path": "/api/dialogue/job/:jobId" }
+      ]
+    },
+    {
+      "id": "audio",
+      "domain": "generation",
+      "migrationWave": "content",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/audio.ts",
+      "mountPath": "/api/audio",
+      "routes": [
+        { "id": "audio.generate", "method": "POST", "path": "/api/audio/generate" },
+        {
+          "id": "audio.generate-all-speeds",
+          "method": "POST",
+          "path": "/api/audio/generate-all-speeds"
+        },
+        { "id": "audio.job.show", "method": "GET", "path": "/api/audio/job/:jobId" }
+      ]
+    },
+    {
+      "id": "scripts",
+      "domain": "content",
+      "migrationWave": "content",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/scripts.ts",
+      "mountPath": "/api/scripts",
+      "routes": [
+        { "id": "scripts.media.show", "method": "GET", "path": "/api/scripts/media/:mediaId" },
+        { "id": "scripts.store", "method": "POST", "path": "/api/scripts" },
+        {
+          "id": "scripts.annotate",
+          "method": "POST",
+          "path": "/api/scripts/:episodeId/annotate"
+        },
+        {
+          "id": "scripts.segments.update",
+          "method": "PATCH",
+          "path": "/api/scripts/:episodeId/segments"
+        },
+        { "id": "scripts.render", "method": "POST", "path": "/api/scripts/:episodeId/render" },
+        { "id": "scripts.images", "method": "POST", "path": "/api/scripts/:episodeId/images" },
+        { "id": "scripts.status", "method": "GET", "path": "/api/scripts/:episodeId/status" },
+        { "id": "scripts.job.show", "method": "GET", "path": "/api/scripts/job/:jobId" }
+      ]
+    },
+    {
+      "id": "avatars",
+      "domain": "media",
+      "migrationWave": "content",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/avatarAssets.ts",
+      "mountPath": "/api/avatars",
+      "routes": [{ "id": "avatars.show", "method": "GET", "path": "/api/avatars/*" }]
+    },
+    {
+      "id": "images",
+      "domain": "generation",
+      "migrationWave": "content",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/images.ts",
+      "mountPath": "/api/images",
+      "routes": [
+        { "id": "images.generate", "method": "POST", "path": "/api/images/generate" },
+        { "id": "images.job.show", "method": "GET", "path": "/api/images/job/:jobId" }
+      ]
+    },
+    {
+      "id": "study",
+      "domain": "study",
+      "migrationWave": "complete",
+      "runtimeOwner": "learning-os-proxy",
+      "sourceFile": "server/src/routes/learningOs/study.ts",
+      "mountPath": "/api/learning-os/study",
+      "routes": [
+        {
+          "id": "study.proxy",
+          "method": "ALL",
+          "path": "/api/learning-os/study/*"
+        }
+      ]
+    },
+    {
+      "id": "tool-audio",
+      "domain": "media",
+      "migrationWave": "content",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/toolAudio.ts",
+      "mountPath": "/api/tools-audio",
+      "routes": [
+        {
+          "id": "tool-audio.signed-urls",
+          "method": "POST",
+          "path": "/api/tools-audio/signed-urls"
+        }
+      ]
+    },
+    {
+      "id": "courses",
+      "domain": "content",
+      "migrationWave": "content",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/courses.ts",
+      "mountPath": "/api/courses",
+      "routes": [
+        { "id": "courses.index", "method": "GET", "path": "/api/courses" },
+        { "id": "courses.show", "method": "GET", "path": "/api/courses/:id" },
+        { "id": "courses.store", "method": "POST", "path": "/api/courses" },
+        { "id": "courses.generate", "method": "POST", "path": "/api/courses/:id/generate" },
+        { "id": "courses.status", "method": "GET", "path": "/api/courses/:id/status" },
+        { "id": "courses.reset", "method": "POST", "path": "/api/courses/:id/reset" },
+        { "id": "courses.retry", "method": "POST", "path": "/api/courses/:id/retry" },
+        { "id": "courses.update", "method": "PATCH", "path": "/api/courses/:id" },
+        { "id": "courses.delete", "method": "DELETE", "path": "/api/courses/:id" }
+      ]
+    },
+    {
+      "id": "admin",
+      "domain": "admin",
+      "migrationWave": "admin",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/admin.ts",
+      "mountPath": "/api/admin",
+      "routes": [
+        { "id": "admin.stats", "method": "GET", "path": "/api/admin/stats" },
+        { "id": "admin.users.index", "method": "GET", "path": "/api/admin/users" },
+        { "id": "admin.users.delete", "method": "DELETE", "path": "/api/admin/users/:id" },
+        { "id": "admin.users.show", "method": "GET", "path": "/api/admin/users/:id/info" },
+        { "id": "admin.invites.index", "method": "GET", "path": "/api/admin/invite-codes" },
+        { "id": "admin.invites.store", "method": "POST", "path": "/api/admin/invite-codes" },
+        {
+          "id": "admin.invites.delete",
+          "method": "DELETE",
+          "path": "/api/admin/invite-codes/:id"
+        },
+        {
+          "id": "admin.speaker-avatars.original",
+          "method": "GET",
+          "path": "/api/admin/avatars/speaker/:filename/original"
+        },
+        {
+          "id": "admin.speaker-avatars.upload",
+          "method": "POST",
+          "path": "/api/admin/avatars/speaker/:filename/upload"
+        },
+        {
+          "id": "admin.speaker-avatars.recrop",
+          "method": "POST",
+          "path": "/api/admin/avatars/speaker/:filename/recrop"
+        },
+        {
+          "id": "admin.speaker-avatars.index",
+          "method": "GET",
+          "path": "/api/admin/avatars/speakers"
+        },
+        {
+          "id": "admin.user-avatars.upload",
+          "method": "POST",
+          "path": "/api/admin/avatars/user/:userId/upload"
+        },
+        {
+          "id": "admin.feature-flags.show",
+          "method": "GET",
+          "path": "/api/admin/feature-flags"
+        },
+        {
+          "id": "admin.feature-flags.update",
+          "method": "PATCH",
+          "path": "/api/admin/feature-flags"
+        },
+        {
+          "id": "admin.pronunciation-dictionaries.show",
+          "method": "GET",
+          "path": "/api/admin/pronunciation-dictionaries"
+        },
+        {
+          "id": "admin.pronunciation-dictionaries.update",
+          "method": "PUT",
+          "path": "/api/admin/pronunciation-dictionaries"
+        }
+      ]
+    },
+    {
+      "id": "admin-courses",
+      "domain": "admin",
+      "migrationWave": "admin",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/adminCourses.ts",
+      "mountPath": "/api/admin/courses",
+      "routes": [
+        {
+          "id": "admin-courses.build-prompt",
+          "method": "POST",
+          "path": "/api/admin/courses/:id/build-prompt"
+        },
+        {
+          "id": "admin-courses.build-script-config",
+          "method": "POST",
+          "path": "/api/admin/courses/:id/build-script-config"
+        },
+        {
+          "id": "admin-courses.generate-dialogue",
+          "method": "POST",
+          "path": "/api/admin/courses/:id/generate-dialogue"
+        },
+        {
+          "id": "admin-courses.generate-script",
+          "method": "POST",
+          "path": "/api/admin/courses/:id/generate-script"
+        },
+        {
+          "id": "admin-courses.generate-audio",
+          "method": "POST",
+          "path": "/api/admin/courses/:id/generate-audio"
+        },
+        {
+          "id": "admin-courses.pipeline.show",
+          "method": "GET",
+          "path": "/api/admin/courses/:id/pipeline-data"
+        },
+        {
+          "id": "admin-courses.pipeline.update",
+          "method": "PUT",
+          "path": "/api/admin/courses/:id/pipeline-data"
+        },
+        {
+          "id": "admin-courses.synthesize-line",
+          "method": "POST",
+          "path": "/api/admin/courses/:id/synthesize-line"
+        },
+        {
+          "id": "admin-courses.line-renderings.index",
+          "method": "GET",
+          "path": "/api/admin/courses/:id/line-renderings"
+        },
+        {
+          "id": "admin-courses.line-renderings.delete",
+          "method": "DELETE",
+          "path": "/api/admin/courses/:id/line-renderings/:renderingId"
+        }
+      ]
+    },
+    {
+      "id": "admin-script-lab",
+      "domain": "admin",
+      "migrationWave": "admin",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/adminScriptLab.ts",
+      "mountPath": "/api/admin/script-lab",
+      "routes": [
+        {
+          "id": "admin-script-lab.courses.store",
+          "method": "POST",
+          "path": "/api/admin/script-lab/courses"
+        },
+        {
+          "id": "admin-script-lab.courses.index",
+          "method": "GET",
+          "path": "/api/admin/script-lab/courses"
+        },
+        {
+          "id": "admin-script-lab.courses.show",
+          "method": "GET",
+          "path": "/api/admin/script-lab/courses/:id"
+        },
+        {
+          "id": "admin-script-lab.courses.delete",
+          "method": "DELETE",
+          "path": "/api/admin/script-lab/courses"
+        },
+        {
+          "id": "admin-script-lab.pronunciation.test",
+          "method": "POST",
+          "path": "/api/admin/script-lab/test-pronunciation"
+        },
+        {
+          "id": "admin-script-lab.sentence-script",
+          "method": "POST",
+          "path": "/api/admin/script-lab/sentence-script"
+        },
+        {
+          "id": "admin-script-lab.sentence-tests.index",
+          "method": "GET",
+          "path": "/api/admin/script-lab/sentence-tests"
+        },
+        {
+          "id": "admin-script-lab.sentence-tests.show",
+          "method": "GET",
+          "path": "/api/admin/script-lab/sentence-tests/:id"
+        },
+        {
+          "id": "admin-script-lab.sentence-tests.delete",
+          "method": "DELETE",
+          "path": "/api/admin/script-lab/sentence-tests"
+        },
+        {
+          "id": "admin-script-lab.synthesize-line",
+          "method": "POST",
+          "path": "/api/admin/script-lab/synthesize-line"
+        }
+      ]
+    },
+    {
+      "id": "feature-flags",
+      "domain": "configuration",
+      "migrationWave": "pattern",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/featureFlags.ts",
+      "mountPath": "/api/feature-flags",
+      "routes": [
+        {
+          "id": "feature-flags.show",
+          "method": "GET",
+          "path": "/api/feature-flags"
+        }
+      ]
+    },
+    {
+      "id": "tool-analytics",
+      "domain": "analytics",
+      "migrationWave": "retirement",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/toolAnalytics.ts",
+      "mountPath": "/api",
+      "routes": [
+        {
+          "id": "tool-analytics.store",
+          "method": "POST",
+          "path": "/api/tools/analytics"
+        }
+      ]
+    }
+  ]
+}
