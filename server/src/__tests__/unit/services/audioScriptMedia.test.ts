@@ -25,6 +25,7 @@ describe('audio script media access', () => {
       id: 'media-1',
       userId: 'user-1',
       sourceFilename: 'segment.webp',
+      mediaKind: 'image',
       contentType: 'image/webp',
       storagePath: 'study-media/user-1/generated/segment.webp',
     };
@@ -41,7 +42,7 @@ describe('audio script media access', () => {
     expect(getPrivateMediaAccess).toHaveBeenCalledWith(media, {
       cacheNamespace: 'audio-script',
       logContext: 'AudioScript',
-      mediaKind: 'image',
+      mediaKind: media.mediaKind,
     });
   });
 

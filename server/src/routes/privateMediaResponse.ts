@@ -30,6 +30,7 @@ export function sendPrivateMediaResponse(
   res.type(mediaAccess.contentType);
   res.sendFile(mediaAccess.absolutePath, {
     headers: {
+      // Callers must mint a new media row and URL whenever bytes change.
       'Cache-Control': 'private, max-age=15552000, immutable',
       'Content-Disposition': toSafeContentDisposition(
         mediaAccess.contentDisposition,

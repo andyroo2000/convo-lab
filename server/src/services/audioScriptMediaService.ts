@@ -17,6 +17,6 @@ export async function getAudioScriptMediaAccess(userId: string, mediaId: string)
   return getPrivateMediaAccess(media, {
     cacheNamespace: 'audio-script',
     logContext: 'AudioScript',
-    mediaKind: 'image',
+    mediaKind: media?.mediaKind ?? 'other',
   });
 }
