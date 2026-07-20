@@ -88,7 +88,7 @@ test('the production workflow verifies the always-on Study API without rollout f
     'current_image="$(docker inspect --format=\'{{.Config.Image}}\' "$container" 2>/dev/null || true)"',
     'current_proxy_user_email="$(docker inspect',
     '| sed -n \'s/^CONVOLAB_PROXY_USER_EMAIL=//p\'',
-    '&& [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ]; then',
+    '| tail -1 || true)"',
     '-o ServerAliveInterval=30',
     'docker update --restart=no "$container"',
     'docker exec "$container" php artisan queue:restart',
@@ -106,6 +106,10 @@ test('the production workflow verifies the always-on Study API without rollout f
     assert.match(workflow, new RegExp(requiredContract.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 
+  assert.match(
+    workflow,
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \]; then/
+  );
   assert.doesNotMatch(workflow, /enable_(?:settings|overview|browser|new_queue|review|card|media|daily_audio|imports)/);
   assert.doesNotMatch(workflow, /ENABLE_(?:SETTINGS|OVERVIEW|BROWSER|NEW_QUEUE|REVIEW|CARD|MEDIA|DAILY_AUDIO|IMPORTS)/);
   assert.doesNotMatch(workflow, /studyApi[A-Z]/);

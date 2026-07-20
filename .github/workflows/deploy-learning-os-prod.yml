@@ -229,7 +229,7 @@ jobs:
                 --format='{{range .Config.Env}}{{println .}}{{end}}' \
                 "$container" 2>/dev/null \
                 | sed -n 's/^CONVOLAB_PROXY_USER_EMAIL=//p' \
-                | tail -1)"
+                | tail -1 || true)"
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
