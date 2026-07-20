@@ -88,6 +88,7 @@ jobs:
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
             GCS_CREDENTIAL_PATH="server/gcloud-key.json"
+            # The Learning OS image runs as Debian's www-data user.
             LEARNING_OS_RUNTIME_UID=33
 
             cleanup_deployment_resources() {

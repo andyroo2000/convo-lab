@@ -142,6 +142,16 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.ok(postgresUserAssignment >= 0);
   assert.ok(postgresUserUse > postgresUserAssignment);
+
+  const credentialCheck = workflow.indexOf('if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then');
+  const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
+  const migration = workflow.indexOf(
+    '$COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force'
+  );
+
+  assert.ok(credentialCheck >= 0);
+  assert.ok(imagePull > credentialCheck);
+  assert.ok(migration > credentialCheck);
 });
 
 test('the production stack wires and smokes Learning OS static media', async () => {
