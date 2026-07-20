@@ -11,7 +11,8 @@ It inventories every literal route registered by the Express routers mounted in
 - a stable `id` used by telemetry and migration PRs;
 - its HTTP method and normalized public path;
 - a domain and migration wave;
-- its current runtime owner;
+- its current runtime owner, with optional per-route overrides for partially
+  migrated surfaces;
 - the Express source file and mount path.
 
 The inventory is runtime data, not a planning document that can silently drift.
@@ -48,6 +49,10 @@ The waves preserve the rollout order:
 A migration PR updates the route or surface owner only when its deployed request
 path is actually served by Learning OS. Compatibility code in Express does not
 count as migrated unless it forwards to Learning OS.
+
+Use a route-level `runtimeOwner` only while a router is split between services.
+The Episode surface uses this temporary representation while its GET routes are
+proxied and its write routes remain in Express.
 
 ## Route Usage Telemetry
 

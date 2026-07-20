@@ -4,22 +4,23 @@ import request from 'supertest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
-import { errorHandler } from '../../../middleware/errorHandler.js';
+import { AppError, errorHandler } from '../../../middleware/errorHandler.js';
 import episodesRouter from '../../../routes/episodes.js';
 
-// Create hoisted mocks
+const mocks = vi.hoisted(() => ({
+  fetchLearningOsProxy: vi.fn(),
+  getEffectiveUserId: vi.fn(),
+  resolveLearningOsProxyContext: vi.fn(),
+}));
+
 const mockPrisma = vi.hoisted(() => ({
   episode: {
-    findMany: vi.fn(),
-    findFirst: vi.fn(),
     create: vi.fn(),
     updateMany: vi.fn(),
     deleteMany: vi.fn(),
   },
 }));
 
-const mockGetLibraryUserId = vi.hoisted(() => vi.fn());
-const mockGetEffectiveUserId = vi.hoisted(() => vi.fn());
 const mockBlockDemoUser = vi.hoisted(() =>
   vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next())
 );
@@ -28,13 +29,17 @@ vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
 }));
 
+vi.mock('../../../services/learningOsProxy.js', () => ({
+  fetchLearningOsProxy: mocks.fetchLearningOsProxy,
+  resolveLearningOsProxyContext: mocks.resolveLearningOsProxyContext,
+}));
+
 vi.mock('../../../middleware/demoAuth.js', () => ({
   blockDemoUser: mockBlockDemoUser,
-  getLibraryUserId: mockGetLibraryUserId,
 }));
 
 vi.mock('../../../middleware/impersonation.js', () => ({
-  getEffectiveUserId: mockGetEffectiveUserId,
+  getEffectiveUserId: mocks.getEffectiveUserId,
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
@@ -57,13 +62,29 @@ vi.mock('../../../i18n/index.js', () => ({
   },
 }));
 
+const upstreamJson = (body: unknown, status = 200): globalThis.Response =>
+  new globalThis.Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
 describe('Episodes Routes Integration', () => {
   let app: express.Application;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetLibraryUserId.mockResolvedValue('test-user-id');
-    mockGetEffectiveUserId.mockResolvedValue('test-user-id');
+    mocks.getEffectiveUserId.mockResolvedValue('effective-user-id');
+    mocks.resolveLearningOsProxyContext.mockResolvedValue({
+      config: {
+        apiUrl: 'http://learning-os.test',
+        apiToken: 'proxy-token',
+      },
+      user: {
+        id: 'effective-user-id',
+        email: 'learner@example.com',
+        role: 'user',
+      },
+    });
     mockBlockDemoUser.mockImplementation((_req: AuthRequest, _res: Response, next: NextFunction) =>
       next()
     );
@@ -74,301 +95,113 @@ describe('Episodes Routes Integration', () => {
     app.use(errorHandler);
   });
 
-  describe('GET /api/episodes - List Episodes', () => {
-    it('should return episodes in library mode', async () => {
-      const mockEpisodes = [
-        {
-          id: 'ep-1',
-          title: 'Episode 1',
-          sourceText: 'Source 1',
-          targetLanguage: 'ja',
-          status: 'ready',
-          createdAt: new Date('2024-01-01'),
-          updatedAt: new Date('2024-01-02'),
-          dialogue: { speakers: [{ proficiency: 'intermediate' }] },
-        },
-        {
-          id: 'ep-2',
-          title: 'Episode 2',
-          sourceText: 'Source 2',
-          targetLanguage: 'ja',
-          status: 'ready',
-          createdAt: new Date('2024-01-03'),
-          updatedAt: new Date('2024-01-04'),
-          dialogue: { speakers: [{ proficiency: 'beginner' }] },
-        },
-      ];
+  describe('Learning OS Episode reads', () => {
+    it('proxies list reads for the effective user with only supported query parameters', async () => {
+      const episodes = [{ id: 'episode-1', title: 'Episode 1' }];
+      mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(episodes));
 
-      mockPrisma.episode.findMany.mockResolvedValue(mockEpisodes);
+      const response = await request(app)
+        .get('/api/episodes?library=true&limit=20&offset=40&ignored=value')
+        .expect(200);
 
-      const response = await request(app).get('/api/episodes?library=true').expect(200);
-
-      // JSON serializes dates to ISO strings
-      expect(response.body).toEqual([
-        {
-          ...mockEpisodes[0],
-          createdAt: mockEpisodes[0].createdAt.toISOString(),
-          updatedAt: mockEpisodes[0].updatedAt.toISOString(),
-        },
-        {
-          ...mockEpisodes[1],
-          createdAt: mockEpisodes[1].createdAt.toISOString(),
-          updatedAt: mockEpisodes[1].updatedAt.toISOString(),
-        },
-      ]);
-      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith({
-        where: {
-          userId: 'test-user-id',
-          OR: [
-            { contentType: 'dialogue', dialogue: { isNot: null } },
-            { contentType: 'script', audioScript: { isNot: null } },
-          ],
-        },
-        select: {
-          id: true,
-          title: true,
-          sourceText: true,
-          targetLanguage: true,
-          contentType: true,
-          status: true,
-          isSampleContent: true,
-          createdAt: true,
-          updatedAt: true,
-          dialogue: {
-            select: {
-              speakers: {
-                select: {
-                  proficiency: true,
-                },
-              },
-            },
-          },
-          audioScript: {
-            select: {
-              status: true,
-              imageStatus: true,
-              imageErrorMessage: true,
-              _count: {
-                select: {
-                  segments: true,
-                },
-              },
-            },
-          },
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: 50,
-        skip: 0,
-      });
-    });
-
-    it('should return episodes in full mode with includes', async () => {
-      const mockEpisodes = [
-        {
-          id: 'ep-1',
-          title: 'Episode 1',
-          dialogue: {
-            sentences: [{ id: 's1', text: 'Hello' }],
-            speakers: [{ id: 'sp1', name: 'Speaker 1' }],
-          },
-          audioScript: {
-            id: 'script-1',
-            segments: [
-              {
-                id: 'segment-1',
-                imageMediaId: 'media-1',
-                imageMedia: {
-                  id: 'media-1',
-                  mediaKind: 'image',
-                  contentType: 'image/webp',
-                  publicUrl: null,
-                  sourceFilename: 'segment.webp',
-                },
-              },
-            ],
-          },
-          images: [{ id: 'img1', url: 'http://example.com/img1.jpg' }],
-        },
-      ];
-
-      mockPrisma.episode.findMany.mockResolvedValue(mockEpisodes);
-
-      const response = await request(app).get('/api/episodes').expect(200);
-
-      expect(response.body).toEqual([
-        {
-          ...mockEpisodes[0],
-          audioScript: {
-            ...mockEpisodes[0].audioScript,
-            segments: [
-              {
-                id: 'segment-1',
-                imageMediaId: 'media-1',
-                imageMedia: {
-                  id: 'media-1',
-                  mediaKind: 'image',
-                  contentType: 'image/webp',
-                  publicUrl: null,
-                  sourceFilename: 'segment.webp',
-                },
-              },
-            ],
-          },
-        },
-      ]);
-      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith({
-        where: {
-          userId: 'test-user-id',
-          OR: [
-            { contentType: 'dialogue', dialogue: { isNot: null } },
-            { contentType: 'script', audioScript: { isNot: null } },
-          ],
-        },
-        include: {
-          dialogue: {
-            include: {
-              sentences: true,
-              speakers: true,
-            },
-          },
-          audioScript: {
-            include: {
-              segments: {
-                orderBy: { order: 'asc' },
-                include: {
-                  imageMedia: {
-                    select: {
-                      id: true,
-                      mediaKind: true,
-                      contentType: true,
-                      publicUrl: true,
-                      sourceFilename: true,
-                    },
-                  },
-                },
-              },
-              renders: {
-                orderBy: { numericSpeed: 'asc' },
-              },
-            },
-          },
-          images: true,
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: 50,
-        skip: 0,
-      });
-    });
-
-    it('should support custom limit and offset', async () => {
-      mockPrisma.episode.findMany.mockResolvedValue([]);
-
-      await request(app).get('/api/episodes?limit=20&offset=40').expect(200);
-
-      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
+      expect(response.body).toEqual(episodes);
+      expect(mocks.getEffectiveUserId).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'test-user-id' })
+      );
+      expect(mocks.resolveLearningOsProxyContext).toHaveBeenCalledWith(
+        'effective-user-id',
+        'Learning OS Episode API'
+      );
+      expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
         expect.objectContaining({
-          take: 20,
-          skip: 40,
+          upstreamUrl: new URL(
+            'http://learning-os.test/api/convolab/episodes?library=true&limit=20&offset=40'
+          ),
+          apiToken: 'proxy-token',
+          method: 'GET',
+          timeoutMs: 10_000,
         })
       );
+      expect(mockPrisma.episode.create).not.toHaveBeenCalled();
     });
 
-    it('should handle errors gracefully', async () => {
-      mockPrisma.episode.findMany.mockRejectedValue(new Error('Database error'));
+    it('proxies detail reads, encodes the path, and preserves private caching', async () => {
+      const episode = { id: 'episode/id', title: 'Episode detail' };
+      mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(episode));
 
-      const response = await request(app).get('/api/episodes').expect(500);
+      const response = await request(app).get('/api/episodes/episode%2Fid').expect(200);
 
-      expect(response.body.error).toBeDefined();
-    });
-  });
-
-  describe('GET /api/episodes/:id - Single Episode', () => {
-    it('should return episode with full details', async () => {
-      const mockEpisode = {
-        id: 'ep-123',
-        title: 'Test Episode',
-        userId: 'test-user-id',
-        dialogue: {
-          sentences: [
-            { id: 's1', text: 'Hello', order: 1 },
-            { id: 's2', text: 'World', order: 2 },
-          ],
-          speakers: [{ id: 'sp1', name: 'Speaker 1' }],
-        },
-        images: [{ id: 'img1', url: 'http://example.com/img1.jpg', order: 1 }],
-      };
-
-      mockPrisma.episode.findFirst.mockResolvedValue(mockEpisode);
-
-      const response = await request(app).get('/api/episodes/ep-123').expect(200);
-
-      expect(response.body).toEqual(mockEpisode);
+      expect(response.body).toEqual(episode);
       expect(response.headers['cache-control']).toBe('private, max-age=60');
-      expect(mockPrisma.episode.findFirst).toHaveBeenCalledWith({
-        where: { id: 'ep-123', userId: 'test-user-id' },
-        include: {
-          dialogue: {
-            include: {
-              sentences: { orderBy: { order: 'asc' } },
-              speakers: true,
-            },
-          },
-          audioScript: {
-            include: {
-              segments: {
-                orderBy: { order: 'asc' },
-                include: {
-                  imageMedia: {
-                    select: {
-                      id: true,
-                      mediaKind: true,
-                      contentType: true,
-                      publicUrl: true,
-                      sourceFilename: true,
-                    },
-                  },
-                },
-              },
-              renders: {
-                orderBy: { numericSpeed: 'asc' },
-              },
-            },
-          },
-          images: { orderBy: { order: 'asc' } },
-          courseEpisodes: {
-            select: {
-              courseId: true,
-            },
-          },
-        },
-      });
-    });
-
-    it('should return 404 when episode not found', async () => {
-      mockPrisma.episode.findFirst.mockResolvedValue(null);
-
-      const response = await request(app).get('/api/episodes/non-existent').expect(404);
-
-      expect(response.body.error.message).toBe('Episode not found');
-    });
-
-    it('should use effective user ID for demo users', async () => {
-      mockGetEffectiveUserId.mockResolvedValue('admin-user-id');
-      mockPrisma.episode.findFirst.mockResolvedValue({
-        id: 'ep-123',
-        userId: 'admin-user-id',
-        dialogue: { sentences: [], speakers: [] },
-        images: [],
-      });
-
-      await request(app).get('/api/episodes/ep-123').expect(200);
-
-      expect(mockGetEffectiveUserId).toHaveBeenCalled();
-      expect(mockPrisma.episode.findFirst).toHaveBeenCalledWith(
+      expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'ep-123', userId: 'admin-user-id' },
+          upstreamUrl: new URL('http://learning-os.test/api/convolab/episodes/episode%2Fid'),
         })
       );
+    });
+
+    it.each([
+      [401, 502],
+      [500, 502],
+      [404, 404],
+      [422, 422],
+    ])('maps upstream HTTP %s to client HTTP %s', async (upstreamStatus, clientStatus) => {
+      mocks.fetchLearningOsProxy.mockResolvedValue(
+        upstreamJson({ message: 'upstream details stay private' }, upstreamStatus)
+      );
+
+      const response = await request(app).get('/api/episodes/missing').expect(clientStatus);
+
+      expect(response.body.error.message).toBe('Learning OS Episode API request failed.');
+      expect(JSON.stringify(response.body)).not.toContain('upstream details');
+    });
+
+    it('rejects malformed upstream list and detail response shapes', async () => {
+      mocks.fetchLearningOsProxy
+        .mockResolvedValueOnce(upstreamJson({ data: [] }))
+        .mockResolvedValueOnce(upstreamJson([]));
+
+      await request(app)
+        .get('/api/episodes')
+        .expect(502)
+        .expect(({ body }) => {
+          expect(body.error.message).toBe(
+            'Learning OS Episode API returned an invalid list response.'
+          );
+        });
+      await request(app)
+        .get('/api/episodes/episode-id')
+        .expect(502)
+        .expect(({ body }) => {
+          expect(body.error.message).toBe(
+            'Learning OS Episode API returned an invalid detail response.'
+          );
+        });
+    });
+
+    it('returns a controlled gateway error for invalid upstream JSON', async () => {
+      mocks.fetchLearningOsProxy.mockResolvedValue(
+        new globalThis.Response('not-json', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+
+      const response = await request(app).get('/api/episodes').expect(502);
+
+      expect(response.body.error.message).toBe(
+        'Learning OS Episode API returned an invalid JSON response.'
+      );
+    });
+
+    it('passes controlled proxy transport failures to the API error handler', async () => {
+      mocks.fetchLearningOsProxy.mockRejectedValue(
+        new AppError('Learning OS Episode API is unavailable.', 502)
+      );
+
+      const response = await request(app).get('/api/episodes').expect(502);
+
+      expect(response.body.error.message).toBe('Learning OS Episode API is unavailable.');
     });
   });
 
@@ -628,14 +461,6 @@ describe('Episodes Routes Integration', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle database errors in GET /', async () => {
-      mockPrisma.episode.findMany.mockRejectedValue(new Error('DB connection failed'));
-
-      const response = await request(app).get('/api/episodes').expect(500);
-
-      expect(response.body.error).toBeDefined();
-    });
-
     it('should handle database errors in POST', async () => {
       mockPrisma.episode.create.mockRejectedValue(new Error('DB error'));
 

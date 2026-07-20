@@ -2,7 +2,7 @@
 
 Learning OS runs as an internal-only API and worker on ConvoLab's production
 Docker network. ConvoLab remains the public edge, authenticates the browser,
-and proxies only explicitly allowlisted Study routes to Learning OS.
+and proxies explicitly allowlisted Study and Episode read routes to Learning OS.
 
 The Study cutover is complete. Production routing is not controlled by database
 feature flags, and the deployment workflow does not compare against or restore
@@ -26,13 +26,15 @@ The workflow:
 
 1. Validates the immutable image tag and smoke account.
 2. Runs Learning OS migrations against the existing copied database.
-3. Rotates the read/write-scoped proxy token.
-4. Starts or reconciles the private API and worker.
-5. Recreates the active ConvoLab web color with the new token.
-6. Verifies the active container received that token, then prunes older tokens.
-7. Runs authenticated read, write, import, media, and Daily Audio smoke checks
+3. Refreshes the read-only Episode compatibility tables from the ConvoLab
+   production database.
+4. Rotates the read/write-scoped proxy token.
+5. Starts or reconciles the private API and worker.
+6. Recreates the active ConvoLab web color with the new token.
+7. Verifies the active container received that token, then prunes older tokens.
+8. Runs authenticated read, write, import, media, Daily Audio, and Episode smoke checks
    through ConvoLab's public proxy.
-8. Verifies public ConvoLab health.
+9. Verifies public ConvoLab health.
 
 The worker is drained before replacement when its image or command changes.
 An unchanged healthy worker is left running when only the proxy token rotates.
@@ -53,6 +55,7 @@ Every deployment verifies:
 - Learning OS-owned media creation, authenticated streaming headers, and
   cleanup.
 - Existing Daily Audio list, detail, status, and authenticated audio streaming.
+- Episode library list and, when data exists, one Episode detail response.
 - A disposable import lifecycle with temporary users and a representative
   `.colpkg`.
 
