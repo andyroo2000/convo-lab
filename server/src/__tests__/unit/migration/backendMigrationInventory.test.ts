@@ -110,6 +110,20 @@ describe('backend migration inventory', () => {
   });
 
   it.each([
+    ['GET', '/api/avatars/voices/ja-shohei.jpg', 'avatars.show', 'avatars'],
+    ['POST', '/api/tools-audio/signed-urls', 'tool-audio.signed-urls', 'tool-audio'],
+  ])('records %s %s as Learning OS-owned static media', (method, path, routeId, surfaceId) => {
+    expect(findBackendMigrationRoute(method, path)).toMatchObject({
+      route: { id: routeId },
+      surface: {
+        id: surfaceId,
+        migrationWave: 'complete',
+        runtimeOwner: 'learning-os-proxy',
+      },
+    });
+  });
+
+  it.each([
     ['GET', 'admin.feature-flags.show'],
     ['PATCH', 'admin.feature-flags.update'],
   ])('records the %s admin feature-flags contract as Learning OS-owned', (method, routeId) => {
