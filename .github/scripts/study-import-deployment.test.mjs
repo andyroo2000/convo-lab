@@ -114,6 +114,18 @@ test('the production workflow verifies the always-on Study API without rollout f
     workflow,
     /\$COMPOSE up -d --no-deps --force-recreate learning-os learning-os-worker/
   );
+
+  const verifyStudyApi = workflow.slice(
+    workflow.indexOf('verify_study_api() {'),
+    workflow.indexOf('fetch_read_route() {')
+  );
+  const postgresUserAssignment = verifyStudyApi.indexOf(
+    'postgres_user="$(sed -n \'s/^POSTGRES_USER=//p\' .env.production | tail -1)"'
+  );
+  const postgresUserUse = verifyStudyApi.indexOf('--username="$postgres_user"');
+
+  assert.ok(postgresUserAssignment >= 0);
+  assert.ok(postgresUserUse > postgresUserAssignment);
 });
 
 test('the production workflow verifies and cleans up a disposable card draft', async () => {
@@ -186,117 +198,35 @@ test('the production workflow streams and cleans up disposable Learning OS media
   );
 });
 
-test('the production workflow snapshots and imports historical GCS media explicitly', async () => {
+test('the production workflow does not expose retired database cutover tools', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
     'utf8'
   );
 
-  for (const requiredContract of [
-    'import_historical_media:',
-    'IMPORT_HISTORICAL_MEDIA: ${{ inputs.import_historical_media }}',
-    'validate_boolean_input import_historical_media "$IMPORT_HISTORICAL_MEDIA"',
-    'restore_convolab_source_copy',
-    'SOURCE_DATABASE_CREATED=true',
-    'cleanup_media_export',
-    'cleanup_media_import_resources',
-    'MEDIA_MISSING_MANIFEST_CONTAINER="/tmp/convolab-learning-os-missing-media.json"',
-    'learning-os-before-media-import-$timestamp.dump',
-    'Skipping $unavailable_media_count unavailable ConvoLab media rows without storage paths.',
-    'gcs_bucket="$($COMPOSE run --rm -T --no-deps',
-    'sh -c \'printf "%s" "$GCS_BUCKET_NAME"\'',
-    'expected_audio_prefix="https://storage.googleapis.com/$gcs_bucket/"',
-    'json_agg(paths.storage_path ORDER BY paths.storage_path)',
-    'WHERE \\"storagePath\\" IS NOT NULL',
-    'AND length(btrim(\\"storagePath\\")) > 0',
-    'FROM daily_audio_practice_tracks',
-    "WHERE status = 'ready'",
-    'AND \\"audioUrl\\" IS NOT NULL',
-    '"server-$active_color"',
-    'node scripts/export-convolab-study-media.mjs',
-    '--missing-manifest /export/missing.json',
-    'convolab-postgres chmod 644',
-    'pg_read_file(\'$MEDIA_MISSING_MANIFEST_CONTAINER\')::jsonb',
-    "WHERE storage_path LIKE 'daily-audio-practice/%'",
-    'Missing $missing_daily_audio_count historical Daily Audio GCS objects.',
-    'SET \\"storagePath\\" = NULL',
-    'Skipping $missing_media_count ConvoLab media rows whose GCS objects are missing.',
-    '--volume "$MEDIA_EXPORT_DIR:/export"',
-    '--volume "$media_files:/tmp/convolab-media:ro"',
-    'php artisan migration:import-convolab-media',
-    '--production-confirmation="IMPORT MEDIA INTO $TARGET_DB"',
-    'php artisan migration:import-convolab-daily-audio',
-    '--source-bucket="$gcs_bucket"',
-    '--production-confirmation="IMPORT DAILY AUDIO INTO $TARGET_DB"',
-    'Verified ConvoLab historical study and Daily Audio media import completed.',
-    'smoke_learning_os',
+  for (const retiredContract of [
+    'import_historical_media',
+    'IMPORT_HISTORICAL_MEDIA',
+    'export-convolab-study-media',
+    'migration:import-convolab-media',
+    'migration:import-convolab-daily-audio',
+    'convolab-learning-os-missing-media',
+    'rebuild_database',
+    'REBUILD_DATABASE',
+    'rehearsal:import-convolab',
+    'learning_os_convolab_source',
+    'learning-os-before-rebuild',
+    'preserved_knowledge_profiles',
   ]) {
     assert.ok(
-      workflow.includes(requiredContract),
-      `Missing historical media import contract: ${requiredContract}`
+      !workflow.includes(retiredContract),
+      `Found retired database cutover contract: ${retiredContract}`
     );
   }
 
-  const mediaOnlyBranch = workflow.slice(
-    workflow.indexOf('else\n              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate'),
-    workflow.indexOf('proxy_token_output=')
-  );
-  const databaseBranchIndex = workflow.indexOf('if [ "$REBUILD_DATABASE" = true ]; then');
-  const sharedPostgresUserIndex = workflow.indexOf(
-    'postgres_user="$(sed -n \'s/^POSTGRES_USER=//p\' .env.production | tail -1)"\n' +
-      '            test -n "$postgres_user"'
-  );
-  assert.ok(sharedPostgresUserIndex >= 0);
-  assert.ok(sharedPostgresUserIndex < databaseBranchIndex);
-  assert.ok(
-    mediaOnlyBranch.indexOf('restore_convolab_source_copy') <
-      mediaOnlyBranch.indexOf('import_historical_media')
-  );
   assert.match(
-    mediaOnlyBranch,
-    /dropdb --username="\$postgres_user" "\$SOURCE_DB"[\s\S]*smoke_learning_os/
-  );
-  assert.doesNotMatch(
-    mediaOnlyBranch,
-    /dropdb --username="\$postgres_user" --if-exists "\$TARGET_DB"/
-  );
-  assert.ok(
-    workflow.indexOf('cleanup_media_import_resources') <
-      workflow.indexOf('if [ -n "$NEW_PROXY_TOKEN_ID" ]')
-  );
-
-  const rebuildBranch = workflow.slice(
-    workflow.indexOf('if [ "$REBUILD_DATABASE" = true ]; then'),
-    workflow.indexOf('else\n              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate')
-  );
-  assert.ok(
-    rebuildBranch.indexOf('import_historical_media') <
-      rebuildBranch.indexOf('smoke_learning_os')
-  );
-
-  const mediaImportFunction = workflow.slice(
-    workflow.indexOf('import_historical_media() {'),
-    workflow.indexOf('smoke_learning_os() {')
-  );
-  assert.match(mediaImportFunction, /case "\$active_color" in[\s\S]*blue\|green/);
-  assert.match(mediaImportFunction, /"server-\$active_color"/);
-  assert.ok(
-    mediaImportFunction.indexOf('if ! [[ "$gcs_bucket" =~') <
-      mediaImportFunction.indexOf('expected_audio_prefix=')
-  );
-  assert.doesNotMatch(mediaImportFunction, /:'gcs_bucket'/);
-  assert.doesNotMatch(mediaImportFunction, /\bserver-blue\b/);
-  assert.doesNotMatch(
-    mediaImportFunction,
-    /unavailable_media_count[\s\S]*media rows without storage paths\." >&2[\s\S]*return 1/
-  );
-  assert.ok(
-    mediaImportFunction.indexOf('missing_daily_audio_count=') <
-      mediaImportFunction.indexOf('UPDATE study_media')
-  );
-  assert.ok(
-    mediaImportFunction.indexOf('migration:import-convolab-media') <
-      mediaImportFunction.indexOf('migration:import-convolab-daily-audio')
+    workflow,
+    /\$COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < \/dev\/null/
   );
 });
 

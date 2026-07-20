@@ -11,16 +11,6 @@ on:
         description: 'Existing ConvoLab user used for import and proxy smoke checks'
         required: true
         type: string
-      rebuild_database:
-        description: 'Back up ConvoLab and rebuild the Learning OS database copy'
-        required: true
-        default: false
-        type: boolean
-      import_historical_media:
-        description: 'Snapshot ConvoLab and import its verified GCS study media'
-        required: true
-        default: false
-        type: boolean
 
 concurrency:
   group: production-deploy
@@ -44,8 +34,6 @@ jobs:
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
           SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
-          REBUILD_DATABASE: ${{ inputs.rebuild_database }}
-          IMPORT_HISTORICAL_MEDIA: ${{ inputs.import_historical_media }}
         run: |
           if ! [[ "$IMAGE_TAG" =~ ^main-[0-9a-f]{40}$ ]]; then
             echo "::error::image_tag must be an immutable main-<full-sha> tag"
@@ -57,16 +45,6 @@ jobs:
             exit 1
           fi
 
-          validate_boolean_input() {
-            case "$2" in
-              true|false) ;;
-              *) echo "::error::$1 must be a boolean"; exit 1 ;;
-            esac
-          }
-
-          validate_boolean_input rebuild_database "$REBUILD_DATABASE"
-          validate_boolean_input import_historical_media "$IMPORT_HISTORICAL_MEDIA"
-
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
@@ -77,8 +55,6 @@ jobs:
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
           SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
-          REBUILD_DATABASE: ${{ inputs.rebuild_database }}
-          IMPORT_HISTORICAL_MEDIA: ${{ inputs.import_historical_media }}
           DROPLET_USER: ${{ secrets.DROPLET_USER }}
           DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
           DEPLOY_GH_PAT: ${{ secrets.GH_PAT }}
@@ -86,8 +62,8 @@ jobs:
           DEPLOY_GITHUB_ACTOR: ${{ github.actor }}
         run: |
           printf -v REMOTE_ENV \
-            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q REBUILD_DATABASE=%q IMPORT_HISTORICAL_MEDIA=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q' \
-            "$IMAGE_TAG" "$SMOKE_USER_EMAIL" "$REBUILD_DATABASE" "$IMPORT_HISTORICAL_MEDIA" \
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q' \
+            "$IMAGE_TAG" "$SMOKE_USER_EMAIL" \
             "$DEPLOY_GH_PAT" "$DEPLOY_GITHUB_TOKEN" "$DEPLOY_GITHUB_ACTOR"
 
           deployment_log="$(mktemp)"
@@ -102,16 +78,9 @@ jobs:
             set -euo pipefail
 
             COMPOSE="docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production"
-            BACKUP_DIR="/opt/convolab-backups"
             RUNTIME_DIR="/opt/convolab-runtime"
             ACTIVE_COLOR_FILE="$RUNTIME_DIR/prod-active-color"
-            SOURCE_DB="learning_os_convolab_source"
             TARGET_DB="learning_os"
-            KNOWLEDGE_EXPORT_DIR=""
-            KNOWLEDGE_CONTAINER_PREFIX="/tmp/convolab-learning-os-knowledge"
-            MEDIA_EXPORT_DIR=""
-            MEDIA_MISSING_MANIFEST_CONTAINER="/tmp/convolab-learning-os-missing-media.json"
-            SOURCE_DATABASE_CREATED=false
             DRAINING_WORKER_CONTAINER_ID=""
             NEW_PROXY_TOKEN_ID=""
             PROXY_TOKEN_CUTOVER_STARTED=false
@@ -119,41 +88,7 @@ jobs:
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
 
-            cleanup_knowledge_exports() {
-              if [ -n "$KNOWLEDGE_EXPORT_DIR" ]; then
-                rm -rf "$KNOWLEDGE_EXPORT_DIR"
-              fi
-              docker exec -u root convolab-postgres rm -f \
-                "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
-                "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
-                "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv" 2>/dev/null || true
-            }
-
-            cleanup_media_export() {
-              if [ -n "$MEDIA_EXPORT_DIR" ]; then
-                rm -rf "$MEDIA_EXPORT_DIR"
-                MEDIA_EXPORT_DIR=""
-              fi
-              docker exec -u root convolab-postgres rm -f \
-                "$MEDIA_MISSING_MANIFEST_CONTAINER" 2>/dev/null || true
-            }
-
-            cleanup_media_import_resources() {
-              local postgres_user
-
-              cleanup_media_export
-              if [ "$SOURCE_DATABASE_CREATED" = true ]; then
-                postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
-                docker exec convolab-postgres dropdb \
-                  --username="$postgres_user" --if-exists "$SOURCE_DB" 2>/dev/null || true
-                SOURCE_DATABASE_CREATED=false
-              fi
-            }
-
             cleanup_deployment_resources() {
-              cleanup_knowledge_exports
-              cleanup_media_import_resources
-
               if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then
                 echo "Removing the unused Learning OS proxy token."
                 $COMPOSE run --rm -T --no-deps \
@@ -190,9 +125,6 @@ jobs:
             chmod 600 ~/.git-credentials
             git fetch origin
             git reset --hard origin/main
-
-            postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
-            test -n "$postgres_user"
 
             upsert_env() {
               key="$1"
@@ -237,192 +169,6 @@ jobs:
               return 1
             }
 
-            restore_convolab_source_copy() {
-              local postgres_database postgres_user source_dump timestamp
-
-              mkdir -p "$BACKUP_DIR"
-              chmod 700 "$BACKUP_DIR"
-              timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-              source_dump="$BACKUP_DIR/convolab-before-media-import-$timestamp.dump"
-              postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
-              postgres_database="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
-
-              echo "Creating immutable ConvoLab media source backup: $source_dump"
-              docker exec convolab-postgres pg_dump \
-                --username="$postgres_user" \
-                --dbname="$postgres_database" \
-                --format=custom --no-owner --no-acl > "$source_dump"
-              chmod 600 "$source_dump"
-              test -s "$source_dump"
-
-              docker exec convolab-postgres dropdb \
-                --username="$postgres_user" --if-exists "$SOURCE_DB"
-              docker exec convolab-postgres createdb \
-                --username="$postgres_user" "$SOURCE_DB"
-              SOURCE_DATABASE_CREATED=true
-              docker exec -i convolab-postgres pg_restore \
-                --username="$postgres_user" --dbname="$SOURCE_DB" \
-                --no-owner --no-acl < "$source_dump"
-            }
-
-            import_historical_media() {
-              local active_color gcs_bucket media_files media_manifest missing_daily_audio_count missing_media_count missing_media_manifest postgres_user target_dump timestamp unavailable_media_count
-
-              postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
-              active_color=blue
-              if [ -f "$ACTIVE_COLOR_FILE" ]; then
-                active_color="$(cat "$ACTIVE_COLOR_FILE")"
-              fi
-              case "$active_color" in
-                blue|green) ;;
-                *) echo "Invalid active production color: $active_color" >&2; return 1 ;;
-              esac
-              timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-              target_dump="$BACKUP_DIR/learning-os-before-media-import-$timestamp.dump"
-              mkdir -p "$BACKUP_DIR"
-              chmod 700 "$BACKUP_DIR"
-
-              echo "Creating immutable Learning OS media import backup: $target_dump"
-              docker exec convolab-postgres pg_dump \
-                --username="$postgres_user" --dbname="$TARGET_DB" \
-                --format=custom --no-owner --no-acl > "$target_dump"
-              chmod 600 "$target_dump"
-              test -s "$target_dump"
-
-              mkdir -p "$RUNTIME_DIR"
-              chmod 700 "$RUNTIME_DIR"
-              MEDIA_EXPORT_DIR="$(mktemp -d "$RUNTIME_DIR/convolab-media-import.XXXXXX")"
-              chmod 700 "$MEDIA_EXPORT_DIR"
-              media_manifest="$MEDIA_EXPORT_DIR/manifest.json"
-              missing_media_manifest="$MEDIA_EXPORT_DIR/missing.json"
-              media_files="$MEDIA_EXPORT_DIR/files"
-
-              gcs_bucket="$($COMPOSE run --rm -T --no-deps \
-                "server-$active_color" \
-                sh -c 'printf "%s" "$GCS_BUCKET_NAME"' < /dev/null)"
-              if ! [[ "$gcs_bucket" =~ ^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$ ]]; then
-                echo "The active ConvoLab server has an invalid GCS bucket name." >&2
-                return 1
-              fi
-              expected_audio_prefix="https://storage.googleapis.com/$gcs_bucket/"
-
-              unavailable_media_count="$(docker exec convolab-postgres psql \
-                --username="$postgres_user" --dbname="$SOURCE_DB" \
-                --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-                --command='SELECT count(*) FROM study_media WHERE "storagePath" IS NULL OR length(btrim("storagePath")) = 0' | tr -d '[:space:]')"
-              if [ "$unavailable_media_count" != 0 ]; then
-                echo "Skipping $unavailable_media_count unavailable ConvoLab media rows without storage paths."
-              fi
-
-              docker exec convolab-postgres psql \
-                --username="$postgres_user" --dbname="$SOURCE_DB" \
-                --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-                --command="
-                  SELECT coalesce(
-                    json_agg(paths.storage_path ORDER BY paths.storage_path),
-                    json_build_array()
-                  )
-                  FROM (
-                    SELECT DISTINCT \"storagePath\" AS storage_path
-                    FROM study_media
-                    WHERE \"storagePath\" IS NOT NULL
-                      AND length(btrim(\"storagePath\")) > 0
-                    UNION
-                    SELECT DISTINCT
-                      CASE
-                        WHEN left(
-                          \"audioUrl\",
-                          length('$expected_audio_prefix')
-                        ) = '$expected_audio_prefix'
-                        THEN substring(
-                          \"audioUrl\"
-                          FROM length('$expected_audio_prefix') + 1
-                        )
-                        ELSE \"audioUrl\"
-                      END AS storage_path
-                    FROM daily_audio_practice_tracks
-                    WHERE status = 'ready'
-                      AND \"audioUrl\" IS NOT NULL
-                  ) AS paths;
-                " > "$media_manifest"
-              chmod 600 "$media_manifest"
-
-              $COMPOSE run --rm -T --no-deps \
-                --volume "$MEDIA_EXPORT_DIR:/export" \
-                "server-$active_color" \
-                node scripts/export-convolab-study-media.mjs \
-                --manifest /export/manifest.json \
-                --missing-manifest /export/missing.json \
-                --output-root /export/files \
-                --concurrency 8 < /dev/null
-
-              docker cp "$missing_media_manifest" \
-                "convolab-postgres:$MEDIA_MISSING_MANIFEST_CONTAINER"
-              docker exec -u root convolab-postgres chmod 644 \
-                "$MEDIA_MISSING_MANIFEST_CONTAINER"
-              missing_daily_audio_count="$(docker exec convolab-postgres psql \
-                --username="$postgres_user" --dbname="$SOURCE_DB" \
-                --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-                --command="
-                  SELECT count(*)
-                  FROM jsonb_array_elements_text(
-                    pg_read_file('$MEDIA_MISSING_MANIFEST_CONTAINER')::jsonb
-                  ) AS missing(storage_path)
-                  WHERE storage_path LIKE 'daily-audio-practice/%';
-                " | tr -d '[:space:]')"
-              if [ "$missing_daily_audio_count" != 0 ]; then
-                echo "Missing $missing_daily_audio_count historical Daily Audio GCS objects." >&2
-                return 1
-              fi
-
-              missing_media_count="$(docker exec convolab-postgres psql \
-                --username="$postgres_user" --dbname="$SOURCE_DB" \
-                --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-                --command="
-                  WITH missing_paths AS (
-                    SELECT jsonb_array_elements_text(
-                      pg_read_file('$MEDIA_MISSING_MANIFEST_CONTAINER')::jsonb
-                    ) AS storage_path
-                  ),
-                  unavailable_rows AS (
-                    UPDATE study_media
-                    SET \"storagePath\" = NULL
-                    WHERE \"storagePath\" IN (
-                      SELECT storage_path FROM missing_paths
-                    )
-                    RETURNING 1
-                  )
-                  SELECT count(*) FROM unavailable_rows;
-                " | tr -d '[:space:]')"
-              docker exec -u root convolab-postgres rm -f \
-                "$MEDIA_MISSING_MANIFEST_CONTAINER"
-              if [ "$missing_media_count" != 0 ]; then
-                echo "Skipping $missing_media_count ConvoLab media rows whose GCS objects are missing."
-              fi
-
-              $COMPOSE run --rm -T --no-deps \
-                --volume "$media_files:/tmp/convolab-media:ro" \
-                learning-os \
-                php artisan migration:import-convolab-media \
-                --source-database="$SOURCE_DB" \
-                --source-media-root=/tmp/convolab-media \
-                --allow-production \
-                --production-confirmation="IMPORT MEDIA INTO $TARGET_DB" < /dev/null
-
-              $COMPOSE run --rm -T --no-deps \
-                --volume "$media_files:/tmp/convolab-media:ro" \
-                learning-os \
-                php artisan migration:import-convolab-daily-audio \
-                --source-database="$SOURCE_DB" \
-                --source-media-root=/tmp/convolab-media \
-                --source-bucket="$gcs_bucket" \
-                --allow-production \
-                --production-confirmation="IMPORT DAILY AUDIO INTO $TARGET_DB" < /dev/null
-
-              cleanup_media_export
-              echo "Verified ConvoLab historical study and Daily Audio media import completed."
-            }
-
             smoke_learning_os() {
               $COMPOSE run --rm -T --no-deps learning-os \
                 php artisan rehearsal:smoke \
@@ -444,317 +190,7 @@ jobs:
             timeout 600 $COMPOSE pull learning-os learning-os-worker
             $COMPOSE up -d postgres
 
-            if [ "$REBUILD_DATABASE" = true ]; then
-              mkdir -p "$BACKUP_DIR"
-              chmod 700 "$BACKUP_DIR"
-              timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-              source_dump="$BACKUP_DIR/convolab-before-learning-os-$timestamp.dump"
-              preserved_profile_count=0
-              preserved_connection_count=0
-              preserved_kanji_count=0
-
-              $COMPOSE stop learning-os learning-os-worker 2>/dev/null || true
-
-              echo "Creating immutable ConvoLab backup: $source_dump"
-              docker exec convolab-postgres pg_dump \
-                --username="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)" \
-                --dbname="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)" \
-                --format=custom --no-owner --no-acl > "$source_dump"
-              chmod 600 "$source_dump"
-              test -s "$source_dump"
-
-              if docker exec convolab-postgres psql --username="$postgres_user" --tuples-only --no-align \
-                --dbname=postgres --command="SELECT 1 FROM pg_database WHERE datname = '$TARGET_DB'" | grep -qx 1; then
-                target_dump="$BACKUP_DIR/learning-os-before-rebuild-$timestamp.dump"
-                docker exec convolab-postgres pg_dump \
-                  --username="$postgres_user" --dbname="$TARGET_DB" \
-                  --format=custom --no-owner --no-acl > "$target_dump"
-                chmod 600 "$target_dump"
-                test -s "$target_dump"
-
-                knowledge_table_count="$(docker exec convolab-postgres psql \
-                  --username="$postgres_user" --dbname="$TARGET_DB" \
-                  --tuples-only --no-align \
-                  --command="
-                    SELECT count(*)
-                    FROM unnest(ARRAY[
-                      to_regclass('public.japanese_knowledge_profiles'),
-                      to_regclass('public.wanikani_connections'),
-                      to_regclass('public.user_known_kanji')
-                    ]) AS preserved_table(table_name)
-                    WHERE table_name IS NOT NULL;
-                  " | tr -d '[:space:]')"
-
-                if [ "$knowledge_table_count" = 3 ]; then
-                  KNOWLEDGE_EXPORT_DIR="$(mktemp -d "$BACKUP_DIR/learning-os-knowledge-$timestamp.XXXXXX")"
-                  chmod 700 "$KNOWLEDGE_EXPORT_DIR"
-
-                  docker exec convolab-postgres psql -X --quiet --set=ON_ERROR_STOP=1 \
-                    --username="$postgres_user" --dbname="$TARGET_DB" \
-                    --command="
-                      COPY (
-                        SELECT lower(btrim(users.email)),
-                               profiles.knowledge_version,
-                               profiles.created_at,
-                               profiles.updated_at
-                        FROM japanese_knowledge_profiles AS profiles
-                        JOIN users ON users.id = profiles.user_id
-                        ORDER BY lower(btrim(users.email))
-                      ) TO STDOUT WITH (FORMAT csv, HEADER true);
-                    " > "$KNOWLEDGE_EXPORT_DIR/profiles.csv"
-                  docker exec convolab-postgres psql -X --quiet --set=ON_ERROR_STOP=1 \
-                    --username="$postgres_user" --dbname="$TARGET_DB" \
-                    --command="
-                      COPY (
-                        SELECT lower(btrim(users.email)),
-                               connections.api_token,
-                               connections.assignments_synced_through_at,
-                               connections.last_synced_at,
-                               connections.created_at,
-                               connections.updated_at
-                        FROM wanikani_connections AS connections
-                        JOIN users ON users.id = connections.user_id
-                        ORDER BY lower(btrim(users.email))
-                      ) TO STDOUT WITH (FORMAT csv, HEADER true);
-                    " > "$KNOWLEDGE_EXPORT_DIR/connections.csv"
-                  docker exec convolab-postgres psql -X --quiet --set=ON_ERROR_STOP=1 \
-                    --username="$postgres_user" --dbname="$TARGET_DB" \
-                    --command="
-                      COPY (
-                        SELECT lower(btrim(users.email)),
-                               known.character,
-                               known.wanikani_subject_id,
-                               known.wanikani_passed_at,
-                               known.manually_added_at,
-                               known.created_at,
-                               known.updated_at
-                        FROM user_known_kanji AS known
-                        JOIN users ON users.id = known.user_id
-                        ORDER BY lower(btrim(users.email)), known.character
-                      ) TO STDOUT WITH (FORMAT csv, HEADER true);
-                    " > "$KNOWLEDGE_EXPORT_DIR/kanji.csv"
-                  chmod 600 "$KNOWLEDGE_EXPORT_DIR"/*.csv
-
-                  preserved_profile_count="$(docker exec convolab-postgres psql \
-                    --username="$postgres_user" --dbname="$TARGET_DB" \
-                    --tuples-only --no-align \
-                    --command='SELECT count(*) FROM japanese_knowledge_profiles' | tr -d '[:space:]')"
-                  preserved_connection_count="$(docker exec convolab-postgres psql \
-                    --username="$postgres_user" --dbname="$TARGET_DB" \
-                    --tuples-only --no-align \
-                    --command='SELECT count(*) FROM wanikani_connections' | tr -d '[:space:]')"
-                  preserved_kanji_count="$(docker exec convolab-postgres psql \
-                    --username="$postgres_user" --dbname="$TARGET_DB" \
-                    --tuples-only --no-align \
-                    --command='SELECT count(*) FROM user_known_kanji' | tr -d '[:space:]')"
-
-                  echo "Preserved $preserved_connection_count WaniKani connections and $preserved_kanji_count known-kanji rows."
-                elif [ "$knowledge_table_count" != 0 ]; then
-                  echo "Learning OS Japanese knowledge schema is incomplete; refusing to rebuild." >&2
-                  exit 1
-                fi
-              fi
-
-              docker exec convolab-postgres dropdb --username="$postgres_user" --if-exists "$SOURCE_DB"
-              docker exec convolab-postgres dropdb --username="$postgres_user" --if-exists "$TARGET_DB"
-              docker exec convolab-postgres createdb --username="$postgres_user" "$SOURCE_DB"
-              SOURCE_DATABASE_CREATED=true
-              docker exec convolab-postgres createdb --username="$postgres_user" "$TARGET_DB"
-              docker exec -i convolab-postgres pg_restore \
-                --username="$postgres_user" --dbname="$SOURCE_DB" \
-                --no-owner --no-acl < "$source_dump"
-
-              # Compose run inherits stdin even without a TTY and could consume the remaining SSH script.
-              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
-              $COMPOSE run --rm -T --no-deps learning-os \
-                php artisan rehearsal:import-convolab \
-                --source-database="$SOURCE_DB" \
-                --truncate \
-                --skip-media \
-                --allow-production \
-                --production-truncate-confirmation="TRUNCATE $TARGET_DB" < /dev/null
-
-              if [ -n "$KNOWLEDGE_EXPORT_DIR" ]; then
-                docker cp "$KNOWLEDGE_EXPORT_DIR/profiles.csv" \
-                  "convolab-postgres:$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv"
-                docker cp "$KNOWLEDGE_EXPORT_DIR/connections.csv" \
-                  "convolab-postgres:$KNOWLEDGE_CONTAINER_PREFIX-connections.csv"
-                docker cp "$KNOWLEDGE_EXPORT_DIR/kanji.csv" \
-                  "convolab-postgres:$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
-
-                docker exec -u root convolab-postgres chown postgres:postgres \
-                  "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
-                  "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
-                  "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
-                docker exec -u root convolab-postgres chmod 600 \
-                  "$KNOWLEDGE_CONTAINER_PREFIX-profiles.csv" \
-                  "$KNOWLEDGE_CONTAINER_PREFIX-connections.csv" \
-                  "$KNOWLEDGE_CONTAINER_PREFIX-kanji.csv"
-
-                docker exec -i -u postgres convolab-postgres psql -X --set=ON_ERROR_STOP=1 \
-                  --username="$postgres_user" --dbname="$TARGET_DB" <<'SQL'
-                  BEGIN;
-
-                  CREATE TEMP TABLE preserved_knowledge_profiles (
-                    email text NOT NULL,
-                    knowledge_version bigint NOT NULL,
-                    created_at timestamp,
-                    updated_at timestamp
-                  );
-                  CREATE TEMP TABLE preserved_wanikani_connections (
-                    email text NOT NULL,
-                    api_token text NOT NULL,
-                    assignments_synced_through_at timestamp(6),
-                    last_synced_at timestamp(6),
-                    created_at timestamp,
-                    updated_at timestamp
-                  );
-                  CREATE TEMP TABLE preserved_known_kanji (
-                    email text NOT NULL,
-                    character varchar(4) NOT NULL,
-                    wanikani_subject_id bigint,
-                    wanikani_passed_at timestamp(6),
-                    manually_added_at timestamp(6),
-                    created_at timestamp,
-                    updated_at timestamp
-                  );
-
-                  \copy preserved_knowledge_profiles FROM '/tmp/convolab-learning-os-knowledge-profiles.csv' WITH (FORMAT csv, HEADER true)
-                  \copy preserved_wanikani_connections FROM '/tmp/convolab-learning-os-knowledge-connections.csv' WITH (FORMAT csv, HEADER true)
-                  \copy preserved_known_kanji FROM '/tmp/convolab-learning-os-knowledge-kanji.csv' WITH (FORMAT csv, HEADER true)
-
-                  DO $restore$
-                  BEGIN
-                    IF EXISTS (
-                      SELECT 1
-                      FROM (
-                        SELECT email FROM preserved_knowledge_profiles
-                        UNION
-                        SELECT email FROM preserved_wanikani_connections
-                        UNION
-                        SELECT email FROM preserved_known_kanji
-                      ) AS preserved_users
-                      LEFT JOIN users ON lower(btrim(users.email)) = preserved_users.email
-                      WHERE users.id IS NULL
-                    ) THEN
-                      RAISE EXCEPTION 'Cannot restore Japanese knowledge for an unmatched user email';
-                    END IF;
-                  END
-                  $restore$;
-
-                  INSERT INTO japanese_knowledge_profiles (
-                    user_id, knowledge_version, created_at, updated_at
-                  )
-                  SELECT users.id,
-                         preserved.knowledge_version,
-                         preserved.created_at,
-                         preserved.updated_at
-                  FROM preserved_knowledge_profiles AS preserved
-                  JOIN users ON lower(btrim(users.email)) = preserved.email
-                  ON CONFLICT (user_id) DO UPDATE
-                  SET knowledge_version = EXCLUDED.knowledge_version,
-                      created_at = EXCLUDED.created_at,
-                      updated_at = EXCLUDED.updated_at;
-
-                  INSERT INTO wanikani_connections (
-                    user_id, api_token, assignments_synced_through_at, last_synced_at,
-                    created_at, updated_at
-                  )
-                  SELECT users.id,
-                         preserved.api_token,
-                         preserved.assignments_synced_through_at,
-                         preserved.last_synced_at,
-                         preserved.created_at,
-                         preserved.updated_at
-                  FROM preserved_wanikani_connections AS preserved
-                  JOIN users ON lower(btrim(users.email)) = preserved.email
-                  ON CONFLICT (user_id) DO UPDATE
-                  SET api_token = EXCLUDED.api_token,
-                      assignments_synced_through_at = EXCLUDED.assignments_synced_through_at,
-                      last_synced_at = EXCLUDED.last_synced_at,
-                      created_at = EXCLUDED.created_at,
-                      updated_at = EXCLUDED.updated_at;
-
-                  INSERT INTO user_known_kanji (
-                    user_id, character, wanikani_subject_id, wanikani_passed_at,
-                    manually_added_at, created_at, updated_at
-                  )
-                  SELECT users.id,
-                         preserved.character,
-                         preserved.wanikani_subject_id,
-                         preserved.wanikani_passed_at,
-                         preserved.manually_added_at,
-                         preserved.created_at,
-                         preserved.updated_at
-                  FROM preserved_known_kanji AS preserved
-                  JOIN users ON lower(btrim(users.email)) = preserved.email
-                  ON CONFLICT (user_id, character) DO UPDATE
-                  SET wanikani_subject_id = EXCLUDED.wanikani_subject_id,
-                      wanikani_passed_at = EXCLUDED.wanikani_passed_at,
-                      manually_added_at = EXCLUDED.manually_added_at,
-                      created_at = EXCLUDED.created_at,
-                      updated_at = EXCLUDED.updated_at;
-
-                  DO $verify$
-                  BEGIN
-                    IF (SELECT count(*) FROM japanese_knowledge_profiles)
-                         <> (SELECT count(*) FROM preserved_knowledge_profiles)
-                      OR (SELECT count(*) FROM wanikani_connections)
-                         <> (SELECT count(*) FROM preserved_wanikani_connections)
-                      OR (SELECT count(*) FROM user_known_kanji)
-                         <> (SELECT count(*) FROM preserved_known_kanji)
-                    THEN
-                      RAISE EXCEPTION 'Japanese knowledge restore count mismatch';
-                    END IF;
-                  END
-                  $verify$;
-
-                  COMMIT;
-          SQL
-
-                restored_profile_count="$(docker exec convolab-postgres psql \
-                  --username="$postgres_user" --dbname="$TARGET_DB" \
-                  --tuples-only --no-align \
-                  --command='SELECT count(*) FROM japanese_knowledge_profiles' | tr -d '[:space:]')"
-                restored_connection_count="$(docker exec convolab-postgres psql \
-                  --username="$postgres_user" --dbname="$TARGET_DB" \
-                  --tuples-only --no-align \
-                  --command='SELECT count(*) FROM wanikani_connections' | tr -d '[:space:]')"
-                restored_kanji_count="$(docker exec convolab-postgres psql \
-                  --username="$postgres_user" --dbname="$TARGET_DB" \
-                  --tuples-only --no-align \
-                  --command='SELECT count(*) FROM user_known_kanji' | tr -d '[:space:]')"
-
-                if [ "$restored_profile_count" != "$preserved_profile_count" ] \
-                  || [ "$restored_connection_count" != "$preserved_connection_count" ] \
-                  || [ "$restored_kanji_count" != "$preserved_kanji_count" ]; then
-                  echo "Japanese knowledge restore count mismatch." >&2
-                  exit 1
-                fi
-
-                echo "Restored $restored_connection_count WaniKani connections and $restored_kanji_count known-kanji rows."
-                cleanup_knowledge_exports
-                KNOWLEDGE_EXPORT_DIR=""
-              fi
-
-              if [ "$IMPORT_HISTORICAL_MEDIA" = true ]; then
-                import_historical_media
-              fi
-
-              smoke_learning_os
-              docker exec convolab-postgres dropdb --username="$postgres_user" "$SOURCE_DB"
-              SOURCE_DATABASE_CREATED=false
-            else
-              $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
-
-              if [ "$IMPORT_HISTORICAL_MEDIA" = true ]; then
-                restore_convolab_source_copy
-                import_historical_media
-                docker exec convolab-postgres dropdb --username="$postgres_user" "$SOURCE_DB"
-                SOURCE_DATABASE_CREATED=false
-                smoke_learning_os
-              fi
-            fi
+            $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
 
             proxy_token_output="$($COMPOSE run --rm -T --no-deps \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
@@ -953,6 +389,11 @@ jobs:
             trap cleanup_deployment_failure EXIT
 
             verify_study_api() {
+              local postgres_user
+
+              postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
+              test -n "$postgres_user"
+
               user_record="$(printf '%s\n' \
                 "SELECT id, role FROM \"User\" WHERE email = :'email' LIMIT 1;" \
                 | docker exec -i convolab-postgres psql \
