@@ -54,6 +54,9 @@ RUN npx prisma generate
 # Copy built server code (output is at dist/server/src/ due to tsconfig.build.json rootDir: "..")
 COPY --from=server-builder /app/server/dist ./dist
 
+# Keep runtime route telemetry imports valid if worker dependencies load the inventory.
+COPY --from=server-builder /app/server/src/migration/backendMigrationInventory.json ./dist/server/src/migration/backendMigrationInventory.json
+
 # Set environment
 ENV NODE_ENV=production
 

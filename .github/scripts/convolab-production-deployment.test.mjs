@@ -9,6 +9,8 @@ import YAML from 'yaml';
 const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const workflowPath = path.join(repositoryRoot, '.github/workflows/deploy-prod.yml');
+const migrationInventoryCopy =
+  'COPY --from=server-builder /app/server/src/migration/backendMigrationInventory.json ./dist/server/src/migration/backendMigrationInventory.json';
 
 async function readDeployment() {
   const source = await readFile(workflowPath, 'utf8');
@@ -89,5 +91,12 @@ test('the production workflow rejects unexpected containers without legacy cutov
       !source.includes(retiredContract),
       `Found retired production cutover contract: ${retiredContract}`
     );
+  }
+});
+
+test('the production images include the backend migration inventory', async () => {
+  for (const dockerfile of ['Dockerfile', 'server/Dockerfile.worker']) {
+    const source = await readFile(path.join(repositoryRoot, dockerfile), 'utf8');
+    assert.ok(source.includes(migrationInventoryCopy), `${dockerfile} omits the runtime inventory`);
   }
 });

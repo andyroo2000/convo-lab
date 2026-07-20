@@ -81,6 +81,9 @@ RUN npx prisma generate
 # Copy built server and shared modules
 COPY --from=server-builder /app/server/dist ./dist
 
+# Copy migration inventory used by runtime route telemetry
+COPY --from=server-builder /app/server/src/migration/backendMigrationInventory.json ./dist/server/src/migration/backendMigrationInventory.json
+
 # Copy server data files (vocabulary/grammar JSON) that TypeScript doesn't emit
 COPY --from=server-builder /app/server/src/data ./dist/server/src/data
 
