@@ -90,7 +90,7 @@ test('the production workflow verifies the always-on Study API without rollout f
     '| sed -n \'s/^CONVOLAB_PROXY_USER_EMAIL=//p\'',
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
-    '[ "$current_config_revision" = "static-media-v1" ]',
+    '[ "$current_config_revision" = "static-media-v2" ]',
     '| tail -1 || true)"',
     '-o ServerAliveInterval=30',
     'docker update --restart=no "$container"',
@@ -111,7 +111,7 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "static-media-v1" \]; then/
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "static-media-v2" \]; then/
   );
   assert.doesNotMatch(workflow, /enable_(?:settings|overview|browser|new_queue|review|card|media|daily_audio|imports)/);
   assert.doesNotMatch(workflow, /ENABLE_(?:SETTINGS|OVERVIEW|BROWSER|NEW_QUEUE|REVIEW|CARD|MEDIA|DAILY_AUDIO|IMPORTS)/);
@@ -150,11 +150,13 @@ test('the production stack wires and smokes Learning OS static media', async () 
 
   for (const requiredComposeContract of [
     'LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: ${LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:-true}',
-    'LEARNING_OS_DEPLOY_CONFIG_REVISION: static-media-v1',
+    'LEARNING_OS_DEPLOY_CONFIG_REVISION: static-media-v2',
     'GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json',
     'GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}',
     'AVATARS_GCS_ROOT: ${AVATARS_GCS_ROOT:-avatars}',
+    'AVATAR_SIGNED_URLS_ENABLED: ${AVATAR_SIGNED_URLS_ENABLED:-true}',
     'TOOLS_AUDIO_GCS_ROOT: ${TOOLS_AUDIO_GCS_ROOT:-tools-audio}',
+    'TOOLS_AUDIO_SIGNED_URLS_ENABLED: ${TOOLS_AUDIO_SIGNED_URLS_ENABLED:-true}',
     '- ./server/gcloud-key.json:/app/gcloud-key.json:ro',
   ]) {
     assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
