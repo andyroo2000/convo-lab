@@ -18,7 +18,7 @@
     "build:server": "npm run build --workspace=server",
     "test": "npm run test --workspaces",
     "test:run": "npm run test:run --workspaces && npm run test:deployment",
-    "test:deployment": "node --test .github/scripts/*.test.mjs server/scripts/export-convolab-study-media.test.mjs",
+    "test:deployment": "node --test .github/scripts/*.test.mjs",
     "test:coverage": "npm run test:coverage --workspaces",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

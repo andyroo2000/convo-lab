@@ -14,18 +14,15 @@ Run `Deploy Learning OS (Production)` with:
 
 - `image_tag`: an immutable `main-<full-sha>` Learning OS image tag.
 - `smoke_user_email`: the ConvoLab account used for authenticated smoke checks.
-- `rebuild_database`: whether to rebuild Learning OS from a fresh ConvoLab copy.
-- `import_historical_media`: whether to snapshot and import verified historical
-  Study and Daily Audio media from ConvoLab.
 
 The proxy currently supports the configured smoke account only. ConvoLab
 rejects Learning OS proxy requests from any other account. Replace this
 single-user restriction only after Learning OS consumes trusted per-request
 identity or ConvoLab provisions per-user upstream tokens.
 
-## Normal Deployment
+## Deployment
 
-Keep `rebuild_database: false` for routine releases. The workflow:
+The workflow:
 
 1. Validates the immutable image tag and smoke account.
 2. Runs Learning OS migrations against the existing copied database.
@@ -39,44 +36,9 @@ Keep `rebuild_database: false` for routine releases. The workflow:
 
 The worker is drained before replacement when its image or command changes.
 An unchanged healthy worker is left running when only the proxy token rotates.
-
-## Database Rebuild
-
-Use `rebuild_database: true` only for an intentional new copy rehearsal. The
-workflow:
-
-1. Creates a custom-format backup of the live ConvoLab database under
-   `/opt/convolab-backups` without modifying the source database.
-2. Securely exports Learning OS-owned WaniKani connections, known kanji, and
-   Japanese knowledge profiles before replacing an existing Learning OS
-   database.
-3. Restores the ConvoLab backup into a disposable
-   `learning_os_convolab_source` database.
-4. Backs up the existing `learning_os` database, then creates and migrates its
-   replacement.
-5. Imports users, settings, imports, cards, and reviews with production
-   confirmation guards and `--skip-media`.
-6. Restores Learning OS-owned rows by normalized user email and verifies exact
-   row counts.
-7. Runs the Learning OS smoke harness against the copied user.
-8. Deletes the disposable source database while retaining the backups.
-
-Avoid studying or changing the queue during a rebuild. The old ConvoLab Study
-tables and the Learning OS database are not dual-written.
-
-## Historical Media
-
-Set `import_historical_media: true` to export trusted ConvoLab GCS objects and
-import them into Learning OS after the database copy. The workflow:
-
-- validates object paths and byte availability;
-- records and skips rows whose source objects are unavailable;
-- imports Study media before Daily Audio media;
-- verifies imported counts and URLs; and
-- removes temporary exports on success and failure.
-
-Routine deployments should leave this false. New Learning OS uploads and media
-streaming are always available through the proxy regardless of this input.
+The completed ConvoLab database-copy and historical-media import controls are
+not available because Learning OS now owns newer Study state. Recover the
+database from a Learning OS backup instead of rebuilding it from ConvoLab.
 
 ## Smoke Coverage
 
@@ -100,11 +62,11 @@ archives, imported rows, and media on both success and failure.
 
 ## Failure And Rollback
 
-The deployment trap removes disposable card drafts, media, imports, temporary
-database copies, and unused proxy tokens. A failed deployment leaves the
-currently active ConvoLab color serving until the replacement passes health
+The deployment trap removes disposable card drafts, smoke-test media, imports,
+temporary database copies, and unused proxy tokens. A failed deployment leaves
+the currently active ConvoLab color serving until the replacement passes health
 checks.
 
 There is no runtime Study-route flag rollback. To roll back application code,
 redeploy the previous immutable ConvoLab and Learning OS images. To recover
-data after a rebuild, restore the retained pre-deployment database backup.
+data, restore a Learning OS database backup.
