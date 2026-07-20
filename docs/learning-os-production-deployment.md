@@ -63,9 +63,8 @@ archives, imported rows, and media on both success and failure.
 ## Failure And Rollback
 
 The deployment trap removes disposable card drafts, smoke-test media, imports,
-temporary database copies, and unused proxy tokens. A failed deployment leaves
-the currently active ConvoLab color serving until the replacement passes health
-checks.
+and unused proxy tokens. A failed deployment leaves the currently active
+ConvoLab color serving until the replacement passes health checks.
 
 There is no runtime Study-route flag rollback. To roll back application code,
 redeploy the previous immutable ConvoLab and Learning OS images. To recover
