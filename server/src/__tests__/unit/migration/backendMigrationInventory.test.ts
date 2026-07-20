@@ -98,6 +98,17 @@ describe('backend migration inventory', () => {
     });
   });
 
+  it('records the feature-flags browser contract as Learning OS-owned through the proxy', () => {
+    expect(findBackendMigrationRoute('GET', '/api/feature-flags')).toMatchObject({
+      route: { id: 'feature-flags.show', method: 'GET', path: '/api/feature-flags' },
+      surface: {
+        id: 'feature-flags',
+        migrationWave: 'pattern',
+        runtimeOwner: 'learning-os-proxy',
+      },
+    });
+  });
+
   it('does not classify unknown methods or paths', () => {
     expect(findBackendMigrationRoute('POST', '/api/episodes/episode-123')).toBeNull();
     expect(findBackendMigrationRoute('GET', '/api/not-in-inventory')).toBeNull();

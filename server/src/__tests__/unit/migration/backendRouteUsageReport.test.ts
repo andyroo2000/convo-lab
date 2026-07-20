@@ -43,7 +43,7 @@ describe('backend route usage telemetry', () => {
         surfaceId: 'feature-flags',
         domain: 'configuration',
         migrationWave: 'pattern',
-        runtimeOwner: 'express',
+        runtimeOwner: 'learning-os-proxy',
         method: 'GET',
         normalizedPath: '/api/feature-flags',
         requests: 1,

@@ -386,7 +386,7 @@
       "id": "feature-flags",
       "domain": "configuration",
       "migrationWave": "pattern",
-      "runtimeOwner": "express",
+      "runtimeOwner": "learning-os-proxy",
       "sourceFile": "server/src/routes/featureFlags.ts",
       "mountPath": "/api/feature-flags",
       "routes": [

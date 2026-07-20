@@ -116,6 +116,7 @@ When adding, removing, or migrating a backend route:
 6. Include the before/after runtime owner and production telemetry evidence in
    the PR description.
 
-The next vertical slice is the `feature-flags` surface. It is intentionally the
-`pattern` wave because it exercises authenticated reads and shared response
-contracts without coupling the first general migration to generation workers.
+The `feature-flags` surface is the first completed `pattern` wave. ConvoLab
+still authenticates the browser at `/api/feature-flags`, then forwards the
+request and user identity to Learning OS. The stable route ID now reports
+`runtimeOwner = "learning-os-proxy"` in route-usage telemetry.
