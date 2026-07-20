@@ -22,8 +22,8 @@ describe('audio script media schema', () => {
 
   it('uses a Postgres-safe expand migration that backfills before adding the new foreign key', async () => {
     const migration = await readFile(migrationPath, 'utf8');
-    const createTableIndex = migration.indexOf('CREATE TABLE "audio_script_media"');
-    const addColumnIndex = migration.indexOf('ADD COLUMN "audioScriptMediaId" TEXT');
+    const createTableIndex = migration.indexOf('CREATE TABLE IF NOT EXISTS "audio_script_media"');
+    const addColumnIndex = migration.indexOf('ADD COLUMN IF NOT EXISTS "audioScriptMediaId" TEXT');
     const backfillMediaIndex = migration.indexOf('INSERT INTO "audio_script_media"');
     const backfillRelationIndex = migration.indexOf('SET "audioScriptMediaId" = "imageMediaId"');
     const foreignKeyIndex = migration.indexOf(
@@ -36,7 +36,19 @@ describe('audio script media schema', () => {
     expect(backfillRelationIndex).toBeGreaterThan(backfillMediaIndex);
     expect(foreignKeyIndex).toBeGreaterThan(backfillRelationIndex);
     expect(migration).toContain('WHERE segment."imageMediaId" = media."id"');
+    expect(migration).toContain('FOREIGN KEY ("userId") REFERENCES "User"("id")');
+    expect(migration).not.toContain('REFERENCES "users"');
     expect(migration).not.toMatch(/DROP (?:COLUMN|TABLE|CONSTRAINT)/);
+  });
+
+  it('is atomic and retryable after a partially applied Postgres migration', async () => {
+    const migration = await readFile(migrationPath, 'utf8');
+
+    expect(migration.trimStart().indexOf('BEGIN;')).toBeGreaterThanOrEqual(0);
+    expect(migration.trimEnd().endsWith('COMMIT;')).toBe(true);
+    expect(migration).toContain('ON CONFLICT ("id") DO NOTHING');
+    expect(migration.match(/CREATE INDEX IF NOT EXISTS/g)).toHaveLength(3);
+    expect(migration.match(/FROM pg_constraint/g)).toHaveLength(2);
   });
 
   it('keeps index and constraint names within the Postgres identifier limit', async () => {
