@@ -16,7 +16,15 @@ It inventories every literal route registered by the Express routers mounted in
 
 The inventory is runtime data, not a planning document that can silently drift.
 `backendMigrationInventory.test.ts` extracts declarations from every listed
-router and fails when the declared and inventoried route sets differ.
+router and fails when the declared and inventoried routes or their order differ.
+Order is part of the contract because Express resolves overlapping mounts and
+routes in declaration order.
+
+The drift checks intentionally recognize the repository's current convention:
+default route imports, literal `app.use(path, router)` mounts, and literal
+`router.method(path, ...)` declarations. When changing those conventions,
+extend the extraction patterns in the same PR so a new mount cannot bypass the
+inventory.
 
 ## Migration Waves
 
@@ -90,7 +98,11 @@ count, status-code counts, maximum duration, and p95 duration. Use it to:
 - find `unclassified` requests that require an inventory update.
 
 Telemetry is emitted to the existing application log stream. It does not add a
-database write or a network request to the request path.
+database write or a network request to the request path. While this migration
+instrumentation is active, API requests produce the existing plaintext request
+line plus one structured event, so request-log line volume is approximately
+doubled. Remove the structured event after Express retirement is proven and the
+inventory is no longer needed for cutover decisions.
 
 ## Updating The Inventory
 

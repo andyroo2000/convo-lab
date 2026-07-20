@@ -32,31 +32,26 @@ describe('backend migration inventory', () => {
     expect(routes.length).toBeGreaterThan(80);
   });
 
-  it('accounts for every literal route declared by each inventoried Express router', () => {
+  it('preserves every literal route in Express declaration order', () => {
     for (const surface of backendMigrationInventory.surfaces) {
       const sourcePath = path.join(repositoryRoot, surface.sourceFile);
       expect(fs.existsSync(sourcePath), surface.sourceFile).toBe(true);
 
       const source = fs.readFileSync(sourcePath, 'utf8');
-      const declaredRoutes = [...source.matchAll(routerDeclarationPattern)]
-        .map((match) => ({
-          method: match[1].toUpperCase(),
-          path: joinRoutePath(surface.mountPath, match[2]),
-        }))
-        .sort((left, right) =>
-          `${left.method} ${left.path}`.localeCompare(`${right.method} ${right.path}`)
-        );
-      const inventoriedRoutes = surface.routes
-        .map(({ method, path: routePath }) => ({ method, path: routePath }))
-        .sort((left, right) =>
-          `${left.method} ${left.path}`.localeCompare(`${right.method} ${right.path}`)
-        );
+      const declaredRoutes = [...source.matchAll(routerDeclarationPattern)].map((match) => ({
+        method: match[1].toUpperCase(),
+        path: joinRoutePath(surface.mountPath, match[2]),
+      }));
+      const inventoriedRoutes = surface.routes.map(({ method, path: routePath }) => ({
+        method,
+        path: routePath,
+      }));
 
       expect(inventoriedRoutes, surface.sourceFile).toEqual(declaredRoutes);
     }
   });
 
-  it('accounts for every API router mounted by the server entrypoint', () => {
+  it('preserves every API router in server mount order', () => {
     const serverEntry = fs.readFileSync(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8');
     const routeImports = new Map(
       [...serverEntry.matchAll(routeImportPattern)].map((match) => [
@@ -73,19 +68,10 @@ describe('backend migration inventory', () => {
       .filter(
         (mount): mount is { mountPath: string; sourceFile: string } =>
           mount.sourceFile !== undefined
-      )
-      .sort((left, right) =>
-        `${left.mountPath} ${left.sourceFile}`.localeCompare(
-          `${right.mountPath} ${right.sourceFile}`
-        )
       );
-    const inventoriedRouters = backendMigrationInventory.surfaces
-      .map(({ mountPath, sourceFile }) => ({ mountPath, sourceFile }))
-      .sort((left, right) =>
-        `${left.mountPath} ${left.sourceFile}`.localeCompare(
-          `${right.mountPath} ${right.sourceFile}`
-        )
-      );
+    const inventoriedRouters = backendMigrationInventory.surfaces.map(
+      ({ mountPath, sourceFile }) => ({ mountPath, sourceFile })
+    );
 
     expect(inventoriedRouters).toEqual(mountedRouters);
   });

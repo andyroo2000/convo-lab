@@ -53,6 +53,8 @@ const routePathPattern = (path: string): RegExp => {
   return new RegExp(`^${segments.join('/')}/?$`);
 };
 
+// Express resolves overlapping routers and routes in declaration order. The drift
+// tests require the inventory to preserve both mount and declaration order.
 const compiledRoutes = inventory.surfaces.flatMap((surface) =>
   surface.routes.map((route) => ({
     route,
