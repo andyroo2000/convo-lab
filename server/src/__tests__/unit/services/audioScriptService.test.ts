@@ -1,18 +1,25 @@
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { generateOpenAIImageBufferMock, sharpMock, webpMock, persistStudyMediaBufferMock } =
-  vi.hoisted(() => ({
-    generateOpenAIImageBufferMock: vi.fn(),
-    sharpMock: vi.fn(),
-    webpMock: vi.fn(),
-    persistStudyMediaBufferMock: vi.fn(),
-  }));
+const {
+  deletePersistedStudyMediaByStoragePathMock,
+  generateOpenAIImageBufferMock,
+  sharpMock,
+  webpMock,
+  persistStudyMediaBufferMock,
+} = vi.hoisted(() => ({
+  deletePersistedStudyMediaByStoragePathMock: vi.fn(),
+  generateOpenAIImageBufferMock: vi.fn(),
+  sharpMock: vi.fn(),
+  webpMock: vi.fn(),
+  persistStudyMediaBufferMock: vi.fn(),
+}));
 
 import {
   AUDIO_SCRIPT_SPEEDS,
   buildAudioScriptUnits,
   generateAudioScriptSegmentImages,
+  toAudioScriptResponse,
 } from '../../../services/audioScriptService.js';
 import { mockPrisma } from '../../setup.js';
 
@@ -25,11 +32,14 @@ vi.mock('sharp', () => ({
 }));
 
 vi.mock('../../../services/study/shared.js', () => ({
-  deletePersistedStudyMediaByStoragePath: vi.fn(),
-  getStudyMediaApiPath: (mediaId: string) => `/api/study/media/${mediaId}`,
+  deletePersistedStudyMediaByStoragePath: deletePersistedStudyMediaByStoragePathMock,
   normalizeFilename: (filename: string) => filename.replace(/[^a-zA-Z0-9_-]/g, '-'),
   persistStudyMediaBuffer: persistStudyMediaBufferMock,
   STUDY_GENERATED_IMPORT_JOB_ID: 'generated',
+}));
+
+vi.mock('../../../services/audioScriptMediaService.js', () => ({
+  getAudioScriptMediaApiPath: (mediaId: string) => `/api/scripts/media/${mediaId}`,
 }));
 
 function buildScriptFixture(overrides: Record<string, unknown> = {}) {
@@ -95,10 +105,10 @@ describe('audioScriptService', () => {
       storagePath: 'generated/script.webp',
       publicUrl: 'https://storage.example.com/script.webp',
     });
-    mockPrisma.studyMedia.create.mockImplementation(async ({ data }) => ({
-      id: `media-${mockPrisma.studyMedia.create.mock.calls.length}`,
+    mockPrisma.audioScriptMedia.create.mockImplementation(async ({ data }) => ({
       ...data,
     }));
+    mockPrisma.studyMedia.create.mockImplementation(async ({ data }) => ({ ...data }));
   });
 
   it('uses the requested Google Neural2 script speeds', () => {
@@ -155,6 +165,34 @@ describe('audioScriptService', () => {
     ]);
   });
 
+  it('does not expose the temporary rollback relation in script responses', () => {
+    const response = toAudioScriptResponse({
+      id: 'script-1',
+      segments: [
+        {
+          id: 'segment-1',
+          imageMediaId: 'media-1',
+          legacyImageMediaId: 'media-1',
+          legacyImageMedia: { id: 'media-1' },
+          imageMedia: {
+            id: 'media-1',
+            mediaKind: 'image',
+            contentType: 'image/webp',
+            publicUrl: null,
+            sourceFilename: 'segment.webp',
+          },
+        },
+      ],
+    });
+
+    expect(response.segments?.[0]).toMatchObject({
+      id: 'segment-1',
+      imageMediaId: 'media-1',
+    });
+    expect(response.segments?.[0]).not.toHaveProperty('legacyImageMediaId');
+    expect(response.segments?.[0]).not.toHaveProperty('legacyImageMedia');
+  });
+
   it('generates one guarded image per pending script segment', async () => {
     mockPrisma.audioScript.findFirst.mockResolvedValue(buildScriptFixture());
     mockPrisma.audioScriptSegment.findMany.mockResolvedValue([
@@ -177,15 +215,24 @@ describe('audioScriptService', () => {
     expect(sharpMock).toHaveBeenCalledWith(Buffer.from('fake-png'));
     expect(webpMock).toHaveBeenCalledWith({ quality: 82 });
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.audioScriptMedia.create).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.studyMedia.create.mock.calls[0]?.[0].data.id).toBe(
+      mockPrisma.audioScriptMedia.create.mock.calls[0]?.[0].data.id
+    );
     expect(mockPrisma.audioScriptSegment.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'segment-1' },
         data: expect.objectContaining({
           imageStatus: 'ready',
-          imageMediaId: expect.stringMatching(/^media-/),
+          imageMediaId: expect.any(String),
+          legacyImageMediaId: expect.any(String),
         }),
       })
     );
+    const firstSegmentUpdate = mockPrisma.audioScriptSegment.update.mock.calls.find(
+      ([input]) => input.where.id === 'segment-1' && input.data.imageStatus === 'ready'
+    )?.[0].data;
+    expect(firstSegmentUpdate?.imageMediaId).toBe(firstSegmentUpdate?.legacyImageMediaId);
     expect(mockPrisma.audioScript.update).toHaveBeenLastCalledWith({
       where: { id: 'script-1' },
       data: { imageStatus: 'ready', imageErrorMessage: null },
@@ -287,5 +334,73 @@ describe('audioScriptService', () => {
         imageErrorMessage: '1 script image failed or are missing.',
       },
     });
+  });
+
+  it('removes persisted bytes when the compatibility media transaction fails', async () => {
+    mockPrisma.audioScript.findFirst.mockResolvedValue(
+      buildScriptFixture({
+        segments: [buildScriptFixture().segments[0]],
+      })
+    );
+    mockPrisma.audioScriptMedia.create.mockRejectedValueOnce(new Error('media insert failed'));
+    mockPrisma.audioScriptSegment.findMany.mockResolvedValue([
+      { imageStatus: 'error', imageMediaId: null },
+    ]);
+
+    await generateAudioScriptSegmentImages({
+      episodeId: 'episode-1',
+      userId: 'user-1',
+    });
+
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    expect(deletePersistedStudyMediaByStoragePathMock).toHaveBeenCalledWith(
+      'generated/script.webp'
+    );
+    expect(mockPrisma.audioScriptSegment.update).toHaveBeenCalledWith({
+      where: { id: 'segment-1' },
+      data: {
+        imageStatus: 'error',
+        imageErrorMessage: 'media insert failed',
+      },
+    });
+  });
+
+  it('deletes both compatibility records after replacing a generated script image', async () => {
+    mockPrisma.audioScript.findFirst.mockResolvedValue(
+      buildScriptFixture({
+        segments: [
+          {
+            ...buildScriptFixture().segments[0],
+            imageStatus: 'ready',
+            imageMediaId: 'old-media',
+            imageMedia: {
+              id: 'old-media',
+              sourceKind: 'generated',
+              mediaKind: 'image',
+              storagePath: 'study-media/user-1/generated/old.webp',
+            },
+          },
+        ],
+      })
+    );
+    mockPrisma.audioScriptSegment.findMany.mockResolvedValue([
+      { imageStatus: 'ready', imageMediaId: 'new-media' },
+    ]);
+
+    await generateAudioScriptSegmentImages({
+      episodeId: 'episode-1',
+      userId: 'user-1',
+      force: true,
+    });
+
+    expect(mockPrisma.audioScriptMedia.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'old-media' },
+    });
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'old-media' },
+    });
+    expect(deletePersistedStudyMediaByStoragePathMock).toHaveBeenCalledWith(
+      'study-media/user-1/generated/old.webp'
+    );
   });
 });

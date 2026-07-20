@@ -1,6 +1,9 @@
+import express, { type NextFunction, type Request, type Response } from 'express';
+import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getAudioScriptStatusMock } = vi.hoisted(() => ({
+const { getAudioScriptMediaAccessMock, getAudioScriptStatusMock } = vi.hoisted(() => ({
+  getAudioScriptMediaAccessMock: vi.fn(),
   getAudioScriptStatusMock: vi.fn(),
 }));
 
@@ -25,6 +28,22 @@ vi.mock('../../../services/audioScriptService.js', () => ({
   updateAudioScriptSegments: vi.fn(),
 }));
 
+vi.mock('../../../services/audioScriptMediaService.js', () => ({
+  getAudioScriptMediaAccess: getAudioScriptMediaAccessMock,
+}));
+
+vi.mock('../../../middleware/auth.js', () => ({
+  requireAuth: (req: Request, _res: Response, next: NextFunction) => {
+    (req as Request & { userId: string }).userId = 'user-1';
+    next();
+  },
+  AuthRequest: class {},
+}));
+
+vi.mock('../../../middleware/studyRateLimit.js', () => ({
+  rateLimitStudyRoute: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+}));
+
 vi.mock('../../../services/usageTracker.js', () => ({
   logGeneration: vi.fn(),
 }));
@@ -33,7 +52,7 @@ vi.mock('../../../services/workerTrigger.js', () => ({
   triggerWorkerJob: vi.fn(),
 }));
 
-import {
+import scriptsRouter, {
   assertAudioScriptJobBelongsToUser,
   parseAudioScriptSegmentsPatchBody,
 } from '../../../routes/scripts.js';
@@ -41,6 +60,49 @@ import {
 describe('Scripts Route Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('GET /media/:mediaId', () => {
+    function buildApp() {
+      const app = express();
+      app.use('/api/scripts', scriptsRouter);
+      app.use(
+        (
+          error: Error & { statusCode?: number },
+          _req: Request,
+          res: Response,
+          _next: NextFunction
+        ) => {
+          res.status(error.statusCode ?? 500).json({ message: error.message });
+        }
+      );
+      return app;
+    }
+
+    it('serves only media resolved for the authenticated owner', async () => {
+      getAudioScriptMediaAccessMock.mockResolvedValue({
+        type: 'redirect',
+        redirectUrl: 'https://storage.example.com/segment.webp',
+        contentType: 'image/webp',
+        contentDisposition: 'inline',
+        filename: 'segment.webp',
+      });
+
+      const response = await request(buildApp()).get('/api/scripts/media/media-1');
+
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe('https://storage.example.com/segment.webp');
+      expect(getAudioScriptMediaAccessMock).toHaveBeenCalledWith('user-1', 'media-1');
+    });
+
+    it('returns the same hidden 404 for missing or cross-user media', async () => {
+      getAudioScriptMediaAccessMock.mockResolvedValue(null);
+
+      const response = await request(buildApp()).get('/api/scripts/media/other-media');
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe('Script media not found.');
+    });
   });
 
   describe('GET /job/:jobId ownership', () => {

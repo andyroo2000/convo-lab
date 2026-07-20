@@ -12,6 +12,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 import { assembleLessonAudio } from './audioCourseAssembler.js';
+import { getAudioScriptMediaApiPath } from './audioScriptMediaService.js';
 import { generateCoreLlmJsonText } from './coreLlmClient.js';
 import { generateJapaneseReading } from './japaneseReadingGenerator.js';
 import type { LessonScriptUnit } from './lessonScriptGenerator.js';
@@ -19,7 +20,6 @@ import { generateOpenAIImageBuffer } from './openAIClient.js';
 import { applyStudyImagePromptGuardrails } from './study/candidates/imagePromptGuardrails.js';
 import {
   deletePersistedStudyMediaByStoragePath,
-  getStudyMediaApiPath,
   normalizeFilename,
   persistStudyMediaBuffer,
   STUDY_GENERATED_IMPORT_JOB_ID,
@@ -255,23 +255,29 @@ async function createAudioScriptSegmentImageMedia(input: {
   });
 
   try {
-    const media = await prisma.studyMedia.create({
-      data: {
-        userId: input.userId,
-        sourceKind: 'generated',
-        sourceFilename: filename,
-        normalizedFilename: normalizeFilename(filename),
-        mediaKind: 'image',
-        contentType: AUDIO_SCRIPT_IMAGE_CONTENT_TYPE,
-        storagePath: persisted.storagePath,
-        publicUrl: persisted.publicUrl,
-      },
-    });
+    const id = randomUUID();
+    const sharedData = {
+      id,
+      userId: input.userId,
+      sourceKind: 'generated',
+      sourceFilename: filename,
+      normalizedFilename: normalizeFilename(filename),
+      mediaKind: 'image',
+      contentType: AUDIO_SCRIPT_IMAGE_CONTENT_TYPE,
+      storagePath: persisted.storagePath,
+      publicUrl: persisted.publicUrl,
+    };
+    const [, media] = await prisma.$transaction([
+      prisma.studyMedia.create({
+        data: sharedData,
+      }),
+      prisma.audioScriptMedia.create({ data: sharedData }),
+    ]);
 
     return {
       id: media.id,
       filename,
-      url: getStudyMediaApiPath(media.id),
+      url: getAudioScriptMediaApiPath(media.id),
       storagePath: persisted.storagePath,
     };
   } catch (error) {
@@ -281,7 +287,12 @@ async function createAudioScriptSegmentImageMedia(input: {
 }
 
 async function cleanupReplacedAudioScriptImage(input: {
-  media: { id: string; sourceKind: string; mediaKind: string; storagePath: string | null } | null;
+  media: {
+    id: string;
+    sourceKind: string;
+    mediaKind: string;
+    storagePath: string | null;
+  } | null;
   replacementImageId: string;
 }) {
   const media = input.media;
@@ -296,7 +307,10 @@ async function cleanupReplacedAudioScriptImage(input: {
   }
 
   try {
-    await prisma.studyMedia.deleteMany({ where: { id: media.id } });
+    await prisma.$transaction([
+      prisma.audioScriptMedia.deleteMany({ where: { id: media.id } }),
+      prisma.studyMedia.deleteMany({ where: { id: media.id } }),
+    ]);
     await deletePersistedStudyMediaByStoragePath(media.storagePath);
   } catch (error) {
     console.warn('[AudioScript] Unable to clean up replaced segment image.', error);
@@ -334,6 +348,11 @@ export function toAudioScriptResponse<T extends { segments?: Array<Record<string
   return {
     ...script,
     segments: script.segments?.map((segment) => {
+      const {
+        legacyImageMedia: _legacyImageMedia,
+        legacyImageMediaId: _legacyImageMediaId,
+        ...publicSegment
+      } = segment;
       const media = segment.imageMedia as
         | {
             id: string;
@@ -346,7 +365,7 @@ export function toAudioScriptResponse<T extends { segments?: Array<Record<string
         | undefined;
 
       return {
-        ...segment,
+        ...publicSegment,
         imageMedia: media
           ? {
               id: media.id,
@@ -691,6 +710,7 @@ export async function generateAudioScriptSegmentImages(params: {
           imageStatus: 'ready',
           imageErrorMessage: null,
           imageMediaId: image.id,
+          legacyImageMediaId: image.id,
           imageGeneratedAt: new Date(),
         },
       });

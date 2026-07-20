@@ -333,7 +333,7 @@ describe('PlaybackPage', () => {
       renderPlaybackPage('script-episode-123');
 
       const image = await screen.findByTestId('script-active-image');
-      expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
+      expect(image).toHaveAttribute('src', expect.stringContaining('/api/scripts/media/media-1'));
       expect(image).toHaveClass('object-contain');
       expect(screen.getByTestId('script-reader-lines')).toBeInTheDocument();
       expect(screen.getByTestId('script-button-retry-images')).toBeInTheDocument();
@@ -353,7 +353,7 @@ describe('PlaybackPage', () => {
 
       expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
       const image = screen.getByTestId('script-cinema-image');
-      expect(image).toHaveAttribute('src', expect.stringContaining('/api/study/media/media-1'));
+      expect(image).toHaveAttribute('src', expect.stringContaining('/api/scripts/media/media-1'));
       expect(image).toHaveClass('object-contain');
       expect(screen.getByTestId('script-cinema-caption')).toHaveClass('backdrop-blur-md');
       expect(screen.getByTestId('script-cinema-caption')).toHaveClass('bg-[rgba(4,16,28,0.68)]');

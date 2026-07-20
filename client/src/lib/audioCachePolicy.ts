@@ -25,11 +25,12 @@ export const isSignedGoogleStorageUrlValue = (url: string | URL, baseHref: strin
   return GOOGLE_SIGNED_URL_PARAMS.some((param) => parsed.searchParams.has(param));
 };
 
-export const isStudyMediaApiUrl = (url: string | URL, baseHref: string) => {
+export const isPrivateMediaApiUrl = (url: string | URL, baseHref: string) => {
   const parsed = toUrl(url, baseHref);
   return Boolean(
     parsed &&
-    (parsed.pathname.startsWith('/api/study/media/') ||
+    (parsed.pathname.startsWith('/api/scripts/media/') ||
+      parsed.pathname.startsWith('/api/study/media/') ||
       parsed.pathname.startsWith('/api/learning-os/study/media/') ||
       (parsed.pathname.startsWith('/api/learning-os/study/daily-audio-practice/') &&
         parsed.pathname.endsWith('/audio')))
@@ -40,7 +41,7 @@ export const shouldPreloadAudioCacheUrl = (url: string | URL, baseHref: string) 
   const parsed = toUrl(url, baseHref);
   if (!parsed) return false;
   if (isSignedGoogleStorageUrlValue(parsed, baseHref)) return false;
-  if (isStudyMediaApiUrl(parsed, baseHref)) return false;
+  if (isPrivateMediaApiUrl(parsed, baseHref)) return false;
 
   return true;
 };

@@ -10,6 +10,7 @@ import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
+import { getAudioScriptMediaAccess } from '../services/audioScriptMediaService.js';
 import {
   annotateAudioScript,
   createAudioScript,
@@ -19,6 +20,8 @@ import {
 } from '../services/audioScriptService.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
+
+import { sendPrivateMediaResponse } from './privateMediaResponse.js';
 
 const router = Router();
 const scriptIpRateLimit = createExpressRateLimit({
@@ -91,6 +94,23 @@ export async function assertAudioScriptJobBelongsToUser(job: { data?: unknown },
 
   await getAudioScriptStatus(data.episodeId, userId);
 }
+
+router.get(
+  '/media/:mediaId',
+  rateLimitStudyRoute({ key: 'script-media-read', max: 240, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const mediaAccess = await getAudioScriptMediaAccess(req.userId!, req.params.mediaId);
+      if (!mediaAccess) {
+        throw new AppError('Script media not found.', 404);
+      }
+
+      sendPrivateMediaResponse(res, mediaAccess);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 router.post(
   '/',

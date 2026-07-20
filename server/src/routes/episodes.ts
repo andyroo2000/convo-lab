@@ -6,6 +6,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
+import { toAudioScriptResponse } from '../services/audioScriptService.js';
 
 const router = Router();
 
@@ -117,7 +118,14 @@ router.get('/', async (req: AuthRequest, res, next) => {
       skip: offset,
     });
 
-    res.json(episodes);
+    res.json(
+      episodes.map((episode) => ({
+        ...episode,
+        audioScript: episode.audioScript
+          ? toAudioScriptResponse(episode.audioScript)
+          : episode.audioScript,
+      }))
+    );
   } catch (error) {
     next(error);
   }
@@ -182,7 +190,12 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
     // Metadata (furigana) is already stored in the database
     // Enable caching to improve performance
     res.set('Cache-Control', 'private, max-age=60'); // Cache for 1 minute
-    res.json(episode);
+    res.json({
+      ...episode,
+      audioScript: episode.audioScript
+        ? toAudioScriptResponse(episode.audioScript)
+        : episode.audioScript,
+    });
   } catch (error) {
     next(error);
   }

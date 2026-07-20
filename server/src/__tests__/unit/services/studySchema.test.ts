@@ -67,9 +67,10 @@ describe('study schema verification', () => {
     }
     expect(user).toMatch(/studyMedia\s+StudyMedia\[\]/);
     expect(user).not.toMatch(/studyMedia\s+StudyMedia\[\]\s+@ignore/);
+    expect(user).toMatch(/audioScriptMedia\s+AudioScriptMedia\[\]/);
   });
 
-  it('keeps StudyMedia active for Audio Script while ignoring retired Study relations', async () => {
+  it('keeps StudyMedia active only as the temporary Audio Script rollback bridge', async () => {
     const schema = await readFile(schemaPath, 'utf8');
     const studyMedia = modelBlock(schema, 'StudyMedia');
 
@@ -78,7 +79,10 @@ describe('study schema verification', () => {
     expect(studyMedia).toMatch(/promptAudioCards\s+StudyCard\[\].+@ignore/);
     expect(studyMedia).toMatch(/answerAudioCards\s+StudyCard\[\].+@ignore/);
     expect(studyMedia).toMatch(/imageCards\s+StudyCard\[\].+@ignore/);
-    expect(studyMedia).toMatch(/audioScriptSegments\s+AudioScriptSegment\[\]/);
+    expect(studyMedia).toMatch(
+      /audioScriptSegments\s+AudioScriptSegment\[\]\s+@relation\("AudioScriptSegmentLegacyImage"\)/
+    );
+    expect(modelBlock(schema, 'AudioScriptMedia')).not.toContain('@@ignore');
   });
 
   it('keeps the StudyCard(noteId) index in migration history', async () => {

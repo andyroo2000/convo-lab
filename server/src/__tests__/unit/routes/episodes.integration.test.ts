@@ -171,6 +171,23 @@ describe('Episodes Routes Integration', () => {
             sentences: [{ id: 's1', text: 'Hello' }],
             speakers: [{ id: 'sp1', name: 'Speaker 1' }],
           },
+          audioScript: {
+            id: 'script-1',
+            segments: [
+              {
+                id: 'segment-1',
+                imageMediaId: 'media-1',
+                legacyImageMediaId: 'media-1',
+                imageMedia: {
+                  id: 'media-1',
+                  mediaKind: 'image',
+                  contentType: 'image/webp',
+                  publicUrl: null,
+                  sourceFilename: 'segment.webp',
+                },
+              },
+            ],
+          },
           images: [{ id: 'img1', url: 'http://example.com/img1.jpg' }],
         },
       ];
@@ -179,7 +196,27 @@ describe('Episodes Routes Integration', () => {
 
       const response = await request(app).get('/api/episodes').expect(200);
 
-      expect(response.body).toEqual(mockEpisodes);
+      expect(response.body).toEqual([
+        {
+          ...mockEpisodes[0],
+          audioScript: {
+            ...mockEpisodes[0].audioScript,
+            segments: [
+              {
+                id: 'segment-1',
+                imageMediaId: 'media-1',
+                imageMedia: {
+                  id: 'media-1',
+                  mediaKind: 'image',
+                  contentType: 'image/webp',
+                  publicUrl: null,
+                  sourceFilename: 'segment.webp',
+                },
+              },
+            ],
+          },
+        },
+      ]);
       expect(mockPrisma.episode.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'test-user-id',

@@ -98,13 +98,13 @@ export interface AudioScriptSegment {
   imageErrorMessage?: string | null;
   imageMediaId?: string | null;
   imageGeneratedAt?: Date | string | null;
-  imageMedia?: StudyMedia | null;
+  imageMedia?: AudioScriptMedia | null;
   metadata?: LanguageMetadata;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface StudyMedia {
+export interface AudioScriptMedia {
   id: string;
   mediaKind: string;
   contentType?: string | null;
