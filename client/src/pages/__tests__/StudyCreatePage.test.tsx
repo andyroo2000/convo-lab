@@ -241,7 +241,7 @@ describe('StudyCreatePage', () => {
       previewAudio: {
         id: 'media-regenerated',
         filename: 'candidate-regenerated.mp3',
-        url: '/api/study/media/media-regenerated',
+        url: '/api/learning-os/study/media/media-regenerated',
         mediaKind: 'audio',
         source: 'generated',
       },
@@ -305,7 +305,7 @@ describe('StudyCreatePage', () => {
         previewAudio: {
           id: 'manual-audio',
           filename: 'manual-audio.mp3',
-          url: '/api/study/media/manual-audio',
+          url: '/api/learning-os/study/media/manual-audio',
           mediaKind: 'audio',
           source: 'generated',
         },
@@ -339,7 +339,7 @@ describe('StudyCreatePage', () => {
     expect(screen.getByLabelText('Image placement')).toHaveValue('none');
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
-      'http://localhost:3001/api/study/media/manual-audio'
+      'http://localhost:3001/api/learning-os/study/media/manual-audio'
     );
     const audioToRegeneratePosition = screen
       .getByRole('button', { name: 'Play generated preview audio' })
@@ -488,7 +488,7 @@ describe('StudyCreatePage', () => {
         previewAudio: {
           id: 'audio-vocab',
           filename: 'audio-vocab.mp3',
-          url: '/api/study/media/audio-vocab',
+          url: '/api/learning-os/study/media/audio-vocab',
           mediaKind: 'audio',
           source: 'generated',
         },
@@ -569,7 +569,7 @@ describe('StudyCreatePage', () => {
         previewAudio: {
           id: 'manual-audio',
           filename: 'manual-audio.mp3',
-          url: '/api/study/media/manual-audio',
+          url: '/api/learning-os/study/media/manual-audio',
           mediaKind: 'audio',
           source: 'generated',
         },
@@ -577,7 +577,7 @@ describe('StudyCreatePage', () => {
         previewImage: {
           id: 'manual-image',
           filename: 'manual-image.webp',
-          url: '/api/study/media/manual-image',
+          url: '/api/learning-os/study/media/manual-image',
           mediaKind: 'image',
           source: 'generated',
         },
@@ -591,11 +591,11 @@ describe('StudyCreatePage', () => {
 
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
-      'http://localhost:3001/api/study/media/manual-audio'
+      'http://localhost:3001/api/learning-os/study/media/manual-audio'
     );
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
-      'http://localhost:3001/api/study/media/manual-image'
+      'http://localhost:3001/api/learning-os/study/media/manual-image'
     );
   });
 
@@ -621,7 +621,7 @@ describe('StudyCreatePage', () => {
         previewImage: {
           id: 'vocab-cloze-image',
           filename: 'vocab-cloze-image.webp',
-          url: '/api/study/media/vocab-cloze-image',
+          url: '/api/learning-os/study/media/vocab-cloze-image',
           mediaKind: 'image',
           source: 'generated',
         },
@@ -639,7 +639,7 @@ describe('StudyCreatePage', () => {
     );
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
-      'http://localhost:3001/api/study/media/vocab-cloze-image'
+      'http://localhost:3001/api/learning-os/study/media/vocab-cloze-image'
     );
     expect(screen.getByRole('button', { name: 'Generate image' })).toBeEnabled();
   });
@@ -724,7 +724,7 @@ describe('StudyCreatePage', () => {
     );
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
-      'http://localhost:3001/api/study/media/media-regenerated'
+      'http://localhost:3001/api/learning-os/study/media/media-regenerated'
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
@@ -842,7 +842,7 @@ describe('StudyCreatePage', () => {
       previewImage: {
         id: 'manual-image',
         filename: 'manual-image.webp',
-        url: '/api/study/media/manual-image',
+        url: '/api/learning-os/study/media/manual-image',
         mediaKind: 'image',
         source: 'generated',
       },
@@ -881,7 +881,7 @@ describe('StudyCreatePage', () => {
     );
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
-      'http://localhost:3001/api/study/media/manual-image'
+      'http://localhost:3001/api/learning-os/study/media/manual-image'
     );
   });
 

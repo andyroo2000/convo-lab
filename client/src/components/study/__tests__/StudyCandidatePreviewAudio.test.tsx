@@ -39,7 +39,7 @@ describe('StudyCandidatePreviewAudio', () => {
         isRegenerating
         label="Play preview"
         onRegenerate={vi.fn()}
-        previewUrl="/api/study/media/audio-1"
+        previewUrl="/api/learning-os/study/media/audio-1"
         regenerateError={null}
         regenerateLabel="Regenerating..."
         staleLabel="Audio will be generated when you add this card."
@@ -49,7 +49,7 @@ describe('StudyCandidatePreviewAudio', () => {
 
     expect(screen.getByRole('button', { name: 'Play preview' })).toHaveAttribute(
       'data-url',
-      '/api/study/media/audio-1'
+      '/api/learning-os/study/media/audio-1'
     );
     expect(screen.getByRole('status', { name: 'Regenerating...' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Regenerating...' })).toBeDisabled();

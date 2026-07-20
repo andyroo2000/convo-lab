@@ -14,7 +14,6 @@ const signedGcsUrl =
 describe('audioCachePolicy', () => {
   it('excludes authenticated media API URLs from client warming but allows element preloading', () => {
     expect(normalizeWarmableAudioUrls(['/api/scripts/media/123'], APP_ORIGIN)).toEqual([]);
-    expect(normalizeWarmableAudioUrls(['/api/study/media/123'], APP_ORIGIN)).toEqual([]);
     expect(
       normalizeWarmableAudioUrls(
         ['/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW'],
@@ -29,8 +28,20 @@ describe('audioCachePolicy', () => {
         APP_ORIGIN
       )
     ).toEqual([]);
-    expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, true)).toBe('auto');
-    expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, false)).toBe('metadata');
+    expect(
+      getAudioCachePreloadMode(
+        '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+        APP_ORIGIN,
+        true
+      )
+    ).toBe('auto');
+    expect(
+      getAudioCachePreloadMode(
+        '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+        APP_ORIGIN,
+        false
+      )
+    ).toBe('metadata');
   });
 
   it('keeps static same-origin audio URLs warmable', () => {
@@ -53,13 +64,6 @@ describe('audioCachePolicy', () => {
       isServiceWorkerAudioRoute({
         request: new Request(`${APP_ORIGIN}/api/scripts/media/123`),
         url: new URL(`${APP_ORIGIN}/api/scripts/media/123`),
-        sameOrigin: true,
-      })
-    ).toBe(false);
-    expect(
-      isServiceWorkerAudioRoute({
-        request: new Request(`${APP_ORIGIN}/api/study/media/123`),
-        url: new URL(`${APP_ORIGIN}/api/study/media/123`),
         sameOrigin: true,
       })
     ).toBe(false);
@@ -105,7 +109,11 @@ describe('audioCachePolicy', () => {
   it('normalizes service worker audio messages with study media excluded', () => {
     expect(
       normalizeServiceWorkerAudioMessageUrls(
-        ['/api/study/media/123', '/audio/foo.mp3', '/audio/foo.mp3'],
+        [
+          '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+          '/audio/foo.mp3',
+          '/audio/foo.mp3',
+        ],
         APP_ORIGIN
       )
     ).toEqual([`${APP_ORIGIN}/audio/foo.mp3`]);
