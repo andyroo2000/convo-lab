@@ -15,153 +15,18 @@ import { generateCoreLlmText } from '../services/coreLlmClient.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
+import { listLearningOsCourses, showLearningOsCourse } from './learningOs/courses.js';
+
 const router = Router();
 
 // All course routes require authentication
 router.use(requireAuth);
 
 // Get all courses for current user (demo users see admin's content)
-router.get('/', async (req: AuthRequest, res, next) => {
-  try {
-    const isLibraryMode = req.query.library === 'true';
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
-    const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
-    const statusFilter = req.query.status as string | undefined;
-
-    // Get the appropriate user ID (demo users see admin's content)
-    const queryUserId = await getEffectiveUserId(req);
-
-    // Build status filter: by default hide drafts for non-admin users
-    let isAdmin = req.role === 'admin';
-    if (req.role === undefined && req.userId) {
-      const roleRecord = await prisma.user.findUnique({
-        where: { id: req.userId },
-        select: { role: true },
-      });
-      isAdmin = roleRecord?.role === 'admin';
-    }
-    let statusWhere: Prisma.StringFilter | undefined;
-    if (statusFilter === 'all' && isAdmin) {
-      // Admin requesting all statuses - no filter
-      statusWhere = undefined;
-    } else if (statusFilter === 'draft' && isAdmin) {
-      statusWhere = { equals: 'draft' };
-    } else {
-      // Default: hide drafts from normal library view
-      statusWhere = { not: 'draft' };
-    }
-
-    // Library mode: Return minimal data for card display
-    if (isLibraryMode) {
-      const courses = await prisma.course.findMany({
-        where: { userId: queryUserId, ...(statusWhere ? { status: statusWhere } : {}) },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          targetLanguage: true,
-          nativeLanguage: true,
-          status: true,
-          isSampleContent: true,
-          jlptLevel: true,
-          approxDurationSeconds: true,
-          createdAt: true,
-          updatedAt: true,
-          courseEpisodes: {
-            take: 1,
-            orderBy: { order: 'asc' },
-            select: {
-              episode: {
-                select: {
-                  dialogue: {
-                    select: {
-                      sentences: {
-                        select: {
-                          id: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              coreItems: true,
-            },
-          },
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: limit,
-        skip: offset,
-      });
-
-      res.json(courses);
-      return;
-    }
-
-    // Full mode: Return complete data with coreItems and episodes
-    const courses = await prisma.course.findMany({
-      where: { userId: queryUserId, ...(statusWhere ? { status: statusWhere } : {}) },
-      include: {
-        coreItems: true,
-        courseEpisodes: {
-          orderBy: { order: 'asc' },
-          include: {
-            episode: {
-              select: {
-                id: true,
-                title: true,
-                targetLanguage: true,
-                nativeLanguage: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: limit,
-      skip: offset,
-    });
-
-    res.json(courses);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/', listLearningOsCourses);
 
 // Get single course with full details (demo users can view admin's courses)
-router.get('/:id', async (req: AuthRequest, res, next) => {
-  try {
-    // Get the appropriate user ID (demo users see admin's content)
-    const queryUserId = await getEffectiveUserId(req);
-
-    const course = await prisma.course.findFirst({
-      where: {
-        id: req.params.id,
-        userId: queryUserId,
-      },
-      include: {
-        coreItems: true,
-        courseEpisodes: {
-          orderBy: { order: 'asc' },
-          include: {
-            episode: true,
-          },
-        },
-      },
-    });
-
-    if (!course) {
-      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
-    }
-
-    res.json(course);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/:id', showLearningOsCourse);
 
 // Create new course from episode(s) (blocked for demo users)
 router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {

@@ -729,6 +729,43 @@ jobs:
               fi
               echo "Episode Learning OS read smoke checks passed."
 
+              course_list="$(fetch_read_route \
+                'Course list Learning OS' \
+                '/api/courses?library=true&limit=1&offset=0')"
+              course_id="$(printf '%s' "$course_list" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const courses = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (!Array.isArray(courses)) process.exit(1);
+                  if (courses.length === 0) process.exit(0);
+                  const id = courses[0]?.id;
+                  if (
+                    typeof id !== "string" ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+                  ) process.exit(1);
+                  process.stdout.write(id);
+                ')"
+              if [ -n "$course_id" ]; then
+                course_detail="$(fetch_read_route \
+                  'Course detail Learning OS' \
+                  "/api/courses/$course_id")"
+                printf '%s' "$course_detail" | docker exec -i \
+                  -e EXPECTED_COURSE_ID="$course_id" \
+                  "convolab-server-$active_color" node --input-type=module --eval='
+                    const chunks = [];
+                    for await (const chunk of process.stdin) chunks.push(chunk);
+                    const course = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                    if (
+                      course === null ||
+                      typeof course !== "object" ||
+                      Array.isArray(course) ||
+                      course.id !== process.env.EXPECTED_COURSE_ID
+                    ) process.exit(1);
+                  '
+              fi
+              echo "Course Learning OS read smoke checks passed."
+
               daily_audio_list="$(
                 fetch_read_route \
                   'Daily Audio practice lookup' \

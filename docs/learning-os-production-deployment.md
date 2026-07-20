@@ -2,7 +2,7 @@
 
 Learning OS runs as an internal-only API and worker on ConvoLab's production
 Docker network. ConvoLab remains the public edge, authenticates the browser,
-and proxies explicitly allowlisted Study and Episode read routes to Learning OS.
+and proxies explicitly allowlisted Study, Episode, and Course read routes to Learning OS.
 
 The Study cutover is complete. Production routing is not controlled by database
 feature flags, and the deployment workflow does not compare against or restore
@@ -26,13 +26,13 @@ The workflow:
 
 1. Validates the immutable image tag and smoke account.
 2. Runs Learning OS migrations against the existing copied database.
-3. Refreshes the read-only Episode compatibility tables from the ConvoLab
+3. Refreshes the read-only Episode and Course compatibility tables from the ConvoLab
    production database.
 4. Rotates the read/write-scoped proxy token.
 5. Starts or reconciles the private API and worker.
 6. Recreates the active ConvoLab web color with the new token.
 7. Verifies the active container received that token, then prunes older tokens.
-8. Runs authenticated read, write, import, media, Daily Audio, and Episode smoke checks
+8. Runs authenticated read, write, import, media, Daily Audio, Episode, and Course smoke checks
    through ConvoLab's public proxy.
 9. Verifies public ConvoLab health.
 
@@ -56,6 +56,7 @@ Every deployment verifies:
   cleanup.
 - Existing Daily Audio list, detail, status, and authenticated audio streaming.
 - Episode library list and, when data exists, one Episode detail response.
+- Course library list and, when data exists, one Course detail response.
 - A disposable import lifecycle with temporary users and a representative
   `.colpkg`.
 

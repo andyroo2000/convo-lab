@@ -154,7 +154,7 @@ test('the production workflow verifies the always-on Study API without rollout f
   assert.ok(migration > credentialCheck);
 });
 
-test('the production workflow refreshes and verifies Learning OS Episode reads', async () => {
+test('the production workflow refreshes and verifies Learning OS content reads', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
     'utf8'
@@ -168,6 +168,10 @@ test('the production workflow refreshes and verifies Learning OS Episode reads',
     "'/api/episodes?library=true&limit=1&offset=0'",
     "'Episode detail Learning OS'",
     'Episode Learning OS read smoke checks passed.',
+    "'Course list Learning OS'",
+    "'/api/courses?library=true&limit=1&offset=0'",
+    "'Course detail Learning OS'",
+    'Course Learning OS read smoke checks passed.',
   ]) {
     assert.ok(workflow.includes(requiredContract), requiredContract);
   }
@@ -176,11 +180,13 @@ test('the production workflow refreshes and verifies Learning OS Episode reads',
   const episodeImport = workflow.indexOf('php artisan content:import-convolab-episodes');
   const tokenCutover = workflow.indexOf('PROXY_TOKEN_CUTOVER_STARTED=true');
   const episodeSmoke = workflow.indexOf('Episode Learning OS read smoke checks passed.');
+  const courseSmoke = workflow.indexOf('Course Learning OS read smoke checks passed.');
 
   assert.ok(migration >= 0);
   assert.ok(migration < episodeImport);
   assert.ok(episodeImport < tokenCutover);
   assert.ok(tokenCutover < episodeSmoke);
+  assert.ok(episodeSmoke < courseSmoke);
 });
 
 test('the production stack wires and smokes Learning OS static media', async () => {
