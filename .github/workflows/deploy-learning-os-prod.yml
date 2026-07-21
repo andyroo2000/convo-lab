@@ -351,6 +351,11 @@ jobs:
               --allow-production \
               --production-truncate-confirmation="TRUNCATE $TARGET_DB" < /dev/null
 
+            $COMPOSE run --rm -T --no-deps learning-os \
+              php artisan admin:sync-convolab \
+              --source-database="$source_db" \
+              --allow-production < /dev/null
+
             proxy_token_output="$($COMPOSE run --rm -T --no-deps \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
               learning-os php artisan tinker --execute='
@@ -361,6 +366,7 @@ jobs:
                   "feature-flags:read",
                   "feature-flags:write",
                   "content:write",
+                  "admin:read",
                 ]);
                 echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
                 echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
@@ -482,6 +488,20 @@ jobs:
                 $context,
               );
               if ($featureFlags === false || ! is_array(json_decode($featureFlags, true))) {
+                exit(1);
+              }
+
+              $adminStats = file_get_contents(
+                "http://127.0.0.1:8080/api/convolab/admin/stats",
+                false,
+                $context,
+              );
+              $decodedAdminStats = json_decode($adminStats ?: "", true);
+              if (
+                $adminStats === false
+                || ! is_array($decodedAdminStats)
+                || ! isset($decodedAdminStats["inviteCodes"])
+              ) {
                 exit(1);
               }
 
@@ -1435,6 +1455,43 @@ jobs:
                 cat "$response_file"
                 rm -f "$response_file"
               }
+
+              admin_stats="$(fetch_read_route 'Admin stats Learning OS' '/api/admin/stats')"
+              printf '%s' "$admin_stats" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const stats = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    !Number.isInteger(stats?.users) ||
+                    !Number.isInteger(stats?.episodes) ||
+                    !Number.isInteger(stats?.courses) ||
+                    !Number.isInteger(stats?.inviteCodes?.total)
+                  ) process.exit(1);
+                '
+              admin_users="$(fetch_read_route 'Admin users Learning OS' '/api/admin/users?limit=1')"
+              admin_user_id="$(printf '%s' "$admin_users" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  const id = response?.users?.[0]?.id;
+                  if (
+                    typeof id !== "string" ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+                  ) process.exit(1);
+                  process.stdout.write(id);
+                ')"
+              test -n "$admin_user_id"
+              fetch_read_route \
+                'Admin user info Learning OS' \
+                "/api/admin/users/$admin_user_id/info" \
+                > /dev/null
+              fetch_read_route \
+                'Admin invite codes Learning OS' \
+                '/api/admin/invite-codes?limit=1' \
+                > /dev/null
+              echo "Admin Learning OS read smoke checks passed."
 
               fetch_read_route \
                 'Overview Learning OS' \

@@ -34,6 +34,12 @@ const mockPrisma = vi.hoisted(() => ({
   episode: { count: vi.fn() },
   course: { count: vi.fn() },
 }));
+const mockAdminReads = vi.hoisted(() => ({
+  listInviteCodes: vi.fn(),
+  listUsers: vi.fn(),
+  showStats: vi.fn(),
+  showUser: vi.fn(),
+}));
 
 const mockPronunciationDictionary = {
   keepKanji: ['橋'],
@@ -57,6 +63,12 @@ const mockUpdatePronunciationDictionary = vi.hoisted(() =>
   )
 );
 vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
+vi.mock('../../../routes/learningOs/admin.js', () => ({
+  listLearningOsAdminInviteCodes: mockAdminReads.listInviteCodes,
+  listLearningOsAdminUsers: mockAdminReads.listUsers,
+  showLearningOsAdminStats: mockAdminReads.showStats,
+  showLearningOsAdminUser: mockAdminReads.showUser,
+}));
 
 // Mock auth middleware to inject test user
 vi.mock('../../../middleware/auth.js', () => ({
@@ -111,6 +123,31 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockAdminReads.listInviteCodes.mockImplementation((_req, res) => res.json([]));
+    mockAdminReads.listUsers.mockImplementation((_req, res) =>
+      res.json({ users: [], pagination: { page: 1, limit: 50, total: 0, pages: 1 } })
+    );
+    mockAdminReads.showStats.mockImplementation((_req, res) =>
+      res.json({
+        users: 42,
+        episodes: 150,
+        courses: 25,
+        inviteCodes: { total: 100, used: 60, available: 40 },
+      })
+    );
+    mockAdminReads.showUser.mockImplementation((req, res, next) => {
+      if (req.params.id === 'non-existent') {
+        next(Object.assign(new Error('User not found'), { statusCode: 404 }));
+        return;
+      }
+      res.json({
+        id: req.params.id,
+        email: 'target@example.com',
+        name: 'Target User',
+        displayName: 'TUser',
+        role: 'user',
+      });
+    });
 
     // Create Express app with admin routes
     app = express();
@@ -308,33 +345,21 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
   describe('GET /users - Search and pagination branches', () => {
     it('should handle search query', async () => {
-      mockPrisma.user.findMany.mockResolvedValue([]);
-      mockPrisma.user.count.mockResolvedValue(0);
-
       const response = await request(app).get('/admin/users?search=john');
 
       expect(response.status).toBe(200);
-      expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            OR: expect.arrayContaining([{ email: { contains: 'john', mode: 'insensitive' } }]),
-          },
-        })
+      expect(mockAdminReads.listUsers).toHaveBeenCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ search: 'john' }) }),
+        expect.anything(),
+        expect.anything()
       );
     });
 
     it('should handle no search query (empty where clause)', async () => {
-      mockPrisma.user.findMany.mockResolvedValue([]);
-      mockPrisma.user.count.mockResolvedValue(0);
-
       const response = await request(app).get('/admin/users');
 
       expect(response.status).toBe(200);
-      expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {},
-        })
-      );
+      expect(mockAdminReads.listUsers).toHaveBeenCalledOnce();
     });
   });
 
@@ -388,13 +413,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
   describe('GET /stats - Analytics dashboard', () => {
     it('should return analytics counts', async () => {
-      mockPrisma.user.count.mockResolvedValue(42);
-      mockPrisma.episode.count.mockResolvedValue(150);
-      mockPrisma.course.count.mockResolvedValue(25);
-      mockPrisma.inviteCode.count
-        .mockResolvedValueOnce(100) // total
-        .mockResolvedValueOnce(60); // used
-
       const response = await request(app).get('/admin/stats');
 
       expect(response.status).toBe(200);
@@ -411,10 +429,14 @@ describe('Admin Routes - Critical Branch Coverage', () => {
     });
 
     it('should handle zero counts', async () => {
-      mockPrisma.user.count.mockResolvedValue(0);
-      mockPrisma.episode.count.mockResolvedValue(0);
-      mockPrisma.course.count.mockResolvedValue(0);
-      mockPrisma.inviteCode.count.mockResolvedValue(0);
+      mockAdminReads.showStats.mockImplementationOnce((_req, res) =>
+        res.json({
+          users: 0,
+          episodes: 0,
+          courses: 0,
+          inviteCodes: { total: 0, used: 0, available: 0 },
+        })
+      );
 
       const response = await request(app).get('/admin/stats');
 
@@ -426,14 +448,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
   describe('GET /users/:id/info - User impersonation info', () => {
     it('should return user info for impersonation', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'target-user-id',
-        email: 'target@example.com',
-        name: 'Target User',
-        displayName: 'TUser',
-        role: 'user',
-      });
-
       const response = await request(app).get('/admin/users/target-user-id/info');
 
       expect(response.status).toBe(200);
@@ -447,8 +461,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
     });
 
     it('should return 404 for non-existent user', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-
       const response = await request(app).get('/admin/users/non-existent/info');
 
       expect(response.status).toBe(404);

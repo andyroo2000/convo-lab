@@ -157,6 +157,29 @@ describe('backend migration inventory', () => {
     );
   });
 
+  it('tracks migrated admin reads separately from remaining Express writes', () => {
+    for (const [method, routePath] of [
+      ['GET', '/api/admin/stats'],
+      ['GET', '/api/admin/users'],
+      ['GET', '/api/admin/users/11111111-1111-4111-8111-111111111111/info'],
+      ['GET', '/api/admin/invite-codes'],
+    ]) {
+      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
+        surface: { id: 'admin', runtimeOwner: 'learning-os-proxy' },
+      });
+    }
+
+    for (const [method, routePath] of [
+      ['DELETE', '/api/admin/users/11111111-1111-4111-8111-111111111111'],
+      ['POST', '/api/admin/invite-codes'],
+      ['DELETE', '/api/admin/invite-codes/22222222-2222-4222-8222-222222222222'],
+    ]) {
+      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
+        surface: { id: 'admin', runtimeOwner: 'express' },
+      });
+    }
+  });
+
   it('matches every method through the Learning OS Study proxy wildcard', () => {
     expect(
       findBackendMigrationRoute('PATCH', '/api/learning-os/study/cards/card-123')

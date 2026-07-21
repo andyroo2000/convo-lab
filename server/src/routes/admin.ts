@@ -20,6 +20,13 @@ import {
   updateJapanesePronunciationDictionary,
 } from '../services/japanesePronunciationOverrides.js';
 
+import {
+  listLearningOsAdminInviteCodes,
+  listLearningOsAdminUsers,
+  showLearningOsAdminStats,
+  showLearningOsAdminUser,
+} from './learningOs/admin.js';
+
 const router = Router();
 const MAX_KEEP_KANJI_ENTRIES = 500;
 const MAX_FORCE_KANA_ENTRIES = 500;
@@ -45,90 +52,10 @@ const upload = multer({
 router.use(requireAuth, requireAdmin);
 
 // Get analytics stats
-router.get('/stats', async (_req: AuthRequest, res, next) => {
-  try {
-    const [userCount, episodeCount, courseCount, inviteCodeCount, usedInviteCodeCount] =
-      await Promise.all([
-        prisma.user.count(),
-        prisma.episode.count(),
-        prisma.course.count(),
-        prisma.inviteCode.count(),
-        prisma.inviteCode.count({ where: { usedBy: { not: null } } }),
-      ]);
-
-    res.json({
-      users: userCount,
-      episodes: episodeCount,
-      courses: courseCount,
-      inviteCodes: {
-        total: inviteCodeCount,
-        used: usedInviteCodeCount,
-        available: inviteCodeCount - usedInviteCodeCount,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/stats', showLearningOsAdminStats);
 
 // Get all users with pagination
-router.get('/users', async (req: AuthRequest, res, next) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
-    const skip = (page - 1) * limit;
-    const search = req.query.search as string;
-
-    const where = search
-      ? {
-          OR: [
-            { email: { contains: search, mode: 'insensitive' as const } },
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { displayName: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
-
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          displayName: true,
-          avatarColor: true,
-          avatarUrl: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              episodes: true,
-              courses: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      prisma.user.count({ where }),
-    ]);
-
-    res.json({
-      users,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/users', listLearningOsAdminUsers);
 
 // Delete user
 router.delete('/users/:id', async (req: AuthRequest, res, next) => {
@@ -167,57 +94,10 @@ router.delete('/users/:id', async (req: AuthRequest, res, next) => {
 });
 
 // Get user info for impersonation
-router.get('/users/:id/info', async (req: AuthRequest, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        displayName: true,
-        role: true,
-        avatarColor: true,
-        avatarUrl: true,
-        preferredStudyLanguage: true,
-        preferredNativeLanguage: true,
-        onboardingCompleted: true,
-      },
-    });
-
-    if (!user) {
-      throw new AppError('User not found', 404);
-    }
-
-    res.json(user);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/users/:id/info', showLearningOsAdminUser);
 
 // Get all invite codes
-router.get('/invite-codes', async (_req: AuthRequest, res, next) => {
-  try {
-    const inviteCodes = await prisma.inviteCode.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    res.json(inviteCodes);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/invite-codes', listLearningOsAdminInviteCodes);
 
 // Create new invite code
 router.post('/invite-codes', async (req: AuthRequest, res, next) => {

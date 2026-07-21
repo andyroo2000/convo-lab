@@ -38,9 +38,21 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
   },
 }));
+const mockAdminReads = vi.hoisted(() => ({
+  listInviteCodes: vi.fn(),
+  listUsers: vi.fn(),
+  showStats: vi.fn(),
+  showUser: vi.fn(),
+}));
 
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
+}));
+vi.mock('../../../routes/learningOs/admin.js', () => ({
+  listLearningOsAdminInviteCodes: mockAdminReads.listInviteCodes,
+  listLearningOsAdminUsers: mockAdminReads.listUsers,
+  showLearningOsAdminStats: mockAdminReads.showStats,
+  showLearningOsAdminUser: mockAdminReads.showUser,
 }));
 
 vi.mock('../../../services/japanesePronunciationOverrides.js', () => ({
@@ -57,6 +69,19 @@ describe('Admin Security Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAdminReads.listInviteCodes.mockImplementation((_req, res) => res.json([]));
+    mockAdminReads.listUsers.mockImplementation((_req, res) =>
+      res.json({ users: [], pagination: { page: 1, limit: 50, total: 0, pages: 1 } })
+    );
+    mockAdminReads.showStats.mockImplementation((_req, res) =>
+      res.json({
+        users: 10,
+        episodes: 50,
+        courses: 20,
+        inviteCodes: { total: 15, used: 8, available: 7 },
+      })
+    );
+    mockAdminReads.showUser.mockImplementation((_req, res) => res.json({}));
     currentUserId = undefined; // Reset user ID before each test
     app = express();
     app.use(expressJson());
@@ -89,14 +114,6 @@ describe('Admin Security Tests', () => {
         email: 'admin@example.com',
         role: 'admin',
       });
-
-      // Mock stats data
-      mockPrisma.user.count.mockResolvedValue(10);
-      mockPrisma.episode.count.mockResolvedValue(50);
-      mockPrisma.course.count.mockResolvedValue(20);
-      mockPrisma.inviteCode.count
-        .mockResolvedValueOnce(15) // total
-        .mockResolvedValueOnce(8); // used
 
       const response = await request(app).get('/api/admin/stats').expect(200);
 
@@ -200,24 +217,12 @@ describe('Admin Security Tests', () => {
         role: 'admin',
       });
 
-      mockPrisma.user.findMany.mockResolvedValue([
-        {
-          id: 'user-1',
-          email: 'user1@example.com',
-          name: 'User One',
-          role: 'user',
-          createdAt: new Date(),
-        },
-      ]);
-
-      mockPrisma.user.count.mockResolvedValue(1);
-
       const response = await request(app).get('/api/admin/users').expect(200);
 
       expect(response.body).toHaveProperty('users');
       expect(response.body).toHaveProperty('pagination');
       expect(response.body.pagination).toHaveProperty('total');
-      expect(mockPrisma.user.findMany).toHaveBeenCalled();
+      expect(mockAdminReads.listUsers).toHaveBeenCalled();
     });
   });
 
@@ -230,11 +235,6 @@ describe('Admin Security Tests', () => {
         email: 'admin@example.com',
         role: 'admin',
       });
-
-      mockPrisma.user.count.mockResolvedValue(0);
-      mockPrisma.episode.count.mockResolvedValue(0);
-      mockPrisma.course.count.mockResolvedValue(0);
-      mockPrisma.inviteCode.count.mockResolvedValue(0);
 
       await request(app).get('/api/admin/stats').expect(200);
 
