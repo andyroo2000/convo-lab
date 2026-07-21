@@ -37,6 +37,12 @@ const loginRateLimit = createExpressRateLimit({
     return `${ipKeyGenerator(req.ip ?? 'unknown')}:${email}`;
   },
 });
+const currentUserIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const currentUserRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 120,
@@ -351,46 +357,52 @@ router.get('/csrf', (req, res) => {
 });
 
 // Get current user
-router.get('/me', requireAuth, currentUserRateLimit, async (req: AuthRequest, res, next) => {
-  try {
-    if (isLearningOsAuthProxyEnabled()) {
-      const account = await getLearningOsCurrentAccount(req.userId!);
+router.get(
+  '/me',
+  currentUserIpRateLimit,
+  requireAuth,
+  currentUserRateLimit,
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (isLearningOsAuthProxyEnabled()) {
+        const account = await getLearningOsCurrentAccount(req.userId!);
+        issueCsrfTokenCookie(req, res, 'lax');
+        return res.json(account);
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          displayName: true,
+          avatarColor: true,
+          role: true,
+          preferredStudyLanguage: true,
+          preferredNativeLanguage: true,
+          proficiencyLevel: true,
+          onboardingCompleted: true,
+          seenSampleContentGuide: true,
+          seenCustomContentGuide: true,
+          emailVerified: true,
+          emailVerifiedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (!user) {
+        throw new AppError(i18next.t('server:auth.userNotFound'), 404);
+      }
+
       issueCsrfTokenCookie(req, res, 'lax');
-      return res.json(account);
+      res.json(user);
+    } catch (error) {
+      next(error);
     }
-
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        displayName: true,
-        avatarColor: true,
-        role: true,
-        preferredStudyLanguage: true,
-        preferredNativeLanguage: true,
-        proficiencyLevel: true,
-        onboardingCompleted: true,
-        seenSampleContentGuide: true,
-        seenCustomContentGuide: true,
-        emailVerified: true,
-        emailVerifiedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!user) {
-      throw new AppError(i18next.t('server:auth.userNotFound'), 404);
-    }
-
-    issueCsrfTokenCookie(req, res, 'lax');
-    res.json(user);
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // Update user profile
 router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
