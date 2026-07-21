@@ -448,6 +448,7 @@ test('generation proxies activate only through rollback-safe production rehearsa
     'audio_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
     'audio_generation_smoke_dialogue_id="$(cat /proc/sys/kernel/random/uuid)"',
     'audio_generation_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"',
+    'audio_generation_smoke_path="content-episodes/$audio_generation_smoke_episode_id/audio-1-1-0.mp3"',
     'audio_generation_smoke_inserted=true',
     'DB::table("content_audio_generation_jobs")->insert',
     '"state" => App\\Domain\\Content\\Support\\ContentAudioGeneration::STATE_COMPLETED',

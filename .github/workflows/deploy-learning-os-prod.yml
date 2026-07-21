@@ -1685,7 +1685,7 @@ jobs:
                 echo "Unable to generate valid audio-generation smoke UUIDs." >&2
                 exit 1
               fi
-              audio_generation_smoke_path="content-episodes/$audio_generation_smoke_episode_id/audio-1-1.0.mp3"
+              audio_generation_smoke_path="content-episodes/$audio_generation_smoke_episode_id/audio-1-1-0.mp3"
               audio_generation_smoke_inserted=true
               # Exercise polling and authenticated byte streaming without dispatching a
               # paid Fish Audio request. Public generation and polling share one switch.
