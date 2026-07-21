@@ -150,6 +150,7 @@ describe('Verification Routes', () => {
       const response = await withCsrf(request(app).post('/api/verification/send')).expect(200);
 
       expect(response.body).toEqual({ message: 'Verification email sent' });
+      expect(response.headers['ratelimit-policy']).toBeDefined();
       expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
         mockUser.id,
         mockUser.email,
@@ -218,6 +219,7 @@ describe('Verification Routes', () => {
         message: 'Email verified successfully',
         email: 'test@example.com',
       });
+      expect(response.headers['ratelimit-policy']).toBeDefined();
       expect(mockLearningOsAuth.verifyLearningOsEmail).toHaveBeenCalledWith('a'.repeat(64));
       expect(mockEmailService.verifyEmailToken).not.toHaveBeenCalled();
       expect(mockEmailService.sendWelcomeEmail).not.toHaveBeenCalled();

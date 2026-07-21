@@ -1,6 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
+import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
 import { isLearningOsVerificationProxyEnabled } from '../config/authRouting.js';
 import { prisma } from '../db/client.js';
@@ -22,48 +23,66 @@ import {
 } from '../services/learningOsAuthProxy.js';
 
 const router = Router();
-
-// Resend verification email
-router.post('/verification/send', requireAuth, async (req: AuthRequest, res, next) => {
-  try {
-    if (isLearningOsVerificationProxyEnabled()) {
-      await sendLearningOsVerificationEmail(req.userId!, {
-        userId: req.userId!,
-        email: req.email,
-        role: req.role,
-      });
-      return res.json({ message: i18next.t('server:verification.emailSent') });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        emailVerified: true,
-      },
-    });
-
-    if (!user) {
-      throw new AppError('User not found', 404);
-    }
-
-    if (user.emailVerified) {
-      throw new AppError(i18next.t('server:verification.emailAlreadyVerified'), 400);
-    }
-
-    // Send verification email
-    await sendVerificationEmail(user.id, user.email, user.name);
-
-    res.json({ message: i18next.t('server:verification.emailSent') });
-  } catch (error) {
-    next(error);
-  }
+const verificationSendRateLimit = createExpressRateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
+});
+const verificationConsumeRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
+// Resend verification email
+router.post(
+  '/verification/send',
+  requireAuth,
+  verificationSendRateLimit,
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (isLearningOsVerificationProxyEnabled()) {
+        await sendLearningOsVerificationEmail(req.userId!, {
+          userId: req.userId!,
+          email: req.email,
+          role: req.role,
+        });
+        return res.json({ message: i18next.t('server:verification.emailSent') });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          emailVerified: true,
+        },
+      });
+
+      if (!user) {
+        throw new AppError('User not found', 404);
+      }
+
+      if (user.emailVerified) {
+        throw new AppError(i18next.t('server:verification.emailAlreadyVerified'), 400);
+      }
+
+      // Send verification email
+      await sendVerificationEmail(user.id, user.email, user.name);
+
+      res.json({ message: i18next.t('server:verification.emailSent') });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // Verify email with token
-router.get('/verification/:token', async (req, res, next) => {
+router.get('/verification/:token', verificationConsumeRateLimit, async (req, res, next) => {
   try {
     const { token } = req.params;
 
