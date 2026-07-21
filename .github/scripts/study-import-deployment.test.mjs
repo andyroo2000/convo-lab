@@ -347,7 +347,7 @@ test('the production stack wires and smokes Learning OS static media', async () 
   }
 });
 
-test('generation proxies activate only through rollback-safe production rehearsals', async () => {
+test('route proxies activate only through rollback-safe production rehearsals', async () => {
   const [localCompose, stageCompose, productionCompose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
@@ -365,6 +365,7 @@ test('generation proxies activate only through rollback-safe production rehearsa
   );
   assert.match(localCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_SCRIPT_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(localCompose, /LEARNING_OS_AUTH_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(
     stageCompose,
     /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
@@ -375,6 +376,7 @@ test('generation proxies activate only through rollback-safe production rehearsa
   );
   assert.match(stageCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_SCRIPT_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(stageCompose, /LEARNING_OS_AUTH_PROXY_ENABLED:\s*['"]false['"]/);
   assert.ok(
     productionCompose.includes(
       'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
@@ -395,45 +397,62 @@ test('generation proxies activate only through rollback-safe production rehearsa
       'LEARNING_OS_SCRIPT_PROXY_ENABLED: ${LEARNING_OS_SCRIPT_PROXY_ENABLED:-false}'
     )
   );
+  assert.ok(
+    productionCompose.includes(
+      'LEARNING_OS_AUTH_PROXY_ENABLED: ${LEARNING_OS_AUTH_PROXY_ENABLED:-false}'
+    )
+  );
 
   for (const requiredContract of [
     '"content:write"',
-    'GENERATION_PROXY_CUTOVER_STARTED=false',
+    'ROUTE_PROXY_CUTOVER_STARTED=false',
     'PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false',
     'PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED=false',
     'PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED=false',
     'PREVIOUS_SCRIPT_PROXY_ENABLED=false',
+    'PREVIOUS_AUTH_PROXY_ENABLED=false',
     'previous_course_generation_proxy="$(sed -n',
     'previous_dialogue_generation_proxy="$(sed -n',
     'previous_audio_generation_proxy="$(sed -n',
     'previous_script_proxy="$(sed -n',
-    'Rolling back the Learning OS generation proxies.',
+    'Rolling back the Learning OS route proxies.',
     'course_generation_proxy_restore_ok=true',
     'dialogue_generation_proxy_restore_ok=true',
     'audio_generation_proxy_restore_ok=true',
     'script_proxy_restore_ok=true',
+    'auth_proxy_restore_ok=true',
     '|| course_generation_proxy_restore_ok=false',
     '|| dialogue_generation_proxy_restore_ok=false',
     '|| audio_generation_proxy_restore_ok=false',
     '|| script_proxy_restore_ok=false',
+    '|| auth_proxy_restore_ok=false',
     'if [ "$course_generation_proxy_restore_ok" != true ]',
     '|| [ "$dialogue_generation_proxy_restore_ok" != true ]',
     '|| [ "$audio_generation_proxy_restore_ok" != true ]',
     '|| [ "$script_proxy_restore_ok" != true ]',
-    '::error::Failed to restore the generation proxy environment values.',
-    '::error::Failed to recreate the production server while rolling back generation proxies.',
-    '::error::The production server was unhealthy after rolling back generation proxies.',
-    '::error::The production server retained a generation proxy after rollback.',
+    '|| [ "$auth_proxy_restore_ok" != true ]',
+    '::error::Failed to restore the route proxy environment values.',
+    '::error::Failed to recreate the production server while rolling back route proxies.',
+    '::error::The production server was unhealthy after rolling back route proxies.',
+    '::error::The production server retained a route proxy after rollback.',
     'if [ "$cleanup_failed" = true ]; then',
     'upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true',
+    'upsert_env LEARNING_OS_AUTH_PROXY_ENABLED true',
     "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
     'test "$active_course_generation_proxy" = true',
     'test "$active_dialogue_generation_proxy" = true',
     'test "$active_audio_generation_proxy" = true',
     'test "$active_script_proxy" = true',
+    'test "$active_auth_proxy" = true',
+    '"auth:login"',
+    '"auth:read"',
+    "fetch_read_route 'Auth current user Learning OS' '/api/auth/me'",
+    '-e EXPECTED_USER_ROLE="$user_role"',
+    'account.role !== process.env.EXPECTED_USER_ROLE',
+    'Auth current-user Learning OS proxy smoke check passed.',
     'script_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
     'script_smoke_inserted=true',
     'cleanup_script_smoke best-effort',
@@ -514,7 +533,7 @@ test('generation proxies activate only through rollback-safe production rehearsa
     workflow.indexOf('Course generation Learning OS write smoke check passed.')
   );
   const activationCommit = workflow.indexOf(
-    'GENERATION_PROXY_CUTOVER_STARTED=false',
+    'ROUTE_PROXY_CUTOVER_STARTED=false',
     workflow.indexOf('verify_study_api')
   );
 
@@ -537,11 +556,12 @@ test('generation proxies activate only through rollback-safe production rehearsa
     workflow.indexOf('cleanup_deployment_resources() {'),
     workflow.indexOf('trap cleanup_deployment_resources EXIT')
   );
-  assert.ok(failureCleanup.includes('GENERATION_PROXY_CUTOVER_STARTED'));
+  assert.ok(failureCleanup.includes('ROUTE_PROXY_CUTOVER_STARTED'));
   assert.ok(failureCleanup.includes('PREVIOUS_COURSE_GENERATION_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_SCRIPT_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_AUTH_PROXY_ENABLED'));
   assert.ok(
     failureCleanup.indexOf('|| course_generation_proxy_restore_ok=false') <
       failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED')
@@ -557,6 +577,10 @@ test('generation proxies activate only through rollback-safe production rehearsa
   assert.ok(
     failureCleanup.indexOf('LEARNING_OS_SCRIPT_PROXY_ENABLED') <
       failureCleanup.indexOf('|| script_proxy_restore_ok=false')
+  );
+  assert.ok(
+    failureCleanup.indexOf('LEARNING_OS_AUTH_PROXY_ENABLED') <
+      failureCleanup.indexOf('|| auth_proxy_restore_ok=false')
   );
   assert.ok(failureCleanup.includes('$COMPOSE up -d --no-deps --force-recreate'));
   assert.doesNotMatch(

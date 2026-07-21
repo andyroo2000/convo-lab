@@ -5,8 +5,10 @@
 import { Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
+import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 
+import { isLearningOsAuthProxyEnabled } from '../config/authRouting.js';
 import { buildClientAppUrl } from '../config/browserRuntime.js';
 import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
@@ -16,11 +18,38 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { clearCsrfCookies, issueCsrfTokenCookie } from '../middleware/csrf.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
+import {
+  authenticateLearningOsAccount,
+  getLearningOsCurrentAccount,
+} from '../services/learningOsAuthProxy.js';
 import { revokeGoogleTokens } from '../services/oauth.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
+const loginRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    return `${ipKeyGenerator(req.ip ?? 'unknown')}:${email}`;
+  },
+});
+const currentUserIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const currentUserRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
+});
 
 function getSessionCookieOptions(sameSite: 'lax' | 'strict' = 'lax') {
   return {
@@ -239,12 +268,24 @@ router.post('/signup', async (req, res, next) => {
 });
 
 // Login
-router.post('/login', async (req, res, next) => {
+router.post('/login', loginRateLimit, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       throw new AppError('Email and password are required', 400);
+    }
+
+    if (isLearningOsAuthProxyEnabled()) {
+      // The pre-cutover sync projects the source UUID and persisted role. Keep role
+      // changes in that canonical sync path instead of mutating only one database here.
+      const account = await authenticateLearningOsAccount(email, password);
+      const token = jwt.sign({ userId: account.id, role: account.role }, process.env.JWT_SECRET!, {
+        expiresIn: '7d',
+      });
+
+      setSessionCookies(req as AuthRequest, res, token);
+      return res.json(account);
     }
 
     // Find user
@@ -316,40 +357,52 @@ router.get('/csrf', (req, res) => {
 });
 
 // Get current user
-router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        displayName: true,
-        avatarColor: true,
-        role: true,
-        preferredStudyLanguage: true,
-        preferredNativeLanguage: true,
-        proficiencyLevel: true,
-        onboardingCompleted: true,
-        seenSampleContentGuide: true,
-        seenCustomContentGuide: true,
-        emailVerified: true,
-        emailVerifiedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+router.get(
+  '/me',
+  currentUserIpRateLimit,
+  requireAuth,
+  currentUserRateLimit,
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (isLearningOsAuthProxyEnabled()) {
+        const account = await getLearningOsCurrentAccount(req.userId!);
+        issueCsrfTokenCookie(req, res, 'lax');
+        return res.json(account);
+      }
 
-    if (!user) {
-      throw new AppError(i18next.t('server:auth.userNotFound'), 404);
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          displayName: true,
+          avatarColor: true,
+          role: true,
+          preferredStudyLanguage: true,
+          preferredNativeLanguage: true,
+          proficiencyLevel: true,
+          onboardingCompleted: true,
+          seenSampleContentGuide: true,
+          seenCustomContentGuide: true,
+          emailVerified: true,
+          emailVerifiedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (!user) {
+        throw new AppError(i18next.t('server:auth.userNotFound'), 404);
+      }
+
+      issueCsrfTokenCookie(req, res, 'lax');
+      res.json(user);
+    } catch (error) {
+      next(error);
     }
-
-    issueCsrfTokenCookie(req, res, 'lax');
-    res.json(user);
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // Update user profile
 router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {

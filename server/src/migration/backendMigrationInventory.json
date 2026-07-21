@@ -11,10 +11,20 @@
       "mountPath": "/api/auth",
       "routes": [
         { "id": "auth.signup", "method": "POST", "path": "/api/auth/signup" },
-        { "id": "auth.login", "method": "POST", "path": "/api/auth/login" },
+        {
+          "id": "auth.login",
+          "method": "POST",
+          "path": "/api/auth/login",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "auth.logout", "method": "POST", "path": "/api/auth/logout" },
         { "id": "auth.csrf", "method": "GET", "path": "/api/auth/csrf" },
-        { "id": "auth.me.show", "method": "GET", "path": "/api/auth/me" },
+        {
+          "id": "auth.me.show",
+          "method": "GET",
+          "path": "/api/auth/me",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "auth.me.update", "method": "PATCH", "path": "/api/auth/me" },
         { "id": "auth.password.change", "method": "PATCH", "path": "/api/auth/change-password" },
         { "id": "auth.me.delete", "method": "DELETE", "path": "/api/auth/me" },
