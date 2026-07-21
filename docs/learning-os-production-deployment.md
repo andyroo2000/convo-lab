@@ -25,8 +25,9 @@ identity or ConvoLab provisions per-user upstream tokens.
 Before the first auth-capable deployment, configure these non-secret values in
 the production host's `/opt/convolab/.env.production`:
 
-- `EMAIL_FROM`: a sender address such as `noreply@convolab.app`, optionally
-  including a display name such as `ConvoLab <noreply@convolab.app>`.
+- `EMAIL_FROM` (optional): a sender-address override, optionally including a
+  display name. The deployment defaults it to
+  `ConvoLab <noreply@convolab.app>` when absent.
 - `CLIENT_URL`: the HTTPS ConvoLab origin used to build verification links.
 - `ADMIN_EMAILS`: the comma-separated allowlist used when a verified account
   should receive the admin role.

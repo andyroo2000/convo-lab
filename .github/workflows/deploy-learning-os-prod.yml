@@ -312,6 +312,11 @@ jobs:
             client_url="$(read_env_value CLIENT_URL)"
             admin_emails="$(read_env_value ADMIN_EMAILS)"
 
+            if [ -z "$email_from" ]; then
+              email_from="ConvoLab <noreply@convolab.app>"
+              upsert_env EMAIL_FROM "$email_from"
+            fi
+
             if [ -z "$resend_api_key" ]; then
               echo "RESEND_API_KEY is required to send Learning OS verification emails."
               exit 1
