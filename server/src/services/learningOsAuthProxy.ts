@@ -51,6 +51,8 @@ export async function authenticateLearningOsAccount(
 
   const body = await parseJsonResponse(response);
   if (!response.ok) {
+    // This exact compatibility contract distinguishes rejected user credentials
+    // from an invalid service token, which must surface as an upstream failure.
     if (response.status === 401 && isMessageResponse(body, 'Invalid credentials.')) {
       throw new AppError('Invalid credentials', 401);
     }

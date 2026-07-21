@@ -1334,6 +1334,7 @@ jobs:
                 -i \
                 -e EXPECTED_USER_ID="$user_id" \
                 -e EXPECTED_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e EXPECTED_USER_ROLE="$user_role" \
                 "convolab-server-$active_color" \
                 node --input-type=module --eval='
                   let body = "";
@@ -1342,6 +1343,7 @@ jobs:
                   if (
                     account.id !== process.env.EXPECTED_USER_ID
                     || account.email.toLowerCase() !== process.env.EXPECTED_USER_EMAIL.toLowerCase()
+                    || account.role !== process.env.EXPECTED_USER_ROLE
                     || typeof account.seenSampleContentGuide !== "boolean"
                     || typeof account.seenCustomContentGuide !== "boolean"
                   ) process.exit(1);

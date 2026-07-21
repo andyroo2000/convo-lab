@@ -261,15 +261,13 @@ router.post('/login', loginRateLimit, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      throw new AppError('Email and password are required', 400);
-    }
-
-    if (typeof email !== 'string' || typeof password !== 'string') {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       throw new AppError('Email and password are required', 400);
     }
 
     if (isLearningOsAuthProxyEnabled()) {
+      // The pre-cutover sync projects the source UUID and persisted role. Keep role
+      // changes in that canonical sync path instead of mutating only one database here.
       const account = await authenticateLearningOsAccount(email, password);
       const token = jwt.sign({ userId: account.id, role: account.role }, process.env.JWT_SECRET!, {
         expiresIn: '7d',
