@@ -22,15 +22,18 @@ identity or ConvoLab provisions per-user upstream tokens.
 
 ## Production Prerequisites
 
-Before the first auth-capable deployment, configure these values in the
-production host's `/opt/convolab/.env.production`:
+Before the first auth-capable deployment, configure these non-secret values in
+the production host's `/opt/convolab/.env.production`:
 
-- `RESEND_API_KEY`: Resend credential used by Learning OS verification mail.
 - `EMAIL_FROM`: a sender address such as `noreply@convolab.app`, optionally
   including a display name such as `ConvoLab <noreply@convolab.app>`.
 - `CLIENT_URL`: the HTTPS ConvoLab origin used to build verification links.
 - `ADMIN_EMAILS`: the comma-separated allowlist used when a verified account
   should receive the admin role.
+
+Store `RESEND_API_KEY` as the repository's GitHub Actions secret of the same
+name. The deployment copies that masked secret into `.env.production`; the
+remaining values are maintained directly on the production host.
 
 The deployment validates these values before pulling or restarting containers,
 then verifies the effective Laravel configuration after the API becomes

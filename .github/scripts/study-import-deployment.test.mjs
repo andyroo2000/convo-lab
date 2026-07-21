@@ -616,6 +616,11 @@ test('the production stack configures Learning OS signup and verification mail',
   }
 
   for (const requiredWorkflowContract of [
+    'DEPLOY_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}',
+    'if [ -z "$DEPLOY_RESEND_API_KEY" ]; then',
+    '::error::RESEND_API_KEY secret is not set',
+    'DEPLOY_RESEND_API_KEY=%q',
+    'upsert_env RESEND_API_KEY "$DEPLOY_RESEND_API_KEY"',
     'read_env_value() {',
     `if [[ "$value" == \\"*\\" ]] || [[ "$value" == \\'*\\' ]]; then`,
     'if [ -z "$resend_api_key" ]; then',
@@ -644,12 +649,16 @@ test('the production stack configures Learning OS signup and verification mail',
   }
 
   const configuration = workflow.indexOf('upsert_env LEARNING_OS_MAIL_FROM_ADDRESS');
+  const resendUpsert = workflow.indexOf('upsert_env RESEND_API_KEY "$DEPLOY_RESEND_API_KEY"');
+  const resendRead = workflow.indexOf('resend_api_key="$(read_env_value RESEND_API_KEY)"');
   const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
   const apiHealth = workflow.indexOf('wait_for_health learning-os-api');
   const runtimeConfiguration = workflow.indexOf(
     'config("mail.default") !== "resend"'
   );
   assert.ok(configuration >= 0);
+  assert.ok(resendUpsert >= 0);
+  assert.ok(resendUpsert < resendRead);
   assert.ok(configuration < imagePull);
   assert.ok(apiHealth < runtimeConfiguration);
 });
