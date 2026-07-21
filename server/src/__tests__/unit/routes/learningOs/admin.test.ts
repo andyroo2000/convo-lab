@@ -170,6 +170,52 @@ describe('Learning OS admin read proxy', () => {
     );
   });
 
+  it('collects every invite page when the legacy caller does not request pagination', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      ...invite,
+      id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+    }));
+    const secondInvite = { ...invite, id: '33333333-3333-4333-8333-333333333333' };
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(
+        upstreamJson(firstPage, 200, {
+          'X-Pagination-Page': '1',
+          'X-Pagination-Limit': '100',
+          'X-Pagination-Total': '101',
+          'X-Pagination-Pages': '2',
+        })
+      )
+      .mockResolvedValueOnce(
+        upstreamJson([secondInvite], 200, {
+          'X-Pagination-Page': '2',
+          'X-Pagination-Limit': '100',
+          'X-Pagination-Total': '101',
+          'X-Pagination-Pages': '2',
+        })
+      );
+
+    const response = await request(app).get('/invite-codes').expect(200);
+
+    expect(response.body).toEqual([...firstPage, secondInvite]);
+    expect(response.headers['x-pagination-page']).toBeUndefined();
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          'http://learning-os.test/api/convolab/admin/invite-codes?page=1&limit=100'
+        ),
+      })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          'http://learning-os.test/api/convolab/admin/invite-codes?page=2&limit=100'
+        ),
+      })
+    );
+  });
+
   it.each([
     [
       '/stats',

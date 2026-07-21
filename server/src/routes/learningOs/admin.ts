@@ -20,6 +20,13 @@ const PAGINATION_HEADERS = {
 } as const;
 
 type JsonRecord = Record<string, unknown>;
+type PaginationMetadata = {
+  headers: Record<string, string>;
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+};
 
 const isRecord = (value: unknown): value is JsonRecord =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -149,7 +156,8 @@ const appendQueryParams = (upstreamUrl: URL, req: AuthRequest, names: readonly s
 async function fetchAdminResponse(
   req: AuthRequest,
   path: string,
-  queryParams: readonly string[] = []
+  queryParams: readonly string[] = [],
+  queryOverrides: Readonly<Record<string, string>> = {}
 ): Promise<{ payload: unknown; response: globalThis.Response }> {
   const {
     config: { apiUrl, apiToken },
@@ -157,6 +165,9 @@ async function fetchAdminResponse(
   } = await resolveLearningOsServiceProxyContext(API_LABEL);
   const upstreamUrl = new URL(`${apiUrl}/api/convolab/admin${path}`);
   appendQueryParams(upstreamUrl, req, queryParams);
+  for (const [name, value] of Object.entries(queryOverrides)) {
+    upstreamUrl.searchParams.set(name, value);
+  }
 
   const response = await fetchLearningOsProxy({
     upstreamUrl,
@@ -185,6 +196,31 @@ async function fetchAdminResponse(
 
 const invalidResponse = (): AppError =>
   new AppError(`${API_LABEL} returned an invalid response.`, 502);
+
+const readPaginationHeaders = (response: globalThis.Response): PaginationMetadata => {
+  const headers: Record<string, string> = {};
+  const pagination: Record<string, number> = {};
+  for (const [publicName, upstreamName] of Object.entries(PAGINATION_HEADERS)) {
+    const value = response.headers.get(upstreamName);
+    if (value === null || !/^\d+$/.test(value)) throw invalidResponse();
+    headers[publicName] = value;
+    pagination[publicName] = Number(value);
+  }
+
+  const page = pagination['X-Pagination-Page'];
+  const limit = pagination['X-Pagination-Limit'];
+  const total = pagination['X-Pagination-Total'];
+  const pages = pagination['X-Pagination-Pages'];
+  if (!hasConsistentPagination(page, limit, total, pages)) throw invalidResponse();
+
+  return { headers, page, limit, total, pages };
+};
+
+const assertInvitePayload = (payload: unknown): JsonRecord[] => {
+  if (!Array.isArray(payload) || !payload.every(isAdminInviteCode)) throw invalidResponse();
+
+  return payload;
+};
 
 export async function showLearningOsAdminStats(
   req: AuthRequest,
@@ -240,32 +276,56 @@ export async function listLearningOsAdminInviteCodes(
   next: NextFunction
 ): Promise<void> {
   try {
+    const usesExplicitPagination =
+      typeof req.query.page === 'string' || typeof req.query.limit === 'string';
+
+    if (!usesExplicitPagination) {
+      const inviteCodes: JsonRecord[] = [];
+      let expectedTotal: number | null = null;
+      let expectedPages = 1;
+
+      for (let page = 1; page <= expectedPages; page++) {
+        const { payload, response } = await fetchAdminResponse(req, '/invite-codes', [], {
+          page: String(page),
+          limit: '100',
+        });
+        const pageInviteCodes = assertInvitePayload(payload);
+        const pagination = readPaginationHeaders(response);
+
+        if (
+          pagination.page !== page ||
+          pagination.limit !== 100 ||
+          (expectedTotal !== null &&
+            (pagination.total !== expectedTotal || pagination.pages !== expectedPages))
+        ) {
+          throw invalidResponse();
+        }
+
+        expectedTotal = pagination.total;
+        expectedPages = pagination.pages;
+        inviteCodes.push(...pageInviteCodes);
+      }
+
+      if (
+        inviteCodes.length !== expectedTotal ||
+        new Set(inviteCodes.map((inviteCode) => inviteCode.id)).size !== inviteCodes.length
+      ) {
+        throw invalidResponse();
+      }
+
+      res.set('Cache-Control', 'private, no-store').json(inviteCodes);
+      return;
+    }
+
     const { payload, response } = await fetchAdminResponse(
       req,
       '/invite-codes',
       INVITE_LIST_QUERY_PARAMS
     );
-    if (!Array.isArray(payload) || !payload.every(isAdminInviteCode)) throw invalidResponse();
+    const inviteCodes = assertInvitePayload(payload);
+    const { headers } = readPaginationHeaders(response);
 
-    const headers: Record<string, string> = {};
-    const pagination: Record<string, number> = {};
-    for (const [publicName, upstreamName] of Object.entries(PAGINATION_HEADERS)) {
-      const value = response.headers.get(upstreamName);
-      if (value === null || !/^\d+$/.test(value)) throw invalidResponse();
-      headers[publicName] = value;
-      pagination[publicName] = Number(value);
-    }
-    if (
-      !hasConsistentPagination(
-        pagination['X-Pagination-Page'],
-        pagination['X-Pagination-Limit'],
-        pagination['X-Pagination-Total'],
-        pagination['X-Pagination-Pages']
-      )
-    )
-      throw invalidResponse();
-
-    res.set({ ...headers, 'Cache-Control': 'private, no-store' }).json(payload);
+    res.set({ ...headers, 'Cache-Control': 'private, no-store' }).json(inviteCodes);
   } catch (error) {
     next(error);
   }
