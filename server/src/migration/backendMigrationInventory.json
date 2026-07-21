@@ -75,7 +75,7 @@
       "id": "dialogue",
       "domain": "generation",
       "migrationWave": "content",
-      "runtimeOwner": "express",
+      "runtimeOwner": "learning-os-proxy",
       "sourceFile": "server/src/routes/dialogue.ts",
       "mountPath": "/api/dialogue",
       "routes": [
