@@ -191,4 +191,22 @@ describe('Auth Learning OS routing', () => {
     expect(mocks.bcryptCompare).toHaveBeenCalledWith('legacy password', 'legacy-hash');
     expect(mocks.authenticateLearningOsAccount).not.toHaveBeenCalled();
   });
+
+  it('rate limits repeated login attempts before they reach Learning OS', async () => {
+    let limitedResponse: request.Response | undefined;
+
+    for (let attempt = 0; attempt < 35; attempt += 1) {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: loginAccount.email, password: 'wrong password' });
+      if (response.status === 429) {
+        limitedResponse = response;
+        break;
+      }
+    }
+
+    expect(limitedResponse?.status).toBe(429);
+    expect(limitedResponse?.headers['ratelimit-policy']).toBeDefined();
+    expect(mocks.authenticateLearningOsAccount.mock.calls.length).toBeLessThan(35);
+  });
 });
