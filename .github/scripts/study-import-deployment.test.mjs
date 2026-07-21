@@ -371,6 +371,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.match(localCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_SCRIPT_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_AUTH_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(localCompose, /LEARNING_OS_SIGNUP_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(localCompose, /LEARNING_OS_VERIFICATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(
     stageCompose,
     /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
@@ -382,6 +384,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.match(stageCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_SCRIPT_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_AUTH_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(stageCompose, /LEARNING_OS_SIGNUP_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(stageCompose, /LEARNING_OS_VERIFICATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.ok(
     productionCompose.includes(
       'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
@@ -405,6 +409,16 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.ok(
     productionCompose.includes(
       'LEARNING_OS_AUTH_PROXY_ENABLED: ${LEARNING_OS_AUTH_PROXY_ENABLED:-false}'
+    )
+  );
+  assert.ok(
+    productionCompose.includes(
+      'LEARNING_OS_SIGNUP_PROXY_ENABLED: ${LEARNING_OS_SIGNUP_PROXY_ENABLED:-false}'
+    )
+  );
+  assert.ok(
+    productionCompose.includes(
+      'LEARNING_OS_VERIFICATION_PROXY_ENABLED: ${LEARNING_OS_VERIFICATION_PROXY_ENABLED:-false}'
     )
   );
 

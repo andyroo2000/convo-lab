@@ -8,7 +8,10 @@ import { Router, type Response } from 'express';
 import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 
-import { isLearningOsAuthProxyEnabled } from '../config/authRouting.js';
+import {
+  isLearningOsAuthProxyEnabled,
+  isLearningOsSignupProxyEnabled,
+} from '../config/authRouting.js';
 import { buildClientAppUrl } from '../config/browserRuntime.js';
 import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
@@ -21,12 +24,20 @@ import { isAdminEmail } from '../middleware/roleAuth.js';
 import {
   authenticateLearningOsAccount,
   getLearningOsCurrentAccount,
+  registerLearningOsAccount,
+  type LearningOsLoginAccount,
 } from '../services/learningOsAuthProxy.js';
 import { revokeGoogleTokens } from '../services/oauth.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
+const signupRateLimit = createExpressRateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const loginRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 30,
@@ -81,11 +92,61 @@ function clearSessionCookies(res: Response, sameSite: 'lax' | 'strict' = 'lax') 
   clearCsrfCookies(res, resolvedSameSite);
 }
 
+function createLearningOsSessionToken(
+  account: LearningOsLoginAccount,
+  accountSource?: 'learning-os'
+): string {
+  return jwt.sign(
+    { userId: account.id, email: account.email, role: account.role, accountSource },
+    process.env.JWT_SECRET!,
+    { expiresIn: '7d' }
+  );
+}
+
 // Sign up
-router.post('/signup', async (req, res, next) => {
+router.post('/signup', signupRateLimit, async (req, res, next) => {
   const startTime = Date.now();
   try {
     const { email, password, name, inviteCode } = req.body;
+
+    if (isLearningOsSignupProxyEnabled()) {
+      if (
+        typeof email !== 'string' ||
+        typeof password !== 'string' ||
+        typeof name !== 'string' ||
+        !email.trim() ||
+        !password ||
+        !name.trim()
+      ) {
+        throw new AppError(i18next.t('server:auth.emailRequired'), 400);
+      }
+      if (typeof inviteCode !== 'string' || !inviteCode.trim()) {
+        throw new AppError(i18next.t('server:auth.inviteRequired'), 400);
+      }
+      const normalizedInput = {
+        email: email.trim(),
+        password,
+        name: name.trim(),
+        inviteCode: inviteCode.trim(),
+      };
+      if (
+        normalizedInput.email.length > 255 ||
+        password.length < 8 ||
+        password.length > 1024 ||
+        normalizedInput.name.length > 255 ||
+        normalizedInput.inviteCode.length > 20
+      ) {
+        throw new AppError('Invalid signup details', 400);
+      }
+
+      const account = await registerLearningOsAccount(normalizedInput);
+      setSessionCookies(
+        req as AuthRequest,
+        res,
+        createLearningOsSessionToken(account, 'learning-os')
+      );
+      return res.json(account);
+    }
 
     console.log(`[SIGNUP] Request received: ${email}`);
 
@@ -280,9 +341,14 @@ router.post('/login', loginRateLimit, async (req, res, next) => {
       // The pre-cutover sync projects the source UUID and persisted role. Keep role
       // changes in that canonical sync path instead of mutating only one database here.
       const account = await authenticateLearningOsAccount(email, password);
-      const token = jwt.sign({ userId: account.id, role: account.role }, process.env.JWT_SECRET!, {
-        expiresIn: '7d',
+      const legacyAccount = await prisma.user.findUnique({
+        where: { id: account.id },
+        select: { id: true },
       });
+      const token = createLearningOsSessionToken(
+        account,
+        legacyAccount ? undefined : 'learning-os'
+      );
 
       setSessionCookies(req as AuthRequest, res, token);
       return res.json(account);
@@ -365,7 +431,12 @@ router.get(
   async (req: AuthRequest, res, next) => {
     try {
       if (isLearningOsAuthProxyEnabled()) {
-        const account = await getLearningOsCurrentAccount(req.userId!);
+        const account = await getLearningOsCurrentAccount(req.userId!, {
+          userId: req.userId!,
+          email: req.email,
+          role: req.role,
+          accountSource: req.accountSource,
+        });
         issueCsrfTokenCookie(req, res, 'lax');
         return res.json(account);
       }
