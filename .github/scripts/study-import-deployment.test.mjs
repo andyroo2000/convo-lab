@@ -90,7 +90,7 @@ test('the production workflow verifies the always-on Study API without rollout f
     '| sed -n \'s/^CONVOLAB_PROXY_USER_EMAIL=//p\'',
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
-    '[ "$current_config_revision" = "static-media-v2" ]',
+    '[ "$current_config_revision" = "auth-mail-v1" ]',
     'GCS_CREDENTIAL_PATH="server/gcloud-key.json"',
     'LEARNING_OS_RUNTIME_UID=33',
     'if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then',
@@ -118,8 +118,13 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "static-media-v2" \]; then/
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "auth-mail-v1" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \]; then/
   );
+  assert.match(
+    workflow,
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "auth-mail-v1" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[\[ " \$current_command " == \*" \$desired_queue_argument "\* \]\]; then/
+  );
+  assert.doesNotMatch(workflow, /static-media-v2/);
   assert.doesNotMatch(workflow, /enable_(?:settings|overview|browser|new_queue|review|card|media|daily_audio|imports)/);
   assert.doesNotMatch(workflow, /ENABLE_(?:SETTINGS|OVERVIEW|BROWSER|NEW_QUEUE|REVIEW|CARD|MEDIA|DAILY_AUDIO|IMPORTS)/);
   assert.doesNotMatch(workflow, /studyApi[A-Z]/);
@@ -310,7 +315,7 @@ test('the production stack wires and smokes Learning OS static media', async () 
 
   for (const requiredComposeContract of [
     'LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: ${LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:-true}',
-    'LEARNING_OS_DEPLOY_CONFIG_REVISION: static-media-v2',
+    'LEARNING_OS_DEPLOY_CONFIG_REVISION: auth-mail-v1',
     'GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json',
     'GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}',
     'AVATARS_GCS_ROOT: ${AVATARS_GCS_ROOT:-avatars}',
@@ -449,6 +454,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'test "$active_auth_proxy" = true',
     '"auth:login"',
     '"auth:read"',
+    '"auth:signup"',
+    '"auth:verification"',
     "fetch_read_route 'Auth current user Learning OS' '/api/auth/me'",
     '-e EXPECTED_USER_ROLE="$user_role"',
     'account.role !== process.env.EXPECTED_USER_ROLE',
@@ -587,6 +594,64 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     failureCleanup,
     /force-recreate "server-\$active_color" \|\| true|wait_for_health "convolab-server-\$active_color" \|\| true/
   );
+});
+
+test('the production stack configures Learning OS signup and verification mail', async () => {
+  const [compose, workflow] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
+  ]);
+
+  for (const requiredComposeContract of [
+    'CONVOLAB_CLIENT_URL: ${CLIENT_URL}',
+    'CONVOLAB_ADMIN_EMAILS: ${ADMIN_EMAILS}',
+    'MAIL_MAILER: resend',
+    'RESEND_API_KEY: ${RESEND_API_KEY}',
+    'MAIL_FROM_ADDRESS: ${LEARNING_OS_MAIL_FROM_ADDRESS}',
+    'MAIL_FROM_NAME: ${LEARNING_OS_MAIL_FROM_NAME:-ConvoLab}',
+    'LEARNING_OS_AUTH_MAIL_CONFIG_REVISION: ${LEARNING_OS_AUTH_MAIL_CONFIG_REVISION}',
+    'LEARNING_OS_DEPLOY_CONFIG_REVISION: auth-mail-v1',
+  ]) {
+    assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
+  }
+
+  for (const requiredWorkflowContract of [
+    'read_env_value() {',
+    `if [[ "$value" == \\"*\\" ]] || [[ "$value" == \\'*\\' ]]; then`,
+    'if [ -z "$resend_api_key" ]; then',
+    'if ! [[ "$client_url" =~ ^https://[^[:space:]]+$ ]]; then',
+    'if [ -z "$admin_emails" ]; then',
+    'if ! [[ "$mail_from_address" =~',
+    'upsert_env LEARNING_OS_MAIL_FROM_ADDRESS "$mail_from_address"',
+    'upsert_env LEARNING_OS_MAIL_FROM_NAME "$mail_from_name"',
+    'auth_mail_config_revision="$(printf \'%s\\0%s\\0%s\\0%s\\0%s\'',
+    '| sha256sum',
+    'upsert_env LEARNING_OS_AUTH_MAIL_CONFIG_REVISION "$auth_mail_config_revision"',
+    "| sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p'",
+    '[ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ]',
+    '"auth:signup"',
+    '"auth:verification"',
+    '-e EXPECTED_CLIENT_URL="$client_url"',
+    '-e EXPECTED_ADMIN_EMAILS="$admin_emails"',
+    '-e EXPECTED_MAIL_FROM_ADDRESS="$mail_from_address"',
+    '-e EXPECTED_MAIL_FROM_NAME="$mail_from_name"',
+    'config("mail.default") !== "resend"',
+    'blank(config("services.resend.key"))',
+    'config("services.convolab.admin_emails") !== $expectedAdminEmails',
+    'Learning OS auth mail configuration is incomplete.',
+  ]) {
+    assert.ok(workflow.includes(requiredWorkflowContract), requiredWorkflowContract);
+  }
+
+  const configuration = workflow.indexOf('upsert_env LEARNING_OS_MAIL_FROM_ADDRESS');
+  const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
+  const apiHealth = workflow.indexOf('wait_for_health learning-os-api');
+  const runtimeConfiguration = workflow.indexOf(
+    'config("mail.default") !== "resend"'
+  );
+  assert.ok(configuration >= 0);
+  assert.ok(configuration < imagePull);
+  assert.ok(apiHealth < runtimeConfiguration);
 });
 
 test('the production workflow verifies and cleans up a disposable card draft', async () => {

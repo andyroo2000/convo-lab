@@ -289,6 +289,60 @@ jobs:
             upsert_env LEARNING_OS_API_URL "http://learning-os:8080"
             upsert_env LEARNING_OS_PROXY_USER_EMAIL "$SMOKE_USER_EMAIL"
 
+            read_env_value() {
+              key="$1"
+              value="$(sed -n "s/^${key}=//p" .env.production | tail -1)"
+              if [[ "$value" == \"*\" ]] || [[ "$value" == \'*\' ]]; then
+                value="${value:1:${#value}-2}"
+              fi
+              printf '%s' "$value"
+            }
+
+            resend_api_key="$(read_env_value RESEND_API_KEY)"
+            email_from="$(read_env_value EMAIL_FROM)"
+            client_url="$(read_env_value CLIENT_URL)"
+            admin_emails="$(read_env_value ADMIN_EMAILS)"
+
+            if [ -z "$resend_api_key" ]; then
+              echo "RESEND_API_KEY is required to send Learning OS verification emails."
+              exit 1
+            fi
+            if ! [[ "$client_url" =~ ^https://[^[:space:]]+$ ]]; then
+              echo "CLIENT_URL must be an HTTPS URL for Learning OS verification links."
+              exit 1
+            fi
+            if [ -z "$admin_emails" ]; then
+              echo "ADMIN_EMAILS is required to preserve the Learning OS admin allowlist."
+              exit 1
+            fi
+
+            mail_from_name="ConvoLab"
+            mail_from_address="$email_from"
+            if [[ "$email_from" == *\<*\>* ]]; then
+              mail_from_name="$(printf '%s' "${email_from%%<*}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+              mail_from_address="${email_from#*<}"
+              mail_from_address="${mail_from_address%%>*}"
+            fi
+            if ! [[ "$mail_from_address" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]; then
+              echo "EMAIL_FROM must contain a valid sender email address."
+              exit 1
+            fi
+            if [ -z "$mail_from_name" ]; then
+              mail_from_name="ConvoLab"
+            fi
+
+            upsert_env LEARNING_OS_MAIL_FROM_ADDRESS "$mail_from_address"
+            upsert_env LEARNING_OS_MAIL_FROM_NAME "$mail_from_name"
+            auth_mail_config_revision="$(printf '%s\0%s\0%s\0%s\0%s' \
+              "$resend_api_key" \
+              "$mail_from_address" \
+              "$mail_from_name" \
+              "$client_url" \
+              "$admin_emails" \
+              | sha256sum \
+              | cut -d ' ' -f 1)"
+            upsert_env LEARNING_OS_AUTH_MAIL_CONFIG_REVISION "$auth_mail_config_revision"
+
             previous_course_generation_proxy="$(sed -n \
               's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p' \
               .env.production | tail -1)"
@@ -397,6 +451,8 @@ jobs:
                   "admin:read",
                   "auth:login",
                   "auth:read",
+                  "auth:signup",
+                  "auth:verification",
                 ]);
                 echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
                 echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
@@ -431,11 +487,17 @@ jobs:
                 "$container" 2>/dev/null \
                 | sed -n 's/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p' \
                 | tail -1 || true)"
+              current_auth_mail_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
                 && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ] \
-                && [ "$current_config_revision" = "static-media-v2" ]; then
+                && [ "$current_config_revision" = "auth-mail-v1" ] \
+                && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
               fi
@@ -453,11 +515,17 @@ jobs:
                 "$container" 2>/dev/null \
                 | sed -n 's/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p' \
                 | tail -1 || true)"
+              current_auth_mail_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
               desired_queue_argument="--queue=study-imports,study-card-drafts,default"
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
-                && [ "$current_config_revision" = "static-media-v2" ] \
+                && [ "$current_config_revision" = "auth-mail-v1" ] \
+                && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ] \
                 && [[ " $current_command " == *" $desired_queue_argument "* ]]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
@@ -503,6 +571,28 @@ jobs:
             ensure_learning_os_worker
             wait_for_health learning-os-api
             wait_for_health learning-os-worker
+
+            docker exec \
+              -e EXPECTED_CLIENT_URL="$client_url" \
+              -e EXPECTED_ADMIN_EMAILS="$admin_emails" \
+              -e EXPECTED_MAIL_FROM_ADDRESS="$mail_from_address" \
+              -e EXPECTED_MAIL_FROM_NAME="$mail_from_name" \
+              learning-os-api php artisan tinker --execute='
+                $expectedAdminEmails = array_values(array_filter(array_map(
+                  "trim",
+                  explode(",", getenv("EXPECTED_ADMIN_EMAILS")),
+                )));
+                if (
+                  config("mail.default") !== "resend"
+                  || blank(config("services.resend.key"))
+                  || config("mail.from.address") !== getenv("EXPECTED_MAIL_FROM_ADDRESS")
+                  || config("mail.from.name") !== getenv("EXPECTED_MAIL_FROM_NAME")
+                  || config("services.convolab.client_url") !== getenv("EXPECTED_CLIENT_URL")
+                  || config("services.convolab.admin_emails") !== $expectedAdminEmails
+                ) {
+                  throw new RuntimeException("Learning OS auth mail configuration is incomplete.");
+                }
+              '
 
             docker exec -e API_TOKEN="$proxy_token" learning-os-api php -r '
               $context = stream_context_create(["http" => [

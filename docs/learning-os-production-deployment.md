@@ -20,11 +20,29 @@ rejects Learning OS proxy requests from any other account. Replace this
 single-user restriction only after Learning OS consumes trusted per-request
 identity or ConvoLab provisions per-user upstream tokens.
 
+## Production Prerequisites
+
+Before the first auth-capable deployment, configure these values in the
+production host's `/opt/convolab/.env.production`:
+
+- `RESEND_API_KEY`: Resend credential used by Learning OS verification mail.
+- `EMAIL_FROM`: a sender address such as `noreply@convolab.app`, optionally
+  including a display name such as `ConvoLab <noreply@convolab.app>`.
+- `CLIENT_URL`: the HTTPS ConvoLab origin used to build verification links.
+- `ADMIN_EMAILS`: the comma-separated allowlist used when a verified account
+  should receive the admin role.
+
+The deployment validates these values before pulling or restarting containers,
+then verifies the effective Laravel configuration after the API becomes
+healthy. It stores a SHA-256 fingerprint of the combined auth-mail settings so
+credential or sender changes recreate both the API and worker even when the
+image is unchanged. Secret values are not printed by these checks.
+
 ## Deployment
 
 The workflow:
 
-1. Validates the immutable image tag and smoke account.
+1. Validates the immutable image tag, smoke account, and auth mail prerequisites.
 2. Runs Learning OS migrations against the existing copied database.
 3. Refreshes the read-only Episode and Course compatibility tables from the ConvoLab
    production database.
