@@ -56,6 +56,7 @@ router.post(
           userId: req.userId!,
           email: req.email,
           role: req.role,
+          accountSource: req.accountSource,
         });
         return res.json({ message: i18next.t('server:verification.emailSent') });
       }
@@ -91,13 +92,13 @@ router.post(
 // Verify email with token
 router.get('/verification/:token', verificationConsumeRateLimit, async (req, res, next) => {
   try {
-      const { token } = req.params;
+    const { token } = req.params;
 
-      if (isLearningOsVerificationProxyEnabled()) {
-        // Target-created accounts have no legacy profile/name for the old welcome email;
-        // keep this flag off until the profile/onboarding cutover owns that workflow.
-        return res.json(await verifyLearningOsEmail(token));
-      }
+    if (isLearningOsVerificationProxyEnabled()) {
+      // Target-created accounts have no legacy profile/name for the old welcome email;
+      // keep this flag off until the profile/onboarding cutover owns that workflow.
+      return res.json(await verifyLearningOsEmail(token));
+    }
 
     const result = await verifyEmailToken(token);
 

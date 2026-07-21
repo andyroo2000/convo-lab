@@ -55,6 +55,7 @@ describe('requireAuth middleware', () => {
       userId: mockUserId,
       role: mockRole,
       email: mockEmail,
+      accountSource: 'learning-os',
     }));
 
     requireAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
@@ -63,6 +64,7 @@ describe('requireAuth middleware', () => {
     expect(mockReq.userId).toBe(mockUserId);
     expect(mockReq.role).toBe(mockRole);
     expect(mockReq.email).toBe(mockEmail);
+    expect(mockReq.accountSource).toBe('learning-os');
     expect(mockNext).toHaveBeenCalledWith();
   });
 

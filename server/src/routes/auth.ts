@@ -32,6 +32,12 @@ import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
+const signupRateLimit = createExpressRateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const loginRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 30,
@@ -86,16 +92,19 @@ function clearSessionCookies(res: Response, sameSite: 'lax' | 'strict' = 'lax') 
   clearCsrfCookies(res, resolvedSameSite);
 }
 
-function createLearningOsSessionToken(account: LearningOsLoginAccount): string {
+function createLearningOsSessionToken(
+  account: LearningOsLoginAccount,
+  accountSource?: 'learning-os'
+): string {
   return jwt.sign(
-    { userId: account.id, email: account.email, role: account.role },
+    { userId: account.id, email: account.email, role: account.role, accountSource },
     process.env.JWT_SECRET!,
     { expiresIn: '7d' }
   );
 }
 
 // Sign up
-router.post('/signup', async (req, res, next) => {
+router.post('/signup', signupRateLimit, async (req, res, next) => {
   const startTime = Date.now();
   try {
     const { email, password, name, inviteCode } = req.body;
@@ -131,7 +140,11 @@ router.post('/signup', async (req, res, next) => {
       }
 
       const account = await registerLearningOsAccount(normalizedInput);
-      setSessionCookies(req as AuthRequest, res, createLearningOsSessionToken(account));
+      setSessionCookies(
+        req as AuthRequest,
+        res,
+        createLearningOsSessionToken(account, 'learning-os')
+      );
       return res.json(account);
     }
 
@@ -328,7 +341,14 @@ router.post('/login', loginRateLimit, async (req, res, next) => {
       // The pre-cutover sync projects the source UUID and persisted role. Keep role
       // changes in that canonical sync path instead of mutating only one database here.
       const account = await authenticateLearningOsAccount(email, password);
-      const token = createLearningOsSessionToken(account);
+      const legacyAccount = await prisma.user.findUnique({
+        where: { id: account.id },
+        select: { id: true },
+      });
+      const token = createLearningOsSessionToken(
+        account,
+        legacyAccount ? undefined : 'learning-os'
+      );
 
       setSessionCookies(req as AuthRequest, res, token);
       return res.json(account);
@@ -415,6 +435,7 @@ router.get(
           userId: req.userId!,
           email: req.email,
           role: req.role,
+          accountSource: req.accountSource,
         });
         issueCsrfTokenCookie(req, res, 'lax');
         return res.json(account);

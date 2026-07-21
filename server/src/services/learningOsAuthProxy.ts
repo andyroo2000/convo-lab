@@ -1,6 +1,7 @@
 import { AppError } from '../middleware/errorHandler.js';
 
 import {
+  CONVO_LAB_USER_ID_PATTERN,
   fetchLearningOsProxy,
   resolveLearningOsServiceProxyContext,
   resolveLearningOsUserProxyContext,
@@ -9,7 +10,6 @@ import {
 
 const API_LABEL = 'Learning OS Auth API';
 const TIMEOUT_MS = 10_000;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_MILLISECOND_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const VERIFICATION_TOKEN_PATTERN = /^[0-9a-f]{64}$/;
 
@@ -308,7 +308,7 @@ function adaptAccount(
   const account = value as Record<string, unknown>;
   if (
     !isBoundedString(account.id, 36) ||
-    !UUID_PATTERN.test(account.id) ||
+    !CONVO_LAB_USER_ID_PATTERN.test(account.id) ||
     !isBoundedString(account.email, 320) ||
     !account.email.includes('@') ||
     !isBoundedString(account.name, 255) ||

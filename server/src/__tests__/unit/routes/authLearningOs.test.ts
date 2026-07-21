@@ -62,6 +62,7 @@ vi.mock('../../../middleware/auth.js', () => ({
     req.userId = '11111111-1111-4111-8111-111111111111';
     req.role = 'user';
     req.email = 'learner@example.com';
+    req.accountSource = 'learning-os';
     next();
   },
   AuthRequest: class {},
@@ -113,6 +114,7 @@ describe('Auth Learning OS routing', () => {
     mocks.authenticateLearningOsAccount.mockResolvedValue(loginAccount);
     mocks.getLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
+    mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id });
 
     app = express();
     app.use(testCookieParser);
@@ -149,6 +151,7 @@ describe('Auth Learning OS routing', () => {
       .expect(200);
 
     expect(response.body).toEqual(signupAccount);
+    expect(response.headers['ratelimit-policy']).toBeDefined();
     expect(mocks.registerLearningOsAccount).toHaveBeenCalledWith({
       email: signupAccount.email,
       password: 'correct password',
@@ -164,6 +167,7 @@ describe('Auth Learning OS routing', () => {
       userId: signupAccount.id,
       email: signupAccount.email,
       role: signupAccount.role,
+      accountSource: 'learning-os',
     });
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
   });
@@ -208,7 +212,10 @@ describe('Auth Learning OS routing', () => {
       loginAccount.email,
       'correct password'
     );
-    expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
+    expect(mocks.prismaFindUnique).toHaveBeenCalledWith({
+      where: { id: loginAccount.id },
+      select: { id: true },
+    });
 
     const cookies = getSetCookieArray(response.headers['set-cookie']);
     const sessionCookie = cookies.find((cookie) => cookie.startsWith('token='));
@@ -219,6 +226,7 @@ describe('Auth Learning OS routing', () => {
       email: loginAccount.email,
       role: loginAccount.role,
     });
+    expect(verifyJwt(token, process.env.JWT_SECRET!)).not.toHaveProperty('accountSource');
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
   });
 
@@ -230,6 +238,7 @@ describe('Auth Learning OS routing', () => {
       userId: loginAccount.id,
       email: loginAccount.email,
       role: loginAccount.role,
+      accountSource: 'learning-os',
     });
     expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
     expect(
@@ -237,6 +246,23 @@ describe('Auth Learning OS routing', () => {
         cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`)
       )
     ).toBe(true);
+  });
+
+  it('marks a Learning OS-only account when login finds no legacy row', async () => {
+    mocks.prismaFindUnique.mockResolvedValue(null);
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email: loginAccount.email, password: 'correct password' })
+      .expect(200);
+
+    const cookies = getSetCookieArray(response.headers['set-cookie']);
+    const sessionCookie = cookies.find((cookie) => cookie.startsWith('token='));
+    const token = decodeURIComponent(sessionCookie!.split(';')[0].slice('token='.length));
+    expect(verifyJwt(token, process.env.JWT_SECRET!)).toMatchObject({
+      userId: loginAccount.id,
+      accountSource: 'learning-os',
+    });
   });
 
   it('keeps malformed credentials out of the upstream service', async () => {

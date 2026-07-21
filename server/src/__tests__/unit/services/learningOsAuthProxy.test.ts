@@ -218,6 +218,7 @@ describe('Learning OS auth proxy', () => {
         userId: account.id,
         email: account.email,
         role: account.role,
+        accountSource: 'learning-os',
       })
     ).resolves.toEqual(currentAccount);
 
@@ -232,11 +233,21 @@ describe('Learning OS auth proxy', () => {
 
   it.each([
     {
-      identity: { userId: account.id, email: ' invalid@example.com', role: account.role },
+      identity: {
+        userId: account.id,
+        email: ' invalid@example.com',
+        role: account.role,
+        accountSource: 'learning-os',
+      },
       label: 'invalid email',
     },
     {
-      identity: { userId: account.id, email: account.email, role: 'owner' },
+      identity: {
+        userId: account.id,
+        email: account.email,
+        role: 'owner',
+        accountSource: 'learning-os',
+      },
       label: 'invalid role',
     },
     {
@@ -244,8 +255,13 @@ describe('Learning OS auth proxy', () => {
         userId: '33333333-3333-4333-8333-333333333333',
         email: account.email,
         role: account.role,
+        accountSource: 'learning-os',
       },
       label: 'mismatched user',
+    },
+    {
+      identity: { userId: account.id, email: account.email, role: account.role },
+      label: 'legacy-backed source',
     },
   ] as const)(
     'falls back to legacy identity for a signed session with $label',
@@ -268,6 +284,20 @@ describe('Learning OS auth proxy', () => {
     }
   );
 
+  it('preserves legacy account deletion as immediate session revocation', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+
+    await expect(
+      getLearningOsCurrentAccount(account.id, {
+        userId: account.id,
+        email: account.email,
+        role: account.role,
+      })
+    ).rejects.toMatchObject({ message: 'User not found', statusCode: 404 });
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it('resends verification from signed session identity without a legacy user row', async () => {
     vi.mocked(global.fetch).mockResolvedValue(jsonResponse({ message: 'Verification email sent' }));
 
@@ -276,6 +306,7 @@ describe('Learning OS auth proxy', () => {
         userId: account.id,
         email: account.email,
         role: account.role,
+        accountSource: 'learning-os',
       })
     ).resolves.toBeUndefined();
 

@@ -16,9 +16,11 @@ export interface LearningOsSessionIdentity {
   userId: string;
   email?: string;
   role?: string;
+  accountSource?: 'learning-os';
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const CONVO_LAB_USER_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 interface LearningOsProxyRequest {
   upstreamUrl: URL;
@@ -91,8 +93,9 @@ export async function resolveLearningOsUserProxyContext(
   sessionIdentity?: LearningOsSessionIdentity
 ): Promise<{ config: LearningOsProxyConfig; user: LearningOsProxyUser }> {
   if (
+    sessionIdentity?.accountSource === 'learning-os' &&
     sessionIdentity?.userId === userId &&
-    UUID_PATTERN.test(userId) &&
+    CONVO_LAB_USER_ID_PATTERN.test(userId) &&
     typeof sessionIdentity.email === 'string' &&
     sessionIdentity.email === sessionIdentity.email.trim() &&
     sessionIdentity.email.length > 0 &&

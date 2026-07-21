@@ -65,6 +65,7 @@ vi.mock('../../../middleware/auth.js', () => ({
     req.userId = 'test-user-id';
     req.email = 'test@example.com';
     req.role = 'user';
+    req.accountSource = 'learning-os';
     next();
   },
   AuthRequest: class {},
@@ -204,6 +205,7 @@ describe('Verification Routes', () => {
           userId: 'test-user-id',
           email: 'test@example.com',
           role: 'user',
+          accountSource: 'learning-os',
         }
       );
       expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
