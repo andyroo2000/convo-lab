@@ -317,6 +317,7 @@ router.get(
         }
       }
 
+      res.set('Cache-Control', 'private, no-store');
       res.json({
         status: course.status,
         progress: jobProgress,

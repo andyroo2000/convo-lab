@@ -8,6 +8,7 @@ import {
   fetchLearningOsProxy,
   resolveLearningOsProxyContext,
 } from '../../services/learningOsProxy.js';
+import { logGeneration } from '../../services/usageTracker.js';
 
 const API_LABEL = 'Learning OS Course API';
 const FETCH_TIMEOUT_MS = 10_000;
@@ -95,7 +96,7 @@ async function fetchCourseResponse(
   if (!upstreamResponse.ok) {
     if (
       upstreamResponse.status === 401 ||
-      upstreamResponse.status === 403 ||
+      (upstreamResponse.status === 403 && options.forwardSafeClientError) ||
       upstreamResponse.status >= 500
     ) {
       throw new AppError(`${API_LABEL} request failed.`, 502);
@@ -164,14 +165,17 @@ export async function showLearningOsCourse(
 const courseLifecyclePath = (req: AuthRequest, operation: string): string =>
   `/${encodeURIComponent(req.params.id)}/${operation}`;
 
-const isCourseActionResponse = (payload: unknown): payload is JsonRecord =>
+const isCourseActionResponse = (
+  payload: unknown,
+  expectedCourseId: string
+): payload is JsonRecord =>
   isJsonRecord(payload) &&
   isSafeString(payload.message) &&
   isSafeString(payload.jobId) &&
-  isSafeString(payload.courseId);
+  payload.courseId === expectedCourseId;
 
-const isCourseResetResponse = (payload: unknown): payload is JsonRecord =>
-  isJsonRecord(payload) && isSafeString(payload.message) && isSafeString(payload.courseId);
+const isCourseResetResponse = (payload: unknown, expectedCourseId: string): payload is JsonRecord =>
+  isJsonRecord(payload) && isSafeString(payload.message) && payload.courseId === expectedCourseId;
 
 const isCourseStatusResponse = (payload: unknown): payload is JsonRecord =>
   isJsonRecord(payload) &&
@@ -191,10 +195,11 @@ async function respondWithCourseAction(
       method: 'POST',
       forwardSafeClientError: true,
     });
-    if (!isCourseActionResponse(payload)) {
+    if (!isCourseActionResponse(payload, req.params.id)) {
       throw new AppError(`${API_LABEL} returned an invalid ${operation} response.`, 502);
     }
 
+    await logGeneration(req.userId!, 'course', req.params.id);
     res.json(payload);
   } catch (error) {
     next(error);
@@ -239,7 +244,7 @@ export async function resetLearningOsCourseGeneration(
       method: 'POST',
       forwardSafeClientError: true,
     });
-    if (!isCourseResetResponse(payload)) {
+    if (!isCourseResetResponse(payload, req.params.id)) {
       throw new AppError(`${API_LABEL} returned an invalid reset response.`, 502);
     }
 

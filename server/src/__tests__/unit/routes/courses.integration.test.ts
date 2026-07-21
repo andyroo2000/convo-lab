@@ -9,8 +9,12 @@ import coursesRouter from '../../../routes/courses.js';
 
 const mocks = vi.hoisted(() => ({
   authRole: { value: 'user' as string | undefined },
+  blockDemoUser: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
+  courseRateLimit: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
+  requireEmailVerified: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
   fetchLearningOsProxy: vi.fn(),
   getEffectiveUserId: vi.fn(),
+  logGeneration: vi.fn(),
   resolveLearningOsProxyContext: vi.fn(),
 }));
 
@@ -48,18 +52,16 @@ vi.mock('../../../middleware/auth.js', () => ({
   AuthRequest: class {},
 }));
 vi.mock('../../../middleware/demoAuth.js', () => ({
-  blockDemoUser: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
+  blockDemoUser: mocks.blockDemoUser,
 }));
 vi.mock('../../../middleware/emailVerification.js', () => ({
-  requireEmailVerified: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
+  requireEmailVerified: mocks.requireEmailVerified,
 }));
 vi.mock('../../../middleware/rateLimit.js', () => ({
-  rateLimitGeneration: vi.fn(
-    () => (_req: AuthRequest, _res: Response, next: NextFunction) => next()
-  ),
+  rateLimitGeneration: vi.fn(() => mocks.courseRateLimit),
 }));
 vi.mock('../../../services/coreLlmClient.js', () => ({ generateCoreLlmText: vi.fn() }));
-vi.mock('../../../services/usageTracker.js', () => ({ logGeneration: vi.fn() }));
+vi.mock('../../../services/usageTracker.js', () => ({ logGeneration: mocks.logGeneration }));
 vi.mock('../../../services/workerTrigger.js', () => ({ triggerWorkerJob: vi.fn() }));
 vi.mock('../../../i18n/index.js', () => ({
   default: {
@@ -201,6 +203,7 @@ describe('Courses Routes Integration', () => {
 
   it.each([
     [401, 502],
+    [403, 403],
     [500, 502],
     [404, 404],
     [422, 422],
@@ -301,6 +304,12 @@ describe('Courses Routes Integration', () => {
     );
     expect(mockPrisma.course.findFirst).not.toHaveBeenCalled();
     expect(mockCourseQueue.add).not.toHaveBeenCalled();
+    expect(mocks.logGeneration).toHaveBeenCalledWith('actor-user-id', 'course', 'course-id');
+    expect(mocks.blockDemoUser).toHaveBeenCalledOnce();
+    if (operation === 'generate') {
+      expect(mocks.requireEmailVerified).toHaveBeenCalledOnce();
+      expect(mocks.courseRateLimit).toHaveBeenCalledOnce();
+    }
   });
 
   it('proxies reset and preserves its compatibility response', async () => {
@@ -394,8 +403,11 @@ describe('Courses Routes Integration', () => {
 
   it.each([
     ['generate', { message: 'missing identifiers' }],
+    ['generate', { message: 'wrong course', jobId: 'job-generate', courseId: 'other-course' }],
     ['retry', { message: 'missing job', courseId: 'course-id' }],
+    ['retry', { message: 'wrong course', jobId: 'job-retry', courseId: 'other-course' }],
     ['reset', { message: 'missing course' }],
+    ['reset', { message: 'wrong course', courseId: 'other-course' }],
   ])('rejects a malformed %s success response', async (operation, body) => {
     process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
@@ -405,6 +417,7 @@ describe('Courses Routes Integration', () => {
     expect(response.body.error.message).toBe(
       `Learning OS Course API returned an invalid ${operation} response.`
     );
+    expect(mocks.logGeneration).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -429,6 +442,7 @@ describe('Courses Routes Integration', () => {
     const response = await request(app).get('/api/courses/course-id/status').expect(200);
 
     expect(response.body).toEqual({ status: 'ready', progress: null, isStuck: false });
+    expect(response.headers['cache-control']).toBe('private, no-store');
     expect(mockPrisma.course.findFirst).toHaveBeenCalledWith({
       where: { id: 'course-id', userId: 'effective-user-id' },
     });
