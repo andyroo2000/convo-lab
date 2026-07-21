@@ -239,11 +239,12 @@ test('the production stack wires and smokes Learning OS static media', async () 
   }
 });
 
-test('course generation proxy stays dormant until its production write rehearsal', async () => {
-  const [localCompose, stageCompose, productionCompose] = await Promise.all([
+test('course generation proxy activates only through a rollback-safe production write rehearsal', async () => {
+  const [localCompose, stageCompose, productionCompose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
   ]);
 
   assert.match(
@@ -258,6 +259,87 @@ test('course generation proxy stays dormant until its production write rehearsal
     productionCompose.includes(
       'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
     )
+  );
+
+  for (const requiredContract of [
+    '"content:write"',
+    'PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false',
+    'previous_course_generation_proxy="$(sed -n',
+    'Rolling back the Learning OS course-generation proxy.',
+    '::error::Failed to restore the course-generation proxy environment value.',
+    '::error::Failed to recreate the production server while rolling back the course-generation proxy.',
+    '::error::The production server was unhealthy after rolling back the course-generation proxy.',
+    '::error::The production server retained the course-generation proxy after rollback.',
+    'if [ "$cleanup_failed" = true ]; then',
+    'upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true',
+    "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
+    'test "$active_course_generation_proxy" = true',
+    'course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"',
+    'course_generation_smoke_inserted=false',
+    'if [ "$course_generation_smoke_inserted" != true ]; then',
+    'cleanup_course_generation_smoke best-effort',
+    'COURSE_GENERATION_SMOKE_DELETED=',
+    '[ "$mode" = best-effort ] && [ "$deleted_count" = 0 ]',
+    '::warning::Unable to clean up course-generation smoke fixture',
+    'App\\Domain\\Content\\Support\\ContentSourceSystem::CONVOLAB',
+    '"generation_heartbeat_at" => now()->subDay()',
+    'course_generation_smoke_inserted=true',
+    'incompatible required',
+    '"/api/courses/$course_generation_smoke_id/reset"',
+    "'Course generation status after reset'",
+    'response?.status !== "draft"',
+    'cleanup_course_generation_smoke',
+    'Course generation Learning OS write smoke check passed.',
+    'COURSE_GENERATION_PROXY_CUTOVER_STARTED=false',
+  ]) {
+    assert.ok(
+      workflow.includes(requiredContract),
+      `Missing course-generation activation contract: ${requiredContract}`
+    );
+  }
+
+  const tokenScope = workflow.indexOf('"content:write"');
+  const cutover = workflow.indexOf(
+    'upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true'
+  );
+  const activeFlagCheck = workflow.indexOf('test "$active_course_generation_proxy" = true');
+  const fixtureInsert = workflow.indexOf(
+    'Illuminate\\Support\\Facades\\DB::table("content_courses")->insert'
+  );
+  const publicReset = workflow.indexOf('"/api/courses/$course_generation_smoke_id/reset"');
+  const statusCheck = workflow.indexOf("'Course generation status after reset'");
+  const successCleanup = workflow.lastIndexOf(
+    'cleanup_course_generation_smoke',
+    workflow.indexOf('Course generation Learning OS write smoke check passed.')
+  );
+  const activationCommit = workflow.indexOf(
+    'COURSE_GENERATION_PROXY_CUTOVER_STARTED=false',
+    workflow.indexOf('verify_study_api')
+  );
+
+  assert.ok(tokenScope >= 0);
+  assert.ok(tokenScope < cutover);
+  assert.ok(cutover < activeFlagCheck);
+  assert.ok(activeFlagCheck < fixtureInsert);
+  assert.ok(fixtureInsert < publicReset);
+  assert.ok(publicReset < statusCheck);
+  assert.ok(statusCheck < successCleanup);
+  assert.ok(successCleanup < activationCommit);
+
+  const fixtureInserted = workflow.indexOf('course_generation_smoke_inserted=true');
+  assert.ok(activeFlagCheck < fixtureInserted);
+  assert.ok(fixtureInserted < fixtureInsert);
+
+  const failureCleanup = workflow.slice(
+    workflow.indexOf('cleanup_deployment_resources() {'),
+    workflow.indexOf('trap cleanup_deployment_resources EXIT')
+  );
+  assert.ok(failureCleanup.includes('COURSE_GENERATION_PROXY_CUTOVER_STARTED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_COURSE_GENERATION_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('$COMPOSE up -d --no-deps --force-recreate'));
+  assert.doesNotMatch(
+    failureCleanup,
+    /force-recreate "server-\$active_color" \|\| true|wait_for_health "convolab-server-\$active_color" \|\| true/
   );
 });
 

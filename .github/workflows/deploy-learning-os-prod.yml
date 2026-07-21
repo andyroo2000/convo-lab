@@ -84,6 +84,8 @@ jobs:
             DRAINING_WORKER_CONTAINER_ID=""
             NEW_PROXY_TOKEN_ID=""
             PROXY_TOKEN_CUTOVER_STARTED=false
+            COURSE_GENERATION_PROXY_CUTOVER_STARTED=false
+            PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
@@ -92,6 +94,35 @@ jobs:
             LEARNING_OS_RUNTIME_UID=33
 
             cleanup_deployment_resources() {
+              local cleanup_failed=false
+              local rolled_back_course_generation_proxy
+
+              if [ "$COURSE_GENERATION_PROXY_CUTOVER_STARTED" = true ]; then
+                echo "Rolling back the Learning OS course-generation proxy."
+                if ! upsert_env \
+                  LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED \
+                  "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED"; then
+                  echo "::error::Failed to restore the course-generation proxy environment value."
+                  cleanup_failed=true
+                elif ! $COMPOSE up -d --no-deps --force-recreate "server-$active_color"; then
+                  echo "::error::Failed to recreate the production server while rolling back the course-generation proxy."
+                  cleanup_failed=true
+                elif ! wait_for_health "convolab-server-$active_color"; then
+                  echo "::error::The production server was unhealthy after rolling back the course-generation proxy."
+                  cleanup_failed=true
+                else
+                  rolled_back_course_generation_proxy="$(docker inspect \
+                    --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                    "convolab-server-$active_color" \
+                    | sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p' \
+                    | tail -1)"
+                  if [ "$rolled_back_course_generation_proxy" != "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED" ]; then
+                    echo "::error::The production server retained the course-generation proxy after rollback."
+                    cleanup_failed=true
+                  fi
+                fi
+              fi
+
               if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then
                 echo "Removing the unused Learning OS proxy token."
                 $COMPOSE run --rm -T --no-deps \
@@ -116,6 +147,10 @@ jobs:
                   docker update --restart=unless-stopped learning-os-worker >/dev/null || true
                   docker start learning-os-worker >/dev/null || true
                 fi
+              fi
+
+              if [ "$cleanup_failed" = true ]; then
+                return 1
               fi
             }
 
@@ -195,6 +230,20 @@ jobs:
             upsert_env LEARNING_OS_API_URL "http://learning-os:8080"
             upsert_env LEARNING_OS_PROXY_USER_EMAIL "$SMOKE_USER_EMAIL"
 
+            previous_course_generation_proxy="$(sed -n \
+              's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p' \
+              .env.production | tail -1)"
+            case "$previous_course_generation_proxy" in
+              true|false)
+                PREVIOUS_COURSE_GENERATION_PROXY_ENABLED="$previous_course_generation_proxy"
+                ;;
+              '') ;;
+              *)
+                echo "Invalid LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED value."
+                exit 1
+                ;;
+            esac
+
             if ! grep -Eq '^LEARNING_OS_APP_KEY=base64:.+$' .env.production; then
               upsert_env LEARNING_OS_APP_KEY "base64:$(openssl rand -base64 32 | tr -d '\n')"
             fi
@@ -224,6 +273,7 @@ jobs:
                   "study:write",
                   "feature-flags:read",
                   "feature-flags:write",
+                  "content:write",
                 ]);
                 echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
                 echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
@@ -381,6 +431,10 @@ jobs:
             # Once replacement starts, retain the new token on failure because the
             # server may already be running with it. A later success prunes extras.
             PROXY_TOKEN_CUTOVER_STARTED=true
+            # Keep rollback armed until every production smoke passes. A failed
+            # deployment must not leave a newly enabled write route live.
+            COURSE_GENERATION_PROXY_CUTOVER_STARTED=true
+            upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true
             $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
             active_proxy_token="$(docker inspect \
@@ -395,6 +449,12 @@ jobs:
               | sed -n 's/^LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED=//p' \
               | tail -1)"
             test "$active_static_media_proxy" = true
+            active_course_generation_proxy="$(docker inspect \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' \
+              "convolab-server-$active_color" \
+              | sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p' \
+              | tail -1)"
+            test "$active_course_generation_proxy" = true
 
             if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
@@ -414,6 +474,8 @@ jobs:
             postgres_db="$source_db"
 
             card_draft_smoke_id=
+            course_generation_smoke_id=
+            course_generation_smoke_inserted=false
             media_smoke_id=
             media_smoke_body=
             media_smoke_headers=
@@ -450,6 +512,53 @@ jobs:
               media_smoke_id=
             }
 
+            cleanup_course_generation_smoke() {
+              local mode="${1:-strict}"
+              local cleanup_output
+              local deleted_count
+
+              if [ -z "${course_generation_smoke_id:-}" ]; then
+                return
+              fi
+              if [ "$course_generation_smoke_inserted" != true ]; then
+                course_generation_smoke_id=
+                return
+              fi
+
+              if ! cleanup_output="$(docker exec \
+                -e COURSE_GENERATION_SMOKE_ID="$course_generation_smoke_id" \
+                learning-os-api php artisan tinker --execute='
+                  $deleted = App\Domain\Content\Models\ContentCourse::query()
+                    ->whereKey(getenv("COURSE_GENERATION_SMOKE_ID"))
+                    ->delete();
+                  echo "COURSE_GENERATION_SMOKE_DELETED=".$deleted.PHP_EOL;
+                ')"; then
+                if [ "$mode" = best-effort ]; then
+                  echo "::warning::Unable to clean up course-generation smoke fixture $course_generation_smoke_id."
+                  return 0
+                fi
+                return 1
+              fi
+
+              deleted_count="$(printf '%s\n' "$cleanup_output" \
+                | sed -n 's/^COURSE_GENERATION_SMOKE_DELETED=//p' \
+                | tail -1)"
+              if [ "$deleted_count" = 1 ] \
+                || { [ "$mode" = best-effort ] && [ "$deleted_count" = 0 ]; }; then
+                course_generation_smoke_id=
+                course_generation_smoke_inserted=false
+                return 0
+              fi
+
+              if [ "$mode" = best-effort ]; then
+                echo "::warning::Course-generation smoke cleanup returned ${deleted_count:-an invalid count} for fixture $course_generation_smoke_id."
+                return 0
+              fi
+
+              echo "Course-generation smoke fixture was not deleted." >&2
+              return 1
+            }
+
             cleanup_deployment_failure() {
               exit_code=$?
               set +e
@@ -462,6 +571,7 @@ jobs:
                   '{}' > /dev/null || true
               fi
               cleanup_daily_audio_smoke
+              cleanup_course_generation_smoke best-effort
               cleanup_media_smoke
               cleanup_deployment_resources
 
@@ -766,6 +876,78 @@ jobs:
               fi
               echo "Course Learning OS read smoke checks passed."
 
+              course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"
+              if ! [[ "$course_generation_smoke_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+                echo "Unable to generate a valid course-generation smoke UUID." >&2
+                exit 1
+              fi
+              course_generation_smoke_inserted=true
+              # Stay schema-explicit and bypass model events: incompatible required
+              # columns must fail this deployment and roll activation back.
+              docker exec \
+                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e CONVOLAB_SMOKE_USER_ID="$user_id" \
+                -e COURSE_GENERATION_SMOKE_ID="$course_generation_smoke_id" \
+                learning-os-api php artisan tinker --execute='
+                  $user = App\Models\User::query()
+                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->sole();
+                  Illuminate\Support\Facades\DB::table("content_courses")->insert([
+                    "id" => getenv("COURSE_GENERATION_SMOKE_ID"),
+                    "user_id" => $user->getKey(),
+                    "convolab_user_id" => getenv("CONVOLAB_SMOKE_USER_ID"),
+                    "source_system" => App\Domain\Content\Support\ContentSourceSystem::CONVOLAB,
+                    "title" => "Learning OS course generation deployment smoke",
+                    "status" => "generating",
+                    "native_language" => "en",
+                    "target_language" => "ja",
+                    "max_lesson_duration_minutes" => 30,
+                    "l1_voice_id" => "en-US-Neural2-J",
+                    "speaker1_gender" => "male",
+                    "speaker2_gender" => "female",
+                    "generation_attempt" => 1,
+                    "generation_stage" => "queued",
+                    "generation_progress" => 0,
+                    "generation_heartbeat_at" => now()->subDay(),
+                    "created_at" => now(),
+                    "updated_at" => now(),
+                  ]);
+                ' > /dev/null
+
+              course_reset="$(mutate_proxy_route \
+                POST \
+                "/api/courses/$course_generation_smoke_id/reset" \
+                '{}')"
+              printf '%s' "$course_reset" | docker exec -i \
+                -e EXPECTED_COURSE_ID="$course_generation_smoke_id" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    typeof response?.message !== "string" ||
+                    response.message.length === 0 ||
+                    response.courseId !== process.env.EXPECTED_COURSE_ID
+                  ) process.exit(1);
+                '
+              course_status="$(fetch_read_route \
+                'Course generation status after reset' \
+                "/api/courses/$course_generation_smoke_id/status")"
+              printf '%s' "$course_status" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    response?.status !== "draft" ||
+                    response.progress !== null ||
+                    response.isStuck !== false ||
+                    response.errorMessage !== null
+                  ) process.exit(1);
+                '
+              cleanup_course_generation_smoke
+              echo "Course generation Learning OS write smoke check passed."
+
               daily_audio_list="$(
                 fetch_read_route \
                   'Daily Audio practice lookup' \
@@ -1066,6 +1248,7 @@ jobs:
             }
 
             verify_study_api
+            COURSE_GENERATION_PROXY_CUTOVER_STARTED=false
             trap - EXIT
 
             $COMPOSE ps learning-os learning-os-worker "server-$active_color"
