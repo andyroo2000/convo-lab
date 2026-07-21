@@ -182,6 +182,13 @@ describe('Learning OS admin read proxy', () => {
         pagination: { page: 1, limit: 50, total: 1, pages: 1 },
       },
     ],
+    [
+      '/users',
+      {
+        users: [],
+        pagination: { page: 2, limit: 50, total: 1, pages: 1 },
+      },
+    ],
     [`/users/${USER_ID}/info`, { ...userInfo, onboardingCompleted: 'yes' }],
     ['/invite-codes', [{ ...invite, usedBy: null }]],
   ])('rejects malformed upstream shape for %s', async (path, payload) => {
@@ -217,8 +224,17 @@ describe('Learning OS admin read proxy', () => {
           'X-Pagination-Total': '101',
           'X-Pagination-Pages': '1',
         })
+      )
+      .mockResolvedValueOnce(
+        upstreamJson([invite], 200, {
+          'X-Pagination-Page': '2',
+          'X-Pagination-Limit': '100',
+          'X-Pagination-Total': '1',
+          'X-Pagination-Pages': '1',
+        })
       );
 
+    await request(app).get('/invite-codes').expect(502);
     await request(app).get('/invite-codes').expect(502);
     await request(app).get('/invite-codes').expect(502);
     await request(app).get('/invite-codes').expect(502);

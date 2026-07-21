@@ -88,7 +88,8 @@ const hasConsistentPagination = (
   limit <= 100 &&
   isNonNegativeInteger(total) &&
   isPositiveInteger(pages) &&
-  pages === Math.max(1, Math.ceil(total / limit));
+  pages === Math.max(1, Math.ceil(total / limit)) &&
+  page <= pages;
 
 const isPagination = (value: unknown): value is JsonRecord =>
   isRecord(value) && hasConsistentPagination(value.page, value.limit, value.total, value.pages);
