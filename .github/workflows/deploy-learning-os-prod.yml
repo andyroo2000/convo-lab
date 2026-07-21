@@ -478,6 +478,8 @@ jobs:
             course_generation_smoke_inserted=false
             course_write_smoke_id=
             course_write_smoke_marker=
+            episode_write_smoke_id=
+            episode_write_smoke_marker=
             media_smoke_id=
             media_smoke_body=
             media_smoke_headers=
@@ -694,6 +696,77 @@ jobs:
               return 1
             }
 
+            cleanup_episode_write_smoke() {
+              local mode="${1:-strict}"
+              local cleanup_output
+              local remaining_count
+
+              if [ -z "${episode_write_smoke_marker:-}" ]; then
+                return
+              fi
+
+              if ! cleanup_output="$(docker exec \
+                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e CONVOLAB_SMOKE_USER_ID="$user_id" \
+                -e EPISODE_WRITE_SMOKE_ID="${episode_write_smoke_id:-}" \
+                -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
+                learning-os-api php artisan tinker --execute='
+                  $user = App\Models\User::query()
+                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->sole();
+                  $sourceUserId = getenv("CONVOLAB_SMOKE_USER_ID");
+                  $episodeId = getenv("EPISODE_WRITE_SMOKE_ID");
+                  $initialTitle = "Learning OS episode write smoke ".getenv("EPISODE_WRITE_SMOKE_MARKER");
+                  $updatedTitle = "Learning OS episode write smoke updated ".getenv("EPISODE_WRITE_SMOKE_MARKER");
+
+                  $query = App\Domain\Content\Models\ContentEpisode::query()
+                    ->where("user_id", $user->getKey())
+                    ->where("convolab_user_id", $sourceUserId)
+                    ->where(function ($query) use ($episodeId, $initialTitle, $updatedTitle): void {
+                      $query->whereIn("title", [$initialTitle, $updatedTitle]);
+                      if ($episodeId !== "") {
+                        $query->orWhere("id", $episodeId);
+                      }
+                    });
+                  $query->delete();
+
+                  $remaining = App\Domain\Content\Models\ContentEpisode::query()
+                    ->where("user_id", $user->getKey())
+                    ->where("convolab_user_id", $sourceUserId)
+                    ->where(function ($query) use ($episodeId, $initialTitle, $updatedTitle): void {
+                      $query->whereIn("title", [$initialTitle, $updatedTitle]);
+                      if ($episodeId !== "") {
+                        $query->orWhere("id", $episodeId);
+                      }
+                    })
+                    ->count();
+                  echo "EPISODE_WRITE_SMOKE_REMAINING=".$remaining.PHP_EOL;
+                ')"; then
+                if [ "$mode" = best-effort ]; then
+                  echo "::warning::Unable to clean up episode-write smoke fixture $episode_write_smoke_marker."
+                  return 0
+                fi
+                return 1
+              fi
+
+              remaining_count="$(printf '%s\n' "$cleanup_output" \
+                | sed -n 's/^EPISODE_WRITE_SMOKE_REMAINING=//p' \
+                | tail -1)"
+              if [ "$remaining_count" = 0 ]; then
+                episode_write_smoke_id=
+                episode_write_smoke_marker=
+                return 0
+              fi
+
+              if [ "$mode" = best-effort ]; then
+                echo "::warning::Episode-write smoke cleanup left ${remaining_count:-an unknown number of} rows for fixture $episode_write_smoke_marker."
+                return 0
+              fi
+
+              echo "Episode-write smoke fixture was not fully removed." >&2
+              return 1
+            }
+
             cleanup_deployment_failure() {
               exit_code=$?
               set +e
@@ -706,6 +779,7 @@ jobs:
                   '{}' > /dev/null || true
               fi
               cleanup_daily_audio_smoke
+              cleanup_episode_write_smoke best-effort
               cleanup_course_write_smoke best-effort
               cleanup_course_generation_smoke best-effort
               cleanup_media_smoke
@@ -989,6 +1063,107 @@ jobs:
                   '
               fi
               echo "Episode Learning OS read smoke checks passed."
+
+              episode_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"
+              if ! [[ "$episode_write_smoke_marker" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+                echo "Unable to generate a valid episode-write smoke marker." >&2
+                exit 1
+              fi
+              episode_create_body="$(docker exec \
+                -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  process.stdout.write(JSON.stringify({
+                    title: `Learning OS episode write smoke ${process.env.EPISODE_WRITE_SMOKE_MARKER}`,
+                    sourceText: "Disposable production episode rehearsal source text.",
+                    targetLanguage: "ja",
+                    nativeLanguage: "en",
+                    audioSpeed: "slow",
+                    jlptLevel: "N3",
+                    autoGenerateAudio: false,
+                  }));
+                ')"
+              episode_create="$(mutate_proxy_route POST '/api/episodes' "$episode_create_body")"
+              episode_write_smoke_id="$(printf '%s' "$episode_create" | docker exec -i \
+                -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const episode = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    typeof episode?.id !== "string" ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(episode.id) ||
+                    episode.title !== `Learning OS episode write smoke ${process.env.EPISODE_WRITE_SMOKE_MARKER}` ||
+                    episode.sourceText !== "Disposable production episode rehearsal source text." ||
+                    episode.targetLanguage !== "ja" ||
+                    episode.nativeLanguage !== "en" ||
+                    episode.audioSpeed !== "slow" ||
+                    episode.jlptLevel !== "N3" ||
+                    episode.autoGenerateAudio !== false ||
+                    episode.status !== "draft"
+                  ) process.exit(1);
+                  process.stdout.write(episode.id);
+                ')"
+              test -n "$episode_write_smoke_id"
+
+              episode_update_body="$(docker exec \
+                -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  process.stdout.write(JSON.stringify({
+                    title: `Learning OS episode write smoke updated ${process.env.EPISODE_WRITE_SMOKE_MARKER}`,
+                    status: "ready",
+                  }));
+                ')"
+              episode_update="$(mutate_proxy_route \
+                PATCH \
+                "/api/episodes/$episode_write_smoke_id" \
+                "$episode_update_body")"
+              printf '%s' "$episode_update" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (response?.message !== "Episode updated successfully") process.exit(1);
+                '
+              episode_updated_detail="$(fetch_read_route \
+                'Updated episode Learning OS' \
+                "/api/episodes/$episode_write_smoke_id")"
+              printf '%s' "$episode_updated_detail" | docker exec -i \
+                -e EXPECTED_EPISODE_ID="$episode_write_smoke_id" \
+                -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const episode = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    episode?.id !== process.env.EXPECTED_EPISODE_ID ||
+                    episode.title !== `Learning OS episode write smoke updated ${process.env.EPISODE_WRITE_SMOKE_MARKER}` ||
+                    episode.sourceText !== "Disposable production episode rehearsal source text." ||
+                    episode.audioSpeed !== "slow" ||
+                    episode.jlptLevel !== "N3" ||
+                    episode.autoGenerateAudio !== false ||
+                    episode.status !== "ready"
+                  ) process.exit(1);
+                '
+
+              episode_delete="$(mutate_proxy_route \
+                DELETE \
+                "/api/episodes/$episode_write_smoke_id" \
+                '{}')"
+              printf '%s' "$episode_delete" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (response?.message !== "Episode deleted successfully") process.exit(1);
+                '
+              docker exec -e EPISODE_WRITE_SMOKE_ID="$episode_write_smoke_id" \
+                learning-os-api php artisan tinker --execute='
+                  App\Domain\Content\Models\ContentEpisode::query()
+                    ->whereKey(getenv("EPISODE_WRITE_SMOKE_ID"))
+                    ->doesntExist() || throw new RuntimeException("Deleted smoke episode still exists.");
+                ' > /dev/null
+              cleanup_episode_write_smoke
+              echo "Episode Learning OS CRUD smoke check passed."
 
               course_list="$(fetch_read_route \
                 'Course list Learning OS' \
