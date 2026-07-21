@@ -89,9 +89,17 @@ describe('backend migration inventory', () => {
       route: { id: 'courses.show', path: '/api/courses/:id' },
       surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
     });
+    expect(findBackendMigrationRoute('POST', '/api/courses')).toMatchObject({
+      route: { id: 'courses.store', path: '/api/courses' },
+      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
+    });
     expect(findBackendMigrationRoute('PATCH', '/api/courses/course-123')).toMatchObject({
       route: { id: 'courses.update', path: '/api/courses/:id' },
-      surface: { id: 'courses', runtimeOwner: 'express' },
+      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
+    });
+    expect(findBackendMigrationRoute('DELETE', '/api/courses/course-123')).toMatchObject({
+      route: { id: 'courses.delete', path: '/api/courses/:id' },
+      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
     });
     expect(findBackendMigrationRoute('POST', '/api/courses/course-123/generate')).toMatchObject({
       route: { id: 'courses.generate' },

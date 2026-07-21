@@ -12,8 +12,26 @@ import { logGeneration } from '../../services/usageTracker.js';
 
 const API_LABEL = 'Learning OS Course API';
 const FETCH_TIMEOUT_MS = 10_000;
+const CREATE_TIMEOUT_MS = 100_000;
 const LIST_QUERY_PARAMS = ['library', 'limit', 'offset'] as const;
+const COURSE_CREATE_FIELDS = [
+  'title',
+  'description',
+  'episodeIds',
+  'sourceText',
+  'nativeLanguage',
+  'targetLanguage',
+  'maxLessonDurationMinutes',
+  'l1VoiceId',
+  'jlptLevel',
+  'speaker1Gender',
+  'speaker2Gender',
+  'speaker1VoiceId',
+  'speaker2VoiceId',
+] as const;
+const COURSE_UPDATE_FIELDS = ['title', 'description', 'maxLessonDurationMinutes'] as const;
 const COURSE_GENERATION_STATUSES = new Set(['draft', 'generating', 'ready', 'error']);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -32,6 +50,21 @@ const isNullableSafeString = (value: unknown): value is string | null =>
 
 const isCourseGenerationStatus = (value: unknown): value is string =>
   typeof value === 'string' && COURSE_GENERATION_STATUSES.has(value);
+
+const pickCourseWriteBody = (
+  body: unknown,
+  fields: readonly (typeof COURSE_CREATE_FIELDS)[number][]
+): JsonRecord => {
+  if (!isJsonRecord(body)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    fields
+      .filter((field) => Object.prototype.hasOwnProperty.call(body, field))
+      .map((field) => [field, body[field]])
+  );
+};
 
 async function isAdminRequest(req: AuthRequest): Promise<boolean> {
   if (req.role !== undefined) {
@@ -53,9 +86,11 @@ async function fetchCourseResponse(
   req: AuthRequest,
   path: string,
   options: {
-    method?: 'GET' | 'POST';
+    method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+    body?: unknown;
     forwardListQuery?: boolean;
     forwardSafeClientError?: boolean;
+    timeoutMs?: number;
   } = {}
 ): Promise<unknown> {
   if (!req.userId) {
@@ -88,7 +123,8 @@ async function fetchCourseResponse(
     apiToken,
     user,
     method: options.method ?? 'GET',
-    timeoutMs: FETCH_TIMEOUT_MS,
+    body: options.body,
+    timeoutMs: options.timeoutMs ?? FETCH_TIMEOUT_MS,
     timeoutMessage: `${API_LABEL} request timed out.`,
     networkErrorMessage: `${API_LABEL} is unavailable.`,
   });
@@ -124,6 +160,81 @@ async function fetchCourseResponse(
     return await upstreamResponse.json();
   } catch {
     throw new AppError(`${API_LABEL} returned an invalid JSON response.`, 502);
+  }
+}
+
+const isCourseResponse = (payload: unknown): payload is JsonRecord =>
+  isJsonRecord(payload) &&
+  typeof payload.id === 'string' &&
+  UUID_PATTERN.test(payload.id) &&
+  isSafeString(payload.title) &&
+  isCourseGenerationStatus(payload.status);
+
+const isCourseMessageResponse = (payload: unknown): payload is JsonRecord =>
+  isJsonRecord(payload) && isSafeString(payload.message);
+
+export async function storeLearningOsCourse(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const payload = await fetchCourseResponse(req, '', {
+      method: 'POST',
+      body: pickCourseWriteBody(req.body, COURSE_CREATE_FIELDS),
+      forwardSafeClientError: true,
+      timeoutMs: CREATE_TIMEOUT_MS,
+    });
+    if (!isCourseResponse(payload)) {
+      throw new AppError(`${API_LABEL} returned an invalid create response.`, 502);
+    }
+
+    res.json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateLearningOsCourse(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const payload = await fetchCourseResponse(req, `/${encodeURIComponent(req.params.id)}`, {
+      method: 'PATCH',
+      body: pickCourseWriteBody(req.body, COURSE_UPDATE_FIELDS),
+      forwardSafeClientError: true,
+    });
+    if (!isCourseMessageResponse(payload)) {
+      throw new AppError(`${API_LABEL} returned an invalid update response.`, 502);
+    }
+
+    // Preserve the existing Convo Lab acknowledgment while Learning OS keeps its own wire text.
+    res.json({ message: 'Course updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteLearningOsCourse(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const payload = await fetchCourseResponse(req, `/${encodeURIComponent(req.params.id)}`, {
+      method: 'DELETE',
+      forwardSafeClientError: true,
+    });
+    if (!isCourseMessageResponse(payload)) {
+      throw new AppError(`${API_LABEL} returned an invalid delete response.`, 502);
+    }
+
+    // Preserve the existing Convo Lab acknowledgment while Learning OS keeps its own wire text.
+    res.json({ message: 'Course deleted successfully' });
+  } catch (error) {
+    next(error);
   }
 }
 

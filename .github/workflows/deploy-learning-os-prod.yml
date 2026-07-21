@@ -476,6 +476,8 @@ jobs:
             card_draft_smoke_id=
             course_generation_smoke_id=
             course_generation_smoke_inserted=false
+            course_write_smoke_id=
+            course_write_smoke_marker=
             media_smoke_id=
             media_smoke_body=
             media_smoke_headers=
@@ -559,6 +561,139 @@ jobs:
               return 1
             }
 
+            cleanup_course_write_smoke() {
+              local mode="${1:-strict}"
+              local cleanup_output
+              local remaining_count
+
+              if [ -z "${course_write_smoke_marker:-}" ]; then
+                return
+              fi
+
+              if ! cleanup_output="$(docker exec \
+                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e CONVOLAB_SMOKE_USER_ID="$user_id" \
+                -e COURSE_WRITE_SMOKE_ID="${course_write_smoke_id:-}" \
+                -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
+                learning-os-api php artisan tinker --execute='
+                  $user = App\Models\User::query()
+                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->sole();
+                  $sourceUserId = getenv("CONVOLAB_SMOKE_USER_ID");
+                  $courseId = getenv("COURSE_WRITE_SMOKE_ID");
+                  $initialTitle = "Learning OS course write smoke ".getenv("COURSE_WRITE_SMOKE_MARKER");
+                  $updatedTitle = "Learning OS course write smoke updated ".getenv("COURSE_WRITE_SMOKE_MARKER");
+
+                  Illuminate\Support\Facades\DB::transaction(function () use (
+                    $user,
+                    $sourceUserId,
+                    $courseId,
+                    $initialTitle,
+                    $updatedTitle,
+                  ): void {
+                    $courseIds = App\Domain\Content\Models\ContentCourse::query()
+                      ->where("user_id", $user->getKey())
+                      ->where("convolab_user_id", $sourceUserId)
+                      ->where(function ($query) use ($courseId, $initialTitle, $updatedTitle): void {
+                        $query->whereIn("title", [$initialTitle, $updatedTitle]);
+                        if ($courseId !== "") {
+                          $query->orWhere("id", $courseId);
+                        }
+                      })
+                      ->pluck("id")
+                      ->all();
+                    if ($courseId !== "") {
+                      $courseIds = array_merge(
+                        $courseIds,
+                        App\Domain\Content\Models\ContentCourseTombstone::query()
+                          ->where("user_id", $user->getKey())
+                          ->where("convolab_user_id", $sourceUserId)
+                          ->where("course_id", $courseId)
+                          ->pluck("course_id")
+                          ->all(),
+                      );
+                    }
+                    $courseIds = array_values(array_unique($courseIds));
+
+                    $episodeIds = App\Domain\Content\Models\ContentEpisode::query()
+                      ->where("user_id", $user->getKey())
+                      ->where("convolab_user_id", $sourceUserId)
+                      ->where("source_system", App\Domain\Content\Support\ContentSourceSystem::LEARNING_OS)
+                      ->where("title", $initialTitle)
+                      ->pluck("id")
+                      ->all();
+
+                    if ($courseIds !== [] || $episodeIds !== []) {
+                      App\Domain\Content\Models\ContentEpisodeCourse::query()
+                        ->where(function ($query) use ($courseIds, $episodeIds): void {
+                          if ($courseIds !== []) {
+                            $query->whereIn("convolab_course_id", $courseIds);
+                          }
+                          if ($episodeIds !== []) {
+                            $method = $courseIds === [] ? "whereIn" : "orWhereIn";
+                            $query->{$method}("episode_id", $episodeIds);
+                          }
+                        })
+                        ->delete();
+                    }
+                    if ($courseIds !== []) {
+                      App\Domain\Content\Models\ContentCourse::query()
+                        ->whereIn("id", $courseIds)
+                        ->delete();
+                      App\Domain\Content\Models\ContentCourseTombstone::query()
+                        ->whereIn("course_id", $courseIds)
+                        ->delete();
+                    }
+                    if ($episodeIds !== []) {
+                      App\Domain\Content\Models\ContentEpisode::query()
+                        ->whereIn("id", $episodeIds)
+                        ->delete();
+                    }
+                  });
+
+                  $remaining = App\Domain\Content\Models\ContentCourse::query()
+                    ->where("user_id", $user->getKey())
+                    ->where("convolab_user_id", $sourceUserId)
+                    ->whereIn("title", [$initialTitle, $updatedTitle])
+                    ->count();
+                  if ($courseId !== "") {
+                    $remaining += App\Domain\Content\Models\ContentCourseTombstone::query()
+                      ->where("course_id", $courseId)
+                      ->count();
+                  }
+                  $remaining += App\Domain\Content\Models\ContentEpisode::query()
+                    ->where("user_id", $user->getKey())
+                    ->where("convolab_user_id", $sourceUserId)
+                    ->where("source_system", App\Domain\Content\Support\ContentSourceSystem::LEARNING_OS)
+                    ->where("title", $initialTitle)
+                    ->count();
+                  echo "COURSE_WRITE_SMOKE_REMAINING=".$remaining.PHP_EOL;
+                ')"; then
+                if [ "$mode" = best-effort ]; then
+                  echo "::warning::Unable to clean up course-write smoke fixture $course_write_smoke_marker."
+                  return 0
+                fi
+                return 1
+              fi
+
+              remaining_count="$(printf '%s\n' "$cleanup_output" \
+                | sed -n 's/^COURSE_WRITE_SMOKE_REMAINING=//p' \
+                | tail -1)"
+              if [ "$remaining_count" = 0 ]; then
+                course_write_smoke_id=
+                course_write_smoke_marker=
+                return 0
+              fi
+
+              if [ "$mode" = best-effort ]; then
+                echo "::warning::Course-write smoke cleanup left ${remaining_count:-an unknown number of} rows for fixture $course_write_smoke_marker."
+                return 0
+              fi
+
+              echo "Course-write smoke fixture was not fully removed." >&2
+              return 1
+            }
+
             cleanup_deployment_failure() {
               exit_code=$?
               set +e
@@ -571,6 +706,7 @@ jobs:
                   '{}' > /dev/null || true
               fi
               cleanup_daily_audio_smoke
+              cleanup_course_write_smoke best-effort
               cleanup_course_generation_smoke best-effort
               cleanup_media_smoke
               cleanup_deployment_resources
@@ -890,6 +1026,108 @@ jobs:
                   '
               fi
               echo "Course Learning OS read smoke checks passed."
+
+              course_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"
+              if ! [[ "$course_write_smoke_marker" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+                echo "Unable to generate a valid course-write smoke marker." >&2
+                exit 1
+              fi
+              course_create_body="$(docker exec \
+                -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const title = `Learning OS course write smoke ${process.env.COURSE_WRITE_SMOKE_MARKER}`;
+                  process.stdout.write(JSON.stringify({
+                    title,
+                    description: "Disposable production write rehearsal",
+                    sourceText: "Temporary deployment rehearsal source text.",
+                    nativeLanguage: "en",
+                    targetLanguage: "ja",
+                    maxLessonDurationMinutes: 30,
+                    l1VoiceId: "en-US-Neural2-J",
+                    speaker1Gender: "male",
+                    speaker2Gender: "female",
+                  }));
+                ')"
+              course_create="$(mutate_proxy_route POST '/api/courses' "$course_create_body")"
+              course_write_smoke_id="$(printf '%s' "$course_create" | docker exec -i \
+                -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const course = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  const expectedTitle = `Learning OS course write smoke ${process.env.COURSE_WRITE_SMOKE_MARKER}`;
+                  if (
+                    typeof course?.id !== "string" ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(course.id) ||
+                    course.title !== expectedTitle ||
+                    course.status !== "draft" ||
+                    course.description !== "Disposable production write rehearsal" ||
+                    course.maxLessonDurationMinutes !== 30
+                  ) process.exit(1);
+                  process.stdout.write(course.id);
+                ')"
+              test -n "$course_write_smoke_id"
+
+              course_update_body="$(docker exec \
+                -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  process.stdout.write(JSON.stringify({
+                    title: `Learning OS course write smoke updated ${process.env.COURSE_WRITE_SMOKE_MARKER}`,
+                    description: null,
+                    maxLessonDurationMinutes: 45,
+                  }));
+                ')"
+              course_update="$(mutate_proxy_route \
+                PATCH \
+                "/api/courses/$course_write_smoke_id" \
+                "$course_update_body")"
+              printf '%s' "$course_update" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (response?.message !== "Course updated successfully") process.exit(1);
+                '
+              course_updated_detail="$(fetch_read_route \
+                'Updated course Learning OS' \
+                "/api/courses/$course_write_smoke_id")"
+              printf '%s' "$course_updated_detail" | docker exec -i \
+                -e EXPECTED_COURSE_ID="$course_write_smoke_id" \
+                -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const course = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    course?.id !== process.env.EXPECTED_COURSE_ID ||
+                    course.title !== `Learning OS course write smoke updated ${process.env.COURSE_WRITE_SMOKE_MARKER}` ||
+                    course.description !== null ||
+                    course.maxLessonDurationMinutes !== 45
+                  ) process.exit(1);
+                '
+
+              course_delete="$(mutate_proxy_route \
+                DELETE \
+                "/api/courses/$course_write_smoke_id" \
+                '{}')"
+              printf '%s' "$course_delete" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (response?.message !== "Course deleted successfully") process.exit(1);
+                '
+              docker exec -e COURSE_WRITE_SMOKE_ID="$course_write_smoke_id" \
+                learning-os-api php artisan tinker --execute='
+                  App\Domain\Content\Models\ContentCourse::query()
+                    ->whereKey(getenv("COURSE_WRITE_SMOKE_ID"))
+                    ->doesntExist() || throw new RuntimeException("Deleted smoke course still exists.");
+                  App\Domain\Content\Models\ContentCourseTombstone::query()
+                    ->where("course_id", getenv("COURSE_WRITE_SMOKE_ID"))
+                    ->exists() || throw new RuntimeException("Deleted smoke course has no tombstone.");
+                ' > /dev/null
+              cleanup_course_write_smoke
+              echo "Course Learning OS CRUD smoke check passed."
 
               course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"
               if ! [[ "$course_generation_smoke_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
