@@ -244,6 +244,59 @@ test('the production workflow proves public course CRUD and removes every smoke 
   assert.ok(failureCleanup.includes('cleanup_course_write_smoke best-effort'));
 });
 
+test('the production workflow proves public episode CRUD and removes every smoke artifact', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'episode_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"',
+    "episode_create=\"$(mutate_proxy_route POST '/api/episodes'",
+    'episode_write_smoke_id=',
+    '"/api/episodes/$episode_write_smoke_id"',
+    'response?.message !== "Episode updated successfully"',
+    "'Updated episode Learning OS'",
+    'episode.sourceText !== "Disposable production episode rehearsal source text."',
+    'episode.status !== "ready"',
+    'response?.message !== "Episode deleted successfully"',
+    'Deleted smoke episode still exists.',
+    'cleanup_episode_write_smoke() {',
+    'EPISODE_WRITE_SMOKE_REMAINING=',
+    'cleanup_episode_write_smoke best-effort',
+    'Episode Learning OS CRUD smoke check passed.',
+  ]) {
+    assert.ok(workflow.includes(requiredContract), `Missing episode CRUD smoke: ${requiredContract}`);
+  }
+
+  const marker = workflow.indexOf('episode_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"');
+  const create = workflow.indexOf("episode_create=\"$(mutate_proxy_route POST '/api/episodes'");
+  const update = workflow.indexOf('episode_update="$(mutate_proxy_route');
+  const detail = workflow.indexOf("'Updated episode Learning OS'");
+  const deleteEpisode = workflow.indexOf('episode_delete="$(mutate_proxy_route');
+  const deleted = workflow.indexOf('Deleted smoke episode still exists.');
+  const cleanup = workflow.lastIndexOf(
+    'cleanup_episode_write_smoke',
+    workflow.indexOf('Episode Learning OS CRUD smoke check passed.')
+  );
+  const complete = workflow.indexOf('Episode Learning OS CRUD smoke check passed.');
+
+  assert.ok(marker >= 0);
+  assert.ok(marker < create);
+  assert.ok(create < update);
+  assert.ok(update < detail);
+  assert.ok(detail < deleteEpisode);
+  assert.ok(deleteEpisode < deleted);
+  assert.ok(deleted < cleanup);
+  assert.ok(cleanup < complete);
+
+  const failureCleanup = workflow.slice(
+    workflow.indexOf('cleanup_deployment_failure() {'),
+    workflow.indexOf('trap cleanup_deployment_failure EXIT')
+  );
+  assert.ok(failureCleanup.includes('cleanup_episode_write_smoke best-effort'));
+});
+
 test('the production stack wires and smokes Learning OS static media', async () => {
   const compose = await readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8');
   const workflow = await readFile(

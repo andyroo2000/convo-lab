@@ -50,23 +50,13 @@ vi.mock('../../../middleware/auth.js', () => ({
   AuthRequest: class {},
 }));
 
-vi.mock('../../../i18n/index.js', () => ({
-  default: {
-    t: (key: string, params?: Record<string, unknown>) => {
-      if (key === 'server:content.notFound') return `${params?.type} not found`;
-      if (key === 'server:content.missingFields') return 'Missing required fields';
-      if (key === 'server:content.updateSuccess') return `${params?.type} updated successfully`;
-      if (key === 'server:content.deleteSuccess') return `${params?.type} deleted successfully`;
-      return key;
-    },
-  },
-}));
-
 const upstreamJson = (body: unknown, status = 200): globalThis.Response =>
   new globalThis.Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+
+const EPISODE_ID = '11111111-1111-4111-8111-111111111111';
 
 describe('Episodes Routes Integration', () => {
   let app: express.Application;
@@ -205,295 +195,146 @@ describe('Episodes Routes Integration', () => {
     });
   });
 
-  describe('POST /api/episodes - Create Episode', () => {
-    it('should create episode with required fields', async () => {
-      const newEpisode = {
-        id: 'new-ep',
-        userId: 'test-user-id',
-        title: 'New Episode',
-        sourceText: 'Test source text',
-        targetLanguage: 'ja',
-        nativeLanguage: 'en',
-        audioSpeed: 'medium',
-        status: 'draft',
-        jlptLevel: null,
-        autoGenerateAudio: true,
-      };
+  describe('Learning OS Episode writes', () => {
+    const createBody = {
+      title: 'New Episode',
+      sourceText: 'Test source text',
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      audioSpeed: 'slow',
+      jlptLevel: 'N3',
+      autoGenerateAudio: false,
+    };
 
-      mockPrisma.episode.create.mockResolvedValue(newEpisode);
+    it('proxies create for the effective user and filters unsupported fields', async () => {
+      const episode = { id: EPISODE_ID, ...createBody, status: 'draft' };
+      mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(episode));
 
       const response = await request(app)
         .post('/api/episodes')
-        .send({
-          title: 'New Episode',
-          sourceText: 'Test source text',
-          targetLanguage: 'ja',
-          nativeLanguage: 'en',
-        })
+        .send({ ...createBody, userId: 'other-user', role: 'admin' })
         .expect(200);
 
-      expect(response.body).toEqual(newEpisode);
-      expect(mockPrisma.episode.create).toHaveBeenCalledWith({
-        data: {
-          userId: 'test-user-id',
-          title: 'New Episode',
-          sourceText: 'Test source text',
-          targetLanguage: 'ja',
-          nativeLanguage: 'en',
-          audioSpeed: 'medium',
-          status: 'draft',
-          jlptLevel: null,
-          autoGenerateAudio: true,
-        },
-      });
-    });
-
-    it('should use custom audioSpeed when provided', async () => {
-      mockPrisma.episode.create.mockResolvedValue({
-        id: 'new-ep',
-        audioSpeed: 'slow',
-      });
-
-      await request(app)
-        .post('/api/episodes')
-        .send({
-          title: 'Test',
-          sourceText: 'Source',
-          targetLanguage: 'ja',
-          nativeLanguage: 'en',
-          audioSpeed: 'slow',
+      expect(response.body).toEqual(episode);
+      expect(mocks.getEffectiveUserId).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'test-user-id' })
+      );
+      expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          upstreamUrl: new URL('http://learning-os.test/api/convolab/episodes'),
+          method: 'POST',
+          body: createBody,
+          timeoutMs: 10_000,
         })
-        .expect(200);
-
-      expect(mockPrisma.episode.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          audioSpeed: 'slow',
-        }),
-      });
-    });
-
-    it('should return 400 when title is missing', async () => {
-      const response = await request(app)
-        .post('/api/episodes')
-        .send({
-          sourceText: 'Source',
-          targetLanguage: 'ja',
-          nativeLanguage: 'en',
-        })
-        .expect(400);
-
-      expect(response.body.error.message).toBe('Missing required fields');
+      );
       expect(mockPrisma.episode.create).not.toHaveBeenCalled();
+      expect(mockBlockDemoUser).toHaveBeenCalledOnce();
     });
 
-    it('should return 400 when sourceText is missing', async () => {
+    it('proxies only legacy mutable fields on update and preserves the acknowledgment', async () => {
+      mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson({ message: 'Episode updated' }));
+
       const response = await request(app)
-        .post('/api/episodes')
+        .patch(`/api/episodes/${EPISODE_ID}`)
         .send({
-          title: 'Test',
-          targetLanguage: 'ja',
-          nativeLanguage: 'en',
+          title: 'Updated Episode',
+          status: 'ready',
+          sourceText: 'Create-only field',
+          userId: 'other-user',
         })
-        .expect(400);
-
-      expect(response.body.error.message).toBe('Missing required fields');
-    });
-
-    it('should return 400 when targetLanguage is missing', async () => {
-      const response = await request(app)
-        .post('/api/episodes')
-        .send({
-          title: 'Test',
-          sourceText: 'Source',
-          nativeLanguage: 'en',
-        })
-        .expect(400);
-
-      expect(response.body.error.message).toBe('Missing required fields');
-    });
-
-    it('should return 400 when nativeLanguage is missing', async () => {
-      const response = await request(app)
-        .post('/api/episodes')
-        .send({
-          title: 'Test',
-          sourceText: 'Source',
-          targetLanguage: 'ja',
-        })
-        .expect(400);
-
-      expect(response.body.error.message).toBe('Missing required fields');
-    });
-
-    it('should block demo users from creating episodes', async () => {
-      mockBlockDemoUser.mockImplementation((_req: AuthRequest, res: Response) => {
-        res.status(403).json({ error: { message: 'Demo users cannot perform this action' } });
-      });
-
-      const response = await request(app)
-        .post('/api/episodes')
-        .send({
-          title: 'Test',
-          sourceText: 'Source',
-          targetLanguage: 'ja',
-          nativeLanguage: 'en',
-        })
-        .expect(403);
-
-      expect(response.body.error.message).toBe('Demo users cannot perform this action');
-    });
-  });
-
-  describe('PATCH /api/episodes/:id - Update Episode', () => {
-    it('should update episode title', async () => {
-      mockPrisma.episode.updateMany.mockResolvedValue({ count: 1 });
-
-      const response = await request(app)
-        .patch('/api/episodes/ep-123')
-        .send({ title: 'Updated Title' })
         .expect(200);
 
-      expect(response.body.message).toBe('Episode updated successfully');
-      expect(mockPrisma.episode.updateMany).toHaveBeenCalledWith({
-        where: { id: 'ep-123', userId: 'test-user-id' },
-        data: expect.objectContaining({
-          title: 'Updated Title',
-          updatedAt: expect.any(Date),
-        }),
-      });
+      expect(response.body).toEqual({ message: 'Episode updated successfully' });
+      expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          upstreamUrl: new URL(`http://learning-os.test/api/convolab/episodes/${EPISODE_ID}`),
+          method: 'PATCH',
+          body: { title: 'Updated Episode', status: 'ready' },
+        })
+      );
+      expect(mockPrisma.episode.updateMany).not.toHaveBeenCalled();
     });
 
-    it('should update episode status', async () => {
-      mockPrisma.episode.updateMany.mockResolvedValue({ count: 1 });
+    it('proxies delete and preserves the legacy acknowledgment', async () => {
+      mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson({ message: 'Episode deleted' }));
 
-      await request(app).patch('/api/episodes/ep-123').send({ status: 'ready' }).expect(200);
+      const response = await request(app).delete(`/api/episodes/${EPISODE_ID}`).expect(200);
 
-      expect(mockPrisma.episode.updateMany).toHaveBeenCalledWith({
-        where: { id: 'ep-123', userId: 'test-user-id' },
-        data: expect.objectContaining({
-          status: 'ready',
-        }),
-      });
-    });
-
-    it('should update both title and status', async () => {
-      mockPrisma.episode.updateMany.mockResolvedValue({ count: 1 });
-
-      await request(app)
-        .patch('/api/episodes/ep-123')
-        .send({ title: 'New Title', status: 'ready' })
-        .expect(200);
-
-      expect(mockPrisma.episode.updateMany).toHaveBeenCalledWith({
-        where: { id: 'ep-123', userId: 'test-user-id' },
-        data: expect.objectContaining({
-          title: 'New Title',
-          status: 'ready',
-        }),
-      });
-    });
-
-    it('should return 404 when episode not found', async () => {
-      mockPrisma.episode.updateMany.mockResolvedValue({ count: 0 });
-
-      const response = await request(app)
-        .patch('/api/episodes/non-existent')
-        .send({ title: 'Updated' })
-        .expect(404);
-
-      expect(response.body.error.message).toBe('Episode not found');
-    });
-
-    it('should only update provided fields', async () => {
-      mockPrisma.episode.updateMany.mockResolvedValue({ count: 1 });
-
-      await request(app).patch('/api/episodes/ep-123').send({ title: 'Only Title' }).expect(200);
-
-      const callArgs = mockPrisma.episode.updateMany.mock.calls[0][0];
-      expect(callArgs.data.title).toBe('Only Title');
-      expect(callArgs.data.status).toBeUndefined();
-    });
-  });
-
-  describe('DELETE /api/episodes/:id - Delete Episode', () => {
-    it('should delete episode successfully', async () => {
-      mockPrisma.episode.deleteMany.mockResolvedValue({ count: 1 });
-
-      const response = await request(app).delete('/api/episodes/ep-123').expect(200);
-
-      expect(response.body.message).toBe('Episode deleted successfully');
-      expect(mockPrisma.episode.deleteMany).toHaveBeenCalledWith({
-        where: { id: 'ep-123', userId: 'test-user-id' },
-      });
-    });
-
-    it('should return 404 when episode not found', async () => {
-      mockPrisma.episode.deleteMany.mockResolvedValue({ count: 0 });
-
-      const response = await request(app).delete('/api/episodes/non-existent').expect(404);
-
-      expect(response.body.error.message).toBe('Episode not found');
-    });
-
-    it('should block demo users from deleting episodes', async () => {
-      mockBlockDemoUser.mockImplementation((_req: AuthRequest, res: Response) => {
-        res.status(403).json({ error: { message: 'Demo users cannot perform this action' } });
-      });
-
-      const response = await request(app).delete('/api/episodes/ep-123').expect(403);
-
-      expect(response.body.error.message).toBe('Demo users cannot perform this action');
+      expect(response.body).toEqual({ message: 'Episode deleted successfully' });
+      expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          upstreamUrl: new URL(`http://learning-os.test/api/convolab/episodes/${EPISODE_ID}`),
+          method: 'DELETE',
+          body: undefined,
+        })
+      );
       expect(mockPrisma.episode.deleteMany).not.toHaveBeenCalled();
+      expect(mockBlockDemoUser).toHaveBeenCalledOnce();
     });
 
-    it('should verify userId to prevent unauthorized deletion', async () => {
-      mockPrisma.episode.deleteMany.mockResolvedValue({ count: 0 });
+    it.each([
+      ['create', () => request(app).post('/api/episodes').send({ title: 'Episode' })],
+      [
+        'update',
+        () => request(app).patch(`/api/episodes/${EPISODE_ID}`).send({ title: 'Episode' }),
+      ],
+      ['delete', () => request(app).delete(`/api/episodes/${EPISODE_ID}`)],
+    ])('preserves a safe %s client error from Learning OS', async (_operation, makeRequest) => {
+      mocks.fetchLearningOsProxy.mockResolvedValue(
+        upstreamJson({ message: 'Safe compatibility message' }, 422)
+      );
 
-      await request(app).delete('/api/episodes/ep-123').expect(404);
+      const response = await makeRequest().expect(422);
 
-      expect(mockPrisma.episode.deleteMany).toHaveBeenCalledWith({
-        where: {
-          id: 'ep-123',
-          userId: 'test-user-id', // Ensures only owner can delete
-        },
+      expect(response.body.error.message).toBe('Safe compatibility message');
+    });
+
+    it.each([401, 403, 500])('redacts sensitive upstream HTTP %s write errors', async (status) => {
+      mocks.fetchLearningOsProxy.mockResolvedValue(
+        upstreamJson({ message: 'private upstream details' }, status)
+      );
+
+      const response = await request(app)
+        .patch(`/api/episodes/${EPISODE_ID}`)
+        .send({ title: 'Episode' })
+        .expect(502);
+
+      expect(response.body.error.message).toBe('Learning OS Episode API request failed.');
+      expect(JSON.stringify(response.body)).not.toContain('private upstream details');
+    });
+
+    it('rejects malformed create and acknowledgment responses', async () => {
+      mocks.fetchLearningOsProxy
+        .mockResolvedValueOnce(
+          upstreamJson({ id: 'not-a-uuid', title: 'Episode', status: 'draft' })
+        )
+        .mockResolvedValueOnce(
+          upstreamJson({ id: EPISODE_ID, title: 'Episode', status: 'unknown' })
+        )
+        .mockResolvedValueOnce(upstreamJson([]))
+        .mockResolvedValueOnce(upstreamJson({ message: '' }));
+
+      await request(app).post('/api/episodes').send(createBody).expect(502);
+      await request(app).post('/api/episodes').send(createBody).expect(502);
+      await request(app)
+        .patch(`/api/episodes/${EPISODE_ID}`)
+        .send({ title: 'Episode' })
+        .expect(502);
+      await request(app).delete(`/api/episodes/${EPISODE_ID}`).expect(502);
+    });
+
+    it.each(['create', 'delete'])('keeps demo-user blocking on %s', async (operation) => {
+      mockBlockDemoUser.mockImplementation((_req: AuthRequest, res: Response) => {
+        res.status(403).json({ error: { message: 'Demo users cannot perform this action' } });
       });
-    });
-  });
 
-  describe('Error Handling', () => {
-    it('should handle database errors in POST', async () => {
-      mockPrisma.episode.create.mockRejectedValue(new Error('DB error'));
+      const response =
+        operation === 'create'
+          ? await request(app).post('/api/episodes').send(createBody).expect(403)
+          : await request(app).delete(`/api/episodes/${EPISODE_ID}`).expect(403);
 
-      const response = await request(app)
-        .post('/api/episodes')
-        .send({
-          title: 'Test',
-          sourceText: 'Source',
-          targetLanguage: 'ja',
-          nativeLanguage: 'en',
-        })
-        .expect(500);
-
-      expect(response.body.error).toBeDefined();
-    });
-
-    it('should handle database errors in PATCH', async () => {
-      mockPrisma.episode.updateMany.mockRejectedValue(new Error('DB error'));
-
-      const response = await request(app)
-        .patch('/api/episodes/ep-123')
-        .send({ title: 'Updated' })
-        .expect(500);
-
-      expect(response.body.error).toBeDefined();
-    });
-
-    it('should handle database errors in DELETE', async () => {
-      mockPrisma.episode.deleteMany.mockRejectedValue(new Error('DB error'));
-
-      const response = await request(app).delete('/api/episodes/ep-123').expect(500);
-
-      expect(response.body.error).toBeDefined();
+      expect(response.body.error.message).toBe('Demo users cannot perform this action');
+      expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
     });
   });
 });
