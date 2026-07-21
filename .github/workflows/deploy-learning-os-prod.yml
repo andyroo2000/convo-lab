@@ -449,6 +449,7 @@ jobs:
 
             card_draft_smoke_id=
             course_generation_smoke_id=
+            course_generation_smoke_inserted=false
             media_smoke_id=
             media_smoke_body=
             media_smoke_headers=
@@ -489,6 +490,10 @@ jobs:
               if [ -z "${course_generation_smoke_id:-}" ]; then
                 return
               fi
+              if [ "$course_generation_smoke_inserted" != true ]; then
+                course_generation_smoke_id=
+                return
+              fi
 
               docker exec -e COURSE_GENERATION_SMOKE_ID="$course_generation_smoke_id" \
                 learning-os-api php artisan tinker --execute='
@@ -500,6 +505,7 @@ jobs:
                   }
                 ' > /dev/null
               course_generation_smoke_id=
+              course_generation_smoke_inserted=false
             }
 
             cleanup_deployment_failure() {
@@ -853,6 +859,7 @@ jobs:
                     "updated_at" => now(),
                   ]);
                 ' > /dev/null
+              course_generation_smoke_inserted=true
 
               course_reset="$(mutate_proxy_route \
                 POST \
