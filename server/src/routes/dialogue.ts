@@ -1,5 +1,6 @@
-import { Router } from 'express';
+import { NextFunction, Response, Router } from 'express';
 
+import { isLearningOsDialogueGenerationProxyEnabled } from '../config/dialogueGenerationRouting.js';
 import i18next from '../i18n/index.js';
 import { dialogueQueue } from '../jobs/dialogueQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -10,7 +11,29 @@ import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
+import { generateLearningOsDialogue, showLearningOsDialogueJob } from './learningOs/dialogue.js';
+
 const router = Router();
+
+type DialogueHandler = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => void | Promise<void>;
+
+const routeDialogueGeneration = (
+  learningOsHandler: DialogueHandler,
+  expressHandler: DialogueHandler
+): DialogueHandler => {
+  const handler: DialogueHandler = (req, res, next) =>
+    (isLearningOsDialogueGenerationProxyEnabled() ? learningOsHandler : expressHandler)(
+      req,
+      res,
+      next
+    );
+
+  return handler;
+};
 
 router.use(requireAuth);
 
@@ -20,7 +43,7 @@ router.post(
   requireEmailVerified,
   rateLimitGeneration('dialogue'),
   blockDemoUser,
-  async (req: AuthRequest, res, next) => {
+  routeDialogueGeneration(generateLearningOsDialogue, async (req: AuthRequest, res, next) => {
     try {
       const {
         episodeId,
@@ -61,30 +84,34 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  })
 );
 
 // Get job status
-router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
-  try {
-    const job = await dialogueQueue.getJob(req.params.jobId);
+router.get(
+  '/job/:jobId',
+  routeDialogueGeneration(showLearningOsDialogueJob, async (req: AuthRequest, res, next) => {
+    try {
+      const job = await dialogueQueue.getJob(req.params.jobId);
 
-    if (!job) {
-      throw new AppError(i18next.t('server:content.jobNotFound'), 404);
+      if (!job) {
+        throw new AppError(i18next.t('server:content.jobNotFound'), 404);
+      }
+
+      const state = await job.getState();
+      const { progress } = job;
+
+      res.set('Cache-Control', 'private, no-store');
+      res.json({
+        id: job.id,
+        state,
+        progress,
+        result: state === 'completed' ? job.returnvalue : null,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const state = await job.getState();
-    const { progress } = job;
-
-    res.json({
-      id: job.id,
-      state,
-      progress,
-      result: state === 'completed' ? job.returnvalue : null,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+  })
+);
 
 export default router;

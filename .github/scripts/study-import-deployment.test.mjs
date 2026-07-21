@@ -347,7 +347,7 @@ test('the production stack wires and smokes Learning OS static media', async () 
   }
 });
 
-test('course generation proxy activates only through a rollback-safe production write rehearsal', async () => {
+test('generation proxies activate only through rollback-safe production rehearsals', async () => {
   const [localCompose, stageCompose, productionCompose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
@@ -360,28 +360,46 @@ test('course generation proxy activates only through a rollback-safe production 
     /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
   );
   assert.match(
+    localCompose,
+    /LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
+  );
+  assert.match(
     stageCompose,
     /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
+  );
+  assert.match(
+    stageCompose,
+    /LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
   );
   assert.ok(
     productionCompose.includes(
       'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
     )
   );
+  assert.ok(
+    productionCompose.includes(
+      'LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:-false}'
+    )
+  );
 
   for (const requiredContract of [
     '"content:write"',
+    'GENERATION_PROXY_CUTOVER_STARTED=false',
     'PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false',
+    'PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED=false',
     'previous_course_generation_proxy="$(sed -n',
-    'Rolling back the Learning OS course-generation proxy.',
-    '::error::Failed to restore the course-generation proxy environment value.',
-    '::error::Failed to recreate the production server while rolling back the course-generation proxy.',
-    '::error::The production server was unhealthy after rolling back the course-generation proxy.',
-    '::error::The production server retained the course-generation proxy after rollback.',
+    'previous_dialogue_generation_proxy="$(sed -n',
+    'Rolling back the Learning OS generation proxies.',
+    '::error::Failed to restore the generation proxy environment values.',
+    '::error::Failed to recreate the production server while rolling back generation proxies.',
+    '::error::The production server was unhealthy after rolling back generation proxies.',
+    '::error::The production server retained a generation proxy after rollback.',
     'if [ "$cleanup_failed" = true ]; then',
     'upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true',
+    'upsert_env LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED true',
     "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
     'test "$active_course_generation_proxy" = true',
+    'test "$active_dialogue_generation_proxy" = true',
     'course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"',
     'course_generation_smoke_inserted=false',
     'if [ "$course_generation_smoke_inserted" != true ]; then',
@@ -398,7 +416,15 @@ test('course generation proxy activates only through a rollback-safe production 
     'response?.status !== "draft"',
     'cleanup_course_generation_smoke',
     'Course generation Learning OS write smoke check passed.',
-    'COURSE_GENERATION_PROXY_CUTOVER_STARTED=false',
+    'dialogue_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
+    'dialogue_generation_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"',
+    'dialogue_generation_smoke_inserted=true',
+    'DB::table("content_dialogue_generation_jobs")->insert',
+    '"state" => App\\Domain\\Content\\Support\\ContentDialogueGeneration::STATE_ACTIVE',
+    '"progress" => 37',
+    '"/api/dialogue/job/$dialogue_generation_smoke_job_id"',
+    'cleanup_dialogue_generation_smoke best-effort',
+    'Dialogue generation Learning OS routing smoke check passed.',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
@@ -422,7 +448,7 @@ test('course generation proxy activates only through a rollback-safe production 
     workflow.indexOf('Course generation Learning OS write smoke check passed.')
   );
   const activationCommit = workflow.indexOf(
-    'COURSE_GENERATION_PROXY_CUTOVER_STARTED=false',
+    'GENERATION_PROXY_CUTOVER_STARTED=false',
     workflow.indexOf('verify_study_api')
   );
 
@@ -445,8 +471,9 @@ test('course generation proxy activates only through a rollback-safe production 
     workflow.indexOf('cleanup_deployment_resources() {'),
     workflow.indexOf('trap cleanup_deployment_resources EXIT')
   );
-  assert.ok(failureCleanup.includes('COURSE_GENERATION_PROXY_CUTOVER_STARTED'));
+  assert.ok(failureCleanup.includes('GENERATION_PROXY_CUTOVER_STARTED'));
   assert.ok(failureCleanup.includes('PREVIOUS_COURSE_GENERATION_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('$COMPOSE up -d --no-deps --force-recreate'));
   assert.doesNotMatch(
     failureCleanup,
