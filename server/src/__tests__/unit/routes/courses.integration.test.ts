@@ -295,13 +295,12 @@ describe('Courses Routes Integration', () => {
     expect(mockPrisma.course.updateMany).not.toHaveBeenCalled();
   });
 
-  it('proxies course deletion for the effective user and preserves the response', async () => {
-    const body = { message: 'Course deleted successfully' };
-    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
+  it('proxies course deletion and preserves the legacy acknowledgment', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson({ message: 'Course deleted' }));
 
     const response = await request(app).delete('/api/courses/course-id').expect(200);
 
-    expect(response.body).toEqual(body);
+    expect(response.body).toEqual({ message: 'Course deleted successfully' });
     expect(mocks.getEffectiveUserId).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'actor-user-id' })
     );

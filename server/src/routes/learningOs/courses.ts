@@ -200,7 +200,8 @@ export async function deleteLearningOsCourse(
       throw new AppError(`${API_LABEL} returned an invalid delete response.`, 502);
     }
 
-    res.json(payload);
+    // Preserve the existing Convo Lab acknowledgment while Learning OS keeps its own wire text.
+    res.json({ message: 'Course deleted successfully' });
   } catch (error) {
     next(error);
   }
