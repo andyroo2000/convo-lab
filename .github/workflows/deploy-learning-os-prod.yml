@@ -96,17 +96,23 @@ jobs:
 
             cleanup_deployment_resources() {
               local cleanup_failed=false
+              local course_generation_proxy_restore_ok=true
+              local dialogue_generation_proxy_restore_ok=true
               local rolled_back_course_generation_proxy
               local rolled_back_dialogue_generation_proxy
 
               if [ "$GENERATION_PROXY_CUTOVER_STARTED" = true ]; then
                 echo "Rolling back the Learning OS generation proxies."
-                if ! upsert_env \
+                upsert_env \
                   LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED \
                   "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED" \
-                  || ! upsert_env \
-                    LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED \
-                    "$PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED"; then
+                  || course_generation_proxy_restore_ok=false
+                upsert_env \
+                  LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED \
+                  "$PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED" \
+                  || dialogue_generation_proxy_restore_ok=false
+                if [ "$course_generation_proxy_restore_ok" != true ] \
+                  || [ "$dialogue_generation_proxy_restore_ok" != true ]; then
                   echo "::error::Failed to restore the generation proxy environment values."
                   cleanup_failed=true
                 elif ! $COMPOSE up -d --no-deps --force-recreate "server-$active_color"; then

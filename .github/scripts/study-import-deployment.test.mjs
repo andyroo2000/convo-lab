@@ -390,6 +390,12 @@ test('generation proxies activate only through rollback-safe production rehearsa
     'previous_course_generation_proxy="$(sed -n',
     'previous_dialogue_generation_proxy="$(sed -n',
     'Rolling back the Learning OS generation proxies.',
+    'course_generation_proxy_restore_ok=true',
+    'dialogue_generation_proxy_restore_ok=true',
+    '|| course_generation_proxy_restore_ok=false',
+    '|| dialogue_generation_proxy_restore_ok=false',
+    'if [ "$course_generation_proxy_restore_ok" != true ]',
+    '|| [ "$dialogue_generation_proxy_restore_ok" != true ]',
     '::error::Failed to restore the generation proxy environment values.',
     '::error::Failed to recreate the production server while rolling back generation proxies.',
     '::error::The production server was unhealthy after rolling back generation proxies.',
@@ -474,6 +480,14 @@ test('generation proxies activate only through rollback-safe production rehearsa
   assert.ok(failureCleanup.includes('GENERATION_PROXY_CUTOVER_STARTED'));
   assert.ok(failureCleanup.includes('PREVIOUS_COURSE_GENERATION_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED'));
+  assert.ok(
+    failureCleanup.indexOf('|| course_generation_proxy_restore_ok=false') <
+      failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED')
+  );
+  assert.ok(
+    failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED') <
+      failureCleanup.indexOf('|| dialogue_generation_proxy_restore_ok=false')
+  );
   assert.ok(failureCleanup.includes('$COMPOSE up -d --no-deps --force-recreate'));
   assert.doesNotMatch(
     failureCleanup,
