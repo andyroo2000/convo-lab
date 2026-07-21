@@ -1,293 +1,363 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/* eslint-disable import/no-named-as-default-member */
+import express, { NextFunction, Response } from 'express';
+import request from 'supertest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Create hoisted mocks
+import { AuthRequest } from '../../../middleware/auth.js';
+import { errorHandler } from '../../../middleware/errorHandler.js';
+import imageRouter from '../../../routes/images.js';
+
+const mocks = vi.hoisted(() => ({
+  fetchLearningOsProxy: vi.fn(),
+  resolveLearningOsProxyContext: vi.fn(),
+  triggerWorkerJob: vi.fn(),
+}));
+
 const mockImageQueue = vi.hoisted(() => ({
   add: vi.fn(),
   getJob: vi.fn(),
 }));
 
-vi.mock('../../../jobs/imageQueue.js', () => ({
-  imageQueue: mockImageQueue,
+vi.mock('../../../jobs/imageQueue.js', () => ({ imageQueue: mockImageQueue }));
+vi.mock('../../../services/learningOsProxy.js', () => ({
+  fetchLearningOsProxy: mocks.fetchLearningOsProxy,
+  resolveLearningOsProxyContext: mocks.resolveLearningOsProxyContext,
+}));
+vi.mock('../../../middleware/auth.js', () => ({
+  requireAuth: vi.fn((req: AuthRequest, _res: Response, next: NextFunction) => {
+    req.userId = 'actor-user-id';
+    req.role = 'user';
+    next();
+  }),
+  AuthRequest: class {},
+}));
+vi.mock('../../../services/workerTrigger.js', () => ({
+  triggerWorkerJob: mocks.triggerWorkerJob,
+}));
+vi.mock('../../../i18n/index.js', () => ({
+  default: {
+    t: (key: string, params?: Record<string, unknown>) => {
+      if (key === 'server:content.missingFields') return 'Missing required fields';
+      if (key === 'server:content.jobNotFound') return 'Job not found';
+      if (key === 'server:content.generationStarted') {
+        return `${params?.type} generation started`;
+      }
+      return key;
+    },
+  },
 }));
 
-// Type definitions for test
-interface GenerateImagesBody {
-  episodeId?: string;
-  dialogueId?: string;
-  imageCount?: number;
-}
+const originalImageGenerationProxyEnabled = process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED;
+const EPISODE_ID = '018f47ea-4b37-7f21-8d5a-90e157176b8a';
+const DIALOGUE_ID = '019c8e80-f73f-78e8-96e8-c5b462053ee0';
+const JOB_ID = '019c8e7f-5c48-7d32-ae6b-a1f268287c9b';
+const IMAGE_ID = '019c8e8d-a71c-7604-88b0-346fb8897226';
+const START_SENTENCE_ID = '019c8e91-9f22-7d45-9710-422255d83f26';
+const END_SENTENCE_ID = '019c8e92-b65e-7991-bbf6-e825049088c5';
 
-interface JobProgress {
-  step?: string;
-  progress?: number;
-}
+const upstreamJson = (
+  body: unknown,
+  status = 200,
+  headers: Record<string, string> = {}
+): globalThis.Response =>
+  new globalThis.Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  });
 
-interface JobResult {
-  images: string[];
-}
+const generateBody = () => ({
+  episodeId: EPISODE_ID,
+  dialogueId: DIALOGUE_ID,
+  imageCount: 4,
+});
 
-interface MockJob {
-  id: string;
-  getState: () => Promise<string>;
-  progress: number | JobProgress;
-  returnvalue: JobResult | null;
-}
+const jobBody = (state = 'active', progress = 35) => ({
+  id: JOB_ID,
+  state,
+  progress,
+  result: null,
+});
 
-describe('Images Route Logic', () => {
+const imageResult = () => ({
+  id: IMAGE_ID,
+  episodeId: EPISODE_ID,
+  url: 'https://placehold.co/800x600/EEF3FB/5E6AD8?text=Scene+1',
+  prompt: 'A detailed visual scene for the dialogue.',
+  order: 0,
+  sentenceStartId: START_SENTENCE_ID,
+  sentenceEndId: END_SENTENCE_ID,
+  createdAt: '2026-07-21T12:00:00.000Z',
+});
+
+describe('Image routes', () => {
+  let app: express.Application;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'false';
+    mocks.resolveLearningOsProxyContext.mockResolvedValue({
+      config: { apiUrl: 'http://learning-os.test', apiToken: 'proxy-token' },
+      user: { id: 'actor-user-id', email: 'learner@example.com', role: 'user' },
+    });
+    mocks.triggerWorkerJob.mockResolvedValue(undefined);
+
+    app = express();
+    app.use(express.json());
+    app.use('/api/images', imageRouter);
+    app.use(errorHandler);
   });
 
-  describe('POST /generate - Generate Images', () => {
-    it('should require episodeId', () => {
-      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
-        const { episodeId, dialogueId } = body;
-        if (!episodeId || !dialogueId) {
-          return 'Missing required fields';
-        }
-        return null;
-      };
+  afterAll(() => {
+    if (originalImageGenerationProxyEnabled === undefined) {
+      delete process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED;
+    } else {
+      process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = originalImageGenerationProxyEnabled;
+    }
+  });
 
-      expect(validateGenerateImages({ dialogueId: 'd-1' })).toBe('Missing required fields');
+  it('keeps generation on BullMQ while Learning OS routing is disabled', async () => {
+    mockImageQueue.add.mockResolvedValue({ id: 'legacy-job-123' });
+
+    const response = await request(app)
+      .post('/api/images/generate')
+      .send(generateBody())
+      .expect(200);
+
+    expect(response.body).toEqual({
+      jobId: 'legacy-job-123',
+      message: 'Image generation started',
     });
-
-    it('should require dialogueId', () => {
-      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
-        const { episodeId, dialogueId } = body;
-        if (!episodeId || !dialogueId) {
-          return 'Missing required fields';
-        }
-        return null;
-      };
-
-      expect(validateGenerateImages({ episodeId: 'ep-1' })).toBe('Missing required fields');
+    expect(mockImageQueue.add).toHaveBeenCalledWith('generate-images', {
+      userId: 'actor-user-id',
+      ...generateBody(),
     });
+    expect(mocks.triggerWorkerJob).toHaveBeenCalledOnce();
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
 
-    it('should pass validation with both required fields', () => {
-      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
-        const { episodeId, dialogueId } = body;
-        if (!episodeId || !dialogueId) {
-          return 'Missing required fields';
-        }
-        return null;
-      };
+  it('uses the legacy default image count while routing is disabled', async () => {
+    mockImageQueue.add.mockResolvedValue({ id: 'legacy-job-123' });
 
-      expect(validateGenerateImages({ episodeId: 'ep-1', dialogueId: 'd-1' })).toBeNull();
-    });
+    await request(app)
+      .post('/api/images/generate')
+      .send({ episodeId: EPISODE_ID, dialogueId: DIALOGUE_ID })
+      .expect(200);
 
-    it('should queue image generation job with default image count', async () => {
-      mockImageQueue.add.mockResolvedValue({ id: 'job-123' });
-
-      const job = await mockImageQueue.add('generate-images', {
-        userId: 'test-user-id',
-        episodeId: 'ep-1',
-        dialogueId: 'd-1',
-        imageCount: 3, // default value
-      });
-
-      expect(mockImageQueue.add).toHaveBeenCalledWith(
-        'generate-images',
-        expect.objectContaining({
-          userId: 'test-user-id',
-          episodeId: 'ep-1',
-          dialogueId: 'd-1',
-          imageCount: 3,
-        })
-      );
-      expect(job.id).toBe('job-123');
-    });
-
-    it('should accept custom image count', async () => {
-      mockImageQueue.add.mockResolvedValue({ id: 'job-456' });
-
-      const job = await mockImageQueue.add('generate-images', {
-        userId: 'test-user-id',
-        episodeId: 'ep-1',
-        dialogueId: 'd-1',
-        imageCount: 5,
-      });
-
-      expect(mockImageQueue.add).toHaveBeenCalledWith(
-        'generate-images',
-        expect.objectContaining({
-          imageCount: 5,
-        })
-      );
-      expect(job.id).toBe('job-456');
-    });
-
-    it('should use default imageCount of 3', () => {
-      const getImageCount = (body: GenerateImagesBody) => body.imageCount || 3;
-
-      expect(getImageCount({})).toBe(3);
-      expect(getImageCount({ imageCount: 5 })).toBe(5);
-      expect(getImageCount({ imageCount: 1 })).toBe(1);
+    expect(mockImageQueue.add).toHaveBeenCalledWith('generate-images', {
+      userId: 'actor-user-id',
+      episodeId: EPISODE_ID,
+      dialogueId: DIALOGUE_ID,
+      imageCount: 3,
     });
   });
 
-  describe('GET /job/:jobId - Job Status', () => {
-    it('should return job status with progress', async () => {
-      mockImageQueue.getJob.mockResolvedValue({
-        id: 'job-123',
-        getState: vi.fn().mockResolvedValue('active'),
-        progress: { step: 'generating', progress: 30 },
-        returnvalue: null,
-      });
-
-      const job = await mockImageQueue.getJob('job-123');
-
-      expect(job).toBeDefined();
-      expect(await job.getState()).toBe('active');
-      expect(job.progress.step).toBe('generating');
+  it('keeps polling on BullMQ while Learning OS routing is disabled', async () => {
+    mockImageQueue.getJob.mockResolvedValue({
+      id: 'legacy-job-123',
+      getState: vi.fn().mockResolvedValue('active'),
+      progress: 42,
+      returnvalue: null,
     });
 
-    it('should return completed job with result', async () => {
-      const mockResult = {
-        images: [
-          'https://storage.example.com/image1.png',
-          'https://storage.example.com/image2.png',
-        ],
-      };
+    const response = await request(app).get('/api/images/job/legacy-job-123').expect(200);
 
-      mockImageQueue.getJob.mockResolvedValue({
-        id: 'job-123',
-        getState: vi.fn().mockResolvedValue('completed'),
-        progress: 100,
-        returnvalue: mockResult,
-      });
-
-      const job = await mockImageQueue.getJob('job-123');
-      const state = await job.getState();
-
-      expect(state).toBe('completed');
-      expect(job.returnvalue.images).toHaveLength(2);
+    expect(response.body).toEqual({
+      id: 'legacy-job-123',
+      state: 'active',
+      progress: 42,
+      result: null,
     });
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mockImageQueue.getJob).toHaveBeenCalledWith('legacy-job-123');
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
 
-    it('should return null for non-existent job', async () => {
-      mockImageQueue.getJob.mockResolvedValue(null);
+  it('preserves legacy validation and missing-job errors while routing is disabled', async () => {
+    const generateResponse = await request(app)
+      .post('/api/images/generate')
+      .send({ episodeId: EPISODE_ID })
+      .expect(400);
+    expect(generateResponse.body.error.message).toBe('Missing required fields');
 
-      const job = await mockImageQueue.getJob('non-existent');
+    mockImageQueue.getJob.mockResolvedValue(null);
+    const jobResponse = await request(app).get('/api/images/job/missing').expect(404);
+    expect(jobResponse.body.error.message).toBe('Job not found');
+  });
 
-      expect(job).toBeNull();
-      // Route would throw AppError('Job not found', 404)
+  it('proxies generation with only supported fields when routing is enabled', async () => {
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ jobId: JOB_ID, message: 'Image generation started' })
+    );
+    const body = { ...generateBody(), userId: 'spoofed', ignored: 'do not forward' };
+
+    const response = await request(app).post('/api/images/generate').send(body).expect(200);
+
+    expect(response.body).toEqual({ jobId: JOB_ID, message: 'Image generation started' });
+    expect(mocks.resolveLearningOsProxyContext).toHaveBeenCalledWith(
+      'actor-user-id',
+      'Learning OS Image API'
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith({
+      upstreamUrl: new URL('http://learning-os.test/api/convolab/images/generate'),
+      apiToken: 'proxy-token',
+      user: { id: 'actor-user-id', email: 'learner@example.com', role: 'user' },
+      method: 'POST',
+      body: generateBody(),
+      timeoutMs: 10_000,
+      timeoutMessage: 'Learning OS Image API request timed out.',
+      networkErrorMessage: 'Learning OS Image API is unavailable.',
     });
+    expect(mockImageQueue.add).not.toHaveBeenCalled();
+    expect(mocks.triggerWorkerJob).not.toHaveBeenCalled();
+  });
 
-    it('should return different job states', async () => {
-      const states = ['waiting', 'active', 'completed', 'failed', 'delayed'];
+  it('proxies a pending job poll without consulting BullMQ', async () => {
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(jobBody()));
 
-      for (const expectedState of states) {
-        mockImageQueue.getJob.mockResolvedValue({
-          id: `job-${expectedState}`,
-          getState: vi.fn().mockResolvedValue(expectedState),
-          progress: 0,
-          returnvalue: null,
-        });
+    const response = await request(app).get(`/api/images/job/${JOB_ID}`).expect(200);
 
-        const job = await mockImageQueue.getJob(`job-${expectedState}`);
-        const state = await job.getState();
+    expect(response.body).toEqual(jobBody());
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL(`http://learning-os.test/api/convolab/images/job/${JOB_ID}`),
+        method: 'GET',
+        body: undefined,
+      })
+    );
+    expect(mockImageQueue.getJob).not.toHaveBeenCalled();
+  });
 
-        expect(state).toBe(expectedState);
-      }
+  it('accepts completed image results with nullable sentence bounds', async () => {
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+    const completed = {
+      id: JOB_ID,
+      state: 'completed',
+      progress: 100,
+      result: [imageResult(), { ...imageResult(), id: END_SENTENCE_ID, sentenceEndId: null }],
+    };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(completed));
+
+    const response = await request(app).get(`/api/images/job/${JOB_ID}`).expect(200);
+
+    expect(response.body).toEqual(completed);
+  });
+
+  it('accepts an empty completed result for a dialogue without image sections', async () => {
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+    const completed = { ...jobBody('completed', 100), result: [] };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(completed));
+
+    await request(app).get(`/api/images/job/${JOB_ID}`).expect(200, completed);
+  });
+
+  it.each([400, 404, 409, 422])(
+    'preserves a safe compatibility message for upstream HTTP %s',
+    async (upstreamStatus) => {
+      process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+      mocks.fetchLearningOsProxy.mockResolvedValue(
+        upstreamJson({ message: 'Safe compatibility message' }, upstreamStatus)
+      );
+
+      const response = await request(app)
+        .post('/api/images/generate')
+        .send(generateBody())
+        .expect(upstreamStatus);
+
+      expect(response.body.error.message).toBe('Safe compatibility message');
+    }
+  );
+
+  it('preserves a bounded upstream retry window for rate limits', async () => {
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ message: 'Too many attempts.' }, 429, { 'Retry-After': '27' })
+    );
+
+    const response = await request(app)
+      .post('/api/images/generate')
+      .send(generateBody())
+      .expect(429);
+
+    expect(response.headers['retry-after']).toBe('27');
+    expect(response.body.error).toMatchObject({
+      message: 'Too many attempts.',
+      cooldown: { remainingSeconds: 27 },
     });
   });
 
-  describe('Response Formatting', () => {
-    it('should format generate response correctly', () => {
-      const formatGenerateResponse = (jobId: string) => ({
-        jobId,
-        message: 'Image generation started',
-      });
+  it.each([401, 403, 500, 503])(
+    'hides upstream details and maps HTTP %s to 502',
+    async (upstreamStatus) => {
+      process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+      mocks.fetchLearningOsProxy.mockResolvedValue(
+        upstreamJson({ message: 'sensitive upstream details' }, upstreamStatus)
+      );
 
-      const response = formatGenerateResponse('job-123');
-      expect(response.jobId).toBe('job-123');
-      expect(response.message).toBe('Image generation started');
-    });
+      const response = await request(app).get(`/api/images/job/${JOB_ID}`).expect(502);
 
-    it('should format job status response correctly for active job', () => {
-      const formatJobStatusResponse = (job: MockJob, state: string) => ({
-        id: job.id,
-        state,
-        progress: job.progress,
-        result: state === 'completed' ? job.returnvalue : null,
-      });
+      expect(response.body.error.message).toBe('Learning OS Image API request failed.');
+      expect(JSON.stringify(response.body)).not.toContain('sensitive upstream details');
+    }
+  );
 
-      const activeJob: MockJob = {
-        id: 'job-123',
-        progress: 50,
-        returnvalue: { images: ['url1', 'url2'] },
-        getState: vi.fn().mockResolvedValue('active'),
-      };
+  it.each([
+    {},
+    { message: 'missing job' },
+    { message: 'wrong job type', jobId: 123 },
+    { message: 'not a UUID', jobId: 'legacy-job' },
+  ])('rejects a malformed generate success response %#', async (body) => {
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
 
-      const response = formatJobStatusResponse(activeJob, 'active');
-      expect(response.result).toBeNull();
-      expect(response.state).toBe('active');
-      expect(response.progress).toBe(50);
-    });
+    const response = await request(app)
+      .post('/api/images/generate')
+      .send(generateBody())
+      .expect(502);
 
-    it('should format job status response correctly for completed job', () => {
-      const formatJobStatusResponse = (job: MockJob, state: string) => ({
-        id: job.id,
-        state,
-        progress: job.progress,
-        result: state === 'completed' ? job.returnvalue : null,
-      });
-
-      const completedJob: MockJob = {
-        id: 'job-123',
-        progress: 100,
-        returnvalue: { images: ['url1', 'url2', 'url3'] },
-        getState: vi.fn().mockResolvedValue('completed'),
-      };
-
-      const response = formatJobStatusResponse(completedJob, 'completed');
-      expect(response.result).toBeDefined();
-      expect(response.result!.images).toHaveLength(3);
-    });
+    expect(response.body.error.message).toBe(
+      'Learning OS Image API returned an invalid generate response.'
+    );
   });
 
-  describe('Validation', () => {
-    it('should reject empty body', () => {
-      const validateGenerateImages = (
-        body: GenerateImagesBody | null | undefined
-      ): string | null => {
-        const { episodeId, dialogueId } = body || {};
-        if (!episodeId || !dialogueId) {
-          return 'Missing required fields';
-        }
-        return null;
-      };
+  it.each([
+    { ...jobBody(), id: EPISODE_ID },
+    { ...jobBody(), state: 'delayed' },
+    { ...jobBody(), progress: -1 },
+    { ...jobBody(), progress: 1.5 },
+    { ...jobBody(), result: [] },
+    { ...jobBody('completed', 100), result: null },
+    { ...jobBody('completed', 100), result: [{ ...imageResult(), id: 'bad-id' }] },
+    { ...jobBody('completed', 100), result: [{ ...imageResult(), url: 'javascript:alert(1)' }] },
+    { ...jobBody('completed', 100), result: [{ ...imageResult(), createdAt: 'next Tuesday' }] },
+    { ...jobBody('completed', 100), result: [{ ...imageResult(), order: -1 }] },
+    { ...jobBody('completed', 100), result: [{ ...imageResult(), sentenceStartId: 'bad-id' }] },
+  ])('rejects a malformed job success response %#', async (body) => {
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
 
-      expect(validateGenerateImages({})).toBe('Missing required fields');
-      expect(validateGenerateImages(null)).toBe('Missing required fields');
-      expect(validateGenerateImages(undefined)).toBe('Missing required fields');
-    });
+    const response = await request(app).get(`/api/images/job/${JOB_ID}`).expect(502);
 
-    it('should validate that episodeId is not empty string', () => {
-      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
-        const { episodeId, dialogueId } = body;
-        if (!episodeId || !dialogueId) {
-          return 'Missing required fields';
-        }
-        return null;
-      };
+    expect(response.body.error.message).toBe(
+      'Learning OS Image API returned an invalid job response.'
+    );
+  });
 
-      expect(validateGenerateImages({ episodeId: '', dialogueId: 'd-1' })).toBe(
-        'Missing required fields'
-      );
-    });
+  it('rejects invalid JSON from a successful upstream response', async () => {
+    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      new globalThis.Response('not-json', {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' },
+      })
+    );
 
-    it('should validate that dialogueId is not empty string', () => {
-      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
-        const { episodeId, dialogueId } = body;
-        if (!episodeId || !dialogueId) {
-          return 'Missing required fields';
-        }
-        return null;
-      };
+    const response = await request(app).get(`/api/images/job/${JOB_ID}`).expect(502);
 
-      expect(validateGenerateImages({ episodeId: 'ep-1', dialogueId: '' })).toBe(
-        'Missing required fields'
-      );
-    });
+    expect(response.body.error.message).toBe(
+      'Learning OS Image API returned an invalid JSON response.'
+    );
   });
 });

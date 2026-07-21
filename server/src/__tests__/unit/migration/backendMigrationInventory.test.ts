@@ -130,6 +130,16 @@ describe('backend migration inventory', () => {
       route: { id: 'scripts.audio.show' },
       surface: { id: 'scripts', runtimeOwner: 'learning-os-proxy' },
     });
+    expect(findBackendMigrationRoute('POST', '/api/images/generate')).toMatchObject({
+      route: { id: 'images.generate' },
+      surface: { id: 'images', runtimeOwner: 'learning-os-proxy' },
+    });
+    expect(
+      findBackendMigrationRoute('GET', '/api/images/job/019c8e7f-5c48-7d32-ae6b-a1f268287c9b')
+    ).toMatchObject({
+      route: { id: 'images.job.show' },
+      surface: { id: 'images', runtimeOwner: 'learning-os-proxy' },
+    });
     expect(
       findBackendMigrationRoute(
         'GET',

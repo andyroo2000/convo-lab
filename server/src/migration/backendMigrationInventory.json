@@ -158,8 +158,8 @@
     {
       "id": "images",
       "domain": "generation",
-      "migrationWave": "content",
-      "runtimeOwner": "express",
+      "migrationWave": "complete",
+      "runtimeOwner": "learning-os-proxy",
       "sourceFile": "server/src/routes/images.ts",
       "mountPath": "/api/images",
       "routes": [

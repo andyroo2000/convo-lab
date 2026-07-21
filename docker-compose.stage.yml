@@ -99,6 +99,7 @@ services:
       LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED: "false"
       LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED: "false"
       LEARNING_OS_SCRIPT_PROXY_ENABLED: "false"
+      LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED: "false"
       LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: "false"
     volumes:
       - ./server/gcloud-key.json:/app/gcloud-key.json:ro
