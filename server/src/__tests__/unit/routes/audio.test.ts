@@ -96,16 +96,16 @@ const singleResult = () => ({
 
 const allSpeedsResult = () => [
   {
-    speed: 0.7,
+    speed: 'slow',
     audioUrl: `/api/convolab/episodes/${EPISODE_ID}/audio/0.7`,
     duration: 15_000,
   },
   {
-    speed: 0.85,
+    speed: 'medium',
     audioUrl: `/api/convolab/episodes/${EPISODE_ID}/audio/0.85`,
     duration: 13_000,
   },
-  { speed: 1, audioUrl: AUDIO_URL, duration: 11_000 },
+  { speed: 'normal', audioUrl: AUDIO_URL, duration: 11_000 },
 ];
 
 describe('Audio routes', () => {
@@ -336,6 +336,10 @@ describe('Audio routes', () => {
     jobBody('completed', 100, { ...singleResult(), audioUrl: 'https://attacker.example/a.mp3' }),
     jobBody('completed', 100, { ...singleResult(), sentenceTimings: [] }),
     jobBody('completed', 100, allSpeedsResult().slice(0, 2)),
+    jobBody('completed', 100, [
+      { ...allSpeedsResult()[0], speed: 0.7 },
+      ...allSpeedsResult().slice(1),
+    ]),
     jobBody('completed', 100, [allSpeedsResult()[0], ...allSpeedsResult().slice(0, 2)]),
     jobBody('completed', 100, [
       { ...allSpeedsResult()[0], audioUrl: AUDIO_URL },

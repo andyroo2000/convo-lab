@@ -555,7 +555,6 @@ jobs:
             audio_generation_smoke_episode_id=
             audio_generation_smoke_dialogue_id=
             audio_generation_smoke_job_id=
-            audio_generation_smoke_sentence_id=
             audio_generation_smoke_path=
             audio_generation_smoke_inserted=false
             audio_generation_smoke_body=
@@ -1057,17 +1056,30 @@ jobs:
                 local label="$1"
                 local path="$2"
                 local response=""
+                local response_file
+                local status
                 local attempt
 
                 for attempt in {1..12}; do
-                  if response="$(curl --fail --silent --show-error \
-                    --header 'Accept: application/json' \
-                    --cookie "token=$auth_token" \
-                    "https://convo-lab.com$path")"; then
+                  response_file="$(mktemp)"
+                  if status="$(curl --silent --show-error \
+                      --output "$response_file" \
+                      --write-out '%{http_code}' \
+                      --header 'Accept: application/json' \
+                      --cookie "token=$auth_token" \
+                      "https://convo-lab.com$path")"; then
+                    :
+                  else
+                    status="${status:-transport-error}"
+                  fi
+                  response="$(cat "$response_file")"
+                  rm -f "$response_file"
+                  if [[ "$status" =~ ^2[0-9][0-9]$ ]]; then
                     printf '%s' "$response"
                     return 0
                   fi
-                  echo "$label attempt $attempt/12 failed; retrying." >&2
+                  echo "$label attempt $attempt/12 returned HTTP ${status:-unknown}; retrying." >&2
+                  printf '%s\n' "${response:0:2048}" >&2
                   sleep 3
                 done
 
@@ -1667,15 +1679,13 @@ jobs:
               audio_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"
               audio_generation_smoke_dialogue_id="$(cat /proc/sys/kernel/random/uuid)"
               audio_generation_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"
-              audio_generation_smoke_sentence_id="$(cat /proc/sys/kernel/random/uuid)"
               if ! [[ "$audio_generation_smoke_episode_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] \
                 || ! [[ "$audio_generation_smoke_dialogue_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] \
-                || ! [[ "$audio_generation_smoke_job_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] \
-                || ! [[ "$audio_generation_smoke_sentence_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+                || ! [[ "$audio_generation_smoke_job_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
                 echo "Unable to generate valid audio-generation smoke UUIDs." >&2
                 exit 1
               fi
-              audio_generation_smoke_path="content-episodes/$audio_generation_smoke_episode_id/audio-1-default.mp3"
+              audio_generation_smoke_path="content-episodes/$audio_generation_smoke_episode_id/audio-1-1.0.mp3"
               audio_generation_smoke_inserted=true
               # Exercise polling and authenticated byte streaming without dispatching a
               # paid Fish Audio request. Public generation and polling share one switch.
@@ -1685,7 +1695,6 @@ jobs:
                 -e AUDIO_GENERATION_SMOKE_EPISODE_ID="$audio_generation_smoke_episode_id" \
                 -e AUDIO_GENERATION_SMOKE_DIALOGUE_ID="$audio_generation_smoke_dialogue_id" \
                 -e AUDIO_GENERATION_SMOKE_JOB_ID="$audio_generation_smoke_job_id" \
-                -e AUDIO_GENERATION_SMOKE_SENTENCE_ID="$audio_generation_smoke_sentence_id" \
                 -e AUDIO_GENERATION_SMOKE_PATH="$audio_generation_smoke_path" \
                 learning-os-api php artisan tinker --execute='
                   $user = App\Models\User::query()
@@ -1693,9 +1702,8 @@ jobs:
                     ->sole();
                   $episodeId = getenv("AUDIO_GENERATION_SMOKE_EPISODE_ID");
                   $dialogueId = getenv("AUDIO_GENERATION_SMOKE_DIALOGUE_ID");
-                  $sentenceId = getenv("AUDIO_GENERATION_SMOKE_SENTENCE_ID");
                   $audioPath = getenv("AUDIO_GENERATION_SMOKE_PATH");
-                  $audioUrl = "/api/convolab/episodes/{$episodeId}/audio/default";
+                  $audioUrl = "/api/convolab/episodes/{$episodeId}/audio/1.0";
                   Illuminate\Support\Facades\DB::transaction(function () use (
                     $user,
                     $episodeId,
@@ -1717,8 +1725,8 @@ jobs:
                       "status" => "ready",
                       "is_sample_content" => false,
                       "audio_generation_attempt" => 1,
-                      "audio_url" => $audioUrl,
-                      "audio_storage_path" => $audioPath,
+                      "audio_url_1_0" => $audioUrl,
+                      "audio_storage_path_1_0" => $audioPath,
                       "created_at" => now(),
                       "updated_at" => now(),
                     ]);
@@ -1738,15 +1746,24 @@ jobs:
                       "state" => App\Domain\Content\Support\ContentAudioGeneration::STATE_COMPLETED,
                       "progress" => 100,
                       "input" => json_encode([
-                        "mode" => "single",
-                        "speed" => "normal",
+                        "mode" => "all-speeds",
                         "pauseMode" => false,
                       ]),
                       "result" => json_encode([
-                        "audioUrl" => $audioUrl,
-                        "duration" => 1234,
-                        "sentenceTimings" => [
-                          $sentenceId => ["startTime" => 0, "endTime" => 1234],
+                        [
+                          "speed" => "slow",
+                          "audioUrl" => "/api/convolab/episodes/{$episodeId}/audio/0.7",
+                          "duration" => 1763,
+                        ],
+                        [
+                          "speed" => "medium",
+                          "audioUrl" => "/api/convolab/episodes/{$episodeId}/audio/0.85",
+                          "duration" => 1451,
+                        ],
+                        [
+                          "speed" => "normal",
+                          "audioUrl" => $audioUrl,
+                          "duration" => 1234,
                         ],
                       ]),
                       "started_at" => now(),
@@ -1774,10 +1791,14 @@ jobs:
                     response?.id !== process.env.EXPECTED_AUDIO_JOB_ID ||
                     response.state !== "completed" ||
                     response.progress !== 100 ||
-                    response.result?.audioUrl !==
-                      `/api/convolab/episodes/${process.env.EXPECTED_AUDIO_EPISODE_ID}/audio/default` ||
-                    response.result.duration !== 1234 ||
-                    typeof response.result.sentenceTimings !== "object"
+                    !Array.isArray(response.result) ||
+                    response.result.length !== 3 ||
+                    response.result[0]?.speed !== "slow" ||
+                    response.result[1]?.speed !== "medium" ||
+                    response.result[2]?.speed !== "normal" ||
+                    response.result[2]?.audioUrl !==
+                      `/api/convolab/episodes/${process.env.EXPECTED_AUDIO_EPISODE_ID}/audio/1.0` ||
+                    response.result[2]?.duration !== 1234
                   ) process.exit(1);
                 '
 
@@ -1787,7 +1808,7 @@ jobs:
                 --cookie "token=$auth_token" \
                 --dump-header "$audio_generation_smoke_headers" \
                 --output "$audio_generation_smoke_body" \
-                "https://convo-lab.com/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/default"
+                "https://convo-lab.com/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0"
               test "$(cat "$audio_generation_smoke_body")" = "learning-os-audio-generation-smoke"
               grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$audio_generation_smoke_headers"
               grep -Eiq "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" "$audio_generation_smoke_headers"
