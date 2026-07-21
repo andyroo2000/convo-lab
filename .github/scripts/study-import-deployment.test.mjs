@@ -272,6 +272,10 @@ test('course generation proxy activates only through a rollback-safe production 
     'course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"',
     'course_generation_smoke_inserted=false',
     'if [ "$course_generation_smoke_inserted" != true ]; then',
+    'cleanup_course_generation_smoke best-effort',
+    'COURSE_GENERATION_SMOKE_DELETED=',
+    '[ "$mode" = best-effort ] && [ "$deleted_count" = 0 ]',
+    '::warning::Unable to clean up course-generation smoke fixture',
     'App\\Domain\\Content\\Support\\ContentSourceSystem::CONVOLAB',
     '"generation_heartbeat_at" => now()->subDay()',
     'course_generation_smoke_inserted=true',
@@ -317,8 +321,8 @@ test('course generation proxy activates only through a rollback-safe production 
   assert.ok(successCleanup < activationCommit);
 
   const fixtureInserted = workflow.indexOf('course_generation_smoke_inserted=true');
-  assert.ok(fixtureInsert < fixtureInserted);
-  assert.ok(fixtureInserted < publicReset);
+  assert.ok(activeFlagCheck < fixtureInserted);
+  assert.ok(fixtureInserted < fixtureInsert);
 
   const failureCleanup = workflow.slice(
     workflow.indexOf('cleanup_deployment_resources() {'),

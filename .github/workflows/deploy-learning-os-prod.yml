@@ -487,6 +487,10 @@ jobs:
             }
 
             cleanup_course_generation_smoke() {
+              local mode="${1:-strict}"
+              local cleanup_output
+              local deleted_count
+
               if [ -z "${course_generation_smoke_id:-}" ]; then
                 return
               fi
@@ -495,17 +499,38 @@ jobs:
                 return
               fi
 
-              docker exec -e COURSE_GENERATION_SMOKE_ID="$course_generation_smoke_id" \
+              if ! cleanup_output="$(docker exec \
+                -e COURSE_GENERATION_SMOKE_ID="$course_generation_smoke_id" \
                 learning-os-api php artisan tinker --execute='
                   $deleted = App\Domain\Content\Models\ContentCourse::query()
                     ->whereKey(getenv("COURSE_GENERATION_SMOKE_ID"))
                     ->delete();
-                  if ($deleted !== 1) {
-                    throw new RuntimeException("Course-generation smoke fixture was not deleted.");
-                  }
-                ' > /dev/null
-              course_generation_smoke_id=
-              course_generation_smoke_inserted=false
+                  echo "COURSE_GENERATION_SMOKE_DELETED=".$deleted.PHP_EOL;
+                ')"; then
+                if [ "$mode" = best-effort ]; then
+                  echo "::warning::Unable to clean up course-generation smoke fixture $course_generation_smoke_id."
+                  return 0
+                fi
+                return 1
+              fi
+
+              deleted_count="$(printf '%s\n' "$cleanup_output" \
+                | sed -n 's/^COURSE_GENERATION_SMOKE_DELETED=//p' \
+                | tail -1)"
+              if [ "$deleted_count" = 1 ] \
+                || { [ "$mode" = best-effort ] && [ "$deleted_count" = 0 ]; }; then
+                course_generation_smoke_id=
+                course_generation_smoke_inserted=false
+                return 0
+              fi
+
+              if [ "$mode" = best-effort ]; then
+                echo "::warning::Course-generation smoke cleanup returned ${deleted_count:-an invalid count} for fixture $course_generation_smoke_id."
+                return 0
+              fi
+
+              echo "Course-generation smoke fixture was not deleted." >&2
+              return 1
             }
 
             cleanup_deployment_failure() {
@@ -520,7 +545,7 @@ jobs:
                   '{}' > /dev/null || true
               fi
               cleanup_daily_audio_smoke
-              cleanup_course_generation_smoke
+              cleanup_course_generation_smoke best-effort
               cleanup_media_smoke
               cleanup_deployment_resources
 
@@ -830,6 +855,7 @@ jobs:
                 echo "Unable to generate a valid course-generation smoke UUID." >&2
                 exit 1
               fi
+              course_generation_smoke_inserted=true
               docker exec \
                 -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 -e CONVOLAB_SMOKE_USER_ID="$user_id" \
@@ -859,7 +885,6 @@ jobs:
                     "updated_at" => now(),
                   ]);
                 ' > /dev/null
-              course_generation_smoke_inserted=true
 
               course_reset="$(mutate_proxy_route \
                 POST \
