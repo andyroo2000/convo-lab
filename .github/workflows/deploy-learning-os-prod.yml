@@ -89,6 +89,7 @@ jobs:
             PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED=false
             PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED=false
             PREVIOUS_SCRIPT_PROXY_ENABLED=false
+            PREVIOUS_IMAGE_GENERATION_PROXY_ENABLED=false
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
@@ -102,10 +103,12 @@ jobs:
               local dialogue_generation_proxy_restore_ok=true
               local audio_generation_proxy_restore_ok=true
               local script_proxy_restore_ok=true
+              local image_generation_proxy_restore_ok=true
               local rolled_back_course_generation_proxy
               local rolled_back_dialogue_generation_proxy
               local rolled_back_audio_generation_proxy
               local rolled_back_script_proxy
+              local rolled_back_image_generation_proxy
 
               if [ "$GENERATION_PROXY_CUTOVER_STARTED" = true ]; then
                 echo "Rolling back the Learning OS generation proxies."
@@ -125,10 +128,15 @@ jobs:
                   LEARNING_OS_SCRIPT_PROXY_ENABLED \
                   "$PREVIOUS_SCRIPT_PROXY_ENABLED" \
                   || script_proxy_restore_ok=false
+                upsert_env \
+                  LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED \
+                  "$PREVIOUS_IMAGE_GENERATION_PROXY_ENABLED" \
+                  || image_generation_proxy_restore_ok=false
                 if [ "$course_generation_proxy_restore_ok" != true ] \
                   || [ "$dialogue_generation_proxy_restore_ok" != true ] \
                   || [ "$audio_generation_proxy_restore_ok" != true ] \
-                  || [ "$script_proxy_restore_ok" != true ]; then
+                  || [ "$script_proxy_restore_ok" != true ] \
+                  || [ "$image_generation_proxy_restore_ok" != true ]; then
                   echo "::error::Failed to restore the generation proxy environment values."
                   cleanup_failed=true
                 elif ! $COMPOSE up -d --no-deps --force-recreate "server-$active_color"; then
@@ -158,10 +166,16 @@ jobs:
                     "convolab-server-$active_color" \
                     | sed -n 's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
                     | tail -1)"
+                  rolled_back_image_generation_proxy="$(docker inspect \
+                    --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                    "convolab-server-$active_color" \
+                    | sed -n 's/^LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED=//p' \
+                    | tail -1)"
                   if [ "$rolled_back_course_generation_proxy" != "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_dialogue_generation_proxy" != "$PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_audio_generation_proxy" != "$PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED" ] \
-                    || [ "$rolled_back_script_proxy" != "$PREVIOUS_SCRIPT_PROXY_ENABLED" ]; then
+                    || [ "$rolled_back_script_proxy" != "$PREVIOUS_SCRIPT_PROXY_ENABLED" ] \
+                    || [ "$rolled_back_image_generation_proxy" != "$PREVIOUS_IMAGE_GENERATION_PROXY_ENABLED" ]; then
                     echo "::error::The production server retained a generation proxy after rollback."
                     cleanup_failed=true
                   fi
@@ -327,6 +341,20 @@ jobs:
               '') ;;
               *)
                 echo "Invalid LEARNING_OS_SCRIPT_PROXY_ENABLED value."
+                exit 1
+                ;;
+            esac
+
+            previous_image_generation_proxy="$(sed -n \
+              's/^LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED=//p' \
+              .env.production | tail -1)"
+            case "$previous_image_generation_proxy" in
+              true|false)
+                PREVIOUS_IMAGE_GENERATION_PROXY_ENABLED="$previous_image_generation_proxy"
+                ;;
+              '') ;;
+              *)
+                echo "Invalid LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED value."
                 exit 1
                 ;;
             esac
@@ -525,6 +553,7 @@ jobs:
             upsert_env LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true
+            upsert_env LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED true
             $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
             active_proxy_token="$(docker inspect \
@@ -563,6 +592,12 @@ jobs:
               | sed -n 's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
               | tail -1)"
             test "$active_script_proxy" = true
+            active_image_generation_proxy="$(docker inspect \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' \
+              "convolab-server-$active_color" \
+              | sed -n 's/^LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED=//p' \
+              | tail -1)"
+            test "$active_image_generation_proxy" = true
 
             if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
@@ -587,6 +622,10 @@ jobs:
             dialogue_generation_smoke_episode_id=
             dialogue_generation_smoke_job_id=
             dialogue_generation_smoke_inserted=false
+            image_generation_smoke_episode_id=
+            image_generation_smoke_dialogue_id=
+            image_generation_smoke_job_id=
+            image_generation_smoke_inserted=false
             audio_generation_smoke_episode_id=
             audio_generation_smoke_dialogue_id=
             audio_generation_smoke_job_id=
@@ -744,6 +783,63 @@ jobs:
               fi
 
               echo "Dialogue-generation smoke fixture was not fully removed." >&2
+              return 1
+            }
+
+            cleanup_image_generation_smoke() {
+              local mode="${1:-strict}"
+              local cleanup_output
+              local remaining_count
+
+              if [ -z "${image_generation_smoke_episode_id:-}" ]; then
+                return
+              fi
+              if [ "$image_generation_smoke_inserted" != true ]; then
+                image_generation_smoke_episode_id=
+                image_generation_smoke_dialogue_id=
+                image_generation_smoke_job_id=
+                return
+              fi
+
+              if ! cleanup_output="$(docker exec \
+                -e IMAGE_GENERATION_SMOKE_EPISODE_ID="$image_generation_smoke_episode_id" \
+                -e IMAGE_GENERATION_SMOKE_JOB_ID="$image_generation_smoke_job_id" \
+                learning-os-api php artisan tinker --execute='
+                  App\Domain\Content\Models\ContentEpisode::query()
+                    ->whereKey(getenv("IMAGE_GENERATION_SMOKE_EPISODE_ID"))
+                    ->delete();
+                  $remaining = App\Domain\Content\Models\ContentEpisode::query()
+                    ->whereKey(getenv("IMAGE_GENERATION_SMOKE_EPISODE_ID"))
+                    ->count();
+                  $remaining += App\Domain\Content\Models\ContentImageGenerationJob::query()
+                    ->whereKey(getenv("IMAGE_GENERATION_SMOKE_JOB_ID"))
+                    ->count();
+                  echo "IMAGE_GENERATION_SMOKE_REMAINING=".$remaining.PHP_EOL;
+                ')"; then
+                if [ "$mode" = best-effort ]; then
+                  echo "::warning::Unable to clean up image-generation smoke fixture $image_generation_smoke_episode_id."
+                  return 0
+                fi
+                return 1
+              fi
+
+              remaining_count="$(printf '%s\n' "$cleanup_output" \
+                | sed -n 's/^IMAGE_GENERATION_SMOKE_REMAINING=//p' \
+                | tail -1)"
+              if [ "$remaining_count" = 0 ]; then
+                image_generation_smoke_episode_id=
+                image_generation_smoke_dialogue_id=
+                image_generation_smoke_job_id=
+                image_generation_smoke_inserted=false
+                return 0
+              fi
+
+              if [ "$mode" = best-effort ]; then
+                echo "::warning::Image-generation smoke cleanup left ${remaining_count:-an unknown number of} rows for fixture $image_generation_smoke_episode_id."
+                return 0
+              fi
+
+              echo "Image-generation smoke fixture was not fully removed." >&2
               return 1
             }
 
@@ -1119,6 +1215,7 @@ jobs:
               cleanup_course_write_smoke best-effort
               cleanup_course_generation_smoke best-effort
               cleanup_dialogue_generation_smoke best-effort
+              cleanup_image_generation_smoke best-effort
               cleanup_audio_generation_smoke best-effort
               cleanup_script_smoke best-effort
               cleanup_media_smoke
@@ -1799,6 +1896,115 @@ jobs:
                 '
               cleanup_dialogue_generation_smoke
               echo "Dialogue generation Learning OS routing smoke check passed."
+
+              image_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"
+              image_generation_smoke_dialogue_id="$(cat /proc/sys/kernel/random/uuid)"
+              image_generation_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"
+              for smoke_uuid in \
+                "$image_generation_smoke_episode_id" \
+                "$image_generation_smoke_dialogue_id" \
+                "$image_generation_smoke_job_id"; do
+                if ! [[ "$smoke_uuid" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+                  echo "Unable to generate valid image-generation smoke UUIDs." >&2
+                  exit 1
+                fi
+              done
+              image_generation_smoke_inserted=true
+              # Reuse a recent active job to exercise public POST and GET routing
+              # without dispatching a paid prompt-generation call.
+              docker exec \
+                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e CONVOLAB_SMOKE_USER_ID="$user_id" \
+                -e IMAGE_GENERATION_SMOKE_EPISODE_ID="$image_generation_smoke_episode_id" \
+                -e IMAGE_GENERATION_SMOKE_DIALOGUE_ID="$image_generation_smoke_dialogue_id" \
+                -e IMAGE_GENERATION_SMOKE_JOB_ID="$image_generation_smoke_job_id" \
+                learning-os-api php artisan tinker --execute='
+                  $user = App\Models\User::query()
+                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->sole();
+                  Illuminate\Support\Facades\DB::transaction(function () use ($user): void {
+                    Illuminate\Support\Facades\DB::table("content_episodes")->insert([
+                      "id" => getenv("IMAGE_GENERATION_SMOKE_EPISODE_ID"),
+                      "user_id" => $user->getKey(),
+                      "convolab_user_id" => getenv("CONVOLAB_SMOKE_USER_ID"),
+                      "source_system" => App\Domain\Content\Support\ContentSourceSystem::CONVOLAB,
+                      "title" => "Learning OS image generation deployment smoke",
+                      "source_text" => "Disposable deployment rehearsal source text.",
+                      "target_language" => "ja",
+                      "native_language" => "en",
+                      "content_type" => "dialogue",
+                      "auto_generate_audio" => false,
+                      "status" => "ready",
+                      "is_sample_content" => false,
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                    Illuminate\Support\Facades\DB::table("content_dialogues")->insert([
+                      "id" => getenv("IMAGE_GENERATION_SMOKE_DIALOGUE_ID"),
+                      "episode_id" => getenv("IMAGE_GENERATION_SMOKE_EPISODE_ID"),
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                    Illuminate\Support\Facades\DB::table("content_image_generation_jobs")->insert([
+                      "id" => getenv("IMAGE_GENERATION_SMOKE_JOB_ID"),
+                      "episode_id" => getenv("IMAGE_GENERATION_SMOKE_EPISODE_ID"),
+                      "dialogue_id" => getenv("IMAGE_GENERATION_SMOKE_DIALOGUE_ID"),
+                      "user_id" => $user->getKey(),
+                      "convolab_user_id" => getenv("CONVOLAB_SMOKE_USER_ID"),
+                      "state" => App\Domain\Content\Support\ContentImageGeneration::STATE_ACTIVE,
+                      "progress" => 43,
+                      "image_count" => 2,
+                      "claim_token" => getenv("IMAGE_GENERATION_SMOKE_JOB_ID"),
+                      "started_at" => now(),
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                  });
+                ' > /dev/null
+
+              image_generation_body="$(docker exec \
+                -e IMAGE_GENERATION_SMOKE_EPISODE_ID="$image_generation_smoke_episode_id" \
+                -e IMAGE_GENERATION_SMOKE_DIALOGUE_ID="$image_generation_smoke_dialogue_id" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  process.stdout.write(JSON.stringify({
+                    episodeId: process.env.IMAGE_GENERATION_SMOKE_EPISODE_ID,
+                    dialogueId: process.env.IMAGE_GENERATION_SMOKE_DIALOGUE_ID,
+                    imageCount: 2,
+                  }));
+                ')"
+              image_generation_response="$(mutate_proxy_route \
+                POST \
+                '/api/images/generate' \
+                "$image_generation_body")"
+              printf '%s' "$image_generation_response" | docker exec -i \
+                -e EXPECTED_IMAGE_JOB_ID="$image_generation_smoke_job_id" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    response?.jobId !== process.env.EXPECTED_IMAGE_JOB_ID ||
+                    response.message !== "Image generation started"
+                  ) process.exit(1);
+                '
+              image_generation_status="$(fetch_read_route \
+                'Image generation status Learning OS' \
+                "/api/images/job/$image_generation_smoke_job_id")"
+              printf '%s' "$image_generation_status" | docker exec -i \
+                -e EXPECTED_IMAGE_JOB_ID="$image_generation_smoke_job_id" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    response?.id !== process.env.EXPECTED_IMAGE_JOB_ID ||
+                    response.state !== "active" ||
+                    response.progress !== 43 ||
+                    response.result !== null
+                  ) process.exit(1);
+                '
+              cleanup_image_generation_smoke
+              echo "Image generation Learning OS routing smoke checks passed."
 
               audio_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"
               audio_generation_smoke_dialogue_id="$(cat /proc/sys/kernel/random/uuid)"
