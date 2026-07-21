@@ -208,10 +208,30 @@
           "runtimeOwner": "learning-os-proxy"
         },
         { "id": "courses.store", "method": "POST", "path": "/api/courses" },
-        { "id": "courses.generate", "method": "POST", "path": "/api/courses/:id/generate" },
-        { "id": "courses.status", "method": "GET", "path": "/api/courses/:id/status" },
-        { "id": "courses.reset", "method": "POST", "path": "/api/courses/:id/reset" },
-        { "id": "courses.retry", "method": "POST", "path": "/api/courses/:id/retry" },
+        {
+          "id": "courses.generate",
+          "method": "POST",
+          "path": "/api/courses/:id/generate",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "courses.status",
+          "method": "GET",
+          "path": "/api/courses/:id/status",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "courses.reset",
+          "method": "POST",
+          "path": "/api/courses/:id/reset",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "courses.retry",
+          "method": "POST",
+          "path": "/api/courses/:id/retry",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "courses.update", "method": "PATCH", "path": "/api/courses/:id" },
         { "id": "courses.delete", "method": "DELETE", "path": "/api/courses/:id" }
       ]

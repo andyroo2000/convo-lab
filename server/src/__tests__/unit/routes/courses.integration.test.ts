@@ -1,7 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import { AppError, errorHandler } from '../../../middleware/errorHandler.js';
@@ -9,8 +9,12 @@ import coursesRouter from '../../../routes/courses.js';
 
 const mocks = vi.hoisted(() => ({
   authRole: { value: 'user' as string | undefined },
+  blockDemoUser: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
+  courseRateLimit: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
+  requireEmailVerified: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
   fetchLearningOsProxy: vi.fn(),
   getEffectiveUserId: vi.fn(),
+  logGeneration: vi.fn(),
   resolveLearningOsProxyContext: vi.fn(),
 }));
 
@@ -48,18 +52,16 @@ vi.mock('../../../middleware/auth.js', () => ({
   AuthRequest: class {},
 }));
 vi.mock('../../../middleware/demoAuth.js', () => ({
-  blockDemoUser: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
+  blockDemoUser: mocks.blockDemoUser,
 }));
 vi.mock('../../../middleware/emailVerification.js', () => ({
-  requireEmailVerified: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
+  requireEmailVerified: mocks.requireEmailVerified,
 }));
 vi.mock('../../../middleware/rateLimit.js', () => ({
-  rateLimitGeneration: vi.fn(
-    () => (_req: AuthRequest, _res: Response, next: NextFunction) => next()
-  ),
+  rateLimitGeneration: vi.fn(() => mocks.courseRateLimit),
 }));
 vi.mock('../../../services/coreLlmClient.js', () => ({ generateCoreLlmText: vi.fn() }));
-vi.mock('../../../services/usageTracker.js', () => ({ logGeneration: vi.fn() }));
+vi.mock('../../../services/usageTracker.js', () => ({ logGeneration: mocks.logGeneration }));
 vi.mock('../../../services/workerTrigger.js', () => ({ triggerWorkerJob: vi.fn() }));
 vi.mock('../../../i18n/index.js', () => ({
   default: {
@@ -79,11 +81,15 @@ const upstreamJson = (body: unknown, status = 200): globalThis.Response =>
     headers: { 'Content-Type': 'application/json' },
   });
 
+const originalCourseGenerationProxyEnabled =
+  process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED;
+
 describe('Courses Routes Integration', () => {
   let app: express.Application;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'false';
     mocks.authRole.value = 'user';
     mocks.getEffectiveUserId.mockResolvedValue('effective-user-id');
     mocks.resolveLearningOsProxyContext.mockResolvedValue({
@@ -95,6 +101,15 @@ describe('Courses Routes Integration', () => {
     app.use(express.json());
     app.use('/api/courses', coursesRouter);
     app.use(errorHandler);
+  });
+
+  afterAll(() => {
+    if (originalCourseGenerationProxyEnabled === undefined) {
+      delete process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED;
+    } else {
+      process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED =
+        originalCourseGenerationProxyEnabled;
+    }
   });
 
   it('proxies list reads for the effective user with only supported query parameters', async () => {
@@ -188,6 +203,7 @@ describe('Courses Routes Integration', () => {
 
   it.each([
     [401, 502],
+    [403, 403],
     [500, 502],
     [404, 404],
     [422, 422],
@@ -248,6 +264,188 @@ describe('Courses Routes Integration', () => {
 
     expect(response.body).toEqual(course);
     expect(mockPrisma.course.create).toHaveBeenCalled();
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'generate',
+      {
+        message: 'Course generation started',
+        jobId: 'job-generate',
+        courseId: 'course-id',
+      },
+    ],
+    [
+      'retry',
+      {
+        message: 'Course generation retried',
+        jobId: 'job-retry',
+        courseId: 'course-id',
+      },
+    ],
+  ])('proxies the %s action when course generation routing is enabled', async (operation, body) => {
+    process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
+
+    const response = await request(app).post(`/api/courses/course-id/${operation}`).expect(200);
+
+    expect(response.body).toEqual(body);
+    expect(mocks.getEffectiveUserId).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'actor-user-id' })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL(`http://learning-os.test/api/convolab/courses/course-id/${operation}`),
+        apiToken: 'proxy-token',
+        method: 'POST',
+        timeoutMs: 10_000,
+      })
+    );
+    expect(mockPrisma.course.findFirst).not.toHaveBeenCalled();
+    expect(mockCourseQueue.add).not.toHaveBeenCalled();
+    expect(mocks.logGeneration).toHaveBeenCalledWith('actor-user-id', 'course', 'course-id');
+    expect(mocks.blockDemoUser).toHaveBeenCalledOnce();
+    if (operation === 'generate') {
+      expect(mocks.requireEmailVerified).toHaveBeenCalledOnce();
+      expect(mocks.courseRateLimit).toHaveBeenCalledOnce();
+    }
+  });
+
+  it('proxies reset and preserves its compatibility response', async () => {
+    process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
+    const body = {
+      message: 'Course reset successfully. You can now start generation again.',
+      courseId: 'course-id',
+    };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
+
+    const response = await request(app).post('/api/courses/course-id/reset').expect(200);
+
+    expect(response.body).toEqual(body);
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL('http://learning-os.test/api/convolab/courses/course-id/reset'),
+        method: 'POST',
+      })
+    );
+    expect(mockPrisma.course.update).not.toHaveBeenCalled();
+  });
+
+  it('proxies uncached generation status including the sanitized error detail', async () => {
+    process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
+    const body = {
+      status: 'error',
+      progress: 75,
+      isStuck: false,
+      errorMessage: 'Course generation failed. Please retry.',
+    };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
+
+    const response = await request(app).get('/api/courses/course-id/status').expect(200);
+
+    expect(response.body).toEqual(body);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL('http://learning-os.test/api/convolab/courses/course-id/status'),
+        method: 'GET',
+      })
+    );
+    expect(mockPrisma.course.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('encodes the course identifier in lifecycle upstream paths', async () => {
+    process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ status: 'ready', progress: null, isStuck: false, errorMessage: null })
+    );
+
+    await request(app).get('/api/courses/course%2Fid/status').expect(200);
+
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL('http://learning-os.test/api/convolab/courses/course%2Fid/status'),
+      })
+    );
+  });
+
+  it.each([400, 404, 409, 422, 429])(
+    'preserves a safe lifecycle message for upstream HTTP %s',
+    async (upstreamStatus) => {
+      process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
+      mocks.fetchLearningOsProxy.mockResolvedValue(
+        upstreamJson({ message: 'Safe compatibility message' }, upstreamStatus)
+      );
+
+      const response = await request(app)
+        .post('/api/courses/course-id/generate')
+        .expect(upstreamStatus);
+
+      expect(response.body.error.message).toBe('Safe compatibility message');
+    }
+  );
+
+  it.each([401, 403, 500, 503])(
+    'hides lifecycle details and maps upstream HTTP %s to 502',
+    async (upstreamStatus) => {
+      process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
+      mocks.fetchLearningOsProxy.mockResolvedValue(
+        upstreamJson({ message: 'sensitive upstream details' }, upstreamStatus)
+      );
+
+      const response = await request(app).post('/api/courses/course-id/retry').expect(502);
+
+      expect(response.body.error.message).toBe('Learning OS Course API request failed.');
+      expect(JSON.stringify(response.body)).not.toContain('sensitive upstream details');
+    }
+  );
+
+  it.each([
+    ['generate', { message: 'missing identifiers' }],
+    ['generate', { message: 'wrong course', jobId: 'job-generate', courseId: 'other-course' }],
+    ['retry', { message: 'missing job', courseId: 'course-id' }],
+    ['retry', { message: 'wrong course', jobId: 'job-retry', courseId: 'other-course' }],
+    ['reset', { message: 'missing course' }],
+    ['reset', { message: 'wrong course', courseId: 'other-course' }],
+  ])('rejects a malformed %s success response', async (operation, body) => {
+    process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
+
+    const response = await request(app).post(`/api/courses/course-id/${operation}`).expect(502);
+
+    expect(response.body.error.message).toBe(
+      `Learning OS Course API returned an invalid ${operation} response.`
+    );
+    expect(mocks.logGeneration).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { status: 'unknown', progress: null, isStuck: false, errorMessage: null },
+    { status: 'generating', progress: 101, isStuck: false, errorMessage: null },
+    { status: 'generating', progress: 20, isStuck: 'false', errorMessage: null },
+    { status: 'error', progress: null, isStuck: false },
+  ])('rejects a malformed status success response', async (body) => {
+    process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED = 'true';
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
+
+    const response = await request(app).get('/api/courses/course-id/status').expect(502);
+
+    expect(response.body.error.message).toBe(
+      'Learning OS Course API returned an invalid status response.'
+    );
+  });
+
+  it('keeps lifecycle requests on Express when course generation routing is disabled', async () => {
+    mockPrisma.course.findFirst.mockResolvedValue({ id: 'course-id', status: 'ready' });
+
+    const response = await request(app).get('/api/courses/course-id/status').expect(200);
+
+    expect(response.body).toEqual({ status: 'ready', progress: null, isStuck: false });
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mockPrisma.course.findFirst).toHaveBeenCalledWith({
+      where: { id: 'course-id', userId: 'effective-user-id' },
+    });
     expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
   });
 });
