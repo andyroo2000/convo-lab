@@ -1,7 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
@@ -10,15 +10,8 @@ import imageRouter from '../../../routes/images.js';
 const mocks = vi.hoisted(() => ({
   fetchLearningOsProxy: vi.fn(),
   resolveLearningOsProxyContext: vi.fn(),
-  triggerWorkerJob: vi.fn(),
 }));
 
-const mockImageQueue = vi.hoisted(() => ({
-  add: vi.fn(),
-  getJob: vi.fn(),
-}));
-
-vi.mock('../../../jobs/imageQueue.js', () => ({ imageQueue: mockImageQueue }));
 vi.mock('../../../services/learningOsProxy.js', () => ({
   fetchLearningOsProxy: mocks.fetchLearningOsProxy,
   resolveLearningOsProxyContext: mocks.resolveLearningOsProxyContext,
@@ -31,23 +24,6 @@ vi.mock('../../../middleware/auth.js', () => ({
   }),
   AuthRequest: class {},
 }));
-vi.mock('../../../services/workerTrigger.js', () => ({
-  triggerWorkerJob: mocks.triggerWorkerJob,
-}));
-vi.mock('../../../i18n/index.js', () => ({
-  default: {
-    t: (key: string, params?: Record<string, unknown>) => {
-      if (key === 'server:content.missingFields') return 'Missing required fields';
-      if (key === 'server:content.jobNotFound') return 'Job not found';
-      if (key === 'server:content.generationStarted') {
-        return `${params?.type} generation started`;
-      }
-      return key;
-    },
-  },
-}));
-
-const originalImageGenerationProxyEnabled = process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED;
 const EPISODE_ID = '018f47ea-4b37-7f21-8d5a-90e157176b8a';
 const DIALOGUE_ID = '019c8e80-f73f-78e8-96e8-c5b462053ee0';
 const JOB_ID = '019c8e7f-5c48-7d32-ae6b-a1f268287c9b';
@@ -94,98 +70,17 @@ describe('Image routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'false';
     mocks.resolveLearningOsProxyContext.mockResolvedValue({
       config: { apiUrl: 'http://learning-os.test', apiToken: 'proxy-token' },
       user: { id: 'actor-user-id', email: 'learner@example.com', role: 'user' },
     });
-    mocks.triggerWorkerJob.mockResolvedValue(undefined);
-
     app = express();
     app.use(express.json());
     app.use('/api/images', imageRouter);
     app.use(errorHandler);
   });
 
-  afterAll(() => {
-    if (originalImageGenerationProxyEnabled === undefined) {
-      delete process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED;
-    } else {
-      process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = originalImageGenerationProxyEnabled;
-    }
-  });
-
-  it('keeps generation on BullMQ while Learning OS routing is disabled', async () => {
-    mockImageQueue.add.mockResolvedValue({ id: 'legacy-job-123' });
-
-    const response = await request(app)
-      .post('/api/images/generate')
-      .send(generateBody())
-      .expect(200);
-
-    expect(response.body).toEqual({
-      jobId: 'legacy-job-123',
-      message: 'Image generation started',
-    });
-    expect(mockImageQueue.add).toHaveBeenCalledWith('generate-images', {
-      userId: 'actor-user-id',
-      ...generateBody(),
-    });
-    expect(mocks.triggerWorkerJob).toHaveBeenCalledOnce();
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('uses the legacy default image count while routing is disabled', async () => {
-    mockImageQueue.add.mockResolvedValue({ id: 'legacy-job-123' });
-
-    await request(app)
-      .post('/api/images/generate')
-      .send({ episodeId: EPISODE_ID, dialogueId: DIALOGUE_ID })
-      .expect(200);
-
-    expect(mockImageQueue.add).toHaveBeenCalledWith('generate-images', {
-      userId: 'actor-user-id',
-      episodeId: EPISODE_ID,
-      dialogueId: DIALOGUE_ID,
-      imageCount: 3,
-    });
-  });
-
-  it('keeps polling on BullMQ while Learning OS routing is disabled', async () => {
-    mockImageQueue.getJob.mockResolvedValue({
-      id: 'legacy-job-123',
-      getState: vi.fn().mockResolvedValue('active'),
-      progress: 42,
-      returnvalue: null,
-    });
-
-    const response = await request(app).get('/api/images/job/legacy-job-123').expect(200);
-
-    expect(response.body).toEqual({
-      id: 'legacy-job-123',
-      state: 'active',
-      progress: 42,
-      result: null,
-    });
-    expect(response.headers['cache-control']).toBe('private, no-store');
-    expect(mockImageQueue.getJob).toHaveBeenCalledWith('legacy-job-123');
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('preserves legacy validation and missing-job errors while routing is disabled', async () => {
-    const generateResponse = await request(app)
-      .post('/api/images/generate')
-      .send({ episodeId: EPISODE_ID })
-      .expect(400);
-    expect(generateResponse.body.error.message).toBe('Missing required fields');
-
-    mockImageQueue.getJob.mockResolvedValue(null);
-    const jobResponse = await request(app).get('/api/images/job/missing').expect(404);
-    expect(jobResponse.body.error.message).toBe('Job not found');
-  });
-
-  it('proxies generation with only supported fields when routing is enabled', async () => {
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+  it('always proxies generation with only supported fields', async () => {
     mocks.fetchLearningOsProxy.mockResolvedValue(
       upstreamJson({ jobId: JOB_ID, message: 'Image generation started' })
     );
@@ -208,12 +103,9 @@ describe('Image routes', () => {
       timeoutMessage: 'Learning OS Image API request timed out.',
       networkErrorMessage: 'Learning OS Image API is unavailable.',
     });
-    expect(mockImageQueue.add).not.toHaveBeenCalled();
-    expect(mocks.triggerWorkerJob).not.toHaveBeenCalled();
   });
 
-  it('proxies a pending job poll without consulting BullMQ', async () => {
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
+  it('always proxies a pending job poll', async () => {
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(jobBody()));
 
     const response = await request(app).get(`/api/images/job/${JOB_ID}`).expect(200);
@@ -227,11 +119,9 @@ describe('Image routes', () => {
         body: undefined,
       })
     );
-    expect(mockImageQueue.getJob).not.toHaveBeenCalled();
   });
 
   it('accepts completed image results with nullable sentence bounds', async () => {
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
     const completed = {
       id: JOB_ID,
       state: 'completed',
@@ -246,7 +136,6 @@ describe('Image routes', () => {
   });
 
   it('accepts an empty completed result for a dialogue without image sections', async () => {
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
     const completed = { ...jobBody('completed', 100), result: [] };
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(completed));
 
@@ -256,7 +145,6 @@ describe('Image routes', () => {
   it.each([400, 404, 409, 422])(
     'preserves a safe compatibility message for upstream HTTP %s',
     async (upstreamStatus) => {
-      process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
       mocks.fetchLearningOsProxy.mockResolvedValue(
         upstreamJson({ message: 'Safe compatibility message' }, upstreamStatus)
       );
@@ -271,7 +159,6 @@ describe('Image routes', () => {
   );
 
   it('preserves a bounded upstream retry window for rate limits', async () => {
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(
       upstreamJson({ message: 'Too many attempts.' }, 429, { 'Retry-After': '27' })
     );
@@ -291,7 +178,6 @@ describe('Image routes', () => {
   it.each([401, 403, 500, 503])(
     'hides upstream details and maps HTTP %s to 502',
     async (upstreamStatus) => {
-      process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
       mocks.fetchLearningOsProxy.mockResolvedValue(
         upstreamJson({ message: 'sensitive upstream details' }, upstreamStatus)
       );
@@ -309,7 +195,6 @@ describe('Image routes', () => {
     { message: 'wrong job type', jobId: 123 },
     { message: 'not a UUID', jobId: 'legacy-job' },
   ])('rejects a malformed generate success response %#', async (body) => {
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
 
     const response = await request(app)
@@ -335,7 +220,6 @@ describe('Image routes', () => {
     { ...jobBody('completed', 100), result: [{ ...imageResult(), order: -1 }] },
     { ...jobBody('completed', 100), result: [{ ...imageResult(), sentenceStartId: 'bad-id' }] },
   ])('rejects a malformed job success response %#', async (body) => {
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
 
     const response = await request(app).get(`/api/images/job/${JOB_ID}`).expect(502);
@@ -346,7 +230,6 @@ describe('Image routes', () => {
   });
 
   it('rejects invalid JSON from a successful upstream response', async () => {
-    process.env.LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(
       new globalThis.Response('not-json', {
         status: 200,

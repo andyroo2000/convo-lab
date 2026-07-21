@@ -1,17 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Import after mocking
 import '../../../jobs/imageQueue.js';
 
-// Hoisted mocks for capturing worker processor and events
-const workerProcessors = vi.hoisted(() => new Map<string, (job: unknown) => Promise<unknown>>());
+const workerProcessors = vi.hoisted(() => new Map<string, (job: MockJob) => Promise<unknown>>());
 const workerEventHandlers = vi.hoisted(
   () => new Map<string, Map<string, (...args: unknown[]) => void>>()
 );
-const mockGenerateDialogueImages = vi.hoisted(() => vi.fn());
 const mockGenerateAudioScriptSegmentImages = vi.hoisted(() => vi.fn());
 
-// Mock BullMQ
+interface MockJob {
+  id: string;
+  name: string;
+  data: Record<string, unknown>;
+  updateProgress: ReturnType<typeof vi.fn>;
+}
+
 vi.mock('bullmq', () => ({
   Queue: class MockQueue {
     name: string;
@@ -31,7 +34,7 @@ vi.mock('bullmq', () => ({
 
     private eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
-    constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
+    constructor(name: string, processor: (job: MockJob) => Promise<unknown>) {
       this.name = name;
       workerProcessors.set(name, processor);
       workerEventHandlers.set(name, this.eventHandlers);
@@ -46,230 +49,120 @@ vi.mock('bullmq', () => ({
   },
 }));
 
-// Mock Redis config
 vi.mock('../../../config/redis.js', () => ({
   createRedisConnection: vi.fn(() => ({})),
   defaultWorkerSettings: { concurrency: 1 },
-}));
-
-// Mock image generator
-vi.mock('../../../services/imageGenerator.js', () => ({
-  generateDialogueImages: mockGenerateDialogueImages,
 }));
 
 vi.mock('../../../services/audioScriptService.js', () => ({
   generateAudioScriptSegmentImages: mockGenerateAudioScriptSegmentImages,
 }));
 
-// Helper to create mock job
-const createMockJob = (
-  overrides: Partial<{
-    id: string;
-    name: string;
-    data: Record<string, unknown>;
-    updateProgress: ReturnType<typeof vi.fn>;
-  }> = {}
-) => ({
+const createMockJob = (overrides: Partial<MockJob> = {}): MockJob => ({
   id: 'test-job-123',
-  name: 'default',
-  data: {},
+  name: 'generate-script-images',
+  data: {
+    episodeId: 'episode-456',
+    userId: 'user-123',
+    force: true,
+  },
   updateProgress: vi.fn(),
   ...overrides,
 });
 
-// Helper to trigger event handlers
 const triggerWorkerEvent = (queueName: string, event: string, ...args: unknown[]): void => {
-  const handlers = workerEventHandlers.get(queueName);
-  const handler = handlers?.get(event);
-  if (handler) {
-    handler(...args);
-  }
+  workerEventHandlers.get(queueName)?.get(event)?.(...args);
 };
 
 describe('imageQueue', () => {
-  const mockImageResult = [
-    { id: 'image-1', url: 'https://storage.example.com/image1.jpg', order: 0 },
-    { id: 'image-2', url: 'https://storage.example.com/image2.jpg', order: 1 },
-    { id: 'image-3', url: 'https://storage.example.com/image3.jpg', order: 2 },
-  ];
-
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGenerateDialogueImages.mockResolvedValue(mockImageResult);
     mockGenerateAudioScriptSegmentImages.mockResolvedValue({
       episodeId: 'episode-456',
       imageStatus: 'ready',
     });
   });
 
-  describe('queue setup', () => {
-    it('should register worker processor for "image-generation" queue', () => {
-      const processor = workerProcessors.get('image-generation');
-      expect(processor).toBeDefined();
-      expect(processor).toBeInstanceOf(Function);
-    });
-
-    it('should register event handlers for the worker', () => {
-      const handlers = workerEventHandlers.get('image-generation');
-      expect(handlers).toBeDefined();
-      expect(handlers?.has('completed')).toBe(true);
-      expect(handlers?.has('failed')).toBe(true);
-    });
+  it('registers the existing image-generation queue and event handlers', () => {
+    expect(workerProcessors.get('image-generation')).toBeInstanceOf(Function);
+    const handlers = workerEventHandlers.get('image-generation');
+    expect(handlers?.has('completed')).toBe(true);
+    expect(handlers?.has('failed')).toBe(true);
   });
 
-  describe('job processing', () => {
-    it('should call generateDialogueImages with job data', async () => {
-      const processor = workerProcessors.get('image-generation')!;
-      const job = createMockJob({
-        data: {
-          userId: 'user-123',
-          episodeId: 'episode-456',
-          dialogueId: 'dialogue-789',
-          imageCount: 5,
-        },
-      });
+  it('processes only script image jobs', async () => {
+    const processor = workerProcessors.get('image-generation')!;
+    const job = createMockJob();
 
-      await processor(job);
+    const result = await processor(job);
 
-      expect(mockGenerateDialogueImages).toHaveBeenCalledWith({
-        episodeId: 'episode-456',
-        dialogueId: 'dialogue-789',
-        imageCount: 5,
-      });
+    expect(job.updateProgress).toHaveBeenCalledWith(10);
+    expect(mockGenerateAudioScriptSegmentImages).toHaveBeenCalledWith({
+      episodeId: 'episode-456',
+      userId: 'user-123',
+      force: true,
+      onProgress: expect.any(Function),
     });
-
-    it('should pass imageCount from job data when provided', async () => {
-      const processor = workerProcessors.get('image-generation')!;
-      const job = createMockJob({
-        data: {
-          episodeId: 'episode-456',
-          dialogueId: 'dialogue-789',
-          imageCount: 10,
-        },
-      });
-
-      await processor(job);
-
-      expect(mockGenerateDialogueImages).toHaveBeenCalledWith(
-        expect.objectContaining({ imageCount: 10 })
-      );
-    });
-
-    it('should handle job without explicit imageCount', async () => {
-      const processor = workerProcessors.get('image-generation')!;
-      const job = createMockJob({
-        data: {
-          episodeId: 'episode-456',
-          dialogueId: 'dialogue-789',
-        },
-      });
-
-      await processor(job);
-
-      expect(mockGenerateDialogueImages).toHaveBeenCalledWith({
-        episodeId: 'episode-456',
-        dialogueId: 'dialogue-789',
-        imageCount: undefined,
-      });
-    });
-
-    it('should call script image generation for script image jobs', async () => {
-      const processor = workerProcessors.get('image-generation')!;
-      const job = createMockJob({
-        name: 'generate-script-images',
-        data: {
-          episodeId: 'episode-456',
-          userId: 'user-123',
-          force: true,
-        },
-      });
-
-      await processor(job);
-
-      expect(mockGenerateAudioScriptSegmentImages).toHaveBeenCalledWith({
-        episodeId: 'episode-456',
-        userId: 'user-123',
-        force: true,
-        onProgress: expect.any(Function),
-      });
-      expect(mockGenerateDialogueImages).not.toHaveBeenCalled();
-    });
-
-    it('should update progress to 10% at start and 100% at end', async () => {
-      const processor = workerProcessors.get('image-generation')!;
-      const job = createMockJob({
-        data: {
-          episodeId: 'episode-456',
-          dialogueId: 'dialogue-789',
-        },
-      });
-
-      await processor(job);
-
-      expect(job.updateProgress).toHaveBeenCalledWith(10);
-      expect(job.updateProgress).toHaveBeenCalledWith(100);
-    });
-
-    it('should return result from generateDialogueImages', async () => {
-      const processor = workerProcessors.get('image-generation')!;
-      const job = createMockJob({
-        data: {
-          episodeId: 'episode-456',
-          dialogueId: 'dialogue-789',
-        },
-      });
-
-      const result = await processor(job);
-
-      expect(result).toEqual(mockImageResult);
-    });
-
-    it('should throw error when generateDialogueImages fails', async () => {
-      mockGenerateDialogueImages.mockRejectedValue(new Error('Image generation failed'));
-
-      const processor = workerProcessors.get('image-generation')!;
-      const job = createMockJob({
-        data: {
-          episodeId: 'episode-456',
-          dialogueId: 'dialogue-789',
-        },
-      });
-
-      await expect(processor(job)).rejects.toThrow('Image generation failed');
-    });
-
-    it('should log error when image generation fails', async () => {
-      mockGenerateDialogueImages.mockRejectedValue(new Error('API error'));
-
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const processor = workerProcessors.get('image-generation')!;
-      const job = createMockJob({
-        data: { episodeId: 'episode-456', dialogueId: 'dialogue-789' },
-      });
-
-      await expect(processor(job)).rejects.toThrow('API error');
-      expect(consoleSpy).toHaveBeenCalledWith('Image generation failed:', expect.any(Error));
-      consoleSpy.mockRestore();
-    });
+    expect(result).toEqual({ episodeId: 'episode-456', imageStatus: 'ready' });
   });
 
-  describe('event handlers', () => {
-    it('should log on completed event', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('forwards worker progress to BullMQ', async () => {
+    const processor = workerProcessors.get('image-generation')!;
+    const job = createMockJob();
+    mockGenerateAudioScriptSegmentImages.mockImplementation(
+      async ({ onProgress }: { onProgress: (progress: number) => Promise<void> }) => {
+        await onProgress(64);
+        return { episodeId: 'episode-456', imageStatus: 'generating' };
+      }
+    );
 
-      triggerWorkerEvent('image-generation', 'completed', { id: 'job-123' });
+    await processor(job);
 
-      expect(consoleSpy).toHaveBeenCalledWith('Image job job-123 completed');
-      consoleSpy.mockRestore();
-    });
+    expect(job.updateProgress).toHaveBeenNthCalledWith(1, 10);
+    expect(job.updateProgress).toHaveBeenNthCalledWith(2, 64);
+  });
 
-    it('should log error on failed event', () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it.each([
+    ['episodeId', { userId: 'user-123' }],
+    ['userId', { episodeId: 'episode-456' }],
+  ])('rejects script jobs missing %s', async (_missingField, data) => {
+    const processor = workerProcessors.get('image-generation')!;
 
-      triggerWorkerEvent('image-generation', 'failed', { id: 'job-456' }, new Error('Test error'));
+    await expect(processor(createMockJob({ data }))).rejects.toThrow(
+      'Script image generation requires episodeId and userId'
+    );
+    expect(mockGenerateAudioScriptSegmentImages).not.toHaveBeenCalled();
+  });
 
-      expect(consoleSpy).toHaveBeenCalledWith('Image job job-456 failed:', expect.any(Error));
-      consoleSpy.mockRestore();
-    });
+  it.each(['generate-images', 'default', ''])('rejects retired image job type %j', async (name) => {
+    const processor = workerProcessors.get('image-generation')!;
+
+    await expect(processor(createMockJob({ name }))).rejects.toThrow(
+      `Unsupported image job type: ${name}`
+    );
+    expect(mockGenerateAudioScriptSegmentImages).not.toHaveBeenCalled();
+  });
+
+  it('logs and rethrows script generation failures', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockGenerateAudioScriptSegmentImages.mockRejectedValue(new Error('API error'));
+    const processor = workerProcessors.get('image-generation')!;
+
+    await expect(processor(createMockJob())).rejects.toThrow('API error');
+    expect(consoleSpy).toHaveBeenCalledWith('Image generation failed:', expect.any(Error));
+    consoleSpy.mockRestore();
+  });
+
+  it('logs completed and failed worker events', () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    triggerWorkerEvent('image-generation', 'completed', { id: 'job-123' });
+    triggerWorkerEvent('image-generation', 'failed', { id: 'job-456' }, new Error('Test error'));
+
+    expect(logSpy).toHaveBeenCalledWith('Image job job-123 completed');
+    expect(errorSpy).toHaveBeenCalledWith('Image job job-456 failed:', expect.any(Error));
+    logSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 });

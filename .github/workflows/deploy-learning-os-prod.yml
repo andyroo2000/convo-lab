@@ -89,7 +89,6 @@ jobs:
             PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED=false
             PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED=false
             PREVIOUS_SCRIPT_PROXY_ENABLED=false
-            PREVIOUS_IMAGE_GENERATION_PROXY_ENABLED=false
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
@@ -103,12 +102,10 @@ jobs:
               local dialogue_generation_proxy_restore_ok=true
               local audio_generation_proxy_restore_ok=true
               local script_proxy_restore_ok=true
-              local image_generation_proxy_restore_ok=true
               local rolled_back_course_generation_proxy
               local rolled_back_dialogue_generation_proxy
               local rolled_back_audio_generation_proxy
               local rolled_back_script_proxy
-              local rolled_back_image_generation_proxy
 
               if [ "$GENERATION_PROXY_CUTOVER_STARTED" = true ]; then
                 echo "Rolling back the Learning OS generation proxies."
@@ -128,15 +125,10 @@ jobs:
                   LEARNING_OS_SCRIPT_PROXY_ENABLED \
                   "$PREVIOUS_SCRIPT_PROXY_ENABLED" \
                   || script_proxy_restore_ok=false
-                upsert_env \
-                  LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED \
-                  "$PREVIOUS_IMAGE_GENERATION_PROXY_ENABLED" \
-                  || image_generation_proxy_restore_ok=false
                 if [ "$course_generation_proxy_restore_ok" != true ] \
                   || [ "$dialogue_generation_proxy_restore_ok" != true ] \
                   || [ "$audio_generation_proxy_restore_ok" != true ] \
-                  || [ "$script_proxy_restore_ok" != true ] \
-                  || [ "$image_generation_proxy_restore_ok" != true ]; then
+                  || [ "$script_proxy_restore_ok" != true ]; then
                   echo "::error::Failed to restore the generation proxy environment values."
                   cleanup_failed=true
                 elif ! $COMPOSE up -d --no-deps --force-recreate "server-$active_color"; then
@@ -166,16 +158,10 @@ jobs:
                     "convolab-server-$active_color" \
                     | sed -n 's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
                     | tail -1)"
-                  rolled_back_image_generation_proxy="$(docker inspect \
-                    --format='{{range .Config.Env}}{{println .}}{{end}}' \
-                    "convolab-server-$active_color" \
-                    | sed -n 's/^LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED=//p' \
-                    | tail -1)"
                   if [ "$rolled_back_course_generation_proxy" != "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_dialogue_generation_proxy" != "$PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_audio_generation_proxy" != "$PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED" ] \
-                    || [ "$rolled_back_script_proxy" != "$PREVIOUS_SCRIPT_PROXY_ENABLED" ] \
-                    || [ "$rolled_back_image_generation_proxy" != "$PREVIOUS_IMAGE_GENERATION_PROXY_ENABLED" ]; then
+                    || [ "$rolled_back_script_proxy" != "$PREVIOUS_SCRIPT_PROXY_ENABLED" ]; then
                     echo "::error::The production server retained a generation proxy after rollback."
                     cleanup_failed=true
                   fi
@@ -341,20 +327,6 @@ jobs:
               '') ;;
               *)
                 echo "Invalid LEARNING_OS_SCRIPT_PROXY_ENABLED value."
-                exit 1
-                ;;
-            esac
-
-            previous_image_generation_proxy="$(sed -n \
-              's/^LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED=//p' \
-              .env.production | tail -1)"
-            case "$previous_image_generation_proxy" in
-              true|false)
-                PREVIOUS_IMAGE_GENERATION_PROXY_ENABLED="$previous_image_generation_proxy"
-                ;;
-              '') ;;
-              *)
-                echo "Invalid LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED value."
                 exit 1
                 ;;
             esac
@@ -553,7 +525,6 @@ jobs:
             upsert_env LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true
-            upsert_env LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED true
             $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
             active_proxy_token="$(docker inspect \
@@ -592,12 +563,6 @@ jobs:
               | sed -n 's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
               | tail -1)"
             test "$active_script_proxy" = true
-            active_image_generation_proxy="$(docker inspect \
-              --format='{{range .Config.Env}}{{println .}}{{end}}' \
-              "convolab-server-$active_color" \
-              | sed -n 's/^LEARNING_OS_IMAGE_GENERATION_PROXY_ENABLED=//p' \
-              | tail -1)"
-            test "$active_image_generation_proxy" = true
 
             if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
