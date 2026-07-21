@@ -239,6 +239,28 @@ test('the production stack wires and smokes Learning OS static media', async () 
   }
 });
 
+test('course generation proxy stays dormant until its production write rehearsal', async () => {
+  const [localCompose, stageCompose, productionCompose] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'docker-compose.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+  ]);
+
+  assert.match(
+    localCompose,
+    /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
+  );
+  assert.match(
+    stageCompose,
+    /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
+  );
+  assert.ok(
+    productionCompose.includes(
+      'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
+    )
+  );
+});
+
 test('the production workflow verifies and cleans up a disposable card draft', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),

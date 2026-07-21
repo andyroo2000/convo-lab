@@ -1,7 +1,8 @@
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { Prisma } from '@prisma/client';
-import { Router } from 'express';
+import { NextFunction, Response, Router } from 'express';
 
+import { isLearningOsCourseGenerationProxyEnabled } from '../config/courseGenerationRouting.js';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 import { courseQueue } from '../jobs/courseQueue.js';
@@ -15,9 +16,36 @@ import { generateCoreLlmText } from '../services/coreLlmClient.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
-import { listLearningOsCourses, showLearningOsCourse } from './learningOs/courses.js';
+import {
+  generateLearningOsCourse,
+  listLearningOsCourses,
+  resetLearningOsCourseGeneration,
+  retryLearningOsCourseGeneration,
+  showLearningOsCourse,
+  showLearningOsCourseGenerationStatus,
+} from './learningOs/courses.js';
 
 const router = Router();
+
+type CourseGenerationHandler = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => void | Promise<void>;
+
+const routeCourseGeneration = (
+  learningOsHandler: CourseGenerationHandler,
+  expressHandler: CourseGenerationHandler
+): CourseGenerationHandler => {
+  const handler: CourseGenerationHandler = (req, res, next) =>
+    (isLearningOsCourseGenerationProxyEnabled() ? learningOsHandler : expressHandler)(
+      req,
+      res,
+      next
+    );
+
+  return handler;
+};
 
 // All course routes require authentication
 router.use(requireAuth);
@@ -187,7 +215,7 @@ router.post(
   requireEmailVerified,
   rateLimitGeneration('course'),
   blockDemoUser,
-  async (req: AuthRequest, res, next) => {
+  routeCourseGeneration(generateLearningOsCourse, async (req: AuthRequest, res, next) => {
     try {
       // Get effective user ID (supports admin impersonation)
       const effectiveUserId = await getEffectiveUserId(req);
@@ -251,142 +279,152 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  })
 );
 
 // Get course generation status (demo users can view admin's courses)
-router.get('/:id/status', async (req: AuthRequest, res, next) => {
-  try {
-    // Get the appropriate user ID (demo users see admin's content)
-    const queryUserId = await getEffectiveUserId(req);
+router.get(
+  '/:id/status',
+  routeCourseGeneration(showLearningOsCourseGenerationStatus, async (req, res, next) => {
+    try {
+      // Get the appropriate user ID (demo users see admin's content)
+      const queryUserId = await getEffectiveUserId(req);
 
-    const course = await prisma.course.findFirst({
-      where: {
-        id: req.params.id,
-        userId: queryUserId,
-      },
-    });
+      const course = await prisma.course.findFirst({
+        where: {
+          id: req.params.id,
+          userId: queryUserId,
+        },
+      });
 
-    if (!course) {
-      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
+      if (!course) {
+        throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
+      }
+
+      // Get active job if generating
+      let jobProgress = null;
+      let isStuck = false;
+      if (course.status === 'generating') {
+        // Try to find active job for this course
+        const jobs = await courseQueue.getJobs(['active', 'waiting']);
+        const activeJob = jobs.find((j) => j.data.courseId === course.id);
+
+        if (activeJob) {
+          jobProgress = activeJob.progress;
+        } else {
+          // No active job but status is 'generating' - course is stuck
+          isStuck = true;
+        }
+      }
+
+      res.json({
+        status: course.status,
+        progress: jobProgress,
+        isStuck,
+      });
+    } catch (error) {
+      next(error);
     }
+  })
+);
 
-    // Get active job if generating
-    let jobProgress = null;
-    let isStuck = false;
-    if (course.status === 'generating') {
-      // Try to find active job for this course
+// Reset stuck course (when status is 'generating' but no active job exists)
+router.post(
+  '/:id/reset',
+  routeCourseGeneration(resetLearningOsCourseGeneration, async (req, res, next) => {
+    try {
+      // Get effective user ID (supports admin impersonation)
+      const effectiveUserId = await getEffectiveUserId(req);
+
+      const course = await prisma.course.findFirst({
+        where: {
+          id: req.params.id,
+          userId: effectiveUserId,
+        },
+      });
+
+      if (!course) {
+        throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
+      }
+
+      if (course.status !== 'generating') {
+        throw new AppError(i18next.t('server:content.notGenerating', { type: 'Course' }), 400);
+      }
+
+      // Check if there's actually an active job
       const jobs = await courseQueue.getJobs(['active', 'waiting']);
       const activeJob = jobs.find((j) => j.data.courseId === course.id);
 
       if (activeJob) {
-        jobProgress = activeJob.progress;
-      } else {
-        // No active job but status is 'generating' - course is stuck
-        isStuck = true;
+        throw new AppError(i18next.t('server:content.hasActiveJob', { type: 'Course' }), 400);
       }
+
+      // Reset course status to draft
+      await prisma.course.update({
+        where: { id: course.id },
+        data: { status: 'draft' },
+      });
+
+      // eslint-disable-next-line no-console
+      console.log(`Reset stuck course ${course.id} from 'generating' to 'draft'`);
+
+      res.json({
+        message: 'Course reset successfully. You can now retry generation.',
+        courseId: course.id,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    res.json({
-      status: course.status,
-      progress: jobProgress,
-      isStuck,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Reset stuck course (when status is 'generating' but no active job exists)
-router.post('/:id/reset', async (req: AuthRequest, res, next) => {
-  try {
-    // Get effective user ID (supports admin impersonation)
-    const effectiveUserId = await getEffectiveUserId(req);
-
-    const course = await prisma.course.findFirst({
-      where: {
-        id: req.params.id,
-        userId: effectiveUserId,
-      },
-    });
-
-    if (!course) {
-      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
-    }
-
-    if (course.status !== 'generating') {
-      throw new AppError(i18next.t('server:content.notGenerating', { type: 'Course' }), 400);
-    }
-
-    // Check if there's actually an active job
-    const jobs = await courseQueue.getJobs(['active', 'waiting']);
-    const activeJob = jobs.find((j) => j.data.courseId === course.id);
-
-    if (activeJob) {
-      throw new AppError(i18next.t('server:content.hasActiveJob', { type: 'Course' }), 400);
-    }
-
-    // Reset course status to draft
-    await prisma.course.update({
-      where: { id: course.id },
-      data: { status: 'draft' },
-    });
-
-    // eslint-disable-next-line no-console
-    console.log(`Reset stuck course ${course.id} from 'generating' to 'draft'`);
-
-    res.json({
-      message: 'Course reset successfully. You can now retry generation.',
-      courseId: course.id,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+  })
+);
 
 // Retry a failed course generation (re-queues from saved pipeline state)
-router.post('/:id/retry', blockDemoUser, async (req: AuthRequest, res, next) => {
-  try {
-    const effectiveUserId = await getEffectiveUserId(req);
+router.post(
+  '/:id/retry',
+  blockDemoUser,
+  routeCourseGeneration(retryLearningOsCourseGeneration, async (req, res, next) => {
+    try {
+      const effectiveUserId = await getEffectiveUserId(req);
 
-    const course = await prisma.course.findFirst({
-      where: {
-        id: req.params.id,
-        userId: effectiveUserId,
-      },
-    });
+      const course = await prisma.course.findFirst({
+        where: {
+          id: req.params.id,
+          userId: effectiveUserId,
+        },
+      });
 
-    if (!course) {
-      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
+      if (!course) {
+        throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
+      }
+
+      if (course.status !== 'error') {
+        throw new AppError('Only courses in error status can be retried', 400);
+      }
+
+      // Reset status and re-queue
+      await prisma.course.update({
+        where: { id: course.id },
+        data: { status: 'draft' },
+      });
+
+      const job = await courseQueue.add('generate-course', {
+        courseId: course.id,
+      });
+
+      await logGeneration(req.userId!, 'course', course.id);
+
+      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
+
+      res.json({
+        message: 'Course generation retried',
+        jobId: job.id,
+        courseId: course.id,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    if (course.status !== 'error') {
-      throw new AppError('Only courses in error status can be retried', 400);
-    }
-
-    // Reset status and re-queue
-    await prisma.course.update({
-      where: { id: course.id },
-      data: { status: 'draft' },
-    });
-
-    const job = await courseQueue.add('generate-course', {
-      courseId: course.id,
-    });
-
-    await logGeneration(req.userId!, 'course', course.id);
-
-    triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
-
-    res.json({
-      message: 'Course generation retried',
-      jobId: job.id,
-      courseId: course.id,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+  })
+);
 
 // Update course
 router.patch('/:id', async (req: AuthRequest, res, next) => {

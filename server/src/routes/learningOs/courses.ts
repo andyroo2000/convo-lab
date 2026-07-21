@@ -12,6 +12,25 @@ import {
 const API_LABEL = 'Learning OS Course API';
 const FETCH_TIMEOUT_MS = 10_000;
 const LIST_QUERY_PARAMS = ['library', 'limit', 'offset'] as const;
+const COURSE_GENERATION_STATUSES = new Set(['draft', 'generating', 'ready', 'error']);
+
+type JsonRecord = Record<string, unknown>;
+
+const isJsonRecord = (value: unknown): value is JsonRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isSafeString = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0 && value.length <= 1_000;
+
+const isNullableProgress = (value: unknown): value is number | null =>
+  value === null ||
+  (typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100);
+
+const isNullableSafeString = (value: unknown): value is string | null =>
+  value === null || isSafeString(value);
+
+const isCourseGenerationStatus = (value: unknown): value is string =>
+  typeof value === 'string' && COURSE_GENERATION_STATUSES.has(value);
 
 async function isAdminRequest(req: AuthRequest): Promise<boolean> {
   if (req.role !== undefined) {
@@ -32,7 +51,11 @@ async function isAdminRequest(req: AuthRequest): Promise<boolean> {
 async function fetchCourseResponse(
   req: AuthRequest,
   path: string,
-  forwardListQuery: boolean
+  options: {
+    method?: 'GET' | 'POST';
+    forwardListQuery?: boolean;
+    forwardSafeClientError?: boolean;
+  } = {}
 ): Promise<unknown> {
   if (!req.userId) {
     throw new AppError('Authentication required', 401);
@@ -45,7 +68,7 @@ async function fetchCourseResponse(
   } = await resolveLearningOsProxyContext(effectiveUserId, API_LABEL);
   const upstreamUrl = new URL(`${apiUrl}/api/convolab/courses${path}`);
 
-  if (forwardListQuery) {
+  if (options.forwardListQuery) {
     for (const name of LIST_QUERY_PARAMS) {
       const value = req.query[name];
       if (typeof value === 'string') {
@@ -63,18 +86,37 @@ async function fetchCourseResponse(
     upstreamUrl,
     apiToken,
     user,
-    method: 'GET',
+    method: options.method ?? 'GET',
     timeoutMs: FETCH_TIMEOUT_MS,
     timeoutMessage: `${API_LABEL} request timed out.`,
     networkErrorMessage: `${API_LABEL} is unavailable.`,
   });
 
   if (!upstreamResponse.ok) {
-    const statusCode =
-      upstreamResponse.status === 401 || upstreamResponse.status >= 500
-        ? 502
-        : upstreamResponse.status;
-    throw new AppError(`${API_LABEL} request failed.`, statusCode);
+    if (
+      upstreamResponse.status === 401 ||
+      upstreamResponse.status === 403 ||
+      upstreamResponse.status >= 500
+    ) {
+      throw new AppError(`${API_LABEL} request failed.`, 502);
+    }
+
+    if (!options.forwardSafeClientError) {
+      throw new AppError(`${API_LABEL} request failed.`, upstreamResponse.status);
+    }
+
+    let errorPayload: unknown;
+    try {
+      errorPayload = await upstreamResponse.json();
+    } catch {
+      throw new AppError(`${API_LABEL} request failed.`, upstreamResponse.status);
+    }
+
+    const message = isJsonRecord(errorPayload) ? errorPayload.message : undefined;
+    throw new AppError(
+      isSafeString(message) ? message : `${API_LABEL} request failed.`,
+      upstreamResponse.status
+    );
   }
 
   try {
@@ -90,7 +132,7 @@ export async function listLearningOsCourses(
   next: NextFunction
 ): Promise<void> {
   try {
-    const courses = await fetchCourseResponse(req, '', true);
+    const courses = await fetchCourseResponse(req, '', { forwardListQuery: true });
     if (!Array.isArray(courses)) {
       throw new AppError(`${API_LABEL} returned an invalid list response.`, 502);
     }
@@ -107,7 +149,7 @@ export async function showLearningOsCourse(
   next: NextFunction
 ): Promise<void> {
   try {
-    const course = await fetchCourseResponse(req, `/${encodeURIComponent(req.params.id)}`, false);
+    const course = await fetchCourseResponse(req, `/${encodeURIComponent(req.params.id)}`);
     if (typeof course !== 'object' || course === null || Array.isArray(course)) {
       throw new AppError(`${API_LABEL} returned an invalid detail response.`, 502);
     }
@@ -117,4 +159,100 @@ export async function showLearningOsCourse(
   } catch (error) {
     next(error);
   }
+}
+
+const courseLifecyclePath = (req: AuthRequest, operation: string): string =>
+  `/${encodeURIComponent(req.params.id)}/${operation}`;
+
+const isCourseActionResponse = (payload: unknown): payload is JsonRecord =>
+  isJsonRecord(payload) &&
+  isSafeString(payload.message) &&
+  isSafeString(payload.jobId) &&
+  isSafeString(payload.courseId);
+
+const isCourseResetResponse = (payload: unknown): payload is JsonRecord =>
+  isJsonRecord(payload) && isSafeString(payload.message) && isSafeString(payload.courseId);
+
+const isCourseStatusResponse = (payload: unknown): payload is JsonRecord =>
+  isJsonRecord(payload) &&
+  isCourseGenerationStatus(payload.status) &&
+  isNullableProgress(payload.progress) &&
+  typeof payload.isStuck === 'boolean' &&
+  isNullableSafeString(payload.errorMessage);
+
+async function respondWithCourseAction(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+  operation: 'generate' | 'retry'
+): Promise<void> {
+  try {
+    const payload = await fetchCourseResponse(req, courseLifecyclePath(req, operation), {
+      method: 'POST',
+      forwardSafeClientError: true,
+    });
+    if (!isCourseActionResponse(payload)) {
+      throw new AppError(`${API_LABEL} returned an invalid ${operation} response.`, 502);
+    }
+
+    res.json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function generateLearningOsCourse(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  await respondWithCourseAction(req, res, next, 'generate');
+}
+
+export async function showLearningOsCourseGenerationStatus(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const payload = await fetchCourseResponse(req, courseLifecyclePath(req, 'status'), {
+      forwardSafeClientError: true,
+    });
+    if (!isCourseStatusResponse(payload)) {
+      throw new AppError(`${API_LABEL} returned an invalid status response.`, 502);
+    }
+
+    res.set('Cache-Control', 'private, no-store');
+    res.json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetLearningOsCourseGeneration(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const payload = await fetchCourseResponse(req, courseLifecyclePath(req, 'reset'), {
+      method: 'POST',
+      forwardSafeClientError: true,
+    });
+    if (!isCourseResetResponse(payload)) {
+      throw new AppError(`${API_LABEL} returned an invalid reset response.`, 502);
+    }
+
+    res.json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function retryLearningOsCourseGeneration(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  await respondWithCourseAction(req, res, next, 'retry');
 }
