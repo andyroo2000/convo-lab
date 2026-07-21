@@ -253,6 +253,7 @@ describe('Courses Routes Integration', () => {
       nativeLanguage: 'en',
       targetLanguage: 'ja',
       l1VoiceId: 'en-US-Neural2-J',
+      role: 'admin',
     };
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(course));
 
@@ -267,7 +268,14 @@ describe('Courses Routes Integration', () => {
         upstreamUrl: new URL('http://learning-os.test/api/convolab/courses'),
         apiToken: 'proxy-token',
         method: 'POST',
-        body,
+        body: {
+          title: 'Course',
+          description: 'Description',
+          sourceText: 'Source text',
+          nativeLanguage: 'en',
+          targetLanguage: 'ja',
+          l1VoiceId: 'en-US-Neural2-J',
+        },
         timeoutMs: 100_000,
       })
     );
@@ -278,7 +286,7 @@ describe('Courses Routes Integration', () => {
   });
 
   it('proxies sparse course updates and preserves the legacy acknowledgment', async () => {
-    const body = { description: null, maxLessonDurationMinutes: 45 };
+    const body = { description: null, maxLessonDurationMinutes: 45, userId: 'other-user' };
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson({ message: 'Course updated' }));
 
     const response = await request(app).patch('/api/courses/course%2Fid').send(body).expect(200);
@@ -288,7 +296,7 @@ describe('Courses Routes Integration', () => {
       expect.objectContaining({
         upstreamUrl: new URL('http://learning-os.test/api/convolab/courses/course%2Fid'),
         method: 'PATCH',
-        body,
+        body: { description: null, maxLessonDurationMinutes: 45 },
         timeoutMs: 10_000,
       })
     );

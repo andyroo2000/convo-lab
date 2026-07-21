@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[refactor]** Route course create, update, and delete operations through the Learning OS API while preserving Convo Lab response contracts
 - **[style]** Improve retro counter layout — fixed rem widths for sheet/panel, centered main panel, adjusted font sizes, padding, and illustration sizes for better proportions
 
 ### Changed
