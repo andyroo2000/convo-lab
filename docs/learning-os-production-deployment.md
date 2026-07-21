@@ -32,6 +32,10 @@ production host's `/opt/convolab/.env.production`:
 - `ADMIN_EMAILS`: the comma-separated allowlist used when a verified account
   should receive the admin role.
 
+Store `RESEND_API_KEY` as the repository's GitHub Actions secret of the same
+name. The deployment copies that masked secret into `.env.production`; the
+remaining values are maintained directly on the production host.
+
 The deployment validates these values before pulling or restarting containers,
 then verifies the effective Laravel configuration after the API becomes
 healthy. It stores a SHA-256 fingerprint of the combined auth-mail settings so
