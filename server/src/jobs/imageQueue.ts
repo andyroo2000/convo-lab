@@ -2,7 +2,6 @@ import { Queue, Worker } from 'bullmq';
 
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 import { generateAudioScriptSegmentImages } from '../services/audioScriptService.js';
-import { generateDialogueImages } from '../services/imageGenerator.js';
 
 const connection = createRedisConnection();
 
@@ -11,31 +10,24 @@ export const imageQueue = new Queue('image-generation', { connection });
 export const imageWorker = new Worker(
   'image-generation',
   async (job) => {
-    const { episodeId, dialogueId, imageCount, userId, force } = job.data;
+    const { episodeId, userId, force } = job.data;
 
     try {
       await job.updateProgress(10);
 
-      if (job.name === 'generate-script-images') {
-        if (!episodeId || !userId) {
-          throw new Error('Script image generation requires episodeId and userId');
-        }
-
-        return generateAudioScriptSegmentImages({
-          episodeId,
-          userId,
-          force,
-          onProgress: (progress) => job.updateProgress(progress),
-        });
+      if (job.name !== 'generate-script-images') {
+        throw new Error(`Unsupported image job type: ${job.name}`);
+      }
+      if (!episodeId || !userId) {
+        throw new Error('Script image generation requires episodeId and userId');
       }
 
-      const result = await generateDialogueImages({
+      const result = await generateAudioScriptSegmentImages({
         episodeId,
-        dialogueId,
-        imageCount,
+        userId,
+        force,
+        onProgress: (progress) => job.updateProgress(progress),
       });
-
-      await job.updateProgress(100);
 
       return result;
     } catch (error) {

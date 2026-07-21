@@ -221,8 +221,8 @@ Stored as JSON in `Sentence.metadata`:
 
 ### Images
 
-- `POST /api/images/generate` - Start image generation job
-- `GET /api/images/job/:jobId` - Check job status
+- `POST /api/images/generate` - Proxy a dialogue image-generation request to Learning OS
+- `GET /api/images/job/:jobId` - Proxy Learning OS image-job status
 
 ## Job Queue Architecture
 
@@ -239,7 +239,7 @@ Uses BullMQ with Redis for background processing of long-running tasks.
    - Duration: 30-120 seconds
 
 3. **image-generation**
-   - Processes: Image prompt generation, API calls
+   - Processes: Legacy Audio Script segment images only
    - Duration: 15-60 seconds
 
 ### Worker Pattern
@@ -272,7 +272,7 @@ const worker = new Worker('queue-name', async (job) => {
 ### Gemini API
 
 - Model: `gemini-2.0-flash-exp` (default)
-- Use: Dialogue generation, image prompt creation
+- Use: Dialogue generation
 - Cost: ~$0.05-0.30 per 1K tokens
 
 ### Cloud Text-to-Speech
