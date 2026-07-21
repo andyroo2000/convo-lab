@@ -306,6 +306,7 @@ test('course generation proxy activates only through a rollback-safe production 
   const fixtureInsert = workflow.indexOf(
     'Illuminate\\Support\\Facades\\DB::table("content_courses")->insert'
   );
+  const csrfTokenInitialization = workflow.indexOf('csrf_token="$(docker exec');
   const publicReset = workflow.indexOf('"/api/courses/$course_generation_smoke_id/reset"');
   const statusCheck = workflow.indexOf("'Course generation status after reset'");
   const successCleanup = workflow.lastIndexOf(
@@ -320,6 +321,8 @@ test('course generation proxy activates only through a rollback-safe production 
   assert.ok(tokenScope >= 0);
   assert.ok(tokenScope < cutover);
   assert.ok(cutover < activeFlagCheck);
+  assert.ok(activeFlagCheck < csrfTokenInitialization);
+  assert.ok(csrfTokenInitialization < fixtureInsert);
   assert.ok(activeFlagCheck < fixtureInsert);
   assert.ok(fixtureInsert < publicReset);
   assert.ok(publicReset < statusCheck);
@@ -555,7 +558,7 @@ test('the production workflow verifies browser routes against Learning OS state'
 
   const browserBlock = workflow.slice(
     workflow.indexOf("'Browser Learning OS'"),
-    workflow.indexOf('csrf_cookie_jar=')
+    workflow.indexOf('Browser detail Learning OS independent-state smoke check passed.')
   );
 
   assert.match(

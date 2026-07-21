@@ -612,6 +612,21 @@ jobs:
               test -n "$auth_token"
               echo "::add-mask::$auth_token"
 
+              csrf_cookie_jar="$(mktemp)"
+              curl --fail --silent --show-error \
+                --cookie "token=$auth_token" \
+                --cookie-jar "$csrf_cookie_jar" \
+                --header 'Origin: https://convo-lab.com' \
+                'https://convo-lab.com/api/auth/csrf' > /dev/null
+              csrf_cookie_raw="$(awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$csrf_cookie_jar")"
+              rm -f "$csrf_cookie_jar"
+              test -n "$csrf_cookie_raw"
+              csrf_token="$(docker exec \
+                -e RAW_CSRF_TOKEN="$csrf_cookie_raw" \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
+              test -n "$csrf_token"
+
               fetch_read_route() {
                 local label="$1"
                 local path="$2"
@@ -1054,21 +1069,6 @@ jobs:
                 "/api/learning-os/study/browser/$browser_note_id" \
                 > /dev/null
               echo "Browser detail Learning OS independent-state smoke check passed."
-
-              csrf_cookie_jar="$(mktemp)"
-              curl --fail --silent --show-error \
-                --cookie "token=$auth_token" \
-                --cookie-jar "$csrf_cookie_jar" \
-                --header 'Origin: https://convo-lab.com' \
-                'https://convo-lab.com/api/auth/csrf' > /dev/null
-              csrf_cookie_raw="$(awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$csrf_cookie_jar")"
-              rm -f "$csrf_cookie_jar"
-              test -n "$csrf_cookie_raw"
-              csrf_token="$(docker exec \
-                -e RAW_CSRF_TOKEN="$csrf_cookie_raw" \
-                "convolab-server-$active_color" \
-                node --input-type=module --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
-              test -n "$csrf_token"
 
               gcs_bucket="$(sed -n 's/^GCS_BUCKET_NAME=//p' .env.production | tail -1)"
               test -n "$gcs_bucket"
