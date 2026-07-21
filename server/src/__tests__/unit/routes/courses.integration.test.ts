@@ -286,7 +286,12 @@ describe('Courses Routes Integration', () => {
   });
 
   it('proxies sparse course updates and preserves the legacy acknowledgment', async () => {
-    const body = { description: null, maxLessonDurationMinutes: 45, userId: 'other-user' };
+    const body = {
+      description: null,
+      maxLessonDurationMinutes: 45,
+      sourceText: 'Create-only field',
+      userId: 'other-user',
+    };
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson({ message: 'Course updated' }));
 
     const response = await request(app).patch('/api/courses/course%2Fid').send(body).expect(200);

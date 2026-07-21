@@ -14,7 +14,7 @@ const API_LABEL = 'Learning OS Course API';
 const FETCH_TIMEOUT_MS = 10_000;
 const CREATE_TIMEOUT_MS = 100_000;
 const LIST_QUERY_PARAMS = ['library', 'limit', 'offset'] as const;
-const COURSE_WRITE_FIELDS = [
+const COURSE_CREATE_FIELDS = [
   'title',
   'description',
   'episodeIds',
@@ -29,6 +29,7 @@ const COURSE_WRITE_FIELDS = [
   'speaker1VoiceId',
   'speaker2VoiceId',
 ] as const;
+const COURSE_UPDATE_FIELDS = ['title', 'description', 'maxLessonDurationMinutes'] as const;
 const COURSE_GENERATION_STATUSES = new Set(['draft', 'generating', 'ready', 'error']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -50,15 +51,18 @@ const isNullableSafeString = (value: unknown): value is string | null =>
 const isCourseGenerationStatus = (value: unknown): value is string =>
   typeof value === 'string' && COURSE_GENERATION_STATUSES.has(value);
 
-const pickCourseWriteBody = (body: unknown): JsonRecord => {
+const pickCourseWriteBody = (
+  body: unknown,
+  fields: readonly (typeof COURSE_CREATE_FIELDS)[number][]
+): JsonRecord => {
   if (!isJsonRecord(body)) {
     return {};
   }
 
   return Object.fromEntries(
-    COURSE_WRITE_FIELDS.filter((field) => Object.prototype.hasOwnProperty.call(body, field)).map(
-      (field) => [field, body[field]]
-    )
+    fields
+      .filter((field) => Object.prototype.hasOwnProperty.call(body, field))
+      .map((field) => [field, body[field]])
   );
 };
 
@@ -177,7 +181,7 @@ export async function storeLearningOsCourse(
   try {
     const payload = await fetchCourseResponse(req, '', {
       method: 'POST',
-      body: pickCourseWriteBody(req.body),
+      body: pickCourseWriteBody(req.body, COURSE_CREATE_FIELDS),
       forwardSafeClientError: true,
       timeoutMs: CREATE_TIMEOUT_MS,
     });
@@ -199,7 +203,7 @@ export async function updateLearningOsCourse(
   try {
     const payload = await fetchCourseResponse(req, `/${encodeURIComponent(req.params.id)}`, {
       method: 'PATCH',
-      body: pickCourseWriteBody(req.body),
+      body: pickCourseWriteBody(req.body, COURSE_UPDATE_FIELDS),
       forwardSafeClientError: true,
     });
     if (!isCourseMessageResponse(payload)) {
