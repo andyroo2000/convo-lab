@@ -363,6 +363,7 @@ test('generation proxies activate only through rollback-safe production rehearsa
     localCompose,
     /LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
   );
+  assert.match(localCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(
     stageCompose,
     /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
@@ -371,6 +372,7 @@ test('generation proxies activate only through rollback-safe production rehearsa
     stageCompose,
     /LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
   );
+  assert.match(stageCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.ok(
     productionCompose.includes(
       'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
@@ -381,21 +383,31 @@ test('generation proxies activate only through rollback-safe production rehearsa
       'LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:-false}'
     )
   );
+  assert.ok(
+    productionCompose.includes(
+      'LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED: ${LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:-false}'
+    )
+  );
 
   for (const requiredContract of [
     '"content:write"',
     'GENERATION_PROXY_CUTOVER_STARTED=false',
     'PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false',
     'PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED=false',
+    'PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED=false',
     'previous_course_generation_proxy="$(sed -n',
     'previous_dialogue_generation_proxy="$(sed -n',
+    'previous_audio_generation_proxy="$(sed -n',
     'Rolling back the Learning OS generation proxies.',
     'course_generation_proxy_restore_ok=true',
     'dialogue_generation_proxy_restore_ok=true',
+    'audio_generation_proxy_restore_ok=true',
     '|| course_generation_proxy_restore_ok=false',
     '|| dialogue_generation_proxy_restore_ok=false',
+    '|| audio_generation_proxy_restore_ok=false',
     'if [ "$course_generation_proxy_restore_ok" != true ]',
     '|| [ "$dialogue_generation_proxy_restore_ok" != true ]',
+    '|| [ "$audio_generation_proxy_restore_ok" != true ]',
     '::error::Failed to restore the generation proxy environment values.',
     '::error::Failed to recreate the production server while rolling back generation proxies.',
     '::error::The production server was unhealthy after rolling back generation proxies.',
@@ -403,9 +415,11 @@ test('generation proxies activate only through rollback-safe production rehearsa
     'if [ "$cleanup_failed" = true ]; then',
     'upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED true',
+    'upsert_env LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED true',
     "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
     'test "$active_course_generation_proxy" = true',
     'test "$active_dialogue_generation_proxy" = true',
+    'test "$active_audio_generation_proxy" = true',
     'course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"',
     'course_generation_smoke_inserted=false',
     'if [ "$course_generation_smoke_inserted" != true ]; then',
@@ -431,6 +445,19 @@ test('generation proxies activate only through rollback-safe production rehearsa
     '"/api/dialogue/job/$dialogue_generation_smoke_job_id"',
     'cleanup_dialogue_generation_smoke best-effort',
     'Dialogue generation Learning OS routing smoke check passed.',
+    'audio_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
+    'audio_generation_smoke_dialogue_id="$(cat /proc/sys/kernel/random/uuid)"',
+    'audio_generation_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"',
+    'audio_generation_smoke_sentence_id="$(cat /proc/sys/kernel/random/uuid)"',
+    'audio_generation_smoke_inserted=true',
+    'DB::table("content_audio_generation_jobs")->insert',
+    '"state" => App\\Domain\\Content\\Support\\ContentAudioGeneration::STATE_COMPLETED',
+    '"sentenceTimings" => [',
+    '$sentenceId => ["startTime" => 0, "endTime" => 1234]',
+    '"/api/audio/job/$audio_generation_smoke_job_id"',
+    '"https://convo-lab.com/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/default"',
+    'cleanup_audio_generation_smoke best-effort',
+    'Audio generation Learning OS routing and streaming smoke checks passed.',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
@@ -480,6 +507,7 @@ test('generation proxies activate only through rollback-safe production rehearsa
   assert.ok(failureCleanup.includes('GENERATION_PROXY_CUTOVER_STARTED'));
   assert.ok(failureCleanup.includes('PREVIOUS_COURSE_GENERATION_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED'));
   assert.ok(
     failureCleanup.indexOf('|| course_generation_proxy_restore_ok=false') <
       failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED')
@@ -487,6 +515,10 @@ test('generation proxies activate only through rollback-safe production rehearsa
   assert.ok(
     failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED') <
       failureCleanup.indexOf('|| dialogue_generation_proxy_restore_ok=false')
+  );
+  assert.ok(
+    failureCleanup.indexOf('LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED') <
+      failureCleanup.indexOf('|| audio_generation_proxy_restore_ok=false')
   );
   assert.ok(failureCleanup.includes('$COMPOSE up -d --no-deps --force-recreate'));
   assert.doesNotMatch(

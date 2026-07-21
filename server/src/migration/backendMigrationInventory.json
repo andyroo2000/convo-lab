@@ -87,7 +87,7 @@
       "id": "audio",
       "domain": "generation",
       "migrationWave": "content",
-      "runtimeOwner": "express",
+      "runtimeOwner": "learning-os-proxy",
       "sourceFile": "server/src/routes/audio.ts",
       "mountPath": "/api/audio",
       "routes": [
@@ -98,6 +98,21 @@
           "path": "/api/audio/generate-all-speeds"
         },
         { "id": "audio.job.show", "method": "GET", "path": "/api/audio/job/:jobId" }
+      ]
+    },
+    {
+      "id": "content-episode-audio",
+      "domain": "generation",
+      "migrationWave": "content",
+      "runtimeOwner": "learning-os-proxy",
+      "sourceFile": "server/src/routes/contentEpisodeAudio.ts",
+      "mountPath": "/api/convolab/episodes",
+      "routes": [
+        {
+          "id": "content-episode-audio.show",
+          "method": "GET",
+          "path": "/api/convolab/episodes/:episodeId/audio/:track"
+        }
       ]
     },
     {
