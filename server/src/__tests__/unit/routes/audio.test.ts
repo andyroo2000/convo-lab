@@ -10,6 +10,10 @@ import contentEpisodeAudioRouter from '../../../routes/contentEpisodeAudio.js';
 
 const mocks = vi.hoisted(() => ({
   fetchLearningOsProxy: vi.fn(),
+  rateLimitStudyRoute: vi.fn(),
+  studyRateLimitMiddleware: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) =>
+    next()
+  ),
   resolveLearningOsProxyContext: vi.fn(),
   triggerWorkerJob: vi.fn(),
 }));
@@ -24,6 +28,9 @@ vi.mock('../../../jobs/audioQueue.js', () => ({ audioQueue: mockAudioQueue }));
 vi.mock('../../../services/learningOsProxy.js', () => ({
   fetchLearningOsProxy: mocks.fetchLearningOsProxy,
   resolveLearningOsProxyContext: mocks.resolveLearningOsProxyContext,
+}));
+vi.mock('../../../middleware/studyRateLimit.js', () => ({
+  rateLimitStudyRoute: mocks.rateLimitStudyRoute.mockReturnValue(mocks.studyRateLimitMiddleware),
 }));
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: vi.fn((req: AuthRequest, _res: Response, next: NextFunction) => {
@@ -408,6 +415,7 @@ describe('Audio routes', () => {
     expect(response.headers['cross-origin-resource-policy']).toBe('same-origin');
     expect(response.headers['x-content-type-options']).toBe('nosniff');
     expect(response.headers['x-upstream-secret']).toBeUndefined();
+    expect(mocks.studyRateLimitMiddleware).toHaveBeenCalledOnce();
     expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
       expect.objectContaining({
         upstreamUrl: new URL(
