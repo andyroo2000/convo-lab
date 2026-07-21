@@ -23,6 +23,12 @@ import {
 } from '../services/learningOsAuthProxy.js';
 
 const router = Router();
+const verificationSendIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const verificationSendRateLimit = createExpressRateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -40,6 +46,7 @@ const verificationConsumeRateLimit = createExpressRateLimit({
 // Resend verification email
 router.post(
   '/verification/send',
+  verificationSendIpRateLimit,
   requireAuth,
   verificationSendRateLimit,
   async (req: AuthRequest, res, next) => {
