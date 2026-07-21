@@ -84,11 +84,12 @@ jobs:
             DRAINING_WORKER_CONTAINER_ID=""
             NEW_PROXY_TOKEN_ID=""
             PROXY_TOKEN_CUTOVER_STARTED=false
-            GENERATION_PROXY_CUTOVER_STARTED=false
+            ROUTE_PROXY_CUTOVER_STARTED=false
             PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false
             PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED=false
             PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED=false
             PREVIOUS_SCRIPT_PROXY_ENABLED=false
+            PREVIOUS_AUTH_PROXY_ENABLED=false
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
@@ -102,13 +103,15 @@ jobs:
               local dialogue_generation_proxy_restore_ok=true
               local audio_generation_proxy_restore_ok=true
               local script_proxy_restore_ok=true
+              local auth_proxy_restore_ok=true
               local rolled_back_course_generation_proxy
               local rolled_back_dialogue_generation_proxy
               local rolled_back_audio_generation_proxy
               local rolled_back_script_proxy
+              local rolled_back_auth_proxy
 
-              if [ "$GENERATION_PROXY_CUTOVER_STARTED" = true ]; then
-                echo "Rolling back the Learning OS generation proxies."
+              if [ "$ROUTE_PROXY_CUTOVER_STARTED" = true ]; then
+                echo "Rolling back the Learning OS route proxies."
                 upsert_env \
                   LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED \
                   "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED" \
@@ -125,17 +128,22 @@ jobs:
                   LEARNING_OS_SCRIPT_PROXY_ENABLED \
                   "$PREVIOUS_SCRIPT_PROXY_ENABLED" \
                   || script_proxy_restore_ok=false
+                upsert_env \
+                  LEARNING_OS_AUTH_PROXY_ENABLED \
+                  "$PREVIOUS_AUTH_PROXY_ENABLED" \
+                  || auth_proxy_restore_ok=false
                 if [ "$course_generation_proxy_restore_ok" != true ] \
                   || [ "$dialogue_generation_proxy_restore_ok" != true ] \
                   || [ "$audio_generation_proxy_restore_ok" != true ] \
-                  || [ "$script_proxy_restore_ok" != true ]; then
-                  echo "::error::Failed to restore the generation proxy environment values."
+                  || [ "$script_proxy_restore_ok" != true ] \
+                  || [ "$auth_proxy_restore_ok" != true ]; then
+                  echo "::error::Failed to restore the route proxy environment values."
                   cleanup_failed=true
                 elif ! $COMPOSE up -d --no-deps --force-recreate "server-$active_color"; then
-                  echo "::error::Failed to recreate the production server while rolling back generation proxies."
+                  echo "::error::Failed to recreate the production server while rolling back route proxies."
                   cleanup_failed=true
                 elif ! wait_for_health "convolab-server-$active_color"; then
-                  echo "::error::The production server was unhealthy after rolling back generation proxies."
+                  echo "::error::The production server was unhealthy after rolling back route proxies."
                   cleanup_failed=true
                 else
                   rolled_back_course_generation_proxy="$(docker inspect \
@@ -158,11 +166,17 @@ jobs:
                     "convolab-server-$active_color" \
                     | sed -n 's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
                     | tail -1)"
+                  rolled_back_auth_proxy="$(docker inspect \
+                    --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                    "convolab-server-$active_color" \
+                    | sed -n 's/^LEARNING_OS_AUTH_PROXY_ENABLED=//p' \
+                    | tail -1)"
                   if [ "$rolled_back_course_generation_proxy" != "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_dialogue_generation_proxy" != "$PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_audio_generation_proxy" != "$PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED" ] \
-                    || [ "$rolled_back_script_proxy" != "$PREVIOUS_SCRIPT_PROXY_ENABLED" ]; then
-                    echo "::error::The production server retained a generation proxy after rollback."
+                    || [ "$rolled_back_script_proxy" != "$PREVIOUS_SCRIPT_PROXY_ENABLED" ] \
+                    || [ "$rolled_back_auth_proxy" != "$PREVIOUS_AUTH_PROXY_ENABLED" ]; then
+                    echo "::error::The production server retained a route proxy after rollback."
                     cleanup_failed=true
                   fi
                 fi
@@ -331,6 +345,20 @@ jobs:
                 ;;
             esac
 
+            previous_auth_proxy="$(sed -n \
+              's/^LEARNING_OS_AUTH_PROXY_ENABLED=//p' \
+              .env.production | tail -1)"
+            case "$previous_auth_proxy" in
+              true|false)
+                PREVIOUS_AUTH_PROXY_ENABLED="$previous_auth_proxy"
+                ;;
+              '') ;;
+              *)
+                echo "Invalid LEARNING_OS_AUTH_PROXY_ENABLED value."
+                exit 1
+                ;;
+            esac
+
             if ! grep -Eq '^LEARNING_OS_APP_KEY=base64:.+$' .env.production; then
               upsert_env LEARNING_OS_APP_KEY "base64:$(openssl rand -base64 32 | tr -d '\n')"
             fi
@@ -367,6 +395,8 @@ jobs:
                   "feature-flags:write",
                   "content:write",
                   "admin:read",
+                  "auth:login",
+                  "auth:read",
                 ]);
                 echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
                 echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
@@ -540,11 +570,12 @@ jobs:
             PROXY_TOKEN_CUTOVER_STARTED=true
             # Keep rollback armed until every production smoke passes. A failed
             # deployment must not leave a newly enabled write route live.
-            GENERATION_PROXY_CUTOVER_STARTED=true
+            ROUTE_PROXY_CUTOVER_STARTED=true
             upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true
+            upsert_env LEARNING_OS_AUTH_PROXY_ENABLED true
             $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
             active_proxy_token="$(docker inspect \
@@ -583,6 +614,12 @@ jobs:
               | sed -n 's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
               | tail -1)"
             test "$active_script_proxy" = true
+            active_auth_proxy="$(docker inspect \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' \
+              "convolab-server-$active_color" \
+              | sed -n 's/^LEARNING_OS_AUTH_PROXY_ENABLED=//p' \
+              | tail -1)"
+            test "$active_auth_proxy" = true
 
             if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
@@ -1291,6 +1328,25 @@ jobs:
 
                 return 1
               }
+
+              auth_me="$(fetch_read_route 'Auth current user Learning OS' '/api/auth/me')"
+              printf '%s' "$auth_me" | docker exec \
+                -i \
+                -e EXPECTED_USER_ID="$user_id" \
+                -e EXPECTED_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const account = JSON.parse(body);
+                  if (
+                    account.id !== process.env.EXPECTED_USER_ID
+                    || account.email.toLowerCase() !== process.env.EXPECTED_USER_EMAIL.toLowerCase()
+                    || typeof account.seenSampleContentGuide !== "boolean"
+                    || typeof account.seenCustomContentGuide !== "boolean"
+                  ) process.exit(1);
+                '
+              echo "Auth current-user Learning OS proxy smoke check passed."
 
               stream_json_pair() {
                 # Stream newline-delimited base64 so large responses do not exceed exec ARG_MAX.
@@ -2665,7 +2721,7 @@ jobs:
             }
 
             verify_study_api
-            GENERATION_PROXY_CUTOVER_STARTED=false
+            ROUTE_PROXY_CUTOVER_STARTED=false
             trap - EXIT
 
             $COMPOSE ps learning-os learning-os-worker "server-$active_color"

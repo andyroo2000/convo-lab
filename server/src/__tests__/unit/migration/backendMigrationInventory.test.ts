@@ -180,6 +180,28 @@ describe('backend migration inventory', () => {
     }
   });
 
+  it('tracks proxied auth reads separately from remaining Express account routes', () => {
+    for (const [method, routePath] of [
+      ['POST', '/api/auth/login'],
+      ['GET', '/api/auth/me'],
+    ]) {
+      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
+        surface: { id: 'auth', runtimeOwner: 'learning-os-proxy' },
+      });
+    }
+
+    for (const [method, routePath] of [
+      ['POST', '/api/auth/signup'],
+      ['PATCH', '/api/auth/me'],
+      ['PATCH', '/api/auth/change-password'],
+      ['DELETE', '/api/auth/me'],
+    ]) {
+      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
+        surface: { id: 'auth', runtimeOwner: 'express' },
+      });
+    }
+  });
+
   it('matches every method through the Learning OS Study proxy wildcard', () => {
     expect(
       findBackendMigrationRoute('PATCH', '/api/learning-os/study/cards/card-123')

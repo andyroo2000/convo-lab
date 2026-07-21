@@ -46,7 +46,33 @@ export async function resolveLearningOsProxyContext(
   userId: string,
   apiLabel: string
 ): Promise<{ config: LearningOsProxyConfig; user: LearningOsProxyUser }> {
-  const { proxyUserEmail, ...config } = getLearningOsProxyConfig(apiLabel);
+  const { config, proxyUserEmail, user } = await resolveLearningOsUserContext(userId, apiLabel);
+
+  if (user.email.trim().toLowerCase() !== proxyUserEmail) {
+    throw new AppError(`${apiLabel} is not enabled for this account.`, 403);
+  }
+
+  return { config, user };
+}
+
+export async function resolveLearningOsUserProxyContext(
+  userId: string,
+  apiLabel: string
+): Promise<{ config: LearningOsProxyConfig; user: LearningOsProxyUser }> {
+  const { config, user } = await resolveLearningOsUserContext(userId, apiLabel);
+
+  return { config, user };
+}
+
+async function resolveLearningOsUserContext(
+  userId: string,
+  apiLabel: string
+): Promise<{
+  config: LearningOsProxyConfig;
+  proxyUserEmail: string;
+  user: LearningOsProxyUser;
+}> {
+  const { apiUrl, apiToken, proxyUserEmail } = getLearningOsProxyConfig(apiLabel);
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, email: true, role: true },
@@ -55,11 +81,8 @@ export async function resolveLearningOsProxyContext(
   if (!user) {
     throw new AppError('User not found', 404);
   }
-  if (user.email.trim().toLowerCase() !== proxyUserEmail) {
-    throw new AppError(`${apiLabel} is not enabled for this account.`, 403);
-  }
 
-  return { config, user };
+  return { config: { apiUrl, apiToken }, proxyUserEmail, user };
 }
 
 export async function resolveLearningOsServiceProxyContext(

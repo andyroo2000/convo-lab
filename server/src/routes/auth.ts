@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import jwt from 'jsonwebtoken';
 
+import { isLearningOsAuthProxyEnabled } from '../config/authRouting.js';
 import { buildClientAppUrl } from '../config/browserRuntime.js';
 import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
@@ -16,6 +17,10 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { clearCsrfCookies, issueCsrfTokenCookie } from '../middleware/csrf.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
+import {
+  authenticateLearningOsAccount,
+  getLearningOsCurrentAccount,
+} from '../services/learningOsAuthProxy.js';
 import { revokeGoogleTokens } from '../services/oauth.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
@@ -247,6 +252,20 @@ router.post('/login', async (req, res, next) => {
       throw new AppError('Email and password are required', 400);
     }
 
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      throw new AppError('Email and password are required', 400);
+    }
+
+    if (isLearningOsAuthProxyEnabled()) {
+      const account = await authenticateLearningOsAccount(email, password);
+      const token = jwt.sign({ userId: account.id, role: account.role }, process.env.JWT_SECRET!, {
+        expiresIn: '7d',
+      });
+
+      setSessionCookies(req as AuthRequest, res, token);
+      return res.json(account);
+    }
+
     // Find user
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -318,6 +337,12 @@ router.get('/csrf', (req, res) => {
 // Get current user
 router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
+    if (isLearningOsAuthProxyEnabled()) {
+      const account = await getLearningOsCurrentAccount(req.userId!);
+      issueCsrfTokenCookie(req, res, 'lax');
+      return res.json(account);
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
