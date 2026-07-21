@@ -118,11 +118,11 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "auth-mail-v1" \]; then/
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "auth-mail-v1" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \]; then/
   );
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "auth-mail-v1" \] \\\n\s+&& \[\[ " \$current_command " == \*" \$desired_queue_argument "\* \]\]; then/
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "auth-mail-v1" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[\[ " \$current_command " == \*" \$desired_queue_argument "\* \]\]; then/
   );
   assert.doesNotMatch(workflow, /static-media-v2/);
   assert.doesNotMatch(workflow, /enable_(?:settings|overview|browser|new_queue|review|card|media|daily_audio|imports)/);
@@ -609,6 +609,7 @@ test('the production stack configures Learning OS signup and verification mail',
     'RESEND_API_KEY: ${RESEND_API_KEY}',
     'MAIL_FROM_ADDRESS: ${LEARNING_OS_MAIL_FROM_ADDRESS}',
     'MAIL_FROM_NAME: ${LEARNING_OS_MAIL_FROM_NAME:-ConvoLab}',
+    'LEARNING_OS_AUTH_MAIL_CONFIG_REVISION: ${LEARNING_OS_AUTH_MAIL_CONFIG_REVISION}',
     'LEARNING_OS_DEPLOY_CONFIG_REVISION: auth-mail-v1',
   ]) {
     assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
@@ -623,6 +624,11 @@ test('the production stack configures Learning OS signup and verification mail',
     'if ! [[ "$mail_from_address" =~',
     'upsert_env LEARNING_OS_MAIL_FROM_ADDRESS "$mail_from_address"',
     'upsert_env LEARNING_OS_MAIL_FROM_NAME "$mail_from_name"',
+    'auth_mail_config_revision="$(printf \'%s\\0%s\\0%s\\0%s\\0%s\'',
+    '| sha256sum',
+    'upsert_env LEARNING_OS_AUTH_MAIL_CONFIG_REVISION "$auth_mail_config_revision"',
+    "| sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p'",
+    '[ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ]',
     '"auth:signup"',
     '"auth:verification"',
     '-e EXPECTED_CLIENT_URL="$client_url"',

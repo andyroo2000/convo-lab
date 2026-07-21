@@ -34,7 +34,9 @@ production host's `/opt/convolab/.env.production`:
 
 The deployment validates these values before pulling or restarting containers,
 then verifies the effective Laravel configuration after the API becomes
-healthy. Secret values are not printed by either check.
+healthy. It stores a SHA-256 fingerprint of the combined auth-mail settings so
+credential or sender changes recreate both the API and worker even when the
+image is unchanged. Secret values are not printed by these checks.
 
 ## Deployment
 

@@ -333,6 +333,15 @@ jobs:
 
             upsert_env LEARNING_OS_MAIL_FROM_ADDRESS "$mail_from_address"
             upsert_env LEARNING_OS_MAIL_FROM_NAME "$mail_from_name"
+            auth_mail_config_revision="$(printf '%s\0%s\0%s\0%s\0%s' \
+              "$resend_api_key" \
+              "$mail_from_address" \
+              "$mail_from_name" \
+              "$client_url" \
+              "$admin_emails" \
+              | sha256sum \
+              | cut -d ' ' -f 1)"
+            upsert_env LEARNING_OS_AUTH_MAIL_CONFIG_REVISION "$auth_mail_config_revision"
 
             previous_course_generation_proxy="$(sed -n \
               's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p' \
@@ -478,11 +487,17 @@ jobs:
                 "$container" 2>/dev/null \
                 | sed -n 's/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p' \
                 | tail -1 || true)"
+              current_auth_mail_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
                 && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ] \
-                && [ "$current_config_revision" = "auth-mail-v1" ]; then
+                && [ "$current_config_revision" = "auth-mail-v1" ] \
+                && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
               fi
@@ -500,11 +515,17 @@ jobs:
                 "$container" 2>/dev/null \
                 | sed -n 's/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p' \
                 | tail -1 || true)"
+              current_auth_mail_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
               desired_queue_argument="--queue=study-imports,study-card-drafts,default"
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
                 && [ "$current_config_revision" = "auth-mail-v1" ] \
+                && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ] \
                 && [[ " $current_command " == *" $desired_queue_argument "* ]]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
