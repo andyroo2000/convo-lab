@@ -88,6 +88,7 @@ jobs:
             PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false
             PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED=false
             PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED=false
+            PREVIOUS_SCRIPT_PROXY_ENABLED=false
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
@@ -100,9 +101,11 @@ jobs:
               local course_generation_proxy_restore_ok=true
               local dialogue_generation_proxy_restore_ok=true
               local audio_generation_proxy_restore_ok=true
+              local script_proxy_restore_ok=true
               local rolled_back_course_generation_proxy
               local rolled_back_dialogue_generation_proxy
               local rolled_back_audio_generation_proxy
+              local rolled_back_script_proxy
 
               if [ "$GENERATION_PROXY_CUTOVER_STARTED" = true ]; then
                 echo "Rolling back the Learning OS generation proxies."
@@ -118,9 +121,14 @@ jobs:
                   LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED \
                   "$PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED" \
                   || audio_generation_proxy_restore_ok=false
+                upsert_env \
+                  LEARNING_OS_SCRIPT_PROXY_ENABLED \
+                  "$PREVIOUS_SCRIPT_PROXY_ENABLED" \
+                  || script_proxy_restore_ok=false
                 if [ "$course_generation_proxy_restore_ok" != true ] \
                   || [ "$dialogue_generation_proxy_restore_ok" != true ] \
-                  || [ "$audio_generation_proxy_restore_ok" != true ]; then
+                  || [ "$audio_generation_proxy_restore_ok" != true ] \
+                  || [ "$script_proxy_restore_ok" != true ]; then
                   echo "::error::Failed to restore the generation proxy environment values."
                   cleanup_failed=true
                 elif ! $COMPOSE up -d --no-deps --force-recreate "server-$active_color"; then
@@ -145,9 +153,15 @@ jobs:
                     "convolab-server-$active_color" \
                     | sed -n 's/^LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED=//p' \
                     | tail -1)"
+                  rolled_back_script_proxy="$(docker inspect \
+                    --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                    "convolab-server-$active_color" \
+                    | sed -n 's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
+                    | tail -1)"
                   if [ "$rolled_back_course_generation_proxy" != "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_dialogue_generation_proxy" != "$PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED" ] \
-                    || [ "$rolled_back_audio_generation_proxy" != "$PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED" ]; then
+                    || [ "$rolled_back_audio_generation_proxy" != "$PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED" ] \
+                    || [ "$rolled_back_script_proxy" != "$PREVIOUS_SCRIPT_PROXY_ENABLED" ]; then
                     echo "::error::The production server retained a generation proxy after rollback."
                     cleanup_failed=true
                   fi
@@ -299,6 +313,20 @@ jobs:
               '') ;;
               *)
                 echo "Invalid LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED value."
+                exit 1
+                ;;
+            esac
+
+            previous_script_proxy="$(sed -n \
+              's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
+              .env.production | tail -1)"
+            case "$previous_script_proxy" in
+              true|false)
+                PREVIOUS_SCRIPT_PROXY_ENABLED="$previous_script_proxy"
+                ;;
+              '') ;;
+              *)
+                echo "Invalid LEARNING_OS_SCRIPT_PROXY_ENABLED value."
                 exit 1
                 ;;
             esac
@@ -496,6 +524,7 @@ jobs:
             upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED true
             upsert_env LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED true
+            upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true
             $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
             active_proxy_token="$(docker inspect \
@@ -528,6 +557,12 @@ jobs:
               | sed -n 's/^LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED=//p' \
               | tail -1)"
             test "$active_audio_generation_proxy" = true
+            active_script_proxy="$(docker inspect \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' \
+              "convolab-server-$active_color" \
+              | sed -n 's/^LEARNING_OS_SCRIPT_PROXY_ENABLED=//p' \
+              | tail -1)"
+            test "$active_script_proxy" = true
 
             if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
@@ -559,6 +594,17 @@ jobs:
             audio_generation_smoke_inserted=false
             audio_generation_smoke_body=
             audio_generation_smoke_headers=
+            script_smoke_episode_id=
+            script_smoke_script_id=
+            script_smoke_segment_id=
+            script_smoke_media_id=
+            script_smoke_render_id=
+            script_smoke_job_id=
+            script_smoke_image_path=
+            script_smoke_audio_path=
+            script_smoke_inserted=false
+            script_smoke_body=
+            script_smoke_headers=
             course_write_smoke_id=
             course_write_smoke_marker=
             episode_write_smoke_id=
@@ -773,6 +819,83 @@ jobs:
               fi
 
               echo "Audio-generation smoke fixture was not fully removed." >&2
+              return 1
+            }
+
+            cleanup_script_smoke() {
+              local mode="${1:-strict}"
+              local cleanup_output
+              local remaining_count
+
+              [ -z "${script_smoke_body:-}" ] || rm -f "$script_smoke_body"
+              [ -z "${script_smoke_headers:-}" ] || rm -f "$script_smoke_headers"
+              script_smoke_body=
+              script_smoke_headers=
+
+              if [ -z "${script_smoke_episode_id:-}" ]; then
+                return
+              fi
+              if [ "$script_smoke_inserted" != true ]; then
+                script_smoke_episode_id=
+                return
+              fi
+
+              if ! cleanup_output="$(docker exec \
+                -e SCRIPT_SMOKE_EPISODE_ID="$script_smoke_episode_id" \
+                -e SCRIPT_SMOKE_MEDIA_ID="$script_smoke_media_id" \
+                -e SCRIPT_SMOKE_IMAGE_PATH="$script_smoke_image_path" \
+                -e SCRIPT_SMOKE_AUDIO_PATH="$script_smoke_audio_path" \
+                learning-os-api php artisan tinker --execute='
+                  $disk = Illuminate\Support\Facades\Storage::disk("media");
+                  $disk->delete([
+                    getenv("SCRIPT_SMOKE_IMAGE_PATH"),
+                    getenv("SCRIPT_SMOKE_AUDIO_PATH"),
+                  ]);
+                  App\Domain\Content\Models\ContentEpisode::query()
+                    ->whereKey(getenv("SCRIPT_SMOKE_EPISODE_ID"))
+                    ->delete();
+                  App\Domain\Content\Models\ContentAudioScriptMedia::query()
+                    ->whereKey(getenv("SCRIPT_SMOKE_MEDIA_ID"))
+                    ->delete();
+                  $remaining = App\Domain\Content\Models\ContentEpisode::query()
+                    ->whereKey(getenv("SCRIPT_SMOKE_EPISODE_ID"))
+                    ->count();
+                  $remaining += App\Domain\Content\Models\ContentAudioScriptMedia::query()
+                    ->whereKey(getenv("SCRIPT_SMOKE_MEDIA_ID"))
+                    ->count();
+                  $remaining += $disk->exists(getenv("SCRIPT_SMOKE_IMAGE_PATH")) ? 1 : 0;
+                  $remaining += $disk->exists(getenv("SCRIPT_SMOKE_AUDIO_PATH")) ? 1 : 0;
+                  echo "SCRIPT_SMOKE_REMAINING=".$remaining.PHP_EOL;
+                ')"; then
+                if [ "$mode" = best-effort ]; then
+                  echo "::warning::Unable to clean up script smoke fixture $script_smoke_episode_id."
+                  return 0
+                fi
+                return 1
+              fi
+
+              remaining_count="$(printf '%s\n' "$cleanup_output" \
+                | sed -n 's/^SCRIPT_SMOKE_REMAINING=//p' \
+                | tail -1)"
+              if [ "$remaining_count" = 0 ]; then
+                script_smoke_episode_id=
+                script_smoke_script_id=
+                script_smoke_segment_id=
+                script_smoke_media_id=
+                script_smoke_render_id=
+                script_smoke_job_id=
+                script_smoke_image_path=
+                script_smoke_audio_path=
+                script_smoke_inserted=false
+                return 0
+              fi
+
+              if [ "$mode" = best-effort ]; then
+                echo "::warning::Script smoke cleanup left ${remaining_count:-an unknown number of} resources for fixture $script_smoke_episode_id."
+                return 0
+              fi
+
+              echo "Script smoke fixture was not fully removed." >&2
               return 1
             }
 
@@ -997,6 +1120,7 @@ jobs:
               cleanup_course_generation_smoke best-effort
               cleanup_dialogue_generation_smoke best-effort
               cleanup_audio_generation_smoke best-effort
+              cleanup_script_smoke best-effort
               cleanup_media_smoke
               cleanup_deployment_resources
 
@@ -1816,6 +1940,217 @@ jobs:
               grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$' "$audio_generation_smoke_headers"
               cleanup_audio_generation_smoke
               echo "Audio generation Learning OS routing and streaming smoke checks passed."
+
+              script_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"
+              script_smoke_script_id="$(cat /proc/sys/kernel/random/uuid)"
+              script_smoke_segment_id="$(cat /proc/sys/kernel/random/uuid)"
+              script_smoke_media_id="$(cat /proc/sys/kernel/random/uuid)"
+              script_smoke_render_id="$(cat /proc/sys/kernel/random/uuid)"
+              script_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"
+              for smoke_id in \
+                "$script_smoke_episode_id" \
+                "$script_smoke_script_id" \
+                "$script_smoke_segment_id" \
+                "$script_smoke_media_id" \
+                "$script_smoke_render_id" \
+                "$script_smoke_job_id"; do
+                if ! [[ "$smoke_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+                  echo "Unable to generate valid script smoke UUIDs." >&2
+                  exit 1
+                fi
+              done
+              script_smoke_image_path="study-media/audio-scripts/$script_smoke_episode_id/$script_smoke_segment_id-1-$script_smoke_media_id.webp"
+              script_smoke_audio_path="content-audio-scripts/$script_smoke_episode_id/render-1-0-85.mp3"
+              script_smoke_inserted=true
+              docker exec \
+                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e CONVOLAB_SMOKE_USER_ID="$user_id" \
+                -e SCRIPT_SMOKE_EPISODE_ID="$script_smoke_episode_id" \
+                -e SCRIPT_SMOKE_SCRIPT_ID="$script_smoke_script_id" \
+                -e SCRIPT_SMOKE_SEGMENT_ID="$script_smoke_segment_id" \
+                -e SCRIPT_SMOKE_MEDIA_ID="$script_smoke_media_id" \
+                -e SCRIPT_SMOKE_RENDER_ID="$script_smoke_render_id" \
+                -e SCRIPT_SMOKE_JOB_ID="$script_smoke_job_id" \
+                -e SCRIPT_SMOKE_IMAGE_PATH="$script_smoke_image_path" \
+                -e SCRIPT_SMOKE_AUDIO_PATH="$script_smoke_audio_path" \
+                learning-os-api php artisan tinker --execute='
+                  $user = App\Models\User::query()
+                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->sole();
+                  $episodeId = getenv("SCRIPT_SMOKE_EPISODE_ID");
+                  $scriptId = getenv("SCRIPT_SMOKE_SCRIPT_ID");
+                  $segmentId = getenv("SCRIPT_SMOKE_SEGMENT_ID");
+                  $mediaId = getenv("SCRIPT_SMOKE_MEDIA_ID");
+                  $renderId = getenv("SCRIPT_SMOKE_RENDER_ID");
+                  $jobId = getenv("SCRIPT_SMOKE_JOB_ID");
+                  $imagePath = getenv("SCRIPT_SMOKE_IMAGE_PATH");
+                  $audioPath = getenv("SCRIPT_SMOKE_AUDIO_PATH");
+                  Illuminate\Support\Facades\DB::transaction(function () use (
+                    $user,
+                    $episodeId,
+                    $scriptId,
+                    $segmentId,
+                    $mediaId,
+                    $renderId,
+                    $jobId,
+                    $imagePath,
+                    $audioPath,
+                  ): void {
+                    Illuminate\Support\Facades\DB::table("content_episodes")->insert([
+                      "id" => $episodeId,
+                      "user_id" => $user->getKey(),
+                      "convolab_user_id" => getenv("CONVOLAB_SMOKE_USER_ID"),
+                      "source_system" => App\Domain\Content\Support\ContentSourceSystem::LEARNING_OS,
+                      "title" => "Learning OS script deployment smoke",
+                      "source_text" => "Disposable script deployment rehearsal source text.",
+                      "target_language" => "ja",
+                      "native_language" => "en",
+                      "content_type" => "script",
+                      "auto_generate_audio" => false,
+                      "status" => "ready",
+                      "is_sample_content" => false,
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                    Illuminate\Support\Facades\DB::table("content_audio_scripts")->insert([
+                      "id" => $scriptId,
+                      "episode_id" => $episodeId,
+                      "status" => "ready",
+                      "image_status" => "ready",
+                      "voice_id" => "ja-JP-Neural2-D",
+                      "voice_provider" => "google",
+                      "render_generation_attempt" => 1,
+                      "image_generation_attempt" => 1,
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                    Illuminate\Support\Facades\DB::table("content_audio_script_media")->insert([
+                      "id" => $mediaId,
+                      "user_id" => $user->getKey(),
+                      "source_system" => App\Domain\Content\Support\ContentSourceSystem::LEARNING_OS,
+                      "source_kind" => "generated",
+                      "source_filename" => "script-smoke.webp",
+                      "normalized_filename" => "script-smoke.webp",
+                      "media_kind" => "image",
+                      "content_type" => "image/webp",
+                      "storage_path" => $imagePath,
+                      "public_url" => "/api/convolab/scripts/media/{$mediaId}",
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                    Illuminate\Support\Facades\DB::table("content_audio_script_segments")->insert([
+                      "id" => $segmentId,
+                      "script_id" => $scriptId,
+                      "sort_order" => 0,
+                      "text" => "駅に行きます。",
+                      "reading" => "駅[えき]に行[い]きます。",
+                      "translation" => "I am going to the station.",
+                      "image_prompt" => "A station in Japan.",
+                      "image_status" => "ready",
+                      "image_media_id" => $mediaId,
+                      "image_generated_at" => now(),
+                      "metadata" => json_encode([]),
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                    Illuminate\Support\Facades\DB::table("content_audio_script_renders")->insert([
+                      "id" => $renderId,
+                      "script_id" => $scriptId,
+                      "speed" => "0.85",
+                      "numeric_speed" => 0.85,
+                      "status" => "ready",
+                      "audio_url" => "/api/convolab/scripts/{$episodeId}/audio/{$renderId}",
+                      "audio_storage_path" => $audioPath,
+                      "timing_data" => json_encode([["unitIndex" => 0, "startTime" => 0, "endTime" => 1000]]),
+                      "approx_duration_seconds" => 1,
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                    Illuminate\Support\Facades\DB::table("content_audio_script_generation_jobs")->insert([
+                      "id" => $jobId,
+                      "script_id" => $scriptId,
+                      "episode_id" => $episodeId,
+                      "user_id" => $user->getKey(),
+                      "convolab_user_id" => getenv("CONVOLAB_SMOKE_USER_ID"),
+                      "kind" => App\Domain\Content\Support\ContentAudioScriptJob::KIND_RENDER,
+                      "attempt" => 1,
+                      "state" => App\Domain\Content\Support\ContentAudioScriptJob::STATE_COMPLETED,
+                      "progress" => 100,
+                      "input" => json_encode([]),
+                      "result" => json_encode(["episodeId" => $episodeId, "status" => "ready"]),
+                      "started_at" => now(),
+                      "finished_at" => now(),
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                    ]);
+                  });
+                  $disk = Illuminate\Support\Facades\Storage::disk("media");
+                  $disk->put($imagePath, "learning-os-script-image-smoke")
+                    || throw new RuntimeException("Unable to write the script image smoke file.");
+                  $disk->put($audioPath, "learning-os-script-audio-smoke")
+                    || throw new RuntimeException("Unable to write the script audio smoke file.");
+                ' > /dev/null
+
+              script_status="$(fetch_read_route \
+                'Audio Script status Learning OS' \
+                "/api/scripts/$script_smoke_episode_id/status")"
+              printf '%s' "$script_status" | docker exec -i \
+                -e SCRIPT_SMOKE_EPISODE_ID="$script_smoke_episode_id" \
+                -e SCRIPT_SMOKE_MEDIA_ID="$script_smoke_media_id" \
+                -e SCRIPT_SMOKE_RENDER_ID="$script_smoke_render_id" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const script = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    script?.episodeId !== process.env.SCRIPT_SMOKE_EPISODE_ID ||
+                    script.imageStatus !== "ready" ||
+                    script.segments?.[0]?.imageMedia?.publicUrl !==
+                      `/api/scripts/media/${process.env.SCRIPT_SMOKE_MEDIA_ID}` ||
+                    script.renders?.[0]?.audioUrl !==
+                      `/api/scripts/${process.env.SCRIPT_SMOKE_EPISODE_ID}/audio/${process.env.SCRIPT_SMOKE_RENDER_ID}`
+                  ) process.exit(1);
+                '
+
+              script_job="$(fetch_read_route \
+                'Audio Script job Learning OS' \
+                "/api/scripts/job/$script_smoke_job_id")"
+              printf '%s' "$script_job" | docker exec -i \
+                -e SCRIPT_SMOKE_JOB_ID="$script_smoke_job_id" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const job = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    job?.id !== process.env.SCRIPT_SMOKE_JOB_ID ||
+                    job.state !== "completed" ||
+                    job.progress !== 100 ||
+                    job.result?.status !== "ready"
+                  ) process.exit(1);
+                '
+
+              script_smoke_body="$(mktemp)"
+              script_smoke_headers="$(mktemp)"
+              curl --fail --silent --show-error \
+                --cookie "token=$auth_token" \
+                --dump-header "$script_smoke_headers" \
+                --output "$script_smoke_body" \
+                "https://convo-lab.com/api/scripts/media/$script_smoke_media_id"
+              test "$(cat "$script_smoke_body")" = "learning-os-script-image-smoke"
+              grep -Eiq '^content-type: image/webp([[:space:]]|$)' "$script_smoke_headers"
+              grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$script_smoke_headers"
+
+              curl --fail --silent --show-error \
+                --range 0-5 \
+                --cookie "token=$auth_token" \
+                --dump-header "$script_smoke_headers" \
+                --output "$script_smoke_body" \
+                "https://convo-lab.com/api/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id"
+              test "$(cat "$script_smoke_body")" = "learni"
+              grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$script_smoke_headers"
+              grep -Eiq '^content-range: bytes 0-5/30([[:space:]]|$)' "$script_smoke_headers"
+              cleanup_script_smoke
+              echo "Audio Script Learning OS routing and streaming smoke checks passed."
 
               daily_audio_list="$(
                 fetch_read_route \

@@ -52,6 +52,7 @@ x-server-environment: &server-environment
   LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}
   LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:-false}
   LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED: ${LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:-false}
+  LEARNING_OS_SCRIPT_PROXY_ENABLED: ${LEARNING_OS_SCRIPT_PROXY_ENABLED:-false}
   LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: ${LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:-true}
 
 x-server-service: &server-service
@@ -258,7 +259,6 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-
   server-blue:
     <<: *server-service
     container_name: convolab-server-blue

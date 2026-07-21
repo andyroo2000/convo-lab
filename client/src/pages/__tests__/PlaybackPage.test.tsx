@@ -341,6 +341,36 @@ describe('PlaybackPage', () => {
       expect(screen.queryByText('Segment 1')).not.toBeInTheDocument();
     });
 
+    it('prefers the API-provided script image URL over the legacy media ID fallback', async () => {
+      mockGetEpisode.mockResolvedValue({
+        ...mockScriptEpisode,
+        audioScript: {
+          ...mockScriptEpisode.audioScript!,
+          segments: [
+            {
+              ...mockScriptEpisode.audioScript!.segments[0],
+              imageMedia: {
+                ...mockScriptEpisode.audioScript!.segments[0].imageMedia!,
+                publicUrl: '/api/scripts/media/rewritten-media-id',
+              },
+            },
+          ],
+        },
+      });
+
+      renderPlaybackPage('script-episode-123');
+
+      const image = await screen.findByTestId('script-active-image');
+      expect(image).toHaveAttribute(
+        'src',
+        expect.stringContaining('/api/scripts/media/rewritten-media-id')
+      );
+      expect(image).not.toHaveAttribute(
+        'src',
+        expect.stringContaining('/api/scripts/media/media-1')
+      );
+    });
+
     it('shows a full-screen image with legible glass captions while a script is playing', async () => {
       mockAudioState.isPlaying = true;
       mockAudioState.currentTime = 0.2;

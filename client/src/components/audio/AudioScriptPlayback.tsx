@@ -55,6 +55,7 @@ function buildUnits(episode: Episode, speed: number): LessonScriptUnit[] {
 
 function getSegmentImageUrl(segment: AudioScriptSegment | null): string | null {
   if (!segment) return null;
+  if (segment.imageMedia?.publicUrl) return toAssetUrl(segment.imageMedia.publicUrl);
   const mediaId = segment.imageMedia?.id || segment.imageMediaId;
   return mediaId ? toAssetUrl(`/api/scripts/media/${mediaId}`) : null;
 }

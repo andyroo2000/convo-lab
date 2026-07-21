@@ -1,7 +1,8 @@
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection.js';
-import { Router } from 'express';
+import { NextFunction, Response, Router } from 'express';
 import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
+import { isLearningOsScriptProxyEnabled } from '../config/scriptRouting.js';
 import { audioScriptQueue } from '../jobs/audioScriptQueue.js';
 import { imageQueue } from '../jobs/imageQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -21,6 +22,17 @@ import {
 import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
+import {
+  annotateLearningOsScript,
+  generateLearningOsScriptImages,
+  renderLearningOsScript,
+  showLearningOsScript,
+  showLearningOsScriptJob,
+  storeLearningOsScript,
+  streamLearningOsScriptAudio,
+  streamLearningOsScriptImage,
+  updateLearningOsScriptSegments,
+} from './learningOs/scripts.js';
 import { sendPrivateMediaResponse } from './privateMediaResponse.js';
 
 const router = Router();
@@ -38,6 +50,12 @@ router.use(
 );
 
 type UpdateAudioScriptSegmentsParams = Parameters<typeof updateAudioScriptSegments>[0];
+type ScriptHandler = (req: AuthRequest, res: Response, next: NextFunction) => void | Promise<void>;
+
+const routeScript =
+  (learningOsHandler: ScriptHandler, expressHandler: ScriptHandler): ScriptHandler =>
+  (req, res, next) =>
+    (isLearningOsScriptProxyEnabled() ? learningOsHandler : expressHandler)(req, res, next);
 
 export function parseAudioScriptSegmentsPatchBody(body: unknown): {
   title?: string;
@@ -98,7 +116,7 @@ export async function assertAudioScriptJobBelongsToUser(job: { data?: unknown },
 router.get(
   '/media/:mediaId',
   rateLimitStudyRoute({ key: 'script-media-read', max: 240, windowMs: 60 * 1000 }),
-  async (req: AuthRequest, res, next) => {
+  routeScript(streamLearningOsScriptImage, async (req: AuthRequest, res, next) => {
     try {
       const mediaAccess = await getAudioScriptMediaAccess(req.userId!, req.params.mediaId);
       if (!mediaAccess) {
@@ -109,7 +127,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  }
+  })
 );
 
 router.post(
@@ -117,7 +135,7 @@ router.post(
   requireEmailVerified,
   rateLimitGeneration('script'),
   blockDemoUser,
-  async (req: AuthRequest, res, next) => {
+  routeScript(storeLearningOsScript, async (req: AuthRequest, res, next) => {
     try {
       const { sourceText, voiceId } = req.body;
       const episode = await createAudioScript({
@@ -130,28 +148,28 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  })
 );
 
 router.post(
   '/:episodeId/annotate',
   requireEmailVerified,
   blockDemoUser,
-  async (req: AuthRequest, res, next) => {
+  routeScript(annotateLearningOsScript, async (req: AuthRequest, res, next) => {
     try {
       const script = await annotateAudioScript(req.params.episodeId, req.userId!);
       res.json(toAudioScriptResponse(script));
     } catch (error) {
       next(error);
     }
-  }
+  })
 );
 
 router.patch(
   '/:episodeId/segments',
   requireEmailVerified,
   blockDemoUser,
-  async (req: AuthRequest, res, next) => {
+  routeScript(updateLearningOsScriptSegments, async (req: AuthRequest, res, next) => {
     try {
       const { title, voiceId, segments } = parseAudioScriptSegmentsPatchBody(req.body);
 
@@ -166,14 +184,14 @@ router.patch(
     } catch (error) {
       next(error);
     }
-  }
+  })
 );
 
 router.post(
   '/:episodeId/render',
   requireEmailVerified,
   blockDemoUser,
-  async (req: AuthRequest, res, next) => {
+  routeScript(renderLearningOsScript, async (req: AuthRequest, res, next) => {
     try {
       await getAudioScriptStatus(req.params.episodeId, req.userId!);
       const job = await audioScriptQueue.add('render-audio-script', {
@@ -190,14 +208,14 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  })
 );
 
 router.post(
   '/:episodeId/images',
   requireEmailVerified,
   blockDemoUser,
-  async (req: AuthRequest, res, next) => {
+  routeScript(generateLearningOsScriptImages, async (req: AuthRequest, res, next) => {
     try {
       await getAudioScriptStatus(req.params.episodeId, req.userId!);
       const job = await imageQueue.add('generate-script-images', {
@@ -215,36 +233,50 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  })
 );
 
-router.get('/:episodeId/status', async (req: AuthRequest, res, next) => {
-  try {
-    const script = await getAudioScriptStatus(req.params.episodeId, req.userId!);
-    res.json(toAudioScriptResponse(script));
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
-  try {
-    const job = await audioScriptQueue.getJob(req.params.jobId);
-    if (!job) {
-      throw new AppError('Script audio job not found.', 404);
+router.get(
+  '/:episodeId/status',
+  routeScript(showLearningOsScript, async (req: AuthRequest, res, next) => {
+    try {
+      const script = await getAudioScriptStatus(req.params.episodeId, req.userId!);
+      res.json(toAudioScriptResponse(script));
+    } catch (error) {
+      next(error);
     }
-    await assertAudioScriptJobBelongsToUser(job, req.userId!);
+  })
+);
 
-    const state = await job.getState();
-    res.json({
-      id: job.id,
-      state,
-      progress: job.progress,
-      result: state === 'completed' ? job.returnvalue : null,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get(
+  '/job/:jobId',
+  routeScript(showLearningOsScriptJob, async (req: AuthRequest, res, next) => {
+    try {
+      const job = await audioScriptQueue.getJob(req.params.jobId);
+      if (!job) {
+        throw new AppError('Script audio job not found.', 404);
+      }
+      await assertAudioScriptJobBelongsToUser(job, req.userId!);
+
+      const state = await job.getState();
+      res.json({
+        id: job.id,
+        state,
+        progress: job.progress,
+        result: state === 'completed' ? job.returnvalue : null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  })
+);
+
+router.get(
+  '/:episodeId/audio/:renderId',
+  rateLimitStudyRoute({ key: 'script-audio-read', max: 240, windowMs: 60 * 1000 }),
+  routeScript(streamLearningOsScriptAudio, (_req, _res, next) => {
+    next(new AppError('Script audio not found.', 404));
+  })
+);
 
 export default router;

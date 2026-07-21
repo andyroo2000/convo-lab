@@ -124,6 +124,15 @@ describe('backend migration inventory', () => {
     expect(
       findBackendMigrationRoute(
         'GET',
+        '/api/scripts/018f47ea-4b37-7f21-8d5a-90e157176b8a/audio/019c8e84-f73f-78e8-96e8-c5b462053ee0'
+      )
+    ).toMatchObject({
+      route: { id: 'scripts.audio.show' },
+      surface: { id: 'scripts', runtimeOwner: 'learning-os-proxy' },
+    });
+    expect(
+      findBackendMigrationRoute(
+        'GET',
         '/api/convolab/episodes/018f47ea-4b37-7f21-8d5a-90e157176b8a/audio/1.0'
       )
     ).toMatchObject({
