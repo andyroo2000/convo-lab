@@ -225,7 +225,6 @@ describe('useCourse', () => {
 
     it('should call update API with PATCH', async () => {
       const mockCourse = { id: 'course-123', status: 'ready', title: 'Original' };
-      const updatedCourse = { id: 'course-123', status: 'ready', title: 'Updated Title' };
 
       mockFetch
         .mockResolvedValueOnce({
@@ -234,7 +233,7 @@ describe('useCourse', () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve(updatedCourse),
+          json: () => Promise.resolve({ message: 'Course updated successfully' }),
         });
 
       const { result } = renderHook(() => useCourse('course-123'), {

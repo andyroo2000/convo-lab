@@ -51,7 +51,7 @@ async function fetchCourseStatus(
 async function updateCourseRequest(
   courseId: string,
   updates: { title?: string; description?: string }
-): Promise<Course> {
+): Promise<void> {
   const response = await fetch(`${API_URL}/api/courses/${courseId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -62,8 +62,6 @@ async function updateCourseRequest(
   if (!response.ok) {
     throw new Error('Failed to update course');
   }
-
-  return response.json();
 }
 
 export function useCourse(courseId: string | undefined, viewAsUserId?: string) {

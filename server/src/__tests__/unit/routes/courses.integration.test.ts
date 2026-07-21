@@ -83,6 +83,7 @@ const upstreamJson = (body: unknown, status = 200): globalThis.Response =>
 
 const originalCourseGenerationProxyEnabled =
   process.env.LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED;
+const COURSE_ID = '018f47ea-4b37-7f21-8d5a-90e157176b8a';
 
 describe('Courses Routes Integration', () => {
   let app: express.Application;
@@ -243,28 +244,130 @@ describe('Courses Routes Integration', () => {
     expect(response.body.error.message).toBe('Learning OS Course API is unavailable.');
   });
 
-  it('keeps course creation Express-owned', async () => {
-    const episode = { id: 'episode-1', title: 'Episode', dialogue: null };
-    const course = { id: 'course-1', title: 'Course', status: 'draft' };
-    mockPrisma.episode.create.mockResolvedValue(episode);
-    mockPrisma.course.create.mockResolvedValue(course);
-    mockPrisma.courseEpisode.create.mockResolvedValue({ id: 'link-1' });
+  it('proxies course creation for the effective user and preserves the course response', async () => {
+    const course = { id: COURSE_ID, title: 'Course', status: 'draft' };
+    const body = {
+      title: 'Course',
+      description: 'Description',
+      sourceText: 'Source text',
+      nativeLanguage: 'en',
+      targetLanguage: 'ja',
+      l1VoiceId: 'en-US-Neural2-J',
+    };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(course));
 
-    const response = await request(app)
-      .post('/api/courses')
-      .send({
-        title: 'Course',
-        description: 'Description',
-        sourceText: 'Source text',
-        nativeLanguage: 'en',
-        targetLanguage: 'ja',
-        l1VoiceId: 'en-US-Neural2-J',
-      })
-      .expect(200);
+    const response = await request(app).post('/api/courses').send(body).expect(200);
 
     expect(response.body).toEqual(course);
-    expect(mockPrisma.course.create).toHaveBeenCalled();
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+    expect(mocks.getEffectiveUserId).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'actor-user-id' })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL('http://learning-os.test/api/convolab/courses'),
+        apiToken: 'proxy-token',
+        method: 'POST',
+        body,
+        timeoutMs: 100_000,
+      })
+    );
+    expect(mockPrisma.course.create).not.toHaveBeenCalled();
+    expect(mockPrisma.episode.create).not.toHaveBeenCalled();
+    expect(mockPrisma.courseEpisode.create).not.toHaveBeenCalled();
+    expect(mocks.blockDemoUser).toHaveBeenCalledOnce();
+  });
+
+  it('proxies sparse course updates and preserves the legacy acknowledgment', async () => {
+    const body = { description: null, maxLessonDurationMinutes: 45 };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson({ message: 'Course updated' }));
+
+    const response = await request(app).patch('/api/courses/course%2Fid').send(body).expect(200);
+
+    expect(response.body).toEqual({ message: 'Course updated successfully' });
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL('http://learning-os.test/api/convolab/courses/course%2Fid'),
+        method: 'PATCH',
+        body,
+        timeoutMs: 10_000,
+      })
+    );
+    expect(mockPrisma.course.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('proxies course deletion for the effective user and preserves the response', async () => {
+    const body = { message: 'Course deleted successfully' };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
+
+    const response = await request(app).delete('/api/courses/course-id').expect(200);
+
+    expect(response.body).toEqual(body);
+    expect(mocks.getEffectiveUserId).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'actor-user-id' })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL('http://learning-os.test/api/convolab/courses/course-id'),
+        method: 'DELETE',
+        body: undefined,
+        timeoutMs: 10_000,
+      })
+    );
+    expect(mockPrisma.course.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.blockDemoUser).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['create', () => request(app).post('/api/courses').send({ title: 'Course' })],
+    ['update', () => request(app).patch('/api/courses/course-id').send({ title: 'Course' })],
+    ['delete', () => request(app).delete('/api/courses/course-id')],
+  ])('preserves a safe %s client error from Learning OS', async (_operation, makeRequest) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ message: 'Safe compatibility message' }, 422)
+    );
+
+    const response = await makeRequest().expect(422);
+
+    expect(response.body.error.message).toBe('Safe compatibility message');
+  });
+
+  it.each([
+    ['create', () => request(app).post('/api/courses').send({ title: 'Course' })],
+    ['update', () => request(app).patch('/api/courses/course-id').send({ title: 'Course' })],
+    ['delete', () => request(app).delete('/api/courses/course-id')],
+  ])('hides a sensitive %s upstream error', async (_operation, makeRequest) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ message: 'sensitive upstream details' }, 500)
+    );
+
+    const response = await makeRequest().expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Course API request failed.');
+    expect(JSON.stringify(response.body)).not.toContain('sensitive upstream details');
+  });
+
+  it.each([
+    ['create', {}, () => request(app).post('/api/courses').send({ title: 'Course' })],
+    [
+      'create',
+      { id: COURSE_ID, title: 'Course', status: 'unknown' },
+      () => request(app).post('/api/courses').send({ title: 'Course' }),
+    ],
+    [
+      'create',
+      { id: 'not-a-uuid', title: 'Course', status: 'draft' },
+      () => request(app).post('/api/courses').send({ title: 'Course' }),
+    ],
+    ['update', {}, () => request(app).patch('/api/courses/course-id').send({ title: 'Course' })],
+    ['delete', { message: null }, () => request(app).delete('/api/courses/course-id')],
+  ])('rejects a malformed %s write response', async (operation, body, makeRequest) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
+
+    const response = await makeRequest().expect(502);
+
+    expect(response.body.error.message).toBe(
+      `Learning OS Course API returned an invalid ${operation} response.`
+    );
   });
 
   it.each([
