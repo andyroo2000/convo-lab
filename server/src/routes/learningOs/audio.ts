@@ -146,9 +146,9 @@ const isAllSpeedsResult = (value: unknown): value is JsonRecord[] => {
   }
 
   const expectedTracks = new Map([
-    [0.7, '0.7'],
-    [0.85, '0.85'],
-    [1, '1.0'],
+    ['slow', '0.7'],
+    ['medium', '0.85'],
+    ['normal', '1.0'],
   ]);
   const matches = value.map((track) =>
     isJsonRecord(track) ? audioUrlMatch(track.audioUrl) : null
@@ -159,7 +159,7 @@ const isAllSpeedsResult = (value: unknown): value is JsonRecord[] => {
       const match = matches[index];
       return (
         isJsonRecord(track) &&
-        typeof track.speed === 'number' &&
+        typeof track.speed === 'string' &&
         expectedTracks.get(track.speed) === match?.[2] &&
         isDuration(track.duration)
       );
