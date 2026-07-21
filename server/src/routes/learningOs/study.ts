@@ -1,6 +1,3 @@
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
-
 import {
   DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
   STUDY_ANSWER_AUDIO_FEMALE_VOICE_ID,
@@ -20,6 +17,7 @@ import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 import { requireAuth, type AuthRequest } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import { rateLimitStudyRoute } from '../../middleware/studyRateLimit.js';
+import { streamLearningOsMediaResponse } from '../../services/learningOsMediaResponse.js';
 import {
   fetchLearningOsProxy,
   learningOsProxyHeaders,
@@ -1728,60 +1726,17 @@ function adaptStudyRouteResponse(
     : value;
 }
 
-const FORWARDED_MEDIA_RESPONSE_HEADERS = [
-  'accept-ranges',
-  'cache-control',
-  'content-disposition',
-  'content-length',
-  'content-range',
-  'content-type',
-  'etag',
-  'last-modified',
-] as const;
-
-function safeMediaResponseHeader(name: string, value: string): boolean {
-  if (value.length === 0 || value.length > 1024 || /[\r\n]/.test(value)) {
-    return false;
-  }
-
-  return name !== 'content-length' || /^\d+$/.test(value);
-}
-
 async function streamLearningOsStudyMedia(
   upstreamResponse: globalThis.Response,
   res: Response
 ): Promise<void> {
-  const contentType = upstreamResponse.headers.get('content-type');
-  if (
-    !contentType ||
-    !safeMediaResponseHeader('content-type', contentType) ||
-    /^image\/svg\+xml(?:\s*;|$)/i.test(contentType) ||
-    (!/^(?:audio|image|video)\//i.test(contentType) &&
-      !/^application\/octet-stream(?:\s*;|$)/i.test(contentType))
-  ) {
-    throw new AppError('Learning OS Study API returned invalid media headers.', 502);
-  }
-
-  for (const name of FORWARDED_MEDIA_RESPONSE_HEADERS) {
-    const value = upstreamResponse.headers.get(name);
-    if (value !== null && safeMediaResponseHeader(name, value)) {
-      res.setHeader(name, value);
-    }
-  }
-  res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.status(upstreamResponse.status);
-
-  if (!upstreamResponse.body) {
-    res.end();
-    return;
-  }
-
-  await pipeline(
-    Readable.fromWeb(upstreamResponse.body as Parameters<typeof Readable.fromWeb>[0]),
-    res
-  );
+  await streamLearningOsMediaResponse(upstreamResponse, res, {
+    invalidHeadersMessage: 'Learning OS Study API returned invalid media headers.',
+    isAllowedContentType: (contentType) =>
+      !/^image\/svg\+xml(?:\s*;|$)/i.test(contentType) &&
+      (/^(?:audio|image|video)\//i.test(contentType) ||
+        /^application\/octet-stream(?:\s*;|$)/i.test(contentType)),
+  });
 }
 
 function upstreamResponseRecord(value: unknown, feature: string): Record<string, unknown> {

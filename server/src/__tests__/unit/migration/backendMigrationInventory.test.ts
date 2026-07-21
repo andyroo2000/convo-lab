@@ -117,6 +117,19 @@ describe('backend migration inventory', () => {
       route: { id: 'courses.status' },
       surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
     });
+    expect(findBackendMigrationRoute('POST', '/api/audio/generate-all-speeds')).toMatchObject({
+      route: { id: 'audio.generate-all-speeds' },
+      surface: { id: 'audio', runtimeOwner: 'learning-os-proxy' },
+    });
+    expect(
+      findBackendMigrationRoute(
+        'GET',
+        '/api/convolab/episodes/018f47ea-4b37-7f21-8d5a-90e157176b8a/audio/1.0'
+      )
+    ).toMatchObject({
+      route: { id: 'content-episode-audio.show' },
+      surface: { id: 'content-episode-audio', runtimeOwner: 'learning-os-proxy' },
+    });
     expect(findBackendMigrationRoute('DELETE', '/api/admin/invite-codes/invite-123')).toMatchObject(
       {
         route: { id: 'admin.invites.delete' },
