@@ -22,10 +22,9 @@ identity or ConvoLab provisions per-user upstream tokens.
 
 ## Production Prerequisites
 
-Before the first auth-capable deployment, configure these values in the
-production host's `/opt/convolab/.env.production`:
+Before the first auth-capable deployment, configure these non-secret values in
+the production host's `/opt/convolab/.env.production`:
 
-- `RESEND_API_KEY`: Resend credential used by Learning OS verification mail.
 - `EMAIL_FROM`: a sender address such as `noreply@convolab.app`, optionally
   including a display name such as `ConvoLab <noreply@convolab.app>`.
 - `CLIENT_URL`: the HTTPS ConvoLab origin used to build verification links.
