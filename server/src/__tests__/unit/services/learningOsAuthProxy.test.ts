@@ -213,4 +213,25 @@ describe('Learning OS auth proxy', () => {
       statusCode: 503,
     });
   });
+
+  it('rejects plaintext credential forwarding outside known local service hosts', async () => {
+    process.env.LEARNING_OS_API_URL = 'http://learning-os.example/';
+
+    await expect(authenticateLearningOsAccount(account.email, 'password')).rejects.toMatchObject({
+      message: 'Learning OS Auth API is enabled but not configured.',
+      statusCode: 503,
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('allows the production Docker service hostname over its private network', async () => {
+    process.env.LEARNING_OS_API_URL = 'http://learning-os:8080/';
+
+    await expect(authenticateLearningOsAccount(account.email, 'password')).resolves.toEqual(
+      account
+    );
+    expect(vi.mocked(global.fetch).mock.calls[0]?.[0].toString()).toBe(
+      'http://learning-os:8080/api/convolab/auth/login'
+    );
+  });
 });

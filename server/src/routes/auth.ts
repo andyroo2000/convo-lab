@@ -5,7 +5,7 @@
 import { Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
-import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 
 import { isLearningOsAuthProxyEnabled } from '../config/authRouting.js';
@@ -32,12 +32,17 @@ const loginRateLimit = createExpressRateLimit({
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    return `${ipKeyGenerator(req.ip ?? 'unknown')}:${email}`;
+  },
 });
 const currentUserRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 120,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
 });
 
 function getSessionCookieOptions(sameSite: 'lax' | 'strict' = 'lax') {
@@ -346,7 +351,7 @@ router.get('/csrf', (req, res) => {
 });
 
 // Get current user
-router.get('/me', currentUserRateLimit, requireAuth, async (req: AuthRequest, res, next) => {
+router.get('/me', requireAuth, currentUserRateLimit, async (req: AuthRequest, res, next) => {
   try {
     if (isLearningOsAuthProxyEnabled()) {
       const account = await getLearningOsCurrentAccount(req.userId!);

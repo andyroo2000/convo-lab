@@ -35,8 +35,30 @@ export function getLearningOsProxyConfig(apiLabel: string): LearningOsProxyConfi
     throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
   }
 
+  let parsedApiUrl: URL;
+  try {
+    parsedApiUrl = new URL(apiUrl);
+  } catch {
+    throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
+  }
+
+  const plaintextHosts = new Set(['learning-os', 'localhost', '127.0.0.1', '[::1]']);
+  const usesAllowedScheme =
+    parsedApiUrl.protocol === 'https:' ||
+    (parsedApiUrl.protocol === 'http:' && plaintextHosts.has(parsedApiUrl.hostname));
+  if (
+    !usesAllowedScheme ||
+    parsedApiUrl.username ||
+    parsedApiUrl.password ||
+    parsedApiUrl.search ||
+    parsedApiUrl.hash ||
+    parsedApiUrl.pathname !== '/'
+  ) {
+    throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
+  }
+
   return {
-    apiUrl: apiUrl.replace(/\/+$/, ''),
+    apiUrl: parsedApiUrl.origin,
     apiToken,
     proxyUserEmail,
   };

@@ -208,5 +208,12 @@ describe('Auth Learning OS routing', () => {
     expect(limitedResponse?.status).toBe(429);
     expect(limitedResponse?.headers['ratelimit-policy']).toBeDefined();
     expect(mocks.authenticateLearningOsAccount.mock.calls.length).toBeLessThan(35);
+
+    mocks.authenticateLearningOsAccount.mockClear();
+    await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'another-user@example.com', password: 'password' })
+      .expect(200);
+    expect(mocks.authenticateLearningOsAccount).toHaveBeenCalledOnce();
   });
 });
