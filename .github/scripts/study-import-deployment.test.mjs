@@ -266,6 +266,11 @@ test('course generation proxy activates only through a rollback-safe production 
     'PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false',
     'previous_course_generation_proxy="$(sed -n',
     'Rolling back the Learning OS course-generation proxy.',
+    '::error::Failed to restore the course-generation proxy environment value.',
+    '::error::Failed to recreate the production server while rolling back the course-generation proxy.',
+    '::error::The production server was unhealthy after rolling back the course-generation proxy.',
+    '::error::The production server retained the course-generation proxy after rollback.',
+    'if [ "$cleanup_failed" = true ]; then',
     'upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true',
     "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
     'test "$active_course_generation_proxy" = true',
@@ -279,6 +284,7 @@ test('course generation proxy activates only through a rollback-safe production 
     'App\\Domain\\Content\\Support\\ContentSourceSystem::CONVOLAB',
     '"generation_heartbeat_at" => now()->subDay()',
     'course_generation_smoke_inserted=true',
+    'incompatible required',
     '"/api/courses/$course_generation_smoke_id/reset"',
     "'Course generation status after reset'",
     'response?.status !== "draft"',
@@ -331,6 +337,10 @@ test('course generation proxy activates only through a rollback-safe production 
   assert.ok(failureCleanup.includes('COURSE_GENERATION_PROXY_CUTOVER_STARTED'));
   assert.ok(failureCleanup.includes('PREVIOUS_COURSE_GENERATION_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('$COMPOSE up -d --no-deps --force-recreate'));
+  assert.doesNotMatch(
+    failureCleanup,
+    /force-recreate "server-\$active_color" \|\| true|wait_for_health "convolab-server-\$active_color" \|\| true/
+  );
 });
 
 test('the production workflow verifies and cleans up a disposable card draft', async () => {
