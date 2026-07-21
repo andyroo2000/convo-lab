@@ -84,11 +84,13 @@ router.post(
 // Verify email with token
 router.get('/verification/:token', verificationConsumeRateLimit, async (req, res, next) => {
   try {
-    const { token } = req.params;
+      const { token } = req.params;
 
-    if (isLearningOsVerificationProxyEnabled()) {
-      return res.json(await verifyLearningOsEmail(token));
-    }
+      if (isLearningOsVerificationProxyEnabled()) {
+        // Target-created accounts have no legacy profile/name for the old welcome email;
+        // keep this flag off until the profile/onboarding cutover owns that workflow.
+        return res.json(await verifyLearningOsEmail(token));
+      }
 
     const result = await verifyEmailToken(token);
 
