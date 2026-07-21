@@ -622,6 +622,9 @@ test('the production stack configures Learning OS signup and verification mail',
     'DEPLOY_RESEND_API_KEY=%q',
     'upsert_env RESEND_API_KEY "$DEPLOY_RESEND_API_KEY"',
     'read_env_value() {',
+    'if [ -z "$email_from" ]; then',
+    'email_from="ConvoLab <noreply@convolab.app>"',
+    'upsert_env EMAIL_FROM "$email_from"',
     `if [[ "$value" == \\"*\\" ]] || [[ "$value" == \\'*\\' ]]; then`,
     'if [ -z "$resend_api_key" ]; then',
     'if ! [[ "$client_url" =~ ^https://[^[:space:]]+$ ]]; then',
@@ -651,6 +654,13 @@ test('the production stack configures Learning OS signup and verification mail',
   const configuration = workflow.indexOf('upsert_env LEARNING_OS_MAIL_FROM_ADDRESS');
   const resendUpsert = workflow.indexOf('upsert_env RESEND_API_KEY "$DEPLOY_RESEND_API_KEY"');
   const resendRead = workflow.indexOf('resend_api_key="$(read_env_value RESEND_API_KEY)"');
+  const emailFromRead = workflow.indexOf('email_from="$(read_env_value EMAIL_FROM)"');
+  const emailFromDefault = workflow.indexOf(
+    'email_from="ConvoLab <noreply@convolab.app>"'
+  );
+  const emailFromValidation = workflow.indexOf(
+    'if ! [[ "$mail_from_address" =~'
+  );
   const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
   const apiHealth = workflow.indexOf('wait_for_health learning-os-api');
   const runtimeConfiguration = workflow.indexOf(
@@ -659,6 +669,8 @@ test('the production stack configures Learning OS signup and verification mail',
   assert.ok(configuration >= 0);
   assert.ok(resendUpsert >= 0);
   assert.ok(resendUpsert < resendRead);
+  assert.ok(emailFromRead < emailFromDefault);
+  assert.ok(emailFromDefault < emailFromValidation);
   assert.ok(configuration < imagePull);
   assert.ok(apiHealth < runtimeConfiguration);
 });
