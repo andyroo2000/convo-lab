@@ -240,11 +240,31 @@
       "sourceFile": "server/src/routes/admin.ts",
       "mountPath": "/api/admin",
       "routes": [
-        { "id": "admin.stats", "method": "GET", "path": "/api/admin/stats" },
-        { "id": "admin.users.index", "method": "GET", "path": "/api/admin/users" },
+        {
+          "id": "admin.stats",
+          "method": "GET",
+          "path": "/api/admin/stats",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "admin.users.index",
+          "method": "GET",
+          "path": "/api/admin/users",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "admin.users.delete", "method": "DELETE", "path": "/api/admin/users/:id" },
-        { "id": "admin.users.show", "method": "GET", "path": "/api/admin/users/:id/info" },
-        { "id": "admin.invites.index", "method": "GET", "path": "/api/admin/invite-codes" },
+        {
+          "id": "admin.users.show",
+          "method": "GET",
+          "path": "/api/admin/users/:id/info",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "admin.invites.index",
+          "method": "GET",
+          "path": "/api/admin/invite-codes",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "admin.invites.store", "method": "POST", "path": "/api/admin/invite-codes" },
         {
           "id": "admin.invites.delete",
