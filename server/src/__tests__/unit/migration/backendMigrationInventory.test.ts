@@ -180,7 +180,7 @@ describe('backend migration inventory', () => {
     }
   });
 
-  it('tracks proxied auth reads separately from remaining Express account routes', () => {
+  it('tracks proxied auth entrypoints separately from remaining Express account routes', () => {
     for (const [method, routePath] of [
       ['POST', '/api/auth/login'],
       ['GET', '/api/auth/me'],
@@ -198,6 +198,15 @@ describe('backend migration inventory', () => {
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
         surface: { id: 'auth', runtimeOwner: 'express' },
+      });
+    }
+
+    for (const [method, routePath] of [
+      ['POST', '/api/verification/send'],
+      ['GET', '/api/verification/token'],
+    ]) {
+      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
+        surface: { id: 'verification', runtimeOwner: 'express' },
       });
     }
   });

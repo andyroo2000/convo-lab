@@ -2,6 +2,7 @@
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
+import { isLearningOsVerificationProxyEnabled } from '../config/authRouting.js';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -15,12 +16,25 @@ import {
   verifyPasswordResetToken,
   markPasswordResetTokenUsed,
 } from '../services/emailService.js';
+import {
+  sendLearningOsVerificationEmail,
+  verifyLearningOsEmail,
+} from '../services/learningOsAuthProxy.js';
 
 const router = Router();
 
 // Resend verification email
 router.post('/verification/send', requireAuth, async (req: AuthRequest, res, next) => {
   try {
+    if (isLearningOsVerificationProxyEnabled()) {
+      await sendLearningOsVerificationEmail(req.userId!, {
+        userId: req.userId!,
+        email: req.email,
+        role: req.role,
+      });
+      return res.json({ message: i18next.t('server:verification.emailSent') });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
@@ -52,6 +66,10 @@ router.post('/verification/send', requireAuth, async (req: AuthRequest, res, nex
 router.get('/verification/:token', async (req, res, next) => {
   try {
     const { token } = req.params;
+
+    if (isLearningOsVerificationProxyEnabled()) {
+      return res.json(await verifyLearningOsEmail(token));
+    }
 
     const result = await verifyEmailToken(token);
 

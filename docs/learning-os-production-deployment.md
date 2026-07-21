@@ -8,6 +8,14 @@ The Study cutover is complete. Production routing is not controlled by database
 feature flags, and the deployment workflow does not compare against or restore
 the retired ConvoLab Study backend.
 
+Login and current-account reads are also served by Learning OS. Signup and email
+verification adapters are deployed behind `LEARNING_OS_SIGNUP_PROXY_ENABLED` and
+`LEARNING_OS_VERIFICATION_PROXY_ENABLED`, both defaulting to `false`. Keep them
+disabled until profile and onboarding writes are migrated; otherwise a newly
+created Learning OS account cannot complete the existing ConvoLab onboarding
+flow. Their eventual activation must be added to the production rehearsal and
+rollback workflow before either production value is changed.
+
 ## Workflow Inputs
 
 Run `Deploy Learning OS (Production)` with:

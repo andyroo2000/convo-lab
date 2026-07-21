@@ -12,6 +12,14 @@ export interface LearningOsProxyUser {
   role: string;
 }
 
+export interface LearningOsSessionIdentity {
+  userId: string;
+  email?: string;
+  role?: string;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 interface LearningOsProxyRequest {
   upstreamUrl: URL;
   apiToken: string;
@@ -79,8 +87,32 @@ export async function resolveLearningOsProxyContext(
 
 export async function resolveLearningOsUserProxyContext(
   userId: string,
-  apiLabel: string
+  apiLabel: string,
+  sessionIdentity?: LearningOsSessionIdentity
 ): Promise<{ config: LearningOsProxyConfig; user: LearningOsProxyUser }> {
+  if (
+    sessionIdentity?.userId === userId &&
+    UUID_PATTERN.test(userId) &&
+    typeof sessionIdentity.email === 'string' &&
+    sessionIdentity.email === sessionIdentity.email.trim() &&
+    sessionIdentity.email.length > 0 &&
+    sessionIdentity.email.length <= 320 &&
+    sessionIdentity.email.includes('@') &&
+    (sessionIdentity.role === 'user' ||
+      sessionIdentity.role === 'moderator' ||
+      sessionIdentity.role === 'admin')
+  ) {
+    const { proxyUserEmail: _proxyUserEmail, ...config } = getLearningOsProxyConfig(apiLabel);
+    return {
+      config,
+      user: {
+        id: userId,
+        email: sessionIdentity.email,
+        role: sessionIdentity.role,
+      },
+    };
+  }
+
   const { config, user } = await resolveLearningOsUserContext(userId, apiLabel);
 
   return { config, user };

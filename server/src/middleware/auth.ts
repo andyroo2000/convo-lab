@@ -9,6 +9,7 @@ const { verify, JsonWebTokenError } = jwt;
 export interface AuthRequest extends Request {
   userId?: string;
   role?: string;
+  email?: string;
 }
 
 export function requireAuth(req: AuthRequest, _res: Response, next: NextFunction) {
@@ -22,9 +23,11 @@ export function requireAuth(req: AuthRequest, _res: Response, next: NextFunction
     const decoded = verify(token, process.env.JWT_SECRET!) as {
       userId: string;
       role?: string;
+      email?: string;
     };
     req.userId = decoded.userId;
     req.role = decoded.role;
+    req.email = decoded.email;
 
     next();
   } catch (error) {

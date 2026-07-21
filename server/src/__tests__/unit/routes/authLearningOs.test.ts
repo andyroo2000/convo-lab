@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   authenticateLearningOsAccount: vi.fn(),
   bcryptCompare: vi.fn(),
   getLearningOsCurrentAccount: vi.fn(),
+  registerLearningOsAccount: vi.fn(),
   prismaFindUnique: vi.fn(),
   prismaUpdate: vi.fn(),
 }));
@@ -21,6 +22,15 @@ vi.mock('bcrypt', () => ({
   default: {
     compare: mocks.bcryptCompare,
     hash: vi.fn(),
+  },
+}));
+vi.mock('../../../i18n/index.js', () => ({
+  default: {
+    t: (key: string) =>
+      ({
+        'server:auth.emailRequired': 'Email, password, and name are required',
+        'server:auth.inviteRequired': 'Invite code is required',
+      })[key] ?? key,
   },
 }));
 vi.mock('../../../config/passport.js', () => ({
@@ -51,6 +61,7 @@ vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: (req: AuthRequest, _res: Response, next: NextFunction) => {
     req.userId = '11111111-1111-4111-8111-111111111111';
     req.role = 'user';
+    req.email = 'learner@example.com';
     next();
   },
   AuthRequest: class {},
@@ -58,6 +69,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 vi.mock('../../../services/learningOsAuthProxy.js', () => ({
   authenticateLearningOsAccount: mocks.authenticateLearningOsAccount,
   getLearningOsCurrentAccount: mocks.getLearningOsCurrentAccount,
+  registerLearningOsAccount: mocks.registerLearningOsAccount,
 }));
 vi.mock('../../../services/oauth.js', () => ({ revokeGoogleTokens: vi.fn() }));
 vi.mock('../../../services/sampleContent.js', () => ({ copySampleContentToUser: vi.fn() }));
@@ -91,13 +103,16 @@ const currentAccount = {
 
 describe('Auth Learning OS routing', () => {
   const originalAuthProxyEnabled = process.env.LEARNING_OS_AUTH_PROXY_ENABLED;
+  const originalSignupProxyEnabled = process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED;
   let app: express.Application;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED = 'true';
     mocks.authenticateLearningOsAccount.mockResolvedValue(loginAccount);
     mocks.getLearningOsCurrentAccount.mockResolvedValue(currentAccount);
+    mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
 
     app = express();
     app.use(testCookieParser);
@@ -112,6 +127,74 @@ describe('Auth Learning OS routing', () => {
     } else {
       process.env.LEARNING_OS_AUTH_PROXY_ENABLED = originalAuthProxyEnabled;
     }
+    if (originalSignupProxyEnabled === undefined) {
+      delete process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED;
+    } else {
+      process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED = originalSignupProxyEnabled;
+    }
+  });
+
+  it('creates a Learning OS account and retains the Convo Lab browser session', async () => {
+    const signupAccount = { ...loginAccount, emailVerified: false, emailVerifiedAt: null };
+    mocks.registerLearningOsAccount.mockResolvedValue(signupAccount);
+
+    const response = await request(app)
+      .post('/api/auth/signup')
+      .send({
+        email: signupAccount.email,
+        password: 'correct password',
+        name: signupAccount.name,
+        inviteCode: 'WELCOME1',
+      })
+      .expect(200);
+
+    expect(response.body).toEqual(signupAccount);
+    expect(mocks.registerLearningOsAccount).toHaveBeenCalledWith({
+      email: signupAccount.email,
+      password: 'correct password',
+      name: signupAccount.name,
+      inviteCode: 'WELCOME1',
+    });
+    expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
+
+    const cookies = getSetCookieArray(response.headers['set-cookie']);
+    const sessionCookie = cookies.find((cookie) => cookie.startsWith('token='));
+    const token = decodeURIComponent(sessionCookie!.split(';')[0].slice('token='.length));
+    expect(verifyJwt(token, process.env.JWT_SECRET!)).toMatchObject({
+      userId: signupAccount.id,
+      email: signupAccount.email,
+      role: signupAccount.role,
+    });
+    expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
+  });
+
+  it('rejects malformed signup bodies before forwarding credentials', async () => {
+    const response = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: ['learner@example.com'], password: 'password', name: 'Learner' })
+      .expect(400);
+
+    expect(response.body.error.message).toBe('Email, password, and name are required');
+    expect(mocks.registerLearningOsAccount).not.toHaveBeenCalled();
+  });
+
+  it('normalizes signup identity fields before forwarding credentials', async () => {
+    await request(app)
+      .post('/api/auth/signup')
+      .send({
+        email: `  ${loginAccount.email} `,
+        password: 'correct password',
+        name: ` ${loginAccount.name} `,
+        inviteCode: ' WELCOME1 ',
+      })
+      .expect(200);
+
+    expect(mocks.registerLearningOsAccount).toHaveBeenCalledWith({
+      email: loginAccount.email,
+      password: 'correct password',
+      name: loginAccount.name,
+      inviteCode: 'WELCOME1',
+    });
   });
 
   it('uses Learning OS credentials while retaining the Convo Lab browser session', async () => {
@@ -133,6 +216,7 @@ describe('Auth Learning OS routing', () => {
     const token = decodeURIComponent(sessionCookie!.split(';')[0].slice('token='.length));
     expect(verifyJwt(token, process.env.JWT_SECRET!)).toMatchObject({
       userId: loginAccount.id,
+      email: loginAccount.email,
       role: loginAccount.role,
     });
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
@@ -142,7 +226,11 @@ describe('Auth Learning OS routing', () => {
     const response = await request(app).get('/api/auth/me').expect(200);
 
     expect(response.body).toEqual(currentAccount);
-    expect(mocks.getLearningOsCurrentAccount).toHaveBeenCalledWith(loginAccount.id);
+    expect(mocks.getLearningOsCurrentAccount).toHaveBeenCalledWith(loginAccount.id, {
+      userId: loginAccount.id,
+      email: loginAccount.email,
+      role: loginAccount.role,
+    });
     expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
     expect(
       getSetCookieArray(response.headers['set-cookie']).some((cookie) =>

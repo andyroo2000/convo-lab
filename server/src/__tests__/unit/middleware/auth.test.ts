@@ -45,18 +45,24 @@ describe('requireAuth middleware', () => {
     expect(error.statusCode).toBe(401);
   });
 
-  it('should set userId and role when token is valid', () => {
+  it('should set signed user identity when token is valid', () => {
     const mockUserId = 'user-123';
     const mockRole = 'admin';
+    const mockEmail = 'learner@example.com';
     mockReq.cookies = { token: 'valid-token' };
 
-    vi.mocked(verify).mockImplementation(() => ({ userId: mockUserId, role: mockRole }));
+    vi.mocked(verify).mockImplementation(() => ({
+      userId: mockUserId,
+      role: mockRole,
+      email: mockEmail,
+    }));
 
     requireAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
 
     expect(verify).toHaveBeenCalledWith('valid-token', process.env.JWT_SECRET);
     expect(mockReq.userId).toBe(mockUserId);
     expect(mockReq.role).toBe(mockRole);
+    expect(mockReq.email).toBe(mockEmail);
     expect(mockNext).toHaveBeenCalledWith();
   });
 

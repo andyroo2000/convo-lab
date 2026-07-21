@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   authenticateLearningOsAccount,
   getLearningOsCurrentAccount,
+  registerLearningOsAccount,
+  sendLearningOsVerificationEmail,
+  verifyLearningOsEmail,
 } from '../../../services/learningOsAuthProxy.js';
 import { resolveLearningOsProxyContext } from '../../../services/learningOsProxy.js';
 import { mockPrisma } from '../../setup.js';
@@ -85,6 +88,87 @@ describe('Learning OS auth proxy', () => {
     });
   });
 
+  it('registers through the service identity and preserves the legacy account shape', async () => {
+    const signupInput = {
+      email: 'New@Example.com',
+      password: 'correct password',
+      name: 'New Learner',
+      inviteCode: 'WELCOME1',
+    };
+
+    await expect(registerLearningOsAccount(signupInput)).resolves.toEqual(account);
+
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/signup');
+    expect(init).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify(signupInput),
+      headers: expect.objectContaining({
+        Authorization: 'Bearer server-only-token',
+        'X-Convo-Lab-User-Email': 'proxy@example.com',
+      }),
+    });
+  });
+
+  it.each([
+    ['invalid_invite', 'Invalid invite code.', 400],
+    ['used_invite', 'This invite code has already been used.', 400],
+    ['account_exists', 'User already exists', 400],
+    ['invalid_credentials', 'Invalid credentials', 401],
+  ] as const)(
+    'maps the %s signup failure to the legacy contract',
+    async (reason, message, status) => {
+      vi.mocked(global.fetch).mockResolvedValue(
+        jsonResponse({ message: 'upstream detail', reason }, status)
+      );
+
+      await expect(
+        registerLearningOsAccount({
+          email: account.email,
+          password: 'correct password',
+          name: account.name,
+          inviteCode: 'WELCOME1',
+        })
+      ).rejects.toMatchObject({
+        message,
+        statusCode: status,
+      });
+    }
+  );
+
+  it('hides Laravel validation details behind the legacy signup envelope', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'The email field must be a valid email address.', errors: {} }, 422)
+    );
+
+    await expect(
+      registerLearningOsAccount({
+        email: 'invalid',
+        password: 'correct password',
+        name: account.name,
+        inviteCode: 'WELCOME1',
+      })
+    ).rejects.toMatchObject({ message: 'Invalid signup details', statusCode: 400 });
+  });
+
+  it('does not classify a signup reason returned with the wrong status', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'internal detail', reason: 'invalid_invite' }, 500)
+    );
+
+    await expect(
+      registerLearningOsAccount({
+        email: account.email,
+        password: 'correct password',
+        name: account.name,
+        inviteCode: 'WELCOME1',
+      })
+    ).rejects.toMatchObject({
+      message: 'Learning OS Auth API request failed.',
+      statusCode: 502,
+    });
+  });
+
   it('preserves nullable and empty legacy profile values', async () => {
     const sparseAccount = {
       ...account,
@@ -123,6 +207,168 @@ describe('Learning OS auth proxy', () => {
         'X-Convo-Lab-User-Id': account.id,
         'X-Convo-Lab-User-Email': account.email,
       }),
+    });
+  });
+
+  it('loads a target-created current account from signed session identity without Prisma', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(currentAccount));
+
+    await expect(
+      getLearningOsCurrentAccount(account.id, {
+        userId: account.id,
+        email: account.email,
+        role: account.role,
+      })
+    ).resolves.toEqual(currentAccount);
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    const [, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(init.headers).toMatchObject({
+      'X-Convo-Lab-User-Id': account.id,
+      'X-Convo-Lab-User-Email': account.email,
+      'X-Convo-Lab-User-Role': account.role,
+    });
+  });
+
+  it.each([
+    {
+      identity: { userId: account.id, email: ' invalid@example.com', role: account.role },
+      label: 'invalid email',
+    },
+    {
+      identity: { userId: account.id, email: account.email, role: 'owner' },
+      label: 'invalid role',
+    },
+    {
+      identity: {
+        userId: '33333333-3333-4333-8333-333333333333',
+        email: account.email,
+        role: account.role,
+      },
+      label: 'mismatched user',
+    },
+  ] as const)(
+    'falls back to legacy identity for a signed session with $label',
+    async ({ identity }) => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: account.id,
+        email: account.email,
+        role: account.role,
+      });
+      vi.mocked(global.fetch).mockResolvedValue(jsonResponse(currentAccount));
+
+      await expect(getLearningOsCurrentAccount(account.id, identity)).resolves.toEqual(
+        currentAccount
+      );
+
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: account.id },
+        select: { id: true, email: true, role: true },
+      });
+    }
+  );
+
+  it('resends verification from signed session identity without a legacy user row', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse({ message: 'Verification email sent' }));
+
+    await expect(
+      sendLearningOsVerificationEmail(account.id, {
+        userId: account.id,
+        email: account.email,
+        role: account.role,
+      })
+    ).resolves.toBeUndefined();
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/verification/send');
+    expect(init.method).toBe('POST');
+  });
+
+  it.each([
+    [400, { message: 'Email is already verified' }, 'Email already verified', 400],
+    [404, { message: 'Not Found.' }, 'User not found', 404],
+  ] as const)(
+    'maps verification-send status %s to the legacy contract',
+    async (upstreamStatus, body, message, status) => {
+      vi.mocked(global.fetch).mockResolvedValue(jsonResponse(body, upstreamStatus));
+
+      await expect(sendLearningOsVerificationEmail(account.id)).rejects.toMatchObject({
+        message,
+        statusCode: status,
+      });
+    }
+  );
+
+  it('translates the public verification token from GET path to POST body', async () => {
+    const token = 'a'.repeat(64);
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'Email verified successfully', email: account.email })
+    );
+
+    await expect(verifyLearningOsEmail(token)).resolves.toEqual({
+      message: 'Email verified successfully',
+      email: account.email,
+    });
+
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/verification');
+    expect(init).toMatchObject({ method: 'POST', body: JSON.stringify({ token }) });
+  });
+
+  it.each([
+    [400, { message: 'Invalid or expired verification token' }],
+    [422, { message: 'The token field format is invalid.', errors: { token: [] } }],
+  ])('maps verification failure %s to the legacy invalid-token response', async (status, body) => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(body, status));
+
+    await expect(verifyLearningOsEmail('b'.repeat(64))).rejects.toMatchObject({
+      message: 'Invalid or expired verification token',
+      statusCode: 400,
+    });
+  });
+
+  it('rejects malformed verification tokens before resolving proxy identity', async () => {
+    await expect(verifyLearningOsEmail('invalid-token')).rejects.toMatchObject({
+      message: 'Invalid or expired verification token',
+      statusCode: 400,
+    });
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['verification resend', () => sendLearningOsVerificationEmail(account.id)],
+    ['verification consume', () => verifyLearningOsEmail('c'.repeat(64))],
+  ] as const)('preserves a bounded retry delay for %s', async (_label, operation) => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'Too Many Attempts.' }, 429, { 'Retry-After': '41' })
+    );
+
+    await expect(operation()).rejects.toMatchObject({
+      statusCode: 429,
+      metadata: { cooldown: { remainingSeconds: 41 } },
+    });
+  });
+
+  it.each([
+    [
+      'verification resend',
+      { message: 'Verification queued' },
+      () => sendLearningOsVerificationEmail(account.id),
+    ],
+    [
+      'verification consume',
+      { message: 'Email verified successfully', email: 'not-an-email' },
+      () => verifyLearningOsEmail('d'.repeat(64)),
+    ],
+  ] as const)('rejects an invalid %s success response', async (_label, body, operation) => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(body));
+
+    await expect(operation()).rejects.toMatchObject({
+      message: 'Learning OS Auth API returned an invalid response.',
+      statusCode: 502,
     });
   });
 
@@ -167,6 +413,17 @@ describe('Learning OS auth proxy', () => {
     await expect(authenticateLearningOsAccount(account.email, 'wrong')).rejects.toMatchObject({
       statusCode: 429,
       metadata: { cooldown: { remainingSeconds: 37 } },
+    });
+  });
+
+  it('drops malformed retry delays from Learning OS rate limits', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'Too Many Attempts.' }, 429, { 'Retry-After': '37seconds' })
+    );
+
+    await expect(authenticateLearningOsAccount(account.email, 'wrong')).rejects.toMatchObject({
+      statusCode: 429,
+      metadata: undefined,
     });
   });
 

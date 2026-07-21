@@ -4,12 +4,14 @@ import {
   fetchLearningOsProxy,
   resolveLearningOsServiceProxyContext,
   resolveLearningOsUserProxyContext,
+  type LearningOsSessionIdentity,
 } from './learningOsProxy.js';
 
 const API_LABEL = 'Learning OS Auth API';
 const TIMEOUT_MS = 10_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_MILLISECOND_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const VERIFICATION_TOKEN_PATTERN = /^[0-9a-f]{64}$/;
 
 export interface LearningOsLoginAccount {
   id: string;
@@ -31,6 +33,13 @@ export interface LearningOsLoginAccount {
 export interface LearningOsCurrentAccount extends LearningOsLoginAccount {
   seenSampleContentGuide: boolean;
   seenCustomContentGuide: boolean;
+}
+
+export interface LearningOsSignupInput {
+  email: string;
+  password: string;
+  name: string;
+  inviteCode: string;
 }
 
 export async function authenticateLearningOsAccount(
@@ -66,9 +75,14 @@ export async function authenticateLearningOsAccount(
 }
 
 export async function getLearningOsCurrentAccount(
-  userId: string
+  userId: string,
+  sessionIdentity?: LearningOsSessionIdentity
 ): Promise<LearningOsCurrentAccount> {
-  const { config, user } = await resolveLearningOsUserProxyContext(userId, API_LABEL);
+  const { config, user } = await resolveLearningOsUserProxyContext(
+    userId,
+    API_LABEL,
+    sessionIdentity
+  );
   const response = await fetchLearningOsProxy({
     upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/me`),
     apiToken: config.apiToken,
@@ -90,6 +104,129 @@ export async function getLearningOsCurrentAccount(
   return adaptAccount(body, true);
 }
 
+export async function registerLearningOsAccount(
+  input: LearningOsSignupInput
+): Promise<LearningOsLoginAccount> {
+  const { config, user } = await resolveLearningOsServiceProxyContext(API_LABEL);
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/signup`),
+    apiToken: config.apiToken,
+    user,
+    method: 'POST',
+    body: input,
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  const body = await parseJsonResponse(response);
+  if (!response.ok) {
+    if (isSignupFailure(body)) {
+      const compatibility = signupFailureCompatibility(body.reason);
+      if (response.status === compatibility.status) {
+        throw new AppError(compatibility.message, compatibility.status);
+      }
+    }
+    if (response.status === 422) {
+      throw new AppError('Invalid signup details', 400);
+    }
+    if (response.status === 429) {
+      throw rateLimitError(response, 'Too many signup attempts.');
+    }
+    throw upstreamFailure(response.status);
+  }
+
+  return adaptAccount(body, false);
+}
+
+export async function sendLearningOsVerificationEmail(
+  userId: string,
+  sessionIdentity?: LearningOsSessionIdentity
+): Promise<void> {
+  const { config, user } = await resolveLearningOsUserProxyContext(
+    userId,
+    API_LABEL,
+    sessionIdentity
+  );
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/verification/send`),
+    apiToken: config.apiToken,
+    user,
+    method: 'POST',
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+  const body = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    if (response.status === 400 && isMessageResponse(body, 'Email is already verified')) {
+      throw new AppError('Email already verified', 400);
+    }
+    if (response.status === 404) {
+      throw new AppError('User not found', 404);
+    }
+    if (response.status === 429) {
+      throw rateLimitError(response, 'Too many verification email attempts.');
+    }
+    throw upstreamFailure(response.status);
+  }
+
+  if (!isMessageResponse(body, 'Verification email sent')) {
+    throw invalidResponse();
+  }
+}
+
+export async function verifyLearningOsEmail(
+  token: string
+): Promise<{ message: string; email: string }> {
+  if (!VERIFICATION_TOKEN_PATTERN.test(token)) {
+    throw new AppError('Invalid or expired verification token', 400);
+  }
+
+  const { config, user } = await resolveLearningOsServiceProxyContext(API_LABEL);
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/verification`),
+    apiToken: config.apiToken,
+    user,
+    method: 'POST',
+    body: { token },
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+  const body = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    if (
+      response.status === 422 ||
+      (response.status === 400 && isMessageResponse(body, 'Invalid or expired verification token'))
+    ) {
+      throw new AppError('Invalid or expired verification token', 400);
+    }
+    if (response.status === 429) {
+      throw rateLimitError(response, 'Too many verification attempts.');
+    }
+    throw upstreamFailure(response.status);
+  }
+
+  if (
+    !body ||
+    typeof body !== 'object' ||
+    Array.isArray(body) ||
+    (body as Record<string, unknown>).message !== 'Email verified successfully' ||
+    !isBoundedString((body as Record<string, unknown>).email, 320) ||
+    !(body as Record<string, string>).email.includes('@')
+  ) {
+    throw invalidResponse();
+  }
+
+  return {
+    message: 'Email verified successfully',
+    email: (body as Record<string, string>).email,
+  };
+}
+
 async function parseJsonResponse(response: Response): Promise<unknown> {
   try {
     return JSON.parse(await response.text());
@@ -103,13 +240,50 @@ function upstreamFailure(status: number): AppError {
   return new AppError(`${API_LABEL} request failed.`, statusCode);
 }
 
-function rateLimitError(response: Response): AppError {
-  const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10);
+function rateLimitError(response: Response, message = 'Too many login attempts.'): AppError {
+  const retryAfterHeader = response.headers.get('Retry-After') ?? '';
+  const retryAfter = /^\d{1,4}$/.test(retryAfterHeader) ? Number(retryAfterHeader) : Number.NaN;
   const metadata =
     Number.isInteger(retryAfter) && retryAfter > 0 && retryAfter <= 3600
       ? { cooldown: { remainingSeconds: retryAfter } }
       : undefined;
-  return new AppError('Too many login attempts.', 429, metadata);
+  return new AppError(message, 429, metadata);
+}
+
+function isSignupFailure(
+  value: unknown
+): value is { message: string; reason: SignupFailureReason } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const response = value as Record<string, unknown>;
+  return (
+    typeof response.message === 'string' &&
+    (response.reason === 'invalid_invite' ||
+      response.reason === 'used_invite' ||
+      response.reason === 'account_exists' ||
+      response.reason === 'invalid_credentials')
+  );
+}
+
+type SignupFailureReason =
+  | 'invalid_invite'
+  | 'used_invite'
+  | 'account_exists'
+  | 'invalid_credentials';
+
+function signupFailureCompatibility(reason: SignupFailureReason): {
+  message: string;
+  status: number;
+} {
+  switch (reason) {
+    case 'invalid_invite':
+      return { message: 'Invalid invite code.', status: 400 };
+    case 'used_invite':
+      return { message: 'This invite code has already been used.', status: 400 };
+    case 'account_exists':
+      return { message: 'User already exists', status: 400 };
+    case 'invalid_credentials':
+      return { message: 'Invalid credentials', status: 401 };
+  }
 }
 
 function isMessageResponse(value: unknown, message: string): boolean {
