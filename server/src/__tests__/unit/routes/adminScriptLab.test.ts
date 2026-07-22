@@ -19,6 +19,9 @@ const mocks = vi.hoisted(() => ({
   listSentenceTests: vi.fn(),
   showSentenceTest: vi.fn(),
   deleteSentenceTests: vi.fn(),
+  testPronunciation: vi.fn(),
+  synthesizeLine: vi.fn(),
+  streamAudio: vi.fn(),
 }));
 
 vi.mock('../../../routes/learningOs/admin.js', () => ({
@@ -30,6 +33,9 @@ vi.mock('../../../routes/learningOs/admin.js', () => ({
   listLearningOsAdminSentenceScriptTests: mocks.listSentenceTests,
   showLearningOsAdminSentenceScriptTest: mocks.showSentenceTest,
   deleteLearningOsAdminSentenceScriptTests: mocks.deleteSentenceTests,
+  testLearningOsAdminPronunciation: mocks.testPronunciation,
+  synthesizeLearningOsAdminScriptLabLine: mocks.synthesizeLine,
+  streamLearningOsAdminScriptLabAudio: mocks.streamAudio,
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
@@ -43,16 +49,6 @@ vi.mock('../../../middleware/roleAuth.js', () => ({
   requireAdmin: (_req: Request, _res: Response, next: NextFunction) => next(),
   requireRole: (_role: string) => (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
-vi.mock('../../../services/geminiClient.js', () => ({ generateWithGemini: vi.fn() }));
-vi.mock('../../../services/pronunciation/overrideEngine.js', () => ({
-  applyJapanesePronunciationOverrides: vi.fn(),
-}));
-vi.mock('../../../services/storageClient.js', () => ({ uploadToGCS: vi.fn() }));
-vi.mock('../../../services/ttsProviders/FishAudioTTSProvider.js', () => ({
-  synthesizeFishAudioSpeech: vi.fn(),
-  resolveFishAudioVoiceId: vi.fn((voiceId: string) => voiceId),
-}));
-
 describe('Admin Script Lab routing', () => {
   let app: express.Application;
 
@@ -77,6 +73,9 @@ describe('Admin Script Lab routing', () => {
       'showSentenceTest',
     ],
     ['DELETE', '/api/admin/script-lab/sentence-tests', 'deleteSentenceTests'],
+    ['POST', '/api/admin/script-lab/test-pronunciation', 'testPronunciation'],
+    ['POST', '/api/admin/script-lab/synthesize-line', 'synthesizeLine'],
+    ['GET', '/api/admin/script-lab/audio/77777777-7777-4777-8777-777777777777', 'streamAudio'],
   ] as const)('routes %s %s through the Learning OS proxy', async (method, path, handler) => {
     const pending =
       method === 'POST'

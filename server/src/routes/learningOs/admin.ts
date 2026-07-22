@@ -15,6 +15,7 @@ const API_LABEL = 'Learning OS Admin API';
 const FETCH_TIMEOUT_MS = 10_000;
 const AVATAR_WRITE_TIMEOUT_MS = 30_000;
 const COURSE_PROVIDER_TIMEOUT_MS = 120_000;
+const PRONUNCIATION_PROVIDER_TIMEOUT_MS = 190_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const FISH_AUDIO_VOICE_PATTERN = /^fishaudio:[a-f0-9]{32}$/;
 const LANGUAGE_PATTERN = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/;
@@ -69,7 +70,15 @@ type AdminCourseLineRendering = {
   audioUrl: string;
   createdAt: string;
 };
+type AdminPronunciationFormat = 'kanji' | 'kana' | 'mixed' | 'furigana_brackets';
 type AdminRequestMethod = 'GET' | 'POST' | 'PUT';
+
+const ADMIN_PRONUNCIATION_FORMATS = new Set<AdminPronunciationFormat>([
+  'kanji',
+  'kana',
+  'mixed',
+  'furigana_brackets',
+]);
 
 const isRecord = (value: unknown): value is JsonRecord =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -656,6 +665,22 @@ const canonicalAdminCourseLineAudioPath = (courseId: string, renderingId: string
 const publicAdminCourseLineAudioPath = (courseId: string, renderingId: string): string =>
   `/api/admin/courses/${courseId}/line-renderings/${renderingId}/audio`;
 
+const canonicalAdminScriptLabAudioPath = (renderingId: string): string =>
+  `/api/convolab/admin/script-lab/audio/${renderingId}`;
+
+const publicAdminScriptLabAudioPath = (renderingId: string): string =>
+  `/api/admin/script-lab/audio/${renderingId}`;
+
+const adminScriptLabAudioRenderingId = (value: unknown): string | null => {
+  if (!isString(value)) return null;
+
+  const match = /^\/api\/convolab\/admin\/script-lab\/audio\/([^/]+)$/.exec(value);
+  if (!match || !isUuid(match[1])) return null;
+
+  const renderingId = match[1].toLowerCase();
+  return value === canonicalAdminScriptLabAudioPath(renderingId) ? renderingId : null;
+};
+
 const isAdminCourseLineRendering = (
   value: unknown,
   expectedCourseId: string
@@ -753,6 +778,7 @@ const MUTATION_ERROR_STATUSES = new Map<string, number>([
   ['Course generation could not be queued. Please try again.', 503],
   ['Rendering not found', 404],
   ['Line synthesis is temporarily unavailable', 503],
+  ['Pronunciation test is temporarily unavailable', 503],
   ['Invalid stage. Must be "exchanges" or "script"', 400],
   ['Pipeline data must be a list.', 400],
   ['Pipeline data contains too many items.', 400],
@@ -881,6 +907,47 @@ async function fetchAdminMultipartMutation(
   } catch {
     throw invalidResponse();
   }
+}
+
+async function streamLearningOsAdminAudio(
+  req: AuthRequest,
+  res: Response,
+  options: {
+    upstreamPath: string;
+    notFoundMessage: string;
+    invalidRangeMessage: string;
+  }
+): Promise<void> {
+  const range = req.header('Range')?.trim();
+  if (range !== undefined && (range.length > 100 || !/^bytes=(?:\d+-\d*|-\d+)$/.test(range))) {
+    throw new AppError(options.invalidRangeMessage, 400);
+  }
+  if (!req.userId) throw new AppError('Authentication required', 401);
+
+  const { config, user } = await resolveLearningOsUserProxyContext(req.userId, API_LABEL, {
+    userId: req.userId,
+    email: req.email,
+    role: req.role,
+    accountSource: req.accountSource,
+  });
+  const upstreamResponse = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}${options.upstreamPath}`),
+    apiToken: config.apiToken,
+    user,
+    method: 'GET',
+    additionalHeaders: { Accept: 'audio/mpeg', ...(range === undefined ? {} : { Range: range }) },
+    timeoutMs: FETCH_TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  if (upstreamResponse.status === 404) throw new AppError(options.notFoundMessage, 404);
+  if (!upstreamResponse.ok) throw new AppError(`${API_LABEL} request failed.`, 502);
+
+  await streamLearningOsMediaResponse(upstreamResponse, res, {
+    invalidHeadersMessage: `${API_LABEL} returned invalid media headers.`,
+    isAllowedContentType: (contentType) => /^audio\/mpeg(?:\s*;|$)/i.test(contentType),
+  });
 }
 
 const speakerAvatarMetadata = (filename: string) => {
@@ -1159,6 +1226,128 @@ export async function deleteLearningOsAdminSentenceScriptTests(
   }
 }
 
+export async function testLearningOsAdminPronunciation(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const body = isRecord(req.body) ? req.body : {};
+    const text = isString(body.text) ? body.text.trim() : '';
+    const format = isString(body.format) ? body.format.trim().toLowerCase() : '';
+    const voiceId = isString(body.voiceId) ? body.voiceId.trim().toLowerCase() : '';
+    if (!text || !format || !voiceId) {
+      throw new AppError('text, format, and voiceId are required', 400);
+    }
+    if (unicodeLength(text) > 15_000) {
+      throw new AppError('text must not exceed 15000 characters', 400);
+    }
+    if (!ADMIN_PRONUNCIATION_FORMATS.has(format as AdminPronunciationFormat)) {
+      throw new AppError(
+        `Invalid format. Must be one of: ${[...ADMIN_PRONUNCIATION_FORMATS].join(', ')}`,
+        400
+      );
+    }
+    if (!FISH_AUDIO_VOICE_PATTERN.test(voiceId)) {
+      throw new AppError('Only Fish Audio voices are supported for pronunciation tests', 400);
+    }
+    const speed = body.speed === undefined ? 1 : body.speed;
+    if (typeof speed !== 'number' || !Number.isFinite(speed) || speed < 0.5 || speed > 2) {
+      throw new AppError('speed must be between 0.5 and 2', 400);
+    }
+
+    const normalizedFormat = format as AdminPronunciationFormat;
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      '/script-lab/test-pronunciation',
+      'POST',
+      { text, format: normalizedFormat, voiceId, speed },
+      PRONUNCIATION_PROVIDER_TIMEOUT_MS
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (
+      !isRecord(payload) ||
+      Object.keys(payload).length !== 5 ||
+      !isNonEmptyString(payload.preprocessedText) ||
+      unicodeLength(payload.preprocessedText) > 100_000 ||
+      !isNonNegativeFiniteNumber(payload.durationSeconds) ||
+      payload.format !== normalizedFormat ||
+      payload.originalText !== text
+    ) {
+      throw invalidResponse();
+    }
+    const renderingId = adminScriptLabAudioRenderingId(payload.audioUrl);
+    if (renderingId === null) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json({
+      ...payload,
+      audioUrl: publicAdminScriptLabAudioPath(renderingId),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function synthesizeLearningOsAdminScriptLabLine(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const body = isRecord(req.body) ? req.body : {};
+    const text = isString(body.text) ? body.text.trim() : '';
+    const voiceId = isString(body.voiceId) ? body.voiceId.trim().toLowerCase() : '';
+    if (!text || !voiceId) throw new AppError('text and voiceId are required', 400);
+    if (unicodeLength(text) > 15_000) {
+      throw new AppError('text must not exceed 15000 characters', 400);
+    }
+    if (!FISH_AUDIO_VOICE_PATTERN.test(voiceId)) {
+      throw new AppError('Only Fish Audio voices are supported for line synthesis', 400);
+    }
+    const speed = body.speed === undefined ? 1 : body.speed;
+    if (typeof speed !== 'number' || !Number.isFinite(speed) || speed < 0.5 || speed > 2) {
+      throw new AppError('speed must be between 0.5 and 2', 400);
+    }
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      '/script-lab/synthesize-line',
+      'POST',
+      { text, voiceId, speed },
+      COURSE_PROVIDER_TIMEOUT_MS
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isRecord(payload) || Object.keys(payload).length !== 1) throw invalidResponse();
+    const renderingId = adminScriptLabAudioRenderingId(payload.audioUrl);
+    if (renderingId === null) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json({
+      audioUrl: publicAdminScriptLabAudioPath(renderingId),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function streamLearningOsAdminScriptLabAudio(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const renderingId = req.params.renderingId?.trim().toLowerCase();
+    if (!isUuid(renderingId)) throw new AppError('Rendering not found', 404);
+
+    await streamLearningOsAdminAudio(req, res, {
+      upstreamPath: canonicalAdminScriptLabAudioPath(renderingId),
+      notFoundMessage: 'Rendering not found',
+      invalidRangeMessage: 'Invalid Script Lab audio byte range.',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function listLearningOsAdminScriptLabCourses(
   req: AuthRequest,
   res: Response,
@@ -1424,37 +1613,10 @@ export async function streamLearningOsAdminCourseLineRendering(
       throw new AppError('Rendering not found', 404);
     }
 
-    const range = req.header('Range')?.trim();
-    if (range !== undefined && (range.length > 100 || !/^bytes=(?:\d+-\d*|-\d+)$/.test(range))) {
-      throw new AppError('Invalid line audio byte range.', 400);
-    }
-    if (!req.userId) throw new AppError('Authentication required', 401);
-
-    const { config, user } = await resolveLearningOsUserProxyContext(req.userId, API_LABEL, {
-      userId: req.userId,
-      email: req.email,
-      role: req.role,
-      accountSource: req.accountSource,
-    });
-    const upstreamResponse = await fetchLearningOsProxy({
-      upstreamUrl: new URL(
-        `${config.apiUrl}${canonicalAdminCourseLineAudioPath(courseId, renderingId)}`
-      ),
-      apiToken: config.apiToken,
-      user,
-      method: 'GET',
-      additionalHeaders: { Accept: 'audio/mpeg', ...(range === undefined ? {} : { Range: range }) },
-      timeoutMs: FETCH_TIMEOUT_MS,
-      timeoutMessage: `${API_LABEL} request timed out.`,
-      networkErrorMessage: `${API_LABEL} is unavailable.`,
-    });
-
-    if (upstreamResponse.status === 404) throw new AppError('Rendering not found', 404);
-    if (!upstreamResponse.ok) throw new AppError(`${API_LABEL} request failed.`, 502);
-
-    await streamLearningOsMediaResponse(upstreamResponse, res, {
-      invalidHeadersMessage: `${API_LABEL} returned invalid media headers.`,
-      isAllowedContentType: (contentType) => /^audio\/mpeg(?:\s*;|$)/i.test(contentType),
+    await streamLearningOsAdminAudio(req, res, {
+      upstreamPath: canonicalAdminCourseLineAudioPath(courseId, renderingId),
+      notFoundMessage: 'Rendering not found',
+      invalidRangeMessage: 'Invalid line audio byte range.',
     });
   } catch (error) {
     next(error);

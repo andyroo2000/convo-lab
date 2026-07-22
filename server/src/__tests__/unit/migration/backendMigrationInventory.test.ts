@@ -209,17 +209,14 @@ describe('backend migration inventory', () => {
       ['GET', '/api/admin/script-lab/sentence-tests'],
       ['GET', `/api/admin/script-lab/sentence-tests/${'6'.repeat(36)}`],
       ['DELETE', '/api/admin/script-lab/sentence-tests'],
+      ['POST', '/api/admin/script-lab/test-pronunciation'],
+      ['POST', '/api/admin/script-lab/synthesize-line'],
+      ['GET', `/api/admin/script-lab/audio/${'7'.repeat(36)}`],
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
         surface: { id: 'admin-script-lab', runtimeOwner: 'learning-os-proxy' },
       });
     }
-
-    expect(
-      findBackendMigrationRoute('POST', '/api/admin/script-lab/synthesize-line')
-    ).toMatchObject({
-      surface: { id: 'admin-script-lab', runtimeOwner: 'express' },
-    });
   });
 
   it('tracks proxied auth entrypoints separately from remaining Express account routes', () => {

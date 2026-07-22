@@ -488,7 +488,8 @@
         {
           "id": "admin-script-lab.pronunciation.test",
           "method": "POST",
-          "path": "/api/admin/script-lab/test-pronunciation"
+          "path": "/api/admin/script-lab/test-pronunciation",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.sentence-script",
@@ -517,7 +518,14 @@
         {
           "id": "admin-script-lab.synthesize-line",
           "method": "POST",
-          "path": "/api/admin/script-lab/synthesize-line"
+          "path": "/api/admin/script-lab/synthesize-line",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "admin-script-lab.audio.show",
+          "method": "GET",
+          "path": "/api/admin/script-lab/audio/:renderingId",
+          "runtimeOwner": "learning-os-proxy"
         }
       ]
     },
