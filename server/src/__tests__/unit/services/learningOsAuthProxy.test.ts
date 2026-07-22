@@ -290,7 +290,7 @@ describe('Learning OS auth proxy', () => {
 
     expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
-    expect(url.toString()).toBe('https://learning-os.example/api/me/password');
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/me/password');
     expect(init).toMatchObject({
       method: 'PUT',
       body: JSON.stringify({
@@ -323,7 +323,7 @@ describe('Learning OS auth proxy', () => {
 
     expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
-    expect(url.toString()).toBe('https://learning-os.example/api/me');
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/me');
     expect(init).toMatchObject({
       method: 'DELETE',
       body: JSON.stringify({ current_password: 'correct-password123' }),

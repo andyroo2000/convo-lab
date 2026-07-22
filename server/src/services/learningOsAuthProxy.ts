@@ -181,7 +181,7 @@ export async function changeLearningOsCurrentPassword(
     sessionIdentity
   );
   const response = await fetchLearningOsProxy({
-    upstreamUrl: new URL(`${config.apiUrl}/api/me/password`),
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/me/password`),
     apiToken: config.apiToken,
     user,
     method: 'PUT',
@@ -229,7 +229,7 @@ export async function deleteLearningOsCurrentAccount(
     sessionIdentity
   );
   const response = await fetchLearningOsProxy({
-    upstreamUrl: new URL(`${config.apiUrl}/api/me`),
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/me`),
     apiToken: config.apiToken,
     user,
     method: 'DELETE',
