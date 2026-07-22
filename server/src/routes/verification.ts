@@ -48,6 +48,28 @@ const verificationConsumeRateLimit = createExpressRateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+const passwordResetRequestIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const passwordResetRequestRateLimit = createExpressRateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    return `${ipKeyGenerator(req.ip ?? 'unknown')}:${email}`;
+  },
+});
+const passwordResetConsumeRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Resend verification email
 router.post(
@@ -133,43 +155,48 @@ router.get('/verification/:token', verificationConsumeRateLimit, async (req, res
 });
 
 // Request password reset
-router.post('/password-reset/request', async (req, res, next) => {
-  try {
-    const { email } = req.body;
+router.post(
+  '/password-reset/request',
+  passwordResetRequestIpRateLimit,
+  passwordResetRequestRateLimit,
+  async (req, res, next) => {
+    try {
+      const { email } = req.body;
 
-    if (!email) {
-      throw new AppError(i18next.t('server:verification.emailRequired'), 400);
-    }
+      if (!email) {
+        throw new AppError(i18next.t('server:verification.emailRequired'), 400);
+      }
 
-    if (isLearningOsPasswordResetProxyEnabled()) {
-      await sendLearningOsPasswordResetLink(email);
-      return res.json({ message: i18next.t('server:verification.passwordResetSent') });
-    }
+      if (isLearningOsPasswordResetProxyEnabled()) {
+        await sendLearningOsPasswordResetLink(email);
+        return res.json({ message: i18next.t('server:verification.passwordResetSent') });
+      }
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-      },
-    });
+      // Find user
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
 
-    // Always return success to prevent email enumeration
-    if (!user) {
+      // Always return success to prevent email enumeration
+      if (!user) {
+        res.json({ message: i18next.t('server:verification.passwordResetSent') });
+        return;
+      }
+
+      // Send password reset email
+      await sendPasswordResetEmail(user.id, user.email, user.name);
+
       res.json({ message: i18next.t('server:verification.passwordResetSent') });
-      return;
+    } catch (error) {
+      next(error);
     }
-
-    // Send password reset email
-    await sendPasswordResetEmail(user.id, user.email, user.name);
-
-    res.json({ message: i18next.t('server:verification.passwordResetSent') });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // Verify password reset token (without resetting password yet)
 router.get('/password-reset/:token', async (req, res, next) => {
@@ -192,7 +219,7 @@ router.get('/password-reset/:token', async (req, res, next) => {
 });
 
 // Reset password with token
-router.post('/password-reset/verify', async (req, res, next) => {
+router.post('/password-reset/verify', passwordResetConsumeRateLimit, async (req, res, next) => {
   try {
     const { email, token, newPassword } = req.body;
 
@@ -204,8 +231,8 @@ router.post('/password-reset/verify', async (req, res, next) => {
       throw new AppError(i18next.t('server:verification.passwordTooShort'), 400);
     }
 
-    // Learning OS reset links include the email required by Laravel's password broker.
-    // Route those links by payload so they remain usable after a feature-flag rollback.
+    // Presence, including an empty value, identifies Learning OS links. The broker performs
+    // canonical validation, and payload routing keeps issued links usable after flag rollback.
     if (
       email !== undefined &&
       (isLearningOsPasswordResetProxyEnabled() || isLearningOsPasswordResetCompletionEnabled())

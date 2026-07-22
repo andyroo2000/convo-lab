@@ -22,6 +22,10 @@ export const sanitizeAnalyticsPagePath = (
     return '/reset-password';
   }
 
+  if (pathname === '/verify-email' || pathname.startsWith('/verify-email/')) {
+    return '/verify-email';
+  }
+
   return `${pathname}${search}${hash}`;
 };
 

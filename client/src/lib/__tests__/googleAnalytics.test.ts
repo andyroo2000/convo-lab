@@ -6,7 +6,9 @@ describe('sanitizeAnalyticsPagePath', () => {
   it.each([
     ['/reset-password/legacy-secret', '', '', '/reset-password'],
     ['/reset-password', '?token=broker-secret&email=learner%40example.com', '', '/reset-password'],
-  ])('removes password reset credentials from analytics URLs', (pathname, search, hash, result) => {
+    ['/verify-email/verification-secret', '', '', '/verify-email'],
+    ['/verify-email', '?token=verification-secret', '', '/verify-email'],
+  ])('removes auth credentials from analytics URLs', (pathname, search, hash, result) => {
     expect(sanitizeAnalyticsPagePath(pathname, search, hash)).toBe(result);
   });
 

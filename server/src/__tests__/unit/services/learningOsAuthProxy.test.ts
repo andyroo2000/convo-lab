@@ -478,13 +478,16 @@ describe('Learning OS auth proxy', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('preserves generic success when reset-link request validation fails upstream', async () => {
-    vi.mocked(global.fetch).mockResolvedValue(
-      jsonResponse({ message: 'The given data was invalid.', errors: {} }, 422)
-    );
+  it.each([400, 422])(
+    'preserves generic success when reset-link request validation fails upstream with %i',
+    async (status) => {
+      vi.mocked(global.fetch).mockResolvedValue(
+        jsonResponse({ message: 'The given data was invalid.', errors: {} }, status)
+      );
 
-    await expect(sendLearningOsPasswordResetLink('malformed')).resolves.toBeUndefined();
-  });
+      await expect(sendLearningOsPasswordResetLink('malformed')).resolves.toBeUndefined();
+    }
+  );
 
   it('maps reset-completion validation failures to the legacy contract', async () => {
     vi.mocked(global.fetch).mockResolvedValue(

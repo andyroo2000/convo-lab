@@ -307,7 +307,7 @@ export async function sendLearningOsPasswordResetLink(email: string): Promise<vo
   if (response.status === 429) {
     throw rateLimitError(response, 'Too many password reset attempts.');
   }
-  if (response.status === 422) {
+  if (response.status === 400 || response.status === 422) {
     // Preserve the public generic-success contract for malformed and unknown accounts alike.
     return;
   }

@@ -306,6 +306,7 @@ describe('Verification Routes', () => {
       expect(response.body.message).toBe(
         'If an account exists with that email, a password reset link has been sent'
       );
+      expect(response.headers['ratelimit-policy']).toBeDefined();
       expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalledWith(
         mockUser.id,
         mockUser.email,
@@ -350,6 +351,25 @@ describe('Verification Routes', () => {
       );
       expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
       expect(mockEmailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+
+    it('rate limits repeated reset-link requests for the same normalized email', async () => {
+      process.env.LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED = 'true';
+      mockLearningOsAuth.sendLearningOsPasswordResetLink.mockResolvedValue(undefined);
+
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const email = attempt % 2 === 0 ? 'rate-limit@example.com' : ' RATE-LIMIT@example.com ';
+        await withCsrf(request(app).post('/api/password-reset/request'))
+          .send({ email })
+          .expect(200);
+      }
+
+      const response = await withCsrf(request(app).post('/api/password-reset/request'))
+        .send({ email: 'rate-limit@example.com' })
+        .expect(429);
+
+      expect(response.headers['retry-after']).toBeDefined();
+      expect(mockLearningOsAuth.sendLearningOsPasswordResetLink).toHaveBeenCalledTimes(10);
     });
   });
 
@@ -406,6 +426,7 @@ describe('Verification Routes', () => {
         .expect(200);
 
       expect(response.body.message).toBe('Password reset successfully');
+      expect(response.headers['ratelimit-policy']).toBeDefined();
       expect(mockEmailService.verifyPasswordResetToken).toHaveBeenCalledWith('valid-token');
       expect(mockPrisma.user.update).toHaveBeenCalled();
       expect(mockEmailService.sendPasswordChangedEmail).toHaveBeenCalledWith(
