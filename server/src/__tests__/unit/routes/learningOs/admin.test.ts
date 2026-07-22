@@ -11,10 +11,13 @@ import {
   listLearningOsAdminInviteCodes,
   listLearningOsAdminSpeakerAvatars,
   listLearningOsAdminUsers,
+  recropLearningOsAdminSpeakerAvatar,
   showLearningOsAdminPronunciationDictionary,
   showLearningOsAdminSpeakerAvatarOriginal,
   showLearningOsAdminStats,
   showLearningOsAdminUser,
+  uploadLearningOsAdminSpeakerAvatar,
+  uploadLearningOsAdminUserAvatar,
   updateLearningOsAdminPronunciationDictionary,
 } from '../../../../routes/learningOs/admin.js';
 
@@ -23,6 +26,10 @@ const mocks = vi.hoisted(() => ({
   resolveLearningOsServiceProxyContext: vi.fn(),
   resolveLearningOsUserProxyContext: vi.fn(),
   userDeleteMany: vi.fn(),
+  userUpdateMany: vi.fn(),
+  speakerAvatarDeleteMany: vi.fn(),
+  speakerAvatarUpsert: vi.fn(),
+  transaction: vi.fn(),
   inviteDeleteMany: vi.fn(),
   inviteFindUnique: vi.fn(),
   inviteUpsert: vi.fn(),
@@ -36,7 +43,9 @@ vi.mock('../../../../services/learningOsProxy.js', () => ({
 }));
 vi.mock('../../../../db/client.js', () => ({
   prisma: {
-    user: { deleteMany: mocks.userDeleteMany },
+    user: { deleteMany: mocks.userDeleteMany, updateMany: mocks.userUpdateMany },
+    speakerAvatar: { upsert: mocks.speakerAvatarUpsert },
+    $transaction: mocks.transaction,
     inviteCode: {
       deleteMany: mocks.inviteDeleteMany,
       findUnique: mocks.inviteFindUnique,
@@ -124,6 +133,17 @@ describe('Learning OS admin proxy', () => {
       user: { id: USER_ID, email: 'admin@example.com', role: 'admin' },
     });
     mocks.userDeleteMany.mockResolvedValue({ count: 1 });
+    mocks.userUpdateMany.mockResolvedValue({ count: 1 });
+    mocks.speakerAvatarDeleteMany.mockResolvedValue({ count: 0 });
+    mocks.speakerAvatarUpsert.mockResolvedValue(speakerAvatar);
+    mocks.transaction.mockImplementation(async (callback) =>
+      callback({
+        speakerAvatar: {
+          deleteMany: mocks.speakerAvatarDeleteMany,
+          upsert: mocks.speakerAvatarUpsert,
+        },
+      })
+    );
     mocks.inviteDeleteMany.mockResolvedValue({ count: 1 });
     mocks.inviteFindUnique.mockResolvedValue(null);
     mocks.inviteUpsert.mockImplementation(async ({ create }) => create);
@@ -136,6 +156,43 @@ describe('Learning OS admin proxy', () => {
     app.get('/users/:id/info', showLearningOsAdminUser);
     app.get('/invite-codes', listLearningOsAdminInviteCodes);
     app.get('/avatars/speaker/:filename/original', showLearningOsAdminSpeakerAvatarOriginal);
+    app.post('/avatars/speaker/:filename/upload', (req, res, next) => {
+      Object.assign(req, {
+        userId: USER_ID,
+        email: 'admin@example.com',
+        role: 'admin',
+        accountSource: 'learning-os',
+        file: {
+          buffer: Buffer.from('avatar-bytes'),
+          originalname: 'avatar.png',
+          mimetype: 'image/png',
+        },
+      });
+      void uploadLearningOsAdminSpeakerAvatar(req, res, next);
+    });
+    app.post('/avatars/speaker/:filename/recrop', (req, res, next) => {
+      Object.assign(req, {
+        userId: USER_ID,
+        email: 'admin@example.com',
+        role: 'admin',
+        accountSource: 'learning-os',
+      });
+      void recropLearningOsAdminSpeakerAvatar(req, res, next);
+    });
+    app.post('/avatars/user/:userId/upload', (req, res, next) => {
+      Object.assign(req, {
+        userId: USER_ID,
+        email: 'admin@example.com',
+        role: 'admin',
+        accountSource: 'learning-os',
+        file: {
+          buffer: Buffer.from('avatar-bytes'),
+          originalname: 'avatar.png',
+          mimetype: 'image/png',
+        },
+      });
+      void uploadLearningOsAdminUserAvatar(req, res, next);
+    });
     app.get('/avatars/speakers', listLearningOsAdminSpeakerAvatars);
     app.get('/pronunciation-dictionaries', showLearningOsAdminPronunciationDictionary);
     app.delete('/users/:id', (req, res, next) => {
@@ -365,6 +422,166 @@ describe('Learning OS admin proxy', () => {
 
     expect(response.body.error.message).toBe('Invalid avatar filename format');
     expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('uploads a speaker avatar as multipart, validates the response, and mirrors its URLs', async () => {
+    const payload = {
+      message: 'Speaker avatar uploaded successfully',
+      filename: 'ja-female-casual.png',
+      croppedUrl: 'https://storage.example/cropped-new.jpg',
+      originalUrl: 'https://storage.example/original-new.png',
+    };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
+
+    const response = await request(app)
+      .post('/avatars/speaker/JA-FEMALE-CASUAL.PNG/upload')
+      .send({ cropArea: { x: 1, y: 2, width: 100, height: 120 } })
+      .expect(200);
+
+    expect(response.body).toEqual(payload);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    const proxyRequest = mocks.fetchLearningOsProxy.mock.calls[0][0];
+    expect(proxyRequest).toMatchObject({
+      upstreamUrl: new URL(
+        'http://learning-os.test/api/convolab/admin/avatars/speaker/JA-FEMALE-CASUAL.PNG/upload'
+      ),
+      method: 'POST',
+    });
+    expect(proxyRequest.body).toBeUndefined();
+    expect(proxyRequest.rawBody).toBeInstanceOf(FormData);
+    expect(proxyRequest.rawBody.get('cropArea')).toBe(
+      JSON.stringify({ x: 1, y: 2, width: 100, height: 120 })
+    );
+    expect(await (proxyRequest.rawBody.get('image') as Blob).text()).toBe('avatar-bytes');
+    expect(mocks.speakerAvatarDeleteMany).toHaveBeenCalledWith({
+      where: {
+        language: 'ja',
+        gender: 'female',
+        tone: 'casual',
+        filename: { not: payload.filename },
+      },
+    });
+    expect(mocks.speakerAvatarUpsert).toHaveBeenCalledWith({
+      where: { filename: payload.filename },
+      create: {
+        filename: payload.filename,
+        croppedUrl: payload.croppedUrl,
+        originalUrl: payload.originalUrl,
+        language: 'ja',
+        gender: 'female',
+        tone: 'casual',
+      },
+      update: {
+        croppedUrl: payload.croppedUrl,
+        originalUrl: payload.originalUrl,
+        language: 'ja',
+        gender: 'female',
+        tone: 'casual',
+      },
+    });
+  });
+
+  it('re-crops a speaker avatar with JSON and preserves the controlled legacy conflict', async () => {
+    const payload = {
+      message: 'Speaker avatar re-cropped successfully',
+      filename: 'ja-female-casual.jpg',
+      croppedUrl: 'https://storage.example/cropped-new.jpg',
+      originalUrl: 'https://storage.example/original.jpg',
+    };
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson(payload))
+      .mockResolvedValueOnce(
+        upstreamJson(
+          { message: 'Speaker avatar must be uploaded before it can be re-cropped' },
+          409
+        )
+      );
+
+    await request(app)
+      .post('/avatars/speaker/ja-female-casual.jpg/recrop')
+      .send({ cropArea: { x: 1, y: 2, width: 100, height: 120 } })
+      .expect(200, payload);
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        method: 'POST',
+        body: { cropArea: { x: 1, y: 2, width: 100, height: 120 } },
+      })
+    );
+
+    const conflict = await request(app)
+      .post('/avatars/speaker/ja-female-casual.jpg/recrop')
+      .send({ cropArea: { x: 1, y: 2, width: 100, height: 120 } })
+      .expect(409);
+    expect(conflict.body.error.message).toBe(
+      'Speaker avatar must be uploaded before it can be re-cropped'
+    );
+    expect(mocks.speakerAvatarUpsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('uploads a user avatar and mirrors the URL only when a legacy row exists', async () => {
+    const payload = {
+      message: 'User avatar uploaded successfully',
+      avatarUrl: 'https://storage.example/user-avatar.jpg',
+    };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
+    mocks.userUpdateMany.mockResolvedValue({ count: 0 });
+
+    await request(app)
+      .post(`/avatars/user/${INVITE_ID}/upload`)
+      .send({ cropArea: JSON.stringify({ x: 0, y: 0, width: 80, height: 80 }) })
+      .expect(200, payload);
+
+    expect(mocks.userUpdateMany).toHaveBeenCalledWith({
+      where: { id: INVITE_ID },
+      data: { avatarUrl: payload.avatarUrl },
+    });
+  });
+
+  it.each([
+    { message: 'Speaker avatar uploaded successfully', filename: 'JA-FEMALE-CASUAL.PNG' },
+    {
+      message: 'Speaker avatar uploaded successfully',
+      filename: 'ja-female-casual.png',
+      croppedUrl: 'javascript:alert(1)',
+      originalUrl: 'https://storage.example/original.png',
+    },
+  ])('rejects malformed avatar mutation responses without mirroring them', async (payload) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
+
+    await request(app)
+      .post('/avatars/speaker/JA-FEMALE-CASUAL.PNG/upload')
+      .send({ cropArea: { x: 1, y: 2, width: 100, height: 120 } })
+      .expect(502);
+
+    expect(mocks.speakerAvatarUpsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid crop areas locally before contacting Learning OS', async () => {
+    const response = await request(app)
+      .post('/avatars/speaker/ja-female-casual.jpg/recrop')
+      .send({ cropArea: { x: 0, y: 0, width: 0, height: 100 } })
+      .expect(400);
+
+    expect(response.body.error.message).toBe('Invalid crop area');
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('returns a consistency error when the local avatar mirror fails after canonical success', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({
+        message: 'User avatar uploaded successfully',
+        avatarUrl: 'https://storage.example/user-avatar.jpg',
+      })
+    );
+    mocks.userUpdateMany.mockRejectedValue(new Error('database unavailable'));
+
+    const response = await request(app)
+      .post(`/avatars/user/${INVITE_ID}/upload`)
+      .send({ cropArea: { x: 0, y: 0, width: 80, height: 80 } })
+      .expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Admin API request failed.');
   });
 
   it('proxies the canonical pronunciation dictionary without local fallback', async () => {

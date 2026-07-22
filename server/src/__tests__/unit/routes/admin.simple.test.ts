@@ -45,6 +45,9 @@ const mockAdminHandlers = vi.hoisted(() => ({
   showSpeakerAvatarOriginal: vi.fn(),
   showStats: vi.fn(),
   showUser: vi.fn(),
+  recropSpeakerAvatar: vi.fn(),
+  uploadSpeakerAvatar: vi.fn(),
+  uploadUserAvatar: vi.fn(),
   updatePronunciationDictionary: vi.fn(),
 }));
 
@@ -81,6 +84,9 @@ vi.mock('../../../routes/learningOs/admin.js', () => ({
   showLearningOsAdminSpeakerAvatarOriginal: mockAdminHandlers.showSpeakerAvatarOriginal,
   showLearningOsAdminStats: mockAdminHandlers.showStats,
   showLearningOsAdminUser: mockAdminHandlers.showUser,
+  recropLearningOsAdminSpeakerAvatar: mockAdminHandlers.recropSpeakerAvatar,
+  uploadLearningOsAdminSpeakerAvatar: mockAdminHandlers.uploadSpeakerAvatar,
+  uploadLearningOsAdminUserAvatar: mockAdminHandlers.uploadUserAvatar,
   updateLearningOsAdminPronunciationDictionary: mockAdminHandlers.updatePronunciationDictionary,
 }));
 
@@ -102,15 +108,6 @@ vi.mock('../../../middleware/auth.js', () => ({
 // Mock role auth middleware
 vi.mock('../../../middleware/roleAuth.js', () => ({
   requireAdmin: (_req: Request, _res: Response, next: NextFunction) => next(),
-}));
-
-// Mock avatar service
-vi.mock('../../../services/avatarService.js', () => ({
-  uploadUserAvatar: vi.fn(),
-  uploadSpeakerAvatar: vi.fn(),
-  recropSpeakerAvatar: vi.fn(),
-  getSpeakerAvatarOriginalUrl: vi.fn(),
-  getAllSpeakerAvatars: vi.fn(),
 }));
 
 vi.mock('../../../services/japanesePronunciationOverrides.js', () => ({

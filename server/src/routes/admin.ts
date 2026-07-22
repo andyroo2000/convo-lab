@@ -2,15 +2,8 @@
 import { Router } from 'express';
 import multer from 'multer';
 
-import { prisma } from '../db/client.js';
-import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { requireAuth } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
-import {
-  uploadUserAvatar,
-  uploadSpeakerAvatar,
-  recropSpeakerAvatar,
-} from '../services/avatarService.js';
 
 import {
   createLearningOsAdminInviteCode,
@@ -23,6 +16,9 @@ import {
   showLearningOsAdminSpeakerAvatarOriginal,
   showLearningOsAdminStats,
   showLearningOsAdminUser,
+  recropLearningOsAdminSpeakerAvatar,
+  uploadLearningOsAdminSpeakerAvatar,
+  uploadLearningOsAdminUserAvatar,
   updateLearningOsAdminPronunciationDictionary,
 } from './learningOs/admin.js';
 
@@ -79,83 +75,11 @@ router.get('/avatars/speaker/:filename/original', showLearningOsAdminSpeakerAvat
 router.post(
   '/avatars/speaker/:filename/upload',
   upload.single('image'),
-  async (req: AuthRequest, res, next) => {
-    try {
-      const { filename } = req.params;
-
-      // Validate filename format
-      if (!/^ja-(male|female)-(casual|polite|formal)\.jpg$/i.test(filename)) {
-        throw new AppError('Invalid avatar filename format', 400);
-      }
-
-      if (!req.file) {
-        throw new AppError('No image file provided', 400);
-      }
-
-      // Parse crop area from request body
-      const cropArea = JSON.parse(req.body.cropArea);
-      if (
-        !cropArea ||
-        typeof cropArea.x !== 'number' ||
-        typeof cropArea.y !== 'number' ||
-        typeof cropArea.width !== 'number' ||
-        typeof cropArea.height !== 'number'
-      ) {
-        throw new AppError('Invalid crop area', 400);
-      }
-
-      const { croppedUrl, originalUrl } = await uploadSpeakerAvatar(
-        filename,
-        req.file.buffer,
-        cropArea
-      );
-
-      res.json({
-        message: 'Speaker avatar uploaded successfully',
-        filename,
-        croppedUrl,
-        originalUrl,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  uploadLearningOsAdminSpeakerAvatar
 );
 
 // Re-crop existing speaker avatar
-router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, next) => {
-  try {
-    const { filename } = req.params;
-
-    // Validate filename format
-    if (!/^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
-      throw new AppError('Invalid avatar filename format', 400);
-    }
-
-    // Parse crop area from request body
-    const { cropArea } = req.body;
-    if (
-      !cropArea ||
-      typeof cropArea.x !== 'number' ||
-      typeof cropArea.y !== 'number' ||
-      typeof cropArea.width !== 'number' ||
-      typeof cropArea.height !== 'number'
-    ) {
-      throw new AppError('Invalid crop area', 400);
-    }
-
-    const { croppedUrl, originalUrl } = await recropSpeakerAvatar(filename, cropArea);
-
-    res.json({
-      message: 'Speaker avatar re-cropped successfully',
-      filename,
-      croppedUrl,
-      originalUrl,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+router.post('/avatars/speaker/:filename/recrop', recropLearningOsAdminSpeakerAvatar);
 
 // Get all speaker avatars
 router.get('/avatars/speakers', listLearningOsAdminSpeakerAvatars);
@@ -164,43 +88,7 @@ router.get('/avatars/speakers', listLearningOsAdminSpeakerAvatars);
 router.post(
   '/avatars/user/:userId/upload',
   upload.single('image'),
-  async (req: AuthRequest, res, next) => {
-    try {
-      const { userId } = req.params;
-
-      // Verify user exists
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-
-      if (!user) {
-        throw new AppError('User not found', 404);
-      }
-
-      if (!req.file) {
-        throw new AppError('No image file provided', 400);
-      }
-
-      // Parse crop area from request body
-      const cropArea = JSON.parse(req.body.cropArea);
-      if (
-        !cropArea ||
-        typeof cropArea.x !== 'number' ||
-        typeof cropArea.y !== 'number' ||
-        typeof cropArea.width !== 'number' ||
-        typeof cropArea.height !== 'number'
-      ) {
-        throw new AppError('Invalid crop area', 400);
-      }
-
-      const avatarUrl = await uploadUserAvatar(userId, req.file.buffer, cropArea);
-
-      res.json({ message: 'User avatar uploaded successfully', avatarUrl });
-    } catch (error) {
-      next(error);
-    }
-  }
+  uploadLearningOsAdminUserAvatar
 );
 
 // ============================================
