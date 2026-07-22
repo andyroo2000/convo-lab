@@ -28,6 +28,7 @@ interface LearningOsProxyRequest {
   user: LearningOsProxyUser;
   method: string;
   body?: unknown;
+  rawBody?: RequestInit['body'];
   additionalHeaders?: Readonly<Record<string, string>>;
   timeoutMs: number;
   timeoutMessage: string;
@@ -179,11 +180,16 @@ export async function fetchLearningOsProxy({
   user,
   method,
   body,
+  rawBody,
   additionalHeaders,
   timeoutMs,
   timeoutMessage,
   networkErrorMessage,
 }: LearningOsProxyRequest): Promise<Response> {
+  if (body !== undefined && rawBody !== undefined) {
+    throw new Error('Learning OS proxy requests cannot include both JSON and raw bodies.');
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const headers = learningOsProxyHeaders(apiToken, user, additionalHeaders);
@@ -197,7 +203,11 @@ export async function fetchLearningOsProxy({
       method,
       signal: controller.signal,
       headers,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(body !== undefined
+        ? { body: JSON.stringify(body) }
+        : rawBody === undefined
+          ? {}
+          : { body: rawBody }),
     });
   } catch (error) {
     if (controller.signal.aborted) {

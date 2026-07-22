@@ -51,6 +51,9 @@ const mockAdminMutations = vi.hoisted(() => ({
   createInviteCode: vi.fn(),
   deleteInviteCode: vi.fn(),
   deleteUser: vi.fn(),
+  recropSpeakerAvatar: vi.fn(),
+  uploadSpeakerAvatar: vi.fn(),
+  uploadUserAvatar: vi.fn(),
   updatePronunciationDictionary: vi.fn(),
 }));
 
@@ -68,6 +71,9 @@ vi.mock('../../../routes/learningOs/admin.js', () => ({
   showLearningOsAdminSpeakerAvatarOriginal: mockAdminReads.showSpeakerAvatarOriginal,
   showLearningOsAdminStats: mockAdminReads.showStats,
   showLearningOsAdminUser: mockAdminReads.showUser,
+  recropLearningOsAdminSpeakerAvatar: mockAdminMutations.recropSpeakerAvatar,
+  uploadLearningOsAdminSpeakerAvatar: mockAdminMutations.uploadSpeakerAvatar,
+  uploadLearningOsAdminUserAvatar: mockAdminMutations.uploadUserAvatar,
   updateLearningOsAdminPronunciationDictionary: mockAdminMutations.updatePronunciationDictionary,
 }));
 

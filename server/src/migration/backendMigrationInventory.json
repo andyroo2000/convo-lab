@@ -333,12 +333,14 @@
         {
           "id": "admin.speaker-avatars.upload",
           "method": "POST",
-          "path": "/api/admin/avatars/speaker/:filename/upload"
+          "path": "/api/admin/avatars/speaker/:filename/upload",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin.speaker-avatars.recrop",
           "method": "POST",
-          "path": "/api/admin/avatars/speaker/:filename/recrop"
+          "path": "/api/admin/avatars/speaker/:filename/recrop",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin.speaker-avatars.index",
@@ -349,7 +351,8 @@
         {
           "id": "admin.user-avatars.upload",
           "method": "POST",
-          "path": "/api/admin/avatars/user/:userId/upload"
+          "path": "/api/admin/avatars/user/:userId/upload",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin.pronunciation-dictionaries.show",

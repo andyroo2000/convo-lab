@@ -177,6 +177,9 @@ describe('backend migration inventory', () => {
       ['DELETE', '/api/admin/users/11111111-1111-4111-8111-111111111111'],
       ['POST', '/api/admin/invite-codes'],
       ['DELETE', '/api/admin/invite-codes/22222222-2222-4222-8222-222222222222'],
+      ['POST', '/api/admin/avatars/speaker/ja-female-casual.jpg/upload'],
+      ['POST', '/api/admin/avatars/speaker/ja-female-casual.jpg/recrop'],
+      ['POST', '/api/admin/avatars/user/11111111-1111-4111-8111-111111111111/upload'],
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
         surface: { id: 'admin', runtimeOwner: 'learning-os-proxy' },

@@ -12,6 +12,7 @@ import {
 
 const API_LABEL = 'Learning OS Admin API';
 const FETCH_TIMEOUT_MS = 10_000;
+const AVATAR_WRITE_TIMEOUT_MS = 30_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const USER_LIST_QUERY_PARAMS = ['page', 'limit', 'search'] as const;
 const INVITE_LIST_QUERY_PARAMS = ['page', 'limit'] as const;
@@ -39,6 +40,18 @@ type PaginationMetadata = {
   total: number;
   pages: number;
 };
+type AvatarCropArea = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+type SpeakerAvatarMutation = {
+  message: string;
+  filename: string;
+  croppedUrl: string;
+  originalUrl: string;
+};
 
 const isRecord = (value: unknown): value is JsonRecord =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -49,6 +62,19 @@ const isNonEmptyString = (value: unknown): value is string => isString(value) &&
 
 const isNullableString = (value: unknown): value is string | null =>
   value === null || isString(value);
+
+const isHttpUrl = (value: unknown): value is string => {
+  if (!isNonEmptyString(value)) return false;
+
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === 'https:' || url.protocol === 'http:') && !url.username && !url.password
+    );
+  } catch {
+    return false;
+  }
+};
 
 const isUuid = (value: unknown): value is string => isString(value) && UUID_PATTERN.test(value);
 
@@ -100,6 +126,69 @@ const isSpeakerAvatar = (value: unknown): value is JsonRecord =>
 
 const isSpeakerAvatarOriginal = (value: unknown): value is { originalUrl: string } =>
   isRecord(value) && isNonEmptyString(value.originalUrl) && Object.keys(value).length === 1;
+
+const isSpeakerAvatarMutation = (
+  value: unknown,
+  expectedMessage: string,
+  requestedFilename: string
+): value is SpeakerAvatarMutation =>
+  isRecord(value) &&
+  Object.keys(value).length === 4 &&
+  value.message === expectedMessage &&
+  value.filename === requestedFilename.toLowerCase() &&
+  SPEAKER_AVATAR_FILENAME_PATTERN.test(value.filename) &&
+  isHttpUrl(value.croppedUrl) &&
+  isHttpUrl(value.originalUrl);
+
+const isUserAvatarMutation = (
+  value: unknown
+): value is { message: 'User avatar uploaded successfully'; avatarUrl: string } =>
+  isRecord(value) &&
+  Object.keys(value).length === 2 &&
+  value.message === 'User avatar uploaded successfully' &&
+  isHttpUrl(value.avatarUrl);
+
+const parseCropArea = (value: unknown): AvatarCropArea => {
+  let candidate = value;
+  if (typeof candidate === 'string') {
+    try {
+      candidate = JSON.parse(candidate) as unknown;
+    } catch {
+      throw new AppError('Invalid crop area', 400);
+    }
+  }
+
+  if (!isRecord(candidate)) throw new AppError('Invalid crop area', 400);
+  const cropArea = candidate as Partial<AvatarCropArea>;
+  if (
+    ![cropArea.x, cropArea.y, cropArea.width, cropArea.height].every(
+      (coordinate) => typeof coordinate === 'number' && Number.isFinite(coordinate)
+    ) ||
+    (cropArea.width as number) <= 0 ||
+    (cropArea.height as number) <= 0
+  ) {
+    throw new AppError('Invalid crop area', 400);
+  }
+
+  return cropArea as AvatarCropArea;
+};
+
+const avatarFormData = (
+  file: Express.Multer.File | undefined,
+  cropArea: AvatarCropArea
+): FormData => {
+  if (!file) throw new AppError('No image file provided', 400);
+
+  const form = new FormData();
+  form.set('cropArea', JSON.stringify(cropArea));
+  form.set(
+    'image',
+    new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }),
+    file.originalname
+  );
+
+  return form;
+};
 
 const isAdminStats = (value: unknown): value is JsonRecord => {
   if (!isRecord(value) || !isRecord(value.inviteCodes)) return false;
@@ -311,6 +400,13 @@ const mutationError = (response: globalThis.Response, payload: unknown): AppErro
     ['Cannot delete used invite codes', 400],
     ['Invite code not found', 404],
     ['Unable to generate invite code', 503],
+    ['Invalid avatar filename format', 400],
+    ['No image file provided', 400],
+    ['Invalid crop area', 400],
+    ['Invalid image file', 400],
+    ['Speaker avatar not found', 404],
+    ['Speaker avatar changed while it was being re-cropped', 409],
+    ['Speaker avatar must be uploaded before it can be re-cropped', 409],
   ]);
   if (message !== null && allowed.get(message) === response.status) {
     return new AppError(message, response.status);
@@ -339,7 +435,8 @@ async function fetchAdminMutation(
   req: AuthRequest,
   path: string,
   method: 'POST' | 'PUT' | 'DELETE',
-  body?: unknown
+  body?: unknown,
+  timeoutMs = FETCH_TIMEOUT_MS
 ): Promise<{ payload: unknown; response: globalThis.Response }> {
   if (!req.userId) throw new AppError('Authentication required', 401);
 
@@ -355,7 +452,7 @@ async function fetchAdminMutation(
     user,
     method,
     ...(body === undefined ? {} : { body }),
-    timeoutMs: FETCH_TIMEOUT_MS,
+    timeoutMs,
     timeoutMessage: `${API_LABEL} request timed out.`,
     networkErrorMessage: `${API_LABEL} is unavailable.`,
   });
@@ -368,6 +465,79 @@ async function fetchAdminMutation(
   }
 
   return { payload, response };
+}
+
+async function fetchAdminMultipartMutation(
+  req: AuthRequest,
+  path: string,
+  form: FormData
+): Promise<{ payload: unknown; response: globalThis.Response }> {
+  if (!req.userId) throw new AppError('Authentication required', 401);
+
+  const { config, user } = await resolveLearningOsUserProxyContext(req.userId, API_LABEL, {
+    userId: req.userId,
+    email: req.email,
+    role: req.role,
+    accountSource: req.accountSource,
+  });
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/admin${path}`),
+    apiToken: config.apiToken,
+    user,
+    method: 'POST',
+    rawBody: form,
+    timeoutMs: AVATAR_WRITE_TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  try {
+    return { payload: await response.json(), response };
+  } catch {
+    throw invalidResponse();
+  }
+}
+
+const speakerAvatarMetadata = (filename: string) => {
+  const [language, gender, tone] = filename.replace(/\.(jpg|jpeg|png|webp)$/i, '').split('-');
+  return { language, gender, tone };
+};
+
+async function mirrorSpeakerAvatar(payload: SpeakerAvatarMutation): Promise<void> {
+  const { language, gender, tone } = speakerAvatarMetadata(payload.filename);
+  try {
+    await prisma.$transaction(async (transaction) => {
+      await transaction.speakerAvatar.deleteMany({
+        where: {
+          language,
+          gender,
+          tone,
+          filename: { not: payload.filename },
+        },
+      });
+      await transaction.speakerAvatar.upsert({
+        where: { filename: payload.filename },
+        create: {
+          filename: payload.filename,
+          croppedUrl: payload.croppedUrl,
+          originalUrl: payload.originalUrl,
+          language,
+          gender,
+          tone,
+        },
+        update: {
+          croppedUrl: payload.croppedUrl,
+          originalUrl: payload.originalUrl,
+          language,
+          gender,
+          tone,
+        },
+      });
+    });
+  } catch (error) {
+    console.error('Unable to mirror Learning OS speaker avatar locally:', error);
+    throw new AppError(`${API_LABEL} request failed.`, 502);
+  }
 }
 
 async function rollbackCreatedInvite(req: AuthRequest, inviteId: string): Promise<void> {
@@ -645,6 +815,104 @@ export async function showLearningOsAdminSpeakerAvatarOriginal(
       `/avatars/speaker/${encodeURIComponent(filename)}/original`
     );
     if (!isSpeakerAvatarOriginal(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function uploadLearningOsAdminSpeakerAvatar(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { filename } = req.params;
+    if (!SPEAKER_AVATAR_FILENAME_PATTERN.test(filename)) {
+      throw new AppError('Invalid avatar filename format', 400);
+    }
+
+    const cropArea = parseCropArea(req.body?.cropArea);
+    const form = avatarFormData(req.file, cropArea);
+    const { payload, response } = await fetchAdminMultipartMutation(
+      req,
+      `/avatars/speaker/${encodeURIComponent(filename)}/upload`,
+      form
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isSpeakerAvatarMutation(payload, 'Speaker avatar uploaded successfully', filename)) {
+      throw invalidResponse();
+    }
+
+    await mirrorSpeakerAvatar(payload);
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function recropLearningOsAdminSpeakerAvatar(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { filename } = req.params;
+    if (!SPEAKER_AVATAR_FILENAME_PATTERN.test(filename)) {
+      throw new AppError('Invalid avatar filename format', 400);
+    }
+
+    const cropArea = parseCropArea(req.body?.cropArea);
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/avatars/speaker/${encodeURIComponent(filename)}/recrop`,
+      'POST',
+      { cropArea },
+      AVATAR_WRITE_TIMEOUT_MS
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isSpeakerAvatarMutation(payload, 'Speaker avatar re-cropped successfully', filename)) {
+      throw invalidResponse();
+    }
+
+    await mirrorSpeakerAvatar(payload);
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function uploadLearningOsAdminUserAvatar(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { userId } = req.params;
+    if (!isUuid(userId)) throw new AppError('User not found', 404);
+
+    const cropArea = parseCropArea(req.body?.cropArea);
+    const form = avatarFormData(req.file, cropArea);
+    const { payload, response } = await fetchAdminMultipartMutation(
+      req,
+      `/avatars/user/${encodeURIComponent(userId)}/upload`,
+      form
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isUserAvatarMutation(payload)) throw invalidResponse();
+
+    try {
+      // Learning OS is canonical. Existing Express consumers only need a best-effort local row
+      // when one still exists; Learning OS-only accounts intentionally have no Prisma mirror.
+      await prisma.user.updateMany({
+        where: { id: userId },
+        data: { avatarUrl: payload.avatarUrl },
+      });
+    } catch (error) {
+      console.error('Unable to mirror Learning OS user avatar locally:', error);
+      throw new AppError(`${API_LABEL} request failed.`, 502);
+    }
 
     res.set('Cache-Control', 'private, no-store').json(payload);
   } catch (error) {
