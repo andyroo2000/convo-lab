@@ -425,6 +425,8 @@ jobs:
               mail_from_name="ConvoLab"
             fi
 
+            desired_deploy_config_revision="password-reset-url-v2"
+            upsert_env LEARNING_OS_DEPLOY_CONFIG_REVISION "$desired_deploy_config_revision"
             upsert_env LEARNING_OS_MAIL_FROM_ADDRESS "$mail_from_address"
             upsert_env LEARNING_OS_MAIL_FROM_NAME "$mail_from_name"
             auth_mail_config_revision="$(printf '%s\0%s\0%s\0%s\0%s' \
@@ -661,7 +663,7 @@ jobs:
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
                 && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ] \
-                && [ "$current_config_revision" = "auth-mail-v1" ] \
+                && [ "$current_config_revision" = "$desired_deploy_config_revision" ] \
                 && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
@@ -689,7 +691,7 @@ jobs:
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
-                && [ "$current_config_revision" = "auth-mail-v1" ] \
+                && [ "$current_config_revision" = "$desired_deploy_config_revision" ] \
                 && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ] \
                 && [[ " $current_command " == *" $desired_queue_argument "* ]]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
