@@ -33,7 +33,10 @@ import {
   showLearningOsAdminCoursePipeline,
   showLearningOsAdminScriptLabCourse,
   streamLearningOsAdminCourseLineRendering,
+  streamLearningOsAdminScriptLabAudio,
   synthesizeLearningOsAdminCourseLine,
+  synthesizeLearningOsAdminScriptLabLine,
+  testLearningOsAdminPronunciation,
   uploadLearningOsAdminSpeakerAvatar,
   uploadLearningOsAdminUserAvatar,
   updateLearningOsAdminCoursePipeline,
@@ -232,6 +235,13 @@ const sentenceTestCursor = Buffer.from(
   `2026-07-22 12:00:00.123|${SENTENCE_TEST_ID}`,
   'utf8'
 ).toString('base64url');
+const pronunciationTest = {
+  preprocessedText: 'とうきょう',
+  audioUrl: `/api/convolab/admin/script-lab/audio/${RENDERING_ID}`,
+  durationSeconds: 2.4,
+  format: 'kana',
+  originalText: '東京',
+};
 
 const upstreamJson = (
   body: unknown,
@@ -301,6 +311,9 @@ describe('Learning OS admin proxy', () => {
     app.get('/script-lab/sentence-tests', listLearningOsAdminSentenceScriptTests);
     app.get('/script-lab/sentence-tests/:id', showLearningOsAdminSentenceScriptTest);
     app.delete('/script-lab/sentence-tests', deleteLearningOsAdminSentenceScriptTests);
+    app.post('/script-lab/test-pronunciation', testLearningOsAdminPronunciation);
+    app.post('/script-lab/synthesize-line', synthesizeLearningOsAdminScriptLabLine);
+    app.get('/script-lab/audio/:renderingId', streamLearningOsAdminScriptLabAudio);
     app.post('/courses/:id/build-prompt', buildLearningOsAdminCoursePrompt);
     app.post('/courses/:id/build-script-config', buildLearningOsAdminCourseScriptConfig);
     app.post('/courses/:id/generate-dialogue', generateLearningOsAdminCourseDialogue);
@@ -745,6 +758,261 @@ describe('Learning OS admin proxy', () => {
       'Sentence script generation is temporarily unavailable'
     );
     expect(hidden.body.error.message).toBe('Learning OS Admin API request failed.');
+  });
+
+  it('proxies Script Lab pronunciation and line synthesis with stable public audio URLs', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson(pronunciationTest))
+      .mockResolvedValueOnce(
+        upstreamJson({
+          audioUrl: `/api/convolab/admin/script-lab/audio/${RENDERING_ID}`,
+        })
+      );
+
+    const pronunciation = await request(app)
+      .post('/script-lab/test-pronunciation')
+      .send({
+        text: '  東京  ',
+        format: ' KANA ',
+        voiceId: FISH_VOICE_ID.toUpperCase(),
+        speed: 0.8,
+        ignored: 'drop me',
+      })
+      .expect(200, {
+        ...pronunciationTest,
+        audioUrl: `/api/admin/script-lab/audio/${RENDERING_ID}`,
+      });
+    const synthesis = await request(app)
+      .post('/script-lab/synthesize-line')
+      .send({
+        text: '  日本語です。  ',
+        voiceId: FISH_VOICE_ID.toUpperCase(),
+        ignored: 'drop me',
+      })
+      .expect(200, {
+        audioUrl: `/api/admin/script-lab/audio/${RENDERING_ID}`,
+      });
+
+    expect(pronunciation.headers['cache-control']).toBe('private, no-store');
+    expect(synthesis.headers['cache-control']).toBe('private, no-store');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          'http://learning-os.test/api/convolab/admin/script-lab/test-pronunciation'
+        ),
+        method: 'POST',
+        body: { text: '東京', format: 'kana', voiceId: FISH_VOICE_ID, speed: 0.8 },
+        timeoutMs: 190_000,
+      })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          'http://learning-os.test/api/convolab/admin/script-lab/synthesize-line'
+        ),
+        method: 'POST',
+        body: { text: '日本語です。', voiceId: FISH_VOICE_ID, speed: 1 },
+        timeoutMs: 120_000,
+      })
+    );
+  });
+
+  it('streams actor-scoped Script Lab audio with safe headers and byte ranges', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      new globalThis.Response('script-lab-mp3', {
+        status: 206,
+        headers: {
+          'Accept-Ranges': 'bytes',
+          'Content-Length': '14',
+          'Content-Range': 'bytes 0-13/14',
+          'Content-Type': 'audio/mpeg',
+          'X-Upstream-Secret': 'do-not-forward',
+        },
+      })
+    );
+
+    const response = await request(app)
+      .get(`/script-lab/audio/${RENDERING_ID.toUpperCase()}`)
+      .set('Range', 'bytes=0-13')
+      .expect(206);
+
+    expect(response.body.toString()).toBe('script-lab-mp3');
+    expect(response.headers['content-type']).toBe('audio/mpeg');
+    expect(response.headers['content-range']).toBe('bytes 0-13/14');
+    expect(response.headers['content-security-policy']).toBe("sandbox; default-src 'none'");
+    expect(response.headers['x-upstream-secret']).toBeUndefined();
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          `http://learning-os.test/api/convolab/admin/script-lab/audio/${RENDERING_ID}`
+        ),
+        method: 'GET',
+        additionalHeaders: { Accept: 'audio/mpeg', Range: 'bytes=0-13' },
+        timeoutMs: 10_000,
+      })
+    );
+  });
+
+  it.each([
+    [
+      '/script-lab/test-pronunciation',
+      { text: '', format: 'kana', voiceId: FISH_VOICE_ID },
+      'text, format, and voiceId are required',
+    ],
+    [
+      '/script-lab/test-pronunciation',
+      { text: '東京', format: 'romaji', voiceId: FISH_VOICE_ID },
+      'Invalid format',
+    ],
+    [
+      '/script-lab/test-pronunciation',
+      { text: '東京', format: 'kana', voiceId: 'fishaudio:bad' },
+      'Only Fish Audio voices',
+    ],
+    [
+      '/script-lab/test-pronunciation',
+      { text: '東京', format: 'kana', voiceId: FISH_VOICE_ID, speed: 0 },
+      'speed must be',
+    ],
+    [
+      '/script-lab/synthesize-line',
+      { text: '', voiceId: FISH_VOICE_ID },
+      'text and voiceId are required',
+    ],
+    [
+      '/script-lab/synthesize-line',
+      { text: 'Line', voiceId: 'elevenlabs:voice' },
+      'Only Fish Audio voices',
+    ],
+    [
+      '/script-lab/synthesize-line',
+      { text: 'Line', voiceId: FISH_VOICE_ID, speed: 3 },
+      'speed must be',
+    ],
+  ])('rejects invalid Script Lab audio input locally: %s', async (path, body, message) => {
+    const response = await request(app).post(path).send(body).expect(400);
+
+    expect(response.body.error.message).toContain(message);
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('enforces Unicode text boundaries before Script Lab provider spend', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(
+        upstreamJson({
+          audioUrl: `/api/convolab/admin/script-lab/audio/${RENDERING_ID}`,
+        })
+      )
+      .mockResolvedValueOnce(
+        upstreamJson({
+          ...pronunciationTest,
+          preprocessedText: 'a',
+          originalText: '😀'.repeat(15_000),
+        })
+      );
+
+    await request(app)
+      .post('/script-lab/synthesize-line')
+      .send({ text: '😀'.repeat(15_000), voiceId: FISH_VOICE_ID, speed: 0.5 })
+      .expect(200);
+    await request(app)
+      .post('/script-lab/test-pronunciation')
+      .send({
+        text: '😀'.repeat(15_000),
+        format: 'kana',
+        voiceId: FISH_VOICE_ID,
+        speed: 2,
+      })
+      .expect(200);
+    await request(app)
+      .post('/script-lab/synthesize-line')
+      .send({ text: '😀'.repeat(15_001), voiceId: FISH_VOICE_ID })
+      .expect(400);
+    await request(app)
+      .post('/script-lab/test-pronunciation')
+      .send({ text: '😀'.repeat(15_001), format: 'kana', voiceId: FISH_VOICE_ID })
+      .expect(400);
+
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [
+      '/script-lab/test-pronunciation',
+      { ...pronunciationTest, audioUrl: `https://storage.example/${RENDERING_ID}.mp3` },
+      { text: '東京', format: 'kana', voiceId: FISH_VOICE_ID },
+    ],
+    [
+      '/script-lab/test-pronunciation',
+      { ...pronunciationTest, durationSeconds: Number.POSITIVE_INFINITY },
+      { text: '東京', format: 'kana', voiceId: FISH_VOICE_ID },
+    ],
+    [
+      '/script-lab/test-pronunciation',
+      { ...pronunciationTest, originalText: '大阪' },
+      { text: '東京', format: 'kana', voiceId: FISH_VOICE_ID },
+    ],
+    [
+      '/script-lab/synthesize-line',
+      { audioUrl: `/api/convolab/admin/script-lab/audio/${RENDERING_ID}`, extra: true },
+      { text: 'Line', voiceId: FISH_VOICE_ID },
+    ],
+  ])('rejects malformed successful Script Lab audio responses: %s', async (path, payload, body) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
+
+    const response = await request(app).post(path).send(body).expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Admin API returned an invalid response.');
+  });
+
+  it('preserves safe Script Lab provider errors and masks stream failures', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(
+        upstreamJson({ message: 'Pronunciation test is temporarily unavailable' }, 503)
+      )
+      .mockResolvedValueOnce(
+        upstreamJson({ message: 'Line synthesis is temporarily unavailable' }, 503)
+      )
+      .mockResolvedValueOnce(upstreamJson({ message: 'private storage detail' }, 404))
+      .mockResolvedValueOnce(upstreamJson({ message: 'private storage detail' }, 500));
+
+    const pronunciation = await request(app)
+      .post('/script-lab/test-pronunciation')
+      .send({ text: '東京', format: 'kana', voiceId: FISH_VOICE_ID })
+      .expect(503);
+    const synthesis = await request(app)
+      .post('/script-lab/synthesize-line')
+      .send({ text: '東京', voiceId: FISH_VOICE_ID })
+      .expect(503);
+    const missing = await request(app).get(`/script-lab/audio/${RENDERING_ID}`).expect(404);
+    const failure = await request(app).get(`/script-lab/audio/${RENDERING_ID}`).expect(502);
+
+    expect(pronunciation.body.error.message).toBe('Pronunciation test is temporarily unavailable');
+    expect(synthesis.body.error.message).toBe('Line synthesis is temporarily unavailable');
+    expect(missing.body.error.message).toBe('Rendering not found');
+    expect(failure.body.error.message).toBe('Learning OS Admin API request failed.');
+    expect(JSON.stringify(failure.body)).not.toContain('private storage detail');
+  });
+
+  it('rejects malformed Script Lab audio IDs, ranges, and media types', async () => {
+    const badId = await request(app).get('/script-lab/audio/not-a-uuid').expect(404);
+    const badRange = await request(app)
+      .get(`/script-lab/audio/${RENDERING_ID}`)
+      .set('Range', 'bytes=0-1,3-4')
+      .expect(400);
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      new globalThis.Response('html', { status: 200, headers: { 'Content-Type': 'text/html' } })
+    );
+    const invalidMedia = await request(app).get(`/script-lab/audio/${RENDERING_ID}`).expect(502);
+
+    expect(badId.body.error.message).toBe('Rendering not found');
+    expect(badRange.body.error.message).toBe('Invalid Script Lab audio byte range.');
+    expect(invalidMedia.body.error.message).toBe(
+      'Learning OS Admin API returned invalid media headers.'
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledOnce();
   });
 
   it('proxies every admin course workbench operation with its canonical contract', async () => {
