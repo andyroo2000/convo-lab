@@ -611,6 +611,24 @@ describe('Learning OS admin proxy', () => {
     expect(mocks.inviteUpsert).not.toHaveBeenCalled();
   });
 
+  it('logs the canonical invite ID when malformed-create rollback fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      mocks.fetchLearningOsProxy
+        .mockResolvedValueOnce(upstreamJson({ id: INVITE_ID, code: '' }))
+        .mockResolvedValueOnce(upstreamJson({ message: 'rollback failed' }, 500));
+
+      await request(app).post('/invite-codes').send({}).expect(502);
+
+      expect(consoleError).toHaveBeenCalledWith(
+        `Unable to roll back Learning OS admin invite ${INVITE_ID}:`,
+        expect.any(AppError)
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it.each(['short', 'BAD-CODE', ['CUSTOM12']])(
     'rejects malformed custom code %j without calling upstream',
     async (customCode) => {

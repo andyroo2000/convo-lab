@@ -308,13 +308,18 @@ async function fetchAdminMutation(
 }
 
 async function rollbackCreatedInvite(req: AuthRequest, inviteId: string): Promise<void> {
-  const { payload, response } = await fetchAdminMutation(
-    req,
-    `/invite-codes/${inviteId}`,
-    'DELETE'
-  );
-  if (!response.ok || responseMessage(payload) !== 'Invite code deleted successfully') {
-    throw new AppError(`${API_LABEL} request failed.`, 502);
+  try {
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/invite-codes/${inviteId}`,
+      'DELETE'
+    );
+    if (!response.ok || responseMessage(payload) !== 'Invite code deleted successfully') {
+      throw new AppError(`${API_LABEL} request failed.`, 502);
+    }
+  } catch (error) {
+    console.error(`Unable to roll back Learning OS admin invite ${inviteId}:`, error);
+    throw error;
   }
 }
 
@@ -337,12 +342,7 @@ async function mirrorCreatedInvite(req: AuthRequest, payload: CreatedInviteCode)
       },
     });
   } catch (error) {
-    try {
-      await rollbackCreatedInvite(req, payload.id);
-    } catch (rollbackError) {
-      console.error(`Unable to roll back Learning OS admin invite ${payload.id}:`, rollbackError);
-      throw rollbackError;
-    }
+    await rollbackCreatedInvite(req, payload.id);
     if (isPrismaUniqueConstraintError(error)) {
       throw new AppError('This code already exists', 400);
     }
@@ -372,6 +372,7 @@ export async function deleteLearningOsAdminUser(
     }
 
     const cleanup = await prisma.user.deleteMany({ where: { id: req.params.id } });
+    // A canonical 404 plus stale local state is a retry of an already-successful delete.
     if (response.status === 404 && cleanup.count === 0) throw mutationError(response, payload);
 
     res.set('Cache-Control', 'private, no-store').json({ message: 'User deleted successfully' });
@@ -445,6 +446,7 @@ export async function deleteLearningOsAdminInviteCode(
     }
 
     const cleanup = await prisma.inviteCode.deleteMany({ where: { id: req.params.id } });
+    // A canonical 404 plus stale local state is a retry of an already-successful delete.
     if (response.status === 404 && cleanup.count === 0) throw mutationError(response, payload);
 
     res

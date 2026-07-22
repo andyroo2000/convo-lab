@@ -1979,6 +1979,7 @@ jobs:
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                   if (
+                    // This is the compatibility contract of Learning OS generated invite codes.
                     typeof invite?.code !== "string" ||
                     !/^[A-F0-9]{8}$/.test(invite.code) ||
                     invite.usedBy !== null ||
