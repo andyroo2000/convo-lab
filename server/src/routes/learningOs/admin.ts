@@ -1,10 +1,12 @@
 import type { NextFunction, Response } from 'express';
 
+import { prisma } from '../../db/client.js';
 import type { AuthRequest } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import {
   fetchLearningOsProxy,
   resolveLearningOsServiceProxyContext,
+  resolveLearningOsUserProxyContext,
 } from '../../services/learningOsProxy.js';
 
 const API_LABEL = 'Learning OS Admin API';
@@ -20,6 +22,13 @@ const PAGINATION_HEADERS = {
 } as const;
 
 type JsonRecord = Record<string, unknown>;
+type CreatedInviteCode = {
+  id: string;
+  code: string;
+  usedBy: null;
+  usedAt: null;
+  createdAt: string;
+};
 type PaginationMetadata = {
   headers: Record<string, string>;
   page: number;
@@ -221,6 +230,184 @@ const assertInvitePayload = (payload: unknown): JsonRecord[] => {
 
   return payload;
 };
+
+const isCreatedInviteCode = (value: unknown): value is CreatedInviteCode =>
+  isRecord(value) &&
+  isUuid(value.id) &&
+  isNonEmptyString(value.code) &&
+  value.usedBy === null &&
+  value.usedAt === null &&
+  isIsoTimestamp(value.createdAt);
+
+const responseMessage = (payload: unknown): string | null =>
+  isRecord(payload) && isString(payload.message) ? payload.message : null;
+
+const mutationError = (response: globalThis.Response, payload: unknown): AppError => {
+  const message = responseMessage(payload);
+  const allowed = new Map<string, number>([
+    ['Cannot delete your own account', 400],
+    ['Cannot delete admin users', 403],
+    ['User not found', 404],
+    ['This code already exists', 400],
+    ['Cannot delete used invite codes', 400],
+    ['Invite code not found', 404],
+    ['Unable to generate invite code', 503],
+  ]);
+  if (message !== null && allowed.get(message) === response.status) {
+    return new AppError(message, response.status);
+  }
+  if (response.status === 422) {
+    return new AppError('Custom code must be 6-20 alphanumeric characters', 400);
+  }
+  if (response.status === 429) {
+    const retryAfter = response.headers.get('retry-after');
+    const seconds = retryAfter !== null && /^\d{1,4}$/.test(retryAfter) ? Number(retryAfter) : null;
+    const cooldown =
+      seconds !== null && Number.isInteger(seconds) && seconds > 0 && seconds <= 3600
+        ? { cooldown: { remainingSeconds: seconds } }
+        : undefined;
+    return new AppError('Too many admin mutation attempts.', 429, cooldown);
+  }
+
+  return new AppError(`${API_LABEL} request failed.`, 502);
+};
+
+async function fetchAdminMutation(
+  req: AuthRequest,
+  path: string,
+  method: 'POST' | 'DELETE',
+  body?: unknown
+): Promise<{ payload: unknown; response: globalThis.Response }> {
+  if (!req.userId) throw new AppError('Authentication required', 401);
+
+  const { config, user } = await resolveLearningOsUserProxyContext(req.userId, API_LABEL, {
+    userId: req.userId,
+    email: req.email,
+    role: req.role,
+    accountSource: req.accountSource,
+  });
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/admin${path}`),
+    apiToken: config.apiToken,
+    user,
+    method,
+    ...(body === undefined ? {} : { body }),
+    timeoutMs: FETCH_TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw invalidResponse();
+  }
+
+  return { payload, response };
+}
+
+export async function deleteLearningOsAdminUser(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!isUuid(req.params.id)) throw new AppError('User not found', 404);
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/users/${encodeURIComponent(req.params.id)}`,
+      'DELETE'
+    );
+    if (!response.ok && response.status !== 404) throw mutationError(response, payload);
+
+    const cleanup = await prisma.user.deleteMany({ where: { id: req.params.id } });
+    if (response.status === 404 && cleanup.count === 0) throw mutationError(response, payload);
+    if (response.ok && responseMessage(payload) !== 'User deleted successfully') {
+      throw invalidResponse();
+    }
+
+    res.set('Cache-Control', 'private, no-store').json({ message: 'User deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createLearningOsAdminInviteCode(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const customCode = req.body?.customCode;
+    if (
+      customCode !== undefined &&
+      (typeof customCode !== 'string' || !/^[A-Za-z0-9]{6,20}$/.test(customCode))
+    ) {
+      throw new AppError('Custom code must be 6-20 alphanumeric characters', 400);
+    }
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      '/invite-codes',
+      'POST',
+      customCode === undefined ? {} : { customCode }
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isCreatedInviteCode(payload)) throw invalidResponse();
+
+    const invite = await prisma.inviteCode.upsert({
+      where: { id: payload.id },
+      create: {
+        id: payload.id,
+        code: payload.code,
+        usedBy: null,
+        usedAt: null,
+        createdAt: new Date(payload.createdAt),
+      },
+      update: {
+        code: payload.code,
+        usedBy: null,
+        usedAt: null,
+        createdAt: new Date(payload.createdAt),
+      },
+    });
+
+    res.set('Cache-Control', 'private, no-store').json(invite);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteLearningOsAdminInviteCode(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!isUuid(req.params.id)) throw new AppError('Invite code not found', 404);
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/invite-codes/${encodeURIComponent(req.params.id)}`,
+      'DELETE'
+    );
+    if (!response.ok && response.status !== 404) throw mutationError(response, payload);
+
+    const cleanup = await prisma.inviteCode.deleteMany({ where: { id: req.params.id } });
+    if (response.status === 404 && cleanup.count === 0) throw mutationError(response, payload);
+    if (response.ok && responseMessage(payload) !== 'Invite code deleted successfully') {
+      throw invalidResponse();
+    }
+
+    res
+      .set('Cache-Control', 'private, no-store')
+      .json({ message: 'Invite code deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function showLearningOsAdminStats(
   req: AuthRequest,

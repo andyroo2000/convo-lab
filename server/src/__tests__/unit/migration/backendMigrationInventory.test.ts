@@ -157,7 +157,7 @@ describe('backend migration inventory', () => {
     );
   });
 
-  it('tracks migrated admin reads separately from remaining Express writes', () => {
+  it('tracks migrated admin routes as Learning OS proxies', () => {
     for (const [method, routePath] of [
       ['GET', '/api/admin/stats'],
       ['GET', '/api/admin/users'],
@@ -175,7 +175,7 @@ describe('backend migration inventory', () => {
       ['DELETE', '/api/admin/invite-codes/22222222-2222-4222-8222-222222222222'],
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'admin', runtimeOwner: 'express' },
+        surface: { id: 'admin', runtimeOwner: 'learning-os-proxy' },
       });
     }
   });

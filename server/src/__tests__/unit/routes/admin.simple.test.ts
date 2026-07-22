@@ -35,6 +35,9 @@ const mockPrisma = vi.hoisted(() => ({
   course: { count: vi.fn() },
 }));
 const mockAdminReads = vi.hoisted(() => ({
+  createInviteCode: vi.fn(),
+  deleteInviteCode: vi.fn(),
+  deleteUser: vi.fn(),
   listInviteCodes: vi.fn(),
   listUsers: vi.fn(),
   showStats: vi.fn(),
@@ -64,6 +67,9 @@ const mockUpdatePronunciationDictionary = vi.hoisted(() =>
 );
 vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
 vi.mock('../../../routes/learningOs/admin.js', () => ({
+  createLearningOsAdminInviteCode: mockAdminReads.createInviteCode,
+  deleteLearningOsAdminInviteCode: mockAdminReads.deleteInviteCode,
+  deleteLearningOsAdminUser: mockAdminReads.deleteUser,
   listLearningOsAdminInviteCodes: mockAdminReads.listInviteCodes,
   listLearningOsAdminUsers: mockAdminReads.listUsers,
   showLearningOsAdminStats: mockAdminReads.showStats,
@@ -124,6 +130,33 @@ describe('Admin Routes - Critical Branch Coverage', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockAdminReads.listInviteCodes.mockImplementation((_req, res) => res.json([]));
+    mockAdminReads.deleteUser.mockImplementation((req, res, next) => {
+      if (req.params.id === 'admin-user-id') {
+        next(Object.assign(new Error('Cannot delete your own account'), { statusCode: 400 }));
+      } else if (req.params.id === 'other-admin-id') {
+        next(Object.assign(new Error('Cannot delete admin users'), { statusCode: 403 }));
+      } else if (req.params.id === 'non-existent') {
+        next(Object.assign(new Error('User not found'), { statusCode: 404 }));
+      } else {
+        res.json({ message: 'User deleted successfully' });
+      }
+    });
+    mockAdminReads.createInviteCode.mockImplementation((req, res, next) => {
+      if (req.body.customCode === 'DUPLICATE') {
+        next(Object.assign(new Error('This code already exists'), { statusCode: 400 }));
+      } else {
+        res.json({ id: 'new-code-id', code: req.body.customCode ?? 'ABCD1234' });
+      }
+    });
+    mockAdminReads.deleteInviteCode.mockImplementation((req, res, next) => {
+      if (req.params.id === 'used-code-id') {
+        next(Object.assign(new Error('Cannot delete used invite codes'), { statusCode: 400 }));
+      } else if (req.params.id === 'non-existent') {
+        next(Object.assign(new Error('Invite code not found'), { statusCode: 404 }));
+      } else {
+        res.json({ message: 'Invite code deleted successfully' });
+      }
+    });
     mockAdminReads.listUsers.mockImplementation((_req, res) =>
       res.json({ users: [], pagination: { page: 1, limit: 50, total: 0, pages: 1 } })
     );
@@ -174,7 +207,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Cannot delete your own account');
-      expect(mockPrisma.user.delete).not.toHaveBeenCalled();
+      expect(mockAdminReads.deleteUser).toHaveBeenCalledOnce();
     });
 
     it('should prevent deleting other admin users', async () => {
@@ -187,7 +220,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error).toContain('Cannot delete admin users');
-      expect(mockPrisma.user.delete).not.toHaveBeenCalled();
+      expect(mockAdminReads.deleteUser).toHaveBeenCalledOnce();
     });
 
     it('should allow deleting regular users', async () => {
@@ -203,9 +236,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).delete('/admin/users/regular-user-id');
 
       expect(response.status).toBe(200);
-      expect(mockPrisma.user.delete).toHaveBeenCalledWith({
-        where: { id: 'regular-user-id' },
-      });
+      expect(mockAdminReads.deleteUser).toHaveBeenCalledOnce();
     });
 
     it('should return 404 for non-existent user', async () => {
@@ -214,7 +245,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).delete('/admin/users/non-existent');
 
       expect(response.status).toBe(404);
-      expect(mockPrisma.user.delete).not.toHaveBeenCalled();
+      expect(mockAdminReads.deleteUser).toHaveBeenCalledOnce();
     });
   });
 
@@ -313,7 +344,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Cannot delete used invite code');
-      expect(mockPrisma.inviteCode.delete).not.toHaveBeenCalled();
+      expect(mockAdminReads.deleteInviteCode).toHaveBeenCalledOnce();
     });
 
     it('should allow deleting unused invite codes', async () => {
@@ -330,7 +361,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).delete('/admin/invite-codes/unused-code-id');
 
       expect(response.status).toBe(200);
-      expect(mockPrisma.inviteCode.delete).toHaveBeenCalled();
+      expect(mockAdminReads.deleteInviteCode).toHaveBeenCalledOnce();
     });
 
     it('should return 404 for non-existent code', async () => {
@@ -339,7 +370,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).delete('/admin/invite-codes/non-existent');
 
       expect(response.status).toBe(404);
-      expect(mockPrisma.inviteCode.delete).not.toHaveBeenCalled();
+      expect(mockAdminReads.deleteInviteCode).toHaveBeenCalledOnce();
     });
   });
 
@@ -374,9 +405,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).post('/admin/invite-codes').send({});
 
       expect(response.status).toBe(200);
-      expect(mockPrisma.inviteCode.create).toHaveBeenCalledWith({
-        data: { code: expect.any(String) },
-      });
+      expect(mockAdminReads.createInviteCode).toHaveBeenCalledOnce();
     });
 
     it('should use custom code when provided', async () => {
@@ -391,9 +420,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         .send({ customCode: 'CUSTOM123' });
 
       expect(response.status).toBe(200);
-      expect(mockPrisma.inviteCode.create).toHaveBeenCalledWith({
-        data: { code: 'CUSTOM123' },
-      });
+      expect(mockAdminReads.createInviteCode).toHaveBeenCalledOnce();
     });
 
     it('should handle duplicate code error', async () => {

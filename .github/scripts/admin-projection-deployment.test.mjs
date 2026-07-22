@@ -23,6 +23,7 @@ test('production syncs the admin projection before issuing an admin-scoped token
   assert.match(workflow, /php artisan admin:sync-convolab[\s\S]*--source-database="\$source_db"[\s\S]*--allow-production/);
   assert.doesNotMatch(workflow, /admin:sync-convolab[\s\S]{0,300}--allow-empty-source/);
   assert.match(workflow, /"admin:read",/);
+  assert.match(workflow, /"admin:write",/);
 });
 
 test('production smoke-gates both the private admin API and public compatibility routes', async () => {
@@ -38,4 +39,7 @@ test('production smoke-gates both the private admin API and public compatibility
   }
   assert.match(workflow, /\/api\/admin\/users\/\$admin_user_id\/info/);
   assert.match(workflow, /Admin Learning OS read smoke checks passed\./);
+  assert.match(workflow, /mutate_proxy_route POST '\/api\/admin\/invite-codes' '\{\}'/);
+  assert.match(workflow, /DELETE "\/api\/admin\/invite-codes\/\$admin_invite_smoke_id"/);
+  assert.match(workflow, /Admin Learning OS invite create\/delete smoke checks passed\./);
 });
