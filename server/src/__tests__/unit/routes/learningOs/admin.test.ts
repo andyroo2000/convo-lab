@@ -7,13 +7,16 @@ import { AppError, errorHandler } from '../../../../middleware/errorHandler.js';
 import {
   buildLearningOsAdminCoursePrompt,
   buildLearningOsAdminCourseScriptConfig,
+  createLearningOsAdminScriptLabCourse,
   createLearningOsAdminInviteCode,
+  deleteLearningOsAdminScriptLabCourses,
   deleteLearningOsAdminInviteCode,
   deleteLearningOsAdminUser,
   generateLearningOsAdminCourseAudio,
   generateLearningOsAdminCourseDialogue,
   generateLearningOsAdminCourseScript,
   listLearningOsAdminInviteCodes,
+  listLearningOsAdminScriptLabCourses,
   listLearningOsAdminSpeakerAvatars,
   listLearningOsAdminUsers,
   recropLearningOsAdminSpeakerAvatar,
@@ -22,6 +25,7 @@ import {
   showLearningOsAdminStats,
   showLearningOsAdminUser,
   showLearningOsAdminCoursePipeline,
+  showLearningOsAdminScriptLabCourse,
   uploadLearningOsAdminSpeakerAvatar,
   uploadLearningOsAdminUserAvatar,
   updateLearningOsAdminCoursePipeline,
@@ -152,6 +156,24 @@ const coursePipeline = {
   audioUrl: null,
   approxDurationSeconds: null,
 };
+const scriptLabCourseSummary = {
+  id: COURSE_ID,
+  title: '[TEST] Train station',
+  status: 'draft',
+  createdAt: '2026-07-22T10:00:00.123Z',
+  hasExchanges: true,
+  hasScript: true,
+  hasAudio: false,
+};
+const scriptLabCourse = {
+  ...scriptLabCourseSummary,
+  description: 'Test course for Script Lab: Train station',
+  jlptLevel: 'N4',
+  audioUrl: null,
+  sourceText: 'A dialogue at a train station.',
+  exchanges: courseDialogue.exchanges,
+  scriptUnits: courseScript.scriptUnits,
+};
 
 const upstreamJson = (
   body: unknown,
@@ -204,6 +226,19 @@ describe('Learning OS admin proxy', () => {
       });
       next();
     });
+    app.use('/script-lab', (req, _res, next) => {
+      Object.assign(req, {
+        userId: USER_ID,
+        email: 'admin@example.com',
+        role: 'admin',
+        accountSource: 'learning-os',
+      });
+      next();
+    });
+    app.post('/script-lab/courses', createLearningOsAdminScriptLabCourse);
+    app.get('/script-lab/courses', listLearningOsAdminScriptLabCourses);
+    app.get('/script-lab/courses/:id', showLearningOsAdminScriptLabCourse);
+    app.delete('/script-lab/courses', deleteLearningOsAdminScriptLabCourses);
     app.post('/courses/:id/build-prompt', buildLearningOsAdminCoursePrompt);
     app.post('/courses/:id/build-script-config', buildLearningOsAdminCourseScriptConfig);
     app.post('/courses/:id/generate-dialogue', generateLearningOsAdminCourseDialogue);
@@ -292,6 +327,122 @@ describe('Learning OS admin proxy', () => {
       void updateLearningOsAdminPronunciationDictionary(req, res, next);
     });
     app.use(errorHandler);
+  });
+
+  it('uses Learning OS as the canonical Script Lab course store', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson({ courseId: COURSE_ID, isTestCourse: true }))
+      .mockResolvedValueOnce(upstreamJson({ courses: [scriptLabCourseSummary] }))
+      .mockResolvedValueOnce(upstreamJson(scriptLabCourse))
+      .mockResolvedValueOnce(upstreamJson({ deleted: 1 }));
+
+    const createBody = {
+      title: 'Train station',
+      sourceText: 'A dialogue at a train station.',
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      jlptLevel: 'N4',
+      maxDurationMinutes: 20,
+      speaker1Gender: 'male',
+      speaker2Gender: 'female',
+      ignored: 'drop me',
+    };
+    await request(app)
+      .post('/script-lab/courses')
+      .send(createBody)
+      .expect(200, { courseId: COURSE_ID, isTestCourse: true });
+    await request(app)
+      .get('/script-lab/courses')
+      .expect(200, { courses: [scriptLabCourseSummary] });
+    await request(app).get(`/script-lab/courses/${COURSE_ID}`).expect(200, scriptLabCourse);
+    await request(app)
+      .delete('/script-lab/courses')
+      .send({ courseIds: [COURSE_ID.toUpperCase()] })
+      .expect(200, { deleted: 1 });
+
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        upstreamUrl: new URL('http://learning-os.test/api/convolab/admin/script-lab/courses'),
+        method: 'POST',
+        body: {
+          title: createBody.title,
+          sourceText: createBody.sourceText,
+          targetLanguage: 'ja',
+          nativeLanguage: 'en',
+          jlptLevel: 'N4',
+          maxDurationMinutes: 20,
+          speaker1Gender: 'male',
+          speaker2Gender: 'female',
+        },
+      })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ method: 'GET' })
+    );
+    expect(mocks.fetchLearningOsProxy.mock.calls[1][0].body).toBeUndefined();
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          `http://learning-os.test/api/convolab/admin/script-lab/courses/${COURSE_ID}`
+        ),
+        method: 'GET',
+      })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({ method: 'DELETE', body: { courseIds: [COURSE_ID] } })
+    );
+  });
+
+  it.each([
+    [{ courses: [{ ...scriptLabCourseSummary, hasScript: 'yes' }] }, 'GET', '/script-lab/courses'],
+    [{ ...scriptLabCourse, id: INVITE_ID }, 'GET', `/script-lab/courses/${COURSE_ID}`],
+    [{ courseId: 'bad-id', isTestCourse: true }, 'POST', '/script-lab/courses'],
+    [{ deleted: -1 }, 'DELETE', '/script-lab/courses'],
+  ] as const)('rejects malformed Script Lab course responses', async (payload, method, path) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
+
+    const pending =
+      method === 'GET'
+        ? request(app).get(path)
+        : method === 'POST'
+          ? request(app).post(path).send({ title: 'Title', sourceText: 'Source' })
+          : request(app)
+              .delete(path)
+              .send({ courseIds: [COURSE_ID] });
+    await pending.expect(502);
+  });
+
+  it('validates Script Lab course requests before contacting Learning OS', async () => {
+    const missing = await request(app)
+      .post('/script-lab/courses')
+      .send({ title: 'Missing source' })
+      .expect(400);
+    const badId = await request(app).get('/script-lab/courses/not-a-uuid').expect(404);
+    const badDelete = await request(app)
+      .delete('/script-lab/courses')
+      .send({ courseIds: [COURSE_ID, COURSE_ID.toUpperCase()] })
+      .expect(400);
+
+    expect(missing.body.error.message).toBe('Title and sourceText are required');
+    expect(badId.body.error.message).toBe('Test course not found');
+    expect(badDelete.body.error.message).toBe('courseIds must contain distinct UUIDs');
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('preserves safe Script Lab course errors and hides unknown failures', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson({ message: 'Test course not found' }, 404))
+      .mockResolvedValueOnce(upstreamJson({ message: 'private database detail' }, 500));
+
+    const missing = await request(app).get(`/script-lab/courses/${COURSE_ID}`).expect(404);
+    const failure = await request(app).get('/script-lab/courses').expect(502);
+
+    expect(missing.body.error.message).toBe('Test course not found');
+    expect(failure.body.error.message).toBe('Learning OS Admin API request failed.');
   });
 
   it('proxies every admin course workbench operation with its canonical contract', async () => {

@@ -419,6 +419,52 @@ const isAdminCoursePipeline = (value: unknown, courseId: string): value is JsonR
 const isAdminCoursePipelineUpdate = (value: unknown): value is { success: true } =>
   isRecord(value) && Object.keys(value).length === 1 && value.success === true;
 
+const isAdminScriptLabCourseSummary = (value: unknown): value is JsonRecord =>
+  isRecord(value) &&
+  Object.keys(value).length === 7 &&
+  isUuid(value.id) &&
+  isNonEmptyString(value.title) &&
+  isNonEmptyString(value.status) &&
+  isIsoTimestamp(value.createdAt) &&
+  typeof value.hasExchanges === 'boolean' &&
+  typeof value.hasScript === 'boolean' &&
+  typeof value.hasAudio === 'boolean';
+
+const isAdminScriptLabCourseList = (value: unknown): value is JsonRecord =>
+  isRecord(value) &&
+  Object.keys(value).length === 1 &&
+  Array.isArray(value.courses) &&
+  value.courses.every(isAdminScriptLabCourseSummary);
+
+const isNullableJsonContainer = (value: unknown): boolean =>
+  value === null || isRecord(value) || Array.isArray(value);
+
+const isAdminScriptLabCourse = (value: unknown, courseId: string): value is JsonRecord =>
+  isRecord(value) &&
+  Object.keys(value).length === 13 &&
+  value.id === courseId &&
+  isNonEmptyString(value.title) &&
+  isNullableString(value.description) &&
+  isNonEmptyString(value.status) &&
+  isIsoTimestamp(value.createdAt) &&
+  isNullableString(value.jlptLevel) &&
+  typeof value.hasExchanges === 'boolean' &&
+  typeof value.hasScript === 'boolean' &&
+  typeof value.hasAudio === 'boolean' &&
+  isNullableString(value.audioUrl) &&
+  isNullableString(value.sourceText) &&
+  isNullableJsonContainer(value.exchanges) &&
+  isNullableJsonContainer(value.scriptUnits);
+
+const isCreatedAdminScriptLabCourse = (value: unknown): value is JsonRecord =>
+  isRecord(value) &&
+  Object.keys(value).length === 2 &&
+  isUuid(value.courseId) &&
+  value.isTestCourse === true;
+
+const isDeletedAdminScriptLabCourses = (value: unknown): value is JsonRecord =>
+  isRecord(value) && Object.keys(value).length === 1 && isNonNegativeInteger(value.deleted);
+
 const PRONUNCIATION_VALIDATION_MESSAGES = new Set([
   'keepKanji must be an array of strings',
   'keepKanji must contain no more than 500 entries',
@@ -457,6 +503,9 @@ const mutationError = (response: globalThis.Response, payload: unknown): AppErro
     ['Speaker avatar not found', 404],
     ['Speaker avatar changed while it was being re-cropped', 409],
     ['Speaker avatar must be uploaded before it can be re-cropped', 409],
+    ['Test course not found', 404],
+    ['Episode not found', 404],
+    ['Cannot delete non-test courses via Script Lab. Use the standard admin interface.', 400],
     ['Course not found', 404],
     ['Course has no episode with source text', 400],
     ['Course changed while dialogue was being generated', 409],
@@ -683,6 +732,120 @@ export async function buildLearningOsAdminCoursePrompt(
   try {
     const { payload } = await fetchAdminCourseRequest(req, 'build-prompt', 'POST', {});
     if (!isAdminCoursePrompt(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listLearningOsAdminScriptLabCourses(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { payload, response } = await fetchAdminMutation(req, '/script-lab/courses', 'GET');
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isAdminScriptLabCourseList(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function showLearningOsAdminScriptLabCourse(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const courseId = req.params.id;
+    if (!isUuid(courseId)) throw new AppError('Test course not found', 404);
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/script-lab/courses/${courseId}`,
+      'GET'
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isAdminScriptLabCourse(payload, courseId)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createLearningOsAdminScriptLabCourse(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const body = isRecord(req.body) ? req.body : {};
+    const title = body.title;
+    const sourceText = body.sourceText;
+    if (!isNonEmptyString(title) || title.trim().length > 255 || !isNonEmptyString(sourceText)) {
+      throw new AppError('Title and sourceText are required', 400);
+    }
+
+    const optionalFields = [
+      'episodeId',
+      'targetLanguage',
+      'nativeLanguage',
+      'jlptLevel',
+      'maxDurationMinutes',
+      'speaker1Gender',
+      'speaker2Gender',
+    ] as const;
+    const forwarded: JsonRecord = { title, sourceText };
+    for (const field of optionalFields) {
+      if (body[field] !== undefined) forwarded[field] = body[field];
+    }
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      '/script-lab/courses',
+      'POST',
+      forwarded
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isCreatedAdminScriptLabCourse(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteLearningOsAdminScriptLabCourses(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const requestedIds = req.body?.courseIds;
+    if (!Array.isArray(requestedIds) || requestedIds.length < 1 || requestedIds.length > 100) {
+      throw new AppError('courseIds array is required', 400);
+    }
+
+    const courseIds = requestedIds.map((id) =>
+      typeof id === 'string' ? id.trim().toLowerCase() : id
+    );
+    if (
+      !courseIds.every((id): id is string => typeof id === 'string' && isUuid(id)) ||
+      new Set(courseIds).size !== courseIds.length
+    ) {
+      throw new AppError('courseIds must contain distinct UUIDs', 400);
+    }
+
+    const { payload, response } = await fetchAdminMutation(req, '/script-lab/courses', 'DELETE', {
+      courseIds,
+    });
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isDeletedAdminScriptLabCourses(payload)) throw invalidResponse();
 
     res.set('Cache-Control', 'private, no-store').json(payload);
   } catch (error) {
