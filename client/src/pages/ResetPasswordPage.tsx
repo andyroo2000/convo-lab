@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, Lock } from 'lucide-react';
 import Logo from '../components/common/Logo';
@@ -24,7 +24,11 @@ const parseApiErrorMessage = (data: unknown, fallback: string): string => {
 
 const ResetPasswordPage = () => {
   const { t } = useTranslation(['auth', 'common']);
-  const { token } = useParams<{ token: string }>();
+  const { token: legacyToken } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const learningOsToken = searchParams.get('token') ?? '';
+  const learningOsEmail = searchParams.get('email') ?? '';
+  const token = legacyToken ?? learningOsToken;
   const navigate = useNavigate();
 
   const [validating, setValidating] = useState(true);
@@ -43,7 +47,14 @@ const ResetPasswordPage = () => {
       return;
     }
 
-    // Validate the token
+    if (!legacyToken && learningOsEmail) {
+      setEmail(learningOsEmail);
+      setTokenValid(true);
+      setValidating(false);
+      return;
+    }
+
+    // Legacy tokens can be inspected without the account email.
     const validateToken = async () => {
       try {
         const response = await fetch(`${API_URL}/api/password-reset/${token}`, {
@@ -67,7 +78,7 @@ const ResetPasswordPage = () => {
     };
 
     validateToken();
-  }, [token]);
+  }, [learningOsEmail, legacyToken, token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +104,7 @@ const ResetPasswordPage = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
+          ...(legacyToken ? {} : { email }),
           token,
           newPassword,
         }),

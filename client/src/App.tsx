@@ -12,6 +12,7 @@ import StudyRouteErrorBoundary from './components/study/StudyRouteErrorBoundary'
 import {
   initializeGoogleAnalytics,
   isGoogleAnalyticsEnabled,
+  sanitizeAnalyticsPagePath,
   trackPageView,
 } from './lib/googleAnalytics';
 import useSeoMeta from './hooks/useSeoMeta';
@@ -190,7 +191,7 @@ const GoogleAnalyticsTracker = () => {
 
   useEffect(() => {
     if (!isGoogleAnalyticsEnabled()) return;
-    const pagePath = `${location.pathname}${location.search}${location.hash}`;
+    const pagePath = sanitizeAnalyticsPagePath(location.pathname, location.search, location.hash);
     trackPageView(pagePath);
   }, [location.hash, location.pathname, location.search]);
 
@@ -224,6 +225,7 @@ const App = () => (
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
                 {/* App Routes (Protected) */}

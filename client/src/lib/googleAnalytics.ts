@@ -13,6 +13,29 @@ const hasMeasurementId = (): boolean => GA_MEASUREMENT_ID.length > 0;
 
 export const isGoogleAnalyticsEnabled = (): boolean => hasMeasurementId();
 
+export const sanitizeAnalyticsPagePath = (
+  pathname: string,
+  search: string,
+  hash: string
+): string => {
+  if (pathname === '/reset-password' || pathname.startsWith('/reset-password/')) {
+    return '/reset-password';
+  }
+
+  if (pathname === '/verify-email' || pathname.startsWith('/verify-email/')) {
+    return '/verify-email';
+  }
+
+  return `${pathname}${search}${hash}`;
+};
+
+export const buildAnalyticsPageLocation = (pagePath: string, origin: string): string => {
+  const normalizedOrigin = origin.replace(/\/+$/, '');
+  const normalizedPath = pagePath.startsWith('/') ? pagePath : `/${pagePath}`;
+
+  return `${normalizedOrigin}${normalizedPath}`;
+};
+
 export const initializeGoogleAnalytics = (): void => {
   if (!hasMeasurementId() || isInitialized) return;
 
@@ -47,7 +70,7 @@ export const trackPageView = (pagePath: string): void => {
 
   window.gtag('event', 'page_view', {
     page_path: pagePath,
-    page_location: window.location.href,
+    page_location: buildAnalyticsPageLocation(pagePath, window.location.origin),
     page_title: document.title,
   });
 };

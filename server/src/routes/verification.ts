@@ -3,7 +3,11 @@ import bcrypt from 'bcrypt';
 import { Router } from 'express';
 import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
-import { isLearningOsVerificationProxyEnabled } from '../config/authRouting.js';
+import {
+  isLearningOsPasswordResetCompletionEnabled,
+  isLearningOsPasswordResetProxyEnabled,
+  isLearningOsVerificationProxyEnabled,
+} from '../config/authRouting.js';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -19,6 +23,8 @@ import {
 } from '../services/emailService.js';
 import {
   sendLearningOsVerificationEmail,
+  sendLearningOsPasswordResetLink,
+  resetLearningOsPassword,
   verifyLearningOsEmail,
 } from '../services/learningOsAuthProxy.js';
 
@@ -37,6 +43,28 @@ const verificationSendRateLimit = createExpressRateLimit({
   keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
 });
 const verificationConsumeRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const passwordResetRequestIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const passwordResetRequestRateLimit = createExpressRateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    return `${ipKeyGenerator(req.ip ?? 'unknown')}:${email}`;
+  },
+});
+const passwordResetConsumeRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 30,
   standardHeaders: true,
@@ -127,38 +155,48 @@ router.get('/verification/:token', verificationConsumeRateLimit, async (req, res
 });
 
 // Request password reset
-router.post('/password-reset/request', async (req, res, next) => {
-  try {
-    const { email } = req.body;
+router.post(
+  '/password-reset/request',
+  passwordResetRequestIpRateLimit,
+  passwordResetRequestRateLimit,
+  async (req, res, next) => {
+    try {
+      const { email } = req.body;
 
-    if (!email) {
-      throw new AppError(i18next.t('server:verification.emailRequired'), 400);
-    }
+      if (!email) {
+        throw new AppError(i18next.t('server:verification.emailRequired'), 400);
+      }
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-      },
-    });
+      if (isLearningOsPasswordResetProxyEnabled()) {
+        await sendLearningOsPasswordResetLink(email);
+        return res.json({ message: i18next.t('server:verification.passwordResetSent') });
+      }
 
-    // Always return success to prevent email enumeration
-    if (!user) {
+      // Find user
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
+
+      // Always return success to prevent email enumeration
+      if (!user) {
+        res.json({ message: i18next.t('server:verification.passwordResetSent') });
+        return;
+      }
+
+      // Send password reset email
+      await sendPasswordResetEmail(user.id, user.email, user.name);
+
       res.json({ message: i18next.t('server:verification.passwordResetSent') });
-      return;
+    } catch (error) {
+      next(error);
     }
-
-    // Send password reset email
-    await sendPasswordResetEmail(user.id, user.email, user.name);
-
-    res.json({ message: i18next.t('server:verification.passwordResetSent') });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // Verify password reset token (without resetting password yet)
 router.get('/password-reset/:token', async (req, res, next) => {
@@ -181,9 +219,9 @@ router.get('/password-reset/:token', async (req, res, next) => {
 });
 
 // Reset password with token
-router.post('/password-reset/verify', async (req, res, next) => {
+router.post('/password-reset/verify', passwordResetConsumeRateLimit, async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const { email, token, newPassword } = req.body;
 
     if (!token || !newPassword) {
       throw new AppError(i18next.t('server:verification.tokenAndPasswordRequired'), 400);
@@ -191,6 +229,16 @@ router.post('/password-reset/verify', async (req, res, next) => {
 
     if (newPassword.length < 8) {
       throw new AppError(i18next.t('server:verification.passwordTooShort'), 400);
+    }
+
+    // Presence, including an empty value, identifies Learning OS links. The broker performs
+    // canonical validation, and payload routing keeps issued links usable after flag rollback.
+    if (
+      email !== undefined &&
+      (isLearningOsPasswordResetProxyEnabled() || isLearningOsPasswordResetCompletionEnabled())
+    ) {
+      await resetLearningOsPassword({ email, token, newPassword });
+      return res.json({ message: i18next.t('server:verification.passwordResetSuccess') });
     }
 
     // Verify token
