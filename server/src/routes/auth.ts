@@ -1,17 +1,10 @@
 /* eslint-disable no-console */
 /* eslint-disable import/no-named-as-default-member */
 // Console logging is necessary for OAuth callback monitoring
-// Using default imports for bcrypt and jwt per their official documentation
-import { Prisma } from '@prisma/client';
-import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 
-import {
-  isLearningOsAuthProxyEnabled,
-  isLearningOsProfileProxyEnabled,
-} from '../config/authRouting.js';
 import { buildClientAppUrl } from '../config/browserRuntime.js';
 import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
@@ -19,7 +12,6 @@ import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { clearCsrfCookies, issueCsrfTokenCookie } from '../middleware/csrf.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { isAdminEmail } from '../middleware/roleAuth.js';
 import {
   authenticateLearningOsAccount,
   changeLearningOsCurrentPassword,
@@ -31,7 +23,6 @@ import {
   type LearningOsProfileUpdateInput,
 } from '../services/learningOsAuthProxy.js';
 import { revokeGoogleTokens } from '../services/oauth.js';
-import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
@@ -187,75 +178,17 @@ router.post('/login', loginRateLimit, async (req, res, next) => {
       throw new AppError('Email and password are required', 400);
     }
 
-    if (isLearningOsAuthProxyEnabled()) {
-      // The pre-cutover sync projects the source UUID and persisted role. Keep role
-      // changes in that canonical sync path instead of mutating only one database here.
-      const account = await authenticateLearningOsAccount(email, password);
-      const legacyAccount = await prisma.user.findUnique({
-        where: { id: account.id },
-        select: { id: true },
-      });
-      const token = createLearningOsSessionToken(
-        account,
-        legacyAccount ? undefined : 'learning-os'
-      );
-
-      setSessionCookies(req as AuthRequest, res, token);
-      return res.json(account);
-    }
-
-    // Find user
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      throw new AppError(i18next.t('server:auth.invalidCredentials'), 401);
-    }
-    if (!user.password) {
-      throw new AppError(i18next.t('server:auth.invalidCredentials'), 401);
-    }
-
-    // Check password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      throw new AppError(i18next.t('server:auth.invalidCredentials'), 401);
-    }
-
-    // Check if user should be promoted to admin
-    let updatedUser = user;
-    if (isAdminEmail(email) && user.role !== 'admin') {
-      updatedUser = await prisma.user.update({
-        where: { id: user.id },
-        data: { role: 'admin' },
-      });
-    }
-
-    // Create JWT
-    const token = jwt.sign(
-      { userId: updatedUser.id, role: updatedUser.role },
-      process.env.JWT_SECRET!,
-      {
-        expiresIn: '7d',
-      }
-    );
-
-    // Set cookie
-    setSessionCookies(req as AuthRequest, res, token);
-
-    res.json({
-      id: updatedUser.id,
-      email: updatedUser.email,
-      name: updatedUser.name,
-      displayName: updatedUser.displayName,
-      avatarColor: updatedUser.avatarColor,
-      role: updatedUser.role,
-      preferredStudyLanguage: updatedUser.preferredStudyLanguage,
-      preferredNativeLanguage: updatedUser.preferredNativeLanguage,
-      proficiencyLevel: updatedUser.proficiencyLevel,
-      onboardingCompleted: updatedUser.onboardingCompleted,
-      emailVerified: updatedUser.emailVerified,
-      emailVerifiedAt: updatedUser.emailVerifiedAt,
-      createdAt: updatedUser.createdAt,
-      updatedAt: updatedUser.updatedAt,
+    // The pre-cutover sync projects the source UUID and persisted role. Keep role
+    // changes in that canonical sync path instead of mutating only one database here.
+    const account = await authenticateLearningOsAccount(email, password);
+    const legacyAccount = await prisma.user.findUnique({
+      where: { id: account.id },
+      select: { id: true },
     });
+    const token = createLearningOsSessionToken(account, legacyAccount ? undefined : 'learning-os');
+
+    setSessionCookies(req as AuthRequest, res, token);
+    res.json(account);
   } catch (error) {
     next(error);
   }
@@ -280,45 +213,14 @@ router.get(
   currentUserRateLimit,
   async (req: AuthRequest, res, next) => {
     try {
-      if (isLearningOsAuthProxyEnabled()) {
-        const account = await getLearningOsCurrentAccount(req.userId!, {
-          userId: req.userId!,
-          email: req.email,
-          role: req.role,
-          accountSource: req.accountSource,
-        });
-        issueCsrfTokenCookie(req, res, 'lax');
-        return res.json(account);
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { id: req.userId },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          displayName: true,
-          avatarColor: true,
-          role: true,
-          preferredStudyLanguage: true,
-          preferredNativeLanguage: true,
-          proficiencyLevel: true,
-          onboardingCompleted: true,
-          seenSampleContentGuide: true,
-          seenCustomContentGuide: true,
-          emailVerified: true,
-          emailVerifiedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+      const account = await getLearningOsCurrentAccount(req.userId!, {
+        userId: req.userId!,
+        email: req.email,
+        role: req.role,
+        accountSource: req.accountSource,
       });
-
-      if (!user) {
-        throw new AppError(i18next.t('server:auth.userNotFound'), 404);
-      }
-
       issueCsrfTokenCookie(req, res, 'lax');
-      res.json(user);
+      res.json(account);
     } catch (error) {
       next(error);
     }
@@ -328,135 +230,16 @@ router.get(
 // Update user profile
 router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
-    if (isLearningOsProfileProxyEnabled()) {
-      const update = buildLearningOsProfileUpdate(req.body);
-      // Learning OS owns first-onboarding sample creation in the same transaction
-      // as the profile update, so the legacy copier must not run on this path.
-      const account = await updateLearningOsCurrentAccount(req.userId!, update, {
-        userId: req.userId!,
-        email: req.email,
-        role: req.role,
-        accountSource: req.accountSource,
-      });
-
-      return res.json(account);
-    }
-
-    const {
-      displayName,
-      avatarColor,
-      avatarUrl,
-      preferredStudyLanguage,
-      preferredNativeLanguage,
-      proficiencyLevel,
-      onboardingCompleted,
-      seenSampleContentGuide,
-      seenCustomContentGuide,
-    } = req.body;
-
-    // Validate avatarColor if provided
-    const validColors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
-    if (avatarColor && !validColors.includes(avatarColor)) {
-      throw new AppError('Invalid avatar color', 400);
-    }
-
-    // Validate language codes if provided
-    const validLanguages = ['ja', 'en'];
-    if (preferredStudyLanguage && !validLanguages.includes(preferredStudyLanguage)) {
-      throw new AppError('Invalid study language', 400);
-    }
-    if (preferredNativeLanguage && !validLanguages.includes(preferredNativeLanguage)) {
-      throw new AppError('Invalid native language', 400);
-    }
-
-    // Enforce fixed language pairing (study Japanese, native English)
-    if (preferredStudyLanguage && preferredStudyLanguage !== 'ja') {
-      throw new AppError('Study language must be Japanese', 400);
-    }
-    if (preferredNativeLanguage && preferredNativeLanguage !== 'en') {
-      throw new AppError('Native language must be English', 400);
-    }
-
-    // Validate proficiency level if provided
-    const validProficiencyLevels = [
-      'N5',
-      'N4',
-      'N3',
-      'N2',
-      'N1', // JLPT (Japanese)
-    ];
-    if (proficiencyLevel && !validProficiencyLevels.includes(proficiencyLevel)) {
-      throw new AppError('Invalid proficiency level', 400);
-    }
-
-    // Build update data object (only include provided fields)
-    const updateData: Prisma.UserUpdateInput = {};
-    if (displayName !== undefined) updateData.displayName = displayName;
-    if (avatarColor !== undefined) updateData.avatarColor = avatarColor;
-    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
-    if (preferredStudyLanguage !== undefined)
-      updateData.preferredStudyLanguage = preferredStudyLanguage;
-    if (preferredNativeLanguage !== undefined)
-      updateData.preferredNativeLanguage = preferredNativeLanguage;
-    if (proficiencyLevel !== undefined) updateData.proficiencyLevel = proficiencyLevel;
-    if (onboardingCompleted !== undefined) updateData.onboardingCompleted = onboardingCompleted;
-    if (seenSampleContentGuide !== undefined)
-      updateData.seenSampleContentGuide = seenSampleContentGuide;
-    if (seenCustomContentGuide !== undefined)
-      updateData.seenCustomContentGuide = seenCustomContentGuide;
-
-    if (Object.keys(updateData).length === 0) {
-      throw new AppError('No fields to update', 400);
-    }
-
-    const previousUser = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: { onboardingCompleted: true },
+    const update = buildLearningOsProfileUpdate(req.body);
+    // Learning OS owns first-onboarding sample creation in the same transaction
+    // as the profile update.
+    const account = await updateLearningOsCurrentAccount(req.userId!, update, {
+      userId: req.userId!,
+      email: req.email,
+      role: req.role,
+      accountSource: req.accountSource,
     });
-
-    const user = await prisma.user.update({
-      where: { id: req.userId },
-      data: updateData,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        displayName: true,
-        avatarColor: true,
-        role: true,
-        preferredStudyLanguage: true,
-        preferredNativeLanguage: true,
-        proficiencyLevel: true,
-        onboardingCompleted: true,
-        seenSampleContentGuide: true,
-        seenCustomContentGuide: true,
-        emailVerified: true,
-        emailVerifiedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    // Copy sample content when user completes onboarding for the first time
-    if (
-      onboardingCompleted === true &&
-      previousUser &&
-      !previousUser.onboardingCompleted &&
-      user.preferredStudyLanguage &&
-      user.proficiencyLevel
-    ) {
-      try {
-        await copySampleContentToUser(user.id, user.preferredStudyLanguage, user.proficiencyLevel);
-        console.log(
-          `[ONBOARDING] Sample content copied for user ${user.id} (${user.preferredStudyLanguage} ${user.proficiencyLevel})`
-        );
-      } catch (error) {
-        console.error('[ONBOARDING] Failed to copy sample content:', error);
-        // Don't fail the request if sample content copy fails
-      }
-    }
-
-    res.json(user);
+    res.json(account);
   } catch (error) {
     next(error);
   }
@@ -566,47 +349,16 @@ router.patch(
         throw new AppError(i18next.t('server:auth.passwordTooShort'), 400);
       }
 
-      if (isLearningOsAuthProxyEnabled()) {
-        await changeLearningOsCurrentPassword(
-          req.userId!,
-          { currentPassword, newPassword },
-          {
-            userId: req.userId!,
-            email: req.email,
-            role: req.role,
-            accountSource: req.accountSource,
-          }
-        );
-        return res.json({ message: i18next.t('server:auth.passwordChanged') });
-      }
-
-      // Get user with password
-      const user = await prisma.user.findUnique({
-        where: { id: req.userId },
-      });
-
-      if (!user) {
-        throw new AppError(i18next.t('server:auth.userNotFound'), 404);
-      }
-      if (!user.password) {
-        throw new AppError('Current password is incorrect', 401);
-      }
-
-      // Verify current password
-      const validPassword = await bcrypt.compare(currentPassword, user.password);
-      if (!validPassword) {
-        throw new AppError('Current password is incorrect', 401);
-      }
-
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-      // Update password
-      await prisma.user.update({
-        where: { id: req.userId },
-        data: { password: hashedPassword },
-      });
-
+      await changeLearningOsCurrentPassword(
+        req.userId!,
+        { currentPassword, newPassword },
+        {
+          userId: req.userId!,
+          email: req.email,
+          role: req.role,
+          accountSource: req.accountSource,
+        }
+      );
       res.json({ message: i18next.t('server:auth.passwordChanged') });
     } catch (error) {
       next(error);
@@ -631,34 +383,21 @@ router.delete(
         throw new AppError('Current password is required', 400);
       }
 
-      if (isLearningOsAuthProxyEnabled()) {
-        await deleteLearningOsCurrentAccount(
-          req.userId!,
-          { currentPassword },
-          {
-            userId: req.userId!,
-            email: req.email,
-            role: req.role,
-            accountSource: req.accountSource,
-          }
-        );
-
-        // Learning OS owns credential verification and canonical data deletion. Remove any
-        // remaining ConvoLab projection afterward; deleteMany is idempotent when both apps
-        // share the user row and Learning OS has already removed it.
-        await prisma.user.deleteMany({ where: { id: req.userId } });
-      } else {
-        const user = await prisma.user.findUnique({ where: { id: req.userId } });
-        if (!user) {
-          throw new AppError(i18next.t('server:auth.userNotFound'), 404);
+      await deleteLearningOsCurrentAccount(
+        req.userId!,
+        { currentPassword },
+        {
+          userId: req.userId!,
+          email: req.email,
+          role: req.role,
+          accountSource: req.accountSource,
         }
-        if (!user.password || !(await bcrypt.compare(currentPassword, user.password))) {
-          throw new AppError('Current password is incorrect', 401);
-        }
+      );
 
-        // The local branch remains as an emergency rollback while auth ownership converges.
-        await prisma.user.delete({ where: { id: req.userId } });
-      }
+      // Learning OS owns credential verification and canonical data deletion. Remove any
+      // remaining ConvoLab projection afterward; deleteMany is idempotent when both apps
+      // share the user row and Learning OS has already removed it.
+      await prisma.user.deleteMany({ where: { id: req.userId } });
 
       clearSessionCookies(res, 'strict');
       res.json({ message: i18next.t('server:auth.accountDeleted') });
