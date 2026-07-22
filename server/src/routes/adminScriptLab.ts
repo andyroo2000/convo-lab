@@ -1,16 +1,10 @@
-import {
-  DEFAULT_SPEAKER_VOICES,
-  DEFAULT_NARRATOR_VOICES,
-} from '@languageflow/shared/src/constants-new.js';
 import { Router } from 'express';
 
-import { prisma } from '../db/client.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
 import { generateWithGemini } from '../services/geminiClient.js';
 import { applyJapanesePronunciationOverrides } from '../services/pronunciation/overrideEngine.js';
-import { generateSentenceScript } from '../services/scriptLabSentenceGenerator.js';
 import { uploadToGCS } from '../services/storageClient.js';
 import {
   synthesizeFishAudioSpeech,
@@ -19,8 +13,12 @@ import {
 
 import {
   createLearningOsAdminScriptLabCourse,
+  deleteLearningOsAdminSentenceScriptTests,
   deleteLearningOsAdminScriptLabCourses,
+  generateLearningOsAdminSentenceScript,
+  listLearningOsAdminSentenceScriptTests,
   listLearningOsAdminScriptLabCourses,
+  showLearningOsAdminSentenceScriptTest,
   showLearningOsAdminScriptLabCourse,
 } from './learningOs/admin.js';
 
@@ -119,146 +117,25 @@ router.post('/test-pronunciation', async (req: AuthRequest, res, next) => {
  * POST /api/admin/script-lab/sentence-script
  * Generate a single-sentence Pimsleur-style script for prompt iteration
  */
-router.post('/sentence-script', async (req: AuthRequest, res, next) => {
-  try {
-    const {
-      sentence,
-      translation,
-      targetLanguage = 'ja',
-      nativeLanguage = 'en',
-      jlptLevel,
-      promptOverride,
-      l1VoiceId,
-      l2VoiceId,
-    } = req.body;
-
-    if (!sentence || typeof sentence !== 'string' || !sentence.trim()) {
-      throw new AppError('sentence is required', 400);
-    }
-
-    const resolvedL1VoiceId =
-      typeof l1VoiceId === 'string' && l1VoiceId.trim()
-        ? l1VoiceId.trim()
-        : DEFAULT_NARRATOR_VOICES.en;
-    const resolvedL2VoiceId =
-      typeof l2VoiceId === 'string' && l2VoiceId.trim()
-        ? l2VoiceId.trim()
-        : DEFAULT_SPEAKER_VOICES.ja.speaker1;
-    const resolvedTranslation = typeof translation === 'string' ? translation.trim() : undefined;
-    const resolvedPromptOverride = typeof promptOverride === 'string' ? promptOverride : undefined;
-
-    const result = await generateSentenceScript({
-      sentence: sentence.trim(),
-      translation: resolvedTranslation,
-      targetLanguage,
-      nativeLanguage,
-      jlptLevel,
-      l1VoiceId: resolvedL1VoiceId,
-      l2VoiceId: resolvedL2VoiceId,
-      promptOverride: resolvedPromptOverride,
-    });
-
-    // Persist the test result
-    const testRecord = await prisma.sentenceScriptTest.create({
-      data: {
-        userId: req.userId!,
-        sentence: sentence.trim(),
-        translation: result.translation,
-        targetLanguage,
-        nativeLanguage,
-        jlptLevel: jlptLevel || null,
-        l1VoiceId: resolvedL1VoiceId,
-        l2VoiceId: resolvedL2VoiceId,
-        promptTemplate: result.resolvedPrompt,
-        unitsJson: result.units ?? undefined,
-        rawResponse: result.rawResponse,
-        estimatedDurationSecs: result.estimatedDurationSeconds,
-        parseError: result.parseError || null,
-      },
-    });
-
-    res.json({ ...result, testId: testRecord.id });
-  } catch (error) {
-    next(error);
-  }
-});
+router.post('/sentence-script', generateLearningOsAdminSentenceScript);
 
 /**
  * GET /api/admin/script-lab/sentence-tests
  * Paginated list of past sentence-script test results (summary fields only)
  */
-router.get('/sentence-tests', async (req: AuthRequest, res, next) => {
-  try {
-    const limit = Math.min(Number(req.query.limit) || 50, 100);
-    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
-
-    const tests = await prisma.sentenceScriptTest.findMany({
-      take: limit + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        sentence: true,
-        translation: true,
-        estimatedDurationSecs: true,
-        parseError: true,
-        createdAt: true,
-      },
-    });
-
-    const hasMore = tests.length > limit;
-    if (hasMore) tests.pop();
-
-    res.json({
-      tests,
-      nextCursor: hasMore ? tests[tests.length - 1]?.id : null,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/sentence-tests', listLearningOsAdminSentenceScriptTests);
 
 /**
  * GET /api/admin/script-lab/sentence-tests/:id
  * Full record for a single past test
  */
-router.get('/sentence-tests/:id', async (req: AuthRequest, res, next) => {
-  try {
-    const test = await prisma.sentenceScriptTest.findUnique({
-      where: { id: req.params.id },
-    });
-
-    if (!test) {
-      throw new AppError('Sentence test not found', 404);
-    }
-
-    res.json(test);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/sentence-tests/:id', showLearningOsAdminSentenceScriptTest);
 
 /**
  * DELETE /api/admin/script-lab/sentence-tests
  * Bulk delete sentence-script test results
  */
-router.delete('/sentence-tests', async (req: AuthRequest, res, next) => {
-  try {
-    const { ids } = req.body;
-
-    if (!Array.isArray(ids) || ids.length === 0) {
-      throw new AppError('ids array is required', 400);
-    }
-
-    const result = await prisma.sentenceScriptTest.deleteMany({
-      where: { id: { in: ids } },
-    });
-
-    res.json({ deleted: result.count });
-  } catch (error) {
-    next(error);
-  }
-});
+router.delete('/sentence-tests', deleteLearningOsAdminSentenceScriptTests);
 
 /**
  * POST /api/admin/script-lab/synthesize-line

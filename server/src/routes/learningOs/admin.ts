@@ -17,6 +17,10 @@ const AVATAR_WRITE_TIMEOUT_MS = 30_000;
 const COURSE_PROVIDER_TIMEOUT_MS = 120_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const FISH_AUDIO_VOICE_PATTERN = /^fishaudio:[a-f0-9]{32}$/;
+const LANGUAGE_PATTERN = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/;
+const SENTENCE_TEST_CURSOR_PATTERN = /^[A-Za-z0-9_-]{1,160}$/;
+const SENTENCE_TEST_CURSOR_VALUE_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})\|([0-9a-f-]{36})$/i;
 const USER_LIST_QUERY_PARAMS = ['page', 'limit', 'search'] as const;
 const INVITE_LIST_QUERY_PARAMS = ['page', 'limit'] as const;
 const SPEAKER_AVATAR_FILENAME_PATTERN =
@@ -96,6 +100,9 @@ const isNullableUuid = (value: unknown): value is string | null => value === nul
 
 const isNonNegativeInteger = (value: unknown): value is number =>
   Number.isInteger(value) && (value as number) >= 0;
+
+const isNonNegativeFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
 const isPositiveInteger = (value: unknown): value is number =>
   Number.isInteger(value) && (value as number) >= 1;
@@ -386,6 +393,11 @@ const responseMessage = (payload: unknown): string | null =>
 const isRecordList = (value: unknown): value is JsonRecord[] =>
   Array.isArray(value) && value.every(isRecord);
 
+const hasExactKeys = (value: JsonRecord, keys: readonly string[]): boolean =>
+  Object.keys(value).length === keys.length && keys.every((key) => key in value);
+
+const unicodeLength = (value: string): number => Array.from(value).length;
+
 const isAdminCoursePrompt = (value: unknown): value is JsonRecord =>
   isRecord(value) &&
   Object.keys(value).length === 2 &&
@@ -430,6 +442,167 @@ const isAdminCoursePipeline = (value: unknown, courseId: string): value is JsonR
 
 const isAdminCoursePipelineUpdate = (value: unknown): value is { success: true } =>
   isRecord(value) && Object.keys(value).length === 1 && value.success === true;
+
+const isAdminSentenceScriptUnit = (value: unknown): value is JsonRecord => {
+  if (!isRecord(value) || !isNonEmptyString(value.type)) return false;
+
+  if (value.type === 'narration_L1') {
+    return (
+      hasExactKeys(value, ['type', 'text', 'voiceId']) &&
+      isNonEmptyString(value.text) &&
+      isString(value.voiceId) &&
+      FISH_AUDIO_VOICE_PATTERN.test(value.voiceId)
+    );
+  }
+  if (value.type === 'L2') {
+    const allowedKeys = new Set(['type', 'text', 'reading', 'translation', 'voiceId', 'speed']);
+    return (
+      Object.keys(value).every((key) => allowedKeys.has(key)) &&
+      isNonEmptyString(value.text) &&
+      isString(value.voiceId) &&
+      FISH_AUDIO_VOICE_PATTERN.test(value.voiceId) &&
+      (value.reading === undefined || isNonEmptyString(value.reading)) &&
+      (value.translation === undefined || isNonEmptyString(value.translation)) &&
+      (value.speed === undefined ||
+        (typeof value.speed === 'number' &&
+          Number.isFinite(value.speed) &&
+          value.speed >= 0.5 &&
+          value.speed <= 2))
+    );
+  }
+  if (value.type === 'pause') {
+    return (
+      hasExactKeys(value, ['type', 'seconds']) &&
+      typeof value.seconds === 'number' &&
+      Number.isFinite(value.seconds) &&
+      value.seconds >= 0 &&
+      value.seconds <= 60
+    );
+  }
+  if (value.type === 'marker') {
+    return hasExactKeys(value, ['type', 'label']) && isNonEmptyString(value.label);
+  }
+
+  return false;
+};
+
+const isNullableAdminSentenceScriptUnits = (value: unknown): boolean =>
+  value === null ||
+  (Array.isArray(value) && value.length <= 1_000 && value.every(isAdminSentenceScriptUnit));
+
+const isGeneratedAdminSentenceScript = (value: unknown): value is JsonRecord => {
+  if (!isRecord(value)) return false;
+  const keys = [
+    'units',
+    'estimatedDurationSeconds',
+    'rawResponse',
+    'resolvedPrompt',
+    'translation',
+    'testId',
+  ];
+  const hasParseError = 'parseError' in value;
+
+  return (
+    hasExactKeys(value, hasParseError ? [...keys, 'parseError'] : keys) &&
+    isNullableAdminSentenceScriptUnits(value.units) &&
+    (value.estimatedDurationSeconds === null ||
+      isNonNegativeFiniteNumber(value.estimatedDurationSeconds)) &&
+    isString(value.rawResponse) &&
+    isString(value.resolvedPrompt) &&
+    isNullableString(value.translation) &&
+    isUuid(value.testId) &&
+    (!hasParseError || isNonEmptyString(value.parseError))
+  );
+};
+
+const isAdminSentenceScriptTestSummary = (value: unknown): value is JsonRecord =>
+  isRecord(value) &&
+  hasExactKeys(value, [
+    'id',
+    'sentence',
+    'translation',
+    'estimatedDurationSecs',
+    'parseError',
+    'createdAt',
+  ]) &&
+  isUuid(value.id) &&
+  isNonEmptyString(value.sentence) &&
+  isNullableString(value.translation) &&
+  (value.estimatedDurationSecs === null ||
+    isNonNegativeFiniteNumber(value.estimatedDurationSecs)) &&
+  isNullableString(value.parseError) &&
+  isIsoTimestamp(value.createdAt);
+
+const isAdminSentenceScriptTestList = (value: unknown): value is JsonRecord =>
+  isRecord(value) &&
+  hasExactKeys(value, ['tests', 'nextCursor']) &&
+  Array.isArray(value.tests) &&
+  value.tests.every(isAdminSentenceScriptTestSummary) &&
+  (value.nextCursor === null ||
+    (isNonEmptyString(value.nextCursor) && isAdminSentenceTestCursor(value.nextCursor)));
+
+const isAdminSentenceScriptTest = (value: unknown, testId: string): value is JsonRecord =>
+  isRecord(value) &&
+  hasExactKeys(value, [
+    'id',
+    'userId',
+    'sentence',
+    'translation',
+    'targetLanguage',
+    'nativeLanguage',
+    'jlptLevel',
+    'l1VoiceId',
+    'l2VoiceId',
+    'promptTemplate',
+    'unitsJson',
+    'rawResponse',
+    'estimatedDurationSecs',
+    'parseError',
+    'createdAt',
+  ]) &&
+  value.id === testId &&
+  isUuid(value.userId) &&
+  isNonEmptyString(value.sentence) &&
+  isNullableString(value.translation) &&
+  isNonEmptyString(value.targetLanguage) &&
+  isNonEmptyString(value.nativeLanguage) &&
+  isNullableString(value.jlptLevel) &&
+  isString(value.l1VoiceId) &&
+  FISH_AUDIO_VOICE_PATTERN.test(value.l1VoiceId) &&
+  isString(value.l2VoiceId) &&
+  FISH_AUDIO_VOICE_PATTERN.test(value.l2VoiceId) &&
+  isString(value.promptTemplate) &&
+  isNullableAdminSentenceScriptUnits(value.unitsJson) &&
+  isString(value.rawResponse) &&
+  (value.estimatedDurationSecs === null ||
+    isNonNegativeFiniteNumber(value.estimatedDurationSecs)) &&
+  isNullableString(value.parseError) &&
+  isIsoTimestamp(value.createdAt);
+
+const isDeletedAdminSentenceScriptTests = (value: unknown): value is JsonRecord =>
+  isRecord(value) && hasExactKeys(value, ['deleted']) && isNonNegativeInteger(value.deleted);
+
+const isAdminSentenceTestCursor = (value: string): boolean => {
+  if (!SENTENCE_TEST_CURSOR_PATTERN.test(value)) return false;
+  try {
+    const decoded = Buffer.from(value, 'base64url').toString('utf8');
+    const match = SENTENCE_TEST_CURSOR_VALUE_PATTERN.exec(decoded);
+    if (!match || !isUuid(match[8])) return false;
+    const [year, month, day, hour, minute, second, millisecond] = match.slice(1, 8).map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second, millisecond));
+    return (
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day &&
+      date.getUTCHours() === hour &&
+      date.getUTCMinutes() === minute &&
+      date.getUTCSeconds() === second &&
+      date.getUTCMilliseconds() === millisecond
+    );
+  } catch {
+    return false;
+  }
+};
 
 const isAdminScriptLabCourseSummary = (value: unknown): value is JsonRecord =>
   isRecord(value) &&
@@ -562,6 +735,8 @@ const MUTATION_ERROR_STATUSES = new Map<string, number>([
   ['Speaker avatar changed while it was being re-cropped', 409],
   ['Speaker avatar must be uploaded before it can be re-cropped', 409],
   ['Test course not found', 404],
+  ['Sentence test not found', 404],
+  ['Sentence script generation is temporarily unavailable', 503],
   ['Episode not found', 404],
   ['Cannot delete non-test courses via Script Lab. Use the standard admin interface.', 400],
   ['Course not found', 404],
@@ -621,7 +796,8 @@ async function fetchAdminMutation(
   path: string,
   method: AdminRequestMethod | 'DELETE',
   body?: unknown,
-  timeoutMs = FETCH_TIMEOUT_MS
+  timeoutMs = FETCH_TIMEOUT_MS,
+  query: Readonly<Record<string, string>> = {}
 ): Promise<{ payload: unknown; response: globalThis.Response }> {
   if (!req.userId) throw new AppError('Authentication required', 401);
 
@@ -631,8 +807,10 @@ async function fetchAdminMutation(
     role: req.role,
     accountSource: req.accountSource,
   });
+  const upstreamUrl = new URL(`${config.apiUrl}/api/convolab/admin${path}`);
+  for (const [name, value] of Object.entries(query)) upstreamUrl.searchParams.set(name, value);
   const response = await fetchLearningOsProxy({
-    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/admin${path}`),
+    upstreamUrl,
     apiToken: config.apiToken,
     user,
     method,
@@ -798,6 +976,182 @@ export async function buildLearningOsAdminCoursePrompt(
   try {
     const { payload } = await fetchAdminCourseRequest(req, 'build-prompt', 'POST', {});
     if (!isAdminCoursePrompt(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function generateLearningOsAdminSentenceScript(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const body = isRecord(req.body) ? req.body : {};
+    const sentence = isString(body.sentence) ? body.sentence.trim() : '';
+    if (!sentence) throw new AppError('sentence is required', 400);
+    if (unicodeLength(sentence) > 15_000) {
+      throw new AppError('sentence must not exceed 15000 characters', 400);
+    }
+
+    const forwarded: JsonRecord = { sentence };
+    for (const field of ['translation', 'jlptLevel'] as const) {
+      const candidate = body[field];
+      if (candidate === undefined) continue;
+      let value: string | null;
+      if (candidate === null) {
+        value = null;
+      } else if (isString(candidate)) {
+        value = candidate.trim() || null;
+      } else {
+        throw new AppError(`${field} must be a string`, 400);
+      }
+      const maximum = field === 'translation' ? 15_000 : 32;
+      if (value !== null && unicodeLength(value) > maximum) {
+        throw new AppError(`${field} is too long`, 400);
+      }
+      forwarded[field] = value;
+    }
+    for (const field of ['targetLanguage', 'nativeLanguage'] as const) {
+      if (body[field] === undefined) continue;
+      const value = isString(body[field]) ? body[field].trim().toLowerCase() : '';
+      if (!LANGUAGE_PATTERN.test(value) || value.length > 16) {
+        throw new AppError(`${field} is invalid`, 400);
+      }
+      forwarded[field] = value;
+    }
+    for (const field of ['l1VoiceId', 'l2VoiceId'] as const) {
+      if (body[field] === undefined) continue;
+      const value = isString(body[field]) ? body[field].trim().toLowerCase() : '';
+      if (!FISH_AUDIO_VOICE_PATTERN.test(value)) {
+        throw new AppError(`${field} must be a Fish Audio voice ID`, 400);
+      }
+      forwarded[field] = value;
+    }
+    if (body.promptOverride !== undefined) {
+      const candidate = body.promptOverride;
+      let promptOverride: string | null;
+      if (candidate === null) {
+        promptOverride = null;
+      } else if (isString(candidate)) {
+        promptOverride = candidate.trim() || null;
+      } else {
+        throw new AppError('promptOverride must be a string', 400);
+      }
+      if (promptOverride !== null && unicodeLength(promptOverride) > 100_000) {
+        throw new AppError('promptOverride is too long', 400);
+      }
+      forwarded.promptOverride = promptOverride;
+    }
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      '/script-lab/sentence-script',
+      'POST',
+      forwarded,
+      COURSE_PROVIDER_TIMEOUT_MS
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isGeneratedAdminSentenceScript(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listLearningOsAdminSentenceScriptTests(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const query: Record<string, string> = {};
+    if (req.query.limit !== undefined) {
+      const limit = req.query.limit;
+      if (typeof limit !== 'string' || !/^\d+$/.test(limit)) {
+        throw new AppError('limit must be an integer between 1 and 100', 400);
+      }
+      const parsed = Number(limit);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
+        throw new AppError('limit must be an integer between 1 and 100', 400);
+      }
+      query.limit = String(parsed);
+    }
+    if (req.query.cursor !== undefined) {
+      const cursor = typeof req.query.cursor === 'string' ? req.query.cursor.trim() : '';
+      if (!isAdminSentenceTestCursor(cursor)) throw new AppError('cursor is invalid', 400);
+      query.cursor = cursor;
+    }
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      '/script-lab/sentence-tests',
+      'GET',
+      undefined,
+      FETCH_TIMEOUT_MS,
+      query
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isAdminSentenceScriptTestList(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function showLearningOsAdminSentenceScriptTest(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const testId = req.params.id?.trim().toLowerCase();
+    if (!isUuid(testId)) throw new AppError('Sentence test not found', 404);
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/script-lab/sentence-tests/${testId}`,
+      'GET'
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isAdminSentenceScriptTest(payload, testId)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteLearningOsAdminSentenceScriptTests(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const requestedIds = req.body?.ids;
+    if (!Array.isArray(requestedIds) || requestedIds.length < 1 || requestedIds.length > 100) {
+      throw new AppError('ids array is required', 400);
+    }
+    const ids = requestedIds.map((id) => (typeof id === 'string' ? id.trim().toLowerCase() : id));
+    if (
+      !ids.every((id): id is string => typeof id === 'string' && isUuid(id)) ||
+      new Set(ids).size !== ids.length
+    ) {
+      throw new AppError('ids must contain distinct UUIDs', 400);
+    }
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      '/script-lab/sentence-tests',
+      'DELETE',
+      { ids }
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isDeletedAdminSentenceScriptTests(payload)) throw invalidResponse();
 
     res.set('Cache-Control', 'private, no-store').json(payload);
   } catch (error) {
