@@ -90,7 +90,9 @@ test('the production workflow verifies the always-on Study API without rollout f
     '| sed -n \'s/^CONVOLAB_PROXY_USER_EMAIL=//p\'',
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
-    '[ "$current_config_revision" = "auth-mail-v1" ]',
+    'desired_deploy_config_revision="password-reset-url-v2"',
+    'upsert_env LEARNING_OS_DEPLOY_CONFIG_REVISION "$desired_deploy_config_revision"',
+    '[ "$current_config_revision" = "$desired_deploy_config_revision" ]',
     'GCS_CREDENTIAL_PATH="server/gcloud-key.json"',
     'LEARNING_OS_RUNTIME_UID=33',
     'if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then',
@@ -118,11 +120,11 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "auth-mail-v1" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \]; then/
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \]; then/
   );
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "auth-mail-v1" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[\[ " \$current_command " == \*" \$desired_queue_argument "\* \]\]; then/
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[\[ " \$current_command " == \*" \$desired_queue_argument "\* \]\]; then/
   );
   assert.doesNotMatch(workflow, /static-media-v2/);
   assert.doesNotMatch(workflow, /enable_(?:settings|overview|browser|new_queue|review|card|media|daily_audio|imports)/);
@@ -343,7 +345,7 @@ test('the production stack wires and smokes Learning OS static media', async () 
 
   for (const requiredComposeContract of [
     'LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: ${LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:-true}',
-    'LEARNING_OS_DEPLOY_CONFIG_REVISION: auth-mail-v1',
+    'LEARNING_OS_DEPLOY_CONFIG_REVISION: ${LEARNING_OS_DEPLOY_CONFIG_REVISION}',
     'GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json',
     'GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}',
     'AVATARS_GCS_ROOT: ${AVATARS_GCS_ROOT:-avatars}',
@@ -744,7 +746,7 @@ test('the production stack configures Learning OS auth mail and password reset l
     'MAIL_FROM_ADDRESS: ${LEARNING_OS_MAIL_FROM_ADDRESS}',
     'MAIL_FROM_NAME: ${LEARNING_OS_MAIL_FROM_NAME:-ConvoLab}',
     'LEARNING_OS_AUTH_MAIL_CONFIG_REVISION: ${LEARNING_OS_AUTH_MAIL_CONFIG_REVISION}',
-    'LEARNING_OS_DEPLOY_CONFIG_REVISION: auth-mail-v1',
+    'LEARNING_OS_DEPLOY_CONFIG_REVISION: ${LEARNING_OS_DEPLOY_CONFIG_REVISION}',
   ]) {
     assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
   }
@@ -786,6 +788,9 @@ test('the production stack configures Learning OS auth mail and password reset l
   }
 
   const configuration = workflow.indexOf('upsert_env LEARNING_OS_MAIL_FROM_ADDRESS');
+  const deployRevisionConfiguration = workflow.indexOf(
+    'upsert_env LEARNING_OS_DEPLOY_CONFIG_REVISION "$desired_deploy_config_revision"'
+  );
   const resendUpsert = workflow.indexOf('upsert_env RESEND_API_KEY "$DEPLOY_RESEND_API_KEY"');
   const resendRead = workflow.indexOf('resend_api_key="$(read_env_value RESEND_API_KEY)"');
   const emailFromRead = workflow.indexOf('email_from="$(read_env_value EMAIL_FROM)"');
@@ -801,11 +806,13 @@ test('the production stack configures Learning OS auth mail and password reset l
     'config("mail.default") !== "resend"'
   );
   assert.ok(configuration >= 0);
+  assert.ok(deployRevisionConfiguration >= 0);
   assert.ok(resendUpsert >= 0);
   assert.ok(resendUpsert < resendRead);
   assert.ok(emailFromRead < emailFromDefault);
   assert.ok(emailFromDefault < emailFromValidation);
   assert.ok(configuration < imagePull);
+  assert.ok(deployRevisionConfiguration < imagePull);
   assert.ok(apiHealth < runtimeConfiguration);
 });
 
