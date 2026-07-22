@@ -13,6 +13,7 @@ import {
 const API_LABEL = 'Learning OS Admin API';
 const FETCH_TIMEOUT_MS = 10_000;
 const AVATAR_WRITE_TIMEOUT_MS = 30_000;
+const COURSE_PROVIDER_TIMEOUT_MS = 120_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const USER_LIST_QUERY_PARAMS = ['page', 'limit', 'search'] as const;
 const INVITE_LIST_QUERY_PARAMS = ['page', 'limit'] as const;
@@ -52,6 +53,7 @@ type SpeakerAvatarMutation = {
   croppedUrl: string;
   originalUrl: string;
 };
+type AdminCourseRequestMethod = 'GET' | 'POST' | 'PUT';
 
 const isRecord = (value: unknown): value is JsonRecord =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -369,6 +371,50 @@ const isCreatedInviteCode = (value: unknown): value is CreatedInviteCode =>
 const responseMessage = (payload: unknown): string | null =>
   isRecord(payload) && isString(payload.message) ? payload.message : null;
 
+const isRecordList = (value: unknown): value is JsonRecord[] =>
+  Array.isArray(value) && value.every(isRecord);
+
+const isAdminCoursePrompt = (value: unknown): value is JsonRecord =>
+  isRecord(value) &&
+  isNonEmptyString(value.prompt) &&
+  isRecord(value.metadata) &&
+  isPositiveInteger(value.metadata.targetExchangeCount) &&
+  isString(value.metadata.vocabularySeeds) &&
+  isString(value.metadata.grammarSeeds);
+
+const isAdminCourseScriptConfig = (value: unknown): value is JsonRecord =>
+  isRecord(value) && Object.keys(value).length === 1 && isRecord(value.config);
+
+const isAdminCourseDialogue = (value: unknown): value is JsonRecord =>
+  isRecord(value) && Object.keys(value).length === 1 && isRecordList(value.exchanges);
+
+const isAdminCourseScript = (value: unknown): value is JsonRecord =>
+  isRecord(value) &&
+  isRecordList(value.scriptUnits) &&
+  isNonNegativeInteger(value.estimatedDurationSeconds) &&
+  isNonNegativeInteger(value.vocabularyItemCount);
+
+const isAdminCourseAudio = (value: unknown, courseId: string): value is JsonRecord =>
+  isRecord(value) &&
+  Object.keys(value).length === 3 &&
+  value.message === 'Audio generation started' &&
+  value.jobId === courseId &&
+  value.courseId === courseId;
+
+const isAdminCoursePipeline = (value: unknown, courseId: string): value is JsonRecord =>
+  isRecord(value) &&
+  Object.keys(value).length === 7 &&
+  value.id === courseId &&
+  isNonEmptyString(value.status) &&
+  (value.stage === null || value.stage === 'exchanges' || value.stage === 'script') &&
+  (value.exchanges === null || isRecordList(value.exchanges)) &&
+  (value.scriptUnits === null || isRecordList(value.scriptUnits)) &&
+  isNullableString(value.audioUrl) &&
+  (value.approxDurationSeconds === null || isNonNegativeInteger(value.approxDurationSeconds));
+
+const isAdminCoursePipelineUpdate = (value: unknown): value is { success: true } =>
+  isRecord(value) && Object.keys(value).length === 1 && value.success === true;
+
 const PRONUNCIATION_VALIDATION_MESSAGES = new Set([
   'keepKanji must be an array of strings',
   'keepKanji must contain no more than 500 entries',
@@ -407,6 +453,26 @@ const mutationError = (response: globalThis.Response, payload: unknown): AppErro
     ['Speaker avatar not found', 404],
     ['Speaker avatar changed while it was being re-cropped', 409],
     ['Speaker avatar must be uploaded before it can be re-cropped', 409],
+    ['Course not found', 404],
+    ['Course has no episode with source text', 400],
+    ['Course changed while dialogue was being generated', 409],
+    ['No dialogue exchanges found. Generate dialogue first.', 400],
+    ['Course changed while script was being generated', 409],
+    ['Course requires a narrator voice and a duration from 1 to 120 minutes', 400],
+    ['Script provider is temporarily unavailable', 503],
+    ['No script data found. Generate script first.', 400],
+    ['Script data is not in the correct format for audio generation. Generate script first.', 400],
+    ['Course is already being generated', 409],
+    ['Course script changed while audio generation was being queued', 409],
+    ['Course generation could not be queued. Please try again.', 503],
+    ['Invalid stage. Must be "exchanges" or "script"', 400],
+    ['Pipeline data must be a list.', 400],
+    ['Pipeline data contains too many items.', 400],
+    ['Pipeline data is too complex.', 400],
+    ['Pipeline data text is too long.', 400],
+    ['Pipeline data contains an invalid number.', 400],
+    ['Pipeline data contains an invalid key.', 400],
+    ['Pipeline data contains an invalid value.', 400],
   ]);
   if (message !== null && allowed.get(message) === response.status) {
     return new AppError(message, response.status);
@@ -434,7 +500,7 @@ const mutationError = (response: globalThis.Response, payload: unknown): AppErro
 async function fetchAdminMutation(
   req: AuthRequest,
   path: string,
-  method: 'POST' | 'PUT' | 'DELETE',
+  method: AdminCourseRequestMethod | 'DELETE',
   body?: unknown,
   timeoutMs = FETCH_TIMEOUT_MS
 ): Promise<{ payload: unknown; response: globalThis.Response }> {
@@ -465,6 +531,28 @@ async function fetchAdminMutation(
   }
 
   return { payload, response };
+}
+
+async function fetchAdminCourseRequest(
+  req: AuthRequest,
+  operation: string,
+  method: AdminCourseRequestMethod,
+  body?: unknown,
+  timeoutMs = FETCH_TIMEOUT_MS
+): Promise<{ courseId: string; payload: unknown }> {
+  const courseId = req.params.id;
+  if (!isUuid(courseId)) throw new AppError('Course not found', 404);
+
+  const { payload, response } = await fetchAdminMutation(
+    req,
+    `/courses/${courseId}/${operation}`,
+    method,
+    body,
+    timeoutMs
+  );
+  if (!response.ok) throw mutationError(response, payload);
+
+  return { courseId, payload };
 }
 
 async function fetchAdminMultipartMutation(
@@ -580,6 +668,142 @@ async function mirrorCreatedInvite(req: AuthRequest, payload: CreatedInviteCode)
       throw new AppError('This code already exists', 400);
     }
     throw new AppError(`${API_LABEL} request failed.`, 502);
+  }
+}
+
+export async function buildLearningOsAdminCoursePrompt(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { payload } = await fetchAdminCourseRequest(req, 'build-prompt', 'POST', {});
+    if (!isAdminCoursePrompt(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function buildLearningOsAdminCourseScriptConfig(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { payload } = await fetchAdminCourseRequest(req, 'build-script-config', 'POST', {});
+    if (!isAdminCourseScriptConfig(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function generateLearningOsAdminCourseDialogue(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const customPrompt = req.body?.customPrompt;
+    if (customPrompt !== undefined && customPrompt !== null && typeof customPrompt !== 'string') {
+      throw new AppError('customPrompt must be a string', 400);
+    }
+    if (typeof customPrompt === 'string' && customPrompt.length > 100_000) {
+      throw new AppError('customPrompt must not exceed 100000 characters', 400);
+    }
+
+    const body = customPrompt === undefined ? {} : { customPrompt };
+    const { payload } = await fetchAdminCourseRequest(
+      req,
+      'generate-dialogue',
+      'POST',
+      body,
+      COURSE_PROVIDER_TIMEOUT_MS
+    );
+    if (!isAdminCourseDialogue(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function generateLearningOsAdminCourseScript(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { payload } = await fetchAdminCourseRequest(
+      req,
+      'generate-script',
+      'POST',
+      {},
+      COURSE_PROVIDER_TIMEOUT_MS
+    );
+    if (!isAdminCourseScript(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function generateLearningOsAdminCourseAudio(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { courseId, payload } = await fetchAdminCourseRequest(req, 'generate-audio', 'POST', {});
+    if (!isAdminCourseAudio(payload, courseId)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function showLearningOsAdminCoursePipeline(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { courseId, payload } = await fetchAdminCourseRequest(req, 'pipeline-data', 'GET');
+    if (!isAdminCoursePipeline(payload, courseId)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateLearningOsAdminCoursePipeline(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const stage = req.body?.stage;
+    const data = req.body?.data;
+    if (stage !== 'exchanges' && stage !== 'script') {
+      throw new AppError('Invalid stage. Must be "exchanges" or "script"', 400);
+    }
+    if (!Array.isArray(data)) throw new AppError('Pipeline data must be a list.', 400);
+
+    const { payload } = await fetchAdminCourseRequest(req, 'pipeline-data', 'PUT', {
+      stage,
+      data,
+    });
+    if (!isAdminCoursePipelineUpdate(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
   }
 }
 
