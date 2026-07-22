@@ -25,6 +25,16 @@ describe('ConfirmModal', () => {
     expect(screen.getByText('Are you sure you want to proceed?')).toBeTruthy();
   });
 
+  it('should render additional confirmation content', () => {
+    render(
+      <ConfirmModal {...defaultProps}>
+        <div>Additional confirmation content</div>
+      </ConfirmModal>
+    );
+
+    expect(screen.getByText('Additional confirmation content')).toBeTruthy();
+  });
+
   it('should render default button labels', () => {
     render(<ConfirmModal {...defaultProps} />);
 
@@ -72,5 +82,11 @@ describe('ConfirmModal', () => {
     const confirmButton = screen.getByTestId('modal-button-confirm');
     expect(confirmButton.textContent).toBe('Processing...');
     expect(confirmButton).toHaveProperty('disabled', true);
+  });
+
+  it('should disable confirmation when the caller has not satisfied its requirements', () => {
+    render(<ConfirmModal {...defaultProps} confirmDisabled />);
+
+    expect(screen.getByTestId('modal-button-confirm')).toHaveProperty('disabled', true);
   });
 });

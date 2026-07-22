@@ -76,6 +76,8 @@ const SettingsPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -148,15 +150,34 @@ const SettingsPage = () => {
   };
 
   const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError(t('settings:danger.deleteAccount.passwordRequired'));
+      return;
+    }
+
     setIsDeleting(true);
+    setDeleteError(null);
     try {
-      await deleteAccount();
+      await deleteAccount(deletePassword);
       navigate('/login');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('settings:messages.deleteError'));
-      setShowDeleteModal(false);
+      setDeleteError(err instanceof Error ? err.message : t('settings:messages.deleteError'));
       setIsDeleting(false);
     }
+  };
+
+  const openDeleteModal = () => {
+    setDeletePassword('');
+    setDeleteError(null);
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) return;
+
+    setShowDeleteModal(false);
+    setDeletePassword('');
+    setDeleteError(null);
   };
 
   const handleChangePassword = async () => {
@@ -533,7 +554,7 @@ const SettingsPage = () => {
                       </ul>
                       <button
                         type="button"
-                        onClick={() => setShowDeleteModal(true)}
+                        onClick={openDeleteModal}
                         className="retro-settings-btn-danger"
                         data-testid="settings-button-delete-account"
                       >
@@ -556,10 +577,30 @@ const SettingsPage = () => {
         confirmLabel={t('settings:danger.deleteAccount.confirmButton')}
         cancelLabel={t('settings:danger.deleteAccount.cancelButton')}
         onConfirm={handleDeleteAccount}
-        onCancel={() => setShowDeleteModal(false)}
+        onCancel={closeDeleteModal}
         isLoading={isDeleting}
+        confirmDisabled={!deletePassword}
         variant="danger"
-      />
+      >
+        <label htmlFor="delete-account-password" className="retro-settings-label block mb-2">
+          {t('settings:danger.deleteAccount.passwordLabel')}
+        </label>
+        <input
+          id="delete-account-password"
+          type="password"
+          autoComplete="current-password"
+          value={deletePassword}
+          onChange={(event) => setDeletePassword(event.target.value)}
+          disabled={isDeleting}
+          className="retro-settings-input w-full"
+          placeholder={t('settings:danger.deleteAccount.passwordPlaceholder')}
+        />
+        {deleteError && (
+          <p className="mt-2 text-sm text-red-700" role="alert">
+            {deleteError}
+          </p>
+        )}
+      </ConfirmModal>
 
       {/* Avatar Cropper Modal */}
       <AvatarCropperModal

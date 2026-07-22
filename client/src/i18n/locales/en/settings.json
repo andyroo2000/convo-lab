@@ -77,7 +77,10 @@
       "confirmTitle": "Delete Account",
       "confirmMessage": "Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently delete all of your data including episodes and audio courses.",
       "confirmButton": "Yes, Delete My Account",
-      "cancelButton": "Cancel"
+      "cancelButton": "Cancel",
+      "passwordLabel": "Current password",
+      "passwordPlaceholder": "Enter your current password",
+      "passwordRequired": "Enter your current password to delete your account"
     }
   },
   "messages": {

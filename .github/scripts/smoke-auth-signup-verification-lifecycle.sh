@@ -18,6 +18,7 @@ RESET_REQUEST_BODY_FILE=""
 RESET_BODY_FILE=""
 OLD_LOGIN_BODY_FILE=""
 NEW_LOGIN_BODY_FILE=""
+DELETE_BODY_FILE=""
 SMOKE_EMAIL=""
 SMOKE_INVITE_CODE=""
 SMOKE_INVITE_ID=""
@@ -125,7 +126,8 @@ cleanup() {
     "$RESET_REQUEST_BODY_FILE" \
     "$RESET_BODY_FILE" \
     "$OLD_LOGIN_BODY_FILE" \
-    "$NEW_LOGIN_BODY_FILE" || cleanup_status=1
+    "$NEW_LOGIN_BODY_FILE" \
+    "$DELETE_BODY_FILE" || cleanup_status=1
 
   if [ "$cleanup_status" -ne 0 ]; then
     if [ "$exit_status" -eq 0 ]; then
@@ -202,6 +204,7 @@ RESET_REQUEST_BODY_FILE="$(mktemp)"
 RESET_BODY_FILE="$(mktemp)"
 OLD_LOGIN_BODY_FILE="$(mktemp)"
 NEW_LOGIN_BODY_FILE="$(mktemp)"
+DELETE_BODY_FILE="$(mktemp)"
 chmod 600 \
   "$SIGNUP_COOKIE_JAR" \
   "$LOGIN_COOKIE_JAR" \
@@ -213,7 +216,8 @@ chmod 600 \
   "$RESET_REQUEST_BODY_FILE" \
   "$RESET_BODY_FILE" \
   "$OLD_LOGIN_BODY_FILE" \
-  "$NEW_LOGIN_BODY_FILE"
+  "$NEW_LOGIN_BODY_FILE" \
+  "$DELETE_BODY_FILE"
 
 csrf_token_for() {
   local cookie_jar="$1"
@@ -559,6 +563,42 @@ test "$(printf '%s' "$new_login_response" | json_field 'response.id')" = "$SMOKE
 test "$(printf '%s' "$new_login_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$NEW_LOGIN_COOKIE_JAR")"
 
+docker exec \
+  -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    process.stdout.write(JSON.stringify({
+      currentPassword: process.env.AUTH_SMOKE_RESET_PASSWORD,
+    }));
+  ' > "$DELETE_BODY_FILE"
+delete_csrf_token="$(csrf_token_for "$NEW_LOGIN_COOKIE_JAR")"
+delete_response="$(curl --fail --silent --show-error \
+  --request DELETE \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header "Origin: $BASE_URL" \
+  --header "X-CSRF-Token: $delete_csrf_token" \
+  --cookie "$NEW_LOGIN_COOKIE_JAR" \
+  --cookie-jar "$NEW_LOGIN_COOKIE_JAR" \
+  --data-binary "@$DELETE_BODY_FILE" \
+  "$BASE_URL/api/auth/me")"
+test "$(printf '%s' "$delete_response" | json_field 'response.message')" = \
+  'Account deleted successfully'
+if awk '$6 == "token" || $6 == "XSRF-TOKEN" { found = 1 } END { exit found ? 0 : 1 }' \
+  "$NEW_LOGIN_COOKIE_JAR"; then
+  echo "Account deletion retained a session or CSRF cookie." >&2
+  exit 1
+fi
+
+remaining_user_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
+  php artisan tinker --execute='
+    echo "AUTH_SMOKE_USER_COUNT=".App\Models\User::query()
+        ->where("convolab_email_normalized", getenv("AUTH_SMOKE_EMAIL"))
+        ->count().PHP_EOL;
+  ' < /dev/null \
+  | sed -n 's/^AUTH_SMOKE_USER_COUNT=//p' \
+  | tail -1)"
+test "$remaining_user_count" = 0
+
 delete_disposable_account
 SMOKE_EMAIL=""
-echo "Learning OS signup, verification, and password reset lifecycle smoke completed."
+echo "Learning OS signup, verification, password reset, and account deletion lifecycle smoke completed."

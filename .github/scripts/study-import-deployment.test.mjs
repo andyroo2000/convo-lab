@@ -1163,7 +1163,7 @@ test('the lifecycle smoke script remains valid Bash', async () => {
   assert.ok(publicCsrfReady < csrfCookieRead);
 });
 
-test('the auth lifecycle smoke is disposable and exercises signup, verification, and password reset', async () => {
+test('the auth lifecycle smoke exercises signup through account deletion with disposable state', async () => {
   const scriptPath = path.join(
     repositoryRoot,
     '.github/scripts/smoke-auth-signup-verification-lifecycle.sh'
@@ -1204,7 +1204,11 @@ test('the auth lifecycle smoke is disposable and exercises signup, verification,
     'if [ "$attempt" -lt 30 ]; then',
     'AUTH_SMOKE_RESET_TOKEN=',
     "'/api/password-reset/verify'",
-    'Learning OS signup, verification, and password reset lifecycle smoke completed.',
+    '--request DELETE',
+    '$BASE_URL/api/auth/me',
+    'Account deletion retained a session or CSRF cookie.',
+    'AUTH_SMOKE_USER_COUNT=',
+    'Learning OS signup, verification, password reset, and account deletion lifecycle smoke completed.',
   ]) {
     assert.ok(script.includes(requiredContract), `Missing auth lifecycle contract: ${requiredContract}`);
   }
@@ -1219,6 +1223,8 @@ test('the auth lifecycle smoke is disposable and exercises signup, verification,
   const queuedResetToken = script.indexOf('AUTH_SMOKE_RESET_TOKEN_COUNT=', resetRequest);
   const resetToken = script.indexOf('AUTH_SMOKE_RESET_TOKEN=', queuedResetToken);
   const reset = script.indexOf("'/api/password-reset/verify'", resetToken);
+  const accountDelete = script.indexOf('--request DELETE', reset);
+  const accountDeleteVerification = script.indexOf('AUTH_SMOKE_USER_COUNT=', accountDelete);
   const successCleanup = script.lastIndexOf('delete_disposable_account');
 
   assert.ok(inviteCreate >= 0);
@@ -1231,7 +1237,9 @@ test('the auth lifecycle smoke is disposable and exercises signup, verification,
   assert.ok(resetRequest < queuedResetToken);
   assert.ok(queuedResetToken < resetToken);
   assert.ok(resetToken < reset);
-  assert.ok(reset < successCleanup);
+  assert.ok(reset < accountDelete);
+  assert.ok(accountDelete < accountDeleteVerification);
+  assert.ok(accountDeleteVerification < successCleanup);
 
   const cleanupFunction = script.slice(
     script.indexOf('cleanup() {'),

@@ -66,6 +66,10 @@ export interface LearningOsPasswordChangeInput {
   newPassword: string;
 }
 
+export interface LearningOsAccountDeletionInput {
+  currentPassword: string;
+}
+
 export async function authenticateLearningOsAccount(
   email: string,
   password: string
@@ -210,6 +214,49 @@ export async function changeLearningOsCurrentPassword(
       throw new AppError('Current password is incorrect', 401);
     }
     throw new AppError('Invalid new password', 400);
+  }
+  throw upstreamFailure(response.status);
+}
+
+export async function deleteLearningOsCurrentAccount(
+  userId: string,
+  { currentPassword }: LearningOsAccountDeletionInput,
+  sessionIdentity?: LearningOsSessionIdentity
+): Promise<void> {
+  const { config, user } = await resolveLearningOsUserProxyContext(
+    userId,
+    API_LABEL,
+    sessionIdentity
+  );
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/me`),
+    apiToken: config.apiToken,
+    user,
+    method: 'DELETE',
+    body: { current_password: currentPassword },
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  if (response.ok) {
+    if (response.status !== 204 || (await response.text()) !== '') {
+      throw invalidResponse();
+    }
+    return;
+  }
+
+  if (response.status === 429) {
+    throw rateLimitError(response, 'Too many account deletion attempts.');
+  }
+  if (response.status === 404) {
+    throw new AppError('User not found', 404);
+  }
+  if (response.status === 422) {
+    const body = await parseJsonResponse(response);
+    if (hasValidationError(body, 'current_password')) {
+      throw new AppError('Current password is incorrect', 401);
+    }
   }
   throw upstreamFailure(response.status);
 }

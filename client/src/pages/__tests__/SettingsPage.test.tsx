@@ -270,6 +270,49 @@ describe('SettingsPage', () => {
       await waitFor(() => {
         expect(screen.getByTestId('modal-button-confirm')).toBeInTheDocument();
       });
+      expect(screen.getByLabelText('Current password')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-button-confirm')).toBeDisabled();
+    });
+
+    it('should require and forward the current password before deleting', async () => {
+      renderWithRouter('/app/settings/danger');
+      fireEvent.click(screen.getByTestId('settings-button-delete-account'));
+
+      fireEvent.change(screen.getByLabelText('Current password'), {
+        target: { value: 'correct-password123' },
+      });
+      fireEvent.click(screen.getByTestId('modal-button-confirm'));
+
+      await waitFor(() => {
+        expect(mockDeleteAccount).toHaveBeenCalledWith('correct-password123');
+        expect(mockNavigate).toHaveBeenCalledWith('/login');
+      });
+    });
+
+    it('should keep the modal open and show password errors from the API', async () => {
+      mockDeleteAccount.mockRejectedValueOnce(new Error('Current password is incorrect'));
+      renderWithRouter('/app/settings/danger');
+      fireEvent.click(screen.getByTestId('settings-button-delete-account'));
+      fireEvent.change(screen.getByLabelText('Current password'), {
+        target: { value: 'wrong-password' },
+      });
+      fireEvent.click(screen.getByTestId('modal-button-confirm'));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Current password is incorrect');
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalledWith('/login');
+    });
+
+    it('should clear deletion credentials when the modal is canceled', () => {
+      renderWithRouter('/app/settings/danger');
+      fireEvent.click(screen.getByTestId('settings-button-delete-account'));
+      fireEvent.change(screen.getByLabelText('Current password'), {
+        target: { value: 'do-not-retain-me' },
+      });
+      fireEvent.click(screen.getByTestId('modal-button-cancel'));
+      fireEvent.click(screen.getByTestId('settings-button-delete-account'));
+
+      expect(screen.getByLabelText('Current password')).toHaveValue('');
     });
   });
 

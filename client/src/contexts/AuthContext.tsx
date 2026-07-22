@@ -22,7 +22,7 @@ interface AuthContextType {
     seenSampleContentGuide?: boolean;
     seenCustomContentGuide?: boolean;
   }) => Promise<void>;
-  deleteAccount: () => Promise<void>;
+  deleteAccount: (currentPassword: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -140,17 +140,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(userData);
   };
 
-  const deleteAccount = async () => {
+  const deleteAccount = async (currentPassword: string) => {
     const response = await fetchWithCsrf(`${API_URL}/api/auth/me`, {
       method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
+      body: JSON.stringify({ currentPassword }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Delete failed');
+      throw new Error(error.error?.message || error.message || 'Delete failed');
     }
 
+    await clearAudioCache().catch((error) => {
+      console.warn('Unable to clear audio cache after account deletion:', error);
+    });
     setUser(null);
   };
 

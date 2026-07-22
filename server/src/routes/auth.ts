@@ -25,6 +25,7 @@ import { isAdminEmail } from '../middleware/roleAuth.js';
 import {
   authenticateLearningOsAccount,
   changeLearningOsCurrentPassword,
+  deleteLearningOsCurrentAccount,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
   updateLearningOsCurrentAccount,
@@ -74,6 +75,19 @@ const passwordChangeIpRateLimit = createExpressRateLimit({
 const passwordChangeRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
+});
+const accountDeletionIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const accountDeletionRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
@@ -782,21 +796,53 @@ router.patch(
 );
 
 // Delete user account
-router.delete('/me', requireAuth, async (req: AuthRequest, res, next) => {
-  try {
-    // Delete user (cascade will handle related data)
-    await prisma.user.delete({
-      where: { id: req.userId },
-    });
+router.delete(
+  '/me',
+  accountDeletionIpRateLimit,
+  requireAuth,
+  accountDeletionRateLimit,
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { currentPassword } = req.body;
+      if (
+        typeof currentPassword !== 'string' ||
+        !currentPassword ||
+        currentPassword.length > 1024
+      ) {
+        throw new AppError('Current password is required', 400);
+      }
 
-    // Clear auth cookie
-    clearSessionCookies(res, 'strict');
+      if (isLearningOsAuthProxyEnabled()) {
+        await deleteLearningOsCurrentAccount(
+          req.userId!,
+          { currentPassword },
+          {
+            userId: req.userId!,
+            email: req.email,
+            role: req.role,
+            accountSource: req.accountSource,
+          }
+        );
+      } else {
+        const user = await prisma.user.findUnique({ where: { id: req.userId } });
+        if (!user) {
+          throw new AppError(i18next.t('server:auth.userNotFound'), 404);
+        }
+        if (!user.password || !(await bcrypt.compare(currentPassword, user.password))) {
+          throw new AppError('Current password is incorrect', 401);
+        }
 
-    res.json({ message: i18next.t('server:auth.accountDeleted') });
-  } catch (error) {
-    next(error);
+        // The local branch remains as an emergency rollback while auth ownership converges.
+        await prisma.user.delete({ where: { id: req.userId } });
+      }
+
+      clearSessionCookies(res, 'strict');
+      res.json({ message: i18next.t('server:auth.accountDeleted') });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 // Get quota status for current user
 router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {

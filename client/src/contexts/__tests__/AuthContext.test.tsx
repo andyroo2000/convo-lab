@@ -339,10 +339,46 @@ describe('AuthContext', () => {
       });
 
       await act(async () => {
-        await result.current.deleteAccount();
+        await result.current.deleteAccount('correct-password123');
       });
 
       expect(result.current.user).toBe(null);
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        expect.stringContaining('/api/auth/me'),
+        expect.objectContaining({
+          method: 'DELETE',
+          credentials: 'include',
+          body: JSON.stringify({ currentPassword: 'correct-password123' }),
+        })
+      );
+      const headers = new Headers(mockFetch.mock.calls.at(-1)?.[1]?.headers);
+      expect(headers.get('Content-Type')).toBe('application/json');
+      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    });
+
+    it('keeps the current user when account deletion fails', async () => {
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'user',
+      };
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockUser })
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ error: { message: 'Current password is incorrect' } }),
+        });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.user).toEqual(mockUser));
+
+      await expect(
+        act(async () => {
+          await result.current.deleteAccount('wrong-password');
+        })
+      ).rejects.toThrow('Current password is incorrect');
+      expect(result.current.user).toEqual(mockUser);
     });
   });
 

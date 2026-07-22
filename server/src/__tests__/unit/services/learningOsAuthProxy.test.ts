@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   authenticateLearningOsAccount,
   changeLearningOsCurrentPassword,
+  deleteLearningOsCurrentAccount,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
   resetLearningOsPassword,
@@ -301,6 +302,82 @@ describe('Learning OS auth proxy', () => {
         'X-Convo-Lab-User-Id': account.id,
         'X-Convo-Lab-User-Email': account.email,
       }),
+    });
+  });
+
+  it('deletes a target-created account through the canonical Learning OS action', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(
+      deleteLearningOsCurrentAccount(
+        account.id,
+        { currentPassword: 'correct-password123' },
+        {
+          userId: account.id,
+          email: account.email,
+          role: account.role,
+          accountSource: 'learning-os',
+        }
+      )
+    ).resolves.toBeUndefined();
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/me');
+    expect(init).toMatchObject({
+      method: 'DELETE',
+      body: JSON.stringify({ current_password: 'correct-password123' }),
+      headers: expect.objectContaining({
+        'X-Convo-Lab-User-Id': account.id,
+        'X-Convo-Lab-User-Email': account.email,
+      }),
+    });
+  });
+
+  it.each([
+    [
+      'incorrect current password',
+      422,
+      { message: 'Invalid.', errors: { current_password: ['Incorrect.'] } },
+      'Current password is incorrect',
+      401,
+    ],
+    ['missing account', 404, { message: 'Not Found.' }, 'User not found', 404],
+  ] as const)(
+    'maps %s to the legacy account-deletion contract',
+    async (_label, upstreamStatus, body, message, status) => {
+      vi.mocked(global.fetch).mockResolvedValue(jsonResponse(body, upstreamStatus));
+
+      await expect(
+        deleteLearningOsCurrentAccount(account.id, {
+          currentPassword: 'correct-password123',
+        })
+      ).rejects.toMatchObject({ message, statusCode: status });
+    }
+  );
+
+  it('preserves a bounded account-deletion retry delay', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'Too Many Attempts.' }, 429, { 'Retry-After': '23' })
+    );
+
+    await expect(
+      deleteLearningOsCurrentAccount(account.id, { currentPassword: 'correct-password123' })
+    ).rejects.toMatchObject({
+      message: 'Too many account deletion attempts.',
+      statusCode: 429,
+      metadata: { cooldown: { remainingSeconds: 23 } },
+    });
+  });
+
+  it('rejects an unexpected successful account-deletion response', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse({ message: 'ok' }));
+
+    await expect(
+      deleteLearningOsCurrentAccount(account.id, { currentPassword: 'correct-password123' })
+    ).rejects.toMatchObject({
+      message: 'Learning OS Auth API returned an invalid response.',
+      statusCode: 502,
     });
   });
 

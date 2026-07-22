@@ -187,15 +187,10 @@ describe('backend migration inventory', () => {
       ['GET', '/api/auth/me'],
       ['PATCH', '/api/auth/me'],
       ['PATCH', '/api/auth/change-password'],
+      ['DELETE', '/api/auth/me'],
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
         surface: { id: 'auth', runtimeOwner: 'learning-os-proxy' },
-      });
-    }
-
-    for (const [method, routePath] of [['DELETE', '/api/auth/me']]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'auth', runtimeOwner: 'express' },
       });
     }
 

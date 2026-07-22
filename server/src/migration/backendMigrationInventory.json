@@ -42,7 +42,12 @@
           "path": "/api/auth/change-password",
           "runtimeOwner": "learning-os-proxy"
         },
-        { "id": "auth.me.delete", "method": "DELETE", "path": "/api/auth/me" },
+        {
+          "id": "auth.me.delete",
+          "method": "DELETE",
+          "path": "/api/auth/me",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "auth.quota.show", "method": "GET", "path": "/api/auth/me/quota" },
         { "id": "auth.google.start", "method": "GET", "path": "/api/auth/google" },
         { "id": "auth.google.callback", "method": "GET", "path": "/api/auth/google/callback" },
