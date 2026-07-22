@@ -105,6 +105,14 @@ describe('ResetPasswordPage', () => {
         expect(screen.getByRole('heading', { name: /Invalid Reset Link/i })).toBeInTheDocument();
       });
     });
+
+    it('accepts a Learning OS query link without calling legacy token validation', async () => {
+      renderWithRouter('/reset-password?token=broker-token&email=target%40example.com');
+
+      expect(await screen.findByRole('heading', { name: /Reset Password/i })).toBeInTheDocument();
+      expect(screen.getByText(/target@example\.com/i)).toBeInTheDocument();
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
   });
 
   describe('Password Reset Form', () => {
@@ -217,6 +225,36 @@ describe('ResetPasswordPage', () => {
             method: 'POST',
             body: JSON.stringify({
               token: 'valid-token',
+              newPassword: 'newpassword123',
+            }),
+          })
+        );
+      });
+    });
+
+    it('submits the account email for a Learning OS query link', async () => {
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: 'Password reset successfully' }),
+      });
+
+      renderWithRouter('/reset-password?token=broker-token&email=target%40example.com');
+
+      const newPassword = await screen.findByLabelText(/New Password/i);
+      fireEvent.change(newPassword, { target: { value: 'newpassword123' } });
+      fireEvent.change(screen.getByLabelText(/Confirm Password/i), {
+        target: { value: 'newpassword123' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /Reset Password/i }));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_URL}/api/password-reset/verify`,
+          expect.objectContaining({
+            body: JSON.stringify({
+              email: 'target@example.com',
+              token: 'broker-token',
               newPassword: 'newpassword123',
             }),
           })

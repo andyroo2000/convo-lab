@@ -12,6 +12,7 @@ const API_LABEL = 'Learning OS Auth API';
 const TIMEOUT_MS = 10_000;
 const ISO_MILLISECOND_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const VERIFICATION_TOKEN_PATTERN = /^[0-9a-f]{64}$/;
+const PASSWORD_RESET_TOKEN_MAX_LENGTH = 512;
 
 export interface LearningOsLoginAccount {
   id: string;
@@ -52,6 +53,12 @@ export interface LearningOsProfileUpdateInput {
   onboardingCompleted?: boolean;
   seenSampleContentGuide?: boolean;
   seenCustomContentGuide?: boolean;
+}
+
+export interface LearningOsPasswordResetInput {
+  email: string;
+  token: string;
+  newPassword: string;
 }
 
 export async function authenticateLearningOsAccount(
@@ -275,6 +282,89 @@ export async function verifyLearningOsEmail(
     message: 'Email verified successfully',
     email: (body as Record<string, string>).email,
   };
+}
+
+export async function sendLearningOsPasswordResetLink(email: string): Promise<void> {
+  const { config, user } = await resolveLearningOsServiceProxyContext(API_LABEL);
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/auth/password/forgot`),
+    apiToken: config.apiToken,
+    user,
+    method: 'POST',
+    body: { email },
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  if (response.ok) {
+    if (response.status !== 204 || (await response.text()) !== '') {
+      throw invalidResponse();
+    }
+    return;
+  }
+
+  if (response.status === 429) {
+    throw rateLimitError(response, 'Too many password reset attempts.');
+  }
+  if (response.status === 422) {
+    throw new AppError('Invalid password reset details', 400);
+  }
+  throw upstreamFailure(response.status);
+}
+
+export async function resetLearningOsPassword({
+  email,
+  token,
+  newPassword,
+}: LearningOsPasswordResetInput): Promise<void> {
+  if (
+    typeof email !== 'string' ||
+    email.length > 320 ||
+    !email.includes('@') ||
+    email !== email.trim()
+  ) {
+    throw new AppError('Invalid or expired password reset token', 400);
+  }
+  if (
+    typeof token !== 'string' ||
+    token.length === 0 ||
+    token.length > PASSWORD_RESET_TOKEN_MAX_LENGTH
+  ) {
+    throw new AppError('Invalid or expired password reset token', 400);
+  }
+
+  const { config, user } = await resolveLearningOsServiceProxyContext(API_LABEL);
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/auth/password/reset`),
+    apiToken: config.apiToken,
+    user,
+    method: 'POST',
+    body: {
+      email,
+      token,
+      password: newPassword,
+      password_confirmation: newPassword,
+    },
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  if (response.ok) {
+    if (response.status !== 204 || (await response.text()) !== '') {
+      throw invalidResponse();
+    }
+    return;
+  }
+
+  if (response.status === 429) {
+    throw rateLimitError(response, 'Too many password reset attempts.');
+  }
+  if (response.status === 422) {
+    throw new AppError('Invalid or expired password reset token', 400);
+  }
+  throw upstreamFailure(response.status);
 }
 
 async function parseJsonResponse(response: Response): Promise<unknown> {

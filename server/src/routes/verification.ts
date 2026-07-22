@@ -3,7 +3,11 @@ import bcrypt from 'bcrypt';
 import { Router } from 'express';
 import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
-import { isLearningOsVerificationProxyEnabled } from '../config/authRouting.js';
+import {
+  isLearningOsPasswordResetCompletionEnabled,
+  isLearningOsPasswordResetProxyEnabled,
+  isLearningOsVerificationProxyEnabled,
+} from '../config/authRouting.js';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -19,6 +23,8 @@ import {
 } from '../services/emailService.js';
 import {
   sendLearningOsVerificationEmail,
+  sendLearningOsPasswordResetLink,
+  resetLearningOsPassword,
   verifyLearningOsEmail,
 } from '../services/learningOsAuthProxy.js';
 
@@ -135,6 +141,11 @@ router.post('/password-reset/request', async (req, res, next) => {
       throw new AppError(i18next.t('server:verification.emailRequired'), 400);
     }
 
+    if (isLearningOsPasswordResetProxyEnabled()) {
+      await sendLearningOsPasswordResetLink(email);
+      return res.json({ message: i18next.t('server:verification.passwordResetSent') });
+    }
+
     // Find user
     const user = await prisma.user.findUnique({
       where: { email },
@@ -183,7 +194,7 @@ router.get('/password-reset/:token', async (req, res, next) => {
 // Reset password with token
 router.post('/password-reset/verify', async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const { email, token, newPassword } = req.body;
 
     if (!token || !newPassword) {
       throw new AppError(i18next.t('server:verification.tokenAndPasswordRequired'), 400);
@@ -191,6 +202,16 @@ router.post('/password-reset/verify', async (req, res, next) => {
 
     if (newPassword.length < 8) {
       throw new AppError(i18next.t('server:verification.passwordTooShort'), 400);
+    }
+
+    // Learning OS reset links include the email required by Laravel's password broker.
+    // Route those links by payload so they remain usable after a feature-flag rollback.
+    if (
+      email !== undefined &&
+      (isLearningOsPasswordResetProxyEnabled() || isLearningOsPasswordResetCompletionEnabled())
+    ) {
+      await resetLearningOsPassword({ email, token, newPassword });
+      return res.json({ message: i18next.t('server:verification.passwordResetSuccess') });
     }
 
     // Verify token

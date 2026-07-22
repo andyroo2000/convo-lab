@@ -101,6 +101,8 @@ jobs:
             PREVIOUS_PROFILE_PROXY_ENABLED=false
             PREVIOUS_SIGNUP_PROXY_ENABLED=false
             PREVIOUS_VERIFICATION_PROXY_ENABLED=false
+            PREVIOUS_PASSWORD_RESET_PROXY_ENABLED=false
+            PREVIOUS_PASSWORD_RESET_COMPLETION_ENABLED=false
             PROFILE_SMOKE_CHANGED=false
             PROFILE_SMOKE_RESTORE_BODY=""
             WORKER_DRAIN_ATTEMPTS=780
@@ -120,6 +122,8 @@ jobs:
               local profile_proxy_restore_ok=true
               local signup_proxy_restore_ok=true
               local verification_proxy_restore_ok=true
+              local password_reset_proxy_restore_ok=true
+              local password_reset_completion_restore_ok=true
               local rolled_back_course_generation_proxy
               local rolled_back_dialogue_generation_proxy
               local rolled_back_audio_generation_proxy
@@ -128,6 +132,8 @@ jobs:
               local rolled_back_profile_proxy
               local rolled_back_signup_proxy
               local rolled_back_verification_proxy
+              local rolled_back_password_reset_proxy
+              local rolled_back_password_reset_completion
 
               if [ "$PROFILE_SMOKE_CHANGED" = true ]; then
                 echo "Restoring the profile smoke preference."
@@ -171,6 +177,14 @@ jobs:
                   LEARNING_OS_VERIFICATION_PROXY_ENABLED \
                   "$PREVIOUS_VERIFICATION_PROXY_ENABLED" \
                   || verification_proxy_restore_ok=false
+                upsert_env \
+                  LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED \
+                  "$PREVIOUS_PASSWORD_RESET_PROXY_ENABLED" \
+                  || password_reset_proxy_restore_ok=false
+                upsert_env \
+                  LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED \
+                  "$PREVIOUS_PASSWORD_RESET_COMPLETION_ENABLED" \
+                  || password_reset_completion_restore_ok=false
                 if [ "$course_generation_proxy_restore_ok" != true ] \
                   || [ "$dialogue_generation_proxy_restore_ok" != true ] \
                   || [ "$audio_generation_proxy_restore_ok" != true ] \
@@ -178,7 +192,9 @@ jobs:
                   || [ "$auth_proxy_restore_ok" != true ] \
                   || [ "$profile_proxy_restore_ok" != true ] \
                   || [ "$signup_proxy_restore_ok" != true ] \
-                  || [ "$verification_proxy_restore_ok" != true ]; then
+                  || [ "$verification_proxy_restore_ok" != true ] \
+                  || [ "$password_reset_proxy_restore_ok" != true ] \
+                  || [ "$password_reset_completion_restore_ok" != true ]; then
                   echo "::error::Failed to restore the route proxy environment values."
                   cleanup_failed=true
                 elif ! $COMPOSE up -d --no-deps --force-recreate "server-$active_color"; then
@@ -228,6 +244,16 @@ jobs:
                     "convolab-server-$active_color" \
                     | sed -n 's/^LEARNING_OS_VERIFICATION_PROXY_ENABLED=//p' \
                     | tail -1)"
+                  rolled_back_password_reset_proxy="$(docker inspect \
+                    --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                    "convolab-server-$active_color" \
+                    | sed -n 's/^LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED=//p' \
+                    | tail -1)"
+                  rolled_back_password_reset_completion="$(docker inspect \
+                    --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                    "convolab-server-$active_color" \
+                    | sed -n 's/^LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED=//p' \
+                    | tail -1)"
                   if [ "$rolled_back_course_generation_proxy" != "$PREVIOUS_COURSE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_dialogue_generation_proxy" != "$PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED" ] \
                     || [ "$rolled_back_audio_generation_proxy" != "$PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED" ] \
@@ -235,7 +261,9 @@ jobs:
                     || [ "$rolled_back_auth_proxy" != "$PREVIOUS_AUTH_PROXY_ENABLED" ] \
                     || [ "$rolled_back_profile_proxy" != "$PREVIOUS_PROFILE_PROXY_ENABLED" ] \
                     || [ "$rolled_back_signup_proxy" != "$PREVIOUS_SIGNUP_PROXY_ENABLED" ] \
-                    || [ "$rolled_back_verification_proxy" != "$PREVIOUS_VERIFICATION_PROXY_ENABLED" ]; then
+                    || [ "$rolled_back_verification_proxy" != "$PREVIOUS_VERIFICATION_PROXY_ENABLED" ] \
+                    || [ "$rolled_back_password_reset_proxy" != "$PREVIOUS_PASSWORD_RESET_PROXY_ENABLED" ] \
+                    || [ "$rolled_back_password_reset_completion" != "$PREVIOUS_PASSWORD_RESET_COMPLETION_ENABLED" ]; then
                     echo "::error::The production server retained a route proxy after rollback."
                     cleanup_failed=true
                   fi
@@ -521,6 +549,34 @@ jobs:
                 ;;
             esac
 
+            previous_password_reset_proxy="$(sed -n \
+              's/^LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED=//p' \
+              .env.production | tail -1)"
+            case "$previous_password_reset_proxy" in
+              true|false)
+                PREVIOUS_PASSWORD_RESET_PROXY_ENABLED="$previous_password_reset_proxy"
+                ;;
+              '') ;;
+              *)
+                echo "Invalid LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED value."
+                exit 1
+                ;;
+            esac
+
+            previous_password_reset_completion="$(sed -n \
+              's/^LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED=//p' \
+              .env.production | tail -1)"
+            case "$previous_password_reset_completion" in
+              true|false)
+                PREVIOUS_PASSWORD_RESET_COMPLETION_ENABLED="$previous_password_reset_completion"
+                ;;
+              '') ;;
+              *)
+                echo "Invalid LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED value."
+                exit 1
+                ;;
+            esac
+
             if ! grep -Eq '^LEARNING_OS_APP_KEY=base64:.+$' .env.production; then
               upsert_env LEARNING_OS_APP_KEY "base64:$(openssl rand -base64 32 | tr -d '\n')"
             fi
@@ -778,6 +834,8 @@ jobs:
             upsert_env LEARNING_OS_PROFILE_PROXY_ENABLED true
             upsert_env LEARNING_OS_SIGNUP_PROXY_ENABLED true
             upsert_env LEARNING_OS_VERIFICATION_PROXY_ENABLED true
+            upsert_env LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED true
+            upsert_env LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED true
             $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
             active_proxy_token="$(docker inspect \
@@ -840,6 +898,18 @@ jobs:
               | sed -n 's/^LEARNING_OS_VERIFICATION_PROXY_ENABLED=//p' \
               | tail -1)"
             test "$active_verification_proxy" = true
+            active_password_reset_proxy="$(docker inspect \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' \
+              "convolab-server-$active_color" \
+              | sed -n 's/^LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED=//p' \
+              | tail -1)"
+            test "$active_password_reset_proxy" = true
+            active_password_reset_completion="$(docker inspect \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' \
+              "convolab-server-$active_color" \
+              | sed -n 's/^LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED=//p' \
+              | tail -1)"
+            test "$active_password_reset_completion" = true
 
             if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \

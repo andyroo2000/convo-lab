@@ -9,3 +9,9 @@ export const isLearningOsSignupProxyEnabled = (): boolean =>
 
 export const isLearningOsVerificationProxyEnabled = (): boolean =>
   process.env.LEARNING_OS_VERIFICATION_PROXY_ENABLED?.trim().toLowerCase() === 'true';
+
+export const isLearningOsPasswordResetProxyEnabled = (): boolean =>
+  process.env.LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED?.trim().toLowerCase() === 'true';
+
+export const isLearningOsPasswordResetCompletionEnabled = (): boolean =>
+  process.env.LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED?.trim().toLowerCase() === 'true';

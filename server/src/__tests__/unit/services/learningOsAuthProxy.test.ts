@@ -4,6 +4,8 @@ import {
   authenticateLearningOsAccount,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
+  resetLearningOsPassword,
+  sendLearningOsPasswordResetLink,
   sendLearningOsVerificationEmail,
   updateLearningOsCurrentAccount,
   verifyLearningOsEmail,
@@ -419,6 +421,123 @@ describe('Learning OS auth proxy', () => {
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/verification');
     expect(init).toMatchObject({ method: 'POST', body: JSON.stringify({ token }) });
+  });
+
+  it('requests a password reset through the public Learning OS broker endpoint', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(sendLearningOsPasswordResetLink(account.email)).resolves.toBeUndefined();
+
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/auth/password/forgot');
+    expect(init).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({ email: account.email }),
+      headers: expect.objectContaining({ Authorization: 'Bearer server-only-token' }),
+    });
+  });
+
+  it('resets a password through the Learning OS broker contract', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(
+      resetLearningOsPassword({
+        email: account.email,
+        token: 'broker-token',
+        newPassword: 'new-password123',
+      })
+    ).resolves.toBeUndefined();
+
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/auth/password/reset');
+    expect(init).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        email: account.email,
+        token: 'broker-token',
+        password: 'new-password123',
+        password_confirmation: 'new-password123',
+      }),
+    });
+  });
+
+  it.each([
+    ['', 'broker-token'],
+    [' leading@example.com', 'broker-token'],
+    ['not-an-email', 'broker-token'],
+    [account.email, ''],
+    [account.email, 'x'.repeat(513)],
+  ])('rejects malformed password reset identity before forwarding', async (email, token) => {
+    await expect(
+      resetLearningOsPassword({ email, token, newPassword: 'new-password123' })
+    ).rejects.toMatchObject({
+      message: 'Invalid or expired password reset token',
+      statusCode: 400,
+    });
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['reset request', () => sendLearningOsPasswordResetLink(account.email)],
+    [
+      'reset completion',
+      () =>
+        resetLearningOsPassword({
+          email: account.email,
+          token: 'broker-token',
+          newPassword: 'new-password123',
+        }),
+    ],
+  ] as const)('maps %s validation failures to the legacy contract', async (_label, operation) => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'The given data was invalid.', errors: {} }, 422)
+    );
+
+    await expect(operation()).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it.each([
+    ['reset request', () => sendLearningOsPasswordResetLink(account.email)],
+    [
+      'reset completion',
+      () =>
+        resetLearningOsPassword({
+          email: account.email,
+          token: 'broker-token',
+          newPassword: 'new-password123',
+        }),
+    ],
+  ] as const)('preserves a bounded retry delay for %s', async (_label, operation) => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'Too Many Attempts.' }, 429, { 'Retry-After': '23' })
+    );
+
+    await expect(operation()).rejects.toMatchObject({
+      message: 'Too many password reset attempts.',
+      statusCode: 429,
+      metadata: { cooldown: { remainingSeconds: 23 } },
+    });
+  });
+
+  it.each([
+    ['reset request', () => sendLearningOsPasswordResetLink(account.email)],
+    [
+      'reset completion',
+      () =>
+        resetLearningOsPassword({
+          email: account.email,
+          token: 'broker-token',
+          newPassword: 'new-password123',
+        }),
+    ],
+  ] as const)('rejects an unexpected successful %s response', async (_label, operation) => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse({ message: 'ok' }));
+
+    await expect(operation()).rejects.toMatchObject({
+      message: 'Learning OS Auth API returned an invalid response.',
+      statusCode: 502,
+    });
   });
 
   it.each([

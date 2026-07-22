@@ -374,6 +374,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.match(localCompose, /LEARNING_OS_PROFILE_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_SIGNUP_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_VERIFICATION_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(localCompose, /LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(localCompose, /LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED:\s*['"]false['"]/);
   assert.match(
     stageCompose,
     /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
@@ -388,6 +390,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.match(stageCompose, /LEARNING_OS_PROFILE_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_SIGNUP_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_VERIFICATION_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(stageCompose, /LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(stageCompose, /LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED:\s*['"]false['"]/);
   assert.ok(
     productionCompose.includes(
       'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
@@ -428,6 +432,16 @@ test('route proxies activate only through rollback-safe production rehearsals', 
       'LEARNING_OS_VERIFICATION_PROXY_ENABLED: ${LEARNING_OS_VERIFICATION_PROXY_ENABLED:-false}'
     )
   );
+  assert.ok(
+    productionCompose.includes(
+      'LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED: ${LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED:-false}'
+    )
+  );
+  assert.ok(
+    productionCompose.includes(
+      'LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED: ${LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED:-false}'
+    )
+  );
 
   for (const requiredContract of [
     '"content:write"',
@@ -440,6 +454,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'PREVIOUS_PROFILE_PROXY_ENABLED=false',
     'PREVIOUS_SIGNUP_PROXY_ENABLED=false',
     'PREVIOUS_VERIFICATION_PROXY_ENABLED=false',
+    'PREVIOUS_PASSWORD_RESET_PROXY_ENABLED=false',
+    'PREVIOUS_PASSWORD_RESET_COMPLETION_ENABLED=false',
     'previous_course_generation_proxy="$(sed -n',
     'previous_dialogue_generation_proxy="$(sed -n',
     'previous_audio_generation_proxy="$(sed -n',
@@ -447,6 +463,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'previous_profile_proxy="$(sed -n',
     'previous_signup_proxy="$(sed -n',
     'previous_verification_proxy="$(sed -n',
+    'previous_password_reset_proxy="$(sed -n',
+    'previous_password_reset_completion="$(sed -n',
     'Rolling back the Learning OS route proxies.',
     'course_generation_proxy_restore_ok=true',
     'dialogue_generation_proxy_restore_ok=true',
@@ -456,6 +474,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'profile_proxy_restore_ok=true',
     'signup_proxy_restore_ok=true',
     'verification_proxy_restore_ok=true',
+    'password_reset_proxy_restore_ok=true',
+    'password_reset_completion_restore_ok=true',
     '|| course_generation_proxy_restore_ok=false',
     '|| dialogue_generation_proxy_restore_ok=false',
     '|| audio_generation_proxy_restore_ok=false',
@@ -464,6 +484,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     '|| profile_proxy_restore_ok=false',
     '|| signup_proxy_restore_ok=false',
     '|| verification_proxy_restore_ok=false',
+    '|| password_reset_proxy_restore_ok=false',
+    '|| password_reset_completion_restore_ok=false',
     'if [ "$course_generation_proxy_restore_ok" != true ]',
     '|| [ "$dialogue_generation_proxy_restore_ok" != true ]',
     '|| [ "$audio_generation_proxy_restore_ok" != true ]',
@@ -472,6 +494,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     '|| [ "$profile_proxy_restore_ok" != true ]',
     '|| [ "$signup_proxy_restore_ok" != true ]',
     '|| [ "$verification_proxy_restore_ok" != true ]',
+    '|| [ "$password_reset_proxy_restore_ok" != true ]',
+    '|| [ "$password_reset_completion_restore_ok" != true ]',
     '::error::Failed to restore the route proxy environment values.',
     '::error::Failed to recreate the production server while rolling back route proxies.',
     '::error::The production server was unhealthy after rolling back route proxies.',
@@ -485,6 +509,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'upsert_env LEARNING_OS_PROFILE_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_SIGNUP_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_VERIFICATION_PROXY_ENABLED true',
+    'upsert_env LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED true',
+    'upsert_env LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED true',
     "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
     'test "$active_course_generation_proxy" = true',
     'test "$active_dialogue_generation_proxy" = true',
@@ -494,6 +520,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'test "$active_profile_proxy" = true',
     'test "$active_signup_proxy" = true',
     'test "$active_verification_proxy" = true',
+    'test "$active_password_reset_proxy" = true',
+    'test "$active_password_reset_completion" = true',
     '"auth:login"',
     '"auth:read"',
     '"auth:write"',
@@ -620,6 +648,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.ok(failureCleanup.includes('PREVIOUS_PROFILE_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_SIGNUP_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_VERIFICATION_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_PASSWORD_RESET_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_PASSWORD_RESET_COMPLETION_ENABLED'));
   assert.ok(
     failureCleanup.indexOf('|| course_generation_proxy_restore_ok=false') <
       failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED')
@@ -653,6 +683,14 @@ test('route proxies activate only through rollback-safe production rehearsals', 
       failureCleanup.indexOf('|| verification_proxy_restore_ok=false')
   );
   assert.ok(
+    failureCleanup.indexOf('LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED') <
+      failureCleanup.indexOf('|| password_reset_proxy_restore_ok=false')
+  );
+  assert.ok(
+    failureCleanup.indexOf('LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED') <
+      failureCleanup.indexOf('|| password_reset_completion_restore_ok=false')
+  );
+  assert.ok(
     failureCleanup.indexOf('cleanup_profile_smoke best-effort') <
       failureCleanup.indexOf('LEARNING_OS_PROFILE_PROXY_ENABLED')
   );
@@ -663,7 +701,7 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   );
 });
 
-test('the production stack configures Learning OS signup and verification mail', async () => {
+test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
@@ -671,6 +709,7 @@ test('the production stack configures Learning OS signup and verification mail',
 
   for (const requiredComposeContract of [
     'CONVOLAB_CLIENT_URL: ${CLIENT_URL}',
+    'PASSWORD_RESET_URL: ${CLIENT_URL}/reset-password',
     'CONVOLAB_ADMIN_EMAILS: ${ADMIN_EMAILS}',
     'MAIL_MAILER: resend',
     'RESEND_API_KEY: ${RESEND_API_KEY}',
@@ -1089,7 +1128,7 @@ test('the lifecycle smoke script remains valid Bash', async () => {
   assert.ok(publicCsrfReady < csrfCookieRead);
 });
 
-test('the auth lifecycle smoke is disposable and exercises public signup and verification', async () => {
+test('the auth lifecycle smoke is disposable and exercises signup, verification, and password reset', async () => {
   const scriptPath = path.join(
     repositoryRoot,
     '.github/scripts/smoke-auth-signup-verification-lifecycle.sh'
@@ -1106,6 +1145,7 @@ test('the auth lifecycle smoke is disposable and exercises public signup and ver
     'delete_disposable_account',
     'source_system", ConvoLabAccountSource::LEARNING_OS',
     'convolab_email_verification_tokens',
+    'password_reset_tokens',
     'Auth lifecycle failed and disposable-state cleanup also failed; manual cleanup is required.',
     'SMOKE_EMAIL="${smoke_local_part}+learning-os-smoke-',
     "'/api/auth/signup'",
@@ -1115,7 +1155,11 @@ test('the auth lifecycle smoke is disposable and exercises public signup and ver
     'IssueConvoLabVerificationTokenAction::class',
     '$BASE_URL/api/verification/$verification_token',
     "'/api/auth/login'",
-    'Learning OS signup and verification lifecycle smoke completed.',
+    "'/api/password-reset/request'",
+    'AUTH_SMOKE_RESET_TOKEN_COUNT=',
+    'AUTH_SMOKE_RESET_TOKEN=',
+    "'/api/password-reset/verify'",
+    'Learning OS signup, verification, and password reset lifecycle smoke completed.',
   ]) {
     assert.ok(script.includes(requiredContract), `Missing auth lifecycle contract: ${requiredContract}`);
   }
@@ -1126,6 +1170,10 @@ test('the auth lifecycle smoke is disposable and exercises public signup and ver
   const mailToken = script.indexOf('AUTH_SMOKE_TOKEN_COUNT=', legacyAbsence);
   const verification = script.indexOf('$BASE_URL/api/verification/$verification_token', mailToken);
   const login = script.indexOf("'/api/auth/login'", verification);
+  const resetRequest = script.indexOf("'/api/password-reset/request'", login);
+  const queuedResetToken = script.indexOf('AUTH_SMOKE_RESET_TOKEN_COUNT=', resetRequest);
+  const resetToken = script.indexOf('AUTH_SMOKE_RESET_TOKEN=', queuedResetToken);
+  const reset = script.indexOf("'/api/password-reset/verify'", resetToken);
   const successCleanup = script.lastIndexOf('delete_disposable_account');
 
   assert.ok(inviteCreate >= 0);
@@ -1134,7 +1182,11 @@ test('the auth lifecycle smoke is disposable and exercises public signup and ver
   assert.ok(legacyAbsence < mailToken);
   assert.ok(mailToken < verification);
   assert.ok(verification < login);
-  assert.ok(login < successCleanup);
+  assert.ok(login < resetRequest);
+  assert.ok(resetRequest < queuedResetToken);
+  assert.ok(queuedResetToken < resetToken);
+  assert.ok(resetToken < reset);
+  assert.ok(reset < successCleanup);
 
   const cleanupFunction = script.slice(
     script.indexOf('cleanup() {'),
@@ -1151,6 +1203,12 @@ test('the auth lifecycle smoke is disposable and exercises public signup and ver
   const verificationActivation = workflow.indexOf(
     'upsert_env LEARNING_OS_VERIFICATION_PROXY_ENABLED true'
   );
+  const passwordResetActivation = workflow.indexOf(
+    'upsert_env LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED true'
+  );
+  const passwordResetCompletionActivation = workflow.indexOf(
+    'upsert_env LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED true'
+  );
   const serverRestart = workflow.indexOf(
     '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
     signupActivation
@@ -1163,7 +1221,9 @@ test('the auth lifecycle smoke is disposable and exercises public signup and ver
 
   assert.ok(signupActivation >= 0);
   assert.ok(signupActivation < verificationActivation);
-  assert.ok(verificationActivation < serverRestart);
+  assert.ok(verificationActivation < passwordResetActivation);
+  assert.ok(passwordResetActivation < passwordResetCompletionActivation);
+  assert.ok(passwordResetCompletionActivation < serverRestart);
   assert.ok(serverRestart < authSmoke);
   assert.ok(authSmoke < cutoverCommitted);
 });

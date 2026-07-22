@@ -52,7 +52,8 @@
         {
           "id": "password-reset.request",
           "method": "POST",
-          "path": "/api/password-reset/request"
+          "path": "/api/password-reset/request",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "password-reset.show",
@@ -62,7 +63,8 @@
         {
           "id": "password-reset.verify",
           "method": "POST",
-          "path": "/api/password-reset/verify"
+          "path": "/api/password-reset/verify",
+          "runtimeOwner": "learning-os-proxy"
         }
       ]
     },

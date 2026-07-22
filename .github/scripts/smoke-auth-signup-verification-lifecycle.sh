@@ -9,13 +9,21 @@ SERVER_CONTAINER="convolab-server-$ACTIVE_COLOR"
 BASE_URL="https://convo-lab.com"
 SIGNUP_COOKIE_JAR=""
 LOGIN_COOKIE_JAR=""
+RESET_COOKIE_JAR=""
+OLD_LOGIN_COOKIE_JAR=""
+NEW_LOGIN_COOKIE_JAR=""
 SIGNUP_BODY_FILE=""
 LOGIN_BODY_FILE=""
+RESET_REQUEST_BODY_FILE=""
+RESET_BODY_FILE=""
+OLD_LOGIN_BODY_FILE=""
+NEW_LOGIN_BODY_FILE=""
 SMOKE_EMAIL=""
 SMOKE_INVITE_CODE=""
 SMOKE_INVITE_ID=""
 SMOKE_USER_ID=""
 SMOKE_PASSWORD=""
+SMOKE_RESET_PASSWORD=""
 
 json_field() {
   local expression="$1"
@@ -67,6 +75,7 @@ delete_disposable_account() {
           if ($invite !== null) {
               DB::table("admin_invite_codes")->where("id", $inviteId)->delete();
           }
+          DB::table("password_reset_tokens")->where("email", $email)->delete();
           if ($projection !== null) {
               $smokeUserId = (int) $projection->user_id;
               DB::table("users")->where("id", $projection->user_id)->delete();
@@ -77,6 +86,7 @@ delete_disposable_account() {
           DB::table("admin_user_projections")->where("email", $email)->exists()
           || DB::table("admin_invite_codes")->where("id", $inviteId)->exists()
           || DB::table("users")->whereRaw("LOWER(email) = ?", [strtolower($email)])->exists()
+          || DB::table("password_reset_tokens")->where("email", $email)->exists()
           || ($smokeUserId !== null && DB::table("convolab_email_verification_tokens")
               ->where("user_id", $smokeUserId)
               ->exists())
@@ -96,8 +106,15 @@ cleanup() {
   rm -f \
     "$SIGNUP_COOKIE_JAR" \
     "$LOGIN_COOKIE_JAR" \
+    "$RESET_COOKIE_JAR" \
+    "$OLD_LOGIN_COOKIE_JAR" \
+    "$NEW_LOGIN_COOKIE_JAR" \
     "$SIGNUP_BODY_FILE" \
-    "$LOGIN_BODY_FILE" || cleanup_status=1
+    "$LOGIN_BODY_FILE" \
+    "$RESET_REQUEST_BODY_FILE" \
+    "$RESET_BODY_FILE" \
+    "$OLD_LOGIN_BODY_FILE" \
+    "$NEW_LOGIN_BODY_FILE" || cleanup_status=1
 
   if [ "$cleanup_status" -ne 0 ]; then
     if [ "$exit_status" -eq 0 ]; then
@@ -124,12 +141,14 @@ SMOKE_INVITE_CODE="LOSMOKE${marker//-/}"
 SMOKE_INVITE_CODE="${SMOKE_INVITE_CODE:0:20}"
 SMOKE_INVITE_ID="$marker"
 SMOKE_PASSWORD="LearningOsSmoke-${marker}"
+SMOKE_RESET_PASSWORD="LearningOsReset-${marker}"
 if [ "${#SMOKE_EMAIL}" -gt 255 ]; then
   echo "The disposable auth smoke email exceeds 255 characters." >&2
   exit 1
 fi
 echo "::add-mask::$SMOKE_EMAIL"
 echo "::add-mask::$SMOKE_PASSWORD"
+echo "::add-mask::$SMOKE_RESET_PASSWORD"
 
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
@@ -163,9 +182,27 @@ docker exec \
 
 SIGNUP_COOKIE_JAR="$(mktemp)"
 LOGIN_COOKIE_JAR="$(mktemp)"
+RESET_COOKIE_JAR="$(mktemp)"
+OLD_LOGIN_COOKIE_JAR="$(mktemp)"
+NEW_LOGIN_COOKIE_JAR="$(mktemp)"
 SIGNUP_BODY_FILE="$(mktemp)"
 LOGIN_BODY_FILE="$(mktemp)"
-chmod 600 "$SIGNUP_COOKIE_JAR" "$LOGIN_COOKIE_JAR" "$SIGNUP_BODY_FILE" "$LOGIN_BODY_FILE"
+RESET_REQUEST_BODY_FILE="$(mktemp)"
+RESET_BODY_FILE="$(mktemp)"
+OLD_LOGIN_BODY_FILE="$(mktemp)"
+NEW_LOGIN_BODY_FILE="$(mktemp)"
+chmod 600 \
+  "$SIGNUP_COOKIE_JAR" \
+  "$LOGIN_COOKIE_JAR" \
+  "$RESET_COOKIE_JAR" \
+  "$OLD_LOGIN_COOKIE_JAR" \
+  "$NEW_LOGIN_COOKIE_JAR" \
+  "$SIGNUP_BODY_FILE" \
+  "$LOGIN_BODY_FILE" \
+  "$RESET_REQUEST_BODY_FILE" \
+  "$RESET_BODY_FILE" \
+  "$OLD_LOGIN_BODY_FILE" \
+  "$NEW_LOGIN_BODY_FILE"
 
 csrf_token_for() {
   local cookie_jar="$1"
@@ -189,6 +226,26 @@ post_json() {
   local csrf_token="$4"
 
   curl --fail --silent --show-error \
+    --request POST \
+    --header 'Accept: application/json' \
+    --header 'Content-Type: application/json' \
+    --header "Origin: $BASE_URL" \
+    --header "X-CSRF-Token: $csrf_token" \
+    --cookie "$cookie_jar" \
+    --cookie-jar "$cookie_jar" \
+    --data-binary "@$body_file" \
+    "$BASE_URL$path"
+}
+
+post_json_status() {
+  local path="$1"
+  local body_file="$2"
+  local cookie_jar="$3"
+  local csrf_token="$4"
+
+  curl --silent --show-error \
+    --output /dev/null \
+    --write-out '%{http_code}' \
     --request POST \
     --header 'Accept: application/json' \
     --header 'Content-Type: application/json' \
@@ -320,6 +377,133 @@ test "$(printf '%s' "$login_response" | json_field 'response.email')" = "$SMOKE_
 test "$(printf '%s' "$login_response" | json_field 'response.emailVerified')" = true
 test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$LOGIN_COOKIE_JAR")"
 
+docker exec \
+  -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    process.stdout.write(JSON.stringify({ email: process.env.AUTH_SMOKE_EMAIL }));
+  ' > "$RESET_REQUEST_BODY_FILE"
+reset_csrf_token="$(csrf_token_for "$RESET_COOKIE_JAR")"
+reset_request_response="$(post_json \
+  '/api/password-reset/request' \
+  "$RESET_REQUEST_BODY_FILE" \
+  "$RESET_COOKIE_JAR" \
+  "$reset_csrf_token")"
+test "$(printf '%s' "$reset_request_response" | json_field 'response.message')" = \
+  'If an account exists with that email, a password reset link has been sent'
+
+reset_token_ready=false
+for attempt in {1..30}; do
+  reset_token_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
+    php artisan tinker --execute='
+      echo "AUTH_SMOKE_RESET_TOKEN_COUNT=".Illuminate\Support\Facades\DB::table("password_reset_tokens")
+          ->where("email", getenv("AUTH_SMOKE_EMAIL"))
+          ->count().PHP_EOL;
+    ' < /dev/null \
+    | sed -n 's/^AUTH_SMOKE_RESET_TOKEN_COUNT=//p' \
+    | tail -1)"
+  if [ "$reset_token_count" = 1 ]; then
+    reset_token_ready=true
+    break
+  fi
+  echo "Password reset mail job attempt $attempt/30 has not issued a token; retrying."
+  sleep 2
+done
+if [ "$reset_token_ready" != true ]; then
+  echo "The password reset mail job did not issue a broker token." >&2
+  exit 1
+fi
+
+reset_token_output="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
+  php artisan tinker --execute='
+    if (config("app.password_reset_url") !== "https://convo-lab.com/reset-password") {
+        throw new RuntimeException("Learning OS password reset URL is not the public ConvoLab route.");
+    }
+    $user = App\Models\User::query()
+        ->where("convolab_email_normalized", getenv("AUTH_SMOKE_EMAIL"))
+        ->sole();
+    $token = Illuminate\Support\Facades\Password::broker()->createToken($user);
+    $notification = new Illuminate\Auth\Notifications\ResetPassword($token);
+    $actionUrl = $notification->toMail($user)->actionUrl;
+    $query = parse_url($actionUrl, PHP_URL_QUERY);
+    parse_str(is_string($query) ? $query : "", $parameters);
+    if (
+        strtok($actionUrl, "?") !== "https://convo-lab.com/reset-password"
+        || ($parameters["email"] ?? null) !== $user->email
+        || ($parameters["token"] ?? null) !== $token
+    ) {
+        throw new RuntimeException("Learning OS produced an invalid public password reset link.");
+    }
+    echo "AUTH_SMOKE_RESET_TOKEN=".$parameters["token"].PHP_EOL;
+  ' < /dev/null)"
+reset_token="$(printf '%s\n' "$reset_token_output" \
+  | sed -n 's/^AUTH_SMOKE_RESET_TOKEN=//p' \
+  | grep -E '^[A-Za-z0-9]+$' \
+  | tail -1)"
+test -n "$reset_token"
+echo "::add-mask::$reset_token"
+
+docker exec \
+  -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
+  -e AUTH_SMOKE_RESET_TOKEN="$reset_token" \
+  -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    process.stdout.write(JSON.stringify({
+      email: process.env.AUTH_SMOKE_EMAIL,
+      token: process.env.AUTH_SMOKE_RESET_TOKEN,
+      newPassword: process.env.AUTH_SMOKE_RESET_PASSWORD,
+    }));
+  ' > "$RESET_BODY_FILE"
+reset_response="$(post_json \
+  '/api/password-reset/verify' "$RESET_BODY_FILE" "$RESET_COOKIE_JAR" "$reset_csrf_token")"
+test "$(printf '%s' "$reset_response" | json_field 'response.message')" = \
+  'Password reset successfully'
+
+docker exec \
+  -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
+  -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
+  learning-os-api php artisan tinker --execute='
+    $user = App\Models\User::query()
+        ->where("convolab_email_normalized", getenv("AUTH_SMOKE_EMAIL"))
+        ->sole();
+    if (! Illuminate\Support\Facades\Hash::check(getenv("AUTH_SMOKE_RESET_PASSWORD"), $user->password)) {
+        throw new RuntimeException("Learning OS did not persist the reset password.");
+    }
+    if (Illuminate\Support\Facades\DB::table("password_reset_tokens")
+        ->where("email", $user->email)
+        ->exists()) {
+        throw new RuntimeException("Consumed password reset token was retained.");
+    }
+  ' < /dev/null > /dev/null
+
+docker exec \
+  -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
+  -e AUTH_SMOKE_PASSWORD="$SMOKE_PASSWORD" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    process.stdout.write(JSON.stringify({
+      email: process.env.AUTH_SMOKE_EMAIL,
+      password: process.env.AUTH_SMOKE_PASSWORD,
+    }));
+  ' > "$OLD_LOGIN_BODY_FILE"
+old_login_csrf_token="$(csrf_token_for "$OLD_LOGIN_COOKIE_JAR")"
+test "$(post_json_status \
+  '/api/auth/login' "$OLD_LOGIN_BODY_FILE" "$OLD_LOGIN_COOKIE_JAR" "$old_login_csrf_token")" = 401
+
+docker exec \
+  -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
+  -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    process.stdout.write(JSON.stringify({
+      email: process.env.AUTH_SMOKE_EMAIL,
+      password: process.env.AUTH_SMOKE_RESET_PASSWORD,
+    }));
+  ' > "$NEW_LOGIN_BODY_FILE"
+new_login_csrf_token="$(csrf_token_for "$NEW_LOGIN_COOKIE_JAR")"
+new_login_response="$(post_json \
+  '/api/auth/login' "$NEW_LOGIN_BODY_FILE" "$NEW_LOGIN_COOKIE_JAR" "$new_login_csrf_token")"
+test "$(printf '%s' "$new_login_response" | json_field 'response.id')" = "$SMOKE_USER_ID"
+test "$(printf '%s' "$new_login_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
+test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$NEW_LOGIN_COOKIE_JAR")"
+
 delete_disposable_account
 SMOKE_EMAIL=""
-echo "Learning OS signup and verification lifecycle smoke completed."
+echo "Learning OS signup, verification, and password reset lifecycle smoke completed."
