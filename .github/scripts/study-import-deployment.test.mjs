@@ -371,6 +371,7 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.match(localCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_SCRIPT_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_AUTH_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(localCompose, /LEARNING_OS_PROFILE_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_SIGNUP_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_VERIFICATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(
@@ -384,6 +385,7 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.match(stageCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_SCRIPT_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_AUTH_PROXY_ENABLED:\s*['"]false['"]/);
+  assert.match(stageCompose, /LEARNING_OS_PROFILE_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_SIGNUP_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_VERIFICATION_PROXY_ENABLED:\s*['"]false['"]/);
   assert.ok(
@@ -413,6 +415,11 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   );
   assert.ok(
     productionCompose.includes(
+      'LEARNING_OS_PROFILE_PROXY_ENABLED: ${LEARNING_OS_PROFILE_PROXY_ENABLED:-false}'
+    )
+  );
+  assert.ok(
+    productionCompose.includes(
       'LEARNING_OS_SIGNUP_PROXY_ENABLED: ${LEARNING_OS_SIGNUP_PROXY_ENABLED:-false}'
     )
   );
@@ -430,26 +437,31 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED=false',
     'PREVIOUS_SCRIPT_PROXY_ENABLED=false',
     'PREVIOUS_AUTH_PROXY_ENABLED=false',
+    'PREVIOUS_PROFILE_PROXY_ENABLED=false',
     'previous_course_generation_proxy="$(sed -n',
     'previous_dialogue_generation_proxy="$(sed -n',
     'previous_audio_generation_proxy="$(sed -n',
     'previous_script_proxy="$(sed -n',
+    'previous_profile_proxy="$(sed -n',
     'Rolling back the Learning OS route proxies.',
     'course_generation_proxy_restore_ok=true',
     'dialogue_generation_proxy_restore_ok=true',
     'audio_generation_proxy_restore_ok=true',
     'script_proxy_restore_ok=true',
     'auth_proxy_restore_ok=true',
+    'profile_proxy_restore_ok=true',
     '|| course_generation_proxy_restore_ok=false',
     '|| dialogue_generation_proxy_restore_ok=false',
     '|| audio_generation_proxy_restore_ok=false',
     '|| script_proxy_restore_ok=false',
     '|| auth_proxy_restore_ok=false',
+    '|| profile_proxy_restore_ok=false',
     'if [ "$course_generation_proxy_restore_ok" != true ]',
     '|| [ "$dialogue_generation_proxy_restore_ok" != true ]',
     '|| [ "$audio_generation_proxy_restore_ok" != true ]',
     '|| [ "$script_proxy_restore_ok" != true ]',
     '|| [ "$auth_proxy_restore_ok" != true ]',
+    '|| [ "$profile_proxy_restore_ok" != true ]',
     '::error::Failed to restore the route proxy environment values.',
     '::error::Failed to recreate the production server while rolling back route proxies.',
     '::error::The production server was unhealthy after rolling back route proxies.',
@@ -460,20 +472,27 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'upsert_env LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_AUTH_PROXY_ENABLED true',
+    'upsert_env LEARNING_OS_PROFILE_PROXY_ENABLED true',
     "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
     'test "$active_course_generation_proxy" = true',
     'test "$active_dialogue_generation_proxy" = true',
     'test "$active_audio_generation_proxy" = true',
     'test "$active_script_proxy" = true',
     'test "$active_auth_proxy" = true',
+    'test "$active_profile_proxy" = true',
     '"auth:login"',
     '"auth:read"',
+    '"auth:write"',
     '"auth:signup"',
     '"auth:verification"',
     "fetch_read_route 'Auth current user Learning OS' '/api/auth/me'",
     '-e EXPECTED_USER_ROLE="$user_role"',
     'account.role !== process.env.EXPECTED_USER_ROLE',
     'Auth current-user Learning OS proxy smoke check passed.',
+    'PROFILE_SMOKE_CHANGED=true',
+    "PATCH '/api/auth/me' \"$profile_smoke_probe_body\"",
+    'cleanup_profile_smoke',
+    'Auth profile Learning OS proxy smoke check passed and restored.',
     'script_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
     'script_smoke_inserted=true',
     'cleanup_script_smoke best-effort',
@@ -583,6 +602,7 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.ok(failureCleanup.includes('PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_SCRIPT_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_AUTH_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_PROFILE_PROXY_ENABLED'));
   assert.ok(
     failureCleanup.indexOf('|| course_generation_proxy_restore_ok=false') <
       failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED')
@@ -602,6 +622,14 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.ok(
     failureCleanup.indexOf('LEARNING_OS_AUTH_PROXY_ENABLED') <
       failureCleanup.indexOf('|| auth_proxy_restore_ok=false')
+  );
+  assert.ok(
+    failureCleanup.indexOf('LEARNING_OS_PROFILE_PROXY_ENABLED') <
+      failureCleanup.indexOf('|| profile_proxy_restore_ok=false')
+  );
+  assert.ok(
+    failureCleanup.indexOf('cleanup_profile_smoke best-effort') <
+      failureCleanup.indexOf('LEARNING_OS_PROFILE_PROXY_ENABLED')
   );
   assert.ok(failureCleanup.includes('$COMPOSE up -d --no-deps --force-recreate'));
   assert.doesNotMatch(

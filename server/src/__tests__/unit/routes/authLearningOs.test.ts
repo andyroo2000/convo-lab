@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   bcryptCompare: vi.fn(),
   getLearningOsCurrentAccount: vi.fn(),
   registerLearningOsAccount: vi.fn(),
+  updateLearningOsCurrentAccount: vi.fn(),
+  copySampleContentToUser: vi.fn(),
   prismaFindUnique: vi.fn(),
   prismaUpdate: vi.fn(),
 }));
@@ -71,9 +73,12 @@ vi.mock('../../../services/learningOsAuthProxy.js', () => ({
   authenticateLearningOsAccount: mocks.authenticateLearningOsAccount,
   getLearningOsCurrentAccount: mocks.getLearningOsCurrentAccount,
   registerLearningOsAccount: mocks.registerLearningOsAccount,
+  updateLearningOsCurrentAccount: mocks.updateLearningOsCurrentAccount,
 }));
 vi.mock('../../../services/oauth.js', () => ({ revokeGoogleTokens: vi.fn() }));
-vi.mock('../../../services/sampleContent.js', () => ({ copySampleContentToUser: vi.fn() }));
+vi.mock('../../../services/sampleContent.js', () => ({
+  copySampleContentToUser: mocks.copySampleContentToUser,
+}));
 vi.mock('../../../services/usageTracker.js', () => ({
   checkGenerationLimit: vi.fn(),
   checkCooldown: vi.fn(),
@@ -105,15 +110,18 @@ const currentAccount = {
 describe('Auth Learning OS routing', () => {
   const originalAuthProxyEnabled = process.env.LEARNING_OS_AUTH_PROXY_ENABLED;
   const originalSignupProxyEnabled = process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED;
+  const originalProfileProxyEnabled = process.env.LEARNING_OS_PROFILE_PROXY_ENABLED;
   let app: express.Application;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'true';
     process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED = 'true';
+    process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = 'true';
     mocks.authenticateLearningOsAccount.mockResolvedValue(loginAccount);
     mocks.getLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
+    mocks.updateLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id });
 
     app = express();
@@ -133,6 +141,11 @@ describe('Auth Learning OS routing', () => {
       delete process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED;
     } else {
       process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED = originalSignupProxyEnabled;
+    }
+    if (originalProfileProxyEnabled === undefined) {
+      delete process.env.LEARNING_OS_PROFILE_PROXY_ENABLED;
+    } else {
+      process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = originalProfileProxyEnabled;
     }
   });
 
@@ -246,6 +259,104 @@ describe('Auth Learning OS routing', () => {
         cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`)
       )
     ).toBe(true);
+  });
+
+  it('updates profile through Learning OS without invoking legacy persistence or sample copy', async () => {
+    const payload = {
+      displayName: 'Ada',
+      avatarColor: 'teal',
+      avatarUrl: 'https://example.com/avatar.png',
+      preferredStudyLanguage: 'ja',
+      preferredNativeLanguage: 'en',
+      proficiencyLevel: 'N3',
+      onboardingCompleted: true,
+      seenSampleContentGuide: true,
+      seenCustomContentGuide: false,
+      ignored: 'server-owned',
+    };
+
+    const response = await request(app).patch('/api/auth/me').send(payload).expect(200);
+
+    expect(response.body).toEqual(currentAccount);
+    expect(mocks.updateLearningOsCurrentAccount).toHaveBeenCalledWith(
+      loginAccount.id,
+      {
+        displayName: 'Ada',
+        avatarColor: 'teal',
+        avatarUrl: 'https://example.com/avatar.png',
+        preferredStudyLanguage: 'ja',
+        preferredNativeLanguage: 'en',
+        proficiencyLevel: 'N3',
+        onboardingCompleted: true,
+        seenSampleContentGuide: true,
+        seenCustomContentGuide: false,
+      },
+      {
+        userId: loginAccount.id,
+        email: loginAccount.email,
+        role: loginAccount.role,
+        accountSource: 'learning-os',
+      }
+    );
+    expect(mocks.prismaUpdate).not.toHaveBeenCalled();
+    expect(mocks.copySampleContentToUser).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{}, 'No fields to update'],
+    [{ displayName: ['Ada'] }, 'Invalid display name'],
+    [{ avatarColor: null }, 'Invalid avatar color'],
+    [{ avatarUrl: ['https://example.com/avatar.png'] }, 'Invalid avatar URL'],
+    [{ preferredStudyLanguage: 'en' }, 'Study language must be Japanese'],
+    [{ preferredNativeLanguage: 'ja' }, 'Native language must be English'],
+    [{ proficiencyLevel: 'beginner' }, 'Invalid proficiency level'],
+    [{ onboardingCompleted: 1 }, 'Invalid onboardingCompleted'],
+    [{ onboardingCompleted: true }, 'Invalid proficiency level'],
+    [{ seenSampleContentGuide: null }, 'Invalid seenSampleContentGuide'],
+    [{ seenCustomContentGuide: [] }, 'Invalid seenCustomContentGuide'],
+  ] as const)(
+    'rejects malformed profile payload %# before forwarding',
+    async (payload, message) => {
+      const response = await request(app).patch('/api/auth/me').send(payload).expect(400);
+
+      expect(response.body.error.message).toBe(message);
+      expect(mocks.updateLearningOsCurrentAccount).not.toHaveBeenCalled();
+    }
+  );
+
+  it('passes controlled profile proxy failures through the normal API error envelope', async () => {
+    mocks.updateLearningOsCurrentAccount.mockRejectedValue(
+      new AppError('Learning OS Auth API is unavailable.', 502)
+    );
+
+    const response = await request(app)
+      .patch('/api/auth/me')
+      .send({ displayName: 'Ada' })
+      .expect(502);
+
+    expect(response.body).toEqual({
+      error: { message: 'Learning OS Auth API is unavailable.', statusCode: 502 },
+    });
+  });
+
+  it('keeps legacy profile persistence available when the profile flag is disabled', async () => {
+    process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = 'false';
+    mocks.prismaFindUnique.mockResolvedValue({ onboardingCompleted: true });
+    mocks.prismaUpdate.mockResolvedValue(currentAccount);
+
+    const response = await request(app)
+      .patch('/api/auth/me')
+      .send({ displayName: 'Legacy Ada' })
+      .expect(200);
+
+    expect(response.body).toEqual(currentAccount);
+    expect(mocks.prismaUpdate).toHaveBeenCalledWith({
+      where: { id: loginAccount.id },
+      data: { displayName: 'Legacy Ada' },
+      select: expect.any(Object),
+    });
+    expect(mocks.updateLearningOsCurrentAccount).not.toHaveBeenCalled();
+    expect(mocks.copySampleContentToUser).not.toHaveBeenCalled();
   });
 
   it('marks a Learning OS-only account when login finds no legacy row', async () => {

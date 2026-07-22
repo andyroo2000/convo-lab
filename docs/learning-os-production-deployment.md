@@ -8,13 +8,15 @@ The Study cutover is complete. Production routing is not controlled by database
 feature flags, and the deployment workflow does not compare against or restore
 the retired ConvoLab Study backend.
 
-Login and current-account reads are also served by Learning OS. Signup and email
-verification adapters are deployed behind `LEARNING_OS_SIGNUP_PROXY_ENABLED` and
-`LEARNING_OS_VERIFICATION_PROXY_ENABLED`, both defaulting to `false`. Keep them
-disabled until profile and onboarding writes are migrated; otherwise a newly
-created Learning OS account cannot complete the existing ConvoLab onboarding
-flow. Their eventual activation must be added to the production rehearsal and
-rollback workflow before either production value is changed.
+Login, current-account reads, and profile/onboarding writes are also served by
+Learning OS. The profile adapter remains independently reversible through
+`LEARNING_OS_PROFILE_PROXY_ENABLED`; the production workflow activates it only
+with rollback armed and retains it only after a reversible public write smoke
+passes. Signup and email verification
+adapters are deployed behind `LEARNING_OS_SIGNUP_PROXY_ENABLED` and
+`LEARNING_OS_VERIFICATION_PROXY_ENABLED`, both defaulting to `false`. Their
+eventual activation must include a disposable account lifecycle rehearsal and
+rollback controls before either production value is changed.
 
 ## Workflow Inputs
 
@@ -62,8 +64,8 @@ The workflow:
 5. Starts or reconciles the private API and worker.
 6. Recreates the active ConvoLab web color with the new token.
 7. Verifies the active container received that token, then prunes older tokens.
-8. Runs authenticated read, write, import, media, Daily Audio, Episode, and Course smoke checks
-   through ConvoLab's public proxy.
+8. Runs authenticated profile, Study, import, media, Daily Audio, Episode, and
+   Course smoke checks through ConvoLab's public proxy.
 9. Verifies public ConvoLab health.
 
 The worker is drained before replacement when its image or command changes.
@@ -77,6 +79,7 @@ database from a Learning OS backup instead of rebuilding it from ConvoLab.
 Every deployment verifies:
 
 - Overview response through Learning OS.
+- Current-account response plus a reversible profile preference write.
 - Browser list and note detail against Learning OS state.
 - Settings read plus an idempotent settings write.
 - New Queue read plus two idempotent reorder writes.

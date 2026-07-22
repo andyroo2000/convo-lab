@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken';
 
 import {
   isLearningOsAuthProxyEnabled,
+  isLearningOsProfileProxyEnabled,
   isLearningOsSignupProxyEnabled,
 } from '../config/authRouting.js';
 import { buildClientAppUrl } from '../config/browserRuntime.js';
@@ -25,7 +26,9 @@ import {
   authenticateLearningOsAccount,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
+  updateLearningOsCurrentAccount,
   type LearningOsLoginAccount,
+  type LearningOsProfileUpdateInput,
 } from '../services/learningOsAuthProxy.js';
 import { revokeGoogleTokens } from '../services/oauth.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
@@ -478,6 +481,20 @@ router.get(
 // Update user profile
 router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
+    if (isLearningOsProfileProxyEnabled()) {
+      const update = buildLearningOsProfileUpdate(req.body);
+      // Learning OS owns first-onboarding sample creation in the same transaction
+      // as the profile update, so the legacy copier must not run on this path.
+      const account = await updateLearningOsCurrentAccount(req.userId!, update, {
+        userId: req.userId!,
+        email: req.email,
+        role: req.role,
+        accountSource: req.accountSource,
+      });
+
+      return res.json(account);
+    }
+
     const {
       displayName,
       avatarColor,
@@ -597,6 +614,83 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     next(error);
   }
 });
+
+function buildLearningOsProfileUpdate(value: unknown): LearningOsProfileUpdateInput {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new AppError('No fields to update', 400);
+  }
+
+  const body = value as Record<string, unknown>;
+  const update: LearningOsProfileUpdateInput = {};
+  if (Object.hasOwn(body, 'displayName')) {
+    if (
+      body.displayName !== null &&
+      (typeof body.displayName !== 'string' || body.displayName.length > 255)
+    ) {
+      throw new AppError('Invalid display name', 400);
+    }
+    update.displayName = body.displayName as string | null;
+  }
+  if (Object.hasOwn(body, 'avatarColor')) {
+    const validColors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
+    if (typeof body.avatarColor !== 'string' || !validColors.includes(body.avatarColor)) {
+      throw new AppError('Invalid avatar color', 400);
+    }
+    update.avatarColor = body.avatarColor;
+  }
+  if (Object.hasOwn(body, 'avatarUrl')) {
+    if (
+      body.avatarUrl !== null &&
+      (typeof body.avatarUrl !== 'string' || body.avatarUrl.length > 2048)
+    ) {
+      throw new AppError('Invalid avatar URL', 400);
+    }
+    update.avatarUrl = body.avatarUrl as string | null;
+  }
+  if (Object.hasOwn(body, 'preferredStudyLanguage')) {
+    if (body.preferredStudyLanguage !== 'ja') {
+      throw new AppError('Study language must be Japanese', 400);
+    }
+    update.preferredStudyLanguage = body.preferredStudyLanguage;
+  }
+  if (Object.hasOwn(body, 'preferredNativeLanguage')) {
+    if (body.preferredNativeLanguage !== 'en') {
+      throw new AppError('Native language must be English', 400);
+    }
+    update.preferredNativeLanguage = body.preferredNativeLanguage;
+  }
+  if (Object.hasOwn(body, 'proficiencyLevel')) {
+    const validLevels = ['N5', 'N4', 'N3', 'N2', 'N1'] as const;
+    if (!validLevels.includes(body.proficiencyLevel as (typeof validLevels)[number])) {
+      throw new AppError('Invalid proficiency level', 400);
+    }
+    update.proficiencyLevel = body.proficiencyLevel as (typeof validLevels)[number];
+  }
+
+  for (const field of [
+    'onboardingCompleted',
+    'seenSampleContentGuide',
+    'seenCustomContentGuide',
+  ] as const) {
+    if (Object.hasOwn(body, field)) {
+      if (typeof body[field] !== 'boolean') {
+        throw new AppError(`Invalid ${field}`, 400);
+      }
+      update[field] = body[field];
+    }
+  }
+
+  if (update.onboardingCompleted === true && update.proficiencyLevel === undefined) {
+    // Learning OS requires the level on the completion transition so it can
+    // atomically choose and copy the matching sample-content template.
+    throw new AppError('Invalid proficiency level', 400);
+  }
+  if (Object.keys(update).length === 0) {
+    throw new AppError('No fields to update', 400);
+  }
+
+  return update;
+}
 
 // Change password
 router.patch('/change-password', requireAuth, async (req: AuthRequest, res, next) => {
