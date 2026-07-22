@@ -1,9 +1,9 @@
 import { Response, NextFunction } from 'express';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/errorHandler.js';
-import { requireAdmin, requireRole, isAdminEmail } from '../../../middleware/roleAuth.js';
+import { requireAdmin, requireRole } from '../../../middleware/roleAuth.js';
 import { mockPrisma } from '../../setup.js';
 
 describe('requireAdmin middleware', () => {
@@ -172,34 +172,5 @@ describe('requireRole middleware', () => {
 
     expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-  });
-});
-
-describe('isAdminEmail', () => {
-  const originalEnv = process.env.ADMIN_EMAILS;
-
-  beforeEach(() => {
-    process.env.ADMIN_EMAILS = 'admin@example.com, superadmin@example.com';
-  });
-
-  afterEach(() => {
-    process.env.ADMIN_EMAILS = originalEnv;
-  });
-
-  it('should return true for admin email', () => {
-    expect(isAdminEmail('admin@example.com')).toBe(true);
-  });
-
-  it('should return true for admin email with different case', () => {
-    expect(isAdminEmail('ADMIN@example.com')).toBe(true);
-  });
-
-  it('should return false for non-admin email', () => {
-    expect(isAdminEmail('user@example.com')).toBe(false);
-  });
-
-  it('should handle missing ADMIN_EMAILS env var', () => {
-    delete process.env.ADMIN_EMAILS;
-    expect(isAdminEmail('admin@example.com')).toBe(false);
   });
 });

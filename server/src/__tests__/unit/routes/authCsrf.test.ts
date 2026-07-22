@@ -41,10 +41,6 @@ vi.mock('../../../services/oauth.js', () => ({
   revokeGoogleTokens: vi.fn(),
 }));
 
-vi.mock('../../../services/sampleContent.js', () => ({
-  copySampleContentToUser: vi.fn(),
-}));
-
 vi.mock('../../../services/usageTracker.js', () => ({
   checkGenerationLimit: vi.fn(),
   checkCooldown: vi.fn(),
