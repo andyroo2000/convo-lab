@@ -10,7 +10,7 @@ Viewport baseline: iPhone 13 (`390x844`) via Playwright
 - [x] `/tools` (`ToolsDirectoryPage`) reviewed and mobile-optimized.
 - [x] `/tools/japanese-date` (`JapaneseDateToolPage`) reviewed and mobile-optimized.
 - [x] `/forgot-password` (`ForgotPasswordPage`) reviewed and mobile spacing optimized.
-- [x] `/reset-password/:token` (`ResetPasswordPage`) reviewed and mobile spacing optimized.
+- [x] `/reset-password?token=...&email=...` (`ResetPasswordPage`) reviewed and mobile spacing optimized.
 - [x] `/verify-email` (`VerifyEmailPage`) reviewed and guest mobile state added.
 - [x] `/verify-email/:token` (`VerifyEmailPage`) covered by same component + styles.
 - [x] `/claim-invite` (`ClaimInvitePage`) reviewed and mobile spacing optimized.

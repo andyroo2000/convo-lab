@@ -243,12 +243,6 @@ describe('backend migration inventory', () => {
         surface: { id: 'verification', runtimeOwner: 'learning-os-proxy' },
       });
     }
-
-    for (const [method, routePath] of [['GET', '/api/password-reset/token']]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'verification', runtimeOwner: 'express' },
-      });
-    }
   });
 
   it('matches every method through the Learning OS Study proxy wildcard', () => {

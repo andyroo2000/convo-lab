@@ -1,12 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import {
-  sendVerificationEmail,
-  sendPasswordResetEmail,
-  verifyEmailToken,
-  verifyPasswordResetToken,
-  markPasswordResetTokenUsed,
-} from '../../../services/emailService.js';
+import { sendVerificationEmail, verifyEmailToken } from '../../../services/emailService.js';
 import { mockPrisma } from '../../setup.js';
 
 // Mock Resend
@@ -60,24 +54,6 @@ describe('Email Service - Token Security Tests', () => {
       const createCall = mockPrisma.emailVerificationToken.create.mock.calls[0][0];
       const expiresAt = new Date(createCall.data.expiresAt);
       const expectedExpiry = new Date(now + 24 * 60 * 60 * 1000);
-
-      expect(expiresAt.getTime()).toBe(expectedExpiry.getTime());
-
-      vi.useRealTimers();
-    });
-
-    it('should set 1-hour expiration for password reset tokens', async () => {
-      const now = Date.now();
-      vi.setSystemTime(now);
-
-      mockPrisma.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrisma.passwordResetToken.create.mockResolvedValue({});
-
-      await sendPasswordResetEmail(mockUserId, mockEmail, mockName);
-
-      const createCall = mockPrisma.passwordResetToken.create.mock.calls[0][0];
-      const expiresAt = new Date(createCall.data.expiresAt);
-      const expectedExpiry = new Date(now + 60 * 60 * 1000);
 
       expect(expiresAt.getTime()).toBe(expectedExpiry.getTime());
 
@@ -155,52 +131,6 @@ describe('Email Service - Token Security Tests', () => {
     });
   });
 
-  describe('Password Reset Token Expiration', () => {
-    it('should reject expired password reset token (65 minutes old)', async () => {
-      const now = new Date();
-      const expiredTime = new Date(now.getTime() - 65 * 60 * 1000); // 65 minutes ago
-
-      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
-        token: 'expired-reset-token',
-        userId: mockUserId,
-        expiresAt: expiredTime,
-        usedAt: null,
-        user: { email: mockEmail },
-      });
-
-      mockPrisma.passwordResetToken.delete.mockResolvedValue({});
-
-      const result = await verifyPasswordResetToken('expired-reset-token');
-
-      expect(result).toBeNull();
-
-      // Verify token was deleted
-      expect(mockPrisma.passwordResetToken.delete).toHaveBeenCalledWith({
-        where: { token: 'expired-reset-token' },
-      });
-    });
-
-    it('should accept valid password reset token (30 minutes old)', async () => {
-      const now = new Date();
-      const validTime = new Date(now.getTime() + 30 * 60 * 1000); // Expires in 30 min
-
-      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
-        token: 'valid-reset-token',
-        userId: mockUserId,
-        expiresAt: validTime,
-        usedAt: null,
-        user: { email: mockEmail },
-      });
-
-      const result = await verifyPasswordResetToken('valid-reset-token');
-
-      expect(result).toEqual({
-        userId: mockUserId,
-        email: mockEmail,
-      });
-    });
-  });
-
   describe('Token Reuse Prevention', () => {
     it('should delete verification token after first successful use', async () => {
       const validTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -229,34 +159,6 @@ describe('Email Service - Token Security Tests', () => {
       const result2 = await verifyEmailToken('one-time-token');
       expect(result2).toBeNull();
     });
-
-    it('should reject password reset token with usedAt timestamp', async () => {
-      const validTime = new Date(Date.now() + 30 * 60 * 1000);
-      const usedTime = new Date();
-
-      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
-        token: 'used-reset-token',
-        userId: mockUserId,
-        expiresAt: validTime,
-        usedAt: usedTime, // Already used
-        user: { email: mockEmail },
-      });
-
-      const result = await verifyPasswordResetToken('used-reset-token');
-
-      expect(result).toBeNull();
-    });
-
-    it('should mark password reset token as used after password change', async () => {
-      mockPrisma.passwordResetToken.update.mockResolvedValue({});
-
-      await markPasswordResetTokenUsed('reset-token');
-
-      expect(mockPrisma.passwordResetToken.update).toHaveBeenCalledWith({
-        where: { token: 'reset-token' },
-        data: { usedAt: expect.any(Date) },
-      });
-    });
   });
 
   describe('Token Invalidation on New Request', () => {
@@ -277,26 +179,6 @@ describe('Email Service - Token Security Tests', () => {
       // Verify deleteMany called before create
       const deleteOrder = mockPrisma.emailVerificationToken.deleteMany.mock.invocationCallOrder[0];
       const createOrder = mockPrisma.emailVerificationToken.create.mock.invocationCallOrder[0];
-      expect(deleteOrder).toBeLessThan(createOrder);
-    });
-
-    it('should delete old password reset tokens when requesting new one', async () => {
-      mockPrisma.passwordResetToken.deleteMany.mockResolvedValue({ count: 1 });
-      mockPrisma.passwordResetToken.create.mockResolvedValue({});
-
-      await sendPasswordResetEmail(mockUserId, mockEmail, mockName);
-
-      // Verify old tokens were deleted first
-      expect(mockPrisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: mockUserId },
-      });
-
-      // Then new token was created
-      expect(mockPrisma.passwordResetToken.create).toHaveBeenCalled();
-
-      // Verify correct order
-      const deleteOrder = mockPrisma.passwordResetToken.deleteMany.mock.invocationCallOrder[0];
-      const createOrder = mockPrisma.passwordResetToken.create.mock.invocationCallOrder[0];
       expect(deleteOrder).toBeLessThan(createOrder);
     });
 

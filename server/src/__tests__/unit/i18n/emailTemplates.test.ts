@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 
 import {
   generateVerificationEmail,
-  generatePasswordResetEmail,
   generateWelcomeEmail,
   generatePasswordChangedEmail,
 } from '../../../i18n/emailTemplates.js';
@@ -23,12 +22,6 @@ const mockTranslations: Record<string, Record<string, (params?: TranslationParam
     'verification.button': () => 'Verify Email',
     'verification.linkInstructions': () => 'Or copy and paste this link',
     'verification.expiry': () => 'Link expires in 24 hours',
-    'passwordReset.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
-    'passwordReset.title': () => 'Reset Your Password',
-    'passwordReset.body': () => 'Reset your password',
-    'passwordReset.button': () => 'Reset Password',
-    'passwordReset.linkInstructions': () => 'Or copy and paste this link',
-    'passwordReset.expiry': () => 'Link expires in 1 hour',
     'welcome.greeting': (p?: TranslationParams) => `Welcome ${p?.name}`,
     'welcome.title': () => 'Welcome to ConvoLab!',
     'welcome.body': () => 'Start your language journey',
@@ -219,19 +212,6 @@ describe('emailTemplates - XSS Prevention', () => {
       expect(html).toContain('&lt;script&gt;');
       // URL should not be escaped (it's an attribute)
       expect(html).toContain('href="https://example.com/verify"');
-    });
-  });
-
-  describe('generatePasswordResetEmail', () => {
-    it('should generate LTR email for English locale', () => {
-      const html = generatePasswordResetEmail({
-        name: 'Jane',
-        resetUrl: 'https://example.com/reset',
-        locale: 'en',
-      });
-
-      expect(html).toContain('dir="ltr"');
-      expect(html).toContain('Hello Jane');
     });
   });
 

@@ -404,8 +404,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.match(localCompose, /LEARNING_OS_PROFILE_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_SIGNUP_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(localCompose, /LEARNING_OS_VERIFICATION_PROXY_ENABLED:\s*['"]false['"]/);
-  assert.match(localCompose, /LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED:\s*['"]false['"]/);
-  assert.match(localCompose, /LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED:\s*['"]false['"]/);
   assert.match(
     stageCompose,
     /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
@@ -420,8 +418,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.match(stageCompose, /LEARNING_OS_PROFILE_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_SIGNUP_PROXY_ENABLED:\s*['"]false['"]/);
   assert.match(stageCompose, /LEARNING_OS_VERIFICATION_PROXY_ENABLED:\s*['"]false['"]/);
-  assert.match(stageCompose, /LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED:\s*['"]false['"]/);
-  assert.match(stageCompose, /LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED:\s*['"]false['"]/);
   assert.ok(
     productionCompose.includes(
       'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
@@ -462,17 +458,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
       'LEARNING_OS_VERIFICATION_PROXY_ENABLED: ${LEARNING_OS_VERIFICATION_PROXY_ENABLED:-false}'
     )
   );
-  assert.ok(
-    productionCompose.includes(
-      'LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED: ${LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED:-false}'
-    )
-  );
-  assert.ok(
-    productionCompose.includes(
-      'LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED: ${LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED:-false}'
-    )
-  );
-
   for (const requiredContract of [
     '"content:write"',
     'ROUTE_PROXY_CUTOVER_STARTED=false',
@@ -484,8 +469,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'PREVIOUS_PROFILE_PROXY_ENABLED=false',
     'PREVIOUS_SIGNUP_PROXY_ENABLED=false',
     'PREVIOUS_VERIFICATION_PROXY_ENABLED=false',
-    'PREVIOUS_PASSWORD_RESET_PROXY_ENABLED=false',
-    'PREVIOUS_PASSWORD_RESET_COMPLETION_ENABLED=false',
     'previous_course_generation_proxy="$(sed -n',
     'previous_dialogue_generation_proxy="$(sed -n',
     'previous_audio_generation_proxy="$(sed -n',
@@ -493,8 +476,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'previous_profile_proxy="$(sed -n',
     'previous_signup_proxy="$(sed -n',
     'previous_verification_proxy="$(sed -n',
-    'previous_password_reset_proxy="$(sed -n',
-    'previous_password_reset_completion="$(sed -n',
     'Rolling back the Learning OS route proxies.',
     'course_generation_proxy_restore_ok=true',
     'dialogue_generation_proxy_restore_ok=true',
@@ -504,8 +485,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'profile_proxy_restore_ok=true',
     'signup_proxy_restore_ok=true',
     'verification_proxy_restore_ok=true',
-    'password_reset_proxy_restore_ok=true',
-    'password_reset_completion_restore_ok=true',
     '|| course_generation_proxy_restore_ok=false',
     '|| dialogue_generation_proxy_restore_ok=false',
     '|| audio_generation_proxy_restore_ok=false',
@@ -514,8 +493,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     '|| profile_proxy_restore_ok=false',
     '|| signup_proxy_restore_ok=false',
     '|| verification_proxy_restore_ok=false',
-    '|| password_reset_proxy_restore_ok=false',
-    '|| password_reset_completion_restore_ok=false',
     'if [ "$course_generation_proxy_restore_ok" != true ]',
     '|| [ "$dialogue_generation_proxy_restore_ok" != true ]',
     '|| [ "$audio_generation_proxy_restore_ok" != true ]',
@@ -524,8 +501,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     '|| [ "$profile_proxy_restore_ok" != true ]',
     '|| [ "$signup_proxy_restore_ok" != true ]',
     '|| [ "$verification_proxy_restore_ok" != true ]',
-    '|| [ "$password_reset_proxy_restore_ok" != true ]',
-    '|| [ "$password_reset_completion_restore_ok" != true ]',
     '::error::Failed to restore the route proxy environment values.',
     '::error::Failed to recreate the production server while rolling back route proxies.',
     '::error::The production server was unhealthy after rolling back route proxies.',
@@ -539,8 +514,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'upsert_env LEARNING_OS_PROFILE_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_SIGNUP_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_VERIFICATION_PROXY_ENABLED true',
-    'upsert_env LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED true',
-    'upsert_env LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED true',
     "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
     'test "$active_course_generation_proxy" = true',
     'test "$active_dialogue_generation_proxy" = true',
@@ -550,8 +523,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'test "$active_profile_proxy" = true',
     'test "$active_signup_proxy" = true',
     'test "$active_verification_proxy" = true',
-    'test "$active_password_reset_proxy" = true',
-    'test "$active_password_reset_completion" = true',
     '"auth:login"',
     '"auth:read"',
     '"auth:write"',
@@ -678,8 +649,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.ok(failureCleanup.includes('PREVIOUS_PROFILE_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_SIGNUP_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_VERIFICATION_PROXY_ENABLED'));
-  assert.ok(failureCleanup.includes('PREVIOUS_PASSWORD_RESET_PROXY_ENABLED'));
-  assert.ok(failureCleanup.includes('PREVIOUS_PASSWORD_RESET_COMPLETION_ENABLED'));
   assert.ok(
     failureCleanup.indexOf('|| course_generation_proxy_restore_ok=false') <
       failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED')
@@ -711,14 +680,6 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.ok(
     failureCleanup.indexOf('LEARNING_OS_VERIFICATION_PROXY_ENABLED') <
       failureCleanup.indexOf('|| verification_proxy_restore_ok=false')
-  );
-  assert.ok(
-    failureCleanup.indexOf('LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED') <
-      failureCleanup.indexOf('|| password_reset_proxy_restore_ok=false')
-  );
-  assert.ok(
-    failureCleanup.indexOf('LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED') <
-      failureCleanup.indexOf('|| password_reset_completion_restore_ok=false')
   );
   assert.ok(
     failureCleanup.indexOf('cleanup_profile_smoke best-effort') <
@@ -1256,12 +1217,6 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   const verificationActivation = workflow.indexOf(
     'upsert_env LEARNING_OS_VERIFICATION_PROXY_ENABLED true'
   );
-  const passwordResetActivation = workflow.indexOf(
-    'upsert_env LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED true'
-  );
-  const passwordResetCompletionActivation = workflow.indexOf(
-    'upsert_env LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED true'
-  );
   const serverRestart = workflow.indexOf(
     '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
     signupActivation
@@ -1274,9 +1229,7 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
 
   assert.ok(signupActivation >= 0);
   assert.ok(signupActivation < verificationActivation);
-  assert.ok(verificationActivation < passwordResetActivation);
-  assert.ok(passwordResetActivation < passwordResetCompletionActivation);
-  assert.ok(passwordResetCompletionActivation < serverRestart);
+  assert.ok(verificationActivation < serverRestart);
   assert.ok(serverRestart < authSmoke);
   assert.ok(authSmoke < cutoverCommitted);
 });

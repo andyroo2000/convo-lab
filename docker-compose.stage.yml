@@ -103,8 +103,6 @@ services:
       LEARNING_OS_PROFILE_PROXY_ENABLED: "false"
       LEARNING_OS_SIGNUP_PROXY_ENABLED: "false"
       LEARNING_OS_VERIFICATION_PROXY_ENABLED: "false"
-      LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED: "false"
-      LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED: "false"
       LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: "false"
     volumes:
       - ./server/gcloud-key.json:/app/gcloud-key.json:ro
