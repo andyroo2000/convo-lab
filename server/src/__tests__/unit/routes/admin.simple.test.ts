@@ -39,9 +39,13 @@ const mockAdminHandlers = vi.hoisted(() => ({
   deleteInviteCode: vi.fn(),
   deleteUser: vi.fn(),
   listInviteCodes: vi.fn(),
+  listSpeakerAvatars: vi.fn(),
   listUsers: vi.fn(),
+  showPronunciationDictionary: vi.fn(),
+  showSpeakerAvatarOriginal: vi.fn(),
   showStats: vi.fn(),
   showUser: vi.fn(),
+  updatePronunciationDictionary: vi.fn(),
 }));
 
 const mockPronunciationDictionary = {
@@ -71,9 +75,13 @@ vi.mock('../../../routes/learningOs/admin.js', () => ({
   deleteLearningOsAdminInviteCode: mockAdminHandlers.deleteInviteCode,
   deleteLearningOsAdminUser: mockAdminHandlers.deleteUser,
   listLearningOsAdminInviteCodes: mockAdminHandlers.listInviteCodes,
+  listLearningOsAdminSpeakerAvatars: mockAdminHandlers.listSpeakerAvatars,
   listLearningOsAdminUsers: mockAdminHandlers.listUsers,
+  showLearningOsAdminPronunciationDictionary: mockAdminHandlers.showPronunciationDictionary,
+  showLearningOsAdminSpeakerAvatarOriginal: mockAdminHandlers.showSpeakerAvatarOriginal,
   showLearningOsAdminStats: mockAdminHandlers.showStats,
   showLearningOsAdminUser: mockAdminHandlers.showUser,
+  updateLearningOsAdminPronunciationDictionary: mockAdminHandlers.updatePronunciationDictionary,
 }));
 
 // Mock auth middleware to inject test user
@@ -130,6 +138,20 @@ describe('Admin Routes - Critical Branch Coverage', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockAdminHandlers.listInviteCodes.mockImplementation((_req, res) => res.json([]));
+    mockAdminHandlers.listSpeakerAvatars.mockImplementation((_req, res) => res.json([]));
+    mockAdminHandlers.showSpeakerAvatarOriginal.mockImplementation((_req, res) =>
+      res.json({ originalUrl: 'https://storage.example/original.jpg' })
+    );
+    mockAdminHandlers.showPronunciationDictionary.mockImplementation((_req, res) =>
+      res.json(mockPronunciationDictionary)
+    );
+    mockAdminHandlers.updatePronunciationDictionary.mockImplementation((req, res) =>
+      res.json({
+        ...req.body,
+        verbKana: req.body.verbKana ?? mockPronunciationDictionary.verbKana,
+        updatedAt: new Date('2024-01-02').toISOString(),
+      })
+    );
     mockAdminHandlers.deleteUser.mockImplementation((req, res, next) => {
       if (req.params.id === 'admin-user-id') {
         next(Object.assign(new Error('Cannot delete your own account'), { statusCode: 400 }));
@@ -250,85 +272,23 @@ describe('Admin Routes - Critical Branch Coverage', () => {
   });
 
   describe('Pronunciation Dictionaries', () => {
-    it('should return pronunciation dictionary', async () => {
+    it('should delegate pronunciation dictionary reads to Learning OS', async () => {
       const response = await request(app).get('/admin/pronunciation-dictionaries');
 
       expect(response.status).toBe(200);
       expect(response.body.keepKanji).toContain('橋');
       expect(response.body.verbKana).toHaveProperty('話す', 'はなす');
-      expect(mockGetPronunciationDictionary).toHaveBeenCalled();
+      expect(mockAdminHandlers.showPronunciationDictionary).toHaveBeenCalledOnce();
     });
 
-    it('should validate keepKanji payload', async () => {
-      const response = await request(app)
-        .put('/admin/pronunciation-dictionaries')
-        .send({ forceKana: {} });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('keepKanji must be an array');
-    });
-
-    it('should validate forceKana payload', async () => {
-      const response = await request(app)
-        .put('/admin/pronunciation-dictionaries')
-        .send({ keepKanji: ['橋'], forceKana: [] });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('forceKana must be an object');
-    });
-
-    it('should update pronunciation dictionary', async () => {
-      const response = await request(app)
-        .put('/admin/pronunciation-dictionaries')
-        .send({ keepKanji: ['端'], forceKana: { 東京: 'とうきょう' } });
-
-      expect(response.status).toBe(200);
-      expect(response.body.keepKanji).toContain('端');
-      expect(response.body.forceKana).toHaveProperty('東京', 'とうきょう');
-      expect(response.body.verbKana).toHaveProperty('話す', 'はなす');
-      expect(mockUpdatePronunciationDictionary).toHaveBeenCalled();
-    });
-
-    it('should update pronunciation dictionary verbKana entries', async () => {
+    it('should delegate pronunciation dictionary writes to Learning OS', async () => {
       const response = await request(app)
         .put('/admin/pronunciation-dictionaries')
         .send({ keepKanji: ['端'], forceKana: { 東京: 'とうきょう' }, verbKana: { 書く: 'かく' } });
 
       expect(response.status).toBe(200);
       expect(response.body.verbKana).toHaveProperty('書く', 'かく');
-      expect(mockUpdatePronunciationDictionary).toHaveBeenCalledWith({
-        keepKanji: ['端'],
-        forceKana: { 東京: 'とうきょう' },
-        verbKana: { 書く: 'かく' },
-      });
-    });
-
-    it('should reject overly large keepKanji lists', async () => {
-      const keepKanji = Array.from({ length: 501 }, (_, index) => `word-${index}`);
-      const response = await request(app)
-        .put('/admin/pronunciation-dictionaries')
-        .send({ keepKanji, forceKana: {} });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('keepKanji must contain no more than');
-    });
-
-    it('should reject forceKana entries that exceed max length', async () => {
-      const response = await request(app)
-        .put('/admin/pronunciation-dictionaries')
-        .send({ keepKanji: ['端'], forceKana: { 東京: 'a'.repeat(65) } });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('forceKana entries must be <=');
-    });
-
-    it('should reject invalid verbKana payloads', async () => {
-      const response = await request(app)
-        .put('/admin/pronunciation-dictionaries')
-        .send({ keepKanji: ['端'], forceKana: {}, verbKana: [] });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('verbKana must be an object');
+      expect(mockAdminHandlers.updatePronunciationDictionary).toHaveBeenCalledOnce();
     });
   });
 

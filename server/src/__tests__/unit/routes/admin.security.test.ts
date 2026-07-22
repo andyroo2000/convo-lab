@@ -40,7 +40,10 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 const mockAdminReads = vi.hoisted(() => ({
   listInviteCodes: vi.fn(),
+  listSpeakerAvatars: vi.fn(),
   listUsers: vi.fn(),
+  showPronunciationDictionary: vi.fn(),
+  showSpeakerAvatarOriginal: vi.fn(),
   showStats: vi.fn(),
   showUser: vi.fn(),
 }));
@@ -48,6 +51,7 @@ const mockAdminMutations = vi.hoisted(() => ({
   createInviteCode: vi.fn(),
   deleteInviteCode: vi.fn(),
   deleteUser: vi.fn(),
+  updatePronunciationDictionary: vi.fn(),
 }));
 
 vi.mock('../../../db/client.js', () => ({
@@ -58,9 +62,13 @@ vi.mock('../../../routes/learningOs/admin.js', () => ({
   deleteLearningOsAdminInviteCode: mockAdminMutations.deleteInviteCode,
   deleteLearningOsAdminUser: mockAdminMutations.deleteUser,
   listLearningOsAdminInviteCodes: mockAdminReads.listInviteCodes,
+  listLearningOsAdminSpeakerAvatars: mockAdminReads.listSpeakerAvatars,
   listLearningOsAdminUsers: mockAdminReads.listUsers,
+  showLearningOsAdminPronunciationDictionary: mockAdminReads.showPronunciationDictionary,
+  showLearningOsAdminSpeakerAvatarOriginal: mockAdminReads.showSpeakerAvatarOriginal,
   showLearningOsAdminStats: mockAdminReads.showStats,
   showLearningOsAdminUser: mockAdminReads.showUser,
+  updateLearningOsAdminPronunciationDictionary: mockAdminMutations.updatePronunciationDictionary,
 }));
 
 vi.mock('../../../services/japanesePronunciationOverrides.js', () => ({
@@ -78,6 +86,16 @@ describe('Admin Security Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAdminReads.listInviteCodes.mockImplementation((_req, res) => res.json([]));
+    mockAdminReads.listSpeakerAvatars.mockImplementation((_req, res) => res.json([]));
+    mockAdminReads.showSpeakerAvatarOriginal.mockImplementation((_req, res) =>
+      res.json({ originalUrl: 'https://storage.example/original.jpg' })
+    );
+    mockAdminReads.showPronunciationDictionary.mockImplementation((_req, res) =>
+      res.json({ keepKanji: [], forceKana: {}, verbKana: {} })
+    );
+    mockAdminMutations.updatePronunciationDictionary.mockImplementation((_req, res) =>
+      res.json({ keepKanji: [], forceKana: {}, verbKana: {} })
+    );
     mockAdminReads.listUsers.mockImplementation((_req, res) =>
       res.json({ users: [], pagination: { page: 1, limit: 50, total: 0, pages: 1 } })
     );

@@ -163,6 +163,10 @@ describe('backend migration inventory', () => {
       ['GET', '/api/admin/users'],
       ['GET', '/api/admin/users/11111111-1111-4111-8111-111111111111/info'],
       ['GET', '/api/admin/invite-codes'],
+      ['GET', '/api/admin/avatars/speaker/ja-female-casual.jpg/original'],
+      ['GET', '/api/admin/avatars/speakers'],
+      ['GET', '/api/admin/pronunciation-dictionaries'],
+      ['PUT', '/api/admin/pronunciation-dictionaries'],
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
         surface: { id: 'admin', runtimeOwner: 'learning-os-proxy' },

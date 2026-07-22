@@ -34,10 +34,20 @@ test('production smoke-gates both the private admin API and public compatibility
     '/api/admin/stats',
     '/api/admin/users?limit=1',
     '/api/admin/invite-codes?limit=1',
+    '/api/admin/avatars/speakers',
+    '/api/admin/pronunciation-dictionaries',
   ]) {
     assert.ok(workflow.includes(route), `Missing production smoke route: ${route}`);
   }
   assert.match(workflow, /\/api\/admin\/users\/\$admin_user_id\/info/);
+  assert.match(
+    workflow,
+    /\/api\/admin\/avatars\/speaker\/\$admin_speaker_filename\/original/
+  );
+  assert.match(
+    workflow,
+    /mutate_proxy_route[\s\\]+PUT '\/api\/admin\/pronunciation-dictionaries' "\$admin_pronunciation_body"/
+  );
   assert.match(workflow, /Admin Learning OS read smoke checks passed\./);
   assert.match(workflow, /mutate_proxy_route POST '\/api\/admin\/invite-codes' '\{\}'/);
   assert.match(workflow, /DELETE "\/api\/admin\/invite-codes\/\$admin_invite_smoke_id"/);
