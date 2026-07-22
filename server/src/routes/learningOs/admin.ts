@@ -376,8 +376,10 @@ const isRecordList = (value: unknown): value is JsonRecord[] =>
 
 const isAdminCoursePrompt = (value: unknown): value is JsonRecord =>
   isRecord(value) &&
+  Object.keys(value).length === 2 &&
   isNonEmptyString(value.prompt) &&
   isRecord(value.metadata) &&
+  Object.keys(value.metadata).length === 3 &&
   isPositiveInteger(value.metadata.targetExchangeCount) &&
   isString(value.metadata.vocabularySeeds) &&
   isString(value.metadata.grammarSeeds);
@@ -390,6 +392,7 @@ const isAdminCourseDialogue = (value: unknown): value is JsonRecord =>
 
 const isAdminCourseScript = (value: unknown): value is JsonRecord =>
   isRecord(value) &&
+  Object.keys(value).length === 3 &&
   isRecordList(value.scriptUnits) &&
   isNonNegativeInteger(value.estimatedDurationSeconds) &&
   isNonNegativeInteger(value.vocabularyItemCount);
@@ -398,6 +401,7 @@ const isAdminCourseAudio = (value: unknown, courseId: string): value is JsonReco
   isRecord(value) &&
   Object.keys(value).length === 3 &&
   value.message === 'Audio generation started' &&
+  // Learning OS intentionally uses the canonical course ID as its compatibility job ID.
   value.jobId === courseId &&
   value.courseId === courseId;
 
@@ -715,7 +719,7 @@ export async function generateLearningOsAdminCourseDialogue(
       throw new AppError('customPrompt must not exceed 100000 characters', 400);
     }
 
-    const body = customPrompt === undefined ? {} : { customPrompt };
+    const body = customPrompt === undefined || customPrompt === null ? {} : { customPrompt };
     const { payload } = await fetchAdminCourseRequest(
       req,
       'generate-dialogue',

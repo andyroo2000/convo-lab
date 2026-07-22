@@ -354,9 +354,11 @@ describe('Learning OS admin proxy', () => {
 
   it.each([
     ['build-prompt', { ...coursePrompt, prompt: '' }],
+    ['build-prompt', { ...coursePrompt, unexpected: true }],
     ['build-script-config', { config: [] }],
     ['generate-dialogue', { exchanges: [null] }],
     ['generate-script', { ...courseScript, vocabularyItemCount: -1 }],
+    ['generate-script', { ...courseScript, unexpected: true }],
     ['generate-audio', { ...courseAudio, jobId: INVITE_ID }],
   ])('rejects malformed successful admin course %s responses', async (operation, payload) => {
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
@@ -401,6 +403,17 @@ describe('Learning OS admin proxy', () => {
     expect(badStage.body.error.message).toBe('Invalid stage. Must be "exchanges" or "script"');
     expect(badData.body.error.message).toBe('Pipeline data must be a list.');
     expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('treats a null custom prompt as omitted', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(courseDialogue));
+
+    await request(app)
+      .post(`/courses/${COURSE_ID}/generate-dialogue`)
+      .send({ customPrompt: null })
+      .expect(200, courseDialogue);
+
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(expect.objectContaining({ body: {} }));
   });
 
   it('preserves safe course conflicts while hiding unexpected upstream details', async () => {
