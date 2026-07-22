@@ -308,7 +308,8 @@ export async function sendLearningOsPasswordResetLink(email: string): Promise<vo
     throw rateLimitError(response, 'Too many password reset attempts.');
   }
   if (response.status === 422) {
-    throw new AppError('Invalid password reset details', 400);
+    // Preserve the public generic-success contract for malformed and unknown accounts alike.
+    return;
   }
   throw upstreamFailure(response.status);
 }
@@ -318,6 +319,7 @@ export async function resetLearningOsPassword({
   token,
   newPassword,
 }: LearningOsPasswordResetInput): Promise<void> {
+  // This is only a coarse proxy guard; Learning OS owns canonical email validation.
   if (
     typeof email !== 'string' ||
     email.length > 320 ||

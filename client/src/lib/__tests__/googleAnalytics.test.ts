@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { sanitizeAnalyticsPagePath } from '../googleAnalytics';
+import { buildAnalyticsPageLocation, sanitizeAnalyticsPagePath } from '../googleAnalytics';
 
 describe('sanitizeAnalyticsPagePath', () => {
   it.each([
@@ -13,6 +13,12 @@ describe('sanitizeAnalyticsPagePath', () => {
   it('preserves ordinary route query and fragment dimensions', () => {
     expect(sanitizeAnalyticsPagePath('/app/library', '?page=2', '#recent')).toBe(
       '/app/library?page=2#recent'
+    );
+  });
+
+  it('keeps network-path references on the application origin', () => {
+    expect(buildAnalyticsPageLocation('//evil.example.com/x', 'https://convo-lab.com')).toBe(
+      'https://convo-lab.com//evil.example.com/x'
     );
   });
 });

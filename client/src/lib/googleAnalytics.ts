@@ -25,6 +25,13 @@ export const sanitizeAnalyticsPagePath = (
   return `${pathname}${search}${hash}`;
 };
 
+export const buildAnalyticsPageLocation = (pagePath: string, origin: string): string => {
+  const normalizedOrigin = origin.replace(/\/+$/, '');
+  const normalizedPath = pagePath.startsWith('/') ? pagePath : `/${pagePath}`;
+
+  return `${normalizedOrigin}${normalizedPath}`;
+};
+
 export const initializeGoogleAnalytics = (): void => {
   if (!hasMeasurementId() || isInitialized) return;
 
@@ -59,7 +66,7 @@ export const trackPageView = (pagePath: string): void => {
 
   window.gtag('event', 'page_view', {
     page_path: pagePath,
-    page_location: new URL(pagePath, window.location.origin).toString(),
+    page_location: buildAnalyticsPageLocation(pagePath, window.location.origin),
     page_title: document.title,
   });
 };

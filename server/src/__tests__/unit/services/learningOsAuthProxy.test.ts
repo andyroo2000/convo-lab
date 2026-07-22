@@ -478,23 +478,26 @@ describe('Learning OS auth proxy', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['reset request', () => sendLearningOsPasswordResetLink(account.email)],
-    [
-      'reset completion',
-      () =>
-        resetLearningOsPassword({
-          email: account.email,
-          token: 'broker-token',
-          newPassword: 'new-password123',
-        }),
-    ],
-  ] as const)('maps %s validation failures to the legacy contract', async (_label, operation) => {
+  it('preserves generic success when reset-link request validation fails upstream', async () => {
     vi.mocked(global.fetch).mockResolvedValue(
       jsonResponse({ message: 'The given data was invalid.', errors: {} }, 422)
     );
 
-    await expect(operation()).rejects.toMatchObject({ statusCode: 400 });
+    await expect(sendLearningOsPasswordResetLink('malformed')).resolves.toBeUndefined();
+  });
+
+  it('maps reset-completion validation failures to the legacy contract', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'The given data was invalid.', errors: {} }, 422)
+    );
+
+    await expect(
+      resetLearningOsPassword({
+        email: account.email,
+        token: 'broker-token',
+        newPassword: 'new-password123',
+      })
+    ).rejects.toMatchObject({ statusCode: 400 });
   });
 
   it.each([
