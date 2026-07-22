@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   resolveLearningOsUserProxyContext: vi.fn(),
   userDeleteMany: vi.fn(),
   inviteDeleteMany: vi.fn(),
+  inviteFindUnique: vi.fn(),
   inviteUpsert: vi.fn(),
 }));
 
@@ -33,6 +34,7 @@ vi.mock('../../../../db/client.js', () => ({
     user: { deleteMany: mocks.userDeleteMany },
     inviteCode: {
       deleteMany: mocks.inviteDeleteMany,
+      findUnique: mocks.inviteFindUnique,
       upsert: mocks.inviteUpsert,
     },
   },
@@ -98,6 +100,7 @@ describe('Learning OS admin proxy', () => {
     });
     mocks.userDeleteMany.mockResolvedValue({ count: 1 });
     mocks.inviteDeleteMany.mockResolvedValue({ count: 1 });
+    mocks.inviteFindUnique.mockResolvedValue(null);
     mocks.inviteUpsert.mockImplementation(async ({ create }) => create);
 
     app = express();
@@ -503,6 +506,52 @@ describe('Learning OS admin proxy', () => {
     expect(mocks.inviteUpsert).toHaveBeenCalledOnce();
   });
 
+  it('rejects a custom code already present in the local compatibility projection', async () => {
+    mocks.inviteFindUnique.mockResolvedValue({ id: 'legacy-invite', code: 'CUSTOM12' });
+
+    const response = await request(app)
+      .post('/invite-codes')
+      .send({ customCode: 'CUSTOM12' })
+      .expect(400);
+
+    expect(response.body.error.message).toBe('This code already exists');
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+    expect(mocks.inviteUpsert).not.toHaveBeenCalled();
+  });
+
+  it('rolls back a canonical invite after a raced local code collision', async () => {
+    const created = {
+      id: INVITE_ID,
+      code: 'CUSTOM12',
+      usedBy: null,
+      usedAt: null,
+      createdAt: '2026-07-22T08:00:00.123Z',
+    };
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson(created))
+      .mockResolvedValueOnce(upstreamJson({ message: 'Invite code deleted successfully' }));
+    mocks.inviteUpsert.mockRejectedValue({
+      name: 'PrismaClientKnownRequestError',
+      code: 'P2002',
+    });
+
+    const response = await request(app)
+      .post('/invite-codes')
+      .send({ customCode: 'CUSTOM12' })
+      .expect(400);
+
+    expect(response.body.error.message).toBe('This code already exists');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          `http://learning-os.test/api/convolab/admin/invite-codes/${INVITE_ID}`
+        ),
+        method: 'DELETE',
+      })
+    );
+  });
+
   it.each([null, '', 'short', 'BAD-CODE', ['CUSTOM12']])(
     'rejects malformed custom code %j without calling upstream',
     async (customCode) => {
@@ -526,6 +575,16 @@ describe('Learning OS admin proxy', () => {
       upstreamJson({ message: 'Invite code not found' }, 404)
     );
     await request(app).delete(`/invite-codes/${INVITE_ID}`).expect(200);
+  });
+
+  it('does not clean local projections after malformed successful delete responses', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson({ message: 'unexpected success' }));
+
+    await request(app).delete(`/users/${USER_ID}`).expect(502);
+    await request(app).delete(`/invite-codes/${INVITE_ID}`).expect(502);
+
+    expect(mocks.userDeleteMany).not.toHaveBeenCalled();
+    expect(mocks.inviteDeleteMany).not.toHaveBeenCalled();
   });
 
   it('preserves used-invite and rate-limit responses without local cleanup', async () => {

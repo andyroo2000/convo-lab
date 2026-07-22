@@ -242,6 +242,9 @@ const isCreatedInviteCode = (value: unknown): value is CreatedInviteCode =>
 const responseMessage = (payload: unknown): string | null =>
   isRecord(payload) && isString(payload.message) ? payload.message : null;
 
+const isPrismaUniqueConstraintError = (error: unknown): boolean =>
+  isRecord(error) && error.name === 'PrismaClientKnownRequestError' && error.code === 'P2002';
+
 const mutationError = (response: globalThis.Response, payload: unknown): AppError => {
   const message = responseMessage(payload);
   const allowed = new Map<string, number>([
@@ -307,6 +310,17 @@ async function fetchAdminMutation(
   return { payload, response };
 }
 
+async function rollbackCreatedInvite(req: AuthRequest, inviteId: string): Promise<void> {
+  const { payload, response } = await fetchAdminMutation(
+    req,
+    `/invite-codes/${inviteId}`,
+    'DELETE'
+  );
+  if (!response.ok || responseMessage(payload) !== 'Invite code deleted successfully') {
+    throw new AppError(`${API_LABEL} request failed.`, 502);
+  }
+}
+
 export async function deleteLearningOsAdminUser(
   req: AuthRequest,
   res: Response,
@@ -317,16 +331,16 @@ export async function deleteLearningOsAdminUser(
 
     const { payload, response } = await fetchAdminMutation(
       req,
-      `/users/${encodeURIComponent(req.params.id)}`,
+      `/users/${req.params.id}`,
       'DELETE'
     );
     if (!response.ok && response.status !== 404) throw mutationError(response, payload);
-
-    const cleanup = await prisma.user.deleteMany({ where: { id: req.params.id } });
-    if (response.status === 404 && cleanup.count === 0) throw mutationError(response, payload);
     if (response.ok && responseMessage(payload) !== 'User deleted successfully') {
       throw invalidResponse();
     }
+
+    const cleanup = await prisma.user.deleteMany({ where: { id: req.params.id } });
+    if (response.status === 404 && cleanup.count === 0) throw mutationError(response, payload);
 
     res.set('Cache-Control', 'private, no-store').json({ message: 'User deleted successfully' });
   } catch (error) {
@@ -347,6 +361,12 @@ export async function createLearningOsAdminInviteCode(
     ) {
       throw new AppError('Custom code must be 6-20 alphanumeric characters', 400);
     }
+    if (
+      customCode !== undefined &&
+      (await prisma.inviteCode.findUnique({ where: { code: customCode } })) !== null
+    ) {
+      throw new AppError('This code already exists', 400);
+    }
 
     const { payload, response } = await fetchAdminMutation(
       req,
@@ -357,22 +377,31 @@ export async function createLearningOsAdminInviteCode(
     if (!response.ok) throw mutationError(response, payload);
     if (!isCreatedInviteCode(payload)) throw invalidResponse();
 
-    const invite = await prisma.inviteCode.upsert({
-      where: { id: payload.id },
-      create: {
-        id: payload.id,
-        code: payload.code,
-        usedBy: null,
-        usedAt: null,
-        createdAt: new Date(payload.createdAt),
-      },
-      update: {
-        code: payload.code,
-        usedBy: null,
-        usedAt: null,
-        createdAt: new Date(payload.createdAt),
-      },
-    });
+    let invite;
+    try {
+      invite = await prisma.inviteCode.upsert({
+        where: { id: payload.id },
+        create: {
+          id: payload.id,
+          code: payload.code,
+          usedBy: null,
+          usedAt: null,
+          createdAt: new Date(payload.createdAt),
+        },
+        update: {
+          code: payload.code,
+          usedBy: null,
+          usedAt: null,
+          createdAt: new Date(payload.createdAt),
+        },
+      });
+    } catch (error) {
+      await rollbackCreatedInvite(req, payload.id);
+      if (isPrismaUniqueConstraintError(error)) {
+        throw new AppError('This code already exists', 400);
+      }
+      throw new AppError(`${API_LABEL} request failed.`, 502);
+    }
 
     res.set('Cache-Control', 'private, no-store').json(invite);
   } catch (error) {
@@ -390,16 +419,16 @@ export async function deleteLearningOsAdminInviteCode(
 
     const { payload, response } = await fetchAdminMutation(
       req,
-      `/invite-codes/${encodeURIComponent(req.params.id)}`,
+      `/invite-codes/${req.params.id}`,
       'DELETE'
     );
     if (!response.ok && response.status !== 404) throw mutationError(response, payload);
-
-    const cleanup = await prisma.inviteCode.deleteMany({ where: { id: req.params.id } });
-    if (response.status === 404 && cleanup.count === 0) throw mutationError(response, payload);
     if (response.ok && responseMessage(payload) !== 'Invite code deleted successfully') {
       throw invalidResponse();
     }
+
+    const cleanup = await prisma.inviteCode.deleteMany({ where: { id: req.params.id } });
+    if (response.status === 404 && cleanup.count === 0) throw mutationError(response, payload);
 
     res
       .set('Cache-Control', 'private, no-store')

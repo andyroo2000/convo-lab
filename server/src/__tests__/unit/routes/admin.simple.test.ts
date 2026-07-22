@@ -34,7 +34,7 @@ const mockPrisma = vi.hoisted(() => ({
   episode: { count: vi.fn() },
   course: { count: vi.fn() },
 }));
-const mockAdminReads = vi.hoisted(() => ({
+const mockAdminHandlers = vi.hoisted(() => ({
   createInviteCode: vi.fn(),
   deleteInviteCode: vi.fn(),
   deleteUser: vi.fn(),
@@ -67,13 +67,13 @@ const mockUpdatePronunciationDictionary = vi.hoisted(() =>
 );
 vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
 vi.mock('../../../routes/learningOs/admin.js', () => ({
-  createLearningOsAdminInviteCode: mockAdminReads.createInviteCode,
-  deleteLearningOsAdminInviteCode: mockAdminReads.deleteInviteCode,
-  deleteLearningOsAdminUser: mockAdminReads.deleteUser,
-  listLearningOsAdminInviteCodes: mockAdminReads.listInviteCodes,
-  listLearningOsAdminUsers: mockAdminReads.listUsers,
-  showLearningOsAdminStats: mockAdminReads.showStats,
-  showLearningOsAdminUser: mockAdminReads.showUser,
+  createLearningOsAdminInviteCode: mockAdminHandlers.createInviteCode,
+  deleteLearningOsAdminInviteCode: mockAdminHandlers.deleteInviteCode,
+  deleteLearningOsAdminUser: mockAdminHandlers.deleteUser,
+  listLearningOsAdminInviteCodes: mockAdminHandlers.listInviteCodes,
+  listLearningOsAdminUsers: mockAdminHandlers.listUsers,
+  showLearningOsAdminStats: mockAdminHandlers.showStats,
+  showLearningOsAdminUser: mockAdminHandlers.showUser,
 }));
 
 // Mock auth middleware to inject test user
@@ -129,8 +129,8 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockAdminReads.listInviteCodes.mockImplementation((_req, res) => res.json([]));
-    mockAdminReads.deleteUser.mockImplementation((req, res, next) => {
+    mockAdminHandlers.listInviteCodes.mockImplementation((_req, res) => res.json([]));
+    mockAdminHandlers.deleteUser.mockImplementation((req, res, next) => {
       if (req.params.id === 'admin-user-id') {
         next(Object.assign(new Error('Cannot delete your own account'), { statusCode: 400 }));
       } else if (req.params.id === 'other-admin-id') {
@@ -141,14 +141,14 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         res.json({ message: 'User deleted successfully' });
       }
     });
-    mockAdminReads.createInviteCode.mockImplementation((req, res, next) => {
+    mockAdminHandlers.createInviteCode.mockImplementation((req, res, next) => {
       if (req.body.customCode === 'DUPLICATE') {
         next(Object.assign(new Error('This code already exists'), { statusCode: 400 }));
       } else {
         res.json({ id: 'new-code-id', code: req.body.customCode ?? 'ABCD1234' });
       }
     });
-    mockAdminReads.deleteInviteCode.mockImplementation((req, res, next) => {
+    mockAdminHandlers.deleteInviteCode.mockImplementation((req, res, next) => {
       if (req.params.id === 'used-code-id') {
         next(Object.assign(new Error('Cannot delete used invite codes'), { statusCode: 400 }));
       } else if (req.params.id === 'non-existent') {
@@ -157,10 +157,10 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         res.json({ message: 'Invite code deleted successfully' });
       }
     });
-    mockAdminReads.listUsers.mockImplementation((_req, res) =>
+    mockAdminHandlers.listUsers.mockImplementation((_req, res) =>
       res.json({ users: [], pagination: { page: 1, limit: 50, total: 0, pages: 1 } })
     );
-    mockAdminReads.showStats.mockImplementation((_req, res) =>
+    mockAdminHandlers.showStats.mockImplementation((_req, res) =>
       res.json({
         users: 42,
         episodes: 150,
@@ -168,7 +168,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         inviteCodes: { total: 100, used: 60, available: 40 },
       })
     );
-    mockAdminReads.showUser.mockImplementation((req, res, next) => {
+    mockAdminHandlers.showUser.mockImplementation((req, res, next) => {
       if (req.params.id === 'non-existent') {
         next(Object.assign(new Error('User not found'), { statusCode: 404 }));
         return;
@@ -207,7 +207,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Cannot delete your own account');
-      expect(mockAdminReads.deleteUser).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.deleteUser).toHaveBeenCalledOnce();
     });
 
     it('should prevent deleting other admin users', async () => {
@@ -220,7 +220,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error).toContain('Cannot delete admin users');
-      expect(mockAdminReads.deleteUser).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.deleteUser).toHaveBeenCalledOnce();
     });
 
     it('should allow deleting regular users', async () => {
@@ -236,7 +236,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).delete('/admin/users/regular-user-id');
 
       expect(response.status).toBe(200);
-      expect(mockAdminReads.deleteUser).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.deleteUser).toHaveBeenCalledOnce();
     });
 
     it('should return 404 for non-existent user', async () => {
@@ -245,7 +245,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).delete('/admin/users/non-existent');
 
       expect(response.status).toBe(404);
-      expect(mockAdminReads.deleteUser).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.deleteUser).toHaveBeenCalledOnce();
     });
   });
 
@@ -344,7 +344,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Cannot delete used invite code');
-      expect(mockAdminReads.deleteInviteCode).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.deleteInviteCode).toHaveBeenCalledOnce();
     });
 
     it('should allow deleting unused invite codes', async () => {
@@ -361,7 +361,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).delete('/admin/invite-codes/unused-code-id');
 
       expect(response.status).toBe(200);
-      expect(mockAdminReads.deleteInviteCode).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.deleteInviteCode).toHaveBeenCalledOnce();
     });
 
     it('should return 404 for non-existent code', async () => {
@@ -370,7 +370,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).delete('/admin/invite-codes/non-existent');
 
       expect(response.status).toBe(404);
-      expect(mockAdminReads.deleteInviteCode).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.deleteInviteCode).toHaveBeenCalledOnce();
     });
   });
 
@@ -379,7 +379,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).get('/admin/users?search=john');
 
       expect(response.status).toBe(200);
-      expect(mockAdminReads.listUsers).toHaveBeenCalledWith(
+      expect(mockAdminHandlers.listUsers).toHaveBeenCalledWith(
         expect.objectContaining({ query: expect.objectContaining({ search: 'john' }) }),
         expect.anything(),
         expect.anything()
@@ -390,7 +390,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).get('/admin/users');
 
       expect(response.status).toBe(200);
-      expect(mockAdminReads.listUsers).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.listUsers).toHaveBeenCalledOnce();
     });
   });
 
@@ -405,7 +405,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       const response = await request(app).post('/admin/invite-codes').send({});
 
       expect(response.status).toBe(200);
-      expect(mockAdminReads.createInviteCode).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.createInviteCode).toHaveBeenCalledOnce();
     });
 
     it('should use custom code when provided', async () => {
@@ -420,7 +420,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         .send({ customCode: 'CUSTOM123' });
 
       expect(response.status).toBe(200);
-      expect(mockAdminReads.createInviteCode).toHaveBeenCalledOnce();
+      expect(mockAdminHandlers.createInviteCode).toHaveBeenCalledOnce();
     });
 
     it('should handle duplicate code error', async () => {
@@ -456,7 +456,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
     });
 
     it('should handle zero counts', async () => {
-      mockAdminReads.showStats.mockImplementationOnce((_req, res) =>
+      mockAdminHandlers.showStats.mockImplementationOnce((_req, res) =>
         res.json({
           users: 0,
           episodes: 0,
