@@ -187,6 +187,37 @@ describe('backend migration inventory', () => {
     }
   });
 
+  it('tracks the admin course and Script Lab course surfaces through Learning OS', () => {
+    for (const [method, routePath] of [
+      ['POST', `/api/admin/courses/${'4'.repeat(36)}/build-prompt`],
+      ['POST', `/api/admin/courses/${'4'.repeat(36)}/synthesize-line`],
+      ['GET', `/api/admin/courses/${'4'.repeat(36)}/line-renderings`],
+      ['GET', `/api/admin/courses/${'4'.repeat(36)}/line-renderings/${'5'.repeat(36)}/audio`],
+      ['DELETE', `/api/admin/courses/${'4'.repeat(36)}/line-renderings/${'5'.repeat(36)}`],
+    ]) {
+      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
+        surface: { id: 'admin-courses', runtimeOwner: 'learning-os-proxy' },
+      });
+    }
+
+    for (const [method, routePath] of [
+      ['POST', '/api/admin/script-lab/courses'],
+      ['GET', '/api/admin/script-lab/courses'],
+      ['GET', `/api/admin/script-lab/courses/${'4'.repeat(36)}`],
+      ['DELETE', '/api/admin/script-lab/courses'],
+    ]) {
+      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
+        surface: { id: 'admin-script-lab', runtimeOwner: 'learning-os-proxy' },
+      });
+    }
+
+    expect(
+      findBackendMigrationRoute('POST', '/api/admin/script-lab/synthesize-line')
+    ).toMatchObject({
+      surface: { id: 'admin-script-lab', runtimeOwner: 'express' },
+    });
+  });
+
   it('tracks proxied auth entrypoints separately from remaining Express account routes', () => {
     for (const [method, routePath] of [
       ['POST', '/api/auth/signup'],
