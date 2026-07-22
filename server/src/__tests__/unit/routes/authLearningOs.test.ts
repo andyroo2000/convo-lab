@@ -63,7 +63,9 @@ vi.mock('../../../db/client.js', () => ({
 vi.mock('../../../jobs/emailQueue.js', () => ({ emailQueue: { add: vi.fn() } }));
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: (req: AuthRequest, _res: Response, next: NextFunction) => {
-    req.userId = '11111111-1111-4111-8111-111111111111';
+    req.userId =
+      (typeof req.headers['x-test-user-id'] === 'string' && req.headers['x-test-user-id']) ||
+      '11111111-1111-4111-8111-111111111111';
     req.role = 'user';
     req.email = 'learner@example.com';
     req.accountSource = 'learning-os';
@@ -327,6 +329,56 @@ describe('Auth Learning OS routing', () => {
     expect(mocks.prismaUpdate).not.toHaveBeenCalled();
     expect(mocks.bcryptCompare).not.toHaveBeenCalled();
     expect(mocks.bcryptHash).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['incorrect current password', new AppError('Current password is incorrect', 401), 401],
+    [
+      'upstream rate limit',
+      new AppError('Too many password change attempts.', 429, {
+        cooldown: { remainingSeconds: 17 },
+      }),
+      429,
+    ],
+  ] as const)('returns the normal API envelope for %s', async (_label, error, status) => {
+    mocks.changeLearningOsCurrentPassword.mockRejectedValueOnce(error);
+
+    const response = await request(app)
+      .patch('/api/auth/change-password')
+      .send({ currentPassword: 'old-password123', newPassword: 'new-password123' })
+      .expect(status);
+
+    expect(response.body.error).toMatchObject({ message: error.message, statusCode: status });
+    if (status === 429) {
+      expect(response.headers['retry-after']).toBe('17');
+    }
+  });
+
+  it('rate limits password changes per user before forwarding credentials', async () => {
+    const limitedUserId = '22222222-2222-4222-8222-222222222222';
+    const otherUserId = '33333333-3333-4333-8333-333333333333';
+    const payload = { currentPassword: 'old-password123', newPassword: 'new-password123' };
+
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await request(app)
+        .patch('/api/auth/change-password')
+        .set('X-Test-User-Id', limitedUserId)
+        .send(payload)
+        .expect(200);
+    }
+
+    await request(app)
+      .patch('/api/auth/change-password')
+      .set('X-Test-User-Id', limitedUserId)
+      .send(payload)
+      .expect(429);
+    await request(app)
+      .patch('/api/auth/change-password')
+      .set('X-Test-User-Id', otherUserId)
+      .send(payload)
+      .expect(200);
+
+    expect(mocks.changeLearningOsCurrentPassword).toHaveBeenCalledTimes(31);
   });
 
   it('rejects malformed password changes before forwarding credentials', async () => {
