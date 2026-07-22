@@ -306,23 +306,28 @@ test "$legacy_user_count" = 0
 
 verification_token_ready=false
 for attempt in {1..30}; do
-  token_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
-    php artisan tinker --execute='
-      $userId = App\Models\User::query()
-          ->where("convolab_email_normalized", getenv("AUTH_SMOKE_EMAIL"))
-          ->value("id");
-      echo "AUTH_SMOKE_TOKEN_COUNT=".($userId === null ? 0 : App\Domain\Auth\Models\ConvoLabEmailVerificationToken::query()
-          ->where("user_id", $userId)
-          ->count()).PHP_EOL;
-    ' < /dev/null \
-    | sed -n 's/^AUTH_SMOKE_TOKEN_COUNT=//p' \
-    | tail -1)"
-  if [ "$token_count" = 1 ]; then
-    verification_token_ready=true
-    break
+  if token_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
+      php artisan tinker --execute='
+        $userId = App\Models\User::query()
+            ->where("convolab_email_normalized", getenv("AUTH_SMOKE_EMAIL"))
+            ->value("id");
+        echo "AUTH_SMOKE_TOKEN_COUNT=".($userId === null ? 0 : App\Domain\Auth\Models\ConvoLabEmailVerificationToken::query()
+            ->where("user_id", $userId)
+            ->count()).PHP_EOL;
+      ' < /dev/null \
+      | sed -n 's/^AUTH_SMOKE_TOKEN_COUNT=//p' \
+      | tail -1)"; then
+    if [ "$token_count" = 1 ]; then
+      verification_token_ready=true
+      break
+    fi
+  else
+    echo "Verification mail token query attempt $attempt/30 failed; retrying." >&2
   fi
   echo "Verification mail job attempt $attempt/30 has not issued a token; retrying."
-  sleep 2
+  if [ "$attempt" -lt 30 ]; then
+    sleep 2
+  fi
 done
 if [ "$verification_token_ready" != true ]; then
   echo "The signup verification mail job did not issue a token." >&2
@@ -393,20 +398,25 @@ test "$(printf '%s' "$reset_request_response" | json_field 'response.message')" 
 
 reset_token_ready=false
 for attempt in {1..30}; do
-  reset_token_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
-    php artisan tinker --execute='
-      echo "AUTH_SMOKE_RESET_TOKEN_COUNT=".Illuminate\Support\Facades\DB::table("password_reset_tokens")
-          ->where("email", getenv("AUTH_SMOKE_EMAIL"))
-          ->count().PHP_EOL;
-    ' < /dev/null \
-    | sed -n 's/^AUTH_SMOKE_RESET_TOKEN_COUNT=//p' \
-    | tail -1)"
-  if [ "$reset_token_count" = 1 ]; then
-    reset_token_ready=true
-    break
+  if reset_token_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
+      php artisan tinker --execute='
+        echo "AUTH_SMOKE_RESET_TOKEN_COUNT=".Illuminate\Support\Facades\DB::table("password_reset_tokens")
+            ->where("email", getenv("AUTH_SMOKE_EMAIL"))
+            ->count().PHP_EOL;
+      ' < /dev/null \
+      | sed -n 's/^AUTH_SMOKE_RESET_TOKEN_COUNT=//p' \
+      | tail -1)"; then
+    if [ "$reset_token_count" = 1 ]; then
+      reset_token_ready=true
+      break
+    fi
+  else
+    echo "Password reset token query attempt $attempt/30 failed; retrying." >&2
   fi
   echo "Password reset mail job attempt $attempt/30 has not issued a token; retrying."
-  sleep 2
+  if [ "$attempt" -lt 30 ]; then
+    sleep 2
+  fi
 done
 if [ "$reset_token_ready" != true ]; then
   echo "The password reset mail job did not issue a broker token." >&2
