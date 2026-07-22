@@ -8,15 +8,11 @@ The Study cutover is complete. Production routing is not controlled by database
 feature flags, and the deployment workflow does not compare against or restore
 the retired ConvoLab Study backend.
 
-Login, current-account reads, and profile/onboarding writes are also served by
-Learning OS. The profile adapter remains independently reversible through
-`LEARNING_OS_PROFILE_PROXY_ENABLED`; the production workflow activates it only
-with rollback armed and retains it only after a reversible public write smoke
-passes. Signup and email verification
-adapters are deployed behind `LEARNING_OS_SIGNUP_PROXY_ENABLED` and
-`LEARNING_OS_VERIFICATION_PROXY_ENABLED`, both defaulting to `false`. Their
-eventual activation must include a disposable account lifecycle rehearsal and
-rollback controls before either production value is changed.
+Login, current-account reads, profile/onboarding writes, signup, and email
+verification are also served by Learning OS. Their independently reversible
+environment flags default to `false` in Compose. The production workflow arms
+rollback, enables them on the active server, and retains them only after the
+profile write and disposable account lifecycle rehearsals pass.
 
 ## Workflow Inputs
 
@@ -64,8 +60,9 @@ The workflow:
 5. Starts or reconciles the private API and worker.
 6. Recreates the active ConvoLab web color with the new token.
 7. Verifies the active container received that token, then prunes older tokens.
-8. Runs authenticated profile, Study, import, media, Daily Audio, Episode, and
-   Course smoke checks through ConvoLab's public proxy.
+8. Runs authenticated profile, disposable signup/verification, Study, import,
+   media, Daily Audio, Episode, and Course smoke checks through ConvoLab's
+   public proxy.
 9. Verifies public ConvoLab health.
 
 The worker is drained before replacement when its image or command changes.
@@ -80,6 +77,8 @@ Every deployment verifies:
 
 - Overview response through Learning OS.
 - Current-account response plus a reversible profile preference write.
+- A disposable signup, email-token issuance, verification, current-account,
+  and fresh-login lifecycle that confirms no legacy Prisma user was created.
 - Browser list and note detail against Learning OS state.
 - Settings read plus an idempotent settings write.
 - New Queue read plus two idempotent reorder writes.
@@ -99,9 +98,11 @@ archives, imported rows, and media on both success and failure.
 
 ## Failure And Rollback
 
-The deployment trap removes disposable card drafts, smoke-test media, imports,
-and unused proxy tokens. A failed deployment leaves the currently active
-ConvoLab color serving until the replacement passes health checks.
+The deployment traps remove disposable auth accounts and invites, card drafts,
+smoke-test media, imports, and unused proxy tokens. If a newly activated route
+fails its rehearsal, the workflow restores every prior proxy flag and recreates
+the active server before exiting. A failed deployment leaves the currently
+active ConvoLab color serving until the replacement passes health checks.
 
 There is no runtime Study-route flag rollback. To roll back application code,
 redeploy the previous immutable ConvoLab and Learning OS images. To recover

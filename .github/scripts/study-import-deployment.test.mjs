@@ -438,11 +438,15 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'PREVIOUS_SCRIPT_PROXY_ENABLED=false',
     'PREVIOUS_AUTH_PROXY_ENABLED=false',
     'PREVIOUS_PROFILE_PROXY_ENABLED=false',
+    'PREVIOUS_SIGNUP_PROXY_ENABLED=false',
+    'PREVIOUS_VERIFICATION_PROXY_ENABLED=false',
     'previous_course_generation_proxy="$(sed -n',
     'previous_dialogue_generation_proxy="$(sed -n',
     'previous_audio_generation_proxy="$(sed -n',
     'previous_script_proxy="$(sed -n',
     'previous_profile_proxy="$(sed -n',
+    'previous_signup_proxy="$(sed -n',
+    'previous_verification_proxy="$(sed -n',
     'Rolling back the Learning OS route proxies.',
     'course_generation_proxy_restore_ok=true',
     'dialogue_generation_proxy_restore_ok=true',
@@ -450,18 +454,24 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'script_proxy_restore_ok=true',
     'auth_proxy_restore_ok=true',
     'profile_proxy_restore_ok=true',
+    'signup_proxy_restore_ok=true',
+    'verification_proxy_restore_ok=true',
     '|| course_generation_proxy_restore_ok=false',
     '|| dialogue_generation_proxy_restore_ok=false',
     '|| audio_generation_proxy_restore_ok=false',
     '|| script_proxy_restore_ok=false',
     '|| auth_proxy_restore_ok=false',
     '|| profile_proxy_restore_ok=false',
+    '|| signup_proxy_restore_ok=false',
+    '|| verification_proxy_restore_ok=false',
     'if [ "$course_generation_proxy_restore_ok" != true ]',
     '|| [ "$dialogue_generation_proxy_restore_ok" != true ]',
     '|| [ "$audio_generation_proxy_restore_ok" != true ]',
     '|| [ "$script_proxy_restore_ok" != true ]',
     '|| [ "$auth_proxy_restore_ok" != true ]',
     '|| [ "$profile_proxy_restore_ok" != true ]',
+    '|| [ "$signup_proxy_restore_ok" != true ]',
+    '|| [ "$verification_proxy_restore_ok" != true ]',
     '::error::Failed to restore the route proxy environment values.',
     '::error::Failed to recreate the production server while rolling back route proxies.',
     '::error::The production server was unhealthy after rolling back route proxies.',
@@ -473,6 +483,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_AUTH_PROXY_ENABLED true',
     'upsert_env LEARNING_OS_PROFILE_PROXY_ENABLED true',
+    'upsert_env LEARNING_OS_SIGNUP_PROXY_ENABLED true',
+    'upsert_env LEARNING_OS_VERIFICATION_PROXY_ENABLED true',
     "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
     'test "$active_course_generation_proxy" = true',
     'test "$active_dialogue_generation_proxy" = true',
@@ -480,6 +492,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'test "$active_script_proxy" = true',
     'test "$active_auth_proxy" = true',
     'test "$active_profile_proxy" = true',
+    'test "$active_signup_proxy" = true',
+    'test "$active_verification_proxy" = true',
     '"auth:login"',
     '"auth:read"',
     '"auth:write"',
@@ -493,6 +507,7 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     "PATCH '/api/auth/me' \"$profile_smoke_probe_body\"",
     'cleanup_profile_smoke',
     'Auth profile Learning OS proxy smoke check passed and restored.',
+    'bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh',
     'script_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
     'script_smoke_inserted=true',
     'cleanup_script_smoke best-effort',
@@ -603,6 +618,8 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.ok(failureCleanup.includes('PREVIOUS_SCRIPT_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_AUTH_PROXY_ENABLED'));
   assert.ok(failureCleanup.includes('PREVIOUS_PROFILE_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_SIGNUP_PROXY_ENABLED'));
+  assert.ok(failureCleanup.includes('PREVIOUS_VERIFICATION_PROXY_ENABLED'));
   assert.ok(
     failureCleanup.indexOf('|| course_generation_proxy_restore_ok=false') <
       failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED')
@@ -626,6 +643,14 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   assert.ok(
     failureCleanup.indexOf('LEARNING_OS_PROFILE_PROXY_ENABLED') <
       failureCleanup.indexOf('|| profile_proxy_restore_ok=false')
+  );
+  assert.ok(
+    failureCleanup.indexOf('LEARNING_OS_SIGNUP_PROXY_ENABLED') <
+      failureCleanup.indexOf('|| signup_proxy_restore_ok=false')
+  );
+  assert.ok(
+    failureCleanup.indexOf('LEARNING_OS_VERIFICATION_PROXY_ENABLED') <
+      failureCleanup.indexOf('|| verification_proxy_restore_ok=false')
   );
   assert.ok(
     failureCleanup.indexOf('cleanup_profile_smoke best-effort') <
@@ -1062,4 +1087,70 @@ test('the lifecycle smoke script remains valid Bash', async () => {
   assert.ok(temporaryServerRestart < containerHealthy);
   assert.ok(containerHealthy < publicCsrfReady);
   assert.ok(publicCsrfReady < csrfCookieRead);
+});
+
+test('the auth lifecycle smoke is disposable and exercises public signup and verification', async () => {
+  const scriptPath = path.join(
+    repositoryRoot,
+    '.github/scripts/smoke-auth-signup-verification-lifecycle.sh'
+  );
+  const [script, workflow] = await Promise.all([
+    readFile(scriptPath, 'utf8'),
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
+  ]);
+
+  await execFileAsync('bash', ['-n', scriptPath]);
+
+  for (const requiredContract of [
+    'trap cleanup EXIT',
+    'delete_disposable_account',
+    'source_system", ConvoLabAccountSource::LEARNING_OS',
+    'SMOKE_EMAIL="${smoke_local_part}+learning-os-smoke-',
+    "'/api/auth/signup'",
+    'response.emailVerified',
+    'prisma.user.count',
+    'AUTH_SMOKE_TOKEN_COUNT=',
+    'IssueConvoLabVerificationTokenAction::class',
+    '$BASE_URL/api/verification/$verification_token',
+    "'/api/auth/login'",
+    'Learning OS signup and verification lifecycle smoke completed.',
+  ]) {
+    assert.ok(script.includes(requiredContract), `Missing auth lifecycle contract: ${requiredContract}`);
+  }
+
+  const inviteCreate = script.indexOf('$invite->save();');
+  const signup = script.indexOf("'/api/auth/signup'");
+  const legacyAbsence = script.indexOf('prisma.user.count', signup);
+  const mailToken = script.indexOf('AUTH_SMOKE_TOKEN_COUNT=', legacyAbsence);
+  const verification = script.indexOf('$BASE_URL/api/verification/$verification_token', mailToken);
+  const login = script.indexOf("'/api/auth/login'", verification);
+  const successCleanup = script.lastIndexOf('delete_disposable_account');
+
+  assert.ok(inviteCreate >= 0);
+  assert.ok(inviteCreate < signup);
+  assert.ok(signup < legacyAbsence);
+  assert.ok(legacyAbsence < mailToken);
+  assert.ok(mailToken < verification);
+  assert.ok(verification < login);
+  assert.ok(login < successCleanup);
+
+  const signupActivation = workflow.indexOf('upsert_env LEARNING_OS_SIGNUP_PROXY_ENABLED true');
+  const verificationActivation = workflow.indexOf(
+    'upsert_env LEARNING_OS_VERIFICATION_PROXY_ENABLED true'
+  );
+  const serverRestart = workflow.indexOf(
+    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
+    signupActivation
+  );
+  const authSmoke = workflow.indexOf(
+    'bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh',
+    serverRestart
+  );
+  const cutoverCommitted = workflow.indexOf('ROUTE_PROXY_CUTOVER_STARTED=false', authSmoke);
+
+  assert.ok(signupActivation >= 0);
+  assert.ok(signupActivation < verificationActivation);
+  assert.ok(verificationActivation < serverRestart);
+  assert.ok(serverRestart < authSmoke);
+  assert.ok(authSmoke < cutoverCommitted);
 });
