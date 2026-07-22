@@ -5,6 +5,7 @@ import {
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
   sendLearningOsVerificationEmail,
+  updateLearningOsCurrentAccount,
   verifyLearningOsEmail,
 } from '../../../services/learningOsAuthProxy.js';
 import { resolveLearningOsProxyContext } from '../../../services/learningOsProxy.js';
@@ -16,6 +17,7 @@ const account = {
   name: 'Learner',
   displayName: null,
   avatarColor: 'indigo',
+  avatarUrl: null,
   role: 'user',
   preferredStudyLanguage: 'ja',
   preferredNativeLanguage: 'en',
@@ -32,6 +34,9 @@ const currentAccount = {
   seenSampleContentGuide: true,
   seenCustomContentGuide: false,
 };
+
+const { avatarUrl: _loginAvatarUrl, ...legacyAccount } = account;
+const { avatarUrl: _currentAvatarUrl, ...legacyCurrentAccount } = currentAccount;
 
 const jsonResponse = (body: unknown, status = 200, headers?: Record<string, string>): Response =>
   new Response(JSON.stringify(body), { status, headers });
@@ -63,7 +68,7 @@ describe('Learning OS auth proxy', () => {
   it('authenticates through the service identity without changing the legacy response shape', async () => {
     await expect(
       authenticateLearningOsAccount('Learner@Example.com', 'correct password')
-    ).resolves.toEqual(account);
+    ).resolves.toEqual(legacyAccount);
 
     expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { email: 'proxy@example.com' },
@@ -96,7 +101,7 @@ describe('Learning OS auth proxy', () => {
       inviteCode: 'WELCOME1',
     };
 
-    await expect(registerLearningOsAccount(signupInput)).resolves.toEqual(account);
+    await expect(registerLearningOsAccount(signupInput)).resolves.toEqual(legacyAccount);
 
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/signup');
@@ -180,8 +185,9 @@ describe('Learning OS auth proxy', () => {
     };
     vi.mocked(global.fetch).mockResolvedValue(jsonResponse(sparseAccount));
 
+    const { avatarUrl: _avatarUrl, ...legacySparseAccount } = sparseAccount;
     await expect(authenticateLearningOsAccount(account.email, 'password')).resolves.toEqual(
-      sparseAccount
+      legacySparseAccount
     );
   });
 
@@ -193,7 +199,7 @@ describe('Learning OS auth proxy', () => {
     });
     vi.mocked(global.fetch).mockResolvedValue(jsonResponse(currentAccount));
 
-    await expect(getLearningOsCurrentAccount(account.id)).resolves.toEqual(currentAccount);
+    await expect(getLearningOsCurrentAccount(account.id)).resolves.toEqual(legacyCurrentAccount);
 
     expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: account.id },
@@ -220,7 +226,7 @@ describe('Learning OS auth proxy', () => {
         role: account.role,
         accountSource: 'learning-os',
       })
-    ).resolves.toEqual(currentAccount);
+    ).resolves.toEqual(legacyCurrentAccount);
 
     expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     const [, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
@@ -228,6 +234,78 @@ describe('Learning OS auth proxy', () => {
       'X-Convo-Lab-User-Id': account.id,
       'X-Convo-Lab-User-Email': account.email,
       'X-Convo-Lab-User-Role': account.role,
+    });
+  });
+
+  it('updates a target-created current account from signed session identity without Prisma', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(currentAccount));
+    const input = {
+      displayName: 'Ada',
+      avatarUrl: 'https://example.com/avatar.png',
+      proficiencyLevel: 'N3' as const,
+      onboardingCompleted: true,
+    };
+
+    await expect(
+      updateLearningOsCurrentAccount(account.id, input, {
+        userId: account.id,
+        email: account.email,
+        role: account.role,
+        accountSource: 'learning-os',
+      })
+    ).resolves.toEqual(legacyCurrentAccount);
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/me');
+    expect(init).toMatchObject({
+      method: 'PATCH',
+      body: JSON.stringify(input),
+      headers: expect.objectContaining({
+        'X-Convo-Lab-User-Id': account.id,
+        'X-Convo-Lab-User-Email': account.email,
+      }),
+    });
+  });
+
+  it.each([
+    [404, { message: 'Not Found.' }, 'User not found', 404],
+    [422, { message: 'Invalid.', errors: {} }, 'Invalid profile details', 400],
+  ] as const)(
+    'maps profile-update status %s to the legacy contract',
+    async (upstreamStatus, body, message, status) => {
+      vi.mocked(global.fetch).mockResolvedValue(jsonResponse(body, upstreamStatus));
+
+      await expect(
+        updateLearningOsCurrentAccount(account.id, { displayName: 'Ada' })
+      ).rejects.toMatchObject({ message, statusCode: status });
+    }
+  );
+
+  it('preserves a bounded profile-update retry delay', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'Too Many Attempts.' }, 429, { 'Retry-After': '17' })
+    );
+
+    await expect(
+      updateLearningOsCurrentAccount(account.id, { displayName: 'Ada' })
+    ).rejects.toMatchObject({
+      message: 'Too many profile update attempts.',
+      statusCode: 429,
+      metadata: { cooldown: { remainingSeconds: 17 } },
+    });
+  });
+
+  it('rejects malformed profile account responses', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ ...currentAccount, avatarUrl: ['https://example.com/avatar.png'] })
+    );
+
+    await expect(
+      updateLearningOsCurrentAccount(account.id, { displayName: 'Ada' })
+    ).rejects.toMatchObject({
+      message: 'Learning OS Auth API returned an invalid response.',
+      statusCode: 502,
     });
   });
 
@@ -274,7 +352,7 @@ describe('Learning OS auth proxy', () => {
       vi.mocked(global.fetch).mockResolvedValue(jsonResponse(currentAccount));
 
       await expect(getLearningOsCurrentAccount(account.id, identity)).resolves.toEqual(
-        currentAccount
+        legacyCurrentAccount
       );
 
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
@@ -516,7 +594,7 @@ describe('Learning OS auth proxy', () => {
     process.env.LEARNING_OS_API_URL = 'http://learning-os:8080/';
 
     await expect(authenticateLearningOsAccount(account.email, 'password')).resolves.toEqual(
-      account
+      legacyAccount
     );
     expect(vi.mocked(global.fetch).mock.calls[0]?.[0].toString()).toBe(
       'http://learning-os:8080/api/convolab/auth/login'

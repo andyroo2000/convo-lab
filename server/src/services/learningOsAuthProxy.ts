@@ -42,6 +42,18 @@ export interface LearningOsSignupInput {
   inviteCode: string;
 }
 
+export interface LearningOsProfileUpdateInput {
+  displayName?: string | null;
+  avatarColor?: string;
+  avatarUrl?: string | null;
+  preferredStudyLanguage?: 'ja';
+  preferredNativeLanguage?: 'en';
+  proficiencyLevel?: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
+  onboardingCompleted?: boolean;
+  seenSampleContentGuide?: boolean;
+  seenCustomContentGuide?: boolean;
+}
+
 export async function authenticateLearningOsAccount(
   email: string,
   password: string
@@ -97,6 +109,44 @@ export async function getLearningOsCurrentAccount(
   if (!response.ok) {
     if (response.status === 404) {
       throw new AppError('User not found', 404);
+    }
+    throw upstreamFailure(response.status);
+  }
+
+  return adaptAccount(body, true);
+}
+
+export async function updateLearningOsCurrentAccount(
+  userId: string,
+  input: LearningOsProfileUpdateInput,
+  sessionIdentity?: LearningOsSessionIdentity
+): Promise<LearningOsCurrentAccount> {
+  const { config, user } = await resolveLearningOsUserProxyContext(
+    userId,
+    API_LABEL,
+    sessionIdentity
+  );
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/me`),
+    apiToken: config.apiToken,
+    user,
+    method: 'PATCH',
+    body: input,
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  const body = await parseJsonResponse(response);
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new AppError('User not found', 404);
+    }
+    if (response.status === 422) {
+      throw new AppError('Invalid profile details', 400);
+    }
+    if (response.status === 429) {
+      throw rateLimitError(response, 'Too many profile update attempts.');
     }
     throw upstreamFailure(response.status);
   }
@@ -314,6 +364,7 @@ function adaptAccount(
     !isBoundedString(account.name, 255) ||
     !isNullableStringWithin(account.displayName, 255) ||
     !isNullableStringWithin(account.avatarColor, 50) ||
+    !isNullableStringWithin(account.avatarUrl, 2048) ||
     (account.role !== 'user' && account.role !== 'moderator' && account.role !== 'admin') ||
     !isStringWithin(account.preferredStudyLanguage, 20) ||
     !isStringWithin(account.preferredNativeLanguage, 20) ||
