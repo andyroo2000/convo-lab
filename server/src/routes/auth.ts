@@ -24,6 +24,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
 import {
   authenticateLearningOsAccount,
+  changeLearningOsCurrentPassword,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
   updateLearningOsCurrentAccount,
@@ -697,12 +698,35 @@ router.patch('/change-password', requireAuth, async (req: AuthRequest, res, next
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (
+      typeof currentPassword !== 'string' ||
+      typeof newPassword !== 'string' ||
+      !currentPassword ||
+      !newPassword
+    ) {
       throw new AppError(i18next.t('server:auth.passwordFieldsRequired'), 400);
+    }
+
+    if (currentPassword.length > 1024 || newPassword.length > 1024) {
+      throw new AppError('Invalid password details', 400);
     }
 
     if (newPassword.length < 8) {
       throw new AppError(i18next.t('server:auth.passwordTooShort'), 400);
+    }
+
+    if (isLearningOsAuthProxyEnabled()) {
+      await changeLearningOsCurrentPassword(
+        req.userId!,
+        { currentPassword, newPassword },
+        {
+          userId: req.userId!,
+          email: req.email,
+          role: req.role,
+          accountSource: req.accountSource,
+        }
+      );
+      return res.json({ message: i18next.t('server:auth.passwordChanged') });
     }
 
     // Get user with password

@@ -10,7 +10,12 @@
       "sourceFile": "server/src/routes/auth.ts",
       "mountPath": "/api/auth",
       "routes": [
-        { "id": "auth.signup", "method": "POST", "path": "/api/auth/signup" },
+        {
+          "id": "auth.signup",
+          "method": "POST",
+          "path": "/api/auth/signup",
+          "runtimeOwner": "learning-os-proxy"
+        },
         {
           "id": "auth.login",
           "method": "POST",
@@ -25,8 +30,18 @@
           "path": "/api/auth/me",
           "runtimeOwner": "learning-os-proxy"
         },
-        { "id": "auth.me.update", "method": "PATCH", "path": "/api/auth/me" },
-        { "id": "auth.password.change", "method": "PATCH", "path": "/api/auth/change-password" },
+        {
+          "id": "auth.me.update",
+          "method": "PATCH",
+          "path": "/api/auth/me",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "auth.password.change",
+          "method": "PATCH",
+          "path": "/api/auth/change-password",
+          "runtimeOwner": "learning-os-proxy"
+        },
         { "id": "auth.me.delete", "method": "DELETE", "path": "/api/auth/me" },
         { "id": "auth.quota.show", "method": "GET", "path": "/api/auth/me/quota" },
         { "id": "auth.google.start", "method": "GET", "path": "/api/auth/google" },
@@ -47,8 +62,18 @@
       "sourceFile": "server/src/routes/verification.ts",
       "mountPath": "/api",
       "routes": [
-        { "id": "verification.send", "method": "POST", "path": "/api/verification/send" },
-        { "id": "verification.verify", "method": "GET", "path": "/api/verification/:token" },
+        {
+          "id": "verification.send",
+          "method": "POST",
+          "path": "/api/verification/send",
+          "runtimeOwner": "learning-os-proxy"
+        },
+        {
+          "id": "verification.verify",
+          "method": "GET",
+          "path": "/api/verification/:token",
+          "runtimeOwner": "learning-os-proxy"
+        },
         {
           "id": "password-reset.request",
           "method": "POST",

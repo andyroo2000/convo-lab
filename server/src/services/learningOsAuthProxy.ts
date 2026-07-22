@@ -61,6 +61,11 @@ export interface LearningOsPasswordResetInput {
   newPassword: string;
 }
 
+export interface LearningOsPasswordChangeInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export async function authenticateLearningOsAccount(
   email: string,
   password: string
@@ -159,6 +164,54 @@ export async function updateLearningOsCurrentAccount(
   }
 
   return adaptAccount(body, true);
+}
+
+export async function changeLearningOsCurrentPassword(
+  userId: string,
+  { currentPassword, newPassword }: LearningOsPasswordChangeInput,
+  sessionIdentity?: LearningOsSessionIdentity
+): Promise<void> {
+  const { config, user } = await resolveLearningOsUserProxyContext(
+    userId,
+    API_LABEL,
+    sessionIdentity
+  );
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/me/password`),
+    apiToken: config.apiToken,
+    user,
+    method: 'PUT',
+    body: {
+      current_password: currentPassword,
+      password: newPassword,
+      password_confirmation: newPassword,
+    },
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  if (response.ok) {
+    if (response.status !== 204 || (await response.text()) !== '') {
+      throw invalidResponse();
+    }
+    return;
+  }
+
+  if (response.status === 429) {
+    throw rateLimitError(response, 'Too many password change attempts.');
+  }
+  if (response.status === 404) {
+    throw new AppError('User not found', 404);
+  }
+  if (response.status === 422) {
+    const body = await parseJsonResponse(response);
+    if (hasValidationError(body, 'current_password')) {
+      throw new AppError('Current password is incorrect', 401);
+    }
+    throw new AppError('Invalid new password', 400);
+  }
+  throw upstreamFailure(response.status);
 }
 
 export async function registerLearningOsAccount(
@@ -449,6 +502,14 @@ function isMessageResponse(value: unknown, message: string): boolean {
     !Array.isArray(value) &&
     (value as Record<string, unknown>).message === message
   );
+}
+
+function hasValidationError(value: unknown, field: string): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const errors = (value as Record<string, unknown>).errors;
+  if (!errors || typeof errors !== 'object' || Array.isArray(errors)) return false;
+  const messages = (errors as Record<string, unknown>)[field];
+  return Array.isArray(messages) && messages.some((message) => typeof message === 'string');
 }
 
 function adaptAccount(value: unknown, includeGuideFlags: false): LearningOsLoginAccount;
