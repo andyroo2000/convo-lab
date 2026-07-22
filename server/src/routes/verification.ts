@@ -1,25 +1,16 @@
 /* eslint-disable import/no-named-as-default-member */
-import bcrypt from 'bcrypt';
 import { Router } from 'express';
 import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
-import {
-  isLearningOsPasswordResetCompletionEnabled,
-  isLearningOsPasswordResetProxyEnabled,
-  isLearningOsVerificationProxyEnabled,
-} from '../config/authRouting.js';
+import { isLearningOsVerificationProxyEnabled } from '../config/authRouting.js';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import {
   sendVerificationEmail,
-  sendPasswordResetEmail,
   sendWelcomeEmail,
-  sendPasswordChangedEmail,
   verifyEmailToken,
-  verifyPasswordResetToken,
-  markPasswordResetTokenUsed,
 } from '../services/emailService.js';
 import {
   sendLearningOsVerificationEmail,
@@ -167,56 +158,13 @@ router.post(
         throw new AppError(i18next.t('server:verification.emailRequired'), 400);
       }
 
-      if (isLearningOsPasswordResetProxyEnabled()) {
-        await sendLearningOsPasswordResetLink(email);
-        return res.json({ message: i18next.t('server:verification.passwordResetSent') });
-      }
-
-      // Find user
-      const user = await prisma.user.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      });
-
-      // Always return success to prevent email enumeration
-      if (!user) {
-        res.json({ message: i18next.t('server:verification.passwordResetSent') });
-        return;
-      }
-
-      // Send password reset email
-      await sendPasswordResetEmail(user.id, user.email, user.name);
-
+      await sendLearningOsPasswordResetLink(email);
       res.json({ message: i18next.t('server:verification.passwordResetSent') });
     } catch (error) {
       next(error);
     }
   }
 );
-
-// Verify password reset token (without resetting password yet)
-router.get('/password-reset/:token', async (req, res, next) => {
-  try {
-    const { token } = req.params;
-
-    const result = await verifyPasswordResetToken(token);
-
-    if (!result) {
-      throw new AppError(i18next.t('server:verification.passwordResetTokenInvalid'), 400);
-    }
-
-    res.json({
-      valid: true,
-      email: result.email,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Reset password with token
 router.post('/password-reset/verify', passwordResetConsumeRateLimit, async (req, res, next) => {
@@ -231,49 +179,7 @@ router.post('/password-reset/verify', passwordResetConsumeRateLimit, async (req,
       throw new AppError(i18next.t('server:verification.passwordTooShort'), 400);
     }
 
-    // Presence, including an empty value, identifies Learning OS links. The broker performs
-    // canonical validation, and payload routing keeps issued links usable after flag rollback.
-    if (
-      email !== undefined &&
-      (isLearningOsPasswordResetProxyEnabled() || isLearningOsPasswordResetCompletionEnabled())
-    ) {
-      await resetLearningOsPassword({ email, token, newPassword });
-      return res.json({ message: i18next.t('server:verification.passwordResetSuccess') });
-    }
-
-    // Verify token
-    const result = await verifyPasswordResetToken(token);
-
-    if (!result) {
-      throw new AppError(i18next.t('server:verification.passwordResetTokenInvalid'), 400);
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update password and mark token as used
-    await prisma.$transaction(async (tx) => {
-      // Update password
-      await tx.user.update({
-        where: { id: result.userId },
-        data: { password: hashedPassword },
-      });
-
-      // Mark token as used
-      await markPasswordResetTokenUsed(token);
-    });
-
-    // Get user details
-    const user = await prisma.user.findUnique({
-      where: { id: result.userId },
-      select: { name: true, email: true },
-    });
-
-    if (user) {
-      // Send confirmation email
-      await sendPasswordChangedEmail(user.email, user.name);
-    }
-
+    await resetLearningOsPassword({ email, token, newPassword });
     res.json({ message: i18next.t('server:verification.passwordResetSuccess') });
   } catch (error) {
     next(error);

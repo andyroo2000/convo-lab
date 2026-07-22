@@ -7,7 +7,6 @@ import { buildClientAppUrl, getClientAppUrl } from '../config/browserRuntime.js'
 import { prisma } from '../db/client.js';
 import {
   generateVerificationEmail,
-  generatePasswordResetEmail,
   generateWelcomeEmail,
   generatePasswordChangedEmail,
 } from '../i18n/emailTemplates.js';
@@ -112,72 +111,6 @@ export async function sendVerificationEmail(
 }
 
 /**
- * Send a password reset email
- */
-export async function sendPasswordResetEmail(
-  userId: string,
-  email: string,
-  name: string
-): Promise<void> {
-  // Delete any existing password reset tokens for this user
-  await prisma.passwordResetToken.deleteMany({
-    where: { userId },
-  });
-
-  // Generate token (expires in 1 hour)
-  const token = generateToken();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-  // Create token in database
-  await prisma.passwordResetToken.create({
-    data: {
-      userId,
-      token,
-      expiresAt,
-    },
-  });
-
-  // Get user's preferred language
-  const locale = await getUserLocale(userId);
-  const t = i18next.getFixedT(locale, 'email');
-
-  // Send email
-  const resetUrl = buildClientAppUrl(`/reset-password/${token}`);
-  const html = generatePasswordResetEmail({ locale, name, resetUrl });
-  const subject = t('passwordReset.subject');
-
-  try {
-    // In development, log the URL to console instead of sending email
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`🔑 PASSWORD RESET (DEV MODE) [${locale}]`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`To: ${email}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`\n🔗 Reset Link (expires in 1 hour):`);
-      console.log(`   ${resetUrl}`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-      return;
-    }
-
-    if (!resend) return; // Skip email sending if Resend not configured
-
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      replyTo: REPLY_TO_EMAIL,
-      subject,
-      html,
-    });
-
-    console.log(`✓ Password reset email sent to ${email} (${locale})`);
-  } catch (error) {
-    console.error('Error sending password reset email:', error);
-    throw new Error('Failed to send password reset email');
-  }
-}
-
-/**
  * Send a welcome email after email verification
  */
 export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
@@ -272,46 +205,4 @@ export async function verifyEmailToken(
     userId: tokenRecord.userId,
     email: tokenRecord.user.email,
   };
-}
-
-/**
- * Verify a password reset token
- */
-export async function verifyPasswordResetToken(
-  token: string
-): Promise<{ userId: string; email: string } | null> {
-  const tokenRecord = await prisma.passwordResetToken.findUnique({
-    where: { token },
-    include: { user: true },
-  });
-
-  if (!tokenRecord) {
-    return null;
-  }
-
-  // Check if token is expired
-  if (tokenRecord.expiresAt < new Date()) {
-    await prisma.passwordResetToken.delete({ where: { token } });
-    return null;
-  }
-
-  // Check if token was already used
-  if (tokenRecord.usedAt) {
-    return null;
-  }
-
-  return {
-    userId: tokenRecord.userId,
-    email: tokenRecord.user.email,
-  };
-}
-
-/**
- * Mark a password reset token as used
- */
-export async function markPasswordResetTokenUsed(token: string): Promise<void> {
-  await prisma.passwordResetToken.update({
-    where: { token },
-    data: { usedAt: new Date() },
-  });
 }

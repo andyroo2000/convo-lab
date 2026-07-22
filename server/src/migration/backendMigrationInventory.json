@@ -86,11 +86,6 @@
           "runtimeOwner": "learning-os-proxy"
         },
         {
-          "id": "password-reset.show",
-          "method": "GET",
-          "path": "/api/password-reset/:token"
-        },
-        {
           "id": "password-reset.verify",
           "method": "POST",
           "path": "/api/password-reset/verify",

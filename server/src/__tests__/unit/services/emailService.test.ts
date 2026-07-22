@@ -18,13 +18,6 @@ const mockPrisma = vi.hoisted(() => ({
     findUnique: vi.fn(),
     delete: vi.fn(),
   },
-  passwordResetToken: {
-    deleteMany: vi.fn(),
-    create: vi.fn(),
-    findUnique: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-  },
   user: {
     findUnique: vi.fn(),
     update: vi.fn(),
@@ -55,7 +48,6 @@ vi.mock('../../../i18n/index.js', () => {
     // Return translated strings matching test expectations with interpolation
     const translations: Record<string, (p?: Record<string, unknown>) => string> = {
       'verification.subject': () => 'Verify your ConvoLab email',
-      'passwordReset.subject': () => 'Reset your ConvoLab password',
       'welcome.subject': () => 'Welcome to ConvoLab!',
       'passwordChanged.subject': () => 'Your ConvoLab password was changed',
     };
@@ -76,10 +68,6 @@ vi.mock('../../../i18n/emailTemplates.js', () => ({
   generateVerificationEmail: vi.fn(
     (params: { locale: string; name: string; verificationUrl: string }) =>
       `<html>Verification Email for ${params.name} - ${params.verificationUrl}</html>`
-  ),
-  generatePasswordResetEmail: vi.fn(
-    (params: { locale: string; name: string; resetUrl: string }) =>
-      `<html>Password Reset Email for ${params.name} - ${params.resetUrl}</html>`
   ),
   generateWelcomeEmail: vi.fn(
     (params: { locale: string; name: string; appUrl: string }) =>
@@ -206,54 +194,6 @@ describe('Email Service', () => {
     });
   });
 
-  describe('sendPasswordResetEmail', () => {
-    it('should create token and log in development mode', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
-
-      mockPrisma.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrisma.passwordResetToken.create.mockResolvedValue({
-        userId: 'test-user-id',
-        token: 'test-token',
-        expiresAt: new Date(),
-      });
-
-      await emailService.sendPasswordResetEmail('test-user-id', 'test@example.com', 'Test User');
-
-      expect(mockPrisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'test-user-id' },
-      });
-      expect(mockPrisma.passwordResetToken.create).toHaveBeenCalled();
-      // eslint-disable-next-line no-console
-      expect(console.log).toHaveBeenCalled();
-
-      process.env.NODE_ENV = originalEnv;
-    });
-
-    it('should send email in production mode', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
-
-      mockPrisma.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrisma.passwordResetToken.create.mockResolvedValue({
-        userId: 'test-user-id',
-        token: 'test-token',
-        expiresAt: new Date(),
-      });
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendPasswordResetEmail('test-user-id', 'test@example.com', 'Test User');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.to).toBe('test@example.com');
-      expect(emailCall.subject).toBe('Reset your ConvoLab password');
-      expect(emailCall.html).toContain('Test User');
-
-      process.env.NODE_ENV = originalEnv;
-    });
-  });
-
   describe('verifyEmailToken', () => {
     it('should verify valid token and mark user as verified', async () => {
       const mockToken = {
@@ -316,90 +256,6 @@ describe('Email Service', () => {
         where: { token: 'expired-token' },
       });
       expect(mockPrisma.user.update).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('verifyPasswordResetToken', () => {
-    it('should verify valid password reset token', async () => {
-      const mockToken = {
-        userId: 'test-user-id',
-        token: 'valid-token',
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // Future date
-        usedAt: null,
-        user: {
-          email: 'test@example.com',
-        },
-      };
-
-      mockPrisma.passwordResetToken.findUnique.mockResolvedValue(mockToken);
-
-      const result = await emailService.verifyPasswordResetToken('valid-token');
-
-      expect(result).toEqual({
-        userId: 'test-user-id',
-        email: 'test@example.com',
-      });
-    });
-
-    it('should return null for non-existent token', async () => {
-      mockPrisma.passwordResetToken.findUnique.mockResolvedValue(null);
-
-      const result = await emailService.verifyPasswordResetToken('invalid-token');
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null and delete expired token', async () => {
-      const mockToken = {
-        userId: 'test-user-id',
-        token: 'expired-token',
-        expiresAt: new Date(Date.now() - 1000), // Past date
-        usedAt: null,
-        user: {
-          email: 'test@example.com',
-        },
-      };
-
-      mockPrisma.passwordResetToken.findUnique.mockResolvedValue(mockToken);
-      mockPrisma.passwordResetToken.delete.mockResolvedValue({});
-
-      const result = await emailService.verifyPasswordResetToken('expired-token');
-
-      expect(result).toBeNull();
-      expect(mockPrisma.passwordResetToken.delete).toHaveBeenCalledWith({
-        where: { token: 'expired-token' },
-      });
-    });
-
-    it('should return null for already used token', async () => {
-      const mockToken = {
-        userId: 'test-user-id',
-        token: 'used-token',
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // Future date
-        usedAt: new Date(), // Already used
-        user: {
-          email: 'test@example.com',
-        },
-      };
-
-      mockPrisma.passwordResetToken.findUnique.mockResolvedValue(mockToken);
-
-      const result = await emailService.verifyPasswordResetToken('used-token');
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('markPasswordResetTokenUsed', () => {
-    it('should mark token as used', async () => {
-      mockPrisma.passwordResetToken.update.mockResolvedValue({});
-
-      await emailService.markPasswordResetTokenUsed('test-token');
-
-      expect(mockPrisma.passwordResetToken.update).toHaveBeenCalledWith({
-        where: { token: 'test-token' },
-        data: { usedAt: expect.any(Date) },
-      });
     });
   });
 

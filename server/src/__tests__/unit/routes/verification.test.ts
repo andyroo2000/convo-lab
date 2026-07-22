@@ -28,23 +28,12 @@ const mockPrisma = vi.hoisted(() => ({
     findFirst: vi.fn(),
     delete: vi.fn(),
   },
-  passwordResetToken: {
-    deleteMany: vi.fn(),
-    create: vi.fn(),
-    findFirst: vi.fn(),
-    update: vi.fn(),
-  },
-  $transaction: vi.fn(),
 }));
 
 const mockEmailService = vi.hoisted(() => ({
   sendVerificationEmail: vi.fn(),
-  sendPasswordResetEmail: vi.fn(),
   sendWelcomeEmail: vi.fn(),
-  sendPasswordChangedEmail: vi.fn(),
   verifyEmailToken: vi.fn(),
-  verifyPasswordResetToken: vi.fn(),
-  markPasswordResetTokenUsed: vi.fn(),
 }));
 
 const mockLearningOsAuth = vi.hoisted(() => ({
@@ -92,8 +81,6 @@ describe('Verification Routes', () => {
       ...originalEnv,
       NODE_ENV: 'test',
       CLIENT_URL: 'http://localhost:5173',
-      LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED: 'false',
-      LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED: 'false',
       LEARNING_OS_VERIFICATION_PROXY_ENABLED: 'false',
     };
     resetBrowserRuntimeTestState();
@@ -289,42 +276,21 @@ describe('Verification Routes', () => {
   });
 
   describe('POST /api/password-reset/request', () => {
-    it('should send password reset email for existing user', async () => {
-      const mockUser = {
-        id: 'test-user-id',
-        email: 'test@example.com',
-        name: 'Test User',
-      };
-
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockEmailService.sendPasswordResetEmail.mockResolvedValue(undefined);
+    it('routes reset-link issuance through Learning OS', async () => {
+      mockLearningOsAuth.sendLearningOsPasswordResetLink.mockResolvedValue(undefined);
 
       const response = await withCsrf(request(app).post('/api/password-reset/request'))
-        .send({ email: 'test@example.com' })
+        .send({ email: 'target-only@example.com' })
         .expect(200);
 
       expect(response.body.message).toBe(
         'If an account exists with that email, a password reset link has been sent'
       );
       expect(response.headers['ratelimit-policy']).toBeDefined();
-      expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalledWith(
-        mockUser.id,
-        mockUser.email,
-        mockUser.name
+      expect(mockLearningOsAuth.sendLearningOsPasswordResetLink).toHaveBeenCalledWith(
+        'target-only@example.com'
       );
-    });
-
-    it('should return success message even for non-existent user (prevent enumeration)', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-
-      const response = await withCsrf(request(app).post('/api/password-reset/request'))
-        .send({ email: 'nonexistent@example.com' })
-        .expect(200);
-
-      expect(response.body.message).toBe(
-        'If an account exists with that email, a password reset link has been sent'
-      );
-      expect(mockEmailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     });
 
     it('should reject request without email', async () => {
@@ -335,26 +301,7 @@ describe('Verification Routes', () => {
       expect(response.body.error.message).toBe('Email is required');
     });
 
-    it('routes reset-link issuance through Learning OS when enabled', async () => {
-      process.env.LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED = 'true';
-      mockLearningOsAuth.sendLearningOsPasswordResetLink.mockResolvedValue(undefined);
-
-      const response = await withCsrf(request(app).post('/api/password-reset/request'))
-        .send({ email: 'target-only@example.com' })
-        .expect(200);
-
-      expect(response.body.message).toBe(
-        'If an account exists with that email, a password reset link has been sent'
-      );
-      expect(mockLearningOsAuth.sendLearningOsPasswordResetLink).toHaveBeenCalledWith(
-        'target-only@example.com'
-      );
-      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
-      expect(mockEmailService.sendPasswordResetEmail).not.toHaveBeenCalled();
-    });
-
     it('rate limits repeated reset-link requests for the same normalized email', async () => {
-      process.env.LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED = 'true';
       mockLearningOsAuth.sendLearningOsPasswordResetLink.mockResolvedValue(undefined);
 
       for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -373,70 +320,8 @@ describe('Verification Routes', () => {
     });
   });
 
-  describe('GET /api/password-reset/:token', () => {
-    it('should validate password reset token', async () => {
-      const mockTokenResult = {
-        userId: 'test-user-id',
-        email: 'test@example.com',
-      };
-
-      mockEmailService.verifyPasswordResetToken.mockResolvedValue(mockTokenResult);
-
-      const response = await request(app).get('/api/password-reset/valid-token').expect(200);
-
-      expect(response.body).toEqual({
-        valid: true,
-        email: 'test@example.com',
-      });
-    });
-
-    it('should reject invalid password reset token', async () => {
-      mockEmailService.verifyPasswordResetToken.mockResolvedValue(null);
-
-      const response = await request(app).get('/api/password-reset/invalid-token').expect(400);
-
-      expect(response.body.error.message).toBe('Invalid or expired password reset token');
-    });
-  });
-
   describe('POST /api/password-reset/verify', () => {
-    it('should reset password with valid token', async () => {
-      const mockTokenResult = {
-        userId: 'test-user-id',
-        email: 'test@example.com',
-      };
-
-      const mockUser = {
-        name: 'Test User',
-        email: 'test@example.com',
-      };
-
-      mockEmailService.verifyPasswordResetToken.mockResolvedValue(mockTokenResult);
-      mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
-      mockPrisma.user.update.mockResolvedValue(mockUser);
-      mockEmailService.markPasswordResetTokenUsed.mockResolvedValue(undefined);
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockEmailService.sendPasswordChangedEmail.mockResolvedValue(undefined);
-
-      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
-        .send({
-          token: 'valid-token',
-          newPassword: 'newpassword123',
-        })
-        .expect(200);
-
-      expect(response.body.message).toBe('Password reset successfully');
-      expect(response.headers['ratelimit-policy']).toBeDefined();
-      expect(mockEmailService.verifyPasswordResetToken).toHaveBeenCalledWith('valid-token');
-      expect(mockPrisma.user.update).toHaveBeenCalled();
-      expect(mockEmailService.sendPasswordChangedEmail).toHaveBeenCalledWith(
-        mockUser.email,
-        mockUser.name
-      );
-    });
-
-    it('routes token-and-email links through Learning OS even when issuance is rolled back', async () => {
-      process.env.LEARNING_OS_PASSWORD_RESET_COMPLETION_ENABLED = 'true';
+    it('routes reset completion through Learning OS', async () => {
       mockLearningOsAuth.resetLearningOsPassword.mockResolvedValue(undefined);
 
       const response = await withCsrf(request(app).post('/api/password-reset/verify'))
@@ -448,49 +333,29 @@ describe('Verification Routes', () => {
         .expect(200);
 
       expect(response.body.message).toBe('Password reset successfully');
+      expect(response.headers['ratelimit-policy']).toBeDefined();
       expect(mockLearningOsAuth.resetLearningOsPassword).toHaveBeenCalledWith({
         email: 'target-only@example.com',
         token: 'learning-os-token',
         newPassword: 'newpassword123',
       });
-      expect(mockEmailService.verifyPasswordResetToken).not.toHaveBeenCalled();
       expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
 
-    it('can hard-disable Learning OS reset completion independently of link format', async () => {
-      mockEmailService.verifyPasswordResetToken.mockResolvedValue(null);
+    it('passes Learning OS validation failures through the standard error envelope', async () => {
+      mockLearningOsAuth.resetLearningOsPassword.mockRejectedValue(
+        new AppError('Invalid or expired password reset token', 400)
+      );
 
-      await withCsrf(request(app).post('/api/password-reset/verify'))
+      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
         .send({
           email: 'target-only@example.com',
-          token: 'learning-os-token',
+          token: 'invalid-token',
           newPassword: 'newpassword123',
         })
         .expect(400);
 
-      expect(mockLearningOsAuth.resetLearningOsPassword).not.toHaveBeenCalled();
-      expect(mockEmailService.verifyPasswordResetToken).toHaveBeenCalledWith('learning-os-token');
-    });
-
-    it('keeps token-only reset completion on legacy persistence after issuance cutover', async () => {
-      process.env.LEARNING_OS_PASSWORD_RESET_PROXY_ENABLED = 'true';
-      const mockTokenResult = {
-        userId: 'test-user-id',
-        email: 'test@example.com',
-      };
-      mockEmailService.verifyPasswordResetToken.mockResolvedValue(mockTokenResult);
-      mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
-      mockPrisma.user.findUnique.mockResolvedValue({
-        name: 'Test User',
-        email: 'test@example.com',
-      });
-
-      await withCsrf(request(app).post('/api/password-reset/verify'))
-        .send({ token: 'legacy-token', newPassword: 'newpassword123' })
-        .expect(200);
-
-      expect(mockEmailService.verifyPasswordResetToken).toHaveBeenCalledWith('legacy-token');
-      expect(mockLearningOsAuth.resetLearningOsPassword).not.toHaveBeenCalled();
+      expect(response.body.error.message).toBe('Invalid or expired password reset token');
     });
 
     it('should reject password reset without token', async () => {
@@ -518,53 +383,6 @@ describe('Verification Routes', () => {
         .expect(400);
 
       expect(response.body.error.message).toBe('Password must be at least 8 characters');
-    });
-
-    it('should reject invalid password reset token', async () => {
-      mockEmailService.verifyPasswordResetToken.mockResolvedValue(null);
-
-      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
-        .send({
-          token: 'invalid-token',
-          newPassword: 'newpassword123',
-        })
-        .expect(400);
-
-      expect(response.body.error.message).toBe('Invalid or expired password reset token');
-      expect(mockPrisma.user.update).not.toHaveBeenCalled();
-    });
-
-    it('should hash password before saving', async () => {
-      const mockTokenResult = {
-        userId: 'test-user-id',
-        email: 'test@example.com',
-      };
-
-      const mockUser = {
-        name: 'Test User',
-        email: 'test@example.com',
-      };
-
-      mockEmailService.verifyPasswordResetToken.mockResolvedValue(mockTokenResult);
-      mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
-      mockPrisma.user.update.mockResolvedValue(mockUser);
-      mockEmailService.markPasswordResetTokenUsed.mockResolvedValue(undefined);
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockEmailService.sendPasswordChangedEmail.mockResolvedValue(undefined);
-
-      await withCsrf(request(app).post('/api/password-reset/verify'))
-        .send({
-          token: 'valid-token',
-          newPassword: 'newpassword123',
-        })
-        .expect(200);
-
-      // Verify that user.update was called with a hashed password
-      expect(mockPrisma.user.update).toHaveBeenCalled();
-      const updateCall = mockPrisma.user.update.mock.calls[0][0];
-      expect(updateCall.data.password).toBeTruthy();
-      expect(updateCall.data.password).not.toBe('newpassword123'); // Should be hashed
-      expect(updateCall.data.password.length).toBeGreaterThan(20); // Bcrypt hashes are longer
     });
   });
 });

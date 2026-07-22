@@ -54,7 +54,6 @@ i18next.init({
             'If an account exists with that email, a password reset link has been sent',
           tokenAndPasswordRequired: 'Token and new password are required',
           passwordTooShort: 'Password must be at least 8 characters',
-          passwordResetTokenInvalid: 'Invalid or expired password reset token',
           passwordResetSuccess: 'Password reset successfully',
         },
         validation: {
@@ -202,15 +201,6 @@ const mockPrismaBase = {
     count: vi.fn(),
   },
   emailVerificationToken: {
-    findUnique: vi.fn(),
-    findFirst: vi.fn(),
-    findMany: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    deleteMany: vi.fn(),
-  },
-  passwordResetToken: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),

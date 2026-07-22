@@ -8,15 +8,6 @@
     "linkInstructions": "Or copy and paste this link into your browser:",
     "expiry": "This link will expire in 24 hours. If you didn't create an account, you can safely ignore this email."
   },
-  "passwordReset": {
-    "subject": "Reset your ConvoLab password",
-    "title": "Reset Your Password",
-    "greeting": "Hi {{name}},",
-    "body": "We received a request to reset your password. Click the button below to create a new password.",
-    "button": "Reset Password",
-    "linkInstructions": "Or copy and paste this link into your browser:",
-    "expiry": "This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email."
-  },
   "welcome": {
     "subject": "Welcome to ConvoLab!",
     "title": "🎉 You're All Set!",

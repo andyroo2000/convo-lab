@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, Lock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Lock } from 'lucide-react';
 import Logo from '../components/common/Logo';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -24,61 +24,17 @@ const parseApiErrorMessage = (data: unknown, fallback: string): string => {
 
 const ResetPasswordPage = () => {
   const { t } = useTranslation(['auth', 'common']);
-  const { token: legacyToken } = useParams<{ token: string }>();
   const [searchParams] = useSearchParams();
-  const learningOsToken = searchParams.get('token') ?? '';
-  const learningOsEmail = searchParams.get('email') ?? '';
-  const token = legacyToken ?? learningOsToken;
+  const token = searchParams.get('token') ?? '';
+  const email = searchParams.get('email') ?? '';
+  const invalidLink = !token || !email;
   const navigate = useNavigate();
 
-  const [validating, setValidating] = useState(true);
-  const [tokenValid, setTokenValid] = useState(false);
-  const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!token) {
-      setValidating(false);
-      setError('Invalid reset link');
-      return;
-    }
-
-    if (!legacyToken && learningOsEmail) {
-      setEmail(learningOsEmail);
-      setTokenValid(true);
-      setValidating(false);
-      return;
-    }
-
-    // Legacy tokens can be inspected without the account email.
-    const validateToken = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/password-reset/${token}`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(parseApiErrorMessage(data, 'Invalid or expired token'));
-        }
-
-        const data = await response.json();
-        setEmail(data.email);
-        setTokenValid(true);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Invalid or expired token');
-        setTokenValid(false);
-      } finally {
-        setValidating(false);
-      }
-    };
-
-    validateToken();
-  }, [learningOsEmail, legacyToken, token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +60,7 @@ const ResetPasswordPage = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          ...(legacyToken ? {} : { email }),
+          email,
           token,
           newPassword,
         }),
@@ -150,23 +106,13 @@ const ResetPasswordPage = () => {
         </div>
 
         <div className="card">
-          {validating && (
-            <div className="text-center py-8">
-              <Loader2 className="w-12 h-12 text-periwinkle animate-spin mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-dark-brown mb-2">
-                {t('auth:resetPassword.validating.title')}
-              </h2>
-              <p className="text-medium-brown">{t('auth:resetPassword.validating.description')}</p>
-            </div>
-          )}
-
-          {!validating && !tokenValid && (
+          {invalidLink && (
             <div className="text-center py-8">
               <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
                 {t('auth:resetPassword.invalid.title')}
               </h2>
-              <p className="text-red-600 mb-6">{error}</p>
+              <p className="text-red-600 mb-6">Invalid reset link</p>
               <p className="text-medium-brown mb-6">
                 {t('auth:resetPassword.invalid.description')}
               </p>
@@ -176,7 +122,7 @@ const ResetPasswordPage = () => {
             </div>
           )}
 
-          {!validating && tokenValid && !success && (
+          {!invalidLink && !success && (
             <>
               <div className="text-center mb-6">
                 <Lock className="w-12 h-12 text-periwinkle mx-auto mb-3" />
