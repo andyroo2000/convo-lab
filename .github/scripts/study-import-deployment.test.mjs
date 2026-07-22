@@ -148,6 +148,34 @@ test('the production workflow verifies the always-on Study API without rollout f
   assert.ok(postgresUserAssignment >= 0);
   assert.ok(postgresUserUse > postgresUserAssignment);
 
+  for (const requiredContract of [
+    'wait_for_public_csrf() {',
+    'for attempt in {1..12}; do',
+    'Public ConvoLab CSRF readiness attempt $attempt/12 failed.',
+    'if [ "$attempt" -lt 12 ]; then',
+    'sleep 3',
+    'if ! wait_for_public_csrf; then',
+    'rm -f "$csrf_cookie_jar"',
+  ]) {
+    assert.ok(
+      verifyStudyApi.includes(requiredContract),
+      `Missing production CSRF readiness contract: ${requiredContract}`
+    );
+  }
+
+  const publicCsrfWait = verifyStudyApi.indexOf('if ! wait_for_public_csrf; then');
+  const csrfCookieRead = verifyStudyApi.indexOf('csrf_cookie_raw="$(awk');
+  const verifyStudyApiInvocation = workflow.indexOf('\n            verify_study_api\n');
+  const activeServerHealthy = workflow.lastIndexOf(
+    'wait_for_health "convolab-server-$active_color"',
+    verifyStudyApiInvocation
+  );
+
+  assert.ok(publicCsrfWait >= 0);
+  assert.ok(publicCsrfWait < csrfCookieRead);
+  assert.ok(activeServerHealthy >= 0);
+  assert.ok(activeServerHealthy < verifyStudyApiInvocation);
+
   const credentialCheck = workflow.indexOf('if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then');
   const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
   const migration = workflow.indexOf(

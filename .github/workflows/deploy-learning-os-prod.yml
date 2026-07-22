@@ -1571,11 +1571,32 @@ jobs:
               echo "::add-mask::$auth_token"
 
               csrf_cookie_jar="$(mktemp)"
-              curl --fail --silent --show-error \
-                --cookie "token=$auth_token" \
-                --cookie-jar "$csrf_cookie_jar" \
-                --header 'Origin: https://convo-lab.com' \
-                'https://convo-lab.com/api/auth/csrf' > /dev/null
+              wait_for_public_csrf() {
+                local attempt
+
+                for attempt in {1..12}; do
+                  if curl --fail --silent --show-error \
+                    --cookie "token=$auth_token" \
+                    --cookie-jar "$csrf_cookie_jar" \
+                    --header 'Origin: https://convo-lab.com' \
+                    'https://convo-lab.com/api/auth/csrf' > /dev/null; then
+                    return 0
+                  fi
+
+                  : > "$csrf_cookie_jar"
+                  echo "Public ConvoLab CSRF readiness attempt $attempt/12 failed." >&2
+                  if [ "$attempt" -lt 12 ]; then
+                    sleep 3
+                  fi
+                done
+
+                return 1
+              }
+
+              if ! wait_for_public_csrf; then
+                rm -f "$csrf_cookie_jar"
+                return 1
+              fi
               csrf_cookie_raw="$(awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$csrf_cookie_jar")"
               rm -f "$csrf_cookie_jar"
               test -n "$csrf_cookie_raw"
