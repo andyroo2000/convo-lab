@@ -1,7 +1,7 @@
 import express, { json as expressJson, NextFunction, Response } from 'express';
 import { verify as verifyJwt } from 'jsonwebtoken';
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import { CSRF_TOKEN_COOKIE_NAME } from '../../../middleware/csrf.js';
@@ -11,26 +11,15 @@ import { getSetCookieArray, testCookieParser } from '../../helpers/testCookiePar
 
 const mocks = vi.hoisted(() => ({
   authenticateLearningOsAccount: vi.fn(),
-  bcryptCompare: vi.fn(),
-  bcryptHash: vi.fn(),
   changeLearningOsCurrentPassword: vi.fn(),
   deleteLearningOsCurrentAccount: vi.fn(),
   getLearningOsCurrentAccount: vi.fn(),
   registerLearningOsAccount: vi.fn(),
   updateLearningOsCurrentAccount: vi.fn(),
-  copySampleContentToUser: vi.fn(),
   prismaFindUnique: vi.fn(),
-  prismaDelete: vi.fn(),
   prismaDeleteMany: vi.fn(),
-  prismaUpdate: vi.fn(),
 }));
 
-vi.mock('bcrypt', () => ({
-  default: {
-    compare: mocks.bcryptCompare,
-    hash: mocks.bcryptHash,
-  },
-}));
 vi.mock('../../../i18n/index.js', () => ({
   default: {
     t: (key: string) =>
@@ -51,9 +40,7 @@ vi.mock('../../../db/client.js', () => ({
   prisma: {
     user: {
       findUnique: mocks.prismaFindUnique,
-      update: mocks.prismaUpdate,
       create: vi.fn(),
-      delete: mocks.prismaDelete,
       deleteMany: mocks.prismaDeleteMany,
     },
     inviteCode: {
@@ -85,9 +72,6 @@ vi.mock('../../../services/learningOsAuthProxy.js', () => ({
   updateLearningOsCurrentAccount: mocks.updateLearningOsCurrentAccount,
 }));
 vi.mock('../../../services/oauth.js', () => ({ revokeGoogleTokens: vi.fn() }));
-vi.mock('../../../services/sampleContent.js', () => ({
-  copySampleContentToUser: mocks.copySampleContentToUser,
-}));
 vi.mock('../../../services/usageTracker.js', () => ({
   checkGenerationLimit: vi.fn(),
   checkCooldown: vi.fn(),
@@ -117,14 +101,10 @@ const currentAccount = {
 };
 
 describe('Auth Learning OS routing', () => {
-  const originalAuthProxyEnabled = process.env.LEARNING_OS_AUTH_PROXY_ENABLED;
-  const originalProfileProxyEnabled = process.env.LEARNING_OS_PROFILE_PROXY_ENABLED;
   let app: express.Application;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'true';
-    process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = 'true';
     mocks.authenticateLearningOsAccount.mockResolvedValue(loginAccount);
     mocks.changeLearningOsCurrentPassword.mockResolvedValue(undefined);
     mocks.deleteLearningOsCurrentAccount.mockResolvedValue(undefined);
@@ -141,17 +121,8 @@ describe('Auth Learning OS routing', () => {
     app.use(errorHandler);
   });
 
-  afterAll(() => {
-    if (originalAuthProxyEnabled === undefined) {
-      delete process.env.LEARNING_OS_AUTH_PROXY_ENABLED;
-    } else {
-      process.env.LEARNING_OS_AUTH_PROXY_ENABLED = originalAuthProxyEnabled;
-    }
-    if (originalProfileProxyEnabled === undefined) {
-      delete process.env.LEARNING_OS_PROFILE_PROXY_ENABLED;
-    } else {
-      process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = originalProfileProxyEnabled;
-    }
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('creates a Learning OS account and retains the Convo Lab browser session', async () => {
@@ -248,6 +219,20 @@ describe('Auth Learning OS routing', () => {
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
   });
 
+  it('ignores stale values for the retired auth and profile routing flags', async () => {
+    vi.stubEnv('LEARNING_OS_AUTH_PROXY_ENABLED', 'false');
+    vi.stubEnv('LEARNING_OS_PROFILE_PROXY_ENABLED', 'false');
+
+    await request(app)
+      .post('/api/auth/login')
+      .send({ email: loginAccount.email, password: 'correct password' })
+      .expect(200);
+    await request(app).patch('/api/auth/me').send({ displayName: 'Ada' }).expect(200);
+
+    expect(mocks.authenticateLearningOsAccount).toHaveBeenCalledOnce();
+    expect(mocks.updateLearningOsCurrentAccount).toHaveBeenCalledOnce();
+  });
+
   it('loads current-user projection from Learning OS and refreshes CSRF state', async () => {
     const response = await request(app).get('/api/auth/me').expect(200);
 
@@ -303,8 +288,6 @@ describe('Auth Learning OS routing', () => {
         accountSource: 'learning-os',
       }
     );
-    expect(mocks.prismaUpdate).not.toHaveBeenCalled();
-    expect(mocks.copySampleContentToUser).not.toHaveBeenCalled();
   });
 
   it('changes the current password through Learning OS without touching legacy credentials', async () => {
@@ -325,9 +308,6 @@ describe('Auth Learning OS routing', () => {
       }
     );
     expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
-    expect(mocks.prismaUpdate).not.toHaveBeenCalled();
-    expect(mocks.bcryptCompare).not.toHaveBeenCalled();
-    expect(mocks.bcryptHash).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -399,24 +379,6 @@ describe('Auth Learning OS routing', () => {
     expect(mocks.changeLearningOsCurrentPassword).not.toHaveBeenCalled();
   });
 
-  it('keeps the local password implementation available when auth routing is disabled', async () => {
-    process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'false';
-    mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id, password: 'legacy-hash' });
-    mocks.bcryptCompare.mockResolvedValue(true);
-    mocks.bcryptHash.mockResolvedValue('new-legacy-hash');
-
-    await request(app)
-      .patch('/api/auth/change-password')
-      .send({ currentPassword: 'old-password123', newPassword: 'new-password123' })
-      .expect(200);
-
-    expect(mocks.prismaUpdate).toHaveBeenCalledWith({
-      where: { id: loginAccount.id },
-      data: { password: 'new-legacy-hash' },
-    });
-    expect(mocks.changeLearningOsCurrentPassword).not.toHaveBeenCalled();
-  });
-
   it('deletes the current account and local projection before clearing session cookies', async () => {
     const response = await request(app)
       .delete('/api/auth/me')
@@ -436,7 +398,6 @@ describe('Auth Learning OS routing', () => {
       }
     );
     expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
-    expect(mocks.prismaDelete).not.toHaveBeenCalled();
     expect(mocks.prismaDeleteMany).toHaveBeenCalledWith({ where: { id: loginAccount.id } });
     expect(mocks.deleteLearningOsCurrentAccount.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.prismaDeleteMany.mock.invocationCallOrder[0]
@@ -533,37 +494,6 @@ describe('Auth Learning OS routing', () => {
     expect(mocks.deleteLearningOsCurrentAccount).toHaveBeenCalledTimes(6);
   });
 
-  it('keeps password-verified local deletion available when auth routing is disabled', async () => {
-    const userId = '77777777-7777-4777-8777-777777777777';
-    process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'false';
-    mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id, password: 'legacy-hash' });
-    mocks.bcryptCompare.mockResolvedValue(true);
-
-    await request(app)
-      .delete('/api/auth/me')
-      .set('X-Test-User-Id', userId)
-      .send({ currentPassword: 'correct-password123' })
-      .expect(200);
-
-    expect(mocks.bcryptCompare).toHaveBeenCalledWith('correct-password123', 'legacy-hash');
-    expect(mocks.prismaDelete).toHaveBeenCalledWith({ where: { id: userId } });
-    expect(mocks.deleteLearningOsCurrentAccount).not.toHaveBeenCalled();
-  });
-
-  it('does not delete a local account when password verification fails', async () => {
-    process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'false';
-    mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id, password: 'legacy-hash' });
-    mocks.bcryptCompare.mockResolvedValue(false);
-
-    await request(app)
-      .delete('/api/auth/me')
-      .set('X-Test-User-Id', '88888888-8888-4888-8888-888888888888')
-      .send({ currentPassword: 'wrong-password' })
-      .expect(401);
-
-    expect(mocks.prismaDelete).not.toHaveBeenCalled();
-  });
-
   it.each([
     [{}, 'No fields to update'],
     [{ displayName: ['Ada'] }, 'Invalid display name'],
@@ -599,26 +529,6 @@ describe('Auth Learning OS routing', () => {
     expect(response.body).toEqual({
       error: { message: 'Learning OS Auth API is unavailable.', statusCode: 502 },
     });
-  });
-
-  it('keeps legacy profile persistence available when the profile flag is disabled', async () => {
-    process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = 'false';
-    mocks.prismaFindUnique.mockResolvedValue({ onboardingCompleted: true });
-    mocks.prismaUpdate.mockResolvedValue(currentAccount);
-
-    const response = await request(app)
-      .patch('/api/auth/me')
-      .send({ displayName: 'Legacy Ada' })
-      .expect(200);
-
-    expect(response.body).toEqual(currentAccount);
-    expect(mocks.prismaUpdate).toHaveBeenCalledWith({
-      where: { id: loginAccount.id },
-      data: { displayName: 'Legacy Ada' },
-      select: expect.any(Object),
-    });
-    expect(mocks.updateLearningOsCurrentAccount).not.toHaveBeenCalled();
-    expect(mocks.copySampleContentToUser).not.toHaveBeenCalled();
   });
 
   it('marks a Learning OS-only account when login finds no legacy row', async () => {
@@ -661,22 +571,6 @@ describe('Auth Learning OS routing', () => {
     expect(response.body).toEqual({
       error: { message: 'Learning OS Auth API is unavailable.', statusCode: 502 },
     });
-  });
-
-  it('keeps the local credential implementation available when the flag is disabled', async () => {
-    process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'false';
-    mocks.prismaFindUnique.mockResolvedValue({ ...loginAccount, password: 'legacy-hash' });
-    mocks.bcryptCompare.mockResolvedValue(true);
-
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send({ email: loginAccount.email, password: 'legacy password' })
-      .expect(200);
-
-    expect(response.body).toEqual(loginAccount);
-    expect(mocks.prismaFindUnique).toHaveBeenCalledWith({ where: { email: loginAccount.email } });
-    expect(mocks.bcryptCompare).toHaveBeenCalledWith('legacy password', 'legacy-hash');
-    expect(mocks.authenticateLearningOsAccount).not.toHaveBeenCalled();
   });
 
   it('rate limits repeated login attempts before they reach Learning OS', async () => {
