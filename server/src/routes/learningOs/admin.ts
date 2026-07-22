@@ -53,7 +53,7 @@ type SpeakerAvatarMutation = {
   croppedUrl: string;
   originalUrl: string;
 };
-type AdminCourseRequestMethod = 'GET' | 'POST' | 'PUT';
+type AdminRequestMethod = 'GET' | 'POST' | 'PUT';
 
 const isRecord = (value: unknown): value is JsonRecord =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -500,7 +500,7 @@ const mutationError = (response: globalThis.Response, payload: unknown): AppErro
 async function fetchAdminMutation(
   req: AuthRequest,
   path: string,
-  method: AdminCourseRequestMethod | 'DELETE',
+  method: AdminRequestMethod | 'DELETE',
   body?: unknown,
   timeoutMs = FETCH_TIMEOUT_MS
 ): Promise<{ payload: unknown; response: globalThis.Response }> {
@@ -536,7 +536,7 @@ async function fetchAdminMutation(
 async function fetchAdminCourseRequest(
   req: AuthRequest,
   operation: string,
-  method: AdminCourseRequestMethod,
+  method: AdminRequestMethod,
   body?: unknown,
   timeoutMs = FETCH_TIMEOUT_MS
 ): Promise<{ courseId: string; payload: unknown }> {
