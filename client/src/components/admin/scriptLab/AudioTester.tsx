@@ -61,6 +61,20 @@ const SPECIAL_EFFECT_TAGS = [
   { label: 'Crowd Laughing', tag: '(crowd laughing)' },
 ];
 
+const readApiError = async (response: Response, fallback: string): Promise<string> => {
+  const payload: unknown = await response.json().catch(() => null);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return fallback;
+
+  const record = payload as Record<string, unknown>;
+  if (typeof record.message === 'string' && record.message) return record.message;
+  if (!record.error || typeof record.error !== 'object' || Array.isArray(record.error)) {
+    return fallback;
+  }
+
+  const { message } = record.error as Record<string, unknown>;
+  return typeof message === 'string' && message ? message : fallback;
+};
+
 const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
   const [text, setText] = useState('');
   const [format, setFormat] = useState<AudioFormat>('kanji');
@@ -93,8 +107,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to generate audio');
+        throw new Error(await readApiError(response, 'Failed to generate audio'));
       }
 
       const result = (await response.json()) as TestResults;
@@ -133,7 +146,9 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
           });
 
           if (!response.ok) {
-            throw new Error(`Failed to generate audio for format: ${fmt}`);
+            throw new Error(
+              await readApiError(response, `Failed to generate audio for format: ${fmt}`)
+            );
           }
 
           return response.json();
