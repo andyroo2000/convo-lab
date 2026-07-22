@@ -1170,6 +1170,8 @@ test('the auth lifecycle smoke is disposable and exercises signup, verification,
 
   for (const requiredContract of [
     'trap cleanup EXIT',
+    'trap report_error ERR',
+    'Auth lifecycle command failed at line $failed_line with exit status $exit_status.',
     'delete_disposable_account',
     'source_system", ConvoLabAccountSource::LEARNING_OS',
     'convolab_email_verification_tokens',

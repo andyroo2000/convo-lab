@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
 
 : "${ACTIVE_COLOR:?ACTIVE_COLOR is required}"
 : "${SMOKE_USER_EMAIL:?SMOKE_USER_EMAIL is required}"
@@ -24,6 +24,17 @@ SMOKE_INVITE_ID=""
 SMOKE_USER_ID=""
 SMOKE_PASSWORD=""
 SMOKE_RESET_PASSWORD=""
+
+report_error() {
+  local exit_status=$?
+  local failed_line="${BASH_LINENO[0]:-unknown}"
+
+  trap - ERR
+  echo "Auth lifecycle command failed at line $failed_line with exit status $exit_status." >&2
+  return "$exit_status"
+}
+
+trap report_error ERR
 
 json_field() {
   local expression="$1"
@@ -99,7 +110,7 @@ delete_disposable_account() {
 cleanup() {
   local exit_status=$?
   local cleanup_status=0
-  trap - EXIT
+  trap - EXIT ERR
   set +e
 
   delete_disposable_account || cleanup_status=1
