@@ -426,6 +426,17 @@ describe('Learning OS admin proxy', () => {
     expect(response.body.error.message).toBe('User not found');
   });
 
+  it('does not clean a local user for an unexpected upstream 404', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ message: 'Different resource not found' }, 404)
+    );
+
+    const response = await request(app).delete(`/users/${USER_ID}`).expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Admin API request failed.');
+    expect(mocks.userDeleteMany).not.toHaveBeenCalled();
+  });
+
   it('rejects malformed mutation IDs before contacting Learning OS', async () => {
     const userResponse = await request(app).delete('/users/not-a-uuid').expect(404);
     const inviteResponse = await request(app).delete('/invite-codes/not-a-uuid').expect(404);
@@ -506,6 +517,26 @@ describe('Learning OS admin proxy', () => {
     expect(mocks.inviteUpsert).toHaveBeenCalledOnce();
   });
 
+  it.each([null, '', false, 0])(
+    'preserves generated invite behavior for falsy customCode %j',
+    async (customCode) => {
+      const created = {
+        id: INVITE_ID,
+        code: 'A1B2C3D4',
+        usedBy: null,
+        usedAt: null,
+        createdAt: '2026-07-22T08:00:00.123Z',
+      };
+      mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(created));
+
+      await request(app).post('/invite-codes').send({ customCode }).expect(200);
+
+      expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+        expect.objectContaining({ body: {} })
+      );
+    }
+  );
+
   it('rejects a custom code already present in the local compatibility projection', async () => {
     mocks.inviteFindUnique.mockResolvedValue({ id: 'legacy-invite', code: 'CUSTOM12' });
 
@@ -580,7 +611,7 @@ describe('Learning OS admin proxy', () => {
     expect(mocks.inviteUpsert).not.toHaveBeenCalled();
   });
 
-  it.each([null, '', 'short', 'BAD-CODE', ['CUSTOM12']])(
+  it.each(['short', 'BAD-CODE', ['CUSTOM12']])(
     'rejects malformed custom code %j without calling upstream',
     async (customCode) => {
       const response = await request(app).post('/invite-codes').send({ customCode }).expect(400);
@@ -603,6 +634,17 @@ describe('Learning OS admin proxy', () => {
       upstreamJson({ message: 'Invite code not found' }, 404)
     );
     await request(app).delete(`/invite-codes/${INVITE_ID}`).expect(200);
+  });
+
+  it('does not clean a local invite for an unexpected upstream 404', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ message: 'Different resource not found' }, 404)
+    );
+
+    const response = await request(app).delete(`/invite-codes/${INVITE_ID}`).expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Admin API request failed.');
+    expect(mocks.inviteDeleteMany).not.toHaveBeenCalled();
   });
 
   it('does not clean local projections after malformed successful delete responses', async () => {

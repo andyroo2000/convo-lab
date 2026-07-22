@@ -318,6 +318,38 @@ async function rollbackCreatedInvite(req: AuthRequest, inviteId: string): Promis
   }
 }
 
+async function mirrorCreatedInvite(req: AuthRequest, payload: CreatedInviteCode) {
+  try {
+    return await prisma.inviteCode.upsert({
+      where: { id: payload.id },
+      create: {
+        id: payload.id,
+        code: payload.code,
+        usedBy: null,
+        usedAt: null,
+        createdAt: new Date(payload.createdAt),
+      },
+      update: {
+        code: payload.code,
+        usedBy: null,
+        usedAt: null,
+        createdAt: new Date(payload.createdAt),
+      },
+    });
+  } catch (error) {
+    try {
+      await rollbackCreatedInvite(req, payload.id);
+    } catch (rollbackError) {
+      console.error(`Unable to roll back Learning OS admin invite ${payload.id}:`, rollbackError);
+      throw rollbackError;
+    }
+    if (isPrismaUniqueConstraintError(error)) {
+      throw new AppError('This code already exists', 400);
+    }
+    throw new AppError(`${API_LABEL} request failed.`, 502);
+  }
+}
+
 export async function deleteLearningOsAdminUser(
   req: AuthRequest,
   res: Response,
@@ -332,6 +364,9 @@ export async function deleteLearningOsAdminUser(
       'DELETE'
     );
     if (!response.ok && response.status !== 404) throw mutationError(response, payload);
+    if (response.status === 404 && responseMessage(payload) !== 'User not found') {
+      throw mutationError(response, payload);
+    }
     if (response.ok && responseMessage(payload) !== 'User deleted successfully') {
       throw invalidResponse();
     }
@@ -351,7 +386,8 @@ export async function createLearningOsAdminInviteCode(
   next: NextFunction
 ): Promise<void> {
   try {
-    const customCode = req.body?.customCode;
+    const requestedCustomCode = req.body?.customCode;
+    const customCode = requestedCustomCode ? requestedCustomCode : undefined;
     if (
       customCode !== undefined &&
       (typeof customCode !== 'string' || !/^[A-Za-z0-9]{6,20}$/.test(customCode))
@@ -379,31 +415,7 @@ export async function createLearningOsAdminInviteCode(
       throw invalidResponse();
     }
 
-    let invite;
-    try {
-      invite = await prisma.inviteCode.upsert({
-        where: { id: payload.id },
-        create: {
-          id: payload.id,
-          code: payload.code,
-          usedBy: null,
-          usedAt: null,
-          createdAt: new Date(payload.createdAt),
-        },
-        update: {
-          code: payload.code,
-          usedBy: null,
-          usedAt: null,
-          createdAt: new Date(payload.createdAt),
-        },
-      });
-    } catch (error) {
-      await rollbackCreatedInvite(req, payload.id);
-      if (isPrismaUniqueConstraintError(error)) {
-        throw new AppError('This code already exists', 400);
-      }
-      throw new AppError(`${API_LABEL} request failed.`, 502);
-    }
+    const invite = await mirrorCreatedInvite(req, payload);
 
     res.set('Cache-Control', 'private, no-store').json(invite);
   } catch (error) {
@@ -425,6 +437,9 @@ export async function deleteLearningOsAdminInviteCode(
       'DELETE'
     );
     if (!response.ok && response.status !== 404) throw mutationError(response, payload);
+    if (response.status === 404 && responseMessage(payload) !== 'Invite code not found') {
+      throw mutationError(response, payload);
+    }
     if (response.ok && responseMessage(payload) !== 'Invite code deleted successfully') {
       throw invalidResponse();
     }
