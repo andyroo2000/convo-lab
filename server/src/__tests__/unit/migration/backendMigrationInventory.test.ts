@@ -205,6 +205,10 @@ describe('backend migration inventory', () => {
       ['GET', '/api/admin/script-lab/courses'],
       ['GET', `/api/admin/script-lab/courses/${'4'.repeat(36)}`],
       ['DELETE', '/api/admin/script-lab/courses'],
+      ['POST', '/api/admin/script-lab/sentence-script'],
+      ['GET', '/api/admin/script-lab/sentence-tests'],
+      ['GET', `/api/admin/script-lab/sentence-tests/${'6'.repeat(36)}`],
+      ['DELETE', '/api/admin/script-lab/sentence-tests'],
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
         surface: { id: 'admin-script-lab', runtimeOwner: 'learning-os-proxy' },

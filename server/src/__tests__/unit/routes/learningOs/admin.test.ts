@@ -9,6 +9,7 @@ import {
   buildLearningOsAdminCourseScriptConfig,
   createLearningOsAdminScriptLabCourse,
   createLearningOsAdminInviteCode,
+  deleteLearningOsAdminSentenceScriptTests,
   deleteLearningOsAdminCourseLineRendering,
   deleteLearningOsAdminScriptLabCourses,
   deleteLearningOsAdminInviteCode,
@@ -16,7 +17,9 @@ import {
   generateLearningOsAdminCourseAudio,
   generateLearningOsAdminCourseDialogue,
   generateLearningOsAdminCourseScript,
+  generateLearningOsAdminSentenceScript,
   listLearningOsAdminCourseLineRenderings,
+  listLearningOsAdminSentenceScriptTests,
   listLearningOsAdminInviteCodes,
   listLearningOsAdminScriptLabCourses,
   listLearningOsAdminSpeakerAvatars,
@@ -25,6 +28,7 @@ import {
   showLearningOsAdminPronunciationDictionary,
   showLearningOsAdminSpeakerAvatarOriginal,
   showLearningOsAdminStats,
+  showLearningOsAdminSentenceScriptTest,
   showLearningOsAdminUser,
   showLearningOsAdminCoursePipeline,
   showLearningOsAdminScriptLabCourse,
@@ -76,6 +80,7 @@ const USER_ID = '11111111-1111-4111-8111-111111111111';
 const INVITE_ID = '22222222-2222-4222-8222-222222222222';
 const COURSE_ID = '44444444-4444-4444-8444-444444444444';
 const RENDERING_ID = '55555555-5555-4555-8555-555555555555';
+const SENTENCE_TEST_ID = '66666666-6666-4666-8666-666666666666';
 const FISH_VOICE_ID = 'fishaudio:0123456789abcdef0123456789abcdef';
 const user = {
   id: USER_ID,
@@ -190,6 +195,43 @@ const scriptLabCourse = {
   exchanges: courseDialogue.exchanges,
   scriptUnits: courseScript.scriptUnits,
 };
+const sentenceUnits = [
+  { type: 'narration_L1', text: 'Listen closely.', voiceId: FISH_VOICE_ID },
+  { type: 'L2', text: '東京', reading: 'とうきょう', voiceId: FISH_VOICE_ID, speed: 0.9 },
+  { type: 'pause', seconds: 2.5 },
+];
+const generatedSentenceScript = {
+  units: sentenceUnits,
+  estimatedDurationSeconds: 4.75,
+  rawResponse: '{"units":[]}',
+  resolvedPrompt: 'Teach 東京.',
+  translation: 'Tokyo',
+  testId: SENTENCE_TEST_ID,
+};
+const sentenceTestSummary = {
+  id: SENTENCE_TEST_ID,
+  sentence: '東京',
+  translation: 'Tokyo',
+  estimatedDurationSecs: 4.75,
+  parseError: null,
+  createdAt: '2026-07-22T12:00:00.123Z',
+};
+const sentenceTest = {
+  ...sentenceTestSummary,
+  userId: USER_ID,
+  targetLanguage: 'ja',
+  nativeLanguage: 'en',
+  jlptLevel: 'N4',
+  l1VoiceId: FISH_VOICE_ID,
+  l2VoiceId: FISH_VOICE_ID,
+  promptTemplate: 'Teach 東京.',
+  unitsJson: sentenceUnits,
+  rawResponse: '{"units":[]}',
+};
+const sentenceTestCursor = Buffer.from(
+  `2026-07-22 12:00:00.123|${SENTENCE_TEST_ID}`,
+  'utf8'
+).toString('base64url');
 
 const upstreamJson = (
   body: unknown,
@@ -232,7 +274,7 @@ describe('Learning OS admin proxy', () => {
     mocks.updateJapanesePronunciationDictionary.mockResolvedValue(pronunciationDictionary);
 
     app = express();
-    app.use(express.json());
+    app.use(express.json({ limit: '10mb' }));
     app.use('/courses', (req, _res, next) => {
       Object.assign(req, {
         userId: USER_ID,
@@ -255,6 +297,10 @@ describe('Learning OS admin proxy', () => {
     app.get('/script-lab/courses', listLearningOsAdminScriptLabCourses);
     app.get('/script-lab/courses/:id', showLearningOsAdminScriptLabCourse);
     app.delete('/script-lab/courses', deleteLearningOsAdminScriptLabCourses);
+    app.post('/script-lab/sentence-script', generateLearningOsAdminSentenceScript);
+    app.get('/script-lab/sentence-tests', listLearningOsAdminSentenceScriptTests);
+    app.get('/script-lab/sentence-tests/:id', showLearningOsAdminSentenceScriptTest);
+    app.delete('/script-lab/sentence-tests', deleteLearningOsAdminSentenceScriptTests);
     app.post('/courses/:id/build-prompt', buildLearningOsAdminCoursePrompt);
     app.post('/courses/:id/build-script-config', buildLearningOsAdminCourseScriptConfig);
     app.post('/courses/:id/generate-dialogue', generateLearningOsAdminCourseDialogue);
@@ -474,6 +520,231 @@ describe('Learning OS admin proxy', () => {
 
     expect(missing.body.error.message).toBe('Test course not found');
     expect(failure.body.error.message).toBe('Learning OS Admin API request failed.');
+  });
+
+  it('uses Learning OS for sentence generation and actor-scoped test history', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson(generatedSentenceScript))
+      .mockResolvedValueOnce(
+        upstreamJson({ tests: [sentenceTestSummary], nextCursor: sentenceTestCursor })
+      )
+      .mockResolvedValueOnce(upstreamJson(sentenceTest))
+      .mockResolvedValueOnce(upstreamJson({ deleted: 1 }));
+
+    const generation = await request(app)
+      .post('/script-lab/sentence-script')
+      .send({
+        sentence: '  東京  ',
+        translation: '  Tokyo  ',
+        targetLanguage: ' JA ',
+        nativeLanguage: ' EN ',
+        jlptLevel: ' N4 ',
+        l1VoiceId: FISH_VOICE_ID.toUpperCase(),
+        l2VoiceId: FISH_VOICE_ID.toUpperCase(),
+        promptOverride: '  Teach 東京.  ',
+        ignored: 'drop me',
+      })
+      .expect(200, generatedSentenceScript);
+    const list = await request(app)
+      .get('/script-lab/sentence-tests')
+      .query({ limit: '25', cursor: sentenceTestCursor })
+      .expect(200, { tests: [sentenceTestSummary], nextCursor: sentenceTestCursor });
+    const show = await request(app)
+      .get(`/script-lab/sentence-tests/${SENTENCE_TEST_ID.toUpperCase()}`)
+      .expect(200, sentenceTest);
+    const deletion = await request(app)
+      .delete('/script-lab/sentence-tests')
+      .send({ ids: [SENTENCE_TEST_ID.toUpperCase()] })
+      .expect(200, { deleted: 1 });
+
+    for (const response of [generation, list, show, deletion]) {
+      expect(response.headers['cache-control']).toBe('private, no-store');
+    }
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          'http://learning-os.test/api/convolab/admin/script-lab/sentence-script'
+        ),
+        method: 'POST',
+        timeoutMs: 120_000,
+        body: {
+          sentence: '東京',
+          translation: 'Tokyo',
+          targetLanguage: 'ja',
+          nativeLanguage: 'en',
+          jlptLevel: 'N4',
+          l1VoiceId: FISH_VOICE_ID,
+          l2VoiceId: FISH_VOICE_ID,
+          promptOverride: 'Teach 東京.',
+        },
+      })
+    );
+    const listUrl = mocks.fetchLearningOsProxy.mock.calls[1][0].upstreamUrl as URL;
+    expect(listUrl.pathname).toBe('/api/convolab/admin/script-lab/sentence-tests');
+    expect(listUrl.searchParams.get('limit')).toBe('25');
+    expect(listUrl.searchParams.get('cursor')).toBe(sentenceTestCursor);
+    expect(mocks.fetchLearningOsProxy.mock.calls[1][0].body).toBeUndefined();
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          `http://learning-os.test/api/convolab/admin/script-lab/sentence-tests/${SENTENCE_TEST_ID}`
+        ),
+        method: 'GET',
+      })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({ method: 'DELETE', body: { ids: [SENTENCE_TEST_ID] } })
+    );
+    expect(mocks.resolveLearningOsUserProxyContext).toHaveBeenCalledTimes(4);
+  });
+
+  it.each([
+    [
+      { ...generatedSentenceScript, estimatedDurationSeconds: -1 },
+      'POST',
+      '/script-lab/sentence-script',
+    ],
+    [
+      { tests: [{ ...sentenceTestSummary, id: 'bad-id' }], nextCursor: null },
+      'GET',
+      '/script-lab/sentence-tests',
+    ],
+    [
+      { ...sentenceTest, unitsJson: [{ type: 'unknown' }] },
+      'GET',
+      `/script-lab/sentence-tests/${SENTENCE_TEST_ID}`,
+    ],
+    [{ deleted: -1 }, 'DELETE', '/script-lab/sentence-tests'],
+  ] as const)('rejects malformed sentence test responses', async (payload, method, path) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
+    const pending =
+      method === 'POST'
+        ? request(app).post(path).send({ sentence: '東京' })
+        : method === 'DELETE'
+          ? request(app)
+              .delete(path)
+              .send({ ids: [SENTENCE_TEST_ID] })
+          : request(app).get(path);
+    await pending.expect(502);
+  });
+
+  it('validates sentence test requests before contacting Learning OS', async () => {
+    const missing = await request(app).post('/script-lab/sentence-script').send({}).expect(400);
+    const longSentence = await request(app)
+      .post('/script-lab/sentence-script')
+      .send({ sentence: 'a'.repeat(15_001) })
+      .expect(400);
+    const badLimit = await request(app).get('/script-lab/sentence-tests?limit=101').expect(400);
+    const badCursor = await request(app)
+      .get('/script-lab/sentence-tests?cursor=not-a-cursor')
+      .expect(400);
+    const impossibleCursor = Buffer.from(
+      `2026-02-31 12:00:00.123|${SENTENCE_TEST_ID}`,
+      'utf8'
+    ).toString('base64url');
+    await request(app)
+      .get('/script-lab/sentence-tests')
+      .query({ cursor: impossibleCursor })
+      .expect(400);
+    const badId = await request(app).get('/script-lab/sentence-tests/not-a-uuid').expect(404);
+    const duplicateIds = await request(app)
+      .delete('/script-lab/sentence-tests')
+      .send({ ids: [SENTENCE_TEST_ID, SENTENCE_TEST_ID.toUpperCase()] })
+      .expect(400);
+
+    expect(missing.body.error.message).toBe('sentence is required');
+    expect(longSentence.body.error.message).toBe('sentence must not exceed 15000 characters');
+    expect(badLimit.body.error.message).toBe('limit must be an integer between 1 and 100');
+    expect(badCursor.body.error.message).toBe('cursor is invalid');
+    expect(badId.body.error.message).toBe('Sentence test not found');
+    expect(duplicateIds.body.error.message).toBe('ids must contain distinct UUIDs');
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('accepts exact sentence, prompt, and bulk-delete boundaries', async () => {
+    const sentence = '😀'.repeat(15_000);
+    const promptOverride = 'p'.repeat(100_000);
+    const ids = Array.from(
+      { length: 100 },
+      (_, index) => `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
+    );
+    const parseFailure = {
+      units: null,
+      estimatedDurationSeconds: null,
+      rawResponse: 'not-json',
+      resolvedPrompt: promptOverride,
+      translation: null,
+      testId: SENTENCE_TEST_ID,
+      parseError: 'Syntax error',
+    };
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson(parseFailure))
+      .mockResolvedValueOnce(upstreamJson({ deleted: 100 }));
+
+    await request(app)
+      .post('/script-lab/sentence-script')
+      .send({ sentence, promptOverride, translation: null, jlptLevel: null })
+      .expect(200, parseFailure);
+    await request(app)
+      .delete('/script-lab/sentence-tests')
+      .send({ ids })
+      .expect(200, { deleted: 100 });
+
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        body: { sentence, promptOverride, translation: null, jlptLevel: null },
+      })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ body: { ids } })
+    );
+  });
+
+  it('rejects values immediately beyond sentence, prompt, and bulk-delete boundaries', async () => {
+    await request(app)
+      .post('/script-lab/sentence-script')
+      .send({ sentence: '😀'.repeat(15_001) })
+      .expect(400);
+    await request(app)
+      .post('/script-lab/sentence-script')
+      .send({ sentence: '東京', promptOverride: 'p'.repeat(100_001) })
+      .expect(400);
+    const tooManyIds = Array.from(
+      { length: 101 },
+      (_, index) => `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
+    );
+    await request(app).delete('/script-lab/sentence-tests').send({ ids: tooManyIds }).expect(400);
+
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('preserves safe sentence test errors and masks provider details', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson({ message: 'Sentence test not found' }, 404))
+      .mockResolvedValueOnce(
+        upstreamJson({ message: 'Sentence script generation is temporarily unavailable' }, 503)
+      )
+      .mockResolvedValueOnce(upstreamJson({ message: 'provider credential leaked' }, 500));
+
+    const missing = await request(app)
+      .get(`/script-lab/sentence-tests/${SENTENCE_TEST_ID}`)
+      .expect(404);
+    const unavailable = await request(app)
+      .post('/script-lab/sentence-script')
+      .send({ sentence: '東京' })
+      .expect(503);
+    const hidden = await request(app).get('/script-lab/sentence-tests').expect(502);
+
+    expect(missing.body.error.message).toBe('Sentence test not found');
+    expect(unavailable.body.error.message).toBe(
+      'Sentence script generation is temporarily unavailable'
+    );
+    expect(hidden.body.error.message).toBe('Learning OS Admin API request failed.');
   });
 
   it('proxies every admin course workbench operation with its canonical contract', async () => {

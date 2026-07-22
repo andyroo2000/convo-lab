@@ -493,22 +493,26 @@
         {
           "id": "admin-script-lab.sentence-script",
           "method": "POST",
-          "path": "/api/admin/script-lab/sentence-script"
+          "path": "/api/admin/script-lab/sentence-script",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.sentence-tests.index",
           "method": "GET",
-          "path": "/api/admin/script-lab/sentence-tests"
+          "path": "/api/admin/script-lab/sentence-tests",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.sentence-tests.show",
           "method": "GET",
-          "path": "/api/admin/script-lab/sentence-tests/:id"
+          "path": "/api/admin/script-lab/sentence-tests/:id",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.sentence-tests.delete",
           "method": "DELETE",
-          "path": "/api/admin/script-lab/sentence-tests"
+          "path": "/api/admin/script-lab/sentence-tests",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.synthesize-line",
