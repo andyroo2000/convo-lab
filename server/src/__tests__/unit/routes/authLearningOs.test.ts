@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   copySampleContentToUser: vi.fn(),
   prismaFindUnique: vi.fn(),
   prismaDelete: vi.fn(),
+  prismaDeleteMany: vi.fn(),
   prismaUpdate: vi.fn(),
 }));
 
@@ -53,6 +54,7 @@ vi.mock('../../../db/client.js', () => ({
       update: mocks.prismaUpdate,
       create: vi.fn(),
       delete: mocks.prismaDelete,
+      deleteMany: mocks.prismaDeleteMany,
     },
     inviteCode: {
       findUnique: vi.fn(),
@@ -133,6 +135,7 @@ describe('Auth Learning OS routing', () => {
     mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
     mocks.updateLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id });
+    mocks.prismaDeleteMany.mockResolvedValue({ count: 1 });
 
     app = express();
     app.use(testCookieParser);
@@ -422,7 +425,7 @@ describe('Auth Learning OS routing', () => {
     expect(mocks.changeLearningOsCurrentPassword).not.toHaveBeenCalled();
   });
 
-  it('deletes the current account through Learning OS and clears session cookies', async () => {
+  it('deletes the current account and local projection before clearing session cookies', async () => {
     const response = await request(app)
       .delete('/api/auth/me')
       .set('Cookie', [`token=session-token`, `${CSRF_TOKEN_COOKIE_NAME}=csrf-token`])
@@ -442,10 +445,28 @@ describe('Auth Learning OS routing', () => {
     );
     expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
     expect(mocks.prismaDelete).not.toHaveBeenCalled();
+    expect(mocks.prismaDeleteMany).toHaveBeenCalledWith({ where: { id: loginAccount.id } });
+    expect(mocks.deleteLearningOsCurrentAccount.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.prismaDeleteMany.mock.invocationCallOrder[0]
+    );
 
     const cookies = getSetCookieArray(response.headers['set-cookie']);
     expect(cookies.some((cookie) => cookie.startsWith('token=;'))).toBe(true);
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=;`))).toBe(true);
+  });
+
+  it('does not report success when the local projection cannot be deleted', async () => {
+    mocks.prismaDeleteMany.mockRejectedValueOnce(new Error('local cleanup failed'));
+
+    const response = await request(app)
+      .delete('/api/auth/me')
+      .set('Cookie', [`token=session-token`, `${CSRF_TOKEN_COOKIE_NAME}=csrf-token`])
+      .send({ currentPassword: 'correct-password123' })
+      .expect(500);
+
+    expect(mocks.deleteLearningOsCurrentAccount).toHaveBeenCalledOnce();
+    expect(mocks.prismaDeleteMany).toHaveBeenCalledOnce();
+    expect(getSetCookieArray(response.headers['set-cookie'])).toEqual([]);
   });
 
   it.each([
@@ -476,6 +497,7 @@ describe('Auth Learning OS routing', () => {
       if (status === 429) {
         expect(response.headers['retry-after']).toBe('19');
       }
+      expect(mocks.prismaDeleteMany).not.toHaveBeenCalled();
     }
   );
 

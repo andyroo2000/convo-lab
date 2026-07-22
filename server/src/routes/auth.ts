@@ -823,6 +823,11 @@ router.delete(
             accountSource: req.accountSource,
           }
         );
+
+        // Learning OS owns credential verification and canonical data deletion. Remove any
+        // remaining ConvoLab projection afterward; deleteMany is idempotent when both apps
+        // share the user row and Learning OS has already removed it.
+        await prisma.user.deleteMany({ where: { id: req.userId } });
       } else {
         const user = await prisma.user.findUnique({ where: { id: req.userId } });
         if (!user) {

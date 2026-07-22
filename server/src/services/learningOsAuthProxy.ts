@@ -250,7 +250,9 @@ export async function deleteLearningOsCurrentAccount(
     throw rateLimitError(response, 'Too many account deletion attempts.');
   }
   if (response.status === 404) {
-    throw new AppError('User not found', 404);
+    // A prior attempt may have deleted the canonical account before ConvoLab finished
+    // cleaning up its local projection. Treat absence as an idempotent delete result.
+    return;
   }
   if (response.status === 422) {
     const body = await parseJsonResponse(response);

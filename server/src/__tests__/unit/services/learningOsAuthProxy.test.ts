@@ -342,7 +342,6 @@ describe('Learning OS auth proxy', () => {
       'Current password is incorrect',
       401,
     ],
-    ['missing account', 404, { message: 'Not Found.' }, 'User not found', 404],
   ] as const)(
     'maps %s to the legacy account-deletion contract',
     async (_label, upstreamStatus, body, message, status) => {
@@ -355,6 +354,16 @@ describe('Learning OS auth proxy', () => {
       ).rejects.toMatchObject({ message, statusCode: status });
     }
   );
+
+  it('treats an already-deleted canonical account as an idempotent success', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse({ message: 'Not Found.' }, 404));
+
+    await expect(
+      deleteLearningOsCurrentAccount(account.id, {
+        currentPassword: 'correct-password123',
+      })
+    ).resolves.toBeUndefined();
+  });
 
   it('preserves a bounded account-deletion retry delay', async () => {
     vi.mocked(global.fetch).mockResolvedValue(
