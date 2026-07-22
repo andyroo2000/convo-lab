@@ -224,8 +224,19 @@ post_json() {
   local body_file="$2"
   local cookie_jar="$3"
   local csrf_token="$4"
+  local response_file
+  local headers_file
+  local status
+  local retry_after
 
-  curl --fail --silent --show-error \
+  response_file="$(mktemp)"
+  headers_file="$(mktemp)"
+  chmod 600 "$response_file" "$headers_file"
+
+  if ! status="$(curl --silent --show-error \
+    --dump-header "$headers_file" \
+    --output "$response_file" \
+    --write-out '%{http_code}' \
     --request POST \
     --header 'Accept: application/json' \
     --header 'Content-Type: application/json' \
@@ -234,7 +245,30 @@ post_json() {
     --cookie "$cookie_jar" \
     --cookie-jar "$cookie_jar" \
     --data-binary "@$body_file" \
-    "$BASE_URL$path"
+    "$BASE_URL$path")"; then
+    echo "POST $path failed before receiving an HTTP response." >&2
+    rm -f "$response_file" "$headers_file"
+    return 1
+  fi
+
+  if [[ "$status" =~ ^2[0-9]{2}$ ]]; then
+    cat "$response_file"
+    rm -f "$response_file" "$headers_file"
+    return 0
+  fi
+
+  retry_after="$(awk '
+    tolower($1) == "retry-after:" { gsub("\\r", "", $2); value = $2 }
+    END { print value }
+  ' "$headers_file")"
+  echo "POST $path returned HTTP $status${retry_after:+ (Retry-After: $retry_after seconds)}." >&2
+  if [ -s "$response_file" ]; then
+    echo "Response body (first 4096 bytes):" >&2
+    head -c 4096 "$response_file" >&2
+    echo >&2
+  fi
+  rm -f "$response_file" "$headers_file"
+  return 1
 }
 
 post_json_status() {
