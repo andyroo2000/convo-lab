@@ -77,7 +77,10 @@
       "confirmTitle": "アカウントを削除",
       "confirmMessage": "本当にアカウントを削除しますか？この操作は元に戻すことができず、エピソードやオーディオコースを含むすべてのデータが完全に削除されます。",
       "confirmButton": "はい、アカウントを削除します",
-      "cancelButton": "キャンセル"
+      "cancelButton": "キャンセル",
+      "passwordLabel": "現在のパスワード",
+      "passwordPlaceholder": "現在のパスワードを入力",
+      "passwordRequired": "アカウントを削除するには現在のパスワードを入力してください"
     }
   },
   "messages": {

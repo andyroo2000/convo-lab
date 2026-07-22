@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,7 +11,9 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  confirmDisabled?: boolean;
   variant?: 'danger' | 'warning';
+  children?: ReactNode;
 }
 
 const ConfirmModal = ({
@@ -23,7 +25,9 @@ const ConfirmModal = ({
   onConfirm,
   onCancel,
   isLoading = false,
+  confirmDisabled = false,
   variant = 'danger',
+  children,
 }: ConfirmModalProps) => {
   const { t } = useTranslation(['common']);
 
@@ -84,6 +88,7 @@ const ConfirmModal = ({
         {/* Content */}
         <div className="p-6">
           <p className="text-gray-700">{message}</p>
+          {children && <div className="mt-4">{children}</div>}
         </div>
 
         {/* Footer */}
@@ -100,7 +105,7 @@ const ConfirmModal = ({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isLoading || confirmDisabled}
             className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               variant === 'danger'
                 ? 'bg-red-600 hover:bg-red-700'

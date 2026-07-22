@@ -14,11 +14,14 @@ const mocks = vi.hoisted(() => ({
   bcryptCompare: vi.fn(),
   bcryptHash: vi.fn(),
   changeLearningOsCurrentPassword: vi.fn(),
+  deleteLearningOsCurrentAccount: vi.fn(),
   getLearningOsCurrentAccount: vi.fn(),
   registerLearningOsAccount: vi.fn(),
   updateLearningOsCurrentAccount: vi.fn(),
   copySampleContentToUser: vi.fn(),
   prismaFindUnique: vi.fn(),
+  prismaDelete: vi.fn(),
+  prismaDeleteMany: vi.fn(),
   prismaUpdate: vi.fn(),
 }));
 
@@ -50,7 +53,8 @@ vi.mock('../../../db/client.js', () => ({
       findUnique: mocks.prismaFindUnique,
       update: mocks.prismaUpdate,
       create: vi.fn(),
-      delete: vi.fn(),
+      delete: mocks.prismaDelete,
+      deleteMany: mocks.prismaDeleteMany,
     },
     inviteCode: {
       findUnique: vi.fn(),
@@ -76,6 +80,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 vi.mock('../../../services/learningOsAuthProxy.js', () => ({
   authenticateLearningOsAccount: mocks.authenticateLearningOsAccount,
   changeLearningOsCurrentPassword: mocks.changeLearningOsCurrentPassword,
+  deleteLearningOsCurrentAccount: mocks.deleteLearningOsCurrentAccount,
   getLearningOsCurrentAccount: mocks.getLearningOsCurrentAccount,
   registerLearningOsAccount: mocks.registerLearningOsAccount,
   updateLearningOsCurrentAccount: mocks.updateLearningOsCurrentAccount,
@@ -125,10 +130,12 @@ describe('Auth Learning OS routing', () => {
     process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = 'true';
     mocks.authenticateLearningOsAccount.mockResolvedValue(loginAccount);
     mocks.changeLearningOsCurrentPassword.mockResolvedValue(undefined);
+    mocks.deleteLearningOsCurrentAccount.mockResolvedValue(undefined);
     mocks.getLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
     mocks.updateLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id });
+    mocks.prismaDeleteMany.mockResolvedValue({ count: 1 });
 
     app = express();
     app.use(testCookieParser);
@@ -416,6 +423,153 @@ describe('Auth Learning OS routing', () => {
       data: { password: 'new-legacy-hash' },
     });
     expect(mocks.changeLearningOsCurrentPassword).not.toHaveBeenCalled();
+  });
+
+  it('deletes the current account and local projection before clearing session cookies', async () => {
+    const response = await request(app)
+      .delete('/api/auth/me')
+      .set('Cookie', [`token=session-token`, `${CSRF_TOKEN_COOKIE_NAME}=csrf-token`])
+      .send({ currentPassword: 'correct-password123' })
+      .expect(200);
+
+    expect(response.body).toEqual({ message: 'server:auth.accountDeleted' });
+    expect(mocks.deleteLearningOsCurrentAccount).toHaveBeenCalledWith(
+      loginAccount.id,
+      { currentPassword: 'correct-password123' },
+      {
+        userId: loginAccount.id,
+        email: loginAccount.email,
+        role: loginAccount.role,
+        accountSource: 'learning-os',
+      }
+    );
+    expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
+    expect(mocks.prismaDelete).not.toHaveBeenCalled();
+    expect(mocks.prismaDeleteMany).toHaveBeenCalledWith({ where: { id: loginAccount.id } });
+    expect(mocks.deleteLearningOsCurrentAccount.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.prismaDeleteMany.mock.invocationCallOrder[0]
+    );
+
+    const cookies = getSetCookieArray(response.headers['set-cookie']);
+    expect(cookies.some((cookie) => cookie.startsWith('token=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=;`))).toBe(true);
+  });
+
+  it('does not report success when the local projection cannot be deleted', async () => {
+    mocks.prismaDeleteMany.mockRejectedValueOnce(new Error('local cleanup failed'));
+
+    const response = await request(app)
+      .delete('/api/auth/me')
+      .set('Cookie', [`token=session-token`, `${CSRF_TOKEN_COOKIE_NAME}=csrf-token`])
+      .send({ currentPassword: 'correct-password123' })
+      .expect(500);
+
+    expect(mocks.deleteLearningOsCurrentAccount).toHaveBeenCalledOnce();
+    expect(mocks.prismaDeleteMany).toHaveBeenCalledOnce();
+    expect(getSetCookieArray(response.headers['set-cookie'])).toEqual([]);
+  });
+
+  it.each([
+    ['incorrect current password', new AppError('Current password is incorrect', 401), 401],
+    [
+      'upstream rate limit',
+      new AppError('Too many account deletion attempts.', 429, {
+        cooldown: { remainingSeconds: 19 },
+      }),
+      429,
+    ],
+  ] as const)(
+    'returns the normal account-deletion envelope for %s',
+    async (_label, error, status) => {
+      mocks.deleteLearningOsCurrentAccount.mockRejectedValueOnce(error);
+      const userId =
+        status === 429
+          ? '44444444-4444-4444-8444-444444444444'
+          : '55555555-5555-4555-8555-555555555555';
+
+      const response = await request(app)
+        .delete('/api/auth/me')
+        .set('X-Test-User-Id', userId)
+        .send({ currentPassword: 'correct-password123' })
+        .expect(status);
+
+      expect(response.body.error).toMatchObject({ message: error.message, statusCode: status });
+      if (status === 429) {
+        expect(response.headers['retry-after']).toBe('19');
+      }
+      expect(mocks.prismaDeleteMany).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rejects malformed account deletion payloads before forwarding credentials', async () => {
+    for (const currentPassword of [undefined, '', ['password'], 'x'.repeat(1025)]) {
+      await request(app)
+        .delete('/api/auth/me')
+        .set('X-Test-User-Id', '66666666-6666-4666-8666-666666666666')
+        .send({ currentPassword })
+        .expect(400);
+    }
+
+    expect(mocks.deleteLearningOsCurrentAccount).not.toHaveBeenCalled();
+  });
+
+  it('rate limits account deletion attempts by user before forwarding credentials', async () => {
+    const limitedUserId = '22222222-2222-4222-8222-222222222222';
+    const otherUserId = '33333333-3333-4333-8333-333333333333';
+    const upstreamError = new AppError('Current password is incorrect', 401);
+    mocks.deleteLearningOsCurrentAccount.mockRejectedValue(upstreamError);
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await request(app)
+        .delete('/api/auth/me')
+        .set('X-Test-User-Id', limitedUserId)
+        .send({ currentPassword: 'wrong-password' })
+        .expect(401);
+    }
+
+    await request(app)
+      .delete('/api/auth/me')
+      .set('X-Test-User-Id', limitedUserId)
+      .send({ currentPassword: 'wrong-password' })
+      .expect(429);
+    await request(app)
+      .delete('/api/auth/me')
+      .set('X-Test-User-Id', otherUserId)
+      .send({ currentPassword: 'wrong-password' })
+      .expect(401);
+
+    expect(mocks.deleteLearningOsCurrentAccount).toHaveBeenCalledTimes(6);
+  });
+
+  it('keeps password-verified local deletion available when auth routing is disabled', async () => {
+    const userId = '77777777-7777-4777-8777-777777777777';
+    process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'false';
+    mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id, password: 'legacy-hash' });
+    mocks.bcryptCompare.mockResolvedValue(true);
+
+    await request(app)
+      .delete('/api/auth/me')
+      .set('X-Test-User-Id', userId)
+      .send({ currentPassword: 'correct-password123' })
+      .expect(200);
+
+    expect(mocks.bcryptCompare).toHaveBeenCalledWith('correct-password123', 'legacy-hash');
+    expect(mocks.prismaDelete).toHaveBeenCalledWith({ where: { id: userId } });
+    expect(mocks.deleteLearningOsCurrentAccount).not.toHaveBeenCalled();
+  });
+
+  it('does not delete a local account when password verification fails', async () => {
+    process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'false';
+    mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id, password: 'legacy-hash' });
+    mocks.bcryptCompare.mockResolvedValue(false);
+
+    await request(app)
+      .delete('/api/auth/me')
+      .set('X-Test-User-Id', '88888888-8888-4888-8888-888888888888')
+      .send({ currentPassword: 'wrong-password' })
+      .expect(401);
+
+    expect(mocks.prismaDelete).not.toHaveBeenCalled();
   });
 
   it.each([
