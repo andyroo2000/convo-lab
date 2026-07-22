@@ -483,51 +483,52 @@ const PRONUNCIATION_VALIDATION_MESSAGES = new Set([
   'verbKana entries must be <= 64 characters',
 ]);
 
+const MUTATION_ERROR_STATUSES = new Map<string, number>([
+  ['Cannot delete your own account', 400],
+  ['Cannot delete admin users', 403],
+  ['User not found', 404],
+  ['This code already exists', 400],
+  ['Cannot delete used invite codes', 400],
+  ['Invite code not found', 404],
+  ['Unable to generate invite code', 503],
+  ['Invalid avatar filename format', 400],
+  ['No image file provided', 400],
+  ['Invalid crop area', 400],
+  ['Invalid image file', 400],
+  ['Speaker avatar not found', 404],
+  ['Speaker avatar changed while it was being re-cropped', 409],
+  ['Speaker avatar must be uploaded before it can be re-cropped', 409],
+  ['Test course not found', 404],
+  ['Episode not found', 404],
+  ['Cannot delete non-test courses via Script Lab. Use the standard admin interface.', 400],
+  ['Course not found', 404],
+  ['Course has no episode with source text', 400],
+  ['Course changed while dialogue was being generated', 409],
+  ['No dialogue exchanges found. Generate dialogue first.', 400],
+  ['Course changed while script was being generated', 409],
+  ['Course requires a narrator voice and a duration from 1 to 120 minutes', 400],
+  ['Script provider is temporarily unavailable', 503],
+  ['No script data found. Generate script first.', 400],
+  ['Script data is not in the correct format for audio generation. Generate script first.', 400],
+  ['Course is already being generated', 409],
+  ['Course script changed while audio generation was being queued', 409],
+  ['Course generation could not be queued. Please try again.', 503],
+  ['Invalid stage. Must be "exchanges" or "script"', 400],
+  ['Pipeline data must be a list.', 400],
+  ['Pipeline data contains too many items.', 400],
+  ['Pipeline data is too complex.', 400],
+  ['Pipeline data text is too long.', 400],
+  ['Pipeline data contains an invalid number.', 400],
+  ['Pipeline data contains an invalid key.', 400],
+  ['Pipeline data contains an invalid value.', 400],
+]);
+
 const isPrismaUniqueConstraintError = (error: unknown): boolean =>
   isRecord(error) && error.name === 'PrismaClientKnownRequestError' && error.code === 'P2002';
 
 const mutationError = (response: globalThis.Response, payload: unknown): AppError => {
   const message = responseMessage(payload);
-  const allowed = new Map<string, number>([
-    ['Cannot delete your own account', 400],
-    ['Cannot delete admin users', 403],
-    ['User not found', 404],
-    ['This code already exists', 400],
-    ['Cannot delete used invite codes', 400],
-    ['Invite code not found', 404],
-    ['Unable to generate invite code', 503],
-    ['Invalid avatar filename format', 400],
-    ['No image file provided', 400],
-    ['Invalid crop area', 400],
-    ['Invalid image file', 400],
-    ['Speaker avatar not found', 404],
-    ['Speaker avatar changed while it was being re-cropped', 409],
-    ['Speaker avatar must be uploaded before it can be re-cropped', 409],
-    ['Test course not found', 404],
-    ['Episode not found', 404],
-    ['Cannot delete non-test courses via Script Lab. Use the standard admin interface.', 400],
-    ['Course not found', 404],
-    ['Course has no episode with source text', 400],
-    ['Course changed while dialogue was being generated', 409],
-    ['No dialogue exchanges found. Generate dialogue first.', 400],
-    ['Course changed while script was being generated', 409],
-    ['Course requires a narrator voice and a duration from 1 to 120 minutes', 400],
-    ['Script provider is temporarily unavailable', 503],
-    ['No script data found. Generate script first.', 400],
-    ['Script data is not in the correct format for audio generation. Generate script first.', 400],
-    ['Course is already being generated', 409],
-    ['Course script changed while audio generation was being queued', 409],
-    ['Course generation could not be queued. Please try again.', 503],
-    ['Invalid stage. Must be "exchanges" or "script"', 400],
-    ['Pipeline data must be a list.', 400],
-    ['Pipeline data contains too many items.', 400],
-    ['Pipeline data is too complex.', 400],
-    ['Pipeline data text is too long.', 400],
-    ['Pipeline data contains an invalid number.', 400],
-    ['Pipeline data contains an invalid key.', 400],
-    ['Pipeline data contains an invalid value.', 400],
-  ]);
-  if (message !== null && allowed.get(message) === response.status) {
+  if (message !== null && MUTATION_ERROR_STATUSES.get(message) === response.status) {
     return new AppError(message, response.status);
   }
   if (
@@ -785,9 +786,14 @@ export async function createLearningOsAdminScriptLabCourse(
 ): Promise<void> {
   try {
     const body = isRecord(req.body) ? req.body : {};
-    const title = body.title;
+    const title = isString(body.title) ? body.title.trim() : body.title;
     const sourceText = body.sourceText;
-    if (!isNonEmptyString(title) || title.trim().length > 255 || !isNonEmptyString(sourceText)) {
+    if (
+      !isNonEmptyString(title) ||
+      title.length > 255 ||
+      !isNonEmptyString(sourceText) ||
+      sourceText.trim().length === 0
+    ) {
       throw new AppError('Title and sourceText are required', 400);
     }
 

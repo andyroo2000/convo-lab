@@ -337,7 +337,7 @@ describe('Learning OS admin proxy', () => {
       .mockResolvedValueOnce(upstreamJson({ deleted: 1 }));
 
     const createBody = {
-      title: 'Train station',
+      title: '  Train station  ',
       sourceText: 'A dialogue at a train station.',
       targetLanguage: 'ja',
       nativeLanguage: 'en',
@@ -366,7 +366,7 @@ describe('Learning OS admin proxy', () => {
         upstreamUrl: new URL('http://learning-os.test/api/convolab/admin/script-lab/courses'),
         method: 'POST',
         body: {
-          title: createBody.title,
+          title: 'Train station',
           sourceText: createBody.sourceText,
           targetLanguage: 'ja',
           nativeLanguage: 'en',
@@ -421,6 +421,10 @@ describe('Learning OS admin proxy', () => {
       .post('/script-lab/courses')
       .send({ title: 'Missing source' })
       .expect(400);
+    const blank = await request(app)
+      .post('/script-lab/courses')
+      .send({ title: '   ', sourceText: '   ' })
+      .expect(400);
     const badId = await request(app).get('/script-lab/courses/not-a-uuid').expect(404);
     const badDelete = await request(app)
       .delete('/script-lab/courses')
@@ -428,6 +432,7 @@ describe('Learning OS admin proxy', () => {
       .expect(400);
 
     expect(missing.body.error.message).toBe('Title and sourceText are required');
+    expect(blank.body.error.message).toBe('Title and sourceText are required');
     expect(badId.body.error.message).toBe('Test course not found');
     expect(badDelete.body.error.message).toBe('courseIds must contain distinct UUIDs');
     expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
