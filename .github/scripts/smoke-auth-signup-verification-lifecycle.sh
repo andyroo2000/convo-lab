@@ -49,8 +49,9 @@ delete_disposable_account() {
       $email = getenv("AUTH_SMOKE_EMAIL");
       $inviteCode = getenv("AUTH_SMOKE_INVITE_CODE");
       $inviteId = getenv("AUTH_SMOKE_INVITE_ID");
+      $smokeUserId = null;
 
-      DB::transaction(function () use ($email, $inviteCode, $inviteId): void {
+      DB::transaction(function () use ($email, $inviteCode, $inviteId, &$smokeUserId): void {
           $projection = DB::table("admin_user_projections")
               ->where("email", $email)
               ->where("source_system", ConvoLabAccountSource::LEARNING_OS)
@@ -67,6 +68,7 @@ delete_disposable_account() {
               DB::table("admin_invite_codes")->where("id", $inviteId)->delete();
           }
           if ($projection !== null) {
+              $smokeUserId = (int) $projection->user_id;
               DB::table("users")->where("id", $projection->user_id)->delete();
           }
       });
@@ -75,6 +77,9 @@ delete_disposable_account() {
           DB::table("admin_user_projections")->where("email", $email)->exists()
           || DB::table("admin_invite_codes")->where("id", $inviteId)->exists()
           || DB::table("users")->whereRaw("LOWER(email) = ?", [strtolower($email)])->exists()
+          || ($smokeUserId !== null && DB::table("convolab_email_verification_tokens")
+              ->where("user_id", $smokeUserId)
+              ->exists())
       ) {
           throw new RuntimeException("Disposable auth smoke state was not deleted.");
       }
@@ -94,9 +99,12 @@ cleanup() {
     "$SIGNUP_BODY_FILE" \
     "$LOGIN_BODY_FILE" || cleanup_status=1
 
-  if [ "$exit_status" -eq 0 ] && [ "$cleanup_status" -ne 0 ]; then
-    echo "Auth lifecycle passed, but disposable-state cleanup failed." >&2
-    exit "$cleanup_status"
+  if [ "$cleanup_status" -ne 0 ]; then
+    if [ "$exit_status" -eq 0 ]; then
+      echo "Auth lifecycle passed, but disposable-state cleanup failed." >&2
+      exit "$cleanup_status"
+    fi
+    echo "Auth lifecycle failed and disposable-state cleanup also failed; manual cleanup is required." >&2
   fi
   exit "$exit_status"
 }

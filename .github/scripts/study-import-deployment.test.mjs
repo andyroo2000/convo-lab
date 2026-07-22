@@ -1105,6 +1105,8 @@ test('the auth lifecycle smoke is disposable and exercises public signup and ver
     'trap cleanup EXIT',
     'delete_disposable_account',
     'source_system", ConvoLabAccountSource::LEARNING_OS',
+    'convolab_email_verification_tokens',
+    'Auth lifecycle failed and disposable-state cleanup also failed; manual cleanup is required.',
     'SMOKE_EMAIL="${smoke_local_part}+learning-os-smoke-',
     "'/api/auth/signup'",
     'response.emailVerified',
@@ -1133,6 +1135,17 @@ test('the auth lifecycle smoke is disposable and exercises public signup and ver
   assert.ok(mailToken < verification);
   assert.ok(verification < login);
   assert.ok(login < successCleanup);
+
+  const cleanupFunction = script.slice(
+    script.indexOf('cleanup() {'),
+    script.indexOf('trap cleanup EXIT')
+  );
+  assert.ok(
+    cleanupFunction.indexOf('delete_disposable_account || cleanup_status=1') <
+      cleanupFunction.indexOf('if [ "$cleanup_status" -ne 0 ]')
+  );
+  assert.ok(cleanupFunction.includes('if [ "$exit_status" -eq 0 ]; then'));
+  assert.ok(cleanupFunction.includes('manual cleanup is required.'));
 
   const signupActivation = workflow.indexOf('upsert_env LEARNING_OS_SIGNUP_PROXY_ENABLED true');
   const verificationActivation = workflow.indexOf(
