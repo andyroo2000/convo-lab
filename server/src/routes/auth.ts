@@ -65,6 +65,12 @@ const currentUserRateLimit = createExpressRateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
 });
+const passwordChangeIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const passwordChangeRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 30,
@@ -703,6 +709,7 @@ function buildLearningOsProfileUpdate(value: unknown): LearningOsProfileUpdateIn
 // Change password
 router.patch(
   '/change-password',
+  passwordChangeIpRateLimit,
   requireAuth,
   passwordChangeRateLimit,
   async (req: AuthRequest, res, next) => {
