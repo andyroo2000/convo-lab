@@ -3,6 +3,7 @@ import type { NextFunction, Response } from 'express';
 import { prisma } from '../../db/client.js';
 import type { AuthRequest } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import { updateJapanesePronunciationDictionary } from '../../services/japanesePronunciationOverrides.js';
 import {
   fetchLearningOsProxy,
   resolveLearningOsServiceProxyContext,
@@ -14,6 +15,8 @@ const FETCH_TIMEOUT_MS = 10_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const USER_LIST_QUERY_PARAMS = ['page', 'limit', 'search'] as const;
 const INVITE_LIST_QUERY_PARAMS = ['page', 'limit'] as const;
+const SPEAKER_AVATAR_FILENAME_PATTERN =
+  /^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i;
 const PAGINATION_HEADERS = {
   'X-Pagination-Page': 'x-pagination-page',
   'X-Pagination-Limit': 'x-pagination-limit',
@@ -62,6 +65,41 @@ const isIsoTimestamp = (value: unknown): value is string =>
 
 const isNullableIsoTimestamp = (value: unknown): value is string | null =>
   value === null || isIsoTimestamp(value);
+
+const isStringMap = (value: unknown): value is Record<string, string> =>
+  isRecord(value) &&
+  Object.entries(value).every(([key, entry]) => isNonEmptyString(key) && isNonEmptyString(entry));
+
+const isPronunciationDictionary = (
+  value: unknown
+): value is {
+  keepKanji: string[];
+  forceKana: Record<string, string>;
+  verbKana: Record<string, string>;
+  updatedAt?: string;
+} =>
+  isRecord(value) &&
+  Array.isArray(value.keepKanji) &&
+  value.keepKanji.every(isString) &&
+  isStringMap(value.forceKana) &&
+  isStringMap(value.verbKana) &&
+  (value.updatedAt === undefined || isIsoTimestamp(value.updatedAt));
+
+const isSpeakerAvatar = (value: unknown): value is JsonRecord =>
+  isRecord(value) &&
+  isUuid(value.id) &&
+  isString(value.filename) &&
+  SPEAKER_AVATAR_FILENAME_PATTERN.test(value.filename) &&
+  isNonEmptyString(value.croppedUrl) &&
+  isNonEmptyString(value.originalUrl) &&
+  value.language === 'ja' &&
+  (value.gender === 'male' || value.gender === 'female') &&
+  (value.tone === 'casual' || value.tone === 'polite' || value.tone === 'formal') &&
+  isIsoTimestamp(value.createdAt) &&
+  isIsoTimestamp(value.updatedAt);
+
+const isSpeakerAvatarOriginal = (value: unknown): value is { originalUrl: string } =>
+  isRecord(value) && isNonEmptyString(value.originalUrl) && Object.keys(value).length === 1;
 
 const isAdminStats = (value: unknown): value is JsonRecord => {
   if (!isRecord(value) || !isRecord(value.inviteCodes)) return false;
@@ -242,6 +280,24 @@ const isCreatedInviteCode = (value: unknown): value is CreatedInviteCode =>
 const responseMessage = (payload: unknown): string | null =>
   isRecord(payload) && isString(payload.message) ? payload.message : null;
 
+const PRONUNCIATION_VALIDATION_MESSAGES = new Set([
+  'keepKanji must be an array of strings',
+  'keepKanji must contain no more than 500 entries',
+  'keepKanji entries must be strings',
+  'keepKanji entries must be non-empty strings',
+  'keepKanji entries must be <= 64 characters',
+  'forceKana must be an object of word-to-kana mappings',
+  'forceKana must contain no more than 1000 entries',
+  'forceKana values must be strings',
+  'forceKana entries must be non-empty strings',
+  'forceKana entries must be <= 64 characters',
+  'verbKana must be an object of word-to-kana mappings',
+  'verbKana must contain no more than 1000 entries',
+  'verbKana values must be strings',
+  'verbKana entries must be non-empty strings',
+  'verbKana entries must be <= 64 characters',
+]);
+
 const isPrismaUniqueConstraintError = (error: unknown): boolean =>
   isRecord(error) && error.name === 'PrismaClientKnownRequestError' && error.code === 'P2002';
 
@@ -259,6 +315,13 @@ const mutationError = (response: globalThis.Response, payload: unknown): AppErro
   if (message !== null && allowed.get(message) === response.status) {
     return new AppError(message, response.status);
   }
+  if (
+    response.status === 400 &&
+    message !== null &&
+    PRONUNCIATION_VALIDATION_MESSAGES.has(message)
+  ) {
+    return new AppError(message, 400);
+  }
   if (response.status === 429) {
     const retryAfter = response.headers.get('retry-after');
     const seconds = retryAfter !== null && /^\d{1,4}$/.test(retryAfter) ? Number(retryAfter) : null;
@@ -275,7 +338,7 @@ const mutationError = (response: globalThis.Response, payload: unknown): AppErro
 async function fetchAdminMutation(
   req: AuthRequest,
   path: string,
-  method: 'POST' | 'DELETE',
+  method: 'POST' | 'PUT' | 'DELETE',
   body?: unknown
 ): Promise<{ payload: unknown; response: globalThis.Response }> {
   if (!req.userId) throw new AppError('Authentication required', 401);
@@ -561,6 +624,89 @@ export async function listLearningOsAdminInviteCodes(
     const { headers } = readPaginationHeaders(response);
 
     res.set({ ...headers, 'Cache-Control': 'private, no-store' }).json(inviteCodes);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function showLearningOsAdminSpeakerAvatarOriginal(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { filename } = req.params;
+    if (!SPEAKER_AVATAR_FILENAME_PATTERN.test(filename)) {
+      throw new AppError('Invalid avatar filename format', 400);
+    }
+
+    const { payload } = await fetchAdminResponse(
+      req,
+      `/avatars/speaker/${encodeURIComponent(filename)}/original`
+    );
+    if (!isSpeakerAvatarOriginal(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listLearningOsAdminSpeakerAvatars(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { payload } = await fetchAdminResponse(req, '/avatars/speakers');
+    if (!Array.isArray(payload) || !payload.every(isSpeakerAvatar)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, max-age=3600').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function showLearningOsAdminPronunciationDictionary(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { payload } = await fetchAdminResponse(req, '/pronunciation-dictionaries');
+    if (!isPronunciationDictionary(payload)) throw invalidResponse();
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateLearningOsAdminPronunciationDictionary(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      '/pronunciation-dictionaries',
+      'PUT',
+      req.body
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isPronunciationDictionary(payload)) throw invalidResponse();
+
+    try {
+      // Learning OS is canonical; this mirror only keeps synchronous legacy Express consumers
+      // current until their remaining generation routes move to Learning OS.
+      await updateJapanesePronunciationDictionary(payload);
+    } catch (error) {
+      console.error('Unable to mirror Learning OS pronunciation dictionary locally:', error);
+      throw new AppError(`${API_LABEL} request failed.`, 502);
+    }
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
   } catch (error) {
     next(error);
   }

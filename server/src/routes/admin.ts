@@ -10,28 +10,23 @@ import {
   uploadUserAvatar,
   uploadSpeakerAvatar,
   recropSpeakerAvatar,
-  getSpeakerAvatarOriginalUrl,
-  getAllSpeakerAvatars,
 } from '../services/avatarService.js';
-import {
-  getJapanesePronunciationDictionary,
-  updateJapanesePronunciationDictionary,
-} from '../services/japanesePronunciationOverrides.js';
 
 import {
   createLearningOsAdminInviteCode,
   deleteLearningOsAdminInviteCode,
   deleteLearningOsAdminUser,
   listLearningOsAdminInviteCodes,
+  listLearningOsAdminSpeakerAvatars,
   listLearningOsAdminUsers,
+  showLearningOsAdminPronunciationDictionary,
+  showLearningOsAdminSpeakerAvatarOriginal,
   showLearningOsAdminStats,
   showLearningOsAdminUser,
+  updateLearningOsAdminPronunciationDictionary,
 } from './learningOs/admin.js';
 
 const router = Router();
-const MAX_KEEP_KANJI_ENTRIES = 500;
-const MAX_FORCE_KANA_ENTRIES = 500;
-const MAX_PRONUNCIATION_ENTRY_LENGTH = 64;
 
 // Configure multer for memory storage
 const upload = multer({
@@ -78,21 +73,7 @@ router.delete('/invite-codes/:id', deleteLearningOsAdminInviteCode);
 // ============================================
 
 // Get original speaker avatar URL for re-cropping
-router.get('/avatars/speaker/:filename/original', async (req: AuthRequest, res, next) => {
-  try {
-    const { filename } = req.params;
-
-    // Validate filename format (language-gender-tone.jpg)
-    if (!/^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
-      throw new AppError('Invalid avatar filename format', 400);
-    }
-
-    const originalUrl = await getSpeakerAvatarOriginalUrl(filename);
-    res.json({ originalUrl });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/avatars/speaker/:filename/original', showLearningOsAdminSpeakerAvatarOriginal);
 
 // Upload new speaker avatar
 router.post(
@@ -177,16 +158,7 @@ router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, n
 });
 
 // Get all speaker avatars
-router.get('/avatars/speakers', async (_req: AuthRequest, res, next) => {
-  try {
-    const avatars = await getAllSpeakerAvatars();
-    // Avatars rarely change, cache for 1 hour on browser, 1 day on CDN
-    res.set('Cache-Control', 'public, max-age=3600, s-maxage=86400');
-    res.json(avatars);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/avatars/speakers', listLearningOsAdminSpeakerAvatars);
 
 // Upload user avatar
 router.post(
@@ -235,107 +207,7 @@ router.post(
 // Pronunciation Dictionary Routes
 // ============================================
 
-router.get('/pronunciation-dictionaries', requireAdmin, async (_req: AuthRequest, res, next) => {
-  try {
-    res.json(getJapanesePronunciationDictionary());
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.put('/pronunciation-dictionaries', requireAdmin, async (req: AuthRequest, res, next) => {
-  try {
-    const payload = req.body as {
-      keepKanji?: unknown;
-      forceKana?: unknown;
-      verbKana?: unknown;
-    };
-
-    if (!Array.isArray(payload.keepKanji)) {
-      throw new AppError('keepKanji must be an array of strings', 400);
-    }
-    if (
-      !payload.forceKana ||
-      typeof payload.forceKana !== 'object' ||
-      Array.isArray(payload.forceKana)
-    ) {
-      throw new AppError('forceKana must be an object of word-to-kana mappings', 400);
-    }
-
-    if (payload.keepKanji.length > MAX_KEEP_KANJI_ENTRIES) {
-      throw new AppError(
-        `keepKanji must contain no more than ${MAX_KEEP_KANJI_ENTRIES} entries`,
-        400
-      );
-    }
-
-    const keepKanji = payload.keepKanji.map((entry) => {
-      if (typeof entry !== 'string') {
-        throw new AppError('keepKanji entries must be strings', 400);
-      }
-      const trimmed = entry.trim();
-      if (!trimmed) {
-        throw new AppError('keepKanji entries must be non-empty strings', 400);
-      }
-      if (trimmed.length > MAX_PRONUNCIATION_ENTRY_LENGTH) {
-        throw new AppError(
-          `keepKanji entries must be <= ${MAX_PRONUNCIATION_ENTRY_LENGTH} characters`,
-          400
-        );
-      }
-      return trimmed;
-    });
-
-    const parseKanaMap = (
-      value: unknown,
-      fieldName: 'forceKana' | 'verbKana'
-    ): Record<string, string> => {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        throw new AppError(`${fieldName} must be an object of word-to-kana mappings`, 400);
-      }
-
-      const entries = Object.entries(value as Record<string, unknown>);
-      if (entries.length > MAX_FORCE_KANA_ENTRIES) {
-        throw new AppError(
-          `${fieldName} must contain no more than ${MAX_FORCE_KANA_ENTRIES} entries`,
-          400
-        );
-      }
-
-      const parsed: Record<string, string> = {};
-      for (const [word, kana] of entries) {
-        if (typeof word !== 'string' || typeof kana !== 'string') {
-          throw new AppError(`${fieldName} values must be strings`, 400);
-        }
-        const trimmedWord = word.trim();
-        const trimmedKana = kana.trim();
-        if (!trimmedWord || !trimmedKana) {
-          throw new AppError(`${fieldName} entries must be non-empty strings`, 400);
-        }
-        if (
-          trimmedWord.length > MAX_PRONUNCIATION_ENTRY_LENGTH ||
-          trimmedKana.length > MAX_PRONUNCIATION_ENTRY_LENGTH
-        ) {
-          throw new AppError(
-            `${fieldName} entries must be <= ${MAX_PRONUNCIATION_ENTRY_LENGTH} characters`,
-            400
-          );
-        }
-        parsed[trimmedWord] = trimmedKana;
-      }
-
-      return parsed;
-    };
-
-    const forceKana = parseKanaMap(payload.forceKana, 'forceKana');
-    const verbKana =
-      payload.verbKana === undefined ? undefined : parseKanaMap(payload.verbKana, 'verbKana');
-
-    const updated = await updateJapanesePronunciationDictionary({ keepKanji, forceKana, verbKana });
-    res.json(updated);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/pronunciation-dictionaries', showLearningOsAdminPronunciationDictionary);
+router.put('/pronunciation-dictionaries', updateLearningOsAdminPronunciationDictionary);
 
 export default router;

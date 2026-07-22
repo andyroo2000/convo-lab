@@ -1958,6 +1958,79 @@ jobs:
                 'Admin invite codes Learning OS' \
                 '/api/admin/invite-codes?limit=1' \
                 > /dev/null
+              admin_speaker_avatars="$(fetch_read_route \
+                'Admin speaker avatars Learning OS' \
+                '/api/admin/avatars/speakers')"
+              admin_speaker_filename="$(printf '%s' "$admin_speaker_avatars" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const avatars = JSON.parse(body);
+                  const avatar = avatars?.[0];
+                  if (
+                    !Array.isArray(avatars) ||
+                    typeof avatar?.filename !== "string" ||
+                    !/^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(
+                      avatar.filename
+                    ) ||
+                    typeof avatar?.croppedUrl !== "string" ||
+                    typeof avatar?.originalUrl !== "string"
+                  ) process.exit(1);
+                  process.stdout.write(avatar.filename);
+                ')"
+              test -n "$admin_speaker_filename"
+              admin_speaker_original="$(fetch_read_route \
+                'Admin speaker avatar original Learning OS' \
+                "/api/admin/avatars/speaker/$admin_speaker_filename/original")"
+              printf '%s' "$admin_speaker_original" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const response = JSON.parse(body);
+                  if (typeof response?.originalUrl !== "string" || !response.originalUrl) {
+                    process.exit(1);
+                  }
+                '
+              admin_pronunciation="$(fetch_read_route \
+                'Admin pronunciation dictionary Learning OS' \
+                '/api/admin/pronunciation-dictionaries')"
+              admin_pronunciation_body="$(printf '%s' "$admin_pronunciation" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const dictionary = JSON.parse(body);
+                  if (
+                    !Array.isArray(dictionary?.keepKanji) ||
+                    !dictionary.forceKana ||
+                    Array.isArray(dictionary.forceKana) ||
+                    typeof dictionary.forceKana !== "object" ||
+                    !dictionary.verbKana ||
+                    Array.isArray(dictionary.verbKana) ||
+                    typeof dictionary.verbKana !== "object"
+                  ) process.exit(1);
+                  process.stdout.write(JSON.stringify({
+                    keepKanji: dictionary.keepKanji,
+                    forceKana: dictionary.forceKana,
+                    verbKana: dictionary.verbKana,
+                  }));
+                ')"
+              admin_pronunciation_updated="$(mutate_proxy_route \
+                PUT '/api/admin/pronunciation-dictionaries' "$admin_pronunciation_body")"
+              printf '%s' "$admin_pronunciation_updated" | docker exec \
+                -i \
+                -e EXPECTED_DICTIONARY="$admin_pronunciation_body" \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const updated = JSON.parse(body);
+                  const expected = JSON.parse(process.env.EXPECTED_DICTIONARY);
+                  if (
+                    JSON.stringify(updated.keepKanji) !== JSON.stringify(expected.keepKanji) ||
+                    JSON.stringify(updated.forceKana) !== JSON.stringify(expected.forceKana) ||
+                    JSON.stringify(updated.verbKana) !== JSON.stringify(expected.verbKana)
+                  ) process.exit(1);
+                '
               echo "Admin Learning OS read smoke checks passed."
 
               admin_invite_create="$(mutate_proxy_route POST '/api/admin/invite-codes' '{}')"

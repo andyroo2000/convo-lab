@@ -9,9 +9,13 @@ import {
   deleteLearningOsAdminInviteCode,
   deleteLearningOsAdminUser,
   listLearningOsAdminInviteCodes,
+  listLearningOsAdminSpeakerAvatars,
   listLearningOsAdminUsers,
+  showLearningOsAdminPronunciationDictionary,
+  showLearningOsAdminSpeakerAvatarOriginal,
   showLearningOsAdminStats,
   showLearningOsAdminUser,
+  updateLearningOsAdminPronunciationDictionary,
 } from '../../../../routes/learningOs/admin.js';
 
 const mocks = vi.hoisted(() => ({
@@ -22,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   inviteDeleteMany: vi.fn(),
   inviteFindUnique: vi.fn(),
   inviteUpsert: vi.fn(),
+  updateJapanesePronunciationDictionary: vi.fn(),
 }));
 
 vi.mock('../../../../services/learningOsProxy.js', () => ({
@@ -38,6 +43,9 @@ vi.mock('../../../../db/client.js', () => ({
       upsert: mocks.inviteUpsert,
     },
   },
+}));
+vi.mock('../../../../services/japanesePronunciationOverrides.js', () => ({
+  updateJapanesePronunciationDictionary: mocks.updateJapanesePronunciationDictionary,
 }));
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
@@ -74,6 +82,23 @@ const invite = {
   createdAt: '2026-07-20T11:00:00.123Z',
   user: { id: USER_ID, email: 'admin@example.com', name: 'Admin User' },
 };
+const speakerAvatar = {
+  id: '33333333-3333-4333-8333-333333333333',
+  filename: 'ja-female-casual.jpg',
+  croppedUrl: 'https://storage.example/cropped.jpg',
+  originalUrl: 'https://storage.example/original.jpg',
+  language: 'ja',
+  gender: 'female',
+  tone: 'casual',
+  createdAt: '2026-07-20T11:00:00.123Z',
+  updatedAt: '2026-07-21T11:00:00.456Z',
+};
+const pronunciationDictionary = {
+  keepKanji: ['橋'],
+  forceKana: { 北海道: 'ほっかいどう' },
+  verbKana: { 話す: 'はなす' },
+  updatedAt: '2026-07-22T09:00:00.123Z',
+};
 
 const upstreamJson = (
   body: unknown,
@@ -102,6 +127,7 @@ describe('Learning OS admin proxy', () => {
     mocks.inviteDeleteMany.mockResolvedValue({ count: 1 });
     mocks.inviteFindUnique.mockResolvedValue(null);
     mocks.inviteUpsert.mockImplementation(async ({ create }) => create);
+    mocks.updateJapanesePronunciationDictionary.mockResolvedValue(pronunciationDictionary);
 
     app = express();
     app.use(express.json());
@@ -109,6 +135,9 @@ describe('Learning OS admin proxy', () => {
     app.get('/users', listLearningOsAdminUsers);
     app.get('/users/:id/info', showLearningOsAdminUser);
     app.get('/invite-codes', listLearningOsAdminInviteCodes);
+    app.get('/avatars/speaker/:filename/original', showLearningOsAdminSpeakerAvatarOriginal);
+    app.get('/avatars/speakers', listLearningOsAdminSpeakerAvatars);
+    app.get('/pronunciation-dictionaries', showLearningOsAdminPronunciationDictionary);
     app.delete('/users/:id', (req, res, next) => {
       Object.assign(req, {
         userId: USER_ID,
@@ -135,6 +164,15 @@ describe('Learning OS admin proxy', () => {
         accountSource: 'learning-os',
       });
       void deleteLearningOsAdminInviteCode(req, res, next);
+    });
+    app.put('/pronunciation-dictionaries', (req, res, next) => {
+      Object.assign(req, {
+        userId: USER_ID,
+        email: 'admin@example.com',
+        role: 'admin',
+        accountSource: 'learning-os',
+      });
+      void updateLearningOsAdminPronunciationDictionary(req, res, next);
     });
     app.use(errorHandler);
   });
@@ -269,6 +307,172 @@ describe('Learning OS admin proxy', () => {
         ),
       })
     );
+  });
+
+  it('proxies the speaker avatar list with strict shape validation and private caching', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson([speakerAvatar]));
+
+    const response = await request(app).get('/avatars/speakers').expect(200);
+
+    expect(response.body).toEqual([speakerAvatar]);
+    expect(response.headers['cache-control']).toBe('private, max-age=3600');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL('http://learning-os.test/api/convolab/admin/avatars/speakers'),
+        method: 'GET',
+      })
+    );
+  });
+
+  it.each([
+    [{ ...speakerAvatar, id: 'bad-id' }],
+    [{ ...speakerAvatar, filename: 'ja-female-unknown.jpg' }],
+    [{ ...speakerAvatar, originalUrl: '' }],
+    [{ ...speakerAvatar, gender: 'unknown' }],
+    [{ ...speakerAvatar, updatedAt: 'not-a-date' }],
+  ])('rejects malformed speaker avatar lists from Learning OS', async (payload) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
+
+    const response = await request(app).get('/avatars/speakers').expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Admin API returned an invalid response.');
+  });
+
+  it('proxies a speaker original URL after validating and encoding the filename', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ originalUrl: speakerAvatar.originalUrl })
+    );
+
+    const response = await request(app)
+      .get('/avatars/speaker/JA-FEMALE-CASUAL.JPG/original')
+      .expect(200);
+
+    expect(response.body).toEqual({ originalUrl: speakerAvatar.originalUrl });
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          'http://learning-os.test/api/convolab/admin/avatars/speaker/JA-FEMALE-CASUAL.JPG/original'
+        ),
+      })
+    );
+  });
+
+  it('rejects malformed speaker filenames before contacting Learning OS', async () => {
+    const response = await request(app)
+      .get('/avatars/speaker/not-an-avatar.jpg/original')
+      .expect(400);
+
+    expect(response.body.error.message).toBe('Invalid avatar filename format');
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('proxies the canonical pronunciation dictionary without local fallback', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(pronunciationDictionary));
+
+    const response = await request(app).get('/pronunciation-dictionaries').expect(200);
+
+    expect(response.body).toEqual(pronunciationDictionary);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mocks.updateJapanesePronunciationDictionary).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { ...pronunciationDictionary, keepKanji: [7] },
+    { ...pronunciationDictionary, forceKana: [] },
+    { ...pronunciationDictionary, forceKana: { 北海道: '' } },
+    { ...pronunciationDictionary, verbKana: { '': 'はなす' } },
+    { ...pronunciationDictionary, verbKana: { 話す: 7 } },
+    { ...pronunciationDictionary, updatedAt: 'not-a-date' },
+  ])('rejects malformed pronunciation dictionaries from Learning OS', async (payload) => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
+
+    await request(app).get('/pronunciation-dictionaries').expect(502);
+  });
+
+  it('updates Learning OS first, then mirrors locally and returns the canonical payload', async () => {
+    const requestBody = {
+      keepKanji: [' 橋 '],
+      forceKana: { 北海道: ' ほっかいどう ' },
+    };
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(pronunciationDictionary));
+
+    const response = await request(app)
+      .put('/pronunciation-dictionaries')
+      .send(requestBody)
+      .expect(200);
+
+    expect(response.body).toEqual(pronunciationDictionary);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mocks.resolveLearningOsUserProxyContext).toHaveBeenCalledWith(
+      USER_ID,
+      'Learning OS Admin API',
+      expect.objectContaining({ userId: USER_ID, role: 'admin', accountSource: 'learning-os' })
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          'http://learning-os.test/api/convolab/admin/pronunciation-dictionaries'
+        ),
+        method: 'PUT',
+        body: requestBody,
+      })
+    );
+    expect(mocks.updateJapanesePronunciationDictionary).toHaveBeenCalledWith(
+      pronunciationDictionary
+    );
+    expect(mocks.fetchLearningOsProxy.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.updateJapanesePronunciationDictionary.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('preserves allowlisted Learning OS validation errors without touching the local mirror', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ message: 'forceKana values must be strings' }, 400)
+    );
+
+    const response = await request(app)
+      .put('/pronunciation-dictionaries')
+      .send({ keepKanji: ['橋'], forceKana: { 北海道: 7 } })
+      .expect(400);
+
+    expect(response.body.error.message).toBe('forceKana values must be strings');
+    expect(mocks.updateJapanesePronunciationDictionary).not.toHaveBeenCalled();
+  });
+
+  it('rejects unrecognized mutation errors from Learning OS', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ message: 'Unexpected internal detail' }, 400)
+    );
+
+    const response = await request(app)
+      .put('/pronunciation-dictionaries')
+      .send({ keepKanji: [], forceKana: {} })
+      .expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Admin API request failed.');
+    expect(mocks.updateJapanesePronunciationDictionary).not.toHaveBeenCalled();
+  });
+
+  it('returns a retryable gateway error when the local pronunciation mirror fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(pronunciationDictionary));
+    mocks.updateJapanesePronunciationDictionary.mockRejectedValue(new Error('read-only file'));
+
+    try {
+      const response = await request(app)
+        .put('/pronunciation-dictionaries')
+        .send({ keepKanji: [], forceKana: {} })
+        .expect(502);
+
+      expect(response.body.error.message).toBe('Learning OS Admin API request failed.');
+      expect(consoleError).toHaveBeenCalledWith(
+        'Unable to mirror Learning OS pronunciation dictionary locally:',
+        expect.any(Error)
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it.each([
