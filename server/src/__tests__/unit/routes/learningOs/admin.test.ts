@@ -552,6 +552,34 @@ describe('Learning OS admin proxy', () => {
     );
   });
 
+  it('rolls back a created invite when the remaining upstream payload is malformed', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(
+        upstreamJson({
+          id: INVITE_ID,
+          code: '',
+          usedBy: null,
+          usedAt: null,
+          createdAt: 'not-a-timestamp',
+        })
+      )
+      .mockResolvedValueOnce(upstreamJson({ message: 'Invite code deleted successfully' }));
+
+    const response = await request(app).post('/invite-codes').send({}).expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Admin API returned an invalid response.');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          `http://learning-os.test/api/convolab/admin/invite-codes/${INVITE_ID}`
+        ),
+        method: 'DELETE',
+      })
+    );
+    expect(mocks.inviteUpsert).not.toHaveBeenCalled();
+  });
+
   it.each([null, '', 'short', 'BAD-CODE', ['CUSTOM12']])(
     'rejects malformed custom code %j without calling upstream',
     async (customCode) => {

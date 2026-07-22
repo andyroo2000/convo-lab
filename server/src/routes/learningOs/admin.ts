@@ -259,9 +259,6 @@ const mutationError = (response: globalThis.Response, payload: unknown): AppErro
   if (message !== null && allowed.get(message) === response.status) {
     return new AppError(message, response.status);
   }
-  if (response.status === 422) {
-    return new AppError('Custom code must be 6-20 alphanumeric characters', 400);
-  }
   if (response.status === 429) {
     const retryAfter = response.headers.get('retry-after');
     const seconds = retryAfter !== null && /^\d{1,4}$/.test(retryAfter) ? Number(retryAfter) : null;
@@ -375,7 +372,12 @@ export async function createLearningOsAdminInviteCode(
       customCode === undefined ? {} : { customCode }
     );
     if (!response.ok) throw mutationError(response, payload);
-    if (!isCreatedInviteCode(payload)) throw invalidResponse();
+    if (!isCreatedInviteCode(payload)) {
+      if (isRecord(payload) && isUuid(payload.id)) {
+        await rollbackCreatedInvite(req, payload.id);
+      }
+      throw invalidResponse();
+    }
 
     let invite;
     try {

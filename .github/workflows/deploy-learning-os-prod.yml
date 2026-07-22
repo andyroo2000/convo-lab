@@ -1968,15 +1968,23 @@ jobs:
                   const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                   if (
                     typeof invite?.id !== "string" ||
-                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invite.id) ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invite.id)
+                  ) process.exit(1);
+                  process.stdout.write(invite.id);
+                ')"
+              test -n "$admin_invite_smoke_id"
+              printf '%s' "$admin_invite_create" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
                     typeof invite?.code !== "string" ||
                     !/^[A-F0-9]{8}$/.test(invite.code) ||
                     invite.usedBy !== null ||
                     invite.usedAt !== null
                   ) process.exit(1);
-                  process.stdout.write(invite.id);
-                ')"
-              test -n "$admin_invite_smoke_id"
+                '
               cleanup_admin_invite_smoke
               echo "Admin Learning OS invite create/delete smoke checks passed."
 
