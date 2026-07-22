@@ -284,14 +284,28 @@ export async function verifyLearningOsEmail(
   };
 }
 
-export async function sendLearningOsPasswordResetLink(email: string): Promise<void> {
+export async function sendLearningOsPasswordResetLink(email: unknown): Promise<void> {
+  if (typeof email !== 'string') {
+    return;
+  }
+
+  const normalizedEmail = email.trim();
+  if (
+    normalizedEmail.length === 0 ||
+    normalizedEmail.length > 320 ||
+    !normalizedEmail.includes('@')
+  ) {
+    // Keep malformed and unknown accounts indistinguishable without forwarding unbounded input.
+    return;
+  }
+
   const { config, user } = await resolveLearningOsServiceProxyContext(API_LABEL);
   const response = await fetchLearningOsProxy({
     upstreamUrl: new URL(`${config.apiUrl}/api/auth/password/forgot`),
     apiToken: config.apiToken,
     user,
     method: 'POST',
-    body: { email },
+    body: { email: normalizedEmail },
     timeoutMs: TIMEOUT_MS,
     timeoutMessage: `${API_LABEL} request timed out.`,
     networkErrorMessage: `${API_LABEL} is unavailable.`,

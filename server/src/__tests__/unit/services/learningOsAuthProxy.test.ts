@@ -426,7 +426,7 @@ describe('Learning OS auth proxy', () => {
   it('requests a password reset through the public Learning OS broker endpoint', async () => {
     vi.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 204 }));
 
-    await expect(sendLearningOsPasswordResetLink(account.email)).resolves.toBeUndefined();
+    await expect(sendLearningOsPasswordResetLink(` ${account.email} `)).resolves.toBeUndefined();
 
     const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe('https://learning-os.example/api/auth/password/forgot');
@@ -436,6 +436,15 @@ describe('Learning OS auth proxy', () => {
       headers: expect.objectContaining({ Authorization: 'Bearer server-only-token' }),
     });
   });
+
+  it.each([null, {}, [], '', 'not-an-email', `${'x'.repeat(320)}@example.com`])(
+    'preserves generic success without forwarding malformed reset-link identity %#',
+    async (email) => {
+      await expect(sendLearningOsPasswordResetLink(email)).resolves.toBeUndefined();
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
+  );
 
   it('resets a password through the Learning OS broker contract', async () => {
     vi.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 204 }));
@@ -485,7 +494,7 @@ describe('Learning OS auth proxy', () => {
         jsonResponse({ message: 'The given data was invalid.', errors: {} }, status)
       );
 
-      await expect(sendLearningOsPasswordResetLink('malformed')).resolves.toBeUndefined();
+      await expect(sendLearningOsPasswordResetLink(account.email)).resolves.toBeUndefined();
     }
   );
 
