@@ -483,6 +483,8 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
     if (isLearningOsProfileProxyEnabled()) {
       const update = buildLearningOsProfileUpdate(req.body);
+      // Learning OS owns first-onboarding sample creation in the same transaction
+      // as the profile update, so the legacy copier must not run on this path.
       const account = await updateLearningOsCurrentAccount(req.userId!, update, {
         userId: req.userId!,
         email: req.email,
@@ -679,6 +681,8 @@ function buildLearningOsProfileUpdate(value: unknown): LearningOsProfileUpdateIn
   }
 
   if (update.onboardingCompleted === true && update.proficiencyLevel === undefined) {
+    // Learning OS requires the level on the completion transition so it can
+    // atomically choose and copy the matching sample-content template.
     throw new AppError('Invalid proficiency level', 400);
   }
   if (Object.keys(update).length === 0) {

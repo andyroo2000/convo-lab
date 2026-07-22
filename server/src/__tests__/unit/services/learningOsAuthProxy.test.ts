@@ -296,17 +296,13 @@ describe('Learning OS auth proxy', () => {
     });
   });
 
-  it('rejects malformed profile account responses', async () => {
-    vi.mocked(global.fetch).mockResolvedValue(
-      jsonResponse({ ...currentAccount, avatarUrl: ['https://example.com/avatar.png'] })
-    );
+  it('does not require target-only profile fields in the legacy response adapter', async () => {
+    const { avatarUrl: _avatarUrl, ...upstreamWithoutAvatarUrl } = currentAccount;
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(upstreamWithoutAvatarUrl));
 
     await expect(
       updateLearningOsCurrentAccount(account.id, { displayName: 'Ada' })
-    ).rejects.toMatchObject({
-      message: 'Learning OS Auth API returned an invalid response.',
-      statusCode: 502,
-    });
+    ).resolves.toEqual(legacyCurrentAccount);
   });
 
   it.each([

@@ -364,7 +364,6 @@ function adaptAccount(
     !isBoundedString(account.name, 255) ||
     !isNullableStringWithin(account.displayName, 255) ||
     !isNullableStringWithin(account.avatarColor, 50) ||
-    !isNullableStringWithin(account.avatarUrl, 2048) ||
     (account.role !== 'user' && account.role !== 'moderator' && account.role !== 'admin') ||
     !isStringWithin(account.preferredStudyLanguage, 20) ||
     !isStringWithin(account.preferredNativeLanguage, 20) ||
