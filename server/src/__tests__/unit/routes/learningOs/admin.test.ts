@@ -9,12 +9,14 @@ import {
   buildLearningOsAdminCourseScriptConfig,
   createLearningOsAdminScriptLabCourse,
   createLearningOsAdminInviteCode,
+  deleteLearningOsAdminCourseLineRendering,
   deleteLearningOsAdminScriptLabCourses,
   deleteLearningOsAdminInviteCode,
   deleteLearningOsAdminUser,
   generateLearningOsAdminCourseAudio,
   generateLearningOsAdminCourseDialogue,
   generateLearningOsAdminCourseScript,
+  listLearningOsAdminCourseLineRenderings,
   listLearningOsAdminInviteCodes,
   listLearningOsAdminScriptLabCourses,
   listLearningOsAdminSpeakerAvatars,
@@ -26,6 +28,8 @@ import {
   showLearningOsAdminUser,
   showLearningOsAdminCoursePipeline,
   showLearningOsAdminScriptLabCourse,
+  streamLearningOsAdminCourseLineRendering,
+  synthesizeLearningOsAdminCourseLine,
   uploadLearningOsAdminSpeakerAvatar,
   uploadLearningOsAdminUserAvatar,
   updateLearningOsAdminCoursePipeline,
@@ -71,6 +75,8 @@ vi.mock('../../../../services/japanesePronunciationOverrides.js', () => ({
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const INVITE_ID = '22222222-2222-4222-8222-222222222222';
 const COURSE_ID = '44444444-4444-4444-8444-444444444444';
+const RENDERING_ID = '55555555-5555-4555-8555-555555555555';
+const FISH_VOICE_ID = 'fishaudio:0123456789abcdef0123456789abcdef';
 const user = {
   id: USER_ID,
   email: 'admin@example.com',
@@ -155,6 +161,16 @@ const coursePipeline = {
   scriptUnits: null,
   audioUrl: null,
   approxDurationSeconds: null,
+};
+const courseLineRendering = {
+  id: RENDERING_ID,
+  courseId: COURSE_ID,
+  unitIndex: 3,
+  text: 'こんにちは',
+  speed: 0.85,
+  voiceId: FISH_VOICE_ID,
+  audioUrl: `/api/convolab/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`,
+  createdAt: '2026-07-22T12:00:00.123Z',
 };
 const scriptLabCourseSummary = {
   id: COURSE_ID,
@@ -244,6 +260,16 @@ describe('Learning OS admin proxy', () => {
     app.post('/courses/:id/generate-dialogue', generateLearningOsAdminCourseDialogue);
     app.post('/courses/:id/generate-script', generateLearningOsAdminCourseScript);
     app.post('/courses/:id/generate-audio', generateLearningOsAdminCourseAudio);
+    app.post('/courses/:id/synthesize-line', synthesizeLearningOsAdminCourseLine);
+    app.get('/courses/:id/line-renderings', listLearningOsAdminCourseLineRenderings);
+    app.get(
+      '/courses/:id/line-renderings/:renderingId/audio',
+      streamLearningOsAdminCourseLineRendering
+    );
+    app.delete(
+      '/courses/:id/line-renderings/:renderingId',
+      deleteLearningOsAdminCourseLineRendering
+    );
     app.get('/courses/:id/pipeline-data', showLearningOsAdminCoursePipeline);
     app.put('/courses/:id/pipeline-data', updateLearningOsAdminCoursePipeline);
     app.get('/stats', showLearningOsAdminStats);
@@ -506,6 +532,195 @@ describe('Learning OS admin proxy', () => {
       'Learning OS Admin API',
       expect.objectContaining({ userId: USER_ID, role: 'admin', accountSource: 'learning-os' })
     );
+  });
+
+  it('synthesizes a course line through Learning OS and rewrites its private audio URL', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({
+        renderingId: RENDERING_ID.toUpperCase(),
+        audioUrl: courseLineRendering.audioUrl,
+      })
+    );
+
+    const response = await request(app)
+      .post(`/courses/${COURSE_ID}/synthesize-line`)
+      .send({
+        text: '  こんにちは  ',
+        voiceId: FISH_VOICE_ID.toUpperCase(),
+        speed: 0.85,
+        unitIndex: 3,
+        ignored: 'drop me',
+      })
+      .expect(200);
+
+    expect(response.body).toEqual({
+      renderingId: RENDERING_ID,
+      audioUrl: `/api/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`,
+    });
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          `http://learning-os.test/api/convolab/admin/courses/${COURSE_ID}/synthesize-line`
+        ),
+        method: 'POST',
+        body: {
+          text: 'こんにちは',
+          voiceId: FISH_VOICE_ID,
+          speed: 0.85,
+          unitIndex: 3,
+        },
+        timeoutMs: 120_000,
+      })
+    );
+  });
+
+  it('lists strict rendering shapes while preserving imported external audio URLs', async () => {
+    const imported = {
+      ...courseLineRendering,
+      id: INVITE_ID.toUpperCase(),
+      unitIndex: 4,
+      audioUrl: 'https://storage.googleapis.com/convolab/imported-line.mp3',
+    };
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({ renderings: [courseLineRendering, imported] })
+    );
+
+    const response = await request(app).get(`/courses/${COURSE_ID}/line-renderings`).expect(200);
+
+    expect(response.body).toEqual({
+      renderings: [
+        {
+          ...courseLineRendering,
+          audioUrl: `/api/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`,
+        },
+        { ...imported, id: INVITE_ID },
+      ],
+    });
+    expect(response.headers['cache-control']).toBe('private, no-store');
+  });
+
+  it('deletes a rendering through Learning OS and preserves the hidden 404 contract', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(upstreamJson({ success: true }))
+      .mockResolvedValueOnce(upstreamJson({ message: 'Rendering not found' }, 404));
+
+    await request(app)
+      .delete(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}`)
+      .expect(200, { success: true });
+    const missing = await request(app)
+      .delete(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}`)
+      .expect(404);
+
+    expect(missing.body.error.message).toBe('Rendering not found');
+    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          `http://learning-os.test/api/convolab/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}`
+        ),
+        method: 'DELETE',
+      })
+    );
+  });
+
+  it('streams authenticated line audio with safe headers and byte ranges', async () => {
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      new globalThis.Response('mp3-bytes', {
+        status: 206,
+        headers: {
+          'Accept-Ranges': 'bytes',
+          'Content-Length': '9',
+          'Content-Range': 'bytes 0-8/9',
+          'Content-Type': 'audio/mpeg',
+          'X-Upstream-Secret': 'do-not-forward',
+        },
+      })
+    );
+
+    const response = await request(app)
+      .get(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`)
+      .set('Range', 'bytes=0-8')
+      .expect(206);
+
+    expect(response.body.toString()).toBe('mp3-bytes');
+    expect(response.headers['content-type']).toBe('audio/mpeg');
+    expect(response.headers['content-range']).toBe('bytes 0-8/9');
+    expect(response.headers['content-security-policy']).toBe("sandbox; default-src 'none'");
+    expect(response.headers['x-upstream-secret']).toBeUndefined();
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upstreamUrl: new URL(
+          `http://learning-os.test/api/convolab/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`
+        ),
+        method: 'GET',
+        additionalHeaders: { Accept: 'audio/mpeg', Range: 'bytes=0-8' },
+      })
+    );
+  });
+
+  it.each([
+    [{ text: '', voiceId: FISH_VOICE_ID, unitIndex: 0 }, 'Missing required fields'],
+    [{ text: 'Line', voiceId: 'fishaudio:bad', unitIndex: 0 }, 'Only Fish Audio voices'],
+    [{ text: 'Line', voiceId: FISH_VOICE_ID, unitIndex: -1 }, 'unitIndex must be'],
+    [{ text: 'Line', voiceId: FISH_VOICE_ID, unitIndex: 0, speed: 3 }, 'speed must be'],
+  ])('rejects invalid line synthesis locally: %s', async (body, message) => {
+    const response = await request(app)
+      .post(`/courses/${COURSE_ID}/synthesize-line`)
+      .send(body)
+      .expect(400);
+
+    expect(response.body.error.message).toContain(message);
+    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed rendering IDs, media ranges, and upstream shapes', async () => {
+    const badId = await request(app)
+      .delete(`/courses/${COURSE_ID}/line-renderings/not-a-uuid`)
+      .expect(404);
+    const badRange = await request(app)
+      .get(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`)
+      .set('Range', 'bytes=0-1,3-4')
+      .expect(400);
+    mocks.fetchLearningOsProxy.mockResolvedValue(
+      upstreamJson({
+        renderings: [
+          {
+            ...courseLineRendering,
+            audioUrl: `/api/convolab/admin/courses/${COURSE_ID}/line-renderings/${INVITE_ID}/audio`,
+          },
+        ],
+      })
+    );
+    const malformed = await request(app).get(`/courses/${COURSE_ID}/line-renderings`).expect(502);
+
+    expect(badId.body.error.message).toBe('Rendering not found');
+    expect(badRange.body.error.message).toBe('Invalid line audio byte range.');
+    expect(malformed.body.error.message).toBe(
+      'Learning OS Admin API returned an invalid response.'
+    );
+    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledOnce();
+  });
+
+  it('rejects non-audio rendering streams and masks upstream failures', async () => {
+    mocks.fetchLearningOsProxy
+      .mockResolvedValueOnce(
+        new globalThis.Response('html', { status: 200, headers: { 'Content-Type': 'text/html' } })
+      )
+      .mockResolvedValueOnce(upstreamJson({ message: 'sensitive storage detail' }, 500));
+
+    const invalidMedia = await request(app)
+      .get(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`)
+      .expect(502);
+    const unavailable = await request(app)
+      .get(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`)
+      .expect(502);
+
+    expect(invalidMedia.body.error.message).toBe(
+      'Learning OS Admin API returned invalid media headers.'
+    );
+    expect(unavailable.body.error.message).toBe('Learning OS Admin API request failed.');
+    expect(JSON.stringify(unavailable.body)).not.toContain('sensitive storage detail');
   });
 
   it.each([

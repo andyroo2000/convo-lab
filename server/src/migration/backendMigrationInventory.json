@@ -392,7 +392,7 @@
       "id": "admin-courses",
       "domain": "admin",
       "migrationWave": "admin",
-      "runtimeOwner": "express",
+      "runtimeOwner": "learning-os-proxy",
       "sourceFile": "server/src/routes/adminCourses.ts",
       "mountPath": "/api/admin/courses",
       "routes": [
@@ -442,6 +442,11 @@
           "path": "/api/admin/courses/:id/line-renderings"
         },
         {
+          "id": "admin-courses.line-renderings.audio",
+          "method": "GET",
+          "path": "/api/admin/courses/:id/line-renderings/:renderingId/audio"
+        },
+        {
           "id": "admin-courses.line-renderings.delete",
           "method": "DELETE",
           "path": "/api/admin/courses/:id/line-renderings/:renderingId"
@@ -459,22 +464,26 @@
         {
           "id": "admin-script-lab.courses.store",
           "method": "POST",
-          "path": "/api/admin/script-lab/courses"
+          "path": "/api/admin/script-lab/courses",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.courses.index",
           "method": "GET",
-          "path": "/api/admin/script-lab/courses"
+          "path": "/api/admin/script-lab/courses",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.courses.show",
           "method": "GET",
-          "path": "/api/admin/script-lab/courses/:id"
+          "path": "/api/admin/script-lab/courses/:id",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.courses.delete",
           "method": "DELETE",
-          "path": "/api/admin/script-lab/courses"
+          "path": "/api/admin/script-lab/courses",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin-script-lab.pronunciation.test",

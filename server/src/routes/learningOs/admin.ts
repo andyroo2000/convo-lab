@@ -4,6 +4,7 @@ import { prisma } from '../../db/client.js';
 import type { AuthRequest } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import { updateJapanesePronunciationDictionary } from '../../services/japanesePronunciationOverrides.js';
+import { streamLearningOsMediaResponse } from '../../services/learningOsMediaResponse.js';
 import {
   fetchLearningOsProxy,
   resolveLearningOsServiceProxyContext,
@@ -15,6 +16,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 const AVATAR_WRITE_TIMEOUT_MS = 30_000;
 const COURSE_PROVIDER_TIMEOUT_MS = 120_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const FISH_AUDIO_VOICE_PATTERN = /^fishaudio:[a-f0-9]{32}$/;
 const USER_LIST_QUERY_PARAMS = ['page', 'limit', 'search'] as const;
 const INVITE_LIST_QUERY_PARAMS = ['page', 'limit'] as const;
 const SPEAKER_AVATAR_FILENAME_PATTERN =
@@ -52,6 +54,16 @@ type SpeakerAvatarMutation = {
   filename: string;
   croppedUrl: string;
   originalUrl: string;
+};
+type AdminCourseLineRendering = {
+  id: string;
+  courseId: string;
+  unitIndex: number;
+  text: string;
+  speed: number;
+  voiceId: string;
+  audioUrl: string;
+  createdAt: string;
 };
 type AdminRequestMethod = 'GET' | 'POST' | 'PUT';
 
@@ -465,6 +477,57 @@ const isCreatedAdminScriptLabCourse = (value: unknown): value is JsonRecord =>
 const isDeletedAdminScriptLabCourses = (value: unknown): value is JsonRecord =>
   isRecord(value) && Object.keys(value).length === 1 && isNonNegativeInteger(value.deleted);
 
+const canonicalAdminCourseLineAudioPath = (courseId: string, renderingId: string): string =>
+  `/api/convolab/admin/courses/${courseId}/line-renderings/${renderingId}/audio`;
+
+const publicAdminCourseLineAudioPath = (courseId: string, renderingId: string): string =>
+  `/api/admin/courses/${courseId}/line-renderings/${renderingId}/audio`;
+
+const isAdminCourseLineRendering = (
+  value: unknown,
+  expectedCourseId: string
+): value is AdminCourseLineRendering => {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).length !== 8 ||
+    !isUuid(value.id) ||
+    value.courseId !== expectedCourseId ||
+    !isNonNegativeInteger(value.unitIndex) ||
+    value.unitIndex > 1_000_000 ||
+    !isNonEmptyString(value.text) ||
+    typeof value.speed !== 'number' ||
+    !Number.isFinite(value.speed) ||
+    value.speed < 0.5 ||
+    value.speed > 2 ||
+    !isString(value.voiceId) ||
+    !FISH_AUDIO_VOICE_PATTERN.test(value.voiceId) ||
+    !isIsoTimestamp(value.createdAt)
+  ) {
+    return false;
+  }
+
+  const renderingId = value.id.toLowerCase();
+  return (
+    value.audioUrl === canonicalAdminCourseLineAudioPath(expectedCourseId, renderingId) ||
+    isHttpUrl(value.audioUrl)
+  );
+};
+
+const rewriteAdminCourseLineRendering = (
+  rendering: AdminCourseLineRendering
+): AdminCourseLineRendering => {
+  const renderingId = rendering.id.toLowerCase();
+
+  return {
+    ...rendering,
+    id: renderingId,
+    audioUrl:
+      rendering.audioUrl === canonicalAdminCourseLineAudioPath(rendering.courseId, renderingId)
+        ? publicAdminCourseLineAudioPath(rendering.courseId, renderingId)
+        : rendering.audioUrl,
+  };
+};
+
 const PRONUNCIATION_VALIDATION_MESSAGES = new Set([
   'keepKanji must be an array of strings',
   'keepKanji must contain no more than 500 entries',
@@ -513,6 +576,8 @@ const MUTATION_ERROR_STATUSES = new Map<string, number>([
   ['Course is already being generated', 409],
   ['Course script changed while audio generation was being queued', 409],
   ['Course generation could not be queued. Please try again.', 503],
+  ['Rendering not found', 404],
+  ['Line synthesis is temporarily unavailable', 503],
   ['Invalid stage. Must be "exchanges" or "script"', 400],
   ['Pipeline data must be a list.', 400],
   ['Pipeline data contains too many items.', 400],
@@ -869,6 +934,174 @@ export async function buildLearningOsAdminCourseScriptConfig(
     if (!isAdminCourseScriptConfig(payload)) throw invalidResponse();
 
     res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function synthesizeLearningOsAdminCourseLine(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const courseId = req.params.id?.toLowerCase();
+    if (!isUuid(courseId)) throw new AppError('Course not found', 404);
+
+    const body = isRecord(req.body) ? req.body : {};
+    const text = isString(body.text) ? body.text.trim() : '';
+    const voiceId = isString(body.voiceId) ? body.voiceId.trim().toLowerCase() : '';
+    if (!text || !voiceId || body.unitIndex === undefined) {
+      throw new AppError('Missing required fields: text, voiceId, unitIndex', 400);
+    }
+    if (text.length > 15_000) throw new AppError('text must not exceed 15000 characters', 400);
+    if (!FISH_AUDIO_VOICE_PATTERN.test(voiceId)) {
+      throw new AppError('Only Fish Audio voices are supported for line synthesis', 400);
+    }
+    if (
+      !Number.isInteger(body.unitIndex) ||
+      (body.unitIndex as number) < 0 ||
+      (body.unitIndex as number) > 1_000_000
+    ) {
+      throw new AppError('unitIndex must be an integer between 0 and 1000000', 400);
+    }
+    const speed = body.speed === undefined ? 1 : body.speed;
+    if (typeof speed !== 'number' || !Number.isFinite(speed) || speed < 0.5 || speed > 2) {
+      throw new AppError('speed must be between 0.5 and 2', 400);
+    }
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/courses/${courseId}/synthesize-line`,
+      'POST',
+      { text, voiceId, speed, unitIndex: body.unitIndex },
+      COURSE_PROVIDER_TIMEOUT_MS
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (
+      !isRecord(payload) ||
+      Object.keys(payload).length !== 2 ||
+      !isUuid(payload.renderingId) ||
+      payload.audioUrl !==
+        canonicalAdminCourseLineAudioPath(courseId, payload.renderingId.toLowerCase())
+    ) {
+      throw invalidResponse();
+    }
+
+    const renderingId = payload.renderingId.toLowerCase();
+    res.set('Cache-Control', 'private, no-store').json({
+      renderingId,
+      audioUrl: publicAdminCourseLineAudioPath(courseId, renderingId),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listLearningOsAdminCourseLineRenderings(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const courseId = req.params.id?.toLowerCase();
+    if (!isUuid(courseId)) throw new AppError('Course not found', 404);
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/courses/${courseId}/line-renderings`,
+      'GET'
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (
+      !isRecord(payload) ||
+      Object.keys(payload).length !== 1 ||
+      !Array.isArray(payload.renderings) ||
+      !payload.renderings.every((rendering) => isAdminCourseLineRendering(rendering, courseId))
+    ) {
+      throw invalidResponse();
+    }
+
+    res.set('Cache-Control', 'private, no-store').json({
+      renderings: payload.renderings.map(rewriteAdminCourseLineRendering),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteLearningOsAdminCourseLineRendering(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const courseId = req.params.id?.toLowerCase();
+    const renderingId = req.params.renderingId?.toLowerCase();
+    if (!isUuid(courseId) || !isUuid(renderingId)) {
+      throw new AppError('Rendering not found', 404);
+    }
+
+    const { payload, response } = await fetchAdminMutation(
+      req,
+      `/courses/${courseId}/line-renderings/${renderingId}`,
+      'DELETE'
+    );
+    if (!response.ok) throw mutationError(response, payload);
+    if (!isRecord(payload) || Object.keys(payload).length !== 1 || payload.success !== true) {
+      throw invalidResponse();
+    }
+
+    res.set('Cache-Control', 'private, no-store').json(payload);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function streamLearningOsAdminCourseLineRendering(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const courseId = req.params.id?.toLowerCase();
+    const renderingId = req.params.renderingId?.toLowerCase();
+    if (!isUuid(courseId) || !isUuid(renderingId)) {
+      throw new AppError('Rendering not found', 404);
+    }
+
+    const range = req.header('Range')?.trim();
+    if (range !== undefined && (range.length > 100 || !/^bytes=(?:\d+-\d*|-\d+)$/.test(range))) {
+      throw new AppError('Invalid line audio byte range.', 400);
+    }
+    if (!req.userId) throw new AppError('Authentication required', 401);
+
+    const { config, user } = await resolveLearningOsUserProxyContext(req.userId, API_LABEL, {
+      userId: req.userId,
+      email: req.email,
+      role: req.role,
+      accountSource: req.accountSource,
+    });
+    const upstreamResponse = await fetchLearningOsProxy({
+      upstreamUrl: new URL(
+        `${config.apiUrl}${canonicalAdminCourseLineAudioPath(courseId, renderingId)}`
+      ),
+      apiToken: config.apiToken,
+      user,
+      method: 'GET',
+      additionalHeaders: { Accept: 'audio/mpeg', ...(range === undefined ? {} : { Range: range }) },
+      timeoutMs: FETCH_TIMEOUT_MS,
+      timeoutMessage: `${API_LABEL} request timed out.`,
+      networkErrorMessage: `${API_LABEL} is unavailable.`,
+    });
+
+    if (upstreamResponse.status === 404) throw new AppError('Rendering not found', 404);
+    if (!upstreamResponse.ok) throw new AppError(`${API_LABEL} request failed.`, 502);
+
+    await streamLearningOsMediaResponse(upstreamResponse, res, {
+      invalidHeadersMessage: `${API_LABEL} returned invalid media headers.`,
+      isAllowedContentType: (contentType) => /^audio\/mpeg(?:\s*;|$)/i.test(contentType),
+    });
   } catch (error) {
     next(error);
   }
