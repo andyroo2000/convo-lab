@@ -2,16 +2,9 @@
 import { Router } from 'express';
 import { ipKeyGenerator, rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
-import { isLearningOsVerificationProxyEnabled } from '../config/authRouting.js';
-import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
-import {
-  sendVerificationEmail,
-  sendWelcomeEmail,
-  verifyEmailToken,
-} from '../services/emailService.js';
 import {
   sendLearningOsVerificationEmail,
   sendLearningOsPasswordResetLink,
@@ -70,37 +63,12 @@ router.post(
   verificationSendRateLimit,
   async (req: AuthRequest, res, next) => {
     try {
-      if (isLearningOsVerificationProxyEnabled()) {
-        await sendLearningOsVerificationEmail(req.userId!, {
-          userId: req.userId!,
-          email: req.email,
-          role: req.role,
-          accountSource: req.accountSource,
-        });
-        return res.json({ message: i18next.t('server:verification.emailSent') });
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { id: req.userId },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          emailVerified: true,
-        },
+      await sendLearningOsVerificationEmail(req.userId!, {
+        userId: req.userId!,
+        email: req.email,
+        role: req.role,
+        accountSource: req.accountSource,
       });
-
-      if (!user) {
-        throw new AppError('User not found', 404);
-      }
-
-      if (user.emailVerified) {
-        throw new AppError(i18next.t('server:verification.emailAlreadyVerified'), 400);
-      }
-
-      // Send verification email
-      await sendVerificationEmail(user.id, user.email, user.name);
-
       res.json({ message: i18next.t('server:verification.emailSent') });
     } catch (error) {
       next(error);
@@ -113,33 +81,7 @@ router.get('/verification/:token', verificationConsumeRateLimit, async (req, res
   try {
     const { token } = req.params;
 
-    if (isLearningOsVerificationProxyEnabled()) {
-      // Target-created accounts have no legacy profile/name for the old welcome email;
-      // keep this flag off until the profile/onboarding cutover owns that workflow.
-      return res.json(await verifyLearningOsEmail(token));
-    }
-
-    const result = await verifyEmailToken(token);
-
-    if (!result) {
-      throw new AppError(i18next.t('server:verification.tokenInvalid'), 400);
-    }
-
-    // Get user details
-    const user = await prisma.user.findUnique({
-      where: { id: result.userId },
-      select: { name: true, email: true },
-    });
-
-    if (user) {
-      // Send welcome email
-      await sendWelcomeEmail(user.email, user.name);
-    }
-
-    res.json({
-      message: i18next.t('server:verification.emailVerified'),
-      email: result.email,
-    });
+    res.json(await verifyLearningOsEmail(token));
   } catch (error) {
     next(error);
   }

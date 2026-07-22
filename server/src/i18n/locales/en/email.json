@@ -1,31 +1,4 @@
 {
-  "verification": {
-    "subject": "Verify your ConvoLab email",
-    "title": "Welcome to ConvoLab!",
-    "greeting": "Hi {{name}},",
-    "body": "Thanks for signing up! Please verify your email address to start creating language learning content.",
-    "button": "Verify Email Address",
-    "linkInstructions": "Or copy and paste this link into your browser:",
-    "expiry": "This link will expire in 24 hours. If you didn't create an account, you can safely ignore this email."
-  },
-  "welcome": {
-    "subject": "Welcome to ConvoLab!",
-    "title": "🎉 You're All Set!",
-    "greeting": "Hi {{name}},",
-    "body": "Your email has been verified! You can now start creating immersive language learning content.",
-    "whatYouCanCreate": "What you can create:",
-    "dialogues": {
-      "title": "Dialogues:",
-      "description": "Natural conversations with multiple speakers"
-    },
-    "audioCourses": {
-      "title": "Audio Courses:",
-      "description": "Pimsleur-style lessons with backward-building"
-    },
-    "button": "Start Creating",
-    "help": "Need help getting started? Check out our Getting Started Guide.",
-    "footer": "Questions? Reply to this email anytime!"
-  },
   "passwordChanged": {
     "subject": "Your ConvoLab password was changed",
     "title": "Password Changed",

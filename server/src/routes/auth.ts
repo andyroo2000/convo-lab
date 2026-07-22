@@ -11,13 +11,11 @@ import jwt from 'jsonwebtoken';
 import {
   isLearningOsAuthProxyEnabled,
   isLearningOsProfileProxyEnabled,
-  isLearningOsSignupProxyEnabled,
 } from '../config/authRouting.js';
 import { buildClientAppUrl } from '../config/browserRuntime.js';
 import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
-import { emailQueue } from '../jobs/emailQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { clearCsrfCookies, issueCsrfTokenCookie } from '../middleware/csrf.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -136,224 +134,45 @@ function createLearningOsSessionToken(
 
 // Sign up
 router.post('/signup', signupRateLimit, async (req, res, next) => {
-  const startTime = Date.now();
   try {
     const { email, password, name, inviteCode } = req.body;
 
-    if (isLearningOsSignupProxyEnabled()) {
-      if (
-        typeof email !== 'string' ||
-        typeof password !== 'string' ||
-        typeof name !== 'string' ||
-        !email.trim() ||
-        !password ||
-        !name.trim()
-      ) {
-        throw new AppError(i18next.t('server:auth.emailRequired'), 400);
-      }
-      if (typeof inviteCode !== 'string' || !inviteCode.trim()) {
-        throw new AppError(i18next.t('server:auth.inviteRequired'), 400);
-      }
-      const normalizedInput = {
-        email: email.trim(),
-        password,
-        name: name.trim(),
-        inviteCode: inviteCode.trim(),
-      };
-      if (
-        normalizedInput.email.length > 255 ||
-        password.length < 8 ||
-        password.length > 1024 ||
-        normalizedInput.name.length > 255 ||
-        normalizedInput.inviteCode.length > 20
-      ) {
-        throw new AppError('Invalid signup details', 400);
-      }
-
-      const account = await registerLearningOsAccount(normalizedInput);
-      setSessionCookies(
-        req as AuthRequest,
-        res,
-        createLearningOsSessionToken(account, 'learning-os')
-      );
-      return res.json(account);
-    }
-
-    console.log(`[SIGNUP] Request received: ${email}`);
-
-    if (!email || !password || !name) {
+    if (
+      typeof email !== 'string' ||
+      typeof password !== 'string' ||
+      typeof name !== 'string' ||
+      !email.trim() ||
+      !password ||
+      !name.trim()
+    ) {
       throw new AppError(i18next.t('server:auth.emailRequired'), 400);
     }
-
-    if (!inviteCode) {
+    if (typeof inviteCode !== 'string' || !inviteCode.trim()) {
       throw new AppError(i18next.t('server:auth.inviteRequired'), 400);
     }
-
-    // Validate invite code
-    const invite = await prisma.inviteCode.findUnique({
-      where: { code: inviteCode },
-    });
-
-    if (!invite) {
-      throw new AppError(i18next.t('server:auth.inviteInvalid'), 400);
+    const normalizedInput = {
+      email: email.trim(),
+      password,
+      name: name.trim(),
+      inviteCode: inviteCode.trim(),
+    };
+    if (
+      normalizedInput.email.length > 255 ||
+      password.length < 8 ||
+      password.length > 1024 ||
+      normalizedInput.name.length > 255 ||
+      normalizedInput.inviteCode.length > 20
+    ) {
+      throw new AppError('Invalid signup details', 400);
     }
 
-    if (invite.usedBy) {
-      throw new AppError(i18next.t('server:auth.inviteUsed'), 400);
-    }
-
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      // Check if this is a retry (invite already used by this user)
-      const usedInvite = await prisma.inviteCode.findUnique({ where: { code: inviteCode } });
-
-      if (usedInvite?.usedBy === existingUser.id) {
-        // Idempotent retry - recreate session and return success
-        console.log(`[SIGNUP] Idempotent retry detected: ${email} (id: ${existingUser.id})`);
-
-        const token = jwt.sign(
-          { userId: existingUser.id, role: existingUser.role },
-          process.env.JWT_SECRET!,
-          {
-            expiresIn: '7d',
-          }
-        );
-
-        setSessionCookies(req as AuthRequest, res, token);
-
-        // Queue verification email if not yet verified
-        if (!existingUser.emailVerified) {
-          await emailQueue.add(
-            'send-verification',
-            {
-              type: 'verification',
-              userId: existingUser.id,
-              email: existingUser.email,
-              name: existingUser.name,
-            },
-            {
-              attempts: 3,
-              backoff: {
-                type: 'exponential',
-                delay: 2000,
-              },
-              removeOnComplete: true,
-              removeOnFail: { age: 7 * 24 * 60 * 60 },
-            }
-          );
-          console.log(`[SIGNUP] Retry verification email queued: ${existingUser.email}`);
-        }
-
-        const duration = Date.now() - startTime;
-        console.log(
-          `[SIGNUP] Response sent (idempotent retry): ${existingUser.id} ${email} ${duration}ms`
-        );
-
-        return res.json({
-          id: existingUser.id,
-          email: existingUser.email,
-          name: existingUser.name,
-          displayName: existingUser.displayName,
-          avatarColor: existingUser.avatarColor,
-          role: existingUser.role,
-          preferredStudyLanguage: existingUser.preferredStudyLanguage,
-          preferredNativeLanguage: existingUser.preferredNativeLanguage,
-          proficiencyLevel: existingUser.proficiencyLevel,
-          onboardingCompleted: existingUser.onboardingCompleted,
-          emailVerified: existingUser.emailVerified,
-          emailVerifiedAt: existingUser.emailVerifiedAt,
-          createdAt: existingUser.createdAt,
-          updatedAt: existingUser.updatedAt,
-        });
-      }
-
-      throw new AppError(i18next.t('server:auth.userExists'), 400);
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Check if user should be admin
-    const role = isAdminEmail(email) ? 'admin' : 'user';
-
-    console.log(`[SIGNUP] Starting transaction: ${email}`);
-
-    // Create user and mark invite code as used in a transaction
-    const user = await prisma.$transaction(async (tx) => {
-      // Create user
-      const newUser = await tx.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          name,
-          role,
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          displayName: true,
-          avatarColor: true,
-          role: true,
-          preferredStudyLanguage: true,
-          preferredNativeLanguage: true,
-          proficiencyLevel: true,
-          onboardingCompleted: true,
-          emailVerified: true,
-          emailVerifiedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      // Mark invite code as used
-      await tx.inviteCode.update({
-        where: { code: inviteCode },
-        data: {
-          usedBy: newUser.id,
-          usedAt: new Date(),
-        },
-      });
-
-      return newUser;
-    });
-
-    console.log(`[SIGNUP] User created: ${user.id} ${email}`);
-
-    // Create JWT
-    const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET!, {
-      expiresIn: '7d',
-    });
-
-    // Set cookie
-    setSessionCookies(req as AuthRequest, res, token);
-
-    // Queue verification email (non-blocking with retries)
-    await emailQueue.add(
-      'send-verification',
-      {
-        type: 'verification',
-        userId: user.id,
-        email: user.email,
-        name: user.name,
-      },
-      {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: true,
-        removeOnFail: { age: 7 * 24 * 60 * 60 },
-      }
+    const account = await registerLearningOsAccount(normalizedInput);
+    setSessionCookies(
+      req as AuthRequest,
+      res,
+      createLearningOsSessionToken(account, 'learning-os')
     );
-
-    const duration = Date.now() - startTime;
-    console.log(`[SIGNUP] Verification email queued: ${email}`);
-    console.log(`[SIGNUP] Response sent: ${user.id} ${email} ${duration}ms`);
-
-    res.json(user);
+    res.json(account);
   } catch (error) {
     next(error);
   }

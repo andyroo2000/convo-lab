@@ -1,15 +1,8 @@
 /* eslint-disable no-console */
-import crypto from 'crypto';
-
 import { Resend } from 'resend';
 
-import { buildClientAppUrl, getClientAppUrl } from '../config/browserRuntime.js';
 import { prisma } from '../db/client.js';
-import {
-  generateVerificationEmail,
-  generateWelcomeEmail,
-  generatePasswordChangedEmail,
-} from '../i18n/emailTemplates.js';
+import { generatePasswordChangedEmail } from '../i18n/emailTemplates.js';
 import i18next from '../i18n/index.js';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -21,15 +14,6 @@ if (!resend) {
 const FROM_EMAIL = process.env.EMAIL_FROM || 'ConvoLab <noreply@convolab.app>';
 const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || 'support@convolab.app';
 
-// Helper to get user's preferred language
-async function getUserLocale(userId: string): Promise<string> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { preferredNativeLanguage: true },
-  });
-  return user?.preferredNativeLanguage || 'en';
-}
-
 // Helper to get user's preferred language by email
 async function getUserLocaleByEmail(email: string): Promise<string> {
   const user = await prisma.user.findUnique({
@@ -37,106 +21,6 @@ async function getUserLocaleByEmail(email: string): Promise<string> {
     select: { preferredNativeLanguage: true },
   });
   return user?.preferredNativeLanguage || 'en';
-}
-
-// Generate a secure random token
-function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-/**
- * Create an email verification token and send verification email
- */
-export async function sendVerificationEmail(
-  userId: string,
-  email: string,
-  name: string
-): Promise<void> {
-  // Delete any existing verification tokens for this user
-  await prisma.emailVerificationToken.deleteMany({
-    where: { userId },
-  });
-
-  // Generate token (expires in 24 hours)
-  const token = generateToken();
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-  // Create token in database
-  await prisma.emailVerificationToken.create({
-    data: {
-      userId,
-      token,
-      expiresAt,
-    },
-  });
-
-  // Get user's preferred language
-  const locale = await getUserLocale(userId);
-  const t = i18next.getFixedT(locale, 'email');
-
-  // Send email
-  const verificationUrl = buildClientAppUrl(`/verify-email/${token}`);
-  const html = generateVerificationEmail({ locale, name, verificationUrl });
-  const subject = t('verification.subject');
-
-  try {
-    // In development, log the URL to console instead of sending email
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`✉️  EMAIL VERIFICATION (DEV MODE) [${locale}]`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`To: ${email}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`\n🔗 Verification Link (expires in 24 hours):`);
-      console.log(`   ${verificationUrl}`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-      return;
-    }
-
-    if (!resend) return; // Skip email sending if Resend not configured
-
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      replyTo: REPLY_TO_EMAIL,
-      subject,
-      html,
-    });
-
-    console.log(`✓ Verification email sent to ${email} (${locale})`);
-  } catch (error) {
-    console.error('Error sending verification email:', error);
-    throw new Error('Failed to send verification email');
-  }
-}
-
-/**
- * Send a welcome email after email verification
- */
-export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
-  try {
-    if (!resend) return; // Skip email sending if Resend not configured
-
-    // Get user's preferred language
-    const locale = await getUserLocaleByEmail(email);
-    const t = i18next.getFixedT(locale, 'email');
-
-    const html = generateWelcomeEmail({ locale, name, appUrl: getClientAppUrl() });
-    const subject = t('welcome.subject');
-
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      replyTo: REPLY_TO_EMAIL,
-      subject,
-      html,
-    });
-
-    console.log(`✓ Welcome email sent to ${email} (${locale})`);
-  } catch (error) {
-    console.error('Error sending welcome email:', error);
-    // Don't throw - welcome email is nice to have but not critical
-  }
 }
 
 /**
@@ -166,43 +50,4 @@ export async function sendPasswordChangedEmail(email: string, name: string): Pro
     console.error('Error sending password changed email:', error);
     // Don't throw - notification email is nice to have but not critical
   }
-}
-
-/**
- * Verify an email verification token
- */
-export async function verifyEmailToken(
-  token: string
-): Promise<{ userId: string; email: string } | null> {
-  const tokenRecord = await prisma.emailVerificationToken.findUnique({
-    where: { token },
-    include: { user: true },
-  });
-
-  if (!tokenRecord) {
-    return null;
-  }
-
-  // Check if token is expired
-  if (tokenRecord.expiresAt < new Date()) {
-    await prisma.emailVerificationToken.delete({ where: { token } });
-    return null;
-  }
-
-  // Mark user as verified
-  await prisma.user.update({
-    where: { id: tokenRecord.userId },
-    data: {
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-    },
-  });
-
-  // Delete the token
-  await prisma.emailVerificationToken.delete({ where: { token } });
-
-  return {
-    userId: tokenRecord.userId,
-    email: tokenRecord.user.email,
-  };
 }

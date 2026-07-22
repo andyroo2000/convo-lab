@@ -1,13 +1,13 @@
-import express, { json as expressJson, Response, NextFunction } from 'express';
+import express, { json as expressJson, NextFunction, Response } from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import {
+  apiCsrfErrorHandler,
+  apiCsrfProtection,
   CSRF_TOKEN_COOKIE_NAME,
   CSRF_TOKEN_HEADER_NAME,
-  apiCsrfProtection,
-  apiCsrfErrorHandler,
   issueCsrfTokenCookie,
   requireAllowedApiMutationOrigin,
 } from '../../../middleware/csrf.js';
@@ -16,26 +16,6 @@ import verificationRouter from '../../../routes/verification.js';
 import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
-// Create hoisted mocks
-const mockPrisma = vi.hoisted(() => ({
-  user: {
-    findUnique: vi.fn(),
-    update: vi.fn(),
-  },
-  emailVerificationToken: {
-    deleteMany: vi.fn(),
-    create: vi.fn(),
-    findFirst: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
-
-const mockEmailService = vi.hoisted(() => ({
-  sendVerificationEmail: vi.fn(),
-  sendWelcomeEmail: vi.fn(),
-  verifyEmailToken: vi.fn(),
-}));
-
 const mockLearningOsAuth = vi.hoisted(() => ({
   resetLearningOsPassword: vi.fn(),
   sendLearningOsPasswordResetLink: vi.fn(),
@@ -43,14 +23,7 @@ const mockLearningOsAuth = vi.hoisted(() => ({
   verifyLearningOsEmail: vi.fn(),
 }));
 
-vi.mock('../../../db/client.js', () => ({
-  prisma: mockPrisma,
-}));
-
-vi.mock('../../../services/emailService.js', () => mockEmailService);
 vi.mock('../../../services/learningOsAuthProxy.js', () => mockLearningOsAuth);
-
-// Mock auth middleware
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: (req: AuthRequest, _res: Response, next: NextFunction) => {
     req.userId = 'test-user-id';
@@ -68,7 +41,7 @@ describe('Verification Routes', () => {
   let csrfCookies: string[] = [];
   let csrfToken = '';
 
-  function withCsrf(requestBuilder: request.Test, origin: string = 'http://localhost:5173') {
+  function withCsrf(requestBuilder: request.Test, origin = 'http://localhost:5173') {
     return requestBuilder
       .set('Origin', origin)
       .set('Cookie', csrfCookies)
@@ -81,18 +54,14 @@ describe('Verification Routes', () => {
       ...originalEnv,
       NODE_ENV: 'test',
       CLIENT_URL: 'http://localhost:5173',
-      LEARNING_OS_VERIFICATION_PROXY_ENABLED: 'false',
     };
     resetBrowserRuntimeTestState();
     app = express();
     app.use(testCookieParser);
     app.use(expressJson());
-    app.use('/api/auth', requireAllowedApiMutationOrigin);
-    app.use('/api/auth', apiCsrfProtection);
-    app.use('/api/verification', requireAllowedApiMutationOrigin);
-    app.use('/api/verification', apiCsrfProtection);
-    app.use('/api/password-reset', requireAllowedApiMutationOrigin);
-    app.use('/api/password-reset', apiCsrfProtection);
+    app.use('/api/auth', requireAllowedApiMutationOrigin, apiCsrfProtection);
+    app.use('/api/verification', requireAllowedApiMutationOrigin, apiCsrfProtection);
+    app.use('/api/password-reset', requireAllowedApiMutationOrigin, apiCsrfProtection);
     app.get('/api/auth/csrf', (req, res) => {
       issueCsrfTokenCookie(req, res, 'lax');
       res.status(204).end();
@@ -128,68 +97,13 @@ describe('Verification Routes', () => {
       expect(response.body.error.message).toBe('Invalid CSRF token.');
     });
 
-    it('should send verification email for unverified user', async () => {
-      const mockUser = {
-        id: 'test-user-id',
-        email: 'test@example.com',
-        name: 'Test User',
-        emailVerified: false,
-      };
-
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockEmailService.sendVerificationEmail.mockResolvedValue(undefined);
+    it('always resends through signed Learning OS session identity', async () => {
+      mockLearningOsAuth.sendLearningOsVerificationEmail.mockResolvedValue(undefined);
 
       const response = await withCsrf(request(app).post('/api/verification/send')).expect(200);
 
       expect(response.body).toEqual({ message: 'Verification email sent' });
       expect(response.headers['ratelimit-policy']).toBeDefined();
-      expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
-        mockUser.id,
-        mockUser.email,
-        mockUser.name
-      );
-    });
-
-    it('should reject if user not found', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-
-      const response = await withCsrf(request(app).post('/api/verification/send')).expect(404);
-
-      expect(response.body.error.message).toBe('User not found');
-      expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
-    });
-
-    it('should reject if email already verified', async () => {
-      const mockUser = {
-        id: 'test-user-id',
-        email: 'test@example.com',
-        name: 'Test User',
-        emailVerified: true,
-      };
-
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-
-      const response = await withCsrf(request(app).post('/api/verification/send')).expect(400);
-
-      expect(response.body.error.message).toBe('Email already verified');
-      expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Learning OS verification routing', () => {
-    beforeEach(() => {
-      process.env.LEARNING_OS_VERIFICATION_PROXY_ENABLED = 'true';
-      mockLearningOsAuth.sendLearningOsVerificationEmail.mockResolvedValue(undefined);
-      mockLearningOsAuth.verifyLearningOsEmail.mockResolvedValue({
-        message: 'Email verified successfully',
-        email: 'test@example.com',
-      });
-    });
-
-    it('resends through signed session identity without touching legacy persistence', async () => {
-      const response = await withCsrf(request(app).post('/api/verification/send')).expect(200);
-
-      expect(response.body).toEqual({ message: 'Verification email sent' });
       expect(mockLearningOsAuth.sendLearningOsVerificationEmail).toHaveBeenCalledWith(
         'test-user-id',
         {
@@ -199,11 +113,16 @@ describe('Verification Routes', () => {
           accountSource: 'learning-os',
         }
       );
-      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
-      expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
     });
+  });
 
-    it('translates the public path token through Learning OS', async () => {
+  describe('GET /api/verification/:token', () => {
+    it('always translates the public path token through Learning OS', async () => {
+      mockLearningOsAuth.verifyLearningOsEmail.mockResolvedValue({
+        message: 'Email verified successfully',
+        email: 'test@example.com',
+      });
+
       const response = await request(app)
         .get(`/api/verification/${'a'.repeat(64)}`)
         .expect(200);
@@ -214,8 +133,6 @@ describe('Verification Routes', () => {
       });
       expect(response.headers['ratelimit-policy']).toBeDefined();
       expect(mockLearningOsAuth.verifyLearningOsEmail).toHaveBeenCalledWith('a'.repeat(64));
-      expect(mockEmailService.verifyEmailToken).not.toHaveBeenCalled();
-      expect(mockEmailService.sendWelcomeEmail).not.toHaveBeenCalled();
     });
 
     it('passes controlled Learning OS failures through the standard error envelope', async () => {
@@ -228,50 +145,6 @@ describe('Verification Routes', () => {
       expect(response.body).toEqual({
         error: { message: 'Invalid or expired verification token', statusCode: 400 },
       });
-    });
-  });
-
-  describe('GET /api/verification/:token', () => {
-    it('should verify email with valid token', async () => {
-      const mockTokenResult = {
-        userId: 'test-user-id',
-        email: 'test@example.com',
-      };
-
-      const mockUser = {
-        name: 'Test User',
-        email: 'test@example.com',
-      };
-
-      mockEmailService.verifyEmailToken.mockResolvedValue(mockTokenResult);
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockEmailService.sendWelcomeEmail.mockResolvedValue(undefined);
-
-      const response = await request(app).get('/api/verification/valid-token').expect(200);
-
-      expect(response.body).toEqual({
-        message: 'Email verified successfully',
-        email: 'test@example.com',
-      });
-      expect(mockEmailService.verifyEmailToken).toHaveBeenCalledWith('valid-token');
-      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(mockUser.email, mockUser.name);
-    });
-
-    it('should reject invalid token', async () => {
-      mockEmailService.verifyEmailToken.mockResolvedValue(null);
-
-      const response = await request(app).get('/api/verification/invalid-token').expect(400);
-
-      expect(response.body.error.message).toBe('Invalid or expired verification token');
-      expect(mockEmailService.sendWelcomeEmail).not.toHaveBeenCalled();
-    });
-
-    it('should handle expired token', async () => {
-      mockEmailService.verifyEmailToken.mockResolvedValue(null);
-
-      const response = await request(app).get('/api/verification/expired-token').expect(400);
-
-      expect(response.body.error.message).toBe('Invalid or expired verification token');
     });
   });
 
@@ -290,10 +163,9 @@ describe('Verification Routes', () => {
       expect(mockLearningOsAuth.sendLearningOsPasswordResetLink).toHaveBeenCalledWith(
         'target-only@example.com'
       );
-      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     });
 
-    it('should reject request without email', async () => {
+    it('rejects a request without email', async () => {
       const response = await withCsrf(request(app).post('/api/password-reset/request'))
         .send({})
         .expect(400);
@@ -301,7 +173,7 @@ describe('Verification Routes', () => {
       expect(response.body.error.message).toBe('Email is required');
     });
 
-    it('rate limits repeated reset-link requests for the same normalized email', async () => {
+    it('rate limits repeated requests for the same normalized email', async () => {
       mockLearningOsAuth.sendLearningOsPasswordResetLink.mockResolvedValue(undefined);
 
       for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -339,7 +211,6 @@ describe('Verification Routes', () => {
         token: 'learning-os-token',
         newPassword: 'newpassword123',
       });
-      expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
 
     it('passes Learning OS validation failures through the standard error envelope', async () => {
@@ -358,31 +229,16 @@ describe('Verification Routes', () => {
       expect(response.body.error.message).toBe('Invalid or expired password reset token');
     });
 
-    it('should reject password reset without token', async () => {
+    it.each([
+      [{ newPassword: 'newpassword123' }, 'Token and new password are required'],
+      [{ token: 'valid-token' }, 'Token and new password are required'],
+      [{ token: 'valid-token', newPassword: 'short' }, 'Password must be at least 8 characters'],
+    ])('rejects malformed reset bodies', async (body, message) => {
       const response = await withCsrf(request(app).post('/api/password-reset/verify'))
-        .send({ newPassword: 'newpassword123' })
+        .send(body)
         .expect(400);
 
-      expect(response.body.error.message).toBe('Token and new password are required');
-    });
-
-    it('should reject password reset without new password', async () => {
-      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
-        .send({ token: 'valid-token' })
-        .expect(400);
-
-      expect(response.body.error.message).toBe('Token and new password are required');
-    });
-
-    it('should reject password shorter than 8 characters', async () => {
-      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
-        .send({
-          token: 'valid-token',
-          newPassword: 'short',
-        })
-        .expect(400);
-
-      expect(response.body.error.message).toBe('Password must be at least 8 characters');
+      expect(response.body.error.message).toBe(message);
     });
   });
 });
