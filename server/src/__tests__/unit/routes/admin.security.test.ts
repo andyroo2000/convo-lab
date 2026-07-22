@@ -44,11 +44,19 @@ const mockAdminReads = vi.hoisted(() => ({
   showStats: vi.fn(),
   showUser: vi.fn(),
 }));
+const mockAdminMutations = vi.hoisted(() => ({
+  createInviteCode: vi.fn(),
+  deleteInviteCode: vi.fn(),
+  deleteUser: vi.fn(),
+}));
 
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
 }));
 vi.mock('../../../routes/learningOs/admin.js', () => ({
+  createLearningOsAdminInviteCode: mockAdminMutations.createInviteCode,
+  deleteLearningOsAdminInviteCode: mockAdminMutations.deleteInviteCode,
+  deleteLearningOsAdminUser: mockAdminMutations.deleteUser,
   listLearningOsAdminInviteCodes: mockAdminReads.listInviteCodes,
   listLearningOsAdminUsers: mockAdminReads.listUsers,
   showLearningOsAdminStats: mockAdminReads.showStats,

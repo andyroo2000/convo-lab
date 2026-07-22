@@ -615,6 +615,7 @@ jobs:
                   "feature-flags:write",
                   "content:write",
                   "admin:read",
+                  "admin:write",
                   "auth:login",
                   "auth:read",
                   "auth:write",
@@ -967,6 +968,27 @@ jobs:
             media_smoke_headers=
             daily_audio_smoke_body=
             daily_audio_smoke_headers=
+            admin_invite_smoke_id=
+
+            cleanup_admin_invite_smoke() {
+              local mode="${1:-strict}"
+
+              if [ -z "${admin_invite_smoke_id:-}" ]; then
+                return
+              fi
+              if declare -F mutate_proxy_route > /dev/null \
+                && mutate_proxy_route \
+                  DELETE "/api/admin/invite-codes/$admin_invite_smoke_id" '{}' > /dev/null; then
+                admin_invite_smoke_id=
+                return
+              fi
+              if [ "$mode" = best-effort ]; then
+                echo "::warning::Unable to clean up admin invite smoke fixture $admin_invite_smoke_id."
+                return 0
+              fi
+
+              return 1
+            }
 
             cleanup_daily_audio_smoke() {
               [ -z "${daily_audio_smoke_body:-}" ] || rm -f "$daily_audio_smoke_body"
@@ -1525,6 +1547,7 @@ jobs:
                   '{}' > /dev/null || true
               fi
               cleanup_daily_audio_smoke
+              cleanup_admin_invite_smoke best-effort
               cleanup_episode_write_smoke best-effort
               cleanup_course_write_smoke best-effort
               cleanup_course_generation_smoke best-effort
@@ -1936,6 +1959,35 @@ jobs:
                 '/api/admin/invite-codes?limit=1' \
                 > /dev/null
               echo "Admin Learning OS read smoke checks passed."
+
+              admin_invite_create="$(mutate_proxy_route POST '/api/admin/invite-codes' '{}')"
+              admin_invite_smoke_id="$(printf '%s' "$admin_invite_create" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    typeof invite?.id !== "string" ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invite.id)
+                  ) process.exit(1);
+                  process.stdout.write(invite.id);
+                ')"
+              test -n "$admin_invite_smoke_id"
+              printf '%s' "$admin_invite_create" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    // This is the compatibility contract of Learning OS generated invite codes.
+                    typeof invite?.code !== "string" ||
+                    !/^[A-F0-9]{8}$/.test(invite.code) ||
+                    invite.usedBy !== null ||
+                    invite.usedAt !== null
+                  ) process.exit(1);
+                '
+              cleanup_admin_invite_smoke
+              echo "Admin Learning OS invite create/delete smoke checks passed."
 
               fetch_read_route \
                 'Overview Learning OS' \

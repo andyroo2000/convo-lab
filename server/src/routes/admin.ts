@@ -1,6 +1,4 @@
 /* eslint-disable import/no-named-as-default-member */
-import crypto from 'crypto';
-
 import { Router } from 'express';
 import multer from 'multer';
 
@@ -21,6 +19,9 @@ import {
 } from '../services/japanesePronunciationOverrides.js';
 
 import {
+  createLearningOsAdminInviteCode,
+  deleteLearningOsAdminInviteCode,
+  deleteLearningOsAdminUser,
   listLearningOsAdminInviteCodes,
   listLearningOsAdminUsers,
   showLearningOsAdminStats,
@@ -58,40 +59,7 @@ router.get('/stats', showLearningOsAdminStats);
 router.get('/users', listLearningOsAdminUsers);
 
 // Delete user
-router.delete('/users/:id', async (req: AuthRequest, res, next) => {
-  try {
-    const { id } = req.params;
-
-    // Prevent admin from deleting themselves
-    if (id === req.userId) {
-      throw new AppError('Cannot delete your own account', 400);
-    }
-
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: { email: true, role: true },
-    });
-
-    if (!user) {
-      throw new AppError('User not found', 404);
-    }
-
-    // Prevent deleting other admins
-    if (user.role === 'admin') {
-      throw new AppError('Cannot delete admin users', 403);
-    }
-
-    // Delete user (cascade will handle related data)
-    await prisma.user.delete({
-      where: { id },
-    });
-
-    res.json({ message: 'User deleted successfully' });
-  } catch (error) {
-    next(error);
-  }
-});
+router.delete('/users/:id', deleteLearningOsAdminUser);
 
 // Get user info for impersonation
 router.get('/users/:id/info', showLearningOsAdminUser);
@@ -100,69 +68,10 @@ router.get('/users/:id/info', showLearningOsAdminUser);
 router.get('/invite-codes', listLearningOsAdminInviteCodes);
 
 // Create new invite code
-router.post('/invite-codes', async (req: AuthRequest, res, next) => {
-  try {
-    const { customCode } = req.body;
-
-    let code: string;
-    if (customCode) {
-      // Validate custom code format (alphanumeric, 6-20 chars)
-      if (!/^[A-Za-z0-9]{6,20}$/.test(customCode)) {
-        throw new AppError('Custom code must be 6-20 alphanumeric characters', 400);
-      }
-      code = customCode;
-    } else {
-      // Generate random 8-character code
-      code = crypto.randomBytes(4).toString('hex').toUpperCase();
-    }
-
-    // Check if code already exists
-    const existing = await prisma.inviteCode.findUnique({
-      where: { code },
-    });
-
-    if (existing) {
-      throw new AppError('This code already exists', 400);
-    }
-
-    const inviteCode = await prisma.inviteCode.create({
-      data: { code },
-    });
-
-    res.json(inviteCode);
-  } catch (error) {
-    next(error);
-  }
-});
+router.post('/invite-codes', createLearningOsAdminInviteCode);
 
 // Delete invite code
-router.delete('/invite-codes/:id', async (req: AuthRequest, res, next) => {
-  try {
-    const { id } = req.params;
-
-    // Check if invite code exists
-    const inviteCode = await prisma.inviteCode.findUnique({
-      where: { id },
-    });
-
-    if (!inviteCode) {
-      throw new AppError('Invite code not found', 404);
-    }
-
-    // Prevent deleting used invite codes
-    if (inviteCode.usedBy) {
-      throw new AppError('Cannot delete used invite codes', 400);
-    }
-
-    await prisma.inviteCode.delete({
-      where: { id },
-    });
-
-    res.json({ message: 'Invite code deleted successfully' });
-  } catch (error) {
-    next(error);
-  }
-});
+router.delete('/invite-codes/:id', deleteLearningOsAdminInviteCode);
 
 // ============================================
 // Avatar Management Routes

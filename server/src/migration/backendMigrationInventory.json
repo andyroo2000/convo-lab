@@ -294,7 +294,12 @@
           "path": "/api/admin/users",
           "runtimeOwner": "learning-os-proxy"
         },
-        { "id": "admin.users.delete", "method": "DELETE", "path": "/api/admin/users/:id" },
+        {
+          "id": "admin.users.delete",
+          "method": "DELETE",
+          "path": "/api/admin/users/:id",
+          "runtimeOwner": "learning-os-proxy"
+        },
         {
           "id": "admin.users.show",
           "method": "GET",
@@ -307,11 +312,17 @@
           "path": "/api/admin/invite-codes",
           "runtimeOwner": "learning-os-proxy"
         },
-        { "id": "admin.invites.store", "method": "POST", "path": "/api/admin/invite-codes" },
+        {
+          "id": "admin.invites.store",
+          "method": "POST",
+          "path": "/api/admin/invite-codes",
+          "runtimeOwner": "learning-os-proxy"
+        },
         {
           "id": "admin.invites.delete",
           "method": "DELETE",
-          "path": "/api/admin/invite-codes/:id"
+          "path": "/api/admin/invite-codes/:id",
+          "runtimeOwner": "learning-os-proxy"
         },
         {
           "id": "admin.speaker-avatars.original",
