@@ -182,20 +182,18 @@ describe('backend migration inventory', () => {
 
   it('tracks proxied auth entrypoints separately from remaining Express account routes', () => {
     for (const [method, routePath] of [
+      ['POST', '/api/auth/signup'],
       ['POST', '/api/auth/login'],
       ['GET', '/api/auth/me'],
+      ['PATCH', '/api/auth/me'],
+      ['PATCH', '/api/auth/change-password'],
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
         surface: { id: 'auth', runtimeOwner: 'learning-os-proxy' },
       });
     }
 
-    for (const [method, routePath] of [
-      ['POST', '/api/auth/signup'],
-      ['PATCH', '/api/auth/me'],
-      ['PATCH', '/api/auth/change-password'],
-      ['DELETE', '/api/auth/me'],
-    ]) {
+    for (const [method, routePath] of [['DELETE', '/api/auth/me']]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
         surface: { id: 'auth', runtimeOwner: 'express' },
       });
@@ -204,19 +202,17 @@ describe('backend migration inventory', () => {
     for (const [method, routePath] of [
       ['POST', '/api/verification/send'],
       ['GET', '/api/verification/token'],
-    ]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'verification', runtimeOwner: 'express' },
-      });
-    }
-
-    for (const [method, routePath] of [
       ['POST', '/api/password-reset/request'],
       ['POST', '/api/password-reset/verify'],
     ]) {
       expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        route: { runtimeOwner: 'learning-os-proxy' },
         surface: { id: 'verification', runtimeOwner: 'learning-os-proxy' },
+      });
+    }
+
+    for (const [method, routePath] of [['GET', '/api/password-reset/token']]) {
+      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
+        surface: { id: 'verification', runtimeOwner: 'express' },
       });
     }
   });

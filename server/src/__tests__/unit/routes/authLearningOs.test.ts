@@ -12,6 +12,8 @@ import { getSetCookieArray, testCookieParser } from '../../helpers/testCookiePar
 const mocks = vi.hoisted(() => ({
   authenticateLearningOsAccount: vi.fn(),
   bcryptCompare: vi.fn(),
+  bcryptHash: vi.fn(),
+  changeLearningOsCurrentPassword: vi.fn(),
   getLearningOsCurrentAccount: vi.fn(),
   registerLearningOsAccount: vi.fn(),
   updateLearningOsCurrentAccount: vi.fn(),
@@ -23,7 +25,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('bcrypt', () => ({
   default: {
     compare: mocks.bcryptCompare,
-    hash: vi.fn(),
+    hash: mocks.bcryptHash,
   },
 }));
 vi.mock('../../../i18n/index.js', () => ({
@@ -61,7 +63,9 @@ vi.mock('../../../db/client.js', () => ({
 vi.mock('../../../jobs/emailQueue.js', () => ({ emailQueue: { add: vi.fn() } }));
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: (req: AuthRequest, _res: Response, next: NextFunction) => {
-    req.userId = '11111111-1111-4111-8111-111111111111';
+    req.userId =
+      (typeof req.headers['x-test-user-id'] === 'string' && req.headers['x-test-user-id']) ||
+      '11111111-1111-4111-8111-111111111111';
     req.role = 'user';
     req.email = 'learner@example.com';
     req.accountSource = 'learning-os';
@@ -71,6 +75,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 }));
 vi.mock('../../../services/learningOsAuthProxy.js', () => ({
   authenticateLearningOsAccount: mocks.authenticateLearningOsAccount,
+  changeLearningOsCurrentPassword: mocks.changeLearningOsCurrentPassword,
   getLearningOsCurrentAccount: mocks.getLearningOsCurrentAccount,
   registerLearningOsAccount: mocks.registerLearningOsAccount,
   updateLearningOsCurrentAccount: mocks.updateLearningOsCurrentAccount,
@@ -119,6 +124,7 @@ describe('Auth Learning OS routing', () => {
     process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED = 'true';
     process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = 'true';
     mocks.authenticateLearningOsAccount.mockResolvedValue(loginAccount);
+    mocks.changeLearningOsCurrentPassword.mockResolvedValue(undefined);
     mocks.getLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
     mocks.updateLearningOsCurrentAccount.mockResolvedValue(currentAccount);
@@ -300,6 +306,116 @@ describe('Auth Learning OS routing', () => {
     );
     expect(mocks.prismaUpdate).not.toHaveBeenCalled();
     expect(mocks.copySampleContentToUser).not.toHaveBeenCalled();
+  });
+
+  it('changes the current password through Learning OS without touching legacy credentials', async () => {
+    const response = await request(app)
+      .patch('/api/auth/change-password')
+      .send({ currentPassword: 'old-password123', newPassword: 'new-password123' })
+      .expect(200);
+
+    expect(response.body).toEqual({ message: 'server:auth.passwordChanged' });
+    expect(mocks.changeLearningOsCurrentPassword).toHaveBeenCalledWith(
+      loginAccount.id,
+      { currentPassword: 'old-password123', newPassword: 'new-password123' },
+      {
+        userId: loginAccount.id,
+        email: loginAccount.email,
+        role: loginAccount.role,
+        accountSource: 'learning-os',
+      }
+    );
+    expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
+    expect(mocks.prismaUpdate).not.toHaveBeenCalled();
+    expect(mocks.bcryptCompare).not.toHaveBeenCalled();
+    expect(mocks.bcryptHash).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['incorrect current password', new AppError('Current password is incorrect', 401), 401],
+    [
+      'upstream rate limit',
+      new AppError('Too many password change attempts.', 429, {
+        cooldown: { remainingSeconds: 17 },
+      }),
+      429,
+    ],
+  ] as const)('returns the normal API envelope for %s', async (_label, error, status) => {
+    mocks.changeLearningOsCurrentPassword.mockRejectedValueOnce(error);
+
+    const response = await request(app)
+      .patch('/api/auth/change-password')
+      .send({ currentPassword: 'old-password123', newPassword: 'new-password123' })
+      .expect(status);
+
+    expect(response.body.error).toMatchObject({ message: error.message, statusCode: status });
+    if (status === 429) {
+      expect(response.headers['retry-after']).toBe('17');
+    }
+  });
+
+  it('rate limits password changes per user before forwarding credentials', async () => {
+    const limitedUserId = '22222222-2222-4222-8222-222222222222';
+    const otherUserId = '33333333-3333-4333-8333-333333333333';
+    const payload = { currentPassword: 'old-password123', newPassword: 'new-password123' };
+
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await request(app)
+        .patch('/api/auth/change-password')
+        .set('X-Test-User-Id', limitedUserId)
+        .send(payload)
+        .expect(200);
+    }
+
+    await request(app)
+      .patch('/api/auth/change-password')
+      .set('X-Test-User-Id', limitedUserId)
+      .send(payload)
+      .expect(429);
+    await request(app)
+      .patch('/api/auth/change-password')
+      .set('X-Test-User-Id', otherUserId)
+      .send(payload)
+      .expect(200);
+
+    expect(mocks.changeLearningOsCurrentPassword).toHaveBeenCalledTimes(31);
+  });
+
+  it('rejects malformed password changes before forwarding credentials', async () => {
+    await request(app)
+      .patch('/api/auth/change-password')
+      .send({ currentPassword: ['old-password123'], newPassword: 'new-password123' })
+      .expect(400);
+
+    await request(app)
+      .patch('/api/auth/change-password')
+      .send({ currentPassword: 'old-password123', newPassword: 'short' })
+      .expect(400);
+
+    await request(app)
+      .patch('/api/auth/change-password')
+      .send({ currentPassword: 'old-password123', newPassword: 'x'.repeat(1025) })
+      .expect(400);
+
+    expect(mocks.changeLearningOsCurrentPassword).not.toHaveBeenCalled();
+  });
+
+  it('keeps the local password implementation available when auth routing is disabled', async () => {
+    process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'false';
+    mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id, password: 'legacy-hash' });
+    mocks.bcryptCompare.mockResolvedValue(true);
+    mocks.bcryptHash.mockResolvedValue('new-legacy-hash');
+
+    await request(app)
+      .patch('/api/auth/change-password')
+      .send({ currentPassword: 'old-password123', newPassword: 'new-password123' })
+      .expect(200);
+
+    expect(mocks.prismaUpdate).toHaveBeenCalledWith({
+      where: { id: loginAccount.id },
+      data: { password: 'new-legacy-hash' },
+    });
+    expect(mocks.changeLearningOsCurrentPassword).not.toHaveBeenCalled();
   });
 
   it.each([

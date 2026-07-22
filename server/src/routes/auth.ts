@@ -24,6 +24,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
 import {
   authenticateLearningOsAccount,
+  changeLearningOsCurrentPassword,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
   updateLearningOsCurrentAccount,
@@ -60,6 +61,19 @@ const currentUserIpRateLimit = createExpressRateLimit({
 const currentUserRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
+});
+const passwordChangeIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const passwordChangeRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
@@ -693,50 +707,79 @@ function buildLearningOsProfileUpdate(value: unknown): LearningOsProfileUpdateIn
 }
 
 // Change password
-router.patch('/change-password', requireAuth, async (req: AuthRequest, res, next) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
+router.patch(
+  '/change-password',
+  passwordChangeIpRateLimit,
+  requireAuth,
+  passwordChangeRateLimit,
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
-      throw new AppError(i18next.t('server:auth.passwordFieldsRequired'), 400);
+      if (
+        typeof currentPassword !== 'string' ||
+        typeof newPassword !== 'string' ||
+        !currentPassword ||
+        !newPassword
+      ) {
+        throw new AppError(i18next.t('server:auth.passwordFieldsRequired'), 400);
+      }
+
+      if (currentPassword.length > 1024 || newPassword.length > 1024) {
+        throw new AppError('Invalid password details', 400);
+      }
+
+      if (newPassword.length < 8) {
+        throw new AppError(i18next.t('server:auth.passwordTooShort'), 400);
+      }
+
+      if (isLearningOsAuthProxyEnabled()) {
+        await changeLearningOsCurrentPassword(
+          req.userId!,
+          { currentPassword, newPassword },
+          {
+            userId: req.userId!,
+            email: req.email,
+            role: req.role,
+            accountSource: req.accountSource,
+          }
+        );
+        return res.json({ message: i18next.t('server:auth.passwordChanged') });
+      }
+
+      // Get user with password
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+      });
+
+      if (!user) {
+        throw new AppError(i18next.t('server:auth.userNotFound'), 404);
+      }
+      if (!user.password) {
+        throw new AppError('Current password is incorrect', 401);
+      }
+
+      // Verify current password
+      const validPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!validPassword) {
+        throw new AppError('Current password is incorrect', 401);
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      await prisma.user.update({
+        where: { id: req.userId },
+        data: { password: hashedPassword },
+      });
+
+      res.json({ message: i18next.t('server:auth.passwordChanged') });
+    } catch (error) {
+      next(error);
     }
-
-    if (newPassword.length < 8) {
-      throw new AppError(i18next.t('server:auth.passwordTooShort'), 400);
-    }
-
-    // Get user with password
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-    });
-
-    if (!user) {
-      throw new AppError(i18next.t('server:auth.userNotFound'), 404);
-    }
-    if (!user.password) {
-      throw new AppError('Current password is incorrect', 401);
-    }
-
-    // Verify current password
-    const validPassword = await bcrypt.compare(currentPassword, user.password);
-    if (!validPassword) {
-      throw new AppError('Current password is incorrect', 401);
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update password
-    await prisma.user.update({
-      where: { id: req.userId },
-      data: { password: hashedPassword },
-    });
-
-    res.json({ message: i18next.t('server:auth.passwordChanged') });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // Delete user account
 router.delete('/me', requireAuth, async (req: AuthRequest, res, next) => {

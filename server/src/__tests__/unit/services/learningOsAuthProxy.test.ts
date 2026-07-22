@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   authenticateLearningOsAccount,
+  changeLearningOsCurrentPassword,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
   resetLearningOsPassword,
@@ -267,6 +268,97 @@ describe('Learning OS auth proxy', () => {
         'X-Convo-Lab-User-Id': account.id,
         'X-Convo-Lab-User-Email': account.email,
       }),
+    });
+  });
+
+  it('changes a target-created account password through the canonical Learning OS action', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(
+      changeLearningOsCurrentPassword(
+        account.id,
+        { currentPassword: 'old-password123', newPassword: 'new-password123' },
+        {
+          userId: account.id,
+          email: account.email,
+          role: account.role,
+          accountSource: 'learning-os',
+        }
+      )
+    ).resolves.toBeUndefined();
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/me/password');
+    expect(init).toMatchObject({
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: 'old-password123',
+        password: 'new-password123',
+        password_confirmation: 'new-password123',
+      }),
+      headers: expect.objectContaining({
+        'X-Convo-Lab-User-Id': account.id,
+        'X-Convo-Lab-User-Email': account.email,
+      }),
+    });
+  });
+
+  it.each([
+    [
+      'incorrect current password',
+      { message: 'Invalid.', errors: { current_password: ['The password is incorrect.'] } },
+      'Current password is incorrect',
+      401,
+    ],
+    [
+      'invalid new password',
+      { message: 'Invalid.', errors: { password: ['The password is invalid.'] } },
+      'Invalid new password',
+      400,
+    ],
+  ] as const)(
+    'maps %s to the legacy password-change contract',
+    async (_label, body, message, status) => {
+      vi.mocked(global.fetch).mockResolvedValue(jsonResponse(body, 422));
+
+      await expect(
+        changeLearningOsCurrentPassword(account.id, {
+          currentPassword: 'old-password123',
+          newPassword: 'new-password123',
+        })
+      ).rejects.toMatchObject({ message, statusCode: status });
+    }
+  );
+
+  it('preserves a bounded password-change retry delay', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'Too Many Attempts.' }, 429, { 'Retry-After': '19' })
+    );
+
+    await expect(
+      changeLearningOsCurrentPassword(account.id, {
+        currentPassword: 'old-password123',
+        newPassword: 'new-password123',
+      })
+    ).rejects.toMatchObject({
+      message: 'Too many password change attempts.',
+      statusCode: 429,
+      metadata: { cooldown: { remainingSeconds: 19 } },
+    });
+  });
+
+  it('rejects an unexpected successful password-change response', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse({ message: 'ok' }));
+
+    await expect(
+      changeLearningOsCurrentPassword(account.id, {
+        currentPassword: 'old-password123',
+        newPassword: 'new-password123',
+      })
+    ).rejects.toMatchObject({
+      message: 'Learning OS Auth API returned an invalid response.',
+      statusCode: 502,
     });
   });
 
