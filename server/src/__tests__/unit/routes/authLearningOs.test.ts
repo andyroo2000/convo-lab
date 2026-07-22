@@ -64,7 +64,6 @@ vi.mock('../../../db/client.js', () => ({
     $transaction: vi.fn(),
   },
 }));
-vi.mock('../../../jobs/emailQueue.js', () => ({ emailQueue: { add: vi.fn() } }));
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: (req: AuthRequest, _res: Response, next: NextFunction) => {
     req.userId =
@@ -119,14 +118,12 @@ const currentAccount = {
 
 describe('Auth Learning OS routing', () => {
   const originalAuthProxyEnabled = process.env.LEARNING_OS_AUTH_PROXY_ENABLED;
-  const originalSignupProxyEnabled = process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED;
   const originalProfileProxyEnabled = process.env.LEARNING_OS_PROFILE_PROXY_ENABLED;
   let app: express.Application;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.LEARNING_OS_AUTH_PROXY_ENABLED = 'true';
-    process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED = 'true';
     process.env.LEARNING_OS_PROFILE_PROXY_ENABLED = 'true';
     mocks.authenticateLearningOsAccount.mockResolvedValue(loginAccount);
     mocks.changeLearningOsCurrentPassword.mockResolvedValue(undefined);
@@ -149,11 +146,6 @@ describe('Auth Learning OS routing', () => {
       delete process.env.LEARNING_OS_AUTH_PROXY_ENABLED;
     } else {
       process.env.LEARNING_OS_AUTH_PROXY_ENABLED = originalAuthProxyEnabled;
-    }
-    if (originalSignupProxyEnabled === undefined) {
-      delete process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED;
-    } else {
-      process.env.LEARNING_OS_SIGNUP_PROXY_ENABLED = originalSignupProxyEnabled;
     }
     if (originalProfileProxyEnabled === undefined) {
       delete process.env.LEARNING_OS_PROFILE_PROXY_ENABLED;

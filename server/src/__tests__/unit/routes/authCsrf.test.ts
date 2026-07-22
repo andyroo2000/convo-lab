@@ -37,10 +37,6 @@ vi.mock('../../../db/client.js', () => ({
   },
 }));
 
-vi.mock('../../../jobs/emailQueue.js', () => ({
-  emailQueue: { add: vi.fn() },
-}));
-
 vi.mock('../../../services/oauth.js', () => ({
   revokeGoogleTokens: vi.fn(),
 }));

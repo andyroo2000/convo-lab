@@ -1,39 +1,19 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Import emailService AFTER mocks
-import * as emailService from '../../../services/emailService.js';
+import { sendPasswordChangedEmail } from '../../../services/emailService.js';
 
-// Set env vars in hoisted context to ensure they're set before module load
 vi.hoisted(() => {
   process.env.RESEND_API_KEY = 'test-resend-key';
-  process.env.NODE_ENV = 'production';
-  process.env.CLIENT_URL = 'https://convo-lab.com';
 });
 
-// Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
-  emailVerificationToken: {
-    deleteMany: vi.fn(),
-    create: vi.fn(),
-    findUnique: vi.fn(),
-    delete: vi.fn(),
-  },
-  user: {
-    findUnique: vi.fn(),
-    update: vi.fn(),
-  },
+  user: { findUnique: vi.fn() },
 }));
-
 const mockResend = vi.hoisted(() => ({
-  emails: {
-    send: vi.fn(),
-  },
+  emails: { send: vi.fn() },
 }));
 
-vi.mock('../../../db/client.js', () => ({
-  prisma: mockPrisma,
-}));
-
+vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
 vi.mock('resend', () => ({
   Resend: class MockResend {
     constructor() {
@@ -41,45 +21,20 @@ vi.mock('resend', () => ({
     }
   },
 }));
-
-// Mock i18next (required by emailService)
-vi.mock('../../../i18n/index.js', () => {
-  const mockT = vi.fn((key: string, params?: Record<string, unknown>) => {
-    // Return translated strings matching test expectations with interpolation
-    const translations: Record<string, (p?: Record<string, unknown>) => string> = {
-      'verification.subject': () => 'Verify your ConvoLab email',
-      'welcome.subject': () => 'Welcome to ConvoLab!',
-      'passwordChanged.subject': () => 'Your ConvoLab password was changed',
-    };
-    return translations[key] ? translations[key](params) : key;
-  });
-  return {
-    default: {
-      getFixedT: vi.fn(() => mockT),
-      t: mockT,
-    },
-    t: mockT,
-    getFixedT: vi.fn(() => mockT),
-  };
-});
-
-// Mock email templates
+vi.mock('../../../i18n/index.js', () => ({
+  default: {
+    getFixedT: vi.fn(
+      () => (key: string) =>
+        key === 'passwordChanged.subject' ? 'Your ConvoLab password was changed' : key
+    ),
+  },
+}));
 vi.mock('../../../i18n/emailTemplates.js', () => ({
-  generateVerificationEmail: vi.fn(
-    (params: { locale: string; name: string; verificationUrl: string }) =>
-      `<html>Verification Email for ${params.name} - ${params.verificationUrl}</html>`
-  ),
-  generateWelcomeEmail: vi.fn(
-    (params: { locale: string; name: string; appUrl: string }) =>
-      `<html>Welcome Email for ${params.name}</html>`
-  ),
   generatePasswordChangedEmail: vi.fn(
-    (params: { locale: string; name: string; supportEmail: string }) =>
-      `<html>Password Changed for ${params.name}</html>`
+    (params: { name: string }) => `<html>Password Changed for ${params.name}</html>`
   ),
 }));
 
-// Mock console methods
 // eslint-disable-next-line no-console
 const originalConsoleLog = console.log;
 // eslint-disable-next-line no-console
@@ -92,12 +47,7 @@ describe('Email Service', () => {
     console.log = vi.fn();
     // eslint-disable-next-line no-console
     console.error = vi.fn();
-
-    // Mock user lookup for getUserLocaleByEmail
-    mockPrisma.user.findUnique.mockResolvedValue({
-      id: 'test-user',
-      preferredNativeLanguage: 'en',
-    });
+    mockPrisma.user.findUnique.mockResolvedValue({ preferredNativeLanguage: 'en' });
   });
 
   afterEach(() => {
@@ -107,199 +57,27 @@ describe('Email Service', () => {
     console.error = originalConsoleError;
   });
 
-  describe('sendVerificationEmail', () => {
-    it('should create token and log in development mode', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+  it('sends password-change notifications using the user locale', async () => {
+    mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
 
-      mockPrisma.emailVerificationToken.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrisma.emailVerificationToken.create.mockResolvedValue({
-        userId: 'test-user-id',
-        token: 'test-token',
-        expiresAt: new Date(),
-      });
+    await sendPasswordChangedEmail('test@example.com', 'Test User');
 
-      await emailService.sendVerificationEmail('test-user-id', 'test@example.com', 'Test User');
-
-      expect(mockPrisma.emailVerificationToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'test-user-id' },
-      });
-      expect(mockPrisma.emailVerificationToken.create).toHaveBeenCalled();
-      // eslint-disable-next-line no-console
-      expect(console.log).toHaveBeenCalled();
-
-      process.env.NODE_ENV = originalEnv;
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'test@example.com' },
+      select: { preferredNativeLanguage: true },
     });
-
-    it('should send email in production mode', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
-
-      mockPrisma.emailVerificationToken.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrisma.emailVerificationToken.create.mockResolvedValue({
-        userId: 'test-user-id',
-        token: 'test-token',
-        expiresAt: new Date(),
-      });
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendVerificationEmail('test-user-id', 'test@example.com', 'Test User');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.to).toBe('test@example.com');
-      expect(emailCall.subject).toBe('Verify your ConvoLab email');
-      expect(emailCall.html).toContain('Test User');
-
-      process.env.NODE_ENV = originalEnv;
-    });
-
-    it('should throw error if email sending fails', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
-
-      mockPrisma.emailVerificationToken.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrisma.emailVerificationToken.create.mockResolvedValue({
-        userId: 'test-user-id',
-        token: 'test-token',
-        expiresAt: new Date(),
-      });
-      mockResend.emails.send.mockRejectedValue(new Error('Email service error'));
-
-      await expect(
-        emailService.sendVerificationEmail('test-user-id', 'test@example.com', 'Test User')
-      ).rejects.toThrow('Failed to send verification email');
-
-      process.env.NODE_ENV = originalEnv;
-    });
-
-    it('should delete existing tokens before creating new one', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
-
-      mockPrisma.emailVerificationToken.deleteMany.mockResolvedValue({ count: 2 });
-      mockPrisma.emailVerificationToken.create.mockResolvedValue({
-        userId: 'test-user-id',
-        token: 'test-token',
-        expiresAt: new Date(),
-      });
-
-      await emailService.sendVerificationEmail('test-user-id', 'test@example.com', 'Test User');
-
-      expect(mockPrisma.emailVerificationToken.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
-        mockPrisma.emailVerificationToken.create.mock.invocationCallOrder[0]
-      );
-
-      process.env.NODE_ENV = originalEnv;
-    });
+    expect(mockResend.emails.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'test@example.com',
+        subject: 'Your ConvoLab password was changed',
+        html: expect.stringContaining('Test User'),
+      })
+    );
   });
 
-  describe('verifyEmailToken', () => {
-    it('should verify valid token and mark user as verified', async () => {
-      const mockToken = {
-        userId: 'test-user-id',
-        token: 'valid-token',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Future date
-        user: {
-          email: 'test@example.com',
-        },
-      };
+  it('does not fail a completed password change when notification delivery fails', async () => {
+    mockResend.emails.send.mockRejectedValue(new Error('Email service error'));
 
-      mockPrisma.emailVerificationToken.findUnique.mockResolvedValue(mockToken);
-      mockPrisma.user.update.mockResolvedValue({});
-      mockPrisma.emailVerificationToken.delete.mockResolvedValue({});
-
-      const result = await emailService.verifyEmailToken('valid-token');
-
-      expect(result).toEqual({
-        userId: 'test-user-id',
-        email: 'test@example.com',
-      });
-      expect(mockPrisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'test-user-id' },
-        data: {
-          emailVerified: true,
-          emailVerifiedAt: expect.any(Date),
-        },
-      });
-      expect(mockPrisma.emailVerificationToken.delete).toHaveBeenCalledWith({
-        where: { token: 'valid-token' },
-      });
-    });
-
-    it('should return null for non-existent token', async () => {
-      mockPrisma.emailVerificationToken.findUnique.mockResolvedValue(null);
-
-      const result = await emailService.verifyEmailToken('invalid-token');
-
-      expect(result).toBeNull();
-      expect(mockPrisma.user.update).not.toHaveBeenCalled();
-    });
-
-    it('should return null and delete expired token', async () => {
-      const mockToken = {
-        userId: 'test-user-id',
-        token: 'expired-token',
-        expiresAt: new Date(Date.now() - 1000), // Past date
-        user: {
-          email: 'test@example.com',
-        },
-      };
-
-      mockPrisma.emailVerificationToken.findUnique.mockResolvedValue(mockToken);
-      mockPrisma.emailVerificationToken.delete.mockResolvedValue({});
-
-      const result = await emailService.verifyEmailToken('expired-token');
-
-      expect(result).toBeNull();
-      expect(mockPrisma.emailVerificationToken.delete).toHaveBeenCalledWith({
-        where: { token: 'expired-token' },
-      });
-      expect(mockPrisma.user.update).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('sendWelcomeEmail', () => {
-    it('should send welcome email', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendWelcomeEmail('test@example.com', 'Test User');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.to).toBe('test@example.com');
-      expect(emailCall.subject).toBe('Welcome to ConvoLab!');
-      expect(emailCall.html).toContain('Test User');
-    });
-
-    it('should not throw if email fails', async () => {
-      mockResend.emails.send.mockRejectedValue(new Error('Email service error'));
-
-      await expect(
-        emailService.sendWelcomeEmail('test@example.com', 'Test User')
-      ).resolves.not.toThrow();
-    });
-  });
-
-  describe('sendPasswordChangedEmail', () => {
-    it('should send password changed confirmation email', async () => {
-      mockResend.emails.send.mockResolvedValue({ id: 'email-id' });
-
-      await emailService.sendPasswordChangedEmail('test@example.com', 'Test User');
-
-      expect(mockResend.emails.send).toHaveBeenCalled();
-      const emailCall = mockResend.emails.send.mock.calls[0][0];
-      expect(emailCall.to).toBe('test@example.com');
-      expect(emailCall.subject).toBe('Your ConvoLab password was changed');
-      expect(emailCall.html).toContain('Test User');
-    });
-
-    it('should not throw if email fails', async () => {
-      mockResend.emails.send.mockRejectedValue(new Error('Email service error'));
-
-      await expect(
-        emailService.sendPasswordChangedEmail('test@example.com', 'Test User')
-      ).resolves.not.toThrow();
-    });
+    await expect(sendPasswordChangedEmail('test@example.com', 'Test User')).resolves.not.toThrow();
   });
 });
