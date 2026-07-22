@@ -36,6 +36,7 @@ RUN npm ci --only=production
 # Copy built application
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/src/i18n/locales ./dist/i18n/locales
 COPY prisma ./prisma
 
 # Set environment

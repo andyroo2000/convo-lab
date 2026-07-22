@@ -9,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 i18next.use(Backend).init({
+  initImmediate: false,
   lng: 'en',
   fallbackLng: 'en',
   ns: ['email', 'server'],

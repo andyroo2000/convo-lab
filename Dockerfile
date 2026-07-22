@@ -87,6 +87,9 @@ COPY --from=server-builder /app/server/src/migration/backendMigrationInventory.j
 # Copy server data files (vocabulary/grammar JSON) that TypeScript doesn't emit
 COPY --from=server-builder /app/server/src/data ./dist/server/src/data
 
+# Copy translation resources loaded from disk at runtime.
+COPY --from=server-builder /app/server/src/i18n/locales ./dist/server/src/i18n/locales
+
 # Copy server scripts for migrations
 COPY server/scripts ./scripts
 

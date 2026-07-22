@@ -11,6 +11,8 @@ const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const workflowPath = path.join(repositoryRoot, '.github/workflows/deploy-prod.yml');
 const migrationInventoryCopy =
   'COPY --from=server-builder /app/server/src/migration/backendMigrationInventory.json ./dist/server/src/migration/backendMigrationInventory.json';
+const localeResourcesCopy =
+  'COPY --from=server-builder /app/server/src/i18n/locales ./dist/server/src/i18n/locales';
 
 async function readDeployment() {
   const source = await readFile(workflowPath, 'utf8');
@@ -98,5 +100,12 @@ test('the production images include the backend migration inventory', async () =
   for (const dockerfile of ['Dockerfile', 'server/Dockerfile.worker']) {
     const source = await readFile(path.join(repositoryRoot, dockerfile), 'utf8');
     assert.ok(source.includes(migrationInventoryCopy), `${dockerfile} omits the runtime inventory`);
+  }
+});
+
+test('the production images include runtime translation resources', async () => {
+  for (const dockerfile of ['Dockerfile', 'server/Dockerfile.worker']) {
+    const source = await readFile(path.join(repositoryRoot, dockerfile), 'utf8');
+    assert.ok(source.includes(localeResourcesCopy), `${dockerfile} omits translation resources`);
   }
 });

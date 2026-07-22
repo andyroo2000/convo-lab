@@ -57,6 +57,9 @@ COPY --from=server-builder /app/server/dist ./dist
 # Keep runtime route telemetry imports valid if worker dependencies load the inventory.
 COPY --from=server-builder /app/server/src/migration/backendMigrationInventory.json ./dist/server/src/migration/backendMigrationInventory.json
 
+# Email workers load translation resources from disk at runtime.
+COPY --from=server-builder /app/server/src/i18n/locales ./dist/server/src/i18n/locales
+
 # Set environment
 ENV NODE_ENV=production
 
