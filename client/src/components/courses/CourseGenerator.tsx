@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { useEpisodes } from '../../hooks/useEpisodes';
+import { courseApi } from '../../lib/courseApi';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import QuotaLimitPrompt from '../common/QuotaLimitPrompt';
 import AdminScriptWorkbench from './AdminScriptWorkbench';
@@ -142,8 +143,8 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
 
     try {
       // Create course
-      const viewAsParam = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
-      const createResponse = await fetch(`/api/courses${viewAsParam}`, {
+      const viewAsParam = viewAsUserId ? `?${new URLSearchParams({ viewAs: viewAsUserId })}` : '';
+      const createResponse = await fetch(`${courseApi.collection}${viewAsParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -177,11 +178,14 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
       setGeneratedCourseId(course.id);
 
       // Start generation
-      const generateResponse = await fetch(`/api/courses/${course.id}/generate${viewAsParam}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
+      const generateResponse = await fetch(
+        `${courseApi.operation(course.id, 'generate')}${viewAsParam}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        }
+      );
 
       if (!generateResponse.ok) {
         const errorData = await generateResponse.json();
@@ -236,8 +240,8 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
     setError(null);
 
     try {
-      const viewAsParam = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
-      const createResponse = await fetch(`/api/courses${viewAsParam}`, {
+      const viewAsParam = viewAsUserId ? `?${new URLSearchParams({ viewAs: viewAsUserId })}` : '';
+      const createResponse = await fetch(`${courseApi.collection}${viewAsParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

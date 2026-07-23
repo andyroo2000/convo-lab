@@ -3,6 +3,7 @@ import type { RequestHandler } from 'express';
 export interface ClientRuntimeConfig {
   learningOsDirectAccountApi: boolean;
   learningOsDirectEpisodeApi: boolean;
+  learningOsDirectCourseApi: boolean;
 }
 
 export const redirectClientIndexDocument: RequestHandler = (_req, res) => {
@@ -17,6 +18,8 @@ export function getClientRuntimeConfig(
       environment.LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED?.trim().toLowerCase() === 'true',
     learningOsDirectEpisodeApi:
       environment.LEARNING_OS_DIRECT_EPISODE_API_ENABLED?.trim().toLowerCase() === 'true',
+    learningOsDirectCourseApi:
+      environment.LEARNING_OS_DIRECT_COURSE_API_ENABLED?.trim().toLowerCase() === 'true',
   };
 }
 

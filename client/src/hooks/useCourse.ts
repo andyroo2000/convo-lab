@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Course, CourseStatusResponse } from '../types';
-import { API_URL } from '../config';
+import { courseApi, readCourseApiError } from '../lib/courseApi';
 
 // Query keys
 export const courseKeys = {
@@ -14,14 +14,14 @@ async function fetchCourse(courseId: string, viewAsUserId?: string): Promise<Cou
   if (viewAsUserId) params.append('viewAs', viewAsUserId);
 
   const queryString = params.toString();
-  const url = `${API_URL}/api/courses/${courseId}${queryString ? `?${queryString}` : ''}`;
+  const url = `${courseApi.member(courseId)}${queryString ? `?${queryString}` : ''}`;
 
   const response = await fetch(url, {
     credentials: 'include',
   });
 
   if (!response.ok) {
-    throw new Error('Failed to load course');
+    throw new Error(await readCourseApiError(response, 'Failed to load course'));
   }
 
   return response.json();
@@ -35,14 +35,14 @@ async function fetchCourseStatus(
   if (viewAsUserId) params.append('viewAs', viewAsUserId);
 
   const queryString = params.toString();
-  const url = `${API_URL}/api/courses/${courseId}/status${queryString ? `?${queryString}` : ''}`;
+  const url = `${courseApi.operation(courseId, 'status')}${queryString ? `?${queryString}` : ''}`;
 
   const response = await fetch(url, {
     credentials: 'include',
   });
 
   if (!response.ok) {
-    throw new Error('Failed to check course status');
+    throw new Error(await readCourseApiError(response, 'Failed to check course status'));
   }
 
   return response.json();
@@ -52,7 +52,7 @@ async function updateCourseRequest(
   courseId: string,
   updates: { title?: string; description?: string }
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/api/courses/${courseId}`, {
+  const response = await fetch(courseApi.member(courseId), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -60,7 +60,7 @@ async function updateCourseRequest(
   });
 
   if (!response.ok) {
-    throw new Error('Failed to update course');
+    throw new Error(await readCourseApiError(response, 'Failed to update course'));
   }
 }
 

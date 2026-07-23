@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { Episode, Course } from '../types';
-import { API_URL } from '../config';
+import { courseApi, readCourseApiError } from '../lib/courseApi';
 import { episodeApi, readEpisodeApiError } from '../lib/episodeApi';
 
 // Library-specific types with _count instead of full relations
@@ -66,11 +66,11 @@ async function fetchCourses(
   if (viewAsUserId) params.append('viewAs', viewAsUserId);
   if (showDrafts) params.append('status', 'all');
 
-  const response = await fetch(`${API_URL}/api/courses?${params}`, {
+  const response = await fetch(`${courseApi.collection}?${params}`, {
     credentials: 'include',
   });
   if (!response.ok) {
-    throw new Error('Failed to fetch courses');
+    throw new Error(await readCourseApiError(response, 'Failed to fetch courses'));
   }
   return response.json();
 }
@@ -87,12 +87,12 @@ async function deleteEpisodeRequest(episodeId: string): Promise<void> {
 }
 
 async function deleteCourseRequest(courseId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/courses/${courseId}`, {
+  const response = await fetch(courseApi.member(courseId), {
     method: 'DELETE',
     credentials: 'include',
   });
   if (!response.ok) {
-    throw new Error('Failed to delete course');
+    throw new Error(await readCourseApiError(response, 'Failed to delete course'));
   }
 }
 

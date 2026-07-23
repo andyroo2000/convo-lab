@@ -150,7 +150,7 @@ describe('csrf helpers', () => {
       });
     vi.stubGlobal('fetch', fetchMock);
 
-    await fetchWithCsrf(`${API_URL}/api/convolab/courses/example/mutation`, {
+    await fetchWithCsrf(`${API_URL}/api/convolab/scripts/example/mutation`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -162,6 +162,12 @@ describe('csrf helpers', () => {
     expect(getCsrfProviderForPath('/api/convolab/episodes')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/convolab/episodes/episode-123')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/convolab/episodes-other')).toBe('express');
+  });
+
+  it('classifies only the exact Courses namespace as Learning OS', () => {
+    expect(getCsrfProviderForPath('/api/convolab/courses')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/convolab/courses/course-123/generate')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/convolab/courses-other')).toBe('express');
   });
 
   it('refreshes the token and retries once when a mutation is rejected for CSRF', async () => {
