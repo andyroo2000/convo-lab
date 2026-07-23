@@ -5,15 +5,22 @@ import {
   type LearningOsGoogleIdentityResult,
 } from './learningOsAuthProxy.js';
 
+export class GoogleOAuthProfileError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GoogleOAuthProfileError';
+  }
+}
+
 export async function resolveVerifiedGoogleProfile(
   profile: Profile
 ): Promise<LearningOsGoogleIdentityResult> {
   const googleEmail = profile.emails?.[0];
   if (!googleEmail?.value) {
-    throw new Error('No email provided by Google');
+    throw new GoogleOAuthProfileError('No email provided by Google');
   }
   if (googleEmail.verified !== true) {
-    throw new Error('Google email is not verified');
+    throw new GoogleOAuthProfileError('Google email is not verified');
   }
 
   return resolveLearningOsGoogleIdentity({

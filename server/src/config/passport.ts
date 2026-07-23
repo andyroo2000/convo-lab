@@ -1,7 +1,10 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
-import { resolveVerifiedGoogleProfile } from '../services/googleOAuthIdentity.js';
+import {
+  GoogleOAuthProfileError,
+  resolveVerifiedGoogleProfile,
+} from '../services/googleOAuthIdentity.js';
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   console.warn('Google OAuth credentials not set - Google login will not work');
@@ -20,6 +23,9 @@ passport.use(
         const result = await resolveVerifiedGoogleProfile(profile);
         return done(null, { ...result.user, requiresInvite: result.requiresInvite });
       } catch (error) {
+        if (error instanceof GoogleOAuthProfileError) {
+          return done(null, false, { message: error.message });
+        }
         console.error('OAuth error:', error);
         return done(error as Error, undefined);
       }

@@ -1,7 +1,10 @@
 import type { Profile } from 'passport-google-oauth20';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resolveVerifiedGoogleProfile } from '../../../services/googleOAuthIdentity.js';
+import {
+  GoogleOAuthProfileError,
+  resolveVerifiedGoogleProfile,
+} from '../../../services/googleOAuthIdentity.js';
 import { resolveLearningOsGoogleIdentity } from '../../../services/learningOsAuthProxy.js';
 
 vi.mock('../../../services/learningOsAuthProxy.js', () => ({
@@ -57,7 +60,7 @@ describe('Google OAuth identity resolution', () => {
     async (_label, emails, message) => {
       await expect(
         resolveVerifiedGoogleProfile(profile({ emails: emails ? [...emails] : undefined }))
-      ).rejects.toThrow(message);
+      ).rejects.toEqual(new GoogleOAuthProfileError(message));
       expect(resolveLearningOsGoogleIdentity).not.toHaveBeenCalled();
     }
   );
