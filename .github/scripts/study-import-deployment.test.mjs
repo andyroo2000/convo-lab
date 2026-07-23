@@ -900,6 +900,7 @@ test('legacy course and episode database utilities stay retired', async () => {
     'server/scripts/check-failed-course-voices.ts',
     'server/scripts/check-lesson-voices.ts',
     'server/scripts/check-recent-courses.ts',
+    'server/scripts/delete-course.ts',
   ];
 
   assert.match(courseRoute, /from '\.\/learningOs\/courses\.js'/);
