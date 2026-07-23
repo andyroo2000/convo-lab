@@ -104,7 +104,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/mocks/ffmpeg.ts', cardId: 'convo-lab-q0h', anyCount: 1, category: 'test' },
 
   // Scripts
-  { file: 'check-recent-episode.ts', cardId: 'convo-lab-05i', anyCount: 1, category: 'script' },
   { file: 'scripts/lint-harness.ts', cardId: 'convo-lab-79m', anyCount: 1, category: 'script' },
   { file: 'server/scripts/retry-final-three.ts', cardId: 'convo-lab-mrb', anyCount: 1, category: 'script' },
   { file: 'server/scripts/complete-sample-courses.ts', cardId: 'convo-lab-4y7', anyCount: 5, category: 'script' },
@@ -115,13 +114,11 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/scripts/fix-furigana-errors.ts', cardId: 'convo-lab-9og', anyCount: 1, category: 'script' },
   { file: 'server/scripts/retry-remaining.ts', cardId: 'convo-lab-xsd', anyCount: 1, category: 'script' },
   { file: 'server/scripts/register-english-avatars.ts', cardId: 'convo-lab-lt5', anyCount: 1, category: 'script' },
-  { file: 'server/scripts/check-lesson-voices.ts', cardId: 'convo-lab-nur', anyCount: 1, category: 'script' },
   { file: 'server/scripts/generate-speaker-avatars.ts', cardId: 'convo-lab-93d', anyCount: 1, category: 'script' },
   { file: 'server/scripts/cleanup-duplicate-jobs.ts', cardId: 'convo-lab-5ip', anyCount: 1, category: 'script' },
   { file: 'server/scripts/check-and-fix-corrupt-courses.ts', cardId: 'convo-lab-0sl', anyCount: 1, category: 'script' },
   { file: 'server/scripts/backfill-sentence-metadata.ts', cardId: 'convo-lab-obg', anyCount: 3, category: 'script' },
   { file: 'server/scripts/show-latest-lesson.ts', cardId: 'convo-lab-bgf', anyCount: 1, category: 'script' },
-  { file: 'server/scripts/check-failed-course-speakers.ts', cardId: 'convo-lab-clz', anyCount: 1, category: 'script' },
   { file: 'server/scripts/backfill-dialogue-furigana.ts', cardId: 'convo-lab-gum', anyCount: 1, category: 'script' },
   { file: 'server/scripts/crop-avatars.ts', cardId: 'convo-lab-rkw', anyCount: 1, category: 'script' },
 ];
