@@ -1,11 +1,24 @@
+import express from 'express';
+import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
 import {
   getClientRuntimeConfig,
   injectClientRuntimeConfig,
+  redirectClientIndexDocument,
 } from '../../../config/clientRuntimeConfig.js';
 
 describe('client runtime config', () => {
+  it('redirects direct index document requests through the injected root route', async () => {
+    const app = express();
+    app.get('/index.html', redirectClientIndexDocument);
+
+    const response = await request(app).get('/index.html');
+
+    expect(response.status).toBe(308);
+    expect(response.headers.location).toBe('/');
+  });
+
   it('keeps direct account traffic disabled unless explicitly enabled', () => {
     expect(getClientRuntimeConfig({})).toEqual({
       learningOsDirectAccountApi: false,
