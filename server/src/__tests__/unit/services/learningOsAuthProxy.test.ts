@@ -2,10 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   authenticateLearningOsAccount,
+  claimLearningOsGoogleInvite,
   changeLearningOsCurrentPassword,
   deleteLearningOsCurrentAccount,
+  disconnectLearningOsGoogleIdentity,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
+  resolveLearningOsGoogleIdentity,
   resetLearningOsPassword,
   sendLearningOsPasswordResetLink,
   sendLearningOsVerificationEmail,
@@ -116,6 +119,148 @@ describe('Learning OS auth proxy', () => {
         Authorization: 'Bearer server-only-token',
         'X-Convo-Lab-User-Email': 'proxy@example.com',
       }),
+    });
+  });
+
+  it('resolves a verified Google identity through the service token without credentials', async () => {
+    const result = { user: currentAccount, requiresInvite: true, created: true };
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(result));
+    const input = {
+      providerId: 'google-subject-123',
+      email: 'ada@example.com',
+      emailVerified: true,
+      name: 'Ada Lovelace',
+      avatarUrl: 'https://example.com/ada.png',
+    };
+
+    await expect(resolveLearningOsGoogleIdentity(input)).resolves.toEqual(result);
+
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/google');
+    expect(init).toMatchObject({ method: 'POST', body: JSON.stringify(input) });
+    expect(init.body).not.toContain('accessToken');
+    expect(init.body).not.toContain('refreshToken');
+  });
+
+  it('claims a Google invite for a target-only account using signed session identity', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(currentAccount));
+
+    await expect(
+      claimLearningOsGoogleInvite(account.id, 'WELCOME1', {
+        userId: account.id,
+        email: account.email,
+        role: account.role,
+        accountSource: 'learning-os',
+      })
+    ).resolves.toEqual(currentAccount);
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/google/invite');
+    expect(init).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({ inviteCode: 'WELCOME1' }),
+      headers: expect.objectContaining({ 'X-Convo-Lab-User-Id': account.id }),
+    });
+  });
+
+  it('disconnects Google identity without retaining or revoking provider tokens locally', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ success: true, message: 'Google account disconnected' })
+    );
+
+    await expect(
+      disconnectLearningOsGoogleIdentity(account.id, {
+        userId: account.id,
+        email: account.email,
+        role: account.role,
+        accountSource: 'learning-os',
+      })
+    ).resolves.toBeUndefined();
+
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/google');
+    expect(init).toMatchObject({ method: 'DELETE' });
+  });
+
+  it.each([
+    [
+      'identity conflict',
+      () =>
+        resolveLearningOsGoogleIdentity({
+          providerId: 'google-subject-123',
+          email: 'ada@example.com',
+          emailVerified: true,
+          name: 'Ada',
+          avatarUrl: null,
+        }),
+      409,
+      {
+        message: 'A different Google account is already connected',
+        reason: 'identity_already_connected',
+      },
+      'A different Google account is already connected',
+      409,
+    ],
+    [
+      'used invite',
+      () => claimLearningOsGoogleInvite(account.id, 'USED'),
+      400,
+      { message: 'used', reason: 'used_invite' },
+      'This invite code has already been used',
+      400,
+    ],
+    [
+      'missing identity',
+      () => disconnectLearningOsGoogleIdentity(account.id),
+      404,
+      { message: 'missing', reason: 'identity_not_found' },
+      'No Google account connected',
+      404,
+    ],
+  ] as const)(
+    'maps the %s OAuth failure to the public compatibility contract',
+    async (_label, invoke, upstreamStatus, body, message, status) => {
+      vi.mocked(global.fetch).mockResolvedValue(jsonResponse(body, upstreamStatus));
+      await expect(invoke()).rejects.toMatchObject({ message, statusCode: status });
+    }
+  );
+
+  it('rejects malformed successful OAuth responses', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ user: currentAccount, requiresInvite: 'yes', created: true })
+    );
+
+    await expect(
+      resolveLearningOsGoogleIdentity({
+        providerId: 'google-subject-123',
+        email: 'ada@example.com',
+        emailVerified: true,
+        name: 'Ada',
+        avatarUrl: null,
+      })
+    ).rejects.toMatchObject({
+      message: 'Learning OS Auth API returned an invalid response.',
+      statusCode: 502,
+    });
+  });
+
+  it('rejects unknown OAuth conflict payloads instead of trusting their message', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      jsonResponse({ message: 'Untrusted upstream detail', reason: 'unknown_conflict' }, 409)
+    );
+
+    await expect(
+      resolveLearningOsGoogleIdentity({
+        providerId: 'google-subject-123',
+        email: 'ada@example.com',
+        emailVerified: true,
+        name: 'Ada',
+        avatarUrl: null,
+      })
+    ).rejects.toMatchObject({
+      message: 'Learning OS Auth API request failed.',
+      statusCode: 409,
     });
   });
 

@@ -77,6 +77,15 @@ describe('backend migration inventory', () => {
   });
 
   it('resolves concrete dynamic paths to stable inventory routes', () => {
+    expect(findBackendMigrationRoute('GET', '/api/auth/google/callback')).toMatchObject({
+      route: { id: 'auth.google.callback', runtimeOwner: 'learning-os-proxy' },
+    });
+    expect(findBackendMigrationRoute('POST', '/api/auth/disconnect/google')).toMatchObject({
+      route: { id: 'auth.google.disconnect', runtimeOwner: 'learning-os-proxy' },
+    });
+    expect(findBackendMigrationRoute('POST', '/api/auth/claim-invite')).toMatchObject({
+      route: { id: 'auth.invite.claim', runtimeOwner: 'learning-os-proxy' },
+    });
     expect(findBackendMigrationRoute('GET', '/api/episodes/episode-123')).toMatchObject({
       route: { id: 'episodes.show', path: '/api/episodes/:id' },
       surface: { id: 'episodes', runtimeOwner: 'learning-os-proxy' },

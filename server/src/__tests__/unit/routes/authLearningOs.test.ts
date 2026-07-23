@@ -1,5 +1,5 @@
 import express, { json as expressJson, NextFunction, Response } from 'express';
-import { verify as verifyJwt } from 'jsonwebtoken';
+import { sign as signJwt, verify as verifyJwt } from 'jsonwebtoken';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,13 +11,17 @@ import { getSetCookieArray, testCookieParser } from '../../helpers/testCookiePar
 
 const mocks = vi.hoisted(() => ({
   authenticateLearningOsAccount: vi.fn(),
+  claimLearningOsGoogleInvite: vi.fn(),
   changeLearningOsCurrentPassword: vi.fn(),
   deleteLearningOsCurrentAccount: vi.fn(),
+  disconnectLearningOsGoogleIdentity: vi.fn(),
   getLearningOsCurrentAccount: vi.fn(),
   registerLearningOsAccount: vi.fn(),
   updateLearningOsCurrentAccount: vi.fn(),
   prismaFindUnique: vi.fn(),
   prismaDeleteMany: vi.fn(),
+  passportUser: undefined as unknown,
+  passportAuthenticateOptions: [] as Array<{ strategy: string; options: Record<string, unknown> }>,
 }));
 
 vi.mock('../../../i18n/index.js', () => ({
@@ -32,7 +36,12 @@ vi.mock('../../../i18n/index.js', () => ({
 vi.mock('../../../config/passport.js', () => ({
   default: {
     authenticate: vi.fn(
-      () => (_req: express.Request, _res: express.Response, next: NextFunction) => next()
+      (strategy: string, options: Record<string, unknown>) =>
+        (req: express.Request, _res: express.Response, next: NextFunction) => {
+          mocks.passportAuthenticateOptions.push({ strategy, options });
+          req.user = mocks.passportUser as Express.User | undefined;
+          next();
+        }
     ),
   },
 }));
@@ -65,13 +74,14 @@ vi.mock('../../../middleware/auth.js', () => ({
 }));
 vi.mock('../../../services/learningOsAuthProxy.js', () => ({
   authenticateLearningOsAccount: mocks.authenticateLearningOsAccount,
+  claimLearningOsGoogleInvite: mocks.claimLearningOsGoogleInvite,
   changeLearningOsCurrentPassword: mocks.changeLearningOsCurrentPassword,
   deleteLearningOsCurrentAccount: mocks.deleteLearningOsCurrentAccount,
+  disconnectLearningOsGoogleIdentity: mocks.disconnectLearningOsGoogleIdentity,
   getLearningOsCurrentAccount: mocks.getLearningOsCurrentAccount,
   registerLearningOsAccount: mocks.registerLearningOsAccount,
   updateLearningOsCurrentAccount: mocks.updateLearningOsCurrentAccount,
 }));
-vi.mock('../../../services/oauth.js', () => ({ revokeGoogleTokens: vi.fn() }));
 vi.mock('../../../services/usageTracker.js', () => ({
   checkGenerationLimit: vi.fn(),
   checkCooldown: vi.fn(),
@@ -106,13 +116,17 @@ describe('Auth Learning OS routing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.authenticateLearningOsAccount.mockResolvedValue(loginAccount);
+    mocks.claimLearningOsGoogleInvite.mockResolvedValue({ ...currentAccount, avatarUrl: null });
     mocks.changeLearningOsCurrentPassword.mockResolvedValue(undefined);
     mocks.deleteLearningOsCurrentAccount.mockResolvedValue(undefined);
+    mocks.disconnectLearningOsGoogleIdentity.mockResolvedValue(undefined);
     mocks.getLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
     mocks.updateLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id });
     mocks.prismaDeleteMany.mockResolvedValue({ count: 1 });
+    mocks.passportUser = undefined;
+    mocks.passportAuthenticateOptions.length = 0;
 
     app = express();
     app.use(testCookieParser);
@@ -159,6 +173,113 @@ describe('Auth Learning OS routing', () => {
       accountSource: 'learning-os',
     });
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
+  });
+
+  it('redirects an invite-gated Google account with a signed Learning OS identity', async () => {
+    mocks.passportUser = { ...loginAccount, requiresInvite: true };
+
+    const response = await request(app).get('/api/auth/google/callback').expect(302);
+    const redirect = new URL(response.headers.location, 'http://localhost');
+    expect(redirect.pathname).toBe('/claim-invite');
+    const token = redirect.searchParams.get('token');
+    expect(token).not.toBeNull();
+    expect(verifyJwt(token!, process.env.JWT_SECRET!)).toMatchObject({
+      userId: loginAccount.id,
+      email: loginAccount.email,
+      role: loginAccount.role,
+      accountSource: 'learning-os',
+      requiresInvite: true,
+    });
+    expect(getSetCookieArray(response.headers['set-cookie'])).toEqual([]);
+    expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
+  });
+
+  it('requests only profile identity and does not request offline Google access', async () => {
+    await request(app).get('/api/auth/google').expect(404);
+
+    expect(mocks.passportAuthenticateOptions).toContainEqual({
+      strategy: 'google',
+      options: {
+        scope: ['profile', 'email'],
+        prompt: 'select_account',
+        session: false,
+      },
+    });
+  });
+
+  it('creates a browser session immediately for a Google account with access', async () => {
+    mocks.passportUser = { ...loginAccount, requiresInvite: false };
+
+    const response = await request(app).get('/api/auth/google/callback').expect(302);
+    expect(response.headers.location).toContain('/app/library');
+    const sessionCookie = getSetCookieArray(response.headers['set-cookie']).find((cookie) =>
+      cookie.startsWith('token=')
+    );
+    const token = decodeURIComponent(sessionCookie!.split(';')[0].slice('token='.length));
+    expect(verifyJwt(token, process.env.JWT_SECRET!)).toMatchObject({
+      userId: loginAccount.id,
+      email: loginAccount.email,
+      role: loginAccount.role,
+      accountSource: 'learning-os',
+    });
+    expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
+  });
+
+  it('claims a Google invite through Learning OS and upgrades the temporary session', async () => {
+    const temporaryToken = signJwt(
+      {
+        userId: loginAccount.id,
+        email: loginAccount.email,
+        role: loginAccount.role,
+        accountSource: 'learning-os',
+        requiresInvite: true,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: '15m' }
+    );
+
+    const response = await request(app)
+      .post('/api/auth/claim-invite')
+      .send({ inviteCode: ' WELCOME1 ', token: temporaryToken })
+      .expect(200);
+
+    expect(mocks.claimLearningOsGoogleInvite).toHaveBeenCalledWith(loginAccount.id, 'WELCOME1', {
+      userId: loginAccount.id,
+      email: loginAccount.email,
+      role: loginAccount.role,
+      accountSource: 'learning-os',
+    });
+    expect(response.body).toEqual({ ...currentAccount, avatarUrl: null });
+    const sessionCookie = getSetCookieArray(response.headers['set-cookie']).find((cookie) =>
+      cookie.startsWith('token=')
+    );
+    const token = decodeURIComponent(sessionCookie!.split(';')[0].slice('token='.length));
+    expect(verifyJwt(token, process.env.JWT_SECRET!)).toMatchObject({
+      userId: loginAccount.id,
+      accountSource: 'learning-os',
+    });
+  });
+
+  it('disconnects Google through Learning OS using the signed browser identity', async () => {
+    const response = await request(app).post('/api/auth/disconnect/google').expect(200);
+
+    expect(mocks.disconnectLearningOsGoogleIdentity).toHaveBeenCalledWith(loginAccount.id, {
+      userId: loginAccount.id,
+      email: loginAccount.email,
+      role: loginAccount.role,
+      accountSource: 'learning-os',
+    });
+    expect(response.body).toEqual({ success: true, message: 'Google account disconnected' });
+  });
+
+  it('rejects an invalid invite token without touching either database', async () => {
+    await request(app)
+      .post('/api/auth/claim-invite')
+      .send({ inviteCode: 'WELCOME1', token: 'not-a-token' })
+      .expect(401);
+
+    expect(mocks.claimLearningOsGoogleInvite).not.toHaveBeenCalled();
+    expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
   });
 
   it('rejects malformed signup bodies before forwarding credentials', async () => {

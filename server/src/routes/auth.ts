@@ -14,15 +14,16 @@ import { clearCsrfCookies, issueCsrfTokenCookie } from '../middleware/csrf.js';
 import { AppError } from '../middleware/errorHandler.js';
 import {
   authenticateLearningOsAccount,
+  claimLearningOsGoogleInvite,
   changeLearningOsCurrentPassword,
   deleteLearningOsCurrentAccount,
+  disconnectLearningOsGoogleIdentity,
   getLearningOsCurrentAccount,
   registerLearningOsAccount,
   updateLearningOsCurrentAccount,
   type LearningOsLoginAccount,
   type LearningOsProfileUpdateInput,
 } from '../services/learningOsAuthProxy.js';
-import { revokeGoogleTokens } from '../services/oauth.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
@@ -442,7 +443,6 @@ router.get(
   '/google',
   passport.authenticate('google', {
     scope: ['profile', 'email'],
-    accessType: 'offline', // Required to get refresh token
     prompt: 'select_account', // Show account picker - less intrusive than full consent
     session: false,
   })
@@ -454,47 +454,21 @@ router.get(
   passport.authenticate('google', { session: false, failureRedirect: '/login?error=oauth_failed' }),
   async (req, res) => {
     try {
-      // Passport attaches the user object with custom properties
-      const user = req.user as { id: string; role?: string; isExistingUser?: boolean } | undefined;
+      const user = req.user as (LearningOsLoginAccount & { requiresInvite: boolean }) | undefined;
 
       if (!user) {
         return res.redirect(buildClientAppUrl('/login?error=oauth_failed'));
       }
 
-      let role = user.role;
-      if (!role) {
-        const roleRecord = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { role: true },
-        });
-        if (!roleRecord) {
-          return res.redirect(buildClientAppUrl('/login?error=oauth_failed'));
-        }
-        role = roleRecord.role;
-      }
-
-      // If this is an existing user (not newly created via OAuth), skip invite code check
-      // Existing users already have access to the system
-      if (user.isExistingUser) {
-        const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET!, {
-          expiresIn: '7d',
-        });
-
-        setSessionCookies(req as AuthRequest, res, token, 'strict');
-
-        return res.redirect(buildClientAppUrl('/app/library'));
-      }
-
-      // For new OAuth users, check if they have an invite code
-      const inviteCode = await prisma.inviteCode.findFirst({
-        where: { usedBy: user.id },
-      });
-
-      // If new user doesn't have an invite code, redirect to claim invite page
-      if (!inviteCode) {
-        // Create a temporary JWT for the claim invite flow
+      if (user.requiresInvite) {
         const tempToken = jwt.sign(
-          { userId: user.id, requiresInvite: true },
+          {
+            userId: user.id,
+            email: user.email,
+            role: user.role,
+            accountSource: 'learning-os',
+            requiresInvite: true,
+          },
           process.env.JWT_SECRET!,
           { expiresIn: '15m' }
         );
@@ -502,16 +476,13 @@ router.get(
         return res.redirect(buildClientAppUrl(`/claim-invite?token=${tempToken}`));
       }
 
-      // New user has invite code, create session
-      const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET!, {
-        expiresIn: '7d',
-      });
-
-      // Set cookie
-      setSessionCookies(req as AuthRequest, res, token, 'strict');
-
-      // Redirect to app
-      res.redirect(buildClientAppUrl('/app/library'));
+      setSessionCookies(
+        req as AuthRequest,
+        res,
+        createLearningOsSessionToken(user, 'learning-os'),
+        'strict'
+      );
+      return res.redirect(buildClientAppUrl('/app/library'));
     } catch (error) {
       console.error('OAuth callback error:', error);
       res.redirect(buildClientAppUrl('/login?error=oauth_failed'));
@@ -522,11 +493,12 @@ router.get(
 // Disconnect Google account
 router.post('/disconnect/google', requireAuth, async (req: AuthRequest, res, next) => {
   try {
-    const revoked = await revokeGoogleTokens(req.userId!);
-
-    if (!revoked) {
-      throw new AppError('No Google account connected', 404);
-    }
+    await disconnectLearningOsGoogleIdentity(req.userId!, {
+      userId: req.userId!,
+      email: req.email,
+      role: req.role,
+      accountSource: req.accountSource,
+    });
 
     res.json({ success: true, message: 'Google account disconnected' });
   } catch (error) {
@@ -539,82 +511,57 @@ router.post('/claim-invite', async (req, res, next) => {
   try {
     const { inviteCode, token } = req.body;
 
-    if (!inviteCode || !token) {
+    if (
+      typeof inviteCode !== 'string' ||
+      typeof token !== 'string' ||
+      !inviteCode.trim() ||
+      !token ||
+      inviteCode.trim().length > 20 ||
+      token.length > 2048
+    ) {
       throw new AppError('Invite code and token are required', 400);
     }
 
-    // Verify temporary token
-    let decoded;
+    let decoded: jwt.JwtPayload & {
+      userId?: unknown;
+      email?: unknown;
+      role?: unknown;
+      accountSource?: unknown;
+      requiresInvite?: unknown;
+    };
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload & { userId: string };
-    } catch (error) {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as typeof decoded;
+    } catch {
       throw new AppError('Invalid or expired token', 401);
     }
 
-    if (!decoded.requiresInvite) {
+    if (decoded.requiresInvite !== true || typeof decoded.userId !== 'string') {
       throw new AppError('Invalid token', 401);
     }
 
-    // Validate invite code
-    const invite = await prisma.inviteCode.findUnique({
-      where: { code: inviteCode },
-    });
-
-    if (!invite) {
-      throw new AppError('Invalid invite code', 400);
-    }
-
-    if (invite.usedBy) {
-      throw new AppError('This invite code has already been used', 400);
-    }
-
-    // Mark invite code as used
-    await prisma.inviteCode.update({
-      where: { code: inviteCode },
-      data: {
-        usedBy: decoded.userId,
-        usedAt: new Date(),
-      },
-    });
-
-    // Get user data
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        displayName: true,
-        avatarColor: true,
-        avatarUrl: true,
-        role: true,
-        preferredStudyLanguage: true,
-        preferredNativeLanguage: true,
-        proficiencyLevel: true,
-        onboardingCompleted: true,
-        seenSampleContentGuide: true,
-        seenCustomContentGuide: true,
-        emailVerified: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!user) {
-      throw new AppError('User not found', 404);
-    }
-
-    // Create session token
-    const sessionToken = jwt.sign(
-      { userId: decoded.userId, role: user.role },
-      process.env.JWT_SECRET!,
-      {
-        expiresIn: '7d',
-      }
+    const hasLearningOsIdentity =
+      decoded.accountSource === 'learning-os' &&
+      typeof decoded.email === 'string' &&
+      (decoded.role === 'user' || decoded.role === 'moderator' || decoded.role === 'admin');
+    const user = await claimLearningOsGoogleInvite(
+      decoded.userId,
+      inviteCode.trim(),
+      hasLearningOsIdentity
+        ? {
+            userId: decoded.userId,
+            email: decoded.email as string,
+            role: decoded.role as 'user' | 'moderator' | 'admin',
+            accountSource: 'learning-os',
+          }
+        : undefined
     );
 
-    // Set cookie
-    setSessionCookies(req as AuthRequest, res, sessionToken, 'strict');
+    setSessionCookies(
+      req as AuthRequest,
+      res,
+      createLearningOsSessionToken(user, 'learning-os'),
+      'strict'
+    );
 
     res.json(user);
   } catch (error) {
