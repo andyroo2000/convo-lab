@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { courseApi } from '../../lib/courseApi';
 import LineTTSTester from './LineTTSTester';
 
 interface DialogueExchange {
@@ -207,7 +208,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/courses/${courseId}/status`, {
+        const res = await fetch(courseApi.operation(courseId, 'status'), {
           credentials: 'include',
         });
         if (!res.ok) return;

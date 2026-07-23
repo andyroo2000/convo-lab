@@ -7,6 +7,7 @@ import { createWrapper, createTestQueryClient } from './test-utils';
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
   LEARNING_OS_DIRECT_EPISODE_API_ENABLED: false,
+  LEARNING_OS_DIRECT_COURSE_API_ENABLED: false,
 }));
 
 // Mock fetch globally

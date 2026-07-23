@@ -23,6 +23,7 @@ describe('client runtime config', () => {
     expect(getClientRuntimeConfig({})).toEqual({
       learningOsDirectAccountApi: false,
       learningOsDirectEpisodeApi: false,
+      learningOsDirectCourseApi: false,
     });
     expect(
       getClientRuntimeConfig({
@@ -31,6 +32,7 @@ describe('client runtime config', () => {
     ).toEqual({
       learningOsDirectAccountApi: true,
       learningOsDirectEpisodeApi: false,
+      learningOsDirectCourseApi: false,
     });
     expect(
       getClientRuntimeConfig({
@@ -39,6 +41,7 @@ describe('client runtime config', () => {
     ).toEqual({
       learningOsDirectAccountApi: false,
       learningOsDirectEpisodeApi: false,
+      learningOsDirectCourseApi: false,
     });
   });
 
@@ -50,6 +53,7 @@ describe('client runtime config', () => {
     ).toEqual({
       learningOsDirectAccountApi: false,
       learningOsDirectEpisodeApi: true,
+      learningOsDirectCourseApi: false,
     });
     expect(
       getClientRuntimeConfig({
@@ -58,6 +62,28 @@ describe('client runtime config', () => {
     ).toEqual({
       learningOsDirectAccountApi: false,
       learningOsDirectEpisodeApi: false,
+      learningOsDirectCourseApi: false,
+    });
+  });
+
+  it('keeps direct course traffic disabled unless explicitly enabled', () => {
+    expect(
+      getClientRuntimeConfig({
+        LEARNING_OS_DIRECT_COURSE_API_ENABLED: ' TRUE ',
+      })
+    ).toEqual({
+      learningOsDirectAccountApi: false,
+      learningOsDirectEpisodeApi: false,
+      learningOsDirectCourseApi: true,
+    });
+    expect(
+      getClientRuntimeConfig({
+        LEARNING_OS_DIRECT_COURSE_API_ENABLED: '1',
+      })
+    ).toEqual({
+      learningOsDirectAccountApi: false,
+      learningOsDirectEpisodeApi: false,
+      learningOsDirectCourseApi: false,
     });
   });
 
@@ -66,10 +92,11 @@ describe('client runtime config', () => {
     const injected = injectClientRuntimeConfig(html, {
       learningOsDirectAccountApi: true,
       learningOsDirectEpisodeApi: true,
+      learningOsDirectCourseApi: true,
     });
 
     expect(injected).toContain(
-      '<script>window.__CONVOLAB_RUNTIME_CONFIG__={"learningOsDirectAccountApi":true,"learningOsDirectEpisodeApi":true};</script>'
+      '<script>window.__CONVOLAB_RUNTIME_CONFIG__={"learningOsDirectAccountApi":true,"learningOsDirectEpisodeApi":true,"learningOsDirectCourseApi":true};</script>'
     );
     expect(injected).toContain('</head>');
   });

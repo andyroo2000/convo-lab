@@ -15,6 +15,7 @@ import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { courseApi } from '../../lib/courseApi';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import QuotaLimitPrompt from '../common/QuotaLimitPrompt';
 import VoicePreview from '../common/VoicePreview';
@@ -118,7 +119,7 @@ const DialogueGenerator = () => {
         return match?.gender === 'female' ? 'female' : 'male';
       };
 
-      const createResponse = await fetch('/api/courses', {
+      const createResponse = await fetch(courseApi.collection, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -149,7 +150,7 @@ const DialogueGenerator = () => {
 
       const course = await createResponse.json();
 
-      const generateResponse = await fetch(`/api/courses/${course.id}/generate`, {
+      const generateResponse = await fetch(courseApi.operation(course.id, 'generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

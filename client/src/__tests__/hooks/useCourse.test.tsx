@@ -6,6 +6,7 @@ import { createWrapper } from './test-utils';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
+  LEARNING_OS_DIRECT_COURSE_API_ENABLED: false,
 }));
 
 // Mock fetch globally
@@ -88,7 +89,7 @@ describe('useCourse', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.error).toBe('Failed to load course');
+        expect(result.current.error).toBe('Not found');
       });
     });
   });
