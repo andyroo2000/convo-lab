@@ -22,7 +22,8 @@ import SampleContentGuide from '../components/pulsePoints/SampleContentGuide';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import ErrorDisplay from '../components/ErrorDisplay';
 import ImpersonationBanner from '../components/ImpersonationBanner';
-import { API_URL, SHOW_ONBOARDING_WELCOME } from '../config';
+import { SHOW_ONBOARDING_WELCOME } from '../config';
+import { adminApi } from '../lib/adminApi';
 
 type FilterType = 'all' | 'dialogues' | 'scripts' | 'courses';
 
@@ -98,7 +99,7 @@ const LibraryPage = () => {
 
   useEffect(() => {
     if (viewAsUserId) {
-      fetch(`${API_URL}/api/admin/users/${viewAsUserId}/info`, {
+      fetch(adminApi.userInfo(viewAsUserId), {
         credentials: 'include',
       })
         .then((res) => res.json())

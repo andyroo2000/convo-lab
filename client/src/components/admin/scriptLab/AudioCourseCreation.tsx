@@ -8,7 +8,7 @@ import {
 } from '@languageflow/shared/src/constants-new';
 import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
-import { API_URL } from '../../../config';
+import { adminApi } from '../../../lib/adminApi';
 import { LessonScriptUnit } from '../../../types';
 import VoicePreview from '../../common/VoicePreview';
 
@@ -125,7 +125,7 @@ const AudioCourseCreation = () => {
 
   const fetchPastTests = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/script-lab/sentence-tests?limit=50`, {
+      const res = await fetch(adminApi.scriptLabSentenceTests(50), {
         credentials: 'include',
       });
       if (res.ok) {
@@ -147,7 +147,7 @@ const AudioCourseCreation = () => {
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/api/admin/script-lab/sentence-tests/${testId}`, {
+      const res = await fetch(adminApi.scriptLabSentenceTest(testId), {
         credentials: 'include',
       });
 
@@ -190,7 +190,7 @@ const AudioCourseCreation = () => {
     if (selectedForDelete.size === 0) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/admin/script-lab/sentence-tests`, {
+      const res = await fetch(adminApi.scriptLabSentenceTests(), {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -224,7 +224,7 @@ const AudioCourseCreation = () => {
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/api/admin/script-lab/sentence-script`, {
+      const res = await fetch(adminApi.scriptLabSentenceScript, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -297,7 +297,7 @@ const AudioCourseCreation = () => {
     const textToSynthesize = unit.type === 'L2' ? unit.reading || unit.text : unit.text;
 
     try {
-      const res = await fetch(`${API_URL}/api/admin/script-lab/synthesize-line`, {
+      const res = await fetch(adminApi.scriptLabSynthesizeLine, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

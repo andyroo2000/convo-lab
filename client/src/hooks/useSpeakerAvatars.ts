@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { API_URL } from '../config';
+import { adminApi } from '../lib/adminApi';
 
 export interface SpeakerAvatar {
   id: string;
@@ -18,7 +18,7 @@ export const avatarKeys = {
 };
 
 async function fetchSpeakerAvatars(): Promise<SpeakerAvatar[]> {
-  const response = await fetch(`${API_URL}/api/admin/avatars/speakers`, {
+  const response = await fetch(adminApi.speakerAvatars(), {
     credentials: 'include',
   });
 

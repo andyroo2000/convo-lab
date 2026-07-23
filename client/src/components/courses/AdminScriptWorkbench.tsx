@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { courseApi } from '../../lib/courseApi';
+import { adminApi } from '../../lib/adminApi';
 import LineTTSTester from './LineTTSTester';
 
 interface DialogueExchange {
@@ -130,7 +131,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
       setError(null);
 
       try {
-        const res = await fetch(`/api/admin/courses/${courseId}/build-prompt`, {
+        const res = await fetch(adminApi.adminCourseOperation(courseId, 'build-prompt'), {
           method: 'POST',
           credentials: 'include',
         });
@@ -156,7 +157,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
   useEffect(() => {
     const loadPipelineData = async () => {
       try {
-        const res = await fetch(`/api/admin/courses/${courseId}/pipeline-data`, {
+        const res = await fetch(adminApi.adminCourseOperation(courseId, 'pipeline-data'), {
           credentials: 'include',
         });
         if (!res.ok) return;
@@ -185,9 +186,12 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
 
         // Load line renderings
         try {
-          const renderingsRes = await fetch(`/api/admin/courses/${courseId}/line-renderings`, {
-            credentials: 'include',
-          });
+          const renderingsRes = await fetch(
+            adminApi.adminCourseOperation(courseId, 'line-renderings'),
+            {
+              credentials: 'include',
+            }
+          );
           if (renderingsRes.ok) {
             const renderingsData = await renderingsRes.json();
             setLineRenderings(renderingsData.renderings || []);
@@ -236,7 +240,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/courses/${courseId}/generate-dialogue`, {
+      const res = await fetch(adminApi.adminCourseOperation(courseId, 'generate-dialogue'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -266,7 +270,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
       setError(null);
 
       try {
-        const res = await fetch(`/api/admin/courses/${courseId}/build-script-config`, {
+        const res = await fetch(adminApi.adminCourseOperation(courseId, 'build-script-config'), {
           method: 'POST',
           credentials: 'include',
         });
@@ -292,7 +296,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/courses/${courseId}/generate-script`, {
+      const res = await fetch(adminApi.adminCourseOperation(courseId, 'generate-script'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -320,7 +324,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/courses/${courseId}/generate-audio`, {
+      const res = await fetch(adminApi.adminCourseOperation(courseId, 'generate-audio'), {
         method: 'POST',
         credentials: 'include',
       });
@@ -351,7 +355,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
 
     // Persist to server
     try {
-      await fetch(`/api/admin/courses/${courseId}/pipeline-data`, {
+      await fetch(adminApi.adminCourseOperation(courseId, 'pipeline-data'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

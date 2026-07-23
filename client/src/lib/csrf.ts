@@ -110,6 +110,10 @@ export function getCsrfProviderForPath(pathname: string): CsrfProvider {
     return 'learning-os';
   }
 
+  if (pathname === '/api/convolab/admin' || pathname.startsWith('/api/convolab/admin/')) {
+    return 'learning-os';
+  }
+
   return 'express';
 }
 

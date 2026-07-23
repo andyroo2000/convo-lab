@@ -332,55 +332,71 @@ test('production gates direct browser traffic and smokes each Learning OS route'
       'LEARNING_OS_DIRECT_SCRIPT_API_ENABLED: ${LEARNING_OS_DIRECT_SCRIPT_API_ENABLED:-false}'
     )
   );
+  assert.ok(
+    compose.includes(
+      'LEARNING_OS_DIRECT_ADMIN_API_ENABLED: ${LEARNING_OS_DIRECT_ADMIN_API_ENABLED:-false}'
+    )
+  );
 
   for (const contract of [
     "DIRECT_ACCOUNT_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED || 'false' }}",
     "DIRECT_EPISODE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_EPISODE_API_ENABLED || 'false' }}",
     "DIRECT_COURSE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_COURSE_API_ENABLED || 'false' }}",
     "DIRECT_SCRIPT_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_SCRIPT_API_ENABLED || 'false' }}",
+    "DIRECT_ADMIN_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_ADMIN_API_ENABLED || 'false' }}",
     "printf 'DIRECT_ACCOUNT_API_ENABLED=%q\\n'",
     "printf 'DIRECT_EPISODE_API_ENABLED=%q\\n'",
     "printf 'DIRECT_COURSE_API_ENABLED=%q\\n'",
     "printf 'DIRECT_SCRIPT_API_ENABLED=%q\\n'",
+    "printf 'DIRECT_ADMIN_API_ENABLED=%q\\n'",
     'direct_account_api_enabled="$DIRECT_ACCOUNT_API_ENABLED"',
     'direct_episode_api_enabled="$DIRECT_EPISODE_API_ENABLED"',
     'direct_course_api_enabled="$DIRECT_COURSE_API_ENABLED"',
     'direct_script_api_enabled="$DIRECT_SCRIPT_API_ENABLED"',
+    'direct_admin_api_enabled="$DIRECT_ADMIN_API_ENABLED"',
     'echo "::error::LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED must be true or false"',
     'echo "::error::LEARNING_OS_DIRECT_EPISODE_API_ENABLED must be true or false"',
     'echo "::error::LEARNING_OS_DIRECT_COURSE_API_ENABLED must be true or false"',
     'echo "::error::LEARNING_OS_DIRECT_SCRIPT_API_ENABLED must be true or false"',
+    'echo "::error::LEARNING_OS_DIRECT_ADMIN_API_ENABLED must be true or false"',
     'upsert_env LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED "$direct_account_api_enabled"',
     'upsert_env LEARNING_OS_DIRECT_EPISODE_API_ENABLED "$direct_episode_api_enabled"',
     'upsert_env LEARNING_OS_DIRECT_COURSE_API_ENABLED "$direct_course_api_enabled"',
     'upsert_env LEARNING_OS_DIRECT_SCRIPT_API_ENABLED "$direct_script_api_enabled"',
+    'upsert_env LEARNING_OS_DIRECT_ADMIN_API_ENABLED "$direct_admin_api_enabled"',
     'previous_direct_account_api_enabled="$(',
     'previous_direct_episode_api_enabled="$(',
     'previous_direct_course_api_enabled="$(',
     'previous_direct_script_api_enabled="$(',
+    'previous_direct_admin_api_enabled="$(',
     'direct_account_enabled="${2:-$direct_account_api_enabled}"',
     'direct_episode_enabled="${3:-$direct_episode_api_enabled}"',
     'direct_course_enabled="${4:-$direct_course_api_enabled}"',
     'direct_script_enabled="${5:-$direct_script_api_enabled}"',
+    'direct_admin_enabled="${6:-$direct_admin_api_enabled}"',
     's#__DIRECT_ACCOUNT_API_ENABLED__#$direct_account_enabled_value#g',
     's#__DIRECT_EPISODE_API_ENABLED__#$direct_episode_enabled_value#g',
     's#__DIRECT_COURSE_API_ENABLED__#$direct_course_enabled_value#g',
     's#__DIRECT_SCRIPT_API_ENABLED__#$direct_script_enabled_value#g',
+    's#__DIRECT_ADMIN_API_ENABLED__#$direct_admin_enabled_value#g',
     'verify_public_learning_os_browser_route() (',
     '"https://convo-lab.com/?runtime-config=$(date +%s)"',
     '\\"learningOsDirectAccountApi\\":$direct_account_api_enabled',
     '\\"learningOsDirectEpisodeApi\\":$direct_episode_api_enabled',
     '\\"learningOsDirectCourseApi\\":$direct_course_api_enabled',
     '\\"learningOsDirectScriptApi\\":$direct_script_api_enabled',
+    '\\"learningOsDirectAdminApi\\":$direct_admin_api_enabled',
     'Browser runtime config is missing expected flag $expected_flag.',
     'if [ "$direct_account_api_enabled" = false ]; then',
     'if [ "$direct_episode_api_enabled" = false ]; then',
     'if [ "$direct_course_api_enabled" = false ]; then',
     'if [ "$direct_script_api_enabled" = false ]; then',
+    'if [ "$direct_admin_api_enabled" = false ]; then',
     'Disabled direct account route returned HTTP $account_status instead of 404.',
     'Disabled direct episode route returned HTTP $episode_status instead of 404.',
     'Disabled direct course route returned HTTP $course_status instead of 404.',
     'Disabled direct script route returned HTTP $script_status instead of 404.',
+    'Disabled direct admin route returned HTTP $admin_status instead of 404.',
     'Disabled Learning OS CSRF route returned HTTP $csrf_status instead of 404.',
     'https://convo-lab.com/sanctum/csrf-cookie',
     '$6 == "XSRF-TOKEN"',
@@ -389,10 +405,12 @@ test('production gates direct browser traffic and smokes each Learning OS route'
     'https://convo-lab.com/api/convolab/episodes',
     'https://convo-lab.com/api/convolab/courses',
     'https://convo-lab.com/api/convolab/scripts/job/00000000-0000-4000-8000-000000000000',
+    'https://convo-lab.com/api/convolab/admin/stats',
     'Unauthenticated direct account probe returned HTTP',
     'Unauthenticated direct episode probe returned HTTP',
     'Unauthenticated direct course probe returned HTTP',
     'Unauthenticated direct script probe returned HTTP',
+    'Unauthenticated direct admin probe returned HTTP',
   ]) {
     assert.ok(workflow.includes(contract), `Missing direct browser deployment contract: ${contract}`);
   }
@@ -408,6 +426,7 @@ test('production gates direct browser traffic and smokes each Learning OS route'
     'episode_status="$(curl',
     'course_status="$(curl',
     'script_status="$(curl',
+    'admin_status="$(curl',
   ]) {
     const probeStart = workflow.indexOf(probeName, csrfProbeStart);
     const probeEnd = workflow.indexOf(')"', probeStart);
@@ -469,6 +488,18 @@ test('production gates direct browser traffic and smokes each Learning OS route'
   assert.ok(previousScriptValueCapture > desiredCourseValueAssignment);
   assert.ok(previousScriptValueNormalization > previousScriptValueCapture);
   assert.ok(desiredScriptValueAssignment > previousScriptValueNormalization);
+  const previousAdminValueCapture = workflow.indexOf('previous_direct_admin_api_enabled="$(');
+  const previousAdminValueNormalization = workflow.indexOf(
+    'if [ "$previous_direct_admin_api_enabled" != true ]; then',
+    previousAdminValueCapture
+  );
+  const desiredAdminValueAssignment = workflow.indexOf(
+    'direct_admin_api_enabled="$DIRECT_ADMIN_API_ENABLED"',
+    previousAdminValueNormalization
+  );
+  assert.ok(previousAdminValueCapture > desiredScriptValueAssignment);
+  assert.ok(previousAdminValueNormalization > previousAdminValueCapture);
+  assert.ok(desiredAdminValueAssignment > previousAdminValueNormalization);
   const rollbackStart = workflow.indexOf('rollback_router() {');
   const rollbackEnd = workflow.indexOf('active_color="blue"', rollbackStart);
   const rollback = workflow.slice(rollbackStart, rollbackEnd);
@@ -476,6 +507,7 @@ test('production gates direct browser traffic and smokes each Learning OS route'
   assert.ok(rollback.includes('"$previous_direct_episode_api_enabled"'));
   assert.ok(rollback.includes('"$previous_direct_course_api_enabled"'));
   assert.ok(rollback.includes('"$previous_direct_script_api_enabled"'));
+  assert.ok(rollback.includes('"$previous_direct_admin_api_enabled"'));
 });
 
 test('the production workflow refreshes and verifies Learning OS content reads', async () => {

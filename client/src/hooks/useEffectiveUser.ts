@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { adminApi } from '../lib/adminApi';
 
 /**
  * Hook that returns the effective user for the current context.
@@ -31,7 +32,7 @@ export default function useEffectiveUser(): {
 
     // Fetch the impersonated user's data
     setLoading(true);
-    fetch(`/api/admin/users/${viewAsUserId}/info`, {
+    fetch(adminApi.userInfo(viewAsUserId), {
       credentials: 'include',
     })
       .then((res) => {

@@ -5,7 +5,7 @@ import { User, Trash2, Lock, Camera } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
-import { API_URL } from '../config';
+import { adminApi } from '../lib/adminApi';
 
 type Tab = 'profile' | 'security' | 'danger';
 const SETTINGS_TABS = new Set<string>(['profile', 'security', 'danger']);
@@ -243,7 +243,7 @@ const SettingsPage = () => {
       formData.append('image', blob, 'avatar.jpg');
       formData.append('cropArea', JSON.stringify(cropArea));
 
-      const response = await fetch(`${API_URL}/api/admin/avatars/user/${user.id}/upload`, {
+      const response = await fetch(adminApi.userAvatarUpload(user.id), {
         method: 'POST',
         credentials: 'include',
         body: formData,

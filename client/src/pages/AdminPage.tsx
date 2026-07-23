@@ -20,7 +20,7 @@ import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import ConfirmModal from '../components/common/ConfirmModal';
 import Toast from '../components/common/Toast';
 import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
-import { API_URL } from '../config';
+import { adminApi } from '../lib/adminApi';
 
 type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings' | 'script-lab';
 
@@ -204,7 +204,7 @@ const AdminPage = () => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_URL}/api/admin/users?search=${searchQuery}`, {
+      const response = await fetch(adminApi.users(searchQuery), {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch users');
@@ -221,7 +221,7 @@ const AdminPage = () => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_URL}/api/admin/invite-codes`, {
+      const response = await fetch(adminApi.inviteCodes, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch invite codes');
@@ -238,7 +238,7 @@ const AdminPage = () => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_URL}/api/admin/stats`, {
+      const response = await fetch(adminApi.stats, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch stats');
@@ -254,9 +254,7 @@ const AdminPage = () => {
   const fetchSpeakerAvatars = async (bustCache = false) => {
     try {
       // Add cache-busting timestamp when needed (e.g., after upload)
-      const url = bustCache
-        ? `${API_URL}/api/admin/avatars/speakers?t=${Date.now()}`
-        : `${API_URL}/api/admin/avatars/speakers`;
+      const url = adminApi.speakerAvatars(bustCache ? Date.now() : undefined);
 
       const response = await fetch(url, {
         credentials: 'include',
@@ -275,7 +273,7 @@ const AdminPage = () => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_URL}/api/admin/feature-flags`, {
+      const response = await fetch(adminApi.featureFlags, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch feature flags');
@@ -299,7 +297,7 @@ const AdminPage = () => {
     setFeatureFlags({ ...featureFlags, [key]: value });
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/feature-flags`, {
+      const response = await fetch(adminApi.featureFlags, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -362,7 +360,7 @@ const AdminPage = () => {
   const fetchPronunciationDictionary = async () => {
     setPronunciationLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/pronunciation-dictionaries`, {
+      const response = await fetch(adminApi.pronunciationDictionaries, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch pronunciation dictionary');
@@ -397,7 +395,7 @@ const AdminPage = () => {
 
     setPronunciationSaving(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/pronunciation-dictionaries`, {
+      const response = await fetch(adminApi.pronunciationDictionaries, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -429,7 +427,7 @@ const AdminPage = () => {
     setIsConfirmingAction(true);
     try {
       if (confirmAction.type === 'delete-user') {
-        const response = await fetch(`${API_URL}/api/admin/users/${confirmAction.id}`, {
+        const response = await fetch(adminApi.user(confirmAction.id), {
           method: 'DELETE',
           credentials: 'include',
         });
@@ -440,7 +438,7 @@ const AdminPage = () => {
         fetchUsers();
         showToast('User deleted successfully', 'success');
       } else if (confirmAction.type === 'delete-invite-code') {
-        const response = await fetch(`${API_URL}/api/admin/invite-codes/${confirmAction.id}`, {
+        const response = await fetch(adminApi.inviteCode(confirmAction.id), {
           method: 'DELETE',
           credentials: 'include',
         });
@@ -465,7 +463,7 @@ const AdminPage = () => {
 
   const handleCreateInviteCode = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/invite-codes`, {
+      const response = await fetch(adminApi.inviteCodes, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -495,7 +493,7 @@ const AdminPage = () => {
   // Avatar handler functions
   const handleSaveSpeakerRecrop = async (filename: string, cropArea: Area) => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/recrop`, {
+      const response = await fetch(adminApi.speakerAvatarRecrop(filename), {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -519,7 +517,7 @@ const AdminPage = () => {
   const handleRecropSpeaker = async (filename: string) => {
     try {
       // Fetch the original image URL from the API
-      const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/original`, {
+      const response = await fetch(adminApi.speakerAvatarOriginal(filename), {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch original avatar URL');
@@ -543,7 +541,7 @@ const AdminPage = () => {
       formData.append('image', originalFile, filename);
       formData.append('cropArea', JSON.stringify(cropArea));
 
-      const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/upload`, {
+      const response = await fetch(adminApi.speakerAvatarUpload(filename), {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -1161,7 +1159,7 @@ const AdminPage = () => {
                                             formData.append('cropArea', JSON.stringify(cropArea));
 
                                             const response = await fetch(
-                                              `${API_URL}/api/admin/avatars/user/${u.id}/upload`,
+                                              adminApi.userAvatarUpload(u.id),
                                               {
                                                 method: 'POST',
                                                 credentials: 'include',

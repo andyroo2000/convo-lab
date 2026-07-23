@@ -5,6 +5,7 @@ export interface ClientRuntimeConfig {
   learningOsDirectEpisodeApi: boolean;
   learningOsDirectCourseApi: boolean;
   learningOsDirectScriptApi: boolean;
+  learningOsDirectAdminApi: boolean;
 }
 
 export const redirectClientIndexDocument: RequestHandler = (_req, res) => {
@@ -23,6 +24,8 @@ export function getClientRuntimeConfig(
       environment.LEARNING_OS_DIRECT_COURSE_API_ENABLED?.trim().toLowerCase() === 'true',
     learningOsDirectScriptApi:
       environment.LEARNING_OS_DIRECT_SCRIPT_API_ENABLED?.trim().toLowerCase() === 'true',
+    learningOsDirectAdminApi:
+      environment.LEARNING_OS_DIRECT_ADMIN_API_ENABLED?.trim().toLowerCase() === 'true',
   };
 }
 
