@@ -37,6 +37,16 @@ jobs:
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -o /dev/null
 
+      - name: Validate Google OAuth credentials
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then
+            echo "::error::GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets must be set"
+            exit 1
+          fi
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -78,6 +88,24 @@ jobs:
               sed -i "s#^CLIENT_URL=.*#CLIENT_URL=https://convo-lab.com#g" .env.production
             else
               echo "CLIENT_URL=https://convo-lab.com" >> .env.production
+            fi
+
+            if grep -q '^GOOGLE_CLIENT_ID=' .env.production; then
+              sed -i "s#^GOOGLE_CLIENT_ID=.*#GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}#g" .env.production
+            else
+              echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env.production
+            fi
+
+            if grep -q '^GOOGLE_CLIENT_SECRET=' .env.production; then
+              sed -i "s#^GOOGLE_CLIENT_SECRET=.*#GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}#g" .env.production
+            else
+              echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env.production
+            fi
+
+            if grep -q '^GOOGLE_CALLBACK_URL=' .env.production; then
+              sed -i "s#^GOOGLE_CALLBACK_URL=.*#GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback#g" .env.production
+            else
+              echo "GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback" >> .env.production
             fi
 
             if grep -q '^OPENAI_API_KEY=' .env.production; then
@@ -352,14 +380,26 @@ jobs:
           for i in {1..20}; do
             if curl -f -s https://convo-lab.com/health > /dev/null; then
               echo "✅ Health check passed!"
-              exit 0
+              break
+            fi
+            if [ "$i" -eq 20 ]; then
+              echo "❌ Health check failed after 20 attempts"
+              exit 1
             fi
             echo "Attempt $i/20 failed, retrying in 5s..."
             sleep 5
           done
 
-          echo "❌ Health check failed after 20 attempts"
-          exit 1
+          oauth_location="$(curl -fsS -D - -o /dev/null https://convo-lab.com/api/auth/google \
+            | sed -n 's/^location: //Ip' | tr -d '\r' | tail -1)"
+          if [[ "$oauth_location" != https://accounts.google.com/* ]] || \
+             [[ "$oauth_location" != *'redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fauth%2Fgoogle%2Fcallback'* ]] || \
+             [[ "$oauth_location" == *'client_id=placeholder'* ]] || \
+             [[ "$oauth_location" == *'access_type=offline'* ]]; then
+            echo "❌ Google OAuth production redirect is misconfigured."
+            exit 1
+          fi
+          echo "✅ Google OAuth production redirect passed!"
 
       - name: Notify on failure
         if: failure()

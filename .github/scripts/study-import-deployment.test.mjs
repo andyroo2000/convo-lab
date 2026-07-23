@@ -69,6 +69,40 @@ test('the staging workflow recovers the failed Audio Script media migration befo
   assert.ok(startIndex > resolveIndex);
 });
 
+test('the production deployment configures and smokes Google OAuth', async () => {
+  const [compose, workflow] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
+  ]);
+
+  for (const requiredComposeContract of [
+    'GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}',
+    'GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}',
+    'GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}',
+  ]) {
+    assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
+  }
+
+  for (const requiredWorkflowContract of [
+    'GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}',
+    'GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}',
+    'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets must be set',
+    'GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback',
+    'https://convo-lab.com/api/auth/google',
+    "redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fauth%2Fgoogle%2Fcallback",
+    'client_id=placeholder',
+    'access_type=offline',
+    'Google OAuth production redirect passed!',
+  ]) {
+    assert.ok(workflow.includes(requiredWorkflowContract), requiredWorkflowContract);
+  }
+
+  assert.ok(
+    workflow.indexOf('GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback') <
+      workflow.indexOf('$COMPOSE pull')
+  );
+});
+
 test('the production workflow verifies the always-on Study API without rollout flags', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
