@@ -941,6 +941,35 @@ test('legacy course and episode database utilities stay retired', async () => {
   );
 });
 
+test('legacy ConvoLab support services stay retired behind Learning OS', async () => {
+  const retiredPaths = [
+    'server/src/__tests__/unit/i18n/emailTemplates.test.ts',
+    'server/src/__tests__/unit/services/audioScriptMedia.test.ts',
+    'server/src/__tests__/unit/services/emailService.test.ts',
+    'server/src/__tests__/unit/services/privateMediaAccess.test.ts',
+    'server/src/__tests__/unit/services/vocabularySeeding.test.ts',
+    'server/src/i18n/emailTemplates.ts',
+    'server/src/i18n/locales/en/email.json',
+    'server/src/i18n/locales/ja/email.json',
+    'server/src/routes/privateMediaResponse.ts',
+    'server/src/services/audioScriptMediaService.ts',
+    'server/src/services/emailService.ts',
+    'server/src/services/privateMediaAccess.ts',
+    'server/src/services/vocabularySeeding.ts',
+  ];
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+
+  const serverPackage = JSON.parse(
+    await readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8')
+  );
+  for (const retiredDependency of ['@react-email/components', 'react-email', 'resend']) {
+    assert.equal(serverPackage.dependencies?.[retiredDependency], undefined);
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),

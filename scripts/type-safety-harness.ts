@@ -84,7 +84,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'client/src/components/__tests__/ErrorBoundary.test.tsx', cardId: 'convo-lab-m0c', anyCount: 3, category: 'test' },
 
   // Server test files
-  { file: 'server/src/__tests__/unit/i18n/emailTemplates.test.ts', cardId: 'convo-lab-q1r', anyCount: 16, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/admin.security.test.ts', cardId: 'convo-lab-fo4', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/admin.simple.test.ts', cardId: 'convo-lab-qh5', anyCount: 4, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/admin.test.ts', cardId: 'convo-lab-wek', anyCount: 2, category: 'test' },
@@ -95,8 +94,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/routes/audio.test.ts', cardId: 'convo-lab-b2a', anyCount: 10, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/images.test.ts', cardId: 'convo-lab-5op', anyCount: 9, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/verification.test.ts', cardId: 'convo-lab-18q', anyCount: 1, category: 'test' },
-  { file: 'server/src/__tests__/unit/services/emailService.test.ts', cardId: 'convo-lab-zru', anyCount: 11, category: 'test' },
-  { file: 'server/src/__tests__/unit/services/emailService.token-security.test.ts', cardId: 'convo-lab-9t4', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/middleware/auth.test.ts', cardId: 'convo-lab-dro', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/middleware/impersonation.test.ts', cardId: 'convo-lab-n3h', anyCount: 10, category: 'test' },
   { file: 'server/src/__tests__/unit/config/redis.test.ts', cardId: 'convo-lab-qck', anyCount: 1, category: 'test' },
