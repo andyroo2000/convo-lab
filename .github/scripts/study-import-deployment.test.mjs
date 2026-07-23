@@ -88,6 +88,8 @@ test('the production deployment configures and smokes Google OAuth', async () =>
     'GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}',
     'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets must be set',
     'GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback',
+    'verify_public_google_oauth() {',
+    'Google OAuth production redirect request failed.',
     'https://convo-lab.com/api/auth/google',
     "redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fauth%2Fgoogle%2Fcallback",
     'client_id=placeholder',
@@ -101,6 +103,12 @@ test('the production deployment configures and smokes Google OAuth', async () =>
     workflow.indexOf('GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback') <
       workflow.indexOf('$COMPOSE pull')
   );
+  const oauthGate = workflow.indexOf(
+    'if ! verify_public_health || ! verify_public_google_oauth; then'
+  );
+  assert.ok(oauthGate >= 0);
+  assert.ok(oauthGate < workflow.indexOf('write_active_color "$inactive_color"'));
+  assert.ok(oauthGate < workflow.indexOf('Stopping old web color'));
 });
 
 test('the production workflow verifies the always-on Study API without rollout flags', async () => {

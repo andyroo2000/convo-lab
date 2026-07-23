@@ -215,6 +215,23 @@ jobs:
               return 1
             }
 
+            verify_public_google_oauth() {
+              if ! oauth_headers="$(curl -sS -D - -o /dev/null https://convo-lab.com/api/auth/google)"; then
+                echo "❌ Google OAuth production redirect request failed."
+                return 1
+              fi
+              oauth_location="$(printf '%s\n' "$oauth_headers" \
+                | sed -n 's/^location: //Ip' | tr -d '\r' | tail -1)"
+              if [[ "$oauth_location" != https://accounts.google.com/* ]] || \
+                 [[ "$oauth_location" != *'redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fauth%2Fgoogle%2Fcallback'* ]] || \
+                 [[ "$oauth_location" == *'client_id=placeholder'* ]] || \
+                 [[ "$oauth_location" == *'access_type=offline'* ]]; then
+                echo "❌ Google OAuth production redirect is misconfigured."
+                return 1
+              fi
+              echo "✅ Google OAuth production redirect passed!"
+            }
+
             reload_router() {
               router_running="$(docker inspect -f '{{.State.Running}}' convolab-server 2>/dev/null || echo "false")"
               if [ "$router_running" = "true" ]; then
@@ -324,8 +341,8 @@ jobs:
               fi
             fi
 
-            if ! verify_public_health; then
-              echo "❌ Public health failed after switching to $inactive_color."
+            if ! verify_public_health || ! verify_public_google_oauth; then
+              echo "❌ Public verification failed after switching to $inactive_color."
               if ! rollback_router "$active_color"; then
                 echo "❌ Rollback also failed; manual intervention is required."
               fi
@@ -380,26 +397,14 @@ jobs:
           for i in {1..20}; do
             if curl -f -s https://convo-lab.com/health > /dev/null; then
               echo "✅ Health check passed!"
-              break
-            fi
-            if [ "$i" -eq 20 ]; then
-              echo "❌ Health check failed after 20 attempts"
-              exit 1
+              exit 0
             fi
             echo "Attempt $i/20 failed, retrying in 5s..."
             sleep 5
           done
 
-          oauth_location="$(curl -fsS -D - -o /dev/null https://convo-lab.com/api/auth/google \
-            | sed -n 's/^location: //Ip' | tr -d '\r' | tail -1)"
-          if [[ "$oauth_location" != https://accounts.google.com/* ]] || \
-             [[ "$oauth_location" != *'redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fauth%2Fgoogle%2Fcallback'* ]] || \
-             [[ "$oauth_location" == *'client_id=placeholder'* ]] || \
-             [[ "$oauth_location" == *'access_type=offline'* ]]; then
-            echo "❌ Google OAuth production redirect is misconfigured."
-            exit 1
-          fi
-          echo "✅ Google OAuth production redirect passed!"
+          echo "❌ Health check failed after 20 attempts"
+          exit 1
 
       - name: Notify on failure
         if: failure()
