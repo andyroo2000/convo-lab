@@ -21,12 +21,16 @@ describe('production router contract', () => {
       'set $direct_course_api_enabled __DIRECT_COURSE_API_ENABLED__;'
     );
     expect(routerTemplate).toContain(
-      'set $direct_browser_api_flags "$direct_account_api_enabled$direct_episode_api_enabled$direct_course_api_enabled";'
+      'set $direct_script_api_enabled __DIRECT_SCRIPT_API_ENABLED__;'
+    );
+    expect(routerTemplate).toContain(
+      'set $direct_browser_api_flags "$direct_account_api_enabled$direct_episode_api_enabled$direct_course_api_enabled$direct_script_api_enabled";'
     );
     expect(routerTemplate).toMatch(/location = \/sanctum\/csrf-cookie \{/u);
     expect(routerTemplate).toMatch(/location \^~ \/api\/convolab\/auth\/ \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/episodes\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/courses\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/scripts\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/convolab\/ \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/ \{/u);
   });
@@ -55,7 +59,7 @@ describe('production router contract', () => {
 
     const courseBlock = routerTemplate.slice(
       routerTemplate.indexOf('location ~ ^/api/convolab/courses(?:/|$)'),
-      routerTemplate.indexOf('# Keep this regex synchronized with studyRouteContract.ts')
+      routerTemplate.indexOf('location ~ ^/api/convolab/scripts(?:/|$)')
     );
 
     expect(courseBlock).toContain('proxy_set_header Authorization "";');
@@ -63,6 +67,17 @@ describe('production router contract', () => {
     expect(courseBlock).toContain('proxy_pass $learning_os_upstream;');
     expect(courseBlock).toContain('if ($direct_course_api_enabled = 0)');
     expect(courseBlock).toContain('return 404;');
+
+    const scriptBlock = routerTemplate.slice(
+      routerTemplate.indexOf('location ~ ^/api/convolab/scripts(?:/|$)'),
+      routerTemplate.indexOf('# Keep this regex synchronized with studyRouteContract.ts')
+    );
+
+    expect(scriptBlock).toContain('proxy_set_header Authorization "";');
+    expect(scriptBlock).toContain('proxy_set_header X-Convo-Lab-User-Id "";');
+    expect(scriptBlock).toContain('proxy_pass $learning_os_upstream;');
+    expect(scriptBlock).toContain('if ($direct_script_api_enabled = 0)');
+    expect(scriptBlock).toContain('return 404;');
     expect(routerTemplate).toMatch(/location \/ \{[\s\S]*proxy_pass \$convolab_upstream;/u);
   });
 
@@ -86,7 +101,7 @@ describe('production router contract', () => {
       routerTemplate.indexOf('location ^~ /api/convolab/auth/')
     );
 
-    expect(csrfBlock).toContain('if ($direct_browser_api_flags = "000")');
+    expect(csrfBlock).toContain('if ($direct_browser_api_flags = "0000")');
     expect(csrfBlock).toContain('proxy_pass $learning_os_upstream;');
   });
 });

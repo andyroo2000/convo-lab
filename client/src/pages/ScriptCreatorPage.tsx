@@ -4,16 +4,11 @@ import { FileText } from 'lucide-react';
 import { AUDIO_SCRIPT_SPEEDS } from '@languageflow/shared/src/audioScript';
 import { getAudioScriptTtsVoices } from '@languageflow/shared/src/voiceSelection';
 import VoicePreview from '../components/common/VoicePreview';
-import { API_URL } from '../config';
 import { useIsDemo } from '../hooks/useDemo';
 import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
+import { readScriptApiError, scriptApi } from '../lib/scriptApi';
 
 type Step = 'input' | 'generating';
-
-async function readApiError(response: Response, fallback: string): Promise<string> {
-  const payload = await response.json().catch(() => null);
-  return payload?.error || payload?.message || fallback;
-}
 
 const ScriptCreatorPage = () => {
   const navigate = useNavigate();
@@ -43,12 +38,12 @@ const ScriptCreatorPage = () => {
 
     /* eslint-disable no-await-in-loop -- polling must wait between status requests */
     while (Date.now() - startedAt < timeoutMs) {
-      const response = await fetch(`${API_URL}/api/scripts/${id}/status`, {
+      const response = await fetch(scriptApi.operation(id, 'status'), {
         credentials: 'include',
         cache: 'no-store',
       });
       if (!response.ok) {
-        throw new Error(await readApiError(response, 'Failed to check script status.'));
+        throw new Error(await readScriptApiError(response, 'Failed to check script status.'));
       }
       const script = await response.json();
       if (!mountedRef.current) return;
@@ -71,7 +66,9 @@ const ScriptCreatorPage = () => {
         script.status === 'ready' &&
         (imageStatus === 'ready' || imageStatus === 'partial' || imageStatus === 'error')
       ) {
-        const suffix = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
+        const suffix = viewAsUserId
+          ? `?${new URLSearchParams({ viewAs: viewAsUserId }).toString()}`
+          : '';
         if (!mountedRef.current) return;
         navigate(`/app/playback/${id}${suffix}`);
         return;
@@ -109,41 +106,45 @@ const ScriptCreatorPage = () => {
     submittingRef.current = true;
 
     try {
-      const createResponse = await fetch(`${API_URL}/api/scripts`, {
+      const createResponse = await fetch(scriptApi.collection, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ sourceText, voiceId }),
       });
       if (!createResponse.ok) {
-        throw new Error(await readApiError(createResponse, 'Failed to create script.'));
+        throw new Error(await readScriptApiError(createResponse, 'Failed to create script.'));
       }
       const episode = await createResponse.json();
 
-      const annotateResponse = await fetch(`${API_URL}/api/scripts/${episode.id}/annotate`, {
+      const annotateResponse = await fetch(scriptApi.operation(episode.id, 'annotate'), {
         method: 'POST',
         credentials: 'include',
       });
       if (!annotateResponse.ok) {
-        throw new Error(await readApiError(annotateResponse, 'Failed to annotate script.'));
+        throw new Error(await readScriptApiError(annotateResponse, 'Failed to annotate script.'));
       }
 
       setRenderStatus('Generating audio and illustrations...');
-      const imagesResponse = await fetch(`${API_URL}/api/scripts/${episode.id}/images`, {
+      const imagesResponse = await fetch(scriptApi.operation(episode.id, 'images'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ force: false }),
       });
       if (!imagesResponse.ok) {
-        throw new Error(await readApiError(imagesResponse, 'Failed to start image generation.'));
+        throw new Error(
+          await readScriptApiError(imagesResponse, 'Failed to start image generation.')
+        );
       }
-      const renderResponse = await fetch(`${API_URL}/api/scripts/${episode.id}/render`, {
+      const renderResponse = await fetch(scriptApi.operation(episode.id, 'render'), {
         method: 'POST',
         credentials: 'include',
       });
       if (!renderResponse.ok) {
-        throw new Error(await readApiError(renderResponse, 'Failed to start audio rendering.'));
+        throw new Error(
+          await readScriptApiError(renderResponse, 'Failed to start audio rendering.')
+        );
       }
 
       if (mountedRef.current) {
