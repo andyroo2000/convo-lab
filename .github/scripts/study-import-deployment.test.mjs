@@ -306,7 +306,7 @@ test('production coordinates the Learning OS browser-session bridge behind one r
   );
 });
 
-test('production gates direct account traffic and smokes the public Learning OS route', async () => {
+test('production gates direct browser traffic and smokes each Learning OS route', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
@@ -317,28 +317,44 @@ test('production gates direct account traffic and smokes the public Learning OS 
       'LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED: ${LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED:-false}'
     )
   );
+  assert.ok(
+    compose.includes(
+      'LEARNING_OS_DIRECT_EPISODE_API_ENABLED: ${LEARNING_OS_DIRECT_EPISODE_API_ENABLED:-false}'
+    )
+  );
 
   for (const contract of [
     "DIRECT_ACCOUNT_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED || 'false' }}",
+    "DIRECT_EPISODE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_EPISODE_API_ENABLED || 'false' }}",
     "printf 'DIRECT_ACCOUNT_API_ENABLED=%q\\n'",
+    "printf 'DIRECT_EPISODE_API_ENABLED=%q\\n'",
     'direct_account_api_enabled="$DIRECT_ACCOUNT_API_ENABLED"',
+    'direct_episode_api_enabled="$DIRECT_EPISODE_API_ENABLED"',
     'echo "::error::LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED must be true or false"',
+    'echo "::error::LEARNING_OS_DIRECT_EPISODE_API_ENABLED must be true or false"',
     'upsert_env LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED "$direct_account_api_enabled"',
+    'upsert_env LEARNING_OS_DIRECT_EPISODE_API_ENABLED "$direct_episode_api_enabled"',
     'previous_direct_account_api_enabled="$(',
+    'previous_direct_episode_api_enabled="$(',
     'direct_account_enabled="${2:-$direct_account_api_enabled}"',
+    'direct_episode_enabled="${3:-$direct_episode_api_enabled}"',
     's#__DIRECT_ACCOUNT_API_ENABLED__#$direct_account_enabled_value#g',
-    'render_router_config "$previous_color" "$previous_direct_account_api_enabled"',
+    's#__DIRECT_EPISODE_API_ENABLED__#$direct_episode_enabled_value#g',
     'verify_public_learning_os_browser_route() (',
     'if [ "$direct_account_api_enabled" = false ]; then',
-    'Disabled direct account route returned HTTP $disabled_status instead of 404.',
-    'Disabled Learning OS CSRF route returned HTTP $disabled_csrf_status instead of 404.',
+    'if [ "$direct_episode_api_enabled" = false ]; then',
+    'Disabled direct account route returned HTTP $account_status instead of 404.',
+    'Disabled direct episode route returned HTTP $episode_status instead of 404.',
+    'Disabled Learning OS CSRF route returned HTTP $csrf_status instead of 404.',
     'https://convo-lab.com/sanctum/csrf-cookie',
     '$6 == "XSRF-TOKEN"',
     '$6 == "learning_os_session"',
     'https://convo-lab.com/api/convolab/auth/me',
+    'https://convo-lab.com/api/convolab/episodes',
     'Unauthenticated direct account probe returned HTTP',
+    'Unauthenticated direct episode probe returned HTTP',
   ]) {
-    assert.ok(workflow.includes(contract), `Missing direct account deployment contract: ${contract}`);
+    assert.ok(workflow.includes(contract), `Missing direct browser deployment contract: ${contract}`);
   }
 
   const publicGate = workflow.indexOf('if ! verify_public_health \\');
@@ -346,14 +362,17 @@ test('production gates direct account traffic and smokes the public Learning OS 
   assert.ok(
     workflow.indexOf('verify_public_learning_os_browser_route', publicGate) > publicGate
   );
-  const accountProbeStart = workflow.indexOf('account_status="$(curl');
-  const accountProbeEnd = workflow.indexOf(')"', accountProbeStart);
-  const accountProbe = workflow.slice(accountProbeStart, accountProbeEnd);
-  assert.ok(accountProbeStart >= 0);
-  assert.ok(accountProbeEnd > accountProbeStart);
-  assert.ok(accountProbe.includes('--cookie "$cookie_jar"'));
-  assert.ok(accountProbe.includes("--header 'Origin: https://convo-lab.com'"));
-  assert.ok(!accountProbe.includes("Accept: application/json"));
+  const csrfProbeStart = workflow.indexOf('csrf_status="$(curl');
+  for (const probeName of ['account_status="$(curl', 'episode_status="$(curl']) {
+    const probeStart = workflow.indexOf(probeName, csrfProbeStart);
+    const probeEnd = workflow.indexOf(')"', probeStart);
+    const probe = workflow.slice(probeStart, probeEnd);
+    assert.ok(probeStart >= 0);
+    assert.ok(probeEnd > probeStart);
+    assert.ok(probe.includes('--cookie "$cookie_jar"'));
+    assert.ok(probe.includes("Accept: application/json"));
+    assert.ok(probe.includes("--header 'Origin: https://convo-lab.com'"));
+  }
   assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
   const previousValueCapture = workflow.indexOf('previous_direct_account_api_enabled="$(');
   const previousValueNormalization = workflow.indexOf(
@@ -367,6 +386,25 @@ test('production gates direct account traffic and smokes the public Learning OS 
   assert.ok(previousValueCapture >= 0);
   assert.ok(previousValueNormalization > previousValueCapture);
   assert.ok(desiredValueAssignment > previousValueNormalization);
+  const previousEpisodeValueCapture = workflow.indexOf(
+    'previous_direct_episode_api_enabled="$('
+  );
+  const previousEpisodeValueNormalization = workflow.indexOf(
+    'if [ "$previous_direct_episode_api_enabled" != true ]; then',
+    previousEpisodeValueCapture
+  );
+  const desiredEpisodeValueAssignment = workflow.indexOf(
+    'direct_episode_api_enabled="$DIRECT_EPISODE_API_ENABLED"',
+    previousEpisodeValueNormalization
+  );
+  assert.ok(previousEpisodeValueCapture > desiredValueAssignment);
+  assert.ok(previousEpisodeValueNormalization > previousEpisodeValueCapture);
+  assert.ok(desiredEpisodeValueAssignment > previousEpisodeValueNormalization);
+  const rollbackStart = workflow.indexOf('rollback_router() {');
+  const rollbackEnd = workflow.indexOf('active_color="blue"', rollbackStart);
+  const rollback = workflow.slice(rollbackStart, rollbackEnd);
+  assert.ok(rollback.includes('"$previous_direct_account_api_enabled"'));
+  assert.ok(rollback.includes('"$previous_direct_episode_api_enabled"'));
 });
 
 test('the production workflow refreshes and verifies Learning OS content reads', async () => {

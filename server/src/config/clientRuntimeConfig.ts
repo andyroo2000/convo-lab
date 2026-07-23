@@ -1,5 +1,6 @@
 export interface ClientRuntimeConfig {
   learningOsDirectAccountApi: boolean;
+  learningOsDirectEpisodeApi: boolean;
 }
 
 export function getClientRuntimeConfig(
@@ -8,6 +9,8 @@ export function getClientRuntimeConfig(
   return {
     learningOsDirectAccountApi:
       environment.LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED?.trim().toLowerCase() === 'true',
+    learningOsDirectEpisodeApi:
+      environment.LEARNING_OS_DIRECT_EPISODE_API_ENABLED?.trim().toLowerCase() === 'true',
   };
 }
 

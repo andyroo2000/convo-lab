@@ -6,6 +6,7 @@ import {
   CSRF_TOKEN_HEADER_NAME,
   LEARNING_OS_CSRF_TOKEN_HEADER_NAME,
   fetchWithCsrf,
+  getCsrfProviderForPath,
   installCsrfFetch,
   resetCsrfStateForTests,
 } from '../csrf';
@@ -137,7 +138,7 @@ describe('csrf helpers', () => {
     ]);
   });
 
-  it('keeps non-auth Convo Lab mutations on the Express CSRF provider', async () => {
+  it('keeps other Convo Lab mutations on the Express CSRF provider', async () => {
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=express-token`;
     const fetchMock = vi
       .fn()
@@ -149,12 +150,18 @@ describe('csrf helpers', () => {
       });
     vi.stubGlobal('fetch', fetchMock);
 
-    await fetchWithCsrf(`${API_URL}/api/convolab/episodes/example/mutation`, {
+    await fetchWithCsrf(`${API_URL}/api/convolab/courses/example/mutation`, {
       method: 'POST',
       credentials: 'include',
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('classifies only the exact Episodes namespace as Learning OS', () => {
+    expect(getCsrfProviderForPath('/api/convolab/episodes')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/convolab/episodes/episode-123')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/convolab/episodes-other')).toBe('express');
   });
 
   it('refreshes the token and retries once when a mutation is rejected for CSRF', async () => {

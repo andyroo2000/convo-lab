@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Episode, CreateEpisodeRequest, Speaker, AudioSpeed } from '../types';
 
 import { API_URL } from '../config';
+import { episodeApi, readEpisodeApiError } from '../lib/episodeApi';
 
 interface QuotaInfo {
   limit: number;
@@ -32,7 +33,7 @@ export function useEpisodes() {
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/episodes`, {
+      const response = await fetch(episodeApi.collection, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,8 +43,7 @@ export function useEpisodes() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create episode');
+        throw new Error(await readEpisodeApiError(response, 'Failed to create episode'));
       }
 
       const episode = await response.json();
@@ -203,7 +203,7 @@ export function useEpisodes() {
         if (viewAsUserId) params.append('viewAs', viewAsUserId);
 
         const queryString = params.toString();
-        const url = `${API_URL}/api/episodes/${episodeId}${queryString ? `?${queryString}` : ''}`;
+        const url = `${episodeApi.member(episodeId)}${queryString ? `?${queryString}` : ''}`;
 
         const response = await fetch(url, {
           credentials: 'include',
@@ -211,8 +211,7 @@ export function useEpisodes() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch episode');
+          throw new Error(await readEpisodeApiError(response, 'Failed to fetch episode'));
         }
 
         const episode = await response.json();
@@ -233,14 +232,13 @@ export function useEpisodes() {
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/episodes/${episodeId}`, {
+      const response = await fetch(episodeApi.member(episodeId), {
         method: 'DELETE',
         credentials: 'include',
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete episode');
+        throw new Error(await readEpisodeApiError(response, 'Failed to delete episode'));
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
