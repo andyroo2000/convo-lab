@@ -638,6 +638,25 @@ test('legacy direct dialogue audio generation stays retired behind the Learning 
   }
 });
 
+test('legacy direct lesson generation stays retired behind the Learning OS course proxy', async () => {
+  const route = await readFile(path.join(repositoryRoot, 'server/src/routes/courses.ts'), 'utf8');
+  const retiredPaths = [
+    'server/src/services/conversationalLessonScriptGenerator.ts',
+    'server/src/services/speakerNarration.ts',
+    'server/src/services/scriptGenerationConfig.ts',
+    'server/src/services/scriptProofreader.ts',
+  ];
+
+  assert.match(route, /generateLearningOsCourse/);
+  assert.match(route, /showLearningOsCourseGenerationStatus/);
+  assert.match(route, /retryLearningOsCourseGeneration/);
+  assert.doesNotMatch(route, /conversationalLessonScriptGenerator|scriptProofreader/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
