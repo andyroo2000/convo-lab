@@ -5,15 +5,6 @@ set -Eeuo pipefail
 : "${ACTIVE_COLOR:?ACTIVE_COLOR is required}"
 : "${SMOKE_USER_EMAIL:?SMOKE_USER_EMAIL is required}"
 
-EXPECT_LEARNING_OS_BROWSER_SESSION="${EXPECT_LEARNING_OS_BROWSER_SESSION:-false}"
-case "$EXPECT_LEARNING_OS_BROWSER_SESSION" in
-  true | false) ;;
-  *)
-    echo "EXPECT_LEARNING_OS_BROWSER_SESSION must be true or false." >&2
-    exit 1
-    ;;
-esac
-
 SERVER_CONTAINER="convolab-server-$ACTIVE_COLOR"
 BASE_URL="https://convo-lab.com"
 SIGNUP_COOKIE_JAR=""
@@ -28,6 +19,9 @@ RESET_BODY_FILE=""
 OLD_LOGIN_BODY_FILE=""
 NEW_LOGIN_BODY_FILE=""
 DELETE_BODY_FILE=""
+VERIFICATION_BODY_FILE=""
+PROFILE_BODY_FILE=""
+PROFILE_RESTORE_BODY_FILE=""
 SMOKE_EMAIL=""
 SMOKE_INVITE_CODE=""
 SMOKE_INVITE_ID=""
@@ -71,13 +65,8 @@ assert_learning_os_session_cookie() {
 
   cookie_value="$(awk '$6 == "learning_os_session" { value = $7 } END { print value }' \
     "$cookie_jar")"
-  if [ "$EXPECT_LEARNING_OS_BROWSER_SESSION" = true ]; then
-    if [ -z "$cookie_value" ]; then
-      echo "$context did not establish a Learning OS browser session." >&2
-      return 1
-    fi
-  elif [ -n "$cookie_value" ]; then
-    echo "$context established a Learning OS browser session while the bridge was disabled." >&2
+  if [ -z "$cookie_value" ]; then
+    echo "$context did not establish a Learning OS browser session." >&2
     return 1
   fi
 }
@@ -154,7 +143,10 @@ cleanup() {
     "$RESET_BODY_FILE" \
     "$OLD_LOGIN_BODY_FILE" \
     "$NEW_LOGIN_BODY_FILE" \
-    "$DELETE_BODY_FILE" || cleanup_status=1
+    "$DELETE_BODY_FILE" \
+    "$VERIFICATION_BODY_FILE" \
+    "$PROFILE_BODY_FILE" \
+    "$PROFILE_RESTORE_BODY_FILE" || cleanup_status=1
 
   if [ "$cleanup_status" -ne 0 ]; then
     if [ "$exit_status" -eq 0 ]; then
@@ -232,6 +224,9 @@ RESET_BODY_FILE="$(mktemp)"
 OLD_LOGIN_BODY_FILE="$(mktemp)"
 NEW_LOGIN_BODY_FILE="$(mktemp)"
 DELETE_BODY_FILE="$(mktemp)"
+VERIFICATION_BODY_FILE="$(mktemp)"
+PROFILE_BODY_FILE="$(mktemp)"
+PROFILE_RESTORE_BODY_FILE="$(mktemp)"
 chmod 600 \
   "$SIGNUP_COOKIE_JAR" \
   "$LOGIN_COOKIE_JAR" \
@@ -244,7 +239,10 @@ chmod 600 \
   "$RESET_BODY_FILE" \
   "$OLD_LOGIN_BODY_FILE" \
   "$NEW_LOGIN_BODY_FILE" \
-  "$DELETE_BODY_FILE"
+  "$DELETE_BODY_FILE" \
+  "$VERIFICATION_BODY_FILE" \
+  "$PROFILE_BODY_FILE" \
+  "$PROFILE_RESTORE_BODY_FILE"
 
 csrf_token_for() {
   local cookie_jar="$1"
@@ -254,7 +252,7 @@ csrf_token_for() {
     --cookie "$cookie_jar" \
     --cookie-jar "$cookie_jar" \
     --header "Origin: $BASE_URL" \
-    "$BASE_URL/api/auth/csrf" > /dev/null
+    "$BASE_URL/sanctum/csrf-cookie" > /dev/null
   csrf_cookie_raw="$(awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$cookie_jar")"
   test -n "$csrf_cookie_raw"
   docker exec -e RAW_CSRF_TOKEN="$csrf_cookie_raw" "$SERVER_CONTAINER" \
@@ -283,7 +281,7 @@ post_json() {
     --header 'Accept: application/json' \
     --header 'Content-Type: application/json' \
     --header "Origin: $BASE_URL" \
-    --header "X-CSRF-Token: $csrf_token" \
+    --header "X-XSRF-TOKEN: $csrf_token" \
     --cookie "$cookie_jar" \
     --cookie-jar "$cookie_jar" \
     --data-binary "@$body_file" \
@@ -326,7 +324,7 @@ post_json_status() {
     --header 'Accept: application/json' \
     --header 'Content-Type: application/json' \
     --header "Origin: $BASE_URL" \
-    --header "X-CSRF-Token: $csrf_token" \
+    --header "X-XSRF-TOKEN: $csrf_token" \
     --cookie "$cookie_jar" \
     --cookie-jar "$cookie_jar" \
     --data-binary "@$body_file" \
@@ -348,7 +346,10 @@ docker exec \
 
 signup_csrf_token="$(csrf_token_for "$SIGNUP_COOKIE_JAR")"
 signup_response="$(post_json \
-  '/api/auth/signup' "$SIGNUP_BODY_FILE" "$SIGNUP_COOKIE_JAR" "$signup_csrf_token")"
+  '/api/convolab/browser/auth/signup' \
+  "$SIGNUP_BODY_FILE" \
+  "$SIGNUP_COOKIE_JAR" \
+  "$signup_csrf_token")"
 SMOKE_USER_ID="$(printf '%s' "$signup_response" | json_field 'response.id')"
 if ! [[ "$SMOKE_USER_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
   echo "Signup returned an invalid ConvoLab user id." >&2
@@ -356,30 +357,119 @@ if ! [[ "$SMOKE_USER_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9
 fi
 test "$(printf '%s' "$signup_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test "$(printf '%s' "$signup_response" | json_field 'response.emailVerified')" = false
-test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$SIGNUP_COOKIE_JAR")"
 assert_learning_os_session_cookie "$SIGNUP_COOKIE_JAR" "Signup"
 
 current_account="$(curl --fail --silent --show-error \
   --header 'Accept: application/json' \
   --cookie "$SIGNUP_COOKIE_JAR" \
   --cookie-jar "$SIGNUP_COOKIE_JAR" \
-  "$BASE_URL/api/auth/me")"
-test "$(printf '%s' "$current_account" | json_field 'response.id')" = "$SMOKE_USER_ID"
-test "$(printf '%s' "$current_account" | json_field 'response.emailVerified')" = false
+  "$BASE_URL/api/convolab/auth/me")"
+printf '%s' "$current_account" | docker exec \
+  -i \
+  -e EXPECTED_USER_ID="$SMOKE_USER_ID" \
+  -e EXPECTED_USER_EMAIL="$SMOKE_EMAIL" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    let body = "";
+    for await (const chunk of process.stdin) body += chunk;
+    const account = JSON.parse(body);
+    if (
+      account.id !== process.env.EXPECTED_USER_ID
+      || account.email.toLowerCase() !== process.env.EXPECTED_USER_EMAIL.toLowerCase()
+      || account.role !== "USER"
+      || account.emailVerified !== false
+      || typeof account.seenSampleContentGuide !== "boolean"
+      || typeof account.seenCustomContentGuide !== "boolean"
+    ) process.exit(1);
+  '
 
-legacy_user_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" "$SERVER_CONTAINER" \
-  node --input-type=module --eval='
-    import { PrismaClient } from "@prisma/client";
-    const prisma = new PrismaClient();
-    try {
-      process.stdout.write(String(await prisma.user.count({
-        where: { email: process.env.AUTH_SMOKE_EMAIL },
-      })));
-    } finally {
-      await prisma.$disconnect();
+generation_quota="$(curl --fail --silent --show-error \
+  --header 'Accept: application/json' \
+  --cookie "$SIGNUP_COOKIE_JAR" \
+  "$BASE_URL/api/convolab/auth/me/quota")"
+printf '%s' "$generation_quota" | docker exec \
+  -i \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    let body = "";
+    for await (const chunk of process.stdin) body += chunk;
+    const response = JSON.parse(body);
+    const isSafeNonNegativeInteger = (value) =>
+      Number.isSafeInteger(value) && value >= 0;
+    const cooldownIsValid =
+      response.cooldown
+      && typeof response.cooldown.active === "boolean"
+      && isSafeNonNegativeInteger(response.cooldown.remainingSeconds)
+      && response.cooldown.active === (response.cooldown.remainingSeconds > 0);
+
+    if (!cooldownIsValid || typeof response.unlimited !== "boolean") process.exit(1);
+
+    if (response.unlimited) {
+      if (
+        response.quota !== null
+        || response.cooldown.active
+        || response.cooldown.remainingSeconds !== 0
+      ) process.exit(1);
+      process.exit(0);
     }
-  ')"
-test "$legacy_user_count" = 0
+
+    const quota = response.quota;
+    const resetPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+    if (
+      !quota
+      || !isSafeNonNegativeInteger(quota.used)
+      || !Number.isSafeInteger(quota.limit)
+      || quota.limit <= 0
+      || !isSafeNonNegativeInteger(quota.remaining)
+      || quota.remaining !== Math.max(0, quota.limit - quota.used)
+      || typeof quota.resetsAt !== "string"
+      || !resetPattern.test(quota.resetsAt)
+      || Number.isNaN(Date.parse(quota.resetsAt))
+    ) process.exit(1);
+  '
+
+original_custom_content_guide="$(printf '%s' "$current_account" \
+  | json_field 'response.seenCustomContentGuide')"
+docker exec \
+  -e AUTH_SMOKE_PROFILE_VALUE="$original_custom_content_guide" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    process.stdout.write(JSON.stringify({
+      seenCustomContentGuide: process.env.AUTH_SMOKE_PROFILE_VALUE !== "true",
+    }));
+  ' > "$PROFILE_BODY_FILE"
+docker exec \
+  -e AUTH_SMOKE_PROFILE_VALUE="$original_custom_content_guide" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    process.stdout.write(JSON.stringify({
+      seenCustomContentGuide: process.env.AUTH_SMOKE_PROFILE_VALUE === "true",
+    }));
+  ' > "$PROFILE_RESTORE_BODY_FILE"
+
+profile_csrf_token="$(csrf_token_for "$SIGNUP_COOKIE_JAR")"
+profile_response="$(curl --fail --silent --show-error \
+  --request PATCH \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header "Origin: $BASE_URL" \
+  --header "X-XSRF-TOKEN: $profile_csrf_token" \
+  --cookie "$SIGNUP_COOKIE_JAR" \
+  --cookie-jar "$SIGNUP_COOKIE_JAR" \
+  --data-binary "@$PROFILE_BODY_FILE" \
+  "$BASE_URL/api/convolab/auth/me")"
+test "$(printf '%s' "$profile_response" | json_field 'response.seenCustomContentGuide')" != \
+  "$original_custom_content_guide"
+
+profile_restore_csrf_token="$(csrf_token_for "$SIGNUP_COOKIE_JAR")"
+profile_restore_response="$(curl --fail --silent --show-error \
+  --request PATCH \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header "Origin: $BASE_URL" \
+  --header "X-XSRF-TOKEN: $profile_restore_csrf_token" \
+  --cookie "$SIGNUP_COOKIE_JAR" \
+  --cookie-jar "$SIGNUP_COOKIE_JAR" \
+  --data-binary "@$PROFILE_RESTORE_BODY_FILE" \
+  "$BASE_URL/api/convolab/auth/me")"
+test "$(printf '%s' "$profile_restore_response" \
+  | json_field 'response.seenCustomContentGuide')" = "$original_custom_content_guide"
 
 verification_token_ready=false
 for attempt in {1..30}; do
@@ -427,9 +517,19 @@ verification_token="$(printf '%s\n' "$verification_token_output" \
 test -n "$verification_token"
 echo "::add-mask::$verification_token"
 
-verification_response="$(curl --fail --silent --show-error \
-  --header 'Accept: application/json' \
-  "$BASE_URL/api/verification/$verification_token")"
+docker exec \
+  -e AUTH_SMOKE_VERIFICATION_TOKEN="$verification_token" \
+  "$SERVER_CONTAINER" node --input-type=module --eval='
+    process.stdout.write(JSON.stringify({
+      token: process.env.AUTH_SMOKE_VERIFICATION_TOKEN,
+    }));
+  ' > "$VERIFICATION_BODY_FILE"
+verification_csrf_token="$(csrf_token_for "$SIGNUP_COOKIE_JAR")"
+verification_response="$(post_json \
+  '/api/convolab/browser/auth/verification' \
+  "$VERIFICATION_BODY_FILE" \
+  "$SIGNUP_COOKIE_JAR" \
+  "$verification_csrf_token")"
 test "$(printf '%s' "$verification_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test "$(printf '%s' "$verification_response" | json_field 'response.message')" = \
   'Email verified successfully'
@@ -437,7 +537,7 @@ test "$(printf '%s' "$verification_response" | json_field 'response.message')" =
 verified_account="$(curl --fail --silent --show-error \
   --header 'Accept: application/json' \
   --cookie "$SIGNUP_COOKIE_JAR" \
-  "$BASE_URL/api/auth/me")"
+  "$BASE_URL/api/convolab/auth/me")"
 test "$(printf '%s' "$verified_account" | json_field 'response.id')" = "$SMOKE_USER_ID"
 test "$(printf '%s' "$verified_account" | json_field 'response.emailVerified')" = true
 test -n "$(printf '%s' "$verified_account" | json_field 'response.emailVerifiedAt')"
@@ -453,39 +553,40 @@ docker exec \
   ' > "$LOGIN_BODY_FILE"
 login_csrf_token="$(csrf_token_for "$LOGIN_COOKIE_JAR")"
 login_response="$(post_json \
-  '/api/auth/login' "$LOGIN_BODY_FILE" "$LOGIN_COOKIE_JAR" "$login_csrf_token")"
+  '/api/convolab/browser/auth/login' \
+  "$LOGIN_BODY_FILE" \
+  "$LOGIN_COOKIE_JAR" \
+  "$login_csrf_token")"
 test "$(printf '%s' "$login_response" | json_field 'response.id')" = "$SMOKE_USER_ID"
 test "$(printf '%s' "$login_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test "$(printf '%s' "$login_response" | json_field 'response.emailVerified')" = true
-test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$LOGIN_COOKIE_JAR")"
 assert_learning_os_session_cookie "$LOGIN_COOKIE_JAR" "Login"
 
 login_logout_csrf_token="$(csrf_token_for "$LOGIN_COOKIE_JAR")"
 logout_response="$(post_json \
-  '/api/auth/logout' /dev/null "$LOGIN_COOKIE_JAR" "$login_logout_csrf_token")"
-test "$(printf '%s' "$logout_response" | json_field 'response.message')" = \
-  'Logged out successfully'
-if awk '
-  $6 == "token" || $6 == "XSRF-TOKEN" || $6 == "learning_os_session" { found = 1 }
-  END { exit found ? 0 : 1 }
-' "$LOGIN_COOKIE_JAR"; then
-  echo "Logout retained a transitional or canonical browser session cookie." >&2
-  exit 1
-fi
+  '/api/convolab/browser/auth/logout' /dev/null "$LOGIN_COOKIE_JAR" "$login_logout_csrf_token")"
+test -z "$logout_response"
+test "$(curl --silent --show-error \
+  --output /dev/null \
+  --write-out '%{http_code}' \
+  --header 'Accept: application/json' \
+  --cookie "$LOGIN_COOKIE_JAR" \
+  "$BASE_URL/api/convolab/browser/auth/me")" = 401
 
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
   "$SERVER_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({ email: process.env.AUTH_SMOKE_EMAIL }));
   ' > "$RESET_REQUEST_BODY_FILE"
+# Password reset is a generic Learning OS/Fortify concern, so it intentionally
+# uses the canonical routes instead of the ConvoLab compatibility namespace.
 reset_csrf_token="$(csrf_token_for "$RESET_COOKIE_JAR")"
 reset_request_response="$(post_json \
-  '/api/password-reset/request' \
+  '/api/auth/password/forgot' \
   "$RESET_REQUEST_BODY_FILE" \
   "$RESET_COOKIE_JAR" \
   "$reset_csrf_token")"
-test "$(printf '%s' "$reset_request_response" | json_field 'response.message')" = \
-  'If an account exists with that email, a password reset link has been sent'
+test -z "$reset_request_response"
 
 reset_token_ready=false
 for attempt in {1..30}; do
@@ -551,13 +652,13 @@ docker exec \
     process.stdout.write(JSON.stringify({
       email: process.env.AUTH_SMOKE_EMAIL,
       token: process.env.AUTH_SMOKE_RESET_TOKEN,
-      newPassword: process.env.AUTH_SMOKE_RESET_PASSWORD,
+      password: process.env.AUTH_SMOKE_RESET_PASSWORD,
+      password_confirmation: process.env.AUTH_SMOKE_RESET_PASSWORD,
     }));
   ' > "$RESET_BODY_FILE"
 reset_response="$(post_json \
-  '/api/password-reset/verify' "$RESET_BODY_FILE" "$RESET_COOKIE_JAR" "$reset_csrf_token")"
-test "$(printf '%s' "$reset_response" | json_field 'response.message')" = \
-  'Password reset successfully'
+  '/api/auth/password/reset' "$RESET_BODY_FILE" "$RESET_COOKIE_JAR" "$reset_csrf_token")"
+test -z "$reset_response"
 
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
@@ -587,7 +688,10 @@ docker exec \
   ' > "$OLD_LOGIN_BODY_FILE"
 old_login_csrf_token="$(csrf_token_for "$OLD_LOGIN_COOKIE_JAR")"
 test "$(post_json_status \
-  '/api/auth/login' "$OLD_LOGIN_BODY_FILE" "$OLD_LOGIN_COOKIE_JAR" "$old_login_csrf_token")" = 401
+  '/api/convolab/browser/auth/login' \
+  "$OLD_LOGIN_BODY_FILE" \
+  "$OLD_LOGIN_COOKIE_JAR" \
+  "$old_login_csrf_token")" = 401
 
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
@@ -600,40 +704,41 @@ docker exec \
   ' > "$NEW_LOGIN_BODY_FILE"
 new_login_csrf_token="$(csrf_token_for "$NEW_LOGIN_COOKIE_JAR")"
 new_login_response="$(post_json \
-  '/api/auth/login' "$NEW_LOGIN_BODY_FILE" "$NEW_LOGIN_COOKIE_JAR" "$new_login_csrf_token")"
+  '/api/convolab/browser/auth/login' \
+  "$NEW_LOGIN_BODY_FILE" \
+  "$NEW_LOGIN_COOKIE_JAR" \
+  "$new_login_csrf_token")"
 test "$(printf '%s' "$new_login_response" | json_field 'response.id')" = "$SMOKE_USER_ID"
 test "$(printf '%s' "$new_login_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
-test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$NEW_LOGIN_COOKIE_JAR")"
 assert_learning_os_session_cookie "$NEW_LOGIN_COOKIE_JAR" "Password-reset login"
 
 docker exec \
   -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
   "$SERVER_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
-      currentPassword: process.env.AUTH_SMOKE_RESET_PASSWORD,
+      current_password: process.env.AUTH_SMOKE_RESET_PASSWORD,
     }));
   ' > "$DELETE_BODY_FILE"
 delete_csrf_token="$(csrf_token_for "$NEW_LOGIN_COOKIE_JAR")"
-delete_response="$(curl --fail --silent --show-error \
+delete_status="$(curl --silent --show-error \
+  --output /dev/null \
+  --write-out '%{http_code}' \
   --request DELETE \
   --header 'Accept: application/json' \
   --header 'Content-Type: application/json' \
   --header "Origin: $BASE_URL" \
-  --header "X-CSRF-Token: $delete_csrf_token" \
+  --header "X-XSRF-TOKEN: $delete_csrf_token" \
   --cookie "$NEW_LOGIN_COOKIE_JAR" \
   --cookie-jar "$NEW_LOGIN_COOKIE_JAR" \
   --data-binary "@$DELETE_BODY_FILE" \
-  "$BASE_URL/api/auth/me")"
-test "$(printf '%s' "$delete_response" | json_field 'response.message')" = \
-  'Account deleted successfully'
-if awk '
-  $6 == "token" || $6 == "XSRF-TOKEN" || $6 == "learning_os_session" { found = 1 }
-  END { exit found ? 0 : 1 }
-' \
-  "$NEW_LOGIN_COOKIE_JAR"; then
-  echo "Account deletion retained a session or CSRF cookie." >&2
-  exit 1
-fi
+  "$BASE_URL/api/convolab/auth/me")"
+test "$delete_status" = 204
+test "$(curl --silent --show-error \
+  --output /dev/null \
+  --write-out '%{http_code}' \
+  --header 'Accept: application/json' \
+  --cookie "$NEW_LOGIN_COOKIE_JAR" \
+  "$BASE_URL/api/convolab/browser/auth/me")" = 401
 
 remaining_user_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
   php artisan tinker --execute='
