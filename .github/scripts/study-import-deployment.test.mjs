@@ -586,14 +586,38 @@ test('ConvoLab queue workers are retired from runtime and deployment surfaces', 
   assert.equal(serverPackage.dependencies.bullmq, undefined);
   assert.doesNotMatch(stageCompose, /^\s+worker-stage:/m);
   assert.doesNotMatch(productionCompose, /^\s+worker:/m);
-  assert.doesNotMatch(stageWorkflow, /Dockerfile\.worker|convolab-\$\{\{ matrix\.name \}\}/);
+  assert.doesNotMatch(
+    stageWorkflow,
+    /Dockerfile\.worker|convolab-\$\{\{ matrix\.name \}\}|convolab-worker-stage/
+  );
   assert.doesNotMatch(productionWorkflow, /\$COMPOSE pull[^\n]*\bworker\b/);
-  assert.doesNotMatch(productionWorkflow, /force-recreate worker|worker_state=/);
-  assert.match(productionWorkflow, /docker rm -f convolab-worker/);
+  assert.doesNotMatch(
+    productionWorkflow,
+    /force-recreate worker|worker_state=|convolab-worker/
+  );
   assert.doesNotMatch(scriptWorkflow, /^\s+- worker$/m);
 
   await assert.rejects(stat(path.join(repositoryRoot, 'server/Dockerfile.worker')));
   await assert.rejects(stat(path.join(repositoryRoot, 'server/src/worker.ts')));
+});
+
+test('legacy direct dialogue generation stays retired behind the Learning OS proxy', async () => {
+  const route = await readFile(path.join(repositoryRoot, 'server/src/routes/dialogue.ts'), 'utf8');
+  const retiredPaths = [
+    'server/src/services/dialogueGenerator.ts',
+    'server/scripts/create-and-generate-dialog-for-yuriy.ts',
+    'server/scripts/generate-all-sample-dialogues.ts',
+    'server/scripts/generate-sample-dialogues.ts',
+    'server/scripts/recreate-dialog-longer.ts',
+  ];
+
+  assert.match(route, /generateLearningOsDialogue/);
+  assert.match(route, /showLearningOsDialogueJob/);
+  assert.doesNotMatch(route, /dialogueGenerator/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
 });
 
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
