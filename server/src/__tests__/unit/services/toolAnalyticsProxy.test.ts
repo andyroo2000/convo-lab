@@ -23,7 +23,7 @@ describe('Tool Analytics Proxy Service', () => {
   beforeEach(() => {
     process.env.LEARNING_OS_API_URL = 'https://learning-os.example/';
     process.env.LEARNING_OS_API_TOKEN = 'server-only-token';
-    process.env.LEARNING_OS_PROXY_USER_EMAIL = 'proxy@example.com';
+    delete process.env.LEARNING_OS_PROXY_USER_EMAIL;
   });
 
   afterEach(() => {
@@ -53,6 +53,12 @@ describe('Tool Analytics Proxy Service', () => {
     });
     expect(init.headers).not.toHaveProperty('X-Convo-Lab-User-Id');
     expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('does not require the unrelated browser-user proxy email', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+
+    await expect(recordLearningOsToolAnalytics(event)).resolves.toBeUndefined();
   });
 
   it.each([200, 401, 403, 422, 429, 500])(

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
 import {
   recordLearningOsToolAnalytics,
@@ -11,6 +12,12 @@ const MAX_TOKEN_LENGTH = 80;
 const MAX_PROPERTY_KEY_LENGTH = 40;
 const MAX_PROPERTY_VALUE_LENGTH = 120;
 const MAX_PROPERTIES = 16;
+const toolAnalyticsIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -56,7 +63,7 @@ function sanitizeProperties(input: unknown): Record<string, ToolAnalyticsValue> 
     }, {});
 }
 
-router.post('/tools/analytics', async (req, res, next) => {
+router.post('/tools/analytics', toolAnalyticsIpRateLimit, async (req, res, next) => {
   try {
     const payload = req.body as unknown;
     if (!isRecord(payload)) {

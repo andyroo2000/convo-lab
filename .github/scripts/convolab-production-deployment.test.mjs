@@ -100,10 +100,10 @@ test('the production workflow verifies the analytics token before switching traf
   assert.ok(inactiveServerHealthy >= 0);
   assert.ok(analyticsPreflight > inactiveServerHealthy);
   assert.ok(switchStart > analyticsPreflight);
-  assert.match(preflightBlock, /\/api\/convolab\/tools\/analytics/);
+  assert.match(preflightBlock, /127\.0\.0\.1:\$\{port\}\/api\/tools\/analytics/);
   assert.match(preflightBlock, /signal: AbortSignal\.timeout\(10_000\)/);
-  assert.match(preflightBlock, /Authorization: `Bearer \$\{apiToken\}`/);
   assert.match(preflightBlock, /response\.status !== 204/);
+  assert.doesNotMatch(preflightBlock, /Authorization:/);
   assert.doesNotMatch(preflightBlock, /X-Convo-Lab-User-/);
 });
 

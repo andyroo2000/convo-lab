@@ -26,7 +26,7 @@ describe('toolAnalytics route', () => {
   });
 
   it('accepts sanitized analytics payloads', async () => {
-    await request(app)
+    const response = await request(app)
       .post('/api/tools/analytics')
       .send({
         tool: 'japanese-time-practice',
@@ -42,6 +42,7 @@ describe('toolAnalytics route', () => {
       })
       .expect(204);
 
+    expect(response.headers['ratelimit-policy']).toContain('120');
     expect(recordLearningOsToolAnalytics).toHaveBeenCalledWith({
       tool: 'japanese-time-practice',
       event: 'fsrs_graded',

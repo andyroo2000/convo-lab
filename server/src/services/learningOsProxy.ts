@@ -41,11 +41,21 @@ interface LearningOsProxyRequest extends LearningOsTransportRequest {
 export function getLearningOsProxyConfig(apiLabel: string): LearningOsProxyConfig & {
   proxyUserEmail: string;
 } {
-  const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
-  const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
+  const config = getLearningOsServiceProxyConfig(apiLabel);
   const proxyUserEmail = process.env.LEARNING_OS_PROXY_USER_EMAIL?.trim().toLowerCase();
 
-  if (!apiUrl || !apiToken || !proxyUserEmail) {
+  if (!proxyUserEmail) {
+    throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
+  }
+
+  return { ...config, proxyUserEmail };
+}
+
+export function getLearningOsServiceProxyConfig(apiLabel: string): LearningOsProxyConfig {
+  const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
+  const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
+
+  if (!apiUrl || !apiToken) {
     throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
   }
 
@@ -74,7 +84,6 @@ export function getLearningOsProxyConfig(apiLabel: string): LearningOsProxyConfi
   return {
     apiUrl: parsedApiUrl.origin,
     apiToken,
-    proxyUserEmail,
   };
 }
 

@@ -348,18 +348,12 @@ jobs:
             echo "📈 Verifying the Learning OS analytics token before traffic switch..."
             docker exec "convolab-server-$inactive_color" \
               node --input-type=module --eval='
-                const apiUrl = process.env.LEARNING_OS_API_URL?.replace(/\/+$/, "");
-                const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
-                if (!apiUrl || !apiToken) {
-                  console.error("Learning OS analytics proxy is not configured.");
-                  process.exit(1);
-                }
-                const response = await fetch(`${apiUrl}/api/convolab/tools/analytics`, {
+                const port = process.env.PORT || "3001";
+                const response = await fetch(`http://127.0.0.1:${port}/api/tools/analytics`, {
                   method: "POST",
                   signal: AbortSignal.timeout(10_000),
                   headers: {
                     Accept: "application/json",
-                    Authorization: `Bearer ${apiToken}`,
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({

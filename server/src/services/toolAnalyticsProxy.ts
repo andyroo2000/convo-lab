@@ -1,6 +1,6 @@
 import { AppError } from '../middleware/errorHandler.js';
 
-import { fetchLearningOsServiceProxy, getLearningOsProxyConfig } from './learningOsProxy.js';
+import { fetchLearningOsServiceProxy, getLearningOsServiceProxyConfig } from './learningOsProxy.js';
 
 const API_LABEL = 'Learning OS Tool Analytics API';
 const TIMEOUT_MS = 2_000;
@@ -17,7 +17,7 @@ export interface ToolAnalyticsEvent {
 }
 
 export async function recordLearningOsToolAnalytics(event: ToolAnalyticsEvent): Promise<void> {
-  const { apiUrl, apiToken } = getLearningOsProxyConfig(API_LABEL);
+  const { apiUrl, apiToken } = getLearningOsServiceProxyConfig(API_LABEL);
   const upstreamResponse = await fetchLearningOsServiceProxy({
     upstreamUrl: new URL(`${apiUrl}/api/convolab/tools/analytics`),
     apiToken,
