@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { API_URL } from '../config';
+import { authApi } from '../lib/authApi';
 
 const LoginPage = () => {
   const { t } = useTranslation(['auth', 'common']);
@@ -207,7 +207,11 @@ const LoginPage = () => {
               <div className="retro-login-v3-divider-line" />
             </div>
 
-            <a href={`${API_URL}/api/auth/google`} className="retro-login-v3-google-btn">
+            <a
+              href={authApi.googleStart}
+              className="retro-login-v3-google-btn"
+              data-testid="auth-google-link"
+            >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"

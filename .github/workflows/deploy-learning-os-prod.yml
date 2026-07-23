@@ -35,6 +35,8 @@ jobs:
           IMAGE_TAG: ${{ inputs.image_tag }}
           SMOKE_USER_EMAIL: ${{ inputs.smoke_user_email }}
           DEPLOY_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DEPLOY_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          DEPLOY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           if ! [[ "$IMAGE_TAG" =~ ^main-[0-9a-f]{40}$ ]]; then
             echo "::error::image_tag must be an immutable main-<full-sha> tag"
@@ -48,6 +50,16 @@ jobs:
 
           if [ -z "$DEPLOY_RESEND_API_KEY" ]; then
             echo "::error::RESEND_API_KEY secret is not set"
+            exit 1
+          fi
+
+          if [ -z "$DEPLOY_GOOGLE_CLIENT_ID" ] || [ -z "$DEPLOY_GOOGLE_CLIENT_SECRET" ]; then
+            echo "::error::GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets must be set"
+            exit 1
+          fi
+
+          if [ "$DEPLOY_GOOGLE_CLIENT_ID" = placeholder ]; then
+            echo "::error::GOOGLE_CLIENT_ID must not use the placeholder sentinel"
             exit 1
           fi
 
@@ -67,13 +79,16 @@ jobs:
           DEPLOY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEPLOY_GITHUB_ACTOR: ${{ github.actor }}
           DEPLOY_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DEPLOY_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          DEPLOY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           BROWSER_SESSION_ENABLED: ${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || 'true' }}
         run: |
           printf -v REMOTE_ENV \
-            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q DEPLOY_RESEND_API_KEY=%q BROWSER_SESSION_ENABLED=%q' \
+            'IMAGE_TAG=%q SMOKE_USER_EMAIL=%q DEPLOY_GH_PAT=%q DEPLOY_GITHUB_TOKEN=%q DEPLOY_GITHUB_ACTOR=%q DEPLOY_RESEND_API_KEY=%q DEPLOY_GOOGLE_CLIENT_ID=%q DEPLOY_GOOGLE_CLIENT_SECRET=%q BROWSER_SESSION_ENABLED=%q' \
             "$IMAGE_TAG" "$SMOKE_USER_EMAIL" \
             "$DEPLOY_GH_PAT" "$DEPLOY_GITHUB_TOKEN" "$DEPLOY_GITHUB_ACTOR" \
-            "$DEPLOY_RESEND_API_KEY" "$BROWSER_SESSION_ENABLED"
+            "$DEPLOY_RESEND_API_KEY" "$DEPLOY_GOOGLE_CLIENT_ID" \
+            "$DEPLOY_GOOGLE_CLIENT_SECRET" "$BROWSER_SESSION_ENABLED"
 
           deployment_log="$(mktemp)"
           trap 'rm -f "$deployment_log"' EXIT
@@ -233,6 +248,10 @@ jobs:
             upsert_env LEARNING_OS_CORS_ALLOWED_ORIGINS \
               "https://convo-lab.com,https://www.convo-lab.com"
             upsert_env RESEND_API_KEY "$DEPLOY_RESEND_API_KEY"
+            google_redirect_uri="https://convo-lab.com/api/convolab/browser/auth/google/callback"
+            upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"
+            upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"
+            upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI "$google_redirect_uri"
 
             read_env_value() {
               key="$1"
@@ -294,6 +313,13 @@ jobs:
               | sha256sum \
               | cut -d ' ' -f 1)"
             upsert_env LEARNING_OS_AUTH_MAIL_CONFIG_REVISION "$auth_mail_config_revision"
+            google_oauth_config_revision="$(printf '%s\0%s\0%s' \
+              "$DEPLOY_GOOGLE_CLIENT_ID" \
+              "$DEPLOY_GOOGLE_CLIENT_SECRET" \
+              "$google_redirect_uri" \
+              | sha256sum \
+              | cut -d ' ' -f 1)"
+            upsert_env LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION "$google_oauth_config_revision"
 
             if ! grep -Eq '^LEARNING_OS_APP_KEY=base64:.+$' .env.production; then
               upsert_env LEARNING_OS_APP_KEY "base64:$(openssl rand -base64 32 | tr -d '\n')"
@@ -378,12 +404,18 @@ jobs:
                 "$container" 2>/dev/null \
                 | sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p' \
                 | tail -1 || true)"
+              current_google_oauth_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
                 && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ] \
                 && [ "$current_config_revision" = "$desired_deploy_config_revision" ] \
-                && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ]; then
+                && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ] \
+                && [ "$current_google_oauth_config_revision" = "$google_oauth_config_revision" ]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
               fi
@@ -463,6 +495,7 @@ jobs:
               -e EXPECTED_ADMIN_EMAILS="$admin_emails" \
               -e EXPECTED_MAIL_FROM_ADDRESS="$mail_from_address" \
               -e EXPECTED_MAIL_FROM_NAME="$mail_from_name" \
+              -e EXPECTED_GOOGLE_REDIRECT_URI="$google_redirect_uri" \
               learning-os-api php artisan tinker --execute='
                 $expectedAdminEmails = array_values(array_filter(array_map(
                   "trim",
@@ -475,8 +508,48 @@ jobs:
                   || config("mail.from.name") !== getenv("EXPECTED_MAIL_FROM_NAME")
                   || config("services.convolab.client_url") !== getenv("EXPECTED_CLIENT_URL")
                   || config("services.convolab.admin_emails") !== $expectedAdminEmails
+                  || blank(config("services.google.client_id"))
+                  || blank(config("services.google.client_secret"))
+                  || config("services.google.redirect") !== getenv("EXPECTED_GOOGLE_REDIRECT_URI")
                 ) {
-                  throw new RuntimeException("Learning OS auth mail configuration is incomplete.");
+                  throw new RuntimeException("Learning OS browser auth configuration is incomplete.");
+                }
+              '
+
+            docker exec \
+              -e EXPECTED_GOOGLE_REDIRECT_URI="$google_redirect_uri" \
+              learning-os-api php -r '
+                $context = stream_context_create(["http" => [
+                  "follow_location" => 0,
+                  "ignore_errors" => true,
+                  "timeout" => 10,
+                ]]);
+                file_get_contents(
+                  "http://127.0.0.1:8080/api/convolab/browser/auth/google",
+                  false,
+                  $context,
+                );
+                $status = 0;
+                $location = "";
+                foreach ($http_response_header ?? [] as $header) {
+                  if (preg_match("/^HTTP\\/\\S+\\s+(\\d+)/i", $header, $matches)) {
+                    $status = (int) $matches[1];
+                  } elseif (stripos($header, "Location:") === 0) {
+                    $location = trim(substr($header, strlen("Location:")));
+                  }
+                }
+                $query = [];
+                parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+                if (
+                  $status !== 302
+                  || parse_url($location, PHP_URL_HOST) !== "accounts.google.com"
+                  || trim((string) ($query["client_id"] ?? "")) === ""
+                  || ($query["client_id"] ?? null) === "placeholder"
+                  || ($query["redirect_uri"] ?? null) !== getenv("EXPECTED_GOOGLE_REDIRECT_URI")
+                  || trim((string) ($query["state"] ?? "")) === ""
+                ) {
+                  fwrite(STDERR, "Learning OS Google OAuth redirect smoke failed.\n");
+                  exit(1);
                 }
               '
 

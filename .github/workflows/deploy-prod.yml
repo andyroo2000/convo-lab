@@ -140,6 +140,8 @@ jobs:
             upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"
             upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"
             upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback
+            upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI \
+              https://convo-lab.com/api/convolab/browser/auth/google/callback
             browser_session_enabled="$BROWSER_SESSION_ENABLED"
             if [ "$browser_session_enabled" != true ] && [ "$browser_session_enabled" != false ]; then
               echo "::error::LEARNING_OS_BROWSER_SESSION_ENABLED must be true or false"
@@ -614,6 +616,35 @@ jobs:
               fi
 
               if [ "$direct_auth_api_enabled" = true ]; then
+                oauth_headers="$(curl --max-time 10 --silent --show-error \
+                  --dump-header - \
+                  --output /dev/null \
+                  --cookie "$cookie_jar" \
+                  --header 'Origin: https://convo-lab.com' \
+                  https://convo-lab.com/api/convolab/browser/auth/google)"
+                oauth_location="$(printf '%s\n' "$oauth_headers" \
+                  | sed -n 's/^location: //Ip' | tr -d '\r' | tail -1)"
+                oauth_query="$(printf '%s' "${oauth_location#*?}" | tr '&' '\n')"
+                if [[ "$oauth_location" != https://accounts.google.com/* ]]; then
+                  echo "Direct Google OAuth route did not redirect to Google."
+                  return 1
+                fi
+                if ! grep -qi \
+                  '^redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fconvolab%2Fbrowser%2Fauth%2Fgoogle%2Fcallback$' \
+                  <<< "$oauth_query"; then
+                  echo "Direct Google OAuth redirect did not use the Learning OS callback."
+                  return 1
+                fi
+                if grep -q '^client_id=placeholder$' <<< "$oauth_query" \
+                  || ! grep -q '^client_id=..*' <<< "$oauth_query"; then
+                  echo "Direct Google OAuth redirect has an invalid client ID."
+                  return 1
+                fi
+                if ! grep -q '^state=..*' <<< "$oauth_query"; then
+                  echo "Direct Google OAuth redirect did not include state."
+                  return 1
+                fi
+
                 browser_auth_status="$(curl --silent --show-error \
                   --cookie "$cookie_jar" \
                   --output "$response_body" \
@@ -649,6 +680,40 @@ jobs:
                 fi
                 if ! grep -q '"email"' "$response_body"; then
                   echo "Direct password reset route did not return the Learning OS validation contract."
+                  cat "$response_body"
+                  return 1
+                fi
+
+                verification_status="$(curl --silent --show-error \
+                  --request POST \
+                  --cookie "$cookie_jar" \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Accept: application/json' \
+                  --header 'Content-Type: application/json' \
+                  --header 'Origin: https://convo-lab.com' \
+                  --header "X-XSRF-TOKEN: $xsrf_token" \
+                  --data '{"token":"invalid"}' \
+                  https://convo-lab.com/api/convolab/browser/auth/verification)"
+                if [ "$verification_status" != 422 ]; then
+                  echo "Direct verification route probe returned HTTP $verification_status instead of 422."
+                  cat "$response_body"
+                  return 1
+                fi
+
+                invite_claim_status="$(curl --silent --show-error \
+                  --request POST \
+                  --cookie "$cookie_jar" \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Accept: application/json' \
+                  --header 'Content-Type: application/json' \
+                  --header 'Origin: https://convo-lab.com' \
+                  --header "X-XSRF-TOKEN: $xsrf_token" \
+                  --data '{"inviteCode":"ABC123"}' \
+                  https://convo-lab.com/api/convolab/browser/auth/google/invite)"
+                if [ "$invite_claim_status" != 401 ]; then
+                  echo "Direct invite claim route probe returned HTTP $invite_claim_status instead of 401."
                   cat "$response_body"
                   return 1
                 fi

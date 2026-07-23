@@ -8,7 +8,6 @@ describe('account API contract', () => {
 
     expect(contract.currentUser).toBe('https://app.example/api/auth/me');
     expect(contract.quota).toBe('https://app.example/api/auth/me/quota');
-    expect(contract.resendVerification).toBe('https://app.example/api/verification/send');
     expect(contract.passwordMethod).toBe('PATCH');
     expect(contract.passwordPath).toBe('https://app.example/api/auth/change-password');
     expect(contract.passwordBody('old', 'new-password')).toEqual({
@@ -23,9 +22,6 @@ describe('account API contract', () => {
 
     expect(contract.currentUser).toBe('https://app.example/api/convolab/auth/me');
     expect(contract.quota).toBe('https://app.example/api/convolab/auth/me/quota');
-    expect(contract.resendVerification).toBe(
-      'https://app.example/api/convolab/auth/verification/send'
-    );
     expect(contract.passwordMethod).toBe('PUT');
     expect(contract.passwordPath).toBe('https://app.example/api/convolab/auth/me/password');
     expect(contract.passwordBody('old', 'new-password')).toEqual({
