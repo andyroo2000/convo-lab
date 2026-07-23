@@ -100,7 +100,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/services/emailService.test.ts', cardId: 'convo-lab-zru', anyCount: 11, category: 'test' },
   { file: 'server/src/__tests__/unit/services/emailService.token-security.test.ts', cardId: 'convo-lab-9t4', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/ttsProviders/PollyTTSProvider.test.ts', cardId: 'convo-lab-5ky', anyCount: 1, category: 'test' },
-  { file: 'server/src/__tests__/unit/services/batchedTTSClient.test.ts', cardId: 'convo-lab-qat', anyCount: 16, category: 'test' },
   { file: 'server/src/__tests__/unit/middleware/auth.test.ts', cardId: 'convo-lab-dro', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/middleware/impersonation.test.ts', cardId: 'convo-lab-n3h', anyCount: 10, category: 'test' },
   { file: 'server/src/__tests__/unit/config/redis.test.ts', cardId: 'convo-lab-qck', anyCount: 1, category: 'test' },
