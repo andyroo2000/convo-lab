@@ -344,11 +344,11 @@ jobs:
             legacy_auth_contract="20260723014500_remove_legacy_auth_persistence"
             migration_history_exists="$($COMPOSE exec -T postgres psql \
               --username=languageflow --dbname=languageflow --tuples-only --no-align \
-              --command="SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_prisma_migrations')")"
+              --command="SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_prisma_migrations')" </dev/null)"
             if [ "$migration_history_exists" = t ]; then
               legacy_auth_contract_applied="$($COMPOSE exec -T postgres psql \
                 --username=languageflow --dbname=languageflow --tuples-only --no-align \
-                --command="SELECT EXISTS (SELECT 1 FROM _prisma_migrations WHERE migration_name = '$legacy_auth_contract' AND finished_at IS NOT NULL)")"
+                --command="SELECT EXISTS (SELECT 1 FROM _prisma_migrations WHERE migration_name = '$legacy_auth_contract' AND finished_at IS NOT NULL)" </dev/null)"
               if [ "$legacy_auth_contract_applied" != t ]; then
                 echo "⏭️ Recording $legacy_auth_contract without contracting production yet..."
                 $COMPOSE run --rm -T --no-deps "server-$inactive_color" \
