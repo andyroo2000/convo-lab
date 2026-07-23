@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { API_URL } from '../../../config';
 import type { AudioScriptRender, AudioScriptSegment } from '../../../types';
-import { getSegmentImageUrl, resolveScriptAudioUrl } from '../scriptPlaybackRoutes';
+import {
+  getSegmentImageUrl,
+  resolveScriptAudioUrl,
+  resolveScriptAudioUrls,
+} from '../scriptPlaybackRoutes';
 
 const render: AudioScriptRender = {
   id: 'render-123',
@@ -46,6 +50,15 @@ describe('AudioScriptPlayback routes', () => {
       `${API_URL}/api/convolab/scripts/media/media-123`
     );
     expect(resolveScriptAudioUrl('episode-123', render, true)).toContain(
+      `${API_URL}/api/convolab/scripts/episode-123/audio/render-123?v=`
+    );
+  });
+
+  it('warms the same backend route selected for playback', () => {
+    expect(resolveScriptAudioUrls('episode-123', [render], false)[0]).toContain(
+      '/api/scripts/episode-old/audio/render-old?v='
+    );
+    expect(resolveScriptAudioUrls('episode-123', [render], true)[0]).toContain(
       `${API_URL}/api/convolab/scripts/episode-123/audio/render-123?v=`
     );
   });

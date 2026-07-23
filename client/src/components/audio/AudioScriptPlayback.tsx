@@ -11,7 +11,11 @@ import SpeedSelector from '../common/SpeedSelector';
 import ViewToggleButtons from '../common/ViewToggleButtons';
 import { readScriptApiError, scriptApi } from '../../lib/scriptApi';
 import { findCurrentL2Unit, normalizeTimingDataForDuration } from './scriptTrackTiming';
-import { getSegmentImageUrl, resolveScriptAudioUrl } from './scriptPlaybackRoutes';
+import {
+  getSegmentImageUrl,
+  resolveScriptAudioUrl,
+  resolveScriptAudioUrls,
+} from './scriptPlaybackRoutes';
 
 const SCRIPT_SPEED_OPTIONS = [
   { value: '0.75x' as const, label: 'Slow', numericValue: 0.75 },
@@ -100,9 +104,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     () => script?.renders.filter((render) => render.status === 'ready') ?? [],
     [script?.renders]
   );
-  const warmedUrls = readyRenders
-    .map((render) => render.audioUrl)
-    .filter((url): url is string => Boolean(url));
+  const warmedUrls = resolveScriptAudioUrls(episode.id, readyRenders);
   useWarmAudioCache(warmedUrls, warmedUrls.length > 0);
 
   const selectedRender = useMemo(() => {

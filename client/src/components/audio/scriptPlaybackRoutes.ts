@@ -31,3 +31,13 @@ export function resolveScriptAudioUrl(
     scriptRender.updatedAt?.toString()
   );
 }
+
+export function resolveScriptAudioUrls(
+  episodeId: string,
+  scriptRenders: AudioScriptRender[],
+  directLearningOs: boolean = LEARNING_OS_DIRECT_SCRIPT_API_ENABLED
+): string[] {
+  return scriptRenders
+    .map((scriptRender) => resolveScriptAudioUrl(episodeId, scriptRender, directLearningOs))
+    .filter((url): url is string => url !== null);
+}
