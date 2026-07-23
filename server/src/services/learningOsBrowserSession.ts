@@ -17,8 +17,9 @@ import {
 
 const API_LABEL = 'Learning OS Browser Session API';
 const TIMEOUT_MS = 10_000;
-const SESSION_COOKIE_NAME = 'learning_os_session';
+const DEFAULT_SESSION_COOKIE_NAME = 'learning_os_session';
 const CSRF_COOKIE_NAME = 'XSRF-TOKEN';
+const COOKIE_NAME_PATTERN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/u;
 
 export interface LearningOsStartedBrowserSession {
   account: LearningOsLoginAccount;
@@ -30,7 +31,12 @@ export function isLearningOsBrowserSessionEnabled(): boolean {
 }
 
 export function getLearningOsBrowserSessionCookieName(): string {
-  return SESSION_COOKIE_NAME;
+  const name = process.env.LEARNING_OS_SESSION_COOKIE?.trim() || DEFAULT_SESSION_COOKIE_NAME;
+  if (!COOKIE_NAME_PATTERN.test(name)) {
+    throw new AppError(`${API_LABEL} is enabled but not configured.`, 503);
+  }
+
+  return name;
 }
 
 export async function authenticateLearningOsBrowserSession(
@@ -94,6 +100,7 @@ async function startBrowserSession(
   body: unknown,
   parseAccount: (response: Response) => Promise<LearningOsLoginAccount>
 ): Promise<LearningOsStartedBrowserSession> {
+  const sessionCookieName = getLearningOsBrowserSessionCookieName();
   const csrf = await bootstrapCsrf();
   const response = await fetchBrowserSession({
     path,
@@ -105,8 +112,8 @@ async function startBrowserSession(
   });
   const account = await parseAccount(response);
   const sessionCookieValue = decodedCookieValue(
-    requireSetCookie(response, SESSION_COOKIE_NAME),
-    SESSION_COOKIE_NAME
+    requireSetCookie(response, sessionCookieName),
+    sessionCookieName
   );
 
   return { account, sessionCookieValue };
@@ -117,6 +124,7 @@ async function bootstrapCsrf(existingSessionCookie?: string): Promise<{
   csrfCookie: string;
   csrfToken: string;
 }> {
+  const sessionCookieName = getLearningOsBrowserSessionCookieName();
   const response = await fetchBrowserSession({
     path: '/sanctum/csrf-cookie',
     method: 'GET',
@@ -127,8 +135,8 @@ async function bootstrapCsrf(existingSessionCookie?: string): Promise<{
   }
 
   const sessionCookie = cookiePair(
-    requireSetCookie(response, SESSION_COOKIE_NAME),
-    SESSION_COOKIE_NAME
+    requireSetCookie(response, sessionCookieName),
+    sessionCookieName
   );
   const csrfCookie = cookiePair(requireSetCookie(response, CSRF_COOKIE_NAME), CSRF_COOKIE_NAME);
   let csrfToken: string;
@@ -190,7 +198,7 @@ function normalizeSessionCookie(value: string): string {
     throw new AppError('Authentication required', 401);
   }
 
-  return `${SESSION_COOKIE_NAME}=${encodeURIComponent(value)}`;
+  return `${getLearningOsBrowserSessionCookieName()}=${encodeURIComponent(value)}`;
 }
 
 function requireSetCookie(response: Response, name: string): string {

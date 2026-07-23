@@ -164,6 +164,18 @@ describe('Learning OS browser session transport', () => {
     );
   });
 
+  it('uses the configured Laravel session cookie name', async () => {
+    vi.stubEnv('LEARNING_OS_SESSION_COOKIE', 'canonical_session');
+    fetchMock.mockResolvedValueOnce(response(JSON.stringify(currentAccount), 200));
+
+    await getLearningOsBrowserCurrentAccount('opaque-session');
+
+    expect(getLearningOsBrowserSessionCookieName()).toBe('canonical_session');
+    expect(requestHeaders(fetchMock.mock.calls[0]).get('Cookie')).toBe(
+      'canonical_session=opaque-session'
+    );
+  });
+
   it('maps an expired browser session to the public authentication contract', async () => {
     fetchMock.mockResolvedValueOnce(response(JSON.stringify({ message: 'Unauthenticated.' }), 401));
 
@@ -231,5 +243,13 @@ describe('Learning OS browser session transport', () => {
 
     vi.stubEnv('LEARNING_OS_BROWSER_SESSION_ENABLED', '1');
     expect(isLearningOsBrowserSessionEnabled()).toBe(false);
+  });
+
+  it('rejects an invalid configured session cookie name', () => {
+    vi.stubEnv('LEARNING_OS_SESSION_COOKIE', 'invalid cookie');
+
+    expect(() => getLearningOsBrowserSessionCookieName()).toThrow(
+      'Learning OS Browser Session API is enabled but not configured.'
+    );
   });
 });

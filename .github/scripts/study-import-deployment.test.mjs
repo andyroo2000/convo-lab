@@ -259,6 +259,7 @@ test('production coordinates the Learning OS browser-session bridge behind one r
 
   for (const contract of [
     'LEARNING_OS_BROWSER_SESSION_ENABLED: ${LEARNING_OS_BROWSER_SESSION_ENABLED:-false}',
+    'LEARNING_OS_SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
     'SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
     'SESSION_LIFETIME: ${LEARNING_OS_SESSION_LIFETIME:-10080}',
     'SESSION_SECURE_COOKIE: ${LEARNING_OS_SESSION_SECURE_COOKIE:-true}',
@@ -281,7 +282,9 @@ test('production coordinates the Learning OS browser-session bridge behind one r
     learningOsWorkflow.includes('desired_deploy_config_revision="browser-auth-session-v1"')
   );
   assert.ok(
-    productionWorkflow.includes('upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED true')
+    productionWorkflow.includes(
+      '"${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || \'true\' }}"'
+    )
   );
 });
 

@@ -556,7 +556,7 @@ describe('Auth Learning OS routing', () => {
     ).toBe(true);
   });
 
-  it('does not clear local sessions when canonical logout cannot be confirmed', async () => {
+  it('clears local sessions even when canonical logout cannot be confirmed', async () => {
     mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(true);
     mocks.destroyLearningOsBrowserSession.mockRejectedValueOnce(
       new AppError('Learning OS Browser Session API is unavailable.', 502)
@@ -568,7 +568,10 @@ describe('Auth Learning OS routing', () => {
       .expect(502);
 
     expect(response.body.error.message).toBe('Learning OS Browser Session API is unavailable.');
-    expect(getSetCookieArray(response.headers['set-cookie'])).toEqual([]);
+    const cookies = getSetCookieArray(response.headers['set-cookie']);
+    expect(cookies.some((cookie) => cookie.startsWith('token=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith('learning_os_session=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=;`))).toBe(true);
   });
 
   it('loads generation quota from Learning OS without consulting Prisma', async () => {

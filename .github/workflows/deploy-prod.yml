@@ -119,7 +119,8 @@ jobs:
             upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"
             upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"
             upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback
-            upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED true
+            upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED \
+              "${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || 'true' }}"
 
             if grep -q '^OPENAI_API_KEY=' .env.production; then
               sed -i "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.production

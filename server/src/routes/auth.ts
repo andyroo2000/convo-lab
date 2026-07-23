@@ -249,11 +249,12 @@ router.post('/login', loginRateLimit, async (req, res, next) => {
 router.post('/logout', async (req, res, next) => {
   try {
     const browserSession = req.cookies?.[getLearningOsBrowserSessionCookieName()];
+    clearSessionCookies(res);
+
     if (typeof browserSession === 'string' && browserSession.length > 0) {
       await destroyLearningOsBrowserSession(browserSession);
     }
 
-    clearSessionCookies(res);
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
     next(error);
