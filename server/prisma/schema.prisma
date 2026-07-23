@@ -739,10 +739,8 @@ model AdminAuditLog {
   @@map("admin_audit_logs")
 }
 
-// Generation Log - Track content generation events for rate limiting
-// Persists even if content is deleted to prevent quota gaming
-
 // Historical ConvoLab quota records retained during the non-destructive runtime cutover.
+// Learning OS owns new quota reservations and generation logging.
 model GenerationLog {
   id          String   @id @default(uuid())
   userId      String
