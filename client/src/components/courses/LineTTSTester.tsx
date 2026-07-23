@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { adminApi } from '../../lib/adminApi';
 
 interface LineRendering {
   id: string;
@@ -57,7 +58,7 @@ const LineTTSTester = ({
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/courses/${courseId}/synthesize-line`, {
+      const res = await fetch(adminApi.adminCourseOperation(courseId, 'synthesize-line'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -100,7 +101,7 @@ const LineTTSTester = ({
 
   const handleDelete = async (renderingId: string) => {
     try {
-      await fetch(`/api/admin/courses/${courseId}/line-renderings/${renderingId}`, {
+      await fetch(adminApi.adminCourseLineRendering(courseId, renderingId), {
         method: 'DELETE',
         credentials: 'include',
       });

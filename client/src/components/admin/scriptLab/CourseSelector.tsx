@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, RefreshCw } from 'lucide-react';
 
-import { API_URL } from '../../../config';
+import { adminApi } from '../../../lib/adminApi';
 
 interface TestCourse {
   id: string;
@@ -35,7 +35,7 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_URL}/api/admin/script-lab/courses`, {
+      const response = await fetch(adminApi.scriptLabCourses, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch test courses');
@@ -55,7 +55,7 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
     setSuccess('');
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/script-lab/courses`, {
+      const response = await fetch(adminApi.scriptLabCourses, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -89,7 +89,7 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
     if (!confirm('Delete this test course?')) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/script-lab/courses`, {
+      const response = await fetch(adminApi.scriptLabCourses, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

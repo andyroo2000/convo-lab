@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle, Circle, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
-import { API_URL } from '../../../config';
+import { adminApi } from '../../../lib/adminApi';
 
 interface CourseDetailsProps {
   courseId: string;
@@ -62,7 +62,7 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
       setIsLoading(true);
       setError('');
       try {
-        const response = await fetch(`${API_URL}/api/admin/script-lab/courses/${courseId}`, {
+        const response = await fetch(adminApi.scriptLabCourse(courseId), {
           credentials: 'include',
         });
         if (!response.ok) throw new Error('Failed to fetch course details');
@@ -84,7 +84,7 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
     setGenerateSuccess('');
     try {
       // Call the admin course generation endpoint
-      const response = await fetch(`${API_URL}/api/admin/courses/${courseId}/generate-dialogue`, {
+      const response = await fetch(adminApi.adminCourseOperation(courseId, 'generate-dialogue'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

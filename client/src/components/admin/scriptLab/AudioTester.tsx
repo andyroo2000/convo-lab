@@ -3,7 +3,7 @@ import { Play } from 'lucide-react';
 
 import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
-import { API_URL } from '../../../config';
+import { adminApi } from '../../../lib/adminApi';
 import VoicePreview from '../../common/VoicePreview';
 import type { FormatResult, TestResults } from './ResultsViewer';
 
@@ -94,7 +94,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/script-lab/test-pronunciation`, {
+      const response = await fetch(adminApi.scriptLabTestPronunciation, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -133,7 +133,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
       const formats: AudioFormat[] = ['kanji', 'kana', 'mixed', 'furigana_brackets'];
       const results = await Promise.all(
         formats.map(async (fmt) => {
-          const response = await fetch(`${API_URL}/api/admin/script-lab/test-pronunciation`, {
+          const response = await fetch(adminApi.scriptLabTestPronunciation, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

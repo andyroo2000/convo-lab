@@ -6,6 +6,7 @@ import { createWrapper } from './test-utils';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
+  LEARNING_OS_DIRECT_ADMIN_API_ENABLED: false,
 }));
 
 // Mock fetch globally
