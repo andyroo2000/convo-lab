@@ -47,10 +47,7 @@ test('the production deployment wrapper and remote script remain valid Bash', as
 test('the production workflow retains blue-green switching and rollback contracts', async () => {
   const { script } = await readDeployment();
   const switchStart = script.indexOf('router_role="$(docker inspect');
-  const publicVerificationGate = script.indexOf(
-    'if ! verify_public_health || ! verify_public_google_oauth; then',
-    switchStart
-  );
+  const publicVerificationGate = script.indexOf('if ! verify_public_health \\', switchStart);
   const activeColorWrite = script.indexOf(
     'write_active_color "$inactive_color"',
     publicVerificationGate
@@ -71,7 +68,7 @@ test('the production workflow retains blue-green switching and rollback contract
   );
   assert.match(
     switchBlock,
-    /if ! verify_public_health \|\| ! verify_public_google_oauth; then[\s\S]*if ! rollback_router "\$active_color"; then/
+    /if ! verify_public_health \\\s+\|\| ! verify_public_google_oauth \\\s+\|\| ! verify_public_learning_os_browser_route; then[\s\S]*if ! rollback_router "\$active_color"; then/
   );
 });
 

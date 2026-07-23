@@ -9,3 +9,9 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface Window {
+  __CONVOLAB_RUNTIME_CONFIG__?: {
+    learningOsDirectAccountApi?: boolean;
+  };
+}

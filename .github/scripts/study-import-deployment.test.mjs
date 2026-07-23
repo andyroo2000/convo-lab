@@ -112,10 +112,12 @@ test('the production deployment configures and smokes Google OAuth', async () =>
     workflow.indexOf('upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback') <
       workflow.indexOf('$COMPOSE pull')
   );
-  const oauthGate = workflow.indexOf(
-    'if ! verify_public_health || ! verify_public_google_oauth; then'
-  );
+  const oauthGate = workflow.indexOf('if ! verify_public_health \\');
   assert.ok(oauthGate >= 0);
+  assert.match(
+    workflow.slice(oauthGate),
+    /if ! verify_public_health \\\s+\|\| ! verify_public_google_oauth \\\s+\|\| ! verify_public_learning_os_browser_route; then/
+  );
   assert.ok(oauthGate < workflow.indexOf('write_active_color "$inactive_color"'));
   assert.ok(oauthGate < workflow.indexOf('Stopping old web color'));
 });
@@ -302,6 +304,42 @@ test('production coordinates the Learning OS browser-session bridge behind one r
   assert.ok(
     learningOsWorkflow.includes('desired_deploy_config_revision="browser-auth-session-v1"')
   );
+});
+
+test('production gates direct account traffic and smokes the public Learning OS route', async () => {
+  const [compose, workflow] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
+  ]);
+
+  assert.ok(
+    compose.includes(
+      'LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED: ${LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED:-false}'
+    )
+  );
+
+  for (const contract of [
+    "DIRECT_ACCOUNT_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED || 'false' }}",
+    "printf 'DIRECT_ACCOUNT_API_ENABLED=%q\\n'",
+    'direct_account_api_enabled="$DIRECT_ACCOUNT_API_ENABLED"',
+    'echo "::error::LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED must be true or false"',
+    'upsert_env LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED "$direct_account_api_enabled"',
+    'verify_public_learning_os_browser_route() (',
+    'https://convo-lab.com/sanctum/csrf-cookie',
+    '$6 == "XSRF-TOKEN"',
+    '$6 == "learning_os_session"',
+    'https://convo-lab.com/api/convolab/auth/me',
+    'Unauthenticated direct account probe returned HTTP',
+  ]) {
+    assert.ok(workflow.includes(contract), `Missing direct account deployment contract: ${contract}`);
+  }
+
+  const publicGate = workflow.indexOf('if ! verify_public_health \\');
+  assert.ok(publicGate >= 0);
+  assert.ok(
+    workflow.indexOf('verify_public_learning_os_browser_route', publicGate) > publicGate
+  );
+  assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
 });
 
 test('the production workflow refreshes and verifies Learning OS content reads', async () => {

@@ -2,11 +2,31 @@ import { API_URL } from '../config';
 
 export const CSRF_TOKEN_COOKIE_NAME = 'XSRF-TOKEN';
 export const CSRF_TOKEN_HEADER_NAME = 'X-CSRF-Token';
+export const LEARNING_OS_CSRF_TOKEN_HEADER_NAME = 'X-XSRF-TOKEN';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CSRF_REJECTION_MESSAGE_PATTERN = /csrf/i;
 
-let csrfBootstrapPromise: Promise<string | null> | null = null;
+type CsrfProvider = 'express' | 'learning-os';
+
+const CSRF_PROVIDERS: Record<CsrfProvider, { bootstrapPath: string; headerName: string }> = {
+  express: {
+    bootstrapPath: '/api/auth/csrf',
+    headerName: CSRF_TOKEN_HEADER_NAME,
+  },
+  'learning-os': {
+    bootstrapPath: '/sanctum/csrf-cookie',
+    headerName: LEARNING_OS_CSRF_TOKEN_HEADER_NAME,
+  },
+};
+
+let csrfBootstrap: {
+  provider: CsrfProvider;
+  promise: Promise<string | null>;
+} | null = null;
+// Existing Convo Lab pages may receive an Express CSRF cookie from GET /api/auth/me.
+// Treat that as the initial owner; direct Learning OS mutations always re-bootstrap.
+let activeCsrfProvider: CsrfProvider = 'express';
 let csrfFetchInstalled = false;
 
 function readCookieValue(name: string): string | null {
@@ -71,6 +91,10 @@ function getRequestMethod(input: RequestInfo | URL, init?: RequestInit): string 
   return 'GET';
 }
 
+function getCsrfProvider(url: URL): CsrfProvider {
+  return url.pathname.startsWith('/api/convolab/') ? 'learning-os' : 'express';
+}
+
 function shouldAttachCsrfToken(input: RequestInfo | URL, init?: RequestInit): boolean {
   const method = getRequestMethod(input, init);
   if (!UNSAFE_METHODS.has(method)) {
@@ -86,7 +110,7 @@ function shouldAttachCsrfToken(input: RequestInfo | URL, init?: RequestInit): bo
     return false;
   }
 
-  if (url.pathname === '/api/auth/csrf') {
+  if (Object.values(CSRF_PROVIDERS).some(({ bootstrapPath }) => url.pathname === bootstrapPath)) {
     return false;
   }
 
@@ -95,16 +119,17 @@ function shouldAttachCsrfToken(input: RequestInfo | URL, init?: RequestInit): bo
 
 async function bootstrapCsrfToken(
   originalFetch: typeof fetch,
+  provider: CsrfProvider,
   options: { forceRefresh?: boolean } = {}
 ): Promise<string | null> {
   const existingToken = readCookieValue(CSRF_TOKEN_COOKIE_NAME);
-  if (existingToken && !options.forceRefresh) {
+  if (existingToken && activeCsrfProvider === provider && !options.forceRefresh) {
     return existingToken;
   }
 
-  if (!csrfBootstrapPromise) {
-    csrfBootstrapPromise = (async () => {
-      const response = await originalFetch(`${API_URL}/api/auth/csrf`, {
+  if (!csrfBootstrap || csrfBootstrap.provider !== provider) {
+    const promise = (async () => {
+      const response = await originalFetch(`${API_URL}${CSRF_PROVIDERS[provider].bootstrapPath}`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -113,17 +138,24 @@ async function bootstrapCsrfToken(
         return null;
       }
 
-      return readCookieValue(CSRF_TOKEN_COOKIE_NAME);
+      const token = readCookieValue(CSRF_TOKEN_COOKIE_NAME);
+      if (token) {
+        activeCsrfProvider = provider;
+      }
+      return token;
     })().finally(() => {
-      csrfBootstrapPromise = null;
+      if (csrfBootstrap?.promise === promise) {
+        csrfBootstrap = null;
+      }
     });
+    csrfBootstrap = { provider, promise };
   }
 
-  return csrfBootstrapPromise;
+  return csrfBootstrap.promise;
 }
 
 export async function getCsrfToken(): Promise<string | null> {
-  return bootstrapCsrfToken(globalThis.fetch.bind(globalThis));
+  return bootstrapCsrfToken(globalThis.fetch.bind(globalThis), 'express');
 }
 
 async function buildCsrfHeaders(
@@ -132,35 +164,47 @@ async function buildCsrfHeaders(
   init?: RequestInit,
   options: { forceRefresh?: boolean } = {}
 ): Promise<Headers> {
+  const url = resolveRequestUrl(input);
+  const provider = url ? getCsrfProvider(url) : 'express';
+  const providerConfig = CSRF_PROVIDERS[provider];
   const headers = new Headers(
     init?.headers ?? (input instanceof Request ? input.headers : undefined)
   );
-  const token = await bootstrapCsrfToken(originalFetch, options);
-  if (token && (options.forceRefresh || !headers.has(CSRF_TOKEN_HEADER_NAME))) {
-    headers.set(CSRF_TOKEN_HEADER_NAME, token);
+  const token = await bootstrapCsrfToken(originalFetch, provider, options);
+  const otherProvider = provider === 'express' ? 'learning-os' : 'express';
+  headers.delete(CSRF_PROVIDERS[otherProvider].headerName);
+  if (token && (options.forceRefresh || !headers.has(providerConfig.headerName))) {
+    headers.set(providerConfig.headerName, token);
   }
   // If a forced refresh fails, keep the request flow simple and let the
   // server return the final CSRF rejection instead of fabricating a client error.
   return headers;
 }
 
-async function isCsrfRejection(response: Response): Promise<boolean> {
+async function isCsrfRejection(response: Response, provider: CsrfProvider): Promise<boolean> {
+  if (provider === 'learning-os' && response.status === 419) {
+    return true;
+  }
   if (response.status !== 403) {
     return false;
   }
 
   try {
     const body: unknown = await response.clone().json();
-    const message =
-      typeof body === 'object' &&
-      body !== null &&
-      'error' in body &&
-      typeof body.error === 'object' &&
-      body.error !== null &&
-      'message' in body.error &&
-      typeof body.error.message === 'string'
-        ? body.error.message
-        : '';
+    let message = '';
+    if (typeof body === 'object' && body !== null) {
+      if ('message' in body && typeof body.message === 'string') {
+        message = body.message;
+      } else if (
+        'error' in body &&
+        typeof body.error === 'object' &&
+        body.error !== null &&
+        'message' in body.error &&
+        typeof body.error.message === 'string'
+      ) {
+        message = body.error.message;
+      }
+    }
 
     // Matches the server's CSRF rejection message in server/src/middleware/csrf.ts.
     return CSRF_REJECTION_MESSAGE_PATTERN.test(message);
@@ -174,13 +218,15 @@ async function fetchUnsafeApiWithCsrf(
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<Response> {
+  const url = resolveRequestUrl(input);
+  const provider = url ? getCsrfProvider(url) : 'express';
   const headers = await buildCsrfHeaders(originalFetch, input, init);
   const response = await originalFetch(input, {
     ...init,
     headers,
   });
 
-  if (!(await isCsrfRejection(response))) {
+  if (!(await isCsrfRejection(response, provider))) {
     return response;
   }
 
@@ -227,6 +273,7 @@ export function installCsrfFetch(): void {
 }
 
 export function resetCsrfStateForTests(): void {
-  csrfBootstrapPromise = null;
+  csrfBootstrap = null;
+  activeCsrfProvider = 'express';
   csrfFetchInstalled = false;
 }

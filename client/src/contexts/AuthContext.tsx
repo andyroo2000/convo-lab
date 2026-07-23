@@ -4,6 +4,7 @@ import { API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
 import { clearAudioCache } from '../lib/audioCache';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../lib/authSession';
+import { accountApi } from '../lib/accountApi';
 
 interface AuthContextType {
   user: User | null;
@@ -35,7 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkAuth = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/me`, {
+      const response = await fetch(accountApi.currentUser, {
         credentials: 'include',
       });
 
@@ -124,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     seenSampleContentGuide?: boolean;
     seenCustomContentGuide?: boolean;
   }) => {
-    const response = await fetchWithCsrf(`${API_URL}/api/auth/me`, {
+    const response = await fetchWithCsrf(accountApi.currentUser, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -141,11 +142,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const deleteAccount = async (currentPassword: string) => {
-    const response = await fetchWithCsrf(`${API_URL}/api/auth/me`, {
+    const response = await fetchWithCsrf(accountApi.currentUser, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ currentPassword }),
+      body: JSON.stringify(accountApi.deleteBody(currentPassword)),
     });
 
     if (!response.ok) {
@@ -160,11 +161,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    const response = await fetchWithCsrf(`${API_URL}/api/auth/change-password`, {
-      method: 'PATCH',
+    const response = await fetchWithCsrf(accountApi.passwordPath, {
+      method: accountApi.passwordMethod,
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ currentPassword, newPassword }),
+      body: JSON.stringify(accountApi.passwordBody(currentPassword, newPassword)),
     });
 
     if (!response.ok) {

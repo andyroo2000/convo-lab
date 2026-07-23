@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_URL } from '../config';
+import { accountApi } from '../lib/accountApi';
 
 interface QuotaInfo {
   unlimited: boolean;
@@ -30,7 +30,7 @@ export function useQuota() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${API_URL}/api/auth/me/quota`, {
+      const res = await fetch(accountApi.quota, {
         credentials: 'include',
       });
 
