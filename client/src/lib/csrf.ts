@@ -26,6 +26,8 @@ let csrfBootstrap: {
 } | null = null;
 // Existing Convo Lab pages may receive an Express CSRF cookie from GET /api/auth/me.
 // Treat that as the initial owner; direct Learning OS mutations always re-bootstrap.
+// Current cross-provider mutations are user-triggered sequential flows. If that changes,
+// serialize provider switches because both servers own the same XSRF-TOKEN cookie name.
 let activeCsrfProvider: CsrfProvider = 'express';
 let csrfFetchInstalled = false;
 

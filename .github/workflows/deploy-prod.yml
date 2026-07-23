@@ -129,6 +129,12 @@ jobs:
               exit 1
             fi
             upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "$browser_session_enabled"
+            previous_direct_account_api_enabled="$(
+              awk -F= '$1 == "LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED" { value = $2 } END { print value }' .env.production
+            )"
+            if [ "$previous_direct_account_api_enabled" != true ]; then
+              previous_direct_account_api_enabled=false
+            fi
             direct_account_api_enabled="$DIRECT_ACCOUNT_API_ENABLED"
             if [ "$direct_account_api_enabled" != true ] && [ "$direct_account_api_enabled" != false ]; then
               echo "::error::LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED must be true or false"
@@ -178,14 +184,27 @@ jobs:
 
             render_router_config() {
               color="$1"
+              direct_account_enabled="${2:-$direct_account_api_enabled}"
               upstream="convolab-server-$color"
               if [ ! -s "$ROUTER_TEMPLATE" ]; then
                 echo "❌ Router template is missing or empty: $ROUTER_TEMPLATE"
                 exit 1
               fi
-              sed "s#__UPSTREAM_SERVICE__#$upstream#g" "$ROUTER_TEMPLATE" > "$ROUTER_CONFIG.tmp"
+              if [ "$direct_account_enabled" = true ]; then
+                direct_account_enabled_value=1
+              else
+                direct_account_enabled_value=0
+              fi
+              sed \
+                -e "s#__UPSTREAM_SERVICE__#$upstream#g" \
+                -e "s#__DIRECT_ACCOUNT_API_ENABLED__#$direct_account_enabled_value#g" \
+                "$ROUTER_TEMPLATE" > "$ROUTER_CONFIG.tmp"
               if ! grep -q "$upstream" "$ROUTER_CONFIG.tmp"; then
                 echo "❌ Generated router config does not reference $upstream"
+                exit 1
+              fi
+              if grep -q '__DIRECT_ACCOUNT_API_ENABLED__' "$ROUTER_CONFIG.tmp"; then
+                echo "❌ Generated router config retains the direct account placeholder"
                 exit 1
               fi
               if [ -e "$ROUTER_CONFIG" ]; then
@@ -280,6 +299,21 @@ jobs:
               response_body="$(mktemp)"
               trap 'rm -f "$cookie_jar" "$response_body"' EXIT
 
+              if [ "$direct_account_api_enabled" = false ]; then
+                disabled_status="$(curl --silent --show-error \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Accept: application/json' \
+                  https://convo-lab.com/api/convolab/auth/me)"
+                if [ "$disabled_status" != 404 ]; then
+                  echo "Disabled direct account route returned HTTP $disabled_status instead of 404."
+                  cat "$response_body"
+                  return 1
+                fi
+                echo "✅ Learning OS direct browser route is disabled!"
+                return 0
+              fi
+
               csrf_status="$(curl --silent --show-error \
                 --cookie-jar "$cookie_jar" \
                 --output "$response_body" \
@@ -340,7 +374,7 @@ jobs:
             rollback_router() {
               previous_color="$1"
               echo "↩️ Rolling router back to $previous_color..."
-              render_router_config "$previous_color"
+              render_router_config "$previous_color" "$previous_direct_account_api_enabled"
               if ! reload_router; then
                 echo "❌ Router rollback reload failed; production may still be on the failed color."
                 return 1

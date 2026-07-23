@@ -324,7 +324,13 @@ test('production gates direct account traffic and smokes the public Learning OS 
     'direct_account_api_enabled="$DIRECT_ACCOUNT_API_ENABLED"',
     'echo "::error::LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED must be true or false"',
     'upsert_env LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED "$direct_account_api_enabled"',
+    'previous_direct_account_api_enabled="$(',
+    'direct_account_enabled="${2:-$direct_account_api_enabled}"',
+    's#__DIRECT_ACCOUNT_API_ENABLED__#$direct_account_enabled_value#g',
+    'render_router_config "$previous_color" "$previous_direct_account_api_enabled"',
     'verify_public_learning_os_browser_route() (',
+    'if [ "$direct_account_api_enabled" = false ]; then',
+    'Disabled direct account route returned HTTP $disabled_status instead of 404.',
     'https://convo-lab.com/sanctum/csrf-cookie',
     '$6 == "XSRF-TOKEN"',
     '$6 == "learning_os_session"',
@@ -340,6 +346,18 @@ test('production gates direct account traffic and smokes the public Learning OS 
     workflow.indexOf('verify_public_learning_os_browser_route', publicGate) > publicGate
   );
   assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
+  const previousValueCapture = workflow.indexOf('previous_direct_account_api_enabled="$(');
+  const previousValueNormalization = workflow.indexOf(
+    'if [ "$previous_direct_account_api_enabled" != true ]; then',
+    previousValueCapture
+  );
+  const desiredValueAssignment = workflow.indexOf(
+    'direct_account_api_enabled="$DIRECT_ACCOUNT_API_ENABLED"',
+    previousValueNormalization
+  );
+  assert.ok(previousValueCapture >= 0);
+  assert.ok(previousValueNormalization > previousValueCapture);
+  assert.ok(desiredValueAssignment > previousValueNormalization);
 });
 
 test('the production workflow refreshes and verifies Learning OS content reads', async () => {
