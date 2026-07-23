@@ -82,6 +82,12 @@ const accountDeletionRateLimit = createExpressRateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => (req as AuthRequest).userId ?? ipKeyGenerator(req.ip ?? 'unknown'),
 });
+const googleInviteClaimRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function getSessionCookieOptions(sameSite: 'lax' | 'strict' = 'lax') {
   return {
@@ -507,7 +513,7 @@ router.post('/disconnect/google', requireAuth, async (req: AuthRequest, res, nex
 });
 
 // Claim invite code (for OAuth users)
-router.post('/claim-invite', async (req, res, next) => {
+router.post('/claim-invite', googleInviteClaimRateLimit, async (req, res, next) => {
   try {
     const { inviteCode, token } = req.body;
 

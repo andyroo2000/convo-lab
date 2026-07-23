@@ -249,6 +249,7 @@ describe('Auth Learning OS routing', () => {
       role: loginAccount.role,
       accountSource: 'learning-os',
     });
+    expect(response.headers['ratelimit-policy']).toBeDefined();
     expect(response.body).toEqual({ ...currentAccount, avatarUrl: null });
     const sessionCookie = getSetCookieArray(response.headers['set-cookie']).find((cookie) =>
       cookie.startsWith('token=')
