@@ -65,9 +65,6 @@ docker login
 # Build server image
 docker build -t andrewlandry/convolab-server:latest -f Dockerfile .
 
-# Build worker image
-docker build -t andrewlandry/convolab-worker:latest -f server/Dockerfile.worker .
-
 # Build furigana service
 docker build -t andrewlandry/convolab-furigana:latest -f furigana-service/Dockerfile ./furigana-service
 
@@ -76,7 +73,6 @@ docker build -t andrewlandry/convolab-pinyin:latest -f pinyin-service/Dockerfile
 
 # Push to Docker Hub
 docker push andrewlandry/convolab-server:latest
-docker push andrewlandry/convolab-worker:latest
 docker push andrewlandry/convolab-furigana:latest
 docker push andrewlandry/convolab-pinyin:latest
 ```
@@ -359,7 +355,6 @@ docker stats
 
 # Check specific limits
 docker inspect convolab-server | grep -A 5 Memory
-docker inspect convolab-worker | grep -A 5 Memory
 
 # System memory
 free -h
@@ -654,10 +649,6 @@ cd /Users/andrewlandry/source/convo-lab
 # Rebuild and push images
 docker build -t andrewlandry/convolab-server:latest -f Dockerfile .
 docker push andrewlandry/convolab-server:latest
-
-# Or if worker changed:
-docker build -t andrewlandry/convolab-worker:latest -f server/Dockerfile.worker .
-docker push andrewlandry/convolab-worker:latest
 
 # Commit and push code
 git add .

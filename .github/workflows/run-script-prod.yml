@@ -15,10 +15,9 @@ on:
       service:
         description: 'Container service to run the command in'
         required: false
-        default: 'worker'
+        default: 'server'
         type: choice
         options:
-          - worker
           - server
           - learning-os
 

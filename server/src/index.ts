@@ -39,8 +39,6 @@ import toolAudioRoutes from './routes/toolAudio.js';
 import verificationRoutes from './routes/verification.js';
 import { warmKanjiumAccentIndex } from './services/pitchAccent/kanjiumData.js';
 
-// Workers now run in Cloud Run Job, not embedded in API service
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

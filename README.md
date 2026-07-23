@@ -46,7 +46,7 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 
 - Node.js + Express + TypeScript
 - PostgreSQL + Prisma
-- BullMQ (job queue)
+- Redis (API rate limiting)
 - Google Cloud services:
   - Gemini 2.0 (dialogue generation)
   - Cloud Text-to-Speech (Neural2)

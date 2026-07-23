@@ -6,11 +6,10 @@ This migration implementation includes all files needed to migrate ConvoLab from
 
 ### Core Configuration Files
 
-1. **docker-compose.prod.yml** - Docker Compose orchestration for all 6 services:
+1. **docker-compose.prod.yml** - Docker Compose orchestration for the production services:
    - `postgres` - PostgreSQL 15 database (512MB limit)
-   - `redis` - Redis 7 job queue (256MB limit)
+   - `redis` - Redis 7 API rate-limit store (256MB limit)
    - `server` - Express API + React frontend (1GB limit)
-   - `worker` - BullMQ background workers (1.5GB limit)
    - `furigana` - Japanese furigana microservice (256MB limit)
    - `pinyin` - Chinese pinyin microservice (256MB limit)
 
@@ -171,13 +170,12 @@ Once passwords are set and GitHub Actions configured:
                                              │
               ┌──────────────────────────────┼──────────────────────────────┐
               │                              │                              │
-    ┌─────────▼────────┐         ┌──────────▼──────────┐      ┌───────────▼──────────┐
-    │  convolab-worker │         │  convolab-postgres  │      │   convolab-redis     │
-    │  (BullMQ jobs)   │         │  (PostgreSQL 15)    │      │   (Redis 7 queue)    │
-    └──────────────────┘         └─────────────────────┘      └──────────────────────┘
-              │
-              │
-    ┌─────────▼────────────────────────────────┐
+                               ┌──────────▼──────────┐      ┌───────────▼──────────┐
+                               │  convolab-postgres  │      │   convolab-redis     │
+                               │  (PostgreSQL 15)    │      │   (API rate limits)  │
+                               └─────────────────────┘      └──────────────────────┘
+
+    ┌──────────────────────────────────────────┐
     │  Language Processing Microservices       │
     │  ┌──────────────┐  ┌──────────────┐     │
     │  │  furigana    │  │  pinyin      │     │

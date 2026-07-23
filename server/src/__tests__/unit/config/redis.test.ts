@@ -1,7 +1,7 @@
 import { RedisOptions } from 'ioredis';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { createRedisConnection, defaultWorkerSettings } from '../../../config/redis.js';
+import { createRedisConnection } from '../../../config/redis.js';
 
 // Mock ioredis
 const mockRedisInstance = vi.fn();
@@ -92,7 +92,7 @@ describe('Redis Configuration - Unit Tests', () => {
       expect(callArg.tls).toBeUndefined();
     });
 
-    it('should set maxRetriesPerRequest to null for BullMQ compatibility', () => {
+    it('should allow blocking rate-limit commands without a retry cap', () => {
       createRedisConnection();
 
       expect(mockRedisInstance).toHaveBeenCalledWith(
@@ -156,57 +156,6 @@ describe('Redis Configuration - Unit Tests', () => {
 
       // Should not throw
       expect(connection.disconnect).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('defaultWorkerSettings', () => {
-    it('should configure minimal Redis polling', () => {
-      expect(defaultWorkerSettings).toEqual({
-        autorun: true,
-        concurrency: 1,
-        lockDuration: 300000, // 5 minutes
-        drainDelay: expect.any(Number),
-        limiter: {
-          max: 10,
-          duration: 1000,
-        },
-      });
-    });
-
-    it('should use default drain delay of 30 seconds', () => {
-      delete process.env.WORKER_DRAIN_DELAY;
-
-      // Re-import to get fresh settings
-      const settings = defaultWorkerSettings;
-      expect(settings.drainDelay).toBe(30000);
-    });
-
-    it('should allow custom drain delay from environment', () => {
-      process.env.WORKER_DRAIN_DELAY = '60000';
-
-      // Note: Since defaultWorkerSettings is imported at module load,
-      // this test verifies the pattern but may need runtime config
-      const expectedDelay = parseInt(process.env.WORKER_DRAIN_DELAY);
-      expect(expectedDelay).toBe(60000);
-    });
-
-    it('should set concurrency to 1 for sequential processing', () => {
-      expect(defaultWorkerSettings.concurrency).toBe(1);
-    });
-
-    it('should configure rate limiter for job processing', () => {
-      expect(defaultWorkerSettings.limiter).toEqual({
-        max: 10,
-        duration: 1000,
-      });
-    });
-
-    it('should set lock duration to 5 minutes', () => {
-      expect(defaultWorkerSettings.lockDuration).toBe(300000);
-    });
-
-    it('should enable autorun', () => {
-      expect(defaultWorkerSettings.autorun).toBe(true);
     });
   });
 

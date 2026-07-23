@@ -131,16 +131,12 @@ test('the production workflow rejects unexpected containers without legacy cutov
   }
 });
 
-test('the production images include the backend migration inventory', async () => {
-  for (const dockerfile of ['Dockerfile', 'server/Dockerfile.worker']) {
-    const source = await readFile(path.join(repositoryRoot, dockerfile), 'utf8');
-    assert.ok(source.includes(migrationInventoryCopy), `${dockerfile} omits the runtime inventory`);
-  }
+test('the production image includes the backend migration inventory', async () => {
+  const source = await readFile(path.join(repositoryRoot, 'Dockerfile'), 'utf8');
+  assert.ok(source.includes(migrationInventoryCopy), 'Dockerfile omits the runtime inventory');
 });
 
-test('the production images include runtime translation resources', async () => {
-  for (const dockerfile of ['Dockerfile', 'server/Dockerfile.worker']) {
-    const source = await readFile(path.join(repositoryRoot, dockerfile), 'utf8');
-    assert.ok(source.includes(localeResourcesCopy), `${dockerfile} omits translation resources`);
-  }
+test('the production image includes runtime translation resources', async () => {
+  const source = await readFile(path.join(repositoryRoot, 'Dockerfile'), 'utf8');
+  assert.ok(source.includes(localeResourcesCopy), 'Dockerfile omits translation resources');
 });

@@ -133,11 +133,8 @@ Push to main → GitHub Actions starts
 ### Build Phase (3-5 minutes)
 
 ```
-[Parallel builds of 4 images]
-├── convolab-server   (Node.js + React frontend)
-├── convolab-worker   (BullMQ background jobs)
-├── convolab-furigana (Python microservice)
-└── convolab-pinyin   (Python microservice)
+[Build ConvoLab server image]
+└── convolab-server   (Node.js + React frontend)
        ↓
 [Push to ghcr.io/andrewlandry/*]
 ```

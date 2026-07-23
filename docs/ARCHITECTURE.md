@@ -7,7 +7,8 @@ LanguageFlow Studio is a full-stack web application for language learning throug
 - **Frontend**: React SPA with TypeScript
 - **Backend**: Node.js/Express REST API
 - **Database**: PostgreSQL with Prisma ORM
-- **Job Queue**: BullMQ with Redis
+- **Canonical API**: Learning OS owns migrated operations and background generation
+- **Redis**: ConvoLab API rate limiting
 - **AI Services**: Google Gemini, Cloud TTS, Cloud Storage
 
 ## High-Level Architecture
@@ -24,18 +25,13 @@ LanguageFlow Studio is a full-stack web application for language learning throug
                           │
 ┌─────────────────────────┴────────────────────────────────────┐
 │              Express.js Server (TypeScript)                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Routes     │  │   Services   │  │ Job Workers  │      │
-│  │ - Auth       │─▶│ - Dialogue   │  │ - Dialogue   │      │
-│  │ - Episodes   │  │ - Audio      │  │ - Audio      │      │
-│  │ - Dialogue   │  │ - Images     │  │ - Images     │      │
-│  │ - Audio      │  │ - Language   │  │              │      │
-│  │ - Images     │  │   Processor  │  └──────┬───────┘      │
-│  └──────────────┘  └──────┬───────┘         │               │
-│         │                  │                 │               │
-│  ┌──────▼──────────────────▼─────────────────▼──────┐       │
-│  │         PostgreSQL (Prisma ORM)                   │       │
-│  │         Redis (BullMQ Queue)                      │       │
+│  ┌──────────────┐  ┌────────────────┐  ┌──────────────┐    │
+│  │ Compatibility│─▶│ Proxy adapters │─▶│ Learning OS  │    │
+│  │ routes       │  │ and auth       │  │ API + jobs   │    │
+│  └──────┬───────┘  └────────────────┘  └──────────────┘    │
+│         │                                                   │
+│  ┌──────▼───────────────────────────────────────────┐       │
+│  │ PostgreSQL (legacy compatibility) + Redis limits │       │
 │  └───────────────────────────────────────────────────┘       │
 └───────────────────┬──────────────────────────────────────────┘
                     │
@@ -59,9 +55,9 @@ Create Episode (POST /api/episodes)
     ↓
 Generate Dialogue (POST /api/dialogue/generate)
     ↓
-Job Queue (BullMQ) → Dialogue Worker
+ConvoLab compatibility proxy → Learning OS
     ↓
-Gemini API (Dialogue Generation)
+Learning OS generation job
     ↓
 Language Processor (Furigana/Metadata)
     ↓
@@ -77,7 +73,7 @@ User Selects Sentences → Generate Audio
     ↓
 POST /api/audio/generate
     ↓
-Job Queue → Audio Worker
+ConvoLab compatibility proxy → Learning OS generation job
     ↓
 For Each Sentence:
   - Google Cloud TTS (Neural2)
@@ -224,40 +220,11 @@ Stored as JSON in `Sentence.metadata`:
 - `POST /api/images/generate` - Proxy a dialogue image-generation request to Learning OS
 - `GET /api/images/job/:jobId` - Proxy Learning OS image-job status
 
-## Job Queue Architecture
+## Background Work Ownership
 
-Uses BullMQ with Redis for background processing of long-running tasks.
-
-### Queues
-
-1. **dialogue-generation**
-   - Processes: Gemini API calls, language processing
-   - Duration: 10-30 seconds
-
-2. **audio-generation**
-   - Processes: TTS generation, ffmpeg concatenation, upload
-   - Duration: 30-120 seconds
-
-3. **image-generation**
-   - Processes: Legacy Audio Script segment images only
-   - Duration: 15-60 seconds
-
-### Worker Pattern
-
-```typescript
-const worker = new Worker('queue-name', async (job) => {
-  // Update progress
-  await job.updateProgress(10);
-
-  // Do work
-  const result = await doWork(job.data);
-
-  // Update progress
-  await job.updateProgress(100);
-
-  return result;
-});
-```
+Learning OS owns course, dialogue, image, audio, and Audio Script generation jobs. ConvoLab
+keeps compatibility routes while the frontend migrates, but it does not enqueue or consume
+background jobs. Redis remains part of the ConvoLab runtime for API rate limiting.
 
 ## Language Processing Architecture
 

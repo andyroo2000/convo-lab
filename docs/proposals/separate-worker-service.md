@@ -1,6 +1,6 @@
 # Proposal: Separate Worker Service for Job Processing
 
-**Status:** Proposed
+**Status:** Superseded by the Learning OS generation cutover
 **Date:** 2025-11-28
 **Author:** Claude Code
 **Priority:** Medium (Cost optimization)
