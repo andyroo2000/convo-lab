@@ -11,10 +11,8 @@ const routerTemplate = readFileSync(routerTemplatePath, 'utf8');
 describe('production router contract', () => {
   it('routes only the explicit browser compatibility namespace directly to Learning OS', () => {
     expect(routerTemplate).toContain('set $learning_os_upstream http://learning-os:8080;');
-    expect(routerTemplate).toContain(
-      'set $direct_account_api_enabled __DIRECT_ACCOUNT_API_ENABLED__;'
-    );
-    expect(routerTemplate).toContain('set $direct_auth_api_enabled __DIRECT_AUTH_API_ENABLED__;');
+    expect(routerTemplate).not.toContain('__DIRECT_ACCOUNT_API_ENABLED__');
+    expect(routerTemplate).not.toContain('__DIRECT_AUTH_API_ENABLED__');
     expect(routerTemplate).toContain(
       'set $direct_episode_api_enabled __DIRECT_EPISODE_API_ENABLED__;'
     );
@@ -25,9 +23,6 @@ describe('production router contract', () => {
       'set $direct_script_api_enabled __DIRECT_SCRIPT_API_ENABLED__;'
     );
     expect(routerTemplate).toContain('set $direct_admin_api_enabled __DIRECT_ADMIN_API_ENABLED__;');
-    expect(routerTemplate).toContain(
-      'set $direct_browser_api_flags "$direct_account_api_enabled$direct_auth_api_enabled$direct_episode_api_enabled$direct_course_api_enabled$direct_script_api_enabled$direct_admin_api_enabled";'
-    );
     expect(routerTemplate).toMatch(/location = \/sanctum\/csrf-cookie \{/u);
     expect(routerTemplate).toMatch(/location \^~ \/api\/convolab\/auth\/ \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/browser\/auth\(\?:\/\|\$\) \{/u);
@@ -49,7 +44,7 @@ describe('production router contract', () => {
     expect(authBlock).toContain('proxy_set_header Authorization "";');
     expect(authBlock).toContain('proxy_set_header X-Convo-Lab-User-Id "";');
     expect(authBlock).toContain('proxy_pass $learning_os_upstream;');
-    expect(authBlock).toContain('if ($direct_account_api_enabled = 0)');
+    expect(authBlock).not.toContain('return 404;');
 
     const browserAuthBlock = routerTemplate.slice(
       routerTemplate.indexOf('location ~ ^/api/convolab/browser/auth(?:/|$)'),
@@ -59,8 +54,7 @@ describe('production router contract', () => {
     expect(browserAuthBlock).toContain('proxy_set_header Authorization "";');
     expect(browserAuthBlock).toContain('proxy_set_header X-Convo-Lab-User-Id "";');
     expect(browserAuthBlock).toContain('proxy_pass $learning_os_upstream;');
-    expect(browserAuthBlock).toContain('if ($direct_auth_api_enabled = 0)');
-    expect(browserAuthBlock).toContain('return 404;');
+    expect(browserAuthBlock).not.toContain('return 404;');
 
     const passwordResetBlock = routerTemplate.slice(
       routerTemplate.indexOf('location ~ ^/api/auth/password(?:/|$)'),
@@ -70,8 +64,7 @@ describe('production router contract', () => {
     expect(passwordResetBlock).toContain('proxy_set_header Authorization "";');
     expect(passwordResetBlock).toContain('proxy_set_header X-Convo-Lab-User-Id "";');
     expect(passwordResetBlock).toContain('proxy_pass $learning_os_upstream;');
-    expect(passwordResetBlock).toContain('if ($direct_auth_api_enabled = 0)');
-    expect(passwordResetBlock).toContain('return 404;');
+    expect(passwordResetBlock).not.toContain('return 404;');
 
     const episodeBlock = routerTemplate.slice(
       routerTemplate.indexOf('location ~ ^/api/convolab/episodes(?:/|$)'),
@@ -133,13 +126,13 @@ describe('production router contract', () => {
     expect(audioBlock).toContain('proxy_set_header X-Convo-Lab-User-Id "";');
   });
 
-  it('exposes Learning OS CSRF bootstrap when either direct route is enabled', () => {
+  it('always exposes the Learning OS CSRF bootstrap', () => {
     const csrfBlock = routerTemplate.slice(
       routerTemplate.indexOf('location = /sanctum/csrf-cookie {'),
       routerTemplate.indexOf('location ^~ /api/convolab/auth/')
     );
 
-    expect(csrfBlock).toContain('if ($direct_browser_api_flags = "000000")');
+    expect(csrfBlock).not.toContain('return 404;');
     expect(csrfBlock).toContain('proxy_pass $learning_os_upstream;');
   });
 });

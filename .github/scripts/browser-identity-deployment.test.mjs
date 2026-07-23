@@ -97,8 +97,11 @@ test('Learning OS deploy validates configuration and the real OAuth redirect', a
   assert.ok(redirectProbe > healthGate);
 });
 
-test('Convo Lab rollout gates direct browser identity through the public router', async () => {
-  const workflowSource = await readRepositoryFile('.github/workflows/deploy-prod.yml');
+test('Convo Lab permanently routes browser identity through Learning OS', async () => {
+  const [workflowSource, routerSource] = await Promise.all([
+    readRepositoryFile('.github/workflows/deploy-prod.yml'),
+    readRepositoryFile('deploy/prod-router.conf.template'),
+  ]);
 
   for (const contract of [
     `upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI \\\n              ${directGoogleCallback}`,
@@ -114,25 +117,61 @@ test('Convo Lab rollout gates direct browser identity through the public router'
     assert.ok(workflowSource.includes(contract), `Missing public identity smoke: ${contract}`);
   }
 
-  const directAuthGate = workflowSource.indexOf(
-    'if [ "$direct_auth_api_enabled" = true ]; then'
+  const browserSmoke = workflowSource.indexOf(
+    'verify_public_learning_os_browser_route() ('
   );
   const googleProbe = workflowSource.indexOf(
     'https://convo-lab.com/api/convolab/browser/auth/google)',
-    directAuthGate
+    browserSmoke
   );
   const verificationProbe = workflowSource.indexOf(
     'https://convo-lab.com/api/convolab/browser/auth/verification)',
-    directAuthGate
+    browserSmoke
   );
   const inviteProbe = workflowSource.indexOf(
     'https://convo-lab.com/api/convolab/browser/auth/google/invite)',
-    directAuthGate
+    browserSmoke
   );
-  assert.ok(directAuthGate >= 0);
-  assert.ok(googleProbe > directAuthGate);
+  assert.ok(browserSmoke >= 0);
+  assert.ok(googleProbe > browserSmoke);
   assert.ok(verificationProbe > googleProbe);
   assert.ok(inviteProbe > verificationProbe);
+
+  const browserAuthBlock = routerSource.slice(
+    routerSource.indexOf('location ~ ^/api/convolab/browser/auth(?:/|$)'),
+    routerSource.indexOf('location ~ ^/api/auth/password(?:/|$)')
+  );
+  assert.ok(browserAuthBlock.includes('proxy_pass $learning_os_upstream;'));
+  assert.ok(browserAuthBlock.includes('proxy_set_header Authorization "";'));
+  assert.ok(browserAuthBlock.includes('proxy_set_header X-Convo-Lab-User-Id "";'));
+  assert.ok(!browserAuthBlock.includes('return 404;'));
+  assert.ok(!workflowSource.includes('LEARNING_OS_DIRECT_AUTH_API_ENABLED'));
+});
+
+test('local Vite development mirrors the permanent Learning OS identity routes', async () => {
+  const viteConfig = await readRepositoryFile('client/vite.config.ts');
+  const learningOsRoutes = [
+    "'/sanctum/csrf-cookie'",
+    "'/api/convolab/auth'",
+    "'/api/convolab/browser/auth'",
+    "'/api/auth/password'",
+  ];
+  const expressFallback = viteConfig.indexOf("'/api':");
+
+  assert.ok(expressFallback >= 0);
+  for (const route of learningOsRoutes) {
+    const routeStart = viteConfig.indexOf(`${route}:`);
+    const routeEnd = viteConfig.indexOf('},', routeStart);
+    const proxyBlock = viteConfig.slice(routeStart, routeEnd);
+
+    assert.ok(routeStart >= 0, `Missing local Learning OS proxy route: ${route}`);
+    assert.ok(routeStart < expressFallback, `${route} must precede the generic Express proxy`);
+    assert.ok(proxyBlock.includes("target: 'http://localhost:8080'"));
+    assert.ok(proxyBlock.includes('changeOrigin: true'));
+  }
+
+  const expressProxy = viteConfig.slice(expressFallback, viteConfig.indexOf('},', expressFallback));
+  assert.ok(expressProxy.includes("target: 'http://localhost:3001'"));
 });
 
 test('Google OAuth redirect validation executes the production Bash parser', async () => {

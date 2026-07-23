@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Logo from '../components/common/Logo';
 import { authApi } from '../lib/authApi';
@@ -9,15 +8,6 @@ const ClaimInvitePage = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const token = searchParams.get('token');
-
-  useEffect(() => {
-    if (authApi.claimInviteRequiresToken && !token) {
-      navigate('/login?error=missing_token');
-    }
-  }, [token, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +19,7 @@ const ClaimInvitePage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(authApi.claimInviteBody(inviteCode, token)),
+        body: JSON.stringify(authApi.claimInviteBody(inviteCode)),
       });
 
       if (!response.ok) {
@@ -45,10 +35,6 @@ const ClaimInvitePage = () => {
       setLoading(false);
     }
   };
-
-  if (authApi.claimInviteRequiresToken && !token) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-cream flex items-start sm:items-center justify-center px-4 py-8">

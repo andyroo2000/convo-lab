@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { AuthProvider, useAuth } from '../AuthContext';
-import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
+import { CSRF_TOKEN_COOKIE_NAME, LEARNING_OS_CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 
 // Mock fetch globally
@@ -135,7 +135,14 @@ describe('AuthContext', () => {
         json: async () => ({ error: 'Not authenticated' }),
       });
 
-      // Second call: login
+      // Second call: switch from the legacy CSRF cookie to Learning OS.
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: async () => ({}),
+      });
+
+      // Third call: login
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockUser,
@@ -153,7 +160,7 @@ describe('AuthContext', () => {
 
       expect(result.current.user).toEqual(mockUser);
       expect(mockFetch).toHaveBeenLastCalledWith(
-        expect.stringContaining('/api/auth/login'),
+        expect.stringContaining('/api/convolab/browser/auth/login'),
         expect.objectContaining({
           method: 'POST',
           credentials: 'include',
@@ -161,7 +168,7 @@ describe('AuthContext', () => {
         })
       );
       const headers = new Headers(mockFetch.mock.calls.at(-1)?.[1]?.headers);
-      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+      expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     });
 
     it('should throw error on failed login', async () => {
@@ -344,16 +351,16 @@ describe('AuthContext', () => {
 
       expect(result.current.user).toBe(null);
       expect(mockFetch).toHaveBeenLastCalledWith(
-        expect.stringContaining('/api/auth/me'),
+        expect.stringContaining('/api/convolab/auth/me'),
         expect.objectContaining({
           method: 'DELETE',
           credentials: 'include',
-          body: JSON.stringify({ currentPassword: 'correct-password123' }),
+          body: JSON.stringify({ current_password: 'correct-password123' }),
         })
       );
       const headers = new Headers(mockFetch.mock.calls.at(-1)?.[1]?.headers);
       expect(headers.get('Content-Type')).toBe('application/json');
-      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+      expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     });
 
     it('keeps the current user when account deletion fails', async () => {

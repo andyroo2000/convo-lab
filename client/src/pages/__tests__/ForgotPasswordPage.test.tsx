@@ -4,8 +4,6 @@ import { MemoryRouter } from 'react-router-dom';
 import type { Mock } from 'vitest';
 import ForgotPasswordPage from '../ForgotPasswordPage';
 
-const API_URL = 'http://localhost:3001';
-
 // Mock global fetch
 global.fetch = vi.fn() as Mock;
 
@@ -105,7 +103,7 @@ describe('ForgotPasswordPage', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_URL}/api/password-reset/request`,
+          '/api/auth/password/forgot',
           expect.objectContaining({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

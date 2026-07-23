@@ -3,8 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import VerifyEmailPage from '../VerifyEmailPage';
 
-const API_URL = 'http://localhost:3001';
-
 // Mock useNavigate
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -82,7 +80,10 @@ describe('VerifyEmailPage', () => {
       expect(screen.getByText(/Your email has been successfully verified/)).toBeInTheDocument();
       expect(screen.getByText(/Redirecting to your library/)).toBeInTheDocument();
 
-      expect(global.fetch).toHaveBeenCalledWith(`${API_URL}/api/verification/valid-token`, {
+      expect(global.fetch).toHaveBeenCalledWith('/api/convolab/browser/auth/verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: 'valid-token' }),
         credentials: 'include',
       });
 
@@ -119,9 +120,14 @@ describe('VerifyEmailPage', () => {
 
       await waitFor(
         () => {
-          expect(global.fetch).toHaveBeenCalledWith(`${API_URL}/api/verification/invalid-token`, {
-            credentials: 'include',
-          });
+          expect(global.fetch).toHaveBeenCalledWith(
+            '/api/convolab/browser/auth/verification',
+            expect.objectContaining({
+              method: 'POST',
+              body: JSON.stringify({ token: 'invalid-token' }),
+              credentials: 'include',
+            })
+          );
         },
         { timeout: 10000 }
       );
@@ -205,10 +211,13 @@ describe('VerifyEmailPage', () => {
         expect(screen.getByText('Verification email sent! Check your inbox.')).toBeInTheDocument();
       });
 
-      expect(global.fetch).toHaveBeenLastCalledWith(`${API_URL}/api/verification/send`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      expect(global.fetch).toHaveBeenLastCalledWith(
+        '/api/convolab/browser/auth/verification/send',
+        {
+          method: 'POST',
+          credentials: 'include',
+        }
+      );
     });
 
     it('should show sending state while resending email', async () => {

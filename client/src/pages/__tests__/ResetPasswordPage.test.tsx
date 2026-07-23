@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ResetPasswordPage from '../ResetPasswordPage';
 
-const API_URL = 'http://localhost:3001';
 const resetLink = '/reset-password?token=broker-token&email=target%40example.com';
 const mockNavigate = vi.fn();
 const mockFetch = vi.fn();
@@ -108,14 +107,15 @@ describe('ResetPasswordPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Reset Password/i }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(`${API_URL}/api/password-reset/verify`, {
+      expect(global.fetch).toHaveBeenCalledWith('/api/auth/password/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           email: 'target@example.com',
           token: 'broker-token',
-          newPassword: 'newpassword123',
+          password: 'newpassword123',
+          password_confirmation: 'newpassword123',
         }),
       });
     });
