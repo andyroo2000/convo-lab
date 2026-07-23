@@ -19,76 +19,12 @@ describe('client runtime config', () => {
     expect(response.headers.location).toBe('/');
   });
 
-  it('keeps direct account traffic disabled unless explicitly enabled', () => {
-    expect(getClientRuntimeConfig({})).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
-      learningOsDirectEpisodeApi: false,
-      learningOsDirectCourseApi: false,
-      learningOsDirectScriptApi: false,
-      learningOsDirectAdminApi: false,
-    });
-    expect(
-      getClientRuntimeConfig({
-        LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED: ' TRUE ',
-      })
-    ).toEqual({
-      learningOsDirectAccountApi: true,
-      learningOsDirectAuthApi: false,
-      learningOsDirectEpisodeApi: false,
-      learningOsDirectCourseApi: false,
-      learningOsDirectScriptApi: false,
-      learningOsDirectAdminApi: false,
-    });
-    expect(
-      getClientRuntimeConfig({
-        LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED: '1',
-      })
-    ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
-      learningOsDirectEpisodeApi: false,
-      learningOsDirectCourseApi: false,
-      learningOsDirectScriptApi: false,
-      learningOsDirectAdminApi: false,
-    });
-  });
-
-  it('enables direct email and password auth only for an explicit true value', () => {
-    expect(
-      getClientRuntimeConfig({
-        LEARNING_OS_DIRECT_AUTH_API_ENABLED: ' TRUE ',
-      })
-    ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: true,
-      learningOsDirectEpisodeApi: false,
-      learningOsDirectCourseApi: false,
-      learningOsDirectScriptApi: false,
-      learningOsDirectAdminApi: false,
-    });
-    expect(
-      getClientRuntimeConfig({
-        LEARNING_OS_DIRECT_AUTH_API_ENABLED: '1',
-      })
-    ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
-      learningOsDirectEpisodeApi: false,
-      learningOsDirectCourseApi: false,
-      learningOsDirectScriptApi: false,
-      learningOsDirectAdminApi: false,
-    });
-  });
-
   it('keeps direct episode traffic disabled unless explicitly enabled', () => {
     expect(
       getClientRuntimeConfig({
         LEARNING_OS_DIRECT_EPISODE_API_ENABLED: ' TRUE ',
       })
     ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
       learningOsDirectEpisodeApi: true,
       learningOsDirectCourseApi: false,
       learningOsDirectScriptApi: false,
@@ -99,8 +35,6 @@ describe('client runtime config', () => {
         LEARNING_OS_DIRECT_EPISODE_API_ENABLED: '1',
       })
     ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
       learningOsDirectEpisodeApi: false,
       learningOsDirectCourseApi: false,
       learningOsDirectScriptApi: false,
@@ -114,8 +48,6 @@ describe('client runtime config', () => {
         LEARNING_OS_DIRECT_COURSE_API_ENABLED: ' TRUE ',
       })
     ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
       learningOsDirectEpisodeApi: false,
       learningOsDirectCourseApi: true,
       learningOsDirectScriptApi: false,
@@ -126,8 +58,6 @@ describe('client runtime config', () => {
         LEARNING_OS_DIRECT_COURSE_API_ENABLED: '1',
       })
     ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
       learningOsDirectEpisodeApi: false,
       learningOsDirectCourseApi: false,
       learningOsDirectScriptApi: false,
@@ -141,8 +71,6 @@ describe('client runtime config', () => {
         LEARNING_OS_DIRECT_SCRIPT_API_ENABLED: ' TRUE ',
       })
     ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
       learningOsDirectEpisodeApi: false,
       learningOsDirectCourseApi: false,
       learningOsDirectScriptApi: true,
@@ -153,8 +81,6 @@ describe('client runtime config', () => {
         LEARNING_OS_DIRECT_SCRIPT_API_ENABLED: '1',
       })
     ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
       learningOsDirectEpisodeApi: false,
       learningOsDirectCourseApi: false,
       learningOsDirectScriptApi: false,
@@ -168,8 +94,6 @@ describe('client runtime config', () => {
         LEARNING_OS_DIRECT_ADMIN_API_ENABLED: ' TRUE ',
       })
     ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
       learningOsDirectEpisodeApi: false,
       learningOsDirectCourseApi: false,
       learningOsDirectScriptApi: false,
@@ -180,8 +104,6 @@ describe('client runtime config', () => {
         LEARNING_OS_DIRECT_ADMIN_API_ENABLED: '1',
       })
     ).toEqual({
-      learningOsDirectAccountApi: false,
-      learningOsDirectAuthApi: false,
       learningOsDirectEpisodeApi: false,
       learningOsDirectCourseApi: false,
       learningOsDirectScriptApi: false,
@@ -192,8 +114,6 @@ describe('client runtime config', () => {
   it('injects the runtime config before the closing head tag', () => {
     const html = '<html><head></head><body></body></html>';
     const injected = injectClientRuntimeConfig(html, {
-      learningOsDirectAccountApi: true,
-      learningOsDirectAuthApi: true,
       learningOsDirectEpisodeApi: true,
       learningOsDirectCourseApi: true,
       learningOsDirectScriptApi: true,
@@ -201,7 +121,7 @@ describe('client runtime config', () => {
     });
 
     expect(injected).toContain(
-      '<script>window.__CONVOLAB_RUNTIME_CONFIG__={"learningOsDirectAccountApi":true,"learningOsDirectAuthApi":true,"learningOsDirectEpisodeApi":true,"learningOsDirectCourseApi":true,"learningOsDirectScriptApi":true,"learningOsDirectAdminApi":true};</script>'
+      '<script>window.__CONVOLAB_RUNTIME_CONFIG__={"learningOsDirectEpisodeApi":true,"learningOsDirectCourseApi":true,"learningOsDirectScriptApi":true,"learningOsDirectAdminApi":true};</script>'
     );
     expect(injected).toContain('</head>');
   });

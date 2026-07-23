@@ -16,13 +16,10 @@ server {
     resolver 127.0.0.11 valid=5s ipv6=off;
     set $convolab_upstream http://__UPSTREAM_SERVICE__:3001;
     set $learning_os_upstream http://learning-os:8080;
-    set $direct_account_api_enabled __DIRECT_ACCOUNT_API_ENABLED__;
-    set $direct_auth_api_enabled __DIRECT_AUTH_API_ENABLED__;
     set $direct_episode_api_enabled __DIRECT_EPISODE_API_ENABLED__;
     set $direct_course_api_enabled __DIRECT_COURSE_API_ENABLED__;
     set $direct_script_api_enabled __DIRECT_SCRIPT_API_ENABLED__;
     set $direct_admin_api_enabled __DIRECT_ADMIN_API_ENABLED__;
-    set $direct_browser_api_flags "$direct_account_api_enabled$direct_auth_api_enabled$direct_episode_api_enabled$direct_course_api_enabled$direct_script_api_enabled$direct_admin_api_enabled";
 
     location = /nginx-health {
         access_log off;
@@ -31,9 +28,6 @@ server {
     }
 
     location = /sanctum/csrf-cookie {
-        if ($direct_browser_api_flags = "000000") {
-            return 404;
-        }
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -49,9 +43,6 @@ server {
     }
 
     location ^~ /api/convolab/auth/ {
-        if ($direct_account_api_enabled = 0) {
-            return 404;
-        }
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -68,9 +59,6 @@ server {
     }
 
     location ~ ^/api/convolab/browser/auth(?:/|$) {
-        if ($direct_auth_api_enabled = 0) {
-            return 404;
-        }
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -87,9 +75,6 @@ server {
     }
 
     location ~ ^/api/auth/password(?:/|$) {
-        if ($direct_auth_api_enabled = 0) {
-            return 404;
-        }
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

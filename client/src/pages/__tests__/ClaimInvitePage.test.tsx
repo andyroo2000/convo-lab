@@ -4,21 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ClaimInvitePage from '../ClaimInvitePage';
 
 const mocks = vi.hoisted(() => ({
-  navigate: vi.fn(),
   authApi: {
     claimInvite: '/api/convolab/browser/auth/google/invite',
-    claimInviteRequiresToken: false,
     claimInviteBody: (inviteCode: string) => ({ inviteCode }),
   },
 }));
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mocks.navigate,
-  };
-});
 
 vi.mock('../../lib/authApi', () => ({
   authApi: mocks.authApi,
@@ -36,7 +26,6 @@ describe('ClaimInvitePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.authApi.claimInvite = '/api/convolab/browser/auth/google/invite';
-    mocks.authApi.claimInviteRequiresToken = false;
     mocks.authApi.claimInviteBody = (inviteCode: string) => ({ inviteCode });
     vi.stubGlobal('fetch', vi.fn());
   });
@@ -63,20 +52,5 @@ describe('ClaimInvitePage', () => {
       });
     });
     expect(screen.getByText('Invalid invite code')).toBeInTheDocument();
-    expect(mocks.navigate).not.toHaveBeenCalled();
-  });
-
-  it('preserves the legacy token requirement while direct routing is disabled', () => {
-    mocks.authApi.claimInvite = '/api/auth/claim-invite';
-    mocks.authApi.claimInviteRequiresToken = true;
-    mocks.authApi.claimInviteBody = (inviteCode: string) => ({
-      inviteCode,
-      token: 'legacy-token',
-    });
-
-    renderPage();
-
-    expect(mocks.navigate).toHaveBeenCalledWith('/login?error=missing_token');
-    expect(screen.queryByLabelText('Invite Code')).not.toBeInTheDocument();
   });
 });

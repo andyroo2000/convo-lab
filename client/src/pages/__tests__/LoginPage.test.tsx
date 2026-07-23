@@ -71,7 +71,7 @@ describe('LoginPage', () => {
 
       expect(screen.getByTestId('auth-google-link')).toHaveAttribute(
         'href',
-        'http://localhost:3001/api/auth/google'
+        '/api/convolab/browser/auth/google'
       );
     });
 

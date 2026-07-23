@@ -33,12 +33,9 @@ describe('useQuota', () => {
 
     expect(result.current.quotaInfo).toEqual(mockQuotaData);
     expect(result.current.error).toBeNull();
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/auth/me/quota'),
-      expect.objectContaining({
-        credentials: 'include',
-      })
-    );
+    expect(mockFetch).toHaveBeenCalledWith('/api/convolab/auth/me/quota', {
+      credentials: 'include',
+    });
   });
 
   it('should set loading=true initially', () => {

@@ -37,6 +37,22 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      '/sanctum/csrf-cookie': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/convolab/auth': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/convolab/browser/auth': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/auth/password': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,

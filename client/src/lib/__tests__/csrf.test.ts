@@ -71,7 +71,7 @@ describe('csrf helpers', () => {
       .fn()
       .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === `${API_URL}/sanctum/csrf-cookie`) {
+        if (url === '/sanctum/csrf-cookie') {
           document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-token`;
           return { ok: true, status: 204 } as Response;
         }
@@ -83,15 +83,15 @@ describe('csrf helpers', () => {
       });
     vi.stubGlobal('fetch', fetchMock);
 
-    await fetchWithCsrf(`${API_URL}/api/convolab/auth/me`, {
+    await fetchWithCsrf('/api/convolab/auth/me', {
       method: 'DELETE',
       credentials: 'include',
       body: JSON.stringify({ current_password: 'password' }),
     });
 
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
-      `${API_URL}/sanctum/csrf-cookie`,
-      `${API_URL}/api/convolab/auth/me`,
+      '/sanctum/csrf-cookie',
+      '/api/convolab/auth/me',
     ]);
   });
 
@@ -101,7 +101,7 @@ describe('csrf helpers', () => {
       .fn()
       .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === `${API_URL}/sanctum/csrf-cookie`) {
+        if (url === '/sanctum/csrf-cookie') {
           document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-token`;
           return { ok: true, status: 204 } as Response;
         }
@@ -120,7 +120,7 @@ describe('csrf helpers', () => {
       });
     vi.stubGlobal('fetch', fetchMock);
 
-    await fetchWithCsrf(`${API_URL}/api/convolab/auth/me`, {
+    await fetchWithCsrf('/api/convolab/auth/me', {
       method: 'PATCH',
       credentials: 'include',
       body: '{}',
@@ -131,8 +131,8 @@ describe('csrf helpers', () => {
     });
 
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
-      `${API_URL}/sanctum/csrf-cookie`,
-      `${API_URL}/api/convolab/auth/me`,
+      '/sanctum/csrf-cookie',
+      '/api/convolab/auth/me',
       `${API_URL}/api/auth/csrf`,
       `${API_URL}/api/auth/logout`,
     ]);
@@ -198,7 +198,7 @@ describe('csrf helpers', () => {
       .fn()
       .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url === `${API_URL}/sanctum/csrf-cookie`) {
+        if (url === '/sanctum/csrf-cookie') {
           document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-token`;
           return { ok: true, status: 204 } as Response;
         }
@@ -211,7 +211,7 @@ describe('csrf helpers', () => {
     vi.stubGlobal('fetch', originalFetch);
 
     installCsrfFetch();
-    await fetch(`${API_URL}/api/auth/password/forgot`, {
+    await fetch('/api/auth/password/forgot', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -219,8 +219,8 @@ describe('csrf helpers', () => {
     });
 
     expect(originalFetch.mock.calls.map(([input]) => String(input))).toEqual([
-      `${API_URL}/sanctum/csrf-cookie`,
-      `${API_URL}/api/auth/password/forgot`,
+      '/sanctum/csrf-cookie',
+      '/api/auth/password/forgot',
     ]);
   });
 

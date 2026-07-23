@@ -11,8 +11,6 @@ import {
 
 vi.mock('../../config', () => ({
   API_URL: '',
-  LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED: true,
-  LEARNING_OS_DIRECT_AUTH_API_ENABLED: true,
   SHOW_ONBOARDING_WELCOME: false,
 }));
 

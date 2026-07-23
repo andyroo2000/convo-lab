@@ -25,6 +25,10 @@ const CSRF_PROVIDERS: Record<CsrfProvider, { bootstrapPath: string; headerName: 
   },
 };
 
+function getCsrfProviderBaseUrl(provider: CsrfProvider): string {
+  return provider === 'learning-os' ? '' : API_URL;
+}
+
 let csrfBootstrap: {
   provider: CsrfProvider;
   promise: Promise<string | null>;
@@ -54,9 +58,13 @@ function readCookieValue(name: string): string | null {
   return decodeURIComponent(match.slice(cookiePrefix.length));
 }
 
-function getApiOrigin(): string {
+function getApiOrigin(provider: CsrfProvider): string {
   if (typeof window === 'undefined') {
     return 'http://localhost';
+  }
+
+  if (provider === 'learning-os') {
+    return window.location.origin;
   }
 
   if (!API_URL) {
@@ -149,7 +157,7 @@ function shouldAttachCsrfToken(input: RequestInfo | URL, init?: RequestInit): bo
     return false;
   }
 
-  return url.origin === getApiOrigin();
+  return url.origin === getApiOrigin(getCsrfProvider(url));
 }
 
 async function bootstrapCsrfToken(
@@ -164,10 +172,13 @@ async function bootstrapCsrfToken(
 
   if (!csrfBootstrap || csrfBootstrap.provider !== provider) {
     const promise = (async () => {
-      const response = await originalFetch(`${API_URL}${CSRF_PROVIDERS[provider].bootstrapPath}`, {
-        method: 'GET',
-        credentials: 'include',
-      });
+      const response = await originalFetch(
+        `${getCsrfProviderBaseUrl(provider)}${CSRF_PROVIDERS[provider].bootstrapPath}`,
+        {
+          method: 'GET',
+          credentials: 'include',
+        }
+      );
 
       if (!response.ok) {
         return null;
