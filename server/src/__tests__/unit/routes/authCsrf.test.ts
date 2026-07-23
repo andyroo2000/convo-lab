@@ -37,10 +37,6 @@ vi.mock('../../../db/client.js', () => ({
   },
 }));
 
-vi.mock('../../../services/oauth.js', () => ({
-  revokeGoogleTokens: vi.fn(),
-}));
-
 vi.mock('../../../services/usageTracker.js', () => ({
   checkGenerationLimit: vi.fn(),
   checkCooldown: vi.fn(),

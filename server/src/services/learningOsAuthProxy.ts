@@ -36,6 +36,24 @@ export interface LearningOsCurrentAccount extends LearningOsLoginAccount {
   seenCustomContentGuide: boolean;
 }
 
+export interface LearningOsGoogleAccount extends LearningOsCurrentAccount {
+  avatarUrl: string | null;
+}
+
+export interface LearningOsGoogleIdentityInput {
+  providerId: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface LearningOsGoogleIdentityResult {
+  user: LearningOsGoogleAccount;
+  requiresInvite: boolean;
+  created: boolean;
+}
+
 export interface LearningOsSignupInput {
   email: string;
   password: string;
@@ -298,6 +316,138 @@ export async function registerLearningOsAccount(
   return adaptAccount(body, false);
 }
 
+export async function resolveLearningOsGoogleIdentity(
+  input: LearningOsGoogleIdentityInput
+): Promise<LearningOsGoogleIdentityResult> {
+  const { config, user } = await resolveLearningOsServiceProxyContext(API_LABEL);
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/google`),
+    apiToken: config.apiToken,
+    user,
+    method: 'POST',
+    body: input,
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+  const body = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    if (response.status === 409 && isGoogleIdentityConflict(body)) {
+      throw new AppError(body.message, 409);
+    }
+    if (response.status === 422 && isOAuthFailure(body, 'unverified_email')) {
+      throw new AppError('Google did not provide a verified email address', 400);
+    }
+    if (response.status === 429) {
+      throw rateLimitError(response, 'Too many Google sign-in attempts.');
+    }
+    throw upstreamFailure(response.status);
+  }
+
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw invalidResponse();
+  }
+  const result = body as Record<string, unknown>;
+  if (typeof result.requiresInvite !== 'boolean' || typeof result.created !== 'boolean') {
+    throw invalidResponse();
+  }
+
+  return {
+    user: adaptGoogleAccount(result.user),
+    requiresInvite: result.requiresInvite,
+    created: result.created,
+  };
+}
+
+export async function claimLearningOsGoogleInvite(
+  userId: string,
+  inviteCode: string,
+  sessionIdentity?: LearningOsSessionIdentity
+): Promise<LearningOsGoogleAccount> {
+  const { config, user } = await resolveLearningOsUserProxyContext(
+    userId,
+    API_LABEL,
+    sessionIdentity
+  );
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/google/invite`),
+    apiToken: config.apiToken,
+    user,
+    method: 'POST',
+    body: { inviteCode },
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+  const body = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    if (isOAuthFailure(body, 'invalid_invite') && response.status === 400) {
+      throw new AppError('Invalid invite code', 400);
+    }
+    if (isOAuthFailure(body, 'used_invite') && response.status === 400) {
+      throw new AppError('This invite code has already been used', 400);
+    }
+    if (isOAuthFailure(body, 'invite_already_claimed') && response.status === 409) {
+      throw new AppError(body.message, 409);
+    }
+    if (response.status === 404) {
+      throw new AppError('User not found', 404);
+    }
+    if (response.status === 422) {
+      throw new AppError('Invalid invite code', 400);
+    }
+    if (response.status === 429) {
+      throw rateLimitError(response, 'Too many invite claim attempts.');
+    }
+    throw upstreamFailure(response.status);
+  }
+
+  return adaptGoogleAccount(body);
+}
+
+export async function disconnectLearningOsGoogleIdentity(
+  userId: string,
+  sessionIdentity?: LearningOsSessionIdentity
+): Promise<void> {
+  const { config, user } = await resolveLearningOsUserProxyContext(
+    userId,
+    API_LABEL,
+    sessionIdentity
+  );
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/google`),
+    apiToken: config.apiToken,
+    user,
+    method: 'DELETE',
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+  const body = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    if (response.status === 404 && isOAuthFailure(body, 'identity_not_found')) {
+      throw new AppError('No Google account connected', 404);
+    }
+    if (response.status === 429) {
+      throw rateLimitError(response, 'Too many Google disconnect attempts.');
+    }
+    throw upstreamFailure(response.status);
+  }
+
+  if (
+    !body ||
+    typeof body !== 'object' ||
+    Array.isArray(body) ||
+    (body as Record<string, unknown>).success !== true ||
+    (body as Record<string, unknown>).message !== 'Google account disconnected'
+  ) {
+    throw invalidResponse();
+  }
+}
+
 export async function sendLearningOsVerificationEmail(
   userId: string,
   sessionIdentity?: LearningOsSessionIdentity
@@ -522,6 +672,34 @@ function isSignupFailure(
   );
 }
 
+function isOAuthFailure(
+  value: unknown,
+  reason?: string
+): value is { message: string; reason: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const response = value as Record<string, unknown>;
+  return (
+    typeof response.message === 'string' &&
+    typeof response.reason === 'string' &&
+    (reason === undefined || response.reason === reason)
+  );
+}
+
+function isGoogleIdentityConflict(value: unknown): value is {
+  message: string;
+  reason:
+    | 'identity_already_connected'
+    | 'existing_account_unverified'
+    | 'identity_resolution_conflict';
+} {
+  return (
+    isOAuthFailure(value) &&
+    (value.reason === 'identity_already_connected' ||
+      value.reason === 'existing_account_unverified' ||
+      value.reason === 'identity_resolution_conflict')
+  );
+}
+
 type SignupFailureReason =
   | 'invalid_invite'
   | 'used_invite'
@@ -620,6 +798,21 @@ function adaptAccount(
         seenCustomContentGuide: account.seenCustomContentGuide as boolean,
       }
     : result;
+}
+
+function adaptGoogleAccount(value: unknown): LearningOsGoogleAccount {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw invalidResponse();
+  }
+  const account = value as Record<string, unknown>;
+  if (!isNullableStringWithin(account.avatarUrl, 2048)) {
+    throw invalidResponse();
+  }
+
+  return {
+    ...adaptAccount(value, true),
+    avatarUrl: account.avatarUrl,
+  };
 }
 
 function isBoundedString(value: unknown, maxLength: number): value is string {

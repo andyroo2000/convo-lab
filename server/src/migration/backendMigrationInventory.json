@@ -50,13 +50,24 @@
         },
         { "id": "auth.quota.show", "method": "GET", "path": "/api/auth/me/quota" },
         { "id": "auth.google.start", "method": "GET", "path": "/api/auth/google" },
-        { "id": "auth.google.callback", "method": "GET", "path": "/api/auth/google/callback" },
+        {
+          "id": "auth.google.callback",
+          "method": "GET",
+          "path": "/api/auth/google/callback",
+          "runtimeOwner": "learning-os-proxy"
+        },
         {
           "id": "auth.google.disconnect",
           "method": "POST",
-          "path": "/api/auth/disconnect/google"
+          "path": "/api/auth/disconnect/google",
+          "runtimeOwner": "learning-os-proxy"
         },
-        { "id": "auth.invite.claim", "method": "POST", "path": "/api/auth/claim-invite" }
+        {
+          "id": "auth.invite.claim",
+          "method": "POST",
+          "path": "/api/auth/claim-invite",
+          "runtimeOwner": "learning-os-proxy"
+        }
       ]
     },
     {

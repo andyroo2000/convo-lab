@@ -453,6 +453,7 @@ jobs:
                   "auth:write",
                   "auth:signup",
                   "auth:verification",
+                  "auth:oauth",
                 ]);
                 echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
                 echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
