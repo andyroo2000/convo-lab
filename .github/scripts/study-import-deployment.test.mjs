@@ -777,6 +777,38 @@ test('legacy local TTS and audio-processing utilities stay retired', async () =>
   }
 });
 
+test('legacy content LLM wrappers stay retired behind Learning OS', async () => {
+  const [serverPackage, pitchAccentLlm, speakerAvatars, voiceAvatarPortraits] =
+    await Promise.all([
+      readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8').then(JSON.parse),
+      readFile(
+        path.join(repositoryRoot, 'server/src/services/pitchAccent/pitchAccentLlm.ts'),
+        'utf8'
+      ),
+      readFile(path.join(repositoryRoot, 'server/scripts/generate-speaker-avatars.ts'), 'utf8'),
+      readFile(
+        path.join(repositoryRoot, 'server/scripts/generate-voice-avatar-portraits.ts'),
+        'utf8'
+      ),
+    ]);
+  const retiredPaths = [
+    'server/src/services/geminiClient.ts',
+    'server/src/services/coreLlmClient.ts',
+    'server/scripts/fix-dialogue-readings.ts',
+    'server/src/__tests__/unit/services/geminiClient.test.ts',
+    'server/src/__tests__/unit/services/coreLlmClient.test.ts',
+  ];
+
+  assert.equal(serverPackage.dependencies['@google/generative-ai'], undefined);
+  assert.match(pitchAccentLlm, /generateOpenAIResponseText/);
+  assert.match(speakerAvatars, /generateOpenAIImageBuffer/);
+  assert.match(voiceAvatarPortraits, /generateOpenAIImageBuffer/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
