@@ -58,7 +58,11 @@ vi.mock('../../../middleware/emailVerification.js', () => ({
   requireEmailVerified: mocks.requireEmailVerified,
 }));
 vi.mock('../../../middleware/rateLimit.js', () => ({
-  rateLimitGeneration: vi.fn(() => mocks.courseRateLimit),
+  rateLimitLegacyGeneration: vi.fn(
+    (_contentType: string, isLearningOsProxyEnabled: () => boolean) =>
+      (req: AuthRequest, res: Response, next: NextFunction) =>
+        isLearningOsProxyEnabled() ? next() : mocks.courseRateLimit(req, res, next)
+  ),
 }));
 vi.mock('../../../services/coreLlmClient.js', () => ({ generateCoreLlmText: vi.fn() }));
 vi.mock('../../../services/usageTracker.js', () => ({ logGeneration: mocks.logGeneration }));
@@ -419,11 +423,11 @@ describe('Courses Routes Integration', () => {
     );
     expect(mockPrisma.course.findFirst).not.toHaveBeenCalled();
     expect(mockCourseQueue.add).not.toHaveBeenCalled();
-    expect(mocks.logGeneration).toHaveBeenCalledWith('actor-user-id', 'course', 'course-id');
+    expect(mocks.logGeneration).not.toHaveBeenCalled();
     expect(mocks.blockDemoUser).toHaveBeenCalledOnce();
     if (operation === 'generate') {
       expect(mocks.requireEmailVerified).toHaveBeenCalledOnce();
-      expect(mocks.courseRateLimit).toHaveBeenCalledOnce();
+      expect(mocks.courseRateLimit).not.toHaveBeenCalled();
     }
   });
 

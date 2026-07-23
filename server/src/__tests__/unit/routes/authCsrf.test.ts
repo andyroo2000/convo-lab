@@ -37,11 +37,6 @@ vi.mock('../../../db/client.js', () => ({
   },
 }));
 
-vi.mock('../../../services/usageTracker.js', () => ({
-  checkGenerationLimit: vi.fn(),
-  checkCooldown: vi.fn(),
-}));
-
 describe('Auth route CSRF', () => {
   const originalEnv = process.env;
 

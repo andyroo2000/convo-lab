@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   deleteLearningOsCurrentAccount: vi.fn(),
   disconnectLearningOsGoogleIdentity: vi.fn(),
   getLearningOsCurrentAccount: vi.fn(),
+  getLearningOsGenerationQuota: vi.fn(),
   registerLearningOsAccount: vi.fn(),
   updateLearningOsCurrentAccount: vi.fn(),
   prismaFindUnique: vi.fn(),
@@ -79,12 +80,9 @@ vi.mock('../../../services/learningOsAuthProxy.js', () => ({
   deleteLearningOsCurrentAccount: mocks.deleteLearningOsCurrentAccount,
   disconnectLearningOsGoogleIdentity: mocks.disconnectLearningOsGoogleIdentity,
   getLearningOsCurrentAccount: mocks.getLearningOsCurrentAccount,
+  getLearningOsGenerationQuota: mocks.getLearningOsGenerationQuota,
   registerLearningOsAccount: mocks.registerLearningOsAccount,
   updateLearningOsCurrentAccount: mocks.updateLearningOsCurrentAccount,
-}));
-vi.mock('../../../services/usageTracker.js', () => ({
-  checkGenerationLimit: vi.fn(),
-  checkCooldown: vi.fn(),
 }));
 
 const loginAccount = {
@@ -121,6 +119,16 @@ describe('Auth Learning OS routing', () => {
     mocks.deleteLearningOsCurrentAccount.mockResolvedValue(undefined);
     mocks.disconnectLearningOsGoogleIdentity.mockResolvedValue(undefined);
     mocks.getLearningOsCurrentAccount.mockResolvedValue(currentAccount);
+    mocks.getLearningOsGenerationQuota.mockResolvedValue({
+      unlimited: false,
+      quota: {
+        used: 7,
+        limit: 30,
+        remaining: 23,
+        resetsAt: '2026-08-01T00:00:00.000Z',
+      },
+      cooldown: { active: false, remainingSeconds: 0 },
+    });
     mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
     mocks.updateLearningOsCurrentAccount.mockResolvedValue(currentAccount);
     mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id });
@@ -371,6 +379,42 @@ describe('Auth Learning OS routing', () => {
         cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`)
       )
     ).toBe(true);
+  });
+
+  it('loads generation quota from Learning OS without consulting Prisma', async () => {
+    const response = await request(app).get('/api/auth/me/quota').expect(200);
+
+    expect(response.body).toEqual({
+      unlimited: false,
+      quota: {
+        used: 7,
+        limit: 30,
+        remaining: 23,
+        resetsAt: '2026-08-01T00:00:00.000Z',
+      },
+      cooldown: { active: false, remainingSeconds: 0 },
+    });
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(mocks.getLearningOsGenerationQuota).toHaveBeenCalledWith(loginAccount.id, {
+      userId: loginAccount.id,
+      email: loginAccount.email,
+      role: loginAccount.role,
+      accountSource: 'learning-os',
+    });
+    expect(mocks.prismaFindUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns canonical quota proxy failures through the normal API envelope', async () => {
+    mocks.getLearningOsGenerationQuota.mockRejectedValueOnce(
+      new AppError('Learning OS Auth API request failed.', 502)
+    );
+
+    const response = await request(app).get('/api/auth/me/quota').expect(502);
+
+    expect(response.body.error).toMatchObject({
+      message: 'Learning OS Auth API request failed.',
+      statusCode: 502,
+    });
   });
 
   it('updates profile through Learning OS without invoking legacy persistence or sample copy', async () => {

@@ -83,15 +83,13 @@ describe('backend migration inventory', () => {
         .map((route) => route.id)
     );
 
-    expect(expressRouteIds).toEqual([
-      'auth.logout',
-      'auth.csrf',
-      'auth.quota.show',
-      'auth.google.start',
-    ]);
+    expect(expressRouteIds).toEqual(['auth.logout', 'auth.csrf', 'auth.google.start']);
   });
 
   it('resolves concrete dynamic paths to stable inventory routes', () => {
+    expect(findBackendMigrationRoute('GET', '/api/auth/me/quota')).toMatchObject({
+      route: { id: 'auth.quota.show', runtimeOwner: 'learning-os-proxy' },
+    });
     expect(findBackendMigrationRoute('GET', '/api/auth/google/callback')).toMatchObject({
       route: { id: 'auth.google.callback', runtimeOwner: 'learning-os-proxy' },
     });

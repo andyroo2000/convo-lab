@@ -40,7 +40,11 @@ vi.mock('../../../middleware/emailVerification.js', () => ({
   requireEmailVerified: mocks.requireEmailVerified,
 }));
 vi.mock('../../../middleware/rateLimit.js', () => ({
-  rateLimitGeneration: vi.fn(() => mocks.dialogueRateLimit),
+  rateLimitLegacyGeneration: vi.fn(
+    (_contentType: string, isLearningOsProxyEnabled: () => boolean) =>
+      (req: AuthRequest, res: Response, next: NextFunction) =>
+        isLearningOsProxyEnabled() ? next() : mocks.dialogueRateLimit(req, res, next)
+  ),
 }));
 vi.mock('../../../services/usageTracker.js', () => ({ logGeneration: mocks.logGeneration }));
 vi.mock('../../../services/workerTrigger.js', () => ({
@@ -149,6 +153,7 @@ describe('Dialogue routes', () => {
       ...generateBody(),
     });
     expect(mocks.logGeneration).toHaveBeenCalledWith('actor-user-id', 'dialogue', EPISODE_ID);
+    expect(mocks.dialogueRateLimit).toHaveBeenCalledOnce();
     expect(mocks.triggerWorkerJob).toHaveBeenCalledOnce();
     expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
   });
@@ -212,9 +217,9 @@ describe('Dialogue routes', () => {
     });
     expect(mockDialogueQueue.add).not.toHaveBeenCalled();
     expect(mocks.triggerWorkerJob).not.toHaveBeenCalled();
-    expect(mocks.logGeneration).toHaveBeenCalledWith('actor-user-id', 'dialogue', EPISODE_ID);
+    expect(mocks.logGeneration).not.toHaveBeenCalled();
     expect(mocks.requireEmailVerified).toHaveBeenCalledOnce();
-    expect(mocks.dialogueRateLimit).toHaveBeenCalledOnce();
+    expect(mocks.dialogueRateLimit).not.toHaveBeenCalled();
     expect(mocks.blockDemoUser).toHaveBeenCalledOnce();
   });
 

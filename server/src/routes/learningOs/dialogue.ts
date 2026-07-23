@@ -6,7 +6,6 @@ import {
   fetchLearningOsProxy,
   resolveLearningOsProxyContext,
 } from '../../services/learningOsProxy.js';
-import { logGeneration } from '../../services/usageTracker.js';
 
 const API_LABEL = 'Learning OS Dialogue API';
 const FETCH_TIMEOUT_MS = 10_000;
@@ -156,12 +155,6 @@ export async function generateLearningOsDialogue(
       throw new AppError(`${API_LABEL} returned an invalid generate response.`, 502);
     }
 
-    const episodeId = isJsonRecord(req.body) ? req.body.episodeId : undefined;
-    if (typeof episodeId !== 'string') {
-      throw new AppError(`${API_LABEL} accepted a request without an episode identifier.`, 502);
-    }
-
-    await logGeneration(req.userId!, 'dialogue', episodeId);
     res.json(payload);
   } catch (error) {
     next(error);

@@ -91,3 +91,23 @@ export function rateLimitGeneration(contentType: ContentType) {
     }
   };
 }
+
+/**
+ * Retains the legacy limiter only for the rollback handler. Proxied requests are
+ * reserved and recorded atomically by Learning OS.
+ */
+export function rateLimitLegacyGeneration(
+  contentType: ContentType,
+  isLearningOsProxyEnabled: () => boolean
+) {
+  const legacyLimiter = rateLimitGeneration(contentType);
+
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (isLearningOsProxyEnabled()) {
+      next();
+      return;
+    }
+
+    return legacyLimiter(req, res, next);
+  };
+}
