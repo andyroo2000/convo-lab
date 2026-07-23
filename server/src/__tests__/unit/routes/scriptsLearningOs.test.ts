@@ -1,7 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
 import express, { type NextFunction, type Request, type Response } from 'express';
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
@@ -9,32 +9,13 @@ import scriptsRouter from '../../../routes/scripts.js';
 
 const mocks = vi.hoisted(() => ({
   fetchLearningOsProxy: vi.fn(),
-  legacyMediaAccess: vi.fn(),
-  logGeneration: vi.fn(),
   resolveLearningOsProxyContext: vi.fn(),
-  scriptRateLimit: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
 }));
 
-vi.mock('../../../jobs/audioScriptQueue.js', () => ({
-  audioScriptQueue: { add: vi.fn(), getJob: vi.fn() },
-}));
-vi.mock('../../../jobs/imageQueue.js', () => ({ imageQueue: { add: vi.fn() } }));
-vi.mock('../../../services/audioScriptService.js', () => ({
-  annotateAudioScript: vi.fn(),
-  createAudioScript: vi.fn(),
-  getAudioScriptStatus: vi.fn(),
-  toAudioScriptResponse: vi.fn((script) => script),
-  updateAudioScriptSegments: vi.fn(),
-}));
-vi.mock('../../../services/audioScriptMediaService.js', () => ({
-  getAudioScriptMediaAccess: mocks.legacyMediaAccess,
-}));
 vi.mock('../../../services/learningOsProxy.js', () => ({
   fetchLearningOsProxy: mocks.fetchLearningOsProxy,
   resolveLearningOsProxyContext: mocks.resolveLearningOsProxyContext,
 }));
-vi.mock('../../../services/usageTracker.js', () => ({ logGeneration: mocks.logGeneration }));
-vi.mock('../../../services/workerTrigger.js', () => ({ triggerWorkerJob: vi.fn() }));
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: (req: Request, _res: Response, next: NextFunction) => {
     (req as AuthRequest).userId = USER_ID;
@@ -48,12 +29,6 @@ vi.mock('../../../middleware/emailVerification.js', () => ({
 vi.mock('../../../middleware/demoAuth.js', () => ({
   blockDemoUser: (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
-vi.mock('../../../middleware/rateLimit.js', () => ({
-  rateLimitLegacyGeneration:
-    (_contentType: string, isLearningOsProxyEnabled: () => boolean) =>
-    (req: Request, res: Response, next: NextFunction) =>
-      isLearningOsProxyEnabled() ? next() : mocks.scriptRateLimit(req, res, next),
-}));
 vi.mock('../../../middleware/studyRateLimit.js', () => ({
   rateLimitStudyRoute: () => (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
@@ -65,7 +40,6 @@ const SEGMENT_ID = '019c8e82-f73f-78e8-96e8-c5b462053ee0';
 const MEDIA_ID = '019c8e83-f73f-78e8-96e8-c5b462053ee0';
 const RENDER_ID = '019c8e84-f73f-78e8-96e8-c5b462053ee0';
 const JOB_ID = '019c8e85-f73f-78e8-96e8-c5b462053ee0';
-const originalScriptProxyEnabled = process.env.LEARNING_OS_SCRIPT_PROXY_ENABLED;
 
 const upstreamJson = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new globalThis.Response(JSON.stringify(body), {
@@ -148,24 +122,14 @@ describe('Learning OS script routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.LEARNING_OS_SCRIPT_PROXY_ENABLED = 'true';
     mocks.resolveLearningOsProxyContext.mockResolvedValue({
       config: { apiUrl: 'http://learning-os.test', apiToken: 'proxy-token' },
       user: { id: USER_ID, email: 'learner@example.com', role: 'user' },
     });
-    mocks.logGeneration.mockResolvedValue(undefined);
     app = express();
     app.use(express.json());
     app.use('/api/scripts', scriptsRouter);
     app.use(errorHandler);
-  });
-
-  afterAll(() => {
-    if (originalScriptProxyEnabled === undefined) {
-      delete process.env.LEARNING_OS_SCRIPT_PROXY_ENABLED;
-    } else {
-      process.env.LEARNING_OS_SCRIPT_PROXY_ENABLED = originalScriptProxyEnabled;
-    }
   });
 
   it('allowlists create fields and leaves quota ownership with Learning OS', async () => {
@@ -191,8 +155,6 @@ describe('Learning OS script routes', () => {
     });
     expect(response.body.audioScript.segments).toEqual([]);
     expect(response.body.audioScript.renders).toEqual([]);
-    expect(mocks.logGeneration).not.toHaveBeenCalled();
-    expect(mocks.scriptRateLimit).not.toHaveBeenCalled();
   });
 
   it('routes annotation and segment updates with operation-specific bodies and timeouts', async () => {
@@ -351,21 +313,5 @@ describe('Learning OS script routes', () => {
     );
     const response = await request(app).get(`/api/scripts/job/${JOB_ID}`).expect(502);
     expect(response.body.error.message).not.toContain('Token details');
-  });
-
-  it('keeps legacy media handling available until the rollout switch is enabled', async () => {
-    process.env.LEARNING_OS_SCRIPT_PROXY_ENABLED = 'false';
-    mocks.legacyMediaAccess.mockResolvedValue({
-      type: 'redirect',
-      redirectUrl: 'https://storage.example.com/legacy.webp',
-      contentType: 'image/webp',
-      contentDisposition: 'inline',
-      filename: 'legacy.webp',
-    });
-
-    const response = await request(app).get('/api/scripts/media/legacy-media').expect(302);
-
-    expect(response.headers.location).toBe('https://storage.example.com/legacy.webp');
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
   });
 });

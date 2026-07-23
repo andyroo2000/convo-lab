@@ -27,8 +27,8 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 
 ### Generation Limits
 
-- Authenticated users share one monthly generation limit across content types
-- Configure the limit with `MONTHLY_GENERATION_LIMIT` (defaults to `30`)
+- Learning OS enforces the shared monthly generation limit and cooldown
+- ConvoLab reports the canonical quota returned by the Learning OS API
 - Admin users have unlimited access
 
 ## Tech Stack

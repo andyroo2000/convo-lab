@@ -433,7 +433,7 @@ test('the production stack wires and smokes Learning OS static media', async () 
   }
 });
 
-test('route proxies activate only through rollback-safe production rehearsals', async () => {
+test('generation routes are permanently proxied and production rehearsals cover them', async () => {
   const [localCompose, stageCompose, productionCompose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
@@ -441,95 +441,18 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
   ]);
 
-  assert.match(
-    localCompose,
-    /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
-  );
-  assert.match(
-    localCompose,
-    /LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
-  );
-  assert.match(localCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
-  assert.match(localCompose, /LEARNING_OS_SCRIPT_PROXY_ENABLED:\s*['"]false['"]/);
-  assert.doesNotMatch(
-    localCompose,
-    /LEARNING_OS_(AUTH|PROFILE|SIGNUP|VERIFICATION)_PROXY_ENABLED/
-  );
-  assert.match(
-    stageCompose,
-    /LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
-  );
-  assert.match(
-    stageCompose,
-    /LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:\s*['"]false['"]/
-  );
-  assert.match(stageCompose, /LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:\s*['"]false['"]/);
-  assert.match(stageCompose, /LEARNING_OS_SCRIPT_PROXY_ENABLED:\s*['"]false['"]/);
-  assert.doesNotMatch(
-    stageCompose,
-    /LEARNING_OS_(AUTH|PROFILE|SIGNUP|VERIFICATION)_PROXY_ENABLED/
-  );
-  assert.ok(
-    productionCompose.includes(
-      'LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED:-false}'
-    )
-  );
-  assert.ok(
-    productionCompose.includes(
-      'LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED: ${LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED:-false}'
-    )
-  );
-  assert.ok(
-    productionCompose.includes(
-      'LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED: ${LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED:-false}'
-    )
-  );
-  assert.ok(
-    productionCompose.includes(
-      'LEARNING_OS_SCRIPT_PROXY_ENABLED: ${LEARNING_OS_SCRIPT_PROXY_ENABLED:-false}'
-    )
-  );
-  const retiredIdentityProxyFlags = /LEARNING_OS_(AUTH|PROFILE|SIGNUP|VERIFICATION)_PROXY_ENABLED/;
-  assert.doesNotMatch(productionCompose, retiredIdentityProxyFlags);
-  assert.doesNotMatch(workflow, retiredIdentityProxyFlags);
+  const retiredProxyFlags =
+    /LEARNING_OS_(?:COURSE_GENERATION|DIALOGUE_GENERATION|AUDIO_GENERATION|SCRIPT|AUTH|PROFILE|SIGNUP|VERIFICATION)_PROXY_ENABLED/;
+  for (const source of [localCompose, stageCompose, productionCompose, workflow]) {
+    assert.doesNotMatch(source, retiredProxyFlags);
+  }
+  assert.doesNotMatch(stageCompose, /MONTHLY_GENERATION_LIMIT/);
+  assert.doesNotMatch(productionCompose, /MONTHLY_GENERATION_LIMIT/);
+
   for (const requiredContract of [
     '"content:write"',
-    'ROUTE_PROXY_CUTOVER_STARTED=false',
-    'PREVIOUS_COURSE_GENERATION_PROXY_ENABLED=false',
-    'PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED=false',
-    'PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED=false',
-    'PREVIOUS_SCRIPT_PROXY_ENABLED=false',
-    'previous_course_generation_proxy="$(sed -n',
-    'previous_dialogue_generation_proxy="$(sed -n',
-    'previous_audio_generation_proxy="$(sed -n',
-    'previous_script_proxy="$(sed -n',
-    'Rolling back the Learning OS route proxies.',
-    'course_generation_proxy_restore_ok=true',
-    'dialogue_generation_proxy_restore_ok=true',
-    'audio_generation_proxy_restore_ok=true',
-    'script_proxy_restore_ok=true',
-    '|| course_generation_proxy_restore_ok=false',
-    '|| dialogue_generation_proxy_restore_ok=false',
-    '|| audio_generation_proxy_restore_ok=false',
-    '|| script_proxy_restore_ok=false',
-    'if [ "$course_generation_proxy_restore_ok" != true ]',
-    '|| [ "$dialogue_generation_proxy_restore_ok" != true ]',
-    '|| [ "$audio_generation_proxy_restore_ok" != true ]',
-    '|| [ "$script_proxy_restore_ok" != true ]',
-    '::error::Failed to restore the route proxy environment values.',
-    '::error::Failed to recreate the production server while rolling back route proxies.',
-    '::error::The production server was unhealthy after rolling back route proxies.',
-    '::error::The production server retained a route proxy after rollback.',
     'if [ "$cleanup_failed" = true ]; then',
-    'upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true',
-    'upsert_env LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED true',
-    'upsert_env LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED true',
-    'upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true',
-    "| sed -n 's/^LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED=//p'",
-    'test "$active_course_generation_proxy" = true',
-    'test "$active_dialogue_generation_proxy" = true',
-    'test "$active_audio_generation_proxy" = true',
-    'test "$active_script_proxy" = true',
+    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
     '"auth:login"',
     '"auth:read"',
     '"auth:write"',
@@ -608,15 +531,14 @@ test('route proxies activate only through rollback-safe production rehearsals', 
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
-      `Missing course-generation activation contract: ${requiredContract}`
+      `Missing permanent generation proxy contract: ${requiredContract}`
     );
   }
 
   const tokenScope = workflow.indexOf('"content:write"');
-  const cutover = workflow.indexOf(
-    'upsert_env LEARNING_OS_COURSE_GENERATION_PROXY_ENABLED true'
+  const serverRestart = workflow.indexOf(
+    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"'
   );
-  const activeFlagCheck = workflow.indexOf('test "$active_course_generation_proxy" = true');
   const fixtureInsert = workflow.indexOf(
     'Illuminate\\Support\\Facades\\DB::table("content_courses")->insert'
   );
@@ -627,60 +549,25 @@ test('route proxies activate only through rollback-safe production rehearsals', 
     'cleanup_course_generation_smoke',
     workflow.indexOf('Course generation Learning OS write smoke check passed.')
   );
-  const activationCommit = workflow.indexOf(
-    'ROUTE_PROXY_CUTOVER_STARTED=false',
-    workflow.indexOf('verify_study_api')
-  );
 
   assert.ok(tokenScope >= 0);
-  assert.ok(tokenScope < cutover);
-  assert.ok(cutover < activeFlagCheck);
-  assert.ok(activeFlagCheck < csrfTokenInitialization);
+  assert.ok(tokenScope < serverRestart);
+  assert.ok(serverRestart < csrfTokenInitialization);
   assert.ok(csrfTokenInitialization < fixtureInsert);
-  assert.ok(activeFlagCheck < fixtureInsert);
   assert.ok(fixtureInsert < publicReset);
   assert.ok(publicReset < statusCheck);
   assert.ok(statusCheck < successCleanup);
-  assert.ok(successCleanup < activationCommit);
 
   const fixtureInserted = workflow.indexOf('course_generation_smoke_inserted=true');
-  assert.ok(activeFlagCheck < fixtureInserted);
+  assert.ok(serverRestart < fixtureInserted);
   assert.ok(fixtureInserted < fixtureInsert);
 
   const failureCleanup = workflow.slice(
     workflow.indexOf('cleanup_deployment_resources() {'),
     workflow.indexOf('trap cleanup_deployment_resources EXIT')
   );
-  assert.ok(failureCleanup.includes('ROUTE_PROXY_CUTOVER_STARTED'));
-  assert.ok(failureCleanup.includes('PREVIOUS_COURSE_GENERATION_PROXY_ENABLED'));
-  assert.ok(failureCleanup.includes('PREVIOUS_DIALOGUE_GENERATION_PROXY_ENABLED'));
-  assert.ok(failureCleanup.includes('PREVIOUS_AUDIO_GENERATION_PROXY_ENABLED'));
-  assert.ok(failureCleanup.includes('PREVIOUS_SCRIPT_PROXY_ENABLED'));
-  assert.ok(
-    failureCleanup.indexOf('|| course_generation_proxy_restore_ok=false') <
-      failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED')
-  );
-  assert.ok(
-    failureCleanup.indexOf('LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED') <
-      failureCleanup.indexOf('|| dialogue_generation_proxy_restore_ok=false')
-  );
-  assert.ok(
-    failureCleanup.indexOf('LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED') <
-      failureCleanup.indexOf('|| audio_generation_proxy_restore_ok=false')
-  );
-  assert.ok(
-    failureCleanup.indexOf('LEARNING_OS_SCRIPT_PROXY_ENABLED') <
-      failureCleanup.indexOf('|| script_proxy_restore_ok=false')
-  );
-  assert.ok(
-    failureCleanup.indexOf('cleanup_profile_smoke best-effort') <
-      failureCleanup.indexOf('Rolling back the Learning OS route proxies.')
-  );
-  assert.ok(failureCleanup.includes('$COMPOSE up -d --no-deps --force-recreate'));
-  assert.doesNotMatch(
-    failureCleanup,
-    /force-recreate "server-\$active_color" \|\| true|wait_for_health "convolab-server-\$active_color" \|\| true/
-  );
+  assert.doesNotMatch(failureCleanup, retiredProxyFlags);
+  assert.ok(failureCleanup.includes('cleanup_profile_smoke best-effort'));
 });
 
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
@@ -1215,19 +1102,15 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   assert.ok(cleanupFunction.includes('if [ "$exit_status" -eq 0 ]; then'));
   assert.ok(cleanupFunction.includes('manual cleanup is required.'));
 
-  const routeActivation = workflow.indexOf('upsert_env LEARNING_OS_SCRIPT_PROXY_ENABLED true');
   const serverRestart = workflow.indexOf(
-    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
-    routeActivation
+    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"'
   );
   const authSmoke = workflow.indexOf(
     'bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh',
     serverRestart
   );
-  const cutoverCommitted = workflow.indexOf('ROUTE_PROXY_CUTOVER_STARTED=false', authSmoke);
 
-  assert.ok(routeActivation >= 0);
-  assert.ok(routeActivation < serverRestart);
+  assert.ok(serverRestart >= 0);
   assert.ok(serverRestart < authSmoke);
-  assert.ok(authSmoke < cutoverCommitted);
+  assert.doesNotMatch(workflow, /LEARNING_OS_SCRIPT_PROXY_ENABLED|ROUTE_PROXY_CUTOVER_STARTED/);
 });

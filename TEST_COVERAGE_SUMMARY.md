@@ -14,70 +14,11 @@ This document summarizes all test coverage added for recent features (weekly quo
 
 ## Phase 1: Server Middleware Tests (71 tests)
 
-### 1.1 Rate Limit Middleware (`rateLimit.test.ts`) - 15 tests
+### 1.1 Generation Quota Proxy
 
-**File**: `/server/src/__tests__/unit/middleware/rateLimit.test.ts`
+Generation quota enforcement and concurrency coverage now live in Learning OS. ConvoLab tests the
+authenticated proxy response, compatibility shape, and production smoke contract.
 
-**Test Coverage**:
-
-- ✅ Allows admin users to bypass all limits
-- ✅ Blocks unauthenticated requests (401)
-- ✅ Returns 404 when user not found
-- ✅ Enforces 30-second cooldown between requests
-- ✅ Returns correct error with cooldown metadata (429 with remainingSeconds)
-- ✅ Enforces weekly quota limit (20 generations per week)
-- ✅ Returns correct error with quota metadata (429 with limit/used/resetsAt)
-- ✅ Sets cooldown after allowing request
-- ✅ Calls next() when all checks pass
-- ✅ Checks cooldown before quota (fail-fast optimization)
-
-**Key Features Tested**:
-
-- Admin bypass functionality
-- Authentication enforcement
-- Cooldown period enforcement (30 seconds)
-- Weekly quota limits (20 generations/week)
-- Error response formatting
-- Proper middleware flow
-
----
-
-### 1.2 Usage Tracker Service (`usageTracker.test.ts`) - 28 tests
-
-**File**: `/server/src/__tests__/unit/services/usageTracker.test.ts`
-
-**Test Coverage**:
-
-**checkGenerationLimit() - 6 tests**:
-
-- ✅ Returns allowed=true when under weekly limit
-- ✅ Returns allowed=false when at/over weekly limit
-- ✅ Counts only generations from current week (Monday-Sunday UTC)
-- ✅ Calculates correct remaining count
-- ✅ Returns correct resetsAt date (next Monday 00:00 UTC)
-- ✅ Handles edge case of exactly 20 generations
-
-**logGeneration() - 2 tests**:
-
-- ✅ Creates GenerationLog record with correct userId/contentType/contentId
-- ✅ Logs persist even if content is deleted (quota gaming prevention)
-
-**checkCooldown() - 4 tests**:
-
-- ✅ Returns active=true when Redis key exists with TTL
-- ✅ Returns active=false when Redis key doesn't exist
-- ✅ Returns correct remainingSeconds from Redis TTL
-- ✅ Properly disconnects Redis after check
-
-**setCooldown() - 2 tests**:
-
-- ✅ Sets Redis key with 30-second expiration
-- ✅ Properly disconnects Redis after setting
-
-**Key Features Tested**:
-
-- Week boundary calculations (Monday 00:00 UTC)
-- Redis cooldown key management
 - Prisma generation log persistence
 - Quota calculation accuracy
 - Reset date computation
@@ -606,8 +547,6 @@ This document summarizes all test coverage added for recent features (weekly quo
 
 **Server Tests: 183 passing**
 
-- rateLimit.test.ts: 15 tests
-- usageTracker.test.ts: 28 tests
 - impersonation.test.ts: 28 tests
 - episodes.test.ts: 26 tests
 - courses.test.ts: 21 tests
@@ -744,9 +683,9 @@ npm run test:e2e:debug
 
 ## Coverage by Feature
 
-### Weekly Quota System ✅ Fully Tested
+### Generation Quota System ✅ Fully Tested
 
-- **Server**: rateLimit.test.ts, usageTracker.test.ts, auth.test.ts (50 tests)
+- **Server**: Learning OS quota and concurrency tests plus ConvoLab auth proxy tests
 - **Client**: QuotaBadge.test.tsx, useQuota.test.tsx (17 tests)
 - **E2E**: quota-system.spec.ts (11 scenarios)
 

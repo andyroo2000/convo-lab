@@ -1,7 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
@@ -9,20 +9,11 @@ import dialogueRouter from '../../../routes/dialogue.js';
 
 const mocks = vi.hoisted(() => ({
   blockDemoUser: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
-  dialogueRateLimit: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
   fetchLearningOsProxy: vi.fn(),
-  logGeneration: vi.fn(),
   requireEmailVerified: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
   resolveLearningOsProxyContext: vi.fn(),
-  triggerWorkerJob: vi.fn(),
 }));
 
-const mockDialogueQueue = vi.hoisted(() => ({
-  add: vi.fn(),
-  getJob: vi.fn(),
-}));
-
-vi.mock('../../../jobs/dialogueQueue.js', () => ({ dialogueQueue: mockDialogueQueue }));
 vi.mock('../../../services/learningOsProxy.js', () => ({
   fetchLearningOsProxy: mocks.fetchLearningOsProxy,
   resolveLearningOsProxyContext: mocks.resolveLearningOsProxyContext,
@@ -39,32 +30,7 @@ vi.mock('../../../middleware/demoAuth.js', () => ({ blockDemoUser: mocks.blockDe
 vi.mock('../../../middleware/emailVerification.js', () => ({
   requireEmailVerified: mocks.requireEmailVerified,
 }));
-vi.mock('../../../middleware/rateLimit.js', () => ({
-  rateLimitLegacyGeneration: vi.fn(
-    (_contentType: string, isLearningOsProxyEnabled: () => boolean) =>
-      (req: AuthRequest, res: Response, next: NextFunction) =>
-        isLearningOsProxyEnabled() ? next() : mocks.dialogueRateLimit(req, res, next)
-  ),
-}));
-vi.mock('../../../services/usageTracker.js', () => ({ logGeneration: mocks.logGeneration }));
-vi.mock('../../../services/workerTrigger.js', () => ({
-  triggerWorkerJob: mocks.triggerWorkerJob,
-}));
-vi.mock('../../../i18n/index.js', () => ({
-  default: {
-    t: (key: string, params?: Record<string, unknown>) => {
-      if (key === 'server:content.missingFields') return 'Missing required fields';
-      if (key === 'server:content.jobNotFound') return 'Job not found';
-      if (key === 'server:content.generationStarted') {
-        return `${params?.type} generation started`;
-      }
-      return key;
-    },
-  },
-}));
 
-const originalDialogueGenerationProxyEnabled =
-  process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED;
 const EPISODE_ID = '018f47ea-4b37-7f21-8d5a-90e157176b8a';
 const JOB_ID = '019c8e7f-5c48-7d32-ae6b-a1f268287c9b';
 const DIALOGUE_ID = '019c8e80-f73f-78e8-96e8-c5b462053ee0';
@@ -114,85 +80,17 @@ describe('Dialogue routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'false';
     mocks.resolveLearningOsProxyContext.mockResolvedValue({
       config: { apiUrl: 'http://learning-os.test', apiToken: 'proxy-token' },
       user: { id: 'actor-user-id', email: 'learner@example.com', role: 'user' },
     });
-    mocks.triggerWorkerJob.mockResolvedValue(undefined);
-
     app = express();
     app.use(express.json());
     app.use('/api/dialogue', dialogueRouter);
     app.use(errorHandler);
   });
 
-  afterAll(() => {
-    if (originalDialogueGenerationProxyEnabled === undefined) {
-      delete process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED;
-    } else {
-      process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED =
-        originalDialogueGenerationProxyEnabled;
-    }
-  });
-
-  it('keeps generation on BullMQ while Learning OS routing is disabled', async () => {
-    mockDialogueQueue.add.mockResolvedValue({ id: 'legacy-job-123' });
-
-    const response = await request(app)
-      .post('/api/dialogue/generate')
-      .send(generateBody())
-      .expect(200);
-
-    expect(response.body).toEqual({
-      jobId: 'legacy-job-123',
-      message: 'Dialogue generation started',
-    });
-    expect(mockDialogueQueue.add).toHaveBeenCalledWith('generate-dialogue', {
-      userId: 'actor-user-id',
-      ...generateBody(),
-    });
-    expect(mocks.logGeneration).toHaveBeenCalledWith('actor-user-id', 'dialogue', EPISODE_ID);
-    expect(mocks.dialogueRateLimit).toHaveBeenCalledOnce();
-    expect(mocks.triggerWorkerJob).toHaveBeenCalledOnce();
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('keeps polling on BullMQ while Learning OS routing is disabled', async () => {
-    mockDialogueQueue.getJob.mockResolvedValue({
-      id: 'legacy-job-123',
-      getState: vi.fn().mockResolvedValue('active'),
-      progress: 42,
-      returnvalue: null,
-    });
-
-    const response = await request(app).get('/api/dialogue/job/legacy-job-123').expect(200);
-
-    expect(response.body).toEqual({
-      id: 'legacy-job-123',
-      state: 'active',
-      progress: 42,
-      result: null,
-    });
-    expect(response.headers['cache-control']).toBe('private, no-store');
-    expect(mockDialogueQueue.getJob).toHaveBeenCalledWith('legacy-job-123');
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('returns the legacy missing-field and missing-job errors while routing is disabled', async () => {
-    const generateResponse = await request(app)
-      .post('/api/dialogue/generate')
-      .send({ episodeId: EPISODE_ID })
-      .expect(400);
-    expect(generateResponse.body.error.message).toBe('Missing required fields');
-
-    mockDialogueQueue.getJob.mockResolvedValue(null);
-    const jobResponse = await request(app).get('/api/dialogue/job/missing').expect(404);
-    expect(jobResponse.body.error.message).toBe('Job not found');
-  });
-
-  it('proxies generation with only supported fields when routing is enabled', async () => {
-    process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
+  it('proxies generation with only supported fields', async () => {
     mocks.fetchLearningOsProxy.mockResolvedValue(
       upstreamJson({ jobId: JOB_ID, message: 'Dialogue generation started' })
     );
@@ -215,16 +113,11 @@ describe('Dialogue routes', () => {
       timeoutMessage: 'Learning OS Dialogue API request timed out.',
       networkErrorMessage: 'Learning OS Dialogue API is unavailable.',
     });
-    expect(mockDialogueQueue.add).not.toHaveBeenCalled();
-    expect(mocks.triggerWorkerJob).not.toHaveBeenCalled();
-    expect(mocks.logGeneration).not.toHaveBeenCalled();
     expect(mocks.requireEmailVerified).toHaveBeenCalledOnce();
-    expect(mocks.dialogueRateLimit).not.toHaveBeenCalled();
     expect(mocks.blockDemoUser).toHaveBeenCalledOnce();
   });
 
-  it('proxies a pending job poll without consulting BullMQ', async () => {
-    process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
+  it('proxies a pending job poll', async () => {
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(jobBody()));
 
     const response = await request(app).get(`/api/dialogue/job/${JOB_ID}`).expect(200);
@@ -238,11 +131,9 @@ describe('Dialogue routes', () => {
         body: undefined,
       })
     );
-    expect(mockDialogueQueue.getJob).not.toHaveBeenCalled();
   });
 
   it('accepts a completed job with the compatibility result shape', async () => {
-    process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
     const completed = {
       id: JOB_ID,
       state: 'completed',
@@ -266,7 +157,6 @@ describe('Dialogue routes', () => {
   });
 
   it('encodes job identifiers in the upstream path', async () => {
-    process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(jobBody()));
 
     await request(app).get(`/api/dialogue/job/${JOB_ID.toUpperCase()}`).expect(200);
@@ -283,7 +173,6 @@ describe('Dialogue routes', () => {
   it.each([400, 404, 409, 422, 429])(
     'preserves a safe compatibility message for upstream HTTP %s',
     async (upstreamStatus) => {
-      process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
       mocks.fetchLearningOsProxy.mockResolvedValue(
         upstreamJson({ message: 'Safe compatibility message' }, upstreamStatus)
       );
@@ -294,14 +183,12 @@ describe('Dialogue routes', () => {
         .expect(upstreamStatus);
 
       expect(response.body.error.message).toBe('Safe compatibility message');
-      expect(mocks.logGeneration).not.toHaveBeenCalled();
     }
   );
 
   it.each([401, 403, 500, 503])(
     'hides upstream details and maps HTTP %s to 502',
     async (upstreamStatus) => {
-      process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
       mocks.fetchLearningOsProxy.mockResolvedValue(
         upstreamJson({ message: 'sensitive upstream details' }, upstreamStatus)
       );
@@ -319,7 +206,6 @@ describe('Dialogue routes', () => {
     { message: 'wrong job type', jobId: 123 },
     { message: 'not a UUID', jobId: 'legacy-job' },
   ])('rejects a malformed generate success response %#', async (body) => {
-    process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
 
     const response = await request(app)
@@ -330,7 +216,6 @@ describe('Dialogue routes', () => {
     expect(response.body.error.message).toBe(
       'Learning OS Dialogue API returned an invalid generate response.'
     );
-    expect(mocks.logGeneration).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -341,7 +226,6 @@ describe('Dialogue routes', () => {
     { ...jobBody('completed', 100), result: null },
     { ...jobBody(), result: {} },
   ])('rejects a malformed job success response %#', async (body) => {
-    process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
 
     const response = await request(app).get(`/api/dialogue/job/${JOB_ID}`).expect(502);
@@ -352,7 +236,6 @@ describe('Dialogue routes', () => {
   });
 
   it('rejects invalid JSON from a successful upstream response', async () => {
-    process.env.LEARNING_OS_DIALOGUE_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(
       new globalThis.Response('not-json', {
         status: 200,

@@ -1,7 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
@@ -15,16 +15,8 @@ const mocks = vi.hoisted(() => ({
     next()
   ),
   resolveLearningOsProxyContext: vi.fn(),
-  triggerWorkerJob: vi.fn(),
 }));
 
-const mockAudioQueue = vi.hoisted(() => ({
-  add: vi.fn(),
-  getJob: vi.fn(),
-  getJobs: vi.fn(),
-}));
-
-vi.mock('../../../jobs/audioQueue.js', () => ({ audioQueue: mockAudioQueue }));
 vi.mock('../../../services/learningOsProxy.js', () => ({
   fetchLearningOsProxy: mocks.fetchLearningOsProxy,
   resolveLearningOsProxyContext: mocks.resolveLearningOsProxyContext,
@@ -40,26 +32,6 @@ vi.mock('../../../middleware/auth.js', () => ({
   }),
   AuthRequest: class {},
 }));
-vi.mock('../../../services/workerTrigger.js', () => ({
-  triggerWorkerJob: mocks.triggerWorkerJob,
-}));
-vi.mock('../../../i18n/index.js', () => ({
-  default: {
-    t: (key: string, params?: Record<string, unknown>) => {
-      if (key === 'server:content.missingFields') return 'Missing required fields';
-      if (key === 'server:content.jobNotFound') return 'Job not found';
-      if (key === 'server:content.generationStarted') {
-        return `${params?.type} generation started`;
-      }
-      if (key === 'server:content.generationInProgress') {
-        return `${params?.type} generation already in progress`;
-      }
-      return key;
-    },
-  },
-}));
-
-const originalAudioGenerationProxyEnabled = process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED;
 const EPISODE_ID = '018f47ea-4b37-7f21-8d5a-90e157176b8a';
 const DIALOGUE_ID = '019c8e80-f73f-78e8-96e8-c5b462053ee0';
 const JOB_ID = '019c8e7f-5c48-7d32-ae6b-a1f268287c9b';
@@ -113,13 +85,10 @@ describe('Audio routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'false';
     mocks.resolveLearningOsProxyContext.mockResolvedValue({
       config: { apiUrl: 'http://learning-os.test', apiToken: 'proxy-token' },
       user: { id: 'actor-user-id', email: 'learner@example.com', role: 'user' },
     });
-    mocks.triggerWorkerJob.mockResolvedValue(undefined);
-
     app = express();
     app.use(express.json());
     app.use('/api/audio', audioRouter);
@@ -127,78 +96,7 @@ describe('Audio routes', () => {
     app.use(errorHandler);
   });
 
-  afterAll(() => {
-    if (originalAudioGenerationProxyEnabled === undefined) {
-      delete process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED;
-    } else {
-      process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = originalAudioGenerationProxyEnabled;
-    }
-  });
-
-  it('keeps single generation on BullMQ while Learning OS routing is disabled', async () => {
-    mockAudioQueue.add.mockResolvedValue({ id: 'legacy-job-123' });
-
-    const response = await request(app)
-      .post('/api/audio/generate')
-      .send(generateBody())
-      .expect(200);
-
-    expect(response.body).toEqual({
-      jobId: 'legacy-job-123',
-      message: 'Audio generation started',
-    });
-    expect(mockAudioQueue.add).toHaveBeenCalledWith('generate-audio', {
-      userId: 'actor-user-id',
-      ...generateBody(),
-    });
-    expect(mocks.triggerWorkerJob).toHaveBeenCalledOnce();
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('keeps all-speed deduplication on BullMQ while Learning OS routing is disabled', async () => {
-    mockAudioQueue.getJobs.mockResolvedValue([
-      {
-        id: 'legacy-job-123',
-        name: 'generate-all-speeds',
-        data: { episodeId: EPISODE_ID, dialogueId: DIALOGUE_ID },
-      },
-    ]);
-
-    const response = await request(app)
-      .post('/api/audio/generate-all-speeds')
-      .send(generateBody())
-      .expect(200);
-
-    expect(response.body).toEqual({
-      jobId: 'legacy-job-123',
-      message: 'Audio generation already in progress',
-      existing: true,
-    });
-    expect(mockAudioQueue.add).not.toHaveBeenCalled();
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('keeps polling on BullMQ with private no-store caching while routing is disabled', async () => {
-    mockAudioQueue.getJob.mockResolvedValue({
-      id: 'legacy-job-123',
-      getState: vi.fn().mockResolvedValue('active'),
-      progress: 42,
-      returnvalue: null,
-    });
-
-    const response = await request(app).get('/api/audio/job/legacy-job-123').expect(200);
-
-    expect(response.headers['cache-control']).toBe('private, no-store');
-    expect(response.body).toEqual({
-      id: 'legacy-job-123',
-      state: 'active',
-      progress: 42,
-      result: null,
-    });
-  });
-
   it('forwards only allowlisted single-generation fields to Learning OS', async () => {
-    process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(
       upstreamJson({ jobId: JOB_ID, message: 'Audio generation started' })
     );
@@ -223,12 +121,9 @@ describe('Audio routes', () => {
       timeoutMessage: 'Learning OS Audio API request timed out.',
       networkErrorMessage: 'Learning OS Audio API is unavailable.',
     });
-    expect(mockAudioQueue.add).not.toHaveBeenCalled();
-    expect(mocks.triggerWorkerJob).not.toHaveBeenCalled();
   });
 
   it('forwards only episode and dialogue IDs for all-speed generation', async () => {
-    process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(
       upstreamJson({
         jobId: JOB_ID,
@@ -250,7 +145,6 @@ describe('Audio routes', () => {
         body: { episodeId: EPISODE_ID, dialogueId: DIALOGUE_ID },
       })
     );
-    expect(mockAudioQueue.getJobs).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -258,7 +152,6 @@ describe('Audio routes', () => {
     ['completed', 100, singleResult()],
     ['completed', 100, allSpeedsResult()],
   ])('validates and returns a %s Learning OS job response', async (state, progress, result) => {
-    process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(jobBody(state, progress, result)));
 
     const response = await request(app).get(`/api/audio/job/${JOB_ID}`).expect(200);
@@ -271,13 +164,11 @@ describe('Audio routes', () => {
         method: 'GET',
       })
     );
-    expect(mockAudioQueue.getJob).not.toHaveBeenCalled();
   });
 
   it.each([400, 404, 409, 422, 429])(
     'forwards safe Learning OS client errors with status %s',
     async (upstreamStatus) => {
-      process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
       mocks.fetchLearningOsProxy.mockResolvedValue(
         upstreamJson({ message: 'Safe audio request error' }, upstreamStatus)
       );
@@ -295,7 +186,6 @@ describe('Audio routes', () => {
   it.each([401, 403, 500, 503])(
     'maps upstream auth and server status %s to a sanitized gateway error',
     async (upstreamStatus) => {
-      process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
       mocks.fetchLearningOsProxy.mockResolvedValue(
         upstreamJson({ message: 'sensitive upstream details' }, upstreamStatus)
       );
@@ -314,7 +204,6 @@ describe('Audio routes', () => {
     { message: 'not a UUID', jobId: 'legacy-job' },
     { jobId: JOB_ID, message: 'started', existing: false },
   ])('rejects a malformed generate success response %#', async (body) => {
-    process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
 
     const response = await request(app)
@@ -346,7 +235,6 @@ describe('Audio routes', () => {
       ...allSpeedsResult().slice(1),
     ]),
   ])('rejects a malformed job success response %#', async (body) => {
-    process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(body));
 
     const response = await request(app).get(`/api/audio/job/${JOB_ID}`).expect(502);
@@ -357,7 +245,6 @@ describe('Audio routes', () => {
   });
 
   it('rejects invalid JSON from a successful upstream response', async () => {
-    process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(
       new globalThis.Response('not-json', {
         status: 200,
@@ -373,7 +260,6 @@ describe('Audio routes', () => {
   });
 
   it('preserves a bounded numeric Retry-After from Learning OS rate limiting', async () => {
-    process.env.LEARNING_OS_AUDIO_GENERATION_PROXY_ENABLED = 'true';
     mocks.fetchLearningOsProxy.mockResolvedValue(
       new globalThis.Response(JSON.stringify({ message: 'Slow down' }), {
         status: 429,

@@ -101,7 +101,7 @@ npm run dev
 1. Try generating content (dialogue, course, etc.)
 2. Should work if email is verified
 3. The quota badge reports remaining monthly generations
-4. Set `MONTHLY_GENERATION_LIMIT` to change the default limit of 30
+4. Confirm the quota matches the canonical Learning OS account response
 
 ---
 
@@ -120,9 +120,6 @@ EMAIL_FROM=ConvoLab <noreply@convolab.app>
 GOOGLE_CLIENT_ID=your-prod-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-your-prod-secret
 GOOGLE_CALLBACK_URL=https://api.convolab.app/api/auth/google/callback
-
-# Operational generation limit
-MONTHLY_GENERATION_LIMIT=30
 
 # Client URL
 CLIENT_URL=https://convolab.app
