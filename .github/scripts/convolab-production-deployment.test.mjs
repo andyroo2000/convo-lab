@@ -83,6 +83,8 @@ test('the production workflow phases the legacy auth schema contract', async () 
     "table_schema = 'public' AND table_name = '_prisma_migrations'"
   );
   const appliedCheck = script.indexOf('SELECT EXISTS (SELECT 1 FROM _prisma_migrations');
+  const historyCheckEnd = script.indexOf('</dev/null)', historyCheck);
+  const appliedCheckEnd = script.indexOf('</dev/null)', appliedCheck);
   const resolve = script.indexOf(
     'npx prisma migrate resolve --applied "$legacy_auth_contract"'
   );
@@ -92,6 +94,8 @@ test('the production workflow phases the legacy auth schema contract', async () 
   assert.ok(migrationName >= 0);
   assert.ok(historyCheck > migrationName);
   assert.ok(appliedCheck > historyCheck);
+  assert.ok(historyCheckEnd > historyCheck && historyCheckEnd < appliedCheck);
+  assert.ok(appliedCheckEnd > appliedCheck && appliedCheckEnd < resolve);
   assert.ok(resolve > appliedCheck);
   assert.ok(migrateDeploy > resolve);
   assert.ok(inactiveServerStart > migrateDeploy);
