@@ -2,20 +2,20 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AUDIO_SCRIPT_SEGMENT_PAUSE_SECONDS } from '@languageflow/shared/src/audioScript';
 import type { SpeedValue } from '../common/SpeedSelector';
-import { AudioScript, AudioScriptSegment, Episode, LessonScriptUnit } from '../../types';
+import { AudioScript, Episode, LessonScriptUnit } from '../../types';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import AudioPlayer from '../AudioPlayer';
 import JapaneseText from '../JapaneseText';
 import SpeedSelector from '../common/SpeedSelector';
 import ViewToggleButtons from '../common/ViewToggleButtons';
-import { API_URL } from '../../config';
-import { toAssetUrl } from '../study/studyCardUtils';
+import { readScriptApiError, scriptApi } from '../../lib/scriptApi';
+import { findCurrentL2Unit, normalizeTimingDataForDuration } from './scriptTrackTiming';
 import {
-  findCurrentL2Unit,
-  normalizeTimingDataForDuration,
-  versionAudioUrl,
-} from './scriptTrackTiming';
+  getSegmentImageUrl,
+  resolveScriptAudioUrl,
+  resolveScriptAudioUrls,
+} from './scriptPlaybackRoutes';
 
 const SCRIPT_SPEED_OPTIONS = [
   { value: '0.75x' as const, label: 'Slow', numericValue: 0.75 },
@@ -51,13 +51,6 @@ function buildUnits(episode: Episode, speed: number): LessonScriptUnit[] {
   });
 
   return units;
-}
-
-function getSegmentImageUrl(segment: AudioScriptSegment | null): string | null {
-  if (!segment) return null;
-  if (segment.imageMedia?.publicUrl) return toAssetUrl(segment.imageMedia.publicUrl);
-  const mediaId = segment.imageMedia?.id || segment.imageMediaId;
-  return mediaId ? toAssetUrl(`/api/scripts/media/${mediaId}`) : null;
 }
 
 function shouldIgnorePlaybackShortcut(target: EventTarget | null): boolean {
@@ -111,21 +104,17 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     () => script?.renders.filter((render) => render.status === 'ready') ?? [],
     [script?.renders]
   );
-  const warmedUrls = readyRenders
-    .map((render) => render.audioUrl)
-    .filter((url): url is string => Boolean(url));
+  const warmedUrls = resolveScriptAudioUrls(episode.id, readyRenders);
   useWarmAudioCache(warmedUrls, warmedUrls.length > 0);
 
   const selectedRender = useMemo(() => {
     const speedKey = speedValueToKey(selectedSpeed);
     return readyRenders.find((render) => render.speed === speedKey) ?? readyRenders[0] ?? null;
   }, [readyRenders, selectedSpeed]);
-  const audioUrl = selectedRender?.audioUrl
-    ? versionAudioUrl(selectedRender.audioUrl, selectedRender.updatedAt?.toString())
-    : null;
+  const selectedAudioUrl = resolveScriptAudioUrl(episode.id, selectedRender);
 
   useEffect(() => {
-    if (!audioUrl) return undefined;
+    if (!selectedAudioUrl) return undefined;
 
     const handlePlaybackShortcut = (event: KeyboardEvent) => {
       if (event.code !== 'Space' || event.metaKey || event.ctrlKey || event.altKey) {
@@ -147,7 +136,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     return () => {
       window.removeEventListener('keydown', handlePlaybackShortcut);
     };
-  }, [audioUrl, isPlaying, pause, play]);
+  }, [selectedAudioUrl, isPlaying, pause, play]);
 
   const units = useMemo(
     () =>
@@ -271,15 +260,14 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     setIsRetryingImages(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/scripts/${episode.id}/images`, {
+      const response = await fetch(scriptApi.operation(episode.id, 'images'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ force: false }),
       });
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error || payload?.message || 'Failed to retry images.');
+        throw new Error(await readScriptApiError(response, 'Failed to retry images.'));
       }
       if (!mountedRef.current) return;
 
@@ -287,13 +275,14 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
       const timeoutMs = 5 * 60 * 1000;
       /* eslint-disable no-await-in-loop -- polling must wait between status requests */
       while (Date.now() - startedAt < timeoutMs) {
-        const statusResponse = await fetch(`${API_URL}/api/scripts/${episode.id}/status`, {
+        const statusResponse = await fetch(scriptApi.operation(episode.id, 'status'), {
           credentials: 'include',
           cache: 'no-store',
         });
         if (!statusResponse.ok) {
-          const payload = await statusResponse.json().catch(() => null);
-          throw new Error(payload?.error || payload?.message || 'Failed to check image status.');
+          throw new Error(
+            await readScriptApiError(statusResponse, 'Failed to check image status.')
+          );
         }
         const nextScript = (await statusResponse.json()) as AudioScript;
         if (!mountedRef.current) return;
@@ -348,10 +337,10 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
             <div className="min-w-0 flex-1">
               <h1 className="retro-headline text-3xl sm:text-5xl">{episode.title}</h1>
-              {audioUrl ? (
+              {selectedAudioUrl ? (
                 <div className="mt-1.5 max-w-4xl">
                   <AudioPlayer
-                    src={audioUrl}
+                    src={selectedAudioUrl}
                     audioRef={audioRef}
                     variant="compact"
                     onEnded={() => {
@@ -369,7 +358,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
               )}
             </div>
 
-            {audioUrl && (
+            {selectedAudioUrl && (
               <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
                 <ViewToggleButtons
                   showReadings={showReadings}

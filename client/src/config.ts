@@ -16,5 +16,9 @@ export const LEARNING_OS_DIRECT_COURSE_API_ENABLED =
   typeof window !== 'undefined' &&
   window.__CONVOLAB_RUNTIME_CONFIG__?.learningOsDirectCourseApi === true;
 
+export const LEARNING_OS_DIRECT_SCRIPT_API_ENABLED =
+  typeof window !== 'undefined' &&
+  window.__CONVOLAB_RUNTIME_CONFIG__?.learningOsDirectScriptApi === true;
+
 // Temporary kill-switch for onboarding welcome surfaces while content is being redesigned.
 export const SHOW_ONBOARDING_WELCOME = false;

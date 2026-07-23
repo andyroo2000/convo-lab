@@ -15,5 +15,6 @@ interface Window {
     learningOsDirectAccountApi?: boolean;
     learningOsDirectEpisodeApi?: boolean;
     learningOsDirectCourseApi?: boolean;
+    learningOsDirectScriptApi?: boolean;
   };
 }
