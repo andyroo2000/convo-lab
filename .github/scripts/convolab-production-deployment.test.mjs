@@ -86,7 +86,7 @@ test('the production workflow retains blue-green switching and rollback contract
   );
   assert.match(
     switchBlock,
-    /if ! verify_public_health \\\s+\|\| ! verify_public_google_oauth \\\s+\|\| ! verify_public_learning_os_browser_route; then[\s\S]*if ! rollback_router "\$active_color"; then/
+    /if ! verify_public_health \\\s+\|\| ! verify_public_learning_os_browser_route; then[\s\S]*if ! rollback_router "\$active_color"; then/
   );
 });
 

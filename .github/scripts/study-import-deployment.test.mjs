@@ -69,57 +69,32 @@ test('the staging workflow recovers the failed Audio Script media migration befo
   assert.ok(startIndex > resolveIndex);
 });
 
-test('the production deployment configures and smokes Google OAuth', async () => {
+test('the production deployment leaves Google OAuth exclusively on Learning OS', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
   ]);
+  const serverEnvironment = YAML.parse(compose)['x-server-environment'];
 
-  for (const requiredComposeContract of [
-    'GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}',
-    'GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}',
-    'GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}',
-  ]) {
-    assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
-  }
+  assert.equal(serverEnvironment.GOOGLE_CALLBACK_URL, undefined);
+  assert.equal(serverEnvironment.GOOGLE_CLIENT_ID, undefined);
+  assert.equal(serverEnvironment.GOOGLE_CLIENT_SECRET, undefined);
 
-  for (const requiredWorkflowContract of [
-    'GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}',
-    'GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}',
-    'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets must be set',
-    'GOOGLE_CLIENT_ID must not use the placeholder sentinel',
-    "printf 'DEPLOY_GOOGLE_CLIENT_ID=%q\\n'",
-    "printf 'DEPLOY_GOOGLE_CLIENT_SECRET=%q\\n'",
-    '"$DROPLET_USER@$DROPLET_HOST" bash -s',
-    'upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"',
-    'upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"',
-    'upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback',
+  for (const retiredWorkflowContract of [
     'verify_public_google_oauth() {',
-    'for attempt in {1..5}; do',
-    'curl --max-time 10',
-    'placeholder client ID is active',
     'https://convo-lab.com/api/auth/google',
-    'oauth_location_lower="${oauth_location,,}"',
-    "redirect_uri=https%3a%2f%2fconvo-lab.com%2fapi%2fauth%2fgoogle%2fcallback",
-    'client_id=placeholder',
-    'access_type=offline',
-    'Google OAuth production redirect passed!',
+    'GOOGLE_CALLBACK_URL',
   ]) {
-    assert.ok(workflow.includes(requiredWorkflowContract), requiredWorkflowContract);
+    assert.ok(!workflow.includes(retiredWorkflowContract), retiredWorkflowContract);
   }
 
-  assert.ok(
-    workflow.indexOf('upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback') <
-      workflow.indexOf('$COMPOSE pull')
-  );
-  const oauthGate = workflow.indexOf('if ! verify_public_health \\');
-  assert.ok(oauthGate >= 0);
+  const publicGate = workflow.indexOf('if ! verify_public_health \\');
+  assert.ok(publicGate >= 0);
   assert.match(
-    workflow.slice(oauthGate),
-    /if ! verify_public_health \\\s+\|\| ! verify_public_google_oauth \\\s+\|\| ! verify_public_learning_os_browser_route; then/
+    workflow.slice(publicGate),
+    /if ! verify_public_health \\\s+\|\| ! verify_public_learning_os_browser_route; then/
   );
-  assert.ok(oauthGate < workflow.indexOf('write_active_color "$inactive_color"'));
-  assert.ok(oauthGate < workflow.indexOf('Stopping old web color'));
+  assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
 });
 
 test('the production workflow verifies the always-on Study API without rollout flags', async () => {
@@ -144,7 +119,6 @@ test('the production workflow verifies the always-on Study API without rollout f
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
     'desired_deploy_config_revision="browser-auth-session-v1"',
-    'upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "$browser_session_enabled"',
     'upsert_env LEARNING_OS_SESSION_COOKIE "learning_os_session"',
     'upsert_env LEARNING_OS_SESSION_LIFETIME "10080"',
     'upsert_env LEARNING_OS_SESSION_SECURE_COOKIE "true"',
@@ -249,7 +223,7 @@ test('the production workflow verifies the always-on Study API without rollout f
   assert.ok(migration > credentialCheck);
 });
 
-test('production coordinates the Learning OS browser-session bridge behind one rollback flag', async () => {
+test('production configures the permanent Learning OS browser session without a bridge flag', async () => {
   const [compose, learningOsWorkflow, productionWorkflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     readFile(
@@ -260,7 +234,6 @@ test('production coordinates the Learning OS browser-session bridge behind one r
   ]);
 
   for (const contract of [
-    'LEARNING_OS_BROWSER_SESSION_ENABLED: ${LEARNING_OS_BROWSER_SESSION_ENABLED:-false}',
     'LEARNING_OS_SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
     'SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
     'SESSION_LIFETIME: ${LEARNING_OS_SESSION_LIFETIME:-10080}',
@@ -273,29 +246,10 @@ test('production coordinates the Learning OS browser-session bridge behind one r
   }
 
   for (const workflow of [learningOsWorkflow, productionWorkflow]) {
-    assert.ok(
-      workflow.includes(
-        "BROWSER_SESSION_ENABLED: ${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || 'true' }}"
-      )
-    );
-    assert.ok(workflow.includes('BROWSER_SESSION_ENABLED=%q'));
-    assert.ok(workflow.includes('browser_session_enabled="$BROWSER_SESSION_ENABLED"'));
-    assert.ok(
-      workflow.includes(
-        'echo "::error::LEARNING_OS_BROWSER_SESSION_ENABLED must be true or false"'
-      )
-    );
-    assert.ok(
-      workflow.includes(
-        'upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "$browser_session_enabled"'
-      )
-    );
+    assert.ok(!workflow.includes('LEARNING_OS_BROWSER_SESSION_ENABLED'));
+    assert.ok(!workflow.includes('BROWSER_SESSION_ENABLED'));
   }
-  assert.ok(
-    learningOsWorkflow.includes(
-      'EXPECT_LEARNING_OS_BROWSER_SESSION="$browser_session_enabled"'
-    )
-  );
+  assert.ok(!compose.includes('LEARNING_OS_BROWSER_SESSION_ENABLED'));
   assert.ok(
     learningOsWorkflow.includes(
       'upsert_env LEARNING_OS_SANCTUM_STATEFUL_DOMAINS "convo-lab.com,www.convo-lab.com"'
@@ -755,17 +709,6 @@ test('generation routes are permanently proxied and production rehearsals cover 
     '"auth:signup"',
     '"auth:verification"',
     '"auth:oauth"',
-    "fetch_read_route 'Auth current user Learning OS' '/api/auth/me'",
-    '-e EXPECTED_USER_ROLE="$user_role"',
-    'account.role !== process.env.EXPECTED_USER_ROLE',
-    'Auth current-user Learning OS proxy smoke check passed.',
-    "fetch_read_route 'Generation quota Learning OS' '/api/auth/me/quota'",
-    'quota.remaining !== Math.max(0, quota.limit - quota.used)',
-    'Generation quota Learning OS proxy smoke check passed.',
-    'PROFILE_SMOKE_CHANGED=true',
-    "PATCH '/api/auth/me' \"$profile_smoke_probe_body\"",
-    'cleanup_profile_smoke',
-    'Auth profile Learning OS proxy smoke check passed and restored.',
     'bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh',
     'script_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
     'script_smoke_inserted=true',
@@ -889,7 +832,64 @@ test('generation routes are permanently proxied and production rehearsals cover 
     workflow.indexOf('trap cleanup_deployment_resources EXIT')
   );
   assert.doesNotMatch(failureCleanup, retiredProxyFlags);
-  assert.ok(failureCleanup.includes('cleanup_profile_smoke best-effort'));
+});
+
+test('Express no longer mounts legacy identity routes', async () => {
+  const [serverEntry, inventory, compose, learningOsWorkflow, productionWorkflow, lifecycle] =
+    await Promise.all([
+      readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
+      readFile(
+        path.join(repositoryRoot, 'server/src/migration/backendMigrationInventory.json'),
+        'utf8'
+      ),
+      readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+      readFile(
+        path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+        'utf8'
+      ),
+      readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
+      readFile(
+        path.join(
+          repositoryRoot,
+          '.github/scripts/smoke-auth-signup-verification-lifecycle.sh'
+        ),
+        'utf8'
+      ),
+    ]);
+
+  for (const retiredRuntimeContract of [
+    "import passport from 'passport'",
+    "import authRoutes from './routes/auth.js'",
+    "import verificationRoutes from './routes/verification.js'",
+    'passport.initialize()',
+    "app.use('/api/auth', authRoutes)",
+    "app.use('/api/verification', verificationRoutes)",
+    "app.use('/api/password-reset', verificationRoutes)",
+  ]) {
+    assert.ok(!serverEntry.includes(retiredRuntimeContract), retiredRuntimeContract);
+  }
+
+  const migrationInventory = JSON.parse(inventory);
+  assert.ok(
+    !migrationInventory.surfaces.some(({ id }) => id === 'auth' || id === 'verification')
+  );
+
+  for (const productionSurface of [compose, learningOsWorkflow, productionWorkflow, lifecycle]) {
+    assert.ok(!productionSurface.includes('LEARNING_OS_BROWSER_SESSION_ENABLED'));
+  }
+
+  for (const canonicalRoute of [
+    '/api/convolab/browser/auth/signup',
+    '/api/convolab/auth/me',
+    '/api/convolab/auth/me/quota',
+    '/api/convolab/browser/auth/verification',
+    '/api/convolab/browser/auth/login',
+    '/api/convolab/browser/auth/logout',
+    '/api/auth/password/forgot',
+    '/api/auth/password/reset',
+  ]) {
+    assert.ok(lifecycle.includes(canonicalRoute), canonicalRoute);
+  }
 });
 
 test('ConvoLab queue workers are retired from runtime and deployment surfaces', async () => {
@@ -1772,10 +1772,8 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     'trap cleanup EXIT',
     'trap report_error ERR',
     'Auth lifecycle command failed at line $failed_line with exit status $exit_status.',
-    'EXPECT_LEARNING_OS_BROWSER_SESSION="${EXPECT_LEARNING_OS_BROWSER_SESSION:-false}"',
     'assert_learning_os_session_cookie',
     'did not establish a Learning OS browser session.',
-    'established a Learning OS browser session while the bridge was disabled.',
     'delete_disposable_account',
     'source_system", ConvoLabAccountSource::LEARNING_OS',
     'convolab_email_verification_tokens',
@@ -1785,28 +1783,32 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     'POST $path failed before receiving an HTTP response.',
     'POST $path returned HTTP $status${retry_after:+ (Retry-After: $retry_after seconds)}.',
     'Response body (first 4096 bytes):',
-    "'/api/auth/signup'",
+    '$BASE_URL/sanctum/csrf-cookie',
+    'X-XSRF-TOKEN',
+    "'/api/convolab/browser/auth/signup'",
+    '$BASE_URL/api/convolab/auth/me/quota',
+    '--request PATCH',
+    '$BASE_URL/api/convolab/auth/me',
     'response.emailVerified',
-    'prisma.user.count',
     'AUTH_SMOKE_TOKEN_COUNT=',
     'if token_count="$(docker exec',
     'Verification mail token query attempt $attempt/30 failed; retrying.',
     'IssueConvoLabVerificationTokenAction::class',
-    '$BASE_URL/api/verification/$verification_token',
-    "'/api/auth/login'",
-    "'/api/auth/logout'",
+    "'/api/convolab/browser/auth/verification'",
+    "'/api/convolab/browser/auth/login'",
+    "'/api/convolab/browser/auth/logout'",
     '$6 == "learning_os_session"',
-    'Logout retained a transitional or canonical browser session cookie.',
-    "'/api/password-reset/request'",
+    '$BASE_URL/api/convolab/browser/auth/me',
+    "'/api/auth/password/forgot'",
     'AUTH_SMOKE_RESET_TOKEN_COUNT=',
     'if reset_token_count="$(docker exec',
     'Password reset token query attempt $attempt/30 failed; retrying.',
     'if [ "$attempt" -lt 30 ]; then',
     'AUTH_SMOKE_RESET_TOKEN=',
-    "'/api/password-reset/verify'",
+    'password_confirmation',
+    "'/api/auth/password/reset'",
     '--request DELETE',
-    '$BASE_URL/api/auth/me',
-    'Account deletion retained a session or CSRF cookie.',
+    '$BASE_URL/api/convolab/auth/me',
     'AUTH_SMOKE_USER_COUNT=',
     'Learning OS signup, verification, password reset, and account deletion lifecycle smoke completed.',
   ]) {
@@ -1814,24 +1816,28 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   }
 
   const inviteCreate = script.indexOf('$invite->save();');
-  const signup = script.indexOf("'/api/auth/signup'");
-  const legacyAbsence = script.indexOf('prisma.user.count', signup);
-  const mailToken = script.indexOf('AUTH_SMOKE_TOKEN_COUNT=', legacyAbsence);
-  const verification = script.indexOf('$BASE_URL/api/verification/$verification_token', mailToken);
-  const login = script.indexOf("'/api/auth/login'", verification);
-  const logout = script.indexOf("'/api/auth/logout'", login);
-  const resetRequest = script.indexOf("'/api/password-reset/request'", logout);
+  const signup = script.indexOf("'/api/convolab/browser/auth/signup'");
+  const accountRead = script.indexOf('$BASE_URL/api/convolab/auth/me")', signup);
+  const quota = script.indexOf('$BASE_URL/api/convolab/auth/me/quota', accountRead);
+  const profile = script.indexOf('--request PATCH', quota);
+  const mailToken = script.indexOf('AUTH_SMOKE_TOKEN_COUNT=', profile);
+  const verification = script.indexOf("'/api/convolab/browser/auth/verification'", mailToken);
+  const login = script.indexOf("'/api/convolab/browser/auth/login'", verification);
+  const logout = script.indexOf("'/api/convolab/browser/auth/logout'", login);
+  const resetRequest = script.indexOf("'/api/auth/password/forgot'", logout);
   const queuedResetToken = script.indexOf('AUTH_SMOKE_RESET_TOKEN_COUNT=', resetRequest);
   const resetToken = script.indexOf('AUTH_SMOKE_RESET_TOKEN=', queuedResetToken);
-  const reset = script.indexOf("'/api/password-reset/verify'", resetToken);
+  const reset = script.indexOf("'/api/auth/password/reset'", resetToken);
   const accountDelete = script.indexOf('--request DELETE', reset);
   const accountDeleteVerification = script.indexOf('AUTH_SMOKE_USER_COUNT=', accountDelete);
   const successCleanup = script.lastIndexOf('delete_disposable_account');
 
   assert.ok(inviteCreate >= 0);
   assert.ok(inviteCreate < signup);
-  assert.ok(signup < legacyAbsence);
-  assert.ok(legacyAbsence < mailToken);
+  assert.ok(signup < accountRead);
+  assert.ok(accountRead < quota);
+  assert.ok(quota < profile);
+  assert.ok(profile < mailToken);
   assert.ok(mailToken < verification);
   assert.ok(verification < login);
   assert.ok(login < logout);

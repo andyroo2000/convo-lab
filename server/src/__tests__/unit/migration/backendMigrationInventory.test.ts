@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes.length).toBeGreaterThan(80);
+    expect(routes.length).toBeGreaterThan(70);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -76,29 +76,17 @@ describe('backend migration inventory', () => {
     expect(inventoriedRouters).toEqual(mountedRouters);
   });
 
-  it('leaves only browser-session auth concerns owned by Express', () => {
+  it('has no routes still owned by Express', () => {
     const expressRouteIds = backendMigrationInventory.surfaces.flatMap((surface) =>
       surface.routes
         .filter((route) => (route.runtimeOwner ?? surface.runtimeOwner) === 'express')
         .map((route) => route.id)
     );
 
-    expect(expressRouteIds).toEqual(['auth.logout', 'auth.csrf', 'auth.google.start']);
+    expect(expressRouteIds).toEqual([]);
   });
 
   it('resolves concrete dynamic paths to stable inventory routes', () => {
-    expect(findBackendMigrationRoute('GET', '/api/auth/me/quota')).toMatchObject({
-      route: { id: 'auth.quota.show', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('GET', '/api/auth/google/callback')).toMatchObject({
-      route: { id: 'auth.google.callback', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('POST', '/api/auth/disconnect/google')).toMatchObject({
-      route: { id: 'auth.google.disconnect', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('POST', '/api/auth/claim-invite')).toMatchObject({
-      route: { id: 'auth.invite.claim', runtimeOwner: 'learning-os-proxy' },
-    });
     expect(findBackendMigrationRoute('POST', '/api/tools/analytics')).toMatchObject({
       route: { id: 'tool-analytics.store' },
       surface: { id: 'tool-analytics', runtimeOwner: 'learning-os-proxy' },
@@ -245,7 +233,7 @@ describe('backend migration inventory', () => {
     }
   });
 
-  it('tracks proxied auth entrypoints separately from remaining Express account routes', () => {
+  it('does not track retired Express identity entrypoints', () => {
     for (const [method, routePath] of [
       ['POST', '/api/auth/signup'],
       ['POST', '/api/auth/login'],
@@ -253,21 +241,12 @@ describe('backend migration inventory', () => {
       ['PATCH', '/api/auth/me'],
       ['PATCH', '/api/auth/change-password'],
       ['DELETE', '/api/auth/me'],
-    ]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'auth', runtimeOwner: 'learning-os-proxy' },
-      });
-    }
-
-    for (const [method, routePath] of [
       ['POST', '/api/verification/send'],
       ['GET', '/api/verification/token'],
       ['POST', '/api/password-reset/request'],
       ['POST', '/api/password-reset/verify'],
     ]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'verification', runtimeOwner: 'learning-os-proxy' },
-      });
+      expect(findBackendMigrationRoute(method, routePath)).toBeNull();
     }
   });
 

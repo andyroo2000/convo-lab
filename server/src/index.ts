@@ -16,7 +16,6 @@ import {
   injectClientRuntimeConfig,
   redirectClientIndexDocument,
 } from './config/clientRuntimeConfig.js';
-import passport from './config/passport.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
 import { requireApiCsrfProtection } from './middleware/csrf.js';
@@ -28,7 +27,6 @@ import adminCourseRoutes from './routes/adminCourses.js';
 import adminFeatureFlagRoutes from './routes/adminFeatureFlags.js';
 import adminScriptLabRoutes from './routes/adminScriptLab.js';
 import audioRoutes from './routes/audio.js';
-import authRoutes from './routes/auth.js';
 import avatarAssetRoutes from './routes/avatarAssets.js';
 import contentEpisodeAudioRoutes from './routes/contentEpisodeAudio.js';
 import courseRoutes from './routes/courses.js';
@@ -40,7 +38,6 @@ import learningOsStudyRoutes from './routes/learningOs/study.js';
 import scriptRoutes from './routes/scripts.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
 import toolAudioRoutes from './routes/toolAudio.js';
-import verificationRoutes from './routes/verification.js';
 import { warmKanjiumAccentIndex } from './services/pitchAccent/kanjiumData.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -217,7 +214,6 @@ app.use(enforceDefaultRequestBodyTimeout());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
-app.use(passport.initialize());
 app.use(requestLogger);
 app.use('/api', requireApiCsrfProtection);
 
@@ -275,8 +271,6 @@ app.get('/health', async (_req, res) => {
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api', verificationRoutes);
 app.use('/api/episodes', episodeRoutes);
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
