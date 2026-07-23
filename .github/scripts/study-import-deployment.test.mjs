@@ -562,6 +562,26 @@ test('production gates direct browser traffic and smokes each Learning OS route'
   assert.ok(rollback.includes('"$previous_direct_admin_api_enabled"'));
 });
 
+test('the production XSRF decoder runs without a host Node dependency', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'),
+    'utf8'
+  );
+  const decoder = workflow
+    .split('\n')
+    .find((line) => line.includes(`xsrf_token="$(printf '%b'`))
+    ?.trim();
+
+  assert.ok(decoder, 'Missing production XSRF decoder');
+
+  const { stdout } = await execFileAsync('bash', [
+    '-c',
+    `encoded_xsrf_token='abc%2Bdef%2Fghi%3D%3D'; ${decoder}; printf '%s' "$xsrf_token"`,
+  ]);
+
+  assert.equal(stdout, 'abc+def/ghi==');
+});
+
 test('the production workflow refreshes and verifies Learning OS content reads', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),

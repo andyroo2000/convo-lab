@@ -586,6 +586,7 @@ jobs:
               encoded_xsrf_token="$(
                 awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$cookie_jar"
               )"
+              # Laravel percent-encodes the base64 token, so each percent escape is a complete byte.
               xsrf_token="$(printf '%b' "${encoded_xsrf_token//%/\\x}")"
               if [ -z "$xsrf_token" ]; then
                 echo "Learning OS CSRF bootstrap returned an empty XSRF token."
