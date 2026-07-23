@@ -419,7 +419,7 @@ test('production gates direct browser traffic and smokes each Learning OS route'
     'https://convo-lab.com/sanctum/csrf-cookie',
     '$6 == "XSRF-TOKEN"',
     '$6 == "learning_os_session"',
-    "node -e 'process.stdout.write(decodeURIComponent(process.argv[1]))'",
+    `xsrf_token="$(printf '%b' "\${encoded_xsrf_token//%/\\\\x}")"`,
     'https://convo-lab.com/api/convolab/auth/me',
     'https://convo-lab.com/api/convolab/browser/auth/me',
     'https://convo-lab.com/api/auth/password/forgot',
@@ -438,6 +438,10 @@ test('production gates direct browser traffic and smokes each Learning OS route'
   ]) {
     assert.ok(workflow.includes(contract), `Missing direct browser deployment contract: ${contract}`);
   }
+  assert.ok(
+    !workflow.includes('decodeURIComponent'),
+    'Production smoke checks must not require Node.js on the droplet host'
+  );
   const publicGate = workflow.indexOf('if ! verify_public_health \\');
   assert.ok(publicGate >= 0);
   assert.ok(
@@ -556,6 +560,26 @@ test('production gates direct browser traffic and smokes each Learning OS route'
   assert.ok(rollback.includes('"$previous_direct_course_api_enabled"'));
   assert.ok(rollback.includes('"$previous_direct_script_api_enabled"'));
   assert.ok(rollback.includes('"$previous_direct_admin_api_enabled"'));
+});
+
+test('the production XSRF decoder runs without a host Node dependency', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'),
+    'utf8'
+  );
+  const decoder = workflow
+    .split('\n')
+    .find((line) => line.includes(`xsrf_token="$(printf '%b'`))
+    ?.trim();
+
+  assert.ok(decoder, 'Missing production XSRF decoder');
+
+  const { stdout } = await execFileAsync('bash', [
+    '-c',
+    `encoded_xsrf_token='abc%2Bdef%2Fghi%3D%3D'; ${decoder}; printf '%s' "$xsrf_token"`,
+  ]);
+
+  assert.equal(stdout, 'abc+def/ghi==');
 });
 
 test('the production workflow refreshes and verifies Learning OS content reads', async () => {
