@@ -69,7 +69,6 @@ const FILE_TASKS: FileTask[] = [
 
   // Server source files
   { file: 'server/src/services/avatarService.ts', cardId: 'convo-lab-iza', anyCount: 2, category: 'source' },
-  { file: 'server/src/services/courseItemExtractor.ts', cardId: 'convo-lab-2lr', anyCount: 10, category: 'source' },
   { file: 'server/src/services/ttsProviders/PollyTTSProvider.ts', cardId: 'convo-lab-slh', anyCount: 1, category: 'source' },
   { file: 'server/src/config/passport.ts', cardId: 'convo-lab-vls', anyCount: 1, category: 'source' },
   { file: 'server/src/middleware/impersonation.ts', cardId: 'convo-lab-wnw', anyCount: 1, category: 'source' },
@@ -100,7 +99,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/services/ttsClient.test.ts', cardId: 'convo-lab-3tp', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/emailService.test.ts', cardId: 'convo-lab-zru', anyCount: 11, category: 'test' },
   { file: 'server/src/__tests__/unit/services/emailService.token-security.test.ts', cardId: 'convo-lab-9t4', anyCount: 1, category: 'test' },
-  { file: 'server/src/__tests__/unit/services/courseItemExtractor.test.ts', cardId: 'convo-lab-00l', anyCount: 18, category: 'test' },
   { file: 'server/src/__tests__/unit/services/ttsProviders/PollyTTSProvider.test.ts', cardId: 'convo-lab-5ky', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/batchedTTSClient.test.ts', cardId: 'convo-lab-qat', anyCount: 16, category: 'test' },
   { file: 'server/src/__tests__/unit/middleware/auth.test.ts', cardId: 'convo-lab-dro', anyCount: 1, category: 'test' },
