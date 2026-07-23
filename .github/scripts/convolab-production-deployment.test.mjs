@@ -26,8 +26,26 @@ async function readDeployment() {
 }
 
 test('the production deployment wrapper and remote script remain valid Bash', async () => {
-  const { script } = await readDeployment();
+  const { source, script } = await readDeployment();
   await execFileAsync('bash', ['-n', '-c', script]);
+  assert.doesNotMatch(script, /\$\{\{/u);
+
+  for (const contract of [
+    'DEPLOY_IMAGE_TAG: ${{ inputs.image_tag }}',
+    'DEPLOY_GH_PAT: ${{ secrets.GH_PAT }}',
+    'DEPLOY_FISH_AUDIO_API_KEY: ${{ secrets.FISH_AUDIO_API_KEY }}',
+    'DEPLOY_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}',
+    'DEPLOY_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}',
+    'DEPLOY_GHCR_ACTOR: ${{ github.actor }}',
+    "printf 'IMAGE_TAG=%q\\n' \"$DEPLOY_IMAGE_TAG\"",
+    "printf 'GH_PAT=%q\\n' \"$DEPLOY_GH_PAT\"",
+    "printf 'FISH_AUDIO_API_KEY=%q\\n' \"$DEPLOY_FISH_AUDIO_API_KEY\"",
+    "printf 'OPENAI_API_KEY=%q\\n' \"$DEPLOY_OPENAI_API_KEY\"",
+    "printf 'GHCR_TOKEN=%q\\n' \"$DEPLOY_GHCR_TOKEN\"",
+    "printf 'GHCR_ACTOR=%q\\n' \"$DEPLOY_GHCR_ACTOR\"",
+  ]) {
+    assert.ok(source.includes(contract), `Missing expression-safe deployment contract: ${contract}`);
+  }
 
   const heredocMarker = "cat << 'ENDSSH'";
   const heredocStart = script.indexOf(heredocMarker);
