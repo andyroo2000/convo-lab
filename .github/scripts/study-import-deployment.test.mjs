@@ -867,7 +867,15 @@ test('generation routes are permanently proxied and production rehearsals cover 
     '"speed" => "medium"',
     '"speed" => "normal"',
     '"/api/audio/job/$audio_generation_smoke_job_id"',
-    '"https://convo-lab.com/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0"',
+    '-e API_TOKEN="$proxy_token"',
+    '"Authorization: Bearer ".getenv("API_TOKEN")',
+    '"http://127.0.0.1:8080/api/convolab/episodes/"',
+    '$body !== "learning-os-audio-generation-smoke"',
+    '$headers["content-type"]',
+    '$headers["content-security-policy"]',
+    '$headers["cross-origin-resource-policy"]',
+    '$headers["x-content-type-options"]',
+    'Learning OS authenticated audio stream smoke failed.',
     'cleanup_audio_generation_smoke best-effort',
     'Audio generation Learning OS routing and streaming smoke checks passed.',
   ]) {
@@ -876,6 +884,20 @@ test('generation routes are permanently proxied and production rehearsals cover 
       `Missing permanent generation proxy contract: ${requiredContract}`
     );
   }
+
+  const audioFixtureInsert = workflow.indexOf(
+    'DB::table("content_audio_generation_jobs")->insert'
+  );
+  const audioStreamSmoke = workflow.slice(
+    workflow.indexOf(
+      'docker exec \\\n                -e API_TOKEN="$proxy_token"',
+      audioFixtureInsert
+    ),
+    workflow.indexOf('cleanup_audio_generation_smoke', audioFixtureInsert)
+  );
+  assert.ok(audioFixtureInsert >= 0);
+  assert.ok(audioStreamSmoke.includes('learning-os-api php -r'));
+  assert.ok(!audioStreamSmoke.includes('--cookie "token=$auth_token"'));
 
   const tokenScope = workflow.indexOf('"content:write"');
   const serverRestart = workflow.indexOf(
