@@ -130,7 +130,7 @@ export class PollyTTSProvider {
 
     // Note: Polly handles speed via <prosody rate="X%"> in SSML,
     // not via API parameter like Google TTS
-    // The SSML should already have speed baked in from batchedTTSClient
+    // The caller should already have the speed baked into the SSML.
 
     try {
       // CALL 1: Synthesize audio

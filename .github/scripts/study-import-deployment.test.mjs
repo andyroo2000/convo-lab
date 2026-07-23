@@ -726,6 +726,29 @@ test('legacy course item extraction stays retired behind Learning OS', async () 
   }
 });
 
+test('legacy local course audio generation stays retired behind Learning OS', async () => {
+  const [courseRoute, scriptRoute] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'server/src/routes/courses.ts'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'server/src/routes/scripts.ts'), 'utf8'),
+  ]);
+  const retiredPaths = [
+    'server/src/services/batchedTTSClient.ts',
+    'server/src/services/japaneseReadingGenerator.ts',
+    'server/src/scripts/generate-course-audio-local.ts',
+    'server/src/__tests__/unit/services/batchedTTSClient.test.ts',
+    'server/src/__tests__/unit/services/japaneseReadingGenerator.test.ts',
+  ];
+
+  assert.match(courseRoute, /generateLearningOsCourse/);
+  assert.match(scriptRoute, /renderLearningOsScript/);
+  assert.doesNotMatch(courseRoute, /batchedTTSClient|japaneseReadingGenerator/);
+  assert.doesNotMatch(scriptRoute, /batchedTTSClient|japaneseReadingGenerator/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),

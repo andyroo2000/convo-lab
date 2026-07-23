@@ -63,7 +63,7 @@ If Phase 1 quality is acceptable, expand to a controlled set of course-like unit
 
 Use:
 
-- `server/src/scripts/generate-course-audio-local.ts`
+- `/api/admin/script-lab/synthesize-line`
 - `server/src/scripts/analyze-course-audio.ts`
 
 ## Phase 3 (Production Candidate Criteria)
@@ -77,7 +77,6 @@ Fish Audio is ready for broader rollout when:
 
 ## Notes
 
-- Current server logic already includes Fish-specific safeguards (single-unit batching + degenerate-audio truncation guard) in `/Users/andrewlandry/source/convo-lab/server/src/services/batchedTTSClient.ts`.
-- Script Lab already supports quick Fish experiments:
+- Script Lab supports quick Fish experiments without restoring ConvoLab's retired course-audio generation pipeline:
   - `/api/admin/script-lab/test-pronunciation`
   - `/api/admin/script-lab/synthesize-line`
