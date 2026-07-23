@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import test from 'node:test';
 import YAML from 'yaml';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
+const execFileAsync = promisify(execFile);
 const directGoogleCallback =
   'https://convo-lab.com/api/convolab/browser/auth/google/callback';
+const encodedDirectGoogleCallback =
+  'https%3A%2F%2Fconvo-lab.com%2Fapi%2Fconvolab%2Fbrowser%2Fauth%2Fgoogle%2Fcallback';
 
 async function readRepositoryFile(file) {
   return readFile(path.join(repositoryRoot, file), 'utf8');
@@ -98,10 +103,9 @@ test('Convo Lab rollout gates direct browser identity through the public router'
   for (const contract of [
     `upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI \\\n              ${directGoogleCallback}`,
     'https://convo-lab.com/api/convolab/browser/auth/google)',
-    'Direct Google OAuth route did not redirect to Google.',
-    'Direct Google OAuth redirect did not use the Learning OS callback.',
-    'Direct Google OAuth redirect has an invalid client ID.',
-    'Direct Google OAuth redirect did not include state.',
+    '.github/scripts/validate-google-oauth-redirect.sh',
+    encodedDirectGoogleCallback,
+    'Direct Google OAuth redirect failed: $oauth_failure',
     'https://convo-lab.com/api/convolab/browser/auth/verification)',
     'Direct verification route probe returned HTTP $verification_status instead of 422.',
     'https://convo-lab.com/api/convolab/browser/auth/google/invite)',
@@ -129,4 +133,31 @@ test('Convo Lab rollout gates direct browser identity through the public router'
   assert.ok(googleProbe > directAuthGate);
   assert.ok(verificationProbe > googleProbe);
   assert.ok(inviteProbe > verificationProbe);
+});
+
+test('Google OAuth redirect validation executes the production Bash parser', async () => {
+  const validator = path.join(
+    repositoryRoot,
+    '.github/scripts/validate-google-oauth-redirect.sh'
+  );
+  const validLocation =
+    `https://accounts.google.com/o/oauth2/auth?scope=openid&client_id=client-123` +
+    `&redirect_uri=${encodedDirectGoogleCallback}&state=state-123`;
+
+  await execFileAsync('bash', [validator, validLocation, encodedDirectGoogleCallback, 'true']);
+
+  for (const invalidLocation of [
+    validLocation.replace('client-123', 'placeholder'),
+    validLocation.replace(encodedDirectGoogleCallback, 'https%3A%2F%2Fexample.com%2Fcallback'),
+    validLocation.replace('&state=state-123', ''),
+  ]) {
+    await assert.rejects(
+      execFileAsync('bash', [
+        validator,
+        invalidLocation,
+        encodedDirectGoogleCallback,
+        'true',
+      ])
+    );
+  }
 });

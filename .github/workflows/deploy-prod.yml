@@ -624,24 +624,12 @@ jobs:
                   https://convo-lab.com/api/convolab/browser/auth/google)"
                 oauth_location="$(printf '%s\n' "$oauth_headers" \
                   | sed -n 's/^location: //Ip' | tr -d '\r' | tail -1)"
-                oauth_query="$(printf '%s' "${oauth_location#*?}" | tr '&' '\n')"
-                if [[ "$oauth_location" != https://accounts.google.com/* ]]; then
-                  echo "Direct Google OAuth route did not redirect to Google."
-                  return 1
-                fi
-                if ! grep -qi \
-                  '^redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fconvolab%2Fbrowser%2Fauth%2Fgoogle%2Fcallback$' \
-                  <<< "$oauth_query"; then
-                  echo "Direct Google OAuth redirect did not use the Learning OS callback."
-                  return 1
-                fi
-                if grep -q '^client_id=placeholder$' <<< "$oauth_query" \
-                  || ! grep -q '^client_id=..*' <<< "$oauth_query"; then
-                  echo "Direct Google OAuth redirect has an invalid client ID."
-                  return 1
-                fi
-                if ! grep -q '^state=..*' <<< "$oauth_query"; then
-                  echo "Direct Google OAuth redirect did not include state."
+                if ! oauth_failure="$(bash \
+                  .github/scripts/validate-google-oauth-redirect.sh \
+                  "$oauth_location" \
+                  'https%3A%2F%2Fconvo-lab.com%2Fapi%2Fconvolab%2Fbrowser%2Fauth%2Fgoogle%2Fcallback' \
+                  true 2>&1)"; then
+                  echo "Direct Google OAuth redirect failed: $oauth_failure"
                   return 1
                 fi
 
