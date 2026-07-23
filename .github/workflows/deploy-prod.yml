@@ -413,11 +413,6 @@ jobs:
               fi
             fi
 
-            echo "🛑 Removing the retired ConvoLab queue worker if present..."
-            if docker inspect convolab-worker >/dev/null 2>&1; then
-              docker rm -f convolab-worker
-            fi
-
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             $COMPOSE ps
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

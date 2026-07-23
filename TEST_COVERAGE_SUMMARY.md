@@ -521,7 +521,6 @@ authenticated proxy response, compatibility shape, and production smoke contract
 - ✅ `isImpersonationBannerVisible()` - Check banner visibility
 - ✅ `getImpersonatedUserInfo()` - Get impersonated user data
 - ✅ `exitImpersonation()` - Exit impersonation mode
-- ✅ `generateDialogue()` - Generate dialogue for testing
 - ✅ `clearUserQuota()` - Clear generation logs
 - ✅ `clearCooldowns()` - Clear Redis cooldowns
 - ✅ `setUserQuota()` - Set quota usage

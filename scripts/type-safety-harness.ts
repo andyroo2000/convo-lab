@@ -69,7 +69,6 @@ const FILE_TASKS: FileTask[] = [
 
   // Server source files
   { file: 'server/src/services/avatarService.ts', cardId: 'convo-lab-iza', anyCount: 2, category: 'source' },
-  { file: 'server/src/services/dialogueGenerator.ts', cardId: 'convo-lab-082', anyCount: 5, category: 'source' },
   { file: 'server/src/services/conversationalLessonScriptGenerator.ts', cardId: 'convo-lab-242', anyCount: 1, category: 'source' },
   { file: 'server/src/services/courseItemExtractor.ts', cardId: 'convo-lab-2lr', anyCount: 10, category: 'source' },
   { file: 'server/src/services/ttsProviders/PollyTTSProvider.ts', cardId: 'convo-lab-slh', anyCount: 1, category: 'source' },
@@ -135,13 +134,11 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/scripts/generate-speaker-avatars.ts', cardId: 'convo-lab-93d', anyCount: 1, category: 'script' },
   { file: 'server/scripts/cleanup-duplicate-jobs.ts', cardId: 'convo-lab-5ip', anyCount: 1, category: 'script' },
   { file: 'server/scripts/check-and-fix-corrupt-courses.ts', cardId: 'convo-lab-0sl', anyCount: 1, category: 'script' },
-  { file: 'server/scripts/recreate-dialog-longer.ts', cardId: 'convo-lab-7fm', anyCount: 1, category: 'script' },
   { file: 'server/scripts/backfill-sentence-metadata.ts', cardId: 'convo-lab-obg', anyCount: 3, category: 'script' },
   { file: 'server/scripts/generate-remaining-english-avatars.ts', cardId: 'convo-lab-gxv', anyCount: 2, category: 'script' },
   { file: 'server/scripts/show-latest-lesson.ts', cardId: 'convo-lab-bgf', anyCount: 1, category: 'script' },
   { file: 'server/scripts/generate-english-avatars-ai.ts', cardId: 'convo-lab-6zw', anyCount: 2, category: 'script' },
   { file: 'server/scripts/check-failed-course-speakers.ts', cardId: 'convo-lab-clz', anyCount: 1, category: 'script' },
-  { file: 'server/scripts/create-and-generate-dialog-for-yuriy.ts', cardId: 'convo-lab-oq1', anyCount: 1, category: 'script' },
   { file: 'server/scripts/backfill-dialogue-furigana.ts', cardId: 'convo-lab-gum', anyCount: 1, category: 'script' },
   { file: 'server/scripts/crop-avatars.ts', cardId: 'convo-lab-rkw', anyCount: 1, category: 'script' },
 ];

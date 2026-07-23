@@ -44,7 +44,7 @@ async function main() {
     });
 
     if (episodes.length === 0) {
-      console.log('❌ No sample dialogues found. Run generate-sample-dialogues.ts first.');
+      console.log('❌ No sample dialogues found. Create sample content through the application first.');
       return;
     }
 
