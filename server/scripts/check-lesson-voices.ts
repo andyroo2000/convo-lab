@@ -1,5 +1,5 @@
 import { prisma } from '../src/db/client.js';
-import type { LessonScriptUnit } from '../src/services/lessonScriptGenerator.js';
+import type { LessonScriptUnit } from '../src/services/lessonScriptTypes.js';
 
 async function main() {
   const lessons = await prisma.lesson.findMany({

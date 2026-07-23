@@ -8,7 +8,7 @@ import {
   hasFishAudioControlTokens,
   FISH_AUDIO_TRAILING_BREAK,
 } from '../../../services/batchedTTSClient.js';
-import { LessonScriptUnit } from '../../../services/lessonScriptGenerator.js';
+import type { LessonScriptUnit } from '../../../services/lessonScriptTypes.js';
 
 // Create hoisted mocks
 const mockGetGoogleTTSBetaProvider = vi.hoisted(() => vi.fn());

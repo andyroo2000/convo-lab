@@ -8,7 +8,7 @@ import { promisify } from 'util';
 import dotenv from 'dotenv';
 
 import { prisma } from '../db/client.js';
-import type { LessonScriptUnit } from '../services/lessonScriptGenerator.js';
+import type { LessonScriptUnit } from '../services/lessonScriptTypes.js';
 
 dotenv.config();
 

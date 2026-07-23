@@ -684,6 +684,30 @@ test('legacy audio script generation stays retired behind the Learning OS script
   }
 });
 
+test('legacy lesson planning and script generation stay retired behind Learning OS', async () => {
+  const courseRoute = await readFile(
+    path.join(repositoryRoot, 'server/src/routes/courses.ts'),
+    'utf8'
+  );
+  const scriptTypes = await readFile(
+    path.join(repositoryRoot, 'server/src/services/lessonScriptTypes.ts'),
+    'utf8'
+  );
+  const retiredPaths = [
+    'server/src/services/lessonScriptGenerator.ts',
+    'server/src/services/lessonPlanner.ts',
+  ];
+
+  assert.match(courseRoute, /generateLearningOsCourse/);
+  assert.doesNotMatch(courseRoute, /lessonScriptGenerator|lessonPlanner/);
+  assert.match(scriptTypes, /export type LessonScriptUnit/);
+  assert.doesNotMatch(scriptTypes, /generateCoreLlm|planCourse|generateLessonScript/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
