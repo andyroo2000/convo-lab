@@ -749,6 +749,29 @@ test('legacy local course audio generation stays retired behind Learning OS', as
   }
 });
 
+test('legacy timepoint TTS providers stay retired with the local audio pipeline', async () => {
+  const [ttsClient, providerFactory] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'server/src/services/ttsClient.ts'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'server/src/services/ttsProviders/TTSProvider.ts'), 'utf8'),
+  ]);
+  const retiredPaths = [
+    'server/src/services/ttsProviders/GoogleTTSBetaProvider.ts',
+    'server/src/services/ttsProviders/PollyTTSProvider.ts',
+    'server/src/__tests__/unit/services/ttsProviders/GoogleTTSBetaProvider.test.ts',
+    'server/src/__tests__/unit/services/ttsProviders/PollyTTSProvider.test.ts',
+    'server/test-polly-voices.ts',
+  ];
+
+  assert.match(ttsClient, /getTTSProvider/);
+  assert.match(providerFactory, /GoogleTTSProvider/);
+  assert.doesNotMatch(ttsClient, /GoogleTTSBetaProvider|PollyTTSProvider/);
+  assert.doesNotMatch(providerFactory, /GoogleTTSBetaProvider|PollyTTSProvider/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
