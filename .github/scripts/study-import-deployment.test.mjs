@@ -142,7 +142,7 @@ test('the production workflow verifies the always-on Study API without rollout f
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
     'desired_deploy_config_revision="browser-auth-session-v1"',
-    'upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "true"',
+    'upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "$browser_session_enabled"',
     'upsert_env LEARNING_OS_SESSION_COOKIE "learning_os_session"',
     'upsert_env LEARNING_OS_SESSION_LIFETIME "10080"',
     'upsert_env LEARNING_OS_SESSION_SECURE_COOKIE "true"',
@@ -270,8 +270,25 @@ test('production coordinates the Learning OS browser-session bridge behind one r
     assert.ok(compose.includes(contract), `Missing browser-session compose contract: ${contract}`);
   }
 
+  for (const workflow of [learningOsWorkflow, productionWorkflow]) {
+    assert.ok(
+      workflow.includes('"${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || \'true\' }}"')
+    );
+    assert.ok(
+      workflow.includes(
+        'echo "::error::LEARNING_OS_BROWSER_SESSION_ENABLED must be true or false"'
+      )
+    );
+    assert.ok(
+      workflow.includes(
+        'upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "$browser_session_enabled"'
+      )
+    );
+  }
   assert.ok(
-    learningOsWorkflow.includes('upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "true"')
+    learningOsWorkflow.includes(
+      'EXPECT_LEARNING_OS_BROWSER_SESSION="$browser_session_enabled"'
+    )
   );
   assert.ok(
     learningOsWorkflow.includes(
@@ -280,11 +297,6 @@ test('production coordinates the Learning OS browser-session bridge behind one r
   );
   assert.ok(
     learningOsWorkflow.includes('desired_deploy_config_revision="browser-auth-session-v1"')
-  );
-  assert.ok(
-    productionWorkflow.includes(
-      '"${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || \'true\' }}"'
-    )
   );
 });
 
@@ -1498,6 +1510,10 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     'trap cleanup EXIT',
     'trap report_error ERR',
     'Auth lifecycle command failed at line $failed_line with exit status $exit_status.',
+    'EXPECT_LEARNING_OS_BROWSER_SESSION="${EXPECT_LEARNING_OS_BROWSER_SESSION:-false}"',
+    'assert_learning_os_session_cookie',
+    'did not establish a Learning OS browser session.',
+    'established a Learning OS browser session while the bridge was disabled.',
     'delete_disposable_account',
     'source_system", ConvoLabAccountSource::LEARNING_OS',
     'convolab_email_verification_tokens',
