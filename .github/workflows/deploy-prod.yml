@@ -46,6 +46,10 @@ jobs:
             echo "::error::GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets must be set"
             exit 1
           fi
+          if [ "$GOOGLE_CLIENT_ID" = placeholder ]; then
+            echo "::error::GOOGLE_CLIENT_ID must not use the placeholder sentinel"
+            exit 1
+          fi
 
       - name: Setup SSH
         run: |
@@ -54,8 +58,16 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
 
       - name: Deploy to droplet
+        env:
+          DEPLOY_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          DEPLOY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} bash -s << 'ENDSSH'
+          {
+            printf 'DEPLOY_GOOGLE_CLIENT_ID=%q\n' "$DEPLOY_GOOGLE_CLIENT_ID"
+            printf 'DEPLOY_GOOGLE_CLIENT_SECRET=%q\n' "$DEPLOY_GOOGLE_CLIENT_SECRET"
+            cat << 'ENDSSH'
             set -euo pipefail
 
             echo "🚀 Starting ConvoLab production deployment..."
@@ -77,6 +89,20 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
+            upsert_env() {
+              key="$1"
+              value="$2"
+              escaped_value="${value//\\/\\\\}"
+              escaped_value="${escaped_value//#/\\#}"
+              escaped_value="${escaped_value//&/\\&}"
+
+              if grep -q "^${key}=" .env.production; then
+                sed -i "s#^${key}=.*#${key}=${escaped_value}#" .env.production
+              else
+                printf '%s=%s\n' "$key" "$value" >> .env.production
+              fi
+            }
+
             echo "🔧 Updating production environment values..."
             if grep -q '^FISH_AUDIO_API_KEY=' .env.production; then
               sed -i "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.production
@@ -90,23 +116,9 @@ jobs:
               echo "CLIENT_URL=https://convo-lab.com" >> .env.production
             fi
 
-            if grep -q '^GOOGLE_CLIENT_ID=' .env.production; then
-              sed -i "s#^GOOGLE_CLIENT_ID=.*#GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}#g" .env.production
-            else
-              echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env.production
-            fi
-
-            if grep -q '^GOOGLE_CLIENT_SECRET=' .env.production; then
-              sed -i "s#^GOOGLE_CLIENT_SECRET=.*#GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}#g" .env.production
-            else
-              echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env.production
-            fi
-
-            if grep -q '^GOOGLE_CALLBACK_URL=' .env.production; then
-              sed -i "s#^GOOGLE_CALLBACK_URL=.*#GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback#g" .env.production
-            else
-              echo "GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback" >> .env.production
-            fi
+            upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"
+            upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"
+            upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback
 
             if grep -q '^OPENAI_API_KEY=' .env.production; then
               sed -i "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.production
@@ -216,20 +228,35 @@ jobs:
             }
 
             verify_public_google_oauth() {
-              if ! oauth_headers="$(curl -sS -D - -o /dev/null https://convo-lab.com/api/auth/google)"; then
-                echo "❌ Google OAuth production redirect request failed."
-                return 1
-              fi
-              oauth_location="$(printf '%s\n' "$oauth_headers" \
-                | sed -n 's/^location: //Ip' | tr -d '\r' | tail -1)"
-              if [[ "$oauth_location" != https://accounts.google.com/* ]] || \
-                 [[ "$oauth_location" != *'redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fauth%2Fgoogle%2Fcallback'* ]] || \
-                 [[ "$oauth_location" == *'client_id=placeholder'* ]] || \
-                 [[ "$oauth_location" == *'access_type=offline'* ]]; then
-                echo "❌ Google OAuth production redirect is misconfigured."
-                return 1
-              fi
-              echo "✅ Google OAuth production redirect passed!"
+              for attempt in {1..5}; do
+                oauth_failure=""
+                if ! oauth_headers="$(curl --max-time 10 -sS -D - -o /dev/null https://convo-lab.com/api/auth/google)"; then
+                  oauth_failure="redirect request failed"
+                else
+                  oauth_location="$(printf '%s\n' "$oauth_headers" \
+                    | sed -n 's/^location: //Ip' | tr -d '\r' | tail -1)"
+                  oauth_location_lower="${oauth_location,,}"
+                  if [[ "$oauth_location" != https://accounts.google.com/* ]]; then
+                    oauth_failure="redirect host is not Google"
+                  elif [[ "$oauth_location_lower" != *'redirect_uri=https%3a%2f%2fconvo-lab.com%2fapi%2fauth%2fgoogle%2fcallback'* ]]; then
+                    oauth_failure="production callback is missing"
+                  elif [[ "$oauth_location" == *'client_id=placeholder'* ]]; then
+                    oauth_failure="placeholder client ID is active"
+                  elif [[ "$oauth_location" == *'access_type=offline'* ]]; then
+                    oauth_failure="offline access is still requested"
+                  fi
+                fi
+
+                if [ -z "$oauth_failure" ]; then
+                  echo "✅ Google OAuth production redirect passed!"
+                  return 0
+                fi
+                echo "Google OAuth attempt $attempt/5 failed: $oauth_failure"
+                if [ "$attempt" -lt 5 ]; then
+                  sleep 3
+                fi
+              done
+              return 1
             }
 
             reload_router() {
@@ -389,6 +416,8 @@ jobs:
 
             echo "✅ Production blue/green deployment complete!"
           ENDSSH
+          } | ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "$DROPLET_USER@$DROPLET_HOST" bash -s
 
       - name: Health check
         run: |

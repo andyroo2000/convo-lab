@@ -29,7 +29,7 @@ test('the production deployment wrapper and remote script remain valid Bash', as
   const { script } = await readDeployment();
   await execFileAsync('bash', ['-n', '-c', script]);
 
-  const heredocMarker = "<< 'ENDSSH'";
+  const heredocMarker = "cat << 'ENDSSH'";
   const heredocStart = script.indexOf(heredocMarker);
   const remoteScriptStart = script.indexOf('\n', heredocStart) + 1;
   const remoteScriptEnd = script.indexOf('\nENDSSH\n', remoteScriptStart);
@@ -47,15 +47,18 @@ test('the production deployment wrapper and remote script remain valid Bash', as
 test('the production workflow retains blue-green switching and rollback contracts', async () => {
   const { script } = await readDeployment();
   const switchStart = script.indexOf('router_role="$(docker inspect');
-  const publicHealthCheck = script.indexOf('if ! verify_public_health; then', switchStart);
+  const publicVerificationGate = script.indexOf(
+    'if ! verify_public_health || ! verify_public_google_oauth; then',
+    switchStart
+  );
   const activeColorWrite = script.indexOf(
     'write_active_color "$inactive_color"',
-    publicHealthCheck
+    publicVerificationGate
   );
 
   assert.ok(switchStart >= 0);
-  assert.ok(publicHealthCheck > switchStart);
-  assert.ok(activeColorWrite > publicHealthCheck);
+  assert.ok(publicVerificationGate > switchStart);
+  assert.ok(activeColorWrite > publicVerificationGate);
 
   const switchBlock = script.slice(switchStart, activeColorWrite);
   assert.match(
@@ -68,7 +71,7 @@ test('the production workflow retains blue-green switching and rollback contract
   );
   assert.match(
     switchBlock,
-    /if ! verify_public_health; then[\s\S]*if ! rollback_router "\$active_color"; then/
+    /if ! verify_public_health \|\| ! verify_public_google_oauth; then[\s\S]*if ! rollback_router "\$active_color"; then/
   );
 });
 

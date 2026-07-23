@@ -87,11 +87,20 @@ test('the production deployment configures and smokes Google OAuth', async () =>
     'GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}',
     'GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}',
     'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets must be set',
-    'GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback',
+    'GOOGLE_CLIENT_ID must not use the placeholder sentinel',
+    "printf 'DEPLOY_GOOGLE_CLIENT_ID=%q\\n'",
+    "printf 'DEPLOY_GOOGLE_CLIENT_SECRET=%q\\n'",
+    '"$DROPLET_USER@$DROPLET_HOST" bash -s',
+    'upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"',
+    'upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"',
+    'upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback',
     'verify_public_google_oauth() {',
-    'Google OAuth production redirect request failed.',
+    'for attempt in {1..5}; do',
+    'curl --max-time 10',
+    'placeholder client ID is active',
     'https://convo-lab.com/api/auth/google',
-    "redirect_uri=https%3A%2F%2Fconvo-lab.com%2Fapi%2Fauth%2Fgoogle%2Fcallback",
+    'oauth_location_lower="${oauth_location,,}"',
+    "redirect_uri=https%3a%2f%2fconvo-lab.com%2fapi%2fauth%2fgoogle%2fcallback",
     'client_id=placeholder',
     'access_type=offline',
     'Google OAuth production redirect passed!',
@@ -100,7 +109,7 @@ test('the production deployment configures and smokes Google OAuth', async () =>
   }
 
   assert.ok(
-    workflow.indexOf('GOOGLE_CALLBACK_URL=https://convo-lab.com/api/auth/google/callback') <
+    workflow.indexOf('upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback') <
       workflow.indexOf('$COMPOSE pull')
   );
   const oauthGate = workflow.indexOf(
