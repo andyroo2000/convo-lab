@@ -234,7 +234,7 @@ docker run -p 8080:8080 --env-file .env.production convolab:local
 - **Upstash Redis**: $0 (free tier)
 - **Cloud Storage**: ~$1-5/month
 - **Text-to-Speech API**: Pay-per-use (~$4 per 1M characters)
-- **Gemini API**: Free tier, then pay-per-use
+- **OpenAI API**: Pay-per-use; cost depends on the configured models
 
 **Total: ~$15-30/month** for you and a few friends.
 

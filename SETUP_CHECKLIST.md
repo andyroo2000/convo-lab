@@ -2,12 +2,12 @@
 
 Follow these steps to get ConvoLab running with Docker Compose.
 
-## ☐ Step 1: Get Google Cloud Credentials
+## ☐ Step 1: Get API And Google Cloud Credentials
 
-### 1.1 Get Gemini API Key
+### 1.1 Get OpenAI API Key
 
-1. Visit https://aistudio.google.com/app/apikey
-2. Sign in with your Google account
+1. Visit https://platform.openai.com/api-keys
+2. Sign in with your OpenAI account
 3. Click "Create API Key"
 4. Copy the key
 

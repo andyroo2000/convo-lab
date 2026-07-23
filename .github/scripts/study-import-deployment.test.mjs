@@ -836,7 +836,7 @@ test('legacy avatar generator experiments stay retired behind the OpenAI generat
   assert.equal(serverPackage.dependencies['@google-cloud/vertexai'], undefined);
   assert.equal(serverPackage.scripts['generate:avatars'], 'tsx scripts/generate-speaker-avatars.ts');
   assert.match(speakerAvatars, /generateOpenAIImageBuffer/);
-  assert.doesNotMatch(runtimeAndSetupFiles.join('\n'), /GEMINI_API_KEY/);
+  assert.doesNotMatch(runtimeAndSetupFiles.join('\n'), /GEMINI_API_KEY|Gemini|Vertex AI/i);
   for (const compose of runtimeAndSetupFiles.slice(0, 3)) {
     assert.match(compose, /OPENAI_API_KEY/);
   }

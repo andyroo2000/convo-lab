@@ -6,8 +6,8 @@
 - PostgreSQL 15+
 - Redis 7+ (for job queue)
 - Docker & Docker Compose (optional, for containerized development)
+- OpenAI API key
 - Google Cloud account with:
-  - Gemini API enabled
   - Cloud Text-to-Speech API enabled
   - Cloud Storage bucket created
   - Service account with appropriate permissions
@@ -23,7 +23,13 @@ npm install
 
 This will install dependencies for all workspaces (client, server, shared).
 
-### 2. Google Cloud Setup
+### 2. API And Google Cloud Setup
+
+#### Get OpenAI API Key
+
+1. Go to https://platform.openai.com/api-keys
+2. Create an API key
+3. Save it for the `.env` file
 
 #### Create Service Account
 
@@ -32,14 +38,7 @@ This will install dependencies for all workspaces (client, server, shared).
 3. Grant permissions:
    - Cloud Text-to-Speech User
    - Cloud Storage Object Admin
-   - Vertex AI User (for Gemini)
 4. Download JSON key and save as `server/gcloud-key.json`
-
-#### Get Gemini API Key
-
-1. Go to https://aistudio.google.com/app/apikey
-2. Create API key
-3. Save for `.env` file
 
 #### Create Storage Bucket
 
