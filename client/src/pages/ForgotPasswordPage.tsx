@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Mail } from 'lucide-react';
 import Logo from '../components/common/Logo';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { authApi } from '../lib/authApi';
 
 const ForgotPasswordPage = () => {
   const { t } = useTranslation(['auth', 'common']);
@@ -19,7 +18,7 @@ const ForgotPasswordPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/password-reset/request`, {
+      const response = await fetch(authApi.forgotPassword, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

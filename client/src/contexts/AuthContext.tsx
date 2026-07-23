@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from '../types';
-import { API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
 import { clearAudioCache } from '../lib/audioCache';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../lib/authSession';
 import { accountApi } from '../lib/accountApi';
+import { authApi } from '../lib/authApi';
 
 interface AuthContextType {
   user: User | null;
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await fetchWithCsrf(`${API_URL}/api/auth/login`, {
+    const response = await fetchWithCsrf(authApi.login, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    await fetchWithCsrf(`${API_URL}/api/auth/logout`, {
+    await fetchWithCsrf(authApi.logout, {
       method: 'POST',
       credentials: 'include',
     });
@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signup = async (email: string, password: string, name: string, inviteCode: string) => {
-    const response = await fetchWithCsrf(`${API_URL}/api/auth/signup`, {
+    const response = await fetchWithCsrf(authApi.signup, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

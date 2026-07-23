@@ -14,6 +14,7 @@ describe('production router contract', () => {
     expect(routerTemplate).toContain(
       'set $direct_account_api_enabled __DIRECT_ACCOUNT_API_ENABLED__;'
     );
+    expect(routerTemplate).toContain('set $direct_auth_api_enabled __DIRECT_AUTH_API_ENABLED__;');
     expect(routerTemplate).toContain(
       'set $direct_episode_api_enabled __DIRECT_EPISODE_API_ENABLED__;'
     );
@@ -25,10 +26,12 @@ describe('production router contract', () => {
     );
     expect(routerTemplate).toContain('set $direct_admin_api_enabled __DIRECT_ADMIN_API_ENABLED__;');
     expect(routerTemplate).toContain(
-      'set $direct_browser_api_flags "$direct_account_api_enabled$direct_episode_api_enabled$direct_course_api_enabled$direct_script_api_enabled$direct_admin_api_enabled";'
+      'set $direct_browser_api_flags "$direct_account_api_enabled$direct_auth_api_enabled$direct_episode_api_enabled$direct_course_api_enabled$direct_script_api_enabled$direct_admin_api_enabled";'
     );
     expect(routerTemplate).toMatch(/location = \/sanctum\/csrf-cookie \{/u);
     expect(routerTemplate).toMatch(/location \^~ \/api\/convolab\/auth\/ \{/u);
+    expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/browser\/auth\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).toMatch(/location ~ \^\/api\/auth\/password\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/episodes\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/courses\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/scripts\(\?:\/\|\$\) \{/u);
@@ -47,6 +50,28 @@ describe('production router contract', () => {
     expect(authBlock).toContain('proxy_set_header X-Convo-Lab-User-Id "";');
     expect(authBlock).toContain('proxy_pass $learning_os_upstream;');
     expect(authBlock).toContain('if ($direct_account_api_enabled = 0)');
+
+    const browserAuthBlock = routerTemplate.slice(
+      routerTemplate.indexOf('location ~ ^/api/convolab/browser/auth(?:/|$)'),
+      routerTemplate.indexOf('location ~ ^/api/auth/password(?:/|$)')
+    );
+
+    expect(browserAuthBlock).toContain('proxy_set_header Authorization "";');
+    expect(browserAuthBlock).toContain('proxy_set_header X-Convo-Lab-User-Id "";');
+    expect(browserAuthBlock).toContain('proxy_pass $learning_os_upstream;');
+    expect(browserAuthBlock).toContain('if ($direct_auth_api_enabled = 0)');
+    expect(browserAuthBlock).toContain('return 404;');
+
+    const passwordResetBlock = routerTemplate.slice(
+      routerTemplate.indexOf('location ~ ^/api/auth/password(?:/|$)'),
+      routerTemplate.indexOf('location ~ ^/api/convolab/episodes')
+    );
+
+    expect(passwordResetBlock).toContain('proxy_set_header Authorization "";');
+    expect(passwordResetBlock).toContain('proxy_set_header X-Convo-Lab-User-Id "";');
+    expect(passwordResetBlock).toContain('proxy_pass $learning_os_upstream;');
+    expect(passwordResetBlock).toContain('if ($direct_auth_api_enabled = 0)');
+    expect(passwordResetBlock).toContain('return 404;');
 
     const episodeBlock = routerTemplate.slice(
       routerTemplate.indexOf('location ~ ^/api/convolab/episodes(?:/|$)'),
@@ -114,7 +139,7 @@ describe('production router contract', () => {
       routerTemplate.indexOf('location ^~ /api/convolab/auth/')
     );
 
-    expect(csrfBlock).toContain('if ($direct_browser_api_flags = "00000")');
+    expect(csrfBlock).toContain('if ($direct_browser_api_flags = "000000")');
     expect(csrfBlock).toContain('proxy_pass $learning_os_upstream;');
   });
 });

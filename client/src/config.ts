@@ -8,6 +8,10 @@ export const LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED =
   typeof window !== 'undefined' &&
   window.__CONVOLAB_RUNTIME_CONFIG__?.learningOsDirectAccountApi === true;
 
+export const LEARNING_OS_DIRECT_AUTH_API_ENABLED =
+  typeof window !== 'undefined' &&
+  window.__CONVOLAB_RUNTIME_CONFIG__?.learningOsDirectAuthApi === true;
+
 export const LEARNING_OS_DIRECT_EPISODE_API_ENABLED =
   typeof window !== 'undefined' &&
   window.__CONVOLAB_RUNTIME_CONFIG__?.learningOsDirectEpisodeApi === true;

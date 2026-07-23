@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 
 export interface ClientRuntimeConfig {
   learningOsDirectAccountApi: boolean;
+  learningOsDirectAuthApi: boolean;
   learningOsDirectEpisodeApi: boolean;
   learningOsDirectCourseApi: boolean;
   learningOsDirectScriptApi: boolean;
@@ -18,6 +19,8 @@ export function getClientRuntimeConfig(
   return {
     learningOsDirectAccountApi:
       environment.LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED?.trim().toLowerCase() === 'true',
+    learningOsDirectAuthApi:
+      environment.LEARNING_OS_DIRECT_AUTH_API_ENABLED?.trim().toLowerCase() === 'true',
     learningOsDirectEpisodeApi:
       environment.LEARNING_OS_DIRECT_EPISODE_API_ENABLED?.trim().toLowerCase() === 'true',
     learningOsDirectCourseApi:
