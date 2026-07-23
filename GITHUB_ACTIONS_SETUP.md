@@ -71,7 +71,7 @@ Used at deploy time to inject the audio API key into `.env.production` and `.env
 To avoid authentication issues, make your GitHub Container Registry packages public:
 
 1. After first push, go to https://github.com/andrewlandry?tab=packages
-2. Click on each package (convolab-server, convolab-worker, convolab-furigana, convolab-pinyin)
+2. Click each active package (for example, `convolab-server`)
 3. Click "Package settings"
 4. Scroll down to "Danger Zone"
 5. Click "Change visibility" → "Public"

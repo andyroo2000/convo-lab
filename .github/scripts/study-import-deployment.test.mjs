@@ -570,6 +570,32 @@ test('generation routes are permanently proxied and production rehearsals cover 
   assert.ok(failureCleanup.includes('cleanup_profile_smoke best-effort'));
 });
 
+test('ConvoLab queue workers are retired from runtime and deployment surfaces', async () => {
+  const [stageCompose, productionCompose, stageWorkflow, productionWorkflow, scriptWorkflow] =
+    await Promise.all([
+      readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+      readFile(path.join(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8'),
+      readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
+      readFile(path.join(repositoryRoot, '.github/workflows/run-script-prod.yml'), 'utf8'),
+    ]);
+  const serverPackage = JSON.parse(
+    await readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8')
+  );
+
+  assert.equal(serverPackage.dependencies.bullmq, undefined);
+  assert.doesNotMatch(stageCompose, /^\s+worker-stage:/m);
+  assert.doesNotMatch(productionCompose, /^\s+worker:/m);
+  assert.doesNotMatch(stageWorkflow, /Dockerfile\.worker|convolab-\$\{\{ matrix\.name \}\}/);
+  assert.doesNotMatch(productionWorkflow, /\$COMPOSE pull[^\n]*\bworker\b/);
+  assert.doesNotMatch(productionWorkflow, /force-recreate worker|worker_state=/);
+  assert.match(productionWorkflow, /docker rm -f convolab-worker/);
+  assert.doesNotMatch(scriptWorkflow, /^\s+- worker$/m);
+
+  await assert.rejects(stat(path.join(repositoryRoot, 'server/Dockerfile.worker')));
+  await assert.rejects(stat(path.join(repositoryRoot, 'server/src/worker.ts')));
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),

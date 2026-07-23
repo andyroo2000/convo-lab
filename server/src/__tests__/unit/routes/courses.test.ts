@@ -19,18 +19,10 @@ const mockPrisma = vi.hoisted(() => ({
   },
 }));
 
-const mockCourseQueue = vi.hoisted(() => ({
-  add: vi.fn(),
-}));
-
 const mockGetEffectiveUserId = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
-}));
-
-vi.mock('../../../jobs/courseQueue.js', () => ({
-  courseQueue: mockCourseQueue,
 }));
 
 vi.mock('../../../middleware/impersonation.js', () => ({
@@ -204,20 +196,6 @@ describe('Courses Route Logic', () => {
   });
 
   describe('POST /:id/generate - Generate Course', () => {
-    it('should queue course generation job', async () => {
-      mockCourseQueue.add.mockResolvedValue({ id: 'job-123' });
-
-      await mockCourseQueue.add(
-        { courseId: 'course-1', userId: 'test-user-id' },
-        { jobId: 'course-course-1' }
-      );
-
-      expect(mockCourseQueue.add).toHaveBeenCalledWith(
-        { courseId: 'course-1', userId: 'test-user-id' },
-        expect.objectContaining({ jobId: 'course-course-1' })
-      );
-    });
-
     it('should update course status to generating', async () => {
       mockPrisma.course.update.mockResolvedValue({
         id: 'course-1',

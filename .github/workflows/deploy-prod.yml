@@ -321,9 +321,10 @@ jobs:
 
             available_mb="$(awk '/MemAvailable/ {print int($2 / 1024)}' /proc/meminfo)"
             echo "Available memory: ${available_mb}MB"
-            # MemAvailable already reflects long-running Postgres, Redis, worker, and
-            # the active web color. Keep at least 2500MB free for the inactive web
-            # color, router work, image extraction, and rollback headroom.
+            # MemAvailable already reflects long-running Postgres, Redis, the active
+            # web color, and the old worker during its one retirement deployment.
+            # Keep at least 2500MB free for the inactive web color, router work,
+            # image extraction, and rollback headroom.
             if [ "$available_mb" -lt 2500 ]; then
               echo "❌ Refusing blue/green deploy with less than 2500MB available memory."
               exit 1
@@ -333,7 +334,7 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
-            timeout 600 $COMPOSE pull router "server-$inactive_color" worker
+            timeout 600 $COMPOSE pull router "server-$inactive_color"
 
             echo "🧱 Ensuring Postgres and Redis stay running..."
             $COMPOSE up -d postgres redis
@@ -412,24 +413,9 @@ jobs:
               fi
             fi
 
-            echo "♻️ Recreating worker after web traffic switch..."
-            $COMPOSE up -d --no-deps --force-recreate worker
-            echo "Worker has no Docker healthcheck; confirming it remains running briefly..."
-            for i in {1..4}; do
-              worker_state="$(docker inspect -f '{{.State.Status}}' convolab-worker 2>/dev/null || echo "missing")"
-              if [ "$worker_state" != "running" ]; then
-                echo "❌ convolab-worker is $worker_state after recreate. Recent logs:"
-                docker logs --tail=200 convolab-worker || true
-                exit 1
-              fi
-              echo "convolab-worker status check $i/4: $worker_state"
-              sleep 5
-            done
-            worker_state="$(docker inspect -f '{{.State.Status}}' convolab-worker 2>/dev/null || echo "missing")"
-            if [ "$worker_state" != "running" ]; then
-              echo "❌ convolab-worker did not stay running after recreate. Recent logs:"
-              docker logs --tail=200 convolab-worker || true
-              exit 1
+            echo "🛑 Removing the retired ConvoLab queue worker if present..."
+            if docker inspect convolab-worker >/dev/null 2>&1; then
+              docker rm -f convolab-worker
             fi
 
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

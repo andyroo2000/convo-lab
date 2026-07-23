@@ -203,21 +203,18 @@ ${
    - Verify tree-shaking is effective
    - Remove dead code
 
-### PHASE 5: Job Queue Optimization
-1. Review BullMQ job processing:
-   - server/src/jobs/queues/
-   - Check job processing times
-   - Review job priorities
-2. Check for job queue bottlenecks:
-   - Monitor queue lengths
-   - Check for stuck jobs
-   - Review job failure rates
-3. Optimize concurrency settings:
-   - Review worker concurrency limits
-   - Check for optimal parallelization
-   - Verify resource limits
+### PHASE 5: Upstream API Optimization
+1. Review Learning OS proxy latency:
+   - Check request timeouts and cancellation
+   - Review response payload sizes
+2. Check for upstream bottlenecks:
+   - Monitor endpoint latency
+   - Check retry and failure rates
+3. Review connection behavior:
+   - Verify keep-alive and timeout settings
+   - Check for duplicate requests
 4. Review retry strategies:
-   - Check retry counts
+   - Check retry counts and idempotency
    - Review backoff strategies
    - Verify error handling
 5. Check for stuck/failed jobs:

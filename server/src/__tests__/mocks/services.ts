@@ -36,15 +36,3 @@ vi.mock('../../services/storageClient.js', () => ({
   uploadToGCS: mockStorageClient.uploadFile,
   getPublicUrl: mockStorageClient.getPublicUrl,
 }));
-
-// Mock BullMQ queues
-export const mockQueue = {
-  add: vi.fn(),
-  getJob: vi.fn(),
-  close: vi.fn(),
-};
-
-vi.mock('bullmq', () => ({
-  Queue: vi.fn(() => mockQueue),
-  Worker: vi.fn(),
-}));

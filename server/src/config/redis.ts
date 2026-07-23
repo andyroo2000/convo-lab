@@ -1,8 +1,7 @@
-import { WorkerOptions } from 'bullmq';
 import { Redis } from 'ioredis';
 
 /**
- * Shared Redis connection configuration for job queues
+ * Shared Redis connection configuration for API rate limiting.
  * Automatically enables TLS when using Upstash (host contains 'upstash.io')
  * For self-hosted Redis, connects without TLS on internal Docker network
  */
@@ -17,28 +16,3 @@ export const createRedisConnection = () =>
     // Enable TLS for Upstash
     tls: process.env.REDIS_HOST?.includes('upstash.io') ? {} : undefined,
   });
-
-/**
- * Shared worker settings optimized for minimal Redis usage
- * These settings dramatically reduce polling frequency to conserve requests
- * Note: connection should be provided by each worker individually
- */
-export const defaultWorkerSettings: Partial<WorkerOptions> = {
-  autorun: true,
-  concurrency: 1,
-
-  // Reduce polling frequency for idle workers - THE KEY SETTINGS TO REDUCE REDIS USAGE
-  lockDuration: 300000, // 5 minutes - how long a job is locked during processing (must be longer than longest job)
-  drainDelay: parseInt(process.env.WORKER_DRAIN_DELAY || '30000'), // Delay before checking for new jobs when queue is empty
-  // Examples:
-  // 5000 (5s) = fast for testing, ~103K cmds/day (~$15/mo)
-  // 30000 (30s) = balanced, ~17K cmds/day (~$3-5/mo)
-  // 60000 (60s) = efficient, approximately 8.6K commands per day.
-  // 300000 (5min) = idle mode, ~1.7K cmds/day (minimal cost)
-
-  // Rate limiter for job processing (doesn't affect idle polling)
-  limiter: {
-    max: 10, // Process max 10 jobs
-    duration: 1000, // per second
-  },
-};
