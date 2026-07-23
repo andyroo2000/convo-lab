@@ -13,7 +13,6 @@ datasource db {
 model User {
   id                      String    @id @default(uuid())
   email                   String    @unique
-  password                String? // Optional for OAuth users
   name                    String
   displayName             String?
   avatarColor             String?   @default("indigo")
@@ -28,9 +27,6 @@ model User {
   emailVerified           Boolean   @default(false)
   emailVerifiedAt         DateTime?
 
-  // OAuth fields
-  googleId String? @unique
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -38,9 +34,6 @@ model User {
   courses                 Course[]
   inviteCode              InviteCode?
   generationLogs          GenerationLog[]
-  emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens     PasswordResetToken[]
-  oauthAccounts           OAuthAccount[]
   audioScriptMedia        AudioScriptMedia[]
   studyNotes              StudyNote[]              @ignore
   studyCards              StudyCard[]              @ignore
@@ -56,7 +49,6 @@ model User {
   @@index([email])
   @@index([role])
   @@index([emailVerified])
-  @@index([googleId])
 }
 
 // Learning OS owns this table. Keep it represented for migration history and copied-database
@@ -83,37 +75,6 @@ model InviteCode {
   user User? @relation(fields: [usedBy], references: [id])
 
   @@index([code])
-}
-
-model EmailVerificationToken {
-  id        String   @id @default(uuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([token])
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("email_verification_tokens")
-}
-
-model PasswordResetToken {
-  id        String    @id @default(uuid())
-  userId    String
-  token     String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([token])
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("password_reset_tokens")
 }
 
 model Episode {
@@ -837,24 +798,4 @@ model SentenceScriptTest {
   @@index([createdAt])
   @@index([sentence])
   @@map("sentence_script_tests")
-}
-
-// OAuth Account - Store OAuth provider tokens and metadata
-
-model OAuthAccount {
-  id           String    @id @default(uuid())
-  userId       String
-  provider     String // "google", "github", etc.
-  providerId   String // Provider's unique ID for the user
-  accessToken  String?   @db.Text
-  refreshToken String?   @db.Text
-  expiresAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerId])
-  @@index([userId])
-  @@map("oauth_accounts")
 }
