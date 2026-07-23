@@ -12,7 +12,7 @@
  *   npm run harness:type-safety -- --concurrency 10      # 10 parallel sessions
  *   npm run harness:type-safety -- --model claude-opus-4-20250514  # Use Opus
  *   npm run harness:type-safety -- --max-turns 50        # Custom max turns per file
- *   npm run harness:type-safety -- --file server/src/services/usageTracker.ts  # Single file
+ *   npm run harness:type-safety -- --file server/src/services/learningOsProxy.ts  # Single file
  *   npm run harness:type-safety -- --category tests      # Only test files
  *   npm run harness:type-safety -- --category source     # Only source files
  *   npm run harness:type-safety -- --category scripts    # Only script files
@@ -71,7 +71,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/services/avatarService.ts', cardId: 'convo-lab-iza', anyCount: 2, category: 'source' },
   { file: 'server/src/services/dialogueGenerator.ts', cardId: 'convo-lab-082', anyCount: 5, category: 'source' },
   { file: 'server/src/services/conversationalLessonScriptGenerator.ts', cardId: 'convo-lab-242', anyCount: 1, category: 'source' },
-  { file: 'server/src/services/workerTrigger.ts', cardId: 'convo-lab-6zp', anyCount: 1, category: 'source' },
   { file: 'server/src/services/courseItemExtractor.ts', cardId: 'convo-lab-2lr', anyCount: 10, category: 'source' },
   { file: 'server/src/services/ttsProviders/PollyTTSProvider.ts', cardId: 'convo-lab-slh', anyCount: 1, category: 'source' },
   { file: 'server/src/config/passport.ts', cardId: 'convo-lab-vls', anyCount: 1, category: 'source' },
@@ -105,7 +104,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/services/emailService.test.ts', cardId: 'convo-lab-zru', anyCount: 11, category: 'test' },
   { file: 'server/src/__tests__/unit/services/emailService.token-security.test.ts', cardId: 'convo-lab-9t4', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/audioGenerator.test.ts', cardId: 'convo-lab-vxp', anyCount: 5, category: 'test' },
-  { file: 'server/src/__tests__/unit/services/workerTrigger.test.ts', cardId: 'convo-lab-0ga', anyCount: 2, category: 'test' },
   { file: 'server/src/__tests__/unit/services/courseItemExtractor.test.ts', cardId: 'convo-lab-00l', anyCount: 18, category: 'test' },
   { file: 'server/src/__tests__/unit/services/ttsProviders/PollyTTSProvider.test.ts', cardId: 'convo-lab-5ky', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/services/batchedTTSClient.test.ts', cardId: 'convo-lab-qat', anyCount: 16, category: 'test' },
