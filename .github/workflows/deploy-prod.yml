@@ -67,6 +67,12 @@ jobs:
           DIRECT_COURSE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_COURSE_API_ENABLED || 'false' }}
           DROPLET_USER: ${{ secrets.DROPLET_USER }}
           DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+          DEPLOY_IMAGE_TAG: ${{ inputs.image_tag }}
+          DEPLOY_GH_PAT: ${{ secrets.GH_PAT }}
+          DEPLOY_FISH_AUDIO_API_KEY: ${{ secrets.FISH_AUDIO_API_KEY }}
+          DEPLOY_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEPLOY_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_GHCR_ACTOR: ${{ github.actor }}
         run: |
           {
             printf 'DEPLOY_GOOGLE_CLIENT_ID=%q\n' "$DEPLOY_GOOGLE_CLIENT_ID"
@@ -75,11 +81,16 @@ jobs:
             printf 'DIRECT_ACCOUNT_API_ENABLED=%q\n' "$DIRECT_ACCOUNT_API_ENABLED"
             printf 'DIRECT_EPISODE_API_ENABLED=%q\n' "$DIRECT_EPISODE_API_ENABLED"
             printf 'DIRECT_COURSE_API_ENABLED=%q\n' "$DIRECT_COURSE_API_ENABLED"
+            printf 'IMAGE_TAG=%q\n' "$DEPLOY_IMAGE_TAG"
+            printf 'GH_PAT=%q\n' "$DEPLOY_GH_PAT"
+            printf 'FISH_AUDIO_API_KEY=%q\n' "$DEPLOY_FISH_AUDIO_API_KEY"
+            printf 'OPENAI_API_KEY=%q\n' "$DEPLOY_OPENAI_API_KEY"
+            printf 'GHCR_TOKEN=%q\n' "$DEPLOY_GHCR_TOKEN"
+            printf 'GHCR_ACTOR=%q\n' "$DEPLOY_GHCR_ACTOR"
             cat << 'ENDSSH'
             set -euo pipefail
 
             echo "🚀 Starting ConvoLab production deployment..."
-            IMAGE_TAG="${{ inputs.image_tag }}"
             COMPOSE="docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production"
             RUNTIME_DIR="/opt/convolab-runtime"
             ROUTER_DIR="$RUNTIME_DIR/prod-router"
@@ -90,7 +101,7 @@ jobs:
             cd /opt/convolab
 
             git config credential.helper store
-            echo "https://${{ secrets.GH_PAT }}@github.com" > ~/.git-credentials
+            echo "https://${GH_PAT}@github.com" > ~/.git-credentials
             chmod 600 ~/.git-credentials
 
             echo "📦 Pulling latest code from GitHub..."
@@ -112,11 +123,7 @@ jobs:
             }
 
             echo "🔧 Updating production environment values..."
-            if grep -q '^FISH_AUDIO_API_KEY=' .env.production; then
-              sed -i "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.production
-            else
-              echo "FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}" >> .env.production
-            fi
+            upsert_env FISH_AUDIO_API_KEY "$FISH_AUDIO_API_KEY"
 
             if grep -q '^CLIENT_URL=' .env.production; then
               sed -i "s#^CLIENT_URL=.*#CLIENT_URL=https://convo-lab.com#g" .env.production
@@ -170,11 +177,7 @@ jobs:
             fi
             upsert_env LEARNING_OS_DIRECT_COURSE_API_ENABLED "$direct_course_api_enabled"
 
-            if grep -q '^OPENAI_API_KEY=' .env.production; then
-              sed -i "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.production
-            else
-              echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env.production
-            fi
+            upsert_env OPENAI_API_KEY "$OPENAI_API_KEY"
 
             if grep -q '^LLM_PROVIDER=' .env.production; then
               sed -i "s#^LLM_PROVIDER=.*#LLM_PROVIDER=openai#g" .env.production
@@ -586,7 +589,7 @@ jobs:
             fi
 
             echo "🔐 Logging in to GitHub Container Registry..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
 
             echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
             timeout 600 $COMPOSE pull router "server-$inactive_color"
