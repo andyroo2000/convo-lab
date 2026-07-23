@@ -846,6 +846,33 @@ test('legacy avatar generator experiments stay retired behind the OpenAI generat
   }
 });
 
+test('legacy ConvoLab sample-content database operations stay retired', async () => {
+  const [courseRoute, episodeRoute] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'server/src/routes/courses.ts'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'server/src/routes/episodes.ts'), 'utf8'),
+  ]);
+  const retiredPaths = [
+    'server/scripts/check-all-sample-courses.ts',
+    'server/scripts/check-sample-by-level.ts',
+    'server/scripts/check-sample-dialogues.ts',
+    'server/scripts/check-sample-voices.ts',
+    'server/scripts/copy-sample-content-to-user.ts',
+    'server/scripts/delete-user-sample-content.ts',
+    'server/scripts/migrate-sample-courses.ts',
+    'server/scripts/migrate-sample-dialogues.ts',
+    'server/scripts/test-sample-content.ts',
+  ];
+
+  assert.match(courseRoute, /from '\.\/learningOs\/courses\.js'/);
+  assert.match(episodeRoute, /from '\.\/learningOs\/episodes\.js'/);
+  assert.doesNotMatch(courseRoute, /db\/client|Prisma/);
+  assert.doesNotMatch(episodeRoute, /db\/client|Prisma/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),

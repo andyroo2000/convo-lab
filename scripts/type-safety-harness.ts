@@ -114,7 +114,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/scripts/migrate-lesson-scripts-to-neural2.ts', cardId: 'convo-lab-a6a', anyCount: 2, category: 'script' },
   { file: 'server/scripts/fix-furigana-errors.ts', cardId: 'convo-lab-9og', anyCount: 1, category: 'script' },
   { file: 'server/scripts/retry-remaining.ts', cardId: 'convo-lab-xsd', anyCount: 1, category: 'script' },
-  { file: 'server/scripts/copy-sample-content-to-user.ts', cardId: 'convo-lab-9ep', anyCount: 5, category: 'script' },
   { file: 'server/scripts/register-english-avatars.ts', cardId: 'convo-lab-lt5', anyCount: 1, category: 'script' },
   { file: 'server/scripts/check-lesson-voices.ts', cardId: 'convo-lab-nur', anyCount: 1, category: 'script' },
   { file: 'server/scripts/generate-speaker-avatars.ts', cardId: 'convo-lab-93d', anyCount: 1, category: 'script' },
