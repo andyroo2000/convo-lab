@@ -61,12 +61,14 @@ jobs:
         env:
           DEPLOY_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           DEPLOY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          BROWSER_SESSION_ENABLED: ${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || 'true' }}
           DROPLET_USER: ${{ secrets.DROPLET_USER }}
           DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
         run: |
           {
             printf 'DEPLOY_GOOGLE_CLIENT_ID=%q\n' "$DEPLOY_GOOGLE_CLIENT_ID"
             printf 'DEPLOY_GOOGLE_CLIENT_SECRET=%q\n' "$DEPLOY_GOOGLE_CLIENT_SECRET"
+            printf 'BROWSER_SESSION_ENABLED=%q\n' "$BROWSER_SESSION_ENABLED"
             cat << 'ENDSSH'
             set -euo pipefail
 
@@ -119,7 +121,7 @@ jobs:
             upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"
             upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"
             upsert_env GOOGLE_CALLBACK_URL https://convo-lab.com/api/auth/google/callback
-            browser_session_enabled="${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || 'true' }}"
+            browser_session_enabled="$BROWSER_SESSION_ENABLED"
             if [ "$browser_session_enabled" != true ] && [ "$browser_session_enabled" != false ]; then
               echo "::error::LEARNING_OS_BROWSER_SESSION_ENABLED must be true or false"
               exit 1
