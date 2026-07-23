@@ -346,6 +346,14 @@ test('production gates direct account traffic and smokes the public Learning OS 
   assert.ok(
     workflow.indexOf('verify_public_learning_os_browser_route', publicGate) > publicGate
   );
+  const accountProbeStart = workflow.indexOf('account_status="$(curl');
+  const accountProbeEnd = workflow.indexOf(')"', accountProbeStart);
+  const accountProbe = workflow.slice(accountProbeStart, accountProbeEnd);
+  assert.ok(accountProbeStart >= 0);
+  assert.ok(accountProbeEnd > accountProbeStart);
+  assert.ok(accountProbe.includes('--cookie "$cookie_jar"'));
+  assert.ok(accountProbe.includes("--header 'Origin: https://convo-lab.com'"));
+  assert.ok(!accountProbe.includes("Accept: application/json"));
   assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
   const previousValueCapture = workflow.indexOf('previous_direct_account_api_enabled="$(');
   const previousValueNormalization = workflow.indexOf(
