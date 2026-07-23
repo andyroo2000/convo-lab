@@ -183,11 +183,45 @@ describe('csrf helpers', () => {
   });
 
   it('classifies only the direct browser Auth and password namespaces as Learning OS', () => {
+    expect(getCsrfProviderForPath('/api/convolab/browser/auth')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/convolab/browser/auth/login')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/convolab/browser/auth-other/login')).toBe('express');
+    expect(getCsrfProviderForPath('/api/auth/password')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/auth/password/forgot')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/auth/password-other/forgot')).toBe('express');
     expect(getCsrfProviderForPath('/api/auth/google')).toBe('express');
+  });
+
+  it('protects plain password-page fetch calls through the installed Learning OS wrapper', async () => {
+    document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=express-token`;
+    const originalFetch = vi
+      .fn()
+      .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === `${API_URL}/sanctum/csrf-cookie`) {
+          document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-token`;
+          return { ok: true, status: 204 } as Response;
+        }
+
+        const headers = new Headers(init?.headers);
+        expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('learning-os-token');
+        expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
+        return { ok: true, status: 204 } as Response;
+      });
+    vi.stubGlobal('fetch', originalFetch);
+
+    installCsrfFetch();
+    await fetch(`${API_URL}/api/auth/password/forgot`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'ada@example.com' }),
+    });
+
+    expect(originalFetch.mock.calls.map(([input]) => String(input))).toEqual([
+      `${API_URL}/sanctum/csrf-cookie`,
+      `${API_URL}/api/auth/password/forgot`,
+    ]);
   });
 
   it('refreshes the token and retries once when a mutation is rejected for CSRF', async () => {

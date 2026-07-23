@@ -6,6 +6,11 @@ export const LEARNING_OS_CSRF_TOKEN_HEADER_NAME = 'X-XSRF-TOKEN';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CSRF_REJECTION_MESSAGE_PATTERN = /csrf/i;
+const LEARNING_OS_CSRF_NAMESPACES = [
+  '/api/convolab/auth',
+  '/api/convolab/browser/auth',
+  '/api/auth/password',
+];
 
 type CsrfProvider = 'express' | 'learning-os';
 
@@ -95,9 +100,9 @@ function getRequestMethod(input: RequestInfo | URL, init?: RequestInit): string 
 
 export function getCsrfProviderForPath(pathname: string): CsrfProvider {
   if (
-    pathname.startsWith('/api/convolab/auth/') ||
-    pathname.startsWith('/api/convolab/browser/auth/') ||
-    pathname.startsWith('/api/auth/password/')
+    LEARNING_OS_CSRF_NAMESPACES.some(
+      (namespace) => pathname === namespace || pathname.startsWith(`${namespace}/`)
+    )
   ) {
     return 'learning-os';
   }

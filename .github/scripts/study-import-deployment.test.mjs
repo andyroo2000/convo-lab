@@ -419,6 +419,7 @@ test('production gates direct browser traffic and smokes each Learning OS route'
     'https://convo-lab.com/sanctum/csrf-cookie',
     '$6 == "XSRF-TOKEN"',
     '$6 == "learning_os_session"',
+    "node -e 'process.stdout.write(decodeURIComponent(process.argv[1]))'",
     'https://convo-lab.com/api/convolab/auth/me',
     'https://convo-lab.com/api/convolab/browser/auth/me',
     'https://convo-lab.com/api/auth/password/forgot',
@@ -429,6 +430,7 @@ test('production gates direct browser traffic and smokes each Learning OS route'
     'Unauthenticated direct account probe returned HTTP',
     'Unauthenticated direct browser auth probe returned HTTP',
     'Direct password reset route probe returned HTTP',
+    'Direct password reset route did not return the Learning OS validation contract.',
     'Unauthenticated direct episode probe returned HTTP',
     'Unauthenticated direct course probe returned HTTP',
     'Unauthenticated direct script probe returned HTTP',
@@ -436,7 +438,6 @@ test('production gates direct browser traffic and smokes each Learning OS route'
   ]) {
     assert.ok(workflow.includes(contract), `Missing direct browser deployment contract: ${contract}`);
   }
-
   const publicGate = workflow.indexOf('if ! verify_public_health \\');
   assert.ok(publicGate >= 0);
   assert.ok(
@@ -461,6 +462,16 @@ test('production gates direct browser traffic and smokes each Learning OS route'
     assert.ok(probe.includes("Accept: application/json"));
     assert.ok(probe.includes("--header 'Origin: https://convo-lab.com'"));
   }
+  const passwordProbeStart = workflow.indexOf(
+    'password_reset_status="$(curl',
+    csrfProbeStart
+  );
+  const passwordProbeEnd = workflow.indexOf(')"', passwordProbeStart);
+  const passwordProbe = workflow.slice(passwordProbeStart, passwordProbeEnd);
+  assert.ok(passwordProbe.includes('--request POST'));
+  assert.ok(passwordProbe.includes('--header "X-XSRF-TOKEN: $xsrf_token"'));
+  assert.ok(passwordProbe.includes(`--data '{"email":"not-an-email"}'`));
+  assert.ok(workflow.includes('if [ "$password_reset_status" != 422 ]; then'));
   assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
   const previousValueCapture = workflow.indexOf('previous_direct_account_api_enabled="$(');
   const previousValueNormalization = workflow.indexOf(

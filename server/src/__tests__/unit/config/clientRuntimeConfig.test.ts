@@ -54,7 +54,7 @@ describe('client runtime config', () => {
     });
   });
 
-  it('keeps direct email and password auth disabled unless explicitly enabled', () => {
+  it('enables direct email and password auth only for an explicit true value', () => {
     expect(
       getClientRuntimeConfig({
         LEARNING_OS_DIRECT_AUTH_API_ENABLED: ' TRUE ',
