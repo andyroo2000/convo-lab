@@ -66,6 +66,15 @@ describe('LoginPage', () => {
       expect(screen.getByTestId('auth-link-back-home')).toBeInTheDocument();
     });
 
+    it('should use the configured Google OAuth start route', () => {
+      renderWithRouter();
+
+      expect(screen.getByTestId('auth-google-link')).toHaveAttribute(
+        'href',
+        'http://localhost:3001/api/auth/google'
+      );
+    });
+
     it('should not show name and invite code fields in login mode', () => {
       renderWithRouter();
 

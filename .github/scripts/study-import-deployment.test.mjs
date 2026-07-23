@@ -180,7 +180,7 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \]; then/
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[ "\$current_google_oauth_config_revision" = "\$google_oauth_config_revision" \]; then/
   );
   assert.match(
     workflow,
@@ -1385,7 +1385,7 @@ test('the production stack configures Learning OS auth mail and password reset l
     'config("mail.default") !== "resend"',
     'blank(config("services.resend.key"))',
     'config("services.convolab.admin_emails") !== $expectedAdminEmails',
-    'Learning OS auth mail configuration is incomplete.',
+    'Learning OS browser auth configuration is incomplete.',
   ]) {
     assert.ok(workflow.includes(requiredWorkflowContract), requiredWorkflowContract);
   }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Logo from '../components/common/Logo';
-import { API_URL } from '../config';
+import { authApi } from '../lib/authApi';
 
 const ClaimInvitePage = () => {
   const { t } = useTranslation('auth');
@@ -14,8 +14,7 @@ const ClaimInvitePage = () => {
   const token = searchParams.get('token');
 
   useEffect(() => {
-    if (!token) {
-      // No token provided, redirect to login
+    if (authApi.claimInviteRequiresToken && !token) {
       navigate('/login?error=missing_token');
     }
   }, [token, navigate]);
@@ -26,11 +25,11 @@ const ClaimInvitePage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/claim-invite`, {
+      const response = await fetch(authApi.claimInvite, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ inviteCode, token }),
+        body: JSON.stringify(authApi.claimInviteBody(inviteCode, token)),
       });
 
       if (!response.ok) {
@@ -47,7 +46,7 @@ const ClaimInvitePage = () => {
     }
   };
 
-  if (!token) {
+  if (authApi.claimInviteRequiresToken && !token) {
     return null;
   }
 

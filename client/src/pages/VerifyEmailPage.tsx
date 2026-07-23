@@ -4,9 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
-import { accountApi } from '../lib/accountApi';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { authApi } from '../lib/authApi';
 
 const VerifyEmailPage = () => {
   const { t } = useTranslation(['auth', 'common']);
@@ -35,13 +33,14 @@ const VerifyEmailPage = () => {
     // Verify the token
     const verifyToken = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/verification/${token}`, {
-          credentials: 'include',
-        });
+        const request = authApi.verifyEmail(token);
+        const response = await fetch(request.url, request.init);
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || 'Verification failed');
+          throw new Error(
+            data.error?.message || data.error || data.message || 'Verification failed'
+          );
         }
 
         setStatus('success');
@@ -68,14 +67,16 @@ const VerifyEmailPage = () => {
     setError('');
 
     try {
-      const response = await fetch(accountApi.resendVerification, {
+      const response = await fetch(authApi.resendVerification, {
         method: 'POST',
         credentials: 'include',
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to resend email');
+        throw new Error(
+          data.error?.message || data.error || data.message || 'Failed to resend email'
+        );
       }
 
       setResendSuccess(true);
