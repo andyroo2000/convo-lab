@@ -2498,12 +2498,14 @@ jobs:
 
               docker exec \
                 -e API_TOKEN="$proxy_token" \
+                -e CONVOLAB_USER_ID="$user_id" \
                 -e AUDIO_GENERATION_SMOKE_EPISODE_ID="$audio_generation_smoke_episode_id" \
                 learning-os-api php -r '
                   $context = stream_context_create(["http" => [
                     "header" => implode("\r\n", [
                       "Accept: audio/mpeg",
                       "Authorization: Bearer ".getenv("API_TOKEN"),
+                      "X-Convo-Lab-User-Id: ".getenv("CONVOLAB_USER_ID"),
                     ])."\r\n",
                     "ignore_errors" => true,
                     "timeout" => 10,
@@ -2536,7 +2538,13 @@ jobs:
                     || ($headers["cross-origin-resource-policy"] ?? null) !== "same-origin"
                     || ($headers["x-content-type-options"] ?? null) !== "nosniff"
                   ) {
-                    fwrite(STDERR, "Learning OS authenticated audio stream smoke failed.\n");
+                    fwrite(
+                      STDERR,
+                      "Learning OS authenticated audio stream smoke failed: "
+                        ."status={$status}, content-type="
+                        .($headers["content-type"] ?? "<missing>")
+                        .", body-bytes=".strlen($body ?: "").".\n",
+                    );
                     exit(1);
                   }
                 '
