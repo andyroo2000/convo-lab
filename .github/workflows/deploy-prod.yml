@@ -345,6 +345,37 @@ jobs:
             $COMPOSE up -d --no-deps "server-$inactive_color"
             wait_for_container_health "convolab-server-$inactive_color"
 
+            echo "📈 Verifying the Learning OS analytics token before traffic switch..."
+            docker exec "convolab-server-$inactive_color" \
+              node --input-type=module --eval='
+                const apiUrl = process.env.LEARNING_OS_API_URL?.replace(/\/+$/, "");
+                const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
+                if (!apiUrl || !apiToken) {
+                  console.error("Learning OS analytics proxy is not configured.");
+                  process.exit(1);
+                }
+                const response = await fetch(`${apiUrl}/api/convolab/tools/analytics`, {
+                  method: "POST",
+                  signal: AbortSignal.timeout(10_000),
+                  headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    tool: "deployment",
+                    event: "preflight",
+                    context: "app",
+                    properties: { source: "convolab-production" },
+                  }),
+                });
+                if (response.status !== 204) {
+                  console.error(`Learning OS analytics preflight returned HTTP ${response.status}.`);
+                  process.exit(1);
+                }
+              '
+            echo "✅ Learning OS analytics token preflight passed."
+
             router_role="$(docker inspect -f '{{index .Config.Labels "convolab.role"}}' convolab-server 2>/dev/null || true)"
             if [ "$router_role" = "router" ]; then
               echo "🔀 Reloading router to $inactive_color..."

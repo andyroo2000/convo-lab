@@ -554,7 +554,7 @@
       "id": "tool-analytics",
       "domain": "analytics",
       "migrationWave": "retirement",
-      "runtimeOwner": "express",
+      "runtimeOwner": "learning-os-proxy",
       "sourceFile": "server/src/routes/toolAnalytics.ts",
       "mountPath": "/api",
       "routes": [
