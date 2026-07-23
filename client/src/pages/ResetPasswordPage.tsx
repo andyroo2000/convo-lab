@@ -3,8 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle, XCircle, Lock } from 'lucide-react';
 import Logo from '../components/common/Logo';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { authApi } from '../lib/authApi';
 
 const parseApiErrorMessage = (data: unknown, fallback: string): string => {
   if (!data || typeof data !== 'object') return fallback;
@@ -53,17 +52,13 @@ const ResetPasswordPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/password-reset/verify`, {
+      const response = await fetch(authApi.resetPassword, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          email,
-          token,
-          newPassword,
-        }),
+        body: JSON.stringify(authApi.resetPasswordBody(email, token, newPassword)),
       });
 
       if (!response.ok) {

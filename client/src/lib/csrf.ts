@@ -94,7 +94,11 @@ function getRequestMethod(input: RequestInfo | URL, init?: RequestInit): string 
 }
 
 export function getCsrfProviderForPath(pathname: string): CsrfProvider {
-  if (pathname.startsWith('/api/convolab/auth/')) {
+  if (
+    pathname.startsWith('/api/convolab/auth/') ||
+    pathname.startsWith('/api/convolab/browser/auth/') ||
+    pathname.startsWith('/api/auth/password/')
+  ) {
     return 'learning-os';
   }
 

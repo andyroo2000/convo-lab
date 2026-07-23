@@ -13,6 +13,7 @@ interface ImportMeta {
 interface Window {
   __CONVOLAB_RUNTIME_CONFIG__?: {
     learningOsDirectAccountApi?: boolean;
+    learningOsDirectAuthApi?: boolean;
     learningOsDirectEpisodeApi?: boolean;
     learningOsDirectCourseApi?: boolean;
     learningOsDirectScriptApi?: boolean;

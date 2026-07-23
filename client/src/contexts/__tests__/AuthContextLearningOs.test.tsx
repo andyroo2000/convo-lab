@@ -12,6 +12,7 @@ import {
 vi.mock('../../config', () => ({
   API_URL: '',
   LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED: true,
+  LEARNING_OS_DIRECT_AUTH_API_ENABLED: true,
   SHOW_ONBOARDING_WELCOME: false,
 }));
 
@@ -39,6 +40,7 @@ function successfulResponse(body: unknown = {}): Response {
 describe('AuthContext with direct Learning OS account API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFetch.mockReset();
     resetCsrfStateForTests();
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-csrf-token`;
   });
@@ -52,6 +54,71 @@ describe('AuthContext with direct Learning OS account API', () => {
     expect(mockFetch).toHaveBeenCalledWith('/api/convolab/auth/me', {
       credentials: 'include',
     });
+  });
+
+  it('logs in through the first-party Learning OS browser session', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: 'Unauthenticated.' }),
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    mockFetch
+      .mockResolvedValueOnce({ ...successfulResponse(), status: 204 })
+      .mockResolvedValueOnce(successfulResponse(user));
+
+    await act(async () => {
+      await result.current.login('test@example.com', 'password');
+    });
+
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      '/api/convolab/browser/auth/login',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'test@example.com', password: 'password' }),
+      })
+    );
+    expect(result.current.user).toEqual(user);
+  });
+
+  it('signs up and logs out through the first-party Learning OS browser session', async () => {
+    mockFetch.mockResolvedValueOnce(successfulResponse(user));
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.user).toEqual(user));
+
+    mockFetch
+      .mockResolvedValueOnce({ ...successfulResponse(), status: 204 })
+      .mockResolvedValueOnce(successfulResponse(user));
+    await act(async () => {
+      await result.current.signup('test@example.com', 'password', 'Test User', 'INVITE');
+    });
+
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      '/api/convolab/browser/auth/signup',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'test@example.com',
+          password: 'password',
+          name: 'Test User',
+          inviteCode: 'INVITE',
+        }),
+      })
+    );
+
+    mockFetch.mockResolvedValueOnce({ ...successfulResponse(), status: 204 });
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/convolab/browser/auth/logout',
+      expect.objectContaining({ method: 'POST', credentials: 'include' })
+    );
+    expect(result.current.user).toBeNull();
   });
 
   it('updates the profile directly with the compatibility payload', async () => {

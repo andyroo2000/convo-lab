@@ -182,6 +182,14 @@ describe('csrf helpers', () => {
     expect(getCsrfProviderForPath('/api/convolab/admin-other')).toBe('express');
   });
 
+  it('classifies only the direct browser Auth and password namespaces as Learning OS', () => {
+    expect(getCsrfProviderForPath('/api/convolab/browser/auth/login')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/convolab/browser/auth-other/login')).toBe('express');
+    expect(getCsrfProviderForPath('/api/auth/password/forgot')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/auth/password-other/forgot')).toBe('express');
+    expect(getCsrfProviderForPath('/api/auth/google')).toBe('express');
+  });
+
   it('refreshes the token and retries once when a mutation is rejected for CSRF', async () => {
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=stale-token`;
     const fetchMock = vi
