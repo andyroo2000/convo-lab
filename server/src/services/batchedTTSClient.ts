@@ -7,7 +7,7 @@ import { getProviderFromVoiceId } from '@languageflow/shared/src/voiceSelection.
 import ffmpeg from 'fluent-ffmpeg';
 
 import { applyJapanesePronunciationOverrides } from './japanesePronunciationOverrides.js';
-import { LessonScriptUnit } from './lessonScriptGenerator.js';
+import type { LessonScriptUnit } from './lessonScriptTypes.js';
 import { generateSilence } from './ttsClient.js';
 import {
   isFishAudioAvailable,

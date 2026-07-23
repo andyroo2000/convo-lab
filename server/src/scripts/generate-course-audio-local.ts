@@ -10,7 +10,7 @@ import ffmpeg from 'fluent-ffmpeg';
 
 import { prisma } from '../db/client.js';
 import { processBatches } from '../services/batchedTTSClient.js';
-import type { LessonScriptUnit } from '../services/lessonScriptGenerator.js';
+import type { LessonScriptUnit } from '../services/lessonScriptTypes.js';
 
 dotenv.config();
 

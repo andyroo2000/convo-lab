@@ -1,6 +1,6 @@
 import { generateCoreLlmJsonText } from './coreLlmClient.js';
 import { extractKanjiFromFurigana } from './languageProcessor.js';
-import type { LessonScriptUnit } from './lessonScriptGenerator.js';
+import type { LessonScriptUnit } from './lessonScriptTypes.js';
 
 type L2LessonScriptUnit = Extract<LessonScriptUnit, { type: 'L2' }>;
 
