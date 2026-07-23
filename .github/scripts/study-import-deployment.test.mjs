@@ -749,23 +749,28 @@ test('legacy local course audio generation stays retired behind Learning OS', as
   }
 });
 
-test('legacy timepoint TTS providers stay retired with the local audio pipeline', async () => {
-  const [ttsClient, providerFactory] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'server/src/services/ttsClient.ts'), 'utf8'),
-    readFile(path.join(repositoryRoot, 'server/src/services/ttsProviders/TTSProvider.ts'), 'utf8'),
-  ]);
+test('legacy local TTS and audio-processing utilities stay retired', async () => {
+  const voicePreview = await readFile(
+    path.join(repositoryRoot, 'server/scripts/generate-voice-previews.ts'),
+    'utf8'
+  );
   const retiredPaths = [
     'server/src/services/ttsProviders/GoogleTTSBetaProvider.ts',
     'server/src/services/ttsProviders/PollyTTSProvider.ts',
     'server/src/__tests__/unit/services/ttsProviders/GoogleTTSBetaProvider.test.ts',
     'server/src/__tests__/unit/services/ttsProviders/PollyTTSProvider.test.ts',
     'server/test-polly-voices.ts',
+    'server/src/services/ttsClient.ts',
+    'server/src/__tests__/unit/services/ttsClient.test.ts',
+    'server/src/services/ttsProviders/TTSProvider.ts',
+    'server/scripts/validate-voices.ts',
+    'server/src/services/audioProcessing.ts',
+    'server/src/__tests__/unit/services/audioProcessing.test.ts',
   ];
 
-  assert.match(ttsClient, /getTTSProvider/);
-  assert.match(providerFactory, /GoogleTTSProvider/);
-  assert.doesNotMatch(ttsClient, /GoogleTTSBetaProvider|PollyTTSProvider/);
-  assert.doesNotMatch(providerFactory, /GoogleTTSBetaProvider|PollyTTSProvider/);
+  assert.match(voicePreview, /GoogleTTSProvider/);
+  assert.match(voicePreview, /FishAudioTTSProvider/);
+  assert.doesNotMatch(voicePreview, /services\/ttsClient|ttsProviders\/TTSProvider\.js/);
 
   for (const retiredPath of retiredPaths) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
