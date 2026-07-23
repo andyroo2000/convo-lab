@@ -75,29 +75,13 @@ test('the production workflow retains blue-green switching and rollback contract
   );
 });
 
-test('the production workflow phases the legacy auth schema contract', async () => {
+test('the production workflow executes migrations before starting the inactive server', async () => {
   const { script } = await readDeployment();
-  const contractMigration = '20260723014500_remove_legacy_auth_persistence';
-  const migrationName = script.indexOf(`legacy_auth_contract="${contractMigration}"`);
-  const historyCheck = script.indexOf(
-    "table_schema = 'public' AND table_name = '_prisma_migrations'"
-  );
-  const appliedCheck = script.indexOf('SELECT EXISTS (SELECT 1 FROM _prisma_migrations');
-  const historyCheckEnd = script.indexOf('</dev/null)', historyCheck);
-  const appliedCheckEnd = script.indexOf('</dev/null)', appliedCheck);
-  const resolve = script.indexOf(
-    'npx prisma migrate resolve --applied "$legacy_auth_contract"'
-  );
   const migrateDeploy = script.indexOf('npx prisma migrate deploy');
   const inactiveServerStart = script.indexOf('$COMPOSE up -d --no-deps "server-$inactive_color"');
 
-  assert.ok(migrationName >= 0);
-  assert.ok(historyCheck > migrationName);
-  assert.ok(appliedCheck > historyCheck);
-  assert.ok(historyCheckEnd > historyCheck && historyCheckEnd < appliedCheck);
-  assert.ok(appliedCheckEnd > appliedCheck && appliedCheckEnd < resolve);
-  assert.ok(resolve > appliedCheck);
-  assert.ok(migrateDeploy > resolve);
+  assert.ok(!script.includes('prisma migrate resolve --applied'));
+  assert.ok(migrateDeploy >= 0);
   assert.ok(inactiveServerStart > migrateDeploy);
 });
 

@@ -338,28 +338,6 @@ jobs:
             echo "🧱 Ensuring Postgres and Redis stay running..."
             $COMPOSE up -d postgres redis
 
-            # Phase one of the legacy auth contract: deploy a Prisma client that no longer
-            # selects these fields before a later migration removes them. Production must
-            # retain the old schema until both the active and rollback images tolerate it.
-            # Compose subprocesses in this SSH-streamed script must detach stdin or they
-            # can consume the remaining deployment commands.
-            legacy_auth_contract="20260723014500_remove_legacy_auth_persistence"
-            migration_history_exists="$($COMPOSE exec -T postgres psql \
-              --username=languageflow --dbname=languageflow --tuples-only --no-align \
-              --command="SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_prisma_migrations')" </dev/null)"
-            if [ "$migration_history_exists" = t ]; then
-              legacy_auth_contract_applied="$($COMPOSE exec -T postgres psql \
-                --username=languageflow --dbname=languageflow --tuples-only --no-align \
-                --command="SELECT EXISTS (SELECT 1 FROM _prisma_migrations WHERE migration_name = '$legacy_auth_contract' AND finished_at IS NOT NULL)" </dev/null)"
-              if [ "$legacy_auth_contract_applied" != t ]; then
-                echo "⏭️ Recording $legacy_auth_contract without contracting production yet..."
-                $COMPOSE run --rm -T --no-deps "server-$inactive_color" \
-                  npx prisma migrate resolve --applied "$legacy_auth_contract" </dev/null
-              fi
-            else
-              echo "No Prisma migration history found; allowing a normal fresh-database migration."
-            fi
-
             echo "🗄️ Running production migrations before traffic switch..."
             $COMPOSE run --rm -T --no-deps "server-$inactive_color" npx prisma migrate deploy </dev/null
 

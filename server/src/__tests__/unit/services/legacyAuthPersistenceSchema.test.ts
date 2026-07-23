@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const schemaPath = new URL('../../../../prisma/schema.prisma', import.meta.url);
 const migrationPath = new URL(
-  '../../../../prisma/migrations/20260723014500_remove_legacy_auth_persistence/migration.sql',
+  '../../../../prisma/migrations/20260723024500_contract_legacy_auth_persistence/migration.sql',
   import.meta.url
 );
 
