@@ -331,6 +331,7 @@ test('production gates direct account traffic and smokes the public Learning OS 
     'verify_public_learning_os_browser_route() (',
     'if [ "$direct_account_api_enabled" = false ]; then',
     'Disabled direct account route returned HTTP $disabled_status instead of 404.',
+    'Disabled Learning OS CSRF route returned HTTP $disabled_csrf_status instead of 404.',
     'https://convo-lab.com/sanctum/csrf-cookie',
     '$6 == "XSRF-TOKEN"',
     '$6 == "learning_os_session"',

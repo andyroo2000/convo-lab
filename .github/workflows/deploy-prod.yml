@@ -310,6 +310,16 @@ jobs:
                   cat "$response_body"
                   return 1
                 fi
+                disabled_csrf_status="$(curl --silent --show-error \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Origin: https://convo-lab.com' \
+                  https://convo-lab.com/sanctum/csrf-cookie)"
+                if [ "$disabled_csrf_status" != 404 ]; then
+                  echo "Disabled Learning OS CSRF route returned HTTP $disabled_csrf_status instead of 404."
+                  cat "$response_body"
+                  return 1
+                fi
                 echo "✅ Learning OS direct browser route is disabled!"
                 return 0
               fi
