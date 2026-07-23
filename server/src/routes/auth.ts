@@ -22,9 +22,18 @@ import {
   getLearningOsGenerationQuota,
   registerLearningOsAccount,
   updateLearningOsCurrentAccount,
+  type LearningOsCurrentAccount,
   type LearningOsLoginAccount,
   type LearningOsProfileUpdateInput,
 } from '../services/learningOsAuthProxy.js';
+import {
+  authenticateLearningOsBrowserSession,
+  destroyLearningOsBrowserSession,
+  getLearningOsBrowserCurrentAccount,
+  getLearningOsBrowserSessionCookieName,
+  isLearningOsBrowserSessionEnabled,
+  registerLearningOsBrowserSession,
+} from '../services/learningOsBrowserSession.js';
 
 const router = Router();
 const signupRateLimit = createExpressRateLimit({
@@ -116,7 +125,25 @@ function clearSessionCookies(res: Response, sameSite: 'lax' | 'strict' = 'lax') 
     secure: process.env.NODE_ENV === 'production',
     sameSite: resolvedSameSite,
   });
+  clearLearningOsBrowserSessionCookie(res, resolvedSameSite);
   clearCsrfCookies(res, resolvedSameSite);
+}
+
+function clearLearningOsBrowserSessionCookie(res: Response, sameSite: 'lax' | 'strict' = 'lax') {
+  res.clearCookie(getLearningOsBrowserSessionCookieName(), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite,
+    path: '/',
+  });
+}
+
+function setLearningOsBrowserSessionCookie(res: Response, sessionCookieValue: string) {
+  res.cookie(
+    getLearningOsBrowserSessionCookieName(),
+    sessionCookieValue,
+    getSessionCookieOptions()
+  );
 }
 
 function createLearningOsSessionToken(
@@ -164,7 +191,15 @@ router.post('/signup', signupRateLimit, async (req, res, next) => {
       throw new AppError('Invalid signup details', 400);
     }
 
-    const account = await registerLearningOsAccount(normalizedInput);
+    const browserSession = isLearningOsBrowserSessionEnabled()
+      ? await registerLearningOsBrowserSession(normalizedInput)
+      : null;
+    const account = browserSession?.account ?? (await registerLearningOsAccount(normalizedInput));
+    if (browserSession) {
+      setLearningOsBrowserSessionCookie(res, browserSession.sessionCookieValue);
+    } else if (req.cookies?.[getLearningOsBrowserSessionCookieName()]) {
+      clearLearningOsBrowserSessionCookie(res);
+    }
     setSessionCookies(
       req as AuthRequest,
       res,
@@ -187,13 +222,22 @@ router.post('/login', loginRateLimit, async (req, res, next) => {
 
     // The pre-cutover sync projects the source UUID and persisted role. Keep role
     // changes in that canonical sync path instead of mutating only one database here.
-    const account = await authenticateLearningOsAccount(email, password);
+    const browserSession = isLearningOsBrowserSessionEnabled()
+      ? await authenticateLearningOsBrowserSession(email, password)
+      : null;
+    const account =
+      browserSession?.account ?? (await authenticateLearningOsAccount(email, password));
     const legacyAccount = await prisma.user.findUnique({
       where: { id: account.id },
       select: { id: true },
     });
     const token = createLearningOsSessionToken(account, legacyAccount ? undefined : 'learning-os');
 
+    if (browserSession) {
+      setLearningOsBrowserSessionCookie(res, browserSession.sessionCookieValue);
+    } else if (req.cookies?.[getLearningOsBrowserSessionCookieName()]) {
+      clearLearningOsBrowserSessionCookie(res);
+    }
     setSessionCookies(req as AuthRequest, res, token);
     res.json(account);
   } catch (error) {
@@ -202,9 +246,18 @@ router.post('/login', loginRateLimit, async (req, res, next) => {
 });
 
 // Logout
-router.post('/logout', (_req, res) => {
-  clearSessionCookies(res);
-  res.json({ message: 'Logged out successfully' });
+router.post('/logout', async (req, res, next) => {
+  try {
+    const browserSession = req.cookies?.[getLearningOsBrowserSessionCookieName()];
+    if (typeof browserSession === 'string' && browserSession.length > 0) {
+      await destroyLearningOsBrowserSession(browserSession);
+    }
+
+    clearSessionCookies(res);
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.get('/csrf', (req, res) => {
@@ -220,12 +273,31 @@ router.get(
   currentUserRateLimit,
   async (req: AuthRequest, res, next) => {
     try {
-      const account = await getLearningOsCurrentAccount(req.userId!, {
-        userId: req.userId!,
-        email: req.email,
-        role: req.role,
-        accountSource: req.accountSource,
-      });
+      const browserSession = req.cookies?.[getLearningOsBrowserSessionCookieName()];
+      const usesBrowserSession =
+        isLearningOsBrowserSessionEnabled() &&
+        typeof browserSession === 'string' &&
+        browserSession.length > 0;
+      let account: LearningOsCurrentAccount;
+      try {
+        account = usesBrowserSession
+          ? await getLearningOsBrowserCurrentAccount(browserSession)
+          : await getLearningOsCurrentAccount(req.userId!, {
+              userId: req.userId!,
+              email: req.email,
+              role: req.role,
+              accountSource: req.accountSource,
+            });
+      } catch (error) {
+        if (usesBrowserSession && error instanceof AppError && error.statusCode === 401) {
+          clearSessionCookies(res);
+        }
+        throw error;
+      }
+      if (usesBrowserSession && account.id !== req.userId) {
+        clearSessionCookies(res);
+        throw new AppError('Authentication required', 401);
+      }
       issueCsrfTokenCookie(req, res, 'lax');
       res.json(account);
     } catch (error) {

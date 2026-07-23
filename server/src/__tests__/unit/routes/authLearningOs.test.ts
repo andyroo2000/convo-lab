@@ -19,6 +19,11 @@ const mocks = vi.hoisted(() => ({
   getLearningOsGenerationQuota: vi.fn(),
   registerLearningOsAccount: vi.fn(),
   updateLearningOsCurrentAccount: vi.fn(),
+  authenticateLearningOsBrowserSession: vi.fn(),
+  destroyLearningOsBrowserSession: vi.fn(),
+  getLearningOsBrowserCurrentAccount: vi.fn(),
+  isLearningOsBrowserSessionEnabled: vi.fn(),
+  registerLearningOsBrowserSession: vi.fn(),
   prismaFindUnique: vi.fn(),
   prismaDeleteMany: vi.fn(),
   passportUser: undefined as unknown,
@@ -84,6 +89,14 @@ vi.mock('../../../services/learningOsAuthProxy.js', () => ({
   registerLearningOsAccount: mocks.registerLearningOsAccount,
   updateLearningOsCurrentAccount: mocks.updateLearningOsCurrentAccount,
 }));
+vi.mock('../../../services/learningOsBrowserSession.js', () => ({
+  authenticateLearningOsBrowserSession: mocks.authenticateLearningOsBrowserSession,
+  destroyLearningOsBrowserSession: mocks.destroyLearningOsBrowserSession,
+  getLearningOsBrowserCurrentAccount: mocks.getLearningOsBrowserCurrentAccount,
+  getLearningOsBrowserSessionCookieName: () => 'learning_os_session',
+  isLearningOsBrowserSessionEnabled: mocks.isLearningOsBrowserSessionEnabled,
+  registerLearningOsBrowserSession: mocks.registerLearningOsBrowserSession,
+}));
 
 const loginAccount = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -131,6 +144,17 @@ describe('Auth Learning OS routing', () => {
     });
     mocks.registerLearningOsAccount.mockResolvedValue({ ...loginAccount, emailVerified: false });
     mocks.updateLearningOsCurrentAccount.mockResolvedValue(currentAccount);
+    mocks.authenticateLearningOsBrowserSession.mockResolvedValue({
+      account: loginAccount,
+      sessionCookieValue: 'browser/session==',
+    });
+    mocks.destroyLearningOsBrowserSession.mockResolvedValue(undefined);
+    mocks.getLearningOsBrowserCurrentAccount.mockResolvedValue(currentAccount);
+    mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(false);
+    mocks.registerLearningOsBrowserSession.mockResolvedValue({
+      account: { ...loginAccount, emailVerified: false },
+      sessionCookieValue: 'signup-session',
+    });
     mocks.prismaFindUnique.mockResolvedValue({ id: loginAccount.id });
     mocks.prismaDeleteMany.mockResolvedValue({ count: 1 });
     mocks.passportUser = undefined;
@@ -180,6 +204,44 @@ describe('Auth Learning OS routing', () => {
       role: signupAccount.role,
       accountSource: 'learning-os',
     });
+    expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
+  });
+
+  it('creates both Laravel and transitional Express sessions when browser auth is enabled', async () => {
+    mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(true);
+    const signupAccount = { ...loginAccount, emailVerified: false, emailVerifiedAt: null };
+    mocks.registerLearningOsBrowserSession.mockResolvedValue({
+      account: signupAccount,
+      sessionCookieValue: 'signup-session',
+    });
+
+    const response = await request(app)
+      .post('/api/auth/signup')
+      .send({
+        email: signupAccount.email,
+        password: 'correct password',
+        name: signupAccount.name,
+        inviteCode: 'WELCOME1',
+      })
+      .expect(200);
+
+    expect(response.body).toEqual(signupAccount);
+    expect(mocks.registerLearningOsBrowserSession).toHaveBeenCalledWith({
+      email: signupAccount.email,
+      password: 'correct password',
+      name: signupAccount.name,
+      inviteCode: 'WELCOME1',
+    });
+    expect(mocks.registerLearningOsAccount).not.toHaveBeenCalled();
+    const cookies = getSetCookieArray(response.headers['set-cookie']);
+    const learningOsCookie = cookies.find((cookie) => cookie.startsWith('learning_os_session='));
+    expect(learningOsCookie).toMatch(/^learning_os_session=signup-session;/);
+    expect(learningOsCookie).toContain('Max-Age=604800');
+    expect(learningOsCookie).toContain('Path=/');
+    expect(learningOsCookie).toContain('HttpOnly');
+    expect(learningOsCookie).toContain('SameSite=Lax');
+    expect(learningOsCookie).not.toContain('Secure');
+    expect(cookies.some((cookie) => cookie.startsWith('token='))).toBe(true);
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
   });
 
@@ -349,6 +411,31 @@ describe('Auth Learning OS routing', () => {
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`))).toBe(true);
   });
 
+  it('uses Laravel credentials and relays its session cookie when browser auth is enabled', async () => {
+    mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(true);
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email: loginAccount.email, password: 'correct password' })
+      .expect(200);
+
+    expect(response.body).toEqual(loginAccount);
+    expect(mocks.authenticateLearningOsBrowserSession).toHaveBeenCalledWith(
+      loginAccount.email,
+      'correct password'
+    );
+    expect(mocks.authenticateLearningOsAccount).not.toHaveBeenCalled();
+    const cookies = getSetCookieArray(response.headers['set-cookie']);
+    const learningOsCookie = cookies.find((cookie) => cookie.startsWith('learning_os_session='));
+    expect(learningOsCookie).toMatch(/^learning_os_session=browser%2Fsession%3D%3D;/);
+    expect(learningOsCookie).toContain('Max-Age=604800');
+    expect(learningOsCookie).toContain('Path=/');
+    expect(learningOsCookie).toContain('HttpOnly');
+    expect(learningOsCookie).toContain('SameSite=Lax');
+    expect(learningOsCookie).not.toContain('Secure');
+    expect(cookies.some((cookie) => cookie.startsWith('token='))).toBe(true);
+  });
+
   it('ignores stale values for the retired auth and profile routing flags', async () => {
     vi.stubEnv('LEARNING_OS_AUTH_PROXY_ENABLED', 'false');
     vi.stubEnv('LEARNING_OS_PROFILE_PROXY_ENABLED', 'false');
@@ -379,6 +466,109 @@ describe('Auth Learning OS routing', () => {
         cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`)
       )
     ).toBe(true);
+  });
+
+  it('uses the Laravel browser session as current-user authority when present', async () => {
+    mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(true);
+
+    const response = await request(app)
+      .get('/api/auth/me')
+      .set('Cookie', ['token=legacy-transition-token', 'learning_os_session=browser-session'])
+      .expect(200);
+
+    expect(response.body).toEqual(currentAccount);
+    expect(mocks.getLearningOsBrowserCurrentAccount).toHaveBeenCalledWith('browser-session');
+    expect(mocks.getLearningOsCurrentAccount).not.toHaveBeenCalled();
+  });
+
+  it('rejects mismatched Laravel and transitional Express identities', async () => {
+    mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(true);
+    mocks.getLearningOsBrowserCurrentAccount.mockResolvedValueOnce({
+      ...currentAccount,
+      id: '22222222-2222-4222-8222-222222222222',
+    });
+
+    const response = await request(app)
+      .get('/api/auth/me')
+      .set('Cookie', ['token=legacy-transition-token', 'learning_os_session=other-user-session'])
+      .expect(401);
+
+    expect(response.body.error.message).toBe('Authentication required');
+    expect(mocks.getLearningOsBrowserCurrentAccount).toHaveBeenCalledWith('other-user-session');
+    expect(mocks.getLearningOsCurrentAccount).not.toHaveBeenCalled();
+    expect(
+      getSetCookieArray(response.headers['set-cookie']).some((cookie) =>
+        cookie.startsWith('learning_os_session=;')
+      )
+    ).toBe(true);
+  });
+
+  it('clears both transitional sessions when the Laravel session has expired', async () => {
+    mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(true);
+    mocks.getLearningOsBrowserCurrentAccount.mockRejectedValueOnce(
+      new AppError('Authentication required', 401)
+    );
+
+    const response = await request(app)
+      .get('/api/auth/me')
+      .set('Cookie', ['token=legacy-transition-token', 'learning_os_session=expired-session'])
+      .expect(401);
+
+    const cookies = getSetCookieArray(response.headers['set-cookie']);
+    expect(cookies.some((cookie) => cookie.startsWith('token=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith('learning_os_session=;'))).toBe(true);
+  });
+
+  it('keeps pre-cutover sessions working until their next password login', async () => {
+    mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(true);
+
+    await request(app).get('/api/auth/me').set('Cookie', ['token=legacy-session']).expect(200);
+
+    expect(mocks.getLearningOsBrowserCurrentAccount).not.toHaveBeenCalled();
+    expect(mocks.getLearningOsCurrentAccount).toHaveBeenCalledOnce();
+  });
+
+  it('revokes both Laravel and transitional Express sessions on logout', async () => {
+    const response = await request(app)
+      .post('/api/auth/logout')
+      .set('Cookie', ['token=legacy-transition-token', 'learning_os_session=browser-session'])
+      .expect(200);
+
+    expect(mocks.destroyLearningOsBrowserSession).toHaveBeenCalledWith('browser-session');
+    const cookies = getSetCookieArray(response.headers['set-cookie']);
+    expect(cookies.some((cookie) => cookie.startsWith('token=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith('learning_os_session=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=;`))).toBe(true);
+  });
+
+  it('clears a stale Laravel cookie when the bridge is rolled back', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .set('Cookie', ['learning_os_session=stale-session'])
+      .send({ email: loginAccount.email, password: 'correct password' })
+      .expect(200);
+
+    expect(mocks.authenticateLearningOsAccount).toHaveBeenCalledOnce();
+    expect(
+      getSetCookieArray(response.headers['set-cookie']).some((cookie) =>
+        cookie.startsWith('learning_os_session=;')
+      )
+    ).toBe(true);
+  });
+
+  it('does not clear local sessions when canonical logout cannot be confirmed', async () => {
+    mocks.isLearningOsBrowserSessionEnabled.mockReturnValue(true);
+    mocks.destroyLearningOsBrowserSession.mockRejectedValueOnce(
+      new AppError('Learning OS Browser Session API is unavailable.', 502)
+    );
+
+    const response = await request(app)
+      .post('/api/auth/logout')
+      .set('Cookie', ['token=legacy-transition-token', 'learning_os_session=browser-session'])
+      .expect(502);
+
+    expect(response.body.error.message).toBe('Learning OS Browser Session API is unavailable.');
+    expect(getSetCookieArray(response.headers['set-cookie'])).toEqual([]);
   });
 
   it('loads generation quota from Learning OS without consulting Prisma', async () => {
@@ -571,6 +761,7 @@ describe('Auth Learning OS routing', () => {
 
     const cookies = getSetCookieArray(response.headers['set-cookie']);
     expect(cookies.some((cookie) => cookie.startsWith('token=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith('learning_os_session=;'))).toBe(true);
     expect(cookies.some((cookie) => cookie.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=;`))).toBe(true);
   });
 
