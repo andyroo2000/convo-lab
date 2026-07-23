@@ -141,7 +141,14 @@ test('the production workflow verifies the always-on Study API without rollout f
     '| sed -n \'s/^CONVOLAB_PROXY_USER_EMAIL=//p\'',
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
-    'desired_deploy_config_revision="password-reset-url-v2"',
+    'desired_deploy_config_revision="browser-auth-session-v1"',
+    'upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "true"',
+    'upsert_env LEARNING_OS_SESSION_COOKIE "learning_os_session"',
+    'upsert_env LEARNING_OS_SESSION_LIFETIME "10080"',
+    'upsert_env LEARNING_OS_SESSION_SECURE_COOKIE "true"',
+    'upsert_env LEARNING_OS_SESSION_SAME_SITE "lax"',
+    'upsert_env LEARNING_OS_SANCTUM_STATEFUL_DOMAINS "convo-lab.com,www.convo-lab.com"',
+    'upsert_env LEARNING_OS_CORS_ALLOWED_ORIGINS',
     'upsert_env LEARNING_OS_DEPLOY_CONFIG_REVISION "$desired_deploy_config_revision"',
     '[ "$current_config_revision" = "$desired_deploy_config_revision" ]',
     'GCS_CREDENTIAL_PATH="server/gcloud-key.json"',
@@ -238,6 +245,47 @@ test('the production workflow verifies the always-on Study API without rollout f
   assert.ok(credentialCheck >= 0);
   assert.ok(imagePull > credentialCheck);
   assert.ok(migration > credentialCheck);
+});
+
+test('production coordinates the Learning OS browser-session bridge behind one rollback flag', async () => {
+  const [compose, learningOsWorkflow, productionWorkflow] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+    readFile(
+      path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+      'utf8'
+    ),
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
+  ]);
+
+  for (const contract of [
+    'LEARNING_OS_BROWSER_SESSION_ENABLED: ${LEARNING_OS_BROWSER_SESSION_ENABLED:-false}',
+    'LEARNING_OS_SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
+    'SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
+    'SESSION_LIFETIME: ${LEARNING_OS_SESSION_LIFETIME:-10080}',
+    'SESSION_SECURE_COOKIE: ${LEARNING_OS_SESSION_SECURE_COOKIE:-true}',
+    'SESSION_SAME_SITE: ${LEARNING_OS_SESSION_SAME_SITE:-lax}',
+    'SANCTUM_STATEFUL_DOMAINS: ${LEARNING_OS_SANCTUM_STATEFUL_DOMAINS:-convo-lab.com,www.convo-lab.com}',
+    'CORS_ALLOWED_ORIGINS: ${LEARNING_OS_CORS_ALLOWED_ORIGINS:-https://convo-lab.com,https://www.convo-lab.com}',
+  ]) {
+    assert.ok(compose.includes(contract), `Missing browser-session compose contract: ${contract}`);
+  }
+
+  assert.ok(
+    learningOsWorkflow.includes('upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "true"')
+  );
+  assert.ok(
+    learningOsWorkflow.includes(
+      'upsert_env LEARNING_OS_SANCTUM_STATEFUL_DOMAINS "convo-lab.com,www.convo-lab.com"'
+    )
+  );
+  assert.ok(
+    learningOsWorkflow.includes('desired_deploy_config_revision="browser-auth-session-v1"')
+  );
+  assert.ok(
+    productionWorkflow.includes(
+      '"${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || \'true\' }}"'
+    )
+  );
 });
 
 test('the production workflow refreshes and verifies Learning OS content reads', async () => {
@@ -1468,6 +1516,9 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     'IssueConvoLabVerificationTokenAction::class',
     '$BASE_URL/api/verification/$verification_token',
     "'/api/auth/login'",
+    "'/api/auth/logout'",
+    '$6 == "learning_os_session"',
+    'Logout retained a transitional or canonical browser session cookie.',
     "'/api/password-reset/request'",
     'AUTH_SMOKE_RESET_TOKEN_COUNT=',
     'if reset_token_count="$(docker exec',
@@ -1490,7 +1541,8 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   const mailToken = script.indexOf('AUTH_SMOKE_TOKEN_COUNT=', legacyAbsence);
   const verification = script.indexOf('$BASE_URL/api/verification/$verification_token', mailToken);
   const login = script.indexOf("'/api/auth/login'", verification);
-  const resetRequest = script.indexOf("'/api/password-reset/request'", login);
+  const logout = script.indexOf("'/api/auth/logout'", login);
+  const resetRequest = script.indexOf("'/api/password-reset/request'", logout);
   const queuedResetToken = script.indexOf('AUTH_SMOKE_RESET_TOKEN_COUNT=', resetRequest);
   const resetToken = script.indexOf('AUTH_SMOKE_RESET_TOKEN=', queuedResetToken);
   const reset = script.indexOf("'/api/password-reset/verify'", resetToken);
@@ -1504,7 +1556,8 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   assert.ok(legacyAbsence < mailToken);
   assert.ok(mailToken < verification);
   assert.ok(verification < login);
-  assert.ok(login < resetRequest);
+  assert.ok(login < logout);
+  assert.ok(logout < resetRequest);
   assert.ok(resetRequest < queuedResetToken);
   assert.ok(queuedResetToken < resetToken);
   assert.ok(resetToken < reset);

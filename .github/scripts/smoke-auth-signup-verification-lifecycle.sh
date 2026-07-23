@@ -330,6 +330,8 @@ fi
 test "$(printf '%s' "$signup_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test "$(printf '%s' "$signup_response" | json_field 'response.emailVerified')" = false
 test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$SIGNUP_COOKIE_JAR")"
+test -n "$(awk '$6 == "learning_os_session" { value = $7 } END { print value }' \
+  "$SIGNUP_COOKIE_JAR")"
 
 current_account="$(curl --fail --silent --show-error \
   --header 'Accept: application/json' \
@@ -430,6 +432,21 @@ test "$(printf '%s' "$login_response" | json_field 'response.id')" = "$SMOKE_USE
 test "$(printf '%s' "$login_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test "$(printf '%s' "$login_response" | json_field 'response.emailVerified')" = true
 test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$LOGIN_COOKIE_JAR")"
+test -n "$(awk '$6 == "learning_os_session" { value = $7 } END { print value }' \
+  "$LOGIN_COOKIE_JAR")"
+
+login_logout_csrf_token="$(csrf_token_for "$LOGIN_COOKIE_JAR")"
+logout_response="$(post_json \
+  '/api/auth/logout' /dev/null "$LOGIN_COOKIE_JAR" "$login_logout_csrf_token")"
+test "$(printf '%s' "$logout_response" | json_field 'response.message')" = \
+  'Logged out successfully'
+if awk '
+  $6 == "token" || $6 == "XSRF-TOKEN" || $6 == "learning_os_session" { found = 1 }
+  END { exit found ? 0 : 1 }
+' "$LOGIN_COOKIE_JAR"; then
+  echo "Logout retained a transitional or canonical browser session cookie." >&2
+  exit 1
+fi
 
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
@@ -562,6 +579,8 @@ new_login_response="$(post_json \
 test "$(printf '%s' "$new_login_response" | json_field 'response.id')" = "$SMOKE_USER_ID"
 test "$(printf '%s' "$new_login_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$NEW_LOGIN_COOKIE_JAR")"
+test -n "$(awk '$6 == "learning_os_session" { value = $7 } END { print value }' \
+  "$NEW_LOGIN_COOKIE_JAR")"
 
 docker exec \
   -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
@@ -583,7 +602,10 @@ delete_response="$(curl --fail --silent --show-error \
   "$BASE_URL/api/auth/me")"
 test "$(printf '%s' "$delete_response" | json_field 'response.message')" = \
   'Account deleted successfully'
-if awk '$6 == "token" || $6 == "XSRF-TOKEN" { found = 1 } END { exit found ? 0 : 1 }' \
+if awk '
+  $6 == "token" || $6 == "XSRF-TOKEN" || $6 == "learning_os_session" { found = 1 }
+  END { exit found ? 0 : 1 }
+' \
   "$NEW_LOGIN_COOKIE_JAR"; then
   echo "Account deletion retained a session or CSRF cookie." >&2
   exit 1

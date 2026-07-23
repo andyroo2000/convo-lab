@@ -124,6 +124,12 @@ export async function authenticateLearningOsAccount(
     networkErrorMessage: `${API_LABEL} is unavailable.`,
   });
 
+  return parseLearningOsLoginResponse(response);
+}
+
+export async function parseLearningOsLoginResponse(
+  response: Response
+): Promise<LearningOsLoginAccount> {
   const body = await parseJsonResponse(response);
   if (!response.ok) {
     // This exact compatibility contract distinguishes rejected user credentials
@@ -137,7 +143,7 @@ export async function authenticateLearningOsAccount(
     throw upstreamFailure(response.status);
   }
 
-  return adaptAccount(body, false);
+  return adaptLearningOsLoginAccount(body);
 }
 
 export async function getLearningOsCurrentAccount(
@@ -159,6 +165,12 @@ export async function getLearningOsCurrentAccount(
     networkErrorMessage: `${API_LABEL} is unavailable.`,
   });
 
+  return parseLearningOsCurrentAccountResponse(response);
+}
+
+export async function parseLearningOsCurrentAccountResponse(
+  response: Response
+): Promise<LearningOsCurrentAccount> {
   const body = await parseJsonResponse(response);
   if (!response.ok) {
     if (response.status === 404) {
@@ -167,7 +179,7 @@ export async function getLearningOsCurrentAccount(
     throw upstreamFailure(response.status);
   }
 
-  return adaptAccount(body, true);
+  return adaptLearningOsCurrentAccount(body);
 }
 
 export async function getLearningOsGenerationQuota(
@@ -346,6 +358,12 @@ export async function registerLearningOsAccount(
     networkErrorMessage: `${API_LABEL} is unavailable.`,
   });
 
+  return parseLearningOsSignupResponse(response);
+}
+
+export async function parseLearningOsSignupResponse(
+  response: Response
+): Promise<LearningOsLoginAccount> {
   const body = await parseJsonResponse(response);
   if (!response.ok) {
     if (isSignupFailure(body)) {
@@ -363,7 +381,7 @@ export async function registerLearningOsAccount(
     throw upstreamFailure(response.status);
   }
 
-  return adaptAccount(body, false);
+  return adaptLearningOsLoginAccount(body);
 }
 
 export async function resolveLearningOsGoogleIdentity(
@@ -848,6 +866,14 @@ function adaptAccount(
         seenCustomContentGuide: account.seenCustomContentGuide as boolean,
       }
     : result;
+}
+
+export function adaptLearningOsLoginAccount(value: unknown): LearningOsLoginAccount {
+  return adaptAccount(value, false);
+}
+
+export function adaptLearningOsCurrentAccount(value: unknown): LearningOsCurrentAccount {
+  return adaptAccount(value, true);
 }
 
 function adaptGoogleAccount(value: unknown): LearningOsGoogleAccount {

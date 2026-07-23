@@ -22,9 +22,8 @@ export interface LearningOsSessionIdentity {
 export const CONVO_LAB_USER_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-interface LearningOsTransportRequest {
+export interface LearningOsFirstPartyRequest {
   upstreamUrl: URL;
-  apiToken: string;
   method: string;
   body?: unknown;
   rawBody?: RequestInit['body'];
@@ -32,6 +31,10 @@ interface LearningOsTransportRequest {
   timeoutMs: number;
   timeoutMessage: string;
   networkErrorMessage?: string;
+}
+
+export interface LearningOsTransportRequest extends LearningOsFirstPartyRequest {
+  apiToken: string;
 }
 
 interface LearningOsProxyRequest extends LearningOsTransportRequest {
@@ -52,10 +55,19 @@ export function getLearningOsProxyConfig(apiLabel: string): LearningOsProxyConfi
 }
 
 export function getLearningOsServiceProxyConfig(apiLabel: string): LearningOsProxyConfig {
-  const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
+  const apiUrl = getLearningOsApiUrl(apiLabel);
   const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
 
-  if (!apiUrl || !apiToken) {
+  if (!apiToken) {
+    throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
+  }
+
+  return { apiUrl, apiToken };
+}
+
+export function getLearningOsApiUrl(apiLabel: string): string {
+  const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
+  if (!apiUrl) {
     throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
   }
 
@@ -81,10 +93,7 @@ export function getLearningOsServiceProxyConfig(apiLabel: string): LearningOsPro
     throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
   }
 
-  return {
-    apiUrl: parsedApiUrl.origin,
-    apiToken,
-  };
+  return parsedApiUrl.origin;
 }
 
 export async function resolveLearningOsProxyContext(
@@ -214,6 +223,13 @@ export function fetchLearningOsServiceProxy(
   );
 }
 
+export function fetchLearningOsFirstParty(request: LearningOsFirstPartyRequest): Promise<Response> {
+  return fetchLearningOsTransport(request, {
+    ...request.additionalHeaders,
+    Accept: request.additionalHeaders?.Accept ?? 'application/json',
+  });
+}
+
 async function fetchLearningOsTransport(
   {
     upstreamUrl,
@@ -223,7 +239,7 @@ async function fetchLearningOsTransport(
     timeoutMs,
     timeoutMessage,
     networkErrorMessage,
-  }: LearningOsTransportRequest,
+  }: LearningOsFirstPartyRequest,
   headers: Record<string, string>
 ): Promise<Response> {
   if (body !== undefined && rawBody !== undefined) {
