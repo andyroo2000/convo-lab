@@ -94,7 +94,7 @@ function getRequestMethod(input: RequestInfo | URL, init?: RequestInit): string 
 }
 
 function getCsrfProvider(url: URL): CsrfProvider {
-  return url.pathname.startsWith('/api/convolab/') ? 'learning-os' : 'express';
+  return url.pathname.startsWith('/api/convolab/auth/') ? 'learning-os' : 'express';
 }
 
 function shouldAttachCsrfToken(input: RequestInfo | URL, init?: RequestInit): boolean {

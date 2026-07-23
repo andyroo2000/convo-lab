@@ -15,13 +15,14 @@ describe('production router contract', () => {
       'set $direct_account_api_enabled __DIRECT_ACCOUNT_API_ENABLED__;'
     );
     expect(routerTemplate).toMatch(/location = \/sanctum\/csrf-cookie \{/u);
-    expect(routerTemplate).toMatch(/location \^~ \/api\/convolab\/ \{/u);
+    expect(routerTemplate).toMatch(/location \^~ \/api\/convolab\/auth\/ \{/u);
+    expect(routerTemplate).not.toMatch(/location \^~ \/api\/convolab\/ \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/ \{/u);
   });
 
-  it('closes the direct route behind the rollout flag and strips service credentials', () => {
+  it('keeps episode audio on Express while securing the direct auth route', () => {
     const directBlock = routerTemplate.slice(
-      routerTemplate.indexOf('location ^~ /api/convolab/ {'),
+      routerTemplate.indexOf('location ^~ /api/convolab/auth/ {'),
       routerTemplate.indexOf('# Keep this regex synchronized with studyRouteContract.ts')
     );
 
@@ -30,5 +31,7 @@ describe('production router contract', () => {
     expect(directBlock).toContain('proxy_pass $learning_os_upstream;');
     expect(directBlock).toContain('if ($direct_account_api_enabled = 0)');
     expect(directBlock).toContain('return 404;');
+    expect(routerTemplate).not.toContain('location ^~ /api/convolab/episodes/');
+    expect(routerTemplate).toMatch(/location \/ \{[\s\S]*proxy_pass \$convolab_upstream;/u);
   });
 });

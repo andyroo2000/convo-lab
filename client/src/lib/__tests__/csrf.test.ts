@@ -110,7 +110,7 @@ describe('csrf helpers', () => {
         }
 
         const headers = new Headers(init?.headers);
-        if (url.includes('/api/convolab/')) {
+        if (url.includes('/api/convolab/auth/')) {
           expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('learning-os-token');
         } else {
           expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('refreshed-express-token');
@@ -135,6 +135,26 @@ describe('csrf helpers', () => {
       `${API_URL}/api/auth/csrf`,
       `${API_URL}/api/auth/logout`,
     ]);
+  });
+
+  it('keeps non-auth Convo Lab mutations on the Express CSRF provider', async () => {
+    document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=express-token`;
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('express-token');
+        expect(headers.has(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe(false);
+        return { ok: true, status: 204 } as Response;
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithCsrf(`${API_URL}/api/convolab/episodes/example/mutation`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('refreshes the token and retries once when a mutation is rejected for CSRF', async () => {
