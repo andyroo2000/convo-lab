@@ -375,7 +375,7 @@ printf '%s' "$current_account" | docker exec \
     if (
       account.id !== process.env.EXPECTED_USER_ID
       || account.email.toLowerCase() !== process.env.EXPECTED_USER_EMAIL.toLowerCase()
-      || typeof account.role !== "string"
+      || account.role !== "USER"
       || account.emailVerified !== false
       || typeof account.seenSampleContentGuide !== "boolean"
       || typeof account.seenCustomContentGuide !== "boolean"
@@ -578,6 +578,8 @@ docker exec \
   "$SERVER_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({ email: process.env.AUTH_SMOKE_EMAIL }));
   ' > "$RESET_REQUEST_BODY_FILE"
+# Password reset is a generic Learning OS/Fortify concern, so it intentionally
+# uses the canonical routes instead of the ConvoLab compatibility namespace.
 reset_csrf_token="$(csrf_token_for "$RESET_COOKIE_JAR")"
 reset_request_response="$(post_json \
   '/api/auth/password/forgot' \
