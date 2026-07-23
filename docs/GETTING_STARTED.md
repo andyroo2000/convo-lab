@@ -9,13 +9,14 @@ The easiest way to run the full stack locally.
 ### 1. Prerequisites
 
 - Docker Desktop installed
-- Google Cloud account (for API keys)
+- OpenAI account
+- Google Cloud account
 
 ### 2. Get API Keys
 
-**Gemini API Key:**
+**OpenAI API Key:**
 
-1. Visit https://aistudio.google.com/app/apikey
+1. Visit https://platform.openai.com/api-keys
 2. Create an API key
 3. Copy it
 
@@ -41,7 +42,7 @@ gsutil iam ch allUsers:objectViewer gs://languageflow-storage-YOUR-PROJECT-ID
 Create `.env` in project root:
 
 ```env
-GEMINI_API_KEY=your-gemini-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
 GOOGLE_CLOUD_PROJECT=your-project-id
 GCS_BUCKET_NAME=languageflow-storage-your-project-id
 ```
@@ -284,10 +285,10 @@ brew services list | grep redis
 brew services start redis
 ```
 
-### "Gemini API error"
+### "OpenAI API error"
 
 - Check your API key in `.env`
-- Verify quota at https://aistudio.google.com
+- Verify usage and limits at https://platform.openai.com/usage
 
 ### "TTS error"
 

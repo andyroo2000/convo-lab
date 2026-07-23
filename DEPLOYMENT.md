@@ -90,8 +90,10 @@ REDIS_PASSWORD=your-upstash-password
 JWT_SECRET=generate-a-long-random-string-here
 COOKIE_SECRET=generate-another-long-random-string
 
+# OpenAI
+OPENAI_API_KEY=your-openai-api-key
+
 # Google Cloud
-GEMINI_API_KEY=your-gemini-api-key
 GOOGLE_CLOUD_PROJECT=convolab-mvp
 GCS_BUCKET_NAME=convolab-storage
 GOOGLE_APPLICATION_CREDENTIALS=/app/gcloud-key.json
@@ -134,7 +136,7 @@ gcloud run deploy convolab \
   --min-instances 1 \
   --max-instances 10 \
   --set-env-vars NODE_ENV=production \
-  --set-env-vars GEMINI_API_KEY=your-key \
+  --set-env-vars OPENAI_API_KEY=your-key \
   --set-env-vars GOOGLE_CLOUD_PROJECT=convolab-mvp \
   --set-env-vars GCS_BUCKET_NAME=convolab-storage \
   # ... add all other env vars from .env.production
@@ -217,7 +219,7 @@ docker run -p 8080:8080 --env-file .env.production convolab:local
 | `REDIS_PASSWORD`          | Redis password               | Yes (Upstash)      |
 | `JWT_SECRET`              | Secret for JWT signing       | Yes                |
 | `COOKIE_SECRET`           | Secret for cookie signing    | Yes                |
-| `GEMINI_API_KEY`          | Google Gemini API key        | Yes                |
+| `OPENAI_API_KEY`          | OpenAI API key               | Yes                |
 | `GOOGLE_CLOUD_PROJECT`    | GCP project ID               | Yes                |
 | `GCS_BUCKET_NAME`         | Storage bucket name          | Yes                |
 | `CLIENT_URL`              | Frontend URL for CORS        | Yes                |
@@ -232,7 +234,7 @@ docker run -p 8080:8080 --env-file .env.production convolab:local
 - **Upstash Redis**: $0 (free tier)
 - **Cloud Storage**: ~$1-5/month
 - **Text-to-Speech API**: Pay-per-use (~$4 per 1M characters)
-- **Gemini API**: Free tier, then pay-per-use
+- **OpenAI API**: Pay-per-use; cost depends on the configured models
 
 **Total: ~$15-30/month** for you and a few friends.
 
