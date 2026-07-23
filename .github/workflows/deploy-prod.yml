@@ -345,9 +345,10 @@ jobs:
               fi
 
               account_status="$(curl --silent --show-error \
+                --cookie "$cookie_jar" \
                 --output "$response_body" \
                 --write-out '%{http_code}' \
-                --header 'Accept: application/json' \
+                --header 'Origin: https://convo-lab.com' \
                 https://convo-lab.com/api/convolab/auth/me)"
               if [ "$account_status" != 401 ]; then
                 echo "Unauthenticated direct account probe returned HTTP $account_status."
