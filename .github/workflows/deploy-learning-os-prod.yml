@@ -218,7 +218,12 @@ jobs:
             upsert_env LEARNING_OS_DB "$TARGET_DB"
             upsert_env LEARNING_OS_API_URL "http://learning-os:8080"
             upsert_env LEARNING_OS_PROXY_USER_EMAIL "$SMOKE_USER_EMAIL"
-            upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "true"
+            browser_session_enabled="${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || 'true' }}"
+            if [ "$browser_session_enabled" != true ] && [ "$browser_session_enabled" != false ]; then
+              echo "::error::LEARNING_OS_BROWSER_SESSION_ENABLED must be true or false"
+              exit 1
+            fi
+            upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "$browser_session_enabled"
             upsert_env LEARNING_OS_SESSION_COOKIE "learning_os_session"
             upsert_env LEARNING_OS_SESSION_LIFETIME "10080"
             upsert_env LEARNING_OS_SESSION_SECURE_COOKIE "true"
@@ -1620,6 +1625,7 @@ jobs:
               echo "Auth profile Learning OS proxy smoke check passed and restored."
 
               ACTIVE_COLOR="$active_color" \
+                EXPECT_LEARNING_OS_BROWSER_SESSION="$browser_session_enabled" \
                 SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh
 

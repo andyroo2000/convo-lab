@@ -5,6 +5,15 @@ set -Eeuo pipefail
 : "${ACTIVE_COLOR:?ACTIVE_COLOR is required}"
 : "${SMOKE_USER_EMAIL:?SMOKE_USER_EMAIL is required}"
 
+EXPECT_LEARNING_OS_BROWSER_SESSION="${EXPECT_LEARNING_OS_BROWSER_SESSION:-false}"
+case "$EXPECT_LEARNING_OS_BROWSER_SESSION" in
+  true | false) ;;
+  *)
+    echo "EXPECT_LEARNING_OS_BROWSER_SESSION must be true or false." >&2
+    exit 1
+    ;;
+esac
+
 SERVER_CONTAINER="convolab-server-$ACTIVE_COLOR"
 BASE_URL="https://convo-lab.com"
 SIGNUP_COOKIE_JAR=""
@@ -53,6 +62,24 @@ json_field() {
       if (value === undefined || value === null) process.exit(1);
       process.stdout.write(String(value));
     '
+}
+
+assert_learning_os_session_cookie() {
+  local cookie_jar="$1"
+  local context="$2"
+  local cookie_value
+
+  cookie_value="$(awk '$6 == "learning_os_session" { value = $7 } END { print value }' \
+    "$cookie_jar")"
+  if [ "$EXPECT_LEARNING_OS_BROWSER_SESSION" = true ]; then
+    if [ -z "$cookie_value" ]; then
+      echo "$context did not establish a Learning OS browser session." >&2
+      return 1
+    fi
+  elif [ -n "$cookie_value" ]; then
+    echo "$context established a Learning OS browser session while the bridge was disabled." >&2
+    return 1
+  fi
 }
 
 delete_disposable_account() {
@@ -330,8 +357,7 @@ fi
 test "$(printf '%s' "$signup_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test "$(printf '%s' "$signup_response" | json_field 'response.emailVerified')" = false
 test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$SIGNUP_COOKIE_JAR")"
-test -n "$(awk '$6 == "learning_os_session" { value = $7 } END { print value }' \
-  "$SIGNUP_COOKIE_JAR")"
+assert_learning_os_session_cookie "$SIGNUP_COOKIE_JAR" "Signup"
 
 current_account="$(curl --fail --silent --show-error \
   --header 'Accept: application/json' \
@@ -432,8 +458,7 @@ test "$(printf '%s' "$login_response" | json_field 'response.id')" = "$SMOKE_USE
 test "$(printf '%s' "$login_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test "$(printf '%s' "$login_response" | json_field 'response.emailVerified')" = true
 test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$LOGIN_COOKIE_JAR")"
-test -n "$(awk '$6 == "learning_os_session" { value = $7 } END { print value }' \
-  "$LOGIN_COOKIE_JAR")"
+assert_learning_os_session_cookie "$LOGIN_COOKIE_JAR" "Login"
 
 login_logout_csrf_token="$(csrf_token_for "$LOGIN_COOKIE_JAR")"
 logout_response="$(post_json \
@@ -579,8 +604,7 @@ new_login_response="$(post_json \
 test "$(printf '%s' "$new_login_response" | json_field 'response.id')" = "$SMOKE_USER_ID"
 test "$(printf '%s' "$new_login_response" | json_field 'response.email')" = "$SMOKE_EMAIL"
 test -n "$(awk '$6 == "token" { value = $7 } END { print value }' "$NEW_LOGIN_COOKIE_JAR")"
-test -n "$(awk '$6 == "learning_os_session" { value = $7 } END { print value }' \
-  "$NEW_LOGIN_COOKIE_JAR")"
+assert_learning_os_session_cookie "$NEW_LOGIN_COOKIE_JAR" "Password-reset login"
 
 docker exec \
   -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
