@@ -118,7 +118,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/scripts/cleanup-duplicate-jobs.ts', cardId: 'convo-lab-5ip', anyCount: 1, category: 'script' },
   { file: 'server/scripts/check-and-fix-corrupt-courses.ts', cardId: 'convo-lab-0sl', anyCount: 1, category: 'script' },
   { file: 'server/scripts/backfill-sentence-metadata.ts', cardId: 'convo-lab-obg', anyCount: 3, category: 'script' },
-  { file: 'server/scripts/show-latest-lesson.ts', cardId: 'convo-lab-bgf', anyCount: 1, category: 'script' },
   { file: 'server/scripts/backfill-dialogue-furigana.ts', cardId: 'convo-lab-gum', anyCount: 1, category: 'script' },
   { file: 'server/scripts/crop-avatars.ts', cardId: 'convo-lab-rkw', anyCount: 1, category: 'script' },
 ];

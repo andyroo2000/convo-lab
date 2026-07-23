@@ -900,7 +900,23 @@ test('legacy course and episode database utilities stay retired', async () => {
     'server/scripts/check-failed-course-voices.ts',
     'server/scripts/check-lesson-voices.ts',
     'server/scripts/check-recent-courses.ts',
+    'server/scripts/check-user-courses.ts',
+    'server/scripts/clear-course-content.ts',
+    'server/scripts/delete-draft-episode.ts',
     'server/scripts/delete-course.ts',
+    'server/scripts/delete-stuck-episodes.ts',
+    'server/scripts/find-episode.ts',
+    'server/scripts/find-recent-courses.ts',
+    'server/scripts/find-yuriy-courses.ts',
+    'server/scripts/fix-all-voice-providers.ts',
+    'server/scripts/fix-stuck-dialogs.ts',
+    'server/scripts/fix-voice-providers.ts',
+    'server/scripts/get-course-audio-url.ts',
+    'server/scripts/get-course-details.ts',
+    'server/scripts/link-episode-to-course.ts',
+    'server/scripts/list-courses.ts',
+    'server/scripts/reset-course-status.ts',
+    'server/scripts/show-latest-lesson.ts',
   ];
 
   assert.match(courseRoute, /from '\.\/learningOs\/courses\.js'/);
