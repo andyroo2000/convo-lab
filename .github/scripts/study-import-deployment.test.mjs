@@ -1007,6 +1007,7 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     '"feature-flags:read",',
     '"feature-flags:write",',
     '"auth:oauth",',
+    '"tools:analytics",',
     'echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;',
     'echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;',
     'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',
@@ -1014,6 +1015,9 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
     'wait_for_health "convolab-server-$active_color"',
     'test "$active_proxy_token" = "$proxy_token"',
+    "'https://convo-lab.com/api/tools/analytics'",
+    '[ "$tool_analytics_status" != 204 ]',
+    'Tool Analytics Learning OS proxy smoke check passed.',
     'if ! docker exec',
     '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
     'Unable to prune older Learning OS proxy tokens; a later deployment will retry.',
@@ -1044,6 +1048,10 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     'test "$active_proxy_token" = "$proxy_token"',
     serverHealthy
   );
+  const toolAnalyticsSmoke = workflow.indexOf(
+    'Tool Analytics Learning OS proxy smoke check passed.',
+    tokenInstalled
+  );
   const oldTokensPruned = workflow.indexOf(
     '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
     tokenInstalled
@@ -1056,6 +1064,7 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
   assert.ok(serverRestarted < serverHealthy);
   assert.ok(serverHealthy < tokenInstalled);
   assert.ok(tokenInstalled < oldTokensPruned);
+  assert.ok(oldTokensPruned < toolAnalyticsSmoke);
   assert.doesNotMatch(
     workflow.slice(tokenCreation, serverHealthy),
     /tokens\(\).*->delete\(\)/s,

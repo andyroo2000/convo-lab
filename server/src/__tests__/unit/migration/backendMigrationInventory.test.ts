@@ -76,6 +76,21 @@ describe('backend migration inventory', () => {
     expect(inventoriedRouters).toEqual(mountedRouters);
   });
 
+  it('leaves only browser-session auth concerns owned by Express', () => {
+    const expressRouteIds = backendMigrationInventory.surfaces.flatMap((surface) =>
+      surface.routes
+        .filter((route) => (route.runtimeOwner ?? surface.runtimeOwner) === 'express')
+        .map((route) => route.id)
+    );
+
+    expect(expressRouteIds).toEqual([
+      'auth.logout',
+      'auth.csrf',
+      'auth.quota.show',
+      'auth.google.start',
+    ]);
+  });
+
   it('resolves concrete dynamic paths to stable inventory routes', () => {
     expect(findBackendMigrationRoute('GET', '/api/auth/google/callback')).toMatchObject({
       route: { id: 'auth.google.callback', runtimeOwner: 'learning-os-proxy' },
@@ -85,6 +100,10 @@ describe('backend migration inventory', () => {
     });
     expect(findBackendMigrationRoute('POST', '/api/auth/claim-invite')).toMatchObject({
       route: { id: 'auth.invite.claim', runtimeOwner: 'learning-os-proxy' },
+    });
+    expect(findBackendMigrationRoute('POST', '/api/tools/analytics')).toMatchObject({
+      route: { id: 'tool-analytics.store' },
+      surface: { id: 'tool-analytics', runtimeOwner: 'learning-os-proxy' },
     });
     expect(findBackendMigrationRoute('GET', '/api/episodes/episode-123')).toMatchObject({
       route: { id: 'episodes.show', path: '/api/episodes/:id' },

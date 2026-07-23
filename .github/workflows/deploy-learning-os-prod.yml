@@ -454,6 +454,7 @@ jobs:
                   "auth:signup",
                   "auth:verification",
                   "auth:oauth",
+                  "tools:analytics",
                 ]);
                 echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
                 echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
@@ -1639,6 +1640,25 @@ jobs:
                 cat "$response_file"
                 rm -f "$response_file"
               }
+
+              tool_analytics_body="$(mktemp)"
+              tool_analytics_status="$(curl --silent --show-error \
+                --output "$tool_analytics_body" \
+                --write-out '%{http_code}' \
+                --request POST \
+                --header 'Accept: application/json' \
+                --header 'Content-Type: application/json' \
+                --data '{"tool":"deployment","event":"smoke","context":"app","properties":{"source":"production"}}' \
+                'https://convo-lab.com/api/tools/analytics')"
+              if [ "$tool_analytics_status" != 204 ] || [ -s "$tool_analytics_body" ]; then
+                echo "Tool Analytics Learning OS proxy smoke failed with HTTP $tool_analytics_status:" >&2
+                cat "$tool_analytics_body" >&2
+                echo >&2
+                rm -f "$tool_analytics_body"
+                exit 1
+              fi
+              rm -f "$tool_analytics_body"
+              echo "Tool Analytics Learning OS proxy smoke check passed."
 
               assert_profile_preference() {
                 local response="$1"

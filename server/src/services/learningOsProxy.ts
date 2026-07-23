@@ -22,10 +22,9 @@ export interface LearningOsSessionIdentity {
 export const CONVO_LAB_USER_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-interface LearningOsProxyRequest {
+interface LearningOsTransportRequest {
   upstreamUrl: URL;
   apiToken: string;
-  user: LearningOsProxyUser;
   method: string;
   body?: unknown;
   rawBody?: RequestInit['body'];
@@ -35,14 +34,28 @@ interface LearningOsProxyRequest {
   networkErrorMessage?: string;
 }
 
+interface LearningOsProxyRequest extends LearningOsTransportRequest {
+  user: LearningOsProxyUser;
+}
+
 export function getLearningOsProxyConfig(apiLabel: string): LearningOsProxyConfig & {
   proxyUserEmail: string;
 } {
-  const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
-  const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
+  const config = getLearningOsServiceProxyConfig(apiLabel);
   const proxyUserEmail = process.env.LEARNING_OS_PROXY_USER_EMAIL?.trim().toLowerCase();
 
-  if (!apiUrl || !apiToken || !proxyUserEmail) {
+  if (!proxyUserEmail) {
+    throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
+  }
+
+  return { ...config, proxyUserEmail };
+}
+
+export function getLearningOsServiceProxyConfig(apiLabel: string): LearningOsProxyConfig {
+  const apiUrl = process.env.LEARNING_OS_API_URL?.trim();
+  const apiToken = process.env.LEARNING_OS_API_TOKEN?.trim();
+
+  if (!apiUrl || !apiToken) {
     throw new AppError(`${apiLabel} is enabled but not configured.`, 503);
   }
 
@@ -71,7 +84,6 @@ export function getLearningOsProxyConfig(apiLabel: string): LearningOsProxyConfi
   return {
     apiUrl: parsedApiUrl.origin,
     apiToken,
-    proxyUserEmail,
   };
 }
 
@@ -165,34 +177,61 @@ export function learningOsProxyHeaders(
   additionalHeaders: Readonly<Record<string, string>> = {}
 ): Record<string, string> {
   return {
-    ...additionalHeaders,
-    Accept: additionalHeaders.Accept ?? 'application/json',
-    Authorization: `Bearer ${apiToken}`,
+    ...learningOsServiceProxyHeaders(apiToken, additionalHeaders),
     'X-Convo-Lab-User-Id': user.id,
     'X-Convo-Lab-User-Email': user.email,
     'X-Convo-Lab-User-Role': user.role,
   };
 }
 
-export async function fetchLearningOsProxy({
-  upstreamUrl,
-  apiToken,
+function learningOsServiceProxyHeaders(
+  apiToken: string,
+  additionalHeaders: Readonly<Record<string, string>> = {}
+): Record<string, string> {
+  return {
+    ...additionalHeaders,
+    Accept: additionalHeaders.Accept ?? 'application/json',
+    Authorization: `Bearer ${apiToken}`,
+  };
+}
+
+export function fetchLearningOsProxy({
   user,
-  method,
-  body,
-  rawBody,
-  additionalHeaders,
-  timeoutMs,
-  timeoutMessage,
-  networkErrorMessage,
+  ...request
 }: LearningOsProxyRequest): Promise<Response> {
+  return fetchLearningOsTransport(
+    request,
+    learningOsProxyHeaders(request.apiToken, user, request.additionalHeaders)
+  );
+}
+
+export function fetchLearningOsServiceProxy(
+  request: LearningOsTransportRequest
+): Promise<Response> {
+  return fetchLearningOsTransport(
+    request,
+    learningOsServiceProxyHeaders(request.apiToken, request.additionalHeaders)
+  );
+}
+
+async function fetchLearningOsTransport(
+  {
+    upstreamUrl,
+    method,
+    body,
+    rawBody,
+    timeoutMs,
+    timeoutMessage,
+    networkErrorMessage,
+  }: LearningOsTransportRequest,
+  headers: Record<string, string>
+): Promise<Response> {
   if (body !== undefined && rawBody !== undefined) {
     throw new Error('Learning OS proxy requests cannot include both JSON and raw bodies.');
   }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const headers = learningOsProxyHeaders(apiToken, user, additionalHeaders);
 
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';

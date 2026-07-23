@@ -1,6 +1,10 @@
 import { Router } from 'express';
+import { rateLimit as createExpressRateLimit } from 'express-rate-limit';
 
-type AnalyticsValue = string | number | boolean | null;
+import {
+  recordLearningOsToolAnalytics,
+  type ToolAnalyticsValue,
+} from '../services/toolAnalyticsProxy.js';
 
 const router = Router();
 
@@ -8,6 +12,12 @@ const MAX_TOKEN_LENGTH = 80;
 const MAX_PROPERTY_KEY_LENGTH = 40;
 const MAX_PROPERTY_VALUE_LENGTH = 120;
 const MAX_PROPERTIES = 16;
+const toolAnalyticsIpRateLimit = createExpressRateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -22,14 +32,14 @@ function isSafeToken(value: unknown): value is string {
   );
 }
 
-function sanitizeProperties(input: unknown): Record<string, AnalyticsValue> {
+function sanitizeProperties(input: unknown): Record<string, ToolAnalyticsValue> {
   if (!isRecord(input)) {
     return {};
   }
 
   return Object.entries(input)
     .slice(0, MAX_PROPERTIES)
-    .reduce<Record<string, AnalyticsValue>>((acc, [key, value]) => {
+    .reduce<Record<string, ToolAnalyticsValue>>((acc, [key, value]) => {
       if (!key || key.length > MAX_PROPERTY_KEY_LENGTH || !/^[a-z0-9:_-]+$/i.test(key)) {
         return acc;
       }
@@ -53,38 +63,33 @@ function sanitizeProperties(input: unknown): Record<string, AnalyticsValue> {
     }, {});
 }
 
-router.post('/tools/analytics', (req, res) => {
-  const payload = req.body as unknown;
-  if (!isRecord(payload)) {
-    res.status(400).json({ error: 'Invalid payload' });
-    return;
-  }
+router.post('/tools/analytics', toolAnalyticsIpRateLimit, async (req, res, next) => {
+  try {
+    const payload = req.body as unknown;
+    if (!isRecord(payload)) {
+      res.status(400).json({ error: 'Invalid payload' });
+      return;
+    }
 
-  const { tool, event, context, sessionId, mode } = payload;
-  if (!isSafeToken(tool) || !isSafeToken(event)) {
-    res.status(400).json({ error: 'Invalid analytics event' });
-    return;
-  }
+    const { tool, event, context, sessionId, mode } = payload;
+    if (!isSafeToken(tool) || !isSafeToken(event)) {
+      res.status(400).json({ error: 'Invalid analytics event' });
+      return;
+    }
 
-  const safeContext = context === 'app' || context === 'public' ? context : 'public';
-  const safeMode = mode === 'fsrs' || mode === 'random' ? mode : undefined;
-  const safeSessionId = isSafeToken(sessionId) ? sessionId : undefined;
-  const properties = sanitizeProperties(payload.properties);
-
-  process.stdout.write(
-    `${JSON.stringify({
-      type: 'tool_analytics',
-      at: new Date().toISOString(),
+    await recordLearningOsToolAnalytics({
       tool,
       event,
-      context: safeContext,
-      mode: safeMode,
-      sessionId: safeSessionId,
-      properties,
-    })}\n`
-  );
+      context: context === 'app' || context === 'public' ? context : 'public',
+      ...(mode === 'fsrs' || mode === 'random' ? { mode } : {}),
+      ...(isSafeToken(sessionId) ? { sessionId } : {}),
+      properties: sanitizeProperties(payload.properties),
+    });
 
-  res.status(204).send();
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;
