@@ -708,6 +708,24 @@ test('legacy lesson planning and script generation stay retired behind Learning 
   }
 });
 
+test('legacy course item extraction stays retired behind Learning OS', async () => {
+  const courseRoute = await readFile(
+    path.join(repositoryRoot, 'server/src/routes/courses.ts'),
+    'utf8'
+  );
+  const retiredPaths = [
+    'server/src/services/courseItemExtractor.ts',
+    'server/src/services/dialogueReviewer.ts',
+  ];
+
+  assert.match(courseRoute, /generateLearningOsCourse/);
+  assert.doesNotMatch(courseRoute, /courseItemExtractor|dialogueReviewer/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
