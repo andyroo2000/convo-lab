@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { Episode, Course } from '../types';
 import { API_URL } from '../config';
+import { episodeApi, readEpisodeApiError } from '../lib/episodeApi';
 
 // Library-specific types with _count instead of full relations
 export type LibraryCourse = Omit<Course, 'lessons'> & {
@@ -43,7 +44,7 @@ async function fetchEpisodes(offset: number = 0, viewAsUserId?: string): Promise
   });
   if (viewAsUserId) params.append('viewAs', viewAsUserId);
 
-  const response = await fetch(`${API_URL}/api/episodes?${params}`, {
+  const response = await fetch(`${episodeApi.collection}?${params}`, {
     credentials: 'include',
   });
   if (!response.ok) {
@@ -76,13 +77,12 @@ async function fetchCourses(
 
 // Delete functions
 async function deleteEpisodeRequest(episodeId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/episodes/${episodeId}`, {
+  const response = await fetch(episodeApi.member(episodeId), {
     method: 'DELETE',
     credentials: 'include',
   });
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to delete episode');
+    throw new Error(await readEpisodeApiError(response, 'Failed to delete episode'));
   }
 }
 

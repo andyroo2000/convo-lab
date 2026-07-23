@@ -17,6 +17,8 @@ server {
     set $convolab_upstream http://__UPSTREAM_SERVICE__:3001;
     set $learning_os_upstream http://learning-os:8080;
     set $direct_account_api_enabled __DIRECT_ACCOUNT_API_ENABLED__;
+    set $direct_episode_api_enabled __DIRECT_EPISODE_API_ENABLED__;
+    set $direct_browser_api_flags "$direct_account_api_enabled$direct_episode_api_enabled";
 
     location = /nginx-health {
         access_log off;
@@ -25,7 +27,7 @@ server {
     }
 
     location = /sanctum/csrf-cookie {
-        if ($direct_account_api_enabled = 0) {
+        if ($direct_browser_api_flags = "00") {
             return 404;
         }
         proxy_pass $learning_os_upstream;
@@ -44,6 +46,45 @@ server {
 
     location ^~ /api/convolab/auth/ {
         if ($direct_account_api_enabled = 0) {
+            return 404;
+        }
+        proxy_pass $learning_os_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+        proxy_set_header Authorization "";
+        proxy_set_header X-Convo-Lab-User-Id "";
+        proxy_buffering off;
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 180s;
+        proxy_read_timeout 180s;
+    }
+
+    location ~ ^/api/convolab/episodes/[^/]+/audio/[^/]+$ {
+        set $episode_audio_upstream $convolab_upstream;
+        if ($direct_episode_api_enabled = 1) {
+            set $episode_audio_upstream $learning_os_upstream;
+        }
+        proxy_pass $episode_audio_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+        proxy_set_header Authorization "";
+        proxy_set_header X-Convo-Lab-User-Id "";
+        proxy_buffering off;
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 180s;
+        proxy_read_timeout 180s;
+    }
+
+    location ~ ^/api/convolab/episodes(?:/|$) {
+        if ($direct_episode_api_enabled = 0) {
             return 404;
         }
         proxy_pass $learning_os_upstream;

@@ -63,6 +63,7 @@ jobs:
           DEPLOY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           BROWSER_SESSION_ENABLED: ${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || 'true' }}
           DIRECT_ACCOUNT_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED || 'false' }}
+          DIRECT_EPISODE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_EPISODE_API_ENABLED || 'false' }}
           DROPLET_USER: ${{ secrets.DROPLET_USER }}
           DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
         run: |
@@ -71,6 +72,7 @@ jobs:
             printf 'DEPLOY_GOOGLE_CLIENT_SECRET=%q\n' "$DEPLOY_GOOGLE_CLIENT_SECRET"
             printf 'BROWSER_SESSION_ENABLED=%q\n' "$BROWSER_SESSION_ENABLED"
             printf 'DIRECT_ACCOUNT_API_ENABLED=%q\n' "$DIRECT_ACCOUNT_API_ENABLED"
+            printf 'DIRECT_EPISODE_API_ENABLED=%q\n' "$DIRECT_EPISODE_API_ENABLED"
             cat << 'ENDSSH'
             set -euo pipefail
 
@@ -141,6 +143,18 @@ jobs:
               exit 1
             fi
             upsert_env LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED "$direct_account_api_enabled"
+            previous_direct_episode_api_enabled="$(
+              awk -F= '$1 == "LEARNING_OS_DIRECT_EPISODE_API_ENABLED" { value = $2 } END { print value }' .env.production
+            )"
+            if [ "$previous_direct_episode_api_enabled" != true ]; then
+              previous_direct_episode_api_enabled=false
+            fi
+            direct_episode_api_enabled="$DIRECT_EPISODE_API_ENABLED"
+            if [ "$direct_episode_api_enabled" != true ] && [ "$direct_episode_api_enabled" != false ]; then
+              echo "::error::LEARNING_OS_DIRECT_EPISODE_API_ENABLED must be true or false"
+              exit 1
+            fi
+            upsert_env LEARNING_OS_DIRECT_EPISODE_API_ENABLED "$direct_episode_api_enabled"
 
             if grep -q '^OPENAI_API_KEY=' .env.production; then
               sed -i "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.production
@@ -185,6 +199,7 @@ jobs:
             render_router_config() {
               color="$1"
               direct_account_enabled="${2:-$direct_account_api_enabled}"
+              direct_episode_enabled="${3:-$direct_episode_api_enabled}"
               upstream="convolab-server-$color"
               if [ ! -s "$ROUTER_TEMPLATE" ]; then
                 echo "❌ Router template is missing or empty: $ROUTER_TEMPLATE"
@@ -195,9 +210,15 @@ jobs:
               else
                 direct_account_enabled_value=0
               fi
+              if [ "$direct_episode_enabled" = true ]; then
+                direct_episode_enabled_value=1
+              else
+                direct_episode_enabled_value=0
+              fi
               sed \
                 -e "s#__UPSTREAM_SERVICE__#$upstream#g" \
                 -e "s#__DIRECT_ACCOUNT_API_ENABLED__#$direct_account_enabled_value#g" \
+                -e "s#__DIRECT_EPISODE_API_ENABLED__#$direct_episode_enabled_value#g" \
                 "$ROUTER_TEMPLATE" > "$ROUTER_CONFIG.tmp"
               if ! grep -q "$upstream" "$ROUTER_CONFIG.tmp"; then
                 echo "❌ Generated router config does not reference $upstream"
@@ -205,6 +226,10 @@ jobs:
               fi
               if grep -q '__DIRECT_ACCOUNT_API_ENABLED__' "$ROUTER_CONFIG.tmp"; then
                 echo "❌ Generated router config retains the direct account placeholder"
+                exit 1
+              fi
+              if grep -q '__DIRECT_EPISODE_API_ENABLED__' "$ROUTER_CONFIG.tmp"; then
+                echo "❌ Generated router config retains the direct episode placeholder"
                 exit 1
               fi
               if [ -e "$ROUTER_CONFIG" ]; then
@@ -300,23 +325,40 @@ jobs:
               trap 'rm -f "$cookie_jar" "$response_body"' EXIT
 
               if [ "$direct_account_api_enabled" = false ]; then
-                disabled_status="$(curl --silent --show-error \
+                account_status="$(curl --silent --show-error \
                   --output "$response_body" \
                   --write-out '%{http_code}' \
                   --header 'Accept: application/json' \
                   https://convo-lab.com/api/convolab/auth/me)"
-                if [ "$disabled_status" != 404 ]; then
-                  echo "Disabled direct account route returned HTTP $disabled_status instead of 404."
+                if [ "$account_status" != 404 ]; then
+                  echo "Disabled direct account route returned HTTP $account_status instead of 404."
                   cat "$response_body"
                   return 1
                 fi
-                disabled_csrf_status="$(curl --silent --show-error \
+              fi
+
+              if [ "$direct_episode_api_enabled" = false ]; then
+                episode_status="$(curl --silent --show-error \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Accept: application/json' \
+                  https://convo-lab.com/api/convolab/episodes)"
+                if [ "$episode_status" != 404 ]; then
+                  echo "Disabled direct episode route returned HTTP $episode_status instead of 404."
+                  cat "$response_body"
+                  return 1
+                fi
+              fi
+
+              if [ "$direct_account_api_enabled" = false ] \
+                && [ "$direct_episode_api_enabled" = false ]; then
+                csrf_status="$(curl --silent --show-error \
                   --output "$response_body" \
                   --write-out '%{http_code}' \
                   --header 'Origin: https://convo-lab.com' \
                   https://convo-lab.com/sanctum/csrf-cookie)"
-                if [ "$disabled_csrf_status" != 404 ]; then
-                  echo "Disabled Learning OS CSRF route returned HTTP $disabled_csrf_status instead of 404."
+                if [ "$csrf_status" != 404 ]; then
+                  echo "Disabled Learning OS CSRF route returned HTTP $csrf_status instead of 404."
                   cat "$response_body"
                   return 1
                 fi
@@ -344,24 +386,47 @@ jobs:
                 return 1
               fi
 
-              account_status="$(curl --silent --show-error \
-                --cookie "$cookie_jar" \
-                --output "$response_body" \
-                --write-out '%{http_code}' \
-                --header 'Origin: https://convo-lab.com' \
-                https://convo-lab.com/api/convolab/auth/me)"
-              if [ "$account_status" != 401 ]; then
-                echo "Unauthenticated direct account probe returned HTTP $account_status."
-                cat "$response_body"
-                return 1
-              fi
-              if ! grep -q '"message":"Unauthenticated."' "$response_body"; then
-                echo "Direct account probe did not return the Learning OS auth contract."
-                cat "$response_body"
-                return 1
+              if [ "$direct_account_api_enabled" = true ]; then
+                account_status="$(curl --silent --show-error \
+                  --cookie "$cookie_jar" \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Accept: application/json' \
+                  --header 'Origin: https://convo-lab.com' \
+                  https://convo-lab.com/api/convolab/auth/me)"
+                if [ "$account_status" != 401 ]; then
+                  echo "Unauthenticated direct account probe returned HTTP $account_status."
+                  cat "$response_body"
+                  return 1
+                fi
+                if ! grep -q '"message":"Unauthenticated."' "$response_body"; then
+                  echo "Direct account probe did not return the Learning OS auth contract."
+                  cat "$response_body"
+                  return 1
+                fi
               fi
 
-              echo "✅ Learning OS direct browser route passed!"
+              if [ "$direct_episode_api_enabled" = true ]; then
+                episode_status="$(curl --silent --show-error \
+                  --cookie "$cookie_jar" \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Accept: application/json' \
+                  --header 'Origin: https://convo-lab.com' \
+                  https://convo-lab.com/api/convolab/episodes)"
+                if [ "$episode_status" != 401 ]; then
+                  echo "Unauthenticated direct episode probe returned HTTP $episode_status."
+                  cat "$response_body"
+                  return 1
+                fi
+                if ! grep -q '"message":"Unauthenticated."' "$response_body"; then
+                  echo "Direct episode probe did not return the Learning OS auth contract."
+                  cat "$response_body"
+                  return 1
+                fi
+              fi
+
+              echo "✅ Learning OS direct browser routes passed!"
             )
 
             reload_router() {
@@ -385,7 +450,10 @@ jobs:
             rollback_router() {
               previous_color="$1"
               echo "↩️ Rolling router back to $previous_color..."
-              render_router_config "$previous_color" "$previous_direct_account_api_enabled"
+              render_router_config \
+                "$previous_color" \
+                "$previous_direct_account_api_enabled" \
+                "$previous_direct_episode_api_enabled"
               if ! reload_router; then
                 echo "❌ Router rollback reload failed; production may still be on the failed color."
                 return 1

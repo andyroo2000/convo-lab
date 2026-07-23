@@ -93,8 +93,20 @@ function getRequestMethod(input: RequestInfo | URL, init?: RequestInit): string 
   return 'GET';
 }
 
+export function getCsrfProviderForPath(pathname: string): CsrfProvider {
+  if (pathname.startsWith('/api/convolab/auth/')) {
+    return 'learning-os';
+  }
+
+  if (pathname === '/api/convolab/episodes' || pathname.startsWith('/api/convolab/episodes/')) {
+    return 'learning-os';
+  }
+
+  return 'express';
+}
+
 function getCsrfProvider(url: URL): CsrfProvider {
-  return url.pathname.startsWith('/api/convolab/auth/') ? 'learning-os' : 'express';
+  return getCsrfProviderForPath(url.pathname);
 }
 
 function shouldAttachCsrfToken(input: RequestInfo | URL, init?: RequestInit): boolean {

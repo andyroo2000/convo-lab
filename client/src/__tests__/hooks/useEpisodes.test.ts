@@ -5,6 +5,7 @@ import { useEpisodes } from '../../hooks/useEpisodes';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
+  LEARNING_OS_DIRECT_EPISODE_API_ENABLED: false,
 }));
 
 // Mock fetch globally
