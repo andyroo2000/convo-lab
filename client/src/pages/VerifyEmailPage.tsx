@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
+import { accountApi } from '../lib/accountApi';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -67,7 +68,7 @@ const VerifyEmailPage = () => {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/api/verification/send`, {
+      const response = await fetch(accountApi.resendVerification, {
         method: 'POST',
         credentials: 'include',
       });

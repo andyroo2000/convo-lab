@@ -4,6 +4,7 @@ import { API_URL } from '../../config';
 import {
   CSRF_TOKEN_COOKIE_NAME,
   CSRF_TOKEN_HEADER_NAME,
+  LEARNING_OS_CSRF_TOKEN_HEADER_NAME,
   fetchWithCsrf,
   installCsrfFetch,
   resetCsrfStateForTests,
@@ -61,6 +62,99 @@ describe('csrf helpers', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`${API_URL}/api/auth/csrf`);
+  });
+
+  it('switches to the Learning OS CSRF contract for direct compatibility mutations', async () => {
+    document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=express-token`;
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === `${API_URL}/sanctum/csrf-cookie`) {
+          document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-token`;
+          return { ok: true, status: 204 } as Response;
+        }
+
+        const headers = new Headers(init?.headers);
+        expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('learning-os-token');
+        expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
+        return { ok: true, status: 204 } as Response;
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithCsrf(`${API_URL}/api/convolab/auth/me`, {
+      method: 'DELETE',
+      credentials: 'include',
+      body: JSON.stringify({ current_password: 'password' }),
+    });
+
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
+      `${API_URL}/sanctum/csrf-cookie`,
+      `${API_URL}/api/convolab/auth/me`,
+    ]);
+  });
+
+  it('re-bootstraps Express CSRF after a direct Learning OS mutation', async () => {
+    document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=express-token`;
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === `${API_URL}/sanctum/csrf-cookie`) {
+          document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-token`;
+          return { ok: true, status: 204 } as Response;
+        }
+        if (url === `${API_URL}/api/auth/csrf`) {
+          document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=refreshed-express-token`;
+          return { ok: true, status: 204 } as Response;
+        }
+
+        const headers = new Headers(init?.headers);
+        if (url.includes('/api/convolab/auth/')) {
+          expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('learning-os-token');
+        } else {
+          expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('refreshed-express-token');
+        }
+        return { ok: true, status: 204 } as Response;
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithCsrf(`${API_URL}/api/convolab/auth/me`, {
+      method: 'PATCH',
+      credentials: 'include',
+      body: '{}',
+    });
+    await fetchWithCsrf(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
+      `${API_URL}/sanctum/csrf-cookie`,
+      `${API_URL}/api/convolab/auth/me`,
+      `${API_URL}/api/auth/csrf`,
+      `${API_URL}/api/auth/logout`,
+    ]);
+  });
+
+  it('keeps non-auth Convo Lab mutations on the Express CSRF provider', async () => {
+    document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=express-token`;
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('express-token');
+        expect(headers.has(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe(false);
+        return { ok: true, status: 204 } as Response;
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithCsrf(`${API_URL}/api/convolab/episodes/example/mutation`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('refreshes the token and retries once when a mutation is rejected for CSRF', async () => {

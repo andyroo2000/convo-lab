@@ -12,6 +12,7 @@ import {
   getAllowedBrowserOrigins,
   validateProductionBrowserRuntimeConfig,
 } from './config/browserRuntime.js';
+import { injectClientRuntimeConfig } from './config/clientRuntimeConfig.js';
 import passport from './config/passport.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
@@ -346,7 +347,7 @@ if (process.env.NODE_ENV === 'production') {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     const seoConfig = getSeoConfigForPath(req.path);
-    const html = injectSeoMeta(readIndexHtml(), seoConfig);
+    const html = injectClientRuntimeConfig(injectSeoMeta(readIndexHtml(), seoConfig));
     res.type('html').send(html);
   });
 }
