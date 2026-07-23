@@ -12,13 +12,13 @@ i18next.use(Backend).init({
   initImmediate: false,
   lng: 'en',
   fallbackLng: 'en',
-  ns: ['email', 'server'],
-  defaultNS: 'email',
+  ns: ['server'],
+  defaultNS: 'server',
   backend: {
     loadPath: path.join(__dirname, 'locales/{{lng}}/{{ns}}.json'),
   },
   interpolation: {
-    escapeValue: false, // We'll handle HTML escaping in templates
+    escapeValue: false,
   },
 });
 

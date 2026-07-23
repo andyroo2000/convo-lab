@@ -42,7 +42,6 @@
     "@google-cloud/storage": "^7.19.0",
     "@google-cloud/text-to-speech": "^5.4.0",
     "@prisma/client": "^5.19.1",
-    "@react-email/components": "^1.0.1",
     "@types/multer": "^2.0.0",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.17",
@@ -64,8 +63,6 @@
     "multer": "^2.1.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "react-email": "^5.0.8",
-    "resend": "^6.6.0",
     "sharp": "^0.34.5",
     "ts-fsrs": "^5.3.3",
     "uuid": "^9.0.1"
