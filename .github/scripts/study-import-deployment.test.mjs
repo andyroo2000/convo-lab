@@ -419,7 +419,7 @@ test('production gates direct browser traffic and smokes each Learning OS route'
     'https://convo-lab.com/sanctum/csrf-cookie',
     '$6 == "XSRF-TOKEN"',
     '$6 == "learning_os_session"',
-    "node -e 'process.stdout.write(decodeURIComponent(process.argv[1]))'",
+    `xsrf_token="$(printf '%b' "\${encoded_xsrf_token//%/\\\\x}")"`,
     'https://convo-lab.com/api/convolab/auth/me',
     'https://convo-lab.com/api/convolab/browser/auth/me',
     'https://convo-lab.com/api/auth/password/forgot',
@@ -438,6 +438,10 @@ test('production gates direct browser traffic and smokes each Learning OS route'
   ]) {
     assert.ok(workflow.includes(contract), `Missing direct browser deployment contract: ${contract}`);
   }
+  assert.ok(
+    !workflow.includes('decodeURIComponent'),
+    'Production smoke checks must not require Node.js on the droplet host'
+  );
   const publicGate = workflow.indexOf('if ! verify_public_health \\');
   assert.ok(publicGate >= 0);
   assert.ok(

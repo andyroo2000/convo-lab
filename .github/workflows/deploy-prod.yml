@@ -586,10 +586,7 @@ jobs:
               encoded_xsrf_token="$(
                 awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$cookie_jar"
               )"
-              xsrf_token="$(
-                node -e 'process.stdout.write(decodeURIComponent(process.argv[1]))' \
-                  "$encoded_xsrf_token"
-              )"
+              xsrf_token="$(printf '%b' "${encoded_xsrf_token//%/\\x}")"
               if [ -z "$xsrf_token" ]; then
                 echo "Learning OS CSRF bootstrap returned an empty XSRF token."
                 return 1
