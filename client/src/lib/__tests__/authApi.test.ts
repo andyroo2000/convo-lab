@@ -4,7 +4,7 @@ import { createAuthApiContract } from '../authApi';
 
 describe('auth API contract', () => {
   it('uses first-party Learning OS browser auth and canonical reset payloads', () => {
-    const contract = createAuthApiContract('');
+    const contract = createAuthApiContract();
 
     expect(contract).toMatchObject({
       login: '/api/convolab/browser/auth/login',

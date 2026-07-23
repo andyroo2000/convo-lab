@@ -13,6 +13,8 @@ export interface AuthApiContract {
 }
 
 export function createAuthApiContract(apiUrl = ''): AuthApiContract {
+  // Browser auth must stay same-origin so session and XSRF cookies reach Learning OS.
+  // Vite and the production router select the upstream for these canonical paths.
   const browserAuthBase = `${apiUrl}/api/convolab/browser/auth`;
 
   return {

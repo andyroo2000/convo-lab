@@ -3,6 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { createAccountApiContract } from '../accountApi';
 
 describe('account API contract', () => {
+  it('defaults browser account requests to same-origin Learning OS routes', () => {
+    const contract = createAccountApiContract();
+
+    expect(contract.currentUser).toBe('/api/convolab/auth/me');
+    expect(contract.quota).toBe('/api/convolab/auth/me/quota');
+    expect(contract.passwordPath).toBe('/api/convolab/auth/me/password');
+  });
+
   it('uses Learning OS compatibility routes and canonical security payloads', () => {
     const contract = createAccountApiContract('https://app.example');
 

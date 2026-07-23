@@ -8,6 +8,7 @@ export interface AccountApiContract {
 }
 
 export function createAccountApiContract(apiUrl = ''): AccountApiContract {
+  // Account requests share the browser auth session, so the default stays same-origin.
   const authBase = `${apiUrl}/api/convolab/auth`;
 
   return {
