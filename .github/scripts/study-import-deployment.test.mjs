@@ -274,12 +274,17 @@ test('production coordinates the Learning OS browser-session bridge behind one r
     assert.ok(
       workflow.includes('"${{ vars.LEARNING_OS_BROWSER_SESSION_ENABLED || \'true\' }}"')
     );
+    assert.ok(
+      workflow.includes(
+        'echo "::error::LEARNING_OS_BROWSER_SESSION_ENABLED must be true or false"'
+      )
+    );
+    assert.ok(
+      workflow.includes(
+        'upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "$browser_session_enabled"'
+      )
+    );
   }
-  assert.ok(
-    learningOsWorkflow.includes(
-      'upsert_env LEARNING_OS_BROWSER_SESSION_ENABLED "$browser_session_enabled"'
-    )
-  );
   assert.ok(
     learningOsWorkflow.includes(
       'EXPECT_LEARNING_OS_BROWSER_SESSION="$browser_session_enabled"'
