@@ -52,7 +52,6 @@ vi.mock('../../../middleware/demoAuth.js', () => ({
 vi.mock('../../../middleware/emailVerification.js', () => ({
   requireEmailVerified: mocks.requireEmailVerified,
 }));
-vi.mock('../../../services/coreLlmClient.js', () => ({ generateCoreLlmText: vi.fn() }));
 vi.mock('../../../i18n/index.js', () => ({
   default: {
     t: (key: string, params?: Record<string, unknown>) => {

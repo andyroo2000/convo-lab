@@ -2,31 +2,6 @@ import i18next from 'i18next';
 import { vi, beforeEach } from 'vitest';
 // eslint-disable-next-line import/no-named-as-default-member -- i18next default export is used correctly
 
-vi.mock('../services/geminiClient.js', async () => {
-  if (process.env.VITEST_MOCK_GEMINI === 'false') {
-    return vi.importActual('../services/geminiClient.js');
-  }
-
-  const stubResponse = async () => '{}';
-
-  return {
-    generateWithGemini: vi.fn(stubResponse),
-    generateWithGeminiChat: vi.fn(stubResponse),
-    generateImageWithGemini: vi.fn(async () => {
-      throw new Error('Image generation not yet implemented');
-    }),
-  };
-});
-
-vi.mock('../services/coreLlmClient.js', async () => {
-  const stubResponse = async () => '{}';
-
-  return {
-    generateCoreLlmText: vi.fn(stubResponse),
-    generateCoreLlmJsonText: vi.fn(stubResponse),
-  };
-});
-
 // Initialize i18next for tests with inline resources
 // eslint-disable-next-line import/no-named-as-default-member
 i18next.init({
