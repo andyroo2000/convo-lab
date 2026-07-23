@@ -69,7 +69,6 @@ const FILE_TASKS: FileTask[] = [
 
   // Server source files
   { file: 'server/src/services/avatarService.ts', cardId: 'convo-lab-iza', anyCount: 2, category: 'source' },
-  { file: 'server/src/services/conversationalLessonScriptGenerator.ts', cardId: 'convo-lab-242', anyCount: 1, category: 'source' },
   { file: 'server/src/services/courseItemExtractor.ts', cardId: 'convo-lab-2lr', anyCount: 10, category: 'source' },
   { file: 'server/src/services/ttsProviders/PollyTTSProvider.ts', cardId: 'convo-lab-slh', anyCount: 1, category: 'source' },
   { file: 'server/src/config/passport.ts', cardId: 'convo-lab-vls', anyCount: 1, category: 'source' },
