@@ -663,8 +663,6 @@ jobs:
             audio_generation_smoke_job_id=
             audio_generation_smoke_path=
             audio_generation_smoke_inserted=false
-            audio_generation_smoke_body=
-            audio_generation_smoke_headers=
             script_smoke_episode_id=
             script_smoke_script_id=
             script_smoke_segment_id=
@@ -900,11 +898,6 @@ jobs:
               local mode="${1:-strict}"
               local cleanup_output
               local remaining_count
-
-              [ -z "${audio_generation_smoke_body:-}" ] || rm -f "$audio_generation_smoke_body"
-              [ -z "${audio_generation_smoke_headers:-}" ] || rm -f "$audio_generation_smoke_headers"
-              audio_generation_smoke_body=
-              audio_generation_smoke_headers=
 
               if [ -z "${audio_generation_smoke_episode_id:-}" ]; then
                 return
@@ -2503,18 +2496,50 @@ jobs:
                   ) process.exit(1);
                 '
 
-              audio_generation_smoke_body="$(mktemp)"
-              audio_generation_smoke_headers="$(mktemp)"
-              curl --fail --silent --show-error \
-                --cookie "token=$auth_token" \
-                --dump-header "$audio_generation_smoke_headers" \
-                --output "$audio_generation_smoke_body" \
-                "https://convo-lab.com/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0"
-              test "$(cat "$audio_generation_smoke_body")" = "learning-os-audio-generation-smoke"
-              grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$audio_generation_smoke_headers"
-              grep -Eiq "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" "$audio_generation_smoke_headers"
-              grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$audio_generation_smoke_headers"
-              grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$' "$audio_generation_smoke_headers"
+              docker exec \
+                -e API_TOKEN="$proxy_token" \
+                -e AUDIO_GENERATION_SMOKE_EPISODE_ID="$audio_generation_smoke_episode_id" \
+                learning-os-api php -r '
+                  $context = stream_context_create(["http" => [
+                    "header" => implode("\r\n", [
+                      "Accept: audio/mpeg",
+                      "Authorization: Bearer ".getenv("API_TOKEN"),
+                    ])."\r\n",
+                    "ignore_errors" => true,
+                    "timeout" => 10,
+                  ]]);
+                  $body = file_get_contents(
+                    "http://127.0.0.1:8080/api/convolab/episodes/"
+                      .getenv("AUDIO_GENERATION_SMOKE_EPISODE_ID")
+                      ."/audio/1.0",
+                    false,
+                    $context,
+                  );
+                  $status = 0;
+                  $headers = [];
+                  foreach ($http_response_header ?? [] as $header) {
+                    if (preg_match("/^HTTP\\/\\S+\\s+(\\d+)/i", $header, $matches)) {
+                      $status = (int) $matches[1];
+                      continue;
+                    }
+                    if (str_contains($header, ":")) {
+                      [$name, $value] = explode(":", $header, 2);
+                      $headers[strtolower($name)] = trim($value);
+                    }
+                  }
+                  if (
+                    $status !== 200
+                    || $body !== "learning-os-audio-generation-smoke"
+                    || ($headers["content-type"] ?? null) !== "audio/mpeg"
+                    || ($headers["content-security-policy"] ?? null)
+                      !== "sandbox; default-src '\''none'\''"
+                    || ($headers["cross-origin-resource-policy"] ?? null) !== "same-origin"
+                    || ($headers["x-content-type-options"] ?? null) !== "nosniff"
+                  ) {
+                    fwrite(STDERR, "Learning OS authenticated audio stream smoke failed.\n");
+                    exit(1);
+                  }
+                '
               cleanup_audio_generation_smoke
               echo "Audio generation Learning OS routing and streaming smoke checks passed."
 
