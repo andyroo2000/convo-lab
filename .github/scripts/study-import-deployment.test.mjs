@@ -970,6 +970,27 @@ test('legacy ConvoLab support services stay retired behind Learning OS', async (
   }
 });
 
+test('legacy language seed artifacts stay retired behind Learning OS', async () => {
+  const retiredPaths = [
+    'add_pronunciations.cjs',
+    'smart_vocab_generator.cjs',
+    ...['n1', 'n2', 'n3', 'n4', 'n5'].flatMap((level) => [
+      `server/src/data/grammar/ja/${level}.json`,
+      `server/src/data/vocabulary/ja/${level}.json`,
+    ]),
+  ];
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+
+  const kanjiumData = await stat(
+    path.join(repositoryRoot, 'server/src/data/kanjium/accents.txt')
+  );
+  assert.ok(kanjiumData.isFile());
+  assert.ok(kanjiumData.size > 0);
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
