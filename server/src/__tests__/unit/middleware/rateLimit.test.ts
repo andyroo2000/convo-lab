@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/errorHandler.js';
-import { rateLimitGeneration } from '../../../middleware/rateLimit.js';
+import { rateLimitGeneration, rateLimitLegacyGeneration } from '../../../middleware/rateLimit.js';
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
@@ -309,5 +309,48 @@ describe('rateLimitGeneration middleware', () => {
 
       expect(mockNext).toHaveBeenCalledWith(redisError);
     });
+  });
+});
+
+describe('rateLimitLegacyGeneration middleware', () => {
+  const request = { userId: 'user-123' } as AuthRequest;
+  const response = {} as Response;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('bypasses Convo Lab quota state when Learning OS owns the request', async () => {
+    const next = vi.fn() as unknown as NextFunction;
+
+    await rateLimitLegacyGeneration('dialogue', () => true)(request, response, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(next).toHaveBeenCalledWith();
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockCheckCooldown).not.toHaveBeenCalled();
+    expect(mockCheckGenerationLimit).not.toHaveBeenCalled();
+    expect(mockSetCooldown).not.toHaveBeenCalled();
+  });
+
+  it('retains quota enforcement for the legacy rollback handler', async () => {
+    const next = vi.fn() as unknown as NextFunction;
+    mockPrisma.user.findUnique.mockResolvedValue({ role: 'user' });
+    mockCheckCooldown.mockResolvedValue({ active: false, remainingSeconds: 0 });
+    mockCheckGenerationLimit.mockResolvedValue({
+      allowed: true,
+      used: 5,
+      limit: 20,
+      remaining: 15,
+      resetsAt: new Date('2026-08-01T00:00:00.000Z'),
+    });
+    mockSetCooldown.mockResolvedValue(undefined);
+
+    await rateLimitLegacyGeneration('course', () => false)(request, response, next);
+
+    expect(mockCheckGenerationLimit).toHaveBeenCalledWith('user-123', 'course');
+    expect(mockSetCooldown).toHaveBeenCalledWith('user-123');
+    expect(next).toHaveBeenCalledOnce();
+    expect(next).toHaveBeenCalledWith();
   });
 });

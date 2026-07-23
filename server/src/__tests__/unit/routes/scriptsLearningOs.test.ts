@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   legacyMediaAccess: vi.fn(),
   logGeneration: vi.fn(),
   resolveLearningOsProxyContext: vi.fn(),
+  scriptRateLimit: vi.fn((_req: Request, _res: Response, next: NextFunction) => next()),
 }));
 
 vi.mock('../../../jobs/audioScriptQueue.js', () => ({
@@ -48,7 +49,10 @@ vi.mock('../../../middleware/demoAuth.js', () => ({
   blockDemoUser: (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 vi.mock('../../../middleware/rateLimit.js', () => ({
-  rateLimitGeneration: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+  rateLimitLegacyGeneration:
+    (_contentType: string, isLearningOsProxyEnabled: () => boolean) =>
+    (req: Request, res: Response, next: NextFunction) =>
+      isLearningOsProxyEnabled() ? next() : mocks.scriptRateLimit(req, res, next),
 }));
 vi.mock('../../../middleware/studyRateLimit.js', () => ({
   rateLimitStudyRoute: () => (_req: Request, _res: Response, next: NextFunction) => next(),
@@ -164,7 +168,7 @@ describe('Learning OS script routes', () => {
     }
   });
 
-  it('allowlists create fields, normalizes empty collections, and records usage', async () => {
+  it('allowlists create fields and leaves quota ownership with Learning OS', async () => {
     const longSourceText = '駅に行きます。'.repeat(200);
     mocks.fetchLearningOsProxy.mockResolvedValue(
       upstreamJson({ ...episodeBody(), sourceText: longSourceText })
@@ -187,7 +191,8 @@ describe('Learning OS script routes', () => {
     });
     expect(response.body.audioScript.segments).toEqual([]);
     expect(response.body.audioScript.renders).toEqual([]);
-    expect(mocks.logGeneration).toHaveBeenCalledWith(USER_ID, 'script', EPISODE_ID);
+    expect(mocks.logGeneration).not.toHaveBeenCalled();
+    expect(mocks.scriptRateLimit).not.toHaveBeenCalled();
   });
 
   it('routes annotation and segment updates with operation-specific bodies and timeouts', async () => {

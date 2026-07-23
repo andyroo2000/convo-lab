@@ -60,9 +60,9 @@ The workflow:
 5. Starts or reconciles the private API and worker.
 6. Recreates the active ConvoLab web color with the new token.
 7. Verifies the active container received that token, then prunes older tokens.
-8. Runs authenticated profile, disposable signup/verification, Study, import,
-   media, Daily Audio, Episode, and Course smoke checks through ConvoLab's
-   public proxy.
+8. Runs authenticated current-account, generation-quota, profile, disposable
+   signup/verification, Study, import, media, Daily Audio, Episode, and Course
+   smoke checks through ConvoLab's public proxy.
 9. Verifies public ConvoLab health.
 
 The worker is drained before replacement when its image or command changes.
@@ -76,7 +76,8 @@ database from a Learning OS backup instead of rebuilding it from ConvoLab.
 Every deployment verifies:
 
 - Overview response through Learning OS.
-- Current-account response plus a reversible profile preference write.
+- Current-account and generation-quota responses plus a reversible profile
+  preference write.
 - A disposable signup, email-token issuance, verification, current-account,
   and fresh-login lifecycle that confirms no legacy Prisma user was created.
 - Browser list and note detail against Learning OS state.

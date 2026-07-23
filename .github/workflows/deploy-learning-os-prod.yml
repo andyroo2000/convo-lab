@@ -1477,6 +1477,49 @@ jobs:
                 '
               echo "Auth current-user Learning OS proxy smoke check passed."
 
+              generation_quota="$(fetch_read_route 'Generation quota Learning OS' '/api/auth/me/quota')"
+              printf '%s' "$generation_quota" | docker exec \
+                -i \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const response = JSON.parse(body);
+                  const isSafeNonNegativeInteger = (value) =>
+                    Number.isSafeInteger(value) && value >= 0;
+                  const cooldownIsValid =
+                    response.cooldown
+                    && typeof response.cooldown.active === "boolean"
+                    && isSafeNonNegativeInteger(response.cooldown.remainingSeconds)
+                    && response.cooldown.active === (response.cooldown.remainingSeconds > 0);
+
+                  if (!cooldownIsValid || typeof response.unlimited !== "boolean") process.exit(1);
+
+                  if (response.unlimited) {
+                    if (
+                      response.quota !== null
+                      || response.cooldown.active
+                      || response.cooldown.remainingSeconds !== 0
+                    ) process.exit(1);
+                    process.exit(0);
+                  }
+
+                  const quota = response.quota;
+                  const resetPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+                  if (
+                    !quota
+                    || !isSafeNonNegativeInteger(quota.used)
+                    || !Number.isSafeInteger(quota.limit)
+                    || quota.limit <= 0
+                    || !isSafeNonNegativeInteger(quota.remaining)
+                    || quota.remaining !== Math.max(0, quota.limit - quota.used)
+                    || typeof quota.resetsAt !== "string"
+                    || !resetPattern.test(quota.resetsAt)
+                    || Number.isNaN(Date.parse(quota.resetsAt))
+                  ) process.exit(1);
+                '
+              echo "Generation quota Learning OS proxy smoke check passed."
+
               stream_json_pair() {
                 # Stream newline-delimited base64 so large responses do not exceed exec ARG_MAX.
                 printf '%s' "$1" | base64 | tr -d '\n'

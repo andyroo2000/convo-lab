@@ -36,6 +36,26 @@ export interface LearningOsCurrentAccount extends LearningOsLoginAccount {
   seenCustomContentGuide: boolean;
 }
 
+export type LearningOsGenerationQuota =
+  | {
+      unlimited: true;
+      quota: null;
+      cooldown: { active: false; remainingSeconds: 0 };
+    }
+  | {
+      unlimited: false;
+      quota: {
+        used: number;
+        limit: number;
+        remaining: number;
+        resetsAt: string;
+      };
+      cooldown: {
+        active: boolean;
+        remainingSeconds: number;
+      };
+    };
+
 export interface LearningOsGoogleAccount extends LearningOsCurrentAccount {
   avatarUrl: string | null;
 }
@@ -148,6 +168,36 @@ export async function getLearningOsCurrentAccount(
   }
 
   return adaptAccount(body, true);
+}
+
+export async function getLearningOsGenerationQuota(
+  userId: string,
+  sessionIdentity?: LearningOsSessionIdentity
+): Promise<LearningOsGenerationQuota> {
+  const { config, user } = await resolveLearningOsUserProxyContext(
+    userId,
+    API_LABEL,
+    sessionIdentity
+  );
+  const response = await fetchLearningOsProxy({
+    upstreamUrl: new URL(`${config.apiUrl}/api/convolab/auth/me/quota`),
+    apiToken: config.apiToken,
+    user,
+    method: 'GET',
+    timeoutMs: TIMEOUT_MS,
+    timeoutMessage: `${API_LABEL} request timed out.`,
+    networkErrorMessage: `${API_LABEL} is unavailable.`,
+  });
+
+  const body = await parseJsonResponse(response);
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new AppError('User not found', 404);
+    }
+    throw upstreamFailure(response.status);
+  }
+
+  return adaptGenerationQuota(body);
 }
 
 export async function updateLearningOsCurrentAccount(
@@ -813,6 +863,85 @@ function adaptGoogleAccount(value: unknown): LearningOsGoogleAccount {
     ...adaptAccount(value, true),
     avatarUrl: account.avatarUrl,
   };
+}
+
+function adaptGenerationQuota(value: unknown): LearningOsGenerationQuota {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw invalidResponse();
+  }
+
+  const response = value as Record<string, unknown>;
+  if (!isCooldown(response.cooldown)) {
+    throw invalidResponse();
+  }
+
+  if (response.unlimited === true) {
+    if (
+      response.quota !== null ||
+      response.cooldown.active !== false ||
+      response.cooldown.remainingSeconds !== 0
+    ) {
+      throw invalidResponse();
+    }
+
+    return {
+      unlimited: true,
+      quota: null,
+      cooldown: { active: false, remainingSeconds: 0 },
+    };
+  }
+
+  if (
+    response.unlimited !== false ||
+    !response.quota ||
+    typeof response.quota !== 'object' ||
+    Array.isArray(response.quota)
+  ) {
+    throw invalidResponse();
+  }
+
+  const quota = response.quota as Record<string, unknown>;
+  if (
+    !isNonNegativeInteger(quota.used) ||
+    !isPositiveInteger(quota.limit) ||
+    !isNonNegativeInteger(quota.remaining) ||
+    quota.remaining !== Math.max(0, quota.limit - quota.used) ||
+    !isTimestamp(quota.resetsAt)
+  ) {
+    throw invalidResponse();
+  }
+
+  return {
+    unlimited: false,
+    quota: {
+      used: quota.used,
+      limit: quota.limit,
+      remaining: quota.remaining,
+      resetsAt: quota.resetsAt,
+    },
+    cooldown: response.cooldown,
+  };
+}
+
+function isCooldown(value: unknown): value is { active: boolean; remainingSeconds: number } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const cooldown = value as Record<string, unknown>;
+  return (
+    typeof cooldown.active === 'boolean' &&
+    isNonNegativeInteger(cooldown.remainingSeconds) &&
+    cooldown.active === cooldown.remainingSeconds > 0
+  );
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return isNonNegativeInteger(value) && value > 0;
 }
 
 function isBoundedString(value: unknown, maxLength: number): value is string {

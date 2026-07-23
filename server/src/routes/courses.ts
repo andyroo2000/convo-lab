@@ -9,7 +9,7 @@ import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
-import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { rateLimitLegacyGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
@@ -26,6 +26,10 @@ import {
 } from './learningOs/courses.js';
 
 const router = Router();
+const rateLimitLegacyCourseGeneration = rateLimitLegacyGeneration(
+  'course',
+  isLearningOsCourseGenerationProxyEnabled
+);
 
 type CourseGenerationHandler = (
   req: AuthRequest,
@@ -63,7 +67,7 @@ router.post('/', blockDemoUser, storeLearningOsCourse);
 router.post(
   '/:id/generate',
   requireEmailVerified,
-  rateLimitGeneration('course'),
+  rateLimitLegacyCourseGeneration,
   blockDemoUser,
   routeCourseGeneration(generateLearningOsCourse, async (req: AuthRequest, res, next) => {
     try {

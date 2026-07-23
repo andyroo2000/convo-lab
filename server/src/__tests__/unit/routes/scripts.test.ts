@@ -44,6 +44,10 @@ vi.mock('../../../middleware/studyRateLimit.js', () => ({
   rateLimitStudyRoute: () => (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
+vi.mock('../../../middleware/rateLimit.js', () => ({
+  rateLimitLegacyGeneration: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+}));
+
 vi.mock('../../../services/usageTracker.js', () => ({
   logGeneration: vi.fn(),
 }));

@@ -9,7 +9,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { rateLimitLegacyGeneration } from '../middleware/rateLimit.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import { getAudioScriptMediaAccess } from '../services/audioScriptMediaService.js';
 import {
@@ -36,6 +36,10 @@ import {
 import { sendPrivateMediaResponse } from './privateMediaResponse.js';
 
 const router = Router();
+const rateLimitLegacyScriptGeneration = rateLimitLegacyGeneration(
+  'script',
+  isLearningOsScriptProxyEnabled
+);
 const scriptIpRateLimit = createExpressRateLimit({
   windowMs: 60 * 1000,
   limit: 300,
@@ -133,7 +137,7 @@ router.get(
 router.post(
   '/',
   requireEmailVerified,
-  rateLimitGeneration('script'),
+  rateLimitLegacyScriptGeneration,
   blockDemoUser,
   routeScript(storeLearningOsScript, async (req: AuthRequest, res, next) => {
     try {

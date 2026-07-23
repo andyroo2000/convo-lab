@@ -7,13 +7,17 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { rateLimitLegacyGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 import { generateLearningOsDialogue, showLearningOsDialogueJob } from './learningOs/dialogue.js';
 
 const router = Router();
+const rateLimitLegacyDialogueGeneration = rateLimitLegacyGeneration(
+  'dialogue',
+  isLearningOsDialogueGenerationProxyEnabled
+);
 
 type DialogueHandler = (
   req: AuthRequest,
@@ -41,7 +45,7 @@ router.use(requireAuth);
 router.post(
   '/generate',
   requireEmailVerified,
-  rateLimitGeneration('dialogue'),
+  rateLimitLegacyDialogueGeneration,
   blockDemoUser,
   routeDialogueGeneration(generateLearningOsDialogue, async (req: AuthRequest, res, next) => {
     try {

@@ -8,7 +8,6 @@ import {
   fetchLearningOsProxy,
   resolveLearningOsProxyContext,
 } from '../../services/learningOsProxy.js';
-import { logGeneration } from '../../services/usageTracker.js';
 
 const API_LABEL = 'Learning OS Course API';
 const FETCH_TIMEOUT_MS = 10_000;
@@ -310,7 +309,6 @@ async function respondWithCourseAction(
       throw new AppError(`${API_LABEL} returned an invalid ${operation} response.`, 502);
     }
 
-    await logGeneration(req.userId!, 'course', req.params.id);
     res.json(payload);
   } catch (error) {
     next(error);

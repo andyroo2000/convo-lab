@@ -7,6 +7,7 @@ import {
   deleteLearningOsCurrentAccount,
   disconnectLearningOsGoogleIdentity,
   getLearningOsCurrentAccount,
+  getLearningOsGenerationQuota,
   registerLearningOsAccount,
   resolveLearningOsGoogleIdentity,
   resetLearningOsPassword,
@@ -383,6 +384,130 @@ describe('Learning OS auth proxy', () => {
       'X-Convo-Lab-User-Id': account.id,
       'X-Convo-Lab-User-Email': account.email,
       'X-Convo-Lab-User-Role': account.role,
+    });
+  });
+
+  it('loads and validates the generation quota through signed session identity', async () => {
+    const quota = {
+      unlimited: false,
+      quota: {
+        used: 7,
+        limit: 30,
+        remaining: 23,
+        resetsAt: '2026-08-01T00:00:00.000Z',
+      },
+      cooldown: { active: true, remainingSeconds: 17 },
+    };
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(quota));
+
+    await expect(
+      getLearningOsGenerationQuota(account.id, {
+        userId: account.id,
+        email: account.email,
+        role: account.role,
+        accountSource: 'learning-os',
+      })
+    ).resolves.toEqual(quota);
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe('https://learning-os.example/api/convolab/auth/me/quota');
+    expect(init).toMatchObject({
+      method: 'GET',
+      headers: expect.objectContaining({
+        'X-Convo-Lab-User-Id': account.id,
+        'X-Convo-Lab-User-Email': account.email,
+      }),
+    });
+  });
+
+  it('preserves the canonical unlimited generation quota shape', async () => {
+    const quota = {
+      unlimited: true as const,
+      quota: null,
+      cooldown: { active: false as const, remainingSeconds: 0 as const },
+    };
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(quota));
+
+    await expect(getLearningOsGenerationQuota(account.id)).resolves.toEqual(quota);
+  });
+
+  it('accepts usage above a newly lowered generation limit', async () => {
+    const quota = {
+      unlimited: false as const,
+      quota: {
+        used: 35,
+        limit: 30,
+        remaining: 0,
+        resetsAt: '2026-08-01T00:00:00.000Z',
+      },
+      cooldown: { active: false, remainingSeconds: 0 },
+    };
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(quota));
+
+    await expect(getLearningOsGenerationQuota(account.id)).resolves.toEqual(quota);
+  });
+
+  it.each([
+    ['non-object payload', []],
+    [
+      'inconsistent remaining count',
+      {
+        unlimited: false,
+        quota: {
+          used: 7,
+          limit: 30,
+          remaining: 22,
+          resetsAt: '2026-08-01T00:00:00.000Z',
+        },
+        cooldown: { active: false, remainingSeconds: 0 },
+      },
+    ],
+    [
+      'active zero-second cooldown',
+      {
+        unlimited: false,
+        quota: {
+          used: 7,
+          limit: 30,
+          remaining: 23,
+          resetsAt: '2026-08-01T00:00:00.000Z',
+        },
+        cooldown: { active: true, remainingSeconds: 0 },
+      },
+    ],
+    [
+      'non-millisecond reset timestamp',
+      {
+        unlimited: false,
+        quota: {
+          used: 7,
+          limit: 30,
+          remaining: 23,
+          resetsAt: '2026-08-01T00:00:00Z',
+        },
+        cooldown: { active: false, remainingSeconds: 0 },
+      },
+    ],
+    [
+      'unlimited payload with quota data',
+      {
+        unlimited: true,
+        quota: {
+          used: 0,
+          limit: 30,
+          remaining: 30,
+          resetsAt: '2026-08-01T00:00:00.000Z',
+        },
+        cooldown: { active: false, remainingSeconds: 0 },
+      },
+    ],
+  ])('rejects %s from the generation quota endpoint', async (_label, body) => {
+    vi.mocked(global.fetch).mockResolvedValue(jsonResponse(body));
+
+    await expect(getLearningOsGenerationQuota(account.id)).rejects.toMatchObject({
+      message: 'Learning OS Auth API returned an invalid response.',
+      statusCode: 502,
     });
   });
 

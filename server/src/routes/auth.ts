@@ -19,12 +19,12 @@ import {
   deleteLearningOsCurrentAccount,
   disconnectLearningOsGoogleIdentity,
   getLearningOsCurrentAccount,
+  getLearningOsGenerationQuota,
   registerLearningOsAccount,
   updateLearningOsCurrentAccount,
   type LearningOsLoginAccount,
   type LearningOsProfileUpdateInput,
 } from '../services/learningOsAuthProxy.js';
-import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
 const signupRateLimit = createExpressRateLimit({
@@ -417,28 +417,14 @@ router.delete(
 // Get quota status for current user
 router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: { role: true },
+    const quota = await getLearningOsGenerationQuota(req.userId!, {
+      userId: req.userId!,
+      email: req.email,
+      role: req.role,
+      accountSource: req.accountSource,
     });
-
-    // Admins get unlimited
-    if (user?.role === 'admin') {
-      return res.json({
-        unlimited: true,
-        quota: null,
-        cooldown: { active: false, remainingSeconds: 0 },
-      });
-    }
-
-    const status = await checkGenerationLimit(req.userId!, 'dialogue');
-    const cooldown = await checkCooldown(req.userId!);
-
-    res.json({
-      unlimited: false,
-      quota: status,
-      cooldown,
-    });
+    res.set('Cache-Control', 'private, no-store');
+    res.json(quota);
   } catch (error) {
     next(error);
   }

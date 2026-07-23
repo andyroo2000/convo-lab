@@ -7,7 +7,6 @@ import {
   fetchLearningOsProxy,
   resolveLearningOsProxyContext,
 } from '../../services/learningOsProxy.js';
-import { logGeneration } from '../../services/usageTracker.js';
 
 const API_LABEL = 'Learning OS Script API';
 const FETCH_TIMEOUT_MS = 10_000;
@@ -260,7 +259,6 @@ export async function storeLearningOsScript(
       })
     );
     if (payload === null) throw invalidResponse('create');
-    await logGeneration(req.userId!, 'script', String(payload.id));
     res.json(payload);
   } catch (error) {
     next(error);
