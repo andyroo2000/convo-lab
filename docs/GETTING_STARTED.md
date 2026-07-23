@@ -41,7 +41,7 @@ gsutil iam ch allUsers:objectViewer gs://languageflow-storage-YOUR-PROJECT-ID
 Create `.env` in project root:
 
 ```env
-GEMINI_API_KEY=your-gemini-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
 GOOGLE_CLOUD_PROJECT=your-project-id
 GCS_BUCKET_NAME=languageflow-storage-your-project-id
 ```

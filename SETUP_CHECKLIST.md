@@ -55,7 +55,7 @@ nano .env
 Update these values:
 
 ```env
-GEMINI_API_KEY=YOUR_ACTUAL_API_KEY
+OPENAI_API_KEY=YOUR_ACTUAL_API_KEY
 GOOGLE_CLOUD_PROJECT=your-project-id
 GCS_BUCKET_NAME=languageflow-storage-your-project-id
 ```

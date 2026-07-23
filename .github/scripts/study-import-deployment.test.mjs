@@ -809,6 +809,43 @@ test('legacy content LLM wrappers stay retired behind Learning OS', async () => 
   }
 });
 
+test('legacy avatar generator experiments stay retired behind the OpenAI generator', async () => {
+  const [serverPackage, speakerAvatars, ...runtimeAndSetupFiles] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8').then(JSON.parse),
+    readFile(path.join(repositoryRoot, 'server/scripts/generate-speaker-avatars.ts'), 'utf8'),
+    ...[
+      'docker-compose.yml',
+      'docker-compose.stage.yml',
+      'docker-compose.prod.yml',
+      'SETUP_CHECKLIST.md',
+      'docs/SETUP.md',
+      'docs/GETTING_STARTED.md',
+      'DEPLOYMENT.md',
+    ].map((file) => readFile(path.join(repositoryRoot, file), 'utf8')),
+  ]);
+  const retiredPaths = [
+    'server/scripts/generate-english-avatars.ts',
+    'server/scripts/generate-english-avatars-ai.ts',
+    'server/scripts/generate-english-avatars-vertex.ts',
+    'server/scripts/generate-english-avatars-local.ts',
+    'server/scripts/generate-english-avatars-simple.ts',
+    'server/scripts/generate-final-english-avatars.ts',
+    'server/scripts/generate-remaining-english-avatars.ts',
+  ];
+
+  assert.equal(serverPackage.dependencies['@google-cloud/vertexai'], undefined);
+  assert.equal(serverPackage.scripts['generate:avatars'], 'tsx scripts/generate-speaker-avatars.ts');
+  assert.match(speakerAvatars, /generateOpenAIImageBuffer/);
+  assert.doesNotMatch(runtimeAndSetupFiles.join('\n'), /GEMINI_API_KEY/);
+  for (const compose of runtimeAndSetupFiles.slice(0, 3)) {
+    assert.match(compose, /OPENAI_API_KEY/);
+  }
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),

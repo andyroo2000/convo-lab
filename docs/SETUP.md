@@ -100,10 +100,12 @@ DATABASE_URL="postgresql://username:password@localhost:5432/languageflow?schema=
 JWT_SECRET=your-long-random-secret-here
 COOKIE_SECRET=your-cookie-secret-here
 
+# OpenAI
+OPENAI_API_KEY=your-openai-api-key
+
 # Google Cloud
 GOOGLE_CLOUD_PROJECT=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS=./gcloud-key.json
-GEMINI_API_KEY=your-gemini-api-key
 
 # Google Cloud Storage
 GCS_BUCKET_NAME=languageflow-storage-your-project-id
@@ -165,7 +167,7 @@ Access:
 Create `.env` in project root:
 
 ```env
-GEMINI_API_KEY=your-key
+OPENAI_API_KEY=your-key
 GOOGLE_CLOUD_PROJECT=your-project-id
 GCS_BUCKET_NAME=your-bucket-name
 ```

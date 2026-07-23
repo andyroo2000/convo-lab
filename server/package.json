@@ -41,7 +41,6 @@
     "@aws-sdk/client-polly": "^3.1046.0",
     "@google-cloud/storage": "^7.19.0",
     "@google-cloud/text-to-speech": "^5.4.0",
-    "@google-cloud/vertexai": "^1.10.0",
     "@prisma/client": "^5.19.1",
     "@react-email/components": "^1.0.1",
     "@types/multer": "^2.0.0",
