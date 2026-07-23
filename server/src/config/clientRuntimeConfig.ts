@@ -1,7 +1,13 @@
+import type { RequestHandler } from 'express';
+
 export interface ClientRuntimeConfig {
   learningOsDirectAccountApi: boolean;
   learningOsDirectEpisodeApi: boolean;
 }
+
+export const redirectClientIndexDocument: RequestHandler = (_req, res) => {
+  res.redirect(308, '/');
+};
 
 export function getClientRuntimeConfig(
   environment: NodeJS.ProcessEnv = process.env

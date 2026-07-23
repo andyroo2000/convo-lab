@@ -12,7 +12,10 @@ import {
   getAllowedBrowserOrigins,
   validateProductionBrowserRuntimeConfig,
 } from './config/browserRuntime.js';
-import { injectClientRuntimeConfig } from './config/clientRuntimeConfig.js';
+import {
+  injectClientRuntimeConfig,
+  redirectClientIndexDocument,
+} from './config/clientRuntimeConfig.js';
 import passport from './config/passport.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
@@ -310,9 +313,14 @@ if (process.env.NODE_ENV === 'production') {
     res.redirect(301, '/tools/japanese-money');
   });
 
+  app.get('/index.html', redirectClientIndexDocument);
+
   // Serve static files with proper cache headers
   app.use(
     express.static(clientPath, {
+      // Route every HTML document through the SPA fallback so runtime flags and SEO metadata
+      // are injected consistently, including when the browser first loads "/".
+      index: false,
       setHeaders: (res, filepath) => {
         // Don't cache index.html, service worker, or manifest - always revalidate
         if (
