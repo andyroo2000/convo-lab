@@ -873,6 +873,57 @@ test('legacy ConvoLab sample-content database operations stay retired', async ()
   }
 });
 
+test('legacy course and episode database utilities stay retired', async () => {
+  const [courseRoute, episodeRoute] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'server/src/routes/courses.ts'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'server/src/routes/episodes.ts'), 'utf8'),
+  ]);
+  const retiredPaths = [
+    'check-course-status.ts',
+    'check-episode-speakers.ts',
+    'check-episode.ts',
+    'check-recent-episode.ts',
+    'check-speaker-voices.ts',
+    'delete-course.ts',
+    'find-yuriy.ts',
+    'server/scripts/check-course-episodes.ts',
+    'server/scripts/check-course-jlpt.ts',
+    'server/scripts/check-course-status.ts',
+    'server/scripts/check-course-user.ts',
+    'server/scripts/check-course-voices.ts',
+    'server/scripts/check-dialog-status.ts',
+    'server/scripts/check-draft-dialogs.ts',
+    'server/scripts/check-episode-audio-urls.ts',
+    'server/scripts/check-episode-status.ts',
+    'server/scripts/check-episode-voices.ts',
+    'server/scripts/check-failed-course-speakers.ts',
+    'server/scripts/check-failed-course-voices.ts',
+    'server/scripts/check-lesson-voices.ts',
+    'server/scripts/check-recent-courses.ts',
+  ];
+
+  assert.match(courseRoute, /from '\.\/learningOs\/courses\.js'/);
+  assert.match(episodeRoute, /from '\.\/learningOs\/episodes\.js'/);
+  assert.doesNotMatch(courseRoute, /db\/client|Prisma/);
+  assert.doesNotMatch(episodeRoute, /db\/client|Prisma/);
+
+  for (const retiredPath of retiredPaths) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
+
+  await assert.rejects(
+    execFileAsync('git', [
+      'grep',
+      '-nE',
+      String.raw`postgres(ql)?://[^[:space:]'"]+:[^[:space:]'"]+@`,
+      '--',
+      '*.ts',
+      '*.tsx',
+    ]),
+    (error) => error.code === 1
+  );
+});
+
 test('the production stack configures Learning OS auth mail and password reset links', async () => {
   const [compose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
