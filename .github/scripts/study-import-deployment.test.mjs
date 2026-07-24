@@ -506,6 +506,13 @@ test('direct Learning OS content smoke uses a disposable admin browser session',
   }
 
   const setup = workflow.indexOf('Disposable Learning OS content browser session established.');
+  const login = workflow.indexOf(
+    "'https://convo-lab.com/api/convolab/browser/auth/login'"
+  );
+  const refreshedCsrf = workflow.indexOf(
+    'content_browser_smoke_csrf_raw="$(awk',
+    login
+  );
   const firstRead = workflow.indexOf('episode_list="$(fetch_content_browser_route');
   const finalContentCheck = workflow.indexOf(
     'Audio Script Learning OS routing and streaming smoke checks passed.'
@@ -516,6 +523,9 @@ test('direct Learning OS content smoke uses a disposable admin browser session',
   );
 
   assert.ok(setup >= 0);
+  assert.ok(login >= 0);
+  assert.ok(login < refreshedCsrf);
+  assert.ok(refreshedCsrf < setup);
   assert.ok(setup < firstRead);
   assert.ok(firstRead < finalContentCheck);
   assert.ok(finalContentCheck < cleanup);

@@ -1942,6 +1942,15 @@ jobs:
                 --cookie-jar "$content_browser_smoke_cookie_jar" \
                 --data "$content_browser_login_body" \
                 'https://convo-lab.com/api/convolab/browser/auth/login')"
+              content_browser_smoke_csrf_raw="$(awk \
+                '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' \
+                "$content_browser_smoke_cookie_jar")"
+              test -n "$content_browser_smoke_csrf_raw"
+              content_browser_smoke_csrf_token="$(docker exec \
+                -e RAW_CSRF_TOKEN="$content_browser_smoke_csrf_raw" \
+                "convolab-server-$active_color" \
+                node --input-type=module \
+                --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
               printf '%s' "$content_browser_login_response" | docker exec -i \
                 -e CONTENT_BROWSER_SMOKE_CONVOLAB_ID="$content_browser_smoke_convolab_id" \
                 "convolab-server-$active_color" node --input-type=module --eval='
