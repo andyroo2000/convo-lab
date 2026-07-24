@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(1);
+    expect(routes).toHaveLength(0);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -76,14 +76,14 @@ describe('backend migration inventory', () => {
     expect(inventoriedRouters).toEqual(mountedRouters);
   });
 
-  it('keeps only the shared CSRF bootstrap owned by Express', () => {
+  it('has no remaining Express-owned API routes', () => {
     const expressRouteIds = backendMigrationInventory.surfaces.flatMap((surface) =>
       surface.routes
         .filter((route) => (route.runtimeOwner ?? surface.runtimeOwner) === 'express')
         .map((route) => route.id)
     );
 
-    expect(expressRouteIds).toEqual(['csrf.bootstrap']);
+    expect(expressRouteIds).toEqual([]);
   });
 
   it('resolves concrete dynamic paths to stable inventory routes', () => {

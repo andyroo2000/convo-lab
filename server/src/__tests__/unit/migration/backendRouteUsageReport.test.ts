@@ -25,20 +25,6 @@ describe('backend route usage telemetry', () => {
 
     expect(result).toEqual([
       {
-        routeId: 'csrf.bootstrap',
-        surfaceId: 'csrf',
-        domain: 'security',
-        migrationWave: 'retirement',
-        runtimeOwner: 'express',
-        method: 'GET',
-        normalizedPath: '/api/auth/csrf',
-        requests: 2,
-        errors: 1,
-        maxDurationMs: 40,
-        p95DurationMs: 40,
-        statusCodes: { '200': 1, '500': 1 },
-      },
-      {
         routeId: 'unclassified',
         surfaceId: 'unclassified',
         domain: 'unclassified',
@@ -46,11 +32,11 @@ describe('backend route usage telemetry', () => {
         runtimeOwner: 'unclassified',
         method: 'GET',
         normalizedPath: 'unclassified',
-        requests: 1,
-        errors: 0,
-        maxDurationMs: 20,
-        p95DurationMs: 20,
-        statusCodes: { '200': 1 },
+        requests: 3,
+        errors: 1,
+        maxDurationMs: 40,
+        p95DurationMs: 40,
+        statusCodes: { '200': 2, '500': 1 },
       },
     ]);
   });

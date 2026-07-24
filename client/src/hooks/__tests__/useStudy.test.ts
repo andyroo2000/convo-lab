@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
-import {
-  CSRF_TOKEN_COOKIE_NAME,
-  LEARNING_OS_CSRF_TOKEN_HEADER_NAME,
-  fetchWithCsrf,
-} from '../../lib/csrf';
+import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME, fetchWithCsrf } from '../../lib/csrf';
 import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
@@ -125,7 +121,7 @@ describe('useStudy request helpers', () => {
     const headers = new Headers(requestInit.headers);
     expect(headers.get('Accept')).toBe('application/json');
     expect(headers.get('Content-Type')).toBe('application/json');
-    expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
   }
 
   it('routes session start, review, and undo through Learning OS', async () => {
@@ -319,7 +315,7 @@ describe('useStudy request helpers', () => {
     const readHeaders = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
     expect(readHeaders.get('Accept')).toBe('application/json');
     expect(readHeaders.get('Content-Type')).toBeNull();
-    expect(readHeaders.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBeNull();
+    expect(readHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBeNull();
     expectJsonMutation(1);
     expectJsonMutation(3);
   });
@@ -380,9 +376,9 @@ describe('useStudy request helpers', () => {
     ]);
     expect(MockXMLHttpRequest.lastInstance?.method).toBe('PUT');
     expect(MockXMLHttpRequest.lastInstance?.url).toBe(uploadUrl);
-    expect(
-      MockXMLHttpRequest.lastInstance?.requestHeaders.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)
-    ).toBe('test-csrf-token');
+    expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBe(
+      'test-csrf-token'
+    );
   });
 
   it('routes import status, readiness, completion, and cancellation through Learning OS', async () => {
@@ -433,9 +429,9 @@ describe('useStudy request helpers', () => {
       file
     );
 
-    expect(
-      MockXMLHttpRequest.lastInstance?.requestHeaders.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)
-    ).toBe('test-csrf-token');
+    expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBe(
+      'test-csrf-token'
+    );
   });
 
   it('creates import sessions with the Learning OS proxy contract', async () => {

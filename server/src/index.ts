@@ -4,7 +4,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 
@@ -14,11 +13,9 @@ import {
 } from './config/browserRuntime.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
-import { requireApiCsrfProtection } from './middleware/csrf.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { enforceDefaultRequestBodyTimeout } from './middleware/requestBodyTimeout.js';
 import { requestLogger } from './middleware/requestLogger.js';
-import csrfRoutes from './routes/csrf.js';
 import { warmKanjiumAccentIndex } from './services/pitchAccent/kanjiumData.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -194,9 +191,7 @@ app.use(
 app.use(enforceDefaultRequestBodyTimeout());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(requestLogger);
-app.use('/api', requireApiCsrfProtection);
 
 app.use((req, res, next) => {
   if (req.path === '/study-media' || req.path.startsWith('/study-media/')) {
@@ -251,8 +246,6 @@ app.get('/health', async (_req, res) => {
   });
 });
 
-// API Routes
-app.use('/api/auth/csrf', csrfRoutes);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: { message: 'Not found' } });
 });

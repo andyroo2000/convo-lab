@@ -56,13 +56,14 @@ The workflow:
 2. Runs Learning OS migrations against the existing copied database.
 3. Refreshes the read-only Episode and Course compatibility tables from the ConvoLab
    production database.
-4. Rotates the read/write-scoped proxy token.
+4. Rotates the temporary read/write-scoped deployment smoke token.
 5. Starts or reconciles the private API and worker.
-6. Recreates the active ConvoLab web color with the new token.
+6. Recreates the active ConvoLab web color with the new token for one-release
+   immutable-image rollback compatibility.
 7. Verifies the active container received that token, then prunes older tokens.
 8. Runs authenticated current-account, generation-quota, profile, disposable
    signup/verification, Study, import, media, Daily Audio, Episode, and Course
-   smoke checks through ConvoLab's public proxy.
+   smoke checks through ConvoLab's public Learning OS routes.
 9. Verifies public ConvoLab health.
 
 The worker is drained before replacement when its image or command changes.
@@ -104,7 +105,7 @@ smoke-test media, imports, and unused proxy tokens. A failed deployment leaves
 the currently active ConvoLab color serving until the replacement passes health
 checks.
 
-The retired `/api/learning-os/study/*` Express route is no longer available as
-a rollback path. To roll back application code, redeploy the previous immutable
-ConvoLab and Learning OS images. To recover data, restore a Learning OS database
-backup.
+The retired `/api/auth/csrf` and `/api/learning-os/study/*` Express routes are
+no longer available as rollback paths. To roll back application code, redeploy
+the previous immutable ConvoLab and Learning OS images. To recover data, restore
+a Learning OS database backup.

@@ -96,8 +96,6 @@ PORT=3001
 DATABASE_URL="postgresql://username:password@localhost:5432/languageflow?schema=public"
 
 # Auth
-JWT_SECRET=your-long-random-secret-here
-COOKIE_SECRET=your-cookie-secret-here
 
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
