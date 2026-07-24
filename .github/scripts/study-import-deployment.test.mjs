@@ -1754,6 +1754,9 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     'Response body (first 4096 bytes):',
     '$BASE_URL/sanctum/csrf-cookie',
     'X-XSRF-TOKEN',
+    'session_get_json()',
+    'session_get_status()',
+    '--header "Origin: $BASE_URL"',
     "'/api/convolab/browser/auth/signup'",
     '$BASE_URL/api/convolab/auth/me/quota',
     '--request PATCH',
@@ -1784,9 +1787,23 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     assert.ok(script.includes(requiredContract), `Missing auth lifecycle contract: ${requiredContract}`);
   }
 
+  assert.equal(
+    [...script.matchAll(/session_get_json \\\n/g)].length,
+    3,
+    'Every authenticated JSON read should use the stateful session helper'
+  );
+  assert.equal(
+    [...script.matchAll(/session_get_status \\\n/g)].length,
+    2,
+    'Every logged-out status check should use the stateful session helper'
+  );
+
   const inviteCreate = script.indexOf('$invite->save();');
   const signup = script.indexOf("'/api/convolab/browser/auth/signup'");
-  const accountRead = script.indexOf('$BASE_URL/api/convolab/auth/me")', signup);
+  const accountRead = script.indexOf(
+    'session_get_json \\\n  "$BASE_URL/api/convolab/auth/me"',
+    signup
+  );
   const quota = script.indexOf('$BASE_URL/api/convolab/auth/me/quota', accountRead);
   const profile = script.indexOf('--request PATCH', quota);
   const mailToken = script.indexOf('AUTH_SMOKE_TOKEN_COUNT=', profile);
