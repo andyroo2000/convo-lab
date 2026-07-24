@@ -2179,14 +2179,29 @@ jobs:
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const course = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                   const expectedTitle = `Learning OS course write smoke ${process.env.COURSE_WRITE_SMOKE_MARKER}`;
+                  const fail = (message, actual) => {
+                    console.error(`${message} Actual: ${JSON.stringify(actual)}`);
+                    process.exit(1);
+                  };
                   if (
                     typeof course?.id !== "string" ||
-                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(course.id) ||
-                    course.title !== expectedTitle ||
-                    course.status !== "draft" ||
-                    course.description !== "Disposable production write rehearsal" ||
-                    course.maxLessonDurationMinutes !== 30
-                  ) process.exit(1);
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(course.id)
+                  ) fail("Course create returned an invalid id.", course?.id);
+                  if (course.title !== expectedTitle) {
+                    fail("Course create returned an unexpected title.", course.title);
+                  }
+                  if (course.status !== "draft") {
+                    fail("Course create returned an unexpected status.", course.status);
+                  }
+                  if (course.description !== "Disposable production write rehearsal") {
+                    fail("Course create returned an unexpected description.", course.description);
+                  }
+                  if (course.maxLessonDurationMinutes !== 30) {
+                    fail(
+                      "Course create returned an unexpected maxLessonDurationMinutes.",
+                      course.maxLessonDurationMinutes
+                    );
+                  }
                   process.stdout.write(course.id);
                 ')"
               test -n "$course_write_smoke_id"
@@ -2209,7 +2224,12 @@ jobs:
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                  if (response?.message !== "Course updated successfully") process.exit(1);
+                  if (response?.message !== "Course updated successfully") {
+                    console.error(
+                      `Course update returned an unexpected message. Actual: ${JSON.stringify(response?.message)}`
+                    );
+                    process.exit(1);
+                  }
                 '
               course_updated_detail="$(fetch_content_browser_route \
                 'Updated course Learning OS' \
@@ -2221,12 +2241,26 @@ jobs:
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const course = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  const fail = (message, actual) => {
+                    console.error(`${message} Actual: ${JSON.stringify(actual)}`);
+                    process.exit(1);
+                  };
+                  if (course?.id !== process.env.EXPECTED_COURSE_ID) {
+                    fail("Updated course returned an unexpected id.", course?.id);
+                  }
                   if (
-                    course?.id !== process.env.EXPECTED_COURSE_ID ||
-                    course.title !== `Learning OS course write smoke updated ${process.env.COURSE_WRITE_SMOKE_MARKER}` ||
-                    course.description !== null ||
-                    course.maxLessonDurationMinutes !== 45
-                  ) process.exit(1);
+                    course.title !==
+                    `Learning OS course write smoke updated ${process.env.COURSE_WRITE_SMOKE_MARKER}`
+                  ) fail("Updated course returned an unexpected title.", course.title);
+                  if (course.description !== null) {
+                    fail("Updated course returned an unexpected description.", course.description);
+                  }
+                  if (course.maxLessonDurationMinutes !== 45) {
+                    fail(
+                      "Updated course returned an unexpected maxLessonDurationMinutes.",
+                      course.maxLessonDurationMinutes
+                    );
+                  }
                 '
 
               course_delete="$(mutate_content_browser_route \
@@ -2238,7 +2272,12 @@ jobs:
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                  if (response?.message !== "Course deleted successfully") process.exit(1);
+                  if (response?.message !== "Course deleted successfully") {
+                    console.error(
+                      `Course delete returned an unexpected message. Actual: ${JSON.stringify(response?.message)}`
+                    );
+                    process.exit(1);
+                  }
                 '
               docker exec -e COURSE_WRITE_SMOKE_ID="$course_write_smoke_id" \
                 learning-os-api php artisan tinker --execute='
