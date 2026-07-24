@@ -102,8 +102,9 @@ describe('production router contract', () => {
     expect(block).not.toContain('$convolab_upstream');
   });
 
-  it('keeps the SPA and remaining Express routes on the ConvoLab upstream', () => {
-    expect(routerTemplate).toMatch(/location \/ \{[\s\S]*proxy_pass \$convolab_upstream;/u);
+  it('routes the SPA fallback to the static frontend upstream', () => {
+    expect(routerTemplate).toMatch(/location \/ \{[\s\S]*proxy_pass \$frontend_upstream;/u);
+    expect(routerTemplate).not.toContain('set $convolab_upstream');
   });
 
   it('keeps legacy generation lookalike paths out of the compatibility rewrite', () => {

@@ -104,6 +104,7 @@ jobs:
             RUNTIME_DIR="/opt/convolab-runtime"
             ACTIVE_COLOR_FILE="$RUNTIME_DIR/prod-active-color"
             TARGET_DB="learning_os"
+            DEPLOYMENT_TOOLS_CONTAINER="convolab-deployment-tools"
             DRAINING_WORKER_CONTAINER_ID=""
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
@@ -113,6 +114,8 @@ jobs:
             LEARNING_OS_RUNTIME_UID=33
 
             cleanup_deployment_resources() {
+              docker rm -f "$DEPLOYMENT_TOOLS_CONTAINER" >/dev/null 2>&1 || true
+
               if [ -n "$DRAINING_WORKER_CONTAINER_ID" ]; then
                 current_worker_id="$(docker inspect --format='{{.Id}}' learning-os-worker 2>/dev/null || true)"
 
@@ -515,6 +518,11 @@ jobs:
             esac
 
             wait_for_health "convolab-server-$active_color"
+
+            echo "Starting isolated Node tooling for deployment smoke assertions."
+            timeout 600 $COMPOSE --profile deployment pull deployment-tools
+            $COMPOSE --profile deployment up -d --no-deps deployment-tools
+            wait_for_health "$DEPLOYMENT_TOOLS_CONTAINER"
 
             postgres_db="$source_db"
 
@@ -1328,7 +1336,7 @@ jobs:
               test -n "$csrf_cookie_raw"
               csrf_token="$(docker exec \
                 -e RAW_CSRF_TOKEN="$csrf_cookie_raw" \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
               test -n "$csrf_token"
 
@@ -1346,7 +1354,7 @@ jobs:
                 local actual="$3"
 
                 stream_json_pair "$expected" "$actual" | docker exec -i \
-                  "convolab-server-$active_color" \
+                  "$DEPLOYMENT_TOOLS_CONTAINER" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
                     process.stdin.setEncoding("utf8");
@@ -1408,7 +1416,7 @@ jobs:
                 local actual="$2"
 
                 stream_json_pair "$expected" "$actual" | docker exec -i \
-                  "convolab-server-$active_color" \
+                  "$DEPLOYMENT_TOOLS_CONTAINER" \
                   node --input-type=module --eval='
                     import assert from "node:assert/strict";
                     process.stdin.setEncoding("utf8");
@@ -1446,7 +1454,7 @@ jobs:
                 local response="$1"
 
                 printf '%s' "$response" | docker exec -i \
-                  "convolab-server-$active_color" \
+                  "$DEPLOYMENT_TOOLS_CONTAINER" \
                   node --input-type=module --eval='
                     process.stdin.setEncoding("utf8");
                     let input = "";
@@ -1615,14 +1623,14 @@ jobs:
                 bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh
 
               content_browser_smoke_convolab_id="$(docker exec \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   import { randomUUID } from "node:crypto";
                   process.stdout.write(randomUUID());
                 ')"
               content_browser_smoke_email="deployment-content-browser-$content_browser_smoke_convolab_id@example.invalid"
               content_browser_smoke_password="$(docker exec \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   import { randomBytes } from "node:crypto";
                   process.stdout.write(randomBytes(32).toString("hex"));
@@ -1724,14 +1732,14 @@ jobs:
               echo "::add-mask::$content_browser_smoke_csrf_raw"
               content_browser_smoke_csrf_token="$(docker exec \
                 -e RAW_CSRF_TOKEN="$content_browser_smoke_csrf_raw" \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module \
                 --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
               echo "::add-mask::$content_browser_smoke_csrf_token"
               content_browser_login_body="$(docker exec \
                 -e CONTENT_BROWSER_SMOKE_EMAIL="$content_browser_smoke_email" \
                 -e CONTENT_BROWSER_SMOKE_PASSWORD="$content_browser_smoke_password" \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   process.stdout.write(JSON.stringify({
                     email: process.env.CONTENT_BROWSER_SMOKE_EMAIL,
@@ -1755,7 +1763,7 @@ jobs:
               echo "::add-mask::$content_browser_smoke_csrf_raw"
               content_browser_smoke_csrf_token="$(docker exec \
                 -e RAW_CSRF_TOKEN="$content_browser_smoke_csrf_raw" \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module \
                 --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
               echo "::add-mask::$content_browser_smoke_csrf_token"
@@ -1766,7 +1774,7 @@ jobs:
               echo "::add-mask::$content_browser_smoke_session"
               printf '%s' "$content_browser_login_response" | docker exec -i \
                 -e CONTENT_BROWSER_SMOKE_CONVOLAB_ID="$content_browser_smoke_convolab_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   let body = "";
                   for await (const chunk of process.stdin) body += chunk;
                   const account = JSON.parse(body);
@@ -1781,7 +1789,7 @@ jobs:
                 'Admin stats Learning OS' \
                 '/api/convolab/admin/stats')"
               printf '%s' "$admin_stats" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const stats = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -1808,7 +1816,7 @@ jobs:
                 'Admin users Learning OS' \
                 '/api/convolab/admin/users?limit=1')"
               admin_user_id="$(printf '%s' "$admin_users" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -1832,7 +1840,7 @@ jobs:
                 'Admin Script Lab courses Learning OS' \
                 '/api/convolab/admin/script-lab/courses')"
               printf '%s' "$admin_script_lab_courses" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   let body = "";
                   for await (const chunk of process.stdin) body += chunk;
                   const response = JSON.parse(body);
@@ -1842,7 +1850,7 @@ jobs:
                 'Admin Script Lab sentence tests Learning OS' \
                 '/api/convolab/admin/script-lab/sentence-tests?limit=1')"
               printf '%s' "$admin_script_lab_sentence_tests" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   let body = "";
                   for await (const chunk of process.stdin) body += chunk;
                   const response = JSON.parse(body);
@@ -1855,7 +1863,7 @@ jobs:
                 'Admin speaker avatars Learning OS' \
                 '/api/convolab/admin/avatars/speakers')"
               admin_speaker_filename="$(printf '%s' "$admin_speaker_avatars" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   let body = "";
                   for await (const chunk of process.stdin) body += chunk;
                   const avatars = JSON.parse(body);
@@ -1876,7 +1884,7 @@ jobs:
                 'Admin speaker avatar original Learning OS' \
                 "/api/convolab/admin/avatars/speaker/$admin_speaker_filename/original")"
               printf '%s' "$admin_speaker_original" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   let body = "";
                   for await (const chunk of process.stdin) body += chunk;
                   const response = JSON.parse(body);
@@ -1888,7 +1896,7 @@ jobs:
                 'Admin pronunciation dictionary Learning OS' \
                 '/api/convolab/admin/pronunciation-dictionaries')"
               admin_pronunciation_body="$(printf '%s' "$admin_pronunciation" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   let body = "";
                   for await (const chunk of process.stdin) body += chunk;
                   const dictionary = JSON.parse(body);
@@ -1914,7 +1922,7 @@ jobs:
               printf '%s' "$admin_pronunciation_updated" | docker exec \
                 -i \
                 -e EXPECTED_DICTIONARY="$admin_pronunciation_body" \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   let body = "";
                   for await (const chunk of process.stdin) body += chunk;
@@ -1933,7 +1941,7 @@ jobs:
                 '/api/convolab/admin/invite-codes' \
                 '{}')"
               admin_invite_smoke_id="$(printf '%s' "$admin_invite_create" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -1945,7 +1953,7 @@ jobs:
                 ')"
               test -n "$admin_invite_smoke_id"
               printf '%s' "$admin_invite_create" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -1969,7 +1977,7 @@ jobs:
                 'Episode list Learning OS' \
                 '/api/convolab/episodes?library=true&limit=1&offset=0')"
               episode_id="$(printf '%s' "$episode_list" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const episodes = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -1988,7 +1996,7 @@ jobs:
                   "/api/convolab/episodes/$episode_id")"
                 printf '%s' "$episode_detail" | docker exec -i \
                   -e EXPECTED_EPISODE_ID="$episode_id" \
-                  "convolab-server-$active_color" node --input-type=module --eval='
+                  "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                     const chunks = [];
                     for await (const chunk of process.stdin) chunks.push(chunk);
                     const episode = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2009,7 +2017,7 @@ jobs:
               fi
               episode_create_body="$(docker exec \
                 -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   process.stdout.write(JSON.stringify({
                     title: `Learning OS episode write smoke ${process.env.EPISODE_WRITE_SMOKE_MARKER}`,
                     sourceText: "Disposable production episode rehearsal source text.",
@@ -2023,7 +2031,7 @@ jobs:
               episode_create="$(mutate_content_browser_route POST '/api/convolab/episodes' "$episode_create_body")"
               episode_write_smoke_id="$(printf '%s' "$episode_create" | docker exec -i \
                 -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const episode = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2045,7 +2053,7 @@ jobs:
 
               episode_update_body="$(docker exec \
                 -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   process.stdout.write(JSON.stringify({
                     title: `Learning OS episode write smoke updated ${process.env.EPISODE_WRITE_SMOKE_MARKER}`,
                     status: "ready",
@@ -2056,7 +2064,7 @@ jobs:
                 "/api/convolab/episodes/$episode_write_smoke_id" \
                 "$episode_update_body")"
               printf '%s' "$episode_update" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2068,7 +2076,7 @@ jobs:
               printf '%s' "$episode_updated_detail" | docker exec -i \
                 -e EXPECTED_EPISODE_ID="$episode_write_smoke_id" \
                 -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const episode = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2088,7 +2096,7 @@ jobs:
                 "/api/convolab/episodes/$episode_write_smoke_id" \
                 '{}')"
               printf '%s' "$episode_delete" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2107,7 +2115,7 @@ jobs:
                 'Course list Learning OS' \
                 '/api/convolab/courses?library=true&limit=1&offset=0')"
               course_id="$(printf '%s' "$course_list" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const courses = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2126,7 +2134,7 @@ jobs:
                   "/api/convolab/courses/$course_id")"
                 printf '%s' "$course_detail" | docker exec -i \
                   -e EXPECTED_COURSE_ID="$course_id" \
-                  "convolab-server-$active_color" node --input-type=module --eval='
+                  "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                     const chunks = [];
                     for await (const chunk of process.stdin) chunks.push(chunk);
                     const course = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2147,7 +2155,7 @@ jobs:
               fi
               course_create_body="$(docker exec \
                 -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const title = `Learning OS course write smoke ${process.env.COURSE_WRITE_SMOKE_MARKER}`;
                   process.stdout.write(JSON.stringify({
                     title,
@@ -2164,7 +2172,7 @@ jobs:
               course_create="$(mutate_content_browser_route POST '/api/convolab/courses' "$course_create_body")"
               course_write_smoke_id="$(printf '%s' "$course_create" | docker exec -i \
                 -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const course = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2198,7 +2206,7 @@ jobs:
 
               course_update_body="$(docker exec \
                 -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   process.stdout.write(JSON.stringify({
                     title: `Learning OS course write smoke updated ${process.env.COURSE_WRITE_SMOKE_MARKER}`,
                     description: null,
@@ -2210,7 +2218,7 @@ jobs:
                 "/api/convolab/courses/$course_write_smoke_id" \
                 "$course_update_body")"
               printf '%s' "$course_update" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2227,7 +2235,7 @@ jobs:
               printf '%s' "$course_updated_detail" | docker exec -i \
                 -e EXPECTED_COURSE_ID="$course_write_smoke_id" \
                 -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const course = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2258,7 +2266,7 @@ jobs:
                 "/api/convolab/courses/$course_write_smoke_id" \
                 '{}')"
               printf '%s' "$course_delete" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2325,7 +2333,7 @@ jobs:
                 '{}')"
               printf '%s' "$course_reset" | docker exec -i \
                 -e EXPECTED_COURSE_ID="$course_generation_smoke_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2339,7 +2347,7 @@ jobs:
                 'Course generation status after reset' \
                 "/api/convolab/courses/$course_generation_smoke_id/status")"
               printf '%s' "$course_status" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2411,7 +2419,7 @@ jobs:
                 "/api/convolab/dialogue/job/$dialogue_generation_smoke_job_id")"
               printf '%s' "$dialogue_generation_status" | docker exec -i \
                 -e EXPECTED_DIALOGUE_JOB_ID="$dialogue_generation_smoke_job_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2493,7 +2501,7 @@ jobs:
               image_generation_body="$(docker exec \
                 -e IMAGE_GENERATION_SMOKE_EPISODE_ID="$image_generation_smoke_episode_id" \
                 -e IMAGE_GENERATION_SMOKE_DIALOGUE_ID="$image_generation_smoke_dialogue_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   process.stdout.write(JSON.stringify({
                     episodeId: process.env.IMAGE_GENERATION_SMOKE_EPISODE_ID,
                     dialogueId: process.env.IMAGE_GENERATION_SMOKE_DIALOGUE_ID,
@@ -2506,7 +2514,7 @@ jobs:
                 "$image_generation_body")"
               printf '%s' "$image_generation_response" | docker exec -i \
                 -e EXPECTED_IMAGE_JOB_ID="$image_generation_smoke_job_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2520,7 +2528,7 @@ jobs:
                 "/api/convolab/images/job/$image_generation_smoke_job_id")"
               printf '%s' "$image_generation_status" | docker exec -i \
                 -e EXPECTED_IMAGE_JOB_ID="$image_generation_smoke_job_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2641,7 +2649,7 @@ jobs:
               printf '%s' "$audio_generation_status" | docker exec -i \
                 -e EXPECTED_AUDIO_JOB_ID="$audio_generation_smoke_job_id" \
                 -e EXPECTED_AUDIO_EPISODE_ID="$audio_generation_smoke_episode_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2844,7 +2852,7 @@ jobs:
                 -e SCRIPT_SMOKE_EPISODE_ID="$script_smoke_episode_id" \
                 -e SCRIPT_SMOKE_MEDIA_ID="$script_smoke_media_id" \
                 -e SCRIPT_SMOKE_RENDER_ID="$script_smoke_render_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const script = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2863,7 +2871,7 @@ jobs:
                 "/api/convolab/scripts/job/$script_smoke_job_id")"
               printf '%s' "$script_job" | docker exec -i \
                 -e SCRIPT_SMOKE_JOB_ID="$script_smoke_job_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const job = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -2901,13 +2909,13 @@ jobs:
               echo "Audio Script Learning OS routing and streaming smoke checks passed."
 
               daily_audio_smoke_practice_id="$(docker exec \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   import { randomUUID } from "node:crypto";
                   process.stdout.write(randomUUID());
                 ')"
               daily_audio_smoke_track_id="$(docker exec \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   import { randomUUID } from "node:crypto";
                   process.stdout.write(randomUUID());
@@ -3010,7 +3018,7 @@ jobs:
               )"
               daily_audio_id="$(printf '%s' "$daily_audio_list" | docker exec -i \
                 -e DAILY_AUDIO_SMOKE_PRACTICE_ID="$daily_audio_smoke_practice_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const practices = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -3041,7 +3049,7 @@ jobs:
               echo "Disposable Daily Audio fixture detail loaded."
               daily_audio_track_url="$(printf '%s' "$daily_audio_detail" | docker exec -i \
                 -e DAILY_AUDIO_SMOKE_TRACK_ID="$daily_audio_smoke_track_id" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const practice = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -3094,7 +3102,7 @@ jobs:
                   "/api/daily-audio-practice/$daily_audio_id/status"
               )"
               printf '%s' "$daily_audio_status" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const chunks = [];
                   for await (const chunk of process.stdin) chunks.push(chunk);
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -3117,7 +3125,7 @@ jobs:
                 "$study_card_body")"
               study_card_smoke_id="$(docker exec \
                 -e STUDY_CARD_RESPONSE="$study_card_response" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const card = JSON.parse(process.env.STUDY_CARD_RESPONSE);
                   if (
                     typeof card?.id !== "string" ||
@@ -3137,7 +3145,7 @@ jobs:
                 'Browser detail note lookup' \
                 '/api/study/browser?sortField=created_on&sortDirection=desc&limit=1')"
               browser_note_id="$(docker exec -e BROWSER_RESPONSE="$browser_list" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const r=JSON.parse(process.env.BROWSER_RESPONSE),n=r?.rows?.[0]?.noteId;
                   if(typeof n!=="string"||!/^[A-Za-z0-9-]+$/.test(n))process.exit(1);
                   process.stdout.write(n);
@@ -3175,7 +3183,7 @@ jobs:
               docker exec \
                 -e TOOL_AUDIO_RESPONSE="$tool_audio_response" \
                 -e GCS_BUCKET="$gcs_bucket" \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   const response = JSON.parse(process.env.TOOL_AUDIO_RESPONSE);
                   const path = "/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3";
@@ -3199,7 +3207,7 @@ jobs:
               settings_before="$(fetch_learning_os_route 'Settings write baseline' '/api/study/settings')"
               settings_body="$(docker exec \
                 -e SETTINGS_RESPONSE="$settings_before" \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   const settings = JSON.parse(process.env.SETTINGS_RESPONSE);
                   process.stdout.write(JSON.stringify({ newCardsPerDay: settings.newCardsPerDay }));
@@ -3210,7 +3218,7 @@ jobs:
               queue_before="$(fetch_learning_os_route 'New Queue write baseline' '/api/study/new-queue?limit=100')"
               queue_body="$(docker exec \
                 -e QUEUE_RESPONSE="$queue_before" \
-                "convolab-server-$active_color" \
+                "$DEPLOYMENT_TOOLS_CONTAINER" \
                 node --input-type=module --eval='
                   const queue = JSON.parse(process.env.QUEUE_RESPONSE);
                   if (!Array.isArray(queue.items) || queue.items.length < 1) process.exit(1);
@@ -3230,7 +3238,7 @@ jobs:
               draft_body='{"creationKind":"text-recognition","cardType":"recognition","prompt":{"cueText":"Learning OS draft smoke"},"answer":{"meaning":"temporary deployment check"},"imagePlacement":"none","imagePrompt":null}'
               draft_response="$(mutate_learning_os_route POST '/api/study/card-drafts' "$draft_body")"
               draft_id="$(docker exec -e DRAFT_RESPONSE="$draft_response" \
-                "convolab-server-$active_color" node --input-type=module --eval='
+                "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                   const draft = JSON.parse(process.env.DRAFT_RESPONSE);
                   if (typeof draft.id !== "string" || !/^[0-9A-HJKMNP-TV-Z]{26}$/i.test(draft.id)) {
                     process.exit(1);
@@ -3247,7 +3255,7 @@ jobs:
                 draft_status="$(docker exec \
                   -e DRAFT_RESPONSE="$draft_list" \
                   -e DRAFT_ID="$draft_id" \
-                  "convolab-server-$active_color" node --input-type=module --eval='
+                  "$DEPLOYMENT_TOOLS_CONTAINER" node --input-type=module --eval='
                     const response = JSON.parse(process.env.DRAFT_RESPONSE);
                     const draft = response.drafts?.find(({ id }) => id === process.env.DRAFT_ID);
                     process.stdout.write(typeof draft?.status === "string" ? draft.status : "");
@@ -3352,6 +3360,7 @@ jobs:
             }
 
             verify_study_api
+            cleanup_deployment_resources
             trap - EXIT
 
             $COMPOSE ps learning-os learning-os-worker "server-$active_color"

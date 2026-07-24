@@ -72,7 +72,7 @@ test('staging deployment has no retired backend startup path', async () => {
   assert.doesNotMatch(workflow, /down [^\n]*(?:--volumes|-v)(?:\s|$)/u);
 });
 
-test('production remains on the combined runtime during staging rehearsal', async () => {
+test('production uses the static runtime after the staging rehearsal', async () => {
   const productionCompose = await readFile(
     path.join(repositoryRoot, 'docker-compose.prod.yml'),
     'utf8'
@@ -80,7 +80,7 @@ test('production remains on the combined runtime during staging rehearsal', asyn
 
   assert.match(
     productionCompose,
-    /image: ghcr\.io\/andyroo2000\/convolab-server:\$\{CONVOLAB_IMAGE_TAG:-latest\}/u
+    /image: ghcr\.io\/andyroo2000\/convolab-frontend:\$\{CONVOLAB_FRONTEND_IMAGE_TAG:-latest\}/u
   );
-  assert.doesNotMatch(productionCompose, /convolab-frontend/u);
+  assert.doesNotMatch(productionCompose, /convolab-server:\$\{CONVOLAB_IMAGE_TAG/u);
 });

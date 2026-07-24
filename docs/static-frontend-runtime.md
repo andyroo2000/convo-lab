@@ -33,21 +33,19 @@ startup logic.
 - Legacy tool paths keep their permanent redirects.
 
 `shared/seo.mjs` is the source of truth for SEO metadata, route classes, and
-legacy redirects. The current Express runtime imports it directly, and the
-static image uses it at build time to generate HTML entrypoints and Nginx route
-configuration.
+legacy redirects. The legacy combined image imports it for rollback
+compatibility, and the static image uses it at build time to generate HTML
+entrypoints and Nginx route configuration.
 
 ## Deployment Boundary
 
-The staging deployment publishes both runtime images, runs the static image as
-`convolab-server-stage`, and verifies its public HTTP contract after deployment.
-The established container name and host port remain unchanged so Caddy and
-health tracking do not need a coordinated reconfiguration.
+Staging and production run the static image while preserving their established
+container names and host ports, so Caddy and health tracking do not need a
+coordinated reconfiguration. Production keeps its blue/green router: the
+inactive static color is verified before traffic switches, and the prior color
+is stopped but retained until the next deploy for rollback.
 
-Production continues using the combined Convo Lab image. Both images receive
-the same immutable `main-<sha>` tag, so production can deploy the tested commit
-without switching runtimes and the prior combined image remains available for
-rollback. Staging teardown removes the retired backend containers without
-deleting their host-backed data, preserving a rollback path during the
-rehearsal. Learning OS owns backend health and API behavior; the static frontend
-health check only proves that Nginx can serve the built client.
+Learning OS owns backend health, migrations, and API behavior. Its deployment
+workflow uses a short-lived Node tooling container for smoke assertions instead
+of borrowing a JavaScript runtime from the frontend. Static frontend health
+only proves that Nginx can serve the built client.

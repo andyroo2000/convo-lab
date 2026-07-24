@@ -104,7 +104,6 @@ test('Convo Lab permanently routes browser identity through Learning OS', async 
   ]);
 
   for (const contract of [
-    `upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI \\\n              ${directGoogleCallback}`,
     'https://convo-lab.com/api/convolab/browser/auth/google)',
     '.github/scripts/validate-google-oauth-redirect.sh',
     encodedDirectGoogleCallback,
@@ -116,6 +115,10 @@ test('Convo Lab permanently routes browser identity through Learning OS', async 
   ]) {
     assert.ok(workflowSource.includes(contract), `Missing public identity smoke: ${contract}`);
   }
+  assert.doesNotMatch(
+    workflowSource,
+    /DEPLOY_GOOGLE_CLIENT|upsert_env GOOGLE|upsert_env LEARNING_OS_GOOGLE/u
+  );
 
   const browserSmoke = workflowSource.indexOf(
     'verify_public_learning_os_browser_route() ('

@@ -71,16 +71,17 @@ test('the production deployment leaves Google OAuth exclusively on Learning OS',
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
   ]);
-  const serverEnvironment = YAML.parse(compose)['x-server-environment'];
+  const production = YAML.parse(compose);
 
-  assert.equal(serverEnvironment.GOOGLE_CALLBACK_URL, undefined);
-  assert.equal(serverEnvironment.GOOGLE_CLIENT_ID, undefined);
-  assert.equal(serverEnvironment.GOOGLE_CLIENT_SECRET, undefined);
+  assert.equal(production['x-server-environment'], undefined);
+  assert.equal(production['x-server-service'], undefined);
 
   for (const retiredWorkflowContract of [
     'verify_public_google_oauth() {',
     'https://convo-lab.com/api/auth/google',
     'GOOGLE_CALLBACK_URL',
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
   ]) {
     assert.ok(!workflow.includes(retiredWorkflowContract), retiredWorkflowContract);
   }
@@ -89,7 +90,7 @@ test('the production deployment leaves Google OAuth exclusively on Learning OS',
   assert.ok(publicGate >= 0);
   assert.match(
     workflow.slice(publicGate),
-    /if ! verify_public_health \\\s+\|\| ! verify_public_learning_os_browser_route; then/
+    /if ! verify_public_health \\\s+\|\| ! \.\/deploy\/smoke-static-frontend\.sh https:\/\/convo-lab\.com \\\s+\|\| ! verify_public_learning_os_browser_route; then/
   );
   assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
 });
@@ -292,7 +293,6 @@ test('production configures the permanent Learning OS browser session without a 
   ]);
 
   for (const contract of [
-    'LEARNING_OS_SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
     'SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
     'SESSION_LIFETIME: ${LEARNING_OS_SESSION_LIFETIME:-10080}',
     'SESSION_SECURE_COOKIE: ${LEARNING_OS_SESSION_SECURE_COOKIE:-true}',
@@ -302,7 +302,6 @@ test('production configures the permanent Learning OS browser session without a 
   ]) {
     assert.ok(compose.includes(contract), `Missing browser-session compose contract: ${contract}`);
   }
-
   for (const workflow of [learningOsWorkflow, productionWorkflow]) {
     assert.ok(!workflow.includes('LEARNING_OS_BROWSER_SESSION_ENABLED'));
     assert.ok(!workflow.includes('BROWSER_SESSION_ENABLED'));
@@ -788,13 +787,8 @@ test('the production stack wires and smokes direct Learning OS static media', as
     assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
   }
 
-  const serverEnvironment = compose.slice(
-    compose.indexOf('x-server-environment:'),
-    compose.indexOf('x-server-service:')
-  );
-  assert.doesNotMatch(serverEnvironment, /AVATARS_GCS_ROOT/);
-  assert.doesNotMatch(serverEnvironment, /TOOLS_AUDIO_GCS_ROOT/);
-  assert.doesNotMatch(serverEnvironment, /LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED/);
+  assert.doesNotMatch(compose, /x-server-environment|x-server-service/);
+  assert.doesNotMatch(compose, /LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED/);
   assert.ok(router.includes('location ~ ^/api/avatars(?:/|$)'));
   assert.ok(router.includes('location ~ ^/api/tools-audio(?:/|$)'));
   assert.ok(viteConfig.includes("'/api/avatars'"));
@@ -853,7 +847,7 @@ test('active Study traffic uses Learning OS directly without an Express rollback
   assert.ok(router.includes('location ~ ^/api/study(?:/|$)'));
   assert.ok(router.includes('location ~ ^/api/daily-audio-practice(?:/|$)'));
   assert.ok(!router.includes('location ~ ^/api/learning-os/study(?:/|$)'));
-  assert.ok(router.includes('proxy_pass $convolab_upstream;'));
+  assert.ok(router.includes('proxy_pass $frontend_upstream;'));
   assert.ok(!router.includes('location ^~ /api/study'));
   assert.ok(!router.includes('location ^~ /api/learning-os/study'));
   assert.ok(!router.includes('/api/learning-os/study/imports/'));
