@@ -55,18 +55,15 @@ with zipfile.ZipFile(${JSON.stringify(archivePath)}) as archive:
   }
 });
 
-test('the staging workflow recovers the failed Audio Script media migration before retrying', async () => {
+test('the staging workflow no longer runs retired Express migrations', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy.yml'),
     'utf8'
   );
-  const migration = '20260719230000_extract_audio_script_media';
-  const resolveIndex = workflow.indexOf(migration);
-  const startIndex = workflow.indexOf('# Start containers');
-
-  assert.ok(resolveIndex >= 0);
-  assert.ok(workflow.includes('npx prisma migrate resolve --rolled-back "$failed_migration"'));
-  assert.ok(startIndex > resolveIndex);
+  assert.ok(!workflow.includes('npx prisma migrate'));
+  assert.ok(!workflow.includes('failed_migration'));
+  assert.ok(!workflow.includes('postgres-stage'));
+  assert.ok(!workflow.includes('redis-stage'));
 });
 
 test('the production deployment leaves Google OAuth exclusively on Learning OS', async () => {
@@ -1312,7 +1309,14 @@ test('legacy content LLM wrappers stay retired behind Learning OS', async () => 
 });
 
 test('legacy avatar generator experiments stay retired behind the OpenAI generator', async () => {
-  const [serverPackage, speakerAvatars, ...runtimeAndSetupFiles] = await Promise.all([
+  const [
+    serverPackage,
+    speakerAvatars,
+    localCompose,
+    stageCompose,
+    productionCompose,
+    ...setupFiles
+  ] = await Promise.all([
     readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8').then(JSON.parse),
     readFile(path.join(repositoryRoot, 'server/scripts/generate-speaker-avatars.ts'), 'utf8'),
     ...[
@@ -1338,10 +1342,14 @@ test('legacy avatar generator experiments stay retired behind the OpenAI generat
   assert.equal(serverPackage.dependencies['@google-cloud/vertexai'], undefined);
   assert.equal(serverPackage.scripts['generate:avatars'], 'tsx scripts/generate-speaker-avatars.ts');
   assert.match(speakerAvatars, /generateOpenAIImageBuffer/);
-  assert.doesNotMatch(runtimeAndSetupFiles.join('\n'), /GEMINI_API_KEY|Gemini|Vertex AI/i);
-  for (const compose of runtimeAndSetupFiles.slice(0, 3)) {
+  assert.doesNotMatch(
+    [localCompose, stageCompose, productionCompose, ...setupFiles].join('\n'),
+    /GEMINI_API_KEY|Gemini|Vertex AI/i
+  );
+  for (const compose of [localCompose, productionCompose]) {
     assert.match(compose, /OPENAI_API_KEY/);
   }
+  assert.doesNotMatch(stageCompose, /OPENAI_API_KEY/);
 
   for (const retiredPath of retiredPaths) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));

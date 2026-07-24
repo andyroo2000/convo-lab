@@ -11,11 +11,23 @@ env:
 
 jobs:
   build-and-push:
-    name: Build Docker Image
+    name: Build ${{ matrix.runtime }} Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: combined
+            image: convolab-server
+            dockerfile: Dockerfile
+            cache_scope: convolab-server
+          - runtime: static frontend
+            image: convolab-frontend
+            dockerfile: Dockerfile.frontend
+            cache_scope: convolab-frontend
 
     steps:
       - name: Checkout code
@@ -35,7 +47,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.IMAGE_PREFIX }}/convolab-server
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}
           tags: |
             type=raw,value=latest
             type=sha,format=long,prefix={{branch}}-
@@ -44,14 +56,14 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VITE_GA_MEASUREMENT_ID=${{ vars.VITE_GA_MEASUREMENT_ID }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
   deploy:
     name: Deploy to DigitalOcean (Staging)
@@ -62,18 +74,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
-      - name: Validate OpenAI API key
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::error::OPENAI_API_KEY secret is not set"
-            exit 1
-          fi
-          curl -fsS https://api.openai.com/v1/models \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -o /dev/null
 
       - name: Setup SSH
         run: |
@@ -102,42 +102,6 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
-            # Inject secrets not stored in repo (staging)
-            if grep -q '^FISH_AUDIO_API_KEY=' .env.staging; then
-              sed -i "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.staging
-            else
-              echo "FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}" >> .env.staging
-            fi
-
-            if grep -q '^CLIENT_URL=' .env.staging; then
-              sed -i "s#^CLIENT_URL=.*#CLIENT_URL=https://stage.convo-lab.com#g" .env.staging
-            else
-              echo "CLIENT_URL=https://stage.convo-lab.com" >> .env.staging
-            fi
-
-            if grep -q '^OPENAI_API_KEY=' .env.staging; then
-              sed -i "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.staging
-            else
-              echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env.staging
-            fi
-
-            if grep -q '^LLM_PROVIDER=' .env.staging; then
-              sed -i "s#^LLM_PROVIDER=.*#LLM_PROVIDER=openai#g" .env.staging
-            else
-              echo "LLM_PROVIDER=openai" >> .env.staging
-            fi
-
-            if grep -q '^STUDY_CARD_GENERATOR_MODEL=' .env.staging; then
-              sed -i "s#^STUDY_CARD_GENERATOR_MODEL=.*#STUDY_CARD_GENERATOR_MODEL=gpt-5.5#g" .env.staging
-            else
-              echo "STUDY_CARD_GENERATOR_MODEL=gpt-5.5" >> .env.staging
-            fi
-
-            if ! grep -Eq '^OPENAI_API_KEY=.+$' .env.staging; then
-              echo "❌ OPENAI_API_KEY is missing after staging env injection."
-              exit 1
-            fi
-
             # Login to GitHub Container Registry
             echo "🔐 Logging in to GitHub Container Registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -147,13 +111,13 @@ jobs:
             docker system prune -af
 
             # Persist image tag in env file so containers can restart independently
-            if grep -q '^CONVOLAB_IMAGE_TAG=' .env.staging; then
-              sed -i "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.staging
+            if grep -q '^CONVOLAB_FRONTEND_IMAGE_TAG=' .env.staging; then
+              sed -i "s#^CONVOLAB_FRONTEND_IMAGE_TAG=.*#CONVOLAB_FRONTEND_IMAGE_TAG=$IMAGE_TAG#g" .env.staging
             else
-              echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.staging
+              echo "CONVOLAB_FRONTEND_IMAGE_TAG=$IMAGE_TAG" >> .env.staging
             fi
             # Ensure compose interpolation uses this run's image tag (shell env takes precedence)
-            export CONVOLAB_IMAGE_TAG="$IMAGE_TAG"
+            export CONVOLAB_FRONTEND_IMAGE_TAG="$IMAGE_TAG"
 
             # Pull latest images
             echo "🐋 Pulling latest Docker images..."
@@ -165,45 +129,12 @@ jobs:
             # Use explicit names instead of grepping docker IDs so we only touch stage services.
             docker stop \
               convolab-server-stage \
-              convolab-postgres-stage \
-              convolab-redis-stage \
               2>/dev/null || true
             docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging down --remove-orphans 2>/dev/null || true
             # Remove stale stopped containers to avoid name conflicts on recreate
             docker rm -f \
               convolab-server-stage \
-              convolab-postgres-stage \
-              convolab-redis-stage \
               2>/dev/null || true
-
-            # Recover known failed study migrations from prior stage deploy attempts.
-            # This is safe to run repeatedly: if a failed record is absent, migrate resolve exits non-zero
-            # and we intentionally continue.
-            echo "🩹 Recovering known failed study migration state if present..."
-            docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging up -d postgres-stage redis-stage
-
-            echo "⏳ Waiting for staging postgres and redis to become healthy..."
-            for i in {1..30}; do
-              postgres_status=$(docker inspect -f '{{.State.Health.Status}}' convolab-postgres-stage 2>/dev/null || echo "missing")
-              redis_status=$(docker inspect -f '{{.State.Health.Status}}' convolab-redis-stage 2>/dev/null || echo "missing")
-              echo "Postgres health: $postgres_status | Redis health: $redis_status"
-              if [ "$postgres_status" = "healthy" ] && [ "$redis_status" = "healthy" ]; then
-                break
-              fi
-              sleep 2
-            done
-
-            # Close stdin explicitly so this one-off container cannot consume the
-            # remainder of the SSH heredoc before we restart the full stage stack.
-            for failed_migration in \
-              20260422113000_harden_study_card_state \
-              20260422193000_fix_study_search_text_backfill \
-              20260422213000_add_study_card_type_check \
-              20260719230000_extract_audio_script_media; do
-              docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging run --rm -T server-stage \
-                npx prisma migrate resolve --rolled-back "$failed_migration" --schema prisma/schema.prisma \
-                </dev/null || true
-            done
 
             # Start containers with environment file
             echo "♻️  Starting containers..."
@@ -288,6 +219,9 @@ jobs:
 
           echo "❌ Health check failed after 30 attempts"
           exit 1
+
+      - name: Verify static frontend contract
+        run: ./deploy/smoke-static-frontend.sh https://stage.convo-lab.com
 
       - name: Notify on failure
         if: failure()

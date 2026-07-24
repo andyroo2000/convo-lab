@@ -1,119 +1,29 @@
-version: '3.8'
-
 networks:
-  convolab-stage-network:
-    driver: bridge
   health-network:
     external: true
     name: health-tracker_health-network
 
-volumes:
-  postgres-stage-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/convolab-data/stage/postgres
-  redis-stage-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/convolab-data/stage/redis
-
 services:
-  postgres-stage:
-    image: postgres:15-alpine
-    container_name: convolab-postgres-stage
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres-stage-data:/var/lib/postgresql/data
-    networks:
-      - convolab-stage-network
-    mem_limit: 512m
-    mem_reservation: 256m
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  redis-stage:
-    image: redis:7-alpine
-    container_name: convolab-redis-stage
-    restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis-stage-data:/data
-    networks:
-      - convolab-stage-network
-    mem_limit: 256m
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   server-stage:
-    image: ghcr.io/andyroo2000/convolab-server:${CONVOLAB_IMAGE_TAG:-latest}
+    image: ghcr.io/andyroo2000/convolab-frontend:${CONVOLAB_FRONTEND_IMAGE_TAG:-latest}
     container_name: convolab-server-stage
     restart: unless-stopped
     ports:
-      - "3002:3001"
-    environment:
-      NODE_ENV: production
-      PORT: 3001
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-stage:5432/${POSTGRES_DB}
-      REDIS_HOST: redis-stage
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json
-      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
-      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
-      CLIENT_URL: ${CLIENT_URL}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
-      STUDY_CARD_GENERATOR_MODEL: ${STUDY_CARD_GENERATOR_MODEL:-gpt-5.5}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_REGION: ${AWS_REGION}
-      FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY}
-    volumes:
-      - ./server/gcloud-key.json:/app/gcloud-key.json:ro
+      - '3002:3001'
     networks:
-      convolab-stage-network: {}
       health-network:
         aliases:
           - convolab-server-stage
-    depends_on:
-      postgres-stage:
-        condition: service_healthy
-      redis-stage:
-        condition: service_healthy
-    mem_limit: 1024m
-    mem_reservation: 512m
+    mem_limit: 128m
+    mem_reservation: 32m
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3001/health']
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 5s
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "5"
+        max-size: '10m'
+        max-file: '3'
