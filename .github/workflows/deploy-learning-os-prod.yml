@@ -2668,7 +2668,7 @@ jobs:
                 --cookie "$content_browser_smoke_cookie_jar" \
                 --dump-header "$audio_generation_smoke_headers" \
                 --output "$audio_generation_smoke_body" \
-                "$(content_browser_path \
+                "https://convo-lab.com$(content_browser_path \
                   "/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0")"
               test "$(cat "$audio_generation_smoke_body")" = \
                 "learning-os-audio-generation-smoke"
