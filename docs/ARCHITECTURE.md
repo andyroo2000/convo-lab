@@ -53,7 +53,7 @@ User Input (Story) → Studio Page
     ↓
 Create Episode (POST /api/episodes)
     ↓
-Generate Dialogue (POST /api/dialogue/generate)
+Generate Dialogue (POST /api/convolab/dialogue/generate)
     ↓
 ConvoLab compatibility proxy → Learning OS
     ↓
@@ -71,7 +71,7 @@ Return to Client → Display Variations
 ```
 User Selects Sentences → Generate Audio
     ↓
-POST /api/audio/generate
+POST /api/convolab/audio/generate
     ↓
 ConvoLab compatibility proxy → Learning OS generation job
     ↓
@@ -207,24 +207,26 @@ Stored as JSON in `Sentence.metadata`:
 
 ### Dialogue
 
-- `POST /api/dialogue/generate` - Start dialogue generation job
-- `GET /api/dialogue/job/:jobId` - Check job status
+- `POST /api/convolab/dialogue/generate` - Start dialogue generation job
+- `GET /api/convolab/dialogue/job/:jobId` - Check job status
 
 ### Audio
 
-- `POST /api/audio/generate` - Start audio generation job
-- `GET /api/audio/job/:jobId` - Check job status
+- `POST /api/convolab/audio/generate` - Start audio generation job
+- `POST /api/convolab/audio/generate-all-speeds` - Start all-speed audio generation
+- `GET /api/convolab/audio/job/:jobId` - Check job status
 
 ### Images
 
-- `POST /api/images/generate` - Proxy a dialogue image-generation request to Learning OS
-- `GET /api/images/job/:jobId` - Proxy Learning OS image-job status
+- `POST /api/convolab/images/generate` - Start dialogue image generation
+- `GET /api/convolab/images/job/:jobId` - Check image-job status
 
 ## Background Work Ownership
 
-Learning OS owns course, dialogue, image, audio, and Audio Script generation jobs. ConvoLab
-keeps compatibility routes while the frontend migrates, but it does not enqueue or consume
-background jobs. Redis remains part of the ConvoLab runtime for API rate limiting.
+Learning OS owns course, dialogue, image, audio, and Audio Script generation jobs. The
+production edge rewrites the retired `/api/dialogue`, `/api/audio`, and `/api/images`
+namespaces for stale PWA clients; these requests do not enter Express. Redis remains part
+of the ConvoLab runtime for API rate limiting.
 
 ## Language Processing Architecture
 

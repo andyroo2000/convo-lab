@@ -28,6 +28,12 @@ describe('production router contract', () => {
     expect(routerTemplate).toMatch(
       /location ~ \^\/api\/convolab\/\(\?:dialogue\|audio\|images\)\(\?:\/\|\$\) \{/u
     );
+    expect(routerTemplate).toMatch(
+      /location ~ \^\/api\/\(dialogue\|audio\|images\)\(\/\.\*\)\?\$ \{/u
+    );
+    expect(routerTemplate).toContain(
+      'rewrite ^/api/(dialogue|audio|images)(/.*)?$ /api/convolab/$1$2 break;'
+    );
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/admin\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/convolab\/ \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/ \{/u);
@@ -47,8 +53,9 @@ describe('production router contract', () => {
     ],
     [
       'location ~ ^/api/convolab/(?:dialogue|audio|images)(?:/|$)',
-      'location ~ ^/api/convolab/admin(?:/|$)',
+      'location ~ ^/api/(dialogue|audio|images)(/.*)?$',
     ],
+    ['location ~ ^/api/(dialogue|audio|images)(/.*)?$', 'location ~ ^/api/convolab/admin(?:/|$)'],
     [
       'location ~ ^/api/convolab/admin(?:/|$)',
       '# Keep this regex synchronized with studyRouteContract.ts',
@@ -65,5 +72,17 @@ describe('production router contract', () => {
 
   it('keeps the SPA and remaining Express routes on the ConvoLab upstream', () => {
     expect(routerTemplate).toMatch(/location \/ \{[\s\S]*proxy_pass \$convolab_upstream;/u);
+  });
+
+  it('keeps legacy generation lookalike paths out of the compatibility rewrite', () => {
+    const block = browserRouteBlock(
+      'location ~ ^/api/(dialogue|audio|images)(/.*)?$',
+      'location ~ ^/api/convolab/admin(?:/|$)'
+    );
+
+    expect(block).toContain('proxy_set_header X-XSRF-TOKEN $http_x_csrf_token;');
+    expect(routerTemplate).not.toContain('location ^~ /api/dialogue');
+    expect(routerTemplate).not.toContain('location ^~ /api/audio');
+    expect(routerTemplate).not.toContain('location ^~ /api/images');
   });
 });

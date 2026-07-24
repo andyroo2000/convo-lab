@@ -5,6 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 import pwaManifest from './src/config/pwaManifest';
 
+const learningOsLegacyGenerationProxy = (namespace: 'dialogue' | 'audio' | 'images') => ({
+  target: 'http://localhost:8080',
+  changeOrigin: true,
+  rewrite: (requestPath: string) =>
+    requestPath.replace(new RegExp(`^/api/${namespace}(?=/|$)`), `/api/convolab/${namespace}`),
+});
+
 export default defineConfig({
   plugins: [
     react(),
@@ -73,6 +80,9 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '^/api/dialogue(?:/|$)': learningOsLegacyGenerationProxy('dialogue'),
+      '^/api/audio(?:/|$)': learningOsLegacyGenerationProxy('audio'),
+      '^/api/images(?:/|$)': learningOsLegacyGenerationProxy('images'),
       '/api/convolab/admin': {
         target: 'http://localhost:8080',
         changeOrigin: true,

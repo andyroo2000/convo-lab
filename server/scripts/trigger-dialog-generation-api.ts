@@ -39,7 +39,7 @@ async function triggerDialogueGeneration() {
 
     // Get production API URL
     const apiUrl = process.env.CLIENT_URL || 'https://convo-lab.com';
-    const endpoint = `${apiUrl}/api/dialogue/generate`;
+    const endpoint = `${apiUrl}/api/convolab/dialogue/generate`;
 
     console.log(`📡 API Endpoint: ${endpoint}\n`);
     console.log('⚠️  Note: This requires authentication. You\'ll need to make this request');

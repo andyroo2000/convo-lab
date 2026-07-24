@@ -887,9 +887,14 @@ test('ConvoLab queue workers are retired from runtime and deployment surfaces', 
   await assert.rejects(stat(path.join(repositoryRoot, 'server/src/worker.ts')));
 });
 
-test('legacy direct dialogue generation stays retired behind the Learning OS proxy', async () => {
-  const route = await readFile(path.join(repositoryRoot, 'server/src/routes/dialogue.ts'), 'utf8');
+test('legacy dialogue and image generation proxies stay retired at the edge', async () => {
   const retiredPaths = [
+    'server/src/routes/dialogue.ts',
+    'server/src/routes/images.ts',
+    'server/src/routes/learningOs/dialogue.ts',
+    'server/src/routes/learningOs/images.ts',
+    'server/src/__tests__/unit/routes/dialogue.test.ts',
+    'server/src/__tests__/unit/routes/images.test.ts',
     'server/src/services/dialogueGenerator.ts',
     'server/scripts/create-and-generate-dialog-for-yuriy.ts',
     'server/scripts/generate-all-sample-dialogues.ts',
@@ -897,27 +902,20 @@ test('legacy direct dialogue generation stays retired behind the Learning OS pro
     'server/scripts/recreate-dialog-longer.ts',
   ];
 
-  assert.match(route, /generateLearningOsDialogue/);
-  assert.match(route, /showLearningOsDialogueJob/);
-  assert.doesNotMatch(route, /dialogueGenerator/);
-
   for (const retiredPath of retiredPaths) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
   }
 });
 
-test('legacy direct dialogue audio generation stays retired behind the Learning OS proxy', async () => {
-  const route = await readFile(path.join(repositoryRoot, 'server/src/routes/audio.ts'), 'utf8');
+test('legacy dialogue audio generation proxy stays retired at the edge', async () => {
   const retiredPaths = [
+    'server/src/routes/audio.ts',
+    'server/src/routes/learningOs/audio.ts',
+    'server/src/__tests__/unit/routes/audio.test.ts',
     'server/src/services/audioGenerator.ts',
     'server/scripts/generate-sample-audio.ts',
     'server/scripts/manual-audio-generation.ts',
   ];
-
-  assert.match(route, /generateLearningOsAudio/);
-  assert.match(route, /generateAllSpeedsLearningOsAudio/);
-  assert.match(route, /showLearningOsAudioJob/);
-  assert.doesNotMatch(route, /audioGenerator/);
 
   for (const retiredPath of retiredPaths) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));

@@ -59,7 +59,7 @@ describe('requestLogger Middleware', () => {
   });
 
   it('emits normalized backend migration telemetry without concrete route parameters', () => {
-    mockReq.path = '/api/dialogue/job/job-123';
+    mockReq.path = '/api/admin/users/user-123/info';
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1150);
 
     requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
@@ -71,17 +71,17 @@ describe('requestLogger Middleware', () => {
       .map(([value]) => value)
       .find((value) => typeof value === 'string' && value.startsWith('{'));
     expect(structuredLog).toBeDefined();
-    expect(structuredLog).not.toContain('job-123');
+    expect(structuredLog).not.toContain('user-123');
     expect(JSON.parse(structuredLog as string)).toEqual({
       event: 'backend_route_usage',
       schemaVersion: 1,
-      routeId: 'dialogue.job.show',
-      surfaceId: 'dialogue',
-      domain: 'generation',
-      migrationWave: 'content',
+      routeId: 'admin.users.show',
+      surfaceId: 'admin',
+      domain: 'admin',
+      migrationWave: 'admin',
       runtimeOwner: 'learning-os-proxy',
       method: 'GET',
-      normalizedPath: '/api/dialogue/job/:jobId',
+      normalizedPath: '/api/admin/users/:id/info',
       statusCode: 200,
       durationMs: 150,
     });
