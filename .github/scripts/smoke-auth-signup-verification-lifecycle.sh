@@ -331,6 +331,32 @@ post_json_status() {
     "$BASE_URL$path"
 }
 
+session_get_json() {
+  local url="$1"
+  local cookie_jar="$2"
+
+  curl --fail --silent --show-error \
+    --header 'Accept: application/json' \
+    --header "Origin: $BASE_URL" \
+    --cookie "$cookie_jar" \
+    --cookie-jar "$cookie_jar" \
+    "$url"
+}
+
+session_get_status() {
+  local url="$1"
+  local cookie_jar="$2"
+
+  curl --silent --show-error \
+    --output /dev/null \
+    --write-out '%{http_code}' \
+    --header 'Accept: application/json' \
+    --header "Origin: $BASE_URL" \
+    --cookie "$cookie_jar" \
+    --cookie-jar "$cookie_jar" \
+    "$url"
+}
+
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
   -e AUTH_SMOKE_PASSWORD="$SMOKE_PASSWORD" \
@@ -359,11 +385,9 @@ test "$(printf '%s' "$signup_response" | json_field 'response.email')" = "$SMOKE
 test "$(printf '%s' "$signup_response" | json_field 'response.emailVerified')" = false
 assert_learning_os_session_cookie "$SIGNUP_COOKIE_JAR" "Signup"
 
-current_account="$(curl --fail --silent --show-error \
-  --header 'Accept: application/json' \
-  --cookie "$SIGNUP_COOKIE_JAR" \
-  --cookie-jar "$SIGNUP_COOKIE_JAR" \
-  "$BASE_URL/api/convolab/auth/me")"
+current_account="$(session_get_json \
+  "$BASE_URL/api/convolab/auth/me" \
+  "$SIGNUP_COOKIE_JAR")"
 printf '%s' "$current_account" | docker exec \
   -i \
   -e EXPECTED_USER_ID="$SMOKE_USER_ID" \
@@ -382,10 +406,9 @@ printf '%s' "$current_account" | docker exec \
     ) process.exit(1);
   '
 
-generation_quota="$(curl --fail --silent --show-error \
-  --header 'Accept: application/json' \
-  --cookie "$SIGNUP_COOKIE_JAR" \
-  "$BASE_URL/api/convolab/auth/me/quota")"
+generation_quota="$(session_get_json \
+  "$BASE_URL/api/convolab/auth/me/quota" \
+  "$SIGNUP_COOKIE_JAR")"
 printf '%s' "$generation_quota" | docker exec \
   -i \
   "$SERVER_CONTAINER" node --input-type=module --eval='
@@ -534,10 +557,9 @@ test "$(printf '%s' "$verification_response" | json_field 'response.email')" = "
 test "$(printf '%s' "$verification_response" | json_field 'response.message')" = \
   'Email verified successfully'
 
-verified_account="$(curl --fail --silent --show-error \
-  --header 'Accept: application/json' \
-  --cookie "$SIGNUP_COOKIE_JAR" \
-  "$BASE_URL/api/convolab/auth/me")"
+verified_account="$(session_get_json \
+  "$BASE_URL/api/convolab/auth/me" \
+  "$SIGNUP_COOKIE_JAR")"
 test "$(printf '%s' "$verified_account" | json_field 'response.id')" = "$SMOKE_USER_ID"
 test "$(printf '%s' "$verified_account" | json_field 'response.emailVerified')" = true
 test -n "$(printf '%s' "$verified_account" | json_field 'response.emailVerifiedAt')"
@@ -566,12 +588,9 @@ login_logout_csrf_token="$(csrf_token_for "$LOGIN_COOKIE_JAR")"
 logout_response="$(post_json \
   '/api/convolab/browser/auth/logout' /dev/null "$LOGIN_COOKIE_JAR" "$login_logout_csrf_token")"
 test -z "$logout_response"
-test "$(curl --silent --show-error \
-  --output /dev/null \
-  --write-out '%{http_code}' \
-  --header 'Accept: application/json' \
-  --cookie "$LOGIN_COOKIE_JAR" \
-  "$BASE_URL/api/convolab/browser/auth/me")" = 401
+test "$(session_get_status \
+  "$BASE_URL/api/convolab/browser/auth/me" \
+  "$LOGIN_COOKIE_JAR")" = 401
 
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
@@ -733,12 +752,9 @@ delete_status="$(curl --silent --show-error \
   --data-binary "@$DELETE_BODY_FILE" \
   "$BASE_URL/api/convolab/auth/me")"
 test "$delete_status" = 204
-test "$(curl --silent --show-error \
-  --output /dev/null \
-  --write-out '%{http_code}' \
-  --header 'Accept: application/json' \
-  --cookie "$NEW_LOGIN_COOKIE_JAR" \
-  "$BASE_URL/api/convolab/browser/auth/me")" = 401
+test "$(session_get_status \
+  "$BASE_URL/api/convolab/browser/auth/me" \
+  "$NEW_LOGIN_COOKIE_JAR")" = 401
 
 remaining_user_count="$(docker exec -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
   php artisan tinker --execute='
