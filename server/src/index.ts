@@ -29,7 +29,6 @@ import dialogueRoutes from './routes/dialogue.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
 import learningOsStudyRoutes from './routes/learningOs/study.js';
-import scriptRoutes from './routes/scripts.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
 import toolAudioRoutes from './routes/toolAudio.js';
 import { warmKanjiumAccentIndex } from './services/pitchAccent/kanjiumData.js';
@@ -268,7 +267,6 @@ app.get('/health', async (_req, res) => {
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/convolab/episodes', contentEpisodeAudioRoutes);
-app.use('/api/scripts', scriptRoutes);
 app.use('/api/avatars', avatarAssetRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/learning-os/study', learningOsStudyRoutes);

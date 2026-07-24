@@ -2552,7 +2552,7 @@ jobs:
 
               script_status="$(fetch_read_route \
                 'Audio Script status Learning OS' \
-                "/api/scripts/$script_smoke_episode_id/status")"
+                "/api/convolab/scripts/$script_smoke_episode_id/status")"
               printf '%s' "$script_status" | docker exec -i \
                 -e SCRIPT_SMOKE_EPISODE_ID="$script_smoke_episode_id" \
                 -e SCRIPT_SMOKE_MEDIA_ID="$script_smoke_media_id" \
@@ -2565,15 +2565,15 @@ jobs:
                     script?.episodeId !== process.env.SCRIPT_SMOKE_EPISODE_ID ||
                     script.imageStatus !== "ready" ||
                     script.segments?.[0]?.imageMedia?.publicUrl !==
-                      `/api/scripts/media/${process.env.SCRIPT_SMOKE_MEDIA_ID}` ||
+                      `/api/convolab/scripts/media/${process.env.SCRIPT_SMOKE_MEDIA_ID}` ||
                     script.renders?.[0]?.audioUrl !==
-                      `/api/scripts/${process.env.SCRIPT_SMOKE_EPISODE_ID}/audio/${process.env.SCRIPT_SMOKE_RENDER_ID}`
+                      `/api/convolab/scripts/${process.env.SCRIPT_SMOKE_EPISODE_ID}/audio/${process.env.SCRIPT_SMOKE_RENDER_ID}`
                   ) process.exit(1);
                 '
 
               script_job="$(fetch_read_route \
                 'Audio Script job Learning OS' \
-                "/api/scripts/job/$script_smoke_job_id")"
+                "/api/convolab/scripts/job/$script_smoke_job_id")"
               printf '%s' "$script_job" | docker exec -i \
                 -e SCRIPT_SMOKE_JOB_ID="$script_smoke_job_id" \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -2594,7 +2594,7 @@ jobs:
                 --cookie "token=$auth_token" \
                 --dump-header "$script_smoke_headers" \
                 --output "$script_smoke_body" \
-                "https://convo-lab.com/api/scripts/media/$script_smoke_media_id"
+                "https://convo-lab.com/api/convolab/scripts/media/$script_smoke_media_id"
               test "$(cat "$script_smoke_body")" = "learning-os-script-image-smoke"
               grep -Eiq '^content-type: image/webp([[:space:]]|$)' "$script_smoke_headers"
               grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$script_smoke_headers"
@@ -2604,7 +2604,7 @@ jobs:
                 --cookie "token=$auth_token" \
                 --dump-header "$script_smoke_headers" \
                 --output "$script_smoke_body" \
-                "https://convo-lab.com/api/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id"
+                "https://convo-lab.com/api/convolab/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id"
               test "$(cat "$script_smoke_body")" = "learni"
               grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$script_smoke_headers"
               grep -Eiq '^content-range: bytes 0-5/30([[:space:]]|$)' "$script_smoke_headers"

@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(60);
+    expect(routes).toHaveLength(51);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -94,15 +94,6 @@ describe('backend migration inventory', () => {
     expect(findBackendMigrationRoute('POST', '/api/audio/generate-all-speeds')).toMatchObject({
       route: { id: 'audio.generate-all-speeds' },
       surface: { id: 'audio', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(
-      findBackendMigrationRoute(
-        'GET',
-        '/api/scripts/018f47ea-4b37-7f21-8d5a-90e157176b8a/audio/019c8e84-f73f-78e8-96e8-c5b462053ee0'
-      )
-    ).toMatchObject({
-      route: { id: 'scripts.audio.show' },
-      surface: { id: 'scripts', runtimeOwner: 'learning-os-proxy' },
     });
     expect(findBackendMigrationRoute('POST', '/api/images/generate')).toMatchObject({
       route: { id: 'images.generate' },
