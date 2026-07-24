@@ -5,6 +5,7 @@ import process from 'node:process';
 import {
   INDEXABLE_ROUTE_CONFIG,
   LEGACY_REDIRECTS,
+  NOINDEX_PREFIXES,
   getSeoConfigForPath,
   injectSeoMeta,
 } from '../shared/seo.mjs';
@@ -40,6 +41,16 @@ const redirectConfig = Object.entries(LEGACY_REDIRECTS)
   .map(([source, target]) => `location = ${source} { return 301 ${target}; }`)
   .join('\n');
 
+const noindexPrefixPattern = NOINDEX_PREFIXES.map((prefix) =>
+  prefix.slice(1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+).join('|');
+const noindexRouteConfig = `location ~ ^/(?:${noindexPrefixPattern})(?:/|$) {
+  try_files /__spa/noindex.html =404;
+  add_header Cache-Control "no-cache, no-store, must-revalidate";
+  add_header Pragma "no-cache";
+  add_header Expires "0";
+}`;
+
 const indexableRouteConfig = Object.keys(INDEXABLE_ROUTE_CONFIG)
   .map((route) => {
     const documentPath = route === '/' ? '/index.html' : `${route}/index.html`;
@@ -57,5 +68,5 @@ const indexableRouteConfig = Object.keys(INDEXABLE_ROUTE_CONFIG)
 
 await writeFile(
   path.join(outputDirectory, '__spa', 'generated-routes.conf'),
-  `${redirectConfig}\n\n${indexableRouteConfig}\n`
+  `${redirectConfig}\n\n${noindexRouteConfig}\n\n${indexableRouteConfig}\n`
 );

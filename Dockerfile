@@ -11,7 +11,7 @@ COPY shared/package*.json ./
 COPY shared/tsconfig.json ./
 RUN npm install --ignore-scripts
 COPY shared/src ./src
-RUN npm run build || true
+RUN npm run build
 
 # Build client
 FROM base AS client-builder

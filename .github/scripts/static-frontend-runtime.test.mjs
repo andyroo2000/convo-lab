@@ -7,7 +7,9 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 import YAML from 'yaml';
 
-import { INDEXABLE_ROUTE_CONFIG, LEGACY_REDIRECTS, escapeHtml } from '../../shared/seo.mjs';
+import * as seoRuntime from '../../shared/seo.mjs';
+
+const { INDEXABLE_ROUTE_CONFIG, LEGACY_REDIRECTS, NOINDEX_PREFIXES, escapeHtml } = seoRuntime;
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
@@ -50,6 +52,17 @@ test('nginx keeps backend paths out of the SPA fallback', async () => {
   assert.match(config, /try_files \$uri @not_found_spa;/u);
 });
 
+test('shared SEO runtime exports stay aligned with their TypeScript declarations', async () => {
+  const declarations = await readFile(path.join(repositoryRoot, 'shared/seo.d.mts'), 'utf8');
+  const declaredRuntimeExports = [
+    ...declarations.matchAll(/export (?:const|function) ([A-Za-z0-9_]+)/gu),
+  ]
+    .map((match) => match[1])
+    .sort();
+
+  assert.deepEqual(Object.keys(seoRuntime).sort(), declaredRuntimeExports);
+});
+
 test('entrypoint renderer emits every shared route and redirect', async () => {
   const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'convolab-static-entrypoints-'));
 
@@ -88,6 +101,11 @@ test('entrypoint renderer emits every shared route and redirect', async () => {
     for (const [source, destination] of Object.entries(LEGACY_REDIRECTS)) {
       assert.match(routes, new RegExp(`location = ${source} \\{ return 301 ${destination}; \\}`, 'u'));
     }
+    const privatePrefixPattern = NOINDEX_PREFIXES.map((prefix) => prefix.slice(1)).join('|');
+    assert.match(
+      routes,
+      new RegExp(`location ~ \\^/\\(\\?:${privatePrefixPattern}\\)\\(\\?:/\\|\\$\\) \\{`, 'u')
+    );
     for (const route of Object.keys(INDEXABLE_ROUTE_CONFIG)) {
       assert.match(routes, new RegExp(`location = ${route === '/' ? '\\/' : route} \\{`, 'u'));
     }

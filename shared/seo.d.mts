@@ -1,3 +1,4 @@
+// Keep this declaration surface aligned with the build-time JavaScript module.
 export interface SeoConfig {
   title: string;
   description: string;
