@@ -96,7 +96,7 @@ test('the production workflow retains blue-green switching and rollback contract
   );
   assert.match(
     switchBlock,
-    /if ! verify_public_health \\\s+\|\| ! \.\/deploy\/smoke-static-frontend\.sh https:\/\/convo-lab\.com \\\s+\|\| ! verify_public_learning_os_browser_route; then[\s\S]*if ! rollback_router "\$active_color"; then/
+    /if ! verify_public_health \\\s+\|\| ! verify_public_static_frontend \\\s+\|\| ! verify_public_learning_os_browser_route; then[\s\S]*if ! rollback_router "\$active_color"; then/
   );
 });
 
@@ -113,10 +113,7 @@ test('the production frontend deploy does not own backend migrations or secrets'
 test('the production workflow verifies static and API contracts before committing the switch', async () => {
   const { script } = await readDeployment();
   const switchStart = script.indexOf('router_role="$(docker inspect');
-  const staticSmoke = script.indexOf(
-    './deploy/smoke-static-frontend.sh https://convo-lab.com',
-    switchStart
-  );
+  const staticSmoke = script.indexOf('verify_public_static_frontend', switchStart);
   const learningOsSmoke = script.indexOf(
     'verify_public_learning_os_browser_route',
     staticSmoke
@@ -127,6 +124,20 @@ test('the production workflow verifies static and API contracts before committin
   assert.ok(staticSmoke > switchStart);
   assert.ok(learningOsSmoke > staticSmoke);
   assert.ok(activeColorWrite > learningOsSmoke);
+});
+
+test('the production workflow waits for the public router to converge on the static runtime', async () => {
+  const { script } = await readDeployment();
+  const helperStart = script.indexOf('verify_public_static_frontend()');
+  const helperEnd = script.indexOf('verify_public_learning_os_browser_route()', helperStart);
+  const helper = script.slice(helperStart, helperEnd);
+
+  assert.ok(helperStart >= 0);
+  assert.match(helper, /for i in \{1\.\.20\}; do/u);
+  assert.match(helper, /\.\/deploy\/smoke-static-frontend\.sh https:\/\/convo-lab\.com/u);
+  assert.match(helper, /waiting for router convergence/u);
+  assert.match(helper, /sleep 3/u);
+  assert.match(helper, /return 1/u);
 });
 
 test('the production workflow rejects unexpected containers without legacy cutover behavior', async () => {
