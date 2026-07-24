@@ -3360,10 +3360,10 @@ jobs:
               cleanup_media_smoke
               echo "Study media streaming smoke check passed."
 
-              ACTIVE_COLOR="$active_color" \
-                STUDY_SMOKE_USER_ID="$content_browser_smoke_user_id" \
+              STUDY_SMOKE_USER_ID="$content_browser_smoke_user_id" \
                 STUDY_SMOKE_COOKIE_JAR="$content_browser_smoke_cookie_jar" \
                 STUDY_SMOKE_CSRF_TOKEN="$content_browser_smoke_csrf_token" \
+                JSON_TOOLS_CONTAINER="$DEPLOYMENT_TOOLS_CONTAINER" \
                 bash .github/scripts/smoke-study-import-lifecycle.sh
               cleanup_content_browser_smoke
               echo "Disposable Learning OS browser identity removed."

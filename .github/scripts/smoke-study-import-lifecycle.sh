@@ -2,12 +2,11 @@
 
 set -euo pipefail
 
-: "${ACTIVE_COLOR:?ACTIVE_COLOR is required}"
 : "${STUDY_SMOKE_USER_ID:?STUDY_SMOKE_USER_ID is required}"
 : "${STUDY_SMOKE_COOKIE_JAR:?STUDY_SMOKE_COOKIE_JAR is required}"
 : "${STUDY_SMOKE_CSRF_TOKEN:?STUDY_SMOKE_CSRF_TOKEN is required}"
+: "${JSON_TOOLS_CONTAINER:?JSON_TOOLS_CONTAINER is required}"
 
-SERVER_CONTAINER="convolab-server-$ACTIVE_COLOR"
 ARCHIVE_DIR=""
 ARCHIVE_PATH=""
 RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -95,7 +94,7 @@ mutate_route() {
 
 json_field() {
   local expression="$1"
-  docker exec -i -e JSON_EXPRESSION="$expression" "$SERVER_CONTAINER" \
+  docker exec -i -e JSON_EXPRESSION="$expression" "$JSON_TOOLS_CONTAINER" \
     node --input-type=module --eval='
       process.stdin.setEncoding("utf8");
       let input = "";

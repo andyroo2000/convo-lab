@@ -1441,7 +1441,10 @@ test('the lifecycle smoke script remains valid Bash', async () => {
     repositoryRoot,
     '.github/scripts/smoke-study-import-lifecycle.sh'
   );
-  const script = await readFile(scriptPath, 'utf8');
+  const [script, workflow] = await Promise.all([
+    readFile(scriptPath, 'utf8'),
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
+  ]);
 
   await execFileAsync('bash', ['-n', scriptPath]);
 
@@ -1452,6 +1455,7 @@ test('the lifecycle smoke script remains valid Bash', async () => {
     ': "${STUDY_SMOKE_USER_ID:?STUDY_SMOKE_USER_ID is required}"',
     ': "${STUDY_SMOKE_COOKIE_JAR:?STUDY_SMOKE_COOKIE_JAR is required}"',
     ': "${STUDY_SMOKE_CSRF_TOKEN:?STUDY_SMOKE_CSRF_TOKEN is required}"',
+    ': "${JSON_TOOLS_CONTAINER:?JSON_TOOLS_CONTAINER is required}"',
     'delete_learning_os_smoke_import_files',
     'docker exec -e IMPORT_SMOKE_USER_ID="$STUDY_SMOKE_USER_ID" learning-os-api',
     "--header 'Origin: https://convo-lab.com'",
@@ -1493,6 +1497,19 @@ test('the lifecycle smoke script remains valid Bash', async () => {
   ]) {
     assert.ok(!script.includes(retiredContract), `Retired import smoke bridge remains: ${retiredContract}`);
   }
+
+  assert.doesNotMatch(script, /ACTIVE_COLOR|SERVER_CONTAINER|convolab-server-/);
+  assert.match(script, /"\$JSON_TOOLS_CONTAINER" \\\n    node --input-type=module/);
+
+  const toolsHealthy = workflow.indexOf('wait_for_health "$DEPLOYMENT_TOOLS_CONTAINER"');
+  const importSmoke = workflow.indexOf('bash .github/scripts/smoke-study-import-lifecycle.sh');
+
+  assert.ok(toolsHealthy >= 0);
+  assert.ok(toolsHealthy < importSmoke);
+  assert.match(
+    workflow.slice(toolsHealthy, importSmoke),
+    /JSON_TOOLS_CONTAINER="\$DEPLOYMENT_TOOLS_CONTAINER"/
+  );
 });
 
 test('the auth lifecycle smoke exercises signup through account deletion with disposable state', async () => {
