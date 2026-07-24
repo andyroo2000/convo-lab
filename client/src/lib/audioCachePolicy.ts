@@ -1,3 +1,5 @@
+import { DAILY_AUDIO_API_BASE, LEGACY_STUDY_API_BASE, STUDY_API_BASE } from './studyApi';
+
 const AUDIO_FILE_PATTERN = /\.(?:aac|flac|m4a|mp3|oga|ogg|opus|wav|weba)(?:$|[?#])/i;
 const GOOGLE_SIGNED_URL_PARAMS = [
   'X-Goog-Algorithm',
@@ -31,8 +33,10 @@ export const isPrivateMediaApiUrl = (url: string | URL, baseHref: string) => {
     parsed &&
     (parsed.pathname.startsWith('/api/convolab/scripts/media/') ||
       parsed.pathname.startsWith('/api/scripts/media/') ||
-      parsed.pathname.startsWith('/api/learning-os/study/media/') ||
-      (parsed.pathname.startsWith('/api/learning-os/study/daily-audio-practice/') &&
+      parsed.pathname.startsWith(`${STUDY_API_BASE}/media/`) ||
+      parsed.pathname.startsWith(`${LEGACY_STUDY_API_BASE}/media/`) ||
+      ((parsed.pathname.startsWith(`${DAILY_AUDIO_API_BASE}/`) ||
+        parsed.pathname.startsWith(`${LEGACY_STUDY_API_BASE}/daily-audio-practice/`)) &&
         parsed.pathname.endsWith('/audio')))
   );
 };

@@ -87,6 +87,14 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '^/api/study(?:/|$)': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '^/api/daily-audio-practice(?:/|$)': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/api/auth/password': {
         target: 'http://localhost:8080',
         changeOrigin: true,

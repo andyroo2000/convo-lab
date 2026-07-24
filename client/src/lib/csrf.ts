@@ -18,6 +18,8 @@ const LEARNING_OS_CSRF_NAMESPACES = [
   '/api/convolab/images',
   '/api/convolab/admin',
   '/api/auth/password',
+  '/api/study',
+  '/api/daily-audio-practice',
 ];
 
 type CsrfProvider = 'express' | 'learning-os';
@@ -196,8 +198,10 @@ async function bootstrapCsrfToken(
   return csrfBootstrap.promise;
 }
 
-export async function getCsrfToken(): Promise<string | null> {
-  return bootstrapCsrfToken(globalThis.fetch.bind(globalThis), 'express');
+export async function getCsrfToken(
+  provider: 'express' | 'learning-os' = 'express'
+): Promise<string | null> {
+  return bootstrapCsrfToken(globalThis.fetch.bind(globalThis), provider);
 }
 
 async function buildCsrfHeaders(

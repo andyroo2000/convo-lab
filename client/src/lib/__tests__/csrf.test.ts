@@ -241,6 +241,16 @@ describe('csrf helpers', () => {
     expect(getCsrfProviderForPath('/api/auth/google')).toBe('express');
   });
 
+  it('classifies only the canonical Study namespace as Learning OS', () => {
+    expect(getCsrfProviderForPath('/api/study')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/study/reviews')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/study-other/reviews')).toBe('express');
+    expect(getCsrfProviderForPath('/api/learning-os/study/reviews')).toBe('express');
+    expect(getCsrfProviderForPath('/api/daily-audio-practice')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/daily-audio-practice/practice-1')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/daily-audio-practice-other')).toBe('express');
+  });
+
   it('protects plain password-page fetch calls through the installed Learning OS wrapper', async () => {
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=express-token`;
     const originalFetch = vi
@@ -404,22 +414,30 @@ describe('csrf helpers', () => {
 
   it('installCsrfFetch wraps window.fetch for unsafe API requests', async () => {
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=wrapped-token`;
-    const originalFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
+    const originalFetch = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
+      if (String(input) === '/sanctum/csrf-cookie') {
+        document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-wrapped-token`;
+        return { ok: true, status: 204 } as Response;
+      }
+
+      return {
+        ok: true,
+        json: async () => ({}),
+      } as Response;
     });
     vi.stubGlobal('fetch', originalFetch);
 
     installCsrfFetch();
-    await fetch(`${API_URL}/api/learning-os/study/session/start`, {
+    await fetch('/api/study/session/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ limit: 20 }),
     });
 
-    expect(originalFetch).toHaveBeenCalledTimes(1);
-    const headers = new Headers(originalFetch.mock.calls[0]?.[1]?.headers);
-    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('wrapped-token');
+    expect(originalFetch).toHaveBeenCalledTimes(2);
+    expect(originalFetch.mock.calls[0]?.[0]).toBe('/sanctum/csrf-cookie');
+    const headers = new Headers(originalFetch.mock.calls[1]?.[1]?.headers);
+    expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('learning-os-wrapped-token');
   });
 });

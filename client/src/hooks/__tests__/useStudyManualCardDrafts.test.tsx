@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CSRF_TOKEN_COOKIE_NAME } from '../../lib/csrf';
+import { CSRF_TOKEN_COOKIE_NAME, resetCsrfStateForTests } from '../../lib/csrf';
 import { useCreateCardFromStudyManualCardDraft } from '../useStudy';
 
 vi.mock('../../config', () => ({
@@ -14,21 +14,38 @@ vi.mock('../../config', () => ({
 describe('manual card draft mutations', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    resetCsrfStateForTests();
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=test-csrf-token; path=/`;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetCsrfStateForTests();
   });
 
   it('reuses the client-generated card ID after an ambiguous commit failure', async () => {
     const draftId = '01ARZ3NDEKTSV4RRFFQ69G5FAX';
-    vi.spyOn(global, 'fetch')
-      .mockRejectedValueOnce(new TypeError('Network request failed'))
-      .mockResolvedValueOnce({
+    let commitAttempt = 0;
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      if (String(input) === '/sanctum/csrf-cookie') {
+        document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-csrf-token; path=/`;
+        return { ok: true, status: 204 } as Response;
+      }
+
+      commitAttempt += 1;
+      if (commitAttempt === 1) {
+        throw new TypeError('Network request failed');
+      }
+
+      return {
         ok: true,
         status: 200,
         json: async () => ({
           draftId,
           card: { id: '01ARZ3NDEKTSV4RRFFQ69G5FAV', cardType: 'recognition' },
         }),
-      } as Response);
+      } as Response;
+    });
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
     });
@@ -50,9 +67,19 @@ describe('manual card draft mutations', () => {
       await result.current.mutateAsync(draftId);
     });
 
-    const requestIds = vi
+    const commitCalls = vi
       .mocked(global.fetch)
-      .mock.calls.map(([, init]) => JSON.parse(String((init as RequestInit).body)).id);
+      .mock.calls.filter(([input]) =>
+        String(input).endsWith(`/card-drafts/${draftId}/create-card`)
+      );
+    const requestIds = commitCalls.map(
+      ([, init]) => JSON.parse(String((init as RequestInit).body)).id
+    );
+
+    expect(commitCalls.map(([input]) => String(input))).toEqual([
+      `/api/study/card-drafts/${draftId}/create-card`,
+      `/api/study/card-drafts/${draftId}/create-card`,
+    ]);
     expect(requestIds).toHaveLength(2);
     expect(requestIds[0]).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
     expect(requestIds[1]).toBe(requestIds[0]);

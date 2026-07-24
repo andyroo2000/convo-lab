@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
+import { studyApiPath } from '../lib/studyApi';
 
 export interface KnownKanjiResponse {
   version: number;
@@ -20,8 +20,8 @@ export interface WaniKaniSyncResponse {
 }
 
 const KNOWN_KANJI_QUERY_KEY = ['study', 'known-kanji'] as const;
-const KNOWN_KANJI_ENDPOINT = `${API_URL.replace(/\/+$/, '')}/api/learning-os/study/known-kanji`;
-const WANIKANI_ENDPOINT = `${API_URL.replace(/\/+$/, '')}/api/learning-os/study/wanikani`;
+const KNOWN_KANJI_ENDPOINT = studyApiPath('/known-kanji');
+const WANIKANI_ENDPOINT = studyApiPath('/wanikani');
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers ?? {});

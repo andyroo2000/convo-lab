@@ -35,6 +35,8 @@ describe('production router contract', () => {
       'rewrite ^/api/(dialogue|audio|images)(/.*)?$ /api/convolab/$1$2 break;'
     );
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/admin\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).toMatch(/location ~ \^\/api\/study\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).toMatch(/location ~ \^\/api\/daily-audio-practice\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/convolab\/ \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/ \{/u);
   });
@@ -60,6 +62,12 @@ describe('production router contract', () => {
       'location ~ ^/api/convolab/admin(?:/|$)',
       '# Keep this regex synchronized with studyRouteContract.ts',
     ],
+    [
+      'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"',
+      'location ~ ^/api/study(?:/|$)',
+    ],
+    ['location ~ ^/api/study(?:/|$)', 'location ~ ^/api/daily-audio-practice(?:/|$)'],
+    ['location ~ ^/api/daily-audio-practice(?:/|$)', 'location / {'],
   ])('strips proxy credentials from %s', (start, end) => {
     const block = browserRouteBlock(start, end);
 
@@ -80,9 +88,47 @@ describe('production router contract', () => {
       'location ~ ^/api/convolab/admin(?:/|$)'
     );
 
-    expect(block).toContain('proxy_set_header X-XSRF-TOKEN $http_x_csrf_token;');
+    expect(block).toContain('proxy_set_header X-XSRF-TOKEN $learning_os_xsrf_token;');
     expect(routerTemplate).not.toContain('location ^~ /api/dialogue');
     expect(routerTemplate).not.toContain('location ^~ /api/audio');
     expect(routerTemplate).not.toContain('location ^~ /api/images');
+  });
+
+  it('routes canonical Study traffic directly while preserving the authenticated legacy proxy', () => {
+    const legacyUploadBlock = browserRouteBlock(
+      '# Keep this regex synchronized with studyRouteContract.ts',
+      'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"'
+    );
+    const canonicalUploadBlock = browserRouteBlock(
+      'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"',
+      'location ~ ^/api/study(?:/|$)'
+    );
+    const canonicalBlock = browserRouteBlock(
+      'location ~ ^/api/study(?:/|$)',
+      'location ~ ^/api/daily-audio-practice(?:/|$)'
+    );
+    const canonicalDailyAudioBlock = browserRouteBlock(
+      'location ~ ^/api/daily-audio-practice(?:/|$)',
+      'location / {'
+    );
+
+    expect(legacyUploadBlock).toContain('proxy_pass $convolab_upstream;');
+    expect(legacyUploadBlock).not.toContain('proxy_pass $learning_os_upstream;');
+    expect(legacyUploadBlock).toContain('client_max_body_size 2g;');
+    expect(legacyUploadBlock).toContain('proxy_request_buffering off;');
+    expect(legacyUploadBlock).toContain('proxy_send_timeout 1800s;');
+    expect(canonicalUploadBlock).toContain('proxy_pass $learning_os_upstream;');
+    expect(canonicalUploadBlock).not.toContain('$convolab_upstream');
+    expect(canonicalUploadBlock).toContain('client_max_body_size 2g;');
+    expect(canonicalUploadBlock).toContain('proxy_request_buffering off;');
+    expect(canonicalUploadBlock).toContain('proxy_send_timeout 1800s;');
+    expect(canonicalBlock).not.toContain('rewrite ');
+    expect(canonicalDailyAudioBlock).not.toContain('rewrite ');
+    expect(routerTemplate).not.toContain(
+      'location ~ ^/api/learning-os/study/daily-audio-practice(?:/|$)'
+    );
+    expect(routerTemplate).not.toContain('location ~ ^/api/learning-os/study(?:/|$)');
+    expect(routerTemplate).not.toContain('location ^~ /api/study');
+    expect(routerTemplate).not.toContain('location ^~ /api/learning-os/study');
   });
 });

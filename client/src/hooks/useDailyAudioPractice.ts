@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { API_URL } from '../config';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
+import { DAILY_AUDIO_API_BASE } from '../lib/studyApi';
 import type {
   DailyAudioPractice,
   DailyAudioPracticeStatusResponse,
@@ -11,8 +11,6 @@ import type {
 } from '../types';
 
 const DEFAULT_DAILY_AUDIO_DURATION_MINUTES = 30;
-const LEARNING_OS_DAILY_AUDIO_PROXY_BASE = '/api/learning-os/study/daily-audio-practice';
-
 export const dailyAudioPracticeKeys = {
   all: ['daily-audio-practice'] as const,
   list: () => [...dailyAudioPracticeKeys.all, 'list'] as const,
@@ -42,7 +40,7 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetchWithCsrf(`${API_URL}${endpoint}`, {
+  const response = await fetchWithCsrf(endpoint, {
     ...init,
     credentials: 'include',
     headers,
@@ -58,25 +56,25 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
 }
 
 async function fetchRecentDailyAudioPractice() {
-  const practices = await apiRequest<DailyAudioPractice[]>(LEARNING_OS_DAILY_AUDIO_PROXY_BASE);
+  const practices = await apiRequest<DailyAudioPractice[]>(DAILY_AUDIO_API_BASE);
   return practices.map((practice) => ({ ...practice, tracks: normalizeTracks(practice.tracks) }));
 }
 
 async function fetchDailyAudioPractice(id: string) {
   const practice = await apiRequest<DailyAudioPractice>(
-    `${LEARNING_OS_DAILY_AUDIO_PROXY_BASE}/${encodeURIComponent(id)}`
+    `${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}`
   );
   return { ...practice, tracks: normalizeTracks(practice.tracks) };
 }
 
 async function fetchDailyAudioPracticeStatus(id: string) {
   return apiRequest<DailyAudioPracticeStatusResponse>(
-    `${LEARNING_OS_DAILY_AUDIO_PROXY_BASE}/${encodeURIComponent(id)}/status`
+    `${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}/status`
   );
 }
 
 async function createDailyAudioPractice() {
-  return apiRequest<DailyAudioPractice>(LEARNING_OS_DAILY_AUDIO_PROXY_BASE, {
+  return apiRequest<DailyAudioPractice>(DAILY_AUDIO_API_BASE, {
     method: 'POST',
     body: JSON.stringify({
       timeZone: getDeviceStudyTimeZone(),
