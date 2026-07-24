@@ -3509,11 +3509,26 @@ jobs:
                 --dump-header "$media_smoke_headers" \
                 --output "$media_smoke_body" \
                 "https://convo-lab.com/api/study/media/$media_smoke_id"
-              test "$(cat "$media_smoke_body")" = "learning-os-media-smoke"
-              grep -Eiq '^content-type: application/octet-stream([[:space:]]|$)' "$media_smoke_headers"
-              grep -Eiq "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" "$media_smoke_headers"
-              grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$media_smoke_headers"
-              grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$' "$media_smoke_headers"
+              if [ "$(cat "$media_smoke_body")" != "learning-os-media-smoke" ]; then
+                echo "Study media stream returned unexpected content." >&2
+                exit 1
+              fi
+              if ! grep -Eiq '^content-type: application/octet-stream([[:space:]]|$)' "$media_smoke_headers"; then
+                echo "Study media stream omitted its expected content type." >&2
+                exit 1
+              fi
+              if ! grep -Eiq "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" "$media_smoke_headers"; then
+                echo "Study media stream omitted its restrictive content security policy." >&2
+                exit 1
+              fi
+              if ! grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$media_smoke_headers"; then
+                echo "Study media stream omitted its same-origin resource policy." >&2
+                exit 1
+              fi
+              if ! grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$' "$media_smoke_headers"; then
+                echo "Study media stream omitted its nosniff content type policy." >&2
+                exit 1
+              fi
               cleanup_media_smoke
               echo "Study media streaming smoke check passed."
 
