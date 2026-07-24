@@ -5,9 +5,9 @@ migration is:
 
 `server/src/migration/backendMigrationInventory.json`
 
-It inventories every literal route still registered by the Express routers
-mounted in `server/src/index.ts`. Routes served directly by Learning OS at the
-production edge are intentionally absent. Each inventoried route has:
+The inventory is now empty: every browser API route is served directly by
+Learning OS at the production edge. While a route remains in the inventory,
+each entry has:
 
 - a stable `id` used by telemetry and migration PRs;
 - its HTTP method and normalized public path;
@@ -22,10 +22,9 @@ router and fails when the declared and inventoried routes or their order differ.
 Order is part of the contract because Express resolves overlapping mounts and
 routes in declaration order.
 
-The standalone Express CSRF bootstrap remains inventoried as security
-infrastructure while any browser mutation still terminates in Express. Retiring
-the final Express mutation must move or remove that bootstrap in the same
-rollout.
+Browser mutations bootstrap Laravel Sanctum at `/sanctum/csrf-cookie`.
+The retired Express `/api/auth/csrf` bootstrap falls through to the generic
+Express API 404 so stale clients fail closed.
 
 The drift checks intentionally recognize the repository's current convention:
 default route imports, literal `app.use(path, router)` mounts, and literal
@@ -47,7 +46,7 @@ The waves preserve the rollout order:
 6. `complete`: served directly by Learning OS and absent from this Express inventory.
 
 `runtimeOwner = "express"` means the request is still handled by the ConvoLab
-backend. Direct Learning OS routes are absent from the inventory.
+backend. No current inventory entry has that owner.
 
 A migration PR updates the route or surface owner only when its deployed request
 path is actually served by Learning OS. Once traffic bypasses Express, remove
@@ -56,11 +55,9 @@ retired public path for stale clients without restoring Express ownership.
 
 Use a route-level `runtimeOwner` only while a router is split between services.
 
-The browser administration surface now calls Learning OS directly at
-`/api/convolab/admin/*`, so core administration and the course workbench are
-absent from this Express inventory. Script Lab also calls its canonical Learning
-OS routes directly. Admin feature flags remain inventoried until their separate
-proxy surface is retired.
+Administration, Script Lab, feature flags, Study, content, generation, media,
+analytics, and authentication all call Learning OS directly and are absent from
+this Express inventory.
 
 ## Route Usage Telemetry
 
@@ -110,12 +107,11 @@ count, status-code counts, maximum duration, and p95 duration. Use it to:
 - prove a legacy route has no traffic before removal;
 - find `unclassified` requests that require an inventory update.
 
-Telemetry is emitted to the existing application log stream. It does not add a
-database write or a network request to the request path. While this migration
-instrumentation is active, API requests produce the existing plaintext request
-line plus one structured event, so request-log line volume is approximately
-doubled. Remove the structured event after Express retirement is proven and the
-inventory is no longer needed for cutover decisions.
+Telemetry remains temporarily on the generic Express `/api` 404 handler to
+identify stale clients after the final route retirement. It emits to the
+existing application log stream and does not add a database write or network
+request. Remove the structured event and inventory machinery after the empty
+inventory has been proven in production.
 
 ## Updating The Inventory
 
@@ -130,5 +126,6 @@ When adding, removing, or migrating a backend route:
    the PR description.
 
 The Study, browser, admin, authentication, feature-flag, content, generation,
-media, and analytics surfaces now call Learning OS directly. The only remaining
-Express API route is the shared CSRF bootstrap.
+media, analytics, and CSRF bootstrap surfaces now terminate in Learning OS.
+Express retains only the generic `/api` not-found handler while retirement
+telemetry is observed.

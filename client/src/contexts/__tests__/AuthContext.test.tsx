@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { AuthProvider, useAuth } from '../AuthContext';
-import { CSRF_TOKEN_COOKIE_NAME, LEARNING_OS_CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
+import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 
 // Mock fetch globally
@@ -168,7 +168,7 @@ describe('AuthContext', () => {
         })
       );
       const headers = new Headers(mockFetch.mock.calls.at(-1)?.[1]?.headers);
-      expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     });
 
     it('should throw error on failed login', async () => {
@@ -360,7 +360,7 @@ describe('AuthContext', () => {
       );
       const headers = new Headers(mockFetch.mock.calls.at(-1)?.[1]?.headers);
       expect(headers.get('Content-Type')).toBe('application/json');
-      expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     });
 
     it('keeps the current user when account deletion fails', async () => {

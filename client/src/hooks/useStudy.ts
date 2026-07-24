@@ -34,7 +34,7 @@ import type {
   StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types';
 
-import { LEARNING_OS_CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
+import { CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { studyApiPath } from '../lib/studyApi';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
@@ -688,7 +688,7 @@ export async function uploadStudyImportArchive(
     signal?: AbortSignal;
   } = {}
 ): Promise<void> {
-  const csrfToken = await getCsrfToken('learning-os');
+  const csrfToken = await getCsrfToken();
   if (!csrfToken) {
     throw new Error('Unable to initialize secure upload.');
   }
@@ -709,7 +709,7 @@ export async function uploadStudyImportArchive(
     Object.entries(session.upload.headers).forEach(([headerName, headerValue]) => {
       request.setRequestHeader(headerName, headerValue);
     });
-    request.setRequestHeader(LEARNING_OS_CSRF_TOKEN_HEADER_NAME, csrfToken);
+    request.setRequestHeader(CSRF_TOKEN_HEADER_NAME, csrfToken);
 
     options.signal?.addEventListener('abort', abortHandler, { once: true });
 

@@ -1,5 +1,4 @@
-import express, { Request, Response, NextFunction, Router } from 'express';
-import request from 'supertest';
+import { Request, Response, NextFunction } from 'express';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { requestLogger } from '../../../middleware/requestLogger.js';
@@ -85,35 +84,6 @@ describe('requestLogger Middleware', () => {
       statusCode: 200,
       durationMs: 150,
     });
-  });
-
-  it('classifies the remaining mounted route using the full original request path', async () => {
-    const app = express();
-    const router = Router();
-    router.get('/', (_req, res) => res.status(200).json({ csrfToken: 'token' }));
-    app.use(requestLogger);
-    app.use('/api/auth/csrf', router);
-
-    await request(app).get('/api/auth/csrf?source=client').expect(200);
-
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/^GET \/api\/auth\/csrf 200 - \d+ms$/)
-    );
-    const structuredLog = consoleLogSpy.mock.calls
-      .map(([value]) => value)
-      .find(
-        (value) =>
-          typeof value === 'string' &&
-          value.includes('"event":"backend_route_usage"') &&
-          value.includes('"routeId":"csrf.bootstrap"')
-      );
-    expect(structuredLog).toBeDefined();
-    expect(JSON.parse(structuredLog as string)).toMatchObject({
-      routeId: 'csrf.bootstrap',
-      normalizedPath: '/api/auth/csrf',
-      statusCode: 200,
-    });
-    expect(structuredLog).not.toContain('source=client');
   });
 
   it('preserves network-path references instead of interpreting them as URL authorities', () => {

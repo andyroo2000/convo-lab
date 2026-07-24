@@ -1412,31 +1412,13 @@ jobs:
               postgres_user="$(sed -n 's/^POSTGRES_USER=//p' .env.production | tail -1)"
               test -n "$postgres_user"
 
-              user_record="$(printf '%s\n' \
-                "SELECT id, role FROM \"User\" WHERE email = :'email' LIMIT 1;" \
+              user_id="$(printf '%s\n' \
+                "SELECT id FROM \"User\" WHERE email = :'email' LIMIT 1;" \
                 | docker exec -i convolab-postgres psql \
                   --username="$postgres_user" --dbname="$postgres_db" \
-                  --tuples-only --no-align --field-separator='|' \
+                  --tuples-only --no-align \
                   --set=email="$SMOKE_USER_EMAIL")"
-              user_id="${user_record%%|*}"
-              user_role="${user_record#*|}"
               test -n "$user_id"
-              test "$user_role" != "$user_record"
-
-              auth_token="$(docker exec \
-                -e AUTH_USER_ID="$user_id" \
-                -e AUTH_USER_ROLE="$user_role" \
-                "convolab-server-$active_color" \
-                node --input-type=module --eval='
-                  import jwt from "jsonwebtoken";
-                  process.stdout.write(jwt.sign(
-                    { userId: process.env.AUTH_USER_ID, role: process.env.AUTH_USER_ROLE },
-                    process.env.JWT_SECRET,
-                    { expiresIn: "5m" },
-                  ));
-                ')"
-              test -n "$auth_token"
-              echo "::add-mask::$auth_token"
 
               csrf_cookie_jar="$(mktemp)"
               wait_for_public_csrf() {
@@ -1445,15 +1427,14 @@ jobs:
 
                 for attempt in $(seq 1 "$max_attempts"); do
                   if curl --fail --silent --show-error \
-                    --cookie "token=$auth_token" \
                     --cookie-jar "$csrf_cookie_jar" \
                     --header 'Origin: https://convo-lab.com' \
-                    'https://convo-lab.com/api/auth/csrf' > /dev/null; then
+                    'https://convo-lab.com/sanctum/csrf-cookie' > /dev/null; then
                     return 0
                   fi
 
                   : > "$csrf_cookie_jar"
-                  echo "Public ConvoLab CSRF readiness attempt $attempt/$max_attempts failed." >&2
+                  echo "Public Learning OS CSRF readiness attempt $attempt/$max_attempts failed." >&2
                   if [ "$attempt" -lt "$max_attempts" ]; then
                     sleep 3
                   fi

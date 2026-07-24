@@ -483,24 +483,25 @@ jobs:
                   fi
                 done
 
-                for retired_study_url in \
+                for retired_express_url in \
+                  'https://convo-lab.com/api/auth/csrf' \
                   'https://convo-lab.com/api/learning-os/study/overview' \
                   'https://convo-lab.com/api/learning-os/study/daily-audio-practice'
                 do
-                  retired_study_status="$(curl --silent --show-error \
+                  retired_express_status="$(curl --silent --show-error \
                     --cookie "$cookie_jar" \
                     --output "$response_body" \
                     --write-out '%{http_code}' \
                     --header 'Accept: application/json' \
                     --header 'Origin: https://convo-lab.com' \
-                    "$retired_study_url")"
-                  if [ "$retired_study_status" != 404 ]; then
-                    echo "Retired Study proxy returned HTTP $retired_study_status."
+                    "$retired_express_url")"
+                  if [ "$retired_express_status" != 404 ]; then
+                    echo "Retired Express API route returned HTTP $retired_express_status."
                     cat "$response_body"
                     return 1
                   fi
                   if ! grep -q '"error":{"message":"Not found"}' "$response_body"; then
-                    echo "Retired Study proxy did not return the Express not-found contract."
+                    echo "Retired Express API route did not return the not-found contract."
                     cat "$response_body"
                     return 1
                   fi

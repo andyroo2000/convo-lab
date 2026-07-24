@@ -250,7 +250,7 @@ test('the production workflow verifies the always-on Study API without rollout f
     'wait_for_public_csrf() {',
     'local max_attempts=30',
     'for attempt in $(seq 1 "$max_attempts"); do',
-    'Public ConvoLab CSRF readiness attempt $attempt/$max_attempts failed.',
+    'Public Learning OS CSRF readiness attempt $attempt/$max_attempts failed.',
     'if [ "$attempt" -lt "$max_attempts" ]; then',
     'sleep 3',
     'if ! wait_for_public_csrf; then',
@@ -323,26 +323,33 @@ test('production configures the permanent Learning OS browser session without a 
   );
 });
 
-test('Express keeps its standalone CSRF bootstrap while mutations remain', async () => {
-  const [serverIndex, csrfRoute, clientCsrf, learningOsWorkflow] = await Promise.all([
+test('browser mutations use only the Learning OS CSRF bootstrap', async () => {
+  const [serverIndex, clientCsrf, learningOsWorkflow, inventory] = await Promise.all([
     readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
-    readFile(path.join(repositoryRoot, 'server/src/routes/csrf.ts'), 'utf8'),
     readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
     readFile(
       path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
       'utf8',
     ),
+    readFile(
+      path.join(repositoryRoot, 'server/src/migration/backendMigrationInventory.json'),
+      'utf8',
+    ),
   ]);
 
-  assert.ok(serverIndex.includes("import csrfRoutes from './routes/csrf.js';"));
-  assert.ok(serverIndex.includes("app.use('/api/auth/csrf', csrfRoutes);"));
-  assert.ok(csrfRoute.includes("issueCsrfTokenCookie(req, res, 'lax');"));
-  assert.ok(csrfRoute.includes('res.status(204).end();'));
-  assert.ok(clientCsrf.includes("bootstrapPath: '/api/auth/csrf'"));
+  assert.ok(!serverIndex.includes("import csrfRoutes from './routes/csrf.js';"));
+  assert.ok(!serverIndex.includes("app.use('/api/auth/csrf', csrfRoutes);"));
+  assert.ok(!serverIndex.includes('requireApiCsrfProtection'));
+  assert.ok(clientCsrf.includes("const CSRF_BOOTSTRAP_PATH = '/sanctum/csrf-cookie';"));
+  assert.ok(!clientCsrf.includes('/api/auth/csrf'));
   assert.ok(
-    learningOsWorkflow.includes("'https://convo-lab.com/api/auth/csrf'"),
-    'The production smoke should prove the public Express CSRF bootstrap.',
+    learningOsWorkflow.includes("'https://convo-lab.com/sanctum/csrf-cookie'"),
+    'The production smoke should prove the public Learning OS CSRF bootstrap.',
   );
+  assert.ok(!learningOsWorkflow.includes("'https://convo-lab.com/api/auth/csrf'"));
+  assert.ok(!learningOsWorkflow.includes('AUTH_USER_ID'));
+  assert.ok(!learningOsWorkflow.includes('AUTH_USER_ROLE'));
+  assert.deepEqual(JSON.parse(inventory).surfaces, []);
 });
 
 test('production permanently routes migrated browser APIs', async () => {
@@ -420,6 +427,7 @@ test('production permanently routes migrated browser APIs', async () => {
     'https://convo-lab.com/api/convolab/audio/job/00000000-0000-4000-8000-000000000000',
     'https://convo-lab.com/api/convolab/images/job/00000000-0000-4000-8000-000000000000',
     'https://convo-lab.com/api/study/overview',
+    'https://convo-lab.com/api/auth/csrf',
     'https://convo-lab.com/api/learning-os/study/overview',
     'https://convo-lab.com/api/daily-audio-practice',
     'https://convo-lab.com/api/learning-os/study/daily-audio-practice',
@@ -437,8 +445,8 @@ test('production permanently routes migrated browser APIs', async () => {
     'Direct generation probe ($generation_label) did not return the Learning OS auth contract.',
     'Unauthenticated direct Study probe ($study_label) returned HTTP',
     'Direct Study probe ($study_label) did not return the Learning OS auth contract.',
-    'Retired Study proxy returned HTTP $retired_study_status.',
-    'Retired Study proxy did not return the Express not-found contract.',
+    'Retired Express API route returned HTTP $retired_express_status.',
+    'Retired Express API route did not return the not-found contract.',
     'Unauthenticated direct feature flags probe returned HTTP',
     'Direct feature flags probe did not return the Learning OS auth contract.',
     'Direct Learning OS browser analytics probe returned HTTP',
@@ -821,8 +829,10 @@ test('active Study traffic uses Learning OS directly without an Express rollback
   assert.ok(dailyAudioHook.includes('DAILY_AUDIO_API_BASE'));
   assert.ok(knownKanjiHook.includes("studyApiPath('/known-kanji')"));
   assert.ok(knownKanjiHook.includes("studyApiPath('/wanikani')"));
-  assert.ok(csrf.includes("'/api/study'"));
-  assert.ok(csrf.includes("'/api/daily-audio-practice'"));
+  assert.ok(csrf.includes("const CSRF_BOOTSTRAP_PATH = '/sanctum/csrf-cookie';"));
+  assert.ok(csrf.includes("url.pathname.startsWith('/api/')"));
+  assert.ok(!csrf.includes('LEARNING_OS_CSRF_NAMESPACES'));
+  assert.ok(!csrf.includes('/api/learning-os/study'));
   assert.ok(router.includes('location ~ ^/api/study(?:/|$)'));
   assert.ok(router.includes('location ~ ^/api/daily-audio-practice(?:/|$)'));
   assert.ok(!router.includes('location ~ ^/api/learning-os/study(?:/|$)'));

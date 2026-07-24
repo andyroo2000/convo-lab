@@ -6,11 +6,8 @@ import {
   buildClientAppUrl,
   getAllowedBrowserOrigins,
   getClientAppConfig,
-  getCsrfSecretConfig,
-  getReadonlyBrowserRuntimeState,
   validateProductionBrowserRuntimeConfig,
 } from '../../../config/browserRuntime.js';
-import { getAllowedApiOrigins } from '../../../middleware/csrf.js';
 import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 
 describe('browser runtime config', () => {
@@ -47,55 +44,21 @@ describe('browser runtime config', () => {
     );
   });
 
-  it('fails fast in production when only the development CSRF fallback is available', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.CLIENT_URL = 'https://convo-lab.com';
-    delete process.env.CSRF_SECRET;
-    delete process.env.COOKIE_SECRET;
-    delete process.env.JWT_SECRET;
-
-    expect(() => getCsrfSecretConfig()).toThrow(
-      'CSRF_SECRET, COOKIE_SECRET, or JWT_SECRET must be configured in production.'
-    );
-  });
-
-  it('uses development fallbacks with warnings outside production', () => {
+  it('uses the client URL development fallback with a warning outside production', () => {
     process.env.NODE_ENV = 'development';
     delete process.env.CLIENT_URL;
-    delete process.env.CSRF_SECRET;
-    delete process.env.COOKIE_SECRET;
-    delete process.env.JWT_SECRET;
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     expect(getClientAppConfig()).toEqual({
       clientUrl: 'http://localhost:5173',
       clientOrigin: 'http://localhost:5173',
     });
-    expect(getCsrfSecretConfig()).toEqual({
-      secret: 'development-csrf-secret',
-      source: 'development-fallback',
-    });
     expect(getAllowedBrowserOrigins()).toEqual(DEVELOPMENT_ALLOWED_BROWSER_ORIGINS);
     expect(buildClientAppUrl('/login')).toBe('http://localhost:5173/login');
-    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('does not use raw secret values in the CSRF config cache key', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.CLIENT_URL = 'https://app.example.com';
-    process.env.CSRF_SECRET = 'top-secret-value';
-
-    expect(getCsrfSecretConfig()).toEqual({
-      secret: 'top-secret-value',
-      source: 'CSRF_SECRET',
-    });
-    expect(getReadonlyBrowserRuntimeState().csrfSecretConfigCache?.cacheKey).not.toContain(
-      'top-secret-value'
-    );
-    expect(getReadonlyBrowserRuntimeState().csrfSecretConfigCache?.cacheKey).toContain('csrf:set');
-  });
-
-  it('uses the configured production origin set for CORS and keeps it aligned with CSRF', () => {
+  it('uses the configured production origin set for CORS', () => {
     process.env.NODE_ENV = 'production';
     process.env.CLIENT_URL = 'https://app.example.com';
     process.env.JWT_SECRET = 'jwt-secret';
@@ -104,7 +67,6 @@ describe('browser runtime config', () => {
       'https://app.example.com',
       ...FIRST_PARTY_PRODUCTION_ORIGINS,
     ]);
-    expect(Array.from(getAllowedApiOrigins())).toEqual(getAllowedBrowserOrigins());
     expect(buildClientAppUrl('/app/library')).toBe('https://app.example.com/app/library');
   });
 

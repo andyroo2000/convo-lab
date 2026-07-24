@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CSRF_TOKEN_COOKIE_NAME, LEARNING_OS_CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
+import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 import {
   dailyAudioPracticeKeys,
@@ -173,7 +173,7 @@ describe('Daily Audio API requests', () => {
       expect.objectContaining({ credentials: 'include' })
     );
     const mutationHeaders = new Headers(mockFetch.mock.calls[1]?.[1]?.headers);
-    expect(mutationHeaders.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(mutationHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toEqual({
       ...practice,
       tracks: [...practice.tracks].sort((left, right) => left.sortOrder - right.sortOrder),

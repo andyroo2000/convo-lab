@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from '../AuthContext';
 import {
   CSRF_TOKEN_COOKIE_NAME,
-  LEARNING_OS_CSRF_TOKEN_HEADER_NAME,
+  CSRF_TOKEN_HEADER_NAME,
   resetCsrfStateForTests,
 } from '../../lib/csrf';
 
@@ -147,7 +147,7 @@ describe('AuthContext with direct Learning OS account API', () => {
       })
     );
     const headers = new Headers(mockFetch.mock.calls[2]?.[1]?.headers);
-    expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('learning-os-csrf-token');
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('learning-os-csrf-token');
     expect(result.current.user).toEqual(updatedUser);
   });
 
