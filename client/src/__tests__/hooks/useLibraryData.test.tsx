@@ -6,8 +6,6 @@ import { createWrapper, createTestQueryClient } from './test-utils';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
-  LEARNING_OS_DIRECT_EPISODE_API_ENABLED: false,
-  LEARNING_OS_DIRECT_COURSE_API_ENABLED: false,
 }));
 
 // Mock fetch globally
@@ -87,7 +85,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/episodes?library=true&limit=20&offset=0',
+          '/api/convolab/episodes?library=true&limit=20&offset=0',
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -105,7 +103,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/courses?library=true&limit=20&offset=0',
+          '/api/convolab/courses?library=true&limit=20&offset=0',
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -185,7 +183,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/courses?library=true&limit=20&offset=0&status=all',
+          '/api/convolab/courses?library=true&limit=20&offset=0&status=all',
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -203,7 +201,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/courses?library=true&limit=20&offset=0',
+          '/api/convolab/courses?library=true&limit=20&offset=0',
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -221,7 +219,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/courses?library=true&limit=20&offset=0',
+          '/api/convolab/courses?library=true&limit=20&offset=0',
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -239,7 +237,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/courses?library=true&limit=20&offset=0&viewAs=user-123&status=all',
+          '/api/convolab/courses?library=true&limit=20&offset=0&viewAs=user-123&status=all',
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -295,7 +293,7 @@ describe('useLibraryData', () => {
       await result.current.deleteEpisode('ep-123');
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/episodes/ep-123',
+        '/api/convolab/episodes/ep-123',
         expect.objectContaining({
           method: 'DELETE',
           credentials: 'include',
@@ -323,7 +321,7 @@ describe('useLibraryData', () => {
       await result.current.deleteCourse('course-123');
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/courses/course-123',
+        '/api/convolab/courses/course-123',
         expect.objectContaining({ method: 'DELETE' })
       );
     });

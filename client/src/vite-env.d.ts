@@ -9,12 +9,3 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
-
-interface Window {
-  __CONVOLAB_RUNTIME_CONFIG__?: {
-    learningOsDirectEpisodeApi?: boolean;
-    learningOsDirectCourseApi?: boolean;
-    learningOsDirectScriptApi?: boolean;
-    learningOsDirectAdminApi?: boolean;
-  };
-}

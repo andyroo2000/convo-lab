@@ -260,83 +260,54 @@ test('production configures the permanent Learning OS browser session without a 
   );
 });
 
-test('production permanently routes auth and gates remaining direct Learning OS traffic', async () => {
-  const [compose, workflow] = await Promise.all([
+test('production permanently routes migrated browser APIs', async () => {
+  const [compose, workflow, router] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8'),
   ]);
 
-  assert.ok(!compose.includes('LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED'));
-  assert.ok(!compose.includes('LEARNING_OS_DIRECT_AUTH_API_ENABLED'));
-  assert.ok(
-    compose.includes(
-      'LEARNING_OS_DIRECT_EPISODE_API_ENABLED: ${LEARNING_OS_DIRECT_EPISODE_API_ENABLED:-false}'
-    )
-  );
-  assert.ok(
-    compose.includes(
-      'LEARNING_OS_DIRECT_COURSE_API_ENABLED: ${LEARNING_OS_DIRECT_COURSE_API_ENABLED:-false}'
-    )
-  );
-  assert.ok(
-    compose.includes(
-      'LEARNING_OS_DIRECT_SCRIPT_API_ENABLED: ${LEARNING_OS_DIRECT_SCRIPT_API_ENABLED:-false}'
-    )
-  );
-  assert.ok(
-    compose.includes(
-      'LEARNING_OS_DIRECT_ADMIN_API_ENABLED: ${LEARNING_OS_DIRECT_ADMIN_API_ENABLED:-false}'
-    )
-  );
+  const retiredRolloutContracts = [
+    'LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED',
+    'LEARNING_OS_DIRECT_AUTH_API_ENABLED',
+    'LEARNING_OS_DIRECT_EPISODE_API_ENABLED',
+    'LEARNING_OS_DIRECT_COURSE_API_ENABLED',
+    'LEARNING_OS_DIRECT_SCRIPT_API_ENABLED',
+    'LEARNING_OS_DIRECT_ADMIN_API_ENABLED',
+    'DIRECT_ACCOUNT_API_ENABLED',
+    'DIRECT_AUTH_API_ENABLED',
+    'DIRECT_EPISODE_API_ENABLED',
+    'DIRECT_COURSE_API_ENABLED',
+    'DIRECT_SCRIPT_API_ENABLED',
+    'DIRECT_ADMIN_API_ENABLED',
+    'learningOsDirectAccountApi',
+    'learningOsDirectAuthApi',
+    'learningOsDirectEpisodeApi',
+    'learningOsDirectCourseApi',
+    'learningOsDirectScriptApi',
+    'learningOsDirectAdminApi',
+  ];
+
+  for (const retiredContract of retiredRolloutContracts) {
+    assert.ok(!compose.includes(retiredContract), `Retired compose flag remains: ${retiredContract}`);
+    assert.ok(
+      !workflow.includes(retiredContract),
+      `Retired deployment flag remains: ${retiredContract}`
+    );
+    assert.ok(!router.includes(retiredContract), `Retired router flag remains: ${retiredContract}`);
+  }
+
+  for (const route of [
+    '/api/convolab/episodes',
+    '/api/convolab/courses',
+    '/api/convolab/scripts',
+    '/api/convolab/admin',
+  ]) {
+    assert.ok(router.includes(`location ~ ^${route}`), `Missing permanent router route: ${route}`);
+  }
 
   for (const contract of [
-    "DIRECT_EPISODE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_EPISODE_API_ENABLED || 'false' }}",
-    "DIRECT_COURSE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_COURSE_API_ENABLED || 'false' }}",
-    "DIRECT_SCRIPT_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_SCRIPT_API_ENABLED || 'false' }}",
-    "DIRECT_ADMIN_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_ADMIN_API_ENABLED || 'false' }}",
-    "printf 'DIRECT_EPISODE_API_ENABLED=%q\\n'",
-    "printf 'DIRECT_COURSE_API_ENABLED=%q\\n'",
-    "printf 'DIRECT_SCRIPT_API_ENABLED=%q\\n'",
-    "printf 'DIRECT_ADMIN_API_ENABLED=%q\\n'",
-    'direct_episode_api_enabled="$DIRECT_EPISODE_API_ENABLED"',
-    'direct_course_api_enabled="$DIRECT_COURSE_API_ENABLED"',
-    'direct_script_api_enabled="$DIRECT_SCRIPT_API_ENABLED"',
-    'direct_admin_api_enabled="$DIRECT_ADMIN_API_ENABLED"',
-    'echo "::error::LEARNING_OS_DIRECT_EPISODE_API_ENABLED must be true or false"',
-    'echo "::error::LEARNING_OS_DIRECT_COURSE_API_ENABLED must be true or false"',
-    'echo "::error::LEARNING_OS_DIRECT_SCRIPT_API_ENABLED must be true or false"',
-    'echo "::error::LEARNING_OS_DIRECT_ADMIN_API_ENABLED must be true or false"',
-    'upsert_env LEARNING_OS_DIRECT_EPISODE_API_ENABLED "$direct_episode_api_enabled"',
-    'upsert_env LEARNING_OS_DIRECT_COURSE_API_ENABLED "$direct_course_api_enabled"',
-    'upsert_env LEARNING_OS_DIRECT_SCRIPT_API_ENABLED "$direct_script_api_enabled"',
-    'upsert_env LEARNING_OS_DIRECT_ADMIN_API_ENABLED "$direct_admin_api_enabled"',
-    'previous_direct_episode_api_enabled="$(',
-    'previous_direct_course_api_enabled="$(',
-    'previous_direct_script_api_enabled="$(',
-    'previous_direct_admin_api_enabled="$(',
-    'direct_episode_enabled="${2:-$direct_episode_api_enabled}"',
-    'direct_course_enabled="${3:-$direct_course_api_enabled}"',
-    'direct_script_enabled="${4:-$direct_script_api_enabled}"',
-    'direct_admin_enabled="${5:-$direct_admin_api_enabled}"',
-    's#__DIRECT_EPISODE_API_ENABLED__#$direct_episode_enabled_value#g',
-    's#__DIRECT_COURSE_API_ENABLED__#$direct_course_enabled_value#g',
-    's#__DIRECT_SCRIPT_API_ENABLED__#$direct_script_enabled_value#g',
-    's#__DIRECT_ADMIN_API_ENABLED__#$direct_admin_enabled_value#g',
     'verify_public_learning_os_browser_route() (',
-    '"https://convo-lab.com/?runtime-config=$(date +%s)"',
-    '\\"learningOsDirectEpisodeApi\\":$direct_episode_api_enabled',
-    '\\"learningOsDirectCourseApi\\":$direct_course_api_enabled',
-    '\\"learningOsDirectScriptApi\\":$direct_script_api_enabled',
-    '\\"learningOsDirectAdminApi\\":$direct_admin_api_enabled',
-    'Browser runtime config is missing expected flag $expected_flag.',
-    'if [ "$direct_episode_api_enabled" = false ]; then',
-    'if [ "$direct_course_api_enabled" = false ]; then',
-    'if [ "$direct_script_api_enabled" = false ]; then',
-    'if [ "$direct_admin_api_enabled" = false ]; then',
-    'Disabled direct episode route returned HTTP $episode_status instead of 404.',
-    'Disabled direct course route returned HTTP $course_status instead of 404.',
-    'Disabled direct script route returned HTTP $script_status instead of 404.',
-    'Disabled direct admin route returned HTTP $admin_status instead of 404.',
     'https://convo-lab.com/sanctum/csrf-cookie',
     '$6 == "XSRF-TOKEN"',
     '$6 == "learning_os_session"',
@@ -357,30 +328,18 @@ test('production permanently routes auth and gates remaining direct Learning OS 
     'Unauthenticated direct script probe returned HTTP',
     'Unauthenticated direct admin probe returned HTTP',
   ]) {
-    assert.ok(workflow.includes(contract), `Missing direct browser deployment contract: ${contract}`);
+    assert.ok(workflow.includes(contract), `Missing permanent browser contract: ${contract}`);
   }
-  for (const retiredContract of [
-    'LEARNING_OS_DIRECT_ACCOUNT_API_ENABLED',
-    'LEARNING_OS_DIRECT_AUTH_API_ENABLED',
-    'learningOsDirectAccountApi',
-    'learningOsDirectAuthApi',
-    '__DIRECT_ACCOUNT_API_ENABLED__',
-    '__DIRECT_AUTH_API_ENABLED__',
-  ]) {
-    assert.ok(
-      !workflow.includes(retiredContract),
-      `Retired auth rollout contract remains in production deployment: ${retiredContract}`
-    );
-  }
+
   assert.ok(
     !workflow.includes('decodeURIComponent'),
     'Production smoke checks must not require Node.js on the droplet host'
   );
   const publicGate = workflow.indexOf('if ! verify_public_health \\');
   assert.ok(publicGate >= 0);
-  assert.ok(
-    workflow.indexOf('verify_public_learning_os_browser_route', publicGate) > publicGate
-  );
+  assert.ok(workflow.indexOf('verify_public_learning_os_browser_route', publicGate) > publicGate);
+  assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
+
   const csrfProbeStart = workflow.indexOf('csrf_status="$(curl');
   for (const probeName of [
     'account_status="$(curl',
@@ -400,74 +359,20 @@ test('production permanently routes auth and gates remaining direct Learning OS 
     assert.ok(probe.includes("Accept: application/json"));
     assert.ok(probe.includes("--header 'Origin: https://convo-lab.com'"));
   }
-  const passwordProbeStart = workflow.indexOf(
-    'password_reset_status="$(curl',
-    csrfProbeStart
-  );
+
+  const passwordProbeStart = workflow.indexOf('password_reset_status="$(curl', csrfProbeStart);
   const passwordProbeEnd = workflow.indexOf(')"', passwordProbeStart);
   const passwordProbe = workflow.slice(passwordProbeStart, passwordProbeEnd);
   assert.ok(passwordProbe.includes('--request POST'));
   assert.ok(passwordProbe.includes('--header "X-XSRF-TOKEN: $xsrf_token"'));
   assert.ok(passwordProbe.includes(`--data '{"email":"not-an-email"}'`));
   assert.ok(workflow.includes('if [ "$password_reset_status" != 422 ]; then'));
-  assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
-  const previousEpisodeValueCapture = workflow.indexOf(
-    'previous_direct_episode_api_enabled="$('
-  );
-  const previousEpisodeValueNormalization = workflow.indexOf(
-    'if [ "$previous_direct_episode_api_enabled" != true ]; then',
-    previousEpisodeValueCapture
-  );
-  const desiredEpisodeValueAssignment = workflow.indexOf(
-    'direct_episode_api_enabled="$DIRECT_EPISODE_API_ENABLED"',
-    previousEpisodeValueNormalization
-  );
-  assert.ok(previousEpisodeValueCapture >= 0);
-  assert.ok(previousEpisodeValueNormalization > previousEpisodeValueCapture);
-  assert.ok(desiredEpisodeValueAssignment > previousEpisodeValueNormalization);
-  const previousCourseValueCapture = workflow.indexOf('previous_direct_course_api_enabled="$(');
-  const previousCourseValueNormalization = workflow.indexOf(
-    'if [ "$previous_direct_course_api_enabled" != true ]; then',
-    previousCourseValueCapture
-  );
-  const desiredCourseValueAssignment = workflow.indexOf(
-    'direct_course_api_enabled="$DIRECT_COURSE_API_ENABLED"',
-    previousCourseValueNormalization
-  );
-  assert.ok(previousCourseValueCapture > desiredEpisodeValueAssignment);
-  assert.ok(previousCourseValueNormalization > previousCourseValueCapture);
-  assert.ok(desiredCourseValueAssignment > previousCourseValueNormalization);
-  const previousScriptValueCapture = workflow.indexOf('previous_direct_script_api_enabled="$(');
-  const previousScriptValueNormalization = workflow.indexOf(
-    'if [ "$previous_direct_script_api_enabled" != true ]; then',
-    previousScriptValueCapture
-  );
-  const desiredScriptValueAssignment = workflow.indexOf(
-    'direct_script_api_enabled="$DIRECT_SCRIPT_API_ENABLED"',
-    previousScriptValueNormalization
-  );
-  assert.ok(previousScriptValueCapture > desiredCourseValueAssignment);
-  assert.ok(previousScriptValueNormalization > previousScriptValueCapture);
-  assert.ok(desiredScriptValueAssignment > previousScriptValueNormalization);
-  const previousAdminValueCapture = workflow.indexOf('previous_direct_admin_api_enabled="$(');
-  const previousAdminValueNormalization = workflow.indexOf(
-    'if [ "$previous_direct_admin_api_enabled" != true ]; then',
-    previousAdminValueCapture
-  );
-  const desiredAdminValueAssignment = workflow.indexOf(
-    'direct_admin_api_enabled="$DIRECT_ADMIN_API_ENABLED"',
-    previousAdminValueNormalization
-  );
-  assert.ok(previousAdminValueCapture > desiredScriptValueAssignment);
-  assert.ok(previousAdminValueNormalization > previousAdminValueCapture);
-  assert.ok(desiredAdminValueAssignment > previousAdminValueNormalization);
+
   const rollbackStart = workflow.indexOf('rollback_router() {');
   const rollbackEnd = workflow.indexOf('active_color="blue"', rollbackStart);
   const rollback = workflow.slice(rollbackStart, rollbackEnd);
-  assert.ok(rollback.includes('"$previous_direct_episode_api_enabled"'));
-  assert.ok(rollback.includes('"$previous_direct_course_api_enabled"'));
-  assert.ok(rollback.includes('"$previous_direct_script_api_enabled"'));
-  assert.ok(rollback.includes('"$previous_direct_admin_api_enabled"'));
+  assert.ok(rollback.includes('render_router_config "$previous_color"'));
+  assert.ok(!rollback.includes('direct_'));
 });
 
 test('the production XSRF decoder runs without a host Node dependency', async () => {

@@ -6,7 +6,6 @@ import { createWrapper } from './test-utils';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
-  LEARNING_OS_DIRECT_COURSE_API_ENABLED: false,
 }));
 
 // Mock fetch globally
@@ -73,7 +72,7 @@ describe('useCourse', () => {
 
       expect(result.current.course).toEqual(mockCourse);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/courses/course-123',
+        '/api/convolab/courses/course-123',
         expect.objectContaining({ credentials: 'include' })
       );
     });
@@ -250,7 +249,7 @@ describe('useCourse', () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/courses/course-123',
+        '/api/convolab/courses/course-123',
         expect.objectContaining({
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

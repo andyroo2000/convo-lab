@@ -49,6 +49,22 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/api/convolab/episodes': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/convolab/courses': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/convolab/scripts': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/convolab/admin': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/api/auth/password': {
         target: 'http://localhost:8080',
         changeOrigin: true,

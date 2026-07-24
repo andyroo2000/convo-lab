@@ -1,4 +1,3 @@
-import { API_URL, LEARNING_OS_DIRECT_SCRIPT_API_ENABLED } from '../config';
 import readApiError from './apiError';
 
 type ScriptOperation = 'annotate' | 'segments' | 'render' | 'images' | 'status';
@@ -11,11 +10,8 @@ export interface ScriptApiContract {
   audio: (episodeId: string, renderId: string) => string;
 }
 
-export function createScriptApiContract(
-  directLearningOs: boolean,
-  apiUrl: string = API_URL
-): ScriptApiContract {
-  const collection = `${apiUrl}${directLearningOs ? '/api/convolab/scripts' : '/api/scripts'}`;
+export function createScriptApiContract(apiUrl = ''): ScriptApiContract {
+  const collection = `${apiUrl}/api/convolab/scripts`;
   const member = (episodeId: string) => `${collection}/${encodeURIComponent(episodeId)}`;
 
   return {
@@ -28,4 +24,4 @@ export function createScriptApiContract(
 }
 
 export const readScriptApiError = readApiError;
-export const scriptApi = createScriptApiContract(LEARNING_OS_DIRECT_SCRIPT_API_ENABLED);
+export const scriptApi = createScriptApiContract();

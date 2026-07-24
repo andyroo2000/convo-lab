@@ -1,43 +1,34 @@
-import { LEARNING_OS_DIRECT_SCRIPT_API_ENABLED } from '../../config';
 import type { AudioScriptRender, AudioScriptSegment } from '../../types';
 import { createScriptApiContract } from '../../lib/scriptApi';
-import { toAssetUrl } from '../study/studyCardUtils';
 import { versionAudioUrl } from './scriptTrackTiming';
 
-export function getSegmentImageUrl(
-  segment: AudioScriptSegment | null,
-  directLearningOs: boolean = LEARNING_OS_DIRECT_SCRIPT_API_ENABLED
-): string | null {
+export function getSegmentImageUrl(segment: AudioScriptSegment | null): string | null {
   if (!segment) return null;
   const mediaId = segment.imageMedia?.id || segment.imageMediaId;
-  if (directLearningOs && mediaId) {
-    return toAssetUrl(createScriptApiContract(true).media(mediaId));
+  if (mediaId) {
+    return createScriptApiContract().media(mediaId);
   }
-  if (segment.imageMedia?.publicUrl) return toAssetUrl(segment.imageMedia.publicUrl);
-  return mediaId ? toAssetUrl(createScriptApiContract(false).media(mediaId)) : null;
+  if (segment.imageMedia?.publicUrl) return segment.imageMedia.publicUrl;
+  return null;
 }
 
 export function resolveScriptAudioUrl(
   episodeId: string,
-  scriptRender: AudioScriptRender | null,
-  directLearningOs: boolean = LEARNING_OS_DIRECT_SCRIPT_API_ENABLED
+  scriptRender: AudioScriptRender | null
 ): string | null {
   if (!scriptRender?.audioUrl) return null;
 
   return versionAudioUrl(
-    directLearningOs
-      ? createScriptApiContract(true).audio(episodeId, scriptRender.id)
-      : scriptRender.audioUrl,
+    createScriptApiContract().audio(episodeId, scriptRender.id),
     scriptRender.updatedAt?.toString()
   );
 }
 
 export function resolveScriptAudioUrls(
   episodeId: string,
-  scriptRenders: AudioScriptRender[],
-  directLearningOs: boolean = LEARNING_OS_DIRECT_SCRIPT_API_ENABLED
+  scriptRenders: AudioScriptRender[]
 ): string[] {
   return scriptRenders
-    .map((scriptRender) => resolveScriptAudioUrl(episodeId, scriptRender, directLearningOs))
+    .map((scriptRender) => resolveScriptAudioUrl(episodeId, scriptRender))
     .filter((url): url is string => url !== null);
 }

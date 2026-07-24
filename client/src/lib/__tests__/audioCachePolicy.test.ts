@@ -13,6 +13,7 @@ const signedGcsUrl =
 
 describe('audioCachePolicy', () => {
   it('excludes authenticated media API URLs from client warming but allows element preloading', () => {
+    expect(normalizeWarmableAudioUrls(['/api/convolab/scripts/media/123'], APP_ORIGIN)).toEqual([]);
     expect(normalizeWarmableAudioUrls(['/api/scripts/media/123'], APP_ORIGIN)).toEqual([]);
     expect(
       normalizeWarmableAudioUrls(
@@ -60,6 +61,13 @@ describe('audioCachePolicy', () => {
   });
 
   it('rejects authenticated media redirects in the service worker audio route', () => {
+    expect(
+      isServiceWorkerAudioRoute({
+        request: new Request(`${APP_ORIGIN}/api/convolab/scripts/media/123`),
+        url: new URL(`${APP_ORIGIN}/api/convolab/scripts/media/123`),
+        sameOrigin: true,
+      })
+    ).toBe(false);
     expect(
       isServiceWorkerAudioRoute({
         request: new Request(`${APP_ORIGIN}/api/scripts/media/123`),

@@ -5,7 +5,6 @@ import { useEpisodes } from '../../hooks/useEpisodes';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
-  LEARNING_OS_DIRECT_EPISODE_API_ENABLED: false,
 }));
 
 // Mock fetch globally
@@ -69,7 +68,7 @@ describe('useEpisodes', () => {
 
       expect(episode).toEqual(mockEpisode);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/episodes',
+        '/api/convolab/episodes',
         expect.objectContaining({
           method: 'POST',
           credentials: 'include',
@@ -262,7 +261,7 @@ describe('useEpisodes', () => {
 
       expect(episode).toEqual(mockEpisode);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/episodes/ep-123',
+        '/api/convolab/episodes/ep-123',
         expect.objectContaining({ credentials: 'include' })
       );
     });
@@ -298,7 +297,7 @@ describe('useEpisodes', () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/episodes/ep-123',
+        '/api/convolab/episodes/ep-123',
         expect.objectContaining({
           method: 'DELETE',
           credentials: 'include',

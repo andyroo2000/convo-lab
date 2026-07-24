@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { API_URL } from '../../../config';
 import type { AudioScriptRender, AudioScriptSegment } from '../../../types';
 import {
   getSegmentImageUrl,
@@ -38,28 +37,16 @@ const segment: AudioScriptSegment = {
 };
 
 describe('AudioScriptPlayback routes', () => {
-  it('preserves API-provided media URLs in legacy mode', () => {
-    expect(getSegmentImageUrl(segment, false)).toBe(`${API_URL}/api/scripts/media/media-old`);
-    expect(resolveScriptAudioUrl('episode-123', render, false)).toContain(
-      '/api/scripts/episode-old/audio/render-old?v='
+  it('derives permanent Learning OS media URLs from stable identifiers', () => {
+    expect(getSegmentImageUrl(segment)).toBe('/api/convolab/scripts/media/media-123');
+    expect(resolveScriptAudioUrl('episode-123', render)).toContain(
+      '/api/convolab/scripts/episode-123/audio/render-123?v='
     );
   });
 
-  it('derives direct Learning OS media URLs from stable identifiers', () => {
-    expect(getSegmentImageUrl(segment, true)).toBe(
-      `${API_URL}/api/convolab/scripts/media/media-123`
-    );
-    expect(resolveScriptAudioUrl('episode-123', render, true)).toContain(
-      `${API_URL}/api/convolab/scripts/episode-123/audio/render-123?v=`
-    );
-  });
-
-  it('warms the same backend route selected for playback', () => {
-    expect(resolveScriptAudioUrls('episode-123', [render], false)[0]).toContain(
-      '/api/scripts/episode-old/audio/render-old?v='
-    );
-    expect(resolveScriptAudioUrls('episode-123', [render], true)[0]).toContain(
-      `${API_URL}/api/convolab/scripts/episode-123/audio/render-123?v=`
+  it('warms the same permanent route selected for playback', () => {
+    expect(resolveScriptAudioUrls('episode-123', [render])[0]).toContain(
+      '/api/convolab/scripts/episode-123/audio/render-123?v='
     );
   });
 });

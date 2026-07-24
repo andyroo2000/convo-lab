@@ -132,7 +132,7 @@ const rewriteMedia = (value: unknown): JsonRecord | null | false => {
     return false;
   }
 
-  return { ...value, publicUrl: `/api/scripts/media/${value.id}` };
+  return { ...value, publicUrl: `/api/convolab/scripts/media/${value.id}` };
 };
 
 const rewriteSegment = (value: unknown, scriptId: string): JsonRecord | null => {

@@ -6,7 +6,6 @@ import { createWrapper } from './test-utils';
 // Mock the config
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:3001',
-  LEARNING_OS_DIRECT_ADMIN_API_ENABLED: false,
 }));
 
 // Mock fetch globally
@@ -87,7 +86,7 @@ describe('useSpeakerAvatars', () => {
 
       expect(result.current.avatars).toEqual(mockAvatars);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/admin/avatars/speakers',
+        '/api/convolab/admin/avatars/speakers',
         expect.objectContaining({ credentials: 'include' })
       );
     });
