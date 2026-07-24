@@ -64,8 +64,5 @@ gcloud-key.json
 scripts/.cache/
 scripts/output/
 
-# Docker
-.dockerignore
-
 # Local development secrets
 LOCAL_SETUP.md

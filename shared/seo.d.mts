@@ -1,4 +1,4 @@
-// Keep this declaration surface aligned with the build-time JavaScript module.
+// The deployment contract checks export names; signatures still require manual alignment.
 export interface SeoConfig {
   title: string;
   description: string;

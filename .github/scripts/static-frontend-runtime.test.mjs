@@ -41,6 +41,30 @@ test('frontend image contains only the built client and nginx runtime', async ()
   assert.doesNotMatch(dockerfile, /server\/src|prisma|DATABASE_URL|REDIS_HOST/u);
 });
 
+test('Docker build contexts exclude local dependencies, build output, and secrets', async () => {
+  const dockerignore = await readFile(path.join(repositoryRoot, '.dockerignore'), 'utf8');
+  const ignoredPatterns = new Set(
+    dockerignore
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+  );
+
+  for (const pattern of [
+    '.git',
+    '**/node_modules',
+    '**/dist',
+    '**/coverage',
+    '.env',
+    '.env.*',
+    '**/.env',
+    '**/.env.*',
+    'server/gcloud-key.json',
+  ]) {
+    assert.ok(ignoredPatterns.has(pattern), `Expected .dockerignore to contain ${pattern}`);
+  }
+});
+
 test('nginx keeps backend paths out of the SPA fallback', async () => {
   const config = await readFile(path.join(repositoryRoot, 'deploy/frontend-nginx.conf'), 'utf8');
 
