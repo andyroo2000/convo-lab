@@ -1285,10 +1285,10 @@ jobs:
               set +e
 
               if [ -n "${card_draft_smoke_id:-}" ] \
-                && declare -F mutate_proxy_route > /dev/null; then
-                mutate_proxy_route \
+                && declare -F mutate_learning_os_route > /dev/null; then
+                mutate_learning_os_route \
                   DELETE \
-                  "/api/learning-os/study/card-drafts/$card_draft_smoke_id" \
+                  "/api/study/card-drafts/$card_draft_smoke_id" \
                   '{}' > /dev/null || true
               fi
               cleanup_daily_audio_smoke
@@ -1561,6 +1561,70 @@ jobs:
                   --header 'Origin: https://convo-lab.com' \
                   --header "X-CSRF-Token: $csrf_token" \
                   --header "Cookie: token=$auth_token; XSRF-TOKEN=$csrf_cookie_raw" \
+                  --data "$body" \
+                  "https://convo-lab.com$path")"
+
+                if [[ ! "$status" =~ ^2[0-9][0-9]$ ]]; then
+                  echo "$method $path failed with HTTP $status:" >&2
+                  cat "$response_file" >&2
+                  echo >&2
+                  rm -f "$response_file"
+                  return 1
+                fi
+
+                cat "$response_file"
+                rm -f "$response_file"
+              }
+
+              fetch_learning_os_route() {
+                local label="$1"
+                local path="$2"
+                local response=""
+                local response_file
+                local status
+                local attempt
+
+                for attempt in {1..12}; do
+                  response_file="$(mktemp)"
+                  if status="$(curl --silent --show-error \
+                      --output "$response_file" \
+                      --write-out '%{http_code}' \
+                      --header 'Accept: application/json' \
+                      --header "Authorization: Bearer $proxy_token" \
+                      "https://convo-lab.com$path")"; then
+                    :
+                  else
+                    status="${status:-transport-error}"
+                  fi
+                  response="$(cat "$response_file")"
+                  rm -f "$response_file"
+                  if [[ "$status" =~ ^2[0-9][0-9]$ ]]; then
+                    printf '%s' "$response"
+                    return 0
+                  fi
+                  echo "$label attempt $attempt/12 returned HTTP ${status:-unknown}; retrying." >&2
+                  printf '%s\n' "${response:0:2048}" >&2
+                  sleep 3
+                done
+
+                return 1
+              }
+
+              mutate_learning_os_route() {
+                local method="$1"
+                local path="$2"
+                local body="$3"
+                local response_file
+                local status
+
+                response_file="$(mktemp)"
+                status="$(curl --silent --show-error \
+                  --output "$response_file" \
+                  --write-out '%{http_code}' \
+                  --request "$method" \
+                  --header 'Accept: application/json' \
+                  --header 'Content-Type: application/json' \
+                  --header "Authorization: Bearer $proxy_token" \
                   --data "$body" \
                   "https://convo-lab.com$path")"
 
@@ -1970,9 +2034,9 @@ jobs:
                 '
               echo "Disposable Learning OS content browser session established."
 
-              fetch_read_route \
+              fetch_learning_os_route \
                 'Overview Learning OS' \
-                '/api/learning-os/study/overview?timeZone=America%2FNew_York' \
+                '/api/study/overview?timeZone=America%2FNew_York' \
                 > /dev/null
 
               episode_list="$(fetch_content_browser_route \
@@ -2941,9 +3005,9 @@ jobs:
               echo "Disposable Learning OS content browser identity removed."
 
               daily_audio_list="$(
-                fetch_read_route \
+                fetch_learning_os_route \
                   'Daily Audio practice lookup' \
-                  '/api/learning-os/study/daily-audio-practice'
+                  '/api/daily-audio-practice'
               )"
               daily_audio_id="$(printf '%s' "$daily_audio_list" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -2972,9 +3036,9 @@ jobs:
               fi
 
               daily_audio_detail="$(
-                fetch_read_route \
+                fetch_learning_os_route \
                   'Daily Audio historical track lookup' \
-                  "/api/learning-os/study/daily-audio-practice/$daily_audio_id"
+                  "/api/daily-audio-practice/$daily_audio_id"
               )"
               daily_audio_track_url="$(printf '%s' "$daily_audio_detail" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -2987,7 +3051,7 @@ jobs:
                   const path = track?.audioUrl;
                   if (
                     typeof path !== "string" ||
-                    !/^\/api\/learning-os\/study\/daily-audio-practice\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/tracks\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/audio$/.test(path)
+                    !/^\/api\/daily-audio-practice\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/tracks\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/audio$/.test(path)
                   ) process.exit(1);
                   process.stdout.write(path);
                 ')"
@@ -2996,7 +3060,7 @@ jobs:
               curl --fail --silent --show-error \
                 --dump-header "$daily_audio_smoke_headers" \
                 --output "$daily_audio_smoke_body" \
-                --cookie "token=$auth_token" \
+                --header "Authorization: Bearer $proxy_token" \
                 "https://convo-lab.com$daily_audio_track_url"
               test -s "$daily_audio_smoke_body"
               grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$daily_audio_smoke_headers"
@@ -3007,9 +3071,9 @@ jobs:
               echo "Historical Daily Audio streaming smoke check passed."
 
               daily_audio_status="$(
-                fetch_read_route \
+                fetch_learning_os_route \
                   'Daily Audio status Learning OS' \
-                  "/api/learning-os/study/daily-audio-practice/$daily_audio_id/status"
+                  "/api/daily-audio-practice/$daily_audio_id/status"
               )"
               printf '%s' "$daily_audio_status" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -3025,15 +3089,15 @@ jobs:
                   ) process.exit(1);
                 '
               echo "Daily Audio Learning OS read smoke checks passed."
-              fetch_read_route \
+              fetch_learning_os_route \
                 'Browser Learning OS' \
-                '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
+                '/api/study/browser?sortField=created_on&sortDirection=desc&limit=25' \
                 > /dev/null
               echo "Browser Learning OS independent-state smoke check passed."
 
-              browser_list="$(fetch_read_route \
+              browser_list="$(fetch_learning_os_route \
                 'Browser detail note lookup' \
-                '/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=1')"
+                '/api/study/browser?sortField=created_on&sortDirection=desc&limit=1')"
               browser_note_id="$(docker exec -e BROWSER_RESPONSE="$browser_list" \
                 "convolab-server-$active_color" node --input-type=module --eval='
                   const r=JSON.parse(process.env.BROWSER_RESPONSE),n=r?.rows?.[0]?.noteId;
@@ -3041,9 +3105,9 @@ jobs:
                   process.stdout.write(n);
                 ')"
               test -n "$browser_note_id"
-              fetch_read_route \
+              fetch_learning_os_route \
                 'Browser detail Learning OS' \
-                "/api/learning-os/study/browser/$browser_note_id" \
+                "/api/study/browser/$browser_note_id" \
                 > /dev/null
               echo "Browser detail Learning OS independent-state smoke check passed."
 
@@ -3066,7 +3130,7 @@ jobs:
               echo "Avatar direct Learning OS smoke check passed."
 
               tool_audio_body='{"paths":["/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3"]}'
-              tool_audio_response="$(mutate_proxy_route \
+              tool_audio_response="$(mutate_learning_os_route \
                 POST \
                 '/api/tools-audio/signed-urls' \
                 "$tool_audio_body")"
@@ -3091,10 +3155,10 @@ jobs:
               echo "Tool Audio direct Learning OS smoke check passed."
 
               session_body='{"timeZone":"America/New_York"}'
-              proxy_session="$(mutate_proxy_route POST '/api/learning-os/study/session/start' "$session_body")"
+              proxy_session="$(mutate_learning_os_route POST '/api/study/session/start' "$session_body")"
               validate_session_response "$proxy_session"
 
-              settings_before="$(fetch_read_route 'Settings write baseline' '/api/learning-os/study/settings')"
+              settings_before="$(fetch_learning_os_route 'Settings write baseline' '/api/study/settings')"
               settings_body="$(docker exec \
                 -e SETTINGS_RESPONSE="$settings_before" \
                 "convolab-server-$active_color" \
@@ -3102,10 +3166,10 @@ jobs:
                   const settings = JSON.parse(process.env.SETTINGS_RESPONSE);
                   process.stdout.write(JSON.stringify({ newCardsPerDay: settings.newCardsPerDay }));
                 ')"
-              settings_after="$(mutate_proxy_route PATCH '/api/learning-os/study/settings' "$settings_body")"
+              settings_after="$(mutate_learning_os_route PATCH '/api/study/settings' "$settings_body")"
               assert_json_equal Settings "$settings_before" "$settings_after"
 
-              queue_before="$(fetch_read_route 'New Queue write baseline' '/api/learning-os/study/new-queue?limit=100')"
+              queue_before="$(fetch_learning_os_route 'New Queue write baseline' '/api/study/new-queue?limit=100')"
               queue_body="$(docker exec \
                 -e QUEUE_RESPONSE="$queue_before" \
                 "convolab-server-$active_color" \
@@ -3114,13 +3178,13 @@ jobs:
                   if (!Array.isArray(queue.items) || queue.items.length < 1) process.exit(1);
                   process.stdout.write(JSON.stringify({ cardIds: queue.items.map(({ id }) => id) }));
                 ')"
-              queue_after="$(mutate_proxy_route POST '/api/learning-os/study/new-queue/reorder' "$queue_body")"
+              queue_after="$(mutate_learning_os_route POST '/api/study/new-queue/reorder' "$queue_body")"
               assert_queue_order_equal "$queue_before" "$queue_after"
-              queue_stable="$(mutate_proxy_route POST '/api/learning-os/study/new-queue/reorder' "$queue_body")"
+              queue_stable="$(mutate_learning_os_route POST '/api/study/new-queue/reorder' "$queue_body")"
               assert_json_equal 'New Queue' "$queue_after" "$queue_stable"
 
               draft_body='{"creationKind":"text-recognition","cardType":"recognition","prompt":{"cueText":"Learning OS draft smoke"},"answer":{"meaning":"temporary deployment check"},"imagePlacement":"none","imagePrompt":null}'
-              draft_response="$(mutate_proxy_route POST '/api/learning-os/study/card-drafts' "$draft_body")"
+              draft_response="$(mutate_learning_os_route POST '/api/study/card-drafts' "$draft_body")"
               draft_id="$(docker exec -e DRAFT_RESPONSE="$draft_response" \
                 "convolab-server-$active_color" node --input-type=module --eval='
                   const draft = JSON.parse(process.env.DRAFT_RESPONSE);
@@ -3133,9 +3197,9 @@ jobs:
               card_draft_smoke_id="$draft_id"
 
               for attempt in {1..12}; do
-                draft_list="$(fetch_read_route \
+                draft_list="$(fetch_learning_os_route \
                   'Card draft list' \
-                  '/api/learning-os/study/card-drafts?limit=200')"
+                  '/api/study/card-drafts?limit=200')"
                 draft_status="$(docker exec \
                   -e DRAFT_RESPONSE="$draft_list" \
                   -e DRAFT_ID="$draft_id" \
@@ -3156,13 +3220,13 @@ jobs:
               fi
 
               draft_update='{"prompt":{"cueText":"Learning OS draft smoke"},"answer":{"meaning":"updated temporary deployment check"},"imagePlacement":"none","imagePrompt":null,"previewAudio":null,"previewAudioRole":null,"previewImage":null}'
-              mutate_proxy_route \
+              mutate_learning_os_route \
                 PATCH \
-                "/api/learning-os/study/card-drafts/$draft_id" \
+                "/api/study/card-drafts/$draft_id" \
                 "$draft_update" > /dev/null
-              mutate_proxy_route \
+              mutate_learning_os_route \
                 DELETE \
-                "/api/learning-os/study/card-drafts/$draft_id" \
+                "/api/study/card-drafts/$draft_id" \
                 '{}' > /dev/null
               card_draft_smoke_id=
               echo "Study card draft lifecycle smoke check passed."
@@ -3208,8 +3272,8 @@ jobs:
               curl --fail --silent --show-error \
                 --dump-header "$media_smoke_headers" \
                 --output "$media_smoke_body" \
-                --cookie "token=$auth_token" \
-                "https://convo-lab.com/api/learning-os/study/media/$media_smoke_id"
+                --header "Authorization: Bearer $proxy_token" \
+                "https://convo-lab.com/api/study/media/$media_smoke_id"
               test "$(cat "$media_smoke_body")" = "learning-os-media-smoke"
               grep -Eiq '^content-type: application/octet-stream([[:space:]]|$)' "$media_smoke_headers"
               grep -Eiq "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" "$media_smoke_headers"
@@ -3219,8 +3283,6 @@ jobs:
               echo "Study media streaming smoke check passed."
 
               ACTIVE_COLOR="$active_color" \
-                ORIGINAL_PROXY_EMAIL="$SMOKE_USER_EMAIL" \
-                ORIGINAL_PROXY_TOKEN="$proxy_token" \
                 bash .github/scripts/smoke-study-import-lifecycle.sh
             }
 
