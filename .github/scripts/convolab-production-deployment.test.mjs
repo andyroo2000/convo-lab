@@ -108,6 +108,7 @@ test('the production frontend deploy does not own backend migrations or secrets'
   assert.doesNotMatch(script, /npx prisma|OPENAI_API_KEY|FISH_AUDIO_API_KEY/u);
   assert.doesNotMatch(script, /GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET/u);
   assert.doesNotMatch(script, /\$COMPOSE up -d postgres redis/u);
+  assert.doesNotMatch(script, /docker (?:start|stop) convolab-redis/u);
 });
 
 test('the production workflow verifies static and API contracts before committing the switch', async () => {

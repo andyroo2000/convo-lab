@@ -33,9 +33,9 @@ startup logic.
 - Legacy tool paths keep their permanent redirects.
 
 `shared/seo.mjs` is the source of truth for SEO metadata, route classes, and
-legacy redirects. The legacy combined image imports it for rollback
-compatibility, and the static image uses it at build time to generate HTML
-entrypoints and Nginx route configuration.
+legacy redirects. The retired Express source imports it for compatibility, and
+the static image uses it at build time to generate HTML entrypoints and Nginx
+route configuration.
 
 ## Deployment Boundary
 
@@ -48,4 +48,5 @@ is stopped but retained until the next deploy for rollback.
 Learning OS owns backend health, migrations, and API behavior. Its deployment
 workflow uses a short-lived Node tooling container for smoke assertions instead
 of borrowing a JavaScript runtime from the frontend. Static frontend health
-only proves that Nginx can serve the built client.
+only proves that Nginx can serve the built client. Staging publishes only the
+static frontend image; the legacy combined image is no longer built.
