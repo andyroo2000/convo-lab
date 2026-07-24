@@ -166,22 +166,28 @@ test('local Vite development mirrors the permanent Learning OS browser routes', 
     "'/api/convolab/images'",
     "'/api/convolab/admin'",
   ];
-  const expressFallback = viteConfig.indexOf("'/api':");
+  const apiFallback = viteConfig.indexOf("'/api':");
 
-  assert.ok(expressFallback >= 0);
+  assert.ok(apiFallback >= 0);
+  assert.ok(
+    viteConfig.includes(
+      "const learningOsApiUrl = process.env.LEARNING_OS_API_URL ?? 'http://localhost:8080';"
+    )
+  );
   for (const route of learningOsRoutes) {
     const routeStart = viteConfig.indexOf(`${route}:`);
     const routeEnd = viteConfig.indexOf('},', routeStart);
     const proxyBlock = viteConfig.slice(routeStart, routeEnd);
 
     assert.ok(routeStart >= 0, `Missing local Learning OS proxy route: ${route}`);
-    assert.ok(routeStart < expressFallback, `${route} must precede the generic Express proxy`);
-    assert.ok(proxyBlock.includes("target: 'http://localhost:8080'"));
+    assert.ok(routeStart < apiFallback, `${route} must precede the generic API proxy`);
+    assert.ok(proxyBlock.includes('target: learningOsApiUrl'));
     assert.ok(proxyBlock.includes('changeOrigin: true'));
   }
 
-  const expressProxy = viteConfig.slice(expressFallback, viteConfig.indexOf('},', expressFallback));
-  assert.ok(expressProxy.includes("target: 'http://localhost:3001'"));
+  const apiProxy = viteConfig.slice(apiFallback, viteConfig.indexOf('},', apiFallback));
+  assert.ok(apiProxy.includes('target: learningOsApiUrl'));
+  assert.ok(!viteConfig.includes("target: 'http://localhost:3001'"));
 });
 
 test('Google OAuth redirect validation executes the production Bash parser', async () => {

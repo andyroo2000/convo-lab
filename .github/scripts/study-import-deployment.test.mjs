@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { access, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -127,7 +127,10 @@ test('the production workflow verifies the always-on Study API without rollout f
     'upsert_env LEARNING_OS_CORS_ALLOWED_ORIGINS',
     'upsert_env LEARNING_OS_DEPLOY_CONFIG_REVISION "$desired_deploy_config_revision"',
     '[ "$current_config_revision" = "$desired_deploy_config_revision" ]',
-    'GCS_CREDENTIAL_PATH="server/gcloud-key.json"',
+    'GCS_CREDENTIAL_PATH="$RUNTIME_DIR/secrets/gcloud-key.json"',
+    'LEGACY_GCS_CREDENTIAL_PATH="server/gcloud-key.json"',
+    'if [ ! -s "$GCS_CREDENTIAL_PATH" ] && [ -s "$LEGACY_GCS_CREDENTIAL_PATH" ]; then',
+    'install -D -m 600',
     'LEARNING_OS_RUNTIME_UID=33',
     'if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then',
     'chown "$LEARNING_OS_RUNTIME_UID:$LEARNING_OS_RUNTIME_UID" "$GCS_CREDENTIAL_PATH"',
@@ -271,12 +274,17 @@ test('the production workflow verifies the always-on Study API without rollout f
   assert.ok(activeServerHealthy >= 0);
   assert.ok(activeServerHealthy < verifyStudyApiInvocation);
 
+  const credentialMigration = workflow.indexOf(
+    'if [ ! -s "$GCS_CREDENTIAL_PATH" ] && [ -s "$LEGACY_GCS_CREDENTIAL_PATH" ]; then'
+  );
   const credentialCheck = workflow.indexOf('if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then');
   const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
   const migration = workflow.indexOf(
     '$COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force'
   );
 
+  assert.ok(credentialMigration >= 0);
+  assert.ok(credentialMigration < credentialCheck);
   assert.ok(credentialCheck >= 0);
   assert.ok(imagePull > credentialCheck);
   assert.ok(migration > credentialCheck);
@@ -318,27 +326,16 @@ test('production configures the permanent Learning OS browser session without a 
 });
 
 test('browser mutations use only the Learning OS CSRF bootstrap', async () => {
-  const [serverIndex, clientCsrf, learningOsWorkflow, inventory, serverPackage, ...composes] =
-    await Promise.all([
-      readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
+  const [clientCsrf, learningOsWorkflow, ...composes] = await Promise.all([
       readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
       readFile(
         path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-        'utf8',
+        'utf8'
       ),
-      readFile(
-        path.join(repositoryRoot, 'server/src/migration/backendMigrationInventory.json'),
-        'utf8',
-      ),
-      readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8'),
-      readFile(path.join(repositoryRoot, 'docker-compose.yml'), 'utf8'),
       readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
       readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     ]);
 
-  assert.ok(!serverIndex.includes("import csrfRoutes from './routes/csrf.js';"));
-  assert.ok(!serverIndex.includes("app.use('/api/auth/csrf', csrfRoutes);"));
-  assert.ok(!serverIndex.includes('requireApiCsrfProtection'));
   assert.ok(clientCsrf.includes("const CSRF_BOOTSTRAP_PATH = '/sanctum/csrf-cookie';"));
   assert.ok(!clientCsrf.includes('/api/auth/csrf'));
   assert.ok(
@@ -348,24 +345,10 @@ test('browser mutations use only the Learning OS CSRF bootstrap', async () => {
   assert.ok(!learningOsWorkflow.includes("'https://convo-lab.com/api/auth/csrf'"));
   assert.ok(!learningOsWorkflow.includes('AUTH_USER_ID'));
   assert.ok(!learningOsWorkflow.includes('AUTH_USER_ROLE'));
-  assert.ok(!serverPackage.includes('jsonwebtoken'));
   for (const compose of composes) {
     assert.ok(!compose.includes('JWT_SECRET'));
     assert.ok(!compose.includes('COOKIE_SECRET'));
   }
-  for (const retiredMiddleware of [
-    'auth',
-    'roleAuth',
-    'demoAuth',
-    'impersonation',
-    'emailVerification',
-    'studyRateLimit',
-  ]) {
-    await assert.rejects(
-      access(path.join(repositoryRoot, `server/src/middleware/${retiredMiddleware}.ts`))
-    );
-  }
-  assert.deepEqual(JSON.parse(inventory).surfaces, []);
 });
 
 test('production permanently routes migrated browser APIs', async () => {
@@ -782,7 +765,7 @@ test('the production stack wires and smokes direct Learning OS static media', as
     'AVATAR_SIGNED_URLS_ENABLED: ${AVATAR_SIGNED_URLS_ENABLED:-true}',
     'TOOLS_AUDIO_GCS_ROOT: ${TOOLS_AUDIO_GCS_ROOT:-tools-audio}',
     'TOOLS_AUDIO_SIGNED_URLS_ENABLED: ${TOOLS_AUDIO_SIGNED_URLS_ENABLED:-true}',
-    '- ./server/gcloud-key.json:/app/gcloud-key.json:ro',
+    '- /opt/convolab-runtime/secrets/gcloud-key.json:/app/gcloud-key.json:ro',
   ]) {
     assert.ok(compose.includes(requiredComposeContract), requiredComposeContract);
   }
@@ -821,7 +804,7 @@ test('the production stack wires and smokes direct Learning OS static media', as
 });
 
 test('active Study traffic uses Learning OS directly without an Express rollback path', async () => {
-  const [viteConfig, studyHook, dailyAudioHook, knownKanjiHook, csrf, router, serverEntry] =
+  const [viteConfig, studyHook, dailyAudioHook, knownKanjiHook, csrf, router] =
     await Promise.all([
       readFile(path.join(repositoryRoot, 'client/vite.config.ts'), 'utf8'),
       readFile(path.join(repositoryRoot, 'client/src/hooks/useStudy.ts'), 'utf8'),
@@ -829,7 +812,6 @@ test('active Study traffic uses Learning OS directly without an Express rollback
       readFile(path.join(repositoryRoot, 'client/src/hooks/useKnownKanji.ts'), 'utf8'),
       readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
       readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8'),
-      readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
     ]);
 
   assert.ok(viteConfig.includes("'^/api/study(?:/|$)'"));
@@ -851,7 +833,6 @@ test('active Study traffic uses Learning OS directly without an Express rollback
   assert.ok(!router.includes('location ^~ /api/study'));
   assert.ok(!router.includes('location ^~ /api/learning-os/study'));
   assert.ok(!router.includes('/api/learning-os/study/imports/'));
-  assert.ok(!serverEntry.includes("app.use('/api/learning-os/study'"));
 
   for (const route of ['/api/study', '/api/daily-audio-practice']) {
     const start = router.indexOf(`location ~ ^${route}(?:/|$)`);
@@ -864,8 +845,7 @@ test('active Study traffic uses Learning OS directly without an Express rollback
 });
 
 test('generation routes are permanently proxied and production rehearsals cover them', async () => {
-  const [localCompose, stageCompose, productionCompose, workflow] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'docker-compose.yml'), 'utf8'),
+  const [stageCompose, productionCompose, workflow] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
@@ -873,7 +853,7 @@ test('generation routes are permanently proxied and production rehearsals cover 
 
   const retiredProxyFlags =
     /LEARNING_OS_(?:COURSE_GENERATION|DIALOGUE_GENERATION|AUDIO_GENERATION|SCRIPT|AUTH|PROFILE|SIGNUP|VERIFICATION)_PROXY_ENABLED/;
-  for (const source of [localCompose, stageCompose, productionCompose, workflow]) {
+  for (const source of [stageCompose, productionCompose, workflow]) {
     assert.doesNotMatch(source, retiredProxyFlags);
   }
   assert.doesNotMatch(stageCompose, /MONTHLY_GENERATION_LIMIT/);
@@ -1005,107 +985,29 @@ test('generation routes are permanently proxied and production rehearsals cover 
   assert.doesNotMatch(failureCleanup, retiredProxyFlags);
 });
 
-test('Express no longer mounts legacy identity routes', async () => {
-  const [
-    serverEntry,
-    serverPackageSource,
-    serverEnvironmentExample,
-    inventory,
-    compose,
-    learningOsWorkflow,
-    productionWorkflow,
-    lifecycle,
-  ] = await Promise.all([
-      readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
-      readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8'),
-      readFile(path.join(repositoryRoot, 'server/.env.example'), 'utf8'),
-      readFile(
-        path.join(repositoryRoot, 'server/src/migration/backendMigrationInventory.json'),
-        'utf8'
-      ),
-      readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
-      readFile(
-        path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-        'utf8'
-      ),
-      readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
-      readFile(
-        path.join(
-          repositoryRoot,
-          '.github/scripts/smoke-auth-signup-verification-lifecycle.sh'
-        ),
-        'utf8'
-      ),
-    ]);
+test('the retired Express workspace stays absent', async () => {
+  const rootPackage = JSON.parse(
+    await readFile(path.join(repositoryRoot, 'package.json'), 'utf8')
+  );
+  const [clientConfig, playwrightConfig] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'client/src/config.ts'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'playwright.config.ts'), 'utf8'),
+  ]);
 
-  const serverPackage = JSON.parse(serverPackageSource);
-  for (const retiredDependency of [
-    '@types/passport',
-    '@types/passport-google-oauth20',
-    'passport',
-    'passport-google-oauth20',
-  ]) {
-    assert.equal(serverPackage.dependencies[retiredDependency], undefined);
-  }
-
-  for (const retiredExpressSecret of [
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET',
-    'GOOGLE_CALLBACK_URL',
-  ]) {
-    assert.ok(!serverEnvironmentExample.includes(retiredExpressSecret), retiredExpressSecret);
-  }
-
-  for (const retiredPath of [
-    'server/src/routes/auth.ts',
-    'server/src/routes/verification.ts',
-    'server/src/config/passport.ts',
-    'server/src/services/learningOsAuthProxy.ts',
-    'server/src/services/learningOsBrowserSession.ts',
-    'server/src/services/googleOAuthIdentity.ts',
-  ]) {
+  for (const retiredPath of ['server', 'Dockerfile', 'docker-compose.yml', 'start.sh']) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
   }
 
-  for (const retiredRuntimeContract of [
-    "import passport from 'passport'",
-    "import authRoutes from './routes/auth.js'",
-    "import verificationRoutes from './routes/verification.js'",
-    'passport.initialize()',
-    "app.use('/api/auth', authRoutes)",
-    "app.use('/api/verification', verificationRoutes)",
-    "app.use('/api/password-reset', verificationRoutes)",
-  ]) {
-    assert.ok(!serverEntry.includes(retiredRuntimeContract), retiredRuntimeContract);
-  }
-
-  const migrationInventory = JSON.parse(inventory);
-  assert.ok(
-    !migrationInventory.surfaces.some(({ id }) => id === 'auth' || id === 'verification')
-  );
-
-  for (const productionSurface of [compose, learningOsWorkflow, productionWorkflow, lifecycle]) {
-    assert.ok(!productionSurface.includes('LEARNING_OS_BROWSER_SESSION_ENABLED'));
-  }
-
-  for (const canonicalRoute of [
-    '/api/convolab/browser/auth/signup',
-    '/api/convolab/auth/me',
-    '/api/convolab/auth/me/quota',
-    '/api/convolab/browser/auth/verification',
-    '/api/convolab/browser/auth/login',
-    '/api/convolab/browser/auth/logout',
-    '/api/auth/password/forgot',
-    '/api/auth/password/reset',
-  ]) {
-    assert.ok(lifecycle.includes(canonicalRoute), canonicalRoute);
-  }
-  assert.ok(lifecycle.includes('account.role !== "user"'));
-  assert.ok(lifecycle.includes('Signup account response mismatched: ${mismatches.join(", ")}.'));
-  assert.ok(lifecycle.includes('generic Learning OS/Fortify concern'));
+  assert.deepEqual(rootPackage.workspaces, ['client', 'shared']);
+  assert.equal(rootPackage.scripts['dev:server'], undefined);
+  assert.equal(rootPackage.scripts['build:server'], undefined);
+  assert.equal(rootPackage.scripts['migration:route-usage'], undefined);
+  assert.equal(rootPackage.devDependencies.concurrently, undefined);
+  assert.doesNotMatch(clientConfig, /localhost:3001/);
+  assert.doesNotMatch(playwrightConfig, /cd server|localhost:3001/);
 });
 
-test('ConvoLab queue workers are retired from runtime and deployment surfaces', async () => {
+test('ConvoLab queue workers stay retired from deployment surfaces', async () => {
   const [stageCompose, productionCompose, stageWorkflow, productionWorkflow, scriptWorkflow] =
     await Promise.all([
       readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
@@ -1114,264 +1016,18 @@ test('ConvoLab queue workers are retired from runtime and deployment surfaces', 
       readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
       readFile(path.join(repositoryRoot, '.github/workflows/run-script-prod.yml'), 'utf8'),
     ]);
-  const serverPackage = JSON.parse(
-    await readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8')
-  );
 
-  assert.equal(serverPackage.dependencies.bullmq, undefined);
   assert.doesNotMatch(stageCompose, /^\s+worker-stage:/m);
   assert.doesNotMatch(productionCompose, /^\s+worker:/m);
-  assert.doesNotMatch(
-    stageWorkflow,
-    /Dockerfile\.worker|convolab-\$\{\{ matrix\.name \}\}|convolab-worker-stage/
-  );
-  assert.doesNotMatch(productionWorkflow, /\$COMPOSE pull[^\n]*\bworker\b/);
-  assert.doesNotMatch(
-    productionWorkflow,
-    /force-recreate worker|worker_state=|convolab-worker/
-  );
+  assert.doesNotMatch(stageWorkflow, /Dockerfile\.worker|convolab-worker-stage/);
+  assert.doesNotMatch(productionWorkflow, /force-recreate worker|worker_state=|convolab-worker/);
   assert.doesNotMatch(scriptWorkflow, /^\s+- worker$/m);
-
-  await assert.rejects(stat(path.join(repositoryRoot, 'server/Dockerfile.worker')));
-  await assert.rejects(stat(path.join(repositoryRoot, 'server/src/worker.ts')));
+  assert.doesNotMatch(scriptWorkflow, /default: 'server'|service="server-/);
+  assert.match(scriptWorkflow, /exec -T learning-os sh -c/);
 });
 
-test('legacy dialogue and image generation proxies stay retired at the edge', async () => {
-  const retiredPaths = [
-    'server/src/routes/dialogue.ts',
-    'server/src/routes/images.ts',
-    'server/src/routes/learningOs/dialogue.ts',
-    'server/src/routes/learningOs/images.ts',
-    'server/src/__tests__/unit/routes/dialogue.test.ts',
-    'server/src/__tests__/unit/routes/images.test.ts',
-    'server/src/services/dialogueGenerator.ts',
-    'server/scripts/create-and-generate-dialog-for-yuriy.ts',
-    'server/scripts/generate-all-sample-dialogues.ts',
-    'server/scripts/generate-sample-dialogues.ts',
-    'server/scripts/recreate-dialog-longer.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy dialogue audio generation proxy stays retired at the edge', async () => {
-  const retiredPaths = [
-    'server/src/routes/audio.ts',
-    'server/src/routes/learningOs/audio.ts',
-    'server/src/__tests__/unit/routes/audio.test.ts',
-    'server/src/services/audioGenerator.ts',
-    'server/scripts/generate-sample-audio.ts',
-    'server/scripts/manual-audio-generation.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy direct lesson generation and the Express course proxy stay retired', async () => {
-  const retiredPaths = [
-    'server/src/routes/courses.ts',
-    'server/src/routes/learningOs/courses.ts',
-    'server/src/services/conversationalLessonScriptGenerator.ts',
-    'server/src/services/speakerNarration.ts',
-    'server/src/services/scriptGenerationConfig.ts',
-    'server/src/services/scriptProofreader.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy audio script generation and the Express script proxy stay retired', async () => {
-  const retiredPaths = [
-    'server/src/routes/scripts.ts',
-    'server/src/routes/learningOs/scripts.ts',
-    'server/src/services/audioScriptService.ts',
-    'server/src/services/audioCourseAssembler.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy lesson planning and script generation stay retired behind Learning OS', async () => {
-  const scriptTypes = await readFile(
-    path.join(repositoryRoot, 'server/src/services/lessonScriptTypes.ts'),
-    'utf8'
-  );
-  const retiredPaths = [
-    'server/src/services/lessonScriptGenerator.ts',
-    'server/src/services/lessonPlanner.ts',
-  ];
-
-  assert.match(scriptTypes, /export type LessonScriptUnit/);
-  assert.doesNotMatch(scriptTypes, /generateCoreLlm|planCourse|generateLessonScript/);
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy course item extraction stays retired behind Learning OS', async () => {
-  const retiredPaths = [
-    'server/src/services/courseItemExtractor.ts',
-    'server/src/services/dialogueReviewer.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy local course audio generation stays retired behind Learning OS', async () => {
-  const retiredPaths = [
-    'server/src/services/batchedTTSClient.ts',
-    'server/src/services/japaneseReadingGenerator.ts',
-    'server/src/scripts/generate-course-audio-local.ts',
-    'server/src/__tests__/unit/services/batchedTTSClient.test.ts',
-    'server/src/__tests__/unit/services/japaneseReadingGenerator.test.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy local TTS and audio-processing utilities stay retired', async () => {
-  const voicePreview = await readFile(
-    path.join(repositoryRoot, 'server/scripts/generate-voice-previews.ts'),
-    'utf8'
-  );
-  const retiredPaths = [
-    'server/src/services/ttsProviders/GoogleTTSBetaProvider.ts',
-    'server/src/services/ttsProviders/PollyTTSProvider.ts',
-    'server/src/__tests__/unit/services/ttsProviders/GoogleTTSBetaProvider.test.ts',
-    'server/src/__tests__/unit/services/ttsProviders/PollyTTSProvider.test.ts',
-    'server/test-polly-voices.ts',
-    'server/src/services/ttsClient.ts',
-    'server/src/__tests__/unit/services/ttsClient.test.ts',
-    'server/src/services/ttsProviders/TTSProvider.ts',
-    'server/scripts/validate-voices.ts',
-    'server/src/services/audioProcessing.ts',
-    'server/src/__tests__/unit/services/audioProcessing.test.ts',
-  ];
-
-  assert.match(voicePreview, /GoogleTTSProvider/);
-  assert.match(voicePreview, /FishAudioTTSProvider/);
-  assert.doesNotMatch(voicePreview, /services\/ttsClient|ttsProviders\/TTSProvider\.js/);
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy content LLM wrappers stay retired behind Learning OS', async () => {
-  const [serverPackage, pitchAccentLlm, speakerAvatars, voiceAvatarPortraits] =
-    await Promise.all([
-      readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8').then(JSON.parse),
-      readFile(
-        path.join(repositoryRoot, 'server/src/services/pitchAccent/pitchAccentLlm.ts'),
-        'utf8'
-      ),
-      readFile(path.join(repositoryRoot, 'server/scripts/generate-speaker-avatars.ts'), 'utf8'),
-      readFile(
-        path.join(repositoryRoot, 'server/scripts/generate-voice-avatar-portraits.ts'),
-        'utf8'
-      ),
-    ]);
-  const retiredPaths = [
-    'server/src/services/geminiClient.ts',
-    'server/src/services/coreLlmClient.ts',
-    'server/scripts/fix-dialogue-readings.ts',
-    'server/src/__tests__/unit/services/geminiClient.test.ts',
-    'server/src/__tests__/unit/services/coreLlmClient.test.ts',
-  ];
-
-  assert.equal(serverPackage.dependencies['@google/generative-ai'], undefined);
-  assert.match(pitchAccentLlm, /generateOpenAIResponseText/);
-  assert.match(speakerAvatars, /generateOpenAIImageBuffer/);
-  assert.match(voiceAvatarPortraits, /generateOpenAIImageBuffer/);
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy avatar generator experiments stay retired behind the OpenAI generator', async () => {
-  const [
-    serverPackage,
-    speakerAvatars,
-    localCompose,
-    stageCompose,
-    productionCompose,
-    ...setupFiles
-  ] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8').then(JSON.parse),
-    readFile(path.join(repositoryRoot, 'server/scripts/generate-speaker-avatars.ts'), 'utf8'),
-    ...[
-      'docker-compose.yml',
-      'docker-compose.stage.yml',
-      'docker-compose.prod.yml',
-      'SETUP_CHECKLIST.md',
-      'docs/SETUP.md',
-      'docs/GETTING_STARTED.md',
-      'DEPLOYMENT.md',
-    ].map((file) => readFile(path.join(repositoryRoot, file), 'utf8')),
-  ]);
-  const retiredPaths = [
-    'server/scripts/generate-english-avatars.ts',
-    'server/scripts/generate-english-avatars-ai.ts',
-    'server/scripts/generate-english-avatars-vertex.ts',
-    'server/scripts/generate-english-avatars-local.ts',
-    'server/scripts/generate-english-avatars-simple.ts',
-    'server/scripts/generate-final-english-avatars.ts',
-    'server/scripts/generate-remaining-english-avatars.ts',
-  ];
-
-  assert.equal(serverPackage.dependencies['@google-cloud/vertexai'], undefined);
-  assert.equal(serverPackage.scripts['generate:avatars'], 'tsx scripts/generate-speaker-avatars.ts');
-  assert.match(speakerAvatars, /generateOpenAIImageBuffer/);
-  assert.doesNotMatch(
-    [localCompose, stageCompose, productionCompose, ...setupFiles].join('\n'),
-    /GEMINI_API_KEY|Gemini|Vertex AI/i
-  );
-  for (const compose of [localCompose, productionCompose]) {
-    assert.match(compose, /OPENAI_API_KEY/);
-  }
-  assert.doesNotMatch(stageCompose, /OPENAI_API_KEY/);
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy ConvoLab sample-content database operations and episode proxy stay retired', async () => {
-  const retiredPaths = [
-    'server/src/routes/episodes.ts',
-    'server/src/routes/learningOs/episodes.ts',
-    'server/scripts/check-all-sample-courses.ts',
-    'server/scripts/check-sample-by-level.ts',
-    'server/scripts/check-sample-dialogues.ts',
-    'server/scripts/check-sample-voices.ts',
-    'server/scripts/copy-sample-content-to-user.ts',
-    'server/scripts/delete-user-sample-content.ts',
-    'server/scripts/migrate-sample-courses.ts',
-    'server/scripts/migrate-sample-dialogues.ts',
-    'server/scripts/test-sample-content.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-});
-
-test('legacy course and episode database utilities stay retired', async () => {
-  const retiredPaths = [
+test('retired database utilities and embedded credentials stay absent', async () => {
+  for (const retiredPath of [
     'check-course-status.ts',
     'check-episode-speakers.ts',
     'check-episode.ts',
@@ -1379,40 +1035,7 @@ test('legacy course and episode database utilities stay retired', async () => {
     'check-speaker-voices.ts',
     'delete-course.ts',
     'find-yuriy.ts',
-    'server/scripts/check-course-episodes.ts',
-    'server/scripts/check-course-jlpt.ts',
-    'server/scripts/check-course-status.ts',
-    'server/scripts/check-course-user.ts',
-    'server/scripts/check-course-voices.ts',
-    'server/scripts/check-dialog-status.ts',
-    'server/scripts/check-draft-dialogs.ts',
-    'server/scripts/check-episode-audio-urls.ts',
-    'server/scripts/check-episode-status.ts',
-    'server/scripts/check-episode-voices.ts',
-    'server/scripts/check-failed-course-speakers.ts',
-    'server/scripts/check-failed-course-voices.ts',
-    'server/scripts/check-lesson-voices.ts',
-    'server/scripts/check-recent-courses.ts',
-    'server/scripts/check-user-courses.ts',
-    'server/scripts/clear-course-content.ts',
-    'server/scripts/delete-draft-episode.ts',
-    'server/scripts/delete-course.ts',
-    'server/scripts/delete-stuck-episodes.ts',
-    'server/scripts/find-episode.ts',
-    'server/scripts/find-recent-courses.ts',
-    'server/scripts/find-yuriy-courses.ts',
-    'server/scripts/fix-all-voice-providers.ts',
-    'server/scripts/fix-stuck-dialogs.ts',
-    'server/scripts/fix-voice-providers.ts',
-    'server/scripts/get-course-audio-url.ts',
-    'server/scripts/get-course-details.ts',
-    'server/scripts/link-episode-to-course.ts',
-    'server/scripts/list-courses.ts',
-    'server/scripts/reset-course-status.ts',
-    'server/scripts/show-latest-lesson.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
+  ]) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
   }
 
@@ -1427,56 +1050,6 @@ test('legacy course and episode database utilities stay retired', async () => {
     ]),
     (error) => error.code === 1
   );
-});
-
-test('legacy ConvoLab support services stay retired behind Learning OS', async () => {
-  const retiredPaths = [
-    'server/src/__tests__/unit/i18n/emailTemplates.test.ts',
-    'server/src/__tests__/unit/services/audioScriptMedia.test.ts',
-    'server/src/__tests__/unit/services/emailService.test.ts',
-    'server/src/__tests__/unit/services/privateMediaAccess.test.ts',
-    'server/src/__tests__/unit/services/vocabularySeeding.test.ts',
-    'server/src/i18n/emailTemplates.ts',
-    'server/src/i18n/locales/en/email.json',
-    'server/src/i18n/locales/ja/email.json',
-    'server/src/routes/privateMediaResponse.ts',
-    'server/src/services/audioScriptMediaService.ts',
-    'server/src/services/emailService.ts',
-    'server/src/services/privateMediaAccess.ts',
-    'server/src/services/vocabularySeeding.ts',
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-
-  const serverPackage = JSON.parse(
-    await readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8')
-  );
-  for (const retiredDependency of ['@react-email/components', 'react-email', 'resend']) {
-    assert.equal(serverPackage.dependencies?.[retiredDependency], undefined);
-  }
-});
-
-test('legacy language seed artifacts stay retired behind Learning OS', async () => {
-  const retiredPaths = [
-    'add_pronunciations.cjs',
-    'smart_vocab_generator.cjs',
-    ...['n1', 'n2', 'n3', 'n4', 'n5'].flatMap((level) => [
-      `server/src/data/grammar/ja/${level}.json`,
-      `server/src/data/vocabulary/ja/${level}.json`,
-    ]),
-  ];
-
-  for (const retiredPath of retiredPaths) {
-    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
-  }
-
-  const kanjiumData = await stat(
-    path.join(repositoryRoot, 'server/src/data/kanjium/accents.txt')
-  );
-  assert.ok(kanjiumData.isFile());
-  assert.ok(kanjiumData.size > 0);
 });
 
 test('the production stack configures Learning OS auth mail and password reset links', async () => {

@@ -53,8 +53,6 @@ test-results
 tmp
 
 # Legacy/ops scripts (kept for manual operations; not part of app build path)
-server/scripts
-server/src/scripts
 scripts
 check-*.ts
 LOCAL_SETUP.md

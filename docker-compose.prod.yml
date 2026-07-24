@@ -94,7 +94,7 @@ x-learning-os-service: &learning-os-service
   environment: *learning-os-environment
   volumes:
     - learning-os-storage:/app/storage/app
-    - ./server/gcloud-key.json:/app/gcloud-key.json:ro
+    - /opt/convolab-runtime/secrets/gcloud-key.json:/app/gcloud-key.json:ro
   networks:
     - convolab-network
   depends_on:

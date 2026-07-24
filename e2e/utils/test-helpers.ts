@@ -193,26 +193,3 @@ export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const widestWidth = Math.max(widths.bodyWidth, widths.docWidth);
   expect(widestWidth).toBeLessThanOrEqual(widths.viewportWidth + 1);
 }
-
-/**
- * Clear all generation logs for a user (via API)
- */
-export async function clearUserQuota(page: Page, userId: string): Promise<void> {
-  await page.request.delete(`http://localhost:3001/api/test/quota/${userId}`);
-}
-
-/**
- * Clear Redis cooldown keys (via API)
- */
-export async function clearCooldowns(page: Page): Promise<void> {
-  await page.request.delete('http://localhost:3001/api/test/cooldowns');
-}
-
-/**
- * Set user quota usage (via API)
- */
-export async function setUserQuota(page: Page, userId: string, used: number): Promise<void> {
-  await page.request.post(`http://localhost:3001/api/test/quota/${userId}`, {
-    data: { used },
-  });
-}

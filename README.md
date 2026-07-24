@@ -44,26 +44,24 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 
 ### Backend
 
-- Node.js + Express + TypeScript
-- PostgreSQL + Prisma
-- Redis (API rate limiting)
-- Google Cloud services:
-  - Gemini 2.0 (dialogue generation)
-  - Cloud Text-to-Speech (Neural2)
-  - Cloud Storage
+- Learning OS Laravel API
+- PostgreSQL
+- Google Cloud Storage
+- OpenAI and Fish Audio generation services
 
 ### Hosting
 
-- Google Cloud Run
-- Google Cloud SQL (PostgreSQL)
+- Static Nginx frontend
+- Learning OS API and worker
+- PostgreSQL on DigitalOcean
 
 ## Project Structure
 
 ```
 convo-lab/
 ├── client/          # React frontend
-├── server/          # Node.js backend
 ├── shared/          # Shared types and utilities
+├── deploy/          # Static frontend routing and smoke checks
 └── docs/            # Documentation
 ```
 
@@ -72,11 +70,7 @@ convo-lab/
 ### Prerequisites
 
 - Node.js 20+
-- PostgreSQL 15+
-- Google Cloud account with:
-  - Gemini API enabled
-  - Cloud Text-to-Speech API enabled
-  - Cloud Storage bucket created
+- A running Learning OS API
 
 ### Environment Setup
 
@@ -87,15 +81,10 @@ convo-lab/
    npm install
    ```
 
-3. Set up environment variables (see `.env.example` in server/)
+3. Set `LEARNING_OS_API_URL` when Learning OS is not available at the default
+   local API URL.
 
-4. Run database migrations:
-
-   ```bash
-   npm run db:migrate --workspace=server
-   ```
-
-5. Start development servers:
+4. Start the development server:
    ```bash
    npm run dev
    ```
@@ -129,7 +118,7 @@ ConvoLab works as a Progressive Web App, providing a native app-like experience 
 ## Development
 
 - **Client**: http://localhost:5173
-- **Server**: http://localhost:3001
+- **Learning OS API**: http://localhost:8080
 
 ## Language Support
 

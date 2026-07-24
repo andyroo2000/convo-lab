@@ -10,10 +10,8 @@ feature flags, and the deployment workflow does not compare against or restore
 the retired ConvoLab Study backend.
 
 Login, current-account reads, profile/onboarding writes, signup, and email
-verification are also served by Learning OS. Their independently reversible
-environment flags default to `false` in Compose. The production workflow arms
-rollback, enables them on the active server, and retains them only after the
-profile write and disposable account lifecycle rehearsals pass.
+verification are also served by Learning OS. These routes are permanent and
+have no Convo Lab backend fallback.
 
 ## Workflow Inputs
 
@@ -42,6 +40,12 @@ the production host's `/opt/convolab/.env.production`:
 Store `RESEND_API_KEY` as the repository's GitHub Actions secret of the same
 name. The deployment copies that masked secret into `.env.production`; the
 remaining values are maintained directly on the production host.
+
+The Google Cloud service-account file lives at
+`/opt/convolab-runtime/secrets/gcloud-key.json`. The first deployment after the
+Express workspace retirement copies the existing ignored
+`server/gcloud-key.json` file to that runtime-owned path when needed, preserves
+the source as a fallback, and verifies owner `33:33` with mode `600`.
 
 The deployment validates these values before pulling or restarting containers,
 then verifies the effective Laravel configuration after the API becomes
@@ -80,7 +84,8 @@ Every deployment verifies:
 - Current-account and generation-quota responses plus a reversible profile
   preference write.
 - A disposable signup, email-token issuance, verification, current-account,
-  and fresh-login lifecycle that confirms no legacy Prisma user was created.
+  and fresh-login lifecycle that confirms no duplicate compatibility user was
+  created.
 - Browser list and note detail against Learning OS state.
 - Settings read plus an idempotent settings write.
 - New Queue read plus two idempotent reorder writes.

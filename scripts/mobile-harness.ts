@@ -390,7 +390,6 @@ ${!dryRun ? `
 
 When you commit, the pre-commit hook will:
 - Run lint-staged (lints staged files)
-- Run server tests if server files changed
 - Fail the commit if either fails
 
 Ensure your CSS/TSX changes pass linting before committing.

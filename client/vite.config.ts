@@ -5,8 +5,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 import pwaManifest from './src/config/pwaManifest';
 
+const learningOsApiUrl = process.env.LEARNING_OS_API_URL ?? 'http://localhost:8080';
+
 const learningOsLegacyGenerationProxy = (namespace: 'dialogue' | 'audio' | 'images') => ({
-  target: 'http://localhost:8080',
+  target: learningOsApiUrl,
   changeOrigin: true,
   rewrite: (requestPath: string) =>
     requestPath.replace(new RegExp(`^/api/${namespace}(?=/|$)`), `/api/convolab/${namespace}`),
@@ -45,86 +47,86 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/sanctum/csrf-cookie': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/auth': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/browser/auth': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/episodes': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/courses': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/scripts': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/dialogue': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/audio': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/images': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '^/api/dialogue(?:/|$)': learningOsLegacyGenerationProxy('dialogue'),
       '^/api/audio(?:/|$)': learningOsLegacyGenerationProxy('audio'),
       '^/api/images(?:/|$)': learningOsLegacyGenerationProxy('images'),
       '/api/convolab/admin': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/convolab/browser/tools/analytics': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/feature-flags': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '^/api/study(?:/|$)': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '^/api/daily-audio-practice(?:/|$)': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/auth/password': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/avatars': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api/tools-audio': {
-        target: 'http://localhost:8080',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/api': {
-        target: 'http://localhost:3001',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/avatars': {
-        target: 'http://localhost:3001',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
       '/audio': {
-        target: 'http://localhost:3001',
+        target: learningOsApiUrl,
         changeOrigin: true,
       },
     },

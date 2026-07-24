@@ -144,13 +144,11 @@ Skip dependency scanning. Focus on code-level security issues.
    - Privilege escalation paths
 
 ### PHASE 3: Input Validation & Injection
-1. Review all API endpoints in server/src/routes/
-2. For each endpoint, check:
-   - Input validation (Zod schemas)
-   - SQL injection risks (Prisma usage)
-   - NoSQL injection (Redis commands)
-   - Command injection (shell execution)
-   - Path traversal (file operations)
+1. Review client API adapters, URL construction, and deployment edge routing
+2. For each browser input path, check:
+   - Client-side validation and canonical API payloads
+   - Command injection in deployment shell execution
+   - Path traversal in media URL construction
 3. Check file upload handling:
    - File type validation
    - Size limits

@@ -33,9 +33,8 @@ startup logic.
 - Legacy tool paths keep their permanent redirects.
 
 `shared/seo.mjs` is the source of truth for SEO metadata, route classes, and
-legacy redirects. The retired Express source imports it for compatibility, and
-the static image uses it at build time to generate HTML entrypoints and Nginx
-route configuration.
+legacy redirects. The static image uses it at build time to generate HTML
+entrypoints and Nginx route configuration.
 
 ## Deployment Boundary
 

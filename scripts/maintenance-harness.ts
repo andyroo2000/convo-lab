@@ -186,9 +186,9 @@ Note: The build also type-checks, so if Phase 2 passed, build should pass too.
    - Read CHANGELOG.md
    - Compare with recent commits
    - Verify latest changes are documented
-3. Review API documentation:
-   - Check server/README.md if exists
-   - Verify endpoint documentation
+3. Review integration documentation:
+   - Check the Learning OS routing and production deployment docs
+   - Verify browser API ownership documentation
    - Check for missing docs
 4. Flag outdated docs:
    - Identify stale documentation

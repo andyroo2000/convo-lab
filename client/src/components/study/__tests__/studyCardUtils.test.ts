@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { toAssetUrl } from '../studyCardUtils';
 
 vi.mock('../../../config', () => ({
-  API_URL: 'http://localhost:3001',
+  API_URL: 'http://localhost:8080',
 }));
 
 describe('studyCardUtils', () => {
@@ -14,8 +14,8 @@ describe('studyCardUtils', () => {
     );
   });
 
-  it('continues resolving unrelated relative assets against the Express API origin', () => {
-    expect(toAssetUrl('/audio/example.mp3')).toBe('http://localhost:3001/audio/example.mp3');
+  it('continues resolving unrelated relative assets against the configured API origin', () => {
+    expect(toAssetUrl('/audio/example.mp3')).toBe('http://localhost:8080/audio/example.mp3');
     expect(toAssetUrl('https://cdn.example/audio.mp3')).toBe('https://cdn.example/audio.mp3');
     expect(toAssetUrl(null)).toBeNull();
   });

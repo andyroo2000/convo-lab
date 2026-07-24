@@ -173,7 +173,6 @@ Before committing, ensure test files pass linting:
 **Pre-Commit Hook Awareness:**
 When you commit, the pre-commit hook will:
 - Run lint-staged (lints staged files) - should pass since we fixed linting
-- Run server tests if server files changed
 - Fail the commit if either fails
 
 Ensure your changes pass these checks before committing.
@@ -187,7 +186,7 @@ Ensure your changes pass these checks before committing.
 
 ### File Locations
 - **Client tests**: client/src/*/__tests__/*.test.tsx
-- **Server tests**: server/src/__tests__/unit/**/*.test.ts
+- **Deployment tests**: .github/scripts/*.test.mjs
 - **E2E tests**: e2e/*.spec.ts
 
 ### Test Patterns to Follow
