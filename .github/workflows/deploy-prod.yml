@@ -455,6 +455,22 @@ jobs:
                   fi
                 done
 
+                avatar_status="$(curl --silent --show-error \
+                  --dump-header "$response_body" \
+                  --output /dev/null \
+                  --write-out '%{http_code}' \
+                  https://convo-lab.com/api/avatars/voices/ja-shohei.jpg)"
+                if [ "$avatar_status" != 302 ]; then
+                  echo "Direct Learning OS avatar probe returned HTTP $avatar_status."
+                  cat "$response_body"
+                  return 1
+                fi
+                if ! grep -Eiq '^x-powered-by: PHP/' "$response_body"; then
+                  echo "Direct Learning OS avatar probe did not reach PHP."
+                  cat "$response_body"
+                  return 1
+                fi
+
                 tool_audio_status="$(curl --silent --show-error \
                   --output "$response_body" \
                   --write-out '%{http_code}' \

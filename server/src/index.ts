@@ -23,8 +23,6 @@ import adminCourseRoutes from './routes/adminCourses.js';
 import adminFeatureFlagRoutes from './routes/adminFeatureFlags.js';
 import adminScriptLabRoutes from './routes/adminScriptLab.js';
 import audioRoutes from './routes/audio.js';
-import avatarAssetRoutes from './routes/avatarAssets.js';
-import contentEpisodeAudioRoutes from './routes/contentEpisodeAudio.js';
 import dialogueRoutes from './routes/dialogue.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
@@ -265,8 +263,6 @@ app.get('/health', async (_req, res) => {
 // API Routes
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
-app.use('/api/convolab/episodes', contentEpisodeAudioRoutes);
-app.use('/api/avatars', avatarAssetRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/learning-os/study', learningOsStudyRoutes);
 app.use('/api/admin', adminRoutes);

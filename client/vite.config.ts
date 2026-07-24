@@ -81,6 +81,10 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/api/avatars': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/api/tools-audio': {
         target: 'http://localhost:8080',
         changeOrigin: true,

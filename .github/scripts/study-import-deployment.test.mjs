@@ -544,22 +544,19 @@ test('the production workflow proves public episode CRUD and removes every smoke
   assert.ok(failureCleanup.includes('cleanup_episode_write_smoke best-effort'));
 });
 
-test('the production stack wires and smokes Learning OS static media', async () => {
-  const [compose, workflow, productionWorkflow, stageCompose, router, viteConfig] =
-    await Promise.all([
-      readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
-      readFile(
-        path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-        'utf8'
-      ),
-      readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
-      readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
-      readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8'),
-      readFile(path.join(repositoryRoot, 'client/vite.config.ts'), 'utf8'),
-    ]);
+test('the production stack wires and smokes direct Learning OS static media', async () => {
+  const [compose, workflow, productionWorkflow, router, viteConfig] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+    readFile(
+      path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+      'utf8'
+    ),
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'client/vite.config.ts'), 'utf8'),
+  ]);
 
   for (const requiredComposeContract of [
-    'LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: ${LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:-true}',
     'LEARNING_OS_DEPLOY_CONFIG_REVISION: ${LEARNING_OS_DEPLOY_CONFIG_REVISION}',
     'GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json',
     'GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}',
@@ -576,27 +573,28 @@ test('the production stack wires and smokes Learning OS static media', async () 
     compose.indexOf('x-server-environment:'),
     compose.indexOf('x-server-service:')
   );
-  assert.ok(serverEnvironment.includes('AVATARS_GCS_ROOT: ${AVATARS_GCS_ROOT:-avatars}'));
+  assert.doesNotMatch(serverEnvironment, /AVATARS_GCS_ROOT/);
   assert.doesNotMatch(serverEnvironment, /TOOLS_AUDIO_GCS_ROOT/);
-
-  assert.match(
-    stageCompose,
-    /LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:\s*['"]false['"]/
-  );
+  assert.doesNotMatch(serverEnvironment, /LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED/);
+  assert.ok(router.includes('location ~ ^/api/avatars(?:/|$)'));
   assert.ok(router.includes('location ~ ^/api/tools-audio(?:/|$)'));
+  assert.ok(viteConfig.includes("'/api/avatars'"));
   assert.ok(viteConfig.includes("'/api/tools-audio'"));
+  assert.ok(viteConfig.indexOf("'/api/avatars'") < viteConfig.indexOf("'/api':"));
   assert.ok(viteConfig.indexOf("'/api/tools-audio'") < viteConfig.indexOf("'/api':"));
 
   for (const requiredSmokeContract of [
-    'test "$active_static_media_proxy" = true',
     "'https://convo-lab.com/api/avatars/voices/ja-shohei.jpg'",
-    'Avatar Learning OS proxy smoke check passed.',
+    'Avatar direct Learning OS smoke check passed.',
     "'/api/tools-audio/signed-urls'",
     'Tool Audio direct Learning OS smoke check passed.',
   ]) {
     assert.ok(workflow.includes(requiredSmokeContract), requiredSmokeContract);
   }
   for (const requiredProductionContract of [
+    'https://convo-lab.com/api/avatars/voices/ja-shohei.jpg',
+    'Direct Learning OS avatar probe returned HTTP',
+    'Direct Learning OS avatar probe did not reach PHP.',
     'https://convo-lab.com/api/tools-audio/signed-urls',
     'Direct Learning OS tool-audio probe returned HTTP',
     'Direct Learning OS tool-audio probe did not return signed URLs.',

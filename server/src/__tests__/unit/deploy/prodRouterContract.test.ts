@@ -19,8 +19,10 @@ describe('production router contract', () => {
     expect(routerTemplate).toMatch(/location \^~ \/api\/convolab\/auth\/ \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/browser\/auth\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/auth\/password\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).toMatch(/location ~ \^\/api\/avatars\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/tools-audio\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/episodes\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).not.toContain('location ~ ^/api/convolab/episodes/[^/]+/audio/[^/]+$');
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/courses\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/scripts\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(
@@ -34,15 +36,9 @@ describe('production router contract', () => {
   it.each([
     ['location ^~ /api/convolab/auth/ {', 'location ~ ^/api/convolab/browser/auth(?:/|$)'],
     ['location ~ ^/api/convolab/browser/auth(?:/|$)', 'location ~ ^/api/auth/password(?:/|$)'],
-    ['location ~ ^/api/auth/password(?:/|$)', 'location ~ ^/api/tools-audio(?:/|$)'],
-    [
-      'location ~ ^/api/tools-audio(?:/|$)',
-      'location ~ ^/api/convolab/episodes/[^/]+/audio/[^/]+$',
-    ],
-    [
-      'location ~ ^/api/convolab/episodes/[^/]+/audio/[^/]+$',
-      'location ~ ^/api/convolab/episodes(?:/|$)',
-    ],
+    ['location ~ ^/api/auth/password(?:/|$)', 'location ~ ^/api/avatars(?:/|$)'],
+    ['location ~ ^/api/avatars(?:/|$)', 'location ~ ^/api/tools-audio(?:/|$)'],
+    ['location ~ ^/api/tools-audio(?:/|$)', 'location ~ ^/api/convolab/episodes(?:/|$)'],
     ['location ~ ^/api/convolab/episodes(?:/|$)', 'location ~ ^/api/convolab/courses(?:/|$)'],
     ['location ~ ^/api/convolab/courses(?:/|$)', 'location ~ ^/api/convolab/scripts(?:/|$)'],
     [

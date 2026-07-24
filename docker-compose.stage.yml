@@ -93,7 +93,6 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION}
       FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY}
-      LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: "false"
     volumes:
       - ./server/gcloud-key.json:/app/gcloud-key.json:ro
     networks:

@@ -6,23 +6,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
 import audioRouter from '../../../routes/audio.js';
-import contentEpisodeAudioRouter from '../../../routes/contentEpisodeAudio.js';
 
 const mocks = vi.hoisted(() => ({
   fetchLearningOsProxy: vi.fn(),
-  rateLimitStudyRoute: vi.fn(),
-  studyRateLimitMiddleware: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) =>
-    next()
-  ),
   resolveLearningOsProxyContext: vi.fn(),
 }));
 
 vi.mock('../../../services/learningOsProxy.js', () => ({
   fetchLearningOsProxy: mocks.fetchLearningOsProxy,
   resolveLearningOsProxyContext: mocks.resolveLearningOsProxyContext,
-}));
-vi.mock('../../../middleware/studyRateLimit.js', () => ({
-  rateLimitStudyRoute: mocks.rateLimitStudyRoute.mockReturnValue(mocks.studyRateLimitMiddleware),
 }));
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: vi.fn((req: AuthRequest, _res: Response, next: NextFunction) => {
@@ -92,7 +84,6 @@ describe('Audio routes', () => {
     app = express();
     app.use(express.json());
     app.use('/api/audio', audioRouter);
-    app.use('/api/convolab/episodes', contentEpisodeAudioRouter);
     app.use(errorHandler);
   });
 
@@ -275,104 +266,4 @@ describe('Audio routes', () => {
     expect(response.headers['retry-after']).toBe('17');
     expect(response.body.error.cooldown).toEqual({ remainingSeconds: 17 });
   });
-
-  it('streams authenticated episode audio with safe headers and byte ranges', async () => {
-    mocks.fetchLearningOsProxy.mockResolvedValue(
-      new globalThis.Response('mp3-bytes', {
-        status: 206,
-        headers: {
-          'Accept-Ranges': 'bytes',
-          'Cache-Control': 'private, max-age=60',
-          'Content-Range': 'bytes 0-8/9',
-          'Content-Type': 'audio/mpeg',
-          ETag: 'safe-etag',
-          'X-Upstream-Secret': 'do-not-forward',
-        },
-      })
-    );
-
-    const response = await request(app)
-      .get(`/api/convolab/episodes/${EPISODE_ID}/audio/1.0`)
-      .set('Range', 'bytes=0-8')
-      .expect(206);
-
-    expect(response.body.toString()).toBe('mp3-bytes');
-    expect(response.headers['content-type']).toBe('audio/mpeg');
-    expect(response.headers['accept-ranges']).toBe('bytes');
-    expect(response.headers['content-range']).toBe('bytes 0-8/9');
-    expect(response.headers['cache-control']).toBe('private, max-age=60');
-    expect(response.headers['content-security-policy']).toBe("sandbox; default-src 'none'");
-    expect(response.headers['cross-origin-resource-policy']).toBe('same-origin');
-    expect(response.headers['x-content-type-options']).toBe('nosniff');
-    expect(response.headers['x-upstream-secret']).toBeUndefined();
-    expect(mocks.studyRateLimitMiddleware).toHaveBeenCalledOnce();
-    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        upstreamUrl: new URL(
-          `http://learning-os.test/api/convolab/episodes/${EPISODE_ID}/audio/1.0`
-        ),
-        method: 'GET',
-        additionalHeaders: { Accept: 'audio/mpeg', Range: 'bytes=0-8' },
-      })
-    );
-  });
-
-  it.each([
-    [`/api/convolab/episodes/not-a-uuid/audio/1.0`, ''],
-    [`/api/convolab/episodes/${EPISODE_ID}/audio/unknown`, ''],
-    [`/api/convolab/episodes/${EPISODE_ID}/audio/1.0`, 'bytes=1-2,4-5'],
-  ])('rejects an invalid media request before contacting Learning OS: %s', async (path, range) => {
-    const pending = request(app).get(path);
-    if (range) pending.set('Range', range);
-
-    await pending.expect(range ? 400 : 404);
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('preserves a hidden 404 from the episode audio endpoint', async () => {
-    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson({ message: 'secret path' }, 404));
-
-    const response = await request(app)
-      .get(`/api/convolab/episodes/${EPISODE_ID}/audio/default`)
-      .expect(404);
-
-    expect(response.body.error.message).toBe('Episode audio not found');
-    expect(JSON.stringify(response.body)).not.toContain('secret path');
-  });
-
-  it.each([401, 403, 500, 503])(
-    'maps upstream episode audio status %s to a sanitized gateway error',
-    async (upstreamStatus) => {
-      mocks.fetchLearningOsProxy.mockResolvedValue(
-        upstreamJson({ message: 'sensitive media details' }, upstreamStatus)
-      );
-
-      const response = await request(app)
-        .get(`/api/convolab/episodes/${EPISODE_ID}/audio/default`)
-        .expect(502);
-
-      expect(response.body.error.message).toBe('Learning OS Audio API request failed.');
-      expect(JSON.stringify(response.body)).not.toContain('sensitive media details');
-    }
-  );
-
-  it.each(['text/html', `audio/mpeg;${'a'.repeat(1100)}`])(
-    'rejects an unsafe upstream audio content type: %s',
-    async (contentType) => {
-      mocks.fetchLearningOsProxy.mockResolvedValue(
-        new globalThis.Response('not-audio', {
-          status: 200,
-          headers: { 'Content-Type': contentType },
-        })
-      );
-
-      const response = await request(app)
-        .get(`/api/convolab/episodes/${EPISODE_ID}/audio/1.0`)
-        .expect(502);
-
-      expect(response.body.error.message).toBe(
-        'Learning OS Audio API returned invalid media headers.'
-      );
-    }
-  );
 });
