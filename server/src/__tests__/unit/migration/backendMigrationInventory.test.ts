@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes.length).toBeGreaterThan(56);
+    expect(routes).toHaveLength(60);
   });
 
   it('preserves every literal route in Express declaration order', () => {
