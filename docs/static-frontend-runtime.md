@@ -39,11 +39,15 @@ configuration.
 
 ## Deployment Boundary
 
-The `Static Frontend Runtime` workflow builds this image and exercises it in a
-container, but does not publish or deploy it. Production and staging continue
-using the combined Convo Lab image until a separate cutover changes image
-publication, Compose services, health contracts, and router traffic together.
+The staging deployment publishes both runtime images, runs the static image as
+`convolab-server-stage`, and verifies its public HTTP contract after deployment.
+The established container name and host port remain unchanged so Caddy and
+health tracking do not need a coordinated reconfiguration.
 
-During that cutover, keep the prior combined image tag available for rollback.
-Learning OS owns backend health and API behavior; the static frontend health
-check only proves that Nginx can serve the built client.
+Production continues using the combined Convo Lab image. Both images receive
+the same immutable `main-<sha>` tag, so production can deploy the tested commit
+without switching runtimes and the prior combined image remains available for
+rollback. Staging teardown removes the retired backend containers without
+deleting their host-backed data, preserving a rollback path during the
+rehearsal. Learning OS owns backend health and API behavior; the static frontend
+health check only proves that Nginx can serve the built client.

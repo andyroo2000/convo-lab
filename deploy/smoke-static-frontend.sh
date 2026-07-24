@@ -75,15 +75,15 @@ assert_body missing '<meta name="robots" content="noindex,nofollow" />'
 
 request legacy /tools/date
 assert_status legacy 301
-assert_header legacy '^Location: http://[^/]+/tools/japanese-date'
+assert_header legacy '^Location: /tools/japanese-date'
 
 request trailing /tools/japanese-date/
 assert_status trailing 308
-assert_header trailing '^Location: http://[^/]+/tools/japanese-date'
+assert_header trailing '^Location: /tools/japanese-date'
 
 request index /index.html
 assert_status index 308
-assert_header index '^Location: http://[^/]+/'
+assert_header index '^Location: /'
 
 request api /api/legacy
 assert_status api 404

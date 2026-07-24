@@ -422,8 +422,12 @@ npx prisma migrate dev --name add_user_avatar
 Pushes to `main` automatically deploy to staging:
 
 ```
-https://convo-lab-staging.run.app
+https://stage.convo-lab.com
 ```
+
+Staging serves the frontend from the static Nginx runtime and runs its full HTTP
+smoke harness after deployment. The production site remains on the combined
+runtime until the production cutover is rehearsed separately.
 
 ### Production
 
