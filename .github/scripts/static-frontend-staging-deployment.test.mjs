@@ -6,7 +6,7 @@ import YAML from 'yaml';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 
-test('staging publishes both rollback and static frontend images', async () => {
+test('staging publishes only the static frontend image', async () => {
   const workflowSource = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy.yml'),
     'utf8'
@@ -14,24 +14,17 @@ test('staging publishes both rollback and static frontend images', async () => {
   const workflow = YAML.parse(workflowSource);
   const buildJob = workflow.jobs['build-and-push'];
 
-  assert.deepEqual(buildJob.strategy.matrix.include, [
-    {
-      runtime: 'combined',
-      image: 'convolab-server',
-      dockerfile: 'Dockerfile',
-      cache_scope: 'convolab-server',
-    },
-    {
-      runtime: 'static frontend',
-      image: 'convolab-frontend',
-      dockerfile: 'Dockerfile.frontend',
-      cache_scope: 'convolab-frontend',
-    },
-  ]);
+  assert.equal(buildJob.name, 'Build static frontend image');
+  assert.equal(buildJob.strategy, undefined);
   assert.equal(workflow.jobs.deploy.needs, 'build-and-push');
-  assert.match(workflowSource, /images: \$\{\{ env\.IMAGE_PREFIX \}\}\/\$\{\{ matrix\.image \}\}/u);
-  assert.match(workflowSource, /file: \$\{\{ matrix\.dockerfile \}\}/u);
-  assert.match(workflowSource, /scope=\$\{\{ matrix\.cache_scope \}\}/u);
+  assert.match(workflowSource, /images: \$\{\{ env\.IMAGE_PREFIX \}\}\/convolab-frontend/u);
+  assert.match(workflowSource, /file: Dockerfile\.frontend/u);
+  assert.match(workflowSource, /scope=convolab-frontend/u);
+  assert.doesNotMatch(
+    workflowSource,
+    /images: \$\{\{ env\.IMAGE_PREFIX \}\}\/convolab-server/u
+  );
+  assert.doesNotMatch(workflowSource, /^\s*file: Dockerfile\s*$/mu);
 });
 
 test('staging runs only the static frontend with stable routing identity', async () => {

@@ -663,13 +663,6 @@ jobs:
               fi
             fi
 
-            echo "🛑 Stopping retired Redis while preserving its host-backed data..."
-            if docker inspect convolab-redis >/dev/null 2>&1; then
-              if ! docker stop convolab-redis; then
-                echo "⚠️ Failed to stop retired convolab-redis; manual cleanup is required."
-              fi
-            fi
-
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             $COMPOSE ps
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

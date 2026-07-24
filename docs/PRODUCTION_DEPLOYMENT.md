@@ -17,9 +17,8 @@ old color. It leaves the stopped prior color in place until the next deploy so
 its exact image remains available for rollback. Postgres and the Learning OS
 API/worker stay running during frontend deploys.
 
-The first static cutover stops the retired Redis container only after the
-public checks pass. Its host-backed data remains under
-`/opt/convolab-data/redis` during the rollback window.
+The staging build publishes only the `convolab-frontend` image. The legacy
+combined Express image is no longer built or published.
 
 The GitHub Actions workflow is the authoritative way to start or switch the
 production web stack. It creates `/opt/convolab-runtime/prod-router/default.conf`
@@ -50,20 +49,17 @@ Use this only if a deploy succeeds but the new color is bad at runtime.
    active is `green`, previous is `blue`.
 4. Confirm the stopped previous container is present:
    `docker inspect convolab-server-<previous>`.
-5. During the first static cutover only, restart retired Redis if the previous
-   container uses the combined Express runtime:
-   `docker start convolab-redis`.
-6. Start the exact previous frontend container:
+5. Start the exact previous frontend container:
    `docker start convolab-server-<previous>`.
-7. Render the router config back to the previous color:
+6. Render the router config back to the previous color:
    `sed 's#__UPSTREAM_SERVICE__#convolab-server-<previous>#g' deploy/prod-router.conf.template > /opt/convolab-runtime/prod-router/default.conf`.
-8. Reload the router:
+7. Reload the router:
    `docker exec convolab-server nginx -t && docker exec convolab-server nginx -s reload`.
-9. Verify public health and the relevant API routes:
+8. Verify public health and the relevant API routes:
    `curl -fsS https://convo-lab.com/health`.
-10. Persist the rollback color:
-    `printf '%s\n' <previous> > /opt/convolab-runtime/prod-active-color.tmp && mv /opt/convolab-runtime/prod-active-color.tmp /opt/convolab-runtime/prod-active-color`.
-11. Stop the bad color after health is confirmed:
+9. Persist the rollback color:
+   `printf '%s\n' <previous> > /opt/convolab-runtime/prod-active-color.tmp && mv /opt/convolab-runtime/prod-active-color.tmp /opt/convolab-runtime/prod-active-color`.
+10. Stop the bad color after health is confirmed:
     `docker stop convolab-server-<bad-color>`.
 
 ## Backend migrations

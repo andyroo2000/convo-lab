@@ -11,23 +11,11 @@ env:
 
 jobs:
   build-and-push:
-    name: Build ${{ matrix.runtime }} Image
+    name: Build static frontend image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runtime: combined
-            image: convolab-server
-            dockerfile: Dockerfile
-            cache_scope: convolab-server
-          - runtime: static frontend
-            image: convolab-frontend
-            dockerfile: Dockerfile.frontend
-            cache_scope: convolab-frontend
 
     steps:
       - name: Checkout code
@@ -47,7 +35,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}
+          images: ${{ env.IMAGE_PREFIX }}/convolab-frontend
           tags: |
             type=raw,value=latest
             type=sha,format=long,prefix={{branch}}-
@@ -56,14 +44,14 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: Dockerfile.frontend
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VITE_GA_MEASUREMENT_ID=${{ vars.VITE_GA_MEASUREMENT_ID }}
-          cache-from: type=gha,scope=${{ matrix.cache_scope }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
+          cache-from: type=gha,scope=convolab-frontend
+          cache-to: type=gha,mode=max,scope=convolab-frontend
 
   deploy:
     name: Deploy to DigitalOcean (Staging)
