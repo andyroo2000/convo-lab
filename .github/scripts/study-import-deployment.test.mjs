@@ -110,6 +110,10 @@ test('the production workflow verifies the always-on Study API without rollout f
     "mutate_learning_os_route POST '/api/study/session/start'",
     "mutate_learning_os_route PATCH '/api/study/settings'",
     "mutate_learning_os_route POST '/api/study/new-queue/reorder'",
+    "'/api/study/cards'",
+    '"/api/study/cards/$study_card_smoke_id"',
+    'study_card_smoke_id=',
+    'Study card create, browser, queue, and delete smoke checks passed.',
     'bash .github/scripts/smoke-study-import-lifecycle.sh',
     'ensure_learning_os_service learning-os learning-os-api',
     'ensure_learning_os_worker',
@@ -172,6 +176,63 @@ test('the production workflow verifies the always-on Study API without rollout f
     workflow,
     /\$COMPOSE up -d --no-deps --force-recreate learning-os learning-os-worker/
   );
+
+  const directReadHelper = workflow.slice(
+    workflow.indexOf('fetch_learning_os_route() {'),
+    workflow.indexOf('mutate_learning_os_route() {')
+  );
+  const directMutationHelper = workflow.slice(
+    workflow.indexOf('mutate_learning_os_route() {'),
+    workflow.indexOf('content_browser_path() {')
+  );
+  for (const sessionContract of [
+    "--header 'Origin: https://convo-lab.com'",
+    '--cookie "$content_browser_smoke_cookie_jar"',
+  ]) {
+    assert.ok(directReadHelper.includes(sessionContract));
+    assert.ok(directMutationHelper.includes(sessionContract));
+  }
+  assert.ok(
+    directMutationHelper.includes(
+      '--header "X-XSRF-TOKEN: $content_browser_smoke_csrf_token"'
+    )
+  );
+  assert.ok(directMutationHelper.includes('--cookie-jar "$content_browser_smoke_cookie_jar"'));
+  assert.doesNotMatch(directReadHelper, /Authorization: Bearer/);
+  assert.doesNotMatch(directMutationHelper, /Authorization: Bearer/);
+  const browserSessionEstablished = workflow.indexOf(
+    'Disposable Learning OS content browser session established.'
+  );
+  const directOverview = workflow.indexOf("'Overview Learning OS'");
+  const importLifecycle = workflow.indexOf(
+    'bash .github/scripts/smoke-study-import-lifecycle.sh'
+  );
+  const browserSessionCleanup = workflow.lastIndexOf(
+    'cleanup_content_browser_smoke',
+    workflow.indexOf('verify_study_api\n')
+  );
+  assert.ok(browserSessionEstablished < directOverview);
+  assert.ok(directOverview < importLifecycle);
+  assert.ok(importLifecycle < browserSessionCleanup);
+  for (const inheritedSessionContract of [
+    'STUDY_SMOKE_USER_ID="$content_browser_smoke_user_id"',
+    'STUDY_SMOKE_COOKIE_JAR="$content_browser_smoke_cookie_jar"',
+    'STUDY_SMOKE_CSRF_TOKEN="$content_browser_smoke_csrf_token"',
+  ]) {
+    assert.ok(workflow.includes(inheritedSessionContract));
+  }
+  const studyCardCreate = workflow.indexOf("'/api/study/cards'");
+  const browserDetail = workflow.indexOf("'Browser detail Learning OS'");
+  const queueReorder = workflow.indexOf(
+    "mutate_learning_os_route POST '/api/study/new-queue/reorder'"
+  );
+  const studyCardDelete = workflow.indexOf(
+    '"/api/study/cards/$study_card_smoke_id"',
+    queueReorder
+  );
+  assert.ok(studyCardCreate < browserDetail);
+  assert.ok(browserDetail < queueReorder);
+  assert.ok(queueReorder < studyCardDelete);
 
   const verifyStudyApi = workflow.slice(
     workflow.indexOf('verify_study_api() {'),
@@ -495,11 +556,15 @@ test('direct Learning OS content smoke uses a disposable admin browser session',
     'mutate_content_browser_route() {',
     '--cookie "$content_browser_smoke_cookie_jar"',
     '--header "X-XSRF-TOKEN: $content_browser_smoke_csrf_token"',
+    'echo "::add-mask::$content_browser_smoke_csrf_raw"',
+    'echo "::add-mask::$content_browser_smoke_csrf_token"',
+    'echo "::add-mask::$content_browser_smoke_session"',
     "printf '%s&viewAs=%s'",
     "printf '%s?viewAs=%s'",
     'cleanup_content_browser_smoke best-effort',
     'cleanup_content_browser_smoke',
     'DB::table("admin_user_projections")\n                      ->where(\n                        "convolab_id",\n                        getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),',
+    '"Disposable Learning OS content browser identity still exists."',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
@@ -751,6 +816,15 @@ test('active Study traffic uses Learning OS directly with an Express rollback pa
   assert.ok(router.includes('proxy_pass $convolab_upstream;'));
   assert.ok(!router.includes('location ^~ /api/study'));
   assert.ok(!router.includes('location ^~ /api/learning-os/study'));
+
+  for (const route of ['/api/study', '/api/daily-audio-practice']) {
+    const start = router.indexOf(`location ~ ^${route}(?:/|$)`);
+    const end = router.indexOf('\n    location ', start + 1);
+    const block = router.slice(start, end);
+    assert.ok(start >= 0);
+    assert.ok(block.includes('proxy_set_header Authorization "";'));
+    assert.ok(block.includes('proxy_set_header X-Convo-Lab-User-Id "";'));
+  }
 });
 
 test('generation routes are permanently proxied and production rehearsals cover them', async () => {
@@ -1496,7 +1570,8 @@ test('the production workflow streams and cleans up disposable Learning OS media
     '[[ "$media_smoke_id" =~ ^[0-9a-hjkmnp-tv-z]{26}$ ]]',
     'Learning OS returned an invalid media smoke ULID:',
     '"https://convo-lab.com/api/study/media/$media_smoke_id"',
-    '--header "Authorization: Bearer $proxy_token"',
+    "--header 'Origin: https://convo-lab.com'",
+    '--cookie "$content_browser_smoke_cookie_jar"',
     'Study media streaming smoke check passed.',
   ]) {
     assert.ok(workflow.includes(requiredContract), `Missing media contract: ${requiredContract}`);
@@ -1595,7 +1670,10 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
   for (const requiredContract of [
     "'/api/daily-audio-practice'",
     'Daily Audio historical track lookup',
-    'No historical ready Daily Audio practice is available for streaming verification.',
+    'daily_audio_smoke_practice_id=',
+    'DailyAudioPracticeGeneration::storagePath(',
+    'DailyAudioPracticeGeneration::audioUrl(',
+    '"learning-os-daily-audio-smoke"',
     `printf '%s' "$daily_audio_list" | docker exec -i`,
     `printf '%s' "$daily_audio_detail" | docker exec -i`,
     `printf '%s' "$daily_audio_status" | docker exec -i`,
@@ -1606,8 +1684,10 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
     "grep -Eiq \"^content-security-policy: sandbox; default-src 'none'[[:space:]]*$\"",
     "grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$'",
     "grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$'",
-    'cleanup_daily_audio_smoke',
+    'cleanup_daily_audio_fixture',
+    '"Disposable Daily Audio fixture still exists."',
     'Historical Daily Audio streaming smoke check passed.',
+    'Disposable Daily Audio fixture cleanup passed.',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
@@ -1619,11 +1699,7 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
     workflow.indexOf('daily_audio_list='),
     workflow.indexOf("'Browser Learning OS'")
   );
-  assert.ok(
-    dailyAudioBlock.indexOf('if [ -z "$daily_audio_id" ]; then') <
-      dailyAudioBlock.indexOf('Daily Audio historical track lookup')
-  );
-  assert.doesNotMatch(dailyAudioBlock, /if \[ -n "\$daily_audio_id" \]; then/);
+  assert.doesNotMatch(dailyAudioBlock, /if \[ -z "\$daily_audio_id" \]; then/);
   assert.doesNotMatch(
     dailyAudioBlock,
     /DAILY_AUDIO_(?:RESPONSE|DETAIL|STATUS)=/,
@@ -1634,8 +1710,14 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
       dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
   );
   assert.ok(
-    dailyAudioBlock.indexOf('test -s "$daily_audio_smoke_body"') <
+    dailyAudioBlock.indexOf(
+      'test "$(cat "$daily_audio_smoke_body")" = "learning-os-daily-audio-smoke"'
+    ) <
       dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
+  );
+  assert.ok(
+    dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.') <
+      dailyAudioBlock.indexOf('cleanup_daily_audio_fixture')
   );
 });
 
@@ -1775,9 +1857,15 @@ test('the lifecycle smoke script remains valid Bash', async () => {
     'trap cleanup EXIT',
     'RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"',
     'docker logs --since "$RUN_STARTED_AT" --tail=300 learning-os-worker',
-    'delete_learning_os_smoke_user',
-    'docker exec -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api',
-    '--header "Authorization: Bearer $proxy_token"',
+    ': "${STUDY_SMOKE_USER_ID:?STUDY_SMOKE_USER_ID is required}"',
+    ': "${STUDY_SMOKE_COOKIE_JAR:?STUDY_SMOKE_COOKIE_JAR is required}"',
+    ': "${STUDY_SMOKE_CSRF_TOKEN:?STUDY_SMOKE_CSRF_TOKEN is required}"',
+    'delete_learning_os_smoke_import_files',
+    'docker exec -e IMPORT_SMOKE_USER_ID="$STUDY_SMOKE_USER_ID" learning-os-api',
+    "--header 'Origin: https://convo-lab.com'",
+    '--header "X-XSRF-TOKEN: $STUDY_SMOKE_CSRF_TOKEN"',
+    '--cookie "$STUDY_SMOKE_COOKIE_JAR"',
+    '--cookie-jar "$STUDY_SMOKE_COOKIE_JAR"',
     '/api/study/imports/readiness',
     "/api/study/imports'",
     '/api/study/imports/$import_job_id/upload',
@@ -1805,6 +1893,11 @@ test('the lifecycle smoke script remains valid Bash', async () => {
     'auth_token',
     'LEARNING_OS_PROXY_USER_EMAIL',
     '$COMPOSE up -d',
+    'Authorization: Bearer',
+    'proxy_token',
+    'IMPORT_SMOKE_EMAIL',
+    'createToken(',
+    '$user->delete()',
   ]) {
     assert.ok(!script.includes(retiredContract), `Retired import smoke bridge remains: ${retiredContract}`);
   }

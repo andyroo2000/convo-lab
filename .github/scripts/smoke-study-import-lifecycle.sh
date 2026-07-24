@@ -3,19 +3,19 @@
 set -euo pipefail
 
 : "${ACTIVE_COLOR:?ACTIVE_COLOR is required}"
+: "${STUDY_SMOKE_USER_ID:?STUDY_SMOKE_USER_ID is required}"
+: "${STUDY_SMOKE_COOKIE_JAR:?STUDY_SMOKE_COOKIE_JAR is required}"
+: "${STUDY_SMOKE_CSRF_TOKEN:?STUDY_SMOKE_CSRF_TOKEN is required}"
 
 SERVER_CONTAINER="convolab-server-$ACTIVE_COLOR"
 ARCHIVE_DIR=""
 ARCHIVE_PATH=""
-SMOKE_EMAIL=""
 RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-delete_learning_os_smoke_user() {
-  [ -n "$SMOKE_EMAIL" ] || return 0
-
-  docker exec -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
+delete_learning_os_smoke_import_files() {
+  docker exec -e IMPORT_SMOKE_USER_ID="$STUDY_SMOKE_USER_ID" learning-os-api \
     php artisan tinker --execute='
-      $user = App\Models\User::query()->where("email", getenv("IMPORT_SMOKE_EMAIL"))->first();
+      $user = App\Models\User::query()->find(getenv("IMPORT_SMOKE_USER_ID"));
       if ($user !== null) {
           $jobs = App\Domain\Study\Models\StudyImportJob::query()
               ->where("user_id", $user->getKey())
@@ -28,10 +28,6 @@ delete_learning_os_smoke_user() {
               Illuminate\Support\Facades\Storage::disk(
                   App\Domain\Media\Models\MediaAsset::DISK_MEDIA
               )->deleteDirectory("study/imports/".$job->getKey());
-          }
-          $user->delete();
-          if (App\Models\User::query()->where("email", getenv("IMPORT_SMOKE_EMAIL"))->exists()) {
-              throw new RuntimeException("Learning OS import smoke user was not deleted.");
           }
       }
     ' < /dev/null >/dev/null
@@ -48,7 +44,7 @@ cleanup() {
     docker logs --since "$RUN_STARTED_AT" --tail=300 learning-os-worker >&2 || true
   fi
 
-  delete_learning_os_smoke_user || cleanup_status=1
+  delete_learning_os_smoke_import_files || cleanup_status=1
   if [ -n "$ARCHIVE_DIR" ]; then
     rm -rf "$ARCHIVE_DIR" || cleanup_status=1
   fi
@@ -62,7 +58,6 @@ cleanup() {
 
 trap cleanup EXIT
 
-SMOKE_EMAIL="learning-os-import-smoke-$(date -u +%s)-$RANDOM@example.invalid"
 ARCHIVE_DIR="$(mktemp -d)"
 ARCHIVE_PATH="$ARCHIVE_DIR/deployment-import-smoke.colpkg"
 
@@ -70,25 +65,11 @@ python3 .github/scripts/create-study-import-smoke-archive.py "$ARCHIVE_PATH" >/d
 archive_size="$(wc -c < "$ARCHIVE_PATH" | tr -d '[:space:]')"
 archive_sha256="$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')"
 
-proxy_token_output="$(docker exec -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api \
-  php artisan tinker --execute='
-    $user = App\Models\User::query()->create([
-        "name" => "Learning OS import smoke",
-        "email" => getenv("IMPORT_SMOKE_EMAIL"),
-        "password" => Illuminate\Support\Str::password(32),
-    ]);
-    echo "IMPORT_SMOKE_TOKEN=".$user
-        ->createToken("convolab-import-smoke", ["study:read", "study:write"])
-        ->plainTextToken;
-  ' < /dev/null)"
-proxy_token="$(printf '%s\n' "$proxy_token_output" | sed -n 's/^IMPORT_SMOKE_TOKEN=//p' | tail -1)"
-test -n "$proxy_token"
-echo "::add-mask::$proxy_token"
-
 read_route() {
   curl --fail --silent --show-error \
     --header 'Accept: application/json' \
-    --header "Authorization: Bearer $proxy_token" \
+    --header 'Origin: https://convo-lab.com' \
+    --cookie "$STUDY_SMOKE_COOKIE_JAR" \
     "https://convo-lab.com$1"
 }
 
@@ -101,7 +82,10 @@ mutate_route() {
     --request "$method"
     --header 'Accept: application/json'
     --header 'Content-Type: application/json'
-    --header "Authorization: Bearer $proxy_token"
+    --header 'Origin: https://convo-lab.com'
+    --header "X-XSRF-TOKEN: $STUDY_SMOKE_CSRF_TOKEN"
+    --cookie "$STUDY_SMOKE_COOKIE_JAR"
+    --cookie-jar "$STUDY_SMOKE_COOKIE_JAR"
   )
   if [ -n "$body" ]; then
     curl_args+=(--data "$body")
@@ -136,7 +120,10 @@ curl --fail --silent --show-error \
   --request PUT \
   --header 'Accept: application/json' \
   --header 'Content-Type: application/zip' \
-  --header "Authorization: Bearer $proxy_token" \
+  --header 'Origin: https://convo-lab.com' \
+  --header "X-XSRF-TOKEN: $STUDY_SMOKE_CSRF_TOKEN" \
+  --cookie "$STUDY_SMOKE_COOKIE_JAR" \
+  --cookie-jar "$STUDY_SMOKE_COOKIE_JAR" \
   --upload-file "$ARCHIVE_PATH" \
   "https://convo-lab.com/api/study/imports/$import_job_id/upload" >/dev/null
 
