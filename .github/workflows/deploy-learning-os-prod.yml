@@ -1628,8 +1628,8 @@ jobs:
                 rm -f "$response_file"
               }
 
-              ACTIVE_COLOR="$active_color" \
-                SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
+              SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                JSON_TOOLS_CONTAINER="$DEPLOYMENT_TOOLS_CONTAINER" \
                 bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh
 
               content_browser_smoke_convolab_id="$(docker exec \
