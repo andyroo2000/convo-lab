@@ -63,7 +63,7 @@ If Phase 1 quality is acceptable, expand to a controlled set of course-like unit
 
 Use:
 
-- `/api/admin/script-lab/synthesize-line`
+- `/api/convolab/admin/script-lab/synthesize-line`
 - `server/src/scripts/analyze-course-audio.ts`
 
 ## Phase 3 (Production Candidate Criteria)
@@ -78,5 +78,5 @@ Fish Audio is ready for broader rollout when:
 ## Notes
 
 - Script Lab supports quick Fish experiments without restoring ConvoLab's retired course-audio generation pipeline:
-  - `/api/admin/script-lab/test-pronunciation`
-  - `/api/admin/script-lab/synthesize-line`
+  - `/api/convolab/admin/script-lab/test-pronunciation`
+  - `/api/convolab/admin/script-lab/synthesize-line`

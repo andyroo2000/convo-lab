@@ -21,8 +21,16 @@ describe('admin API contract', () => {
     );
     expect(contract.userAvatarUpload('user/id')).toBe(`${base}/avatars/user/user%2Fid/upload`);
     expect(contract.pronunciationDictionaries).toBe(`${base}/pronunciation-dictionaries`);
+    expect(contract.scriptLabCourses).toBe(`${base}/script-lab/courses`);
     expect(contract.scriptLabCourse('course/id')).toBe(`${base}/script-lab/courses/course%2Fid`);
+    expect(contract.scriptLabTestPronunciation).toBe(`${base}/script-lab/test-pronunciation`);
+    expect(contract.scriptLabSentenceScript).toBe(`${base}/script-lab/sentence-script`);
+    expect(contract.scriptLabSentenceTests()).toBe(`${base}/script-lab/sentence-tests`);
     expect(contract.scriptLabSentenceTests(50)).toBe(`${base}/script-lab/sentence-tests?limit=50`);
+    expect(contract.scriptLabSentenceTest('test/id')).toBe(
+      `${base}/script-lab/sentence-tests/test%2Fid`
+    );
+    expect(contract.scriptLabSynthesizeLine).toBe(`${base}/script-lab/synthesize-line`);
     expect(contract.adminCourseOperation('course/id', 'generate-audio')).toBe(
       `${base}/courses/course%2Fid/generate-audio`
     );

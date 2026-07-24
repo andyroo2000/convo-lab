@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(17);
+    expect(routes).toHaveLength(6);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -109,26 +109,8 @@ describe('backend migration inventory', () => {
         '/api/admin/courses/44444444-4444-4444-8444-444444444444/build-prompt'
       )
     ).toBeNull();
-  });
-
-  it('tracks the Script Lab course surface through Learning OS', () => {
-    for (const [method, routePath] of [
-      ['POST', '/api/admin/script-lab/courses'],
-      ['GET', '/api/admin/script-lab/courses'],
-      ['GET', `/api/admin/script-lab/courses/${'4'.repeat(36)}`],
-      ['DELETE', '/api/admin/script-lab/courses'],
-      ['POST', '/api/admin/script-lab/sentence-script'],
-      ['GET', '/api/admin/script-lab/sentence-tests'],
-      ['GET', `/api/admin/script-lab/sentence-tests/${'6'.repeat(36)}`],
-      ['DELETE', '/api/admin/script-lab/sentence-tests'],
-      ['POST', '/api/admin/script-lab/test-pronunciation'],
-      ['POST', '/api/admin/script-lab/synthesize-line'],
-      ['GET', `/api/admin/script-lab/audio/${'7'.repeat(36)}`],
-    ]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'admin-script-lab', runtimeOwner: 'learning-os-proxy' },
-      });
-    }
+    expect(findBackendMigrationRoute('GET', '/api/admin/script-lab/courses')).toBeNull();
+    expect(findBackendMigrationRoute('POST', '/api/admin/script-lab/sentence-script')).toBeNull();
   });
 
   it('does not track retired Express identity entrypoints', () => {

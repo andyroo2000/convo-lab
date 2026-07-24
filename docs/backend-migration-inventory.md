@@ -61,8 +61,9 @@ Use a route-level `runtimeOwner` only while a router is split between services.
 
 The browser administration surface now calls Learning OS directly at
 `/api/convolab/admin/*`, so core administration and the course workbench are
-absent from this Express inventory. Admin feature flags and Script Lab remain
-inventoried until their separate proxy surfaces are retired.
+absent from this Express inventory. Script Lab also calls its canonical Learning
+OS routes directly. Admin feature flags remain inventoried until their separate
+proxy surface is retired.
 
 ## Route Usage Telemetry
 
