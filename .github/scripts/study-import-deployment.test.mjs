@@ -482,6 +482,7 @@ test('direct Learning OS content smoke uses a disposable admin browser session',
   );
 
   for (const requiredContract of [
+    'concurrency:\n  group: production-deploy\n  cancel-in-progress: false',
     'content_browser_smoke_convolab_id=',
     '"deployment-content-browser-%@example.invalid"',
     'whereHas(',
