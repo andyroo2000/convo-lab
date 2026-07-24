@@ -429,6 +429,32 @@ jobs:
                   return 1
                 fi
 
+                for generation_probe in \
+                  'dialogue|https://convo-lab.com/api/convolab/dialogue/job/00000000-0000-4000-8000-000000000000' \
+                  'audio|https://convo-lab.com/api/convolab/audio/job/00000000-0000-4000-8000-000000000000' \
+                  'images|https://convo-lab.com/api/convolab/images/job/00000000-0000-4000-8000-000000000000'
+                do
+                  generation_label="${generation_probe%%|*}"
+                  generation_url="${generation_probe#*|}"
+                  generation_status="$(curl --silent --show-error \
+                    --cookie "$cookie_jar" \
+                    --output "$response_body" \
+                    --write-out '%{http_code}' \
+                    --header 'Accept: application/json' \
+                    --header 'Origin: https://convo-lab.com' \
+                    "$generation_url")"
+                  if [ "$generation_status" != 401 ]; then
+                    echo "Unauthenticated direct generation probe ($generation_label) returned HTTP $generation_status."
+                    cat "$response_body"
+                    return 1
+                  fi
+                  if ! grep -q '"message":"Unauthenticated."' "$response_body"; then
+                    echo "Direct generation probe ($generation_label) did not return the Learning OS auth contract."
+                    cat "$response_body"
+                    return 1
+                  fi
+                done
+
                 admin_status="$(curl --silent --show-error \
                   --cookie "$cookie_jar" \
                   --output "$response_body" \

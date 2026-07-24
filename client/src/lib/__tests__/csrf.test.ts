@@ -176,6 +176,15 @@ describe('csrf helpers', () => {
     expect(getCsrfProviderForPath('/api/convolab/scripts-other')).toBe('express');
   });
 
+  it.each(['dialogue', 'audio', 'images'])(
+    'classifies only the exact %s generation namespace as Learning OS',
+    (namespace) => {
+      expect(getCsrfProviderForPath(`/api/convolab/${namespace}`)).toBe('learning-os');
+      expect(getCsrfProviderForPath(`/api/convolab/${namespace}/job/job-123`)).toBe('learning-os');
+      expect(getCsrfProviderForPath(`/api/convolab/${namespace}-other`)).toBe('express');
+    }
+  );
+
   it('classifies only the exact Admin namespace as Learning OS', () => {
     expect(getCsrfProviderForPath('/api/convolab/admin')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/convolab/admin/users/user-123')).toBe('learning-os');

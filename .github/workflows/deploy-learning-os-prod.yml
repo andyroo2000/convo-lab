@@ -2093,7 +2093,7 @@ jobs:
 
               dialogue_generation_status="$(fetch_read_route \
                 'Dialogue generation status Learning OS' \
-                "/api/dialogue/job/$dialogue_generation_smoke_job_id")"
+                "/api/convolab/dialogue/job/$dialogue_generation_smoke_job_id")"
               printf '%s' "$dialogue_generation_status" | docker exec -i \
                 -e EXPECTED_DIALOGUE_JOB_ID="$dialogue_generation_smoke_job_id" \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -2187,7 +2187,7 @@ jobs:
                 ')"
               image_generation_response="$(mutate_proxy_route \
                 POST \
-                '/api/images/generate' \
+                '/api/convolab/images/generate' \
                 "$image_generation_body")"
               printf '%s' "$image_generation_response" | docker exec -i \
                 -e EXPECTED_IMAGE_JOB_ID="$image_generation_smoke_job_id" \
@@ -2202,7 +2202,7 @@ jobs:
                 '
               image_generation_status="$(fetch_read_route \
                 'Image generation status Learning OS' \
-                "/api/images/job/$image_generation_smoke_job_id")"
+                "/api/convolab/images/job/$image_generation_smoke_job_id")"
               printf '%s' "$image_generation_status" | docker exec -i \
                 -e EXPECTED_IMAGE_JOB_ID="$image_generation_smoke_job_id" \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -2322,7 +2322,7 @@ jobs:
 
               audio_generation_status="$(fetch_read_route \
                 'Audio generation status Learning OS' \
-                "/api/audio/job/$audio_generation_smoke_job_id")"
+                "/api/convolab/audio/job/$audio_generation_smoke_job_id")"
               printf '%s' "$audio_generation_status" | docker exec -i \
                 -e EXPECTED_AUDIO_JOB_ID="$audio_generation_smoke_job_id" \
                 -e EXPECTED_AUDIO_EPISODE_ID="$audio_generation_smoke_episode_id" \

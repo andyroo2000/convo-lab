@@ -153,7 +153,7 @@ describe('useEpisodes', () => {
 
       expect(response.jobId).toBe('job-123');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/dialogue/generate',
+        '/api/convolab/dialogue/generate',
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('ep-123'),
@@ -177,6 +177,28 @@ describe('useEpisodes', () => {
       expect(callBody.variationCount).toBe(3);
       expect(callBody.dialogueLength).toBe(6);
     });
+
+    it('should retain the fallback when Learning OS returns a non-JSON error', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        json: () => Promise.reject(new SyntaxError('Unexpected token')),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        await expect(result.current.generateDialogue('ep-123', [])).rejects.toThrow(
+          'Failed to generate dialogue'
+        );
+      });
+
+      expect(result.current.error).toBe('Failed to generate dialogue');
+      expect(result.current.errorMetadata).toEqual({
+        message: 'Failed to generate dialogue',
+        status: 502,
+      });
+    });
   });
 
   describe('generateAudio', () => {
@@ -195,7 +217,7 @@ describe('useEpisodes', () => {
 
       expect(jobId).toBe('audio-job-123');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/audio/generate',
+        '/api/convolab/audio/generate',
         expect.objectContaining({
           method: 'POST',
         })
@@ -218,6 +240,23 @@ describe('useEpisodes', () => {
       expect(callBody.speed).toBe('medium');
       expect(callBody.pauseMode).toBe(false);
     });
+
+    it('should surface Learning OS error messages', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ message: 'Audio generation is unavailable' }),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        await expect(result.current.generateAudio('ep-123', 'd-456')).rejects.toThrow(
+          'Audio generation is unavailable'
+        );
+      });
+
+      expect(result.current.error).toBe('Audio generation is unavailable');
+    });
   });
 
   describe('generateAllSpeedsAudio', () => {
@@ -236,11 +275,28 @@ describe('useEpisodes', () => {
 
       expect(jobId).toBe('multi-speed-job-123');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/audio/generate-all-speeds',
+        '/api/convolab/audio/generate-all-speeds',
         expect.objectContaining({
           method: 'POST',
         })
       );
+    });
+
+    it('should retain the fallback when Learning OS returns a non-JSON error', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.reject(new SyntaxError('Unexpected token')),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        await expect(result.current.generateAllSpeedsAudio('ep-123', 'd-456')).rejects.toThrow(
+          'Failed to generate multi-speed audio'
+        );
+      });
+
+      expect(result.current.error).toBe('Failed to generate multi-speed audio');
     });
   });
 
@@ -350,10 +406,7 @@ describe('useEpisodes', () => {
         await result.current.pollJobStatus('job-123', undefined, 'audio');
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/audio/job/job-123',
-        expect.any(Object)
-      );
+      expect(mockFetch).toHaveBeenCalledWith('/api/convolab/audio/job/job-123', expect.any(Object));
     });
 
     it('should return failed status on job failure', async () => {

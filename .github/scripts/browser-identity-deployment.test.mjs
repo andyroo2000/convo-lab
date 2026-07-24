@@ -158,6 +158,9 @@ test('local Vite development mirrors the permanent Learning OS browser routes', 
     "'/api/convolab/episodes'",
     "'/api/convolab/courses'",
     "'/api/convolab/scripts'",
+    "'/api/convolab/dialogue'",
+    "'/api/convolab/audio'",
+    "'/api/convolab/images'",
     "'/api/convolab/admin'",
   ];
   const expressFallback = viteConfig.indexOf("'/api':");
