@@ -47,37 +47,6 @@
       ]
     },
     {
-      "id": "scripts",
-      "domain": "content",
-      "migrationWave": "content",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/scripts.ts",
-      "mountPath": "/api/scripts",
-      "routes": [
-        { "id": "scripts.media.show", "method": "GET", "path": "/api/scripts/media/:mediaId" },
-        { "id": "scripts.store", "method": "POST", "path": "/api/scripts" },
-        {
-          "id": "scripts.annotate",
-          "method": "POST",
-          "path": "/api/scripts/:episodeId/annotate"
-        },
-        {
-          "id": "scripts.segments.update",
-          "method": "PATCH",
-          "path": "/api/scripts/:episodeId/segments"
-        },
-        { "id": "scripts.render", "method": "POST", "path": "/api/scripts/:episodeId/render" },
-        { "id": "scripts.images", "method": "POST", "path": "/api/scripts/:episodeId/images" },
-        { "id": "scripts.status", "method": "GET", "path": "/api/scripts/:episodeId/status" },
-        { "id": "scripts.job.show", "method": "GET", "path": "/api/scripts/job/:jobId" },
-        {
-          "id": "scripts.audio.show",
-          "method": "GET",
-          "path": "/api/scripts/:episodeId/audio/:renderId"
-        }
-      ]
-    },
-    {
       "id": "avatars",
       "domain": "media",
       "migrationWave": "complete",

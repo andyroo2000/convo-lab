@@ -618,10 +618,10 @@ test('generation routes are permanently proxied and production rehearsals cover 
     'script_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
     'script_smoke_inserted=true',
     'cleanup_script_smoke best-effort',
-    '"/api/scripts/$script_smoke_episode_id/status"',
-    '"/api/scripts/job/$script_smoke_job_id"',
-    '"https://convo-lab.com/api/scripts/media/$script_smoke_media_id"',
-    '"https://convo-lab.com/api/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id"',
+    '"/api/convolab/scripts/$script_smoke_episode_id/status"',
+    '"/api/convolab/scripts/job/$script_smoke_job_id"',
+    '"https://convo-lab.com/api/convolab/scripts/media/$script_smoke_media_id"',
+    '"https://convo-lab.com/api/convolab/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id"',
     'Audio Script Learning OS routing and streaming smoke checks passed.',
     'course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"',
     'course_generation_smoke_inserted=false',
@@ -921,27 +921,13 @@ test('legacy direct lesson generation and the Express course proxy stay retired'
   }
 });
 
-test('legacy audio script generation stays retired behind the Learning OS script proxy', async () => {
-  const route = await readFile(path.join(repositoryRoot, 'server/src/routes/scripts.ts'), 'utf8');
+test('legacy audio script generation and the Express script proxy stay retired', async () => {
   const retiredPaths = [
+    'server/src/routes/scripts.ts',
+    'server/src/routes/learningOs/scripts.ts',
     'server/src/services/audioScriptService.ts',
     'server/src/services/audioCourseAssembler.ts',
   ];
-
-  for (const handler of [
-    'storeLearningOsScript',
-    'annotateLearningOsScript',
-    'updateLearningOsScriptSegments',
-    'renderLearningOsScript',
-    'generateLearningOsScriptImages',
-    'showLearningOsScript',
-    'showLearningOsScriptJob',
-    'streamLearningOsScriptImage',
-    'streamLearningOsScriptAudio',
-  ]) {
-    assert.match(route, new RegExp(`\\b${handler}\\b`));
-  }
-  assert.doesNotMatch(route, /audioScriptService|audioCourseAssembler/);
 
   for (const retiredPath of retiredPaths) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
@@ -978,10 +964,6 @@ test('legacy course item extraction stays retired behind Learning OS', async () 
 });
 
 test('legacy local course audio generation stays retired behind Learning OS', async () => {
-  const scriptRoute = await readFile(
-    path.join(repositoryRoot, 'server/src/routes/scripts.ts'),
-    'utf8'
-  );
   const retiredPaths = [
     'server/src/services/batchedTTSClient.ts',
     'server/src/services/japaneseReadingGenerator.ts',
@@ -989,9 +971,6 @@ test('legacy local course audio generation stays retired behind Learning OS', as
     'server/src/__tests__/unit/services/batchedTTSClient.test.ts',
     'server/src/__tests__/unit/services/japaneseReadingGenerator.test.ts',
   ];
-
-  assert.match(scriptRoute, /renderLearningOsScript/);
-  assert.doesNotMatch(scriptRoute, /batchedTTSClient|japaneseReadingGenerator/);
 
   for (const retiredPath of retiredPaths) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
