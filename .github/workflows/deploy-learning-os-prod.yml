@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       smoke_user_email:
-        description: 'Existing ConvoLab user used for import and proxy smoke checks'
+        description: 'Existing ConvoLab user used for production smoke checks'
         required: true
         type: string
 
@@ -105,8 +105,6 @@ jobs:
             ACTIVE_COLOR_FILE="$RUNTIME_DIR/prod-active-color"
             TARGET_DB="learning_os"
             DRAINING_WORKER_CONTAINER_ID=""
-            NEW_PROXY_TOKEN_ID=""
-            PROXY_TOKEN_CUTOVER_STARTED=false
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
@@ -115,24 +113,6 @@ jobs:
             LEARNING_OS_RUNTIME_UID=33
 
             cleanup_deployment_resources() {
-              local cleanup_failed=false
-
-              if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then
-                echo "Removing the unused Learning OS proxy token."
-                $COMPOSE run --rm -T --no-deps \
-                  -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
-                  -e CONVOLAB_PROXY_TOKEN_ID="$NEW_PROXY_TOKEN_ID" \
-                  learning-os php artisan tinker --execute='
-                    $user = App\Models\User::query()
-                      ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
-                      ->sole();
-                    $user->tokens()
-                      ->where("name", "convolab-proxy")
-                      ->where("id", getenv("CONVOLAB_PROXY_TOKEN_ID"))
-                      ->delete();
-                  ' < /dev/null || true
-              fi
-
               if [ -n "$DRAINING_WORKER_CONTAINER_ID" ]; then
                 current_worker_id="$(docker inspect --format='{{.Id}}' learning-os-worker 2>/dev/null || true)"
 
@@ -141,10 +121,6 @@ jobs:
                   docker update --restart=unless-stopped learning-os-worker >/dev/null || true
                   docker start learning-os-worker >/dev/null || true
                 fi
-              fi
-
-              if [ "$cleanup_failed" = true ]; then
-                return 1
               fi
             }
 
@@ -180,6 +156,11 @@ jobs:
               else
                 printf '%s=%s\n' "$key" "$value" >> .env.production
               fi
+            }
+
+            remove_env() {
+              key="$1"
+              sed -i "/^${key}=/d" .env.production
             }
 
             wait_for_health() {
@@ -221,8 +202,9 @@ jobs:
 
             upsert_env LEARNING_OS_IMAGE_TAG "$IMAGE_TAG"
             upsert_env LEARNING_OS_DB "$TARGET_DB"
-            upsert_env LEARNING_OS_API_URL "http://learning-os:8080"
-            upsert_env LEARNING_OS_PROXY_USER_EMAIL "$SMOKE_USER_EMAIL"
+            remove_env LEARNING_OS_API_URL
+            remove_env LEARNING_OS_API_TOKEN
+            remove_env LEARNING_OS_PROXY_USER_EMAIL
             upsert_env LEARNING_OS_SESSION_COOKIE "learning_os_session"
             upsert_env LEARNING_OS_SESSION_LIFETIME "10080"
             upsert_env LEARNING_OS_SESSION_SECURE_COOKIE "true"
@@ -314,6 +296,13 @@ jobs:
 
             $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
 
+            $COMPOSE run --rm -T --no-deps learning-os php artisan tinker --execute='
+              $deleted = Laravel\Sanctum\PersonalAccessToken::query()
+                ->where("name", "convolab-proxy")
+                ->delete();
+              echo "Revoked {$deleted} retired ConvoLab proxy token(s).".PHP_EOL;
+            ' < /dev/null
+
             source_db="$(sed -n 's/^POSTGRES_DB=//p' .env.production | tail -1)"
             test -n "$source_db"
             test "$source_db" != "$TARGET_DB"
@@ -329,43 +318,6 @@ jobs:
               --source-database="$source_db" \
               --allow-production < /dev/null
 
-            proxy_token_output="$($COMPOSE run --rm -T --no-deps \
-              -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
-              learning-os php artisan tinker --execute='
-                $user = App\Models\User::query()->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))->sole();
-                // Keep proxy-only abilities while the preceding Convo Lab release remains rollback-capable.
-                $accessToken = $user->createToken("convolab-proxy", [
-                  "study:read",
-                  "study:write",
-                  "feature-flags:read",
-                  "feature-flags:write",
-                  "content:write",
-                  "admin:read",
-                  "admin:write",
-                  "auth:login",
-                  "auth:read",
-                  "auth:write",
-                  "auth:signup",
-                  "auth:verification",
-                  "auth:oauth",
-                  "tools:analytics",
-                ]);
-                echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;
-                echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;
-              ' < /dev/null)"
-            NEW_PROXY_TOKEN_ID="$(printf '%s\n' "$proxy_token_output" \
-              | sed -n 's/^PROXY_TOKEN_ID=//p' \
-              | grep -E '^[0-9]+$' \
-              | tail -1)"
-            proxy_token="$(printf '%s\n' "$proxy_token_output" \
-              | sed -n 's/^PROXY_TOKEN=//p' \
-              | grep -E '^[0-9]+\|learning_os_[[:alnum:]]{40}[0-9a-f]{8}$' \
-              | tail -1)"
-            test -n "$NEW_PROXY_TOKEN_ID"
-            test -n "$proxy_token"
-            echo "::add-mask::$proxy_token"
-            upsert_env LEARNING_OS_API_TOKEN "$proxy_token"
-
             desired_learning_os_image="ghcr.io/andyroo2000/learning-os:$IMAGE_TAG"
 
             ensure_learning_os_service() {
@@ -373,11 +325,6 @@ jobs:
               container="$2"
               current_image="$(docker inspect --format='{{.Config.Image}}' "$container" 2>/dev/null || true)"
               running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
-              current_proxy_user_email="$(docker inspect \
-                --format='{{range .Config.Env}}{{println .}}{{end}}' \
-                "$container" 2>/dev/null \
-                | sed -n 's/^CONVOLAB_PROXY_USER_EMAIL=//p' \
-                | tail -1 || true)"
               current_config_revision="$(docker inspect \
                 --format='{{range .Config.Env}}{{println .}}{{end}}' \
                 "$container" 2>/dev/null \
@@ -396,7 +343,6 @@ jobs:
 
               if [ "$current_image" = "$desired_learning_os_image" ] \
                 && [ "$running" = true ] \
-                && [ "$current_proxy_user_email" = "$SMOKE_USER_EMAIL" ] \
                 && [ "$current_config_revision" = "$desired_deploy_config_revision" ] \
                 && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ] \
                 && [ "$current_google_oauth_config_revision" = "$google_oauth_config_revision" ]; then
@@ -467,8 +413,7 @@ jobs:
               DRAINING_WORKER_CONTAINER_ID=""
             }
 
-            # Reconcile independently so an unchanged busy worker is not drained merely
-            # because the ConvoLab proxy token rotated.
+            # Reconcile independently so an unchanged busy worker is not drained.
             ensure_learning_os_service learning-os learning-os-api
             ensure_learning_os_worker
             wait_for_health learning-os-api
@@ -537,57 +482,7 @@ jobs:
                 }
               '
 
-            docker exec -e API_TOKEN="$proxy_token" learning-os-api php -r '
-              $context = stream_context_create(["http" => [
-                  "header" => "Accept: application/json\r\nAuthorization: Bearer ".getenv("API_TOKEN")."\r\n",
-                  "timeout" => 10,
-              ]]);
-              $body = file_get_contents("http://127.0.0.1:8080/api/study/settings", false, $context);
-              if ($body === false || ! is_array(json_decode($body, true))) { exit(1); }
-
-              $featureFlags = file_get_contents(
-                "http://127.0.0.1:8080/api/feature-flags",
-                false,
-                $context,
-              );
-              if ($featureFlags === false || ! is_array(json_decode($featureFlags, true))) {
-                exit(1);
-              }
-
-              $adminStats = file_get_contents(
-                "http://127.0.0.1:8080/api/convolab/admin/stats",
-                false,
-                $context,
-              );
-              $decodedAdminStats = json_decode($adminStats ?: "", true);
-              if (
-                $adminStats === false
-                || ! is_array($decodedAdminStats)
-                || ! isset($decodedAdminStats["inviteCodes"])
-              ) {
-                exit(1);
-              }
-
-              $patchContext = stream_context_create(["http" => [
-                  "method" => "PATCH",
-                  "header" => "Accept: application/json\r\n".
-                    "Content-Type: application/json\r\n".
-                    "Authorization: Bearer ".getenv("API_TOKEN")."\r\n",
-                  "content" => "{}",
-                  "timeout" => 10,
-              ]]);
-              $updatedFeatureFlags = file_get_contents(
-                "http://127.0.0.1:8080/api/feature-flags",
-                false,
-                $patchContext,
-              );
-              if (
-                $updatedFeatureFlags === false
-                || json_decode($updatedFeatureFlags, true) !== json_decode($featureFlags, true)
-              ) {
-                exit(1);
-              }
-
+            docker exec learning-os-api php -r '
               $analyticsContext = stream_context_create(["http" => [
                   "method" => "POST",
                   "header" => "Accept: application/json\r\nContent-Type: application/json\r\n",
@@ -619,31 +514,7 @@ jobs:
               *) echo "Invalid active production color: $active_color"; exit 1 ;;
             esac
 
-            # Once replacement starts, retain the new token on failure because the
-            # server may already be running with it. A later success prunes extras.
-            PROXY_TOKEN_CUTOVER_STARTED=true
-            $COMPOSE up -d --no-deps --force-recreate "server-$active_color"
             wait_for_health "convolab-server-$active_color"
-            active_proxy_token="$(docker inspect \
-              --format='{{range .Config.Env}}{{println .}}{{end}}' \
-              "convolab-server-$active_color" \
-              | sed -n 's/^LEARNING_OS_API_TOKEN=//p' \
-              | tail -1)"
-            test "$active_proxy_token" = "$proxy_token"
-            if ! docker exec \
-              -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
-              -e CONVOLAB_PROXY_TOKEN_ID="$NEW_PROXY_TOKEN_ID" \
-              learning-os-api php artisan tinker --execute='
-                $user = App\Models\User::query()
-                  ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
-                  ->sole();
-                $user->tokens()
-                  ->where("name", "convolab-proxy")
-                  ->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))
-                  ->delete();
-              '; then
-              echo "::warning::Unable to prune older Learning OS proxy tokens; a later deployment will retry."
-            fi
 
             postgres_db="$source_db"
 
@@ -663,6 +534,8 @@ jobs:
             audio_generation_smoke_job_id=
             audio_generation_smoke_path=
             audio_generation_smoke_inserted=false
+            audio_generation_smoke_body=
+            audio_generation_smoke_headers=
             script_smoke_episode_id=
             script_smoke_script_id=
             script_smoke_segment_id=
@@ -1175,13 +1048,13 @@ jobs:
               fi
 
               if ! cleanup_output="$(docker exec \
-                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 -e CONVOLAB_SMOKE_USER_ID="$user_id" \
                 -e COURSE_WRITE_SMOKE_ID="${course_write_smoke_id:-}" \
                 -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
                 learning-os-api php artisan tinker --execute='
                   $user = App\Models\User::query()
-                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->where("email", getenv("SMOKE_USER_EMAIL"))
                     ->sole();
                   $sourceUserId = getenv("CONVOLAB_SMOKE_USER_ID");
                   $courseId = getenv("COURSE_WRITE_SMOKE_ID");
@@ -1308,13 +1181,13 @@ jobs:
               fi
 
               if ! cleanup_output="$(docker exec \
-                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 -e CONVOLAB_SMOKE_USER_ID="$user_id" \
                 -e EPISODE_WRITE_SMOKE_ID="${episode_write_smoke_id:-}" \
                 -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
                 learning-os-api php artisan tinker --execute='
                   $user = App\Models\User::query()
-                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->where("email", getenv("SMOKE_USER_EMAIL"))
                     ->sole();
                   $sourceUserId = getenv("CONVOLAB_SMOKE_USER_ID");
                   $episodeId = getenv("EPISODE_WRITE_SMOKE_ID");
@@ -1396,6 +1269,9 @@ jobs:
               cleanup_dialogue_generation_smoke best-effort
               cleanup_image_generation_smoke best-effort
               cleanup_audio_generation_smoke best-effort
+              rm -f \
+                "${audio_generation_smoke_body:-}" \
+                "${audio_generation_smoke_headers:-}"
               cleanup_script_smoke best-effort
               cleanup_content_browser_smoke best-effort
               cleanup_media_smoke
@@ -2402,12 +2278,12 @@ jobs:
               # Stay schema-explicit and bypass model events: incompatible required
               # columns must fail this deployment and roll activation back.
               docker exec \
-                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 -e CONVOLAB_SMOKE_USER_ID="$user_id" \
                 -e COURSE_GENERATION_SMOKE_ID="$course_generation_smoke_id" \
                 learning-os-api php artisan tinker --execute='
                   $user = App\Models\User::query()
-                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->where("email", getenv("SMOKE_USER_EMAIL"))
                     ->sole();
                   Illuminate\Support\Facades\DB::table("content_courses")->insert([
                     "id" => getenv("COURSE_GENERATION_SMOKE_ID"),
@@ -2476,13 +2352,13 @@ jobs:
               # Poll a durable synthetic job instead of dispatching a paid model call.
               # The public POST and GET routes share the same runtime routing switch.
               docker exec \
-                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 -e CONVOLAB_SMOKE_USER_ID="$user_id" \
                 -e DIALOGUE_GENERATION_SMOKE_EPISODE_ID="$dialogue_generation_smoke_episode_id" \
                 -e DIALOGUE_GENERATION_SMOKE_JOB_ID="$dialogue_generation_smoke_job_id" \
                 learning-os-api php artisan tinker --execute='
                   $user = App\Models\User::query()
-                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->where("email", getenv("SMOKE_USER_EMAIL"))
                     ->sole();
                   Illuminate\Support\Facades\DB::transaction(function () use ($user): void {
                     Illuminate\Support\Facades\DB::table("content_episodes")->insert([
@@ -2553,14 +2429,14 @@ jobs:
               # Reuse a recent active job to exercise public POST and GET routing
               # without dispatching a paid prompt-generation call.
               docker exec \
-                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 -e CONVOLAB_SMOKE_USER_ID="$user_id" \
                 -e IMAGE_GENERATION_SMOKE_EPISODE_ID="$image_generation_smoke_episode_id" \
                 -e IMAGE_GENERATION_SMOKE_DIALOGUE_ID="$image_generation_smoke_dialogue_id" \
                 -e IMAGE_GENERATION_SMOKE_JOB_ID="$image_generation_smoke_job_id" \
                 learning-os-api php artisan tinker --execute='
                   $user = App\Models\User::query()
-                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->where("email", getenv("SMOKE_USER_EMAIL"))
                     ->sole();
                   Illuminate\Support\Facades\DB::transaction(function () use ($user): void {
                     Illuminate\Support\Facades\DB::table("content_episodes")->insert([
@@ -2660,7 +2536,7 @@ jobs:
               # Exercise polling and authenticated byte streaming without dispatching a
               # paid Fish Audio request. Public generation and polling share one switch.
               docker exec \
-                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 -e CONVOLAB_SMOKE_USER_ID="$user_id" \
                 -e AUDIO_GENERATION_SMOKE_EPISODE_ID="$audio_generation_smoke_episode_id" \
                 -e AUDIO_GENERATION_SMOKE_DIALOGUE_ID="$audio_generation_smoke_dialogue_id" \
@@ -2668,7 +2544,7 @@ jobs:
                 -e AUDIO_GENERATION_SMOKE_PATH="$audio_generation_smoke_path" \
                 learning-os-api php artisan tinker --execute='
                   $user = App\Models\User::query()
-                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->where("email", getenv("SMOKE_USER_EMAIL"))
                     ->sole();
                   $episodeId = getenv("AUDIO_GENERATION_SMOKE_EPISODE_ID");
                   $dialogueId = getenv("AUDIO_GENERATION_SMOKE_DIALOGUE_ID");
@@ -2772,58 +2648,30 @@ jobs:
                   ) process.exit(1);
                 '
 
-              docker exec \
-                -e API_TOKEN="$proxy_token" \
-                -e CONVOLAB_USER_ID="$user_id" \
-                -e AUDIO_GENERATION_SMOKE_EPISODE_ID="$audio_generation_smoke_episode_id" \
-                learning-os-api php -r '
-                  $context = stream_context_create(["http" => [
-                    "header" => implode("\r\n", [
-                      "Accept: audio/mpeg",
-                      "Authorization: Bearer ".getenv("API_TOKEN"),
-                      "X-Convo-Lab-User-Id: ".getenv("CONVOLAB_USER_ID"),
-                    ])."\r\n",
-                    "ignore_errors" => true,
-                    "timeout" => 10,
-                  ]]);
-                  $body = file_get_contents(
-                    "http://127.0.0.1:8080/api/convolab/episodes/"
-                      .getenv("AUDIO_GENERATION_SMOKE_EPISODE_ID")
-                      ."/audio/1.0",
-                    false,
-                    $context,
-                  );
-                  $status = 0;
-                  $headers = [];
-                  foreach ($http_response_header ?? [] as $header) {
-                    if (preg_match("/^HTTP\\/\\S+\\s+(\\d+)/i", $header, $matches)) {
-                      $status = (int) $matches[1];
-                      continue;
-                    }
-                    if (str_contains($header, ":")) {
-                      [$name, $value] = explode(":", $header, 2);
-                      $headers[strtolower($name)] = trim($value);
-                    }
-                  }
-                  if (
-                    $status !== 200
-                    || $body !== "learning-os-audio-generation-smoke"
-                    || ($headers["content-type"] ?? null) !== "audio/mpeg"
-                    || ($headers["content-security-policy"] ?? null)
-                      !== "sandbox; default-src '\''none'\''"
-                    || ($headers["cross-origin-resource-policy"] ?? null) !== "same-origin"
-                    || ($headers["x-content-type-options"] ?? null) !== "nosniff"
-                  ) {
-                    fwrite(
-                      STDERR,
-                      "Learning OS authenticated audio stream smoke failed: "
-                        ."status={$status}, content-type="
-                        .($headers["content-type"] ?? "<missing>")
-                        .", body-bytes=".strlen($body ?: "").".\n",
-                    );
-                    exit(1);
-                  }
-                '
+              audio_generation_smoke_body="$(mktemp)"
+              audio_generation_smoke_headers="$(mktemp)"
+              curl --fail --silent --show-error \
+                --header 'Accept: audio/mpeg' \
+                --header 'Origin: https://convo-lab.com' \
+                --cookie "$content_browser_smoke_cookie_jar" \
+                --dump-header "$audio_generation_smoke_headers" \
+                --output "$audio_generation_smoke_body" \
+                "$(content_browser_path \
+                  "/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0")"
+              test "$(cat "$audio_generation_smoke_body")" = \
+                "learning-os-audio-generation-smoke"
+              grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' \
+                "$audio_generation_smoke_headers"
+              grep -Eiq \
+                "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" \
+                "$audio_generation_smoke_headers"
+              grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' \
+                "$audio_generation_smoke_headers"
+              grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$' \
+                "$audio_generation_smoke_headers"
+              rm -f "$audio_generation_smoke_body" "$audio_generation_smoke_headers"
+              audio_generation_smoke_body=
+              audio_generation_smoke_headers=
               cleanup_audio_generation_smoke
               echo "Audio generation Learning OS routing and streaming smoke checks passed."
 
@@ -2849,7 +2697,7 @@ jobs:
               script_smoke_audio_path="content-audio-scripts/$script_smoke_episode_id/render-1-0-85.mp3"
               script_smoke_inserted=true
               docker exec \
-                -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
+                -e SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 -e CONVOLAB_SMOKE_USER_ID="$user_id" \
                 -e SCRIPT_SMOKE_EPISODE_ID="$script_smoke_episode_id" \
                 -e SCRIPT_SMOKE_SCRIPT_ID="$script_smoke_script_id" \
@@ -2861,7 +2709,7 @@ jobs:
                 -e SCRIPT_SMOKE_AUDIO_PATH="$script_smoke_audio_path" \
                 learning-os-api php artisan tinker --execute='
                   $user = App\Models\User::query()
-                    ->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))
+                    ->where("email", getenv("SMOKE_USER_EMAIL"))
                     ->sole();
                   $episodeId = getenv("SCRIPT_SMOKE_EPISODE_ID");
                   $scriptId = getenv("SCRIPT_SMOKE_SCRIPT_ID");

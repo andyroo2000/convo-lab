@@ -118,8 +118,6 @@ test('the production workflow verifies the always-on Study API without rollout f
     'ensure_learning_os_service learning-os learning-os-api',
     'ensure_learning_os_worker',
     'current_image="$(docker inspect --format=\'{{.Config.Image}}\' "$container" 2>/dev/null || true)"',
-    'current_proxy_user_email="$(docker inspect',
-    '| sed -n \'s/^CONVOLAB_PROXY_USER_EMAIL=//p\'',
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
     'desired_deploy_config_revision="browser-auth-session-v1"',
@@ -158,7 +156,7 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_proxy_user_email" = "\$SMOKE_USER_EMAIL" \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[ "\$current_google_oauth_config_revision" = "\$google_oauth_config_revision" \]; then/
+    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[ "\$current_google_oauth_config_revision" = "\$google_oauth_config_revision" \]; then/
   );
   assert.match(
     workflow,
@@ -570,14 +568,14 @@ test('the production workflow refreshes and verifies Learning OS content reads',
 
   const migration = workflow.indexOf('php artisan migrate --force');
   const episodeImport = workflow.indexOf('php artisan content:import-convolab-episodes');
-  const tokenCutover = workflow.indexOf('PROXY_TOKEN_CUTOVER_STARTED=true');
+  const serverHealthy = workflow.indexOf('wait_for_health "convolab-server-$active_color"');
   const episodeSmoke = workflow.indexOf('Episode Learning OS read smoke checks passed.');
   const courseSmoke = workflow.indexOf('Course Learning OS read smoke checks passed.');
 
   assert.ok(migration >= 0);
   assert.ok(migration < episodeImport);
-  assert.ok(episodeImport < tokenCutover);
-  assert.ok(tokenCutover < episodeSmoke);
+  assert.ok(episodeImport < serverHealthy);
+  assert.ok(serverHealthy < episodeSmoke);
   assert.ok(episodeSmoke < courseSmoke);
 });
 
@@ -891,16 +889,9 @@ test('generation routes are permanently proxied and production rehearsals cover 
   assert.doesNotMatch(productionCompose, /MONTHLY_GENERATION_LIMIT/);
 
   for (const requiredContract of [
-    '"content:write"',
-    'if [ "$cleanup_failed" = true ]; then',
-    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
-    '"auth:login"',
-    '"auth:read"',
-    '"auth:write"',
-    '"auth:signup"',
-    '"auth:verification"',
-    '"auth:oauth"',
+    'wait_for_health "convolab-server-$active_color"',
     'bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh',
+    'Disposable Learning OS content browser session established.',
     'script_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
     'script_smoke_inserted=true',
     'cleanup_script_smoke best-effort',
@@ -955,19 +946,14 @@ test('generation routes are permanently proxied and production rehearsals cover 
     '"speed" => "medium"',
     '"speed" => "normal"',
     '"/api/convolab/audio/job/$audio_generation_smoke_job_id"',
-    '-e API_TOKEN="$proxy_token"',
-    '-e CONVOLAB_USER_ID="$user_id"',
-    '"Authorization: Bearer ".getenv("API_TOKEN")',
-    '"X-Convo-Lab-User-Id: ".getenv("CONVOLAB_USER_ID")',
-    '"http://127.0.0.1:8080/api/convolab/episodes/"',
-    '$body !== "learning-os-audio-generation-smoke"',
-    '$headers["content-type"]',
-    '$headers["content-security-policy"]',
-    '$headers["cross-origin-resource-policy"]',
-    '$headers["x-content-type-options"]',
-    'Learning OS authenticated audio stream smoke failed: ',
-    '"status={$status}, content-type="',
-    'body-bytes=".strlen($body ?: "")',
+    'audio_generation_smoke_body="$(mktemp)"',
+    '--cookie "$content_browser_smoke_cookie_jar"',
+    '$(content_browser_path',
+    '"/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0")',
+    '"learning-os-audio-generation-smoke"',
+    "^content-security-policy: sandbox; default-src 'none'",
+    '^cross-origin-resource-policy: same-origin',
+    '^x-content-type-options: nosniff',
     'cleanup_audio_generation_smoke best-effort',
     'Audio generation Learning OS routing and streaming smoke checks passed.',
   ]) {
@@ -981,24 +967,22 @@ test('generation routes are permanently proxied and production rehearsals cover 
     'DB::table("content_audio_generation_jobs")->insert'
   );
   const audioStreamSmoke = workflow.slice(
-    workflow.indexOf(
-      'docker exec \\\n                -e API_TOKEN="$proxy_token"',
-      audioFixtureInsert
-    ),
+    workflow.indexOf('audio_generation_smoke_body="$(mktemp)"', audioFixtureInsert),
     workflow.indexOf('cleanup_audio_generation_smoke', audioFixtureInsert)
   );
   assert.ok(audioFixtureInsert >= 0);
-  assert.ok(audioStreamSmoke.includes('learning-os-api php -r'));
-  assert.ok(!audioStreamSmoke.includes('--cookie "token=$auth_token"'));
+  assert.ok(audioStreamSmoke.includes('--cookie "$content_browser_smoke_cookie_jar"'));
+  assert.ok(audioStreamSmoke.includes('content_browser_path'));
+  assert.ok(!audioStreamSmoke.includes('Authorization: Bearer'));
+  assert.ok(!audioStreamSmoke.includes('X-Convo-Lab-User-Id'));
 
-  const tokenScope = workflow.indexOf('"content:write"');
-  const serverRestart = workflow.indexOf(
-    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"'
+  const serverHealthy = workflow.indexOf('wait_for_health "convolab-server-$active_color"');
+  const browserSession = workflow.indexOf(
+    'Disposable Learning OS content browser session established.'
   );
   const fixtureInsert = workflow.indexOf(
     'Illuminate\\Support\\Facades\\DB::table("content_courses")->insert'
   );
-  const csrfTokenInitialization = workflow.indexOf('csrf_token="$(docker exec');
   const publicReset = workflow.indexOf(
     '"/api/convolab/courses/$course_generation_smoke_id/reset"'
   );
@@ -1008,16 +992,15 @@ test('generation routes are permanently proxied and production rehearsals cover 
     workflow.indexOf('Course generation Learning OS write smoke check passed.')
   );
 
-  assert.ok(tokenScope >= 0);
-  assert.ok(tokenScope < serverRestart);
-  assert.ok(serverRestart < csrfTokenInitialization);
-  assert.ok(csrfTokenInitialization < fixtureInsert);
+  assert.ok(serverHealthy >= 0);
+  assert.ok(serverHealthy < browserSession);
+  assert.ok(browserSession < fixtureInsert);
   assert.ok(fixtureInsert < publicReset);
   assert.ok(publicReset < statusCheck);
   assert.ok(statusCheck < successCleanup);
 
   const fixtureInserted = workflow.indexOf('course_generation_smoke_inserted=true');
-  assert.ok(serverRestart < fixtureInserted);
+  assert.ok(browserSession < fixtureInserted);
   assert.ok(fixtureInserted < fixtureInsert);
 
   const failureCleanup = workflow.slice(
@@ -1532,9 +1515,6 @@ test('the production stack configures Learning OS auth mail and password reset l
     'upsert_env LEARNING_OS_AUTH_MAIL_CONFIG_REVISION "$auth_mail_config_revision"',
     "| sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p'",
     '[ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ]',
-    '"auth:signup"',
-    '"auth:verification"',
-    '"auth:oauth"',
     '-e EXPECTED_CLIENT_URL="$client_url"',
     '-e EXPECTED_ADMIN_EMAILS="$admin_emails"',
     '-e EXPECTED_MAIL_FROM_ADDRESS="$mail_from_address"',
@@ -1825,78 +1805,56 @@ test('the production workflow verifies browser routes against Learning OS state'
   assert.doesNotMatch(browserBlock, /\/api\/learning-os\/study\/browser|compare_read_route|ENABLE_/);
 });
 
-test('the production workflow overlaps proxy tokens through a healthy server cutover', async () => {
-  const workflow = await readFile(
-    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-    'utf8'
-  );
+test('the production workflow authenticates smoke traffic without proxy bearer credentials', async () => {
+  const [workflow, compose] = await Promise.all([
+    readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+  ]);
 
   for (const requiredContract of [
-    'NEW_PROXY_TOKEN_ID=""',
-    'PROXY_TOKEN_CUTOVER_STARTED=false',
-    'if [ -n "$NEW_PROXY_TOKEN_ID" ] && [ "$PROXY_TOKEN_CUTOVER_STARTED" != true ]; then',
-    '"study:read",',
-    '"study:write",',
-    '"feature-flags:read",',
-    '"feature-flags:write",',
-    '"auth:oauth",',
-    '"tools:analytics",',
-    'echo "PROXY_TOKEN_ID=".$accessToken->accessToken->getKey().PHP_EOL;',
-    'echo "PROXY_TOKEN=".$accessToken->plainTextToken.PHP_EOL;',
-    'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',
-    'PROXY_TOKEN_CUTOVER_STARTED=true',
-    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
+    'remove_env LEARNING_OS_API_URL',
+    'remove_env LEARNING_OS_API_TOKEN',
+    'remove_env LEARNING_OS_PROXY_USER_EMAIL',
+    'Laravel\\Sanctum\\PersonalAccessToken::query()',
+    '->where("name", "convolab-proxy")',
+    'Revoked {$deleted} retired ConvoLab proxy token(s).',
     'wait_for_health "convolab-server-$active_color"',
-    'test "$active_proxy_token" = "$proxy_token"',
     '"http://127.0.0.1:8080/api/convolab/browser/tools/analytics"',
     'Learning OS browser analytics internal smoke check passed.',
-    'if ! docker exec',
-    '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
-    'Unable to prune older Learning OS proxy tokens; a later deployment will retry.',
+    'Disposable Learning OS content browser session established.',
+    '--cookie "$content_browser_smoke_cookie_jar"',
+    'content_browser_path \\',
+    '"/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0"',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
-      `Missing token rotation contract: ${requiredContract}`
+      `Missing browser-session deployment contract: ${requiredContract}`
     );
   }
 
-  const tokenCreation = workflow.indexOf(
-    '$accessToken = $user->createToken("convolab-proxy", ['
-  );
-  const tokenConfigured = workflow.indexOf(
-    'upsert_env LEARNING_OS_API_TOKEN "$proxy_token"',
-    tokenCreation
-  );
-  const cutoverStarted = workflow.indexOf('PROXY_TOKEN_CUTOVER_STARTED=true', tokenConfigured);
-  const serverRestarted = workflow.indexOf(
-    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
-    cutoverStarted
-  );
-  const serverHealthy = workflow.indexOf(
-    'wait_for_health "convolab-server-$active_color"',
-    serverRestarted
-  );
-  const tokenInstalled = workflow.indexOf(
-    'test "$active_proxy_token" = "$proxy_token"',
-    serverHealthy
-  );
-  const oldTokensPruned = workflow.indexOf(
-    '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
-    tokenInstalled
-  );
-
-  assert.ok(tokenCreation >= 0);
-  assert.ok(tokenCreation < tokenConfigured);
-  assert.ok(tokenConfigured < cutoverStarted);
-  assert.ok(cutoverStarted < serverRestarted);
-  assert.ok(serverRestarted < serverHealthy);
-  assert.ok(serverHealthy < tokenInstalled);
-  assert.ok(tokenInstalled < oldTokensPruned);
-  assert.doesNotMatch(
-    workflow.slice(tokenCreation, serverHealthy),
-    /tokens\(\).*->delete\(\)/s,
-    'The active proxy token must not be revoked before the replacement server is healthy'
-  );
+  for (const retiredContract of [
+    'createToken("convolab-proxy"',
+    'Authorization: Bearer',
+    'X-Convo-Lab-User-Id',
+    'proxy_token',
+    'PROXY_TOKEN',
+  ]) {
+    assert.ok(
+      !workflow.includes(retiredContract),
+      `Retired proxy credential remains in production deployment: ${retiredContract}`
+    );
+  }
+  for (const retiredComposeContract of [
+    'LEARNING_OS_API_URL:',
+    'LEARNING_OS_API_TOKEN:',
+    'LEARNING_OS_PROXY_USER_EMAIL:',
+    'CONVOLAB_PROXY_USER_EMAIL:',
+  ]) {
+    assert.ok(
+      !compose.includes(retiredComposeContract),
+      `Retired proxy credential remains in production Compose: ${retiredComposeContract}`
+    );
+  }
 });
 
 test('the lifecycle smoke script remains valid Bash', async () => {
@@ -2079,15 +2037,13 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   assert.ok(cleanupFunction.includes('if [ "$exit_status" -eq 0 ]; then'));
   assert.ok(cleanupFunction.includes('manual cleanup is required.'));
 
-  const serverRestart = workflow.indexOf(
-    '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"'
-  );
+  const serverHealthy = workflow.indexOf('wait_for_health "convolab-server-$active_color"');
   const authSmoke = workflow.indexOf(
     'bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh',
-    serverRestart
+    serverHealthy
   );
 
-  assert.ok(serverRestart >= 0);
-  assert.ok(serverRestart < authSmoke);
+  assert.ok(serverHealthy >= 0);
+  assert.ok(serverHealthy < authSmoke);
   assert.doesNotMatch(workflow, /LEARNING_OS_SCRIPT_PROXY_ENABLED|ROUTE_PROXY_CUTOVER_STARTED/);
 });

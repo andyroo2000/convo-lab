@@ -1,8 +1,9 @@
 # Learning OS Production Deployment
 
 Learning OS runs as an internal-only API and worker on ConvoLab's production
-Docker network. ConvoLab remains the public edge, authenticates the browser,
-and proxies explicitly allowlisted Study, Episode, and Course read routes to Learning OS.
+Docker network. ConvoLab remains the public edge and routes explicitly
+allowlisted API paths to Learning OS. Browsers authenticate directly with
+Learning OS through first-party Sanctum sessions.
 
 The Study cutover is complete. Production routing is not controlled by database
 feature flags, and the deployment workflow does not compare against or restore
@@ -21,10 +22,10 @@ Run `Deploy Learning OS (Production)` with:
 - `image_tag`: an immutable `main-<full-sha>` Learning OS image tag.
 - `smoke_user_email`: the ConvoLab account used for authenticated smoke checks.
 
-The proxy currently supports the configured smoke account only. ConvoLab
-rejects Learning OS proxy requests from any other account. Replace this
-single-user restriction only after Learning OS consumes trusted per-request
-identity or ConvoLab provisions per-user upstream tokens.
+The smoke account identifies existing production data used by read-oriented
+checks. Authenticated write checks use a disposable admin account and a
+first-party browser session; the deployment does not provision an upstream
+bearer token.
 
 ## Production Prerequisites
 
@@ -56,18 +57,17 @@ The workflow:
 2. Runs Learning OS migrations against the existing copied database.
 3. Refreshes the read-only Episode and Course compatibility tables from the ConvoLab
    production database.
-4. Rotates the temporary read/write-scoped deployment smoke token.
+4. Removes retired proxy-token settings and revokes legacy proxy tokens.
 5. Starts or reconciles the private API and worker.
-6. Recreates the active ConvoLab web color with the new token for one-release
-   immutable-image rollback compatibility.
-7. Verifies the active container received that token, then prunes older tokens.
+6. Verifies anonymous internal readiness and the active ConvoLab web color.
+7. Establishes a disposable first-party Sanctum browser session.
 8. Runs authenticated current-account, generation-quota, profile, disposable
    signup/verification, Study, import, media, Daily Audio, Episode, and Course
    smoke checks through ConvoLab's public Learning OS routes.
 9. Verifies public ConvoLab health.
 
 The worker is drained before replacement when its image or command changes.
-An unchanged healthy worker is left running when only the proxy token rotates.
+An unchanged healthy worker is left running.
 The completed ConvoLab database-copy and historical-media import controls are
 not available because Learning OS now owns newer Study state. Recover the
 database from a Learning OS backup instead of rebuilding it from ConvoLab.
@@ -95,15 +95,14 @@ Every deployment verifies:
   `.colpkg`.
 
 The import smoke creates two notes, three cards, two review logs, and a 32 MiB
-media entry. It restores the proxy identity and removes temporary users,
-archives, imported rows, and media on both success and failure.
+media entry. It removes temporary users, archives, imported rows, and media on
+both success and failure.
 
 ## Failure And Rollback
 
 The deployment traps remove disposable auth accounts and invites, card drafts,
-smoke-test media, imports, and unused proxy tokens. A failed deployment leaves
-the currently active ConvoLab color serving until the replacement passes health
-checks.
+smoke-test media, and imports. A failed deployment leaves the currently active
+ConvoLab color serving until the replacement passes health checks.
 
 The retired `/api/auth/csrf` and `/api/learning-os/study/*` Express routes are
 no longer available as rollback paths. To roll back application code, redeploy
