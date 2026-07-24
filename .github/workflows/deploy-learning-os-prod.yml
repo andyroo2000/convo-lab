@@ -3228,55 +3228,72 @@ jobs:
                   'Daily Audio historical track lookup' \
                   "/api/daily-audio-practice/$daily_audio_id"
               )"
-                daily_audio_track_url="$(printf '%s' "$daily_audio_detail" | docker exec -i \
-                  "convolab-server-$active_color" node --input-type=module --eval='
-                    const chunks = [];
-                    for await (const chunk of process.stdin) chunks.push(chunk);
-                    const practice = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                    const track = practice?.tracks?.find((value) =>
-                      value?.status === "ready" && typeof value.audioUrl === "string"
-                    );
-                    const path = track?.audioUrl;
-                    if (
-                      typeof path !== "string" ||
-                      !/^\/api\/daily-audio-practice\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/tracks\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/audio$/.test(path)
-                    ) process.exit(1);
-                    process.stdout.write(path);
-                  ')"
-                daily_audio_smoke_body="$(mktemp)"
-                daily_audio_smoke_headers="$(mktemp)"
-                curl --fail --silent --show-error \
-                  --header 'Origin: https://convo-lab.com' \
-                  --cookie "$content_browser_smoke_cookie_jar" \
-                  --dump-header "$daily_audio_smoke_headers" \
-                  --output "$daily_audio_smoke_body" \
-                  "https://convo-lab.com$daily_audio_track_url"
-                test "$(cat "$daily_audio_smoke_body")" = "learning-os-daily-audio-smoke"
-                grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$daily_audio_smoke_headers"
-                grep -Eiq "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" "$daily_audio_smoke_headers"
-                grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$daily_audio_smoke_headers"
-                grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$' "$daily_audio_smoke_headers"
+              echo "Disposable Daily Audio fixture detail loaded."
+              daily_audio_track_url="$(printf '%s' "$daily_audio_detail" | docker exec -i \
+                -e DAILY_AUDIO_SMOKE_TRACK_ID="$daily_audio_smoke_track_id" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const practice = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  const track = practice?.tracks?.find((value) =>
+                    value?.id === process.env.DAILY_AUDIO_SMOKE_TRACK_ID &&
+                    value?.status === "ready" &&
+                    typeof value.audioUrl === "string"
+                  );
+                  const path = track?.audioUrl;
+                  if (
+                    typeof path !== "string" ||
+                    !/^\/api\/daily-audio-practice\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/tracks\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/audio$/.test(path)
+                  ) process.exit(1);
+                  process.stdout.write(path);
+                ')"
+              echo "Disposable Daily Audio track URL validated."
+              daily_audio_smoke_body="$(mktemp)"
+              daily_audio_smoke_headers="$(mktemp)"
+              curl --fail --silent --show-error \
+                --header 'Origin: https://convo-lab.com' \
+                --cookie "$content_browser_smoke_cookie_jar" \
+                --dump-header "$daily_audio_smoke_headers" \
+                --output "$daily_audio_smoke_body" \
+                "https://convo-lab.com$daily_audio_track_url"
+              echo "Disposable Daily Audio track downloaded."
+              if [ "$(cat "$daily_audio_smoke_body")" != "learning-os-daily-audio-smoke" ]; then
+                echo "Daily Audio stream returned unexpected bytes." >&2
+                wc -c "$daily_audio_smoke_body" >&2
+                exit 1
+              fi
+              for header_check in \
+                '^content-type: audio/mpeg([[:space:]]|$)' \
+                "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" \
+                '^cross-origin-resource-policy: same-origin[[:space:]]*$' \
+                '^x-content-type-options: nosniff[[:space:]]*$'; do
+                if ! grep -Eiq "$header_check" "$daily_audio_smoke_headers"; then
+                  echo "Daily Audio stream is missing expected header: $header_check" >&2
+                  sed -n '1,40p' "$daily_audio_smoke_headers" >&2
+                  exit 1
+                fi
+              done
               cleanup_daily_audio_smoke
               echo "Historical Daily Audio streaming smoke check passed."
 
-                daily_audio_status="$(
-                  fetch_learning_os_route \
-                    'Daily Audio status Learning OS' \
-                    "/api/daily-audio-practice/$daily_audio_id/status"
-                )"
+              daily_audio_status="$(
+                fetch_learning_os_route \
+                  'Daily Audio status Learning OS' \
+                  "/api/daily-audio-practice/$daily_audio_id/status"
+              )"
               printf '%s' "$daily_audio_status" | docker exec -i \
-                  "convolab-server-$active_color" node --input-type=module --eval='
-                    const chunks = [];
-                    for await (const chunk of process.stdin) chunks.push(chunk);
-                    const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                    const statuses = new Set(["draft", "generating", "ready", "error"]);
-                    if (
-                      typeof response?.id !== "string" ||
-                      !statuses.has(response.status) ||
-                      !(response.progress === null || Number.isInteger(response.progress)) ||
-                      !Array.isArray(response.tracks)
-                    ) process.exit(1);
-                  '
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  const statuses = new Set(["draft", "generating", "ready", "error"]);
+                  if (
+                    typeof response?.id !== "string" ||
+                    !statuses.has(response.status) ||
+                    !(response.progress === null || Number.isInteger(response.progress)) ||
+                    !Array.isArray(response.tracks)
+                  ) process.exit(1);
+                '
               cleanup_daily_audio_fixture
               echo "Disposable Daily Audio fixture cleanup passed."
               echo "Daily Audio Learning OS read smoke checks passed."
