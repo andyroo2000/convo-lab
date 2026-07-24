@@ -39,6 +39,9 @@ describe('production router contract', () => {
     expect(routerTemplate).toContain(
       'location ~ "^/api/daily-audio-practice/[0-9a-fA-F-]{36}/tracks/[0-9a-fA-F-]{36}/audio$"'
     );
+    expect(routerTemplate).toContain(
+      'location ~ "^/api/study/media/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$"'
+    );
     expect(routerTemplate).toMatch(/location ~ \^\/api\/daily-audio-practice\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/convolab\/ \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/ \{/u);
@@ -67,6 +70,10 @@ describe('production router contract', () => {
     ],
     [
       'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"',
+      'location ~ "^/api/study/media/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$"',
+    ],
+    [
+      'location ~ "^/api/study/media/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$"',
       'location ~ ^/api/study(?:/|$)',
     ],
     [
@@ -111,6 +118,10 @@ describe('production router contract', () => {
     );
     const canonicalUploadBlock = browserRouteBlock(
       'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"',
+      'location ~ "^/api/study/media/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$"'
+    );
+    const canonicalMediaStreamBlock = browserRouteBlock(
+      'location ~ "^/api/study/media/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$"',
       'location ~ ^/api/study(?:/|$)'
     );
     const canonicalBlock = browserRouteBlock(
@@ -136,6 +147,14 @@ describe('production router contract', () => {
     expect(canonicalUploadBlock).toContain('client_max_body_size 2g;');
     expect(canonicalUploadBlock).toContain('proxy_request_buffering off;');
     expect(canonicalUploadBlock).toContain('proxy_send_timeout 1800s;');
+    expect(canonicalMediaStreamBlock).toContain('proxy_pass $learning_os_upstream;');
+    expect(canonicalMediaStreamBlock).not.toContain('$convolab_upstream');
+    expect(canonicalMediaStreamBlock).toContain(
+      `add_header Content-Security-Policy "sandbox; default-src 'none'" always;`
+    );
+    expect(canonicalMediaStreamBlock).toContain(
+      'add_header Cross-Origin-Resource-Policy "same-origin" always;'
+    );
     expect(canonicalBlock).not.toContain('rewrite ');
     expect(canonicalDailyAudioStreamBlock).toContain(
       `add_header Content-Security-Policy "sandbox; default-src 'none'" always;`
