@@ -545,15 +545,18 @@ test('the production workflow proves public episode CRUD and removes every smoke
 });
 
 test('the production stack wires and smokes Learning OS static media', async () => {
-  const compose = await readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8');
-  const workflow = await readFile(
-    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-    'utf8'
-  );
-  const stageCompose = await readFile(
-    path.join(repositoryRoot, 'docker-compose.stage.yml'),
-    'utf8'
-  );
+  const [compose, workflow, productionWorkflow, stageCompose, router, viteConfig] =
+    await Promise.all([
+      readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+      readFile(
+        path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+        'utf8'
+      ),
+      readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'client/vite.config.ts'), 'utf8'),
+    ]);
 
   for (const requiredComposeContract of [
     'LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: ${LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:-true}',
@@ -574,23 +577,34 @@ test('the production stack wires and smokes Learning OS static media', async () 
     compose.indexOf('x-server-service:')
   );
   assert.ok(serverEnvironment.includes('AVATARS_GCS_ROOT: ${AVATARS_GCS_ROOT:-avatars}'));
-  assert.ok(
-    serverEnvironment.includes('TOOLS_AUDIO_GCS_ROOT: ${TOOLS_AUDIO_GCS_ROOT:-tools-audio}')
-  );
+  assert.doesNotMatch(serverEnvironment, /TOOLS_AUDIO_GCS_ROOT/);
 
   assert.match(
     stageCompose,
     /LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED:\s*['"]false['"]/
   );
+  assert.ok(router.includes('location ~ ^/api/tools-audio(?:/|$)'));
+  assert.ok(viteConfig.includes("'/api/tools-audio'"));
+  assert.ok(viteConfig.indexOf("'/api/tools-audio'") < viteConfig.indexOf("'/api':"));
 
   for (const requiredSmokeContract of [
     'test "$active_static_media_proxy" = true',
     "'https://convo-lab.com/api/avatars/voices/ja-shohei.jpg'",
     'Avatar Learning OS proxy smoke check passed.',
     "'/api/tools-audio/signed-urls'",
-    'Tool Audio Learning OS proxy smoke check passed.',
+    'Tool Audio direct Learning OS smoke check passed.',
   ]) {
     assert.ok(workflow.includes(requiredSmokeContract), requiredSmokeContract);
+  }
+  for (const requiredProductionContract of [
+    'https://convo-lab.com/api/tools-audio/signed-urls',
+    'Direct Learning OS tool-audio probe returned HTTP',
+    'Direct Learning OS tool-audio probe did not return signed URLs.',
+  ]) {
+    assert.ok(
+      productionWorkflow.includes(requiredProductionContract),
+      requiredProductionContract
+    );
   }
 });
 

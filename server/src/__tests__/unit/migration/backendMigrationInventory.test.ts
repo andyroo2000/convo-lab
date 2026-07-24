@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(51);
+    expect(routes).toHaveLength(50);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -221,18 +221,21 @@ describe('backend migration inventory', () => {
     });
   });
 
-  it.each([
-    ['GET', '/api/avatars/voices/ja-shohei.jpg', 'avatars.show', 'avatars'],
-    ['POST', '/api/tools-audio/signed-urls', 'tool-audio.signed-urls', 'tool-audio'],
-  ])('records %s %s as Learning OS-owned static media', (method, path, routeId, surfaceId) => {
+  it('records avatars as Learning OS-owned static media through Express', () => {
+    const method = 'GET';
+    const path = '/api/avatars/voices/ja-shohei.jpg';
     expect(findBackendMigrationRoute(method, path)).toMatchObject({
-      route: { id: routeId },
+      route: { id: 'avatars.show' },
       surface: {
-        id: surfaceId,
+        id: 'avatars',
         migrationWave: 'complete',
         runtimeOwner: 'learning-os-proxy',
       },
     });
+  });
+
+  it('does not inventory the direct Learning OS tool-audio route', () => {
+    expect(findBackendMigrationRoute('POST', '/api/tools-audio/signed-urls')).toBeNull();
   });
 
   it.each([

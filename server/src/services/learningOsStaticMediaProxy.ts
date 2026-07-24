@@ -4,9 +4,7 @@ import { AppError } from '../middleware/errorHandler.js';
 const API_LABEL = 'Learning OS Static Media API';
 const REQUEST_TIMEOUT_MS = 10_000;
 
-type StaticMediaProxyRequest =
-  | { operation: 'avatar'; avatarPath: string }
-  | { operation: 'tool-audio'; body: unknown };
+type StaticMediaProxyRequest = { avatarPath: string };
 
 export async function fetchLearningOsStaticMedia(
   request: StaticMediaProxyRequest
@@ -14,20 +12,15 @@ export async function fetchLearningOsStaticMedia(
   const upstreamUrl = buildLearningOsStaticMediaUrl(request);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  const body = request.operation === 'tool-audio' ? request.body : undefined;
 
   try {
-    // These upstream endpoints are public by design. Convo Lab applies its own
-    // path validation and per-client rate limit without forwarding credentials.
+    // This upstream endpoint is public by design. Convo Lab applies its own
+    // path validation without forwarding credentials.
     return await fetch(upstreamUrl, {
-      method: request.operation === 'avatar' ? 'GET' : 'POST',
+      method: 'GET',
       redirect: 'manual',
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      headers: { Accept: 'application/json' },
     });
   } catch {
     if (controller.signal.aborted) {
@@ -64,19 +57,15 @@ function buildLearningOsStaticMediaUrl(request: StaticMediaProxyRequest): URL {
     throw new AppError(`${API_LABEL} is enabled but not configured.`, 503);
   }
 
-  if (request.operation === 'avatar') {
-    if (!isStaticMediaAvatarPath(request.avatarPath)) {
-      throw new AppError(`${API_LABEL} received an invalid avatar path.`, 500);
-    }
-
-    const encodedAvatarPath = request.avatarPath
-      .split('/')
-      .map((segment) => encodeURIComponent(segment))
-      .join('/');
-    apiUrl.pathname = `/api/avatars/${encodedAvatarPath}`;
-  } else {
-    apiUrl.pathname = '/api/tools-audio/signed-urls';
+  if (!isStaticMediaAvatarPath(request.avatarPath)) {
+    throw new AppError(`${API_LABEL} received an invalid avatar path.`, 500);
   }
+
+  const encodedAvatarPath = request.avatarPath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  apiUrl.pathname = `/api/avatars/${encodedAvatarPath}`;
 
   return apiUrl;
 }

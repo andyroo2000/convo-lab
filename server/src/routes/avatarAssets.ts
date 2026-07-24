@@ -62,7 +62,6 @@ router.get('/*', async (req, res, next) => {
 
     if (isLearningOsStaticMediaProxyEnabled()) {
       const upstreamResponse = await fetchLearningOsStaticMedia({
-        operation: 'avatar',
         avatarPath,
       });
 

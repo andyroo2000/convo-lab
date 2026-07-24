@@ -30,7 +30,6 @@ import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
 import learningOsStudyRoutes from './routes/learningOs/study.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
-import toolAudioRoutes from './routes/toolAudio.js';
 import { warmKanjiumAccentIndex } from './services/pitchAccent/kanjiumData.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -270,7 +269,6 @@ app.use('/api/convolab/episodes', contentEpisodeAudioRoutes);
 app.use('/api/avatars', avatarAssetRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/learning-os/study', learningOsStudyRoutes);
-app.use('/api/tools-audio', toolAudioRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/feature-flags', adminFeatureFlagRoutes);
 app.use('/api/admin/courses', adminCourseRoutes);

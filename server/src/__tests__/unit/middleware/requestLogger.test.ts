@@ -90,14 +90,14 @@ describe('requestLogger Middleware', () => {
   it('classifies successful mounted routes using the full original request path', async () => {
     const app = express();
     const router = Router();
-    router.post('/signed-urls', (_req, res) => res.status(200).json({ urls: [] }));
+    router.get('/', (_req, res) => res.status(200).json({ dialoguesEnabled: true }));
     app.use(requestLogger);
-    app.use('/api/tools-audio', router);
+    app.use('/api/feature-flags', router);
 
-    await request(app).post('/api/tools-audio/signed-urls?source=tool').expect(200);
+    await request(app).get('/api/feature-flags?source=client').expect(200);
 
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/^POST \/api\/tools-audio\/signed-urls 200 - \d+ms$/)
+      expect.stringMatching(/^GET \/api\/feature-flags 200 - \d+ms$/)
     );
     const structuredLog = consoleLogSpy.mock.calls
       .map(([value]) => value)
@@ -105,15 +105,15 @@ describe('requestLogger Middleware', () => {
         (value) =>
           typeof value === 'string' &&
           value.includes('"event":"backend_route_usage"') &&
-          value.includes('"routeId":"tool-audio.signed-urls"')
+          value.includes('"routeId":"feature-flags.show"')
       );
     expect(structuredLog).toBeDefined();
     expect(JSON.parse(structuredLog as string)).toMatchObject({
-      routeId: 'tool-audio.signed-urls',
-      normalizedPath: '/api/tools-audio/signed-urls',
+      routeId: 'feature-flags.show',
+      normalizedPath: '/api/feature-flags',
       statusCode: 200,
     });
-    expect(structuredLog).not.toContain('source=tool');
+    expect(structuredLog).not.toContain('source=client');
   });
 
   it('preserves network-path references instead of interpreting them as URL authorities', () => {

@@ -6,6 +6,7 @@ export const LEARNING_OS_CSRF_TOKEN_HEADER_NAME = 'X-XSRF-TOKEN';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CSRF_REJECTION_MESSAGE_PATTERN = /csrf/i;
+const PUBLIC_CSRF_EXEMPT_API_PATHS = new Set(['/api/tools-audio/signed-urls']);
 const LEARNING_OS_CSRF_NAMESPACES = [
   '/api/convolab/auth',
   '/api/convolab/browser/auth',
@@ -141,6 +142,10 @@ function shouldAttachCsrfToken(input: RequestInfo | URL, init?: RequestInit): bo
   }
 
   if (!url.pathname.startsWith('/api/')) {
+    return false;
+  }
+
+  if (PUBLIC_CSRF_EXEMPT_API_PATHS.has(url.pathname)) {
     return false;
   }
 
