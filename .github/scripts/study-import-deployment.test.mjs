@@ -437,8 +437,8 @@ test('production permanently routes migrated browser APIs', async () => {
     'Direct generation probe ($generation_label) did not return the Learning OS auth contract.',
     'Unauthenticated direct Study probe ($study_label) returned HTTP',
     'Direct Study probe ($study_label) did not return the Learning OS auth contract.',
-    'Unauthenticated Study rollback probe ($legacy_study_label) returned HTTP',
-    'Study rollback probe ($legacy_study_label) did not return the Express auth contract.',
+    'Retired Study proxy returned HTTP $retired_study_status.',
+    'Retired Study proxy did not return the Express not-found contract.',
     'Unauthenticated direct feature flags probe returned HTTP',
     'Direct feature flags probe did not return the Learning OS auth contract.',
     'Direct Learning OS browser analytics probe returned HTTP',
@@ -801,8 +801,8 @@ test('the production stack wires and smokes direct Learning OS static media', as
   }
 });
 
-test('active Study traffic uses Learning OS directly with an Express rollback path', async () => {
-  const [viteConfig, studyHook, dailyAudioHook, knownKanjiHook, csrf, router] =
+test('active Study traffic uses Learning OS directly without an Express rollback path', async () => {
+  const [viteConfig, studyHook, dailyAudioHook, knownKanjiHook, csrf, router, serverEntry] =
     await Promise.all([
       readFile(path.join(repositoryRoot, 'client/vite.config.ts'), 'utf8'),
       readFile(path.join(repositoryRoot, 'client/src/hooks/useStudy.ts'), 'utf8'),
@@ -810,6 +810,7 @@ test('active Study traffic uses Learning OS directly with an Express rollback pa
       readFile(path.join(repositoryRoot, 'client/src/hooks/useKnownKanji.ts'), 'utf8'),
       readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
       readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
     ]);
 
   assert.ok(viteConfig.includes("'^/api/study(?:/|$)'"));
@@ -828,6 +829,8 @@ test('active Study traffic uses Learning OS directly with an Express rollback pa
   assert.ok(router.includes('proxy_pass $convolab_upstream;'));
   assert.ok(!router.includes('location ^~ /api/study'));
   assert.ok(!router.includes('location ^~ /api/learning-os/study'));
+  assert.ok(!router.includes('/api/learning-os/study/imports/'));
+  assert.ok(!serverEntry.includes("app.use('/api/learning-os/study'"));
 
   for (const route of ['/api/study', '/api/daily-audio-practice']) {
     const start = router.indexOf(`location ~ ^${route}(?:/|$)`);

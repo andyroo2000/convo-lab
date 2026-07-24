@@ -16,21 +16,6 @@
           "path": "/api/auth/csrf"
         }
       ]
-    },
-    {
-      "id": "study",
-      "domain": "study",
-      "migrationWave": "complete",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/learningOs/study.ts",
-      "mountPath": "/api/learning-os/study",
-      "routes": [
-        {
-          "id": "study.proxy",
-          "method": "ALL",
-          "path": "/api/learning-os/study/*"
-        }
-      ]
     }
   ]
 }

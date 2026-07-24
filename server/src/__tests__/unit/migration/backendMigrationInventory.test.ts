@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(2);
+    expect(routes).toHaveLength(1);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -128,13 +128,9 @@ describe('backend migration inventory', () => {
     }
   });
 
-  it('matches every method through the Learning OS Study proxy wildcard', () => {
-    expect(
-      findBackendMigrationRoute('PATCH', '/api/learning-os/study/cards/card-123')
-    ).toMatchObject({
-      route: { id: 'study.proxy', method: 'ALL' },
-      surface: { id: 'study', runtimeOwner: 'learning-os-proxy' },
-    });
+  it('does not inventory the retired Learning OS Study proxy', () => {
+    expect(findBackendMigrationRoute('GET', '/api/learning-os/study/overview')).toBeNull();
+    expect(findBackendMigrationRoute('PATCH', '/api/learning-os/study/cards/card-123')).toBeNull();
   });
 
   it('does not inventory direct Learning OS feature-flag routes', () => {

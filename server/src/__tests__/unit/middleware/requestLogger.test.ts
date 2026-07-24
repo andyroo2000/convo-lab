@@ -58,7 +58,7 @@ describe('requestLogger Middleware', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith('GET /api/test 200 - 150ms');
   });
 
-  it('emits normalized backend migration telemetry without concrete route parameters', () => {
+  it('marks retired Study proxy paths as unclassified without retaining path parameters', () => {
     mockReq.path = '/api/learning-os/study/cards/card-123';
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1150);
 
@@ -75,29 +75,29 @@ describe('requestLogger Middleware', () => {
     expect(JSON.parse(structuredLog as string)).toEqual({
       event: 'backend_route_usage',
       schemaVersion: 1,
-      routeId: 'study.proxy',
-      surfaceId: 'study',
-      domain: 'study',
-      migrationWave: 'complete',
-      runtimeOwner: 'learning-os-proxy',
+      routeId: 'unclassified',
+      surfaceId: 'unclassified',
+      domain: 'unclassified',
+      migrationWave: 'unclassified',
+      runtimeOwner: 'unclassified',
       method: 'GET',
-      normalizedPath: '/api/learning-os/study/*',
+      normalizedPath: 'unclassified',
       statusCode: 200,
       durationMs: 150,
     });
   });
 
-  it('classifies successful mounted routes using the full original request path', async () => {
+  it('classifies the remaining mounted route using the full original request path', async () => {
     const app = express();
     const router = Router();
-    router.get('/overview', (_req, res) => res.status(200).json({ dialoguesEnabled: true }));
+    router.get('/', (_req, res) => res.status(200).json({ csrfToken: 'token' }));
     app.use(requestLogger);
-    app.use('/api/learning-os/study', router);
+    app.use('/api/auth/csrf', router);
 
-    await request(app).get('/api/learning-os/study/overview?source=client').expect(200);
+    await request(app).get('/api/auth/csrf?source=client').expect(200);
 
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/^GET \/api\/learning-os\/study\/overview 200 - \d+ms$/)
+      expect.stringMatching(/^GET \/api\/auth\/csrf 200 - \d+ms$/)
     );
     const structuredLog = consoleLogSpy.mock.calls
       .map(([value]) => value)
@@ -105,12 +105,12 @@ describe('requestLogger Middleware', () => {
         (value) =>
           typeof value === 'string' &&
           value.includes('"event":"backend_route_usage"') &&
-          value.includes('"routeId":"study.proxy"')
+          value.includes('"routeId":"csrf.bootstrap"')
       );
     expect(structuredLog).toBeDefined();
     expect(JSON.parse(structuredLog as string)).toMatchObject({
-      routeId: 'study.proxy',
-      normalizedPath: '/api/learning-os/study/*',
+      routeId: 'csrf.bootstrap',
+      normalizedPath: '/api/auth/csrf',
       statusCode: 200,
     });
     expect(structuredLog).not.toContain('source=client');

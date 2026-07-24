@@ -46,7 +46,7 @@ describe('StudyCardImageControls', () => {
         onImagePlacementChange={vi.fn()}
         onImagePromptChange={vi.fn()}
         onRegenerate={vi.fn()}
-        previewUrl="http://localhost:3001/api/learning-os/study/media/image-1"
+        previewUrl="http://localhost:3001/api/study/media/image-1"
         regenerateLabel="Generate image"
         title="Card image"
       />
@@ -57,7 +57,7 @@ describe('StudyCardImageControls', () => {
 
     expect(screen.getByAltText('Generated card image')).toHaveAttribute(
       'src',
-      'http://localhost:3001/api/learning-os/study/media/image-1'
+      'http://localhost:3001/api/study/media/image-1'
     );
   });
 

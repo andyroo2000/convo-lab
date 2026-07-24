@@ -20,15 +20,8 @@ describe('audioCachePolicy', () => {
     ).toEqual([]);
     expect(
       normalizeWarmableAudioUrls(
-        ['/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW'],
-        APP_ORIGIN
-      )
-    ).toEqual([]);
-    expect(
-      normalizeWarmableAudioUrls(
         [
           '/api/daily-audio-practice/123e4567-e89b-42d3-a456-426614174100/tracks/123e4567-e89b-42d3-a456-426614174101/audio',
-          '/api/learning-os/study/daily-audio-practice/123e4567-e89b-42d3-a456-426614174100/tracks/123e4567-e89b-42d3-a456-426614174101/audio',
         ],
         APP_ORIGIN
       )

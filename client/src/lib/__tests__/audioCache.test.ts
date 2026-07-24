@@ -40,13 +40,13 @@ describe('audioCache', () => {
     ).toEqual([`${window.location.origin}/audio/1.mp3`]);
   });
 
-  it('excludes proxied study media URLs from cache warming but allows element preloading', async () => {
+  it('excludes Study media URLs from cache warming but allows element preloading', async () => {
     const postMessage = vi.fn();
     defineNavigatorValue('serviceWorker', {
       controller: { postMessage },
       ready: Promise.resolve({ active: { postMessage } }),
     });
-    const mediaUrl = '/api/learning-os/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW';
+    const mediaUrl = '/api/study/media/01ARZ3NDEKTSV4RRFFQ69G5FAW';
 
     expect(normalizeAudioCacheUrls([mediaUrl])).toEqual([]);
     expect(shouldPreloadAudioUrl(mediaUrl)).toBe(false);

@@ -1,12 +1,12 @@
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import { API_URL } from '../../config';
-import { DAILY_AUDIO_API_BASE, LEGACY_STUDY_API_BASE, STUDY_API_BASE } from '../../lib/studyApi';
+import { DAILY_AUDIO_API_BASE, STUDY_API_BASE } from '../../lib/studyApi';
 
 export const toAssetUrl = (url?: string | null) => {
   if (!url) return null;
   if (
-    [STUDY_API_BASE, LEGACY_STUDY_API_BASE, DAILY_AUDIO_API_BASE].some(
+    [STUDY_API_BASE, DAILY_AUDIO_API_BASE].some(
       (base) => url === base || url.startsWith(`${base}/`)
     )
   ) {

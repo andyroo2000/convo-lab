@@ -100,11 +100,11 @@ archives, imported rows, and media on both success and failure.
 ## Failure And Rollback
 
 The deployment traps remove disposable auth accounts and invites, card drafts,
-smoke-test media, imports, and unused proxy tokens. If a newly activated route
-fails its rehearsal, the workflow restores every prior proxy flag and recreates
-the active server before exiting. A failed deployment leaves the currently
-active ConvoLab color serving until the replacement passes health checks.
+smoke-test media, imports, and unused proxy tokens. A failed deployment leaves
+the currently active ConvoLab color serving until the replacement passes health
+checks.
 
-There is no runtime Study-route flag rollback. To roll back application code,
-redeploy the previous immutable ConvoLab and Learning OS images. To recover
-data, restore a Learning OS database backup.
+The retired `/api/learning-os/study/*` Express route is no longer available as
+a rollback path. To roll back application code, redeploy the previous immutable
+ConvoLab and Learning OS images. To recover data, restore a Learning OS database
+backup.

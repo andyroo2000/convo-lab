@@ -8,7 +8,7 @@ export type BackendMigrationWave =
   | 'retirement'
   | 'complete';
 
-export type BackendRuntimeOwner = 'express' | 'learning-os-proxy';
+export type BackendRuntimeOwner = 'express';
 
 export interface BackendMigrationRoute {
   id: string;
