@@ -1,6 +1,5 @@
 {
   "client/src/**/!(*.d).{ts,tsx}": ["eslint --fix --max-warnings=0", "prettier --write"],
-  "server/src/**/!(*.d).{ts,tsx}": ["eslint --fix --max-warnings=0", "prettier --write"],
   "shared/src/**/!(*.d).{ts,tsx}": ["eslint --fix --max-warnings=0", "prettier --write"],
   "**/*.config.{ts,js,cjs,mjs}": ["prettier --write"],
   "**/*.{json,md}": ["prettier --write"]

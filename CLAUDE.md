@@ -4,25 +4,10 @@
 
 ## Worktree Setup
 
-When creating a new worktree, the `server/.env` file must be configured correctly:
-
-**CRITICAL**: Use this DATABASE_URL (replace `YOUR_MAC_USERNAME` with your actual username):
-
-```
-DATABASE_URL="postgresql://YOUR_MAC_USERNAME@localhost:5432/languageflow?schema=public"
-```
-
-**To find your Mac username**: Run `whoami` in terminal
-
-**Why**: Worktrees need to use the local Mac superuser instead of the Docker `languageflow` user. Using the Docker user will cause Prisma connection errors like "User `languageflow` was denied access on the database `languageflow.public`"
-
-**Production Credentials**: See `LOCAL_SETUP.md` (gitignored) for actual credentials including:
-
-- Your specific Mac username for DATABASE_URL
-- Fish Audio API keys
-- Production server access instructions
-
-If you don't have `LOCAL_SETUP.md`, copy `LOCAL_SETUP.md.example` and ask the project owner for credentials.
+Convo Lab is a static React frontend. Run `npm install` at the repository root,
+then `npm run dev`. The local Vite proxy connects browser API routes to Learning
+OS; configure its target with `LEARNING_OS_API_URL` when the default local URL is
+not appropriate.
 
 ## Audio Storage
 

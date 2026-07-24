@@ -41,7 +41,7 @@ import {
 } from '../useStudy';
 
 vi.mock('../../config', () => ({
-  API_URL: 'http://localhost:3001',
+  API_URL: 'http://localhost:8080',
   SHOW_ONBOARDING_WELCOME: false,
 }));
 

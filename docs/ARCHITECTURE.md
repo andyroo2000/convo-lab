@@ -1,360 +1,83 @@
-# LanguageFlow Studio - Architecture Documentation
+# Convo Lab Architecture
 
-## System Overview
+Convo Lab is the browser application for the Learning OS platform. This
+repository owns the React client, static frontend runtime, browser-to-API
+routing contracts, and production deployment orchestration. Learning OS owns
+all backend behavior and persistence.
 
-LanguageFlow Studio is a full-stack web application for language learning through AI-generated dialogues. The system consists of:
+## Runtime Topology
 
-- **Frontend**: React SPA with TypeScript
-- **Backend**: Node.js/Express REST API
-- **Database**: PostgreSQL with Prisma ORM
-- **Canonical API**: Learning OS owns migrated operations and background generation
-- **Redis**: ConvoLab API rate limiting
-- **AI Services**: Google Gemini, Cloud TTS, Cloud Storage
-
-## High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    React Client (Vite)                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Studio Page  │  │Playback Page │  │Practice Page │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└─────────────────────────┬────────────────────────────────────┘
-                          │
-                    REST API (HTTPS)
-                          │
-┌─────────────────────────┴────────────────────────────────────┐
-│              Express.js Server (TypeScript)                   │
-│  ┌──────────────┐  ┌────────────────┐  ┌──────────────┐    │
-│  │ Compatibility│─▶│ Proxy adapters │─▶│ Learning OS  │    │
-│  │ routes       │  │ and auth       │  │ API + jobs   │    │
-│  └──────┬───────┘  └────────────────┘  └──────────────┘    │
-│         │                                                   │
-│  ┌──────▼───────────────────────────────────────────┐       │
-│  │ PostgreSQL (legacy compatibility) + Redis limits │       │
-│  └───────────────────────────────────────────────────┘       │
-└───────────────────┬──────────────────────────────────────────┘
-                    │
-        ┌───────────┴───────────┐
-        │                       │
-┌───────▼────────┐   ┌─────────▼──────────┐
-│ Google Gemini  │   │ Google Cloud       │
-│ - Dialogue Gen │   │ - TTS (Neural2)    │
-│ - Image Prompts│   │ - Storage (audio)  │
-└────────────────┘   └────────────────────┘
+```text
+Browser
+  |
+  v
+Public edge (Caddy)
+  |
+  +-- browser pages and assets --> Convo Lab Nginx frontend
+  |
+  +-- allowlisted API routes ----> Learning OS Laravel API
+                                      |
+                                      +-- PostgreSQL
+                                      +-- database queue worker
+                                      +-- object storage
+                                      +-- generation providers
 ```
 
-## Data Flow
-
-### 1. Dialogue Generation Flow
-
-```
-User Input (Story) → Studio Page
-    ↓
-Create Episode (POST /api/episodes)
-    ↓
-Generate Dialogue (POST /api/convolab/dialogue/generate)
-    ↓
-ConvoLab compatibility proxy → Learning OS
-    ↓
-Learning OS generation job
-    ↓
-Language Processor (Furigana/Metadata)
-    ↓
-Save to Database (Dialogue, Sentences, Speakers)
-    ↓
-Return to Client → Display Variations
-```
-
-### 2. Audio Generation Flow
-
-```
-User Selects Sentences → Generate Audio
-    ↓
-POST /api/convolab/audio/generate
-    ↓
-ConvoLab compatibility proxy → Learning OS generation job
-    ↓
-For Each Sentence:
-  - Google Cloud TTS (Neural2)
-  - Generate MP3 audio
-  - Calculate timing
-    ↓
-Concatenate Audio (ffmpeg)
-    ↓
-Upload to Google Cloud Storage
-    ↓
-Save URLs & Timings to Database
-    ↓
-Return to Client → Playback
-```
-
-### 3. Playback with Flowline Flow
-
-```
-Load Episode → Fetch Dialogue & Audio
-    ↓
-Initialize Audio Player (WaveSurfer.js)
-    ↓
-Load Sentence Timings
-    ↓
-Start Playback:
-  - Play audio
-  - Sync sentence highlighting (using timing data)
-  - Animate Flowline (Canvas)
-    ↓
-User Controls:
-  - Pause/Resume
-  - Speed control
-  - Skip to sentence
-```
-
-## Database Schema
-
-### Core Tables
-
-**User**
-
-- id (UUID)
-- email (unique)
-- password (hashed)
-- name
-- timestamps
-
-**Episode**
-
-- id (UUID)
-- userId (FK → User)
-- title
-- sourceText
-- targetLanguage (language code)
-- nativeLanguage
-- status (draft | generating | ready | error)
-- audioUrl
-- timestamps
-
-**Dialogue**
-
-- id (UUID)
-- episodeId (FK → Episode, unique)
-- timestamps
-
-**Speaker**
-
-- id (UUID)
-- dialogueId (FK → Dialogue)
-- name
-- voiceId (Google TTS voice)
-- proficiency (beginner | intermediate | advanced | native)
-- tone (casual | polite | formal)
-- color (UI color)
-
-**Sentence**
-
-- id (UUID)
-- dialogueId (FK → Dialogue)
-- speakerId (FK → Speaker)
-- order (int)
-- text (target language)
-- translation (native language)
-- metadata (JSON - language-specific)
-- audioUrl
-- startTime, endTime (milliseconds)
-- variations (JSON array)
-- selected (boolean)
-- timestamps
-
-**Image**
-
-- id (UUID)
-- episodeId (FK → Episode)
-- url
-- prompt
-- order
-- sentenceStartId, sentenceEndId
-- timestamp
-
-### Language Metadata Structure
-
-Stored as JSON in `Sentence.metadata`:
-
-```json
-{
-  "japanese": {
-    "kanji": "今日は天気が良いです",
-    "kana": "きょうはてんきがいいです",
-    "furigana": "今日[きょう]は天気[てんき]が良[い]いです"
-  }
-}
-```
-
-## API Endpoints
-
-### Authentication
-
-- `POST /api/auth/signup` - Create account
-- `POST /api/auth/login` - Login
-- `POST /api/auth/logout` - Logout
-- `GET /api/auth/me` - Get current user
-
-### Episodes
-
-- `GET /api/episodes` - List user's episodes
-- `GET /api/episodes/:id` - Get episode with dialogue
-- `POST /api/episodes` - Create new episode
-- `PATCH /api/episodes/:id` - Update episode
-- `DELETE /api/episodes/:id` - Delete episode
-
-### Dialogue
-
-- `POST /api/convolab/dialogue/generate` - Start dialogue generation job
-- `GET /api/convolab/dialogue/job/:jobId` - Check job status
-
-### Audio
-
-- `POST /api/convolab/audio/generate` - Start audio generation job
-- `POST /api/convolab/audio/generate-all-speeds` - Start all-speed audio generation
-- `GET /api/convolab/audio/job/:jobId` - Check job status
-
-### Images
-
-- `POST /api/convolab/images/generate` - Start dialogue image generation
-- `GET /api/convolab/images/job/:jobId` - Check image-job status
-
-## Background Work Ownership
-
-Learning OS owns course, dialogue, image, audio, and Audio Script generation jobs. The
-production edge rewrites the retired `/api/dialogue`, `/api/audio`, and `/api/images`
-namespaces for stale PWA clients; these requests do not enter Express. Redis remains part
-of the ConvoLab runtime for API rate limiting.
-
-## Language Processing Architecture
-
-### Japanese Processing (Kuroshiro)
-
-1. Convert kanji to hiragana (kana reading)
-2. Generate bracket-style furigana
-3. Return structured metadata
-
-## Google Cloud Services
-
-### Gemini API
-
-- Model: `gemini-2.0-flash-exp` (default)
-- Use: Dialogue generation
-- Cost: ~$0.05-0.30 per 1K tokens
-
-### Cloud Text-to-Speech
-
-- Voices: Neural2 (highest quality)
-- Japanese: `ja-JP-Neural2-B` (female), `ja-JP-Neural2-C` (male)
-- Cost: $16 per 1M characters
-- Features: SSML support, speed control, pauses
-
-### Cloud Storage
-
-- Bucket: Public read access
-- Structure:
-  - `/audio/{episodeId}-{type}.mp3`
-  - `/images/{episodeId}-{index}.png`
-- Cost: ~$0.02/GB storage, $0.12/GB egress
-
-## Security Considerations
-
-### Authentication
-
-- JWT tokens in HTTP-only cookies
-- bcrypt password hashing (10 rounds)
-- 7-day token expiration
-
-### API Protection
-
-- CORS enabled for frontend domain only
-- Rate limiting (TODO: implement)
-- Request size limits (10MB)
-
-### Data Privacy
-
-- User episodes isolated by userId
-- No public episode access
-- Secure cookie settings in production
-
-## Performance Optimization
-
-### Frontend
-
-- Code splitting by route
-- React Query for API caching
-- Lazy loading of heavy components (WaveSurfer, Flowline)
-
-### Backend
-
-- Database connection pooling (Prisma)
-- Job queue for async operations
-- Efficient database queries with includes
-
-### Caching Strategy (Future)
-
-- Redis cache for frequently accessed episodes
-- CDN for static assets
-- Browser caching for audio/images
-
-## Monitoring & Logging
-
-### Development
-
-- Request logging middleware
-- Prisma query logging
-- Console error tracking
-
-### Production (TODO)
-
-- Google Cloud Logging
-- Error tracking (Sentry)
-- Performance monitoring
-- Job queue metrics
-
-## Deployment Architecture
-
-### Google Cloud Run
-
-- Serverless containers
-- Auto-scaling (0-100 instances)
-- Pay-per-use pricing
-- Built-in load balancing
-
-### Cloud SQL (PostgreSQL)
-
-- Managed database
-- Automatic backups
-- High availability option
-
-### Memorystore (Redis)
-
-- Managed Redis
-- Automatic failover
-- VPC peering with Cloud Run
-
-## Future Enhancements
-
-1. **Real-time Practice Mode**
-   - Speech recognition (Google Speech-to-Text)
-   - Pronunciation feedback
-
-2. **Advanced Image Generation**
-   - Imagen API integration
-   - Consistent character generation
-
-3. **Anki Export**
-   - CSV format
-   - APKG generation with media
-
-4. **Japanese-Only Support**
-
-5. **Collaborative Features**
-   - Share episodes
-   - Community dialogue library
-
-6. **Mobile App**
-   - React Native
-   - Offline support
+The Convo Lab production frontend is an Nginx-only image. It contains the built
+Vite client and generated route metadata; it has no application server,
+database client, credentials, migrations, or background workers.
+
+Learning OS runs as private API and worker containers on the production Docker
+network. The public router explicitly forwards authentication, Study, content,
+admin, media, and generation routes to Learning OS. Unknown API routes never
+fall through to the SPA.
+
+## Repository Boundaries
+
+- `client/`: React application, browser API adapters, PWA, and component tests.
+- `shared/`: types and utilities shared by frontend build-time code.
+- `deploy/`: Nginx configuration, route generation, and static smoke checks.
+- `.github/workflows/`: staging, production frontend, and Learning OS deployment
+  orchestration.
+- `.github/scripts/`: deployment contract and lifecycle smoke tests.
+
+There is intentionally no backend workspace in this repository. Domain logic,
+HTTP controllers, validation, migrations, queue jobs, and persistence models
+belong in `learning-os`.
+
+## Local Development
+
+`npm run dev` starts Vite. Browser API requests proxy to Learning OS using
+`LEARNING_OS_API_URL`, defaulting to `http://localhost:8080`. Named routes are
+listed before the generic `/api` fallback so rewrite compatibility paths remain
+deterministic.
+
+The local frontend does not start PostgreSQL, Redis, Prisma, or an Express
+server.
+
+## Deployment
+
+Staging builds and publishes only `convolab-frontend`. Production uses static
+blue/green colors behind a stable Nginx router, verifies the inactive color,
+switches traffic, runs public frontend and Learning OS route smoke checks, and
+then retains the prior static color for rollback.
+
+Learning OS deploys independently with an immutable image tag. Its workflow
+runs database migrations, reconciles the API and worker, and exercises
+authenticated browser lifecycles through the public Convo Lab routes.
+
+The Learning OS GCS credential is stored outside the repository checkout under
+`/opt/convolab-runtime/secrets/gcloud-key.json` and bind-mounted read-only.
+
+## Ownership Rules
+
+- Frontend components own presentation and browser interaction.
+- Browser API adapters own request paths and client response parsing.
+- Edge configuration owns public route delegation and header boundaries.
+- Learning OS controllers own HTTP behavior.
+- Learning OS requests own validation and normalization.
+- Learning OS actions and services own business behavior.
+- Learning OS models and migrations own persistence.
+
+Changes that introduce backend code, database access, server-side secrets, or
+queue processing into Convo Lab violate this boundary.

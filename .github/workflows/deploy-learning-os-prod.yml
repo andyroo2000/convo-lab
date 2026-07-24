@@ -109,7 +109,8 @@ jobs:
             WORKER_DRAIN_ATTEMPTS=780
             WORKER_DRAIN_INTERVAL_SECONDS=5
             WORKER_DRAIN_TIMEOUT_MINUTES=$((WORKER_DRAIN_ATTEMPTS * WORKER_DRAIN_INTERVAL_SECONDS / 60))
-            GCS_CREDENTIAL_PATH="server/gcloud-key.json"
+            GCS_CREDENTIAL_PATH="$RUNTIME_DIR/secrets/gcloud-key.json"
+            LEGACY_GCS_CREDENTIAL_PATH="server/gcloud-key.json"
             # The Learning OS image runs as Debian's www-data user.
             LEARNING_OS_RUNTIME_UID=33
 
@@ -136,6 +137,15 @@ jobs:
             chmod 600 ~/.git-credentials
             git fetch origin
             git reset --hard origin/main
+
+            if [ ! -s "$GCS_CREDENTIAL_PATH" ] && [ -s "$LEGACY_GCS_CREDENTIAL_PATH" ]; then
+              echo "Migrating Learning OS GCS credentials to runtime-owned storage."
+              install -D -m 600 \
+                -o "$LEARNING_OS_RUNTIME_UID" \
+                -g "$LEARNING_OS_RUNTIME_UID" \
+                "$LEGACY_GCS_CREDENTIAL_PATH" \
+                "$GCS_CREDENTIAL_PATH"
+            fi
 
             if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then
               echo "Learning OS GCS credentials are missing or empty."

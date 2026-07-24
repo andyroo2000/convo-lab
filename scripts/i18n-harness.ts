@@ -190,7 +190,6 @@ ${!dryRun ? `
 
 When you commit, the pre-commit hook will:
 - Run lint-staged (lints staged files)
-- Run server tests if server files changed
 - Fail the commit if either fails
 
 JSON files should pass linting if properly formatted (2-space indent, no trailing commas).

@@ -47,13 +47,11 @@ Before pushing to `main`, run this quick gate:
 - Repo-wide `format:check` now excludes generated artifacts and legacy ops scripts via `.prettierignore`.
 - Excluded paths include:
   - `client/dev-dist`
-  - `server/scripts`
-  - `server/src/scripts`
   - `scripts`
   - `check-*.ts`
   - `sample-courses-results.json`
   - `tools/kanban`
-- For app changes, keep source files under `client/src`, `server/src` (excluding `server/src/scripts`), `shared/src`, `e2e`, and config files Prettier-clean before push.
+- For app changes, keep source files under `client/src`, `shared/src`, `e2e`, and config files Prettier-clean before push.
 
 ## Landing the Plane (Session Completion)
 

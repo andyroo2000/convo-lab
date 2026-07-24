@@ -59,7 +59,6 @@ test('Docker build contexts exclude local dependencies, build output, and secret
     '.env.*',
     '**/.env',
     '**/.env.*',
-    'server/gcloud-key.json',
   ]) {
     assert.ok(ignoredPatterns.has(pattern), `Expected .dockerignore to contain ${pattern}`);
   }

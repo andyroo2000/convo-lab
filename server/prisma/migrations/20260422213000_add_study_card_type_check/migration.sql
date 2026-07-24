@@ -1,9 +1,0 @@
-ALTER TABLE "study_cards"
-ADD CONSTRAINT "study_cards_card_type_check"
-CHECK (
-  "cardType" IN (
-    'recognition',
-    'production',
-    'cloze'
-  )
-);

@@ -1,11 +1,5 @@
 import { test, expect } from '@playwright/test';
-import {
-  loginAsUser,
-  logout,
-  getErrorMessage,
-  generateDialogue,
-  setUserQuota,
-} from './utils/test-helpers';
+import { loginAsUser, getErrorMessage, generateDialogue } from './utils/test-helpers';
 
 /**
  * E2E Tests for Error Handling
@@ -114,41 +108,6 @@ test.describe('Error Handling', () => {
   });
 
   test.describe('Rate Limit Error Handling', () => {
-    test('should show rate limit error when quota exhausted', async ({ page }) => {
-      await loginAsUser(page);
-
-      // Exhaust user quota
-      const userId = 'test-user-id';
-      await setUserQuota(page, userId, 20);
-
-      await page.reload();
-
-      // Try to generate content
-      await page.goto('/app/dialogues/new');
-      await page.fill('textarea[name="topic"]', 'Test conversation');
-      await page.click('button:has-text("Generate")');
-
-      // Should show rate limit error
-      const errorText = await getErrorMessage(page);
-      expect(errorText).toContain('quota exceeded');
-    });
-
-    test('should include retry time in rate limit error', async ({ page }) => {
-      await loginAsUser(page);
-
-      const userId = 'test-user-id';
-      await setUserQuota(page, userId, 20);
-
-      await page.reload();
-
-      await page.goto('/app/dialogues/new');
-      await page.fill('textarea[name="topic"]', 'Test conversation');
-      await page.click('button:has-text("Generate")');
-
-      const errorText = await getErrorMessage(page);
-      expect(errorText).toMatch(/Quota resets|Monday|week/i);
-    });
-
     test('should show cooldown error message', async ({ page }) => {
       await loginAsUser(page);
 
