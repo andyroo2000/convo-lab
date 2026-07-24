@@ -3,7 +3,9 @@
 Learning OS runs as an internal-only API and worker on ConvoLab's production
 Docker network. ConvoLab remains the public edge and routes explicitly
 allowlisted API paths to Learning OS. Browsers authenticate directly with
-Learning OS through first-party Sanctum sessions.
+Learning OS through first-party Sanctum sessions. Native apps authenticate
+through the same public edge with Learning OS Sanctum bearer tokens; Learning
+OS itself remains private.
 
 The Study cutover is complete. Production routing is not controlled by database
 feature flags, and the deployment workflow does not compare against or restore
@@ -12,6 +14,11 @@ the retired ConvoLab Study backend.
 Login, current-account reads, profile/onboarding writes, signup, and email
 verification are also served by Learning OS. These routes are permanent and
 have no Convo Lab backend fallback.
+
+Native token issuance and revocation (`/api/auth/tokens`), current-account
+reads (`/api/me`), review-event sync, Study, and Daily Audio routes preserve
+the native client's `Authorization` header. The edge still removes
+`X-Convo-Lab-User-Id` so clients cannot spoof browser identity.
 
 ## Workflow Inputs
 

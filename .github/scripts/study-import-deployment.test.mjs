@@ -839,7 +839,8 @@ test('active Study traffic uses Learning OS directly without an Express rollback
     const end = router.indexOf('\n    location ', start + 1);
     const block = router.slice(start, end);
     assert.ok(start >= 0);
-    assert.ok(block.includes('proxy_set_header Authorization "";'));
+    assert.ok(block.includes('proxy_set_header Authorization $http_authorization;'));
+    assert.ok(!block.includes('proxy_set_header Authorization "";'));
     assert.ok(block.includes('proxy_set_header X-Convo-Lab-User-Id "";'));
   }
 });

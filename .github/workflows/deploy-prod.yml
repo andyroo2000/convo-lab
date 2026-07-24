@@ -228,6 +228,70 @@ jobs:
                 return 1
               fi
 
+              token_issue_status="$(curl --silent --show-error \
+                --request POST \
+                --output "$response_body" \
+                --write-out '%{http_code}' \
+                --header 'Accept: application/json' \
+                --header 'Content-Type: application/json' \
+                --data '{}' \
+                https://convo-lab.com/api/auth/tokens)"
+              if [ "$token_issue_status" != 422 ]; then
+                echo "Native token issuance probe returned HTTP $token_issue_status instead of 422."
+                cat "$response_body"
+                return 1
+              fi
+              if ! grep -q '"email"' "$response_body" || ! grep -q '"password"' "$response_body"; then
+                echo "Native token issuance probe did not return the Learning OS validation contract."
+                cat "$response_body"
+                return 1
+              fi
+
+              native_account_status="$(curl --silent --show-error \
+                --output "$response_body" \
+                --write-out '%{http_code}' \
+                --header 'Accept: application/json' \
+                --header 'Authorization: Bearer invalid-native-deployment-token' \
+                https://convo-lab.com/api/me)"
+              if [ "$native_account_status" != 401 ]; then
+                echo "Native current-account probe returned HTTP $native_account_status instead of 401."
+                cat "$response_body"
+                return 1
+              fi
+              if ! grep -q '"message":"Unauthenticated."' "$response_body"; then
+                echo "Native current-account probe did not return the Learning OS auth contract."
+                cat "$response_body"
+                return 1
+              fi
+
+              token_revoke_status="$(curl --silent --show-error \
+                --request DELETE \
+                --output "$response_body" \
+                --write-out '%{http_code}' \
+                --header 'Accept: application/json' \
+                --header 'Authorization: Bearer invalid-native-deployment-token' \
+                https://convo-lab.com/api/auth/tokens/current)"
+              if [ "$token_revoke_status" != 401 ]; then
+                echo "Native token revocation probe returned HTTP $token_revoke_status instead of 401."
+                cat "$response_body"
+                return 1
+              fi
+
+              review_sync_status="$(curl --silent --show-error \
+                --request POST \
+                --output "$response_body" \
+                --write-out '%{http_code}' \
+                --header 'Accept: application/json' \
+                --header 'Content-Type: application/json' \
+                --header 'Authorization: Bearer invalid-native-deployment-token' \
+                --data '{"events":[]}' \
+                https://convo-lab.com/api/card-review-events/batch)"
+              if [ "$review_sync_status" != 401 ]; then
+                echo "Native review sync probe returned HTTP $review_sync_status instead of 401."
+                cat "$response_body"
+                return 1
+              fi
+
               oauth_headers="$(curl --max-time 10 --silent --show-error \
                 --dump-header - \
                 --output /dev/null \
