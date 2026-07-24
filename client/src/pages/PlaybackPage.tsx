@@ -13,7 +13,7 @@ import AudioScriptPlayback from '../components/audio/AudioScriptPlayback';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
-import { API_URL } from '../config';
+import { generationApi } from '../lib/generationApi';
 
 // Helper function to get avatar URL based on speaker voice and gender
 function getSpeakerAvatarFilename(
@@ -130,7 +130,7 @@ const PlaybackPage = () => {
             return;
           }
 
-          const response = await fetch(`${API_URL}/api/audio/job/${jobId}`, {
+          const response = await fetch(generationApi.audio.job(jobId), {
             credentials: 'include',
           });
 

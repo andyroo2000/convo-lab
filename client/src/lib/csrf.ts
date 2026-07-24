@@ -9,6 +9,13 @@ const CSRF_REJECTION_MESSAGE_PATTERN = /csrf/i;
 const LEARNING_OS_CSRF_NAMESPACES = [
   '/api/convolab/auth',
   '/api/convolab/browser/auth',
+  '/api/convolab/episodes',
+  '/api/convolab/courses',
+  '/api/convolab/scripts',
+  '/api/convolab/dialogue',
+  '/api/convolab/audio',
+  '/api/convolab/images',
+  '/api/convolab/admin',
   '/api/auth/password',
 ];
 
@@ -112,22 +119,6 @@ export function getCsrfProviderForPath(pathname: string): CsrfProvider {
       (namespace) => pathname === namespace || pathname.startsWith(`${namespace}/`)
     )
   ) {
-    return 'learning-os';
-  }
-
-  if (pathname === '/api/convolab/episodes' || pathname.startsWith('/api/convolab/episodes/')) {
-    return 'learning-os';
-  }
-
-  if (pathname === '/api/convolab/courses' || pathname.startsWith('/api/convolab/courses/')) {
-    return 'learning-os';
-  }
-
-  if (pathname === '/api/convolab/scripts' || pathname.startsWith('/api/convolab/scripts/')) {
-    return 'learning-os';
-  }
-
-  if (pathname === '/api/convolab/admin' || pathname.startsWith('/api/convolab/admin/')) {
     return 'learning-os';
   }
 

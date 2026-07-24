@@ -61,6 +61,18 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/api/convolab/dialogue': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/convolab/audio': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/convolab/images': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/api/convolab/admin': {
         target: 'http://localhost:8080',
         changeOrigin: true,

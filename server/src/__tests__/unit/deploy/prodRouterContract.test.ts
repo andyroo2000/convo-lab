@@ -22,6 +22,9 @@ describe('production router contract', () => {
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/episodes\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/courses\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/scripts\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).toMatch(
+      /location ~ \^\/api\/convolab\/\(\?:dialogue\|audio\|images\)\(\?:\/\|\$\) \{/u
+    );
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/admin\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/convolab\/ \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/ \{/u);
@@ -40,7 +43,14 @@ describe('production router contract', () => {
     ],
     ['location ~ ^/api/convolab/episodes(?:/|$)', 'location ~ ^/api/convolab/courses(?:/|$)'],
     ['location ~ ^/api/convolab/courses(?:/|$)', 'location ~ ^/api/convolab/scripts(?:/|$)'],
-    ['location ~ ^/api/convolab/scripts(?:/|$)', 'location ~ ^/api/convolab/admin(?:/|$)'],
+    [
+      'location ~ ^/api/convolab/scripts(?:/|$)',
+      'location ~ ^/api/convolab/(?:dialogue|audio|images)(?:/|$)',
+    ],
+    [
+      'location ~ ^/api/convolab/(?:dialogue|audio|images)(?:/|$)',
+      'location ~ ^/api/convolab/admin(?:/|$)',
+    ],
     [
       'location ~ ^/api/convolab/admin(?:/|$)',
       '# Keep this regex synchronized with studyRouteContract.ts',

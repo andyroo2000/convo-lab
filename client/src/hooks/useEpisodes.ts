@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { Episode, CreateEpisodeRequest, Speaker, AudioSpeed } from '../types';
 
-import { API_URL } from '../config';
 import { episodeApi, readEpisodeApiError } from '../lib/episodeApi';
+import { generationApi, readGenerationApiError } from '../lib/generationApi';
 
 interface QuotaInfo {
   limit: number;
@@ -73,7 +73,7 @@ export function useEpisodes() {
     setErrorMetadata(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/dialogue/generate`, {
+      const response = await fetch(generationApi.dialogue.generate, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,12 @@ export function useEpisodes() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: {
+          error?: string;
+          message?: string;
+          quota?: QuotaInfo;
+          cooldown?: ErrorWithMetadata['cooldown'];
+        } = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || 'Failed to generate dialogue';
 
         // Capture metadata for quota/cooldown errors
@@ -133,7 +138,7 @@ export function useEpisodes() {
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/audio/generate`, {
+      const response = await fetch(generationApi.audio.generate, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,8 +148,7 @@ export function useEpisodes() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate audio');
+        throw new Error(await readGenerationApiError(response, 'Failed to generate audio'));
       }
 
       const data = await response.json();
@@ -164,7 +168,7 @@ export function useEpisodes() {
       setError(null);
 
       try {
-        const response = await fetch(`${API_URL}/api/audio/generate-all-speeds`, {
+        const response = await fetch(generationApi.audio.generateAllSpeeds, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -174,8 +178,9 @@ export function useEpisodes() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to generate multi-speed audio');
+          throw new Error(
+            await readGenerationApiError(response, 'Failed to generate multi-speed audio')
+          );
         }
 
         const data = await response.json();
@@ -262,7 +267,7 @@ export function useEpisodes() {
         for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
           try {
             // eslint-disable-next-line no-await-in-loop -- Sequential retry attempts required
-            const response = await fetch(`${API_URL}/api/${endpoint}/job/${jobId}`, {
+            const response = await fetch(generationApi[endpoint].job(jobId), {
               credentials: 'include',
             });
 
