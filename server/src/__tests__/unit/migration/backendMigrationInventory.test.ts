@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes.length).toBeGreaterThan(65);
+    expect(routes).toHaveLength(60);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -90,30 +90,6 @@ describe('backend migration inventory', () => {
     expect(findBackendMigrationRoute('POST', '/api/tools/analytics')).toMatchObject({
       route: { id: 'tool-analytics.store' },
       surface: { id: 'tool-analytics', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('GET', '/api/courses/course-123')).toMatchObject({
-      route: { id: 'courses.show', path: '/api/courses/:id' },
-      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('POST', '/api/courses')).toMatchObject({
-      route: { id: 'courses.store', path: '/api/courses' },
-      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('PATCH', '/api/courses/course-123')).toMatchObject({
-      route: { id: 'courses.update', path: '/api/courses/:id' },
-      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('DELETE', '/api/courses/course-123')).toMatchObject({
-      route: { id: 'courses.delete', path: '/api/courses/:id' },
-      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('POST', '/api/courses/course-123/generate')).toMatchObject({
-      route: { id: 'courses.generate' },
-      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('GET', '/api/courses/course-123/status')).toMatchObject({
-      route: { id: 'courses.status' },
-      surface: { id: 'courses', runtimeOwner: 'learning-os-proxy' },
     });
     expect(findBackendMigrationRoute('POST', '/api/audio/generate-all-speeds')).toMatchObject({
       route: { id: 'audio.generate-all-speeds' },
@@ -286,6 +262,8 @@ describe('backend migration inventory', () => {
     expect(findBackendMigrationRoute('GET', '/api/episodes/episode-123')).toBeNull();
     expect(findBackendMigrationRoute('POST', '/api/episodes')).toBeNull();
     expect(findBackendMigrationRoute('POST', '/api/episodes/episode-123')).toBeNull();
+    expect(findBackendMigrationRoute('GET', '/api/courses/course-123')).toBeNull();
+    expect(findBackendMigrationRoute('POST', '/api/courses')).toBeNull();
     expect(findBackendMigrationRoute('GET', '/api/not-in-inventory')).toBeNull();
   });
 });
