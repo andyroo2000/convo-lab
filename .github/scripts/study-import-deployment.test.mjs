@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -324,18 +324,23 @@ test('production configures the permanent Learning OS browser session without a 
 });
 
 test('browser mutations use only the Learning OS CSRF bootstrap', async () => {
-  const [serverIndex, clientCsrf, learningOsWorkflow, inventory] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
-    readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
-    readFile(
-      path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-      'utf8',
-    ),
-    readFile(
-      path.join(repositoryRoot, 'server/src/migration/backendMigrationInventory.json'),
-      'utf8',
-    ),
-  ]);
+  const [serverIndex, clientCsrf, learningOsWorkflow, inventory, serverPackage, ...composes] =
+    await Promise.all([
+      readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
+      readFile(
+        path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+        'utf8',
+      ),
+      readFile(
+        path.join(repositoryRoot, 'server/src/migration/backendMigrationInventory.json'),
+        'utf8',
+      ),
+      readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'docker-compose.yml'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
+    ]);
 
   assert.ok(!serverIndex.includes("import csrfRoutes from './routes/csrf.js';"));
   assert.ok(!serverIndex.includes("app.use('/api/auth/csrf', csrfRoutes);"));
@@ -349,6 +354,23 @@ test('browser mutations use only the Learning OS CSRF bootstrap', async () => {
   assert.ok(!learningOsWorkflow.includes("'https://convo-lab.com/api/auth/csrf'"));
   assert.ok(!learningOsWorkflow.includes('AUTH_USER_ID'));
   assert.ok(!learningOsWorkflow.includes('AUTH_USER_ROLE'));
+  assert.ok(!serverPackage.includes('jsonwebtoken'));
+  for (const compose of composes) {
+    assert.ok(!compose.includes('JWT_SECRET'));
+    assert.ok(!compose.includes('COOKIE_SECRET'));
+  }
+  for (const retiredMiddleware of [
+    'auth',
+    'roleAuth',
+    'demoAuth',
+    'impersonation',
+    'emailVerification',
+    'studyRateLimit',
+  ]) {
+    await assert.rejects(
+      access(path.join(repositoryRoot, `server/src/middleware/${retiredMiddleware}.ts`))
+    );
+  }
   assert.deepEqual(JSON.parse(inventory).surfaces, []);
 });
 

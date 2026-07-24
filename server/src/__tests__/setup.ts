@@ -52,7 +52,6 @@ i18next.init({
 });
 
 // Mock environment variables
-process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.NODE_ENV = 'test';
 
 // Create a mock Prisma client with common methods

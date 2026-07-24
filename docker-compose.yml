@@ -50,8 +50,6 @@ services:
       DATABASE_URL: postgresql://languageflow:languageflow_dev_password@postgres:5432/languageflow?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: dev-secret-key-change-in-production
-      COOKIE_SECRET: dev-cookie-secret-change-in-production
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       # Add your Google Cloud credentials here
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}

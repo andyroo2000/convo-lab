@@ -27,7 +27,6 @@ describe('browser runtime config', () => {
   it('fails fast in production when CLIENT_URL is missing', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.CLIENT_URL;
-    process.env.JWT_SECRET = 'jwt-secret';
 
     expect(() => validateProductionBrowserRuntimeConfig()).toThrow(
       'CLIENT_URL must be configured as an absolute URL in production.'
@@ -37,7 +36,6 @@ describe('browser runtime config', () => {
   it('fails fast in production when CLIENT_URL is invalid', () => {
     process.env.NODE_ENV = 'production';
     process.env.CLIENT_URL = 'not-a-url';
-    process.env.JWT_SECRET = 'jwt-secret';
 
     expect(() => getClientAppConfig()).toThrow(
       'CLIENT_URL must be configured as an absolute URL in production.'
@@ -61,7 +59,6 @@ describe('browser runtime config', () => {
   it('uses the configured production origin set for CORS', () => {
     process.env.NODE_ENV = 'production';
     process.env.CLIENT_URL = 'https://app.example.com';
-    process.env.JWT_SECRET = 'jwt-secret';
 
     expect(getAllowedBrowserOrigins()).toEqual([
       'https://app.example.com',
@@ -73,7 +70,6 @@ describe('browser runtime config', () => {
   it('normalizes CLIENT_URL values with a trailing slash', () => {
     process.env.NODE_ENV = 'production';
     process.env.CLIENT_URL = 'https://app.example.com/';
-    process.env.JWT_SECRET = 'jwt-secret';
 
     expect(getClientAppConfig()).toEqual({
       clientUrl: 'https://app.example.com',
@@ -100,7 +96,6 @@ describe('browser runtime config', () => {
   it('does not implicitly allow the staging frontend against production CLIENT_URL', () => {
     process.env.NODE_ENV = 'production';
     process.env.CLIENT_URL = 'https://convo-lab.com';
-    process.env.JWT_SECRET = 'jwt-secret';
 
     expect(getAllowedBrowserOrigins()).toEqual([
       'https://convo-lab.com',
@@ -111,7 +106,6 @@ describe('browser runtime config', () => {
   it('still allows the staging frontend when it is the configured production app origin', () => {
     process.env.NODE_ENV = 'production';
     process.env.CLIENT_URL = 'https://stage.convo-lab.com';
-    process.env.JWT_SECRET = 'jwt-secret';
 
     expect(getAllowedBrowserOrigins()).toEqual([
       'https://stage.convo-lab.com',

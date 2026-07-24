@@ -87,8 +87,6 @@ REDIS_PORT=6379
 REDIS_PASSWORD=your-upstash-password
 
 # Authentication
-JWT_SECRET=generate-a-long-random-string-here
-COOKIE_SECRET=generate-another-long-random-string
 
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
@@ -217,8 +215,6 @@ docker run -p 8080:8080 --env-file .env.production convolab:local
 | `REDIS_HOST`              | Redis hostname               | Yes                |
 | `REDIS_PORT`              | Redis port                   | Yes                |
 | `REDIS_PASSWORD`          | Redis password               | Yes (Upstash)      |
-| `JWT_SECRET`              | Secret for JWT signing       | Yes                |
-| `COOKIE_SECRET`           | Secret for cookie signing    | Yes                |
 | `OPENAI_API_KEY`          | OpenAI API key               | Yes                |
 | `GOOGLE_CLOUD_PROJECT`    | GCP project ID               | Yes                |
 | `GCS_BUCKET_NAME`         | Storage bucket name          | Yes                |

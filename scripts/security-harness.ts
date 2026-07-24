@@ -124,13 +124,13 @@ Skip dependency scanning. Focus on code-level security issues.
 
 ### PHASE 2: Authentication & Authorization
 1. Review the ConvoLab authentication boundary:
-   - server/src/middleware/auth.ts
    - client/src/lib/authApi.ts
+   - client/src/lib/csrf.ts
    - deploy/prod-router.conf.template
-   - Confirm canonical login/logout/register/password-reset routes remain Learning OS-owned
+   - Confirm browser sessions, CSRF, login/logout/register, and password-reset routes remain Learning OS-owned
 2. Check for vulnerabilities:
-   - Trusted proxy-token validation and expiry
-   - Browser credential forwarding and CSRF-provider selection
+   - Temporary deployment smoke-token validation and expiry
+   - Browser credential and CSRF cookie handling
    - Session cookies and auth headers are not forwarded across ownership boundaries
    - Password reset and email verification route ownership
 3. Review authorization checks:
