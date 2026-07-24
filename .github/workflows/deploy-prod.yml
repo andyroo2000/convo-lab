@@ -432,7 +432,10 @@ jobs:
                 for generation_probe in \
                   'dialogue|https://convo-lab.com/api/convolab/dialogue/job/00000000-0000-4000-8000-000000000000' \
                   'audio|https://convo-lab.com/api/convolab/audio/job/00000000-0000-4000-8000-000000000000' \
-                  'images|https://convo-lab.com/api/convolab/images/job/00000000-0000-4000-8000-000000000000'
+                  'images|https://convo-lab.com/api/convolab/images/job/00000000-0000-4000-8000-000000000000' \
+                  'legacy-dialogue|https://convo-lab.com/api/dialogue/job/00000000-0000-4000-8000-000000000000' \
+                  'legacy-audio|https://convo-lab.com/api/audio/job/00000000-0000-4000-8000-000000000000' \
+                  'legacy-images|https://convo-lab.com/api/images/job/00000000-0000-4000-8000-000000000000'
                 do
                   generation_label="${generation_probe%%|*}"
                   generation_url="${generation_probe#*|}"

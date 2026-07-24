@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(48);
+    expect(routes).toHaveLength(41);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -91,20 +91,11 @@ describe('backend migration inventory', () => {
       route: { id: 'tool-analytics.store' },
       surface: { id: 'tool-analytics', runtimeOwner: 'learning-os-proxy' },
     });
-    expect(findBackendMigrationRoute('POST', '/api/audio/generate-all-speeds')).toMatchObject({
-      route: { id: 'audio.generate-all-speeds' },
-      surface: { id: 'audio', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('POST', '/api/images/generate')).toMatchObject({
-      route: { id: 'images.generate' },
-      surface: { id: 'images', runtimeOwner: 'learning-os-proxy' },
-    });
+    expect(findBackendMigrationRoute('POST', '/api/audio/generate-all-speeds')).toBeNull();
+    expect(findBackendMigrationRoute('POST', '/api/images/generate')).toBeNull();
     expect(
       findBackendMigrationRoute('GET', '/api/images/job/019c8e7f-5c48-7d32-ae6b-a1f268287c9b')
-    ).toMatchObject({
-      route: { id: 'images.job.show' },
-      surface: { id: 'images', runtimeOwner: 'learning-os-proxy' },
-    });
+    ).toBeNull();
     expect(
       findBackendMigrationRoute(
         'GET',

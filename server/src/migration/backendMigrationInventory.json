@@ -3,47 +3,6 @@
   "targetService": "learning-os",
   "surfaces": [
     {
-      "id": "dialogue",
-      "domain": "generation",
-      "migrationWave": "content",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/dialogue.ts",
-      "mountPath": "/api/dialogue",
-      "routes": [
-        { "id": "dialogue.generate", "method": "POST", "path": "/api/dialogue/generate" },
-        { "id": "dialogue.job.show", "method": "GET", "path": "/api/dialogue/job/:jobId" }
-      ]
-    },
-    {
-      "id": "audio",
-      "domain": "generation",
-      "migrationWave": "content",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/audio.ts",
-      "mountPath": "/api/audio",
-      "routes": [
-        { "id": "audio.generate", "method": "POST", "path": "/api/audio/generate" },
-        {
-          "id": "audio.generate-all-speeds",
-          "method": "POST",
-          "path": "/api/audio/generate-all-speeds"
-        },
-        { "id": "audio.job.show", "method": "GET", "path": "/api/audio/job/:jobId" }
-      ]
-    },
-    {
-      "id": "images",
-      "domain": "generation",
-      "migrationWave": "complete",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/images.ts",
-      "mountPath": "/api/images",
-      "routes": [
-        { "id": "images.generate", "method": "POST", "path": "/api/images/generate" },
-        { "id": "images.job.show", "method": "GET", "path": "/api/images/job/:jobId" }
-      ]
-    },
-    {
       "id": "study",
       "domain": "study",
       "migrationWave": "complete",

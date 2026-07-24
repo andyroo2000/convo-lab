@@ -5,8 +5,9 @@ migration is:
 
 `server/src/migration/backendMigrationInventory.json`
 
-It inventories every literal route registered by the Express routers mounted in
-`server/src/index.ts`. Each route has:
+It inventories every literal route still registered by the Express routers
+mounted in `server/src/index.ts`. Routes served directly by Learning OS at the
+production edge are intentionally absent. Each inventoried route has:
 
 - a stable `id` used by telemetry and migration PRs;
 - its HTTP method and normalized public path;
@@ -38,7 +39,7 @@ The waves preserve the rollout order:
 4. `authentication`: converge sessions, identity, verification, and password
    recovery.
 5. `retirement`: move or remove small Express-only support endpoints.
-6. `complete`: already served by Learning OS through the ConvoLab proxy.
+6. `complete`: already served by Learning OS through a temporary ConvoLab proxy.
 
 `runtimeOwner` is one of:
 
@@ -47,13 +48,11 @@ The waves preserve the rollout order:
   it to Learning OS.
 
 A migration PR updates the route or surface owner only when its deployed request
-path is actually served by Learning OS. Compatibility code in Express does not
-count as migrated unless it forwards to Learning OS.
+path is actually served by Learning OS. Once traffic bypasses Express, remove
+the route from this Express inventory. Edge rewrites may temporarily preserve a
+retired public path for stale clients without restoring Express ownership.
 
 Use a route-level `runtimeOwner` only while a router is split between services.
-The Episode and Course surfaces use this temporary representation while their
-list/detail GET routes are proxied and their write and generation routes remain
-in Express.
 
 ## Route Usage Telemetry
 

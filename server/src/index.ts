@@ -22,10 +22,7 @@ import adminRoutes from './routes/admin.js';
 import adminCourseRoutes from './routes/adminCourses.js';
 import adminFeatureFlagRoutes from './routes/adminFeatureFlags.js';
 import adminScriptLabRoutes from './routes/adminScriptLab.js';
-import audioRoutes from './routes/audio.js';
-import dialogueRoutes from './routes/dialogue.js';
 import featureFlagRoutes from './routes/featureFlags.js';
-import imageRoutes from './routes/images.js';
 import learningOsStudyRoutes from './routes/learningOs/study.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
 import { warmKanjiumAccentIndex } from './services/pitchAccent/kanjiumData.js';
@@ -261,9 +258,6 @@ app.get('/health', async (_req, res) => {
 });
 
 // API Routes
-app.use('/api/dialogue', dialogueRoutes);
-app.use('/api/audio', audioRoutes);
-app.use('/api/images', imageRoutes);
 app.use('/api/learning-os/study', learningOsStudyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/feature-flags', adminFeatureFlagRoutes);
