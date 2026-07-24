@@ -3,6 +3,21 @@
   "targetService": "learning-os",
   "surfaces": [
     {
+      "id": "csrf",
+      "domain": "security",
+      "migrationWave": "retirement",
+      "runtimeOwner": "express",
+      "sourceFile": "server/src/routes/csrf.ts",
+      "mountPath": "/api/auth/csrf",
+      "routes": [
+        {
+          "id": "csrf.bootstrap",
+          "method": "GET",
+          "path": "/api/auth/csrf"
+        }
+      ]
+    },
+    {
       "id": "study",
       "domain": "study",
       "migrationWave": "complete",

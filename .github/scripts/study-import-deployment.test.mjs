@@ -261,6 +261,28 @@ test('production configures the permanent Learning OS browser session without a 
   );
 });
 
+test('Express keeps its standalone CSRF bootstrap while mutations remain', async () => {
+  const [serverIndex, csrfRoute, clientCsrf, learningOsWorkflow] = await Promise.all([
+    readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'server/src/routes/csrf.ts'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
+    readFile(
+      path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+      'utf8',
+    ),
+  ]);
+
+  assert.ok(serverIndex.includes("import csrfRoutes from './routes/csrf.js';"));
+  assert.ok(serverIndex.includes("app.use('/api/auth/csrf', csrfRoutes);"));
+  assert.ok(csrfRoute.includes("issueCsrfTokenCookie(req, res, 'lax');"));
+  assert.ok(csrfRoute.includes('res.status(204).end();'));
+  assert.ok(clientCsrf.includes("bootstrapPath: '/api/auth/csrf'"));
+  assert.ok(
+    learningOsWorkflow.includes("'https://convo-lab.com/api/auth/csrf'"),
+    'The production smoke should prove the public Express CSRF bootstrap.',
+  );
+});
+
 test('production permanently routes migrated browser APIs', async () => {
   const [compose, workflow, router] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
