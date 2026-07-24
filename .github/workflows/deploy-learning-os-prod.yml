@@ -1956,6 +1956,29 @@ jobs:
                 'Admin invite codes Learning OS' \
                 '/api/convolab/admin/invite-codes?limit=1' \
                 > /dev/null
+              admin_script_lab_courses="$(fetch_learning_os_route \
+                'Admin Script Lab courses Learning OS' \
+                '/api/convolab/admin/script-lab/courses')"
+              printf '%s' "$admin_script_lab_courses" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const response = JSON.parse(body);
+                  if (!Array.isArray(response?.courses)) process.exit(1);
+                '
+              admin_script_lab_sentence_tests="$(fetch_learning_os_route \
+                'Admin Script Lab sentence tests Learning OS' \
+                '/api/convolab/admin/script-lab/sentence-tests?limit=1')"
+              printf '%s' "$admin_script_lab_sentence_tests" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const response = JSON.parse(body);
+                  if (
+                    !Array.isArray(response?.tests) ||
+                    (response.nextCursor !== null && typeof response.nextCursor !== "string")
+                  ) process.exit(1);
+                '
               admin_speaker_avatars="$(fetch_learning_os_route \
                 'Admin speaker avatars Learning OS' \
                 '/api/convolab/admin/avatars/speakers')"

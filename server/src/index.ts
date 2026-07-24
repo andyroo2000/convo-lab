@@ -19,7 +19,6 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { enforceDefaultRequestBodyTimeout } from './middleware/requestBodyTimeout.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import adminFeatureFlagRoutes from './routes/adminFeatureFlags.js';
-import adminScriptLabRoutes from './routes/adminScriptLab.js';
 import csrfRoutes from './routes/csrf.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import learningOsStudyRoutes from './routes/learningOs/study.js';
@@ -260,7 +259,6 @@ app.get('/health', async (_req, res) => {
 app.use('/api/auth/csrf', csrfRoutes);
 app.use('/api/learning-os/study', learningOsStudyRoutes);
 app.use('/api/admin/feature-flags', adminFeatureFlagRoutes);
-app.use('/api/admin/script-lab', adminScriptLabRoutes);
 app.use('/api/feature-flags', featureFlagRoutes);
 app.use('/api', toolAnalyticsRoutes);
 app.use('/api', (_req, res) => {

@@ -59,7 +59,7 @@ describe('requestLogger Middleware', () => {
   });
 
   it('emits normalized backend migration telemetry without concrete route parameters', () => {
-    mockReq.path = '/api/admin/script-lab/courses/course-123';
+    mockReq.path = '/api/learning-os/study/cards/card-123';
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1150);
 
     requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
@@ -71,17 +71,17 @@ describe('requestLogger Middleware', () => {
       .map(([value]) => value)
       .find((value) => typeof value === 'string' && value.startsWith('{'));
     expect(structuredLog).toBeDefined();
-    expect(structuredLog).not.toContain('course-123');
+    expect(structuredLog).not.toContain('card-123');
     expect(JSON.parse(structuredLog as string)).toEqual({
       event: 'backend_route_usage',
       schemaVersion: 1,
-      routeId: 'admin-script-lab.courses.show',
-      surfaceId: 'admin-script-lab',
-      domain: 'admin',
-      migrationWave: 'admin',
+      routeId: 'study.proxy',
+      surfaceId: 'study',
+      domain: 'study',
+      migrationWave: 'complete',
       runtimeOwner: 'learning-os-proxy',
       method: 'GET',
-      normalizedPath: '/api/admin/script-lab/courses/:id',
+      normalizedPath: '/api/learning-os/study/*',
       statusCode: 200,
       durationMs: 150,
     });
