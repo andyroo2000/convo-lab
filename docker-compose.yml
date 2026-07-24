@@ -56,7 +56,6 @@ services:
       # Add your Google Cloud credentials here
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
       GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
-      LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED: "false"
     ports:
       - "3001:3001"
     volumes:

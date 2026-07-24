@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(50);
+    expect(routes).toHaveLength(48);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -110,10 +110,7 @@ describe('backend migration inventory', () => {
         'GET',
         '/api/convolab/episodes/018f47ea-4b37-7f21-8d5a-90e157176b8a/audio/1.0'
       )
-    ).toMatchObject({
-      route: { id: 'content-episode-audio.show' },
-      surface: { id: 'content-episode-audio', runtimeOwner: 'learning-os-proxy' },
-    });
+    ).toBeNull();
     expect(findBackendMigrationRoute('DELETE', '/api/admin/invite-codes/invite-123')).toMatchObject(
       {
         route: { id: 'admin.invites.delete' },
@@ -221,17 +218,14 @@ describe('backend migration inventory', () => {
     });
   });
 
-  it('records avatars as Learning OS-owned static media through Express', () => {
-    const method = 'GET';
-    const path = '/api/avatars/voices/ja-shohei.jpg';
-    expect(findBackendMigrationRoute(method, path)).toMatchObject({
-      route: { id: 'avatars.show' },
-      surface: {
-        id: 'avatars',
-        migrationWave: 'complete',
-        runtimeOwner: 'learning-os-proxy',
-      },
-    });
+  it('does not inventory direct Learning OS media routes', () => {
+    expect(findBackendMigrationRoute('GET', '/api/avatars/voices/ja-shohei.jpg')).toBeNull();
+    expect(
+      findBackendMigrationRoute(
+        'GET',
+        '/api/convolab/episodes/018f47ea-4b37-7f21-8d5a-90e157176b8a/audio/1.0'
+      )
+    ).toBeNull();
   });
 
   it('does not inventory the direct Learning OS tool-audio route', () => {

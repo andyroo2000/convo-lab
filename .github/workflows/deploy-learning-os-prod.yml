@@ -608,12 +608,6 @@ jobs:
               | sed -n 's/^LEARNING_OS_API_TOKEN=//p' \
               | tail -1)"
             test "$active_proxy_token" = "$proxy_token"
-            active_static_media_proxy="$(docker inspect \
-              --format='{{range .Config.Env}}{{println .}}{{end}}' \
-              "convolab-server-$active_color" \
-              | sed -n 's/^LEARNING_OS_STATIC_MEDIA_PROXY_ENABLED=//p' \
-              | tail -1)"
-            test "$active_static_media_proxy" = true
             if ! docker exec \
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
               -e CONVOLAB_PROXY_TOKEN_ID="$NEW_PROXY_TOKEN_ID" \
@@ -2734,7 +2728,7 @@ jobs:
               esac
               grep -Eiq '^cache-control: .*private' "$avatar_headers"
               rm -f "$avatar_headers"
-              echo "Avatar Learning OS proxy smoke check passed."
+              echo "Avatar direct Learning OS smoke check passed."
 
               tool_audio_body='{"paths":["/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3"]}'
               tool_audio_response="$(mutate_proxy_route \

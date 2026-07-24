@@ -2,7 +2,6 @@ import type { NextFunction, Response } from 'express';
 
 import type { AuthRequest } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/errorHandler.js';
-import { streamLearningOsMediaResponse } from '../../services/learningOsMediaResponse.js';
 import {
   fetchLearningOsProxy,
   resolveLearningOsProxyContext,
@@ -13,7 +12,6 @@ const FETCH_TIMEOUT_MS = 10_000;
 const AUDIO_GENERATION_FIELDS = ['episodeId', 'dialogueId', 'speed', 'pauseMode'] as const;
 const ALL_SPEEDS_FIELDS = ['episodeId', 'dialogueId'] as const;
 const JOB_STATES = new Set(['waiting', 'active', 'completed', 'failed']);
-const TRACKS = new Set(['default', '0.7', '0.85', '1.0']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const AUDIO_PATH_PATTERN =
   /^\/api\/convolab\/episodes\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/audio\/(default|0\.7|0\.85|1\.0)$/i;
@@ -244,55 +242,6 @@ export async function showLearningOsAudioJob(
 
     res.set('Cache-Control', 'private, no-store');
     res.json(payload);
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function streamLearningOsEpisodeAudio(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { episodeId, track } = req.params;
-    if (!UUID_PATTERN.test(episodeId) || !TRACKS.has(track)) {
-      throw new AppError('Episode audio not found', 404);
-    }
-
-    const range = req.header('Range')?.trim();
-    if (range !== undefined && (range.length > 100 || !/^bytes=(?:\d+-\d*|-\d+)$/.test(range))) {
-      throw new AppError('Invalid episode audio byte range.', 400);
-    }
-
-    const {
-      config: { apiUrl, apiToken },
-      user,
-    } = await audioProxyContext(req);
-    const upstreamResponse = await fetchLearningOsProxy({
-      upstreamUrl: new URL(
-        `${apiUrl}/api/convolab/episodes/${encodeURIComponent(episodeId)}/audio/${encodeURIComponent(track)}`
-      ),
-      apiToken,
-      user,
-      method: 'GET',
-      additionalHeaders: { Accept: 'audio/mpeg', ...(range === undefined ? {} : { Range: range }) },
-      timeoutMs: FETCH_TIMEOUT_MS,
-      timeoutMessage: `${API_LABEL} request timed out.`,
-      networkErrorMessage: `${API_LABEL} is unavailable.`,
-    });
-
-    if (upstreamResponse.status === 404) {
-      throw new AppError('Episode audio not found', 404);
-    }
-    if (!upstreamResponse.ok) {
-      throw new AppError(`${API_LABEL} request failed.`, 502);
-    }
-
-    await streamLearningOsMediaResponse(upstreamResponse, res, {
-      invalidHeadersMessage: `${API_LABEL} returned invalid media headers.`,
-      isAllowedContentType: (contentType) => /^audio\/mpeg(?:\s*;|$)/i.test(contentType),
-    });
   } catch (error) {
     next(error);
   }
