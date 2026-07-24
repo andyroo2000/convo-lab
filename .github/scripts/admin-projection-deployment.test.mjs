@@ -9,24 +9,24 @@ const workflowPath = path.join(
   '.github/workflows/deploy-learning-os-prod.yml'
 );
 
-test('production syncs the admin projection before issuing an admin-scoped token', async () => {
+test('production syncs the admin projection before browser-session admin smoke checks', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
   const migrationIndex = workflow.indexOf('php artisan migrate --force');
   const contentImportIndex = workflow.indexOf('php artisan content:import-convolab-episodes');
   const adminSyncIndex = workflow.indexOf('php artisan admin:sync-convolab');
-  const tokenIndex = workflow.indexOf('$user->createToken("convolab-proxy"');
+  const browserSessionIndex = workflow.indexOf(
+    'Disposable Learning OS content browser session established.'
+  );
 
   assert.ok(migrationIndex >= 0);
   assert.ok(contentImportIndex > migrationIndex);
   assert.ok(adminSyncIndex > contentImportIndex);
-  assert.ok(tokenIndex > adminSyncIndex);
+  assert.ok(browserSessionIndex > adminSyncIndex);
   assert.match(workflow, /php artisan admin:sync-convolab[\s\S]*--source-database="\$source_db"[\s\S]*--allow-production/);
   assert.doesNotMatch(workflow, /admin:sync-convolab[\s\S]{0,300}--allow-empty-source/);
-  assert.match(workflow, /"admin:read",/);
-  assert.match(workflow, /"admin:write",/);
 });
 
-test('production smoke-gates the private token route and canonical browser-session routes', async () => {
+test('production smoke-gates canonical browser-session routes', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
   const browserSessionIndex = workflow.indexOf(
     'Disposable Learning OS content browser session established.'
@@ -35,8 +35,9 @@ test('production smoke-gates the private token route and canonical browser-sessi
     "fetch_learning_os_route \\\n                'Admin stats Learning OS'"
   );
 
-  assert.match(workflow, /127\.0\.0\.1:8080\/api\/convolab\/admin\/stats/);
+  assert.doesNotMatch(workflow, /127\.0\.0\.1:8080\/api\/convolab\/admin\/stats/);
   for (const route of [
+    '/api/feature-flags',
     '/api/convolab/admin/stats',
     '/api/convolab/admin/users?limit=1',
     '/api/convolab/admin/invite-codes?limit=1',
@@ -49,6 +50,15 @@ test('production smoke-gates the private token route and canonical browser-sessi
   }
   assert.ok(browserSessionIndex >= 0);
   assert.ok(canonicalAdminIndex > browserSessionIndex);
+  assert.match(
+    workflow,
+    /fetch_learning_os_route[\s\\]+'Feature flags Learning OS'[\s\\]+'\/api\/feature-flags'/
+  );
+  assert.match(
+    workflow,
+    /mutate_learning_os_route[\s\\]+PATCH[\s\\]+'\/api\/feature-flags'[\s\\]+'\{\}'/
+  );
+  assert.match(workflow, /Feature flags browser-session read\/write smoke check passed\./);
   assert.match(workflow, /\/api\/convolab\/admin\/users\/\$admin_user_id\/info/);
   assert.match(
     workflow,
