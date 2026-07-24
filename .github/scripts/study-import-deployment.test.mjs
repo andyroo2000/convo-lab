@@ -1699,7 +1699,7 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
   }
 
   const dailyAudioBlock = workflow.slice(
-    workflow.indexOf('daily_audio_list='),
+    workflow.indexOf('daily_audio_smoke_practice_id="$(docker exec'),
     workflow.indexOf("'Browser Learning OS'")
   );
   assert.doesNotMatch(dailyAudioBlock, /if \[ -z "\$daily_audio_id" \]; then/);
