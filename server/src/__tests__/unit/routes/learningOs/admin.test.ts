@@ -5,28 +5,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { errorHandler } from '../../../../middleware/errorHandler.js';
 import {
-  buildLearningOsAdminCoursePrompt,
-  buildLearningOsAdminCourseScriptConfig,
   createLearningOsAdminScriptLabCourse,
   deleteLearningOsAdminSentenceScriptTests,
-  deleteLearningOsAdminCourseLineRendering,
   deleteLearningOsAdminScriptLabCourses,
-  generateLearningOsAdminCourseAudio,
-  generateLearningOsAdminCourseDialogue,
-  generateLearningOsAdminCourseScript,
   generateLearningOsAdminSentenceScript,
-  listLearningOsAdminCourseLineRenderings,
   listLearningOsAdminSentenceScriptTests,
   listLearningOsAdminScriptLabCourses,
   showLearningOsAdminSentenceScriptTest,
-  showLearningOsAdminCoursePipeline,
   showLearningOsAdminScriptLabCourse,
-  streamLearningOsAdminCourseLineRendering,
   streamLearningOsAdminScriptLabAudio,
-  synthesizeLearningOsAdminCourseLine,
   synthesizeLearningOsAdminScriptLabLine,
   testLearningOsAdminPronunciation,
-  updateLearningOsAdminCoursePipeline,
 } from '../../../../routes/learningOs/admin.js';
 
 const mocks = vi.hoisted(() => ({
@@ -45,52 +34,6 @@ const COURSE_ID = '44444444-4444-4444-8444-444444444444';
 const RENDERING_ID = '55555555-5555-4555-8555-555555555555';
 const SENTENCE_TEST_ID = '66666666-6666-4666-8666-666666666666';
 const FISH_VOICE_ID = 'fishaudio:0123456789abcdef0123456789abcdef';
-const coursePrompt = {
-  prompt: 'Build a short dialogue.',
-  metadata: {
-    targetExchangeCount: 8,
-    vocabularySeeds: '橋, 川',
-    grammarSeeds: '〜ながら',
-  },
-};
-const courseScriptConfig = {
-  config: {
-    targetLanguage: 'ja',
-    nativeLanguage: 'en',
-  },
-};
-const courseDialogue = {
-  exchanges: [{ speakerName: 'A', textL2: 'こんにちは', translationL1: 'Hello' }],
-};
-const courseScript = {
-  scriptUnits: [{ type: 'dialogue', text: 'こんにちは' }],
-  estimatedDurationSeconds: 12,
-  vocabularyItemCount: 1,
-};
-const courseAudio = {
-  message: 'Audio generation started',
-  jobId: COURSE_ID,
-  courseId: COURSE_ID,
-};
-const coursePipeline = {
-  id: COURSE_ID,
-  status: 'draft',
-  stage: 'exchanges',
-  exchanges: courseDialogue.exchanges,
-  scriptUnits: null,
-  audioUrl: null,
-  approxDurationSeconds: null,
-};
-const courseLineRendering = {
-  id: RENDERING_ID,
-  courseId: COURSE_ID,
-  unitIndex: 3,
-  text: 'こんにちは',
-  speed: 0.85,
-  voiceId: FISH_VOICE_ID,
-  audioUrl: `/api/convolab/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`,
-  createdAt: '2026-07-22T12:00:00.123Z',
-};
 const scriptLabCourseSummary = {
   id: COURSE_ID,
   title: '[TEST] Train station',
@@ -106,8 +49,8 @@ const scriptLabCourse = {
   jlptLevel: 'N4',
   audioUrl: null,
   sourceText: 'A dialogue at a train station.',
-  exchanges: courseDialogue.exchanges,
-  scriptUnits: courseScript.scriptUnits,
+  exchanges: [{ speakerName: 'A', textL2: 'こんにちは', translationL1: 'Hello' }],
+  scriptUnits: [{ type: 'dialogue', text: 'こんにちは' }],
 };
 const sentenceUnits = [
   { type: 'narration_L1', text: 'Listen closely.', voiceId: FISH_VOICE_ID },
@@ -175,15 +118,6 @@ describe('Learning OS admin proxy', () => {
     });
     app = express();
     app.use(express.json({ limit: '10mb' }));
-    app.use('/courses', (req, _res, next) => {
-      Object.assign(req, {
-        userId: USER_ID,
-        email: 'admin@example.com',
-        role: 'admin',
-        accountSource: 'learning-os',
-      });
-      next();
-    });
     app.use('/script-lab', (req, _res, next) => {
       Object.assign(req, {
         userId: USER_ID,
@@ -204,23 +138,6 @@ describe('Learning OS admin proxy', () => {
     app.post('/script-lab/test-pronunciation', testLearningOsAdminPronunciation);
     app.post('/script-lab/synthesize-line', synthesizeLearningOsAdminScriptLabLine);
     app.get('/script-lab/audio/:renderingId', streamLearningOsAdminScriptLabAudio);
-    app.post('/courses/:id/build-prompt', buildLearningOsAdminCoursePrompt);
-    app.post('/courses/:id/build-script-config', buildLearningOsAdminCourseScriptConfig);
-    app.post('/courses/:id/generate-dialogue', generateLearningOsAdminCourseDialogue);
-    app.post('/courses/:id/generate-script', generateLearningOsAdminCourseScript);
-    app.post('/courses/:id/generate-audio', generateLearningOsAdminCourseAudio);
-    app.post('/courses/:id/synthesize-line', synthesizeLearningOsAdminCourseLine);
-    app.get('/courses/:id/line-renderings', listLearningOsAdminCourseLineRenderings);
-    app.get(
-      '/courses/:id/line-renderings/:renderingId/audio',
-      streamLearningOsAdminCourseLineRendering
-    );
-    app.delete(
-      '/courses/:id/line-renderings/:renderingId',
-      deleteLearningOsAdminCourseLineRendering
-    );
-    app.get('/courses/:id/pipeline-data', showLearningOsAdminCoursePipeline);
-    app.put('/courses/:id/pipeline-data', updateLearningOsAdminCoursePipeline);
     app.use(errorHandler);
   });
 
@@ -823,331 +740,5 @@ describe('Learning OS admin proxy', () => {
       'Learning OS Admin API returned invalid media headers.'
     );
     expect(mocks.fetchLearningOsProxy).toHaveBeenCalledOnce();
-  });
-
-  it('proxies every admin course workbench operation with its canonical contract', async () => {
-    mocks.fetchLearningOsProxy
-      .mockResolvedValueOnce(upstreamJson(coursePrompt))
-      .mockResolvedValueOnce(upstreamJson(courseScriptConfig))
-      .mockResolvedValueOnce(upstreamJson(courseDialogue))
-      .mockResolvedValueOnce(upstreamJson(courseScript))
-      .mockResolvedValueOnce(upstreamJson(courseAudio))
-      .mockResolvedValueOnce(upstreamJson(coursePipeline))
-      .mockResolvedValueOnce(upstreamJson({ success: true }));
-
-    await request(app)
-      .post(`/courses/${COURSE_ID}/build-prompt`)
-      .send({ ignored: true })
-      .expect(200);
-    await request(app).post(`/courses/${COURSE_ID}/build-script-config`).expect(200);
-    await request(app)
-      .post(`/courses/${COURSE_ID}/generate-dialogue`)
-      .send({ customPrompt: 'Use this prompt', ignored: 'drop me' })
-      .expect(200, courseDialogue);
-    await request(app).post(`/courses/${COURSE_ID}/generate-script`).expect(200, courseScript);
-    await request(app).post(`/courses/${COURSE_ID}/generate-audio`).expect(200, courseAudio);
-    await request(app).get(`/courses/${COURSE_ID}/pipeline-data`).expect(200, coursePipeline);
-    await request(app)
-      .put(`/courses/${COURSE_ID}/pipeline-data`)
-      .send({ stage: 'script', data: courseScript.scriptUnits, ignored: 'drop me' })
-      .expect(200, { success: true });
-
-    const expectedRequests = [
-      ['build-prompt', 'POST', {}, 10_000],
-      ['build-script-config', 'POST', {}, 10_000],
-      ['generate-dialogue', 'POST', { customPrompt: 'Use this prompt' }, 120_000],
-      ['generate-script', 'POST', {}, 120_000],
-      ['generate-audio', 'POST', {}, 10_000],
-      ['pipeline-data', 'GET', undefined, 10_000],
-      ['pipeline-data', 'PUT', { stage: 'script', data: courseScript.scriptUnits }, 10_000],
-    ] as const;
-
-    expectedRequests.forEach(([operation, method, body, timeoutMs], index) => {
-      expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
-        index + 1,
-        expect.objectContaining({
-          upstreamUrl: new URL(
-            `http://learning-os.test/api/convolab/admin/courses/${COURSE_ID}/${operation}`
-          ),
-          method,
-          ...(body === undefined ? {} : { body }),
-          timeoutMs,
-        })
-      );
-    });
-    expect(mocks.fetchLearningOsProxy.mock.calls[5][0].body).toBeUndefined();
-    expect(mocks.resolveLearningOsUserProxyContext).toHaveBeenCalledWith(
-      USER_ID,
-      'Learning OS Admin API',
-      expect.objectContaining({ userId: USER_ID, role: 'admin', accountSource: 'learning-os' })
-    );
-  });
-
-  it('synthesizes a course line through Learning OS and rewrites its private audio URL', async () => {
-    mocks.fetchLearningOsProxy.mockResolvedValue(
-      upstreamJson({
-        renderingId: RENDERING_ID.toUpperCase(),
-        audioUrl: courseLineRendering.audioUrl,
-      })
-    );
-
-    const response = await request(app)
-      .post(`/courses/${COURSE_ID}/synthesize-line`)
-      .send({
-        text: '  こんにちは  ',
-        voiceId: FISH_VOICE_ID.toUpperCase(),
-        speed: 0.85,
-        unitIndex: 3,
-        ignored: 'drop me',
-      })
-      .expect(200);
-
-    expect(response.body).toEqual({
-      renderingId: RENDERING_ID,
-      audioUrl: `/api/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`,
-    });
-    expect(response.headers['cache-control']).toBe('private, no-store');
-    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        upstreamUrl: new URL(
-          `http://learning-os.test/api/convolab/admin/courses/${COURSE_ID}/synthesize-line`
-        ),
-        method: 'POST',
-        body: {
-          text: 'こんにちは',
-          voiceId: FISH_VOICE_ID,
-          speed: 0.85,
-          unitIndex: 3,
-        },
-        timeoutMs: 120_000,
-      })
-    );
-  });
-
-  it('lists strict rendering shapes while preserving imported external audio URLs', async () => {
-    const imported = {
-      ...courseLineRendering,
-      id: INVITE_ID.toUpperCase(),
-      unitIndex: 4,
-      audioUrl: 'https://storage.googleapis.com/convolab/imported-line.mp3',
-    };
-    mocks.fetchLearningOsProxy.mockResolvedValue(
-      upstreamJson({ renderings: [courseLineRendering, imported] })
-    );
-
-    const response = await request(app).get(`/courses/${COURSE_ID}/line-renderings`).expect(200);
-
-    expect(response.body).toEqual({
-      renderings: [
-        {
-          ...courseLineRendering,
-          audioUrl: `/api/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`,
-        },
-        { ...imported, id: INVITE_ID },
-      ],
-    });
-    expect(response.headers['cache-control']).toBe('private, no-store');
-  });
-
-  it('deletes a rendering through Learning OS and preserves the hidden 404 contract', async () => {
-    mocks.fetchLearningOsProxy
-      .mockResolvedValueOnce(upstreamJson({ success: true }))
-      .mockResolvedValueOnce(upstreamJson({ message: 'Rendering not found' }, 404));
-
-    await request(app)
-      .delete(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}`)
-      .expect(200, { success: true });
-    const missing = await request(app)
-      .delete(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}`)
-      .expect(404);
-
-    expect(missing.body.error.message).toBe('Rendering not found');
-    expect(mocks.fetchLearningOsProxy).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        upstreamUrl: new URL(
-          `http://learning-os.test/api/convolab/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}`
-        ),
-        method: 'DELETE',
-      })
-    );
-  });
-
-  it('streams authenticated line audio with safe headers and byte ranges', async () => {
-    mocks.fetchLearningOsProxy.mockResolvedValue(
-      new globalThis.Response('mp3-bytes', {
-        status: 206,
-        headers: {
-          'Accept-Ranges': 'bytes',
-          'Content-Length': '9',
-          'Content-Range': 'bytes 0-8/9',
-          'Content-Type': 'audio/mpeg',
-          'X-Upstream-Secret': 'do-not-forward',
-        },
-      })
-    );
-
-    const response = await request(app)
-      .get(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`)
-      .set('Range', 'bytes=0-8')
-      .expect(206);
-
-    expect(response.body.toString()).toBe('mp3-bytes');
-    expect(response.headers['content-type']).toBe('audio/mpeg');
-    expect(response.headers['content-range']).toBe('bytes 0-8/9');
-    expect(response.headers['content-security-policy']).toBe("sandbox; default-src 'none'");
-    expect(response.headers['x-upstream-secret']).toBeUndefined();
-    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        upstreamUrl: new URL(
-          `http://learning-os.test/api/convolab/admin/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`
-        ),
-        method: 'GET',
-        additionalHeaders: { Accept: 'audio/mpeg', Range: 'bytes=0-8' },
-      })
-    );
-  });
-
-  it.each([
-    [{ text: '', voiceId: FISH_VOICE_ID, unitIndex: 0 }, 'Missing required fields'],
-    [{ text: 'Line', voiceId: 'fishaudio:bad', unitIndex: 0 }, 'Only Fish Audio voices'],
-    [{ text: 'Line', voiceId: FISH_VOICE_ID, unitIndex: -1 }, 'unitIndex must be'],
-    [{ text: 'Line', voiceId: FISH_VOICE_ID, unitIndex: 0, speed: 3 }, 'speed must be'],
-  ])('rejects invalid line synthesis locally: %s', async (body, message) => {
-    const response = await request(app)
-      .post(`/courses/${COURSE_ID}/synthesize-line`)
-      .send(body)
-      .expect(400);
-
-    expect(response.body.error.message).toContain(message);
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('rejects malformed rendering IDs, media ranges, and upstream shapes', async () => {
-    const badId = await request(app)
-      .delete(`/courses/${COURSE_ID}/line-renderings/not-a-uuid`)
-      .expect(404);
-    const badRange = await request(app)
-      .get(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`)
-      .set('Range', 'bytes=0-1,3-4')
-      .expect(400);
-    mocks.fetchLearningOsProxy.mockResolvedValue(
-      upstreamJson({
-        renderings: [
-          {
-            ...courseLineRendering,
-            audioUrl: `/api/convolab/admin/courses/${COURSE_ID}/line-renderings/${INVITE_ID}/audio`,
-          },
-        ],
-      })
-    );
-    const malformed = await request(app).get(`/courses/${COURSE_ID}/line-renderings`).expect(502);
-
-    expect(badId.body.error.message).toBe('Rendering not found');
-    expect(badRange.body.error.message).toBe('Invalid line audio byte range.');
-    expect(malformed.body.error.message).toBe(
-      'Learning OS Admin API returned an invalid response.'
-    );
-    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledOnce();
-  });
-
-  it('rejects non-audio rendering streams and masks upstream failures', async () => {
-    mocks.fetchLearningOsProxy
-      .mockResolvedValueOnce(
-        new globalThis.Response('html', { status: 200, headers: { 'Content-Type': 'text/html' } })
-      )
-      .mockResolvedValueOnce(upstreamJson({ message: 'sensitive storage detail' }, 500));
-
-    const invalidMedia = await request(app)
-      .get(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`)
-      .expect(502);
-    const unavailable = await request(app)
-      .get(`/courses/${COURSE_ID}/line-renderings/${RENDERING_ID}/audio`)
-      .expect(502);
-
-    expect(invalidMedia.body.error.message).toBe(
-      'Learning OS Admin API returned invalid media headers.'
-    );
-    expect(unavailable.body.error.message).toBe('Learning OS Admin API request failed.');
-    expect(JSON.stringify(unavailable.body)).not.toContain('sensitive storage detail');
-  });
-
-  it.each([
-    ['build-prompt', { ...coursePrompt, prompt: '' }],
-    ['build-prompt', { ...coursePrompt, unexpected: true }],
-    ['build-script-config', { config: [] }],
-    ['generate-dialogue', { exchanges: [null] }],
-    ['generate-script', { ...courseScript, vocabularyItemCount: -1 }],
-    ['generate-script', { ...courseScript, unexpected: true }],
-    ['generate-audio', { ...courseAudio, jobId: INVITE_ID }],
-  ])('rejects malformed successful admin course %s responses', async (operation, payload) => {
-    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(payload));
-
-    const response = await request(app)
-      .post(`/courses/${COURSE_ID}/${operation}`)
-      .send(operation === 'generate-dialogue' ? { customPrompt: 'Prompt' } : {})
-      .expect(502);
-
-    expect(response.body.error.message).toBe('Learning OS Admin API returned an invalid response.');
-  });
-
-  it('rejects malformed pipeline responses and updates', async () => {
-    mocks.fetchLearningOsProxy
-      .mockResolvedValueOnce(upstreamJson({ ...coursePipeline, id: INVITE_ID }))
-      .mockResolvedValueOnce(upstreamJson({ success: false }));
-
-    await request(app).get(`/courses/${COURSE_ID}/pipeline-data`).expect(502);
-    await request(app)
-      .put(`/courses/${COURSE_ID}/pipeline-data`)
-      .send({ stage: 'exchanges', data: [] })
-      .expect(502);
-  });
-
-  it('validates admin course identifiers and request bodies before proxying', async () => {
-    const badId = await request(app).post('/courses/not-a-uuid/build-prompt').expect(404);
-    const badPrompt = await request(app)
-      .post(`/courses/${COURSE_ID}/generate-dialogue`)
-      .send({ customPrompt: 7 })
-      .expect(400);
-    const badStage = await request(app)
-      .put(`/courses/${COURSE_ID}/pipeline-data`)
-      .send({ stage: 'unknown', data: [] })
-      .expect(400);
-    const badData = await request(app)
-      .put(`/courses/${COURSE_ID}/pipeline-data`)
-      .send({ stage: 'script', data: {} })
-      .expect(400);
-
-    expect(badId.body.error.message).toBe('Course not found');
-    expect(badPrompt.body.error.message).toBe('customPrompt must be a string');
-    expect(badStage.body.error.message).toBe('Invalid stage. Must be "exchanges" or "script"');
-    expect(badData.body.error.message).toBe('Pipeline data must be a list.');
-    expect(mocks.fetchLearningOsProxy).not.toHaveBeenCalled();
-  });
-
-  it('treats a null custom prompt as omitted', async () => {
-    mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(courseDialogue));
-
-    await request(app)
-      .post(`/courses/${COURSE_ID}/generate-dialogue`)
-      .send({ customPrompt: null })
-      .expect(200, courseDialogue);
-
-    expect(mocks.fetchLearningOsProxy).toHaveBeenCalledWith(expect.objectContaining({ body: {} }));
-  });
-
-  it('preserves safe course conflicts while hiding unexpected upstream details', async () => {
-    mocks.fetchLearningOsProxy
-      .mockResolvedValueOnce(
-        upstreamJson({ message: 'Course changed while script was being generated' }, 409)
-      )
-      .mockResolvedValueOnce(upstreamJson({ message: 'database host leaked here' }, 500));
-
-    const conflict = await request(app).post(`/courses/${COURSE_ID}/generate-script`).expect(409);
-    const failure = await request(app).post(`/courses/${COURSE_ID}/generate-audio`).expect(502);
-
-    expect(conflict.body.error.message).toBe('Course changed while script was being generated');
-    expect(failure.body.error.message).toBe('Learning OS Admin API request failed.');
-    expect(JSON.stringify(failure.body)).not.toContain('database host leaked here');
   });
 });

@@ -11,13 +11,13 @@ describe('backend route usage telemetry', () => {
   it('aggregates valid events while ignoring unrelated and malformed log lines', () => {
     const first = buildBackendRouteUsageEvent(
       'GET',
-      '/api/admin/courses/first-id/pipeline-data',
+      '/api/admin/script-lab/courses/first-id',
       200,
       10
     );
     const second = buildBackendRouteUsageEvent(
       'GET',
-      '/api/admin/courses/second-id/pipeline-data',
+      '/api/admin/script-lab/courses/second-id',
       500,
       40
     );
@@ -35,13 +35,13 @@ describe('backend route usage telemetry', () => {
 
     expect(result).toEqual([
       {
-        routeId: 'admin-courses.pipeline.show',
-        surfaceId: 'admin-courses',
+        routeId: 'admin-script-lab.courses.show',
+        surfaceId: 'admin-script-lab',
         domain: 'admin',
         migrationWave: 'admin',
         runtimeOwner: 'learning-os-proxy',
         method: 'GET',
-        normalizedPath: '/api/admin/courses/:id/pipeline-data',
+        normalizedPath: '/api/admin/script-lab/courses/:id',
         requests: 2,
         errors: 1,
         maxDurationMs: 40,

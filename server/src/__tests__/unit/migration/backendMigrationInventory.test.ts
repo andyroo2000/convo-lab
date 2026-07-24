@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(28);
+    expect(routes).toHaveLength(17);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -103,21 +103,15 @@ describe('backend migration inventory', () => {
       )
     ).toBeNull();
     expect(findBackendMigrationRoute('DELETE', '/api/admin/invite-codes/invite-123')).toBeNull();
+    expect(
+      findBackendMigrationRoute(
+        'POST',
+        '/api/admin/courses/44444444-4444-4444-8444-444444444444/build-prompt'
+      )
+    ).toBeNull();
   });
 
-  it('tracks the admin course and Script Lab course surfaces through Learning OS', () => {
-    for (const [method, routePath] of [
-      ['POST', `/api/admin/courses/${'4'.repeat(36)}/build-prompt`],
-      ['POST', `/api/admin/courses/${'4'.repeat(36)}/synthesize-line`],
-      ['GET', `/api/admin/courses/${'4'.repeat(36)}/line-renderings`],
-      ['GET', `/api/admin/courses/${'4'.repeat(36)}/line-renderings/${'5'.repeat(36)}/audio`],
-      ['DELETE', `/api/admin/courses/${'4'.repeat(36)}/line-renderings/${'5'.repeat(36)}`],
-    ]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'admin-courses', runtimeOwner: 'learning-os-proxy' },
-      });
-    }
-
+  it('tracks the Script Lab course surface through Learning OS', () => {
     for (const [method, routePath] of [
       ['POST', '/api/admin/script-lab/courses'],
       ['GET', '/api/admin/script-lab/courses'],
