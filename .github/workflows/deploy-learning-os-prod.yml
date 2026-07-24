@@ -661,6 +661,9 @@ jobs:
             media_smoke_headers=
             daily_audio_smoke_body=
             daily_audio_smoke_headers=
+            daily_audio_smoke_practice_id=
+            daily_audio_smoke_track_id=
+            daily_audio_smoke_path=
             admin_invite_smoke_id=
             content_browser_smoke_user_id=
             content_browser_smoke_convolab_id=
@@ -705,6 +708,19 @@ jobs:
                       )
                       ->delete();
                     $user?->delete();
+                    if (
+                      App\Models\User::query()
+                        ->whereKey(getenv("CONTENT_BROWSER_SMOKE_USER_ID"))
+                        ->orWhere(
+                          "convolab_id",
+                          getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),
+                        )
+                        ->exists()
+                    ) {
+                      throw new RuntimeException(
+                        "Disposable Learning OS content browser identity still exists.",
+                      );
+                    }
                   ' > /dev/null; then
                   if [ "$mode" != best-effort ]; then
                     return 1
@@ -746,6 +762,56 @@ jobs:
               [ -z "${daily_audio_smoke_headers:-}" ] || rm -f "$daily_audio_smoke_headers"
               daily_audio_smoke_body=
               daily_audio_smoke_headers=
+            }
+
+            cleanup_daily_audio_fixture() {
+              local mode="${1:-strict}"
+
+              if [ -z "${daily_audio_smoke_practice_id:-}" ]; then
+                return
+              fi
+              if ! docker exec \
+                -e DAILY_AUDIO_SMOKE_PRACTICE_ID="$daily_audio_smoke_practice_id" \
+                -e DAILY_AUDIO_SMOKE_TRACK_ID="$daily_audio_smoke_track_id" \
+                -e DAILY_AUDIO_SMOKE_PATH="$daily_audio_smoke_path" \
+                -e CONTENT_BROWSER_SMOKE_USER_ID="$content_browser_smoke_user_id" \
+                learning-os-api php artisan tinker --execute='
+                  $practiceId = getenv("DAILY_AUDIO_SMOKE_PRACTICE_ID");
+                  $trackId = getenv("DAILY_AUDIO_SMOKE_TRACK_ID");
+                  $path = getenv("DAILY_AUDIO_SMOKE_PATH");
+                  $practice = App\Domain\Study\Models\DailyAudioPractice::query()
+                    ->whereKey($practiceId)
+                    ->where("user_id", getenv("CONTENT_BROWSER_SMOKE_USER_ID"))
+                    ->first();
+                  Illuminate\Support\Facades\Storage::disk(
+                    config("daily_audio.disk"),
+                  )->delete($path);
+                  $practice?->delete();
+                  if (
+                    App\Domain\Study\Models\DailyAudioPractice::query()
+                      ->whereKey($practiceId)
+                      ->exists()
+                    || App\Domain\Study\Models\DailyAudioPracticeTrack::query()
+                      ->whereKey($trackId)
+                      ->exists()
+                    || Illuminate\Support\Facades\Storage::disk(
+                      config("daily_audio.disk"),
+                    )->exists($path)
+                  ) {
+                    throw new RuntimeException(
+                      "Disposable Daily Audio fixture still exists.",
+                    );
+                  }
+                ' > /dev/null; then
+                if [ "$mode" != best-effort ]; then
+                  return 1
+                fi
+                echo "::warning::Unable to remove the disposable Daily Audio fixture."
+              fi
+
+              daily_audio_smoke_practice_id=
+              daily_audio_smoke_track_id=
+              daily_audio_smoke_path=
             }
 
             cleanup_media_smoke() {
@@ -1300,6 +1366,7 @@ jobs:
                   '{}' > /dev/null || true
               fi
               cleanup_daily_audio_smoke
+              cleanup_daily_audio_fixture best-effort
               cleanup_admin_invite_smoke best-effort
               cleanup_episode_write_smoke best-effort
               cleanup_course_write_smoke best-effort
@@ -1999,11 +2066,13 @@ jobs:
                 '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' \
                 "$content_browser_smoke_cookie_jar")"
               test -n "$content_browser_smoke_csrf_raw"
+              echo "::add-mask::$content_browser_smoke_csrf_raw"
               content_browser_smoke_csrf_token="$(docker exec \
                 -e RAW_CSRF_TOKEN="$content_browser_smoke_csrf_raw" \
                 "convolab-server-$active_color" \
                 node --input-type=module \
                 --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
+              echo "::add-mask::$content_browser_smoke_csrf_token"
               content_browser_login_body="$(docker exec \
                 -e CONTENT_BROWSER_SMOKE_EMAIL="$content_browser_smoke_email" \
                 -e CONTENT_BROWSER_SMOKE_PASSWORD="$content_browser_smoke_password" \
@@ -2028,11 +2097,18 @@ jobs:
                 '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' \
                 "$content_browser_smoke_cookie_jar")"
               test -n "$content_browser_smoke_csrf_raw"
+              echo "::add-mask::$content_browser_smoke_csrf_raw"
               content_browser_smoke_csrf_token="$(docker exec \
                 -e RAW_CSRF_TOKEN="$content_browser_smoke_csrf_raw" \
                 "convolab-server-$active_color" \
                 node --input-type=module \
                 --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
+              echo "::add-mask::$content_browser_smoke_csrf_token"
+              content_browser_smoke_session="$(awk \
+                '$6 == "learning_os_session" { value = $7 } END { print value }' \
+                "$content_browser_smoke_cookie_jar")"
+              test -n "$content_browser_smoke_session"
+              echo "::add-mask::$content_browser_smoke_session"
               printf '%s' "$content_browser_login_response" | docker exec -i \
                 -e CONTENT_BROWSER_SMOKE_CONVOLAB_ID="$content_browser_smoke_convolab_id" \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -3014,6 +3090,97 @@ jobs:
               cleanup_script_smoke
               echo "Audio Script Learning OS routing and streaming smoke checks passed."
 
+              daily_audio_smoke_output="$(docker exec \
+                -e CONTENT_BROWSER_SMOKE_USER_ID="$content_browser_smoke_user_id" \
+                -e CONTENT_BROWSER_SMOKE_CONVOLAB_ID="$content_browser_smoke_convolab_id" \
+                learning-os-api php artisan tinker --execute='
+                  $practiceId = (string) Illuminate\Support\Str::uuid();
+                  $trackId = (string) Illuminate\Support\Str::uuid();
+                  $path = App\Domain\Study\Support\DailyAudioPracticeGeneration::storagePath(
+                    $practiceId,
+                    $trackId,
+                  );
+                  try {
+                    Illuminate\Support\Facades\DB::transaction(function () use (
+                      $practiceId,
+                      $trackId,
+                    ) {
+                      $now = now();
+                      Illuminate\Support\Facades\DB::table(
+                        "daily_audio_practices",
+                      )->insert([
+                        "id" => $practiceId,
+                        "user_id" => getenv("CONTENT_BROWSER_SMOKE_USER_ID"),
+                        "convolab_user_id" => getenv(
+                          "CONTENT_BROWSER_SMOKE_CONVOLAB_ID",
+                        ),
+                        "practice_date" => $now->toDateString(),
+                        "status" => "ready",
+                        "target_duration_minutes" => 5,
+                        "target_language" => "ja",
+                        "native_language" => "en",
+                        "source_card_ids_json" => json_encode([]),
+                        "created_at" => $now,
+                        "updated_at" => $now,
+                      ]);
+                      Illuminate\Support\Facades\DB::table(
+                        "daily_audio_practice_tracks",
+                      )->insert([
+                        "id" => $trackId,
+                        "practice_id" => $practiceId,
+                        "mode" => "drill",
+                        "status" => "ready",
+                        "title" => "Deployment smoke",
+                        "sort_order" => 0,
+                        "script_units_json" => json_encode([]),
+                        "audio_url" => App\Domain\Study\Support\DailyAudioPracticeGeneration::audioUrl(
+                          $practiceId,
+                          $trackId,
+                        ),
+                        "timing_data" => json_encode([]),
+                        "approx_duration_seconds" => 1,
+                        "created_at" => $now,
+                        "updated_at" => $now,
+                      ]);
+                    });
+                    Illuminate\Support\Facades\Storage::disk(
+                      config("daily_audio.disk"),
+                    )->put($path, "learning-os-daily-audio-smoke");
+                    if (
+                      ! Illuminate\Support\Facades\Storage::disk(
+                        config("daily_audio.disk"),
+                      )->exists($path)
+                    ) {
+                      throw new RuntimeException(
+                        "Disposable Daily Audio fixture was not stored.",
+                      );
+                    }
+                  } catch (Throwable $throwable) {
+                    Illuminate\Support\Facades\Storage::disk(
+                      config("daily_audio.disk"),
+                    )->delete($path);
+                    App\Domain\Study\Models\DailyAudioPractice::query()
+                      ->whereKey($practiceId)
+                      ->delete();
+                    throw $throwable;
+                  }
+                  echo "DAILY_AUDIO_SMOKE_PRACTICE_ID=".$practiceId.PHP_EOL;
+                  echo "DAILY_AUDIO_SMOKE_TRACK_ID=".$trackId.PHP_EOL;
+                  echo "DAILY_AUDIO_SMOKE_PATH=".$path.PHP_EOL;
+                ')"
+              daily_audio_smoke_practice_id="$(printf '%s\n' "$daily_audio_smoke_output" \
+                | sed -n 's/^DAILY_AUDIO_SMOKE_PRACTICE_ID=//p' \
+                | tail -1)"
+              daily_audio_smoke_track_id="$(printf '%s\n' "$daily_audio_smoke_output" \
+                | sed -n 's/^DAILY_AUDIO_SMOKE_TRACK_ID=//p' \
+                | tail -1)"
+              daily_audio_smoke_path="$(printf '%s\n' "$daily_audio_smoke_output" \
+                | sed -n 's/^DAILY_AUDIO_SMOKE_PATH=//p' \
+                | tail -1)"
+              test -n "$daily_audio_smoke_practice_id"
+              test -n "$daily_audio_smoke_track_id"
+              test -n "$daily_audio_smoke_path"
+
               daily_audio_list="$(
                 fetch_learning_os_route \
                   'Daily Audio practice lookup' \
@@ -3040,14 +3207,12 @@ jobs:
                   process.stdout.write(id);
                 ')"
 
-              if [ -z "$daily_audio_id" ]; then
-                echo "Disposable browser identity has no ready Daily Audio practice; empty list shape passed."
-              else
-                daily_audio_detail="$(
-                  fetch_learning_os_route \
-                    'Daily Audio historical track lookup' \
-                    "/api/daily-audio-practice/$daily_audio_id"
-                )"
+              test "$daily_audio_id" = "$daily_audio_smoke_practice_id"
+              daily_audio_detail="$(
+                fetch_learning_os_route \
+                  'Daily Audio historical track lookup' \
+                  "/api/daily-audio-practice/$daily_audio_id"
+              )"
                 daily_audio_track_url="$(printf '%s' "$daily_audio_detail" | docker exec -i \
                   "convolab-server-$active_color" node --input-type=module --eval='
                     const chunks = [];
@@ -3071,20 +3236,20 @@ jobs:
                   --dump-header "$daily_audio_smoke_headers" \
                   --output "$daily_audio_smoke_body" \
                   "https://convo-lab.com$daily_audio_track_url"
-                test -s "$daily_audio_smoke_body"
+                test "$(cat "$daily_audio_smoke_body")" = "learning-os-daily-audio-smoke"
                 grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$daily_audio_smoke_headers"
                 grep -Eiq "^content-security-policy: sandbox; default-src 'none'[[:space:]]*$" "$daily_audio_smoke_headers"
                 grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$daily_audio_smoke_headers"
                 grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$' "$daily_audio_smoke_headers"
-                cleanup_daily_audio_smoke
-                echo "Historical Daily Audio streaming smoke check passed."
+              cleanup_daily_audio_smoke
+              echo "Historical Daily Audio streaming smoke check passed."
 
                 daily_audio_status="$(
                   fetch_learning_os_route \
                     'Daily Audio status Learning OS' \
                     "/api/daily-audio-practice/$daily_audio_id/status"
                 )"
-                printf '%s' "$daily_audio_status" | docker exec -i \
+              printf '%s' "$daily_audio_status" | docker exec -i \
                   "convolab-server-$active_color" node --input-type=module --eval='
                     const chunks = [];
                     for await (const chunk of process.stdin) chunks.push(chunk);
@@ -3097,7 +3262,8 @@ jobs:
                       !Array.isArray(response.tracks)
                     ) process.exit(1);
                   '
-              fi
+              cleanup_daily_audio_fixture
+              echo "Disposable Daily Audio fixture cleanup passed."
               echo "Daily Audio Learning OS read smoke checks passed."
 
               study_card_body='{"cardType":"recognition","prompt":{"cueText":"Learning OS browser smoke"},"answer":{"meaning":"temporary deployment check"}}'

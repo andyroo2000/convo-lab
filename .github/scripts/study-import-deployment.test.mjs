@@ -556,11 +556,15 @@ test('direct Learning OS content smoke uses a disposable admin browser session',
     'mutate_content_browser_route() {',
     '--cookie "$content_browser_smoke_cookie_jar"',
     '--header "X-XSRF-TOKEN: $content_browser_smoke_csrf_token"',
+    'echo "::add-mask::$content_browser_smoke_csrf_raw"',
+    'echo "::add-mask::$content_browser_smoke_csrf_token"',
+    'echo "::add-mask::$content_browser_smoke_session"',
     "printf '%s&viewAs=%s'",
     "printf '%s?viewAs=%s'",
     'cleanup_content_browser_smoke best-effort',
     'cleanup_content_browser_smoke',
     'DB::table("admin_user_projections")\n                      ->where(\n                        "convolab_id",\n                        getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),',
+    '"Disposable Learning OS content browser identity still exists."',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
@@ -1666,7 +1670,10 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
   for (const requiredContract of [
     "'/api/daily-audio-practice'",
     'Daily Audio historical track lookup',
-    'Disposable browser identity has no ready Daily Audio practice; empty list shape passed.',
+    'daily_audio_smoke_practice_id=',
+    'DailyAudioPracticeGeneration::storagePath(',
+    'DailyAudioPracticeGeneration::audioUrl(',
+    '"learning-os-daily-audio-smoke"',
     `printf '%s' "$daily_audio_list" | docker exec -i`,
     `printf '%s' "$daily_audio_detail" | docker exec -i`,
     `printf '%s' "$daily_audio_status" | docker exec -i`,
@@ -1677,8 +1684,10 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
     "grep -Eiq \"^content-security-policy: sandbox; default-src 'none'[[:space:]]*$\"",
     "grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$'",
     "grep -Eiq '^x-content-type-options: nosniff[[:space:]]*$'",
-    'cleanup_daily_audio_smoke',
+    'cleanup_daily_audio_fixture',
+    '"Disposable Daily Audio fixture still exists."',
     'Historical Daily Audio streaming smoke check passed.',
+    'Disposable Daily Audio fixture cleanup passed.',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
@@ -1690,11 +1699,7 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
     workflow.indexOf('daily_audio_list='),
     workflow.indexOf("'Browser Learning OS'")
   );
-  assert.ok(
-    dailyAudioBlock.indexOf('if [ -z "$daily_audio_id" ]; then') <
-      dailyAudioBlock.indexOf('Daily Audio historical track lookup')
-  );
-  assert.match(dailyAudioBlock, /if \[ -z "\$daily_audio_id" \]; then[\s\S]*else/);
+  assert.doesNotMatch(dailyAudioBlock, /if \[ -z "\$daily_audio_id" \]; then/);
   assert.doesNotMatch(
     dailyAudioBlock,
     /DAILY_AUDIO_(?:RESPONSE|DETAIL|STATUS)=/,
@@ -1705,8 +1710,14 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
       dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
   );
   assert.ok(
-    dailyAudioBlock.indexOf('test -s "$daily_audio_smoke_body"') <
+    dailyAudioBlock.indexOf(
+      'test "$(cat "$daily_audio_smoke_body")" = "learning-os-daily-audio-smoke"'
+    ) <
       dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.')
+  );
+  assert.ok(
+    dailyAudioBlock.indexOf('Historical Daily Audio streaming smoke check passed.') <
+      dailyAudioBlock.indexOf('cleanup_daily_audio_fixture')
   );
 });
 
