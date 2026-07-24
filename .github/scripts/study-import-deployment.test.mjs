@@ -458,7 +458,7 @@ test('the production workflow refreshes and verifies Learning OS content reads',
   }
   assert.doesNotMatch(
     workflow,
-    /\/api\/(?:episodes|courses)(?:[/?"])/u,
+    /\/api\/(?:episodes|courses)\b/u,
     'The production rehearsal must not call retired Express content routes'
   );
 
