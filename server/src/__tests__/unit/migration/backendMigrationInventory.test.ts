@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes.length).toBeGreaterThan(70);
+    expect(routes.length).toBeGreaterThan(65);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -90,22 +90,6 @@ describe('backend migration inventory', () => {
     expect(findBackendMigrationRoute('POST', '/api/tools/analytics')).toMatchObject({
       route: { id: 'tool-analytics.store' },
       surface: { id: 'tool-analytics', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('GET', '/api/episodes/episode-123')).toMatchObject({
-      route: { id: 'episodes.show', path: '/api/episodes/:id' },
-      surface: { id: 'episodes', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('DELETE', '/api/episodes/episode-123')).toMatchObject({
-      route: { id: 'episodes.delete', path: '/api/episodes/:id' },
-      surface: { id: 'episodes', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('POST', '/api/episodes')).toMatchObject({
-      route: { id: 'episodes.store', path: '/api/episodes' },
-      surface: { id: 'episodes', runtimeOwner: 'learning-os-proxy' },
-    });
-    expect(findBackendMigrationRoute('PATCH', '/api/episodes/episode-123')).toMatchObject({
-      route: { id: 'episodes.update', path: '/api/episodes/:id' },
-      surface: { id: 'episodes', runtimeOwner: 'learning-os-proxy' },
     });
     expect(findBackendMigrationRoute('GET', '/api/courses/course-123')).toMatchObject({
       route: { id: 'courses.show', path: '/api/courses/:id' },
@@ -299,6 +283,8 @@ describe('backend migration inventory', () => {
   });
 
   it('does not classify unknown methods or paths', () => {
+    expect(findBackendMigrationRoute('GET', '/api/episodes/episode-123')).toBeNull();
+    expect(findBackendMigrationRoute('POST', '/api/episodes')).toBeNull();
     expect(findBackendMigrationRoute('POST', '/api/episodes/episode-123')).toBeNull();
     expect(findBackendMigrationRoute('GET', '/api/not-in-inventory')).toBeNull();
   });

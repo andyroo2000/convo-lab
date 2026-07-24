@@ -9,8 +9,8 @@ describe('backend route usage telemetry', () => {
   });
 
   it('aggregates valid events while ignoring unrelated and malformed log lines', () => {
-    const first = buildBackendRouteUsageEvent('GET', '/api/episodes/first-id', 200, 10);
-    const second = buildBackendRouteUsageEvent('GET', '/api/episodes/second-id', 500, 40);
+    const first = buildBackendRouteUsageEvent('GET', '/api/dialogue/job/first-id', 200, 10);
+    const second = buildBackendRouteUsageEvent('GET', '/api/dialogue/job/second-id', 500, 40);
     const third = buildBackendRouteUsageEvent('GET', '/api/feature-flags', 200, 20);
 
     const result = summarizeBackendRouteUsage([
@@ -25,13 +25,13 @@ describe('backend route usage telemetry', () => {
 
     expect(result).toEqual([
       {
-        routeId: 'episodes.show',
-        surfaceId: 'episodes',
-        domain: 'content',
+        routeId: 'dialogue.job.show',
+        surfaceId: 'dialogue',
+        domain: 'generation',
         migrationWave: 'content',
         runtimeOwner: 'learning-os-proxy',
         method: 'GET',
-        normalizedPath: '/api/episodes/:id',
+        normalizedPath: '/api/dialogue/job/:jobId',
         requests: 2,
         errors: 1,
         maxDurationMs: 40,
