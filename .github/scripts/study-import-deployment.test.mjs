@@ -1671,9 +1671,12 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
     "'/api/daily-audio-practice'",
     'Daily Audio historical track lookup',
     'daily_audio_smoke_practice_id=',
+    'DAILY_AUDIO_SMOKE_PRACTICE_ID="$daily_audio_smoke_practice_id"',
     'DailyAudioPracticeGeneration::storagePath(',
     'DailyAudioPracticeGeneration::audioUrl(',
     '"learning-os-daily-audio-smoke"',
+    'Disposable Daily Audio fixture created.',
+    'Disposable Daily Audio fixture appeared in the browser list.',
     `printf '%s' "$daily_audio_list" | docker exec -i`,
     `printf '%s' "$daily_audio_detail" | docker exec -i`,
     `printf '%s' "$daily_audio_status" | docker exec -i`,
@@ -1700,6 +1703,11 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
     workflow.indexOf("'Browser Learning OS'")
   );
   assert.doesNotMatch(dailyAudioBlock, /if \[ -z "\$daily_audio_id" \]; then/);
+  assert.doesNotMatch(
+    dailyAudioBlock,
+    /daily_audio_smoke_output=/,
+    'Tinker failures must remain visible instead of being captured in command substitution'
+  );
   assert.doesNotMatch(
     dailyAudioBlock,
     /DAILY_AUDIO_(?:RESPONSE|DETAIL|STATUS)=/,
