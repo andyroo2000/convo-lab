@@ -22,6 +22,7 @@ import adminRoutes from './routes/admin.js';
 import adminCourseRoutes from './routes/adminCourses.js';
 import adminFeatureFlagRoutes from './routes/adminFeatureFlags.js';
 import adminScriptLabRoutes from './routes/adminScriptLab.js';
+import csrfRoutes from './routes/csrf.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import learningOsStudyRoutes from './routes/learningOs/study.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
@@ -258,6 +259,7 @@ app.get('/health', async (_req, res) => {
 });
 
 // API Routes
+app.use('/api/auth/csrf', csrfRoutes);
 app.use('/api/learning-os/study', learningOsStudyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/feature-flags', adminFeatureFlagRoutes);

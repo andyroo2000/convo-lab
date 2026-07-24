@@ -22,6 +22,11 @@ router and fails when the declared and inventoried routes or their order differ.
 Order is part of the contract because Express resolves overlapping mounts and
 routes in declaration order.
 
+The standalone Express CSRF bootstrap remains inventoried as security
+infrastructure while any browser mutation still terminates in Express. Retiring
+the final Express mutation must move or remove that bootstrap in the same
+rollout.
+
 The drift checks intentionally recognize the repository's current convention:
 default route imports, literal `app.use(path, router)` mounts, and literal
 `router.method(path, ...)` declarations. When changing those conventions,

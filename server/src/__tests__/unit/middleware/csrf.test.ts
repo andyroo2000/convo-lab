@@ -8,10 +8,10 @@ import {
   apiCsrfProtection,
   apiCsrfErrorHandler,
   getAllowedApiOrigins,
-  issueCsrfTokenCookie,
   requireAllowedApiMutationOrigin,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
+import csrfRoutes from '../../../routes/csrf.js';
 import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
@@ -45,10 +45,7 @@ describe('csrf middleware', () => {
     app.use(expressJson());
     app.use('/api', requireAllowedApiMutationOrigin);
     app.use('/api', apiCsrfProtection);
-    app.get('/api/auth/csrf', (req, res) => {
-      issueCsrfTokenCookie(req, res, 'lax');
-      res.sendStatus(204);
-    });
+    app.use('/api/auth/csrf', csrfRoutes);
     app.post('/api/protected', (_req, res) => {
       res.sendStatus(204);
     });
