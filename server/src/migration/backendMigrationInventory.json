@@ -129,41 +129,6 @@
       ]
     },
     {
-      "id": "courses",
-      "domain": "content",
-      "migrationWave": "content",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/courses.ts",
-      "mountPath": "/api/courses",
-      "routes": [
-        { "id": "courses.index", "method": "GET", "path": "/api/courses" },
-        { "id": "courses.show", "method": "GET", "path": "/api/courses/:id" },
-        { "id": "courses.store", "method": "POST", "path": "/api/courses" },
-        {
-          "id": "courses.generate",
-          "method": "POST",
-          "path": "/api/courses/:id/generate"
-        },
-        {
-          "id": "courses.status",
-          "method": "GET",
-          "path": "/api/courses/:id/status"
-        },
-        {
-          "id": "courses.reset",
-          "method": "POST",
-          "path": "/api/courses/:id/reset"
-        },
-        {
-          "id": "courses.retry",
-          "method": "POST",
-          "path": "/api/courses/:id/retry"
-        },
-        { "id": "courses.update", "method": "PATCH", "path": "/api/courses/:id" },
-        { "id": "courses.delete", "method": "DELETE", "path": "/api/courses/:id" }
-      ]
-    },
-    {
       "id": "admin",
       "domain": "admin",
       "migrationWave": "admin",
