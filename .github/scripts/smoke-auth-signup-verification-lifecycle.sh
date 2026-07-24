@@ -396,14 +396,24 @@ printf '%s' "$current_account" | docker exec \
     let body = "";
     for await (const chunk of process.stdin) body += chunk;
     const account = JSON.parse(body);
+    const mismatches = [];
+    if (account.id !== process.env.EXPECTED_USER_ID) mismatches.push("id");
     if (
-      account.id !== process.env.EXPECTED_USER_ID
+      typeof account.email !== "string"
       || account.email.toLowerCase() !== process.env.EXPECTED_USER_EMAIL.toLowerCase()
-      || account.role !== "USER"
-      || account.emailVerified !== false
-      || typeof account.seenSampleContentGuide !== "boolean"
-      || typeof account.seenCustomContentGuide !== "boolean"
-    ) process.exit(1);
+    ) mismatches.push("email");
+    if (account.role !== "user") mismatches.push("role");
+    if (account.emailVerified !== false) mismatches.push("emailVerified");
+    if (typeof account.seenSampleContentGuide !== "boolean") {
+      mismatches.push("seenSampleContentGuide");
+    }
+    if (typeof account.seenCustomContentGuide !== "boolean") {
+      mismatches.push("seenCustomContentGuide");
+    }
+    if (mismatches.length > 0) {
+      console.error(`Signup account response mismatched: ${mismatches.join(", ")}.`);
+      process.exit(1);
+    }
   '
 
 generation_quota="$(session_get_json \
