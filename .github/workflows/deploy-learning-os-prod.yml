@@ -743,9 +743,9 @@ jobs:
               if [ -z "${admin_invite_smoke_id:-}" ]; then
                 return
               fi
-              if declare -F mutate_proxy_route > /dev/null \
-                && mutate_proxy_route \
-                  DELETE "/api/admin/invite-codes/$admin_invite_smoke_id" '{}' > /dev/null; then
+              if declare -F mutate_learning_os_route > /dev/null \
+                && mutate_learning_os_route \
+                  DELETE "/api/convolab/admin/invite-codes/$admin_invite_smoke_id" '{}' > /dev/null; then
                 admin_invite_smoke_id=
                 return
               fi
@@ -1453,40 +1453,6 @@ jobs:
                 node --input-type=module --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
               test -n "$csrf_token"
 
-              fetch_read_route() {
-                local label="$1"
-                local path="$2"
-                local response=""
-                local response_file
-                local status
-                local attempt
-
-                for attempt in {1..12}; do
-                  response_file="$(mktemp)"
-                  if status="$(curl --silent --show-error \
-                      --output "$response_file" \
-                      --write-out '%{http_code}' \
-                      --header 'Accept: application/json' \
-                      --cookie "token=$auth_token" \
-                      "https://convo-lab.com$path")"; then
-                    :
-                  else
-                    status="${status:-transport-error}"
-                  fi
-                  response="$(cat "$response_file")"
-                  rm -f "$response_file"
-                  if [[ "$status" =~ ^2[0-9][0-9]$ ]]; then
-                    printf '%s' "$response"
-                    return 0
-                  fi
-                  echo "$label attempt $attempt/12 returned HTTP ${status:-unknown}; retrying." >&2
-                  printf '%s\n' "${response:0:2048}" >&2
-                  sleep 3
-                done
-
-                return 1
-              }
-
               stream_json_pair() {
                 # Stream newline-delimited base64 so large responses do not exceed exec ARG_MAX.
                 printf '%s' "$1" | base64 | tr -d '\n'
@@ -1617,38 +1583,6 @@ jobs:
                     }
                   '
                 echo "Study session Learning OS smoke check passed."
-              }
-
-              mutate_proxy_route() {
-                local method="$1"
-                local path="$2"
-                local body="$3"
-                local response_file
-                local status
-
-                response_file="$(mktemp)"
-                status="$(curl --silent --show-error \
-                  --output "$response_file" \
-                  --write-out '%{http_code}' \
-                  --request "$method" \
-                  --header 'Accept: application/json' \
-                  --header 'Content-Type: application/json' \
-                  --header 'Origin: https://convo-lab.com' \
-                  --header "X-CSRF-Token: $csrf_token" \
-                  --header "Cookie: token=$auth_token; XSRF-TOKEN=$csrf_cookie_raw" \
-                  --data "$body" \
-                  "https://convo-lab.com$path")"
-
-                if [[ ! "$status" =~ ^2[0-9][0-9]$ ]]; then
-                  echo "$method $path failed with HTTP $status:" >&2
-                  cat "$response_file" >&2
-                  echo >&2
-                  rm -f "$response_file"
-                  return 1
-                fi
-
-                cat "$response_file"
-                rm -f "$response_file"
               }
 
               fetch_learning_os_route() {
@@ -1820,145 +1754,6 @@ jobs:
                 SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh
 
-              admin_stats="$(fetch_read_route 'Admin stats Learning OS' '/api/admin/stats')"
-              printf '%s' "$admin_stats" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
-                  const chunks = [];
-                  for await (const chunk of process.stdin) chunks.push(chunk);
-                  const stats = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                  if (
-                    !Number.isInteger(stats?.users) ||
-                    !Number.isInteger(stats?.episodes) ||
-                    !Number.isInteger(stats?.courses) ||
-                    !Number.isInteger(stats?.inviteCodes?.total)
-                  ) process.exit(1);
-                '
-              admin_users="$(fetch_read_route 'Admin users Learning OS' '/api/admin/users?limit=1')"
-              admin_user_id="$(printf '%s' "$admin_users" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
-                  const chunks = [];
-                  for await (const chunk of process.stdin) chunks.push(chunk);
-                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                  const id = response?.users?.[0]?.id;
-                  if (
-                    typeof id !== "string" ||
-                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
-                  ) process.exit(1);
-                  process.stdout.write(id);
-                ')"
-              test -n "$admin_user_id"
-              fetch_read_route \
-                'Admin user info Learning OS' \
-                "/api/admin/users/$admin_user_id/info" \
-                > /dev/null
-              fetch_read_route \
-                'Admin invite codes Learning OS' \
-                '/api/admin/invite-codes?limit=1' \
-                > /dev/null
-              admin_speaker_avatars="$(fetch_read_route \
-                'Admin speaker avatars Learning OS' \
-                '/api/admin/avatars/speakers')"
-              admin_speaker_filename="$(printf '%s' "$admin_speaker_avatars" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
-                  let body = "";
-                  for await (const chunk of process.stdin) body += chunk;
-                  const avatars = JSON.parse(body);
-                  const avatar = avatars?.[0];
-                  if (
-                    !Array.isArray(avatars) ||
-                    typeof avatar?.filename !== "string" ||
-                    !/^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(
-                      avatar.filename
-                    ) ||
-                    typeof avatar?.croppedUrl !== "string" ||
-                    typeof avatar?.originalUrl !== "string"
-                  ) process.exit(1);
-                  process.stdout.write(avatar.filename);
-                ')"
-              test -n "$admin_speaker_filename"
-              admin_speaker_original="$(fetch_read_route \
-                'Admin speaker avatar original Learning OS' \
-                "/api/admin/avatars/speaker/$admin_speaker_filename/original")"
-              printf '%s' "$admin_speaker_original" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
-                  let body = "";
-                  for await (const chunk of process.stdin) body += chunk;
-                  const response = JSON.parse(body);
-                  if (typeof response?.originalUrl !== "string" || !response.originalUrl) {
-                    process.exit(1);
-                  }
-                '
-              admin_pronunciation="$(fetch_read_route \
-                'Admin pronunciation dictionary Learning OS' \
-                '/api/admin/pronunciation-dictionaries')"
-              admin_pronunciation_body="$(printf '%s' "$admin_pronunciation" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
-                  let body = "";
-                  for await (const chunk of process.stdin) body += chunk;
-                  const dictionary = JSON.parse(body);
-                  if (
-                    !Array.isArray(dictionary?.keepKanji) ||
-                    !dictionary.forceKana ||
-                    Array.isArray(dictionary.forceKana) ||
-                    typeof dictionary.forceKana !== "object" ||
-                    !dictionary.verbKana ||
-                    Array.isArray(dictionary.verbKana) ||
-                    typeof dictionary.verbKana !== "object"
-                  ) process.exit(1);
-                  process.stdout.write(JSON.stringify({
-                    keepKanji: dictionary.keepKanji,
-                    forceKana: dictionary.forceKana,
-                    verbKana: dictionary.verbKana,
-                  }));
-                ')"
-              admin_pronunciation_updated="$(mutate_proxy_route \
-                PUT '/api/admin/pronunciation-dictionaries' "$admin_pronunciation_body")"
-              printf '%s' "$admin_pronunciation_updated" | docker exec \
-                -i \
-                -e EXPECTED_DICTIONARY="$admin_pronunciation_body" \
-                "convolab-server-$active_color" \
-                node --input-type=module --eval='
-                  let body = "";
-                  for await (const chunk of process.stdin) body += chunk;
-                  const updated = JSON.parse(body);
-                  const expected = JSON.parse(process.env.EXPECTED_DICTIONARY);
-                  if (
-                    JSON.stringify(updated.keepKanji) !== JSON.stringify(expected.keepKanji) ||
-                    JSON.stringify(updated.forceKana) !== JSON.stringify(expected.forceKana) ||
-                    JSON.stringify(updated.verbKana) !== JSON.stringify(expected.verbKana)
-                  ) process.exit(1);
-                '
-              echo "Admin Learning OS read smoke checks passed."
-
-              admin_invite_create="$(mutate_proxy_route POST '/api/admin/invite-codes' '{}')"
-              admin_invite_smoke_id="$(printf '%s' "$admin_invite_create" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
-                  const chunks = [];
-                  for await (const chunk of process.stdin) chunks.push(chunk);
-                  const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                  if (
-                    typeof invite?.id !== "string" ||
-                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invite.id)
-                  ) process.exit(1);
-                  process.stdout.write(invite.id);
-                ')"
-              test -n "$admin_invite_smoke_id"
-              printf '%s' "$admin_invite_create" | docker exec -i \
-                "convolab-server-$active_color" node --input-type=module --eval='
-                  const chunks = [];
-                  for await (const chunk of process.stdin) chunks.push(chunk);
-                  const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                  if (
-                    // This is the compatibility contract of Learning OS generated invite codes.
-                    typeof invite?.code !== "string" ||
-                    !/^[A-F0-9]{8}$/.test(invite.code) ||
-                    invite.usedBy !== null ||
-                    invite.usedAt !== null
-                  ) process.exit(1);
-                '
-              cleanup_admin_invite_smoke
-              echo "Admin Learning OS invite create/delete smoke checks passed."
-
               content_browser_smoke_convolab_id="$(docker exec \
                 "convolab-server-$active_color" \
                 node --input-type=module --eval='
@@ -2121,6 +1916,154 @@ jobs:
                   ) process.exit(1);
                 '
               echo "Disposable Learning OS content browser session established."
+
+              admin_stats="$(fetch_learning_os_route \
+                'Admin stats Learning OS' \
+                '/api/convolab/admin/stats')"
+              printf '%s' "$admin_stats" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const stats = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    !Number.isInteger(stats?.users) ||
+                    !Number.isInteger(stats?.episodes) ||
+                    !Number.isInteger(stats?.courses) ||
+                    !Number.isInteger(stats?.inviteCodes?.total)
+                  ) process.exit(1);
+                '
+              admin_users="$(fetch_learning_os_route \
+                'Admin users Learning OS' \
+                '/api/convolab/admin/users?limit=1')"
+              admin_user_id="$(printf '%s' "$admin_users" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  const id = response?.users?.[0]?.id;
+                  if (
+                    typeof id !== "string" ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+                  ) process.exit(1);
+                  process.stdout.write(id);
+                ')"
+              test -n "$admin_user_id"
+              fetch_learning_os_route \
+                'Admin user info Learning OS' \
+                "/api/convolab/admin/users/$admin_user_id/info" \
+                > /dev/null
+              fetch_learning_os_route \
+                'Admin invite codes Learning OS' \
+                '/api/convolab/admin/invite-codes?limit=1' \
+                > /dev/null
+              admin_speaker_avatars="$(fetch_learning_os_route \
+                'Admin speaker avatars Learning OS' \
+                '/api/convolab/admin/avatars/speakers')"
+              admin_speaker_filename="$(printf '%s' "$admin_speaker_avatars" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const avatars = JSON.parse(body);
+                  const avatar = avatars?.[0];
+                  if (
+                    !Array.isArray(avatars) ||
+                    typeof avatar?.filename !== "string" ||
+                    !/^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(
+                      avatar.filename
+                    ) ||
+                    typeof avatar?.croppedUrl !== "string" ||
+                    typeof avatar?.originalUrl !== "string"
+                  ) process.exit(1);
+                  process.stdout.write(avatar.filename);
+                ')"
+              test -n "$admin_speaker_filename"
+              admin_speaker_original="$(fetch_learning_os_route \
+                'Admin speaker avatar original Learning OS' \
+                "/api/convolab/admin/avatars/speaker/$admin_speaker_filename/original")"
+              printf '%s' "$admin_speaker_original" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const response = JSON.parse(body);
+                  if (typeof response?.originalUrl !== "string" || !response.originalUrl) {
+                    process.exit(1);
+                  }
+                '
+              admin_pronunciation="$(fetch_learning_os_route \
+                'Admin pronunciation dictionary Learning OS' \
+                '/api/convolab/admin/pronunciation-dictionaries')"
+              admin_pronunciation_body="$(printf '%s' "$admin_pronunciation" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const dictionary = JSON.parse(body);
+                  if (
+                    !Array.isArray(dictionary?.keepKanji) ||
+                    !dictionary.forceKana ||
+                    Array.isArray(dictionary.forceKana) ||
+                    typeof dictionary.forceKana !== "object" ||
+                    !dictionary.verbKana ||
+                    Array.isArray(dictionary.verbKana) ||
+                    typeof dictionary.verbKana !== "object"
+                  ) process.exit(1);
+                  process.stdout.write(JSON.stringify({
+                    keepKanji: dictionary.keepKanji,
+                    forceKana: dictionary.forceKana,
+                    verbKana: dictionary.verbKana,
+                  }));
+                ')"
+              admin_pronunciation_updated="$(mutate_learning_os_route \
+                PUT \
+                '/api/convolab/admin/pronunciation-dictionaries' \
+                "$admin_pronunciation_body")"
+              printf '%s' "$admin_pronunciation_updated" | docker exec \
+                -i \
+                -e EXPECTED_DICTIONARY="$admin_pronunciation_body" \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const updated = JSON.parse(body);
+                  const expected = JSON.parse(process.env.EXPECTED_DICTIONARY);
+                  if (
+                    JSON.stringify(updated.keepKanji) !== JSON.stringify(expected.keepKanji) ||
+                    JSON.stringify(updated.forceKana) !== JSON.stringify(expected.forceKana) ||
+                    JSON.stringify(updated.verbKana) !== JSON.stringify(expected.verbKana)
+                  ) process.exit(1);
+                '
+              echo "Canonical admin browser-session read/write smoke checks passed."
+
+              admin_invite_create="$(mutate_learning_os_route \
+                POST \
+                '/api/convolab/admin/invite-codes' \
+                '{}')"
+              admin_invite_smoke_id="$(printf '%s' "$admin_invite_create" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    typeof invite?.id !== "string" ||
+                    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invite.id)
+                  ) process.exit(1);
+                  process.stdout.write(invite.id);
+                ')"
+              test -n "$admin_invite_smoke_id"
+              printf '%s' "$admin_invite_create" | docker exec -i \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  const chunks = [];
+                  for await (const chunk of process.stdin) chunks.push(chunk);
+                  const invite = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                  if (
+                    // This is the compatibility contract of Learning OS generated invite codes.
+                    typeof invite?.code !== "string" ||
+                    !/^[A-F0-9]{8}$/.test(invite.code) ||
+                    invite.usedBy !== null ||
+                    invite.usedAt !== null
+                  ) process.exit(1);
+                '
+              cleanup_admin_invite_smoke
+              echo "Canonical admin browser-session invite create/delete smoke checks passed."
 
               fetch_learning_os_route \
                 'Overview Learning OS' \

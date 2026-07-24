@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(42);
+    expect(routes).toHaveLength(28);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -102,42 +102,7 @@ describe('backend migration inventory', () => {
         '/api/convolab/episodes/018f47ea-4b37-7f21-8d5a-90e157176b8a/audio/1.0'
       )
     ).toBeNull();
-    expect(findBackendMigrationRoute('DELETE', '/api/admin/invite-codes/invite-123')).toMatchObject(
-      {
-        route: { id: 'admin.invites.delete' },
-        surface: { id: 'admin', migrationWave: 'admin' },
-      }
-    );
-  });
-
-  it('tracks migrated admin routes as Learning OS proxies', () => {
-    for (const [method, routePath] of [
-      ['GET', '/api/admin/stats'],
-      ['GET', '/api/admin/users'],
-      ['GET', '/api/admin/users/11111111-1111-4111-8111-111111111111/info'],
-      ['GET', '/api/admin/invite-codes'],
-      ['GET', '/api/admin/avatars/speaker/ja-female-casual.jpg/original'],
-      ['GET', '/api/admin/avatars/speakers'],
-      ['GET', '/api/admin/pronunciation-dictionaries'],
-      ['PUT', '/api/admin/pronunciation-dictionaries'],
-    ]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'admin', runtimeOwner: 'learning-os-proxy' },
-      });
-    }
-
-    for (const [method, routePath] of [
-      ['DELETE', '/api/admin/users/11111111-1111-4111-8111-111111111111'],
-      ['POST', '/api/admin/invite-codes'],
-      ['DELETE', '/api/admin/invite-codes/22222222-2222-4222-8222-222222222222'],
-      ['POST', '/api/admin/avatars/speaker/ja-female-casual.jpg/upload'],
-      ['POST', '/api/admin/avatars/speaker/ja-female-casual.jpg/recrop'],
-      ['POST', '/api/admin/avatars/user/11111111-1111-4111-8111-111111111111/upload'],
-    ]) {
-      expect(findBackendMigrationRoute(method, routePath)).toMatchObject({
-        surface: { id: 'admin', runtimeOwner: 'learning-os-proxy' },
-      });
-    }
+    expect(findBackendMigrationRoute('DELETE', '/api/admin/invite-codes/invite-123')).toBeNull();
   });
 
   it('tracks the admin course and Script Lab course surfaces through Learning OS', () => {

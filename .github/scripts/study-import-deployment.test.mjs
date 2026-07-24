@@ -236,7 +236,7 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   const verifyStudyApi = workflow.slice(
     workflow.indexOf('verify_study_api() {'),
-    workflow.indexOf('fetch_read_route() {')
+    workflow.indexOf('stream_json_pair() {')
   );
   const postgresUserAssignment = verifyStudyApi.indexOf(
     'postgres_user="$(sed -n \'s/^POSTGRES_USER=//p\' .env.production | tail -1)"'
@@ -597,10 +597,8 @@ test('direct Learning OS content smoke uses a disposable admin browser session',
   assert.ok(firstRead < finalContentCheck);
   assert.ok(finalContentCheck < cleanup);
 
-  assert.doesNotMatch(
-    workflow,
-    /(?:fetch_read_route|mutate_proxy_route)[\s\S]{0,200}\/api\/convolab\/(?:episodes|courses|dialogue|images|audio|scripts)/u
-  );
+  assert.doesNotMatch(workflow, /\bfetch_read_route\s*\(\)/);
+  assert.doesNotMatch(workflow, /\bmutate_proxy_route\s*\(\)/);
 });
 
 test('the production workflow proves public course CRUD and removes every smoke artifact', async () => {

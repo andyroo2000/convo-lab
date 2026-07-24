@@ -26,30 +26,54 @@ test('production syncs the admin projection before issuing an admin-scoped token
   assert.match(workflow, /"admin:write",/);
 });
 
-test('production smoke-gates both the private admin API and public compatibility routes', async () => {
+test('production smoke-gates the private token route and canonical browser-session routes', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
+  const browserSessionIndex = workflow.indexOf(
+    'Disposable Learning OS content browser session established.'
+  );
+  const canonicalAdminIndex = workflow.indexOf(
+    "fetch_learning_os_route \\\n                'Admin stats Learning OS'"
+  );
 
   assert.match(workflow, /127\.0\.0\.1:8080\/api\/convolab\/admin\/stats/);
   for (const route of [
-    '/api/admin/stats',
-    '/api/admin/users?limit=1',
-    '/api/admin/invite-codes?limit=1',
-    '/api/admin/avatars/speakers',
-    '/api/admin/pronunciation-dictionaries',
+    '/api/convolab/admin/stats',
+    '/api/convolab/admin/users?limit=1',
+    '/api/convolab/admin/invite-codes?limit=1',
+    '/api/convolab/admin/avatars/speakers',
+    '/api/convolab/admin/pronunciation-dictionaries',
   ]) {
     assert.ok(workflow.includes(route), `Missing production smoke route: ${route}`);
   }
-  assert.match(workflow, /\/api\/admin\/users\/\$admin_user_id\/info/);
+  assert.ok(browserSessionIndex >= 0);
+  assert.ok(canonicalAdminIndex > browserSessionIndex);
+  assert.match(workflow, /\/api\/convolab\/admin\/users\/\$admin_user_id\/info/);
   assert.match(
     workflow,
-    /\/api\/admin\/avatars\/speaker\/\$admin_speaker_filename\/original/
+    /\/api\/convolab\/admin\/avatars\/speaker\/\$admin_speaker_filename\/original/
   );
   assert.match(
     workflow,
-    /mutate_proxy_route[\s\\]+PUT '\/api\/admin\/pronunciation-dictionaries' "\$admin_pronunciation_body"/
+    /mutate_learning_os_route[\s\\]+PUT[\s\\]+'\/api\/convolab\/admin\/pronunciation-dictionaries'/
   );
-  assert.match(workflow, /Admin Learning OS read smoke checks passed\./);
-  assert.match(workflow, /mutate_proxy_route POST '\/api\/admin\/invite-codes' '\{\}'/);
-  assert.match(workflow, /DELETE "\/api\/admin\/invite-codes\/\$admin_invite_smoke_id"/);
-  assert.match(workflow, /Admin Learning OS invite create\/delete smoke checks passed\./);
+  assert.match(workflow, /Canonical admin browser-session read\/write smoke checks passed\./);
+  assert.match(
+    workflow,
+    /mutate_learning_os_route[\s\\]+POST[\s\\]+'\/api\/convolab\/admin\/invite-codes'/
+  );
+  assert.match(
+    workflow,
+    /DELETE "\/api\/convolab\/admin\/invite-codes\/\$admin_invite_smoke_id"/
+  );
+  assert.match(
+    workflow,
+    /Canonical admin browser-session invite create\/delete smoke checks passed\./
+  );
+  assert.doesNotMatch(workflow, /['"]\/api\/admin\/stats/);
+  assert.doesNotMatch(workflow, /['"]\/api\/admin\/users(?:[/?"])/);
+  assert.doesNotMatch(workflow, /['"]\/api\/admin\/invite-codes/);
+  assert.doesNotMatch(workflow, /['"]\/api\/admin\/avatars/);
+  assert.doesNotMatch(workflow, /['"]\/api\/admin\/pronunciation-dictionaries/);
+  assert.doesNotMatch(workflow, /\bfetch_read_route\s*\(\)/);
+  assert.doesNotMatch(workflow, /\bmutate_proxy_route\s*\(\)/);
 });
