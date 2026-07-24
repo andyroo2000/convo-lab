@@ -90,7 +90,7 @@ test('the production deployment leaves Google OAuth exclusively on Learning OS',
   assert.ok(publicGate >= 0);
   assert.match(
     workflow.slice(publicGate),
-    /if ! verify_public_health \\\s+\|\| ! \.\/deploy\/smoke-static-frontend\.sh https:\/\/convo-lab\.com \\\s+\|\| ! verify_public_learning_os_browser_route; then/
+    /if ! verify_public_health \\\s+\|\| ! verify_public_static_frontend \\\s+\|\| ! verify_public_learning_os_browser_route; then/
   );
   assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
 });
