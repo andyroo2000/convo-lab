@@ -6,7 +6,10 @@ export const LEARNING_OS_CSRF_TOKEN_HEADER_NAME = 'X-XSRF-TOKEN';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CSRF_REJECTION_MESSAGE_PATTERN = /csrf/i;
-const PUBLIC_CSRF_EXEMPT_API_PATHS = new Set(['/api/tools-audio/signed-urls']);
+const PUBLIC_CSRF_EXEMPT_API_PATHS = new Set([
+  '/api/convolab/browser/tools/analytics',
+  '/api/tools-audio/signed-urls',
+]);
 const LEARNING_OS_CSRF_NAMESPACES = [
   '/api/convolab/auth',
   '/api/convolab/browser/auth',
@@ -17,6 +20,7 @@ const LEARNING_OS_CSRF_NAMESPACES = [
   '/api/convolab/audio',
   '/api/convolab/images',
   '/api/convolab/admin',
+  '/api/feature-flags',
   '/api/auth/password',
   '/api/study',
   '/api/daily-audio-practice',

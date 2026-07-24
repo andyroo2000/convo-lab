@@ -100,13 +100,13 @@ test('the production workflow executes migrations before starting the inactive s
   assert.ok(inactiveServerStart > migrateDeploy);
 });
 
-test('the production workflow verifies the analytics token before switching traffic', async () => {
+test('the production workflow verifies browser analytics before switching traffic', async () => {
   const { script } = await readDeployment();
   const inactiveServerHealthy = script.indexOf(
     'wait_for_container_health "convolab-server-$inactive_color"'
   );
   const analyticsPreflight = script.indexOf(
-    'Learning OS analytics token preflight passed.',
+    'Learning OS browser analytics endpoint preflight passed.',
     inactiveServerHealthy
   );
   const switchStart = script.indexOf('router_role="$(docker inspect', analyticsPreflight);
@@ -115,7 +115,10 @@ test('the production workflow verifies the analytics token before switching traf
   assert.ok(inactiveServerHealthy >= 0);
   assert.ok(analyticsPreflight > inactiveServerHealthy);
   assert.ok(switchStart > analyticsPreflight);
-  assert.match(preflightBlock, /127\.0\.0\.1:\$\{port\}\/api\/tools\/analytics/);
+  assert.match(
+    preflightBlock,
+    /learning-os:8080\/api\/convolab\/browser\/tools\/analytics/
+  );
   assert.match(preflightBlock, /signal: AbortSignal\.timeout\(10_000\)/);
   assert.match(preflightBlock, /response\.status !== 204/);
   assert.doesNotMatch(preflightBlock, /Authorization:/);

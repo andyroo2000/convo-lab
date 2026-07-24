@@ -16,7 +16,6 @@ import {
 import { AppError } from './errorHandler.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const CSRF_EXEMPT_PATHS = new Set(['/tools/analytics']);
 
 export const CSRF_TOKEN_COOKIE_NAME = 'XSRF-TOKEN';
 export const CSRF_TOKEN_HEADER_NAME = 'x-csrf-token';
@@ -77,10 +76,6 @@ const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
 
 export const apiCsrfProtection: RequestHandler = doubleCsrfProtection;
 
-export function isCsrfExemptPath(pathname: string): boolean {
-  return CSRF_EXEMPT_PATHS.has(pathname);
-}
-
 function validateMutationOrigin(req: Request): AppError | null {
   if (SAFE_METHODS.has(req.method.toUpperCase())) {
     return null;
@@ -128,11 +123,6 @@ export const apiCsrfErrorHandler: ErrorRequestHandler = (error, _req, _res, next
 };
 
 export function requireApiCsrfProtection(req: Request, res: Response, next: NextFunction) {
-  if (isCsrfExemptPath(req.path)) {
-    next();
-    return;
-  }
-
   requireAllowedApiMutationOrigin(req, res, (originError?: unknown) => {
     if (originError) {
       next(originError as Error);

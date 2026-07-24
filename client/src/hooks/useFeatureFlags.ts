@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { API_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface FeatureFlags {
@@ -12,7 +11,7 @@ export interface FeatureFlags {
 }
 
 async function fetchFeatureFlags(): Promise<FeatureFlags> {
-  const response = await fetch(`${API_URL}/api/feature-flags`, {
+  const response = await fetch('/api/feature-flags', {
     credentials: 'include',
   });
   if (!response.ok) {

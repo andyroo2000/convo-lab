@@ -1,7 +1,7 @@
 type ToolContext = 'public' | 'app';
 type AnalyticsPrimitive = string | number | boolean | null;
 
-const TOOL_ANALYTICS_ENDPOINT = '/api/tools/analytics';
+const TOOL_ANALYTICS_ENDPOINT = '/api/convolab/browser/tools/analytics';
 const SESSION_STORAGE_KEY = 'convolab:tools:analytics-session-id';
 const MAX_EVENT_PROPERTIES = 16;
 const MAX_PROPERTY_KEY_LENGTH = 40;

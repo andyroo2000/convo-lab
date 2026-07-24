@@ -21,7 +21,7 @@ describe('backend route usage telemetry', () => {
       500,
       40
     );
-    const third = buildBackendRouteUsageEvent('GET', '/api/feature-flags', 200, 20);
+    const third = buildBackendRouteUsageEvent('GET', '/api/retired-direct-route', 200, 20);
 
     const result = summarizeBackendRouteUsage([
       'ordinary request log',
@@ -49,13 +49,13 @@ describe('backend route usage telemetry', () => {
         statusCodes: { '200': 1, '500': 1 },
       },
       {
-        routeId: 'feature-flags.show',
-        surfaceId: 'feature-flags',
-        domain: 'configuration',
-        migrationWave: 'pattern',
-        runtimeOwner: 'learning-os-proxy',
+        routeId: 'unclassified',
+        surfaceId: 'unclassified',
+        domain: 'unclassified',
+        migrationWave: 'unclassified',
+        runtimeOwner: 'unclassified',
         method: 'GET',
-        normalizedPath: '/api/feature-flags',
+        normalizedPath: 'unclassified',
         requests: 1,
         errors: 0,
         maxDurationMs: 20,

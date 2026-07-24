@@ -39,9 +39,9 @@ describe('admin API contract', () => {
     );
   });
 
-  it('keeps the deployment feature flag endpoint on Express', () => {
+  it('uses the canonical Learning OS feature flag endpoint', () => {
     expect(createAdminApiContract('https://app.test').featureFlags).toBe(
-      'https://app.test/api/admin/feature-flags'
+      'https://app.test/api/feature-flags'
     );
   });
 });

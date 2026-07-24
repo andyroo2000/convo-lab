@@ -49,8 +49,7 @@ export function createAdminApiContract(apiUrl = ''): AdminApiContract {
     userInfo: (userId) => `${users}/${encode(userId)}/info`,
     inviteCodes,
     inviteCode: (inviteId) => `${inviteCodes}/${encode(inviteId)}`,
-    // Deployment feature flags configure both services and remain Express-owned.
-    featureFlags: `${apiUrl}/api/admin/feature-flags`,
+    featureFlags: `${apiUrl}/api/feature-flags`,
     speakerAvatars: (cacheBust) =>
       cacheBust === undefined ? speakerAvatars : `${speakerAvatars}?t=${cacheBust}`,
     speakerAvatarOriginal: (filename) => `${base}/avatars/speaker/${encode(filename)}/original`,

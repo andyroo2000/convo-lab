@@ -18,11 +18,8 @@ import { requireApiCsrfProtection } from './middleware/csrf.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { enforceDefaultRequestBodyTimeout } from './middleware/requestBodyTimeout.js';
 import { requestLogger } from './middleware/requestLogger.js';
-import adminFeatureFlagRoutes from './routes/adminFeatureFlags.js';
 import csrfRoutes from './routes/csrf.js';
-import featureFlagRoutes from './routes/featureFlags.js';
 import learningOsStudyRoutes from './routes/learningOs/study.js';
-import toolAnalyticsRoutes from './routes/toolAnalytics.js';
 import { warmKanjiumAccentIndex } from './services/pitchAccent/kanjiumData.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -258,9 +255,6 @@ app.get('/health', async (_req, res) => {
 // API Routes
 app.use('/api/auth/csrf', csrfRoutes);
 app.use('/api/learning-os/study', learningOsStudyRoutes);
-app.use('/api/admin/feature-flags', adminFeatureFlagRoutes);
-app.use('/api/feature-flags', featureFlagRoutes);
-app.use('/api', toolAnalyticsRoutes);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: { message: 'Not found' } });
 });

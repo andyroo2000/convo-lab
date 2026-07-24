@@ -175,6 +175,26 @@ describe('csrf helpers', () => {
     expect(headers.has(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe(false);
   });
 
+  it('does not bootstrap CSRF for public browser analytics', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithCsrf('/api/convolab/browser/tools/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tool: 'japanese:time',
+        event: 'answer_passed',
+        context: 'public',
+      }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
+    expect(headers.has(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe(false);
+  });
+
   it('keeps similarly named tool-audio paths protected by CSRF', async () => {
     const fetchMock = vi
       .fn()
@@ -229,6 +249,12 @@ describe('csrf helpers', () => {
     expect(getCsrfProviderForPath('/api/convolab/admin')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/convolab/admin/users/user-123')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/convolab/admin-other')).toBe('express');
+  });
+
+  it('classifies only the exact feature flag path as Learning OS', () => {
+    expect(getCsrfProviderForPath('/api/feature-flags')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/feature-flags/other')).toBe('learning-os');
+    expect(getCsrfProviderForPath('/api/feature-flags-other')).toBe('express');
   });
 
   it('classifies only the direct browser Auth and password namespaces as Learning OS', () => {

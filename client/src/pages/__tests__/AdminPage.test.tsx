@@ -550,7 +550,7 @@ describe('AdminPage', () => {
     beforeEach(() => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
         (url: string, options: RequestInit | undefined) => {
-          if (url.includes('/api/admin/feature-flags')) {
+          if (url.includes('/api/feature-flags')) {
             if (options?.method === 'PATCH') {
               return Promise.resolve({
                 ok: true,
@@ -608,7 +608,7 @@ describe('AdminPage', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/admin/feature-flags'),
+          expect.stringContaining('/api/feature-flags'),
           expect.objectContaining({
             method: 'PATCH',
           })

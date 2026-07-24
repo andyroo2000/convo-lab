@@ -74,7 +74,7 @@ describe('useFeatureFlags', () => {
 
       expect(result.current.flags).toEqual(mockFlags);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/feature-flags',
+        '/api/feature-flags',
         expect.objectContaining({ credentials: 'include' })
       );
     });

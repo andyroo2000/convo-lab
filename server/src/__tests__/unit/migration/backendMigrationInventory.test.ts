@@ -29,7 +29,7 @@ describe('backend migration inventory', () => {
     expect(
       new Set(routes.map(({ method, path: routePath }) => `${method} ${routePath}`)).size
     ).toBe(routes.length);
-    expect(routes).toHaveLength(6);
+    expect(routes).toHaveLength(2);
   });
 
   it('preserves every literal route in Express declaration order', () => {
@@ -87,10 +87,8 @@ describe('backend migration inventory', () => {
   });
 
   it('resolves concrete dynamic paths to stable inventory routes', () => {
-    expect(findBackendMigrationRoute('POST', '/api/tools/analytics')).toMatchObject({
-      route: { id: 'tool-analytics.store' },
-      surface: { id: 'tool-analytics', runtimeOwner: 'learning-os-proxy' },
-    });
+    expect(findBackendMigrationRoute('POST', '/api/tools/analytics')).toBeNull();
+    expect(findBackendMigrationRoute('POST', '/api/convolab/browser/tools/analytics')).toBeNull();
     expect(findBackendMigrationRoute('POST', '/api/audio/generate-all-speeds')).toBeNull();
     expect(findBackendMigrationRoute('POST', '/api/images/generate')).toBeNull();
     expect(
@@ -139,15 +137,11 @@ describe('backend migration inventory', () => {
     });
   });
 
-  it('records the feature-flags browser contract as Learning OS-owned through the proxy', () => {
-    expect(findBackendMigrationRoute('GET', '/api/feature-flags')).toMatchObject({
-      route: { id: 'feature-flags.show', method: 'GET', path: '/api/feature-flags' },
-      surface: {
-        id: 'feature-flags',
-        migrationWave: 'pattern',
-        runtimeOwner: 'learning-os-proxy',
-      },
-    });
+  it('does not inventory direct Learning OS feature-flag routes', () => {
+    expect(findBackendMigrationRoute('GET', '/api/feature-flags')).toBeNull();
+    expect(findBackendMigrationRoute('PATCH', '/api/feature-flags')).toBeNull();
+    expect(findBackendMigrationRoute('GET', '/api/admin/feature-flags')).toBeNull();
+    expect(findBackendMigrationRoute('PATCH', '/api/admin/feature-flags')).toBeNull();
   });
 
   it('does not inventory direct Learning OS media routes', () => {
@@ -162,20 +156,6 @@ describe('backend migration inventory', () => {
 
   it('does not inventory the direct Learning OS tool-audio route', () => {
     expect(findBackendMigrationRoute('POST', '/api/tools-audio/signed-urls')).toBeNull();
-  });
-
-  it.each([
-    ['GET', 'admin.feature-flags.show'],
-    ['PATCH', 'admin.feature-flags.update'],
-  ])('records the %s admin feature-flags contract as Learning OS-owned', (method, routeId) => {
-    expect(findBackendMigrationRoute(method, '/api/admin/feature-flags')).toMatchObject({
-      route: { id: routeId, method, path: '/api/admin/feature-flags' },
-      surface: {
-        id: 'admin-feature-flags',
-        migrationWave: 'pattern',
-        runtimeOwner: 'learning-os-proxy',
-      },
-    });
   });
 
   it('does not classify unknown methods or paths', () => {

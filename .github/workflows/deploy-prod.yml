@@ -543,6 +543,39 @@ jobs:
                   return 1
                 fi
 
+                feature_flags_status="$(curl --silent --show-error \
+                  --cookie "$cookie_jar" \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Accept: application/json' \
+                  --header 'Origin: https://convo-lab.com' \
+                  https://convo-lab.com/api/feature-flags)"
+                if [ "$feature_flags_status" != 401 ]; then
+                  echo "Unauthenticated direct feature flags probe returned HTTP $feature_flags_status."
+                  cat "$response_body"
+                  return 1
+                fi
+                if ! grep -q '"message":"Unauthenticated."' "$response_body"; then
+                  echo "Direct feature flags probe did not return the Learning OS auth contract."
+                  cat "$response_body"
+                  return 1
+                fi
+
+                analytics_status="$(curl --silent --show-error \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --request POST \
+                  --header 'Accept: application/json' \
+                  --header 'Content-Type: application/json' \
+                  --header 'Origin: https://convo-lab.com' \
+                  --data '{"tool":"deployment","event":"smoke","context":"app","properties":{"source":"convolab-production"}}' \
+                  https://convo-lab.com/api/convolab/browser/tools/analytics)"
+                if [ "$analytics_status" != 204 ] || [ -s "$response_body" ]; then
+                  echo "Direct Learning OS browser analytics probe returned HTTP $analytics_status."
+                  cat "$response_body"
+                  return 1
+                fi
+
                 admin_status="$(curl --silent --show-error \
                   --cookie "$cookie_jar" \
                   --output "$response_body" \
@@ -651,30 +684,34 @@ jobs:
             $COMPOSE up -d --no-deps "server-$inactive_color"
             wait_for_container_health "convolab-server-$inactive_color"
 
-            echo "📈 Verifying the Learning OS analytics token before traffic switch..."
+            echo "📈 Verifying the Learning OS browser analytics endpoint before traffic switch..."
             docker exec "convolab-server-$inactive_color" \
               node --input-type=module --eval='
-                const port = process.env.PORT || "3001";
-                const response = await fetch(`http://127.0.0.1:${port}/api/tools/analytics`, {
+                const response = await fetch(
+                  "http://learning-os:8080/api/convolab/browser/tools/analytics",
+                  {
                   method: "POST",
                   signal: AbortSignal.timeout(10_000),
                   headers: {
                     Accept: "application/json",
                     "Content-Type": "application/json",
                   },
-                  body: JSON.stringify({
-                    tool: "deployment",
-                    event: "preflight",
-                    context: "app",
-                    properties: { source: "convolab-production" },
-                  }),
-                });
+                    body: JSON.stringify({
+                      tool: "deployment",
+                      event: "preflight",
+                      context: "app",
+                      properties: { source: "convolab-production" },
+                    }),
+                  }
+                );
                 if (response.status !== 204) {
-                  console.error(`Learning OS analytics preflight returned HTTP ${response.status}.`);
+                  console.error(
+                    `Learning OS browser analytics preflight returned HTTP ${response.status}.`
+                  );
                   process.exit(1);
                 }
               '
-            echo "✅ Learning OS analytics token preflight passed."
+            echo "✅ Learning OS browser analytics endpoint preflight passed."
 
             router_role="$(docker inspect -f '{{index .Config.Labels "convolab.role"}}' convolab-server 2>/dev/null || true)"
             if [ "$router_role" = "router" ]; then
