@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   convolab-network:
     driver: bridge
@@ -14,65 +12,31 @@ volumes:
       type: none
       o: bind
       device: /opt/convolab-data/postgres
-  redis-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/convolab-data/redis
   learning-os-storage:
     driver: local
 
-x-server-environment: &server-environment
-  NODE_ENV: production
-  PORT: 3001
-  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-  REDIS_HOST: redis
-  REDIS_PORT: 6379
-  REDIS_PASSWORD: ${REDIS_PASSWORD}
-  GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json
-  GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
-  GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
-  CLIENT_URL: ${CLIENT_URL}
-  OPENAI_API_KEY: ${OPENAI_API_KEY}
-  LLM_PROVIDER: ${LLM_PROVIDER:-openai}
-  STUDY_CARD_GENERATOR_MODEL: ${STUDY_CARD_GENERATOR_MODEL:-gpt-5.5}
-  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-  AWS_REGION: ${AWS_REGION}
-  FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY}
-  LEARNING_OS_SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}
-
-x-server-service: &server-service
-  image: ghcr.io/andyroo2000/convolab-server:${CONVOLAB_IMAGE_TAG:-latest}
+x-frontend-service: &frontend-service
+  image: ghcr.io/andyroo2000/convolab-frontend:${CONVOLAB_FRONTEND_IMAGE_TAG:-latest}
   restart: unless-stopped
-  environment: *server-environment
-  volumes:
-    - ./server/gcloud-key.json:/app/gcloud-key.json:ro
   networks:
     - convolab-network
-  depends_on:
-    postgres:
-      condition: service_healthy
-    redis:
-      condition: service_healthy
-  mem_limit: 1024m
-  mem_reservation: 512m
+  mem_limit: 128m
+  mem_reservation: 32m
   healthcheck:
-    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+    test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3001/health']
     interval: 30s
-    timeout: 10s
+    timeout: 5s
     retries: 3
-    start_period: 40s
+    start_period: 5s
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-size: "10m"
-      max-file: "5"
+      max-size: '10m'
+      max-file: '3'
 
 x-learning-os-environment: &learning-os-environment
   APP_ENV: production
-  APP_DEBUG: "false"
+  APP_DEBUG: 'false'
   APP_KEY: ${LEARNING_OS_APP_KEY}
   APP_URL: http://learning-os:8080
   PASSWORD_RESET_URL: ${CLIENT_URL}/reset-password
@@ -139,10 +103,10 @@ x-learning-os-service: &learning-os-service
   mem_limit: 768m
   mem_reservation: 256m
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-size: "10m"
-      max-file: "5"
+      max-size: '10m'
+      max-file: '5'
 
 services:
   postgres:
@@ -160,36 +124,15 @@ services:
     mem_limit: 512m
     mem_reservation: 256m
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U languageflow"]
+      test: ['CMD-SHELL', 'pg_isready -U languageflow']
       interval: 10s
       timeout: 5s
       retries: 5
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  redis:
-    image: redis:7-alpine
-    container_name: convolab-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis-data:/data
-    networks:
-      - convolab-network
-    mem_limit: 256m
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   learning-os:
     <<: *learning-os-service
@@ -201,9 +144,9 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "php",
-          "-r",
+          'CMD',
+          'php',
+          '-r',
           "$$context = stream_context_create(['http' => ['timeout' => 2]]); exit(@file_get_contents('http://127.0.0.1:8080/up', false, $$context) === false ? 1 : 0);",
         ]
       interval: 30s
@@ -216,27 +159,45 @@ services:
     container_name: learning-os-worker
     command:
       [
-        "php",
-        "artisan",
-        "queue:work",
-        "database",
-        "--queue=study-imports,study-card-drafts,default",
-        "--sleep=3",
-        "--tries=4",
-        "--timeout=3600",
-        "--max-time=3600",
+        'php',
+        'artisan',
+        'queue:work',
+        'database',
+        '--queue=study-imports,study-card-drafts,default',
+        '--sleep=3',
+        '--tries=4',
+        '--timeout=3600',
+        '--max-time=3600',
       ]
     stop_grace_period: 65m
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "tr '\\0' ' ' < /proc/1/cmdline | grep -q 'artisan queue:work'",
-        ]
+      test: ['CMD-SHELL', "tr '\\0' ' ' < /proc/1/cmdline | grep -q 'artisan queue:work'"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  deployment-tools:
+    image: node:20-alpine@sha256:658d0f63e501824d6c23e06d4bb95c71e7d704537c9d9272f488ac03a370d448
+    container_name: convolab-deployment-tools
+    command: ['sh', '-c', "trap 'exit 0' TERM INT; while :; do sleep 3600 & wait $$!; done"]
+    profiles:
+      - deployment
+    networks:
+      - convolab-network
+    mem_limit: 128m
+    mem_reservation: 32m
+    healthcheck:
+      test: ['CMD', 'node', '--version']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '2'
 
   router:
     image: nginx:1.27-alpine
@@ -245,7 +206,7 @@ services:
     labels:
       convolab.role: router
     ports:
-      - "3001:3001"
+      - '3001:3001'
     volumes:
       - ${CONVOLAB_ROUTER_DIR:-/opt/convolab-runtime/prod-router}:/etc/nginx/conf.d:ro
     networks:
@@ -254,20 +215,20 @@ services:
     mem_limit: 128m
     mem_reservation: 32m
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/nginx-health || exit 1"]
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:3001/nginx-health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "5"
+        max-size: '10m'
+        max-file: '5'
   server-blue:
-    <<: *server-service
+    <<: *frontend-service
     container_name: convolab-server-blue
 
   server-green:
-    <<: *server-service
+    <<: *frontend-service
     container_name: convolab-server-green

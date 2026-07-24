@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Image tag to deploy (ex: main-<sha> or latest)'
-        required: false
-        default: 'latest'
+        description: 'Immutable static frontend image tag (main-<full-sha>)'
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -25,29 +25,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Validate OpenAI API key
+      - name: Validate image tag
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::error::OPENAI_API_KEY secret is not set"
-            exit 1
-          fi
-          curl -fsS https://api.openai.com/v1/models \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -o /dev/null
-
-      - name: Validate Google OAuth credentials
-        env:
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-        run: |
-          if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then
-            echo "::error::GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets must be set"
-            exit 1
-          fi
-          if [ "$GOOGLE_CLIENT_ID" = placeholder ]; then
-            echo "::error::GOOGLE_CLIENT_ID must not use the placeholder sentinel"
+          if ! [[ "$IMAGE_TAG" =~ ^main-[0-9a-f]{40}$ ]]; then
+            echo "::error::image_tag must be an immutable main-<full-sha> tag"
             exit 1
           fi
 
@@ -59,24 +42,16 @@ jobs:
 
       - name: Deploy to droplet
         env:
-          DEPLOY_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          DEPLOY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           DROPLET_USER: ${{ secrets.DROPLET_USER }}
           DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
           DEPLOY_IMAGE_TAG: ${{ inputs.image_tag }}
           DEPLOY_GH_PAT: ${{ secrets.GH_PAT }}
-          DEPLOY_FISH_AUDIO_API_KEY: ${{ secrets.FISH_AUDIO_API_KEY }}
-          DEPLOY_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DEPLOY_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEPLOY_GHCR_ACTOR: ${{ github.actor }}
         run: |
           {
-            printf 'DEPLOY_GOOGLE_CLIENT_ID=%q\n' "$DEPLOY_GOOGLE_CLIENT_ID"
-            printf 'DEPLOY_GOOGLE_CLIENT_SECRET=%q\n' "$DEPLOY_GOOGLE_CLIENT_SECRET"
             printf 'IMAGE_TAG=%q\n' "$DEPLOY_IMAGE_TAG"
             printf 'GH_PAT=%q\n' "$DEPLOY_GH_PAT"
-            printf 'FISH_AUDIO_API_KEY=%q\n' "$DEPLOY_FISH_AUDIO_API_KEY"
-            printf 'OPENAI_API_KEY=%q\n' "$DEPLOY_OPENAI_API_KEY"
             printf 'GHCR_TOKEN=%q\n' "$DEPLOY_GHCR_TOKEN"
             printf 'GHCR_ACTOR=%q\n' "$DEPLOY_GHCR_ACTOR"
             cat << 'ENDSSH'
@@ -100,61 +75,14 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
-            upsert_env() {
-              key="$1"
-              value="$2"
-              escaped_value="${value//\\/\\\\}"
-              escaped_value="${escaped_value//#/\\#}"
-              escaped_value="${escaped_value//&/\\&}"
-
-              if grep -q "^${key}=" .env.production; then
-                sed -i "s#^${key}=.*#${key}=${escaped_value}#" .env.production
-              else
-                printf '%s=%s\n' "$key" "$value" >> .env.production
-              fi
-            }
-
-            echo "🔧 Updating production environment values..."
-            upsert_env FISH_AUDIO_API_KEY "$FISH_AUDIO_API_KEY"
-
-            if grep -q '^CLIENT_URL=' .env.production; then
-              sed -i "s#^CLIENT_URL=.*#CLIENT_URL=https://convo-lab.com#g" .env.production
-            else
-              echo "CLIENT_URL=https://convo-lab.com" >> .env.production
-            fi
-
-            upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"
-            upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"
-            upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI \
-              https://convo-lab.com/api/convolab/browser/auth/google/callback
-
-            upsert_env OPENAI_API_KEY "$OPENAI_API_KEY"
-
-            if grep -q '^LLM_PROVIDER=' .env.production; then
-              sed -i "s#^LLM_PROVIDER=.*#LLM_PROVIDER=openai#g" .env.production
-            else
-              echo "LLM_PROVIDER=openai" >> .env.production
-            fi
-
-            if grep -q '^STUDY_CARD_GENERATOR_MODEL=' .env.production; then
-              sed -i "s#^STUDY_CARD_GENERATOR_MODEL=.*#STUDY_CARD_GENERATOR_MODEL=gpt-5.5#g" .env.production
-            else
-              echo "STUDY_CARD_GENERATOR_MODEL=gpt-5.5" >> .env.production
-            fi
-
-            if ! grep -Eq '^OPENAI_API_KEY=.+$' .env.production; then
-              echo "❌ OPENAI_API_KEY is missing after production env injection."
-              exit 1
-            fi
-
             mkdir -p "$ROUTER_DIR"
-            export CONVOLAB_IMAGE_TAG="$IMAGE_TAG"
+            export CONVOLAB_FRONTEND_IMAGE_TAG="$IMAGE_TAG"
             export CONVOLAB_ROUTER_DIR="$ROUTER_DIR"
 
-            if grep -q '^CONVOLAB_IMAGE_TAG=' .env.production; then
-              sed -i "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.production
+            if grep -q '^CONVOLAB_FRONTEND_IMAGE_TAG=' .env.production; then
+              sed -i "s#^CONVOLAB_FRONTEND_IMAGE_TAG=.*#CONVOLAB_FRONTEND_IMAGE_TAG=$IMAGE_TAG#g" .env.production
             else
-              echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.production
+              echo "CONVOLAB_FRONTEND_IMAGE_TAG=$IMAGE_TAG" >> .env.production
             fi
 
             if grep -q '^CONVOLAB_ROUTER_DIR=' .env.production; then
@@ -658,12 +586,10 @@ jobs:
 
             available_mb="$(awk '/MemAvailable/ {print int($2 / 1024)}' /proc/meminfo)"
             echo "Available memory: ${available_mb}MB"
-            # MemAvailable already reflects long-running Postgres, Redis, the active
-            # web color, and the old worker during its one retirement deployment.
-            # Keep at least 2500MB free for the inactive web color, router work,
-            # image extraction, and rollback headroom.
-            if [ "$available_mb" -lt 2500 ]; then
-              echo "❌ Refusing blue/green deploy with less than 2500MB available memory."
+            # Keep enough headroom for the small inactive frontend color, image
+            # extraction, router work, and an automatic rollback.
+            if [ "$available_mb" -lt 1024 ]; then
+              echo "❌ Refusing blue/green deploy with less than 1024MB available memory."
               exit 1
             fi
 
@@ -673,44 +599,12 @@ jobs:
             echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
             timeout 600 $COMPOSE pull router "server-$inactive_color"
 
-            echo "🧱 Ensuring Postgres and Redis stay running..."
-            $COMPOSE up -d postgres redis
-
-            echo "🗄️ Running production migrations before traffic switch..."
-            $COMPOSE run --rm -T --no-deps "server-$inactive_color" npx prisma migrate deploy </dev/null
+            echo "🧱 Ensuring Learning OS Postgres stays running..."
+            $COMPOSE up -d postgres
 
             echo "🚦 Starting convolab-server-$inactive_color..."
             $COMPOSE up -d --no-deps "server-$inactive_color"
             wait_for_container_health "convolab-server-$inactive_color"
-
-            echo "📈 Verifying the Learning OS browser analytics endpoint before traffic switch..."
-            docker exec "convolab-server-$inactive_color" \
-              node --input-type=module --eval='
-                const response = await fetch(
-                  "http://learning-os:8080/api/convolab/browser/tools/analytics",
-                  {
-                  method: "POST",
-                  signal: AbortSignal.timeout(10_000),
-                  headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                  },
-                    body: JSON.stringify({
-                      tool: "deployment",
-                      event: "preflight",
-                      context: "app",
-                      properties: { source: "convolab-production" },
-                    }),
-                  }
-                );
-                if (response.status !== 204) {
-                  console.error(
-                    `Learning OS browser analytics preflight returned HTTP ${response.status}.`
-                  );
-                  process.exit(1);
-                }
-              '
-            echo "✅ Learning OS browser analytics endpoint preflight passed."
 
             router_role="$(docker inspect -f '{{index .Config.Labels "convolab.role"}}' convolab-server 2>/dev/null || true)"
             if [ "$router_role" = "router" ]; then
@@ -736,6 +630,7 @@ jobs:
             fi
 
             if ! verify_public_health \
+              || ! ./deploy/smoke-static-frontend.sh https://convo-lab.com \
               || ! verify_public_learning_os_browser_route; then
               echo "❌ Public verification failed after switching to $inactive_color."
               if ! rollback_router "$active_color"; then
@@ -746,12 +641,17 @@ jobs:
 
             write_active_color "$inactive_color"
 
-            echo "🛑 Stopping old web color if present..."
+            echo "🛑 Stopping old web color for rollback if present..."
             if docker inspect "convolab-server-$active_color" >/dev/null 2>&1; then
-              if docker stop "convolab-server-$active_color"; then
-                docker rm "convolab-server-$active_color" 2>/dev/null || echo "⚠️ Failed to remove stopped old color convolab-server-$active_color."
-              else
+              if ! docker stop "convolab-server-$active_color"; then
                 echo "⚠️ Failed to stop old color convolab-server-$active_color; it may still be running."
+              fi
+            fi
+
+            echo "🛑 Stopping retired Redis while preserving its host-backed data..."
+            if docker inspect convolab-redis >/dev/null 2>&1; then
+              if ! docker stop convolab-redis; then
+                echo "⚠️ Failed to stop retired convolab-redis; manual cleanup is required."
               fi
             fi
 
@@ -772,7 +672,8 @@ jobs:
           echo "🏥 Running health check..."
 
           for i in {1..20}; do
-            if curl -f -s https://convo-lab.com/health > /dev/null; then
+            response="$(curl --fail --silent --show-error https://convo-lab.com/health || true)"
+            if echo "$response" | grep -q '"frontend":true'; then
               echo "✅ Health check passed!"
               exit 0
             fi

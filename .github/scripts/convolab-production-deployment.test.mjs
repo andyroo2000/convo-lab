@@ -25,6 +25,20 @@ async function readDeployment() {
   return { source, script: deployStep.run };
 }
 
+test('the production workflow accepts only immutable static frontend tags', async () => {
+  const workflow = YAML.parse(await readFile(workflowPath, 'utf8'));
+  const imageInput = workflow.on.workflow_dispatch.inputs.image_tag;
+  const validateStep = workflow.jobs.deploy.steps.find(
+    (step) => step.name === 'Validate image tag'
+  );
+
+  assert.equal(imageInput.required, true);
+  assert.equal(imageInput.type, 'string');
+  assert.equal(imageInput.default, undefined);
+  assert.equal(validateStep.env.IMAGE_TAG, '${{ inputs.image_tag }}');
+  assert.match(validateStep.run, /\^main-\[0-9a-f\]\{40\}\$/u);
+});
+
 test('the production deployment wrapper and remote script remain valid Bash', async () => {
   const { source, script } = await readDeployment();
   await execFileAsync('bash', ['-n', '-c', script]);
@@ -33,14 +47,10 @@ test('the production deployment wrapper and remote script remain valid Bash', as
   for (const contract of [
     'DEPLOY_IMAGE_TAG: ${{ inputs.image_tag }}',
     'DEPLOY_GH_PAT: ${{ secrets.GH_PAT }}',
-    'DEPLOY_FISH_AUDIO_API_KEY: ${{ secrets.FISH_AUDIO_API_KEY }}',
-    'DEPLOY_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}',
     'DEPLOY_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}',
     'DEPLOY_GHCR_ACTOR: ${{ github.actor }}',
     "printf 'IMAGE_TAG=%q\\n' \"$DEPLOY_IMAGE_TAG\"",
     "printf 'GH_PAT=%q\\n' \"$DEPLOY_GH_PAT\"",
-    "printf 'FISH_AUDIO_API_KEY=%q\\n' \"$DEPLOY_FISH_AUDIO_API_KEY\"",
-    "printf 'OPENAI_API_KEY=%q\\n' \"$DEPLOY_OPENAI_API_KEY\"",
     "printf 'GHCR_TOKEN=%q\\n' \"$DEPLOY_GHCR_TOKEN\"",
     "printf 'GHCR_ACTOR=%q\\n' \"$DEPLOY_GHCR_ACTOR\"",
   ]) {
@@ -86,43 +96,37 @@ test('the production workflow retains blue-green switching and rollback contract
   );
   assert.match(
     switchBlock,
-    /if ! verify_public_health \\\s+\|\| ! verify_public_learning_os_browser_route; then[\s\S]*if ! rollback_router "\$active_color"; then/
+    /if ! verify_public_health \\\s+\|\| ! \.\/deploy\/smoke-static-frontend\.sh https:\/\/convo-lab\.com \\\s+\|\| ! verify_public_learning_os_browser_route; then[\s\S]*if ! rollback_router "\$active_color"; then/
   );
 });
 
-test('the production workflow executes migrations before starting the inactive server', async () => {
+test('the production frontend deploy does not own backend migrations or secrets', async () => {
   const { script } = await readDeployment();
-  const migrateDeploy = script.indexOf('npx prisma migrate deploy');
   const inactiveServerStart = script.indexOf('$COMPOSE up -d --no-deps "server-$inactive_color"');
 
-  assert.ok(!script.includes('prisma migrate resolve --applied'));
-  assert.ok(migrateDeploy >= 0);
-  assert.ok(inactiveServerStart > migrateDeploy);
+  assert.ok(inactiveServerStart >= 0);
+  assert.doesNotMatch(script, /npx prisma|OPENAI_API_KEY|FISH_AUDIO_API_KEY/u);
+  assert.doesNotMatch(script, /GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET/u);
+  assert.doesNotMatch(script, /\$COMPOSE up -d postgres redis/u);
 });
 
-test('the production workflow verifies browser analytics before switching traffic', async () => {
+test('the production workflow verifies static and API contracts before committing the switch', async () => {
   const { script } = await readDeployment();
-  const inactiveServerHealthy = script.indexOf(
-    'wait_for_container_health "convolab-server-$inactive_color"'
+  const switchStart = script.indexOf('router_role="$(docker inspect');
+  const staticSmoke = script.indexOf(
+    './deploy/smoke-static-frontend.sh https://convo-lab.com',
+    switchStart
   );
-  const analyticsPreflight = script.indexOf(
-    'Learning OS browser analytics endpoint preflight passed.',
-    inactiveServerHealthy
+  const learningOsSmoke = script.indexOf(
+    'verify_public_learning_os_browser_route',
+    staticSmoke
   );
-  const switchStart = script.indexOf('router_role="$(docker inspect', analyticsPreflight);
-  const preflightBlock = script.slice(inactiveServerHealthy, analyticsPreflight);
+  const activeColorWrite = script.indexOf('write_active_color "$inactive_color"', learningOsSmoke);
 
-  assert.ok(inactiveServerHealthy >= 0);
-  assert.ok(analyticsPreflight > inactiveServerHealthy);
-  assert.ok(switchStart > analyticsPreflight);
-  assert.match(
-    preflightBlock,
-    /learning-os:8080\/api\/convolab\/browser\/tools\/analytics/
-  );
-  assert.match(preflightBlock, /signal: AbortSignal\.timeout\(10_000\)/);
-  assert.match(preflightBlock, /response\.status !== 204/);
-  assert.doesNotMatch(preflightBlock, /Authorization:/);
-  assert.doesNotMatch(preflightBlock, /X-Convo-Lab-User-/);
+  assert.ok(switchStart >= 0);
+  assert.ok(staticSmoke > switchStart);
+  assert.ok(learningOsSmoke > staticSmoke);
+  assert.ok(activeColorWrite > learningOsSmoke);
 });
 
 test('the production workflow rejects unexpected containers without legacy cutover behavior', async () => {
@@ -157,4 +161,50 @@ test('the production image includes the backend migration inventory', async () =
 test('the production image includes runtime translation resources', async () => {
   const source = await readFile(path.join(repositoryRoot, 'Dockerfile'), 'utf8');
   assert.ok(source.includes(localeResourcesCopy), 'Dockerfile omits translation resources');
+});
+
+test('production colors use the static frontend and isolated deployment tools', async () => {
+  const compose = YAML.parse(
+    await readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8')
+  );
+  const frontend = compose['x-frontend-service'];
+  const tools = compose.services['deployment-tools'];
+
+  assert.equal(
+    frontend.image,
+    'ghcr.io/andyroo2000/convolab-frontend:${CONVOLAB_FRONTEND_IMAGE_TAG:-latest}'
+  );
+  assert.equal(frontend.environment, undefined);
+  assert.equal(frontend.volumes, undefined);
+  assert.equal(frontend.depends_on, undefined);
+  assert.equal(frontend.mem_limit, '128m');
+  assert.equal(compose['x-server-service'], undefined);
+  assert.equal(compose['x-server-environment'], undefined);
+  assert.equal(compose.services.redis, undefined);
+  assert.deepEqual(compose.services['server-blue']['<<'], frontend);
+  assert.equal(compose.services['server-blue'].container_name, 'convolab-server-blue');
+  assert.deepEqual(compose.services['server-green']['<<'], frontend);
+  assert.equal(compose.services['server-green'].container_name, 'convolab-server-green');
+  assert.equal(
+    tools.image,
+    'node:20-alpine@sha256:658d0f63e501824d6c23e06d4bb95c71e7d704537c9d9272f488ac03a370d448'
+  );
+  assert.deepEqual(tools.profiles, ['deployment']);
+  assert.equal(tools.container_name, 'convolab-deployment-tools');
+});
+
+test('the Learning OS deployment does not borrow Node from the frontend runtime', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  assert.match(workflow, /DEPLOYMENT_TOOLS_CONTAINER="convolab-deployment-tools"/u);
+  assert.match(workflow, /\$COMPOSE --profile deployment up -d --no-deps deployment-tools/u);
+  assert.match(workflow, /wait_for_health "\$DEPLOYMENT_TOOLS_CONTAINER"/u);
+  assert.match(workflow, /docker rm -f "\$DEPLOYMENT_TOOLS_CONTAINER"/u);
+  assert.doesNotMatch(
+    workflow,
+    /docker exec(?:\s|\\\n)+(?:-[^\n]+\n\s+)*"convolab-server-\$active_color"[\s\S]{0,80}\bnode\b/u
+  );
 });
