@@ -107,9 +107,9 @@ test('the production workflow verifies the always-on Study API without rollout f
     "'Overview Learning OS'",
     "'Browser Learning OS'",
     "'Browser detail Learning OS'",
-    "mutate_proxy_route POST '/api/learning-os/study/session/start'",
-    "mutate_proxy_route PATCH '/api/learning-os/study/settings'",
-    "mutate_proxy_route POST '/api/learning-os/study/new-queue/reorder'",
+    "mutate_learning_os_route POST '/api/study/session/start'",
+    "mutate_learning_os_route PATCH '/api/study/settings'",
+    "mutate_learning_os_route POST '/api/study/new-queue/reorder'",
     'bash .github/scripts/smoke-study-import-lifecycle.sh',
     'ensure_learning_os_service learning-os learning-os-api',
     'ensure_learning_os_worker',
@@ -165,8 +165,9 @@ test('the production workflow verifies the always-on Study API without rollout f
   assert.doesNotMatch(workflow, /ENABLE_(?:SETTINGS|OVERVIEW|BROWSER|NEW_QUEUE|REVIEW|CARD|MEDIA|DAILY_AUDIO|IMPORTS)/);
   assert.doesNotMatch(workflow, /studyApi[A-Z]/);
   assert.doesNotMatch(workflow, /rollback_study_flags|flag_state|desired_parent/);
-  assert.doesNotMatch(workflow, /['"]\/api\/study\/(?:settings|overview|browser|new-queue)/);
-  assert.doesNotMatch(workflow, /\/api\/daily-audio-practice/);
+  assert.match(workflow, /fetch_learning_os_route\(\) \{/);
+  assert.match(workflow, /mutate_learning_os_route\(\) \{/);
+  assert.doesNotMatch(workflow, /\/api\/learning-os\/study/);
   assert.doesNotMatch(
     workflow,
     /\$COMPOSE up -d --no-deps --force-recreate learning-os learning-os-worker/
@@ -703,6 +704,7 @@ test('the production stack wires and smokes direct Learning OS static media', as
     "'https://convo-lab.com/api/avatars/voices/ja-shohei.jpg'",
     'Avatar direct Learning OS smoke check passed.',
     "'/api/tools-audio/signed-urls'",
+    'mutate_learning_os_route',
     'Tool Audio direct Learning OS smoke check passed.',
   ]) {
     assert.ok(workflow.includes(requiredSmokeContract), requiredSmokeContract);
@@ -1460,11 +1462,11 @@ test('the production workflow verifies and cleans up a disposable card draft', a
   );
 
   for (const requiredContract of [
-    "mutate_proxy_route POST '/api/learning-os/study/card-drafts'",
-    "'/api/learning-os/study/card-drafts?limit=200'",
-    '"/api/learning-os/study/card-drafts/$draft_id"',
+    "mutate_learning_os_route POST '/api/study/card-drafts'",
+    "'/api/study/card-drafts?limit=200'",
+    '"/api/study/card-drafts/$draft_id"',
     'card_draft_smoke_id="$draft_id"',
-    '"/api/learning-os/study/card-drafts/$card_draft_smoke_id"',
+    '"/api/study/card-drafts/$card_draft_smoke_id"',
     'card_draft_smoke_id=',
     'Study card draft lifecycle smoke check passed.',
   ]) {
@@ -1475,7 +1477,7 @@ test('the production workflow verifies and cleans up a disposable card draft', a
   }
 
   assert.ok(
-    workflow.indexOf('mutate_proxy_route DELETE') <
+    workflow.indexOf('mutate_learning_os_route DELETE') <
       workflow.indexOf('Study card draft lifecycle smoke check passed.')
   );
 });
@@ -1493,7 +1495,8 @@ test('the production workflow streams and cleans up disposable Learning OS media
     'App\\Domain\\Media\\Models\\MediaAsset::query()->create',
     '[[ "$media_smoke_id" =~ ^[0-9a-hjkmnp-tv-z]{26}$ ]]',
     'Learning OS returned an invalid media smoke ULID:',
-    '"https://convo-lab.com/api/learning-os/study/media/$media_smoke_id"',
+    '"https://convo-lab.com/api/study/media/$media_smoke_id"',
+    '--header "Authorization: Bearer $proxy_token"',
     'Study media streaming smoke check passed.',
   ]) {
     assert.ok(workflow.includes(requiredContract), `Missing media contract: ${requiredContract}`);
@@ -1511,7 +1514,7 @@ test('the production workflow streams and cleans up disposable Learning OS media
   assert.doesNotMatch(failureCleanupBlock, /rollback_study_flags|feature.flags?/i);
   assert.match(failureCleanupBlock, /cleanup_deployment_resources/);
   const mediaRequestIndex = workflow.indexOf(
-    '"https://convo-lab.com/api/learning-os/study/media/$media_smoke_id"'
+    '"https://convo-lab.com/api/study/media/$media_smoke_id"'
   );
   const mediaPassedIndex = workflow.indexOf('Study media streaming smoke check passed.');
   const cleanupInvocationIndex = workflow.lastIndexOf(
@@ -1590,7 +1593,7 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
   );
 
   for (const requiredContract of [
-    "'/api/learning-os/study/daily-audio-practice'",
+    "'/api/daily-audio-practice'",
     'Daily Audio historical track lookup',
     'No historical ready Daily Audio practice is available for streaming verification.',
     `printf '%s' "$daily_audio_list" | docker exec -i`,
@@ -1654,7 +1657,7 @@ test('the production workflow verifies browser routes against Learning OS state'
 
   for (const requiredContract of [
     'Browser Learning OS independent-state smoke check passed.',
-    "'/api/learning-os/study/browser?sortField=created_on&sortDirection=desc&limit=1'",
+    "'/api/study/browser?sortField=created_on&sortDirection=desc&limit=1'",
     'Browser detail Learning OS independent-state smoke check passed.',
   ]) {
     assert.ok(
@@ -1670,13 +1673,13 @@ test('the production workflow verifies browser routes against Learning OS state'
 
   assert.match(
     browserBlock,
-    /fetch_read_route[\s\S]*?\/api\/learning-os\/study\/browser\?sortField=created_on/
+    /fetch_learning_os_route[\s\S]*?\/api\/study\/browser\?sortField=created_on/
   );
   assert.match(
     browserBlock,
-    /Browser detail Learning OS[\s\S]*?\/api\/learning-os\/study\/browser\/\$browser_note_id/
+    /Browser detail Learning OS[\s\S]*?\/api\/study\/browser\/\$browser_note_id/
   );
-  assert.doesNotMatch(browserBlock, /\/api\/study\/browser|compare_read_route|ENABLE_/);
+  assert.doesNotMatch(browserBlock, /\/api\/learning-os\/study\/browser|compare_read_route|ENABLE_/);
 });
 
 test('the production workflow overlaps proxy tokens through a healthy server cutover', async () => {
@@ -1773,41 +1776,38 @@ test('the lifecycle smoke script remains valid Bash', async () => {
     'RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"',
     'docker logs --since "$RUN_STARTED_AT" --tail=300 learning-os-worker',
     'delete_learning_os_smoke_user',
-    'delete_convolab_smoke_user',
-    'restore_proxy_identity',
-    'wait_for_public_csrf',
-    'for attempt in {1..12}; do',
-    'Public ConvoLab CSRF readiness attempt $attempt/12 failed; retrying.',
-    '--cookie "token=$auth_token"',
-    '--cookie-jar "$CSRF_COOKIE_JAR"',
-    "'https://convo-lab.com/api/auth/csrf'",
     'docker exec -e IMPORT_SMOKE_EMAIL="$SMOKE_EMAIL" learning-os-api',
-    '/api/learning-os/study/imports/readiness',
-    "/api/learning-os/study/imports'",
-    '/api/learning-os/study/imports/$import_job_id/upload',
+    '--header "Authorization: Bearer $proxy_token"',
+    '/api/study/imports/readiness',
+    "/api/study/imports'",
+    '/api/study/imports/$import_job_id/upload',
+    'response.data.import_job.id',
+    'response.data.status',
+    'response.data.preview.note_count',
     'archive_sha256="$(sha256sum "$ARCHIVE_PATH"',
     'IMPORT_SMOKE_SHA256=',
     'Uploaded import archive checksum mismatch:',
-    '/api/learning-os/study/imports/$import_job_id/complete',
-    '/api/learning-os/study/imports/$import_job_id',
-    '/api/learning-os/study/imports/$cancel_job_id/cancel',
+    '/api/study/imports/$import_job_id/complete',
+    '/api/study/imports/$import_job_id',
+    '/api/study/imports/$cancel_job_id/cancel',
+    'response.data.error_message === "Study import upload was cancelled."',
     'response.data.summary.imported_cards',
   ]) {
     assert.ok(script.includes(requiredContract), `Missing lifecycle contract: ${requiredContract}`);
   }
 
-  const temporaryServerRestart = script.indexOf(
-    '$COMPOSE up -d --no-deps --force-recreate "server-$ACTIVE_COLOR"',
-    script.indexOf('upsert_env LEARNING_OS_PROXY_USER_EMAIL "$SMOKE_EMAIL"')
-  );
-  const containerHealthy = script.indexOf('wait_for_health "$SERVER_CONTAINER"', temporaryServerRestart);
-  const publicCsrfReady = script.indexOf('wait_for_public_csrf', containerHealthy);
-  const csrfCookieRead = script.indexOf('csrf_cookie_raw="$(awk', publicCsrfReady);
-
-  assert.ok(temporaryServerRestart >= 0);
-  assert.ok(temporaryServerRestart < containerHealthy);
-  assert.ok(containerHealthy < publicCsrfReady);
-  assert.ok(publicCsrfReady < csrfCookieRead);
+  for (const retiredContract of [
+    '/api/learning-os/study',
+    'delete_convolab_smoke_user',
+    'restore_proxy_identity',
+    'wait_for_public_csrf',
+    'csrf_cookie_raw',
+    'auth_token',
+    'LEARNING_OS_PROXY_USER_EMAIL',
+    '$COMPOSE up -d',
+  ]) {
+    assert.ok(!script.includes(retiredContract), `Retired import smoke bridge remains: ${retiredContract}`);
+  }
 });
 
 test('the auth lifecycle smoke exercises signup through account deletion with disposable state', async () => {
