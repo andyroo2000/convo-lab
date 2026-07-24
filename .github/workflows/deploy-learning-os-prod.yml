@@ -661,6 +661,58 @@ jobs:
             daily_audio_smoke_body=
             daily_audio_smoke_headers=
             admin_invite_smoke_id=
+            content_browser_smoke_user_id=
+            content_browser_smoke_convolab_id=
+            content_browser_smoke_cookie_jar=
+            content_browser_smoke_csrf_token=
+
+            cleanup_content_browser_smoke() {
+              local mode="${1:-strict}"
+
+              if [ -n "${content_browser_smoke_convolab_id:-}" ]; then
+                if ! docker exec \
+                  -e CONTENT_BROWSER_SMOKE_USER_ID="$content_browser_smoke_user_id" \
+                  -e CONTENT_BROWSER_SMOKE_CONVOLAB_ID="$content_browser_smoke_convolab_id" \
+                  learning-os-api php artisan tinker --execute='
+                    $user = App\Models\User::query()
+                      ->when(
+                        getenv("CONTENT_BROWSER_SMOKE_USER_ID") !== "",
+                        fn ($query) => $query->whereKey(
+                          getenv("CONTENT_BROWSER_SMOKE_USER_ID"),
+                        ),
+                        fn ($query) => $query->where(
+                          "convolab_id",
+                          getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),
+                        ),
+                      )
+                      ->first();
+                    Illuminate\Support\Facades\DB::table("admin_audit_logs")
+                      ->where("adminUserId", getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"))
+                      ->delete();
+                    if (
+                      $user !== null
+                      && Illuminate\Support\Facades\Schema::hasTable("sessions")
+                    ) {
+                      Illuminate\Support\Facades\DB::table("sessions")
+                        ->where("user_id", $user->getKey())
+                        ->delete();
+                    }
+                    $user?->delete();
+                  ' > /dev/null; then
+                  if [ "$mode" != best-effort ]; then
+                    return 1
+                  fi
+                  echo "::warning::Unable to remove the disposable Learning OS content browser identity."
+                fi
+              fi
+
+              [ -z "${content_browser_smoke_cookie_jar:-}" ] \
+                || rm -f "$content_browser_smoke_cookie_jar"
+              content_browser_smoke_user_id=
+              content_browser_smoke_convolab_id=
+              content_browser_smoke_cookie_jar=
+              content_browser_smoke_csrf_token=
+            }
 
             cleanup_admin_invite_smoke() {
               local mode="${1:-strict}"
@@ -1242,6 +1294,7 @@ jobs:
               cleanup_image_generation_smoke best-effort
               cleanup_audio_generation_smoke best-effort
               cleanup_script_smoke best-effort
+              cleanup_content_browser_smoke best-effort
               cleanup_media_smoke
               cleanup_deployment_resources
 
@@ -1517,6 +1570,84 @@ jobs:
                 rm -f "$response_file"
               }
 
+              content_browser_path() {
+                local path="$1"
+
+                case "$path" in
+                  *\?*) printf '%s&viewAs=%s' "$path" "$user_id" ;;
+                  *) printf '%s?viewAs=%s' "$path" "$user_id" ;;
+                esac
+              }
+
+              fetch_content_browser_route() {
+                local label="$1"
+                local path
+                local response=""
+                local response_file
+                local status
+                local attempt
+
+                path="$(content_browser_path "$2")"
+                for attempt in {1..12}; do
+                  response_file="$(mktemp)"
+                  if status="$(curl --silent --show-error \
+                      --output "$response_file" \
+                      --write-out '%{http_code}' \
+                      --header 'Accept: application/json' \
+                      --header 'Origin: https://convo-lab.com' \
+                      --cookie "$content_browser_smoke_cookie_jar" \
+                      "https://convo-lab.com$path")"; then
+                    :
+                  else
+                    status="${status:-transport-error}"
+                  fi
+                  response="$(cat "$response_file")"
+                  rm -f "$response_file"
+                  if [[ "$status" =~ ^2[0-9][0-9]$ ]]; then
+                    printf '%s' "$response"
+                    return 0
+                  fi
+                  echo "$label attempt $attempt/12 returned HTTP ${status:-unknown}; retrying." >&2
+                  printf '%s\n' "${response:0:2048}" >&2
+                  sleep 3
+                done
+
+                return 1
+              }
+
+              mutate_content_browser_route() {
+                local method="$1"
+                local path
+                local body="$3"
+                local response_file
+                local status
+
+                path="$(content_browser_path "$2")"
+                response_file="$(mktemp)"
+                status="$(curl --silent --show-error \
+                  --output "$response_file" \
+                  --write-out '%{http_code}' \
+                  --request "$method" \
+                  --header 'Accept: application/json' \
+                  --header 'Content-Type: application/json' \
+                  --header 'Origin: https://convo-lab.com' \
+                  --header "X-XSRF-TOKEN: $content_browser_smoke_csrf_token" \
+                  --cookie "$content_browser_smoke_cookie_jar" \
+                  --data "$body" \
+                  "https://convo-lab.com$path")"
+
+                if [[ ! "$status" =~ ^2[0-9][0-9]$ ]]; then
+                  echo "$method $path failed with HTTP $status:" >&2
+                  cat "$response_file" >&2
+                  echo >&2
+                  rm -f "$response_file"
+                  return 1
+                fi
+
+                cat "$response_file"
+                rm -f "$response_file"
+              }
+
               tool_analytics_body="$(mktemp)"
               tool_analytics_status="$(curl --silent --show-error \
                 --output "$tool_analytics_body" \
@@ -1679,12 +1810,157 @@ jobs:
               cleanup_admin_invite_smoke
               echo "Admin Learning OS invite create/delete smoke checks passed."
 
+              content_browser_smoke_convolab_id="$(docker exec \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  import { randomUUID } from "node:crypto";
+                  process.stdout.write(randomUUID());
+                ')"
+              content_browser_smoke_email="deployment-content-browser-$content_browser_smoke_convolab_id@example.invalid"
+              content_browser_smoke_password="$(docker exec \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  import { randomBytes } from "node:crypto";
+                  process.stdout.write(randomBytes(32).toString("hex"));
+                ')"
+              echo "::add-mask::$content_browser_smoke_password"
+              content_browser_smoke_output="$(docker exec \
+                -e CONTENT_BROWSER_SMOKE_CONVOLAB_ID="$content_browser_smoke_convolab_id" \
+                -e CONTENT_BROWSER_SMOKE_EMAIL="$content_browser_smoke_email" \
+                -e CONTENT_BROWSER_SMOKE_PASSWORD="$content_browser_smoke_password" \
+                learning-os-api php artisan tinker --execute='
+                  $staleUsers = App\Models\User::query()
+                    ->where(
+                      "email",
+                      "like",
+                      "deployment-content-browser-%@example.invalid",
+                    )
+                    ->whereHas(
+                      "adminUserProjection",
+                      fn ($query) => $query
+                        ->where("name", "Deployment Content Browser")
+                        ->where("source_system", "learning_os"),
+                    )
+                    ->get();
+                  foreach ($staleUsers as $staleUser) {
+                    $staleConvoLabId = $staleUser->adminUserProjection?->getKey();
+                    if ($staleConvoLabId !== null) {
+                      Illuminate\Support\Facades\DB::table("admin_audit_logs")
+                        ->where("adminUserId", $staleConvoLabId)
+                        ->delete();
+                    }
+                    if (Illuminate\Support\Facades\Schema::hasTable("sessions")) {
+                      Illuminate\Support\Facades\DB::table("sessions")
+                        ->where("user_id", $staleUser->getKey())
+                        ->delete();
+                    }
+                    $staleUser->delete();
+                  }
+                  $user = Illuminate\Support\Facades\DB::transaction(function () {
+                    $user = new App\Models\User;
+                    $user->forceFill([
+                      "name" => "Deployment Content Browser",
+                      "email" => getenv("CONTENT_BROWSER_SMOKE_EMAIL"),
+                      "email_verified_at" => now(),
+                      "password" => Illuminate\Support\Facades\Hash::make(
+                        getenv("CONTENT_BROWSER_SMOKE_PASSWORD"),
+                      ),
+                    ])->save();
+                    Illuminate\Support\Facades\DB::table("users")
+                      ->where("id", $user->getKey())
+                      ->update([
+                        "convolab_id" => getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),
+                        "convolab_email_normalized" => getenv("CONTENT_BROWSER_SMOKE_EMAIL"),
+                        "convolab_password_hash" => password_hash(
+                          getenv("CONTENT_BROWSER_SMOKE_PASSWORD"),
+                          PASSWORD_BCRYPT,
+                        ),
+                      ]);
+                    Illuminate\Support\Facades\DB::table("admin_user_projections")->insert([
+                      "convolab_id" => getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),
+                      "user_id" => $user->getKey(),
+                      "email" => getenv("CONTENT_BROWSER_SMOKE_EMAIL"),
+                      "name" => "Deployment Content Browser",
+                      "display_name" => null,
+                      "avatar_color" => "indigo",
+                      "avatar_url" => null,
+                      "role" => "admin",
+                      "preferred_study_language" => "ja",
+                      "preferred_native_language" => "en",
+                      "proficiency_level" => "beginner",
+                      "onboarding_completed" => false,
+                      "seen_sample_content_guide" => false,
+                      "seen_custom_content_guide" => false,
+                      "email_verified" => true,
+                      "email_verified_at" => now(),
+                      "created_at" => now(),
+                      "updated_at" => now(),
+                      "source_system" => "learning_os",
+                      "avatar_source_system" => "learning_os",
+                    ]);
+
+                    return $user;
+                  });
+                  echo "CONTENT_BROWSER_SMOKE_USER_ID=".$user->getKey().PHP_EOL;
+                ')"
+              content_browser_smoke_user_id="$(printf '%s\n' "$content_browser_smoke_output" \
+                | sed -n 's/^CONTENT_BROWSER_SMOKE_USER_ID=//p' \
+                | tail -1)"
+              test -n "$content_browser_smoke_user_id"
+
+              content_browser_smoke_cookie_jar="$(mktemp)"
+              curl --fail --silent --show-error \
+                --cookie-jar "$content_browser_smoke_cookie_jar" \
+                --header 'Origin: https://convo-lab.com' \
+                'https://convo-lab.com/sanctum/csrf-cookie' > /dev/null
+              content_browser_smoke_csrf_raw="$(awk \
+                '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' \
+                "$content_browser_smoke_cookie_jar")"
+              test -n "$content_browser_smoke_csrf_raw"
+              content_browser_smoke_csrf_token="$(docker exec \
+                -e RAW_CSRF_TOKEN="$content_browser_smoke_csrf_raw" \
+                "convolab-server-$active_color" \
+                node --input-type=module \
+                --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
+              content_browser_login_body="$(docker exec \
+                -e CONTENT_BROWSER_SMOKE_EMAIL="$content_browser_smoke_email" \
+                -e CONTENT_BROWSER_SMOKE_PASSWORD="$content_browser_smoke_password" \
+                "convolab-server-$active_color" \
+                node --input-type=module --eval='
+                  process.stdout.write(JSON.stringify({
+                    email: process.env.CONTENT_BROWSER_SMOKE_EMAIL,
+                    password: process.env.CONTENT_BROWSER_SMOKE_PASSWORD,
+                  }));
+                ')"
+              content_browser_login_response="$(curl --fail --silent --show-error \
+                --request POST \
+                --header 'Accept: application/json' \
+                --header 'Content-Type: application/json' \
+                --header 'Origin: https://convo-lab.com' \
+                --header "X-XSRF-TOKEN: $content_browser_smoke_csrf_token" \
+                --cookie "$content_browser_smoke_cookie_jar" \
+                --cookie-jar "$content_browser_smoke_cookie_jar" \
+                --data "$content_browser_login_body" \
+                'https://convo-lab.com/api/convolab/browser/auth/login')"
+              printf '%s' "$content_browser_login_response" | docker exec -i \
+                -e CONTENT_BROWSER_SMOKE_CONVOLAB_ID="$content_browser_smoke_convolab_id" \
+                "convolab-server-$active_color" node --input-type=module --eval='
+                  let body = "";
+                  for await (const chunk of process.stdin) body += chunk;
+                  const account = JSON.parse(body);
+                  if (
+                    account?.id !== process.env.CONTENT_BROWSER_SMOKE_CONVOLAB_ID ||
+                    account.role !== "admin"
+                  ) process.exit(1);
+                '
+              echo "Disposable Learning OS content browser session established."
+
               fetch_read_route \
                 'Overview Learning OS' \
                 '/api/learning-os/study/overview?timeZone=America%2FNew_York' \
                 > /dev/null
 
-              episode_list="$(fetch_read_route \
+              episode_list="$(fetch_content_browser_route \
                 'Episode list Learning OS' \
                 '/api/convolab/episodes?library=true&limit=1&offset=0')"
               episode_id="$(printf '%s' "$episode_list" | docker exec -i \
@@ -1702,7 +1978,7 @@ jobs:
                   process.stdout.write(id);
                 ')"
               if [ -n "$episode_id" ]; then
-                episode_detail="$(fetch_read_route \
+                episode_detail="$(fetch_content_browser_route \
                   'Episode detail Learning OS' \
                   "/api/convolab/episodes/$episode_id")"
                 printf '%s' "$episode_detail" | docker exec -i \
@@ -1739,7 +2015,7 @@ jobs:
                     autoGenerateAudio: false,
                   }));
                 ')"
-              episode_create="$(mutate_proxy_route POST '/api/convolab/episodes' "$episode_create_body")"
+              episode_create="$(mutate_content_browser_route POST '/api/convolab/episodes' "$episode_create_body")"
               episode_write_smoke_id="$(printf '%s' "$episode_create" | docker exec -i \
                 -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -1770,7 +2046,7 @@ jobs:
                     status: "ready",
                   }));
                 ')"
-              episode_update="$(mutate_proxy_route \
+              episode_update="$(mutate_content_browser_route \
                 PATCH \
                 "/api/convolab/episodes/$episode_write_smoke_id" \
                 "$episode_update_body")"
@@ -1781,7 +2057,7 @@ jobs:
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                   if (response?.message !== "Episode updated successfully") process.exit(1);
                 '
-              episode_updated_detail="$(fetch_read_route \
+              episode_updated_detail="$(fetch_content_browser_route \
                 'Updated episode Learning OS' \
                 "/api/convolab/episodes/$episode_write_smoke_id")"
               printf '%s' "$episode_updated_detail" | docker exec -i \
@@ -1802,7 +2078,7 @@ jobs:
                   ) process.exit(1);
                 '
 
-              episode_delete="$(mutate_proxy_route \
+              episode_delete="$(mutate_content_browser_route \
                 DELETE \
                 "/api/convolab/episodes/$episode_write_smoke_id" \
                 '{}')"
@@ -1822,7 +2098,7 @@ jobs:
               cleanup_episode_write_smoke
               echo "Episode Learning OS CRUD smoke check passed."
 
-              course_list="$(fetch_read_route \
+              course_list="$(fetch_content_browser_route \
                 'Course list Learning OS' \
                 '/api/convolab/courses?library=true&limit=1&offset=0')"
               course_id="$(printf '%s' "$course_list" | docker exec -i \
@@ -1840,7 +2116,7 @@ jobs:
                   process.stdout.write(id);
                 ')"
               if [ -n "$course_id" ]; then
-                course_detail="$(fetch_read_route \
+                course_detail="$(fetch_content_browser_route \
                   'Course detail Learning OS' \
                   "/api/convolab/courses/$course_id")"
                 printf '%s' "$course_detail" | docker exec -i \
@@ -1880,7 +2156,7 @@ jobs:
                     speaker2Gender: "female",
                   }));
                 ')"
-              course_create="$(mutate_proxy_route POST '/api/convolab/courses' "$course_create_body")"
+              course_create="$(mutate_content_browser_route POST '/api/convolab/courses' "$course_create_body")"
               course_write_smoke_id="$(printf '%s' "$course_create" | docker exec -i \
                 -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -1909,7 +2185,7 @@ jobs:
                     maxLessonDurationMinutes: 45,
                   }));
                 ')"
-              course_update="$(mutate_proxy_route \
+              course_update="$(mutate_content_browser_route \
                 PATCH \
                 "/api/convolab/courses/$course_write_smoke_id" \
                 "$course_update_body")"
@@ -1920,7 +2196,7 @@ jobs:
                   const response = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                   if (response?.message !== "Course updated successfully") process.exit(1);
                 '
-              course_updated_detail="$(fetch_read_route \
+              course_updated_detail="$(fetch_content_browser_route \
                 'Updated course Learning OS' \
                 "/api/convolab/courses/$course_write_smoke_id")"
               printf '%s' "$course_updated_detail" | docker exec -i \
@@ -1938,7 +2214,7 @@ jobs:
                   ) process.exit(1);
                 '
 
-              course_delete="$(mutate_proxy_route \
+              course_delete="$(mutate_content_browser_route \
                 DELETE \
                 "/api/convolab/courses/$course_write_smoke_id" \
                 '{}')"
@@ -1999,7 +2275,7 @@ jobs:
                   ]);
                 ' > /dev/null
 
-              course_reset="$(mutate_proxy_route \
+              course_reset="$(mutate_content_browser_route \
                 POST \
                 "/api/convolab/courses/$course_generation_smoke_id/reset" \
                 '{}')"
@@ -2015,7 +2291,7 @@ jobs:
                     response.courseId !== process.env.EXPECTED_COURSE_ID
                   ) process.exit(1);
                 '
-              course_status="$(fetch_read_route \
+              course_status="$(fetch_content_browser_route \
                 'Course generation status after reset' \
                 "/api/convolab/courses/$course_generation_smoke_id/status")"
               printf '%s' "$course_status" | docker exec -i \
@@ -2086,7 +2362,7 @@ jobs:
                   });
                 ' > /dev/null
 
-              dialogue_generation_status="$(fetch_read_route \
+              dialogue_generation_status="$(fetch_content_browser_route \
                 'Dialogue generation status Learning OS' \
                 "/api/convolab/dialogue/job/$dialogue_generation_smoke_job_id")"
               printf '%s' "$dialogue_generation_status" | docker exec -i \
@@ -2180,7 +2456,7 @@ jobs:
                     imageCount: 2,
                   }));
                 ')"
-              image_generation_response="$(mutate_proxy_route \
+              image_generation_response="$(mutate_content_browser_route \
                 POST \
                 '/api/convolab/images/generate' \
                 "$image_generation_body")"
@@ -2195,7 +2471,7 @@ jobs:
                     response.message !== "Image generation started"
                   ) process.exit(1);
                 '
-              image_generation_status="$(fetch_read_route \
+              image_generation_status="$(fetch_content_browser_route \
                 'Image generation status Learning OS' \
                 "/api/convolab/images/job/$image_generation_smoke_job_id")"
               printf '%s' "$image_generation_status" | docker exec -i \
@@ -2315,7 +2591,7 @@ jobs:
                     || throw new RuntimeException("Unable to write the audio-generation smoke file.");
                 ' > /dev/null
 
-              audio_generation_status="$(fetch_read_route \
+              audio_generation_status="$(fetch_content_browser_route \
                 'Audio generation status Learning OS' \
                 "/api/convolab/audio/job/$audio_generation_smoke_job_id")"
               printf '%s' "$audio_generation_status" | docker exec -i \
@@ -2545,7 +2821,7 @@ jobs:
                     || throw new RuntimeException("Unable to write the script audio smoke file.");
                 ' > /dev/null
 
-              script_status="$(fetch_read_route \
+              script_status="$(fetch_content_browser_route \
                 'Audio Script status Learning OS' \
                 "/api/convolab/scripts/$script_smoke_episode_id/status")"
               printf '%s' "$script_status" | docker exec -i \
@@ -2566,7 +2842,7 @@ jobs:
                   ) process.exit(1);
                 '
 
-              script_job="$(fetch_read_route \
+              script_job="$(fetch_content_browser_route \
                 'Audio Script job Learning OS' \
                 "/api/convolab/scripts/job/$script_smoke_job_id")"
               printf '%s' "$script_job" | docker exec -i \
@@ -2586,25 +2862,29 @@ jobs:
               script_smoke_body="$(mktemp)"
               script_smoke_headers="$(mktemp)"
               curl --fail --silent --show-error \
-                --cookie "token=$auth_token" \
+                --header 'Origin: https://convo-lab.com' \
+                --cookie "$content_browser_smoke_cookie_jar" \
                 --dump-header "$script_smoke_headers" \
                 --output "$script_smoke_body" \
-                "https://convo-lab.com/api/convolab/scripts/media/$script_smoke_media_id"
+                "https://convo-lab.com/api/convolab/scripts/media/$script_smoke_media_id?viewAs=$user_id"
               test "$(cat "$script_smoke_body")" = "learning-os-script-image-smoke"
               grep -Eiq '^content-type: image/webp([[:space:]]|$)' "$script_smoke_headers"
               grep -Eiq '^cross-origin-resource-policy: same-origin[[:space:]]*$' "$script_smoke_headers"
 
               curl --fail --silent --show-error \
                 --range 0-5 \
-                --cookie "token=$auth_token" \
+                --header 'Origin: https://convo-lab.com' \
+                --cookie "$content_browser_smoke_cookie_jar" \
                 --dump-header "$script_smoke_headers" \
                 --output "$script_smoke_body" \
-                "https://convo-lab.com/api/convolab/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id"
+                "https://convo-lab.com/api/convolab/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id?viewAs=$user_id"
               test "$(cat "$script_smoke_body")" = "learni"
               grep -Eiq '^content-type: audio/mpeg([[:space:]]|$)' "$script_smoke_headers"
               grep -Eiq '^content-range: bytes 0-5/30([[:space:]]|$)' "$script_smoke_headers"
               cleanup_script_smoke
               echo "Audio Script Learning OS routing and streaming smoke checks passed."
+              cleanup_content_browser_smoke
+              echo "Disposable Learning OS content browser identity removed."
 
               daily_audio_list="$(
                 fetch_read_route \
