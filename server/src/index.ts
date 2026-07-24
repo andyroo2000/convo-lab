@@ -27,7 +27,6 @@ import avatarAssetRoutes from './routes/avatarAssets.js';
 import contentEpisodeAudioRoutes from './routes/contentEpisodeAudio.js';
 import courseRoutes from './routes/courses.js';
 import dialogueRoutes from './routes/dialogue.js';
-import episodeRoutes from './routes/episodes.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
 import learningOsStudyRoutes from './routes/learningOs/study.js';
@@ -267,7 +266,6 @@ app.get('/health', async (_req, res) => {
 });
 
 // API Routes
-app.use('/api/episodes', episodeRoutes);
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/convolab/episodes', contentEpisodeAudioRoutes);
@@ -283,6 +281,9 @@ app.use('/api/admin/courses', adminCourseRoutes);
 app.use('/api/admin/script-lab', adminScriptLabRoutes);
 app.use('/api/feature-flags', featureFlagRoutes);
 app.use('/api', toolAnalyticsRoutes);
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: { message: 'Not found' } });
+});
 
 // Serve client static files in production
 if (process.env.NODE_ENV === 'production') {

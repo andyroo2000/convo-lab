@@ -1114,12 +1114,14 @@ test('legacy avatar generator experiments stay retired behind the OpenAI generat
   }
 });
 
-test('legacy ConvoLab sample-content database operations stay retired', async () => {
-  const [courseRoute, episodeRoute] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'server/src/routes/courses.ts'), 'utf8'),
-    readFile(path.join(repositoryRoot, 'server/src/routes/episodes.ts'), 'utf8'),
-  ]);
+test('legacy ConvoLab sample-content database operations and episode proxy stay retired', async () => {
+  const courseRoute = await readFile(
+    path.join(repositoryRoot, 'server/src/routes/courses.ts'),
+    'utf8'
+  );
   const retiredPaths = [
+    'server/src/routes/episodes.ts',
+    'server/src/routes/learningOs/episodes.ts',
     'server/scripts/check-all-sample-courses.ts',
     'server/scripts/check-sample-by-level.ts',
     'server/scripts/check-sample-dialogues.ts',
@@ -1132,9 +1134,7 @@ test('legacy ConvoLab sample-content database operations stay retired', async ()
   ];
 
   assert.match(courseRoute, /from '\.\/learningOs\/courses\.js'/);
-  assert.match(episodeRoute, /from '\.\/learningOs\/episodes\.js'/);
   assert.doesNotMatch(courseRoute, /db\/client|Prisma/);
-  assert.doesNotMatch(episodeRoute, /db\/client|Prisma/);
 
   for (const retiredPath of retiredPaths) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
@@ -1142,10 +1142,10 @@ test('legacy ConvoLab sample-content database operations stay retired', async ()
 });
 
 test('legacy course and episode database utilities stay retired', async () => {
-  const [courseRoute, episodeRoute] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'server/src/routes/courses.ts'), 'utf8'),
-    readFile(path.join(repositoryRoot, 'server/src/routes/episodes.ts'), 'utf8'),
-  ]);
+  const courseRoute = await readFile(
+    path.join(repositoryRoot, 'server/src/routes/courses.ts'),
+    'utf8'
+  );
   const retiredPaths = [
     'check-course-status.ts',
     'check-episode-speakers.ts',
@@ -1188,9 +1188,7 @@ test('legacy course and episode database utilities stay retired', async () => {
   ];
 
   assert.match(courseRoute, /from '\.\/learningOs\/courses\.js'/);
-  assert.match(episodeRoute, /from '\.\/learningOs\/episodes\.js'/);
   assert.doesNotMatch(courseRoute, /db\/client|Prisma/);
-  assert.doesNotMatch(episodeRoute, /db\/client|Prisma/);
 
   for (const retiredPath of retiredPaths) {
     await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
