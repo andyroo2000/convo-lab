@@ -3269,7 +3269,9 @@ jobs:
                 '^x-content-type-options: nosniff[[:space:]]*$'; do
                 if ! grep -Eiq "$header_check" "$daily_audio_smoke_headers"; then
                   echo "Daily Audio stream is missing expected header: $header_check" >&2
-                  sed -n '1,40p' "$daily_audio_smoke_headers" >&2
+                  grep -Ei \
+                    '^(HTTP/|content-(type|length|disposition|security-policy):|cross-origin-resource-policy:|x-content-type-options:)' \
+                    "$daily_audio_smoke_headers" >&2 || true
                   exit 1
                 fi
               done
