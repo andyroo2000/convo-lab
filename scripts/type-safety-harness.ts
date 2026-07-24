@@ -12,7 +12,7 @@
  *   npm run harness:type-safety -- --concurrency 10      # 10 parallel sessions
  *   npm run harness:type-safety -- --model claude-opus-4-20250514  # Use Opus
  *   npm run harness:type-safety -- --max-turns 50        # Custom max turns per file
- *   npm run harness:type-safety -- --file server/src/services/learningOsProxy.ts  # Single file
+ *   npm run harness:type-safety -- --file server/src/middleware/requestLogger.ts  # Single file
  *   npm run harness:type-safety -- --category tests      # Only test files
  *   npm run harness:type-safety -- --category source     # Only source files
  *   npm run harness:type-safety -- --category scripts    # Only script files

@@ -9,18 +9,8 @@ describe('backend route usage telemetry', () => {
   });
 
   it('aggregates valid events while ignoring unrelated and malformed log lines', () => {
-    const first = buildBackendRouteUsageEvent(
-      'GET',
-      '/api/learning-os/study/cards/first-id',
-      200,
-      10
-    );
-    const second = buildBackendRouteUsageEvent(
-      'GET',
-      '/api/learning-os/study/cards/second-id',
-      500,
-      40
-    );
+    const first = buildBackendRouteUsageEvent('GET', '/api/auth/csrf', 200, 10);
+    const second = buildBackendRouteUsageEvent('GET', '/api/auth/csrf', 500, 40);
     const third = buildBackendRouteUsageEvent('GET', '/api/retired-direct-route', 200, 20);
 
     const result = summarizeBackendRouteUsage([
@@ -35,13 +25,13 @@ describe('backend route usage telemetry', () => {
 
     expect(result).toEqual([
       {
-        routeId: 'study.proxy',
-        surfaceId: 'study',
-        domain: 'study',
-        migrationWave: 'complete',
-        runtimeOwner: 'learning-os-proxy',
+        routeId: 'csrf.bootstrap',
+        surfaceId: 'csrf',
+        domain: 'security',
+        migrationWave: 'retirement',
+        runtimeOwner: 'express',
         method: 'GET',
-        normalizedPath: '/api/learning-os/study/*',
+        normalizedPath: '/api/auth/csrf',
         requests: 2,
         errors: 1,
         maxDurationMs: 40,

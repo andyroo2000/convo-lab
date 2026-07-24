@@ -7,11 +7,8 @@ vi.mock('../../../config', () => ({
 }));
 
 describe('studyCardUtils', () => {
-  it('keeps direct and legacy Study API media on the browser origin', () => {
+  it('keeps direct Study API media on the browser origin', () => {
     expect(toAssetUrl('/api/study/media/media-1')).toBe('/api/study/media/media-1');
-    expect(toAssetUrl('/api/learning-os/study/media/media-1')).toBe(
-      '/api/learning-os/study/media/media-1'
-    );
     expect(toAssetUrl('/api/daily-audio-practice/practice-1/tracks/track-1/audio')).toBe(
       '/api/daily-audio-practice/practice-1/tracks/track-1/audio'
     );

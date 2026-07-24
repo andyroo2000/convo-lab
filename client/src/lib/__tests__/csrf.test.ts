@@ -271,7 +271,6 @@ describe('csrf helpers', () => {
     expect(getCsrfProviderForPath('/api/study')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/study/reviews')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/study-other/reviews')).toBe('express');
-    expect(getCsrfProviderForPath('/api/learning-os/study/reviews')).toBe('express');
     expect(getCsrfProviderForPath('/api/daily-audio-practice')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/daily-audio-practice/practice-1')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/daily-audio-practice-other')).toBe('express');

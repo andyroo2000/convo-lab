@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 
+import type { NextFunction } from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { enforceDefaultRequestBodyTimeout } from '../../../middleware/requestBodyTimeout.js';
@@ -27,7 +28,7 @@ describe('request body timeout', () => {
   it('terminates an incomplete ordinary request at the default route deadline', () => {
     vi.useFakeTimers();
     const { req, res, end } = request('/api/study/imports');
-    const next = vi.fn();
+    const next = vi.fn() as unknown as NextFunction;
 
     enforceDefaultRequestBodyTimeout(100)(req as never, res as never, next);
     vi.advanceTimersByTime(100);
@@ -42,7 +43,11 @@ describe('request body timeout', () => {
     vi.useFakeTimers();
     const { req, res } = request('/api/study/imports');
 
-    enforceDefaultRequestBodyTimeout(100)(req as never, res as never, vi.fn());
+    enforceDefaultRequestBodyTimeout(100)(
+      req as never,
+      res as never,
+      vi.fn() as unknown as NextFunction
+    );
     req.complete = true;
     req.emit('end');
     vi.advanceTimersByTime(100);
@@ -51,34 +56,27 @@ describe('request body timeout', () => {
     expect(req.destroy).not.toHaveBeenCalled();
   });
 
-  it('leaves only strict Learning OS import uploads on the extended server deadline', () => {
+  it('applies the deadline to retired and canonical Learning OS upload paths', () => {
     vi.useFakeTimers();
-    const validLegacyUpload = request(
+    const retiredUpload = request(
       '/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload',
       'PUT'
     );
     const canonicalUpload = request('/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload', 'PUT');
-    const invalidUpload = request('/api/learning-os/study/imports/not-an-id/upload', 'PUT');
 
     enforceDefaultRequestBodyTimeout(100)(
-      validLegacyUpload.req as never,
-      validLegacyUpload.res as never,
-      vi.fn()
+      retiredUpload.req as never,
+      retiredUpload.res as never,
+      vi.fn() as unknown as NextFunction
     );
     enforceDefaultRequestBodyTimeout(100)(
       canonicalUpload.req as never,
       canonicalUpload.res as never,
-      vi.fn()
-    );
-    enforceDefaultRequestBodyTimeout(100)(
-      invalidUpload.req as never,
-      invalidUpload.res as never,
-      vi.fn()
+      vi.fn() as unknown as NextFunction
     );
     vi.advanceTimersByTime(100);
 
-    expect(validLegacyUpload.res.status).not.toHaveBeenCalled();
+    expect(retiredUpload.res.status).toHaveBeenCalledWith(408);
     expect(canonicalUpload.res.status).toHaveBeenCalledWith(408);
-    expect(invalidUpload.res.status).toHaveBeenCalledWith(408);
   });
 });

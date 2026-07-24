@@ -73,7 +73,7 @@ describe('production router contract', () => {
     ['location ~ ^/api/(dialogue|audio|images)(/.*)?$', 'location ~ ^/api/convolab/admin(?:/|$)'],
     [
       'location ~ ^/api/convolab/admin(?:/|$)',
-      '# Keep this regex synchronized with studyRouteContract.ts',
+      'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"',
     ],
     [
       'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"',
@@ -118,11 +118,7 @@ describe('production router contract', () => {
     expect(routerTemplate).not.toContain('location ^~ /api/images');
   });
 
-  it('routes canonical Study traffic directly while preserving the authenticated legacy proxy', () => {
-    const legacyUploadBlock = browserRouteBlock(
-      '# Keep this regex synchronized with studyRouteContract.ts',
-      'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"'
-    );
+  it('routes canonical Study traffic directly without the retired legacy proxy', () => {
     const canonicalUploadBlock = browserRouteBlock(
       'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"',
       'location ~ "^/api/study/media/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$"'
@@ -144,11 +140,6 @@ describe('production router contract', () => {
       'location / {'
     );
 
-    expect(legacyUploadBlock).toContain('proxy_pass $convolab_upstream;');
-    expect(legacyUploadBlock).not.toContain('proxy_pass $learning_os_upstream;');
-    expect(legacyUploadBlock).toContain('client_max_body_size 2g;');
-    expect(legacyUploadBlock).toContain('proxy_request_buffering off;');
-    expect(legacyUploadBlock).toContain('proxy_send_timeout 1800s;');
     expect(canonicalUploadBlock).toContain('proxy_pass $learning_os_upstream;');
     expect(canonicalUploadBlock).not.toContain('$convolab_upstream');
     expect(canonicalUploadBlock).toContain('client_max_body_size 2g;');
@@ -173,6 +164,7 @@ describe('production router contract', () => {
     expect(routerTemplate).not.toContain(
       'location ~ ^/api/learning-os/study/daily-audio-practice(?:/|$)'
     );
+    expect(routerTemplate).not.toContain('/api/learning-os/study/imports/');
     expect(routerTemplate).not.toContain('location ~ ^/api/learning-os/study(?:/|$)');
     expect(routerTemplate).not.toContain('location ^~ /api/study');
     expect(routerTemplate).not.toContain('location ^~ /api/learning-os/study');

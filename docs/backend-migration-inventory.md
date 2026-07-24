@@ -44,13 +44,10 @@ The waves preserve the rollout order:
 4. `authentication`: converge sessions, identity, verification, and password
    recovery.
 5. `retirement`: move or remove small Express-only support endpoints.
-6. `complete`: already served by Learning OS through a temporary ConvoLab proxy.
+6. `complete`: served directly by Learning OS and absent from this Express inventory.
 
-`runtimeOwner` is one of:
-
-- `express`: the request is still handled by the ConvoLab backend.
-- `learning-os-proxy`: ConvoLab authenticates the browser request and forwards
-  it to Learning OS.
+`runtimeOwner = "express"` means the request is still handled by the ConvoLab
+backend. Direct Learning OS routes are absent from the inventory.
 
 A migration PR updates the route or surface owner only when its deployed request
 path is actually served by Learning OS. Once traffic bypasses Express, remove
@@ -132,8 +129,6 @@ When adding, removing, or migrating a backend route:
 6. Include the before/after runtime owner and production telemetry evidence in
    the PR description.
 
-The browser and admin `feature-flags` surfaces are the first completed
-`pattern` wave. ConvoLab still authenticates and authorizes requests at
-`/api/feature-flags` and `/api/admin/feature-flags`, then uses its configured
-service identity to read or update the sole Learning OS copy. Their stable
-route IDs report `runtimeOwner = "learning-os-proxy"` in route-usage telemetry.
+The Study, browser, admin, authentication, feature-flag, content, generation,
+media, and analytics surfaces now call Learning OS directly. The only remaining
+Express API route is the shared CSRF bootstrap.
