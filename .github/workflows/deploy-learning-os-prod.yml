@@ -265,7 +265,7 @@ jobs:
               mail_from_name="ConvoLab"
             fi
 
-            desired_deploy_config_revision="browser-auth-session-v1"
+            desired_deploy_config_revision="browser-auth-session-v2"
             upsert_env LEARNING_OS_DEPLOY_CONFIG_REVISION "$desired_deploy_config_revision"
             upsert_env LEARNING_OS_MAIL_FROM_ADDRESS "$mail_from_address"
             upsert_env LEARNING_OS_MAIL_FROM_NAME "$mail_from_name"
@@ -1792,6 +1792,18 @@ jobs:
                     !Number.isInteger(stats?.inviteCodes?.total)
                   ) process.exit(1);
                 '
+              feature_flags="$(fetch_learning_os_route \
+                'Feature flags Learning OS' \
+                '/api/feature-flags')"
+              updated_feature_flags="$(mutate_learning_os_route \
+                PATCH \
+                '/api/feature-flags' \
+                '{}')"
+              assert_json_equal \
+                'Feature flags no-op PATCH changed the response' \
+                "$feature_flags" \
+                "$updated_feature_flags"
+              echo "Feature flags browser-session read/write smoke check passed."
               admin_users="$(fetch_learning_os_route \
                 'Admin users Learning OS' \
                 '/api/convolab/admin/users?limit=1')"

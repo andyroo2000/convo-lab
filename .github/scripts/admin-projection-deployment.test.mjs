@@ -37,6 +37,7 @@ test('production smoke-gates canonical browser-session routes', async () => {
 
   assert.doesNotMatch(workflow, /127\.0\.0\.1:8080\/api\/convolab\/admin\/stats/);
   for (const route of [
+    '/api/feature-flags',
     '/api/convolab/admin/stats',
     '/api/convolab/admin/users?limit=1',
     '/api/convolab/admin/invite-codes?limit=1',
@@ -49,6 +50,15 @@ test('production smoke-gates canonical browser-session routes', async () => {
   }
   assert.ok(browserSessionIndex >= 0);
   assert.ok(canonicalAdminIndex > browserSessionIndex);
+  assert.match(
+    workflow,
+    /fetch_learning_os_route[\s\\]+'Feature flags Learning OS'[\s\\]+'\/api\/feature-flags'/
+  );
+  assert.match(
+    workflow,
+    /mutate_learning_os_route[\s\\]+PATCH[\s\\]+'\/api\/feature-flags'[\s\\]+'\{\}'/
+  );
+  assert.match(workflow, /Feature flags browser-session read\/write smoke check passed\./);
   assert.match(workflow, /\/api\/convolab\/admin\/users\/\$admin_user_id\/info/);
   assert.match(
     workflow,
