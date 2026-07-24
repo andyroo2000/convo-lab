@@ -3,15 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { createEpisodeApiContract, readEpisodeApiError } from '../episodeApi';
 
 describe('episode API contract', () => {
-  it('preserves legacy Express routes while disabled', () => {
-    const contract = createEpisodeApiContract(false, 'https://app.example');
-
-    expect(contract.collection).toBe('https://app.example/api/episodes');
-    expect(contract.member('episode-123')).toBe('https://app.example/api/episodes/episode-123');
-  });
-
-  it('uses Learning OS browser routes while enabled', () => {
-    const contract = createEpisodeApiContract(true, 'https://app.example');
+  it('uses permanent Learning OS browser routes', () => {
+    const contract = createEpisodeApiContract('https://app.example');
 
     expect(contract.collection).toBe('https://app.example/api/convolab/episodes');
     expect(contract.member('episode/123')).toBe(

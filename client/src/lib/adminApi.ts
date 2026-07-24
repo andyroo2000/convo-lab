@@ -1,5 +1,3 @@
-import { API_URL, LEARNING_OS_DIRECT_ADMIN_API_ENABLED } from '../config';
-
 type AdminCourseOperation =
   | 'build-prompt'
   | 'build-script-config'
@@ -35,11 +33,8 @@ export interface AdminApiContract {
   adminCourseLineRendering: (courseId: string, renderingId: string) => string;
 }
 
-export function createAdminApiContract(
-  directLearningOs: boolean,
-  apiUrl: string = API_URL
-): AdminApiContract {
-  const base = `${apiUrl}${directLearningOs ? '/api/convolab/admin' : '/api/admin'}`;
+export function createAdminApiContract(apiUrl = ''): AdminApiContract {
+  const base = `${apiUrl}/api/convolab/admin`;
   const users = `${base}/users`;
   const inviteCodes = `${base}/invite-codes`;
   const speakerAvatars = `${base}/avatars/speakers`;
@@ -80,4 +75,4 @@ export function createAdminApiContract(
   };
 }
 
-export const adminApi = createAdminApiContract(LEARNING_OS_DIRECT_ADMIN_API_ENABLED);
+export const adminApi = createAdminApiContract();

@@ -206,7 +206,7 @@ describe('AdminPage', () => {
   describe('users tab', () => {
     beforeEach(() => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
-        if (url.includes('/api/admin/users')) {
+        if (url.includes('/api/convolab/admin/users')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ users: mockUsers }),
@@ -267,7 +267,7 @@ describe('AdminPage', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/admin/users'),
+          expect.stringContaining('/api/convolab/admin/users'),
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -276,13 +276,13 @@ describe('AdminPage', () => {
     it('should handle user deletion', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
         (url: string, options: RequestInit | undefined) => {
-          if (url.includes('/api/admin/users/user-1') && options?.method === 'DELETE') {
+          if (url.includes('/api/convolab/admin/users/user-1') && options?.method === 'DELETE') {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve({}),
             });
           }
-          if (url.includes('/api/admin/users')) {
+          if (url.includes('/api/convolab/admin/users')) {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve({ users: mockUsers }),
@@ -311,7 +311,7 @@ describe('AdminPage', () => {
           fireEvent.click(screen.getByTestId('modal-button-confirm'));
           await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
-              expect.stringContaining('/api/admin/users/user-1'),
+              expect.stringContaining('/api/convolab/admin/users/user-1'),
               expect.objectContaining({ method: 'DELETE' })
             );
           });
@@ -334,7 +334,7 @@ describe('AdminPage', () => {
   describe('invite codes tab', () => {
     beforeEach(() => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
-        if (url.includes('/api/admin/invite-codes')) {
+        if (url.includes('/api/convolab/admin/invite-codes')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockInviteCodes),
@@ -364,13 +364,13 @@ describe('AdminPage', () => {
     it('should handle creating new invite code', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
         (url: string, options: RequestInit | undefined) => {
-          if (url.includes('/api/admin/invite-codes') && options?.method === 'POST') {
+          if (url.includes('/api/convolab/admin/invite-codes') && options?.method === 'POST') {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve({}),
             });
           }
-          if (url.includes('/api/admin/invite-codes')) {
+          if (url.includes('/api/convolab/admin/invite-codes')) {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve(mockInviteCodes),
@@ -391,7 +391,7 @@ describe('AdminPage', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/admin/invite-codes'),
+          expect.stringContaining('/api/convolab/admin/invite-codes'),
           expect.objectContaining({ method: 'POST' })
         );
       });
@@ -415,13 +415,16 @@ describe('AdminPage', () => {
     it('should handle deleting invite code', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
         (url: string, options: RequestInit | undefined) => {
-          if (url.includes('/api/admin/invite-codes/code-1') && options?.method === 'DELETE') {
+          if (
+            url.includes('/api/convolab/admin/invite-codes/code-1') &&
+            options?.method === 'DELETE'
+          ) {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve({}),
             });
           }
-          if (url.includes('/api/admin/invite-codes')) {
+          if (url.includes('/api/convolab/admin/invite-codes')) {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve(mockInviteCodes),
@@ -450,7 +453,7 @@ describe('AdminPage', () => {
           fireEvent.click(screen.getByTestId('modal-button-confirm'));
           await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
-              expect.stringContaining('/api/admin/invite-codes/code-1'),
+              expect.stringContaining('/api/convolab/admin/invite-codes/code-1'),
               expect.objectContaining({ method: 'DELETE' })
             );
           });
@@ -474,7 +477,7 @@ describe('AdminPage', () => {
   describe('analytics tab', () => {
     beforeEach(() => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
-        if (url.includes('/api/admin/stats')) {
+        if (url.includes('/api/convolab/admin/stats')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockStats),
@@ -508,13 +511,13 @@ describe('AdminPage', () => {
   describe('avatars tab', () => {
     beforeEach(() => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
-        if (url.includes('/api/admin/avatars/speakers')) {
+        if (url.includes('/api/convolab/admin/avatars/speakers')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockSpeakerAvatars),
           });
         }
-        if (url.includes('/api/admin/users')) {
+        if (url.includes('/api/convolab/admin/users')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ users: [] }),
@@ -559,7 +562,7 @@ describe('AdminPage', () => {
               json: () => Promise.resolve(mockFeatureFlags),
             });
           }
-          if (url.includes('/api/admin/pronunciation-dictionaries')) {
+          if (url.includes('/api/convolab/admin/pronunciation-dictionaries')) {
             if (options?.method === 'PUT') {
               return Promise.resolve({
                 ok: true,
@@ -622,7 +625,7 @@ describe('AdminPage', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/admin/pronunciation-dictionaries'),
+          expect.stringContaining('/api/convolab/admin/pronunciation-dictionaries'),
           expect.objectContaining({
             method: 'PUT',
             body: expect.stringContaining('"verbKana":{"書く":"かく"}'),

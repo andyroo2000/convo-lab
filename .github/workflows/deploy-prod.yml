@@ -61,10 +61,6 @@ jobs:
         env:
           DEPLOY_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           DEPLOY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          DIRECT_EPISODE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_EPISODE_API_ENABLED || 'false' }}
-          DIRECT_COURSE_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_COURSE_API_ENABLED || 'false' }}
-          DIRECT_SCRIPT_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_SCRIPT_API_ENABLED || 'false' }}
-          DIRECT_ADMIN_API_ENABLED: ${{ vars.LEARNING_OS_DIRECT_ADMIN_API_ENABLED || 'false' }}
           DROPLET_USER: ${{ secrets.DROPLET_USER }}
           DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
           DEPLOY_IMAGE_TAG: ${{ inputs.image_tag }}
@@ -77,10 +73,6 @@ jobs:
           {
             printf 'DEPLOY_GOOGLE_CLIENT_ID=%q\n' "$DEPLOY_GOOGLE_CLIENT_ID"
             printf 'DEPLOY_GOOGLE_CLIENT_SECRET=%q\n' "$DEPLOY_GOOGLE_CLIENT_SECRET"
-            printf 'DIRECT_EPISODE_API_ENABLED=%q\n' "$DIRECT_EPISODE_API_ENABLED"
-            printf 'DIRECT_COURSE_API_ENABLED=%q\n' "$DIRECT_COURSE_API_ENABLED"
-            printf 'DIRECT_SCRIPT_API_ENABLED=%q\n' "$DIRECT_SCRIPT_API_ENABLED"
-            printf 'DIRECT_ADMIN_API_ENABLED=%q\n' "$DIRECT_ADMIN_API_ENABLED"
             printf 'IMAGE_TAG=%q\n' "$DEPLOY_IMAGE_TAG"
             printf 'GH_PAT=%q\n' "$DEPLOY_GH_PAT"
             printf 'FISH_AUDIO_API_KEY=%q\n' "$DEPLOY_FISH_AUDIO_API_KEY"
@@ -135,54 +127,6 @@ jobs:
             upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"
             upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI \
               https://convo-lab.com/api/convolab/browser/auth/google/callback
-            previous_direct_episode_api_enabled="$(
-              awk -F= '$1 == "LEARNING_OS_DIRECT_EPISODE_API_ENABLED" { value = $2 } END { print value }' .env.production
-            )"
-            if [ "$previous_direct_episode_api_enabled" != true ]; then
-              previous_direct_episode_api_enabled=false
-            fi
-            direct_episode_api_enabled="$DIRECT_EPISODE_API_ENABLED"
-            if [ "$direct_episode_api_enabled" != true ] && [ "$direct_episode_api_enabled" != false ]; then
-              echo "::error::LEARNING_OS_DIRECT_EPISODE_API_ENABLED must be true or false"
-              exit 1
-            fi
-            upsert_env LEARNING_OS_DIRECT_EPISODE_API_ENABLED "$direct_episode_api_enabled"
-            previous_direct_course_api_enabled="$(
-              awk -F= '$1 == "LEARNING_OS_DIRECT_COURSE_API_ENABLED" { value = $2 } END { print value }' .env.production
-            )"
-            if [ "$previous_direct_course_api_enabled" != true ]; then
-              previous_direct_course_api_enabled=false
-            fi
-            direct_course_api_enabled="$DIRECT_COURSE_API_ENABLED"
-            if [ "$direct_course_api_enabled" != true ] && [ "$direct_course_api_enabled" != false ]; then
-              echo "::error::LEARNING_OS_DIRECT_COURSE_API_ENABLED must be true or false"
-              exit 1
-            fi
-            upsert_env LEARNING_OS_DIRECT_COURSE_API_ENABLED "$direct_course_api_enabled"
-            previous_direct_script_api_enabled="$(
-              awk -F= '$1 == "LEARNING_OS_DIRECT_SCRIPT_API_ENABLED" { value = $2 } END { print value }' .env.production
-            )"
-            if [ "$previous_direct_script_api_enabled" != true ]; then
-              previous_direct_script_api_enabled=false
-            fi
-            direct_script_api_enabled="$DIRECT_SCRIPT_API_ENABLED"
-            if [ "$direct_script_api_enabled" != true ] && [ "$direct_script_api_enabled" != false ]; then
-              echo "::error::LEARNING_OS_DIRECT_SCRIPT_API_ENABLED must be true or false"
-              exit 1
-            fi
-            upsert_env LEARNING_OS_DIRECT_SCRIPT_API_ENABLED "$direct_script_api_enabled"
-            previous_direct_admin_api_enabled="$(
-              awk -F= '$1 == "LEARNING_OS_DIRECT_ADMIN_API_ENABLED" { value = $2 } END { print value }' .env.production
-            )"
-            if [ "$previous_direct_admin_api_enabled" != true ]; then
-              previous_direct_admin_api_enabled=false
-            fi
-            direct_admin_api_enabled="$DIRECT_ADMIN_API_ENABLED"
-            if [ "$direct_admin_api_enabled" != true ] && [ "$direct_admin_api_enabled" != false ]; then
-              echo "::error::LEARNING_OS_DIRECT_ADMIN_API_ENABLED must be true or false"
-              exit 1
-            fi
-            upsert_env LEARNING_OS_DIRECT_ADMIN_API_ENABLED "$direct_admin_api_enabled"
 
             upsert_env OPENAI_API_KEY "$OPENAI_API_KEY"
 
@@ -222,60 +166,16 @@ jobs:
 
             render_router_config() {
               color="$1"
-              direct_episode_enabled="${2:-$direct_episode_api_enabled}"
-              direct_course_enabled="${3:-$direct_course_api_enabled}"
-              direct_script_enabled="${4:-$direct_script_api_enabled}"
-              direct_admin_enabled="${5:-$direct_admin_api_enabled}"
               upstream="convolab-server-$color"
               if [ ! -s "$ROUTER_TEMPLATE" ]; then
                 echo "❌ Router template is missing or empty: $ROUTER_TEMPLATE"
                 exit 1
               fi
-              if [ "$direct_episode_enabled" = true ]; then
-                direct_episode_enabled_value=1
-              else
-                direct_episode_enabled_value=0
-              fi
-              if [ "$direct_course_enabled" = true ]; then
-                direct_course_enabled_value=1
-              else
-                direct_course_enabled_value=0
-              fi
-              if [ "$direct_script_enabled" = true ]; then
-                direct_script_enabled_value=1
-              else
-                direct_script_enabled_value=0
-              fi
-              if [ "$direct_admin_enabled" = true ]; then
-                direct_admin_enabled_value=1
-              else
-                direct_admin_enabled_value=0
-              fi
               sed \
                 -e "s#__UPSTREAM_SERVICE__#$upstream#g" \
-                -e "s#__DIRECT_EPISODE_API_ENABLED__#$direct_episode_enabled_value#g" \
-                -e "s#__DIRECT_COURSE_API_ENABLED__#$direct_course_enabled_value#g" \
-                -e "s#__DIRECT_SCRIPT_API_ENABLED__#$direct_script_enabled_value#g" \
-                -e "s#__DIRECT_ADMIN_API_ENABLED__#$direct_admin_enabled_value#g" \
                 "$ROUTER_TEMPLATE" > "$ROUTER_CONFIG.tmp"
               if ! grep -q "$upstream" "$ROUTER_CONFIG.tmp"; then
                 echo "❌ Generated router config does not reference $upstream"
-                exit 1
-              fi
-              if grep -q '__DIRECT_EPISODE_API_ENABLED__' "$ROUTER_CONFIG.tmp"; then
-                echo "❌ Generated router config retains the direct episode placeholder"
-                exit 1
-              fi
-              if grep -q '__DIRECT_COURSE_API_ENABLED__' "$ROUTER_CONFIG.tmp"; then
-                echo "❌ Generated router config retains the direct course placeholder"
-                exit 1
-              fi
-              if grep -q '__DIRECT_SCRIPT_API_ENABLED__' "$ROUTER_CONFIG.tmp"; then
-                echo "❌ Generated router config retains the direct script placeholder"
-                exit 1
-              fi
-              if grep -q '__DIRECT_ADMIN_API_ENABLED__' "$ROUTER_CONFIG.tmp"; then
-                echo "❌ Generated router config retains the direct admin placeholder"
                 exit 1
               fi
               if [ -e "$ROUTER_CONFIG" ]; then
@@ -337,81 +237,6 @@ jobs:
               cookie_jar="$(mktemp)"
               response_body="$(mktemp)"
               trap 'rm -f "$cookie_jar" "$response_body"' EXIT
-
-              runtime_config_status="$(curl --silent --show-error \
-                --output "$response_body" \
-                --write-out '%{http_code}' \
-                --header 'Accept-Encoding: identity' \
-                --header 'Cache-Control: no-cache' \
-                "https://convo-lab.com/?runtime-config=$(date +%s)")"
-              if [ "$runtime_config_status" != 200 ]; then
-                echo "Browser runtime config probe returned HTTP $runtime_config_status."
-                cat "$response_body"
-                return 1
-              fi
-              for expected_flag in \
-                "\"learningOsDirectEpisodeApi\":$direct_episode_api_enabled" \
-                "\"learningOsDirectCourseApi\":$direct_course_api_enabled" \
-                "\"learningOsDirectScriptApi\":$direct_script_api_enabled" \
-                "\"learningOsDirectAdminApi\":$direct_admin_api_enabled"; do
-                if ! grep -q "$expected_flag" "$response_body"; then
-                  echo "Browser runtime config is missing expected flag $expected_flag."
-                  cat "$response_body"
-                  return 1
-                fi
-              done
-
-              if [ "$direct_episode_api_enabled" = false ]; then
-                episode_status="$(curl --silent --show-error \
-                  --output "$response_body" \
-                  --write-out '%{http_code}' \
-                  --header 'Accept: application/json' \
-                  https://convo-lab.com/api/convolab/episodes)"
-                if [ "$episode_status" != 404 ]; then
-                  echo "Disabled direct episode route returned HTTP $episode_status instead of 404."
-                  cat "$response_body"
-                  return 1
-                fi
-              fi
-
-              if [ "$direct_course_api_enabled" = false ]; then
-                course_status="$(curl --silent --show-error \
-                  --output "$response_body" \
-                  --write-out '%{http_code}' \
-                  --header 'Accept: application/json' \
-                  https://convo-lab.com/api/convolab/courses)"
-                if [ "$course_status" != 404 ]; then
-                  echo "Disabled direct course route returned HTTP $course_status instead of 404."
-                  cat "$response_body"
-                  return 1
-                fi
-              fi
-
-              if [ "$direct_script_api_enabled" = false ]; then
-                script_status="$(curl --silent --show-error \
-                  --output "$response_body" \
-                  --write-out '%{http_code}' \
-                  --header 'Accept: application/json' \
-                  https://convo-lab.com/api/convolab/scripts/job/00000000-0000-4000-8000-000000000000)"
-                if [ "$script_status" != 404 ]; then
-                  echo "Disabled direct script route returned HTTP $script_status instead of 404."
-                  cat "$response_body"
-                  return 1
-                fi
-              fi
-
-              if [ "$direct_admin_api_enabled" = false ]; then
-                admin_status="$(curl --silent --show-error \
-                  --output "$response_body" \
-                  --write-out '%{http_code}' \
-                  --header 'Accept: application/json' \
-                  https://convo-lab.com/api/convolab/admin/stats)"
-                if [ "$admin_status" != 404 ]; then
-                  echo "Disabled direct admin route returned HTTP $admin_status instead of 404."
-                  cat "$response_body"
-                  return 1
-                fi
-              fi
 
               csrf_status="$(curl --silent --show-error \
                 --cookie-jar "$cookie_jar" \
@@ -550,7 +375,6 @@ jobs:
                 return 1
               fi
 
-              if [ "$direct_episode_api_enabled" = true ]; then
                 episode_status="$(curl --silent --show-error \
                   --cookie "$cookie_jar" \
                   --output "$response_body" \
@@ -568,9 +392,7 @@ jobs:
                   cat "$response_body"
                   return 1
                 fi
-              fi
 
-              if [ "$direct_course_api_enabled" = true ]; then
                 course_status="$(curl --silent --show-error \
                   --cookie "$cookie_jar" \
                   --output "$response_body" \
@@ -588,9 +410,7 @@ jobs:
                   cat "$response_body"
                   return 1
                 fi
-              fi
 
-              if [ "$direct_script_api_enabled" = true ]; then
                 script_status="$(curl --silent --show-error \
                   --cookie "$cookie_jar" \
                   --output "$response_body" \
@@ -608,9 +428,7 @@ jobs:
                   cat "$response_body"
                   return 1
                 fi
-              fi
 
-              if [ "$direct_admin_api_enabled" = true ]; then
                 admin_status="$(curl --silent --show-error \
                   --cookie "$cookie_jar" \
                   --output "$response_body" \
@@ -628,7 +446,6 @@ jobs:
                   cat "$response_body"
                   return 1
                 fi
-              fi
 
               echo "✅ Learning OS direct browser routes passed!"
             )
@@ -654,12 +471,7 @@ jobs:
             rollback_router() {
               previous_color="$1"
               echo "↩️ Rolling router back to $previous_color..."
-              render_router_config \
-                "$previous_color" \
-                "$previous_direct_episode_api_enabled" \
-                "$previous_direct_course_api_enabled" \
-                "$previous_direct_script_api_enabled" \
-                "$previous_direct_admin_api_enabled"
+              render_router_config "$previous_color"
               if ! reload_router; then
                 echo "❌ Router rollback reload failed; production may still be on the failed color."
                 return 1

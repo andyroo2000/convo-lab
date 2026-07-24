@@ -12,10 +12,6 @@ import {
   getAllowedBrowserOrigins,
   validateProductionBrowserRuntimeConfig,
 } from './config/browserRuntime.js';
-import {
-  injectClientRuntimeConfig,
-  redirectClientIndexDocument,
-} from './config/clientRuntimeConfig.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
 import { requireApiCsrfProtection } from './middleware/csrf.js';
@@ -307,13 +303,15 @@ if (process.env.NODE_ENV === 'production') {
     res.redirect(301, '/tools/japanese-money');
   });
 
-  app.get('/index.html', redirectClientIndexDocument);
+  app.get('/index.html', (_req, res) => {
+    res.redirect(308, '/');
+  });
 
   // Serve static files with proper cache headers
   app.use(
     express.static(clientPath, {
-      // Route every HTML document through the SPA fallback so runtime flags and SEO metadata
-      // are injected consistently, including when the browser first loads "/".
+      // Route every HTML document through the SPA fallback so SEO metadata is injected
+      // consistently, including when the browser first loads "/".
       index: false,
       setHeaders: (res, filepath) => {
         // Don't cache index.html, service worker, or manifest - always revalidate
@@ -349,7 +347,7 @@ if (process.env.NODE_ENV === 'production') {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     const seoConfig = getSeoConfigForPath(req.path);
-    const html = injectClientRuntimeConfig(injectSeoMeta(readIndexHtml(), seoConfig));
+    const html = injectSeoMeta(readIndexHtml(), seoConfig);
     res.type('html').send(html);
   });
 }

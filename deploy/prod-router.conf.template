@@ -16,10 +16,6 @@ server {
     resolver 127.0.0.11 valid=5s ipv6=off;
     set $convolab_upstream http://__UPSTREAM_SERVICE__:3001;
     set $learning_os_upstream http://learning-os:8080;
-    set $direct_episode_api_enabled __DIRECT_EPISODE_API_ENABLED__;
-    set $direct_course_api_enabled __DIRECT_COURSE_API_ENABLED__;
-    set $direct_script_api_enabled __DIRECT_SCRIPT_API_ENABLED__;
-    set $direct_admin_api_enabled __DIRECT_ADMIN_API_ENABLED__;
 
     location = /nginx-health {
         access_log off;
@@ -91,11 +87,7 @@ server {
     }
 
     location ~ ^/api/convolab/episodes/[^/]+/audio/[^/]+$ {
-        set $episode_audio_upstream $convolab_upstream;
-        if ($direct_episode_api_enabled = 1) {
-            set $episode_audio_upstream $learning_os_upstream;
-        }
-        proxy_pass $episode_audio_upstream;
+        proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -111,9 +103,6 @@ server {
     }
 
     location ~ ^/api/convolab/episodes(?:/|$) {
-        if ($direct_episode_api_enabled = 0) {
-            return 404;
-        }
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -130,9 +119,6 @@ server {
     }
 
     location ~ ^/api/convolab/courses(?:/|$) {
-        if ($direct_course_api_enabled = 0) {
-            return 404;
-        }
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -149,9 +135,6 @@ server {
     }
 
     location ~ ^/api/convolab/scripts(?:/|$) {
-        if ($direct_script_api_enabled = 0) {
-            return 404;
-        }
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -168,9 +151,6 @@ server {
     }
 
     location ~ ^/api/convolab/admin(?:/|$) {
-        if ($direct_admin_api_enabled = 0) {
-            return 404;
-        }
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

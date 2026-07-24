@@ -333,7 +333,10 @@ describe('PlaybackPage', () => {
       renderPlaybackPage('script-episode-123');
 
       const image = await screen.findByTestId('script-active-image');
-      expect(image).toHaveAttribute('src', expect.stringContaining('/api/scripts/media/media-1'));
+      expect(image).toHaveAttribute(
+        'src',
+        expect.stringContaining('/api/convolab/scripts/media/media-1')
+      );
       expect(image).toHaveClass('object-contain');
       expect(screen.getByTestId('script-reader-lines')).toBeInTheDocument();
       expect(screen.getByTestId('script-button-retry-images')).toBeInTheDocument();
@@ -341,7 +344,7 @@ describe('PlaybackPage', () => {
       expect(screen.queryByText('Segment 1')).not.toBeInTheDocument();
     });
 
-    it('prefers the API-provided script image URL over the legacy media ID fallback', async () => {
+    it('derives the permanent script image route from the stable media ID', async () => {
       mockGetEpisode.mockResolvedValue({
         ...mockScriptEpisode,
         audioScript: {
@@ -363,11 +366,11 @@ describe('PlaybackPage', () => {
       const image = await screen.findByTestId('script-active-image');
       expect(image).toHaveAttribute(
         'src',
-        expect.stringContaining('/api/scripts/media/rewritten-media-id')
+        expect.stringContaining('/api/convolab/scripts/media/media-1')
       );
       expect(image).not.toHaveAttribute(
         'src',
-        expect.stringContaining('/api/scripts/media/media-1')
+        expect.stringContaining('/api/scripts/media/rewritten-media-id')
       );
     });
 
@@ -383,7 +386,10 @@ describe('PlaybackPage', () => {
 
       expect(await screen.findByTestId('script-cinema-overlay')).toBeInTheDocument();
       const image = screen.getByTestId('script-cinema-image');
-      expect(image).toHaveAttribute('src', expect.stringContaining('/api/scripts/media/media-1'));
+      expect(image).toHaveAttribute(
+        'src',
+        expect.stringContaining('/api/convolab/scripts/media/media-1')
+      );
       expect(image).toHaveClass('object-contain');
       expect(screen.getByTestId('script-cinema-caption')).toHaveClass('backdrop-blur-md');
       expect(screen.getByTestId('script-cinema-caption')).toHaveClass('bg-[rgba(4,16,28,0.68)]');

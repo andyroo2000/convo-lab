@@ -3,11 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { createAdminApiContract } from '../adminApi';
 
 describe('admin API contract', () => {
-  it.each([
-    [false, '/api/admin'],
-    [true, '/api/convolab/admin'],
-  ])('selects the expected namespace when direct mode is %s', (direct, base) => {
-    const contract = createAdminApiContract(direct, '');
+  it('uses the permanent Learning OS namespace', () => {
+    const base = '/api/convolab/admin';
+    const contract = createAdminApiContract('');
 
     expect(contract.stats).toBe(`${base}/stats`);
     expect(contract.users('name+tag@example.com')).toBe(
@@ -34,7 +32,7 @@ describe('admin API contract', () => {
   });
 
   it('keeps the deployment feature flag endpoint on Express', () => {
-    expect(createAdminApiContract(true, 'https://app.test').featureFlags).toBe(
+    expect(createAdminApiContract('https://app.test').featureFlags).toBe(
       'https://app.test/api/admin/feature-flags'
     );
   });

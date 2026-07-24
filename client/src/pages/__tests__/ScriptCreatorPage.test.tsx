@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API_URL } from '../../config';
 import ScriptCreatorPage from '../ScriptCreatorPage';
 
 const mockNavigate = vi.fn();
@@ -73,22 +72,22 @@ describe('ScriptCreatorPage', () => {
 
     expect(global.fetch).toHaveBeenNthCalledWith(
       1,
-      `${API_URL}/api/scripts`,
+      `/api/convolab/scripts`,
       expect.objectContaining({ method: 'POST' })
     );
     expect(global.fetch).toHaveBeenNthCalledWith(
       2,
-      `${API_URL}/api/scripts/episode-1/annotate`,
+      `/api/convolab/scripts/episode-1/annotate`,
       expect.objectContaining({ method: 'POST' })
     );
     expect(global.fetch).toHaveBeenNthCalledWith(
       3,
-      `${API_URL}/api/scripts/episode-1/images`,
+      `/api/convolab/scripts/episode-1/images`,
       expect.objectContaining({ method: 'POST' })
     );
     expect(global.fetch).toHaveBeenNthCalledWith(
       4,
-      `${API_URL}/api/scripts/episode-1/render`,
+      `/api/convolab/scripts/episode-1/render`,
       expect.objectContaining({ method: 'POST' })
     );
   });
@@ -96,7 +95,7 @@ describe('ScriptCreatorPage', () => {
   it('ignores rapid duplicate generate clicks while the first request is in flight', async () => {
     let resolveCreate: (value: Response) => void = () => {};
     (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
-      if (url === `${API_URL}/api/scripts`) {
+      if (url === `/api/convolab/scripts`) {
         return new Promise((resolve) => {
           resolveCreate = resolve as (value: Response) => void;
         });
@@ -121,7 +120,7 @@ describe('ScriptCreatorPage', () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_URL}/api/scripts`,
+      `/api/convolab/scripts`,
       expect.objectContaining({ method: 'POST' })
     );
 

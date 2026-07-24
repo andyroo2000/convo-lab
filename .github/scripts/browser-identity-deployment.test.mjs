@@ -148,13 +148,17 @@ test('Convo Lab permanently routes browser identity through Learning OS', async 
   assert.ok(!workflowSource.includes('LEARNING_OS_DIRECT_AUTH_API_ENABLED'));
 });
 
-test('local Vite development mirrors the permanent Learning OS identity routes', async () => {
+test('local Vite development mirrors the permanent Learning OS browser routes', async () => {
   const viteConfig = await readRepositoryFile('client/vite.config.ts');
   const learningOsRoutes = [
     "'/sanctum/csrf-cookie'",
     "'/api/convolab/auth'",
     "'/api/convolab/browser/auth'",
     "'/api/auth/password'",
+    "'/api/convolab/episodes'",
+    "'/api/convolab/courses'",
+    "'/api/convolab/scripts'",
+    "'/api/convolab/admin'",
   ];
   const expressFallback = viteConfig.indexOf("'/api':");
 

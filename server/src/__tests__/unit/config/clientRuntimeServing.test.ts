@@ -8,11 +8,9 @@ const currentFile = fileURLToPath(import.meta.url);
 const repositoryRoot = path.resolve(path.dirname(currentFile), '../../../../..');
 const serverEntry = fs.readFileSync(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8');
 
-describe('client runtime config serving', () => {
-  it('routes every index document through the runtime config injector', () => {
-    const indexRedirectStart = serverEntry.indexOf(
-      "app.get('/index.html', redirectClientIndexDocument);"
-    );
+describe('client document serving', () => {
+  it('routes every index document through the SEO-aware SPA fallback', () => {
+    const indexRedirectStart = serverEntry.indexOf("app.get('/index.html', (_req, res) => {");
     const staticFilesStart = serverEntry.indexOf('express.static(clientPath, {');
     const spaFallbackStart = serverEntry.indexOf("app.get('*', (req, res) => {");
     const staticFiles = serverEntry.slice(staticFilesStart, spaFallbackStart);
@@ -22,8 +20,7 @@ describe('client runtime config serving', () => {
     expect(staticFilesStart).toBeGreaterThan(indexRedirectStart);
     expect(spaFallbackStart).toBeGreaterThan(staticFilesStart);
     expect(staticFiles).toContain('index: false,');
-    expect(spaFallback).toContain(
-      'injectClientRuntimeConfig(injectSeoMeta(readIndexHtml(), seoConfig))'
-    );
+    expect(spaFallback).toContain('injectSeoMeta(readIndexHtml(), seoConfig)');
+    expect(serverEntry).not.toContain('__CONVOLAB_RUNTIME_CONFIG__');
   });
 });
