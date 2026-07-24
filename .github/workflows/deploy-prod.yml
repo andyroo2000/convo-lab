@@ -151,7 +151,10 @@ jobs:
 
             verify_public_health() {
               for i in {1..20}; do
-                if curl -fsS https://convo-lab.com/health > /dev/null; then
+                if curl --fail --silent --show-error \
+                  --connect-timeout 5 \
+                  --max-time 15 \
+                  https://convo-lab.com/health > /dev/null; then
                   echo "✅ Public production health check passed."
                   return 0
                 fi

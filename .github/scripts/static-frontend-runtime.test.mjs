@@ -76,6 +76,13 @@ test('nginx keeps backend paths out of the SPA fallback', async () => {
   assert.match(config, /try_files \$uri @not_found_spa;/u);
 });
 
+test('static frontend smoke requests have explicit network timeouts', async () => {
+  const smoke = await readFile(path.join(repositoryRoot, 'deploy/smoke-static-frontend.sh'), 'utf8');
+
+  assert.match(smoke, /--connect-timeout 5/u);
+  assert.match(smoke, /--max-time 15/u);
+});
+
 test('shared SEO runtime exports stay aligned with their TypeScript declarations', async () => {
   const declarations = await readFile(path.join(repositoryRoot, 'shared/seo.d.mts'), 'utf8');
   const declaredRuntimeExports = [

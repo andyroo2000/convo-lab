@@ -9,6 +9,8 @@ request() {
   name="$1"
   path="$2"
   curl --silent --show-error \
+    --connect-timeout 5 \
+    --max-time 15 \
     --dump-header "$TEMP_DIR/$name.headers" \
     --output "$TEMP_DIR/$name.body" \
     "$BASE_URL$path"

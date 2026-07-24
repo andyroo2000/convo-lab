@@ -127,7 +127,7 @@ test('the production workflow verifies static and API contracts before committin
 });
 
 test('the production workflow waits for the public router to converge on the static runtime', async () => {
-  const { script } = await readDeployment();
+  const { script, source } = await readDeployment();
   const helperStart = script.indexOf('verify_public_static_frontend()');
   const helperEnd = script.indexOf('verify_public_learning_os_browser_route()', helperStart);
   const helper = script.slice(helperStart, helperEnd);
@@ -138,6 +138,10 @@ test('the production workflow waits for the public router to converge on the sta
   assert.match(helper, /waiting for router convergence/u);
   assert.match(helper, /sleep 3/u);
   assert.match(helper, /return 1/u);
+  assert.match(
+    source,
+    /verify_public_health\(\)[\s\S]*curl --fail --silent --show-error \\\s+--connect-timeout 5 \\\s+--max-time 15/u
+  );
 });
 
 test('the production workflow rejects unexpected containers without legacy cutover behavior', async () => {
