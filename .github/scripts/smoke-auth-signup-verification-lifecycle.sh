@@ -2,10 +2,9 @@
 
 set -Eeuo pipefail
 
-: "${ACTIVE_COLOR:?ACTIVE_COLOR is required}"
 : "${SMOKE_USER_EMAIL:?SMOKE_USER_EMAIL is required}"
+: "${JSON_TOOLS_CONTAINER:?JSON_TOOLS_CONTAINER is required}"
 
-SERVER_CONTAINER="convolab-server-$ACTIVE_COLOR"
 BASE_URL="https://convo-lab.com"
 SIGNUP_COOKIE_JAR=""
 LOGIN_COOKIE_JAR=""
@@ -43,7 +42,7 @@ trap report_error ERR
 json_field() {
   local expression="$1"
 
-  docker exec -i -e JSON_EXPRESSION="$expression" "$SERVER_CONTAINER" \
+  docker exec -i -e JSON_EXPRESSION="$expression" "$JSON_TOOLS_CONTAINER" \
     node --input-type=module --eval='
       process.stdin.setEncoding("utf8");
       let input = "";
@@ -255,7 +254,7 @@ csrf_token_for() {
     "$BASE_URL/sanctum/csrf-cookie" > /dev/null
   csrf_cookie_raw="$(awk '$6 == "XSRF-TOKEN" { value = $7 } END { print value }' "$cookie_jar")"
   test -n "$csrf_cookie_raw"
-  docker exec -e RAW_CSRF_TOKEN="$csrf_cookie_raw" "$SERVER_CONTAINER" \
+  docker exec -e RAW_CSRF_TOKEN="$csrf_cookie_raw" "$JSON_TOOLS_CONTAINER" \
     node --input-type=module --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))'
 }
 
@@ -361,7 +360,7 @@ docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
   -e AUTH_SMOKE_PASSWORD="$SMOKE_PASSWORD" \
   -e AUTH_SMOKE_INVITE_CODE="$SMOKE_INVITE_CODE" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       email: process.env.AUTH_SMOKE_EMAIL,
       password: process.env.AUTH_SMOKE_PASSWORD,
@@ -392,7 +391,7 @@ printf '%s' "$current_account" | docker exec \
   -i \
   -e EXPECTED_USER_ID="$SMOKE_USER_ID" \
   -e EXPECTED_USER_EMAIL="$SMOKE_EMAIL" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     let body = "";
     for await (const chunk of process.stdin) body += chunk;
     const account = JSON.parse(body);
@@ -421,7 +420,7 @@ generation_quota="$(session_get_json \
   "$SIGNUP_COOKIE_JAR")"
 printf '%s' "$generation_quota" | docker exec \
   -i \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     let body = "";
     for await (const chunk of process.stdin) body += chunk;
     const response = JSON.parse(body);
@@ -463,14 +462,14 @@ original_custom_content_guide="$(printf '%s' "$current_account" \
   | json_field 'response.seenCustomContentGuide')"
 docker exec \
   -e AUTH_SMOKE_PROFILE_VALUE="$original_custom_content_guide" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       seenCustomContentGuide: process.env.AUTH_SMOKE_PROFILE_VALUE !== "true",
     }));
   ' > "$PROFILE_BODY_FILE"
 docker exec \
   -e AUTH_SMOKE_PROFILE_VALUE="$original_custom_content_guide" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       seenCustomContentGuide: process.env.AUTH_SMOKE_PROFILE_VALUE === "true",
     }));
@@ -552,7 +551,7 @@ echo "::add-mask::$verification_token"
 
 docker exec \
   -e AUTH_SMOKE_VERIFICATION_TOKEN="$verification_token" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       token: process.env.AUTH_SMOKE_VERIFICATION_TOKEN,
     }));
@@ -577,7 +576,7 @@ test -n "$(printf '%s' "$verified_account" | json_field 'response.emailVerifiedA
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
   -e AUTH_SMOKE_PASSWORD="$SMOKE_PASSWORD" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       email: process.env.AUTH_SMOKE_EMAIL,
       password: process.env.AUTH_SMOKE_PASSWORD,
@@ -604,7 +603,7 @@ test "$(session_get_status \
 
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({ email: process.env.AUTH_SMOKE_EMAIL }));
   ' > "$RESET_REQUEST_BODY_FILE"
 # Password reset is a generic Learning OS/Fortify concern, so it intentionally
@@ -677,7 +676,7 @@ docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
   -e AUTH_SMOKE_RESET_TOKEN="$reset_token" \
   -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       email: process.env.AUTH_SMOKE_EMAIL,
       token: process.env.AUTH_SMOKE_RESET_TOKEN,
@@ -709,7 +708,7 @@ docker exec \
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
   -e AUTH_SMOKE_PASSWORD="$SMOKE_PASSWORD" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       email: process.env.AUTH_SMOKE_EMAIL,
       password: process.env.AUTH_SMOKE_PASSWORD,
@@ -725,7 +724,7 @@ test "$(post_json_status \
 docker exec \
   -e AUTH_SMOKE_EMAIL="$SMOKE_EMAIL" \
   -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       email: process.env.AUTH_SMOKE_EMAIL,
       password: process.env.AUTH_SMOKE_RESET_PASSWORD,
@@ -743,7 +742,7 @@ assert_learning_os_session_cookie "$NEW_LOGIN_COOKIE_JAR" "Password-reset login"
 
 docker exec \
   -e AUTH_SMOKE_RESET_PASSWORD="$SMOKE_RESET_PASSWORD" \
-  "$SERVER_CONTAINER" node --input-type=module --eval='
+  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
     process.stdout.write(JSON.stringify({
       current_password: process.env.AUTH_SMOKE_RESET_PASSWORD,
     }));

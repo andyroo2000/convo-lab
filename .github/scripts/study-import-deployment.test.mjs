@@ -1510,6 +1510,7 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   for (const requiredContract of [
     'trap cleanup EXIT',
     'trap report_error ERR',
+    ': "${JSON_TOOLS_CONTAINER:?JSON_TOOLS_CONTAINER is required}"',
     'Auth lifecycle command failed at line $failed_line with exit status $exit_status.',
     'assert_learning_os_session_cookie',
     'did not establish a Learning OS browser session.',
@@ -1615,6 +1616,8 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   );
   assert.ok(cleanupFunction.includes('if [ "$exit_status" -eq 0 ]; then'));
   assert.ok(cleanupFunction.includes('manual cleanup is required.'));
+  assert.doesNotMatch(script, /ACTIVE_COLOR|SERVER_CONTAINER|convolab-server-/);
+  assert.match(script, /"\$JSON_TOOLS_CONTAINER" node --input-type=module/);
 
   const serverHealthy = workflow.indexOf('wait_for_health "convolab-server-$active_color"');
   const authSmoke = workflow.indexOf(
@@ -1624,5 +1627,9 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
 
   assert.ok(serverHealthy >= 0);
   assert.ok(serverHealthy < authSmoke);
+  assert.match(
+    workflow.slice(serverHealthy, authSmoke),
+    /JSON_TOOLS_CONTAINER="\$DEPLOYMENT_TOOLS_CONTAINER"/
+  );
   assert.doesNotMatch(workflow, /LEARNING_OS_SCRIPT_PROXY_ENABLED|ROUTE_PROXY_CUTOVER_STARTED/);
 });
