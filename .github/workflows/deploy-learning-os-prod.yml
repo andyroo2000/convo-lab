@@ -697,6 +697,12 @@ jobs:
                         ->where("user_id", $user->getKey())
                         ->delete();
                     }
+                    Illuminate\Support\Facades\DB::table("admin_user_projections")
+                      ->where(
+                        "convolab_id",
+                        getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),
+                      )
+                      ->delete();
                     $user?->delete();
                   ' > /dev/null; then
                   if [ "$mode" != best-effort ]; then

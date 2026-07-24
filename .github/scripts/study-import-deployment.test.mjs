@@ -498,6 +498,7 @@ test('direct Learning OS content smoke uses a disposable admin browser session',
     "printf '%s?viewAs=%s'",
     'cleanup_content_browser_smoke best-effort',
     'cleanup_content_browser_smoke',
+    'DB::table("admin_user_projections")\n                      ->where(\n                        "convolab_id",\n                        getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),
