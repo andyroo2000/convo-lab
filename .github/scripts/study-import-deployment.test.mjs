@@ -835,9 +835,19 @@ test('generation routes are permanently proxied and production rehearsals cover 
 });
 
 test('Express no longer mounts legacy identity routes', async () => {
-  const [serverEntry, inventory, compose, learningOsWorkflow, productionWorkflow, lifecycle] =
-    await Promise.all([
+  const [
+    serverEntry,
+    serverPackageSource,
+    serverEnvironmentExample,
+    inventory,
+    compose,
+    learningOsWorkflow,
+    productionWorkflow,
+    lifecycle,
+  ] = await Promise.all([
       readFile(path.join(repositoryRoot, 'server/src/index.ts'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'server/package.json'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'server/.env.example'), 'utf8'),
       readFile(
         path.join(repositoryRoot, 'server/src/migration/backendMigrationInventory.json'),
         'utf8'
@@ -856,6 +866,35 @@ test('Express no longer mounts legacy identity routes', async () => {
         'utf8'
       ),
     ]);
+
+  const serverPackage = JSON.parse(serverPackageSource);
+  for (const retiredDependency of [
+    '@types/passport',
+    '@types/passport-google-oauth20',
+    'passport',
+    'passport-google-oauth20',
+  ]) {
+    assert.equal(serverPackage.dependencies[retiredDependency], undefined);
+  }
+
+  for (const retiredExpressSecret of [
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
+    'GOOGLE_CALLBACK_URL',
+  ]) {
+    assert.ok(!serverEnvironmentExample.includes(retiredExpressSecret), retiredExpressSecret);
+  }
+
+  for (const retiredPath of [
+    'server/src/routes/auth.ts',
+    'server/src/routes/verification.ts',
+    'server/src/config/passport.ts',
+    'server/src/services/learningOsAuthProxy.ts',
+    'server/src/services/learningOsBrowserSession.ts',
+    'server/src/services/googleOAuthIdentity.ts',
+  ]) {
+    await assert.rejects(stat(path.join(repositoryRoot, retiredPath)));
+  }
 
   for (const retiredRuntimeContract of [
     "import passport from 'passport'",

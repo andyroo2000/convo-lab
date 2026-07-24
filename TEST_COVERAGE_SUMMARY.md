@@ -4,9 +4,9 @@ This document summarizes all test coverage added for recent features (weekly quo
 
 ## Overview
 
-**Total Tests Created/Updated**: 237 unit tests + 5 E2E test suites
+**Total Tests Created/Updated**: 220 unit tests + 5 E2E test suites
 
-- ✅ **Server Tests**: 183 tests passing
+- ✅ **Server Tests**: 166 tests passing
 - ✅ **Client Tests**: 54 tests passing
 - ✅ **E2E Tests**: 5 comprehensive test suites created
 
@@ -68,7 +68,7 @@ authenticated proxy response, compatibility shape, and production smoke contract
 
 ---
 
-## Phase 2: Server Route Tests (112 tests)
+## Phase 2: Server Route Tests (95 tests)
 
 ### 2.1 Episodes Route Updates (`episodes.test.ts`) - 26 tests (+8 new)
 
@@ -132,27 +132,6 @@ authenticated proxy response, compatibility shape, and production smoke contract
 - ✅ Custom pagination parameters
 - ✅ Default limit/offset
 - ✅ Correct ordering
-
----
-
-### 2.5 Auth Route Updates (`auth.test.ts`) - 17 tests (+5 new)
-
-**File**: `/server/src/__tests__/unit/routes/auth.test.ts`
-
-**New Quota Endpoint Tests**:
-
-- ✅ GET /api/auth/me/quota requires authentication
-- ✅ Returns unlimited=true for admin users
-- ✅ Returns quota status for regular users (used/limit/remaining/resetsAt)
-- ✅ Includes cooldown information in response (active/remainingSeconds)
-- ✅ Handles errors gracefully
-
-**Key Features Tested**:
-
-- Authentication requirement
-- Admin vs regular user quota
-- Cooldown status
-- Response format
 
 ---
 
@@ -551,7 +530,6 @@ authenticated proxy response, compatibility shape, and production smoke contract
 - courses.test.ts: 21 tests
 - narrowListening.test.ts: 20 tests
 - chunkPacks.test.ts: 28 tests
-- auth.test.ts: 17 tests
 
 **Client Tests: 54 passing**
 

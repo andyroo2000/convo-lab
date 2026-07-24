@@ -69,7 +69,6 @@ const FILE_TASKS: FileTask[] = [
 
   // Server source files
   { file: 'server/src/services/avatarService.ts', cardId: 'convo-lab-iza', anyCount: 2, category: 'source' },
-  { file: 'server/src/config/passport.ts', cardId: 'convo-lab-vls', anyCount: 1, category: 'source' },
   { file: 'server/src/middleware/impersonation.ts', cardId: 'convo-lab-wnw', anyCount: 1, category: 'source' },
   { file: 'server/src/middleware/errorHandler.ts', cardId: 'convo-lab-ju2', anyCount: 2, category: 'source' },
   { file: 'server/src/routes/admin.ts', cardId: 'convo-lab-1oe', anyCount: 2, category: 'source' },
@@ -93,7 +92,6 @@ const FILE_TASKS: FileTask[] = [
   { file: 'server/src/__tests__/unit/routes/courses.test.ts', cardId: 'convo-lab-hd5', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/audio.test.ts', cardId: 'convo-lab-b2a', anyCount: 10, category: 'test' },
   { file: 'server/src/__tests__/unit/routes/images.test.ts', cardId: 'convo-lab-5op', anyCount: 9, category: 'test' },
-  { file: 'server/src/__tests__/unit/routes/verification.test.ts', cardId: 'convo-lab-18q', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/middleware/auth.test.ts', cardId: 'convo-lab-dro', anyCount: 1, category: 'test' },
   { file: 'server/src/__tests__/unit/middleware/impersonation.test.ts', cardId: 'convo-lab-n3h', anyCount: 10, category: 'test' },
   { file: 'server/src/__tests__/unit/config/redis.test.ts', cardId: 'convo-lab-qck', anyCount: 1, category: 'test' },

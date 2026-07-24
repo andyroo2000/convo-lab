@@ -123,16 +123,16 @@ Skip dependency scanning. Focus on code-level security issues.
 7. Update critical security packages
 
 ### PHASE 2: Authentication & Authorization
-1. Review authentication flows:
+1. Review the ConvoLab authentication boundary:
    - server/src/middleware/auth.ts
-   - server/src/routes/auth.ts
-   - Login/logout/register endpoints
+   - client/src/lib/authApi.ts
+   - deploy/prod-router.conf.template
+   - Confirm canonical login/logout/register/password-reset routes remain Learning OS-owned
 2. Check for vulnerabilities:
-   - Password hashing (bcrypt strength)
-   - JWT token security (secret strength, expiry)
-   - Session management
-   - Password reset flow
-   - Email verification flow
+   - Trusted proxy-token validation and expiry
+   - Browser credential forwarding and CSRF-provider selection
+   - Session cookies and auth headers are not forwarded across ownership boundaries
+   - Password reset and email verification route ownership
 3. Review authorization checks:
    - Route protection middleware
    - User role checks

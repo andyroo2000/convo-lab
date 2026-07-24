@@ -1,176 +1,69 @@
-# ConvoLab Auth & Monetization Setup Guide
+# ConvoLab Identity Integration Guide
 
-## ✅ Completed
+ConvoLab delegates browser identity, account management, email verification,
+password reset, and Google OAuth to Learning OS. The ConvoLab Express server
+does not own login or credential persistence.
 
-- Database migration applied successfully
-- All code implementation complete (Phases 1-3)
-- Your admin account email verified
+## Public Routes
 
-## Remaining Setup Tasks
+The production router sends these same-origin routes directly to Learning OS:
 
-### 1. Set up Google OAuth (15 minutes)
+- `/sanctum/csrf-cookie`
+- `/api/convolab/browser/auth/*`
+- `/api/convolab/auth/*`
+- `/api/auth/password/*`
 
-**Go to Google Cloud Console:**
+The client route catalog lives in `client/src/lib/authApi.ts`. Keep it aligned
+with `deploy/prod-router.conf.template` and the Learning OS ConvoLab
+compatibility routes.
 
-1. Visit: https://console.cloud.google.com/
-2. Select your project (or create a new one for ConvoLab)
+## Google OAuth
 
-**Create OAuth 2.0 Credentials:**
+Create a Google OAuth web client and configure this production callback:
 
-1. Navigate to: **APIs & Services** → **Credentials**
-2. Click **+ CREATE CREDENTIALS** → **OAuth client ID**
-3. Application type: **Web application**
-4. Name: `ConvoLab Production`
-
-**Configure authorized redirect URIs:**
-
-For local development:
-
-```
-http://localhost:3001/api/auth/google/callback
+```text
+https://convo-lab.com/api/convolab/browser/auth/google/callback
 ```
 
-For production (update with your actual domain):
+Store `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` as GitHub Actions secrets.
+The production workflows pass them to Learning OS and set
+`LEARNING_OS_GOOGLE_REDIRECT_URI` to the callback above. ConvoLab does not use a
+`GOOGLE_CALLBACK_URL` environment variable.
 
-```
-https://api.convolab.app/api/auth/google/callback
-```
+For local OAuth work, configure the Learning OS checkout and its callback using
+the Learning OS development documentation. The ConvoLab client should continue
+calling same-origin paths; local Vite proxy rules route those requests to the
+configured Learning OS service.
 
-**Get your credentials:**
+## Verification
 
-- Copy the **Client ID** (looks like: `123456789-abc123.apps.googleusercontent.com`)
-- Copy the **Client Secret** (looks like: `GOCSPX-abc123xyz789`)
-
-**Update your .env file:**
+Before changing identity routing:
 
 ```bash
-# Replace these with your actual values
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-your-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
+npm run test:deployment
+npm run test:run
+npm run type-check
+npm run lint
 ```
 
----
+Production deployment checks verify:
 
-### 2. Testing Locally
+- Sanctum CSRF and browser-session cookies
+- unauthenticated account response shape
+- Google OAuth redirect host, client ID, state, and exact callback
+- signup, verification, login, logout, password reset, profile update, quota,
+  and account deletion through a disposable user lifecycle
 
-**Start your servers:**
+The lifecycle harness is
+`.github/scripts/smoke-auth-signup-verification-lifecycle.sh`.
 
-Terminal 1 - Backend:
+## Troubleshooting
 
-```bash
-cd server
-npm run dev
-```
-
-Terminal 2 - Frontend:
-
-```bash
-cd client
-npm run dev
-```
-
-**Test each flow:**
-
-✅ **Email Verification:**
-
-1. Create a test account at http://localhost:5173/login
-2. Switch to "Sign Up" tab
-3. Enter email, password, name, and invite code
-4. Check server console for verification email (it won't actually send in dev)
-5. Copy the verification link from console
-6. Open the link to verify email
-
-✅ **Password Reset:**
-
-1. Go to http://localhost:5173/forgot-password
-2. Enter your email
-3. Check server console for reset link
-4. Open the link and set new password
-
-✅ **Google OAuth:**
-
-1. Click "Continue with Google" on login page
-2. Sign in with Google
-3. If you don't have an invite code, you'll be redirected to `/claim-invite`
-4. Enter an invite code to complete signup
-5. Should redirect to `/app/library`
-
-✅ **Generation Quota:**
-
-1. Try generating content (dialogue, course, etc.)
-2. Should work if email is verified
-3. The quota badge reports remaining monthly generations
-4. Confirm the quota matches the canonical Learning OS account response
-
----
-
-### 3. Production Environment Variables
-
-Once testing is complete, update your production environment:
-
-**Backend (Cloud Run):**
-
-```bash
-# Email (Resend)
-RESEND_API_KEY=re_your_actual_key
-EMAIL_FROM=ConvoLab <noreply@convolab.app>
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your-prod-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-your-prod-secret
-GOOGLE_CALLBACK_URL=https://api.convolab.app/api/auth/google/callback
-
-# Client URL
-CLIENT_URL=https://convolab.app
-```
-
-### 4. Deploy to Production
-
-**Build and deploy backend:**
-
-```bash
-cd server
-npm run build
-./deploy.sh
-```
-
-**Build and deploy frontend:**
-
-```bash
-cd client
-npm run build
-# Deploy dist/ to your hosting (Vercel, Netlify, etc.)
-```
-
----
-
-## Support & Troubleshooting
-
-**Common Issues:**
-
-1. **"Email not verified" error when generating:**
-   - Check database: your emailVerified should be `true`
-   - Run: `DATABASE_URL="..." npx tsx check-email-verified.ts`
-
-2. **Google OAuth redirect error:**
-   - Verify callback URL in Google Cloud Console matches exactly
-   - Check that GOOGLE_CALLBACK_URL in .env is correct
-   - Must use HTTPS in production (not HTTP)
-
-3. **Invite code flow not working:**
-   - Make sure you have invite codes in the database
-   - Check `/server/src/routes/auth.ts` claim-invite endpoint logs
-
----
-
-## Next Steps
-
-1. Complete setup tasks above
-2. Test all flows locally
-3. Update production environment variables
-4. Deploy to production
-5. Monitor for errors in first 24 hours
-6. Create invite codes for beta users
-
-Good luck! 🚀
+1. Confirm `/health` reports healthy Redis and database connections.
+2. Confirm `/api/convolab/auth/me` returns the Learning OS unauthenticated
+   contract when called without a session.
+3. Confirm the public Google OAuth start route redirects to Google with the
+   callback shown above.
+4. Check the Learning OS API and worker logs for verification or password-reset
+   delivery failures.
+5. Check `deploy/prod-router.conf.template` before changing route ownership.
