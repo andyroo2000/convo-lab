@@ -59,11 +59,10 @@ retired public path for stale clients without restoring Express ownership.
 
 Use a route-level `runtimeOwner` only while a router is split between services.
 
-The core browser administration surface now calls Learning OS directly at
-`/api/convolab/admin/*`, so stats, users, invite codes, avatars, and pronunciation
-dictionaries are absent from this Express inventory. Admin feature flags,
-course generation, and Script Lab remain inventoried until their separate proxy
-surfaces are retired.
+The browser administration surface now calls Learning OS directly at
+`/api/convolab/admin/*`, so core administration and the course workbench are
+absent from this Express inventory. Admin feature flags and Script Lab remain
+inventoried until their separate proxy surfaces are retired.
 
 ## Route Usage Telemetry
 
