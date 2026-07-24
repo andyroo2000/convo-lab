@@ -74,4 +74,6 @@ test('production smoke-gates the private token route and canonical browser-sessi
   assert.doesNotMatch(workflow, /['"]\/api\/admin\/invite-codes/);
   assert.doesNotMatch(workflow, /['"]\/api\/admin\/avatars/);
   assert.doesNotMatch(workflow, /['"]\/api\/admin\/pronunciation-dictionaries/);
+  assert.doesNotMatch(workflow, /\bfetch_read_route\s*\(\)/);
+  assert.doesNotMatch(workflow, /\bmutate_proxy_route\s*\(\)/);
 });

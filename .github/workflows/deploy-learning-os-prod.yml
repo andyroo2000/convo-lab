@@ -1453,40 +1453,6 @@ jobs:
                 node --input-type=module --eval='process.stdout.write(decodeURIComponent(process.env.RAW_CSRF_TOKEN))')"
               test -n "$csrf_token"
 
-              fetch_read_route() {
-                local label="$1"
-                local path="$2"
-                local response=""
-                local response_file
-                local status
-                local attempt
-
-                for attempt in {1..12}; do
-                  response_file="$(mktemp)"
-                  if status="$(curl --silent --show-error \
-                      --output "$response_file" \
-                      --write-out '%{http_code}' \
-                      --header 'Accept: application/json' \
-                      --cookie "token=$auth_token" \
-                      "https://convo-lab.com$path")"; then
-                    :
-                  else
-                    status="${status:-transport-error}"
-                  fi
-                  response="$(cat "$response_file")"
-                  rm -f "$response_file"
-                  if [[ "$status" =~ ^2[0-9][0-9]$ ]]; then
-                    printf '%s' "$response"
-                    return 0
-                  fi
-                  echo "$label attempt $attempt/12 returned HTTP ${status:-unknown}; retrying." >&2
-                  printf '%s\n' "${response:0:2048}" >&2
-                  sleep 3
-                done
-
-                return 1
-              }
-
               stream_json_pair() {
                 # Stream newline-delimited base64 so large responses do not exceed exec ARG_MAX.
                 printf '%s' "$1" | base64 | tr -d '\n'
@@ -1617,38 +1583,6 @@ jobs:
                     }
                   '
                 echo "Study session Learning OS smoke check passed."
-              }
-
-              mutate_proxy_route() {
-                local method="$1"
-                local path="$2"
-                local body="$3"
-                local response_file
-                local status
-
-                response_file="$(mktemp)"
-                status="$(curl --silent --show-error \
-                  --output "$response_file" \
-                  --write-out '%{http_code}' \
-                  --request "$method" \
-                  --header 'Accept: application/json' \
-                  --header 'Content-Type: application/json' \
-                  --header 'Origin: https://convo-lab.com' \
-                  --header "X-CSRF-Token: $csrf_token" \
-                  --header "Cookie: token=$auth_token; XSRF-TOKEN=$csrf_cookie_raw" \
-                  --data "$body" \
-                  "https://convo-lab.com$path")"
-
-                if [[ ! "$status" =~ ^2[0-9][0-9]$ ]]; then
-                  echo "$method $path failed with HTTP $status:" >&2
-                  cat "$response_file" >&2
-                  echo >&2
-                  rm -f "$response_file"
-                  return 1
-                fi
-
-                cat "$response_file"
-                rm -f "$response_file"
               }
 
               fetch_learning_os_route() {
