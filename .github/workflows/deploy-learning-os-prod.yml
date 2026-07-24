@@ -333,6 +333,7 @@ jobs:
               -e CONVOLAB_PROXY_USER_EMAIL="$SMOKE_USER_EMAIL" \
               learning-os php artisan tinker --execute='
                 $user = App\Models\User::query()->where("email", getenv("CONVOLAB_PROXY_USER_EMAIL"))->sole();
+                // Keep proxy-only abilities while the preceding Convo Lab release remains rollback-capable.
                 $accessToken = $user->createToken("convolab-proxy", [
                   "study:read",
                   "study:write",
@@ -586,7 +587,28 @@ jobs:
               ) {
                 exit(1);
               }
+
+              $analyticsContext = stream_context_create(["http" => [
+                  "method" => "POST",
+                  "header" => "Accept: application/json\r\nContent-Type: application/json\r\n",
+                  "content" => json_encode([
+                    "tool" => "deployment",
+                    "event" => "smoke",
+                    "context" => "app",
+                    "properties" => ["source" => "learning-os-production"],
+                  ]),
+                  "timeout" => 10,
+              ]]);
+              $analytics = file_get_contents(
+                "http://127.0.0.1:8080/api/convolab/browser/tools/analytics",
+                false,
+                $analyticsContext,
+              );
+              if ($analytics === false) {
+                exit(1);
+              }
             '
+            echo "Learning OS browser analytics internal smoke check passed."
 
             active_color=blue
             if [ -s "$ACTIVE_COLOR_FILE" ]; then
@@ -1730,25 +1752,6 @@ jobs:
                 cat "$response_file"
                 rm -f "$response_file"
               }
-
-              tool_analytics_body="$(mktemp)"
-              tool_analytics_status="$(curl --silent --show-error \
-                --output "$tool_analytics_body" \
-                --write-out '%{http_code}' \
-                --request POST \
-                --header 'Accept: application/json' \
-                --header 'Content-Type: application/json' \
-                --data '{"tool":"deployment","event":"smoke","context":"app","properties":{"source":"production"}}' \
-                'https://convo-lab.com/api/tools/analytics')"
-              if [ "$tool_analytics_status" != 204 ] || [ -s "$tool_analytics_body" ]; then
-                echo "Tool Analytics Learning OS proxy smoke failed with HTTP $tool_analytics_status:" >&2
-                cat "$tool_analytics_body" >&2
-                echo >&2
-                rm -f "$tool_analytics_body"
-                exit 1
-              fi
-              rm -f "$tool_analytics_body"
-              echo "Tool Analytics Learning OS proxy smoke check passed."
 
               ACTIVE_COLOR="$active_color" \
                 SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \

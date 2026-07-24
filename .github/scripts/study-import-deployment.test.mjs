@@ -346,10 +346,11 @@ test('Express keeps its standalone CSRF bootstrap while mutations remain', async
 });
 
 test('production permanently routes migrated browser APIs', async () => {
-  const [compose, workflow, router] = await Promise.all([
+  const [compose, workflow, router, viteConfig] = await Promise.all([
     readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
     readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8'),
+    readFile(path.join(repositoryRoot, 'client/vite.config.ts'), 'utf8'),
   ]);
 
   const retiredRolloutContracts = [
@@ -394,6 +395,14 @@ test('production permanently routes migrated browser APIs', async () => {
     assert.ok(router.includes(`location ~ ^${route}`), `Missing permanent router route: ${route}`);
   }
   assert.ok(!router.includes('location ~ ^/api/learning-os/study(?:/|$)'));
+  for (const route of [
+    '/api/feature-flags',
+    '/api/convolab/browser/tools/analytics',
+  ]) {
+    assert.ok(router.includes(`location = ${route}`), `Missing direct router route: ${route}`);
+    assert.ok(viteConfig.includes(`'${route}'`), `Missing direct Vite route: ${route}`);
+    assert.ok(viteConfig.indexOf(`'${route}'`) < viteConfig.indexOf("'/api':"));
+  }
 
   for (const contract of [
     'verify_public_learning_os_browser_route() (',
@@ -414,6 +423,8 @@ test('production permanently routes migrated browser APIs', async () => {
     'https://convo-lab.com/api/learning-os/study/overview',
     'https://convo-lab.com/api/daily-audio-practice',
     'https://convo-lab.com/api/learning-os/study/daily-audio-practice',
+    'https://convo-lab.com/api/feature-flags',
+    'https://convo-lab.com/api/convolab/browser/tools/analytics',
     'https://convo-lab.com/api/convolab/admin/stats',
     'Unauthenticated direct account probe returned HTTP',
     'Unauthenticated direct browser auth probe returned HTTP',
@@ -428,6 +439,9 @@ test('production permanently routes migrated browser APIs', async () => {
     'Direct Study probe ($study_label) did not return the Learning OS auth contract.',
     'Unauthenticated Study rollback probe ($legacy_study_label) returned HTTP',
     'Study rollback probe ($legacy_study_label) did not return the Express auth contract.',
+    'Unauthenticated direct feature flags probe returned HTTP',
+    'Direct feature flags probe did not return the Learning OS auth contract.',
+    'Direct Learning OS browser analytics probe returned HTTP',
     'Unauthenticated direct admin probe returned HTTP',
   ]) {
     assert.ok(workflow.includes(contract), `Missing permanent browser contract: ${contract}`);
@@ -1799,9 +1813,8 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     '$COMPOSE up -d --no-deps --force-recreate "server-$active_color"',
     'wait_for_health "convolab-server-$active_color"',
     'test "$active_proxy_token" = "$proxy_token"',
-    "'https://convo-lab.com/api/tools/analytics'",
-    '[ "$tool_analytics_status" != 204 ]',
-    'Tool Analytics Learning OS proxy smoke check passed.',
+    '"http://127.0.0.1:8080/api/convolab/browser/tools/analytics"',
+    'Learning OS browser analytics internal smoke check passed.',
     'if ! docker exec',
     '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
     'Unable to prune older Learning OS proxy tokens; a later deployment will retry.',
@@ -1832,10 +1845,6 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
     'test "$active_proxy_token" = "$proxy_token"',
     serverHealthy
   );
-  const toolAnalyticsSmoke = workflow.indexOf(
-    'Tool Analytics Learning OS proxy smoke check passed.',
-    tokenInstalled
-  );
   const oldTokensPruned = workflow.indexOf(
     '->where("id", "!=", getenv("CONVOLAB_PROXY_TOKEN_ID"))',
     tokenInstalled
@@ -1848,7 +1857,6 @@ test('the production workflow overlaps proxy tokens through a healthy server cut
   assert.ok(serverRestarted < serverHealthy);
   assert.ok(serverHealthy < tokenInstalled);
   assert.ok(tokenInstalled < oldTokensPruned);
-  assert.ok(oldTokensPruned < toolAnalyticsSmoke);
   assert.doesNotMatch(
     workflow.slice(tokenCreation, serverHealthy),
     /tokens\(\).*->delete\(\)/s,

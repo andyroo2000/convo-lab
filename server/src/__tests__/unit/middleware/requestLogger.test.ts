@@ -90,14 +90,14 @@ describe('requestLogger Middleware', () => {
   it('classifies successful mounted routes using the full original request path', async () => {
     const app = express();
     const router = Router();
-    router.get('/', (_req, res) => res.status(200).json({ dialoguesEnabled: true }));
+    router.get('/overview', (_req, res) => res.status(200).json({ dialoguesEnabled: true }));
     app.use(requestLogger);
-    app.use('/api/feature-flags', router);
+    app.use('/api/learning-os/study', router);
 
-    await request(app).get('/api/feature-flags?source=client').expect(200);
+    await request(app).get('/api/learning-os/study/overview?source=client').expect(200);
 
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/^GET \/api\/feature-flags 200 - \d+ms$/)
+      expect.stringMatching(/^GET \/api\/learning-os\/study\/overview 200 - \d+ms$/)
     );
     const structuredLog = consoleLogSpy.mock.calls
       .map(([value]) => value)
@@ -105,12 +105,12 @@ describe('requestLogger Middleware', () => {
         (value) =>
           typeof value === 'string' &&
           value.includes('"event":"backend_route_usage"') &&
-          value.includes('"routeId":"feature-flags.show"')
+          value.includes('"routeId":"study.proxy"')
       );
     expect(structuredLog).toBeDefined();
     expect(JSON.parse(structuredLog as string)).toMatchObject({
-      routeId: 'feature-flags.show',
-      normalizedPath: '/api/feature-flags',
+      routeId: 'study.proxy',
+      normalizedPath: '/api/learning-os/study/*',
       statusCode: 200,
     });
     expect(structuredLog).not.toContain('source=client');

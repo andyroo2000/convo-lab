@@ -31,56 +31,6 @@
           "path": "/api/learning-os/study/*"
         }
       ]
-    },
-    {
-      "id": "admin-feature-flags",
-      "domain": "configuration",
-      "migrationWave": "pattern",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/adminFeatureFlags.ts",
-      "mountPath": "/api/admin/feature-flags",
-      "routes": [
-        {
-          "id": "admin.feature-flags.show",
-          "method": "GET",
-          "path": "/api/admin/feature-flags"
-        },
-        {
-          "id": "admin.feature-flags.update",
-          "method": "PATCH",
-          "path": "/api/admin/feature-flags"
-        }
-      ]
-    },
-    {
-      "id": "feature-flags",
-      "domain": "configuration",
-      "migrationWave": "pattern",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/featureFlags.ts",
-      "mountPath": "/api/feature-flags",
-      "routes": [
-        {
-          "id": "feature-flags.show",
-          "method": "GET",
-          "path": "/api/feature-flags"
-        }
-      ]
-    },
-    {
-      "id": "tool-analytics",
-      "domain": "analytics",
-      "migrationWave": "retirement",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/toolAnalytics.ts",
-      "mountPath": "/api",
-      "routes": [
-        {
-          "id": "tool-analytics.store",
-          "method": "POST",
-          "path": "/api/tools/analytics"
-        }
-      ]
     }
   ]
 }

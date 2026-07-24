@@ -33,7 +33,7 @@ export interface LearningOsFirstPartyRequest {
   networkErrorMessage?: string;
 }
 
-export interface LearningOsTransportRequest extends LearningOsFirstPartyRequest {
+interface LearningOsTransportRequest extends LearningOsFirstPartyRequest {
   apiToken: string;
 }
 
@@ -164,22 +164,6 @@ async function resolveLearningOsUserContext(
   return { config: { apiUrl, apiToken }, proxyUserEmail, user };
 }
 
-export async function resolveLearningOsServiceProxyContext(
-  apiLabel: string
-): Promise<{ config: LearningOsProxyConfig; user: LearningOsProxyUser }> {
-  const { proxyUserEmail, ...config } = getLearningOsProxyConfig(apiLabel);
-  const user = await prisma.user.findUnique({
-    where: { email: proxyUserEmail },
-    select: { id: true, email: true, role: true },
-  });
-
-  if (!user) {
-    throw new AppError(`${apiLabel} proxy account is unavailable.`, 503);
-  }
-
-  return { config, user };
-}
-
 export function learningOsProxyHeaders(
   apiToken: string,
   user: LearningOsProxyUser,
@@ -211,15 +195,6 @@ export function fetchLearningOsProxy({
   return fetchLearningOsTransport(
     request,
     learningOsProxyHeaders(request.apiToken, user, request.additionalHeaders)
-  );
-}
-
-export function fetchLearningOsServiceProxy(
-  request: LearningOsTransportRequest
-): Promise<Response> {
-  return fetchLearningOsTransport(
-    request,
-    learningOsServiceProxyHeaders(request.apiToken, request.additionalHeaders)
   );
 }
 

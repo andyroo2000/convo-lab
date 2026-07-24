@@ -87,6 +87,14 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/api/convolab/browser/tools/analytics': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/api/feature-flags': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '^/api/study(?:/|$)': {
         target: 'http://localhost:8080',
         changeOrigin: true,

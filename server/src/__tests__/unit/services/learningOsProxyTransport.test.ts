@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  fetchLearningOsProxy,
-  fetchLearningOsServiceProxy,
-} from '../../../services/learningOsProxy.js';
+import { fetchLearningOsProxy } from '../../../services/learningOsProxy.js';
 
 const baseRequest = {
   upstreamUrl: new URL('https://learning-os.example/api/test'),
@@ -55,34 +52,6 @@ describe('Learning OS proxy transport', () => {
       'X-Convo-Lab-User-Id': 'user-id',
     });
     expect(request.headers).not.toHaveProperty('Content-Type');
-  });
-
-  it('sends service requests without browser-user impersonation headers', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await fetchLearningOsServiceProxy({
-      upstreamUrl: baseRequest.upstreamUrl,
-      apiToken: baseRequest.apiToken,
-      method: 'POST',
-      body: { event: 'opened' },
-      timeoutMs: baseRequest.timeoutMs,
-      timeoutMessage: baseRequest.timeoutMessage,
-    });
-
-    const request = fetchMock.mock.calls[0][1] as RequestInit;
-    expect(request).toMatchObject({
-      method: 'POST',
-      body: JSON.stringify({ event: 'opened' }),
-      headers: {
-        Accept: 'application/json',
-        Authorization: 'Bearer proxy-token',
-        'Content-Type': 'application/json',
-      },
-    });
-    expect(request.headers).not.toHaveProperty('X-Convo-Lab-User-Id');
-    expect(request.headers).not.toHaveProperty('X-Convo-Lab-User-Email');
-    expect(request.headers).not.toHaveProperty('X-Convo-Lab-User-Role');
   });
 
   it('rejects ambiguous requests containing both JSON and raw bodies', async () => {
