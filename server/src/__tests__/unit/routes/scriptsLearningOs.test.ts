@@ -301,7 +301,9 @@ describe('Learning OS script routes', () => {
     mocks.fetchLearningOsProxy.mockResolvedValue(upstreamJson(mismatched));
     const response = await request(app).get(`/api/scripts/${EPISODE_ID}/status`).expect(200);
     expect(response.body.renders[0].audioUrl).toBe(`/api/scripts/${EPISODE_ID}/audio/${RENDER_ID}`);
-    expect(response.body.segments[0].imageMedia.publicUrl).toBe(`/api/scripts/media/${MEDIA_ID}`);
+    expect(response.body.segments[0].imageMedia.publicUrl).toBe(
+      `/api/convolab/scripts/media/${MEDIA_ID}`
+    );
   });
 
   it('maps hidden upstream misses through while shielding auth and infrastructure failures', async () => {
