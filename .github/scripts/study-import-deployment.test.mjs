@@ -475,6 +475,68 @@ test('the production workflow refreshes and verifies Learning OS content reads',
   assert.ok(episodeSmoke < courseSmoke);
 });
 
+test('direct Learning OS content smoke uses a disposable admin browser session', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'concurrency:\n  group: production-deploy\n  cancel-in-progress: false',
+    'content_browser_smoke_convolab_id=',
+    '"deployment-content-browser-%@example.invalid"',
+    'whereHas(',
+    '$user = Illuminate\\Support\\Facades\\DB::transaction(function () {',
+    '"role" => "admin"',
+    "'https://convo-lab.com/sanctum/csrf-cookie'",
+    "'https://convo-lab.com/api/convolab/browser/auth/login'",
+    'fetch_content_browser_route() {',
+    'mutate_content_browser_route() {',
+    '--cookie "$content_browser_smoke_cookie_jar"',
+    '--header "X-XSRF-TOKEN: $content_browser_smoke_csrf_token"',
+    "printf '%s&viewAs=%s'",
+    "printf '%s?viewAs=%s'",
+    'cleanup_content_browser_smoke best-effort',
+    'cleanup_content_browser_smoke',
+    'DB::table("admin_user_projections")\n                      ->where(\n                        "convolab_id",\n                        getenv("CONTENT_BROWSER_SMOKE_CONVOLAB_ID"),',
+  ]) {
+    assert.ok(
+      workflow.includes(requiredContract),
+      `Missing content browser-session contract: ${requiredContract}`
+    );
+  }
+
+  const setup = workflow.indexOf('Disposable Learning OS content browser session established.');
+  const login = workflow.indexOf(
+    "'https://convo-lab.com/api/convolab/browser/auth/login'"
+  );
+  const refreshedCsrf = workflow.indexOf(
+    'content_browser_smoke_csrf_raw="$(awk',
+    login
+  );
+  const firstRead = workflow.indexOf('episode_list="$(fetch_content_browser_route');
+  const finalContentCheck = workflow.indexOf(
+    'Audio Script Learning OS routing and streaming smoke checks passed.'
+  );
+  const cleanup = workflow.indexOf(
+    'cleanup_content_browser_smoke',
+    finalContentCheck
+  );
+
+  assert.ok(setup >= 0);
+  assert.ok(login >= 0);
+  assert.ok(login < refreshedCsrf);
+  assert.ok(refreshedCsrf < setup);
+  assert.ok(setup < firstRead);
+  assert.ok(firstRead < finalContentCheck);
+  assert.ok(finalContentCheck < cleanup);
+
+  assert.doesNotMatch(
+    workflow,
+    /(?:fetch_read_route|mutate_proxy_route)[\s\S]{0,200}\/api\/convolab\/(?:episodes|courses|dialogue|images|audio|scripts)/u
+  );
+});
+
 test('the production workflow proves public course CRUD and removes every smoke artifact', async () => {
   const workflow = await readFile(
     path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
@@ -483,7 +545,7 @@ test('the production workflow proves public course CRUD and removes every smoke 
 
   for (const requiredContract of [
     'course_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"',
-    "course_create=\"$(mutate_proxy_route POST '/api/convolab/courses'",
+    "course_create=\"$(mutate_content_browser_route POST '/api/convolab/courses'",
     'course_write_smoke_id=',
     '"/api/convolab/courses/$course_write_smoke_id"',
     'response?.message !== "Course updated successfully"',
@@ -504,11 +566,11 @@ test('the production workflow proves public course CRUD and removes every smoke 
 
   const marker = workflow.indexOf('course_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"');
   const create = workflow.indexOf(
-    "course_create=\"$(mutate_proxy_route POST '/api/convolab/courses'"
+    "course_create=\"$(mutate_content_browser_route POST '/api/convolab/courses'"
   );
-  const update = workflow.indexOf('course_update="$(mutate_proxy_route');
+  const update = workflow.indexOf('course_update="$(mutate_content_browser_route');
   const detail = workflow.indexOf("'Updated course Learning OS'");
-  const deleteCourse = workflow.indexOf('course_delete="$(mutate_proxy_route');
+  const deleteCourse = workflow.indexOf('course_delete="$(mutate_content_browser_route');
   const tombstone = workflow.indexOf('Deleted smoke course has no tombstone.');
   const cleanup = workflow.lastIndexOf(
     'cleanup_course_write_smoke',
@@ -540,7 +602,7 @@ test('the production workflow proves public episode CRUD and removes every smoke
 
   for (const requiredContract of [
     'episode_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"',
-    "episode_create=\"$(mutate_proxy_route POST '/api/convolab/episodes'",
+    "episode_create=\"$(mutate_content_browser_route POST '/api/convolab/episodes'",
     'episode_write_smoke_id=',
     '"/api/convolab/episodes/$episode_write_smoke_id"',
     'response?.message !== "Episode updated successfully"',
@@ -559,11 +621,11 @@ test('the production workflow proves public episode CRUD and removes every smoke
 
   const marker = workflow.indexOf('episode_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"');
   const create = workflow.indexOf(
-    "episode_create=\"$(mutate_proxy_route POST '/api/convolab/episodes'"
+    "episode_create=\"$(mutate_content_browser_route POST '/api/convolab/episodes'"
   );
-  const update = workflow.indexOf('episode_update="$(mutate_proxy_route');
+  const update = workflow.indexOf('episode_update="$(mutate_content_browser_route');
   const detail = workflow.indexOf("'Updated episode Learning OS'");
-  const deleteEpisode = workflow.indexOf('episode_delete="$(mutate_proxy_route');
+  const deleteEpisode = workflow.indexOf('episode_delete="$(mutate_content_browser_route');
   const deleted = workflow.indexOf('Deleted smoke episode still exists.');
   const cleanup = workflow.lastIndexOf(
     'cleanup_episode_write_smoke',
@@ -710,8 +772,8 @@ test('generation routes are permanently proxied and production rehearsals cover 
     'cleanup_script_smoke best-effort',
     '"/api/convolab/scripts/$script_smoke_episode_id/status"',
     '"/api/convolab/scripts/job/$script_smoke_job_id"',
-    '"https://convo-lab.com/api/convolab/scripts/media/$script_smoke_media_id"',
-    '"https://convo-lab.com/api/convolab/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id"',
+    '"https://convo-lab.com/api/convolab/scripts/media/$script_smoke_media_id?viewAs=$user_id"',
+    '"https://convo-lab.com/api/convolab/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id?viewAs=$user_id"',
     'Audio Script Learning OS routing and streaming smoke checks passed.',
     'course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"',
     'course_generation_smoke_inserted=false',
