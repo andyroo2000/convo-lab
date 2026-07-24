@@ -1686,7 +1686,7 @@ jobs:
 
               episode_list="$(fetch_read_route \
                 'Episode list Learning OS' \
-                '/api/episodes?library=true&limit=1&offset=0')"
+                '/api/convolab/episodes?library=true&limit=1&offset=0')"
               episode_id="$(printf '%s' "$episode_list" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
                   const chunks = [];
@@ -1704,7 +1704,7 @@ jobs:
               if [ -n "$episode_id" ]; then
                 episode_detail="$(fetch_read_route \
                   'Episode detail Learning OS' \
-                  "/api/episodes/$episode_id")"
+                  "/api/convolab/episodes/$episode_id")"
                 printf '%s' "$episode_detail" | docker exec -i \
                   -e EXPECTED_EPISODE_ID="$episode_id" \
                   "convolab-server-$active_color" node --input-type=module --eval='
@@ -1739,7 +1739,7 @@ jobs:
                     autoGenerateAudio: false,
                   }));
                 ')"
-              episode_create="$(mutate_proxy_route POST '/api/episodes' "$episode_create_body")"
+              episode_create="$(mutate_proxy_route POST '/api/convolab/episodes' "$episode_create_body")"
               episode_write_smoke_id="$(printf '%s' "$episode_create" | docker exec -i \
                 -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -1772,7 +1772,7 @@ jobs:
                 ')"
               episode_update="$(mutate_proxy_route \
                 PATCH \
-                "/api/episodes/$episode_write_smoke_id" \
+                "/api/convolab/episodes/$episode_write_smoke_id" \
                 "$episode_update_body")"
               printf '%s' "$episode_update" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -1783,7 +1783,7 @@ jobs:
                 '
               episode_updated_detail="$(fetch_read_route \
                 'Updated episode Learning OS' \
-                "/api/episodes/$episode_write_smoke_id")"
+                "/api/convolab/episodes/$episode_write_smoke_id")"
               printf '%s' "$episode_updated_detail" | docker exec -i \
                 -e EXPECTED_EPISODE_ID="$episode_write_smoke_id" \
                 -e EPISODE_WRITE_SMOKE_MARKER="$episode_write_smoke_marker" \
@@ -1804,7 +1804,7 @@ jobs:
 
               episode_delete="$(mutate_proxy_route \
                 DELETE \
-                "/api/episodes/$episode_write_smoke_id" \
+                "/api/convolab/episodes/$episode_write_smoke_id" \
                 '{}')"
               printf '%s' "$episode_delete" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -1824,7 +1824,7 @@ jobs:
 
               course_list="$(fetch_read_route \
                 'Course list Learning OS' \
-                '/api/courses?library=true&limit=1&offset=0')"
+                '/api/convolab/courses?library=true&limit=1&offset=0')"
               course_id="$(printf '%s' "$course_list" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
                   const chunks = [];
@@ -1842,7 +1842,7 @@ jobs:
               if [ -n "$course_id" ]; then
                 course_detail="$(fetch_read_route \
                   'Course detail Learning OS' \
-                  "/api/courses/$course_id")"
+                  "/api/convolab/courses/$course_id")"
                 printf '%s' "$course_detail" | docker exec -i \
                   -e EXPECTED_COURSE_ID="$course_id" \
                   "convolab-server-$active_color" node --input-type=module --eval='
@@ -1880,7 +1880,7 @@ jobs:
                     speaker2Gender: "female",
                   }));
                 ')"
-              course_create="$(mutate_proxy_route POST '/api/courses' "$course_create_body")"
+              course_create="$(mutate_proxy_route POST '/api/convolab/courses' "$course_create_body")"
               course_write_smoke_id="$(printf '%s' "$course_create" | docker exec -i \
                 -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -1911,7 +1911,7 @@ jobs:
                 ')"
               course_update="$(mutate_proxy_route \
                 PATCH \
-                "/api/courses/$course_write_smoke_id" \
+                "/api/convolab/courses/$course_write_smoke_id" \
                 "$course_update_body")"
               printf '%s' "$course_update" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -1922,7 +1922,7 @@ jobs:
                 '
               course_updated_detail="$(fetch_read_route \
                 'Updated course Learning OS' \
-                "/api/courses/$course_write_smoke_id")"
+                "/api/convolab/courses/$course_write_smoke_id")"
               printf '%s' "$course_updated_detail" | docker exec -i \
                 -e EXPECTED_COURSE_ID="$course_write_smoke_id" \
                 -e COURSE_WRITE_SMOKE_MARKER="$course_write_smoke_marker" \
@@ -1940,7 +1940,7 @@ jobs:
 
               course_delete="$(mutate_proxy_route \
                 DELETE \
-                "/api/courses/$course_write_smoke_id" \
+                "/api/convolab/courses/$course_write_smoke_id" \
                 '{}')"
               printf '%s' "$course_delete" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
@@ -2001,7 +2001,7 @@ jobs:
 
               course_reset="$(mutate_proxy_route \
                 POST \
-                "/api/courses/$course_generation_smoke_id/reset" \
+                "/api/convolab/courses/$course_generation_smoke_id/reset" \
                 '{}')"
               printf '%s' "$course_reset" | docker exec -i \
                 -e EXPECTED_COURSE_ID="$course_generation_smoke_id" \
@@ -2017,7 +2017,7 @@ jobs:
                 '
               course_status="$(fetch_read_route \
                 'Course generation status after reset' \
-                "/api/courses/$course_generation_smoke_id/status")"
+                "/api/convolab/courses/$course_generation_smoke_id/status")"
               printf '%s' "$course_status" | docker exec -i \
                 "convolab-server-$active_color" node --input-type=module --eval='
                   const chunks = [];

@@ -446,16 +446,21 @@ test('the production workflow refreshes and verifies Learning OS content reads',
     '--source-database="$source_db"',
     '--production-truncate-confirmation="TRUNCATE $TARGET_DB"',
     "'Episode list Learning OS'",
-    "'/api/episodes?library=true&limit=1&offset=0'",
+    "'/api/convolab/episodes?library=true&limit=1&offset=0'",
     "'Episode detail Learning OS'",
     'Episode Learning OS read smoke checks passed.',
     "'Course list Learning OS'",
-    "'/api/courses?library=true&limit=1&offset=0'",
+    "'/api/convolab/courses?library=true&limit=1&offset=0'",
     "'Course detail Learning OS'",
     'Course Learning OS read smoke checks passed.',
   ]) {
     assert.ok(workflow.includes(requiredContract), requiredContract);
   }
+  assert.doesNotMatch(
+    workflow,
+    /\/api\/(?:episodes|courses)\b/u,
+    'The production rehearsal must not call retired Express content routes'
+  );
 
   const migration = workflow.indexOf('php artisan migrate --force');
   const episodeImport = workflow.indexOf('php artisan content:import-convolab-episodes');
@@ -478,9 +483,9 @@ test('the production workflow proves public course CRUD and removes every smoke 
 
   for (const requiredContract of [
     'course_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"',
-    "course_create=\"$(mutate_proxy_route POST '/api/courses'",
+    "course_create=\"$(mutate_proxy_route POST '/api/convolab/courses'",
     'course_write_smoke_id=',
-    '"/api/courses/$course_write_smoke_id"',
+    '"/api/convolab/courses/$course_write_smoke_id"',
     'response?.message !== "Course updated successfully"',
     "'Updated course Learning OS'",
     'course.description !== null',
@@ -498,7 +503,9 @@ test('the production workflow proves public course CRUD and removes every smoke 
   }
 
   const marker = workflow.indexOf('course_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"');
-  const create = workflow.indexOf("course_create=\"$(mutate_proxy_route POST '/api/courses'");
+  const create = workflow.indexOf(
+    "course_create=\"$(mutate_proxy_route POST '/api/convolab/courses'"
+  );
   const update = workflow.indexOf('course_update="$(mutate_proxy_route');
   const detail = workflow.indexOf("'Updated course Learning OS'");
   const deleteCourse = workflow.indexOf('course_delete="$(mutate_proxy_route');
@@ -533,9 +540,9 @@ test('the production workflow proves public episode CRUD and removes every smoke
 
   for (const requiredContract of [
     'episode_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"',
-    "episode_create=\"$(mutate_proxy_route POST '/api/episodes'",
+    "episode_create=\"$(mutate_proxy_route POST '/api/convolab/episodes'",
     'episode_write_smoke_id=',
-    '"/api/episodes/$episode_write_smoke_id"',
+    '"/api/convolab/episodes/$episode_write_smoke_id"',
     'response?.message !== "Episode updated successfully"',
     "'Updated episode Learning OS'",
     'episode.sourceText !== "Disposable production episode rehearsal source text."',
@@ -551,7 +558,9 @@ test('the production workflow proves public episode CRUD and removes every smoke
   }
 
   const marker = workflow.indexOf('episode_write_smoke_marker="$(cat /proc/sys/kernel/random/uuid)"');
-  const create = workflow.indexOf("episode_create=\"$(mutate_proxy_route POST '/api/episodes'");
+  const create = workflow.indexOf(
+    "episode_create=\"$(mutate_proxy_route POST '/api/convolab/episodes'"
+  );
   const update = workflow.indexOf('episode_update="$(mutate_proxy_route');
   const detail = workflow.indexOf("'Updated episode Learning OS'");
   const deleteEpisode = workflow.indexOf('episode_delete="$(mutate_proxy_route');
@@ -715,7 +724,7 @@ test('generation routes are permanently proxied and production rehearsals cover 
     '"generation_heartbeat_at" => now()->subDay()',
     'course_generation_smoke_inserted=true',
     'incompatible required',
-    '"/api/courses/$course_generation_smoke_id/reset"',
+    '"/api/convolab/courses/$course_generation_smoke_id/reset"',
     "'Course generation status after reset'",
     'response?.status !== "draft"',
     'cleanup_course_generation_smoke',
@@ -794,7 +803,9 @@ test('generation routes are permanently proxied and production rehearsals cover 
     'Illuminate\\Support\\Facades\\DB::table("content_courses")->insert'
   );
   const csrfTokenInitialization = workflow.indexOf('csrf_token="$(docker exec');
-  const publicReset = workflow.indexOf('"/api/courses/$course_generation_smoke_id/reset"');
+  const publicReset = workflow.indexOf(
+    '"/api/convolab/courses/$course_generation_smoke_id/reset"'
+  );
   const statusCheck = workflow.indexOf("'Course generation status after reset'");
   const successCleanup = workflow.lastIndexOf(
     'cleanup_course_generation_smoke',
