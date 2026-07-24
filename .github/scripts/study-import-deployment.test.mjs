@@ -1682,6 +1682,7 @@ test('the production workflow verifies migrated Daily Audio through Learning OS'
     'Disposable Daily Audio track downloaded.',
     'Daily Audio stream returned unexpected bytes.',
     'Daily Audio stream is missing expected header:',
+    "'^(HTTP/|content-(type|length|disposition|security-policy):|cross-origin-resource-policy:|x-content-type-options:)'",
     `printf '%s' "$daily_audio_list" | docker exec -i`,
     `printf '%s' "$daily_audio_detail" | docker exec -i`,
     `printf '%s' "$daily_audio_status" | docker exec -i`,

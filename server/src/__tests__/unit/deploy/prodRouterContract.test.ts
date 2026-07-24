@@ -36,6 +36,9 @@ describe('production router contract', () => {
     );
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/admin\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/study\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).toContain(
+      'location ~ "^/api/daily-audio-practice/[0-9a-fA-F-]{36}/tracks/[0-9a-fA-F-]{36}/audio$"'
+    );
     expect(routerTemplate).toMatch(/location ~ \^\/api\/daily-audio-practice\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/convolab\/ \{/u);
     expect(routerTemplate).not.toMatch(/location \^~ \/api\/ \{/u);
@@ -66,7 +69,14 @@ describe('production router contract', () => {
       'location ~ "^/api/study/imports/[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}/upload$"',
       'location ~ ^/api/study(?:/|$)',
     ],
-    ['location ~ ^/api/study(?:/|$)', 'location ~ ^/api/daily-audio-practice(?:/|$)'],
+    [
+      'location ~ ^/api/study(?:/|$)',
+      'location ~ "^/api/daily-audio-practice/[0-9a-fA-F-]{36}/tracks/[0-9a-fA-F-]{36}/audio$"',
+    ],
+    [
+      'location ~ "^/api/daily-audio-practice/[0-9a-fA-F-]{36}/tracks/[0-9a-fA-F-]{36}/audio$"',
+      'location ~ ^/api/daily-audio-practice(?:/|$)',
+    ],
     ['location ~ ^/api/daily-audio-practice(?:/|$)', 'location / {'],
   ])('strips proxy credentials from %s', (start, end) => {
     const block = browserRouteBlock(start, end);
@@ -105,6 +115,10 @@ describe('production router contract', () => {
     );
     const canonicalBlock = browserRouteBlock(
       'location ~ ^/api/study(?:/|$)',
+      'location ~ "^/api/daily-audio-practice/[0-9a-fA-F-]{36}/tracks/[0-9a-fA-F-]{36}/audio$"'
+    );
+    const canonicalDailyAudioStreamBlock = browserRouteBlock(
+      'location ~ "^/api/daily-audio-practice/[0-9a-fA-F-]{36}/tracks/[0-9a-fA-F-]{36}/audio$"',
       'location ~ ^/api/daily-audio-practice(?:/|$)'
     );
     const canonicalDailyAudioBlock = browserRouteBlock(
@@ -123,6 +137,12 @@ describe('production router contract', () => {
     expect(canonicalUploadBlock).toContain('proxy_request_buffering off;');
     expect(canonicalUploadBlock).toContain('proxy_send_timeout 1800s;');
     expect(canonicalBlock).not.toContain('rewrite ');
+    expect(canonicalDailyAudioStreamBlock).toContain(
+      `add_header Content-Security-Policy "sandbox; default-src 'none'" always;`
+    );
+    expect(canonicalDailyAudioStreamBlock).toContain(
+      'add_header Cross-Origin-Resource-Policy "same-origin" always;'
+    );
     expect(canonicalDailyAudioBlock).not.toContain('rewrite ');
     expect(routerTemplate).not.toContain(
       'location ~ ^/api/learning-os/study/daily-audio-practice(?:/|$)'

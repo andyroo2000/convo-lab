@@ -275,6 +275,24 @@ server {
         proxy_read_timeout 180s;
     }
 
+    location ~ "^/api/daily-audio-practice/[0-9a-fA-F-]{36}/tracks/[0-9a-fA-F-]{36}/audio$" {
+        proxy_pass $learning_os_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+        proxy_set_header Authorization "";
+        proxy_set_header X-Convo-Lab-User-Id "";
+        add_header Content-Security-Policy "sandbox; default-src 'none'" always;
+        add_header Cross-Origin-Resource-Policy "same-origin" always;
+        proxy_buffering off;
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 180s;
+        proxy_read_timeout 180s;
+    }
+
     location ~ ^/api/daily-audio-practice(?:/|$) {
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
