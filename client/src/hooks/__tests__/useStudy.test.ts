@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API_URL } from '../../config';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
-import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
+import {
+  CSRF_TOKEN_COOKIE_NAME,
+  LEARNING_OS_CSRF_TOKEN_HEADER_NAME,
+  fetchWithCsrf,
+} from '../../lib/csrf';
 import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
@@ -46,7 +49,7 @@ vi.mock('../../config', () => ({
   SHOW_ONBOARDING_WELCOME: false,
 }));
 
-const STUDY_PROXY_BASE = `${API_URL}/api/learning-os/study`;
+const STUDY_API_BASE = '/api/study';
 
 describe('useStudy request helpers', () => {
   class MockXMLHttpRequest {
@@ -91,17 +94,25 @@ describe('useStudy request helpers', () => {
     }
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({}),
+      vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
+        if (String(input) === '/sanctum/csrf-cookie') {
+          document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=test-csrf-token`;
+          return { ok: true, status: 204 } as Response;
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({}),
+        } as Response;
       })
     );
     vi.stubGlobal('XMLHttpRequest', MockXMLHttpRequest as unknown as typeof XMLHttpRequest);
-    document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=test-csrf-token`;
+    await fetchWithCsrf('/api/study/test-csrf-setup', { method: 'POST' });
+    vi.mocked(global.fetch).mockClear();
   });
 
   afterEach(() => {
@@ -114,7 +125,7 @@ describe('useStudy request helpers', () => {
     const headers = new Headers(requestInit.headers);
     expect(headers.get('Accept')).toBe('application/json');
     expect(headers.get('Content-Type')).toBe('application/json');
-    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
   }
 
   it('routes session start, review, and undo through Learning OS', async () => {
@@ -128,13 +139,13 @@ describe('useStudy request helpers', () => {
     const fetchMock = vi.mocked(global.fetch);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      `${STUDY_PROXY_BASE}/session/start`,
+      `${STUDY_API_BASE}/session/start`,
       expect.any(Object)
     );
-    expect(fetchMock).toHaveBeenNthCalledWith(2, `${STUDY_PROXY_BASE}/reviews`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${STUDY_API_BASE}/reviews`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
-      `${STUDY_PROXY_BASE}/reviews/undo`,
+      `${STUDY_API_BASE}/reviews/undo`,
       expect.any(Object)
     );
     expectJsonMutation(0);
@@ -195,7 +206,7 @@ describe('useStudy request helpers', () => {
 
     const paths = vi
       .mocked(global.fetch)
-      .mock.calls.map(([url]) => String(url).replace(STUDY_PROXY_BASE, ''));
+      .mock.calls.map(([url]) => String(url).replace(STUDY_API_BASE, ''));
     expect(paths).toEqual([
       '/cards',
       `/cards/${cardId}`,
@@ -259,7 +270,7 @@ describe('useStudy request helpers', () => {
 
     const paths = vi
       .mocked(global.fetch)
-      .mock.calls.map(([url]) => String(url).replace(STUDY_PROXY_BASE, ''));
+      .mock.calls.map(([url]) => String(url).replace(STUDY_API_BASE, ''));
     expect(paths).toEqual([
       `/card-drafts?cursor=${draftId}&limit=50`,
       '/card-drafts',
@@ -297,18 +308,18 @@ describe('useStudy request helpers', () => {
 
     const fetchMock = vi.mocked(global.fetch);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-      `${STUDY_PROXY_BASE}/settings`,
-      `${STUDY_PROXY_BASE}/settings`,
-      `${STUDY_PROXY_BASE}/new-queue?cursor=cursor-1&limit=25&q=kana`,
-      `${STUDY_PROXY_BASE}/new-queue/reorder`,
-      `${STUDY_PROXY_BASE}/browser?q=%E5%AD%A6%E6%A0%A1&sortField=created_on&sortDirection=desc&limit=25`,
-      `${STUDY_PROXY_BASE}/browser/note%2Fwith%20spaces`,
+      `${STUDY_API_BASE}/settings`,
+      `${STUDY_API_BASE}/settings`,
+      `${STUDY_API_BASE}/new-queue?cursor=cursor-1&limit=25&q=kana`,
+      `${STUDY_API_BASE}/new-queue/reorder`,
+      `${STUDY_API_BASE}/browser?q=%E5%AD%A6%E6%A0%A1&sortField=created_on&sortDirection=desc&limit=25`,
+      `${STUDY_API_BASE}/browser/note%2Fwith%20spaces`,
     ]);
 
     const readHeaders = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
     expect(readHeaders.get('Accept')).toBe('application/json');
     expect(readHeaders.get('Content-Type')).toBeNull();
-    expect(readHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBeNull();
+    expect(readHeaders.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBeNull();
     expectJsonMutation(1);
     expectJsonMutation(3);
   });
@@ -337,7 +348,7 @@ describe('useStudy request helpers', () => {
 
   it('routes the complete import lifecycle through Learning OS', async () => {
     const importId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
-    const uploadUrl = `/api/learning-os/study/imports/${importId}/upload`;
+    const uploadUrl = `/api/study/imports/${importId}/upload`;
     vi.mocked(global.fetch)
       .mockResolvedValueOnce({
         ok: true,
@@ -364,14 +375,14 @@ describe('useStudy request helpers', () => {
 
     expect(result).toEqual({ id: importId, status: 'pending' });
     expect(vi.mocked(global.fetch).mock.calls.map(([url]) => String(url))).toEqual([
-      `${STUDY_PROXY_BASE}/imports`,
-      `${STUDY_PROXY_BASE}/imports/${importId}/complete`,
+      `${STUDY_API_BASE}/imports`,
+      `${STUDY_API_BASE}/imports/${importId}/complete`,
     ]);
     expect(MockXMLHttpRequest.lastInstance?.method).toBe('PUT');
     expect(MockXMLHttpRequest.lastInstance?.url).toBe(uploadUrl);
-    expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBe(
-      'test-csrf-token'
-    );
+    expect(
+      MockXMLHttpRequest.lastInstance?.requestHeaders.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)
+    ).toBe('test-csrf-token');
   });
 
   it('routes import status, readiness, completion, and cancellation through Learning OS', async () => {
@@ -383,11 +394,11 @@ describe('useStudy request helpers', () => {
     await cancelStudyImportUpload(importId);
 
     expect(vi.mocked(global.fetch).mock.calls.map(([url]) => String(url))).toEqual([
-      `${STUDY_PROXY_BASE}/imports/current`,
-      `${STUDY_PROXY_BASE}/imports/readiness`,
-      `${STUDY_PROXY_BASE}/imports/${importId}`,
-      `${STUDY_PROXY_BASE}/imports/${importId}/complete`,
-      `${STUDY_PROXY_BASE}/imports/${importId}/cancel`,
+      `${STUDY_API_BASE}/imports/current`,
+      `${STUDY_API_BASE}/imports/readiness`,
+      `${STUDY_API_BASE}/imports/${importId}`,
+      `${STUDY_API_BASE}/imports/${importId}/complete`,
+      `${STUDY_API_BASE}/imports/${importId}/cancel`,
     ]);
   });
 
@@ -415,16 +426,16 @@ describe('useStudy request helpers', () => {
         },
         upload: {
           method: 'PUT',
-          url: '/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload',
+          url: '/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload',
           headers: { 'Content-Type': 'application/octet-stream' },
         },
       },
       file
     );
 
-    expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBe(
-      'test-csrf-token'
-    );
+    expect(
+      MockXMLHttpRequest.lastInstance?.requestHeaders.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)
+    ).toBe('test-csrf-token');
   });
 
   it('creates import sessions with the Learning OS proxy contract', async () => {
@@ -433,7 +444,7 @@ describe('useStudy request helpers', () => {
     });
     await createStudyImportUploadSession(file);
 
-    expect(global.fetch).toHaveBeenCalledWith(`${STUDY_PROXY_BASE}/imports`, expect.any(Object));
+    expect(global.fetch).toHaveBeenCalledWith(`${STUDY_API_BASE}/imports`, expect.any(Object));
     const requestInit = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
     expect(JSON.parse(String(requestInit.body))).toEqual({
       filename: 'deck.colpkg',

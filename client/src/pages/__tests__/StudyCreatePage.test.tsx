@@ -339,7 +339,7 @@ describe('StudyCreatePage', () => {
     expect(screen.getByLabelText('Image placement')).toHaveValue('none');
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
-      'http://localhost:3001/api/learning-os/study/media/manual-audio'
+      '/api/learning-os/study/media/manual-audio'
     );
     const audioToRegeneratePosition = screen
       .getByRole('button', { name: 'Play generated preview audio' })
@@ -591,11 +591,11 @@ describe('StudyCreatePage', () => {
 
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
-      'http://localhost:3001/api/learning-os/study/media/manual-audio'
+      '/api/learning-os/study/media/manual-audio'
     );
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
-      'http://localhost:3001/api/learning-os/study/media/manual-image'
+      '/api/learning-os/study/media/manual-image'
     );
   });
 
@@ -639,7 +639,7 @@ describe('StudyCreatePage', () => {
     );
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
-      'http://localhost:3001/api/learning-os/study/media/vocab-cloze-image'
+      '/api/learning-os/study/media/vocab-cloze-image'
     );
     expect(screen.getByRole('button', { name: 'Generate image' })).toBeEnabled();
   });
@@ -724,7 +724,7 @@ describe('StudyCreatePage', () => {
     );
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
-      'http://localhost:3001/api/learning-os/study/media/media-regenerated'
+      '/api/learning-os/study/media/media-regenerated'
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
@@ -881,7 +881,7 @@ describe('StudyCreatePage', () => {
     );
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
-      'http://localhost:3001/api/learning-os/study/media/manual-image'
+      '/api/learning-os/study/media/manual-image'
     );
   });
 

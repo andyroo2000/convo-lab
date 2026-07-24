@@ -34,9 +34,9 @@ import type {
   StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types';
 
-import { API_URL } from '../config';
-import { CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
+import { LEARNING_OS_CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
 import { notifyAuthSessionExpired } from '../lib/authSession';
+import { studyApiPath } from '../lib/studyApi';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 
 export interface StudySessionResponse {
@@ -88,8 +88,6 @@ export interface StudyBrowserQuery {
   limit?: number;
 }
 
-const LEARNING_OS_STUDY_PROXY_BASE = '/api/learning-os/study';
-
 function withMutationHeaders(init?: RequestInit): HeadersInit {
   const headers = new Headers(init?.headers ?? {});
   const method = (init?.method ?? 'GET').toUpperCase();
@@ -102,15 +100,10 @@ function withMutationHeaders(init?: RequestInit): HeadersInit {
   return headers;
 }
 
-function trimTrailingSlash(value: string): string {
-  return value.replace(/\/+$/, '');
-}
-
 async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(withMutationHeaders(init));
   headers.set('Accept', 'application/json');
-  const proxyEndpoint = `${LEARNING_OS_STUDY_PROXY_BASE}${endpoint}`;
-  const response = await fetchWithCsrf(`${trimTrailingSlash(API_URL)}${proxyEndpoint}`, {
+  const response = await fetchWithCsrf(studyApiPath(endpoint), {
     ...init,
     credentials: 'include',
     headers,
@@ -695,7 +688,7 @@ export async function uploadStudyImportArchive(
     signal?: AbortSignal;
   } = {}
 ): Promise<void> {
-  const csrfToken = await getCsrfToken();
+  const csrfToken = await getCsrfToken('learning-os');
   if (!csrfToken) {
     throw new Error('Unable to initialize secure upload.');
   }
@@ -716,7 +709,7 @@ export async function uploadStudyImportArchive(
     Object.entries(session.upload.headers).forEach(([headerName, headerValue]) => {
       request.setRequestHeader(headerName, headerValue);
     });
-    request.setRequestHeader(CSRF_TOKEN_HEADER_NAME, csrfToken);
+    request.setRequestHeader(LEARNING_OS_CSRF_TOKEN_HEADER_NAME, csrfToken);
 
     options.signal?.addEventListener('abort', abortHandler, { once: true });
 

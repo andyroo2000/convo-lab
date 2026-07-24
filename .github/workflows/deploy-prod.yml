@@ -458,6 +458,56 @@ jobs:
                   fi
                 done
 
+                for study_probe in \
+                  'canonical|https://convo-lab.com/api/study/overview' \
+                  'daily-audio|https://convo-lab.com/api/daily-audio-practice'
+                do
+                  study_label="${study_probe%%|*}"
+                  study_url="${study_probe#*|}"
+                  study_status="$(curl --silent --show-error \
+                    --cookie "$cookie_jar" \
+                    --output "$response_body" \
+                    --write-out '%{http_code}' \
+                    --header 'Accept: application/json' \
+                    --header 'Origin: https://convo-lab.com' \
+                    "$study_url")"
+                  if [ "$study_status" != 401 ]; then
+                    echo "Unauthenticated direct Study probe ($study_label) returned HTTP $study_status."
+                    cat "$response_body"
+                    return 1
+                  fi
+                  if ! grep -q '"message":"Unauthenticated."' "$response_body"; then
+                    echo "Direct Study probe ($study_label) did not return the Learning OS auth contract."
+                    cat "$response_body"
+                    return 1
+                  fi
+                done
+
+                for legacy_study_probe in \
+                  'legacy|https://convo-lab.com/api/learning-os/study/overview' \
+                  'legacy-daily-audio|https://convo-lab.com/api/learning-os/study/daily-audio-practice'
+                do
+                  legacy_study_label="${legacy_study_probe%%|*}"
+                  legacy_study_url="${legacy_study_probe#*|}"
+                  legacy_study_status="$(curl --silent --show-error \
+                    --cookie "$cookie_jar" \
+                    --output "$response_body" \
+                    --write-out '%{http_code}' \
+                    --header 'Accept: application/json' \
+                    --header 'Origin: https://convo-lab.com' \
+                    "$legacy_study_url")"
+                  if [ "$legacy_study_status" != 401 ]; then
+                    echo "Unauthenticated Study rollback probe ($legacy_study_label) returned HTTP $legacy_study_status."
+                    cat "$response_body"
+                    return 1
+                  fi
+                  if ! grep -q '"error":{"message":"Authentication required"' "$response_body"; then
+                    echo "Study rollback probe ($legacy_study_label) did not return the Express auth contract."
+                    cat "$response_body"
+                    return 1
+                  fi
+                done
+
                 avatar_status="$(curl --silent --show-error \
                   --dump-header "$response_body" \
                   --output /dev/null \

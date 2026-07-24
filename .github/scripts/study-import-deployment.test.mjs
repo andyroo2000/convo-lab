@@ -186,9 +186,10 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   for (const requiredContract of [
     'wait_for_public_csrf() {',
-    'for attempt in {1..12}; do',
-    'Public ConvoLab CSRF readiness attempt $attempt/12 failed.',
-    'if [ "$attempt" -lt 12 ]; then',
+    'local max_attempts=30',
+    'for attempt in $(seq 1 "$max_attempts"); do',
+    'Public ConvoLab CSRF readiness attempt $attempt/$max_attempts failed.',
+    'if [ "$attempt" -lt "$max_attempts" ]; then',
     'sleep 3',
     'if ! wait_for_public_csrf; then',
     'rm -f "$csrf_cookie_jar"',
@@ -303,9 +304,12 @@ test('production permanently routes migrated browser APIs', async () => {
     '/api/convolab/scripts',
     '/api/convolab/(?:dialogue|audio|images)',
     '/api/convolab/admin',
+    '/api/study',
+    '/api/daily-audio-practice',
   ]) {
     assert.ok(router.includes(`location ~ ^${route}`), `Missing permanent router route: ${route}`);
   }
+  assert.ok(!router.includes('location ~ ^/api/learning-os/study(?:/|$)'));
 
   for (const contract of [
     'verify_public_learning_os_browser_route() (',
@@ -322,6 +326,10 @@ test('production permanently routes migrated browser APIs', async () => {
     'https://convo-lab.com/api/convolab/dialogue/job/00000000-0000-4000-8000-000000000000',
     'https://convo-lab.com/api/convolab/audio/job/00000000-0000-4000-8000-000000000000',
     'https://convo-lab.com/api/convolab/images/job/00000000-0000-4000-8000-000000000000',
+    'https://convo-lab.com/api/study/overview',
+    'https://convo-lab.com/api/learning-os/study/overview',
+    'https://convo-lab.com/api/daily-audio-practice',
+    'https://convo-lab.com/api/learning-os/study/daily-audio-practice',
     'https://convo-lab.com/api/convolab/admin/stats',
     'Unauthenticated direct account probe returned HTTP',
     'Unauthenticated direct browser auth probe returned HTTP',
@@ -332,6 +340,10 @@ test('production permanently routes migrated browser APIs', async () => {
     'Unauthenticated direct script probe returned HTTP',
     'Unauthenticated direct generation probe ($generation_label) returned HTTP',
     'Direct generation probe ($generation_label) did not return the Learning OS auth contract.',
+    'Unauthenticated direct Study probe ($study_label) returned HTTP',
+    'Direct Study probe ($study_label) did not return the Learning OS auth contract.',
+    'Unauthenticated Study rollback probe ($legacy_study_label) returned HTTP',
+    'Study rollback probe ($legacy_study_label) did not return the Express auth contract.',
     'Unauthenticated direct admin probe returned HTTP',
   ]) {
     assert.ok(workflow.includes(contract), `Missing permanent browser contract: ${contract}`);
@@ -604,6 +616,35 @@ test('the production stack wires and smokes direct Learning OS static media', as
       requiredProductionContract
     );
   }
+});
+
+test('active Study traffic uses Learning OS directly with an Express rollback path', async () => {
+  const [viteConfig, studyHook, dailyAudioHook, knownKanjiHook, csrf, router] =
+    await Promise.all([
+      readFile(path.join(repositoryRoot, 'client/vite.config.ts'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'client/src/hooks/useStudy.ts'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'client/src/hooks/useDailyAudioPractice.ts'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'client/src/hooks/useKnownKanji.ts'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
+      readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8'),
+    ]);
+
+  assert.ok(viteConfig.includes("'^/api/study(?:/|$)'"));
+  assert.ok(viteConfig.includes("'^/api/daily-audio-practice(?:/|$)'"));
+  assert.ok(!viteConfig.includes("'^/api/learning-os/study(?:/|$)'"));
+  assert.ok(viteConfig.indexOf("'^/api/study(?:/|$)'") < viteConfig.indexOf("'/api':"));
+  assert.ok(studyHook.includes('studyApiPath(endpoint)'));
+  assert.ok(dailyAudioHook.includes('DAILY_AUDIO_API_BASE'));
+  assert.ok(knownKanjiHook.includes("studyApiPath('/known-kanji')"));
+  assert.ok(knownKanjiHook.includes("studyApiPath('/wanikani')"));
+  assert.ok(csrf.includes("'/api/study'"));
+  assert.ok(csrf.includes("'/api/daily-audio-practice'"));
+  assert.ok(router.includes('location ~ ^/api/study(?:/|$)'));
+  assert.ok(router.includes('location ~ ^/api/daily-audio-practice(?:/|$)'));
+  assert.ok(!router.includes('location ~ ^/api/learning-os/study(?:/|$)'));
+  assert.ok(router.includes('proxy_pass $convolab_upstream;'));
+  assert.ok(!router.includes('location ^~ /api/study'));
+  assert.ok(!router.includes('location ^~ /api/learning-os/study'));
 });
 
 test('generation routes are permanently proxied and production rehearsals cover them', async () => {

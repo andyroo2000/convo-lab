@@ -35,9 +35,10 @@ describe('Learning OS study route contract', () => {
         `/api/learning-os/study/imports/${VALID_ULID.toLowerCase()}/upload`
       )
     ).toBe(true);
-
     for (const invalidPath of [
       '/api/learning-os/study/imports/not-an-id/upload',
+      '/api/study/imports/not-an-id/upload',
+      `/api/study/imports/${VALID_ULID}/upload`,
       `/API/learning-os/study/imports/${VALID_ULID}/upload`,
       `/api/learning-os/study/imports/${VALID_ULID}/complete`,
       `/api/learning-os/study/imports/${VALID_ULID}/upload/extra`,

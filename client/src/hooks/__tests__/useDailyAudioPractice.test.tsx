@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CSRF_TOKEN_COOKIE_NAME } from '../../lib/csrf';
+import { CSRF_TOKEN_COOKIE_NAME, LEARNING_OS_CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 import {
   dailyAudioPracticeKeys,
@@ -102,7 +102,7 @@ describe('Daily Audio API requests', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:3001/api/learning-os/study/daily-audio-practice',
+      '/api/daily-audio-practice',
       expect.objectContaining({ credentials: 'include' })
     );
     expect(result.current.data?.[0]?.tracks.map((track) => track.sortOrder)).toEqual([1, 2]);
@@ -132,17 +132,19 @@ describe('Daily Audio API requests', () => {
     await waitFor(() => expect(statusResult.current.isSuccess).toBe(true));
 
     expect(mockFetch).toHaveBeenCalledWith(
-      `http://localhost:3001/api/learning-os/study/daily-audio-practice/${practiceId}`,
+      `/api/daily-audio-practice/${practiceId}`,
       expect.any(Object)
     );
     expect(mockFetch).toHaveBeenCalledWith(
-      `http://localhost:3001/api/learning-os/study/daily-audio-practice/${practiceId}/status`,
+      `/api/daily-audio-practice/${practiceId}/status`,
       expect.any(Object)
     );
   });
 
   it('routes generation POSTs through Learning OS', async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse(practice));
+    mockFetch
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse(practice));
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -159,12 +161,19 @@ describe('Daily Audio API requests', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:3001/api/learning-os/study/daily-audio-practice',
+      '/api/daily-audio-practice',
       expect.objectContaining({
         method: 'POST',
         credentials: 'include',
       })
     );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      '/sanctum/csrf-cookie',
+      expect.objectContaining({ credentials: 'include' })
+    );
+    const mutationHeaders = new Headers(mockFetch.mock.calls[1]?.[1]?.headers);
+    expect(mutationHeaders.get(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toEqual({
       ...practice,
       tracks: [...practice.tracks].sort((left, right) => left.sortOrder - right.sortOrder),

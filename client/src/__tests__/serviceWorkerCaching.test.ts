@@ -72,28 +72,28 @@ describe('service worker caching', () => {
     await import('../sw');
   });
 
-  it.each(['/api/auth/me', '/api/learning-os/study/overview'])(
-    'does not cache authenticated API request %s',
-    (pathname) => {
-      const url = new URL(pathname, 'https://convo-lab.com');
-      const request = new Request(url);
-      const routeMatchers = registerRouteMock.mock.calls
-        .map(([matcher]) => matcher)
-        .filter(
-          (matcher): matcher is (context: unknown) => boolean => typeof matcher === 'function'
-        );
+  it.each([
+    '/api/auth/me',
+    '/api/study/overview',
+    '/api/daily-audio-practice',
+    '/api/learning-os/study/overview',
+  ])('does not cache authenticated API request %s', (pathname) => {
+    const url = new URL(pathname, 'https://convo-lab.com');
+    const request = new Request(url);
+    const routeMatchers = registerRouteMock.mock.calls
+      .map(([matcher]) => matcher)
+      .filter((matcher): matcher is (context: unknown) => boolean => typeof matcher === 'function');
 
-      expect(
-        routeMatchers.some((matcher) =>
-          matcher({
-            request,
-            url,
-            sameOrigin: true,
-          })
-        )
-      ).toBe(false);
-    }
-  );
+    expect(
+      routeMatchers.some((matcher) =>
+        matcher({
+          request,
+          url,
+          sameOrigin: true,
+        })
+      )
+    ).toBe(false);
+  });
 
   it('deletes authenticated responses left by the legacy API cache', async () => {
     expect(activateListeners).toHaveLength(1);

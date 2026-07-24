@@ -53,15 +53,21 @@ describe('request body timeout', () => {
 
   it('leaves only strict Learning OS import uploads on the extended server deadline', () => {
     vi.useFakeTimers();
-    const validUpload = request(
+    const validLegacyUpload = request(
       '/api/learning-os/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload',
       'PUT'
     );
+    const canonicalUpload = request('/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload', 'PUT');
     const invalidUpload = request('/api/learning-os/study/imports/not-an-id/upload', 'PUT');
 
     enforceDefaultRequestBodyTimeout(100)(
-      validUpload.req as never,
-      validUpload.res as never,
+      validLegacyUpload.req as never,
+      validLegacyUpload.res as never,
+      vi.fn()
+    );
+    enforceDefaultRequestBodyTimeout(100)(
+      canonicalUpload.req as never,
+      canonicalUpload.res as never,
       vi.fn()
     );
     enforceDefaultRequestBodyTimeout(100)(
@@ -71,7 +77,8 @@ describe('request body timeout', () => {
     );
     vi.advanceTimersByTime(100);
 
-    expect(validUpload.res.status).not.toHaveBeenCalled();
+    expect(validLegacyUpload.res.status).not.toHaveBeenCalled();
+    expect(canonicalUpload.res.status).toHaveBeenCalledWith(408);
     expect(invalidUpload.res.status).toHaveBeenCalledWith(408);
   });
 });

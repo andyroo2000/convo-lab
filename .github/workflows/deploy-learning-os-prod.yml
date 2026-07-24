@@ -1285,8 +1285,9 @@ jobs:
               csrf_cookie_jar="$(mktemp)"
               wait_for_public_csrf() {
                 local attempt
+                local max_attempts=30
 
-                for attempt in {1..12}; do
+                for attempt in $(seq 1 "$max_attempts"); do
                   if curl --fail --silent --show-error \
                     --cookie "token=$auth_token" \
                     --cookie-jar "$csrf_cookie_jar" \
@@ -1296,8 +1297,8 @@ jobs:
                   fi
 
                   : > "$csrf_cookie_jar"
-                  echo "Public ConvoLab CSRF readiness attempt $attempt/12 failed." >&2
-                  if [ "$attempt" -lt 12 ]; then
+                  echo "Public ConvoLab CSRF readiness attempt $attempt/$max_attempts failed." >&2
+                  if [ "$attempt" -lt "$max_attempts" ]; then
                     sleep 3
                   fi
                 done
