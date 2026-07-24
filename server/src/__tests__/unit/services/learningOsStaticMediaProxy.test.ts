@@ -34,8 +34,7 @@ describe('learningOsStaticMediaProxy', () => {
 
     await expect(
       fetchLearningOsStaticMedia({
-        operation: 'tool-audio',
-        body: { paths: ['/tools-audio/japanese/minute/44.mp3'] },
+        avatarPath: 'voices/ja-shohei.jpg',
       })
     ).rejects.toMatchObject({
       message: 'Learning OS Static Media API is enabled but not configured.',
@@ -47,7 +46,6 @@ describe('learningOsStaticMediaProxy', () => {
   it('rejects invalid avatar paths at the proxy boundary', async () => {
     await expect(
       fetchLearningOsStaticMedia({
-        operation: 'avatar',
         avatarPath: '//attacker.example/avatar.jpg',
       })
     ).rejects.toMatchObject({
@@ -68,8 +66,7 @@ describe('learningOsStaticMediaProxy', () => {
     });
 
     const pendingRequest = fetchLearningOsStaticMedia({
-      operation: 'tool-audio',
-      body: { paths: ['/tools-audio/japanese/minute/44.mp3'] },
+      avatarPath: 'voices/ja-shohei.jpg',
     });
     const expectedTimeout = expect(pendingRequest).rejects.toMatchObject({
       message: 'Learning OS Static Media API request timed out.',

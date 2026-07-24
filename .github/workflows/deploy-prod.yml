@@ -455,6 +455,25 @@ jobs:
                   fi
                 done
 
+                tool_audio_status="$(curl --silent --show-error \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --request POST \
+                  --header 'Accept: application/json' \
+                  --header 'Content-Type: application/json' \
+                  --data '{"paths":["/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3"]}' \
+                  https://convo-lab.com/api/tools-audio/signed-urls)"
+                if [ "$tool_audio_status" != 200 ]; then
+                  echo "Direct Learning OS tool-audio probe returned HTTP $tool_audio_status."
+                  cat "$response_body"
+                  return 1
+                fi
+                if ! grep -q '"mode":"signed"' "$response_body"; then
+                  echo "Direct Learning OS tool-audio probe did not return signed URLs."
+                  cat "$response_body"
+                  return 1
+                fi
+
                 admin_status="$(curl --silent --show-error \
                   --cookie "$cookie_jar" \
                   --output "$response_body" \

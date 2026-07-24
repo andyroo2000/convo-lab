@@ -19,6 +19,7 @@ describe('production router contract', () => {
     expect(routerTemplate).toMatch(/location \^~ \/api\/convolab\/auth\/ \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/browser\/auth\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/auth\/password\(\?:\/\|\$\) \{/u);
+    expect(routerTemplate).toMatch(/location ~ \^\/api\/tools-audio\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/episodes\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/courses\(\?:\/\|\$\) \{/u);
     expect(routerTemplate).toMatch(/location ~ \^\/api\/convolab\/scripts\(\?:\/\|\$\) \{/u);
@@ -33,8 +34,9 @@ describe('production router contract', () => {
   it.each([
     ['location ^~ /api/convolab/auth/ {', 'location ~ ^/api/convolab/browser/auth(?:/|$)'],
     ['location ~ ^/api/convolab/browser/auth(?:/|$)', 'location ~ ^/api/auth/password(?:/|$)'],
+    ['location ~ ^/api/auth/password(?:/|$)', 'location ~ ^/api/tools-audio(?:/|$)'],
     [
-      'location ~ ^/api/auth/password(?:/|$)',
+      'location ~ ^/api/tools-audio(?:/|$)',
       'location ~ ^/api/convolab/episodes/[^/]+/audio/[^/]+$',
     ],
     [

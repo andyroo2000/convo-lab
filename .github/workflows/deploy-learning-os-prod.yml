@@ -2759,7 +2759,7 @@ jobs:
                     )
                   ) process.exit(1);
                 '
-              echo "Tool Audio Learning OS proxy smoke check passed."
+              echo "Tool Audio direct Learning OS smoke check passed."
 
               session_body='{"timeZone":"America/New_York"}'
               proxy_session="$(mutate_proxy_route POST '/api/learning-os/study/session/start' "$session_body")"

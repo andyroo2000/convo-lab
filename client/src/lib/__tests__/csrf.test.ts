@@ -158,6 +158,46 @@ describe('csrf helpers', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('does not bootstrap CSRF for the public tool-audio URL resolver', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithCsrf('/api/tools-audio/signed-urls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paths: ['/tools-audio/japanese-time/minute/44.mp3'] }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/tools-audio/signed-urls');
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
+    expect(headers.has(LEARNING_OS_CSRF_TOKEN_HEADER_NAME)).toBe(false);
+  });
+
+  it('keeps similarly named tool-audio paths protected by CSRF', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) === `${API_URL}/api/auth/csrf`) {
+          document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=express-token`;
+          return { ok: true, status: 204 } as Response;
+        }
+
+        const headers = new Headers(init?.headers);
+        expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('express-token');
+        return { ok: true, status: 404 } as Response;
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithCsrf(`${API_URL}/api/tools-audio/signed-urls-extra`, {
+      method: 'POST',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${API_URL}/api/auth/csrf`);
+  });
+
   it('classifies only the exact Episodes namespace as Learning OS', () => {
     expect(getCsrfProviderForPath('/api/convolab/episodes')).toBe('learning-os');
     expect(getCsrfProviderForPath('/api/convolab/episodes/episode-123')).toBe('learning-os');

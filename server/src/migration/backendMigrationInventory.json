@@ -83,21 +83,6 @@
       ]
     },
     {
-      "id": "tool-audio",
-      "domain": "media",
-      "migrationWave": "complete",
-      "runtimeOwner": "learning-os-proxy",
-      "sourceFile": "server/src/routes/toolAudio.ts",
-      "mountPath": "/api/tools-audio",
-      "routes": [
-        {
-          "id": "tool-audio.signed-urls",
-          "method": "POST",
-          "path": "/api/tools-audio/signed-urls"
-        }
-      ]
-    },
-    {
       "id": "admin",
       "domain": "admin",
       "migrationWave": "admin",
