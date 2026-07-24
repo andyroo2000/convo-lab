@@ -59,6 +59,8 @@ RUN npm install --ignore-scripts
 # Copy server source
 COPY server/src ./src
 COPY server/prisma ./prisma
+COPY shared/seo.mjs ../shared/seo.mjs
+COPY shared/seo.d.mts ../shared/seo.d.mts
 
 # Generate Prisma client and build TypeScript
 RUN npx prisma generate
@@ -80,6 +82,7 @@ RUN npx prisma generate
 
 # Copy built server and shared modules
 COPY --from=server-builder /app/server/dist ./dist
+COPY --from=server-builder /app/shared/seo.mjs ./dist/shared/seo.mjs
 
 # Copy migration inventory used by runtime route telemetry
 COPY --from=server-builder /app/server/src/migration/backendMigrationInventory.json ./dist/server/src/migration/backendMigrationInventory.json

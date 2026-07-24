@@ -1,0 +1,62 @@
+name: Static Frontend Runtime
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/frontend-runtime.yml'
+      - 'Dockerfile.frontend'
+      - 'client/**'
+      - 'deploy/frontend-nginx.conf'
+      - 'deploy/smoke-static-frontend.sh'
+      - 'package-lock.json'
+      - 'package.json'
+      - 'scripts/render-static-spa-entrypoints.mjs'
+      - 'shared/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/frontend-runtime.yml'
+      - 'Dockerfile.frontend'
+      - 'client/**'
+      - 'deploy/frontend-nginx.conf'
+      - 'deploy/smoke-static-frontend.sh'
+      - 'package-lock.json'
+      - 'package.json'
+      - 'scripts/render-static-spa-entrypoints.mjs'
+      - 'shared/**'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build static frontend image
+        run: docker build --file Dockerfile.frontend --tag convolab-frontend:test .
+
+      - name: Start static frontend
+        run: docker run --detach --name convolab-frontend --publish 127.0.0.1:3001:3001 convolab-frontend:test
+
+      - name: Wait for frontend health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3001/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs convolab-frontend
+          exit 1
+
+      - name: Verify static frontend behavior
+        run: ./deploy/smoke-static-frontend.sh
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs convolab-frontend

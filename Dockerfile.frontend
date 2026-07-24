@@ -1,0 +1,39 @@
+FROM node:20-alpine AS shared-builder
+WORKDIR /app/shared
+COPY shared/package*.json ./
+COPY shared/tsconfig.json ./
+RUN npm install --ignore-scripts
+COPY shared/src ./src
+RUN npm run build
+
+FROM node:20-alpine AS client-builder
+WORKDIR /app
+COPY package*.json ./
+COPY --from=shared-builder /app/shared ./shared
+
+WORKDIR /app/client
+COPY client/package*.json ./
+RUN npm install --ignore-scripts && \
+    npm install --no-save --force @rollup/rollup-linux-x64-musl @esbuild/linux-x64
+
+COPY client/ ./
+ENV VITE_API_URL=""
+ARG VITE_GA_MEASUREMENT_ID
+ENV VITE_GA_MEASUREMENT_ID=$VITE_GA_MEASUREMENT_ID
+ARG CACHE_BUST=unknown
+RUN echo "Build timestamp: $CACHE_BUST" && npm run build
+
+WORKDIR /app
+COPY shared/seo.mjs ./shared/seo.mjs
+COPY scripts/render-static-spa-entrypoints.mjs ./scripts/render-static-spa-entrypoints.mjs
+RUN node scripts/render-static-spa-entrypoints.mjs /app/client/dist
+
+FROM nginx:1.27-alpine AS production
+COPY deploy/frontend-nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=client-builder /app/client/dist/__spa/generated-routes.conf /etc/nginx/generated-routes.conf
+COPY --from=client-builder /app/client/dist /usr/share/nginx/html
+
+EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
+  CMD wget -q -O /dev/null http://127.0.0.1:3001/health || exit 1
