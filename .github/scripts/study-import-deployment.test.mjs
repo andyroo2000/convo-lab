@@ -915,7 +915,8 @@ test('Express no longer mounts legacy identity routes', async () => {
   ]) {
     assert.ok(lifecycle.includes(canonicalRoute), canonicalRoute);
   }
-  assert.ok(lifecycle.includes('account.role !== "USER"'));
+  assert.ok(lifecycle.includes('account.role !== "user"'));
+  assert.ok(lifecycle.includes('Signup account response mismatched: ${mismatches.join(", ")}.'));
   assert.ok(lifecycle.includes('generic Learning OS/Fortify concern'));
 });
 
