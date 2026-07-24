@@ -972,7 +972,11 @@ test('generation routes are permanently proxied and production rehearsals cover 
   );
   assert.ok(audioFixtureInsert >= 0);
   assert.ok(audioStreamSmoke.includes('--cookie "$content_browser_smoke_cookie_jar"'));
-  assert.ok(audioStreamSmoke.includes('content_browser_path'));
+  assert.ok(
+    audioStreamSmoke.includes(
+      '"https://convo-lab.com$(content_browser_path'
+    )
+  );
   assert.ok(!audioStreamSmoke.includes('Authorization: Bearer'));
   assert.ok(!audioStreamSmoke.includes('X-Convo-Lab-User-Id'));
 
