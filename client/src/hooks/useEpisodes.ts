@@ -4,17 +4,9 @@ import { Episode, CreateEpisodeRequest, Speaker, AudioSpeed } from '../types';
 import { episodeApi, readEpisodeApiError } from '../lib/episodeApi';
 import { generationApi, readGenerationApiError } from '../lib/generationApi';
 
-interface QuotaInfo {
-  limit: number;
-  used: number;
-  remaining: number;
-  resetsAt: string;
-}
-
 interface ErrorWithMetadata {
   message: string;
   status?: number;
-  quota?: QuotaInfo;
   cooldown?: {
     remainingSeconds: number;
     retryAfter: string;
@@ -94,20 +86,15 @@ export function useEpisodes() {
         const errorData: {
           error?: string;
           message?: string;
-          quota?: QuotaInfo;
           cooldown?: ErrorWithMetadata['cooldown'];
         } = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || 'Failed to generate dialogue';
 
-        // Capture metadata for quota/cooldown errors
+        // Preserve short-window cooldown metadata for retry guidance.
         const metadata: ErrorWithMetadata = {
           message: errorMessage,
           status: response.status,
         };
-
-        if (errorData.quota) {
-          metadata.quota = errorData.quota;
-        }
 
         if (errorData.cooldown) {
           metadata.cooldown = errorData.cooldown;

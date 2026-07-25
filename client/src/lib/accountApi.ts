@@ -1,6 +1,5 @@
 export interface AccountApiContract {
   currentUser: string;
-  quota: string;
   passwordMethod: 'PUT';
   passwordPath: string;
   passwordBody: (currentPassword: string, newPassword: string) => Record<string, string>;
@@ -13,7 +12,6 @@ export function createAccountApiContract(apiUrl = ''): AccountApiContract {
 
   return {
     currentUser: `${authBase}/me`,
-    quota: `${authBase}/me/quota`,
     passwordMethod: 'PUT',
     passwordPath: `${authBase}/me/password`,
     passwordBody: (currentPassword, newPassword) => ({

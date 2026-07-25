@@ -17,7 +17,6 @@ import { useIsDemo } from '../../hooks/useDemo';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { courseApi } from '../../lib/courseApi';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
-import QuotaLimitPrompt from '../common/QuotaLimitPrompt';
 import VoicePreview from '../common/VoicePreview';
 
 interface SpeakerFormData {
@@ -45,11 +44,9 @@ const DialogueGenerator = () => {
     pollJobStatus,
     loading,
     error,
-    errorMetadata,
   } = useEpisodes();
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
-  const [showQuotaLimitPrompt, setShowQuotaLimitPrompt] = useState(false);
   const [courseError, setCourseError] = useState<string | null>(null);
 
   const [sourceText, setSourceText] = useState('');
@@ -78,13 +75,6 @@ const DialogueGenerator = () => {
     }));
   });
   const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
-
-  // Show the reset information when the operational quota is exceeded.
-  useEffect(() => {
-    if (errorMetadata?.status === 429 && errorMetadata?.quota) {
-      setShowQuotaLimitPrompt(true);
-    }
-  }, [errorMetadata]);
 
   // Keep speaker tone in sync with selection without resetting voices
   useEffect(() => {
@@ -763,14 +753,6 @@ const DialogueGenerator = () => {
 
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
-
-      {showQuotaLimitPrompt && errorMetadata?.quota && (
-        <QuotaLimitPrompt
-          onClose={() => setShowQuotaLimitPrompt(false)}
-          quotaUsed={errorMetadata.quota.used}
-          quotaLimit={errorMetadata.quota.limit}
-        />
-      )}
     </div>
   );
 };

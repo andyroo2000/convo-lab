@@ -12,21 +12,8 @@ import { useIsDemo } from '../../hooks/useDemo';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { courseApi } from '../../lib/courseApi';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
-import QuotaLimitPrompt from '../common/QuotaLimitPrompt';
 import AdminScriptWorkbench from './AdminScriptWorkbench';
 import VoicePreview from '../common/VoicePreview';
-
-interface QuotaInfo {
-  limit: number;
-  used: number;
-  remaining: number;
-  resetsAt: string;
-}
-
-interface ErrorMetadata {
-  quota?: QuotaInfo;
-  status?: number;
-}
 
 interface CourseGeneratorProps {
   episodeId?: string;
@@ -56,19 +43,10 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
   const [speaker2VoiceId, setSpeaker2VoiceId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [errorMetadata, setErrorMetadata] = useState<ErrorMetadata | null>(null);
-  const [showQuotaLimitPrompt, setShowQuotaLimitPrompt] = useState(false);
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [_generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
   const [adminMode, setAdminMode] = useState(false);
   const [adminDraftCourseId, setAdminDraftCourseId] = useState<string | null>(null);
-
-  // Show the reset information when the operational quota is exceeded.
-  useEffect(() => {
-    if (errorMetadata?.status === 429 && errorMetadata?.quota) {
-      setShowQuotaLimitPrompt(true);
-    }
-  }, [errorMetadata]);
 
   // Initialize default voices when languages change
   useEffect(() => {
@@ -195,15 +173,6 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
           errorData.error?.message ||
           (typeof errorData.error === 'string' ? errorData.error : null) ||
           'Failed to start course generation';
-
-        // Capture metadata for quota errors (can be at root or nested in error)
-        const quota = errorData.quota || errorData.error?.quota;
-        if (generateResponse.status === 429 && quota) {
-          setErrorMetadata({
-            status: generateResponse.status,
-            quota,
-          });
-        }
 
         throw new Error(errorMessage);
       }
@@ -631,14 +600,6 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
 
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
-
-      {showQuotaLimitPrompt && errorMetadata?.quota && (
-        <QuotaLimitPrompt
-          onClose={() => setShowQuotaLimitPrompt(false)}
-          quotaUsed={errorMetadata.quota.used}
-          quotaLimit={errorMetadata.quota.limit}
-        />
-      )}
     </div>
   );
 };

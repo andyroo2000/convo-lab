@@ -510,6 +510,11 @@ const PlaybackPage = () => {
 
               {/* Controls: Toggles, Speed, and Conversion CTA */}
               <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
+                {sentences.length > 0 && (
+                  <Link to={`/app/practice/${episode.id}`} className="btn-primary">
+                    Practice speaking
+                  </Link>
+                )}
                 {!isGeneratingAudio && currentAudioUrl && (
                   <>
                     {/* Row 1: Furigana & English Toggles - Only show for Japanese */}

@@ -5,7 +5,6 @@ import { FileText, Headphones, MessageSquare } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsDemo } from '../hooks/useDemo';
-import QuotaBadge from '../components/QuotaBadge';
 import CustomContentGuide from '../components/pulsePoints/CustomContentGuide';
 import { SHOW_ONBOARDING_WELCOME } from '../config';
 
@@ -59,10 +58,6 @@ const CreatePage = () => {
         </div>
 
         <div className="retro-create-v3-main">
-          <div className="retro-create-v3-badge-row">
-            <QuotaBadge />
-          </div>
-
           <div className="retro-create-v3-grid">
             {/* Dialogue Content Type */}
             {isFeatureEnabled('dialoguesEnabled') && (
