@@ -93,7 +93,7 @@ server {
 
     # Native clients authenticate with Learning OS Sanctum bearer tokens.
     # Preserve Authorization, but never trust a client-supplied browser identity header.
-    location ~ ^/api/(?:auth/tokens(?:/|$)|card-review-events(?:/|$)|me$) {
+    location ~ ^/api/(?:auth/tokens(?:/|$)|card-review-events(?:/|$)|me(?:/|$)|sync(?:/|$)) {
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

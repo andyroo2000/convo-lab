@@ -7,7 +7,6 @@ describe('account API contract', () => {
     const contract = createAccountApiContract();
 
     expect(contract.currentUser).toBe('/api/convolab/auth/me');
-    expect(contract.quota).toBe('/api/convolab/auth/me/quota');
     expect(contract.passwordPath).toBe('/api/convolab/auth/me/password');
   });
 
@@ -15,7 +14,6 @@ describe('account API contract', () => {
     const contract = createAccountApiContract('https://app.example');
 
     expect(contract.currentUser).toBe('https://app.example/api/convolab/auth/me');
-    expect(contract.quota).toBe('https://app.example/api/convolab/auth/me/quota');
     expect(contract.passwordMethod).toBe('PUT');
     expect(contract.passwordPath).toBe('https://app.example/api/convolab/auth/me/password');
     expect(contract.passwordBody('old', 'new-password')).toEqual({

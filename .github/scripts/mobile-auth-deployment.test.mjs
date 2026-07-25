@@ -24,7 +24,7 @@ test('production routes native bearer authentication directly to Learning OS', a
 
   const mobileBlock = locationBlock(
     router,
-    'location ~ ^/api/(?:auth/tokens(?:/|$)|card-review-events(?:/|$)|me$)'
+    'location ~ ^/api/(?:auth/tokens(?:/|$)|card-review-events(?:/|$)|me(?:/|$)|sync(?:/|$))'
   );
   assert.ok(mobileBlock.includes('proxy_pass $learning_os_upstream;'));
   assert.ok(mobileBlock.includes('proxy_set_header Authorization $http_authorization;'));
@@ -38,6 +38,12 @@ test('production routes native bearer authentication directly to Learning OS', a
     'https://convo-lab.com/api/card-review-events/batch)',
   ]) {
     assert.ok(workflow.includes(marker), `Missing native route smoke: ${marker}`);
+  }
+  for (const marker of [
+    'https://convo-lab.com/api/me/password',
+    'https://convo-lab.com/api/sync/feed?domain=flashcards&resource_type=card',
+  ]) {
+    assert.ok(workflow.includes(marker), `Missing protected native route smoke: ${marker}`);
   }
 });
 
@@ -61,4 +67,13 @@ test('native content routes preserve bearer tokens without trusting browser iden
       `${marker} must clear the browser identity header`
     );
   }
+});
+
+test('invite registration is routed to Learning OS without trusting client identity', async () => {
+  const router = await readRepositoryFile('deploy/prod-router.conf.template');
+  const block = locationBlock(router, 'location ^~ /api/convolab/auth/');
+
+  assert.ok(block.includes('proxy_pass $learning_os_upstream;'));
+  assert.ok(block.includes('proxy_set_header Authorization "";'));
+  assert.ok(block.includes('proxy_set_header X-Convo-Lab-User-Id "";'));
 });

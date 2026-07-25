@@ -25,11 +25,12 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 - **Mobile Optimized**: 44px touch targets for comfortable mobile use
 - **Standalone Mode**: Launches without browser chrome when installed
 
-### Generation Limits
+Practice Mode walks through an episode line by line, plays either sentence audio or the
+matching slice of the full episode, reveals translations on demand, and lets learners
+record and replay their own response locally. Recordings are not uploaded or scored.
 
-- Learning OS enforces the shared monthly generation limit and cooldown
-- ConvoLab reports the canonical quota returned by the Learning OS API
-- Admin users have unlimited access
+Content generation is available to invited users without monthly or credit entitlements.
+Short-window API rate limits remain in place to protect service stability.
 
 ## Tech Stack
 

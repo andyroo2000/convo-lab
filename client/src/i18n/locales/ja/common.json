@@ -41,12 +41,6 @@
     "delete": "本当に削除しますか？",
     "logout": "本当にログアウトしますか？"
   },
-  "quotaLimitPrompt": {
-    "title": "月間上限に達しました",
-    "usage": "今月は{{limit}}回中{{used}}回の生成を使用しました。",
-    "reset": "生成回数は翌月1日の午前0時（UTC）にリセットされます。",
-    "close": "閉じる"
-  },
   "aria": {
     "close": "閉じる",
     "play": "再生",
@@ -58,11 +52,6 @@
     "cancel": "キャンセル",
     "processing": "処理中...",
     "gotIt": "了解"
-  },
-  "quota": {
-    "generationsLeft": "今月の残り生成回数：{{remaining}}/{{limit}}",
-    "lowQuota": "割当量が少ない",
-    "runningLow": "割当量が少なくなっています"
   },
   "demo": {
     "title": "デモモード",

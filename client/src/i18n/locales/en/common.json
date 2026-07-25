@@ -41,12 +41,6 @@
     "delete": "Are you sure you want to delete this?",
     "logout": "Are you sure you want to logout?"
   },
-  "quotaLimitPrompt": {
-    "title": "Monthly Limit Reached",
-    "usage": "You've used {{used}} of {{limit}} generations this month.",
-    "reset": "Generation access resets on the first day of next month at midnight UTC.",
-    "close": "Close"
-  },
   "aria": {
     "close": "Close",
     "play": "Play",
@@ -58,11 +52,6 @@
     "cancel": "Cancel",
     "processing": "Processing...",
     "gotIt": "Got it"
-  },
-  "quota": {
-    "generationsLeft": "{{remaining}}/{{limit}} generations left this month",
-    "lowQuota": "Low quota",
-    "runningLow": "Running low"
   },
   "demo": {
     "title": "Demo Mode",
