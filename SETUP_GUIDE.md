@@ -51,8 +51,8 @@ Production deployment checks verify:
 - Sanctum CSRF and browser-session cookies
 - unauthenticated account response shape
 - Google OAuth redirect host, client ID, state, and exact callback
-- signup, verification, login, logout, password reset, profile update, quota,
-  and account deletion through a disposable user lifecycle
+- signup, verification, login, logout, password reset, profile update, and
+  account deletion through a disposable user lifecycle
 
 The lifecycle harness is
 `.github/scripts/smoke-auth-signup-verification-lifecycle.sh`.

@@ -1547,7 +1547,6 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     'session_get_status()',
     '--header "Origin: $BASE_URL"',
     "'/api/convolab/browser/auth/signup'",
-    '$BASE_URL/api/convolab/auth/me/quota',
     '--request PATCH',
     '$BASE_URL/api/convolab/auth/me',
     'response.emailVerified',
@@ -1578,7 +1577,7 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
 
   assert.equal(
     [...script.matchAll(/session_get_json \\\n/g)].length,
-    3,
+    2,
     'Every authenticated JSON read should use the stateful session helper'
   );
   assert.equal(
@@ -1593,8 +1592,7 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     'session_get_json \\\n  "$BASE_URL/api/convolab/auth/me"',
     signup
   );
-  const quota = script.indexOf('$BASE_URL/api/convolab/auth/me/quota', accountRead);
-  const profile = script.indexOf('--request PATCH', quota);
+  const profile = script.indexOf('--request PATCH', accountRead);
   const mailToken = script.indexOf('AUTH_SMOKE_TOKEN_COUNT=', profile);
   const verification = script.indexOf("'/api/convolab/browser/auth/verification'", mailToken);
   const login = script.indexOf("'/api/convolab/browser/auth/login'", verification);
@@ -1610,8 +1608,7 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   assert.ok(inviteCreate >= 0);
   assert.ok(inviteCreate < signup);
   assert.ok(signup < accountRead);
-  assert.ok(accountRead < quota);
-  assert.ok(quota < profile);
+  assert.ok(accountRead < profile);
   assert.ok(profile < mailToken);
   assert.ok(mailToken < verification);
   assert.ok(verification < login);

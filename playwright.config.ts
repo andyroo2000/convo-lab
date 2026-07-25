@@ -6,7 +6,7 @@ dotenv.config();
 
 /**
  * Playwright E2E Test Configuration
- * Tests for quota system, impersonation, pagination, error handling, and language preferences
+ * Tests for impersonation, pagination, error handling, and language preferences
  */
 export default defineConfig({
   testDir: './e2e',

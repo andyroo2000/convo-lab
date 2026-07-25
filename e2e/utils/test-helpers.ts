@@ -52,19 +52,6 @@ export async function logout(page: Page): Promise<void> {
 }
 
 /**
- * Wait for quota badge to appear and return its text
- */
-export async function waitForQuotaBadge(page: Page): Promise<string | null> {
-  try {
-    const badge = page.locator('[data-testid="quota-badge"]').first();
-    await badge.waitFor({ state: 'visible', timeout: 5000 });
-    return await badge.textContent();
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Scroll to bottom of page to trigger infinite scroll
  */
 export async function scrollToBottom(page: Page): Promise<void> {
@@ -163,7 +150,7 @@ export async function exitImpersonation(page: Page): Promise<void> {
 }
 
 /**
- * Generate a dialogue (for testing quota)
+ * Generate a dialogue
  */
 export async function generateDialogue(page: Page): Promise<void> {
   await page.goto('/app/dialogues/new');
