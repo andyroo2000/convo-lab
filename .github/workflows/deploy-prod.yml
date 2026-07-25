@@ -266,21 +266,31 @@ jobs:
                 return 1
               fi
 
-              for protected_native_url in \
-                https://convo-lab.com/api/me/password \
-                'https://convo-lab.com/api/sync/feed?domain=flashcards&resource_type=card'
-              do
-                protected_native_status="$(curl --silent --show-error \
-                  --output "$response_body" \
-                  --write-out '%{http_code}' \
-                  --header 'Accept: application/json' \
-                  "$protected_native_url")"
-                if [ "$protected_native_status" != 401 ]; then
-                  echo "Protected native route $protected_native_url returned HTTP $protected_native_status instead of 401."
-                  cat "$response_body"
-                  return 1
-                fi
-              done
+              password_status="$(curl --silent --show-error \
+                --request PUT \
+                --output "$response_body" \
+                --write-out '%{http_code}' \
+                --header 'Accept: application/json' \
+                --header 'Content-Type: application/json' \
+                --data '{}' \
+                https://convo-lab.com/api/me/password)"
+              if [ "$password_status" != 401 ]; then
+                echo "Protected native password route returned HTTP $password_status instead of 401."
+                cat "$response_body"
+                return 1
+              fi
+
+              sync_feed_url='https://convo-lab.com/api/sync/feed?domain=flashcards&resource_type=card'
+              sync_feed_status="$(curl --silent --show-error \
+                --output "$response_body" \
+                --write-out '%{http_code}' \
+                --header 'Accept: application/json' \
+                "$sync_feed_url")"
+              if [ "$sync_feed_status" != 401 ]; then
+                echo "Protected native route $sync_feed_url returned HTTP $sync_feed_status instead of 401."
+                cat "$response_body"
+                return 1
+              fi
 
               native_account_status="$(curl --silent --show-error \
                 --output "$response_body" \
