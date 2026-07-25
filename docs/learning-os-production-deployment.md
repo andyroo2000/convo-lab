@@ -72,9 +72,9 @@ The workflow:
 5. Starts or reconciles the private API and worker.
 6. Verifies anonymous internal readiness and the active ConvoLab web color.
 7. Establishes a disposable first-party Sanctum browser session.
-8. Runs authenticated current-account, generation-quota, profile, disposable
-   signup/verification, Study, import, media, Daily Audio, Episode, and Course
-   smoke checks through ConvoLab's public Learning OS routes.
+8. Runs authenticated current-account, profile, disposable signup/verification,
+   Study, import, media, Daily Audio, Episode, and Course smoke checks through
+   ConvoLab's public Learning OS routes.
 9. Verifies public ConvoLab health.
 
 The worker is drained before replacement when its image or command changes.
@@ -88,8 +88,7 @@ database from a Learning OS backup instead of rebuilding it from ConvoLab.
 Every deployment verifies:
 
 - Overview response through Learning OS.
-- Current-account and generation-quota responses plus a reversible profile
-  preference write.
+- Current-account responses plus a reversible profile preference write.
 - A disposable signup, email-token issuance, verification, current-account,
   and fresh-login lifecycle that confirms no duplicate compatibility user was
   created.

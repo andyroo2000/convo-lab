@@ -415,49 +415,6 @@ printf '%s' "$current_account" | docker exec \
     }
   '
 
-generation_quota="$(session_get_json \
-  "$BASE_URL/api/convolab/auth/me/quota" \
-  "$SIGNUP_COOKIE_JAR")"
-printf '%s' "$generation_quota" | docker exec \
-  -i \
-  "$JSON_TOOLS_CONTAINER" node --input-type=module --eval='
-    let body = "";
-    for await (const chunk of process.stdin) body += chunk;
-    const response = JSON.parse(body);
-    const isSafeNonNegativeInteger = (value) =>
-      Number.isSafeInteger(value) && value >= 0;
-    const cooldownIsValid =
-      response.cooldown
-      && typeof response.cooldown.active === "boolean"
-      && isSafeNonNegativeInteger(response.cooldown.remainingSeconds)
-      && response.cooldown.active === (response.cooldown.remainingSeconds > 0);
-
-    if (!cooldownIsValid || typeof response.unlimited !== "boolean") process.exit(1);
-
-    if (response.unlimited) {
-      if (
-        response.quota !== null
-        || response.cooldown.active
-        || response.cooldown.remainingSeconds !== 0
-      ) process.exit(1);
-      process.exit(0);
-    }
-
-    const quota = response.quota;
-    const resetPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-    if (
-      !quota
-      || !isSafeNonNegativeInteger(quota.used)
-      || !Number.isSafeInteger(quota.limit)
-      || quota.limit <= 0
-      || !isSafeNonNegativeInteger(quota.remaining)
-      || quota.remaining !== Math.max(0, quota.limit - quota.used)
-      || typeof quota.resetsAt !== "string"
-      || !resetPattern.test(quota.resetsAt)
-      || Number.isNaN(Date.parse(quota.resetsAt))
-    ) process.exit(1);
-  '
-
 original_custom_content_guide="$(printf '%s' "$current_account" \
   | json_field 'response.seenCustomContentGuide')"
 docker exec \
