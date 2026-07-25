@@ -53,6 +53,11 @@ const PracticePage = () => {
   const speaker = episode?.dialogue?.speakers.find((item) => item.id === line?.speakerId);
 
   const resetLine = (nextIndex: number) => {
+    audioRef.current?.pause();
+    if (stopLineTimerRef.current !== null) {
+      window.clearTimeout(stopLineTimerRef.current);
+      stopLineTimerRef.current = null;
+    }
     setLineIndex(nextIndex);
     setShowTranslation(false);
     if (recordingURL) URL.revokeObjectURL(recordingURL);
@@ -62,9 +67,26 @@ const PracticePage = () => {
   const playLine = (sentence: Sentence) => {
     const audio = audioRef.current;
     if (!audio || !episode) return;
-    const fullEpisodeAudio =
-      episode.audioUrl_0_85 || episode.audioUrl_1_0 || episode.audioUrl || episode.audioUrl_0_7;
-    const source = sentence.audioUrl || fullEpisodeAudio;
+    let source = sentence.audioUrl;
+    let startMilliseconds = 0;
+    let endMilliseconds: number | undefined;
+    if (!source && episode.audioUrl_0_85) {
+      source = episode.audioUrl_0_85;
+      startMilliseconds = sentence.startTime_0_85 ?? sentence.startTime ?? 0;
+      endMilliseconds = sentence.endTime_0_85 ?? sentence.endTime;
+    } else if (!source && episode.audioUrl_1_0) {
+      source = episode.audioUrl_1_0;
+      startMilliseconds = sentence.startTime_1_0 ?? sentence.startTime ?? 0;
+      endMilliseconds = sentence.endTime_1_0 ?? sentence.endTime;
+    } else if (!source && episode.audioUrl) {
+      source = episode.audioUrl;
+      startMilliseconds = sentence.startTime ?? sentence.startTime_1_0 ?? 0;
+      endMilliseconds = sentence.endTime ?? sentence.endTime_1_0;
+    } else if (!source && episode.audioUrl_0_7) {
+      source = episode.audioUrl_0_7;
+      startMilliseconds = sentence.startTime_0_7 ?? sentence.startTime ?? 0;
+      endMilliseconds = sentence.endTime_0_7 ?? sentence.endTime;
+    }
     if (!source) {
       setError('Audio has not been generated for this line yet.');
       return;
@@ -72,12 +94,8 @@ const PracticePage = () => {
     if (audio.src !== new URL(source, window.location.origin).href) {
       audio.src = source;
     }
-    const start = sentence.audioUrl
-      ? 0
-      : (sentence.startTime_0_85 ?? sentence.startTime ?? 0) / 1000;
-    const end = sentence.audioUrl
-      ? undefined
-      : (sentence.endTime_0_85 ?? sentence.endTime ?? 0) / 1000;
+    const start = startMilliseconds / 1000;
+    const end = endMilliseconds === undefined ? undefined : endMilliseconds / 1000;
     audio.currentTime = start;
     audio.play().catch(() => {
       setError('Audio playback was blocked. Tap Play line to try again.');
@@ -232,7 +250,7 @@ const PracticePage = () => {
           </button>
         </div>
       </section>
-      <audio ref={audioRef} className="hidden">
+      <audio ref={audioRef} className="hidden" data-testid="practice-source-audio">
         <track kind="captions" />
       </audio>
     </div>
