@@ -45,6 +45,11 @@ test('production routes native bearer authentication directly to Learning OS', a
   ]) {
     assert.ok(workflow.includes(marker), `Missing protected native route smoke: ${marker}`);
   }
+  assert.match(
+    workflow,
+    /--request PUT[\s\S]*https:\/\/convo-lab\.com\/api\/me\/password/u,
+    'Password smoke must use the endpoint-supported PUT method'
+  );
 });
 
 test('native content routes preserve bearer tokens without trusting browser identity', async () => {
