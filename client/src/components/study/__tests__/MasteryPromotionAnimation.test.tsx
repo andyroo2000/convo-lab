@@ -22,6 +22,7 @@ describe('MasteryPromotionAnimation', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       '朝ごはんを食べませんでした。 reached guru'
     );
+    expect(screen.getByRole('status')).toHaveClass('mastery-promotion-animation');
     expect(screen.getByText('GURU')).toBeInTheDocument();
     expect(screen.queryByText(/FSRS stability/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

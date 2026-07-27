@@ -7,6 +7,7 @@ interface UseStudyKeyboardShortcutsOptions {
   focusMode: boolean;
   handleGrade: (grade: 'again' | 'hard' | 'good' | 'easy') => Promise<void>;
   handleUndo: () => Promise<void>;
+  interactionBlocked: boolean;
   onError: (message: string) => void;
   revealCurrentCard: () => void;
   revealed: boolean;
@@ -46,6 +47,7 @@ export default function useStudyKeyboardShortcuts({
   focusMode,
   handleGrade,
   handleUndo,
+  interactionBlocked,
   onError,
   revealCurrentCard,
   revealed,
@@ -66,7 +68,7 @@ export default function useStudyKeyboardShortcuts({
   }, [revealCurrentCard, revealed, toggleAnswerAudio]);
 
   useEffect(() => {
-    if (!focusMode) return undefined;
+    if (!focusMode || interactionBlocked) return undefined;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
@@ -128,6 +130,7 @@ export default function useStudyKeyboardShortcuts({
     focusMode,
     handleGrade,
     handleUndo,
+    interactionBlocked,
     onError,
     revealCurrentCard,
     revealed,

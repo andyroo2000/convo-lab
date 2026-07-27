@@ -908,6 +908,7 @@ const useStudyReviewSession = () => {
     focusMode,
     handleGrade,
     handleUndo,
+    interactionBlocked: promotion !== null,
     onError: reportAsyncSessionError,
     revealCurrentCard,
     revealed,
