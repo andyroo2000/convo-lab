@@ -16,6 +16,21 @@
     "revealHintDesktop": "クリックまたはスペースキーで表示",
     "revealHintMobile": "タップで表示"
   },
+  "lesson": {
+    "previewTitle": "このレッスンを予習",
+    "previewDescription": "まずカードを確認します。クイズにはこのバッチだけが出題されます。",
+    "startQuiz": "クイズを開始",
+    "noneAvailable": "今日は新しいカードを追加できません。",
+    "completeTitle": "レッスン完了",
+    "completeDescription": "このカードはFSRSの学習に入りました。無理がなければ次のバッチへ進めます。",
+    "anotherBatch": "次のバッチを学ぶ",
+    "finish": "終了"
+  },
+  "promotion": {
+    "message": "{{item}} が {{level}} に到達しました",
+    "stability": "FSRS安定度は {{days}} 日です。",
+    "dismiss": "閉じる"
+  },
   "reviewActions": {
     "edit": "カードを編集",
     "bury": "今回のセッションだけ隠す",
@@ -27,7 +42,8 @@
   },
   "reviewHeader": {
     "exit": "学習を終了",
-    "counts": "失敗 + 期限 + 新規"
+    "counts": "失敗 + 期限 + 新規",
+    "progress": "レビューセッションの進捗"
   },
   "gradeButtons": {
     "again": "もう一度",
@@ -48,16 +64,34 @@
     "learning": "学習中",
     "total": "合計",
     "begin": "学習を開始",
+    "reviews": "レビュー",
+    "lessons": "レッスン",
     "loading": "概要を読み込み中…",
     "empty": "`日本語` デッキを取り込むかカードを作成して、ここから学習を始めましょう。"
   },
+  "readiness": {
+    "title": "学習準備度",
+    "ready": "新しいカードを学べます",
+    "caution": "少なめがおすすめ",
+    "pause": "先にレビューがおすすめ",
+    "withData": "最近の正答率は目標 {{target}}% に対して {{recall}}% です。Apprentice は {{apprentice}} 件、今後7日間のレビュー見込みは {{projected}} 件です。",
+    "building": "最初の30回答から提案を作成中です（現在 {{sample}} 件）。今後7日間のレビュー見込みは {{projected}} 件です。",
+    "suggestedBatch": "次のレッスンのおすすめ: {{count}} 枚。",
+    "reviewNow": "今すぐレビュー",
+    "learnAnyway": "それでも学ぶ"
+  },
+  "mastery": {
+    "title": "項目の分布",
+    "fsrsNote": "レベルはFSRSの安定度から算出する目安です。BurnedでもFSRSによる復習は続きます。"
+  },
   "settings": {
     "title": "学習設定",
-    "description": "新規カードをレビューに追加する数と表示順を調整します。",
+    "description": "レビューとは別のレッスン追加数と、新規カードの表示順を調整します。",
     "back": "学習に戻る",
     "dailyLimitTitle": "1日の新規カード",
-    "dailyLimitDescription": "期限の来たレビューカードが常に先に表示されます。新規カードはレビュー後に、この1日の上限まで追加されます。",
+    "dailyLimitDescription": "1日にレッスンへ追加できる新規カード数と、1回に予習するバッチ数を設定します。",
     "newCardsPerDay": "1日の新規カード数",
+    "lessonBatchSize": "1レッスンのカード数",
     "save": "設定を保存",
     "saving": "保存中…",
     "saved": "保存しました",

@@ -22,9 +22,7 @@ const StudyPage = () => {
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
   const availableCount =
-    (overviewQuery.data?.failedCount ?? 0) +
-    (overviewQuery.data?.dueCount ?? 0) +
-    (overviewQuery.data?.newCardsAvailableToday ?? overviewQuery.data?.newCount ?? 0);
+    (overviewQuery.data?.failedCount ?? 0) + (overviewQuery.data?.dueCount ?? 0);
   const reviewSession = useStudyReviewSession();
   const runBackgroundTask = useStudyBackgroundTask();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -120,6 +118,7 @@ const StudyPage = () => {
                 newRemaining={reviewSession.sessionCounts.newRemaining}
                 failedDue={reviewSession.sessionCounts.failedDue}
                 reviewRemaining={reviewSession.sessionCounts.reviewRemaining}
+                progress={reviewSession.sessionProgress}
                 actions={
                   reviewSession.revealed && !reviewSession.editing
                     ? renderReviewActionButtons()
@@ -127,6 +126,95 @@ const StudyPage = () => {
                 }
                 onExit={reviewSession.exitFocusMode}
               />
+              {reviewSession.promotion ? (
+                <div
+                  role="status"
+                  className="fixed left-1/2 top-16 z-[80] w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center shadow-xl"
+                >
+                  <p className="font-bold text-emerald-900">
+                    {t('promotion.message', {
+                      item: reviewSession.promotion.label,
+                      level: reviewSession.promotion.level,
+                    })}
+                  </p>
+                  {reviewSession.promotion.stability !== null ? (
+                    <p className="mt-1 text-sm text-emerald-800">
+                      {t('promotion.stability', {
+                        days: Math.round(reviewSession.promotion.stability),
+                      })}
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-semibold uppercase tracking-wide text-emerald-900"
+                    onClick={() => reviewSession.setPromotion(null)}
+                  >
+                    {t('promotion.dismiss')}
+                  </button>
+                </div>
+              ) : null}
+              {reviewSession.sessionKind === 'lessons' &&
+              reviewSession.lessonPhase === 'preview' &&
+              !reviewSession.sessionLoading ? (
+                <div className="min-h-0 flex-1 overflow-y-auto py-4">
+                  <div className="mx-auto max-w-5xl space-y-4">
+                    <div className="rounded-2xl bg-emerald-50 p-5 ring-1 ring-emerald-200">
+                      <h2 className="text-2xl font-bold text-navy">{t('lesson.previewTitle')}</h2>
+                      <p className="mt-1 text-gray-600">{t('lesson.previewDescription')}</p>
+                    </div>
+                    {reviewSession.cards.map((card) => (
+                      <div
+                        key={card.id}
+                        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200"
+                      >
+                        <StudyCardFace card={card} layout="mobile-focus" side="back" />
+                      </div>
+                    ))}
+                    {reviewSession.cards.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={reviewSession.beginLessonQuiz}
+                        className="w-full rounded-2xl bg-emerald-700 px-6 py-4 text-lg font-bold text-white"
+                      >
+                        {t('lesson.startQuiz')}
+                      </button>
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-600">
+                        {t('lesson.noneAvailable')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+              {reviewSession.sessionKind === 'lessons' &&
+              reviewSession.lessonPhase === 'complete' ? (
+                <div className="flex min-h-[60vh] flex-1 items-center justify-center">
+                  <div className="max-w-lg rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-200">
+                    <h2 className="text-3xl font-bold text-navy">{t('lesson.completeTitle')}</h2>
+                    <p className="mt-3 text-gray-600">{t('lesson.completeDescription')}</p>
+                    <div className="mt-6 flex flex-wrap justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          runBackgroundTask(() => reviewSession.loadNextLessonBatch(), {
+                            label: 'Next lesson batch',
+                          });
+                        }}
+                        className="rounded-full bg-emerald-700 px-6 py-3 font-bold text-white"
+                      >
+                        {t('lesson.anotherBatch')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={reviewSession.exitFocusMode}
+                        className="rounded-full border border-gray-300 px-6 py-3 font-bold text-navy"
+                      >
+                        {t('lesson.finish')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               {reviewSession.currentCard &&
               reviewSession.revealed &&
               !reviewSession.editing &&
@@ -168,7 +256,8 @@ const StudyPage = () => {
                 <p className="py-16 text-center text-red-600">{reviewSession.sessionError}</p>
               ) : null}
 
-              {!reviewSession.sessionLoading &&
+              {reviewSession.lessonPhase === 'quiz' &&
+              !reviewSession.sessionLoading &&
               !reviewSession.sessionError &&
               !reviewSession.currentCard ? (
                 <div className="flex min-h-[60vh] flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-600 sm:rounded-[2rem]">
@@ -176,7 +265,7 @@ const StudyPage = () => {
                 </div>
               ) : null}
 
-              {reviewSession.currentCard ? (
+              {reviewSession.lessonPhase === 'quiz' && reviewSession.currentCard ? (
                 <div
                   data-testid="study-focus-card-scroll"
                   className={`study-focus-scroll mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
@@ -312,12 +401,17 @@ const StudyPage = () => {
     <StudyOverviewDashboard
       headline={headline}
       overview={overviewQuery.data}
-      availableCount={availableCount}
+      reviewAvailableCount={availableCount}
       loading={overviewQuery.isLoading}
       error={overviewQuery.error instanceof Error ? overviewQuery.error : null}
-      onBeginStudy={() => {
-        runBackgroundTask(() => reviewSession.enterFocusMode(), {
+      onBeginReview={() => {
+        runBackgroundTask(() => reviewSession.enterFocusMode('reviews'), {
           label: 'Study session start',
+        });
+      }}
+      onBeginLesson={() => {
+        runBackgroundTask(() => reviewSession.enterFocusMode('lessons'), {
+          label: 'Study lesson start',
         });
       }}
       isStartingSession={reviewSession.sessionLoading}

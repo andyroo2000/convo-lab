@@ -191,7 +191,9 @@ describe('PracticePage', () => {
     await screen.findByText('駅はどこですか。');
     fireEvent.click(screen.getByRole('button', { name: 'Record myself' }));
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Stop recording' })).toBeVisible());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Stop recording' })).toBeVisible()
+    );
     expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
     expect(recorderStart).toHaveBeenCalled();
 

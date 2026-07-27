@@ -324,7 +324,10 @@ describe('StudySettingsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
     await waitFor(() =>
-      expect(updateStudySettingsMock).toHaveBeenCalledWith({ newCardsPerDay: 12 })
+      expect(updateStudySettingsMock).toHaveBeenCalledWith({
+        lessonBatchSize: 5,
+        newCardsPerDay: 12,
+      })
     );
   });
 

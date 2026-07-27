@@ -17,7 +17,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { STUDY_NEW_CARDS_PER_DAY_DEFAULT } from '@languageflow/shared/src/studyConstants';
+import {
+  STUDY_LESSON_BATCH_SIZE_DEFAULT,
+  STUDY_LESSON_BATCH_SIZE_MAX,
+  STUDY_LESSON_BATCH_SIZE_MIN,
+  STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+} from '@languageflow/shared/src/studyConstants';
 import type { StudyCardSummary, StudyNewCardQueueItem } from '@languageflow/shared/src/types';
 import { GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -167,6 +172,7 @@ const StudySettingsPage = () => {
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const runBackgroundTask = useStudyBackgroundTask();
   const [newCardsPerDay, setNewCardsPerDay] = useState(STUDY_NEW_CARDS_PER_DAY_DEFAULT);
+  const [lessonBatchSize, setLessonBatchSize] = useState(STUDY_LESSON_BATCH_SIZE_DEFAULT);
   const [searchDraft, setSearchDraft] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [queueItems, setQueueItems] = useState<StudyNewCardQueueItem[]>([]);
@@ -198,6 +204,7 @@ const StudySettingsPage = () => {
   useEffect(() => {
     if (settingsQuery.data) {
       setNewCardsPerDay(settingsQuery.data.newCardsPerDay);
+      setLessonBatchSize(settingsQuery.data.lessonBatchSize ?? STUDY_LESSON_BATCH_SIZE_DEFAULT);
     }
   }, [settingsQuery.data]);
 
@@ -496,7 +503,7 @@ const StudySettingsPage = () => {
             runBackgroundTask(
               async () => {
                 try {
-                  await updateSettingsMutation.mutateAsync({ newCardsPerDay });
+                  await updateSettingsMutation.mutateAsync({ newCardsPerDay, lessonBatchSize });
                   setSettingsSaveFailedVisible(false);
                   setSettingsSavedVisible(true);
                 } catch (error) {
@@ -526,6 +533,25 @@ const StudySettingsPage = () => {
                 setSettingsSavedVisible(false);
                 setSettingsSaveFailedVisible(false);
                 setNewCardsPerDay(Number(event.target.value));
+              }}
+              className="mt-2 w-36 rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+            />
+          </label>
+          <label className="block" htmlFor="study-lesson-batch-size">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+              {t('settings.lessonBatchSize')}
+            </span>
+            <input
+              id="study-lesson-batch-size"
+              type="number"
+              min={STUDY_LESSON_BATCH_SIZE_MIN}
+              max={STUDY_LESSON_BATCH_SIZE_MAX}
+              step={1}
+              value={lessonBatchSize}
+              onChange={(event) => {
+                setSettingsSavedVisible(false);
+                setSettingsSaveFailedVisible(false);
+                setLessonBatchSize(Number(event.target.value));
               }}
               className="mt-2 w-36 rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
             />

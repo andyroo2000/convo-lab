@@ -16,6 +16,7 @@ import type {
 
 import {
   type StudySessionResponse,
+  startStudyLesson,
   startStudySession,
   undoStudyReview,
   useRegenerateStudyAnswerAudio,
@@ -61,16 +62,13 @@ type StudyUndoAction =
 const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot =>
   structuredClone(snapshot);
 
-const formatReviewInterval = (due: Date, now: Date) => {
+export const formatReviewInterval = (due: Date, now: Date) => {
   const diffMs = Math.max(0, due.getTime() - now.getTime());
 
   if (diffMs < 60_000) return '<1m';
   if (diffMs < 60 * 60_000) return `<${Math.ceil(diffMs / 60_000)}m`;
   if (diffMs < 24 * 60 * 60_000) return `${Math.round(diffMs / (60 * 60_000))}h`;
-  if (diffMs < 30 * 24 * 60 * 60_000) return `${Math.round(diffMs / (24 * 60 * 60_000))}d`;
-  if (diffMs < 365 * 24 * 60 * 60_000) {
-    return `${Math.round(diffMs / (30 * 24 * 60 * 60_000))}mo`;
-  }
+  if (diffMs < 365 * 24 * 60 * 60_000) return `${Math.round(diffMs / (24 * 60 * 60_000))}d`;
 
   return `${Math.round(diffMs / (365 * 24 * 60 * 60_000))}y`;
 };
@@ -145,6 +143,13 @@ const useStudyReviewSession = () => {
   const deleteCardMutation = useDeleteStudyCard();
   const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
   const [focusMode, setFocusMode] = useState(false);
+  const [sessionKind, setSessionKind] = useState<'reviews' | 'lessons'>('reviews');
+  const [lessonPhase, setLessonPhase] = useState<'preview' | 'quiz' | 'complete'>('preview');
+  const [promotion, setPromotion] = useState<{
+    label: string;
+    level: string;
+    stability: number | null;
+  } | null>(null);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -197,6 +202,10 @@ const useStudyReviewSession = () => {
 
     return totals;
   }, [answeredCardIds, cards, session?.overview.failedCount]);
+  const sessionProgress =
+    sessionCardCountRef.current > 0
+      ? Math.min(1, answeredCardIds.length / sessionCardCountRef.current)
+      : 0;
   const updateCardErrorMessage = useMemo(() => {
     if (regenerateAudioMutation.error instanceof Error) {
       return regenerateAudioMutation.error.message;
@@ -212,10 +221,6 @@ const useStudyReviewSession = () => {
 
     return updateCardMutation.error ? 'Card update failed.' : null;
   }, [regenerateAudioMutation.error, updateCardMutation.error]);
-
-  useEffect(() => {
-    sessionCardCountRef.current = session?.cards.length ?? 0;
-  }, [session]);
 
   useEffect(() => {
     answeredCardIdsRef.current = new Set(answeredCardIds);
@@ -349,25 +354,31 @@ const useStudyReviewSession = () => {
     [stopAllAudio, syncOverview]
   );
 
-  const loadSession = useCallback(async () => {
-    setSessionLoading(true);
-    setSessionError(null);
+  const loadSession = useCallback(
+    async (kind: 'reviews' | 'lessons' = sessionKind) => {
+      setSessionLoading(true);
+      setSessionError(null);
 
-    try {
-      const nextSession = await startStudySession();
-      autoRefreshEmptySessionRef.current = nextSession.cards.length === 0;
-      setSession(nextSession);
-      syncOverview(nextSession.overview);
-      return nextSession;
-    } catch (error) {
-      setSession(null);
-      const message = error instanceof Error ? error.message : 'Study session failed to load.';
-      setSessionError(message);
-      throw error;
-    } finally {
-      setSessionLoading(false);
-    }
-  }, [syncOverview]);
+      try {
+        const nextSession =
+          kind === 'lessons' ? await startStudyLesson() : await startStudySession();
+        autoRefreshEmptySessionRef.current = kind === 'reviews' && nextSession.cards.length === 0;
+        sessionCardCountRef.current = nextSession.cards.length;
+        setSession(nextSession);
+        setLessonPhase(kind === 'lessons' ? 'preview' : 'quiz');
+        syncOverview(nextSession.overview);
+        return nextSession;
+      } catch (error) {
+        setSession(null);
+        const message = error instanceof Error ? error.message : 'Study session failed to load.';
+        setSessionError(message);
+        throw error;
+      } finally {
+        setSessionLoading(false);
+      }
+    },
+    [sessionKind, syncOverview]
+  );
 
   const revealCurrentCard = useCallback(() => {
     if (!currentCard || revealed || editing) return;
@@ -410,6 +421,9 @@ const useStudyReviewSession = () => {
     resetUndo();
     canSurfaceAsyncSessionErrorRef.current = false;
     setFocusMode(false);
+    setSessionKind('reviews');
+    setLessonPhase('preview');
+    setPromotion(null);
     setSession(null);
     setSessionError(null);
     setCurrentIndex(0);
@@ -462,7 +476,23 @@ const useStudyReviewSession = () => {
         const nextCards = reviewResult.card
           ? getCardsAfterReview(cards, reviewResult.card, grade)
           : cards.filter((card) => card.id !== currentCard.id);
-        autoRefreshEmptySessionRef.current = nextCards.length === 0;
+        autoRefreshEmptySessionRef.current = sessionKind === 'reviews' && nextCards.length === 0;
+        if (reviewResult.card && grade !== 'again') {
+          const levels = ['apprentice', 'guru', 'master', 'enlightened', 'burned'];
+          const previousLevel = currentCard.masteryLevel ?? 'apprentice';
+          const nextLevel = reviewResult.card.masteryLevel ?? previousLevel;
+          if (levels.indexOf(nextLevel) > levels.indexOf(previousLevel)) {
+            const { scheduler } = reviewResult.card.state;
+            const stability =
+              scheduler && Number.isFinite(scheduler.stability) ? scheduler.stability : null;
+            const label =
+              reviewResult.card.answer.expression ??
+              reviewResult.card.prompt.cueText ??
+              reviewResult.card.prompt.cueMeaning ??
+              'This item';
+            setPromotion({ label, level: nextLevel, stability });
+          }
+        }
         if (reviewResult.card) {
           applyReviewResultToSession(reviewResult.card, grade, nextCards, reviewResult.overview);
         } else {
@@ -479,6 +509,9 @@ const useStudyReviewSession = () => {
           return Math.min(current, nextLength - 1);
         });
         setRevealed(false);
+        if (sessionKind === 'lessons' && nextCards.length === 0) {
+          setLessonPhase('complete');
+        }
         setSessionError(null);
       } catch (error) {
         setSessionError(error instanceof Error ? error.message : 'Review failed.');
@@ -500,6 +533,7 @@ const useStudyReviewSession = () => {
       stopAllAudio,
       syncOverview,
       undoPending,
+      sessionKind,
     ]
   );
 
@@ -726,35 +760,55 @@ const useStudyReviewSession = () => {
     return true;
   }, [answerAudioRef, editing, revealed, runBackgroundTask]);
 
-  const enterFocusMode = useCallback(async () => {
-    stopAllAudio();
-    resetStudyAudioAutoplay();
-    resetUndo();
-    canSurfaceAsyncSessionErrorRef.current = true;
-    setFocusMode(true);
+  const enterFocusMode = useCallback(
+    async (kind: 'reviews' | 'lessons' = 'reviews') => {
+      stopAllAudio();
+      resetStudyAudioAutoplay();
+      resetUndo();
+      canSurfaceAsyncSessionErrorRef.current = true;
+      setFocusMode(true);
+      setSessionKind(kind);
+      setLessonPhase(kind === 'lessons' ? 'preview' : 'quiz');
+      setPromotion(null);
+      setCurrentIndex(0);
+      setRevealed(false);
+      setEditing(false);
+      setUndoPending(false);
+      autoRefreshEmptySessionRef.current = false;
+      answeredCardIdsRef.current = new Set();
+      setAnsweredCardIds([]);
+      runBackgroundTask(() => requestMotionPermission(), {
+        label: 'Study motion-permission request',
+      });
+      try {
+        await loadSession(kind);
+      } catch {
+        // loadSession already updates session error state for the dashboard.
+      }
+    },
+    [
+      loadSession,
+      requestMotionPermission,
+      resetStudyAudioAutoplay,
+      runBackgroundTask,
+      resetUndo,
+      stopAllAudio,
+    ]
+  );
+
+  const beginLessonQuiz = useCallback(() => {
     setCurrentIndex(0);
     setRevealed(false);
-    setEditing(false);
-    setUndoPending(false);
-    autoRefreshEmptySessionRef.current = false;
+    setLessonPhase('quiz');
+  }, []);
+
+  const loadNextLessonBatch = useCallback(async () => {
     answeredCardIdsRef.current = new Set();
     setAnsweredCardIds([]);
-    runBackgroundTask(() => requestMotionPermission(), {
-      label: 'Study motion-permission request',
-    });
-    try {
-      await loadSession();
-    } catch {
-      // loadSession already updates session error state for the dashboard.
-    }
-  }, [
-    loadSession,
-    requestMotionPermission,
-    resetStudyAudioAutoplay,
-    runBackgroundTask,
-    resetUndo,
-    stopAllAudio,
-  ]);
+    setCurrentIndex(0);
+    setRevealed(false);
+    await loadSession('lessons');
+  }, [loadSession]);
 
   useEffect(() => {
     if (
@@ -783,7 +837,7 @@ const useStudyReviewSession = () => {
       (failedCount > 0 && nextDueMs !== null && nextDueMs <= Date.now());
 
     if (shouldLoadNow) {
-      runBackgroundTask(() => loadSession(), {
+      runBackgroundTask(() => loadSession('reviews'), {
         label: 'Study session refresh',
       });
       return undefined;
@@ -792,7 +846,7 @@ const useStudyReviewSession = () => {
     if (failedCount > 0 && newCardsAvailable <= 0 && nextDueMs !== null) {
       const delayMs = Math.max(0, Math.min(nextDueMs - Date.now() + 250, 2_147_483_647));
       const timeoutId = window.setTimeout(() => {
-        runBackgroundTask(() => loadSession(), {
+        runBackgroundTask(() => loadSession('reviews'), {
           label: 'Study failed-card retry refresh',
         });
       }, delayMs);
@@ -860,6 +914,10 @@ const useStudyReviewSession = () => {
 
   return {
     focusMode,
+    sessionKind,
+    lessonPhase,
+    cards,
+    promotion,
     sessionLoading,
     sessionError,
     currentCard,
@@ -869,6 +927,7 @@ const useStudyReviewSession = () => {
     undoPending,
     reviewBusy,
     sessionCounts,
+    sessionProgress,
     gradeIntervals,
     motionPermissionState,
     promptAudioRef,
@@ -880,6 +939,7 @@ const useStudyReviewSession = () => {
     regenerateAudioMutation,
     updateCardErrorMessage,
     setEditing,
+    setPromotion,
     setShowSetDueControls,
     revealCurrentCard,
     exitFocusMode,
@@ -892,6 +952,8 @@ const useStudyReviewSession = () => {
     deleteCurrentCard,
     regenerateCurrentCardAudio,
     enterFocusMode,
+    beginLessonQuiz,
+    loadNextLessonBatch,
   };
 };
 

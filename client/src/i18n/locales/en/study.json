@@ -16,6 +16,21 @@
     "revealHintDesktop": "Click or push space to reveal",
     "revealHintMobile": "Tap to reveal"
   },
+  "lesson": {
+    "previewTitle": "Preview this lesson",
+    "previewDescription": "Get familiar with these cards first. The quiz will contain only this batch.",
+    "startQuiz": "Start quiz",
+    "noneAvailable": "No new cards are available today.",
+    "completeTitle": "Lesson complete",
+    "completeDescription": "These cards are now in FSRS learning. Continue only if the next batch feels manageable.",
+    "anotherBatch": "Learn another batch",
+    "finish": "Finish"
+  },
+  "promotion": {
+    "message": "{{item}} reached {{level}}",
+    "stability": "FSRS stability is now {{days}} days.",
+    "dismiss": "Dismiss"
+  },
   "reviewActions": {
     "edit": "Edit card",
     "bury": "Bury for session",
@@ -27,7 +42,8 @@
   },
   "reviewHeader": {
     "exit": "Exit Study",
-    "counts": "Failed + Due + New"
+    "counts": "Failed + Due + New",
+    "progress": "Review session progress"
   },
   "gradeButtons": {
     "again": "Again",
@@ -48,16 +64,34 @@
     "learning": "Learning",
     "total": "Total",
     "begin": "Begin Study",
+    "reviews": "Reviews",
+    "lessons": "Lessons",
     "loading": "Loading overview…",
     "empty": "Import your `日本語` deck or create a card to start studying here."
   },
+  "readiness": {
+    "title": "Learning readiness",
+    "ready": "Ready to learn",
+    "caution": "Add carefully",
+    "pause": "Reviews first recommended",
+    "withData": "Recent recall is {{recall}}% against a {{target}}% target. {{apprentice}} Apprentice cards need reinforcement, with {{projected}} reviews projected over seven days.",
+    "building": "Building a recommendation from your first 30 answers ({{sample}} so far). Current seven-day workload: {{projected}} reviews.",
+    "suggestedBatch": "Suggested next lesson: {{count}} cards.",
+    "reviewNow": "Review now",
+    "learnAnyway": "Learn anyway"
+  },
+  "mastery": {
+    "title": "Item spread",
+    "fsrsNote": "These motivational levels are derived from FSRS stability. Burned cards remain scheduled by FSRS."
+  },
   "settings": {
     "title": "Study settings",
-    "description": "Control how new cards enter review and arrange the order they appear in.",
+    "description": "Control your separate lesson intake and arrange the order new cards appear in.",
     "back": "Back to study",
     "dailyLimitTitle": "Daily new cards",
-    "dailyLimitDescription": "Due review cards are always shown first. New cards are added after reviews up to this daily limit.",
+    "dailyLimitDescription": "Choose how many new cards can enter lessons each day and how many you preview in each batch.",
     "newCardsPerDay": "New cards per day",
+    "lessonBatchSize": "Cards per lesson",
     "save": "Save settings",
     "saving": "Saving…",
     "saved": "Saved",
