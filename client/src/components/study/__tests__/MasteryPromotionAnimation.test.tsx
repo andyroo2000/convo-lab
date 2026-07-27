@@ -42,7 +42,7 @@ describe('MasteryPromotionAnimation', () => {
     );
 
     act(() => {
-      vi.advanceTimersByTime(2_650);
+      vi.advanceTimersByTime(1_325);
     });
 
     expect(onFinished).toHaveBeenCalledOnce();
@@ -75,7 +75,7 @@ describe('MasteryPromotionAnimation', () => {
     expect(screen.getByText('研究')).toBeInTheDocument();
 
     act(() => {
-      vi.advanceTimersByTime(1_149);
+      vi.advanceTimersByTime(574);
     });
     expect(onFinished).not.toHaveBeenCalled();
 
