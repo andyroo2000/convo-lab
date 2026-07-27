@@ -27,9 +27,7 @@
     "finish": "終了"
   },
   "promotion": {
-    "message": "{{item}} が {{level}} に到達しました",
-    "stability": "FSRS安定度は {{days}} 日です。",
-    "dismiss": "閉じる"
+    "message": "{{item}} が {{level}} に到達しました"
   },
   "reviewActions": {
     "edit": "カードを編集",

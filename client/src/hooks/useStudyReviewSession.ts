@@ -148,7 +148,6 @@ const useStudyReviewSession = () => {
   const [promotion, setPromotion] = useState<{
     label: string;
     level: string;
-    stability: number | null;
   } | null>(null);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -484,15 +483,12 @@ const useStudyReviewSession = () => {
           const previousLevel = currentCard.masteryLevel ?? 'apprentice';
           const nextLevel = reviewResult.card.masteryLevel ?? previousLevel;
           if (levels.indexOf(nextLevel) > levels.indexOf(previousLevel)) {
-            const { scheduler } = reviewResult.card.state;
-            const stability =
-              scheduler && Number.isFinite(scheduler.stability) ? scheduler.stability : null;
             const label =
               reviewResult.card.answer.expression ??
               reviewResult.card.prompt.cueText ??
               reviewResult.card.prompt.cueMeaning ??
               'This item';
-            setPromotion({ label, level: nextLevel, stability });
+            setPromotion({ label, level: nextLevel });
           }
         }
         if (reviewResult.card) {
