@@ -27,9 +27,7 @@
     "finish": "Finish"
   },
   "promotion": {
-    "message": "{{item}} reached {{level}}",
-    "stability": "FSRS stability is now {{days}} days.",
-    "dismiss": "Dismiss"
+    "message": "{{item}} reached {{level}}"
   },
   "reviewActions": {
     "edit": "Edit card",
