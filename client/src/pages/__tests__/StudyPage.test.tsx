@@ -15,6 +15,7 @@ async function chooseAnswerAudioVoice(name: RegExp | string) {
 
 const {
   cardActionMutateAsyncMock,
+  startStudyLessonMock,
   startStudySessionMock,
   prepareStudyAnswerAudioMock,
   undoStudyReviewMock,
@@ -29,6 +30,7 @@ const {
   featureFlagsLoading,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
+  startStudyLessonMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
@@ -102,6 +104,7 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  startStudyLesson: startStudyLessonMock,
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
@@ -189,6 +192,7 @@ class MockDeviceMotionEvent extends Event {
 describe('StudyPage', () => {
   beforeEach(() => {
     cardActionMutateAsyncMock.mockReset();
+    startStudyLessonMock.mockReset();
     startStudySessionMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
@@ -387,7 +391,7 @@ describe('StudyPage', () => {
   it('renders overview counts without eagerly starting a study session', () => {
     renderStudyPage();
 
-    expect(screen.getByRole('button', { name: 'Begin Study' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reviews' })).toBeInTheDocument();
     expect(screen.getByText('0 failed, 4 due, 6 new')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Browse' })).toHaveAttribute(
       'href',
@@ -414,7 +418,7 @@ describe('StudyPage', () => {
     expect(startStudySessionMock).not.toHaveBeenCalled();
   });
 
-  it('associates the disabled Begin Study button with the empty-state message', () => {
+  it('associates the disabled Reviews button with the empty-state message', () => {
     studyOverviewData.current = {
       dueCount: 0,
       newCount: 0,
@@ -430,20 +434,75 @@ describe('StudyPage', () => {
     renderStudyPage();
 
     const emptyMessage = 'Import your `日本語` deck or create a card to start studying here.';
-    const beginButton = screen.getByRole('button', { name: 'Begin Study' });
+    const beginButton = screen.getByRole('button', { name: 'Reviews' });
     const emptyState = screen.getByText(emptyMessage);
     expect(beginButton).toBeDisabled();
     expect(beginButton).toHaveAttribute('aria-describedby', emptyState.id);
     expect(beginButton).not.toHaveAttribute('title');
   });
 
-  it('keeps Begin Study enabled while overview counts are loading', () => {
+  it('points to Lessons when reviews are exhausted but new cards remain', () => {
+    studyOverviewData.current = {
+      dueCount: 0,
+      newCount: 6,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 0,
+      newCardsAvailableToday: 6,
+      learningCount: 0,
+      reviewCount: 0,
+      suspendedCount: 0,
+      totalCards: 6,
+    };
+
+    renderStudyPage();
+
+    expect(screen.getByRole('button', { name: 'Reviews' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Lessons' })).toBeEnabled();
+    expect(
+      screen.getByText('No reviews are due. You can start a Lesson whenever you’re ready.')
+    ).toBeInTheDocument();
+  });
+
+  it('finishes a lesson when its last quiz card is buried', async () => {
+    startStudyLessonMock.mockResolvedValue({
+      overview: {
+        dueCount: 0,
+        newCount: 1,
+        newCardsPerDay: 20,
+        newCardsAvailableToday: 1,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [
+        {
+          ...baseCard,
+          state: {
+            ...baseCard.state,
+            queueState: 'new',
+          },
+        },
+      ],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
+
+    expect(screen.getByText('Lesson complete')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Learn another batch' })).toBeInTheDocument();
+  });
+
+  it('keeps Reviews enabled while overview counts are loading', () => {
     studyOverviewLoading.current = true;
     studyOverviewData.current = undefined;
 
     renderStudyPage();
 
-    const beginButton = screen.getByRole('button', { name: 'Begin Study' });
+    const beginButton = screen.getByRole('button', { name: 'Reviews' });
     expect(beginButton).toBeEnabled();
     expect(beginButton).not.toHaveAttribute('aria-describedby');
     expect(screen.getByText('Loading overview…')).toBeInTheDocument();
@@ -452,7 +511,7 @@ describe('StudyPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('starts the study session only when Begin Study is clicked', async () => {
+  it('starts the study session only when Reviews is clicked', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {
         dueCount: 4,
@@ -466,7 +525,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -511,7 +570,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     const gradeTray = screen.getByTestId('study-grade-tray');
@@ -602,7 +661,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -663,7 +722,7 @@ describe('StudyPage', () => {
     }));
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
@@ -726,7 +785,7 @@ describe('StudyPage', () => {
     }));
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
@@ -780,7 +839,7 @@ describe('StudyPage', () => {
       });
 
       renderStudyPage();
-      await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
       await waitFor(() => {
         expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -842,7 +901,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await waitFor(() => {
       expect(playMock).toHaveBeenCalledTimes(1);
@@ -909,7 +968,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Good/ })).toBeInTheDocument();
@@ -996,7 +1055,7 @@ describe('StudyPage', () => {
     );
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
@@ -1095,7 +1154,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -1143,7 +1202,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -1168,7 +1227,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     expect(screen.getByText('company')).toBeInTheDocument();
@@ -1195,7 +1254,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await waitFor(() => {
       expect(MockDeviceMotionEvent.requestPermission).toHaveBeenCalled();
     });
@@ -1240,7 +1299,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -1266,7 +1325,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(
@@ -1320,7 +1379,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: /good/i }));
 
@@ -1384,7 +1443,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage({ knownKanji: ['風', '呂', '虫'], knownKanjiActive: true });
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('study-cloze-prompt')).toBeInTheDocument();
@@ -1447,7 +1506,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     await waitFor(() => {
@@ -1488,7 +1547,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     await waitFor(() => {
@@ -1530,7 +1589,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     await waitFor(() => {
@@ -1575,7 +1634,7 @@ describe('StudyPage', () => {
     deleteStudyCardMock.mockRejectedValue(new Error('Delete failed.'));
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
     await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
@@ -1608,7 +1667,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
     await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
@@ -1658,7 +1717,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
 
@@ -1711,7 +1770,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
 
@@ -1740,7 +1799,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Suspend' }));
 
@@ -1774,7 +1833,7 @@ describe('StudyPage', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Set due' }));
     await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }));

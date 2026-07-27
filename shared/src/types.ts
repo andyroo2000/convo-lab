@@ -178,9 +178,32 @@ export interface StudyCardSummary {
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
   state: StudyCardState;
+  masteryLevel?: StudyMasteryLevel;
   answerAudioSource: StudyAudioSource;
   createdAt: string;
   updatedAt: string;
+}
+
+export type StudyMasteryLevel = 'apprentice' | 'guru' | 'master' | 'enlightened' | 'burned';
+
+export interface StudyMasterySpread {
+  apprentice: number;
+  guru: number;
+  master: number;
+  enlightened: number;
+  burned: number;
+}
+
+export interface StudyLearningReadiness {
+  recommendation: 'ready' | 'caution' | 'pause';
+  sampleSize: number;
+  sufficientData: boolean;
+  recentRecall: number | null;
+  targetRecall: number;
+  dueBacklog: number;
+  apprenticeCount: number;
+  projectedSevenDayReviews: number;
+  suggestedBatchSize: number;
 }
 
 export type StudyCardCandidateKind =
@@ -370,6 +393,7 @@ export interface StudyOverview {
   failedCount?: number;
   newCount: number;
   newCardsPerDay?: number;
+  lessonBatchSize?: number;
   newCardsIntroducedToday?: number;
   newCardsAvailableToday?: number;
   learningCount: number;
@@ -378,10 +402,13 @@ export interface StudyOverview {
   totalCards: number;
   latestImport?: StudyImportResult | null;
   nextDueAt?: string | null;
+  masterySpread?: StudyMasterySpread;
+  learningReadiness?: StudyLearningReadiness;
 }
 
 export interface StudySettings {
   newCardsPerDay: number;
+  lessonBatchSize?: number;
 }
 
 export interface StudyNewCardQueueItem {

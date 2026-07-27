@@ -131,6 +131,14 @@ export async function startStudySession(): Promise<StudySessionResponse> {
   });
 }
 
+export async function startStudyLesson(): Promise<StudySessionResponse> {
+  const timeZone = getDeviceStudyTimeZone();
+  return apiRequest<StudySessionResponse>('/lessons/start', {
+    method: 'POST',
+    body: JSON.stringify({ timeZone }),
+  });
+}
+
 export async function getStudySettings(): Promise<StudySettings> {
   return apiRequest<StudySettings>('/settings');
 }

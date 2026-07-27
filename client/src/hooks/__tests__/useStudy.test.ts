@@ -30,6 +30,7 @@ import {
   reorderStudyNewCardQueue,
   resolveStudyCardPitchAccent,
   retryStudyManualCardDraft,
+  startStudyLesson,
   startStudySession,
   submitStudyReview,
   undoStudyReview,
@@ -124,8 +125,9 @@ describe('useStudy request helpers', () => {
     expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
   }
 
-  it('routes session start, review, and undo through Learning OS', async () => {
+  it('routes review and lesson starts, review, and undo through Learning OS', async () => {
     await startStudySession();
+    await startStudyLesson();
     await submitStudyReview(
       { cardId: '123e4567-e89b-42d3-a456-426614174000', grade: 'good', durationMs: 1250 },
       undefined
@@ -134,19 +136,25 @@ describe('useStudy request helpers', () => {
 
     const fetchMock = vi.mocked(global.fetch);
     expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${STUDY_API_BASE}/lessons/start`,
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       `${STUDY_API_BASE}/session/start`,
       expect.any(Object)
     );
-    expect(fetchMock).toHaveBeenNthCalledWith(2, `${STUDY_API_BASE}/reviews`, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${STUDY_API_BASE}/reviews`, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(
-      3,
+      4,
       `${STUDY_API_BASE}/reviews/undo`,
       expect.any(Object)
     );
     expectJsonMutation(0);
     expectJsonMutation(1);
     expectJsonMutation(2);
+    expectJsonMutation(3);
   });
 
   it('sends device timezone and current overview with review operations', async () => {
@@ -291,7 +299,7 @@ describe('useStudy request helpers', () => {
 
   it('routes settings, queue, and browser reads and writes through Learning OS', async () => {
     await getStudySettings();
-    await updateStudySettings({ newCardsPerDay: 15 });
+    await updateStudySettings({ newCardsPerDay: 15, lessonBatchSize: 7 });
     await getStudyNewCardQueue({ cursor: 'cursor-1', q: 'kana', limit: 25 });
     await reorderStudyNewCardQueue(['card-2', 'card-1']);
     await getStudyBrowser({
@@ -317,6 +325,10 @@ describe('useStudy request helpers', () => {
     expect(readHeaders.get('Content-Type')).toBeNull();
     expect(readHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBeNull();
     expectJsonMutation(1);
+    expect(JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body))).toEqual({
+      newCardsPerDay: 15,
+      lessonBatchSize: 7,
+    });
     expectJsonMutation(3);
   });
 
