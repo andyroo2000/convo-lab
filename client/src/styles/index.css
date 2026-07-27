@@ -5616,7 +5616,7 @@
   transform: translateX(-50%);
   color: #153c68;
   opacity: 0;
-  animation: mastery-cloud-lifecycle 2.65s ease-in-out forwards;
+  animation: mastery-cloud-lifecycle 1.325s ease-in-out forwards;
 }
 
 .mastery-promotion-cloud svg {
@@ -5633,7 +5633,7 @@
   stroke-width: 2;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
-  animation: mastery-cloud-outline 2.65s ease-out forwards;
+  animation: mastery-cloud-outline 1.325s ease-out forwards;
 }
 
 .mastery-promotion-cloud span {
@@ -5663,7 +5663,7 @@
   -webkit-line-clamp: 2;
   opacity: 0;
   transform: translate(-50%, -50%);
-  animation: mastery-item-absorb 2.65s ease-in-out forwards;
+  animation: mastery-item-absorb 1.325s ease-in-out forwards;
 }
 
 @keyframes mastery-item-absorb {
@@ -5726,11 +5726,11 @@
 .mastery-promotion-animation--reduced .mastery-promotion-item {
   top: 9.25rem;
   transform: translate(-50%, -50%) scale(0.66);
-  animation: mastery-item-reduced 1.15s ease-in-out forwards;
+  animation: mastery-item-reduced 0.575s ease-in-out forwards;
 }
 
 .mastery-promotion-animation--reduced .mastery-promotion-cloud {
-  animation: mastery-cloud-reduced 1.15s ease-in-out forwards;
+  animation: mastery-cloud-reduced 0.575s ease-in-out forwards;
 }
 
 .mastery-promotion-animation--reduced .mastery-promotion-cloud path {

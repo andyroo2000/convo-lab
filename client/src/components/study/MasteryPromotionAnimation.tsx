@@ -19,7 +19,7 @@ const MasteryPromotionAnimation = ({
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
-  const duration = reduceMotion ? 1_150 : 2_650;
+  const duration = reduceMotion ? 575 : 1_325;
   const onFinishedRef = useRef(onFinished);
   onFinishedRef.current = onFinished;
   const rootClassName = useMemo(
