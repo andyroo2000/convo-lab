@@ -202,10 +202,11 @@ const useStudyReviewSession = () => {
 
     return totals;
   }, [answeredCardIds, cards, session?.overview.failedCount]);
-  const sessionProgress =
-    sessionCardCountRef.current > 0
-      ? Math.min(1, answeredCardIds.length / sessionCardCountRef.current)
-      : 0;
+  let sessionProgress = 0;
+  if (sessionCardCountRef.current > 0) {
+    sessionProgress =
+      cards.length === 0 ? 1 : Math.min(0.99, answeredCardIds.length / sessionCardCountRef.current);
+  }
   const updateCardErrorMessage = useMemo(() => {
     if (regenerateAudioMutation.error instanceof Error) {
       return regenerateAudioMutation.error.message;
@@ -457,6 +458,7 @@ const useStudyReviewSession = () => {
       try {
         reviewSubmitPendingRef.current = true;
         setReviewSubmitPending(true);
+        setPromotion(null);
         stopAllAudio();
         const reviewResult = await reviewMutation.mutateAsync({ cardId: currentCard.id, grade });
         answeredCardIdsRef.current.add(currentCard.id);
@@ -554,6 +556,9 @@ const useStudyReviewSession = () => {
     setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
     setRevealed(false);
     setShowSetDueControls(false);
+    if (sessionKind === 'lessons' && nextLength === 0) {
+      setLessonPhase('complete');
+    }
   }, [
     cards.length,
     captureUndoSnapshot,
@@ -562,6 +567,7 @@ const useStudyReviewSession = () => {
     pushUndo,
     removeCardFromSession,
     revealed,
+    sessionKind,
     stopAllAudio,
   ]);
 
@@ -593,6 +599,9 @@ const useStudyReviewSession = () => {
           removeCardFromSession(currentCard.id);
           const nextLength = Math.max(cards.length - 1, 0);
           setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
+          if (sessionKind === 'lessons' && nextLength === 0) {
+            setLessonPhase('complete');
+          }
         }
 
         setRevealed(false);
@@ -608,6 +617,7 @@ const useStudyReviewSession = () => {
       editing,
       mergeCardIntoSession,
       removeCardFromSession,
+      sessionKind,
       stopAllAudio,
       syncOverview,
     ]

@@ -67,6 +67,7 @@
     "reviews": "Reviews",
     "lessons": "Lessons",
     "loading": "Loading overview…",
+    "noReviews": "No reviews are due. You can start a Lesson whenever you’re ready.",
     "empty": "Import your `日本語` deck or create a card to start studying here."
   },
   "readiness": {

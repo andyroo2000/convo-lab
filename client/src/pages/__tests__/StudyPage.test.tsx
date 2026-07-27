@@ -15,6 +15,7 @@ async function chooseAnswerAudioVoice(name: RegExp | string) {
 
 const {
   cardActionMutateAsyncMock,
+  startStudyLessonMock,
   startStudySessionMock,
   prepareStudyAnswerAudioMock,
   undoStudyReviewMock,
@@ -29,6 +30,7 @@ const {
   featureFlagsLoading,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
+  startStudyLessonMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
@@ -102,6 +104,7 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  startStudyLesson: startStudyLessonMock,
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
@@ -189,6 +192,7 @@ class MockDeviceMotionEvent extends Event {
 describe('StudyPage', () => {
   beforeEach(() => {
     cardActionMutateAsyncMock.mockReset();
+    startStudyLessonMock.mockReset();
     startStudySessionMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
@@ -435,6 +439,61 @@ describe('StudyPage', () => {
     expect(beginButton).toBeDisabled();
     expect(beginButton).toHaveAttribute('aria-describedby', emptyState.id);
     expect(beginButton).not.toHaveAttribute('title');
+  });
+
+  it('points to Lessons when reviews are exhausted but new cards remain', () => {
+    studyOverviewData.current = {
+      dueCount: 0,
+      newCount: 6,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 0,
+      newCardsAvailableToday: 6,
+      learningCount: 0,
+      reviewCount: 0,
+      suspendedCount: 0,
+      totalCards: 6,
+    };
+
+    renderStudyPage();
+
+    expect(screen.getByRole('button', { name: 'Reviews' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Lessons' })).toBeEnabled();
+    expect(
+      screen.getByText('No reviews are due. You can start a Lesson whenever you’re ready.')
+    ).toBeInTheDocument();
+  });
+
+  it('finishes a lesson when its last quiz card is buried', async () => {
+    startStudyLessonMock.mockResolvedValue({
+      overview: {
+        dueCount: 0,
+        newCount: 1,
+        newCardsPerDay: 20,
+        newCardsAvailableToday: 1,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [
+        {
+          ...baseCard,
+          state: {
+            ...baseCard.state,
+            queueState: 'new',
+          },
+        },
+      ],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
+
+    expect(screen.getByText('Lesson complete')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Learn another batch' })).toBeInTheDocument();
   });
 
   it('keeps Reviews enabled while overview counts are loading', () => {

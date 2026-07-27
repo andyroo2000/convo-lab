@@ -32,6 +32,7 @@ const StudyOverviewDashboard = ({
   const showEmptyState = reviewAvailableCount === 0 && !loading;
   const beginStudyDisabled = isStartingSession || showEmptyState;
   const lessonsAvailable = overview?.newCardsAvailableToday ?? overview?.newCount ?? 0;
+  const reviewEmptyMessage = lessonsAvailable > 0 ? t('overview.noReviews') : t('overview.empty');
   const readiness = overview?.learningReadiness;
   const masteryEntries = overview?.masterySpread
     ? (Object.entries(overview.masterySpread) as Array<
@@ -74,7 +75,7 @@ const StudyOverviewDashboard = ({
             <p className="mt-2 text-gray-600">{headline}</p>
             {showEmptyState ? (
               <p id={emptyStateId} className="mt-2 max-w-xs text-sm text-gray-600">
-                {t('overview.empty')}
+                {reviewEmptyMessage}
               </p>
             ) : null}
           </div>
@@ -151,10 +152,20 @@ const StudyOverviewDashboard = ({
           </p>
           {readiness.recommendation !== 'ready' ? (
             <div className="mt-4 flex flex-wrap gap-3">
-              <button type="button" onClick={onBeginReview} className={STUDY_ACTION_CLASS}>
+              <button
+                type="button"
+                onClick={onBeginReview}
+                disabled={beginStudyDisabled}
+                className={STUDY_ACTION_CLASS}
+              >
                 {t('readiness.reviewNow')}
               </button>
-              <button type="button" onClick={onBeginLesson} className={STUDY_ACTION_CLASS}>
+              <button
+                type="button"
+                onClick={onBeginLesson}
+                disabled={isStartingSession || lessonsAvailable === 0}
+                className={STUDY_ACTION_CLASS}
+              >
                 {t('readiness.learnAnyway')}
               </button>
             </div>
