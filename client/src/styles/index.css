@@ -5603,7 +5603,8 @@
   inset: 0;
   z-index: 80;
   overflow: hidden;
-  pointer-events: none;
+  background: #fdfbf5;
+  pointer-events: auto;
 }
 
 .mastery-promotion-cloud {
