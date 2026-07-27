@@ -6,6 +6,7 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import { StudyCardFace } from '../components/study/StudyCardPreview';
 import StudyCardEditor from '../components/study/StudyCardEditor';
 import StudyGradeButtons from '../components/study/StudyGradeButtons';
+import MasteryPromotionAnimation from '../components/study/MasteryPromotionAnimation';
 import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
@@ -101,6 +102,8 @@ const StudyPage = () => {
   }
 
   if (reviewSession.focusMode) {
+    const { promotion } = reviewSession;
+
     // These containers must use overflow-x-hidden, not overflow-x-clip: clip makes
     // Chromium drop hit-testing (hover/clicks) on content that overflows the box
     // vertically past min-h at desktop widths, leaving the editor buttons painted
@@ -126,32 +129,23 @@ const StudyPage = () => {
                 }
                 onExit={reviewSession.exitFocusMode}
               />
-              {reviewSession.promotion ? (
-                <div
-                  role="status"
-                  className="fixed left-1/2 top-16 z-[80] w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center shadow-xl"
-                >
-                  <p className="font-bold text-emerald-900">
-                    {t('promotion.message', {
-                      item: reviewSession.promotion.label,
-                      level: reviewSession.promotion.level,
-                    })}
-                  </p>
-                  {reviewSession.promotion.stability !== null ? (
-                    <p className="mt-1 text-sm text-emerald-800">
-                      {t('promotion.stability', {
-                        days: Math.round(reviewSession.promotion.stability),
-                      })}
-                    </p>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="mt-2 text-xs font-semibold uppercase tracking-wide text-emerald-900"
-                    onClick={() => reviewSession.setPromotion(null)}
-                  >
-                    {t('promotion.dismiss')}
-                  </button>
-                </div>
+              {promotion ? (
+                <MasteryPromotionAnimation
+                  key={`${promotion.label}|${promotion.level}`}
+                  label={promotion.label}
+                  level={promotion.level}
+                  announcement={t('promotion.message', {
+                    item: promotion.label,
+                    level: promotion.level,
+                  })}
+                  onFinished={() => {
+                    reviewSession.setPromotion((current) =>
+                      current?.label === promotion.label && current?.level === promotion.level
+                        ? null
+                        : current
+                    );
+                  }}
+                />
               ) : null}
               {reviewSession.sessionKind === 'lessons' &&
               reviewSession.lessonPhase === 'preview' &&
