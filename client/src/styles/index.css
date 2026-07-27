@@ -5723,7 +5723,9 @@
 }
 
 .mastery-promotion-animation--reduced .mastery-promotion-item {
-  display: none;
+  top: 9.25rem;
+  transform: translate(-50%, -50%) scale(0.66);
+  animation: mastery-item-reduced 1.15s ease-in-out forwards;
 }
 
 .mastery-promotion-animation--reduced .mastery-promotion-cloud {
@@ -5735,6 +5737,18 @@
 }
 
 @keyframes mastery-cloud-reduced {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  18%,
+  78% {
+    opacity: 1;
+  }
+}
+
+@keyframes mastery-item-reduced {
   0%,
   100% {
     opacity: 0;
