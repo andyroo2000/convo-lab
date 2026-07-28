@@ -205,7 +205,8 @@ describe('DailyAudioPracticePage', () => {
       id: 'practice-earlier',
       practiceDate: '2026-05-04',
     };
-    const practices = [readyPractice, earlierPractice];
+    // The UI enforces newest-first navigation even if the API response order changes.
+    const practices = [earlierPractice, readyPractice];
     mockUseRecentDailyAudioPractice.mockReturnValue({ data: practices, isLoading: false });
     mockUseDailyAudioPractice.mockImplementation((id: string | undefined) => ({
       data: practices.find((item) => item.id === id),
@@ -225,6 +226,10 @@ describe('DailyAudioPracticePage', () => {
 
     fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
     fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 20 }] });
+    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
+
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 120 }] });
     expect(screen.getByText('2026-05-05')).toBeInTheDocument();
 
     fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });

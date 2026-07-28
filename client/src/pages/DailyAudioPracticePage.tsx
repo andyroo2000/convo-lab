@@ -31,7 +31,8 @@ function dayNavigationHint(canShowEarlier: boolean, canShowLater: boolean) {
     return 'Swipe right for earlier days or left for later days.';
   }
   if (canShowEarlier) return 'Swipe right for earlier days.';
-  return 'Swipe left for later days.';
+  if (canShowLater) return 'Swipe left for later days.';
+  return null;
 }
 
 const DailyAudioPracticePage = () => {
@@ -41,20 +42,23 @@ const DailyAudioPracticePage = () => {
   const [confirmingRegeneration, setConfirmingRegeneration] = useState(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const createPractice = useCreateDailyAudioPractice();
-  const practices = recentQuery.data ?? [];
+  const practices = useMemo(
+    () =>
+      [...(recentQuery.data ?? [])].sort((a, b) => b.practiceDate.localeCompare(a.practiceDate)),
+    [recentQuery.data]
+  );
   const todayPractice = practices.find((item) => item.practiceDate === localPracticeDate());
   const todayGenerating = todayPractice?.status === 'generating';
   const todayHasAudio = todayPractice?.status === 'ready';
 
   useEffect(() => {
-    if (!selectedPracticeId && recentQuery.data?.[0]) {
-      setSelectedPracticeId(recentQuery.data[0].id);
+    if (!selectedPracticeId && practices[0]) {
+      setSelectedPracticeId(practices[0].id);
     }
-  }, [recentQuery.data, selectedPracticeId]);
+  }, [practices, selectedPracticeId]);
 
   const detailQuery = useDailyAudioPractice(selectedPracticeId);
-  const practice =
-    detailQuery.data ?? recentQuery.data?.find((item) => item.id === selectedPracticeId);
+  const practice = detailQuery.data ?? practices.find((item) => item.id === selectedPracticeId);
   const generating = practice?.status === 'generating';
   const generationUpdatedAt = practice?.updatedAt ? new Date(practice.updatedAt).getTime() : null;
   const staleGeneration =
@@ -78,6 +82,7 @@ const DailyAudioPracticePage = () => {
   const selectedIndex = practices.findIndex((item) => item.id === selectedPracticeId);
   const canShowEarlier = selectedIndex >= 0 && selectedIndex < practices.length - 1;
   const canShowLater = selectedIndex > 0;
+  const navigationHint = dayNavigationHint(canShowEarlier, canShowLater);
 
   const showEarlier = () => {
     if (canShowEarlier) setSelectedPracticeId(practices[selectedIndex + 1].id);
@@ -296,9 +301,9 @@ const DailyAudioPracticePage = () => {
             <ChevronLeft className="h-4 w-4" />
             Earlier day
           </button>
-          <p className="text-center text-sm text-[rgba(20,50,86,0.58)]">
-            {dayNavigationHint(canShowEarlier, canShowLater)}
-          </p>
+          {navigationHint ? (
+            <p className="text-center text-sm text-[rgba(20,50,86,0.58)]">{navigationHint}</p>
+          ) : null}
           <button
             type="button"
             onClick={showLater}
