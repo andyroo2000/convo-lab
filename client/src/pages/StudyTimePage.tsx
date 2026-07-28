@@ -50,6 +50,13 @@ function googleCalendarUrl(
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
+function activityTranslationKey(activity: StudyActivityKind) {
+  if (activity === 'card_review') return 'cardReview';
+  if (activity === 'daily_audio') return 'dailyAudio';
+  if (activity === 'card_creation') return 'cardCreation';
+  return activity;
+}
+
 const StudyTimePage = () => {
   const { t } = useTranslation(['study']);
   const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
@@ -249,7 +256,7 @@ const StudyTimePage = () => {
             <div key={session.clientSessionId} className="flex items-center justify-between py-3">
               <div>
                 <p className="font-bold text-navy">
-                  {session.name || session.activity.replace(/_/g, ' ')}
+                  {session.name || t(`time.activities.${activityTranslationKey(session.activity)}`)}
                 </p>
                 <p className="text-sm text-gray-500">
                   {new Date(session.startedAt).toLocaleString()} ·{' '}

@@ -136,7 +136,7 @@ export const StudyActivityProvider = ({
       if (
         !current ||
         (expectedActivity && current.activity !== expectedActivity) ||
-        (expectedName && current.name !== expectedName)
+        (expectedName !== undefined && current.name !== expectedName)
       ) {
         return;
       }
@@ -184,7 +184,6 @@ export const StudyActivityProvider = ({
           category: 'create',
           activity: 'card_creation',
           source: 'automatic',
-          name: 'One-off card creation',
           startedAt: now,
           endedAt: now,
           durationMs: 0,

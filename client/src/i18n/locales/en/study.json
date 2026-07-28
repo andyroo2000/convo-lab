@@ -389,6 +389,8 @@
     },
     "activities": {
       "cardCreation": "Making cards",
+      "cardReview": "Card review",
+      "dailyAudio": "Daily audio",
       "tv": "TV or film",
       "podcast": "Podcast",
       "reading": "Reading",
@@ -401,7 +403,8 @@
       "nameLabel": "Source, show, or project",
       "namePlaceholder": "Optional source, show, or project",
       "start": "Start session",
-      "stop": "Stop {{name}}"
+      "stop": "Stop {{name}}",
+      "stopAria": "Stop study timer"
     },
     "calendar": {
       "title": "Add a calendar entry",

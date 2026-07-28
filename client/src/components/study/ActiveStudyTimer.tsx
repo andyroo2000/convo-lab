@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Clock3, Square } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import {
   useStudyActivityActions,
@@ -16,7 +17,15 @@ function formatElapsed(milliseconds: number) {
     : `${minutes}:${remainder.toString().padStart(2, '0')}`;
 }
 
+function activityTranslationKey(activity: string) {
+  if (activity === 'card_review') return 'cardReview';
+  if (activity === 'daily_audio') return 'dailyAudio';
+  if (activity === 'card_creation') return 'cardCreation';
+  return activity;
+}
+
 const ActiveStudyTimer = () => {
+  const { t } = useTranslation(['study']);
   const { active, elapsedMs } = useStudyActivityStatus();
   const { stop } = useStudyActivityActions();
   if (!active) return null;
@@ -27,7 +36,7 @@ const ActiveStudyTimer = () => {
         <Clock3 className="h-5 w-5" />
         <span>
           <span className="block text-xs font-bold uppercase tracking-wider">
-            {active.name || active.activity.replace(/_/g, ' ')}
+            {active.name || t(`time.activities.${activityTranslationKey(active.activity)}`)}
           </span>
           <span className="font-mono text-lg font-black tabular-nums">
             {formatElapsed(elapsedMs)}
@@ -38,7 +47,7 @@ const ActiveStudyTimer = () => {
         type="button"
         onClick={() => stop()}
         className="rounded-full bg-coral p-2 text-white"
-        aria-label="Stop study timer"
+        aria-label={t('time.timer.stopAria')}
       >
         <Square className="h-4 w-4 fill-current" />
       </button>

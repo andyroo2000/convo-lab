@@ -372,6 +372,8 @@
     },
     "activities": {
       "cardCreation": "カード作成",
+      "cardReview": "カード復習",
+      "dailyAudio": "デイリー音声",
       "tv": "テレビ・映画",
       "podcast": "ポッドキャスト",
       "reading": "読書",
@@ -384,7 +386,8 @@
       "nameLabel": "教材・番組・プロジェクト",
       "namePlaceholder": "教材・番組・プロジェクト（任意）",
       "start": "セッションを開始",
-      "stop": "{{name}}を停止"
+      "stop": "{{name}}を停止",
+      "stopAria": "学習タイマーを停止"
     },
     "calendar": {
       "title": "カレンダー記録を追加",
