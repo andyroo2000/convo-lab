@@ -9,6 +9,7 @@ import type {
   StudyActivityKind,
   StudyActivitySession,
 } from '../types/studyActivity';
+import formatDuration from '../utils/studyTimeFormat';
 
 const ACTIVITY_OPTIONS: Array<{
   activity: StudyActivityKind;
@@ -22,13 +23,6 @@ const ACTIVITY_OPTIONS: Array<{
   { activity: 'conversation', category: 'immerse', label: 'Conversation' },
   { activity: 'other', category: 'immerse', label: 'Other study' },
 ];
-
-function formatDuration(milliseconds: number) {
-  const totalMinutes = Math.round(milliseconds / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return hours ? `${hours}h ${minutes || ''}m`.trim() : `${minutes}m`;
-}
 
 function googleCalendarUrl(name: string, start: Date, durationMinutes: number) {
   const end = new Date(start.getTime() + durationMinutes * 60000);
@@ -65,7 +59,7 @@ const StudyTimePage = () => {
     minutes <= 1440 &&
     Number.isFinite(new Date(entryDate).getTime());
 
-  const option = ACTIVITY_OPTIONS.find((item) => item.activity === activity)!;
+  const option = ACTIVITY_OPTIONS.find((item) => item.activity === activity) ?? ACTIVITY_OPTIONS[0];
   const sessions = useMemo(() => sessionsQuery.data ?? [], [sessionsQuery.data]);
   const totals = useMemo(
     () =>
@@ -132,6 +126,7 @@ const StudyTimePage = () => {
             value={activity}
             onChange={(event) => setActivity(event.target.value as StudyActivityKind)}
             className="input w-full"
+            aria-label="Study activity"
           >
             {ACTIVITY_OPTIONS.map((item) => (
               <option key={item.activity} value={item.activity}>
@@ -144,6 +139,7 @@ const StudyTimePage = () => {
             onChange={(event) => setName(event.target.value)}
             className="input w-full"
             placeholder="Optional source, show, or project"
+            aria-label="Source, show, or project"
           />
           {active ? (
             <button type="button" onClick={() => stop()} className="btn-secondary w-full">
@@ -174,6 +170,7 @@ const StudyTimePage = () => {
             value={entryDate}
             onChange={(event) => setEntryDate(event.target.value)}
             className="input w-full"
+            aria-label="Entry start date and time"
           />
           <div className="flex gap-3">
             <input
@@ -221,7 +218,10 @@ const StudyTimePage = () => {
       <section className="retro-paper-panel p-6">
         <h2 className="retro-headline text-3xl text-navy">This week</h2>
         {sessionsQuery.isLoading ? <p className="mt-4 text-gray-600">Loading study time…</p> : null}
-        {!sessionsQuery.isLoading && sessions.length === 0 ? (
+        {sessionsQuery.isError ? (
+          <p className="mt-4 text-red-700">Study time couldn’t be loaded. Please try again.</p>
+        ) : null}
+        {!sessionsQuery.isLoading && !sessionsQuery.isError && sessions.length === 0 ? (
           <p className="mt-4 text-gray-600">Your first completed activity will appear here.</p>
         ) : null}
         <div className="mt-4 divide-y divide-gray-200">

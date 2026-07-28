@@ -206,7 +206,13 @@ export const StudyActivityProvider = ({
   useEffect(() => {
     flushPending();
     window.addEventListener('online', flushPending);
-    return () => window.removeEventListener('online', flushPending);
+    window.addEventListener('focus', flushPending);
+    const interval = window.setInterval(flushPending, 60_000);
+    return () => {
+      window.removeEventListener('online', flushPending);
+      window.removeEventListener('focus', flushPending);
+      window.clearInterval(interval);
+    };
   }, [flushPending]);
 
   useEffect(() => {

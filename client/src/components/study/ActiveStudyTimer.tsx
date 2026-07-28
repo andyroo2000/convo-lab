@@ -18,7 +18,7 @@ const ActiveStudyTimer = () => {
   if (!active) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 border-2 border-navy bg-cream px-4 py-3 shadow-[4px_4px_0_#173b65]">
+    <div className="fixed right-4 top-20 z-50 flex items-center gap-3 border-2 border-navy bg-cream px-4 py-3 shadow-[4px_4px_0_#173b65]">
       <Link to="/app/study/time" className="flex items-center gap-2 text-navy">
         <Clock3 className="h-5 w-5" />
         <span>
