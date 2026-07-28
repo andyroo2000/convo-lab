@@ -50,6 +50,7 @@ const DailyAudioPracticePage = () => {
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const [confirmingRegeneration, setConfirmingRegeneration] = useState(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const dayRegionRef = useRef<HTMLDivElement>(null);
   const createPractice = useCreateDailyAudioPractice();
   const practices = useMemo(
     () =>
@@ -93,8 +94,13 @@ const DailyAudioPracticePage = () => {
   const canShowLater = selectedIndex > 0;
   const navigationHint = dayNavigationHint(canShowEarlier, canShowLater);
 
+  const pauseDayAudio = () => {
+    dayRegionRef.current?.querySelectorAll('audio').forEach((audio) => audio.pause());
+  };
+
   const showEarlier = () => {
     if (canShowEarlier) {
+      pauseDayAudio();
       setSlideDirection(1);
       setSelectedPracticeId(practices[selectedIndex + 1].id);
     }
@@ -102,6 +108,7 @@ const DailyAudioPracticePage = () => {
 
   const showLater = () => {
     if (canShowLater) {
+      pauseDayAudio();
       setSlideDirection(-1);
       setSelectedPracticeId(practices[selectedIndex - 1].id);
     }
@@ -187,6 +194,7 @@ const DailyAudioPracticePage = () => {
       ) : null}
 
       <div
+        ref={dayRegionRef}
         className="relative overflow-hidden"
         style={{ overflowClipMargin: '12px' }}
         data-testid="daily-audio-day"

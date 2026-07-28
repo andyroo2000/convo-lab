@@ -215,10 +215,13 @@ describe('DailyAudioPracticePage', () => {
 
     renderPage();
     const swipeRegion = screen.getByTestId('daily-audio-day');
+    const pauseSpy = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    swipeRegion.append(document.createElement('audio'));
 
     fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100, clientY: 20 }] });
     fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180, clientY: 20 }] });
     expect(screen.getByText('2026-05-04')).toBeInTheDocument();
+    expect(pauseSpy).toHaveBeenCalled();
 
     fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100, clientY: 20 }] });
     fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180, clientY: 20 }] });
@@ -240,6 +243,8 @@ describe('DailyAudioPracticePage', () => {
     expect(screen.getByText('2026-05-04')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Later day' }));
     expect(screen.getByText('2026-05-05')).toBeInTheDocument();
+
+    pauseSpy.mockRestore();
   });
 
   it('shows generation progress and track statuses', () => {
