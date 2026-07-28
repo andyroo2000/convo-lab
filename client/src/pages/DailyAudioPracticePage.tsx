@@ -323,7 +323,6 @@ const DailyAudioPracticePage = () => {
         confirmLabel="Regenerate Audio"
         cancelLabel="Keep Existing Audio"
         variant="warning"
-        isLoading={createPractice.isPending}
         onCancel={() => setConfirmingRegeneration(false)}
         onConfirm={() => {
           setConfirmingRegeneration(false);
