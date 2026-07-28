@@ -5625,19 +5625,25 @@
 }
 
 .mastery-promotion-animation {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 80;
+  z-index: 20;
   overflow: hidden;
-  background: #fdfbf5;
+  background: rgb(253 251 245 / 78%);
   pointer-events: auto;
+}
+
+@media (min-width: 768px) {
+  .mastery-promotion-animation {
+    border-radius: 2rem;
+  }
 }
 
 .mastery-level-window {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 1rem);
+  top: clamp(1rem, 12%, 4rem);
   left: 50%;
-  width: min(82vw, 22rem);
+  width: min(82%, 22rem);
   height: 5rem;
   overflow: hidden;
   transform: translateX(-50%);
@@ -5752,7 +5758,7 @@
   position: absolute;
   top: 52%;
   left: 50%;
-  width: min(82vw, 30rem);
+  width: min(82%, 30rem);
   color: #153c68;
   font-size: clamp(1.35rem, 4vw, 1.85rem);
   font-weight: 700;

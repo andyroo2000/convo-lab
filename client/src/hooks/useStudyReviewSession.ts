@@ -149,6 +149,7 @@ const useStudyReviewSession = () => {
   const [lessonPhase, setLessonPhase] = useState<'preview' | 'quiz' | 'complete'>('preview');
   const [masteryAnimation, setMasteryAnimation] = useState<{
     id: string;
+    card: StudyCardSummary;
     label: string;
     fromLevel: StudyMasteryLevel;
     toLevel: StudyMasteryLevel;
@@ -520,6 +521,7 @@ const useStudyReviewSession = () => {
           'This item';
         setMasteryAnimation({
           id: reviewResult.reviewLogId,
+          card: currentCard,
           label,
           fromLevel: normalizedPreviousLevel,
           toLevel: normalizedNextLevel,

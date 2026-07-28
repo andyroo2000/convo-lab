@@ -415,6 +415,7 @@ describe('useStudyReviewSession', () => {
 
     expect(result.current.masteryAnimation).toMatchObject({
       id: 'review-log-pass',
+      card: { id: guruCard.id },
       label: '会社',
       fromLevel: 'guru',
       toLevel: 'guru',
@@ -473,6 +474,7 @@ describe('useStudyReviewSession', () => {
 
     expect(result.current.masteryAnimation).toMatchObject({
       id: 'review-log-fail',
+      card: { id: masterCard.id },
       label: '会社',
       fromLevel: 'master',
       toLevel: 'apprentice',
