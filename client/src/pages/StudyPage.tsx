@@ -16,6 +16,8 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useStudyOverview } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 import useStudyReviewSession from '../hooks/useStudyReviewSession';
+import { useStudyActivityTimer } from '../contexts/StudyActivityContext';
+import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 
 const StudyPage = () => {
   const { t } = useTranslation('study');
@@ -26,9 +28,22 @@ const StudyPage = () => {
   const availableCount =
     (overviewQuery.data?.failedCount ?? 0) + (overviewQuery.data?.dueCount ?? 0);
   const reviewSession = useStudyReviewSession();
+  const { start: startActivity, stop: stopActivity } = useStudyActivityTimer();
   const runBackgroundTask = useStudyBackgroundTask();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [lessonPreviewIndex, setLessonPreviewIndex] = useState(0);
+  const startReviewTimer = useMemo(
+    () => () =>
+      startActivity({
+        category: 'review',
+        activity: 'card_review',
+        source: 'automatic',
+        name: reviewSession.sessionKind === 'lessons' ? 'Lessons' : 'Card reviews',
+      }),
+    [reviewSession.sessionKind, startActivity]
+  );
+  const stopReviewTimer = useMemo(() => () => stopActivity('card_review'), [stopActivity]);
+  useAutomaticStudyActivity(reviewSession.focusMode, startReviewTimer, stopReviewTimer);
   const shouldShowMotionBanner =
     reviewSession.motionPermissionState === 'prompt' ||
     reviewSession.motionPermissionState === 'denied';

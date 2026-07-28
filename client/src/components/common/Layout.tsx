@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Library, Mic, Eye, BookOpen } from 'lucide-react';
+import { Library, Mic, Eye, BookOpen, Clock3 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
 import useEffectiveUser from '../../hooks/useEffectiveUser';
@@ -10,6 +10,8 @@ import UserMenu, { type UserMenuMobileNavItem } from './UserMenu';
 import Logo from './Logo';
 import OnboardingModal from '../onboarding/OnboardingModal';
 import { SHOW_ONBOARDING_WELCOME } from '../../config';
+import { StudyActivityProvider } from '../../contexts/StudyActivityContext';
+import ActiveStudyTimer from '../study/ActiveStudyTimer';
 
 const Layout = () => {
   const { user, loading, logout } = useAuth();
@@ -30,7 +32,8 @@ const Layout = () => {
   // Library should only be highlighted on the library index itself.
   const isLibraryActive = location.pathname === '/app/library';
   const isCreateActive = location.pathname.startsWith('/app/create');
-  const isStudyActive = location.pathname.startsWith('/app/study');
+  const isTimeActive = location.pathname === '/app/study/time';
+  const isStudyActive = location.pathname.startsWith('/app/study') && !isTimeActive;
   const flashcardsEnabled = isFeatureEnabled('flashcardsEnabled');
   const mobileNavItems = useMemo<UserMenuMobileNavItem[]>(
     () => [
@@ -59,8 +62,23 @@ const Layout = () => {
             },
           ]
         : []),
+      {
+        id: 'time',
+        label: 'Study Time',
+        path: '/app/study/time',
+        isActive: isTimeActive,
+        icon: Clock3,
+      },
     ],
-    [flashcardsEnabled, isCreateActive, isLibraryActive, isStudyActive, t, viewAsUserId]
+    [
+      flashcardsEnabled,
+      isCreateActive,
+      isLibraryActive,
+      isStudyActive,
+      isTimeActive,
+      t,
+      viewAsUserId,
+    ]
   );
 
   // Show loading spinner while checking authentication
@@ -151,6 +169,17 @@ const Layout = () => {
                     {t('common:nav.study')}
                   </Link>
                 ) : null}
+                <Link
+                  to="/app/study/time"
+                  className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
+                    isTimeActive
+                      ? 'is-active bg-white text-navy shadow-md'
+                      : 'text-white hover:bg-white/20'
+                  }`}
+                >
+                  <Clock3 className="w-5 h-5 mr-2.5 flex-shrink-0" />
+                  Study Time
+                </Link>
               </div>
             </div>
 
@@ -186,13 +215,16 @@ const Layout = () => {
           </div>
         </div>
       </nav>
-      <main
-        className={`max-w-7xl xl:max-w-[96rem] mx-auto py-8 ${
-          isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'
-        }`}
-      >
-        <Outlet />
-      </main>
+      <StudyActivityProvider key={String(user.id)} userId={user.id}>
+        <main
+          className={`max-w-7xl xl:max-w-[96rem] mx-auto py-8 ${
+            isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'
+          }`}
+        >
+          <Outlet />
+        </main>
+        <ActiveStudyTimer />
+      </StudyActivityProvider>
     </div>
   );
 };

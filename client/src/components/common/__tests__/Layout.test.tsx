@@ -3,6 +3,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
 import Layout from '../Layout';
 
@@ -88,22 +89,28 @@ describe('Layout', () => {
     avatarColor: '#000000',
   };
 
-  const renderLayout = (_initialPath: string) =>
-    render(
-      <BrowserRouter>
-        <Routes>
-          <Route path="*" element={<Layout />}>
-            <Route
-              path="app/library"
-              element={<div data-testid="library-page">Library Page</div>}
-            />
-            <Route path="app/create" element={<div data-testid="create-page">Create Page</div>} />
-            <Route path="app/study" element={<div data-testid="study-page">Study Page</div>} />
-            <Route path="app/other" element={<div data-testid="other-page">Other Page</div>} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+  const renderLayout = (_initialPath: string) => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="*" element={<Layout />}>
+              <Route
+                path="app/library"
+                element={<div data-testid="library-page">Library Page</div>}
+              />
+              <Route path="app/create" element={<div data-testid="create-page">Create Page</div>} />
+              <Route path="app/study" element={<div data-testid="study-page">Study Page</div>} />
+              <Route path="app/other" element={<div data-testid="other-page">Other Page</div>} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
+  };
 
   beforeEach(() => {
     mockAuthState.user = { ...baseMockUser };
@@ -158,6 +165,7 @@ describe('Layout', () => {
       expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/library"]')).toBeTruthy();
       expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/create"]')).toBeTruthy();
       expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study"]')).toBeTruthy();
+      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study/time"]')).toBeTruthy();
       expect(container.querySelector('.sm\\:hidden .retro-nav-tab')).toBeNull();
     });
 
@@ -169,6 +177,7 @@ describe('Layout', () => {
       expect(mobileNav).toHaveTextContent('Library');
       expect(mobileNav).toHaveTextContent('Create');
       expect(mobileNav).toHaveTextContent('Study');
+      expect(mobileNav).toHaveTextContent('Study Time');
       expect(within(mobileNav).getByText('Study')).toHaveAttribute('data-active', 'true');
       expect(within(mobileNav).getByText('Library')).toHaveAttribute(
         'data-path',
