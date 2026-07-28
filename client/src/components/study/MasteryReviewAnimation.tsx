@@ -74,6 +74,7 @@ const MasteryReviewAnimation = ({
               ]
                 .filter(Boolean)
                 .join(' ')}
+              data-testid="mastery-level-segment"
               data-level={masteryLevel}
               key={masteryLevel}
             />

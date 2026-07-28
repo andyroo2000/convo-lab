@@ -26,16 +26,14 @@ const StudyReviewHeader = ({ progress, actions, onExit }: StudyReviewHeaderProps
         />
       </div>
       <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-          <button
-            type="button"
-            onClick={onExit}
-            className="rounded-full border border-gray-300 px-2.5 py-1 text-xs font-medium text-navy hover:bg-gray-50"
-          >
-            {t('reviewHeader.exit')}
-          </button>
-          {actions}
-        </div>
+        <button
+          type="button"
+          onClick={onExit}
+          className="rounded-full border border-gray-300 px-2.5 py-1 text-xs font-medium text-navy hover:bg-gray-50"
+        >
+          {t('reviewHeader.exit')}
+        </button>
+        {actions}
       </div>
     </div>
   );

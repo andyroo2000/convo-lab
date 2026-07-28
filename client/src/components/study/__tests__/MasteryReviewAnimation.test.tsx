@@ -10,7 +10,7 @@ describe('MasteryReviewAnimation', () => {
   });
 
   it('announces the resulting level and renders the full segmented scale', () => {
-    const { container } = render(
+    render(
       <MasteryReviewAnimation
         fromLevel="apprentice"
         toLevel="guru"
@@ -28,8 +28,12 @@ describe('MasteryReviewAnimation', () => {
       'mastery-promotion-animation--moved'
     );
     expect(screen.getByText('apprentice')).toHaveClass('mastery-level-name');
-    expect(container.querySelectorAll('.mastery-level-segment')).toHaveLength(5);
-    expect(container.querySelector('.mastery-promotion-item')).toBeNull();
+    expect(screen.getAllByTestId('mastery-level-segment')).toHaveLength(5);
+    expect(
+      screen.queryByText('朝ごはんを食べませんでした。', {
+        selector: '.mastery-promotion-item',
+      })
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/FSRS stability/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
