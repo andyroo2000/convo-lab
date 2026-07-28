@@ -143,6 +143,7 @@ const StudyPage = () => {
     const { masteryAnimation } = reviewSession;
     const displayedCard = masteryAnimation?.card ?? reviewSession.currentCard;
     const displayedCardIsRevealed = masteryAnimation !== null || reviewSession.revealed;
+    const showQuizSurface = reviewSession.lessonPhase === 'quiz' || masteryAnimation !== null;
 
     // These containers must use overflow-x-hidden, not overflow-x-clip: clip makes
     // Chromium drop hit-testing (hover/clicks) on content that overflows the box
@@ -166,7 +167,7 @@ const StudyPage = () => {
                 }
                 onExit={reviewSession.exitFocusMode}
               />
-              {reviewSession.lessonPhase === 'quiz' ? (
+              {showQuizSurface ? (
                 <div className="mastery-feedback-lane" data-testid="mastery-feedback-lane">
                   {masteryAnimation ? (
                     <MasteryReviewAnimation
@@ -331,7 +332,7 @@ const StudyPage = () => {
                 <p className="py-16 text-center text-red-600">{reviewSession.sessionError}</p>
               ) : null}
 
-              {reviewSession.lessonPhase === 'quiz' &&
+              {showQuizSurface &&
               !reviewSession.sessionLoading &&
               !reviewSession.sessionError &&
               !displayedCard ? (
@@ -340,7 +341,7 @@ const StudyPage = () => {
                 </div>
               ) : null}
 
-              {reviewSession.lessonPhase === 'quiz' && displayedCard ? (
+              {showQuizSurface && displayedCard ? (
                 <div
                   data-testid="study-focus-card-scroll"
                   className={`study-focus-scroll relative mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${

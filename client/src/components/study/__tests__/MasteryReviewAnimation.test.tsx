@@ -59,6 +59,32 @@ describe('MasteryReviewAnimation', () => {
     expect(onFinished).toHaveBeenCalledOnce();
   });
 
+  it('swaps the centered label when the moving track reaches the new level', () => {
+    vi.useFakeTimers();
+
+    render(
+      <MasteryReviewAnimation
+        fromLevel="apprentice"
+        toLevel="guru"
+        passed
+        announcement="研究 is now guru"
+        onFinished={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('apprentice')).toHaveClass('mastery-level-name');
+
+    act(() => {
+      vi.advanceTimersByTime(719);
+    });
+    expect(screen.getByText('apprentice')).toHaveClass('mastery-level-name');
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByText('guru')).toHaveClass('mastery-level-name');
+  });
+
   it('marks a failed review even when the level does not move', () => {
     render(
       <MasteryReviewAnimation

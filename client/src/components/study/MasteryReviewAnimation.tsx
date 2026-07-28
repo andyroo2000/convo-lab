@@ -12,6 +12,8 @@ interface MasteryReviewAnimationProps {
 }
 
 const SEGMENT_WIDTH_REM = 12;
+const ANIMATION_DURATION_MS = 1_450;
+const LEVEL_SWAP_MS = 720;
 
 const MasteryReviewAnimation = ({
   fromLevel,
@@ -26,7 +28,7 @@ const MasteryReviewAnimation = ({
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
-  const duration = reduceMotion ? 650 : 1_450;
+  const duration = reduceMotion ? 650 : ANIMATION_DURATION_MS;
   const onFinishedRef = useRef(onFinished);
   onFinishedRef.current = onFinished;
   const fromIndex = Math.max(0, STUDY_MASTERY_LEVELS.indexOf(fromLevel));
@@ -50,7 +52,7 @@ const MasteryReviewAnimation = ({
   useEffect(() => {
     const levelTimeout = window.setTimeout(
       () => setActiveLevel(toLevel),
-      reduceMotion || !moved ? 0 : 720
+      reduceMotion || !moved ? 0 : LEVEL_SWAP_MS
     );
     const finishTimeout = window.setTimeout(() => onFinishedRef.current(), duration);
     return () => {
