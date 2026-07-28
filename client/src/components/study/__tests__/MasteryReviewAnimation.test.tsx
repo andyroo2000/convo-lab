@@ -94,14 +94,15 @@ describe('MasteryReviewAnimation', () => {
         label="研究"
         fromLevel="apprentice"
         toLevel="guru"
-        passed
-        announcement="研究 is now guru"
+        passed={false}
+        announcement="研究 dropped to guru"
         onFinished={onFinished}
       />
     );
 
     expect(screen.getByRole('status')).toHaveClass('mastery-promotion-animation--reduced');
     expect(screen.getByText('研究')).toBeInTheDocument();
+    expect(screen.getByText('Try again')).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(649);

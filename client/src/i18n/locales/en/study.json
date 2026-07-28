@@ -28,6 +28,7 @@
   },
   "masteryAnimation": {
     "advanced": "{{item}} advanced to {{level}}.",
+    "moved": "{{item}} is now {{level}}.",
     "remained": "{{item}} remains {{level}}.",
     "failedMoved": "{{item}} dropped to {{level}}.",
     "failedSameStage": "{{item}} remains {{level}}. Try again."

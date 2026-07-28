@@ -320,6 +320,9 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentCard?.id).toBe('card-2');
     expect(result.current.revealed).toBe(false);
 
+    act(() => {
+      result.current.setMasteryAnimation(null);
+    });
     await act(async () => {
       await result.current.handleUndo();
     });
@@ -382,8 +385,12 @@ describe('useStudyReviewSession', () => {
     await act(async () => {
       await result.current.handleGrade('good');
     });
+    await act(async () => {
+      await result.current.handleUndo();
+    });
 
     expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+    expect(undoStudyReviewMock).not.toHaveBeenCalled();
   });
 
   it('surfaces a backward mastery transition after a failed review', async () => {
@@ -465,6 +472,9 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentCard?.id).toBe('card-2');
     expect(result.current.sessionCounts.reviewRemaining).toBe(1);
 
+    act(() => {
+      result.current.setMasteryAnimation(null);
+    });
     await act(async () => {
       await result.current.handleUndo();
     });

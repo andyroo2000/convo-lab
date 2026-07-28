@@ -73,6 +73,15 @@ const MasteryReviewAnimation = ({
           ))}
         </div>
       </div>
+      <div
+        className={`mastery-review-result ${
+          passed ? 'mastery-review-result--passed' : 'mastery-review-result--failed'
+        }`}
+        aria-hidden="true"
+      >
+        <span>{passed ? '✓' : '×'}</span>
+        {passed ? 'Passed' : 'Try again'}
+      </div>
       <div className="mastery-promotion-item" aria-hidden="true">
         {label}
       </div>

@@ -712,7 +712,8 @@ const useStudyReviewSession = () => {
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
-      editing
+      editing ||
+      masteryAnimation !== null
     ) {
       return;
     }
@@ -745,6 +746,7 @@ const useStudyReviewSession = () => {
     popUndo,
     pushUndo,
     editing,
+    masteryAnimation,
     cardActionMutation.isPending,
     restoreUndoSnapshot,
     reviewMutation.isPending,
@@ -760,7 +762,8 @@ const useStudyReviewSession = () => {
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
-      editing,
+      editing ||
+      masteryAnimation !== null,
     focusMode,
     onShake: handleUndo,
     runBackgroundTask,

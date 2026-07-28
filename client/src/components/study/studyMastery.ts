@@ -24,7 +24,8 @@ export const masteryReviewAnnouncementKind = (
   if (!passed) {
     return fromLevel === toLevel ? 'failedSameStage' : 'failedMoved';
   }
-  return STUDY_MASTERY_LEVELS.indexOf(toLevel) > STUDY_MASTERY_LEVELS.indexOf(fromLevel)
-    ? 'advanced'
-    : 'remained';
+  const movement = STUDY_MASTERY_LEVELS.indexOf(toLevel) - STUDY_MASTERY_LEVELS.indexOf(fromLevel);
+  if (movement > 0) return 'advanced';
+  if (movement < 0) return 'moved';
+  return 'remained';
 };

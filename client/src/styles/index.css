@@ -5768,6 +5768,10 @@
   animation: mastery-item-lifecycle 1.45s ease-in-out forwards;
 }
 
+.mastery-review-result {
+  display: none;
+}
+
 @keyframes mastery-item-lifecycle {
   0% {
     opacity: 0;
@@ -5902,6 +5906,27 @@
 .mastery-promotion-animation--reduced .mastery-level-window,
 .mastery-promotion-animation--reduced .mastery-promotion-item {
   animation: mastery-reduced-lifecycle 0.65s ease-in-out forwards;
+}
+
+.mastery-promotion-animation--reduced .mastery-review-result {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 6.2rem);
+  left: 50%;
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transform: translateX(-50%);
+  animation: mastery-reduced-lifecycle 0.65s ease-in-out forwards;
+}
+
+.mastery-review-result--passed {
+  color: #15803d;
+}
+
+.mastery-review-result--failed {
+  color: #dc2626;
 }
 
 .mastery-promotion-animation--reduced .mastery-level-segment::after {

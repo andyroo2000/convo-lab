@@ -5,6 +5,7 @@ import { masteryReviewAnnouncementKind, normalizeStudyMasteryLevel } from '../st
 describe('study mastery helpers', () => {
   it('distinguishes stage progress, unchanged reviews, and failures', () => {
     expect(masteryReviewAnnouncementKind('master', 'enlightened', true)).toBe('advanced');
+    expect(masteryReviewAnnouncementKind('master', 'guru', true)).toBe('moved');
     expect(masteryReviewAnnouncementKind('master', 'master', true)).toBe('remained');
     expect(masteryReviewAnnouncementKind('master', 'apprentice', false)).toBe('failedMoved');
     expect(masteryReviewAnnouncementKind('master', 'master', false)).toBe('failedSameStage');

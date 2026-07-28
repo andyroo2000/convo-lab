@@ -28,6 +28,7 @@
   },
   "masteryAnimation": {
     "advanced": "{{item}} は {{level}} に上がりました。",
+    "moved": "{{item}} は現在 {{level}} です。",
     "remained": "{{item}} は {{level}} のままです。",
     "failedMoved": "{{item}} は {{level}} に下がりました。",
     "failedSameStage": "{{item}} は {{level}} のままです。もう一度。"
