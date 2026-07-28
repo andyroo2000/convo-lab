@@ -28,6 +28,7 @@ const {
   studyOverviewLoading,
   featureFlagsData,
   featureFlagsLoading,
+  masteryAnimationFinishesImmediately,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
@@ -64,6 +65,7 @@ const {
     },
   },
   featureFlagsLoading: { current: false },
+  masteryAnimationFinishesImmediately: { current: true },
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
@@ -125,10 +127,16 @@ vi.mock('../../components/study/MasteryReviewAnimation', async () => {
   return {
     default: function MasteryReviewAnimationStub({ onFinished }: { onFinished: () => void }) {
       React.useEffect(() => {
-        onFinished();
+        if (masteryAnimationFinishesImmediately.current) {
+          onFinished();
+        }
       }, [onFinished]);
 
-      return null;
+      return (
+        <button type="button" data-testid="mastery-animation-stub" onClick={onFinished}>
+          Finish mastery animation
+        </button>
+      );
     },
   };
 });
@@ -381,6 +389,7 @@ describe('StudyPage', () => {
     MockDeviceMotionEvent.requestPermission.mockClear();
     studyOverviewLoading.current = false;
     featureFlagsLoading.current = false;
+    masteryAnimationFinishesImmediately.current = true;
     featureFlagsData.current = {
       id: 'default',
       dialoguesEnabled: false,
@@ -515,6 +524,67 @@ describe('StudyPage', () => {
     expect(screen.getByRole('button', { name: 'Learn another batch' })).toBeInTheDocument();
   });
 
+  it('keeps the last lesson card and feedback lane visible until mastery feedback finishes', async () => {
+    masteryAnimationFinishesImmediately.current = false;
+    startStudyLessonMock.mockResolvedValue({
+      overview: {
+        dueCount: 0,
+        newCount: 1,
+        newCardsPerDay: 20,
+        newCardsAvailableToday: 1,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [
+        {
+          ...baseCard,
+          state: {
+            ...baseCard.state,
+            queueState: 'new',
+          },
+        },
+      ],
+    });
+    mutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'lesson-review-1',
+      card: {
+        ...baseCard,
+        masteryLevel: 'guru',
+        state: {
+          ...baseCard.state,
+          dueAt: '2026-08-01T12:00:00.000Z',
+          queueState: 'learning',
+        },
+      },
+      overview: {
+        dueCount: 0,
+        newCount: 0,
+        learningCount: 1,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: /Good/ }));
+
+    expect(
+      within(screen.getByTestId('mastery-feedback-lane')).getByTestId('mastery-animation-stub')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('study-focus-card-scroll')).toBeInTheDocument();
+    expect(screen.queryByText('Lesson complete')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Finish mastery animation' }));
+
+    expect(await screen.findByText('Lesson complete')).toBeInTheDocument();
+  });
+
   it('previews one lesson card at a time before starting the isolated quiz', async () => {
     const secondCard = {
       ...baseCard,
@@ -629,6 +699,7 @@ describe('StudyPage', () => {
     expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
+    expect(screen.getByTestId('mastery-feedback-lane')).toHaveClass('mastery-feedback-lane');
     expect(screen.getByTestId('study-focus-card-scroll')).toHaveClass(
       'study-focus-scroll',
       'overflow-x-hidden',

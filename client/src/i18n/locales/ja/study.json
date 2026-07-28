@@ -47,7 +47,6 @@
   },
   "reviewHeader": {
     "exit": "学習を終了",
-    "counts": "残りのカード",
     "progress": "レビューセッションの進捗"
   },
   "gradeButtons": {

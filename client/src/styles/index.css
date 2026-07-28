@@ -5624,27 +5624,27 @@
   }
 }
 
+.mastery-feedback-lane {
+  position: relative;
+  flex: 0 0 4.25rem;
+  height: 4.25rem;
+  overflow: hidden;
+}
+
 .mastery-promotion-animation {
   position: absolute;
   inset: 0;
   z-index: 20;
   overflow: hidden;
-  background: rgb(253 251 245 / 78%);
   pointer-events: auto;
-}
-
-@media (min-width: 768px) {
-  .mastery-promotion-animation {
-    border-radius: 2rem;
-  }
 }
 
 .mastery-level-window {
   position: absolute;
-  top: clamp(1rem, 12%, 4rem);
+  top: 0;
   left: 50%;
   width: min(82%, 22rem);
-  height: 5rem;
+  height: 4.25rem;
   overflow: hidden;
   transform: translateX(-50%);
   opacity: 0;
@@ -5674,7 +5674,7 @@
   --mastery-stage-color: #e85d75;
   position: relative;
   flex: 0 0 12rem;
-  height: 5rem;
+  height: 4.25rem;
 }
 
 .mastery-level-segment[data-level='guru'] {
@@ -5696,7 +5696,7 @@
 .mastery-level-segment::before {
   content: '';
   position: absolute;
-  top: 2.7rem;
+  top: 2.25rem;
   right: 0;
   left: 0;
   height: 0.3rem;
@@ -5706,7 +5706,7 @@
 .mastery-level-segment::after {
   content: '';
   position: absolute;
-  top: 2.28rem;
+  top: 1.82rem;
   left: 50%;
   width: 1.15rem;
   height: 1.15rem;
@@ -5716,33 +5716,20 @@
   transform: translateX(-50%);
 }
 
-.mastery-level-segment span {
+.mastery-level-name {
   position: absolute;
-  top: 0.25rem;
+  z-index: 1;
+  top: 0.2rem;
   left: 50%;
+  width: 82%;
   color: #153c68;
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.08em;
+  text-align: center;
   text-transform: uppercase;
   white-space: nowrap;
-  opacity: 0;
-  transform: translateX(-50%) translateY(0.2rem);
-}
-
-.mastery-promotion-animation:not(.mastery-promotion-animation--moved)
-  .mastery-level-segment--to
-  span {
-  opacity: 1;
   transform: translateX(-50%);
-}
-
-.mastery-promotion-animation--moved .mastery-level-segment--from span {
-  animation: mastery-label-departure 1.45s ease-in-out forwards;
-}
-
-.mastery-promotion-animation--moved .mastery-level-segment--to span {
-  animation: mastery-label-arrival 1.45s ease-in-out forwards;
 }
 
 .mastery-promotion-animation--moved .mastery-level-segment--to::after {
@@ -5754,43 +5741,8 @@
   animation: mastery-node-failure 1.45s ease-out forwards;
 }
 
-.mastery-promotion-item {
-  position: absolute;
-  top: 52%;
-  left: 50%;
-  width: min(82%, 30rem);
-  color: #153c68;
-  font-size: clamp(1.35rem, 4vw, 1.85rem);
-  font-weight: 700;
-  line-height: 1.25;
-  text-align: center;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  opacity: 0;
-  transform: translate(-50%, -50%);
-  animation: mastery-item-lifecycle 1.45s ease-in-out forwards;
-}
-
 .mastery-review-result {
   display: none;
-}
-
-@keyframes mastery-item-lifecycle {
-  0% {
-    opacity: 0;
-  }
-
-  9%,
-  82% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-  }
 }
 
 @keyframes mastery-rail-lifecycle {
@@ -5860,34 +5812,6 @@
   }
 }
 
-@keyframes mastery-label-departure {
-  0%,
-  27% {
-    opacity: 1;
-    transform: translateX(-50%);
-  }
-
-  48%,
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-0.2rem);
-  }
-}
-
-@keyframes mastery-label-arrival {
-  0%,
-  46% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(0.25rem);
-  }
-
-  67%,
-  100% {
-    opacity: 1;
-    transform: translateX(-50%);
-  }
-}
-
 @keyframes mastery-node-failure {
   0%,
   22% {
@@ -5909,14 +5833,13 @@
   animation: none;
 }
 
-.mastery-promotion-animation--reduced .mastery-level-window,
-.mastery-promotion-animation--reduced .mastery-promotion-item {
+.mastery-promotion-animation--reduced .mastery-level-window {
   animation: mastery-reduced-lifecycle 0.65s ease-in-out forwards;
 }
 
 .mastery-promotion-animation--reduced .mastery-review-result {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 6.2rem);
+  bottom: 0.3rem;
   left: 50%;
   display: flex;
   gap: 0.35rem;
@@ -5937,16 +5860,6 @@
 
 .mastery-promotion-animation--reduced .mastery-level-segment::after {
   animation: none;
-}
-
-.mastery-promotion-animation--reduced .mastery-level-segment span {
-  opacity: 0;
-  animation: none;
-}
-
-.mastery-promotion-animation--reduced .mastery-level-segment--to span {
-  opacity: 1;
-  transform: translateX(-50%);
 }
 
 @keyframes mastery-reduced-lifecycle {

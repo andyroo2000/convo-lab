@@ -47,7 +47,6 @@
   },
   "reviewHeader": {
     "exit": "Exit Study",
-    "counts": "Cards remaining",
     "progress": "Review session progress"
   },
   "gradeButtons": {

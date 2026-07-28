@@ -143,6 +143,7 @@ const StudyPage = () => {
     const { masteryAnimation } = reviewSession;
     const displayedCard = masteryAnimation?.card ?? reviewSession.currentCard;
     const displayedCardIsRevealed = masteryAnimation !== null || reviewSession.revealed;
+    const showQuizSurface = reviewSession.lessonPhase === 'quiz' || masteryAnimation !== null;
 
     // These containers must use overflow-x-hidden, not overflow-x-clip: clip makes
     // Chromium drop hit-testing (hover/clicks) on content that overflows the box
@@ -158,7 +159,6 @@ const StudyPage = () => {
               className="study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
             >
               <StudyReviewHeader
-                remaining={reviewSession.cards.length}
                 progress={reviewSession.sessionProgress}
                 actions={
                   reviewSession.revealed && !reviewSession.editing
@@ -167,6 +167,34 @@ const StudyPage = () => {
                 }
                 onExit={reviewSession.exitFocusMode}
               />
+              {showQuizSurface ? (
+                <div className="mastery-feedback-lane" data-testid="mastery-feedback-lane">
+                  {masteryAnimation ? (
+                    <MasteryReviewAnimation
+                      key={masteryAnimation.id}
+                      fromLevel={masteryAnimation.fromLevel}
+                      toLevel={masteryAnimation.toLevel}
+                      passed={masteryAnimation.passed}
+                      announcement={t(
+                        `masteryAnimation.${masteryReviewAnnouncementKind(
+                          masteryAnimation.fromLevel,
+                          masteryAnimation.toLevel,
+                          masteryAnimation.passed
+                        )}`,
+                        {
+                          item: masteryAnimation.label,
+                          level: masteryAnimation.toLevel,
+                        }
+                      )}
+                      onFinished={() => {
+                        reviewSession.setMasteryAnimation((current) =>
+                          current?.id === masteryAnimation.id ? null : current
+                        );
+                      }}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
               {reviewSession.sessionKind === 'lessons' &&
               reviewSession.lessonPhase === 'preview' &&
               !reviewSession.sessionLoading ? (
@@ -304,7 +332,7 @@ const StudyPage = () => {
                 <p className="py-16 text-center text-red-600">{reviewSession.sessionError}</p>
               ) : null}
 
-              {reviewSession.lessonPhase === 'quiz' &&
+              {showQuizSurface &&
               !reviewSession.sessionLoading &&
               !reviewSession.sessionError &&
               !displayedCard ? (
@@ -313,7 +341,7 @@ const StudyPage = () => {
                 </div>
               ) : null}
 
-              {reviewSession.lessonPhase === 'quiz' && displayedCard ? (
+              {showQuizSurface && displayedCard ? (
                 <div
                   data-testid="study-focus-card-scroll"
                   className={`study-focus-scroll relative mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
@@ -381,32 +409,6 @@ const StudyPage = () => {
                       )}
                     </div>
                   )}
-
-                  {masteryAnimation ? (
-                    <MasteryReviewAnimation
-                      key={masteryAnimation.id}
-                      label={masteryAnimation.label}
-                      fromLevel={masteryAnimation.fromLevel}
-                      toLevel={masteryAnimation.toLevel}
-                      passed={masteryAnimation.passed}
-                      announcement={t(
-                        `masteryAnimation.${masteryReviewAnnouncementKind(
-                          masteryAnimation.fromLevel,
-                          masteryAnimation.toLevel,
-                          masteryAnimation.passed
-                        )}`,
-                        {
-                          item: masteryAnimation.label,
-                          level: masteryAnimation.toLevel,
-                        }
-                      )}
-                      onFinished={() => {
-                        reviewSession.setMasteryAnimation((current) =>
-                          current?.id === masteryAnimation.id ? null : current
-                        );
-                      }}
-                    />
-                  ) : null}
 
                   {showGradeTray ? (
                     <div

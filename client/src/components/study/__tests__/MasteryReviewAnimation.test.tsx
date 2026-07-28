@@ -12,7 +12,6 @@ describe('MasteryReviewAnimation', () => {
   it('announces the resulting level and renders the full segmented scale', () => {
     render(
       <MasteryReviewAnimation
-        label="朝ごはんを食べませんでした。"
         fromLevel="apprentice"
         toLevel="guru"
         passed
@@ -28,11 +27,13 @@ describe('MasteryReviewAnimation', () => {
       'mastery-promotion-animation',
       'mastery-promotion-animation--moved'
     );
-    expect(screen.getByText('apprentice')).toBeInTheDocument();
-    expect(screen.getByText('guru')).toBeInTheDocument();
-    expect(screen.getByText('master')).toBeInTheDocument();
-    expect(screen.getByText('enlightened')).toBeInTheDocument();
-    expect(screen.getByText('burned')).toBeInTheDocument();
+    expect(screen.getByText('apprentice')).toHaveClass('mastery-level-name');
+    expect(screen.getAllByTestId('mastery-level-segment')).toHaveLength(5);
+    expect(
+      screen.queryByText('朝ごはんを食べませんでした。', {
+        selector: '.mastery-promotion-item',
+      })
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/FSRS stability/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
@@ -43,7 +44,6 @@ describe('MasteryReviewAnimation', () => {
 
     render(
       <MasteryReviewAnimation
-        label="研究"
         fromLevel="guru"
         toLevel="master"
         passed
@@ -59,10 +59,35 @@ describe('MasteryReviewAnimation', () => {
     expect(onFinished).toHaveBeenCalledOnce();
   });
 
+  it('swaps the centered label when the moving track reaches the new level', () => {
+    vi.useFakeTimers();
+
+    render(
+      <MasteryReviewAnimation
+        fromLevel="apprentice"
+        toLevel="guru"
+        passed
+        announcement="研究 is now guru"
+        onFinished={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('apprentice')).toHaveClass('mastery-level-name');
+
+    act(() => {
+      vi.advanceTimersByTime(719);
+    });
+    expect(screen.getByText('apprentice')).toHaveClass('mastery-level-name');
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByText('guru')).toHaveClass('mastery-level-name');
+  });
+
   it('marks a failed review even when the level does not move', () => {
     render(
       <MasteryReviewAnimation
-        label="研究"
         fromLevel="guru"
         toLevel="guru"
         passed={false}
@@ -91,7 +116,6 @@ describe('MasteryReviewAnimation', () => {
 
     render(
       <MasteryReviewAnimation
-        label="研究"
         fromLevel="apprentice"
         toLevel="guru"
         passed={false}
@@ -101,7 +125,8 @@ describe('MasteryReviewAnimation', () => {
     );
 
     expect(screen.getByRole('status')).toHaveClass('mastery-promotion-animation--reduced');
-    expect(screen.getByText('研究')).toBeInTheDocument();
+    expect(screen.queryByText('研究')).not.toBeInTheDocument();
+    expect(screen.getByText('guru')).toHaveClass('mastery-level-name');
     expect(screen.getByText('Try again')).toBeInTheDocument();
 
     act(() => {
