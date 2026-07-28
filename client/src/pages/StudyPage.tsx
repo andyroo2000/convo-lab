@@ -141,6 +141,8 @@ const StudyPage = () => {
 
   if (reviewSession.focusMode) {
     const { masteryAnimation } = reviewSession;
+    const displayedCard = masteryAnimation?.card ?? reviewSession.currentCard;
+    const displayedCardIsRevealed = masteryAnimation !== null || reviewSession.revealed;
 
     // These containers must use overflow-x-hidden, not overflow-x-clip: clip makes
     // Chromium drop hit-testing (hover/clicks) on content that overflows the box
@@ -165,31 +167,6 @@ const StudyPage = () => {
                 }
                 onExit={reviewSession.exitFocusMode}
               />
-              {masteryAnimation ? (
-                <MasteryReviewAnimation
-                  key={masteryAnimation.id}
-                  label={masteryAnimation.label}
-                  fromLevel={masteryAnimation.fromLevel}
-                  toLevel={masteryAnimation.toLevel}
-                  passed={masteryAnimation.passed}
-                  announcement={t(
-                    `masteryAnimation.${masteryReviewAnnouncementKind(
-                      masteryAnimation.fromLevel,
-                      masteryAnimation.toLevel,
-                      masteryAnimation.passed
-                    )}`,
-                    {
-                      item: masteryAnimation.label,
-                      level: masteryAnimation.toLevel,
-                    }
-                  )}
-                  onFinished={() => {
-                    reviewSession.setMasteryAnimation((current) =>
-                      current?.id === masteryAnimation.id ? null : current
-                    );
-                  }}
-                />
-              ) : null}
               {reviewSession.sessionKind === 'lessons' &&
               reviewSession.lessonPhase === 'preview' &&
               !reviewSession.sessionLoading ? (
@@ -256,7 +233,8 @@ const StudyPage = () => {
                 </div>
               ) : null}
               {reviewSession.sessionKind === 'lessons' &&
-              reviewSession.lessonPhase === 'complete' ? (
+              reviewSession.lessonPhase === 'complete' &&
+              !masteryAnimation ? (
                 <div className="flex min-h-[60vh] flex-1 items-center justify-center">
                   <div className="max-w-lg rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-200">
                     <h2 className="text-3xl font-bold text-navy">{t('lesson.completeTitle')}</h2>
@@ -329,20 +307,20 @@ const StudyPage = () => {
               {reviewSession.lessonPhase === 'quiz' &&
               !reviewSession.sessionLoading &&
               !reviewSession.sessionError &&
-              !reviewSession.currentCard ? (
+              !displayedCard ? (
                 <div className="flex min-h-[60vh] flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-600 sm:rounded-[2rem]">
                   {t('focus.empty')}
                 </div>
               ) : null}
 
-              {reviewSession.lessonPhase === 'quiz' && reviewSession.currentCard ? (
+              {reviewSession.lessonPhase === 'quiz' && displayedCard ? (
                 <div
                   data-testid="study-focus-card-scroll"
-                  className={`study-focus-scroll mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
+                  className={`study-focus-scroll relative mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
                     showGradeTray ? 'pb-24 md:pb-16' : 'pb-0'
                   }`}
                 >
-                  {!reviewSession.revealed ? (
+                  {!displayedCardIsRevealed ? (
                     <div
                       role="button"
                       tabIndex={0}
@@ -358,12 +336,12 @@ const StudyPage = () => {
                     >
                       <div className="w-full min-w-0 overflow-x-hidden">
                         <StudyCardFace
-                          card={reviewSession.currentCard}
+                          card={displayedCard}
                           layout="mobile-focus"
                           side="front"
                           promptAudioRef={reviewSession.promptAudioRef}
                         />
-                        {reviewSession.currentCard.cardType !== 'cloze' ? (
+                        {displayedCard.cardType !== 'cloze' ? (
                           <p className="mt-8 text-center text-xs uppercase tracking-[0.18em] text-gray-400 sm:mt-10 sm:text-sm sm:tracking-[0.2em]">
                             <span className="md:hidden">{t('focus.revealHintMobile')}</span>
                             <span className="hidden md:inline">{t('focus.revealHintDesktop')}</span>
@@ -373,9 +351,9 @@ const StudyPage = () => {
                     </div>
                   ) : (
                     <div className="min-h-[calc(100dvh-7.5rem)] min-w-0 flex-1 overflow-x-hidden px-2 py-2 md:min-h-[60vh] md:rounded-[2rem] md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-gray-200">
-                      {reviewSession.editing ? (
+                      {reviewSession.editing && !masteryAnimation ? (
                         <StudyCardEditor
-                          card={reviewSession.currentCard}
+                          card={displayedCard}
                           isSaving={reviewSession.updateCardMutation.isPending}
                           isDeleting={reviewSession.deleteCardMutation.isPending}
                           isRegeneratingAudio={reviewSession.regenerateAudioMutation.isPending}
@@ -392,7 +370,7 @@ const StudyPage = () => {
                           <div className="flex min-h-[calc(100dvh-9.5rem)] min-w-0 items-start justify-center overflow-x-hidden md:block md:min-h-0">
                             <div className="w-full min-w-0 overflow-x-hidden">
                               <StudyCardFace
-                                card={reviewSession.currentCard}
+                                card={displayedCard}
                                 layout="mobile-focus"
                                 side="back"
                                 answerAudioRef={reviewSession.answerAudioRef}
@@ -403,6 +381,32 @@ const StudyPage = () => {
                       )}
                     </div>
                   )}
+
+                  {masteryAnimation ? (
+                    <MasteryReviewAnimation
+                      key={masteryAnimation.id}
+                      label={masteryAnimation.label}
+                      fromLevel={masteryAnimation.fromLevel}
+                      toLevel={masteryAnimation.toLevel}
+                      passed={masteryAnimation.passed}
+                      announcement={t(
+                        `masteryAnimation.${masteryReviewAnnouncementKind(
+                          masteryAnimation.fromLevel,
+                          masteryAnimation.toLevel,
+                          masteryAnimation.passed
+                        )}`,
+                        {
+                          item: masteryAnimation.label,
+                          level: masteryAnimation.toLevel,
+                        }
+                      )}
+                      onFinished={() => {
+                        reviewSession.setMasteryAnimation((current) =>
+                          current?.id === masteryAnimation.id ? null : current
+                        );
+                      }}
+                    />
+                  ) : null}
 
                   {showGradeTray ? (
                     <div
