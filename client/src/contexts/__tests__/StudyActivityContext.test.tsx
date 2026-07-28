@@ -159,6 +159,24 @@ describe('StudyActivityProvider', () => {
     ]);
   });
 
+  it('caps a manual timer that becomes stale while the app remains open', async () => {
+    renderProvider();
+    fireEvent.click(screen.getByRole('button', { name: 'Start manual' }));
+
+    vi.setSystemTime(new Date('2026-07-28T21:00:01.000Z'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(saveSessionsMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        durationMs: 21_600_000,
+        endedAt: '2026-07-28T21:00:00.000Z',
+      }),
+    ]);
+    expect(screen.getByText('inactive')).toBeInTheDocument();
+  });
+
   it('records audio playback duration and one-off card output', async () => {
     renderProvider();
 

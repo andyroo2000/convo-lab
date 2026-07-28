@@ -233,12 +233,25 @@ export const StudyActivityProvider = ({
   useEffect(() => {
     const tick = () => {
       const { current } = activeRef;
-      setElapsedMs(current ? Math.max(0, Date.now() - new Date(current.startedAt).getTime()) : 0);
+      if (!current) {
+        setElapsedMs(0);
+        return;
+      }
+      const startedAt = new Date(current.startedAt).getTime();
+      const recoveryLimit =
+        current.source === 'automatic' ? AUTOMATIC_RECOVERY_LIMIT_MS : MANUAL_RECOVERY_LIMIT_MS;
+      const elapsed = Date.now() - startedAt;
+      if (Number.isFinite(startedAt) && elapsed > recoveryLimit) {
+        finishActive(current.activity, current.name, new Date(startedAt + recoveryLimit));
+        setElapsedMs(0);
+        return;
+      }
+      setElapsedMs(Math.max(0, elapsed));
     };
     tick();
     const interval = window.setInterval(tick, 1000);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [finishActive]);
 
   const value = useMemo(
     () => ({ active, elapsedMs, start, stop: finishActive, addCreatedCards }),
