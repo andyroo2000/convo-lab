@@ -417,7 +417,6 @@ const StudyPage = () => {
                     >
                       <div data-testid="study-grade-tray-inner" className="mx-auto max-w-7xl">
                         <StudyGradeButtons
-                          gradeIntervals={reviewSession.gradeIntervals}
                           disabled={
                             reviewSession.reviewBusy ||
                             reviewSession.sessionLoading ||

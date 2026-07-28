@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { flushSync } from 'react-dom';
-import { Rating, type Card as FsrsCard } from 'ts-fsrs';
-import {
-  createStudyFsrsScheduler,
-  deserializeStudyFsrsCard,
-} from '@languageflow/shared/src/studyFsrs';
 import type {
   StudyCardSetDueMode,
   StudyCardSummary,
@@ -36,8 +31,6 @@ import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 
-const reviewScheduler = createStudyFsrsScheduler();
-
 interface StudyUndoSnapshot {
   session: StudySessionResponse | null;
   overview: StudyOverview | null;
@@ -63,33 +56,6 @@ type StudyUndoAction =
 
 const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot =>
   structuredClone(snapshot);
-
-export const formatReviewInterval = (due: Date, now: Date) => {
-  const diffMs = Math.max(0, due.getTime() - now.getTime());
-
-  if (diffMs < 60_000) return '<1m';
-  if (diffMs < 60 * 60_000) return `<${Math.ceil(diffMs / 60_000)}m`;
-  if (diffMs < 24 * 60 * 60_000) return `${Math.round(diffMs / (60 * 60_000))}h`;
-  if (diffMs < 365 * 24 * 60 * 60_000) return `${Math.round(diffMs / (24 * 60 * 60_000))}d`;
-
-  return `${Math.round(diffMs / (365 * 24 * 60 * 60_000))}y`;
-};
-
-const getGradeIntervals = (card: StudyCardSummary | null) => {
-  if (!card?.state.scheduler) return null;
-
-  const fsrsCard = deserializeStudyFsrsCard(card.state.scheduler) as FsrsCard | null;
-  if (!fsrsCard) return null;
-
-  const now = new Date();
-
-  return {
-    again: formatReviewInterval(reviewScheduler.next(fsrsCard, now, Rating.Again).card.due, now),
-    hard: formatReviewInterval(reviewScheduler.next(fsrsCard, now, Rating.Hard).card.due, now),
-    good: formatReviewInterval(reviewScheduler.next(fsrsCard, now, Rating.Good).card.due, now),
-    easy: formatReviewInterval(reviewScheduler.next(fsrsCard, now, Rating.Easy).card.due, now),
-  };
-};
 
 const isCardEligibleForSession = (card: StudyCardSummary) => {
   if (card.state.queueState === 'new') return !card.state.failedAt;
@@ -181,7 +147,6 @@ const useStudyReviewSession = () => {
   ) as MutableRefObject<StudyCardSummary | null>;
   currentCardRef.current = currentCard;
   const reviewBusy = reviewMutation.isPending || reviewSubmitPending;
-  const gradeIntervals = useMemo(() => getGradeIntervals(currentCard), [currentCard]);
   const sessionCounts = useMemo(() => {
     const answeredSet = new Set(answeredCardIds);
     const totals = {
@@ -973,7 +938,6 @@ const useStudyReviewSession = () => {
     reviewBusy,
     sessionCounts,
     sessionProgress,
-    gradeIntervals,
     motionPermissionState,
     promptAudioRef,
     answerAudioRef,

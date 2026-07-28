@@ -3,17 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import useStudyReviewSession, { formatReviewInterval } from '../useStudyReviewSession';
-
-describe('formatReviewInterval', () => {
-  it('keeps sub-year FSRS intervals distinct instead of rounding them to the same month', () => {
-    const now = new Date('2026-07-27T12:00:00Z');
-
-    expect(formatReviewInterval(new Date('2027-02-13T12:00:00Z'), now)).toBe('201d');
-    expect(formatReviewInterval(new Date('2027-02-14T12:00:00Z'), now)).toBe('202d');
-    expect(formatReviewInterval(new Date('2027-03-24T12:00:00Z'), now)).toBe('240d');
-  });
-});
+import useStudyReviewSession from '../useStudyReviewSession';
 
 const {
   cardActionMutateAsyncMock,
