@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Headphones, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Headphones, RefreshCw } from 'lucide-react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -26,16 +26,25 @@ function formatStatus(status: string) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+function dayNavigationHint(canShowEarlier: boolean, canShowLater: boolean) {
+  if (canShowEarlier && canShowLater) {
+    return 'Swipe right for earlier days or left for later days.';
+  }
+  if (canShowEarlier) return 'Swipe right for earlier days.';
+  return 'Swipe left for later days.';
+}
+
 const DailyAudioPracticePage = () => {
   const queryClient = useQueryClient();
   const recentQuery = useRecentDailyAudioPractice();
   const [selectedPracticeId, setSelectedPracticeId] = useState<string | undefined>();
   const [confirmingRegeneration, setConfirmingRegeneration] = useState(false);
-  const swipeStartX = useRef<number | null>(null);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const createPractice = useCreateDailyAudioPractice();
   const practices = recentQuery.data ?? [];
   const todayPractice = practices.find((item) => item.practiceDate === localPracticeDate());
   const todayGenerating = todayPractice?.status === 'generating';
+  const todayHasAudio = todayPractice?.status === 'ready';
 
   useEffect(() => {
     if (!selectedPracticeId && recentQuery.data?.[0]) {
@@ -78,12 +87,19 @@ const DailyAudioPracticePage = () => {
     if (canShowLater) setSelectedPracticeId(practices[selectedIndex - 1].id);
   };
 
-  const handleSwipeEnd = (clientX: number) => {
-    if (swipeStartX.current === null) return;
-    const distance = clientX - swipeStartX.current;
-    swipeStartX.current = null;
-    if (distance > SWIPE_THRESHOLD_PX) showEarlier();
-    if (distance < -SWIPE_THRESHOLD_PX) showLater();
+  const handleSwipeEnd = (clientX: number, clientY: number) => {
+    if (swipeStart.current === null) return;
+    const horizontalDistance = clientX - swipeStart.current.x;
+    const verticalDistance = clientY - swipeStart.current.y;
+    swipeStart.current = null;
+    if (
+      Math.abs(horizontalDistance) <= SWIPE_THRESHOLD_PX ||
+      Math.abs(horizontalDistance) <= Math.abs(verticalDistance)
+    ) {
+      return;
+    }
+    if (horizontalDistance > 0) showEarlier();
+    if (horizontalDistance < 0) showLater();
   };
 
   const handleGenerate = async () => {
@@ -96,7 +112,7 @@ const DailyAudioPracticePage = () => {
   };
 
   const handleGenerateRequest = () => {
-    if (todayPractice) {
+    if (todayHasAudio) {
       setConfirmingRegeneration(true);
       return;
     }
@@ -129,7 +145,7 @@ const DailyAudioPracticePage = () => {
             ) : (
               <Headphones className="h-4 w-4" />
             )}
-            {todayPractice ? "Regenerate Today's Audio" : "Generate Today's Audio"}
+            {todayHasAudio ? "Regenerate Today's Audio" : "Generate Today's Audio"}
           </button>
         </div>
       </section>
@@ -152,12 +168,22 @@ const DailyAudioPracticePage = () => {
 
       <div
         data-testid="daily-audio-day"
+        role="region"
+        aria-label="Daily Audio day"
         onTouchStart={(event) => {
-          swipeStartX.current = event.touches[0]?.clientX ?? null;
+          const touch = event.touches[0];
+          swipeStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
         }}
-        onTouchEnd={(event) => handleSwipeEnd(event.changedTouches[0]?.clientX ?? 0)}
+        onTouchEnd={(event) => {
+          const touch = event.changedTouches[0];
+          if (touch) {
+            handleSwipeEnd(touch.clientX, touch.clientY);
+          } else {
+            swipeStart.current = null;
+          }
+        }}
         onTouchCancel={() => {
-          swipeStartX.current = null;
+          swipeStart.current = null;
         }}
       >
         {practice?.status === 'error' ? (
@@ -260,9 +286,29 @@ const DailyAudioPracticePage = () => {
       </div>
 
       {practices.length > 1 ? (
-        <p className="text-center text-sm text-[rgba(20,50,86,0.58)]">
-          Swipe right for earlier days{canShowLater ? ' and left for later days' : ''}.
-        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={showEarlier}
+            disabled={!canShowEarlier}
+            className="btn-outline inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Earlier day
+          </button>
+          <p className="text-center text-sm text-[rgba(20,50,86,0.58)]">
+            {dayNavigationHint(canShowEarlier, canShowLater)}
+          </p>
+          <button
+            type="button"
+            onClick={showLater}
+            disabled={!canShowLater}
+            className="btn-outline inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Later day
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       ) : null}
 
       <ConfirmModal

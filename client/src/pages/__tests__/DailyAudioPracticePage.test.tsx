@@ -172,8 +172,30 @@ describe('DailyAudioPracticePage', () => {
     expect(screen.getByText(/overwrite today’s existing audio drills/i)).toBeInTheDocument();
     expect(mockCreateMutateAsync).not.toHaveBeenCalled();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Existing Audio' }));
+    expect(screen.queryByText('Regenerate today’s audio?')).not.toBeInTheDocument();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /regenerate today's audio/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Regenerate Audio' }));
 
+    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1));
+  });
+
+  it('retries a failed practice without showing an overwrite warning', async () => {
+    const failedPractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'error' as const,
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [failedPractice], isLoading: false });
+    mockUseDailyAudioPractice.mockReturnValue({ data: failedPractice, isLoading: false });
+    mockCreateMutateAsync.mockResolvedValue(readyPractice);
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
+
+    expect(screen.queryByText('Regenerate today’s audio?')).not.toBeInTheDocument();
     await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1));
   });
 
@@ -193,16 +215,25 @@ describe('DailyAudioPracticePage', () => {
     renderPage();
     const swipeRegion = screen.getByTestId('daily-audio-day');
 
-    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100 }] });
-    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180 }] });
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180, clientY: 20 }] });
     expect(screen.getByText('2026-05-04')).toBeInTheDocument();
 
-    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180 }] });
-    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100 }] });
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180, clientY: 20 }] });
+    expect(screen.getByText('2026-05-04')).toBeInTheDocument();
+
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 20 }] });
     expect(screen.getByText('2026-05-05')).toBeInTheDocument();
 
-    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180 }] });
-    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100 }] });
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 20 }] });
+    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Earlier day' }));
+    expect(screen.getByText('2026-05-04')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Later day' }));
     expect(screen.getByText('2026-05-05')).toBeInTheDocument();
   });
 
