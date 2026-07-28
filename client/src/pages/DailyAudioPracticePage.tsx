@@ -1,7 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  forwardRef,
+  type ReactNode,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ChevronLeft, ChevronRight, Headphones, RefreshCw } from 'lucide-react';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-motion';
 
 import ScriptTrackPlayer from '../components/audio/ScriptTrackPlayer';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -35,12 +44,70 @@ function dayNavigationHint(canShowEarlier: boolean, canShowLater: boolean) {
   return null;
 }
 
+function slideOffset(direction: 1 | -1, phase: 'enter' | 'exit', reduceMotion: boolean | null) {
+  if (reduceMotion) return 0;
+  if (phase === 'enter') return direction === 1 ? '-105%' : '105%';
+  return direction === 1 ? '105%' : '-105%';
+}
+
+const AnimatedDay = forwardRef<
+  HTMLDivElement,
+  {
+    children: ReactNode;
+    direction: 1 | -1;
+    reduceMotion: boolean | null;
+  }
+>(({ children, direction, reduceMotion }, forwardedRef) => {
+  const isPresent = useIsPresent();
+  const ref = useRef<HTMLDivElement | null>(null);
+  useImperativeHandle(forwardedRef, () => ref.current as HTMLDivElement);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.inert = !isPresent;
+    }
+  }, [isPresent]);
+
+  return (
+    <motion.div
+      ref={ref}
+      custom={direction}
+      aria-hidden={isPresent ? undefined : true}
+      className={isPresent ? undefined : 'pointer-events-none'}
+      variants={{
+        enter: (nextDirection: 1 | -1) => ({
+          x: slideOffset(nextDirection, 'enter', reduceMotion),
+          opacity: reduceMotion ? 1 : 0.72,
+        }),
+        center: { x: 0, opacity: 1 },
+        exit: (nextDirection: 1 | -1) => ({
+          x: slideOffset(nextDirection, 'exit', reduceMotion),
+          opacity: reduceMotion ? 1 : 0.72,
+        }),
+      }}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={
+        reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 34, mass: 0.9 }
+      }
+    >
+      {children}
+    </motion.div>
+  );
+});
+
+AnimatedDay.displayName = 'AnimatedDay';
+
 const DailyAudioPracticePage = () => {
   const queryClient = useQueryClient();
+  const reduceMotion = useReducedMotion();
   const recentQuery = useRecentDailyAudioPractice();
   const [selectedPracticeId, setSelectedPracticeId] = useState<string | undefined>();
+  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const [confirmingRegeneration, setConfirmingRegeneration] = useState(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const dayRegionRef = useRef<HTMLDivElement>(null);
   const createPractice = useCreateDailyAudioPractice();
   const practices = useMemo(
     () =>
@@ -84,12 +151,24 @@ const DailyAudioPracticePage = () => {
   const canShowLater = selectedIndex > 0;
   const navigationHint = dayNavigationHint(canShowEarlier, canShowLater);
 
+  const pauseDayAudio = () => {
+    dayRegionRef.current?.querySelectorAll('audio').forEach((audio) => audio.pause());
+  };
+
   const showEarlier = () => {
-    if (canShowEarlier) setSelectedPracticeId(practices[selectedIndex + 1].id);
+    if (canShowEarlier) {
+      pauseDayAudio();
+      setSlideDirection(1);
+      setSelectedPracticeId(practices[selectedIndex + 1].id);
+    }
   };
 
   const showLater = () => {
-    if (canShowLater) setSelectedPracticeId(practices[selectedIndex - 1].id);
+    if (canShowLater) {
+      pauseDayAudio();
+      setSlideDirection(-1);
+      setSelectedPracticeId(practices[selectedIndex - 1].id);
+    }
   };
 
   const handleSwipeEnd = (clientX: number, clientY: number) => {
@@ -172,6 +251,9 @@ const DailyAudioPracticePage = () => {
       ) : null}
 
       <div
+        ref={dayRegionRef}
+        className="relative overflow-clip"
+        style={{ overflowClipMargin: '12px' }}
         data-testid="daily-audio-day"
         role="region"
         aria-label="Daily Audio day"
@@ -191,103 +273,113 @@ const DailyAudioPracticePage = () => {
           swipeStart.current = null;
         }}
       >
-        {practice?.status === 'error' ? (
-          <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
-            <h2 className="text-xl font-bold text-red-900">Generation failed</h2>
-            <p className="mt-2 text-red-700">
-              {practice.errorMessage || 'Daily audio practice could not be generated.'}
-            </p>
-          </section>
-        ) : null}
-
-        {createPractice.isError ? (
-          <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
-            <h2 className="text-xl font-bold text-red-900">Could not start practice</h2>
-            <p className="mt-2 text-red-700">
-              {createPractice.error instanceof Error
-                ? createPractice.error.message
-                : 'Daily audio practice could not be started.'}
-            </p>
-          </section>
-        ) : null}
-
-        {staleGeneration ? (
-          <section className="retro-paper-panel border-2 border-amber-200 bg-amber-50 px-4 py-5">
-            <h2 className="text-xl font-bold text-amber-950">
-              Generation is taking longer than expected
-            </h2>
-            <p className="mt-2 text-amber-800">
-              Start a new generation to retry today&apos;s practice set.
-            </p>
-          </section>
-        ) : null}
-
-        {practice && (practice.status === 'generating' || practice.status === 'draft') ? (
-          <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="retro-headline text-3xl">Generating today&apos;s tracks</h2>
-                <p className="text-[rgba(20,50,86,0.68)]">
-                  {tracks
-                    .map((track) => `${track.title}: ${formatStatus(track.status)}`)
-                    .join(' - ')}
+        <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
+          <AnimatedDay
+            key={practice?.id ?? 'empty-daily-audio-day'}
+            direction={slideDirection}
+            reduceMotion={reduceMotion}
+          >
+            {practice?.status === 'error' ? (
+              <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
+                <h2 className="text-xl font-bold text-red-900">Generation failed</h2>
+                <p className="mt-2 text-red-700">
+                  {practice.errorMessage || 'Daily audio practice could not be generated.'}
                 </p>
-              </div>
-              <span className="retro-caps text-[rgba(20,50,86,0.68)]">{progress ?? 0}%</span>
-            </div>
-            <div className="mt-4 h-3 overflow-hidden border-2 border-[rgba(20,50,86,0.14)] bg-white/60">
-              <div
-                className="h-full bg-[#1ab2d1] transition-all"
-                style={{ width: `${Math.min(progress ?? 0, 100)}%` }}
-              />
-            </div>
-          </section>
-        ) : null}
+              </section>
+            ) : null}
 
-        {practice?.status === 'ready' ? (
-          <>
-            <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-4 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
-              <div className="grid gap-3 sm:grid-cols-4">
-                <div>
-                  <p className="retro-caps text-[rgba(20,50,86,0.5)]">Date</p>
-                  <p className="text-2xl font-black text-navy">{practice.practiceDate}</p>
-                </div>
-                <div>
-                  <p className="retro-caps text-[rgba(20,50,86,0.5)]">Cards</p>
-                  <p className="text-2xl font-black text-navy">
-                    {sourceSummary?.selectedCount ?? practice.sourceCardIdsJson?.length ?? 0}
-                  </p>
-                </div>
-                <div>
-                  <p className="retro-caps text-[rgba(20,50,86,0.5)]">Due</p>
-                  <p className="text-2xl font-black text-navy">{sourceSummary?.dueCount ?? 0}</p>
-                </div>
-                <div>
-                  <p className="retro-caps text-[rgba(20,50,86,0.5)]">Learning</p>
-                  <p className="text-2xl font-black text-navy">
-                    {sourceSummary?.learningCount ?? 0}
-                  </p>
-                </div>
-              </div>
-            </section>
+            {createPractice.isError ? (
+              <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
+                <h2 className="text-xl font-bold text-red-900">Could not start practice</h2>
+                <p className="mt-2 text-red-700">
+                  {createPractice.error instanceof Error
+                    ? createPractice.error.message
+                    : 'Daily audio practice could not be started.'}
+                </p>
+              </section>
+            ) : null}
 
-            <div className="space-y-4">
-              {tracks.map((track) => (
-                <ScriptTrackPlayer
-                  key={track.id}
-                  title={track.title}
-                  status={track.status}
-                  audioUrl={track.audioUrl}
-                  scriptUnits={track.scriptUnitsJson}
-                  timingData={track.timingData}
-                  approxDurationSeconds={track.approxDurationSeconds}
-                  updatedAt={track.updatedAt}
-                  targetLanguage={practice.targetLanguage}
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
+            {staleGeneration ? (
+              <section className="retro-paper-panel border-2 border-amber-200 bg-amber-50 px-4 py-5">
+                <h2 className="text-xl font-bold text-amber-950">
+                  Generation is taking longer than expected
+                </h2>
+                <p className="mt-2 text-amber-800">
+                  Start a new generation to retry today&apos;s practice set.
+                </p>
+              </section>
+            ) : null}
+
+            {practice && (practice.status === 'generating' || practice.status === 'draft') ? (
+              <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="retro-headline text-3xl">Generating today&apos;s tracks</h2>
+                    <p className="text-[rgba(20,50,86,0.68)]">
+                      {tracks
+                        .map((track) => `${track.title}: ${formatStatus(track.status)}`)
+                        .join(' - ')}
+                    </p>
+                  </div>
+                  <span className="retro-caps text-[rgba(20,50,86,0.68)]">{progress ?? 0}%</span>
+                </div>
+                <div className="mt-4 h-3 overflow-hidden border-2 border-[rgba(20,50,86,0.14)] bg-white/60">
+                  <div
+                    className="h-full bg-[#1ab2d1] transition-all"
+                    style={{ width: `${Math.min(progress ?? 0, 100)}%` }}
+                  />
+                </div>
+              </section>
+            ) : null}
+
+            {practice?.status === 'ready' ? (
+              <>
+                <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-4 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    <div>
+                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Date</p>
+                      <p className="text-2xl font-black text-navy">{practice.practiceDate}</p>
+                    </div>
+                    <div>
+                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Cards</p>
+                      <p className="text-2xl font-black text-navy">
+                        {sourceSummary?.selectedCount ?? practice.sourceCardIdsJson?.length ?? 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Due</p>
+                      <p className="text-2xl font-black text-navy">
+                        {sourceSummary?.dueCount ?? 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Learning</p>
+                      <p className="text-2xl font-black text-navy">
+                        {sourceSummary?.learningCount ?? 0}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="space-y-4">
+                  {tracks.map((track) => (
+                    <ScriptTrackPlayer
+                      key={track.id}
+                      title={track.title}
+                      status={track.status}
+                      audioUrl={track.audioUrl}
+                      scriptUnits={track.scriptUnitsJson}
+                      timingData={track.timingData}
+                      approxDurationSeconds={track.approxDurationSeconds}
+                      updatedAt={track.updatedAt}
+                      targetLanguage={practice.targetLanguage}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </AnimatedDay>
+        </AnimatePresence>
       </div>
 
       {practices.length > 1 ? (
