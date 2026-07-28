@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
 interface StudyGradeButtonsProps {
-  gradeIntervals: Record<'again' | 'hard' | 'good' | 'easy', string> | null;
   disabled?: boolean;
   onGrade: (grade: 'again' | 'hard' | 'good' | 'easy') => void;
   onReplayAudio?: () => void;
@@ -15,7 +14,6 @@ const gradeButtonStyles: Record<'again' | 'hard' | 'good' | 'easy', string> = {
 };
 
 const StudyGradeButtons = ({
-  gradeIntervals,
   disabled = false,
   onGrade,
   onReplayAudio,
@@ -44,12 +42,10 @@ const StudyGradeButtons = ({
           type="button"
           onClick={() => onGrade(grade)}
           disabled={disabled}
-          className={`min-h-[3rem] rounded-lg border px-1 py-1.5 text-center transition disabled:cursor-not-allowed disabled:opacity-60 md:flex md:min-h-[2.25rem] md:items-center md:justify-center md:gap-2 md:px-3 md:py-1 ${gradeButtonStyles[grade]}`}
+          aria-label={t(`gradeButtons.${grade}`)}
+          className={`flex min-h-[3rem] items-center justify-center rounded-lg border px-1 py-1.5 text-center transition disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[2.25rem] md:px-3 md:py-1 ${gradeButtonStyles[grade]}`}
         >
           <p className="text-xs font-semibold leading-tight md:text-sm">
-            {gradeIntervals?.[grade] ?? '...'}
-          </p>
-          <p className="mt-0.5 text-xs font-semibold leading-tight md:mt-0 md:text-sm">
             {t(`gradeButtons.${grade}`)}
           </p>
           <p className="mt-1 hidden text-xs uppercase tracking-[0.18em] text-current/70">
