@@ -119,6 +119,20 @@ vi.mock('../../components/common/VoicePreview', () => ({
   default: ({ voiceId }: { voiceId: string }) => <span data-testid="voice-preview">{voiceId}</span>,
 }));
 
+vi.mock('../../components/study/MasteryReviewAnimation', async () => {
+  const React = await import('react');
+
+  return {
+    default: function MasteryReviewAnimationStub({ onFinished }: { onFinished: () => void }) {
+      React.useEffect(() => {
+        onFinished();
+      }, [onFinished]);
+
+      return null;
+    },
+  };
+});
+
 const renderStudyPage = ({
   knownKanji = [],
   knownKanjiActive = false,

@@ -26,8 +26,12 @@
     "anotherBatch": "次のバッチを学ぶ",
     "finish": "終了"
   },
-  "promotion": {
-    "message": "{{item}} が {{level}} に到達しました"
+  "masteryAnimation": {
+    "advanced": "{{item}} は {{level}} に上がりました。",
+    "moved": "{{item}} は現在 {{level}} です。",
+    "remained": "{{item}} は {{level}} のままです。",
+    "failedMoved": "{{item}} は {{level}} に下がりました。",
+    "failedSameStage": "{{item}} は {{level}} のままです。もう一度。"
   },
   "reviewActions": {
     "edit": "カードを編集",

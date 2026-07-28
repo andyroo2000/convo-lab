@@ -9,6 +9,7 @@ import {
 import type {
   StudyCardSetDueMode,
   StudyCardSummary,
+  StudyMasteryLevel,
   StudyOverview,
   StudyPromptPayload,
   StudyAnswerPayload,
@@ -26,6 +27,7 @@ import {
   useUpdateStudyCard,
 } from './useStudy';
 import useStudyAudioAutoplay from './useStudyAudioAutoplay';
+import { normalizeStudyMasteryLevel } from '../components/study/studyMastery';
 import useStudyAnswerAudioPrep from './useStudyAnswerAudioPrep';
 import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
@@ -145,9 +147,12 @@ const useStudyReviewSession = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [sessionKind, setSessionKind] = useState<'reviews' | 'lessons'>('reviews');
   const [lessonPhase, setLessonPhase] = useState<'preview' | 'quiz' | 'complete'>('preview');
-  const [promotion, setPromotion] = useState<{
+  const [masteryAnimation, setMasteryAnimation] = useState<{
+    id: string;
     label: string;
-    level: string;
+    fromLevel: StudyMasteryLevel;
+    toLevel: StudyMasteryLevel;
+    passed: boolean;
   } | null>(null);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -328,6 +333,7 @@ const useStudyReviewSession = () => {
     resetAutoplayForCard: resetStudyAudioAutoplayForCard,
     stopAllAudio,
   } = useStudyAudioAutoplay({
+    autoplayBlocked: masteryAnimation !== null || reviewSubmitPending,
     cards,
     currentCard,
     ensureAnswerAudioPrepared,
@@ -423,7 +429,7 @@ const useStudyReviewSession = () => {
     setFocusMode(false);
     setSessionKind('reviews');
     setLessonPhase('preview');
-    setPromotion(null);
+    setMasteryAnimation(null);
     setSession(null);
     setSessionError(null);
     setCurrentIndex(0);
@@ -448,7 +454,8 @@ const useStudyReviewSession = () => {
         reviewSubmitPendingRef.current ||
         reviewMutation.isPending ||
         undoPending ||
-        editing
+        editing ||
+        masteryAnimation !== null
       ) {
         return;
       }
@@ -457,7 +464,7 @@ const useStudyReviewSession = () => {
       try {
         reviewSubmitPendingRef.current = true;
         setReviewSubmitPending(true);
-        setPromotion(null);
+        setMasteryAnimation(null);
         stopAllAudio();
         const reviewResult = await reviewMutation.mutateAsync({ cardId: currentCard.id, grade });
         answeredCardIdsRef.current.add(currentCard.id);
@@ -478,19 +485,23 @@ const useStudyReviewSession = () => {
           ? getCardsAfterReview(cards, reviewResult.card, grade)
           : cards.filter((card) => card.id !== currentCard.id);
         autoRefreshEmptySessionRef.current = sessionKind === 'reviews' && nextCards.length === 0;
-        if (reviewResult.card && grade !== 'again') {
-          const levels = ['apprentice', 'guru', 'master', 'enlightened', 'burned'];
-          const previousLevel = currentCard.masteryLevel ?? 'apprentice';
-          const nextLevel = reviewResult.card.masteryLevel ?? previousLevel;
-          if (levels.indexOf(nextLevel) > levels.indexOf(previousLevel)) {
-            const label =
-              reviewResult.card.answer.expression ??
-              reviewResult.card.prompt.cueText ??
-              reviewResult.card.prompt.cueMeaning ??
-              'This item';
-            setPromotion({ label, level: nextLevel });
-          }
-        }
+        const previousLevel = currentCard.masteryLevel ?? 'apprentice';
+        const nextLevel = reviewResult.card?.masteryLevel ?? previousLevel;
+        const normalizedPreviousLevel = normalizeStudyMasteryLevel(previousLevel);
+        const normalizedNextLevel = normalizeStudyMasteryLevel(nextLevel, normalizedPreviousLevel);
+        const reviewedCard = reviewResult.card ?? currentCard;
+        const label =
+          reviewedCard.answer.expression ??
+          reviewedCard.prompt.cueText ??
+          reviewedCard.prompt.cueMeaning ??
+          'This item';
+        setMasteryAnimation({
+          id: reviewResult.reviewLogId,
+          label,
+          fromLevel: normalizedPreviousLevel,
+          toLevel: normalizedNextLevel,
+          passed: grade !== 'again',
+        });
         if (reviewResult.card) {
           applyReviewResultToSession(reviewResult.card, grade, nextCards, reviewResult.overview);
         } else {
@@ -525,6 +536,7 @@ const useStudyReviewSession = () => {
       currentCard,
       cards,
       editing,
+      masteryAnimation,
       pushUndo,
       resetStudyAudioAutoplayForCard,
       reviewMutation,
@@ -700,7 +712,8 @@ const useStudyReviewSession = () => {
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
-      editing
+      editing ||
+      masteryAnimation !== null
     ) {
       return;
     }
@@ -733,6 +746,7 @@ const useStudyReviewSession = () => {
     popUndo,
     pushUndo,
     editing,
+    masteryAnimation,
     cardActionMutation.isPending,
     restoreUndoSnapshot,
     reviewMutation.isPending,
@@ -748,7 +762,8 @@ const useStudyReviewSession = () => {
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
-      editing,
+      editing ||
+      masteryAnimation !== null,
     focusMode,
     onShake: handleUndo,
     runBackgroundTask,
@@ -775,7 +790,7 @@ const useStudyReviewSession = () => {
       setFocusMode(true);
       setSessionKind(kind);
       setLessonPhase(kind === 'lessons' ? 'preview' : 'quiz');
-      setPromotion(null);
+      setMasteryAnimation(null);
       setCurrentIndex(0);
       setRevealed(false);
       setEditing(false);
@@ -908,7 +923,7 @@ const useStudyReviewSession = () => {
     focusMode,
     handleGrade,
     handleUndo,
-    interactionBlocked: promotion !== null,
+    interactionBlocked: masteryAnimation !== null,
     onError: reportAsyncSessionError,
     revealCurrentCard,
     revealed,
@@ -924,7 +939,7 @@ const useStudyReviewSession = () => {
     sessionKind,
     lessonPhase,
     cards,
-    promotion,
+    masteryAnimation,
     sessionLoading,
     sessionError,
     currentCard,
@@ -946,7 +961,7 @@ const useStudyReviewSession = () => {
     regenerateAudioMutation,
     updateCardErrorMessage,
     setEditing,
-    setPromotion,
+    setMasteryAnimation,
     setShowSetDueControls,
     revealCurrentCard,
     exitFocusMode,

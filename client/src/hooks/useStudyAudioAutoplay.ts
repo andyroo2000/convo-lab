@@ -8,6 +8,7 @@ import { warmAudioCache } from '../lib/audioCache';
 const PREWARM_CARD_COUNT = 3;
 
 interface UseStudyAudioAutoplayOptions {
+  autoplayBlocked: boolean;
   cards: StudyCardSummary[];
   currentCard: StudyCardSummary | null;
   ensureAnswerAudioPrepared: (cardId: string) => Promise<StudyCardSummary>;
@@ -20,6 +21,7 @@ interface UseStudyAudioAutoplayOptions {
 }
 
 export default function useStudyAudioAutoplay({
+  autoplayBlocked,
   cards,
   currentCard,
   ensureAnswerAudioPrepared,
@@ -104,7 +106,15 @@ export default function useStudyAudioAutoplay({
   }, [cards, ensureAnswerAudioPrepared, focusMode, runBackgroundTask]);
 
   useEffect(() => {
-    if (!focusMode || !currentCard || revealed || !isAudioLedPromptCard(currentCard)) return;
+    if (
+      autoplayBlocked ||
+      !focusMode ||
+      !currentCard ||
+      revealed ||
+      !isAudioLedPromptCard(currentCard)
+    ) {
+      return;
+    }
 
     const promptUrl = toAssetUrl(currentCard.prompt.cueAudio?.url);
     if (!promptUrl) return;
@@ -116,15 +126,15 @@ export default function useStudyAudioAutoplay({
     runBackgroundTask(() => promptAudioRef.current?.play(), {
       label: 'Study prompt-audio autoplay',
     });
-  }, [currentCard, focusMode, revealed, runBackgroundTask]);
+  }, [autoplayBlocked, currentCard, focusMode, revealed, runBackgroundTask]);
 
   // The reveal commit mounts the answer player. Running this as a layout effect keeps
   // mobile playback inside the reveal tap instead of waiting for a post-paint effect.
   useLayoutEffect(() => {
-    if (!focusMode || !currentCard || !revealed) return;
+    if (autoplayBlocked || !focusMode || !currentCard || !revealed) return;
 
     autoplayAnswerAudioForCard(currentCard);
-  }, [autoplayAnswerAudioForCard, currentCard, focusMode, revealed]);
+  }, [autoplayAnswerAudioForCard, autoplayBlocked, currentCard, focusMode, revealed]);
 
   return {
     autoplayAnswerAudioForCard,

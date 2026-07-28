@@ -26,8 +26,12 @@
     "anotherBatch": "Learn another batch",
     "finish": "Finish"
   },
-  "promotion": {
-    "message": "{{item}} reached {{level}}"
+  "masteryAnimation": {
+    "advanced": "{{item}} advanced to {{level}}.",
+    "moved": "{{item}} is now {{level}}.",
+    "remained": "{{item}} remains {{level}}.",
+    "failedMoved": "{{item}} dropped to {{level}}.",
+    "failedSameStage": "{{item}} remains {{level}}. Try again."
   },
   "reviewActions": {
     "edit": "Edit card",
