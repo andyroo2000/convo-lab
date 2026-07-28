@@ -31,7 +31,7 @@ const StudyOverviewDashboard = ({
   const emptyStateId = useId();
   const showEmptyState = reviewAvailableCount === 0 && !loading;
   const beginStudyDisabled = isStartingSession || showEmptyState;
-  const lessonsAvailable = overview?.newCardsAvailableToday ?? overview?.newCount ?? 0;
+  const lessonsAvailable = overview?.newCount ?? 0;
   const reviewEmptyMessage = lessonsAvailable > 0 ? t('overview.noReviews') : t('overview.empty');
   const readiness = overview?.learningReadiness;
   const masteryEntries = overview?.masterySpread
@@ -101,24 +101,10 @@ const StudyOverviewDashboard = ({
         {error ? <p className="text-red-600">{error.message}</p> : null}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-5">
-        <div className="card retro-paper-panel">
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-500">{t('overview.failed')}</p>
-          <p className="text-3xl font-bold text-navy">{overview?.failedCount ?? 0}</p>
-        </div>
+      <section className="grid gap-4 md:grid-cols-2">
         <div className="card retro-paper-panel">
           <p className="text-xs uppercase tracking-[0.2em] text-gray-500">{t('overview.due')}</p>
-          <p className="text-3xl font-bold text-navy">{overview?.dueCount ?? 0}</p>
-        </div>
-        <div className="card retro-paper-panel">
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-500">{t('overview.new')}</p>
-          <p className="text-3xl font-bold text-navy">{overview?.newCount ?? 0}</p>
-        </div>
-        <div className="card retro-paper-panel">
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-            {t('overview.learning')}
-          </p>
-          <p className="text-3xl font-bold text-navy">{overview?.learningCount ?? 0}</p>
+          <p className="text-3xl font-bold text-navy">{reviewAvailableCount}</p>
         </div>
         <div className="card retro-paper-panel">
           <p className="text-xs uppercase tracking-[0.2em] text-gray-500">{t('overview.total')}</p>
@@ -146,9 +132,6 @@ const StudyOverviewDashboard = ({
                   sample: readiness.sampleSize,
                   projected: readiness.projectedSevenDayReviews,
                 })}
-          </p>
-          <p className="mt-2 text-sm font-semibold text-navy">
-            {t('readiness.suggestedBatch', { count: readiness.suggestedBatchSize })}
           </p>
           {readiness.recommendation !== 'ready' ? (
             <div className="mt-4 flex flex-wrap gap-3">
@@ -194,7 +177,6 @@ const StudyOverviewDashboard = ({
               </div>
             ))}
           </div>
-          <p className="mt-3 text-sm text-gray-500">{t('mastery.fsrsNote')}</p>
         </section>
       ) : null}
     </div>

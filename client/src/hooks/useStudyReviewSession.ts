@@ -466,6 +466,23 @@ const useStudyReviewSession = () => {
         return;
       }
 
+      if (sessionKind === 'lessons' && grade === 'again') {
+        stopAllAudio();
+        resetStudyAudioAutoplayForCard(currentCard.id);
+        const nextCards = [
+          ...cards.slice(currentIndex + 1),
+          ...cards.slice(0, currentIndex),
+          currentCard,
+        ];
+        setSession((currentSession) =>
+          currentSession ? { ...currentSession, cards: nextCards } : currentSession
+        );
+        setCurrentIndex(0);
+        setRevealed(false);
+        setSessionError(null);
+        return;
+      }
+
       const undoSnapshot = captureUndoSnapshot();
       try {
         reviewSubmitPendingRef.current = true;
@@ -540,6 +557,7 @@ const useStudyReviewSession = () => {
       applyReviewResultToSession,
       captureUndoSnapshot,
       currentCard,
+      currentIndex,
       cards,
       editing,
       masteryAnimation,
@@ -855,13 +873,10 @@ const useStudyReviewSession = () => {
     if (!overview) return undefined;
 
     const failedCount = overview.failedCount ?? 0;
-    const newCardsAvailable = overview.newCardsAvailableToday ?? overview.newCount;
     const nextDueAt = overview.nextDueAt ? new Date(overview.nextDueAt) : null;
     const nextDueMs = nextDueAt && !Number.isNaN(nextDueAt.getTime()) ? nextDueAt.getTime() : null;
     const shouldLoadNow =
-      overview.dueCount > 0 ||
-      newCardsAvailable > 0 ||
-      (failedCount > 0 && nextDueMs !== null && nextDueMs <= Date.now());
+      overview.dueCount > 0 || (failedCount > 0 && nextDueMs !== null && nextDueMs <= Date.now());
 
     if (shouldLoadNow) {
       runBackgroundTask(() => loadSession('reviews', { allowEmptySessionRefresh: false }), {
@@ -870,7 +885,7 @@ const useStudyReviewSession = () => {
       return undefined;
     }
 
-    if (failedCount > 0 && newCardsAvailable <= 0 && nextDueMs !== null) {
+    if (failedCount > 0 && nextDueMs !== null) {
       const delayMs = Math.max(0, Math.min(nextDueMs - Date.now() + 250, 2_147_483_647));
       const timeoutId = window.setTimeout(() => {
         runBackgroundTask(() => loadSession('reviews', { allowEmptySessionRefresh: false }), {
