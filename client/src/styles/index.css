@@ -5629,9 +5629,14 @@
   inset: 0;
   z-index: 20;
   overflow: hidden;
-  border-radius: inherit;
   background: rgb(253 251 245 / 78%);
   pointer-events: auto;
+}
+
+@media (min-width: 768px) {
+  .mastery-promotion-animation {
+    border-radius: 2rem;
+  }
 }
 
 .mastery-level-window {
