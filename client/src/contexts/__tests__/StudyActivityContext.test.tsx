@@ -14,7 +14,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
 }));
 
 const Controls = () => {
-  const { active, start, stop } = useStudyActivityTimer();
+  const { active, start, stop, addCreatedCards } = useStudyActivityTimer();
   return (
     <>
       <p>{active?.activity ?? 'inactive'}</p>
@@ -45,6 +45,22 @@ const Controls = () => {
       </button>
       <button type="button" onClick={() => stop()}>
         Stop
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          start({
+            category: 'review',
+            activity: 'daily_audio',
+            source: 'automatic',
+            name: 'Drill',
+          })
+        }
+      >
+        Start audio
+      </button>
+      <button type="button" onClick={() => addCreatedCards(2)}>
+        Add cards
       </button>
     </>
   );
@@ -115,5 +131,58 @@ describe('StudyActivityProvider', () => {
       }),
     ]);
     expect(screen.getByText('inactive')).toBeInTheDocument();
+  });
+
+  it('caps a stale recovered manual timer at six hours', async () => {
+    localStorage.setItem(
+      'convolab.studyActivity.active.v1.42',
+      JSON.stringify({
+        clientSessionId: '018f22d2-6d38-7000-8000-000000000003',
+        category: 'immerse',
+        activity: 'reading',
+        source: 'manual',
+        startedAt: '2026-07-27T15:00:00.000Z',
+        cardsCreated: 0,
+      })
+    );
+
+    renderProvider();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(saveSessionsMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        durationMs: 21_600_000,
+        endedAt: '2026-07-27T21:00:00.000Z',
+      }),
+    ]);
+  });
+
+  it('records audio playback duration and one-off card output', async () => {
+    renderProvider();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start audio' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+
+    expect(saveSessionsMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        activity: 'daily_audio',
+        durationMs: 120_000,
+        audioPlaybackMs: 120_000,
+      }),
+    ]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add cards' }));
+    expect(saveSessionsMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        activity: 'card_creation',
+        durationMs: 0,
+        cardsCreated: 2,
+      }),
+    ]);
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -32,8 +32,8 @@ const StudyPage = () => {
   const runBackgroundTask = useStudyBackgroundTask();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [lessonPreviewIndex, setLessonPreviewIndex] = useState(0);
-  const startReviewTimer = useMemo(
-    () => () =>
+  const startReviewTimer = useCallback(
+    () =>
       startActivity({
         category: 'review',
         activity: 'card_review',
@@ -42,7 +42,7 @@ const StudyPage = () => {
       }),
     [reviewSession.sessionKind, startActivity]
   );
-  const stopReviewTimer = useMemo(() => () => stopActivity('card_review'), [stopActivity]);
+  const stopReviewTimer = useCallback(() => stopActivity('card_review'), [stopActivity]);
   useAutomaticStudyActivity(reviewSession.focusMode, startReviewTimer, stopReviewTimer);
   const shouldShowMotionBanner =
     reviewSession.motionPermissionState === 'prompt' ||

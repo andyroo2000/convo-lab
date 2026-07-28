@@ -22,6 +22,7 @@ import type {
 const ACTIVE_KEY_PREFIX = 'convolab.studyActivity.active.v1';
 const PENDING_KEY_PREFIX = 'convolab.studyActivity.pending.v1';
 const AUTOMATIC_RECOVERY_LIMIT_MS = 5 * 60 * 1000;
+const MANUAL_RECOVERY_LIMIT_MS = 6 * 60 * 60 * 1000;
 
 interface StartOptions {
   category: StudyActivityCategory;
@@ -164,20 +165,34 @@ export const StudyActivityProvider = ({
   const addCreatedCards = useCallback(
     (count = 1) => {
       const { current } = activeRef;
-      if (!current || current.activity !== 'card_creation') return;
+      if (!current || current.activity !== 'card_creation') {
+        const now = new Date().toISOString();
+        persistCompleted({
+          clientSessionId: crypto.randomUUID(),
+          category: 'create',
+          activity: 'card_creation',
+          source: 'automatic',
+          name: 'One-off card creation',
+          startedAt: now,
+          endedAt: now,
+          durationMs: 0,
+          cardsCreated: count,
+        });
+        return;
+      }
       const next = { ...current, cardsCreated: current.cardsCreated + count };
       activeRef.current = next;
       setActive(next);
       localStorage.setItem(activeKey, JSON.stringify(next));
     },
-    [activeKey]
+    [activeKey, persistCompleted]
   );
 
   useEffect(() => {
     activeRef.current = active;
   }, [active]);
 
-  useEffect(() => {
+  const flushPending = useCallback(() => {
     const pending = readJson<StudyActivitySession[]>(pendingKey, []);
     if (!pending.length) return;
     saveStudyActivitySessions(pending)
@@ -189,13 +204,31 @@ export const StudyActivityProvider = ({
   }, [pendingKey, queryClient]);
 
   useEffect(() => {
+    flushPending();
+    window.addEventListener('online', flushPending);
+    return () => window.removeEventListener('online', flushPending);
+  }, [flushPending]);
+
+  useEffect(() => {
     const { current } = activeRef;
-    if (!current || current.source !== 'automatic') return;
+    if (!current) return;
     const startedAt = new Date(current.startedAt).getTime();
-    if (!Number.isFinite(startedAt) || Date.now() - startedAt <= AUTOMATIC_RECOVERY_LIMIT_MS)
-      return;
-    finishActive(current.activity, current.name, new Date(startedAt + AUTOMATIC_RECOVERY_LIMIT_MS));
+    const recoveryLimit =
+      current.source === 'automatic' ? AUTOMATIC_RECOVERY_LIMIT_MS : MANUAL_RECOVERY_LIMIT_MS;
+    if (!Number.isFinite(startedAt) || Date.now() - startedAt <= recoveryLimit) return;
+    finishActive(current.activity, current.name, new Date(startedAt + recoveryLimit));
   }, [finishActive]);
+
+  useEffect(() => {
+    const synchronizeActive = (event: StorageEvent) => {
+      if (event.key !== activeKey) return;
+      const next = readJson<ActiveStudyActivity | null>(activeKey, null);
+      activeRef.current = next;
+      setActive(next);
+    };
+    window.addEventListener('storage', synchronizeActive);
+    return () => window.removeEventListener('storage', synchronizeActive);
+  }, [activeKey]);
 
   useEffect(() => {
     const tick = () => {

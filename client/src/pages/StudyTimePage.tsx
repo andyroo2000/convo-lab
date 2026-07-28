@@ -196,18 +196,24 @@ const StudyTimePage = () => {
             >
               Log entry
             </button>
-            <a
-              href={googleCalendarUrl(name || option.label, new Date(entryDate), minutes)}
-              target="_blank"
-              rel="noreferrer"
-              aria-disabled={!validEntry}
-              onClick={(event) => {
-                if (!validEntry) event.preventDefault();
-              }}
-              className="btn-outline flex items-center justify-center gap-2"
-            >
-              <CalendarPlus className="h-4 w-4" /> Google Calendar
-            </a>
+            {validEntry ? (
+              <a
+                href={googleCalendarUrl(name || option.label, new Date(entryDate), minutes)}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-outline flex items-center justify-center gap-2"
+              >
+                <CalendarPlus className="h-4 w-4" /> Google Calendar
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="btn-outline flex items-center justify-center gap-2"
+              >
+                <CalendarPlus className="h-4 w-4" /> Google Calendar
+              </button>
+            )}
           </div>
         </div>
       </section>

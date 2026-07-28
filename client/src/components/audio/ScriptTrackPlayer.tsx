@@ -89,16 +89,13 @@ const ScriptTrackPlayer = ({
   }, [currentTime, ready, scaledTimings, units]);
 
   useEffect(() => {
-    if (isPlaying) {
-      startActivity({
-        category: 'review',
-        activity: 'daily_audio',
-        source: 'automatic',
-        name: title,
-      });
-    } else {
-      stopActivity('daily_audio', title);
-    }
+    if (!isPlaying) return undefined;
+    startActivity({
+      category: 'review',
+      activity: 'daily_audio',
+      source: 'automatic',
+      name: title,
+    });
     return () => stopActivity('daily_audio', title);
   }, [isPlaying, startActivity, stopActivity, title]);
 
