@@ -361,14 +361,20 @@ const useStudyReviewSession = () => {
   );
 
   const loadSession = useCallback(
-    async (kind: 'reviews' | 'lessons' = sessionKind) => {
+    async (
+      kind: 'reviews' | 'lessons' = sessionKind,
+      options: { allowEmptySessionRefresh?: boolean } = {}
+    ) => {
       setSessionLoading(true);
       setSessionError(null);
 
       try {
         const nextSession =
           kind === 'lessons' ? await startStudyLesson() : await startStudySession();
-        autoRefreshEmptySessionRef.current = kind === 'reviews' && nextSession.cards.length === 0;
+        autoRefreshEmptySessionRef.current =
+          kind === 'reviews' &&
+          nextSession.cards.length === 0 &&
+          options.allowEmptySessionRefresh !== false;
         sessionCardCountRef.current = nextSession.cards.length;
         setSession(nextSession);
         setLessonPhase(kind === 'lessons' ? 'preview' : 'quiz');
@@ -858,7 +864,7 @@ const useStudyReviewSession = () => {
       (failedCount > 0 && nextDueMs !== null && nextDueMs <= Date.now());
 
     if (shouldLoadNow) {
-      runBackgroundTask(() => loadSession('reviews'), {
+      runBackgroundTask(() => loadSession('reviews', { allowEmptySessionRefresh: false }), {
         label: 'Study session refresh',
       });
       return undefined;
@@ -867,7 +873,7 @@ const useStudyReviewSession = () => {
     if (failedCount > 0 && newCardsAvailable <= 0 && nextDueMs !== null) {
       const delayMs = Math.max(0, Math.min(nextDueMs - Date.now() + 250, 2_147_483_647));
       const timeoutId = window.setTimeout(() => {
-        runBackgroundTask(() => loadSession('reviews'), {
+        runBackgroundTask(() => loadSession('reviews', { allowEmptySessionRefresh: false }), {
           label: 'Study failed-card retry refresh',
         });
       }, delayMs);
