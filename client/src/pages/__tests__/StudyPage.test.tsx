@@ -406,7 +406,12 @@ describe('StudyPage', () => {
     renderStudyPage();
 
     expect(screen.getByRole('button', { name: 'Reviews' })).toBeInTheDocument();
-    expect(screen.getByText('0 failed, 4 due, 6 new')).toBeInTheDocument();
+    expect(screen.getByText('4 due')).toBeInTheDocument();
+    expect(screen.getByText('Due')).toBeInTheDocument();
+    expect(screen.getByText('Total')).toBeInTheDocument();
+    expect(screen.queryByText('Failed')).not.toBeInTheDocument();
+    expect(screen.queryByText('New')).not.toBeInTheDocument();
+    expect(screen.queryByText('Learning')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Browse' })).toHaveAttribute(
       'href',
       '/app/study/browse'
@@ -508,6 +513,81 @@ describe('StudyPage', () => {
 
     expect(screen.getByText('Lesson complete')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Learn another batch' })).toBeInTheDocument();
+  });
+
+  it('previews one lesson card at a time before starting the isolated quiz', async () => {
+    const secondCard = {
+      ...baseCard,
+      id: 'card-2',
+      noteId: 'note-2',
+      prompt: { cueText: '学校', cueReading: 'がっこう' },
+      answer: {
+        expression: '学校',
+        expressionReading: '学校[がっこう]',
+        meaning: 'school',
+      },
+      state: {
+        ...baseCard.state,
+        queueState: 'new' as const,
+      },
+    };
+    startStudyLessonMock.mockResolvedValue({
+      overview: {
+        dueCount: 0,
+        newCount: 2,
+        newCardsPerDay: 20,
+        newCardsAvailableToday: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 2,
+      },
+      cards: [
+        {
+          ...baseCard,
+          state: {
+            ...baseCard.state,
+            queueState: 'new' as const,
+          },
+        },
+        secondCard,
+      ],
+    });
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => {
+      const card = cardId === secondCard.id ? secondCard : baseCard;
+      return {
+        ...card,
+        answer: {
+          ...card.answer,
+          answerAudio: {
+            filename: `${cardId}.mp3`,
+            url: `https://example.com/${cardId}.mp3`,
+            mediaKind: 'audio' as const,
+            source: 'generated' as const,
+          },
+        },
+        answerAudioSource: 'generated' as const,
+      };
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+
+    expect(await screen.findByText('Card 1 of 2')).toBeInTheDocument();
+    expect(screen.getByText('会社')).toBeInTheDocument();
+    expect(screen.queryByText('学校')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Start quiz' })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+
+    expect(screen.getByText('Card 2 of 2')).toBeInTheDocument();
+    expect(screen.getByText('学校')).toBeInTheDocument();
+    expect(screen.queryByText('会社')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start quiz' })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(screen.getByText('Card 1 of 2')).toBeInTheDocument();
   });
 
   it('keeps Reviews enabled while overview counts are loading', () => {

@@ -1,7 +1,7 @@
 {
   "title": "学習",
   "disabled": "この環境では学習機能が無効になっています。",
-  "headline": "失敗 {{failedCount}} 件、期限 {{dueCount}} 件、新規 {{newCount}} 件",
+  "headline": "期限 {{dueCount}} 件",
   "motion": {
     "unsupported": "この端末ではシェイクで取り消しは使えません。",
     "denied": "モーションアクセスが拒否されたため、シェイクで取り消しはオフになっています。",
@@ -19,8 +19,11 @@
   "lesson": {
     "previewTitle": "このレッスンを予習",
     "previewDescription": "まずカードを確認します。クイズにはこのバッチだけが出題されます。",
+    "cardPosition": "{{total}} 枚中 {{current}} 枚目",
+    "previous": "前へ",
+    "next": "次へ",
     "startQuiz": "クイズを開始",
-    "noneAvailable": "今日は新しいカードを追加できません。",
+    "noneAvailable": "レッスン待ちのカードはありません。",
     "completeTitle": "レッスン完了",
     "completeDescription": "このカードはFSRSの学習に入りました。無理がなければ次のバッチへ進めます。",
     "anotherBatch": "次のバッチを学ぶ",
@@ -44,7 +47,7 @@
   },
   "reviewHeader": {
     "exit": "学習を終了",
-    "counts": "失敗 + 期限 + 新規",
+    "counts": "残りのカード",
     "progress": "レビューセッションの進捗"
   },
   "gradeButtons": {
@@ -79,13 +82,11 @@
     "pause": "先にレビューがおすすめ",
     "withData": "最近の正答率は目標 {{target}}% に対して {{recall}}% です。Apprentice は {{apprentice}} 件、今後7日間のレビュー見込みは {{projected}} 件です。",
     "building": "最初の30回答から提案を作成中です（現在 {{sample}} 件）。今後7日間のレビュー見込みは {{projected}} 件です。",
-    "suggestedBatch": "次のレッスンのおすすめ: {{count}} 枚。",
     "reviewNow": "今すぐレビュー",
     "learnAnyway": "それでも学ぶ"
   },
   "mastery": {
-    "title": "項目の分布",
-    "fsrsNote": "レベルはFSRSの安定度から算出する目安です。BurnedでもFSRSによる復習は続きます。"
+    "title": "項目の分布"
   },
   "settings": {
     "title": "学習設定",

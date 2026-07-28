@@ -17,6 +17,7 @@ describe('formatReviewInterval', () => {
 
 const {
   cardActionMutateAsyncMock,
+  startStudyLessonMock,
   startStudySessionMock,
   prepareStudyAnswerAudioMock,
   reviewMutateAsyncMock,
@@ -27,6 +28,7 @@ const {
   warmAudioCacheMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
+  startStudyLessonMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
   reviewMutateAsyncMock: vi.fn(),
@@ -61,6 +63,7 @@ vi.mock('../useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  startStudyLesson: startStudyLessonMock,
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   undoStudyReview: undoStudyReviewMock,
@@ -149,6 +152,7 @@ function createDeferred<T>() {
 describe('useStudyReviewSession', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    startStudyLessonMock.mockReset();
     startStudySessionMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
     reviewMutateAsyncMock.mockReset();
@@ -163,6 +167,19 @@ describe('useStudyReviewSession', () => {
     startStudySessionMock.mockResolvedValue({
       overview: baseOverview,
       cards: [baseCardOne, baseCardTwo],
+    });
+    startStudyLessonMock.mockResolvedValue({
+      overview: { ...baseOverview, newCount: 2 },
+      cards: [
+        {
+          ...baseCardOne,
+          state: { ...baseCardOne.state, dueAt: null, queueState: 'new' as const },
+        },
+        {
+          ...baseCardTwo,
+          state: { ...baseCardTwo.state, dueAt: null, queueState: 'new' as const },
+        },
+      ],
     });
     prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
       ...(cardId === 'card-1' ? baseCardOne : baseCardTwo),
@@ -244,6 +261,28 @@ describe('useStudyReviewSession', () => {
       configurable: true,
       value: vi.fn(),
     });
+  });
+
+  it('requeues an incorrect lesson card without submitting or introducing it', async () => {
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode('lessons');
+    });
+    act(() => result.current.beginLessonQuiz());
+
+    expect(result.current.currentCard?.id).toBe('card-1');
+
+    await act(async () => {
+      await result.current.handleGrade('again');
+    });
+
+    expect(reviewMutateAsyncMock).not.toHaveBeenCalled();
+    expect(result.current.cards.map((card) => card.id)).toEqual(['card-2', 'card-1']);
+    expect(result.current.currentCard?.id).toBe('card-2');
+    expect(result.current.lessonPhase).toBe('quiz');
   });
 
   it('warms nearby study prompt and answer audio after entering focus mode', async () => {
@@ -783,7 +822,7 @@ describe('useStudyReviewSession', () => {
     });
   });
 
-  it('loads new cards in the same focus session after backlog is cleared', async () => {
+  it('does not load lesson cards into a review session after backlog is cleared', async () => {
     const dueCard = {
       ...baseCardOne,
       id: 'due-card-1',
@@ -859,13 +898,11 @@ describe('useStudyReviewSession', () => {
       await result.current.handleGrade('good');
     });
 
-    await waitFor(() => {
-      expect(result.current.currentCard?.id).toBe('new-card-1');
-    });
-    expect(startStudySessionMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(result.current.currentCard).toBeNull());
+    expect(startStudySessionMock).toHaveBeenCalledTimes(1);
   });
 
-  it('loads new cards when only future failed retries remain', async () => {
+  it('does not load lesson cards while a failed review waits for its retry', async () => {
     const retryDueAt = new Date('2999-04-21T12:05:00.000Z').toISOString();
     const newCard = {
       ...baseCardTwo,
@@ -917,10 +954,8 @@ describe('useStudyReviewSession', () => {
       await result.current.enterFocusMode();
     });
 
-    await waitFor(() => {
-      expect(result.current.currentCard?.id).toBe('new-card-1');
-    });
-    expect(startStudySessionMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(result.current.currentCard).toBeNull());
+    expect(startStudySessionMock).toHaveBeenCalledTimes(1);
   });
 
   it('stops refreshing when the server repeatedly returns an empty session with work available', async () => {

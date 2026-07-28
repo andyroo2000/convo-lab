@@ -2,22 +2,13 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface StudyReviewHeaderProps {
-  newRemaining: number;
-  failedDue: number;
-  reviewRemaining: number;
+  remaining: number;
   progress: number;
   actions?: ReactNode;
   onExit: () => void;
 }
 
-const StudyReviewHeader = ({
-  newRemaining,
-  failedDue,
-  reviewRemaining,
-  progress,
-  actions,
-  onExit,
-}: StudyReviewHeaderProps) => {
+const StudyReviewHeader = ({ remaining, progress, actions, onExit }: StudyReviewHeaderProps) => {
   const { t } = useTranslation('study');
 
   return (
@@ -47,13 +38,7 @@ const StudyReviewHeader = ({
           {actions}
         </div>
         <div className="text-right">
-          <p className="text-sm font-semibold tracking-[0.08em] text-navy md:text-base">
-            <span className="text-red-600">{failedDue}</span>
-            <span className="px-1.5 text-gray-400">+</span>
-            <span className="text-emerald-700">{reviewRemaining}</span>
-            <span className="px-1.5 text-gray-400">+</span>
-            <span className="text-blue-600">{newRemaining}</span>
-          </p>
+          <p className="text-sm font-semibold tabular-nums text-navy md:text-base">{remaining}</p>
           <p className="sr-only">{t('reviewHeader.counts')}</p>
         </div>
       </div>

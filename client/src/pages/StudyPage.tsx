@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -28,6 +28,7 @@ const StudyPage = () => {
   const reviewSession = useStudyReviewSession();
   const runBackgroundTask = useStudyBackgroundTask();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [lessonPreviewIndex, setLessonPreviewIndex] = useState(0);
   const shouldShowMotionBanner =
     reviewSession.motionPermissionState === 'prompt' ||
     reviewSession.motionPermissionState === 'denied';
@@ -45,11 +46,47 @@ const StudyPage = () => {
   const headline = useMemo(() => {
     if (!overviewQuery.data) return t('title');
     return t('headline', {
-      failedCount: overviewQuery.data.failedCount ?? 0,
-      dueCount: overviewQuery.data.dueCount,
-      newCount: overviewQuery.data.newCount,
+      dueCount: availableCount,
     });
-  }, [overviewQuery.data, t]);
+  }, [availableCount, overviewQuery.data, t]);
+  const lessonPreviewCard = reviewSession.cards[lessonPreviewIndex] ?? null;
+  const lessonPreviewIsFirst = lessonPreviewIndex === 0;
+  const lessonPreviewIsLast =
+    reviewSession.cards.length > 0 && lessonPreviewIndex === reviewSession.cards.length - 1;
+
+  useEffect(() => {
+    setLessonPreviewIndex((current) =>
+      Math.min(current, Math.max(reviewSession.cards.length - 1, 0))
+    );
+  }, [reviewSession.cards.length]);
+
+  useEffect(() => {
+    if (
+      !reviewSession.focusMode ||
+      reviewSession.sessionKind !== 'lessons' ||
+      reviewSession.lessonPhase !== 'preview'
+    ) {
+      return undefined;
+    }
+
+    const handlePreviewKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setLessonPreviewIndex((current) => Math.max(0, current - 1));
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setLessonPreviewIndex((current) => Math.min(reviewSession.cards.length - 1, current + 1));
+      }
+    };
+
+    window.addEventListener('keydown', handlePreviewKeyDown);
+    return () => window.removeEventListener('keydown', handlePreviewKeyDown);
+  }, [
+    reviewSession.cards.length,
+    reviewSession.focusMode,
+    reviewSession.lessonPhase,
+    reviewSession.sessionKind,
+  ]);
 
   const renderReviewActionButtons = () => {
     if (!reviewSession.currentCard) return null;
@@ -119,9 +156,7 @@ const StudyPage = () => {
               className="study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
             >
               <StudyReviewHeader
-                newRemaining={reviewSession.sessionCounts.newRemaining}
-                failedDue={reviewSession.sessionCounts.failedDue}
-                reviewRemaining={reviewSession.sessionCounts.reviewRemaining}
+                remaining={reviewSession.cards.length}
                 progress={reviewSession.sessionProgress}
                 actions={
                   reviewSession.revealed && !reviewSession.editing
@@ -164,22 +199,54 @@ const StudyPage = () => {
                       <h2 className="text-2xl font-bold text-navy">{t('lesson.previewTitle')}</h2>
                       <p className="mt-1 text-gray-600">{t('lesson.previewDescription')}</p>
                     </div>
-                    {reviewSession.cards.map((card) => (
+                    {lessonPreviewCard ? (
                       <div
-                        key={card.id}
+                        key={lessonPreviewCard.id}
                         className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200"
                       >
-                        <StudyCardFace card={card} layout="mobile-focus" side="back" />
+                        <p className="mb-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-gray-500">
+                          {t('lesson.cardPosition', {
+                            current: lessonPreviewIndex + 1,
+                            total: reviewSession.cards.length,
+                          })}
+                        </p>
+                        <StudyCardFace card={lessonPreviewCard} layout="mobile-focus" side="back" />
                       </div>
-                    ))}
-                    {reviewSession.cards.length > 0 ? (
-                      <button
-                        type="button"
-                        onClick={reviewSession.beginLessonQuiz}
-                        className="w-full rounded-2xl bg-emerald-700 px-6 py-4 text-lg font-bold text-white"
-                      >
-                        {t('lesson.startQuiz')}
-                      </button>
+                    ) : null}
+                    {lessonPreviewCard ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLessonPreviewIndex((current) => Math.max(0, current - 1))
+                          }
+                          disabled={lessonPreviewIsFirst}
+                          className="rounded-2xl border border-gray-300 px-6 py-4 text-lg font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {t('lesson.previous')}
+                        </button>
+                        {lessonPreviewIsLast ? (
+                          <button
+                            type="button"
+                            onClick={reviewSession.beginLessonQuiz}
+                            className="rounded-2xl bg-emerald-700 px-6 py-4 text-lg font-bold text-white"
+                          >
+                            {t('lesson.startQuiz')}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLessonPreviewIndex((current) =>
+                                Math.min(reviewSession.cards.length - 1, current + 1)
+                              )
+                            }
+                            className="rounded-2xl bg-emerald-700 px-6 py-4 text-lg font-bold text-white"
+                          >
+                            {t('lesson.next')}
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <p className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-600">
                         {t('lesson.noneAvailable')}
@@ -198,6 +265,7 @@ const StudyPage = () => {
                       <button
                         type="button"
                         onClick={() => {
+                          setLessonPreviewIndex(0);
                           runBackgroundTask(() => reviewSession.loadNextLessonBatch(), {
                             label: 'Next lesson batch',
                           });
@@ -413,6 +481,7 @@ const StudyPage = () => {
         });
       }}
       onBeginLesson={() => {
+        setLessonPreviewIndex(0);
         runBackgroundTask(() => reviewSession.enterFocusMode('lessons'), {
           label: 'Study lesson start',
         });
