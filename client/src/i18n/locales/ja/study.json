@@ -360,6 +360,58 @@
     "submit": ".colpkg を取り込む",
     "back": "学習に戻る"
   },
+  "time": {
+    "eyebrow": "学習時間",
+    "title": "今週の学習",
+    "description": "一度に計測する主な活動は1つです。音声再生時間や作成したカード数は活動に紐づき、合計時間には重複して加算されません。",
+    "totals": {
+      "total": "合計",
+      "review": "復習",
+      "create": "作成",
+      "immerse": "イマージョン"
+    },
+    "activities": {
+      "cardCreation": "カード作成",
+      "cardReview": "カード復習",
+      "dailyAudio": "デイリー音声",
+      "tv": "テレビ・映画",
+      "podcast": "ポッドキャスト",
+      "reading": "読書",
+      "conversation": "会話",
+      "other": "その他の学習"
+    },
+    "timer": {
+      "title": "タイマーを開始",
+      "activityLabel": "学習活動",
+      "nameLabel": "教材・番組・プロジェクト",
+      "namePlaceholder": "教材・番組・プロジェクト（任意）",
+      "start": "セッションを開始",
+      "stop": "{{name}}を停止",
+      "stopAria": "学習タイマーを停止"
+    },
+    "calendar": {
+      "title": "カレンダー記録を追加",
+      "dateLabel": "開始日時",
+      "durationLabel": "時間（分）",
+      "minutes": "分",
+      "log": "記録を追加",
+      "open": "Google カレンダー",
+      "defaultName": "語学学習",
+      "details": "ConvoLabの学習時間から予定しました。"
+    },
+    "history": {
+      "title": "今週",
+      "loading": "学習時間を読み込み中…",
+      "error": "学習時間を読み込めませんでした。もう一度お試しください。",
+      "empty": "完了した最初の活動がここに表示されます。",
+      "cards": "カード{{count}}枚"
+    },
+    "sources": {
+      "automatic": "自動",
+      "manual": "手動",
+      "calendar": "カレンダー"
+    }
+  },
   "routeError": {
     "title": "学習画面で問題が発生しました",
     "description": "学習フローでエラーが発生しました。この画面を再試行するか、学習ダッシュボードに戻れます。",

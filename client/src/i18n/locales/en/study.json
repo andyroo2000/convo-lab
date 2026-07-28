@@ -377,6 +377,58 @@
     "submit": "Import .colpkg",
     "back": "Back to study"
   },
+  "time": {
+    "eyebrow": "Study time",
+    "title": "Your learning week",
+    "description": "One primary activity counts at a time. Audio playback and cards created stay attached to that activity without inflating your total.",
+    "totals": {
+      "total": "Total",
+      "review": "Review",
+      "create": "Create",
+      "immerse": "Immerse"
+    },
+    "activities": {
+      "cardCreation": "Making cards",
+      "cardReview": "Card review",
+      "dailyAudio": "Daily audio",
+      "tv": "TV or film",
+      "podcast": "Podcast",
+      "reading": "Reading",
+      "conversation": "Conversation",
+      "other": "Other study"
+    },
+    "timer": {
+      "title": "Start a timer",
+      "activityLabel": "Study activity",
+      "nameLabel": "Source, show, or project",
+      "namePlaceholder": "Optional source, show, or project",
+      "start": "Start session",
+      "stop": "Stop {{name}}",
+      "stopAria": "Stop study timer"
+    },
+    "calendar": {
+      "title": "Add a calendar entry",
+      "dateLabel": "Entry start date and time",
+      "durationLabel": "Duration in minutes",
+      "minutes": "minutes",
+      "log": "Log entry",
+      "open": "Google Calendar",
+      "defaultName": "Language study",
+      "details": "Planned with ConvoLab study time."
+    },
+    "history": {
+      "title": "This week",
+      "loading": "Loading study time…",
+      "error": "Study time couldn’t be loaded. Please try again.",
+      "empty": "Your first completed activity will appear here.",
+      "cards": "{{count}} cards"
+    },
+    "sources": {
+      "automatic": "automatic",
+      "manual": "manual",
+      "calendar": "calendar"
+    }
+  },
   "routeError": {
     "title": "Study hit a snag",
     "description": "Something went wrong in the study flow. You can retry this view or jump back to the main study dashboard.",

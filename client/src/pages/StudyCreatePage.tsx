@@ -43,6 +43,8 @@ import {
   useStudyManualCardDrafts,
   useUpdateStudyManualCardDraft,
 } from '../hooks/useStudy';
+import { useStudyActivityActions } from '../contexts/StudyActivityContext';
+import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 
 type CreateMode = 'generate' | 'manual';
 const STALE_GENERATING_DRAFT_RETRY_AFTER_MS = 10 * 60 * 1000;
@@ -136,6 +138,19 @@ const StudyCreatePage = () => {
   const retryDraft = useRetryStudyManualCardDraft();
   const createCardFromDraft = useCreateCardFromStudyManualCardDraft();
   const createVocabBundleDrafts = useCreateStudyVocabBundleDrafts();
+  const { start: startActivity, stop: stopActivity, addCreatedCards } = useStudyActivityActions();
+  const startCreationTimer = useCallback(
+    () =>
+      startActivity({
+        category: 'create',
+        activity: 'card_creation',
+        source: 'automatic',
+        name: 'Card creator',
+      }),
+    [startActivity]
+  );
+  const stopCreationTimer = useCallback(() => stopActivity('card_creation'), [stopActivity]);
+  useAutomaticStudyActivity(true, startCreationTimer, stopCreationTimer);
   const generateDraftImage = useGenerateStudyManualCardDraftPreviewImage();
   const regenerateManualAudio = useGenerateStudyManualCardDraftPreviewAudio();
   const [manualDefaultVoiceId] = useState(() => selectManualStudyCardDefaultVoiceId());
@@ -508,6 +523,7 @@ const StudyCreatePage = () => {
         },
       });
       const result = await createCardFromDraft.mutateAsync(selectedManualDraft.id);
+      addCreatedCards();
       let nextDraftId: string | null = null;
       if (createdDraftIndex >= 0) {
         nextDraftId =

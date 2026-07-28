@@ -52,6 +52,7 @@ const StudyImportPage = lazy(() => import('./pages/StudyImportPage'));
 const StudyCreatePage = lazy(() => import('./pages/StudyCreatePage'));
 const StudySettingsPage = lazy(() => import('./pages/StudySettingsPage'));
 const DailyAudioPracticePage = lazy(() => import('./pages/DailyAudioPracticePage'));
+const StudyTimePage = lazy(() => import('./pages/StudyTimePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading fallback component
@@ -284,6 +285,7 @@ const App = () => (
                       </StudyRouteWrapper>
                     }
                   />
+                  <Route path="study/time" element={<StudyTimePage />} />
 
                   {/* Create - Content Creation Hub */}
                   <Route path="create" element={<CreatePage />} />

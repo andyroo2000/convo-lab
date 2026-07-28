@@ -11,6 +11,7 @@ import {
   normalizeTimingDataForDuration,
   versionAudioUrl,
 } from './scriptTrackTiming';
+import { useStudyActivityActions } from '../../contexts/StudyActivityContext';
 
 interface ScriptTrackPlayerProps {
   title: string;
@@ -61,7 +62,8 @@ const ScriptTrackPlayer = ({
   approxDurationSeconds,
   updatedAt,
 }: ScriptTrackPlayerProps) => {
-  const { audioRef, currentTime, duration } = useAudioPlayer();
+  const { audioRef, currentTime, duration, isPlaying } = useAudioPlayer();
+  const { start: startActivity, stop: stopActivity } = useStudyActivityActions();
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
@@ -85,6 +87,17 @@ const ScriptTrackPlayer = ({
 
     setCurrentUnit(findCurrentL2Unit(units, scaledTimings, currentTime));
   }, [currentTime, ready, scaledTimings, units]);
+
+  useEffect(() => {
+    if (!isPlaying) return undefined;
+    startActivity({
+      category: 'review',
+      activity: 'daily_audio',
+      source: 'automatic',
+      name: title,
+    });
+    return () => stopActivity('daily_audio', title);
+  }, [isPlaying, startActivity, stopActivity, title]);
 
   return (
     <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">

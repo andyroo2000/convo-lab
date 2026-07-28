@@ -2,7 +2,8 @@
   "nav": {
     "library": "Library",
     "create": "Create",
-    "study": "Study"
+    "study": "Study",
+    "studyTime": "Study Time"
   },
   "demoMode": "Demo Mode",
   "loading": "Loading...",
