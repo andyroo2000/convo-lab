@@ -1,8 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  forwardRef,
+  type ReactNode,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ChevronLeft, ChevronRight, Headphones, RefreshCw } from 'lucide-react';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-motion';
 
 import ScriptTrackPlayer from '../components/audio/ScriptTrackPlayer';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -41,6 +49,55 @@ function slideOffset(direction: 1 | -1, phase: 'enter' | 'exit', reduceMotion: b
   if (phase === 'enter') return direction === 1 ? '-105%' : '105%';
   return direction === 1 ? '105%' : '-105%';
 }
+
+const AnimatedDay = forwardRef<
+  HTMLDivElement,
+  {
+    children: ReactNode;
+    direction: 1 | -1;
+    reduceMotion: boolean | null;
+  }
+>(({ children, direction, reduceMotion }, forwardedRef) => {
+  const isPresent = useIsPresent();
+  const ref = useRef<HTMLDivElement | null>(null);
+  useImperativeHandle(forwardedRef, () => ref.current as HTMLDivElement);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.inert = !isPresent;
+    }
+  }, [isPresent]);
+
+  return (
+    <motion.div
+      ref={ref}
+      custom={direction}
+      aria-hidden={isPresent ? undefined : true}
+      className={isPresent ? undefined : 'pointer-events-none'}
+      variants={{
+        enter: (nextDirection: 1 | -1) => ({
+          x: slideOffset(nextDirection, 'enter', reduceMotion),
+          opacity: reduceMotion ? 1 : 0.72,
+        }),
+        center: { x: 0, opacity: 1 },
+        exit: (nextDirection: 1 | -1) => ({
+          x: slideOffset(nextDirection, 'exit', reduceMotion),
+          opacity: reduceMotion ? 1 : 0.72,
+        }),
+      }}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={
+        reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 34, mass: 0.9 }
+      }
+    >
+      {children}
+    </motion.div>
+  );
+});
+
+AnimatedDay.displayName = 'AnimatedDay';
 
 const DailyAudioPracticePage = () => {
   const queryClient = useQueryClient();
@@ -195,7 +252,7 @@ const DailyAudioPracticePage = () => {
 
       <div
         ref={dayRegionRef}
-        className="relative overflow-hidden"
+        className="relative overflow-clip"
         style={{ overflowClipMargin: '12px' }}
         data-testid="daily-audio-day"
         role="region"
@@ -217,28 +274,10 @@ const DailyAudioPracticePage = () => {
         }}
       >
         <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
-          <motion.div
+          <AnimatedDay
             key={practice?.id ?? 'empty-daily-audio-day'}
-            custom={slideDirection}
-            variants={{
-              enter: (direction: 1 | -1) => ({
-                x: slideOffset(direction, 'enter', reduceMotion),
-                opacity: reduceMotion ? 1 : 0.72,
-              }),
-              center: { x: 0, opacity: 1 },
-              exit: (direction: 1 | -1) => ({
-                x: slideOffset(direction, 'exit', reduceMotion),
-                opacity: reduceMotion ? 1 : 0.72,
-              }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={
-              reduceMotion
-                ? { duration: 0 }
-                : { type: 'spring', stiffness: 320, damping: 34, mass: 0.9 }
-            }
+            direction={slideDirection}
+            reduceMotion={reduceMotion}
           >
             {practice?.status === 'error' ? (
               <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
@@ -339,7 +378,7 @@ const DailyAudioPracticePage = () => {
                 </div>
               </>
             ) : null}
-          </motion.div>
+          </AnimatedDay>
         </AnimatePresence>
       </div>
 
