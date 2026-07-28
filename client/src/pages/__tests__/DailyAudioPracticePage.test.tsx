@@ -117,6 +117,12 @@ function renderPage() {
   );
 }
 
+function todayPracticeDate() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+
 describe('DailyAudioPracticePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -137,11 +143,103 @@ describe('DailyAudioPracticePage', () => {
     renderPage();
 
     expect(screen.getByText('Ready when you are')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /create today/i }));
+    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
 
     await waitFor(() => {
       expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("confirms before overwriting today's existing audio", async () => {
+    const todayPractice = { ...readyPractice, practiceDate: todayPracticeDate() };
+    mockUseRecentDailyAudioPractice.mockReturnValue({
+      data: [todayPractice],
+      isLoading: false,
+    });
+    mockUseDailyAudioPractice.mockReturnValue({ data: todayPractice, isLoading: false });
+    mockCreateMutateAsync.mockResolvedValue(todayPractice);
+
+    renderPage();
+
+    expect(
+      screen.getByText(
+        'Generate audio drills based on words and grammar structures you are currently working on.'
+      )
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /regenerate today's audio/i }));
+
+    expect(screen.getByText('Regenerate today’s audio?')).toBeInTheDocument();
+    expect(screen.getByText(/overwrite today’s existing audio drills/i)).toBeInTheDocument();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Existing Audio' }));
+    expect(screen.queryByText('Regenerate today’s audio?')).not.toBeInTheDocument();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /regenerate today's audio/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Regenerate Audio' }));
+
+    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1));
+  });
+
+  it('retries a failed practice without showing an overwrite warning', async () => {
+    const failedPractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'error' as const,
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [failedPractice], isLoading: false });
+    mockUseDailyAudioPractice.mockReturnValue({ data: failedPractice, isLoading: false });
+    mockCreateMutateAsync.mockResolvedValue(readyPractice);
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
+
+    expect(screen.queryByText('Regenerate today’s audio?')).not.toBeInTheDocument();
+    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1));
+  });
+
+  it('swipes between earlier and later days without moving beyond the latest day', () => {
+    const earlierPractice = {
+      ...readyPractice,
+      id: 'practice-earlier',
+      practiceDate: '2026-05-04',
+    };
+    // The UI enforces newest-first navigation even if the API response order changes.
+    const practices = [earlierPractice, readyPractice];
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: practices, isLoading: false });
+    mockUseDailyAudioPractice.mockImplementation((id: string | undefined) => ({
+      data: practices.find((item) => item.id === id),
+      isLoading: false,
+    }));
+
+    renderPage();
+    const swipeRegion = screen.getByTestId('daily-audio-day');
+
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180, clientY: 20 }] });
+    expect(screen.getByText('2026-05-04')).toBeInTheDocument();
+
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180, clientY: 20 }] });
+    expect(screen.getByText('2026-05-04')).toBeInTheDocument();
+
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 20 }] });
+    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
+
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 120 }] });
+    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
+
+    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
+    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 20 }] });
+    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Earlier day' }));
+    expect(screen.getByText('2026-05-04')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Later day' }));
+    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
   });
 
   it('shows generation progress and track statuses', () => {
@@ -206,7 +304,7 @@ describe('DailyAudioPracticePage', () => {
 
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /create today/i }));
+    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
 
     await waitFor(() => {
       expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1);
