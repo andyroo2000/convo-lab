@@ -2,13 +2,12 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface StudyReviewHeaderProps {
-  remaining: number;
   progress: number;
   actions?: ReactNode;
   onExit: () => void;
 }
 
-const StudyReviewHeader = ({ remaining, progress, actions, onExit }: StudyReviewHeaderProps) => {
+const StudyReviewHeader = ({ progress, actions, onExit }: StudyReviewHeaderProps) => {
   const { t } = useTranslation('study');
 
   return (
@@ -26,7 +25,7 @@ const StudyReviewHeader = ({ remaining, progress, actions, onExit }: StudyReview
           style={{ width: `${String(progress * 100)}%` }}
         />
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-1.5 md:gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
         <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
           <button
             type="button"
@@ -36,10 +35,6 @@ const StudyReviewHeader = ({ remaining, progress, actions, onExit }: StudyReview
             {t('reviewHeader.exit')}
           </button>
           {actions}
-        </div>
-        <div className="text-right">
-          <p className="text-sm font-semibold tabular-nums text-navy md:text-base">{remaining}</p>
-          <p className="sr-only">{t('reviewHeader.counts')}</p>
         </div>
       </div>
     </div>

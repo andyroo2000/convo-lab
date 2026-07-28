@@ -158,7 +158,6 @@ const StudyPage = () => {
               className="study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
             >
               <StudyReviewHeader
-                remaining={reviewSession.cards.length}
                 progress={reviewSession.sessionProgress}
                 actions={
                   reviewSession.revealed && !reviewSession.editing
@@ -167,6 +166,35 @@ const StudyPage = () => {
                 }
                 onExit={reviewSession.exitFocusMode}
               />
+              {reviewSession.lessonPhase === 'quiz' ? (
+                <div className="mastery-feedback-lane" data-testid="mastery-feedback-lane">
+                  {masteryAnimation ? (
+                    <MasteryReviewAnimation
+                      key={masteryAnimation.id}
+                      label={masteryAnimation.label}
+                      fromLevel={masteryAnimation.fromLevel}
+                      toLevel={masteryAnimation.toLevel}
+                      passed={masteryAnimation.passed}
+                      announcement={t(
+                        `masteryAnimation.${masteryReviewAnnouncementKind(
+                          masteryAnimation.fromLevel,
+                          masteryAnimation.toLevel,
+                          masteryAnimation.passed
+                        )}`,
+                        {
+                          item: masteryAnimation.label,
+                          level: masteryAnimation.toLevel,
+                        }
+                      )}
+                      onFinished={() => {
+                        reviewSession.setMasteryAnimation((current) =>
+                          current?.id === masteryAnimation.id ? null : current
+                        );
+                      }}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
               {reviewSession.sessionKind === 'lessons' &&
               reviewSession.lessonPhase === 'preview' &&
               !reviewSession.sessionLoading ? (
@@ -381,32 +409,6 @@ const StudyPage = () => {
                       )}
                     </div>
                   )}
-
-                  {masteryAnimation ? (
-                    <MasteryReviewAnimation
-                      key={masteryAnimation.id}
-                      label={masteryAnimation.label}
-                      fromLevel={masteryAnimation.fromLevel}
-                      toLevel={masteryAnimation.toLevel}
-                      passed={masteryAnimation.passed}
-                      announcement={t(
-                        `masteryAnimation.${masteryReviewAnnouncementKind(
-                          masteryAnimation.fromLevel,
-                          masteryAnimation.toLevel,
-                          masteryAnimation.passed
-                        )}`,
-                        {
-                          item: masteryAnimation.label,
-                          level: masteryAnimation.toLevel,
-                        }
-                      )}
-                      onFinished={() => {
-                        reviewSession.setMasteryAnimation((current) =>
-                          current?.id === masteryAnimation.id ? null : current
-                        );
-                      }}
-                    />
-                  ) : null}
 
                   {showGradeTray ? (
                     <div

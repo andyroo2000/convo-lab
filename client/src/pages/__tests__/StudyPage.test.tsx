@@ -629,6 +629,7 @@ describe('StudyPage', () => {
     expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
+    expect(screen.getByTestId('mastery-feedback-lane')).toHaveClass('mastery-feedback-lane');
     expect(screen.getByTestId('study-focus-card-scroll')).toHaveClass(
       'study-focus-scroll',
       'overflow-x-hidden',

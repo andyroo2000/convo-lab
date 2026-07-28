@@ -5624,27 +5624,27 @@
   }
 }
 
+.mastery-feedback-lane {
+  position: relative;
+  flex: 0 0 5.5rem;
+  height: 5.5rem;
+  overflow: hidden;
+}
+
 .mastery-promotion-animation {
   position: absolute;
   inset: 0;
   z-index: 20;
   overflow: hidden;
-  background: rgb(253 251 245 / 78%);
   pointer-events: auto;
-}
-
-@media (min-width: 768px) {
-  .mastery-promotion-animation {
-    border-radius: 2rem;
-  }
 }
 
 .mastery-level-window {
   position: absolute;
-  top: clamp(1rem, 12%, 4rem);
+  top: 0;
   left: 50%;
   width: min(82%, 22rem);
-  height: 5rem;
+  height: 3.75rem;
   overflow: hidden;
   transform: translateX(-50%);
   opacity: 0;
@@ -5674,7 +5674,7 @@
   --mastery-stage-color: #e85d75;
   position: relative;
   flex: 0 0 12rem;
-  height: 5rem;
+  height: 3.75rem;
 }
 
 .mastery-level-segment[data-level='guru'] {
@@ -5696,7 +5696,7 @@
 .mastery-level-segment::before {
   content: '';
   position: absolute;
-  top: 2.7rem;
+  top: 2.1rem;
   right: 0;
   left: 0;
   height: 0.3rem;
@@ -5706,7 +5706,7 @@
 .mastery-level-segment::after {
   content: '';
   position: absolute;
-  top: 2.28rem;
+  top: 1.68rem;
   left: 50%;
   width: 1.15rem;
   height: 1.15rem;
@@ -5756,21 +5756,20 @@
 
 .mastery-promotion-item {
   position: absolute;
-  top: 52%;
+  bottom: 0.1rem;
   left: 50%;
   width: min(82%, 30rem);
   color: #153c68;
-  font-size: clamp(1.35rem, 4vw, 1.85rem);
+  font-size: clamp(0.95rem, 2.5vw, 1.2rem);
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.1;
   text-align: center;
   overflow-wrap: anywhere;
-  display: -webkit-box;
+  white-space: nowrap;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
   opacity: 0;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   animation: mastery-item-lifecycle 1.45s ease-in-out forwards;
 }
 
@@ -5916,7 +5915,7 @@
 
 .mastery-promotion-animation--reduced .mastery-review-result {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 6.2rem);
+  bottom: 0.3rem;
   left: 50%;
   display: flex;
   gap: 0.35rem;
@@ -5925,6 +5924,10 @@
   font-weight: 700;
   transform: translateX(-50%);
   animation: mastery-reduced-lifecycle 0.65s ease-in-out forwards;
+}
+
+.mastery-promotion-animation--reduced .mastery-promotion-item {
+  display: none;
 }
 
 .mastery-review-result--passed {
