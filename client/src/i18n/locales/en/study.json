@@ -27,7 +27,10 @@
     "finish": "Finish"
   },
   "masteryAnimation": {
-    "message": "{{item}} is now {{level}}"
+    "advanced": "{{item}} advanced to {{level}}.",
+    "remained": "{{item}} remains {{level}}.",
+    "failedMoved": "{{item}} dropped to {{level}}.",
+    "failedSameStage": "{{item}} remains {{level}}. Try again."
   },
   "reviewActions": {
     "edit": "Edit card",

@@ -9,6 +9,7 @@ import {
 import type {
   StudyCardSetDueMode,
   StudyCardSummary,
+  StudyMasteryLevel,
   StudyOverview,
   StudyPromptPayload,
   StudyAnswerPayload,
@@ -26,6 +27,7 @@ import {
   useUpdateStudyCard,
 } from './useStudy';
 import useStudyAudioAutoplay from './useStudyAudioAutoplay';
+import { normalizeStudyMasteryLevel } from '../components/study/studyMastery';
 import useStudyAnswerAudioPrep from './useStudyAnswerAudioPrep';
 import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
@@ -148,8 +150,8 @@ const useStudyReviewSession = () => {
   const [masteryAnimation, setMasteryAnimation] = useState<{
     id: string;
     label: string;
-    fromLevel: string;
-    toLevel: string;
+    fromLevel: StudyMasteryLevel;
+    toLevel: StudyMasteryLevel;
     passed: boolean;
   } | null>(null);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
@@ -452,7 +454,8 @@ const useStudyReviewSession = () => {
         reviewSubmitPendingRef.current ||
         reviewMutation.isPending ||
         undoPending ||
-        editing
+        editing ||
+        masteryAnimation !== null
       ) {
         return;
       }
@@ -482,15 +485,10 @@ const useStudyReviewSession = () => {
           ? getCardsAfterReview(cards, reviewResult.card, grade)
           : cards.filter((card) => card.id !== currentCard.id);
         autoRefreshEmptySessionRef.current = sessionKind === 'reviews' && nextCards.length === 0;
-        const levels = ['apprentice', 'guru', 'master', 'enlightened', 'burned'];
         const previousLevel = currentCard.masteryLevel ?? 'apprentice';
         const nextLevel = reviewResult.card?.masteryLevel ?? previousLevel;
-        const normalizedPreviousLevel = levels.includes(previousLevel)
-          ? previousLevel
-          : 'apprentice';
-        const normalizedNextLevel = levels.includes(nextLevel)
-          ? nextLevel
-          : normalizedPreviousLevel;
+        const normalizedPreviousLevel = normalizeStudyMasteryLevel(previousLevel);
+        const normalizedNextLevel = normalizeStudyMasteryLevel(nextLevel, normalizedPreviousLevel);
         const reviewedCard = reviewResult.card ?? currentCard;
         const label =
           reviewedCard.answer.expression ??
@@ -538,6 +536,7 @@ const useStudyReviewSession = () => {
       currentCard,
       cards,
       editing,
+      masteryAnimation,
       pushUndo,
       resetStudyAudioAutoplayForCard,
       reviewMutation,

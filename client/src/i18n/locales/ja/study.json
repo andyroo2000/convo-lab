@@ -27,7 +27,10 @@
     "finish": "終了"
   },
   "masteryAnimation": {
-    "message": "{{item}} は現在 {{level}} です"
+    "advanced": "{{item}} は {{level}} に上がりました。",
+    "remained": "{{item}} は {{level}} のままです。",
+    "failedMoved": "{{item}} は {{level}} に下がりました。",
+    "failedSameStage": "{{item}} は {{level}} のままです。もう一度。"
   },
   "reviewActions": {
     "edit": "カードを編集",

@@ -378,6 +378,12 @@ describe('useStudyReviewSession', () => {
       toLevel: 'guru',
       passed: true,
     });
+
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
   });
 
   it('surfaces a backward mastery transition after a failed review', async () => {

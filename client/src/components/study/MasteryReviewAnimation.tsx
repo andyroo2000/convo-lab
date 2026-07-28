@@ -1,15 +1,17 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import type { StudyMasteryLevel } from '@languageflow/shared/src/types';
+
+import { STUDY_MASTERY_LEVELS } from './studyMastery';
 
 interface MasteryReviewAnimationProps {
   label: string;
-  fromLevel: string;
-  toLevel: string;
+  fromLevel: StudyMasteryLevel;
+  toLevel: StudyMasteryLevel;
   passed: boolean;
   announcement: string;
   onFinished: () => void;
 }
 
-const MASTERY_LEVELS = ['apprentice', 'guru', 'master', 'enlightened', 'burned'] as const;
 const SEGMENT_WIDTH_REM = 12;
 
 const MasteryReviewAnimation = ({
@@ -29,11 +31,8 @@ const MasteryReviewAnimation = ({
   const duration = reduceMotion ? 650 : 1_450;
   const onFinishedRef = useRef(onFinished);
   onFinishedRef.current = onFinished;
-  const fromIndex = Math.max(
-    0,
-    MASTERY_LEVELS.indexOf(fromLevel as (typeof MASTERY_LEVELS)[number])
-  );
-  const toIndex = Math.max(0, MASTERY_LEVELS.indexOf(toLevel as (typeof MASTERY_LEVELS)[number]));
+  const fromIndex = Math.max(0, STUDY_MASTERY_LEVELS.indexOf(fromLevel));
+  const toIndex = Math.max(0, STUDY_MASTERY_LEVELS.indexOf(toLevel));
   const moved = fromIndex !== toIndex;
   const rootClassName = useMemo(() => {
     const classes = ['mastery-promotion-animation'];
@@ -57,7 +56,7 @@ const MasteryReviewAnimation = ({
       <span className="sr-only">{announcement}</span>
       <div className="mastery-level-window" aria-hidden="true">
         <div className="mastery-level-track" style={railStyle}>
-          {MASTERY_LEVELS.map((masteryLevel, index) => (
+          {STUDY_MASTERY_LEVELS.map((masteryLevel, index) => (
             <div
               className={[
                 'mastery-level-segment',

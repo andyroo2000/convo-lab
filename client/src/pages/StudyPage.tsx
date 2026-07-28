@@ -7,6 +7,7 @@ import { StudyCardFace } from '../components/study/StudyCardPreview';
 import StudyCardEditor from '../components/study/StudyCardEditor';
 import StudyGradeButtons from '../components/study/StudyGradeButtons';
 import MasteryReviewAnimation from '../components/study/MasteryReviewAnimation';
+import { masteryReviewAnnouncementKind } from '../components/study/studyMastery';
 import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
@@ -136,10 +137,17 @@ const StudyPage = () => {
                   fromLevel={masteryAnimation.fromLevel}
                   toLevel={masteryAnimation.toLevel}
                   passed={masteryAnimation.passed}
-                  announcement={t('masteryAnimation.message', {
-                    item: masteryAnimation.label,
-                    level: masteryAnimation.toLevel,
-                  })}
+                  announcement={t(
+                    `masteryAnimation.${masteryReviewAnnouncementKind(
+                      masteryAnimation.fromLevel,
+                      masteryAnimation.toLevel,
+                      masteryAnimation.passed
+                    )}`,
+                    {
+                      item: masteryAnimation.label,
+                      level: masteryAnimation.toLevel,
+                    }
+                  )}
                   onFinished={() => {
                     reviewSession.setMasteryAnimation((current) =>
                       current?.id === masteryAnimation.id ? null : current
@@ -339,7 +347,8 @@ const StudyPage = () => {
                           disabled={
                             reviewSession.reviewBusy ||
                             reviewSession.sessionLoading ||
-                            reviewSession.undoPending
+                            reviewSession.undoPending ||
+                            reviewSession.masteryAnimation !== null
                           }
                           onGrade={(grade) => {
                             runBackgroundTask(() => reviewSession.handleGrade(grade), {
