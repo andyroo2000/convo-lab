@@ -26,8 +26,8 @@
     "anotherBatch": "次のバッチを学ぶ",
     "finish": "終了"
   },
-  "promotion": {
-    "message": "{{item}} が {{level}} に到達しました"
+  "masteryAnimation": {
+    "message": "{{item}} は現在 {{level}} です"
   },
   "reviewActions": {
     "edit": "カードを編集",

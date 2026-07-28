@@ -6,7 +6,7 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import { StudyCardFace } from '../components/study/StudyCardPreview';
 import StudyCardEditor from '../components/study/StudyCardEditor';
 import StudyGradeButtons from '../components/study/StudyGradeButtons';
-import MasteryPromotionAnimation from '../components/study/MasteryPromotionAnimation';
+import MasteryReviewAnimation from '../components/study/MasteryReviewAnimation';
 import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
@@ -102,7 +102,7 @@ const StudyPage = () => {
   }
 
   if (reviewSession.focusMode) {
-    const { promotion } = reviewSession;
+    const { masteryAnimation } = reviewSession;
 
     // These containers must use overflow-x-hidden, not overflow-x-clip: clip makes
     // Chromium drop hit-testing (hover/clicks) on content that overflows the box
@@ -129,20 +129,20 @@ const StudyPage = () => {
                 }
                 onExit={reviewSession.exitFocusMode}
               />
-              {promotion ? (
-                <MasteryPromotionAnimation
-                  key={`${promotion.label}|${promotion.level}`}
-                  label={promotion.label}
-                  level={promotion.level}
-                  announcement={t('promotion.message', {
-                    item: promotion.label,
-                    level: promotion.level,
+              {masteryAnimation ? (
+                <MasteryReviewAnimation
+                  key={masteryAnimation.id}
+                  label={masteryAnimation.label}
+                  fromLevel={masteryAnimation.fromLevel}
+                  toLevel={masteryAnimation.toLevel}
+                  passed={masteryAnimation.passed}
+                  announcement={t('masteryAnimation.message', {
+                    item: masteryAnimation.label,
+                    level: masteryAnimation.toLevel,
                   })}
                   onFinished={() => {
-                    reviewSession.setPromotion((current) =>
-                      current?.label === promotion.label && current?.level === promotion.level
-                        ? null
-                        : current
+                    reviewSession.setMasteryAnimation((current) =>
+                      current?.id === masteryAnimation.id ? null : current
                     );
                   }}
                 />

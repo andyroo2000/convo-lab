@@ -333,6 +333,101 @@ describe('useStudyReviewSession', () => {
     );
   });
 
+  it('surfaces the mastery rail after a passing review even when the level stays put', async () => {
+    const guruCard = {
+      ...baseCardOne,
+      masteryLevel: 'guru',
+    };
+    startStudySessionMock.mockResolvedValueOnce({
+      overview: baseOverview,
+      cards: [guruCard, baseCardTwo],
+    });
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
+      ...(cardId === guruCard.id ? guruCard : baseCardTwo),
+      id: cardId,
+    }));
+    reviewMutateAsyncMock.mockResolvedValueOnce({
+      reviewLogId: 'review-log-pass',
+      card: {
+        ...guruCard,
+        state: {
+          ...guruCard.state,
+          dueAt: new Date('2026-05-23T09:00:00.000Z').toISOString(),
+        },
+      },
+      overview: baseOverview,
+    });
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => {
+      result.current.revealCurrentCard();
+    });
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(result.current.masteryAnimation).toMatchObject({
+      id: 'review-log-pass',
+      label: '会社',
+      fromLevel: 'guru',
+      toLevel: 'guru',
+      passed: true,
+    });
+  });
+
+  it('surfaces a backward mastery transition after a failed review', async () => {
+    const masterCard = {
+      ...baseCardOne,
+      masteryLevel: 'master',
+    };
+    startStudySessionMock.mockResolvedValueOnce({
+      overview: baseOverview,
+      cards: [masterCard, baseCardTwo],
+    });
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
+      ...(cardId === masterCard.id ? masterCard : baseCardTwo),
+      id: cardId,
+    }));
+    reviewMutateAsyncMock.mockResolvedValueOnce({
+      reviewLogId: 'review-log-fail',
+      card: {
+        ...masterCard,
+        masteryLevel: 'apprentice',
+        state: {
+          ...masterCard.state,
+          queueState: 'relearning',
+        },
+      },
+      overview: baseOverview,
+    });
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => {
+      result.current.revealCurrentCard();
+    });
+    await act(async () => {
+      await result.current.handleGrade('again');
+    });
+
+    expect(result.current.masteryAnimation).toMatchObject({
+      id: 'review-log-fail',
+      label: '会社',
+      fromLevel: 'master',
+      toLevel: 'apprentice',
+      passed: false,
+    });
+  });
+
   it('advances without retrying when a committed review loses its card refetch race', async () => {
     reviewMutateAsyncMock.mockResolvedValueOnce({
       message: 'Study card not found after review.',

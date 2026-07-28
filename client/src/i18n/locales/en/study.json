@@ -26,8 +26,8 @@
     "anotherBatch": "Learn another batch",
     "finish": "Finish"
   },
-  "promotion": {
-    "message": "{{item}} reached {{level}}"
+  "masteryAnimation": {
+    "message": "{{item}} is now {{level}}"
   },
   "reviewActions": {
     "edit": "Edit card",
