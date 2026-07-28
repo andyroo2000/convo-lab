@@ -923,6 +923,37 @@ describe('useStudyReviewSession', () => {
     expect(startStudySessionMock).toHaveBeenCalledTimes(2);
   });
 
+  it('stops refreshing when the server repeatedly returns an empty session with work available', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        ...baseOverview,
+        dueCount: 1,
+        reviewCount: 1,
+      },
+      cards: [],
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    await waitFor(() => {
+      expect(startStudySessionMock).toHaveBeenCalledTimes(2);
+    });
+    await act(async () => {
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 25);
+      });
+    });
+
+    expect(startStudySessionMock).toHaveBeenCalledTimes(2);
+    expect(result.current.currentCard).toBeNull();
+  });
+
   it('restores a buried card when undo is triggered', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
