@@ -43,7 +43,7 @@ import {
   useStudyManualCardDrafts,
   useUpdateStudyManualCardDraft,
 } from '../hooks/useStudy';
-import { useStudyActivityTimer } from '../contexts/StudyActivityContext';
+import { useStudyActivityActions } from '../contexts/StudyActivityContext';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 
 type CreateMode = 'generate' | 'manual';
@@ -138,7 +138,7 @@ const StudyCreatePage = () => {
   const retryDraft = useRetryStudyManualCardDraft();
   const createCardFromDraft = useCreateCardFromStudyManualCardDraft();
   const createVocabBundleDrafts = useCreateStudyVocabBundleDrafts();
-  const { start: startActivity, stop: stopActivity, addCreatedCards } = useStudyActivityTimer();
+  const { start: startActivity, stop: stopActivity, addCreatedCards } = useStudyActivityActions();
   const startCreationTimer = useCallback(
     () =>
       startActivity({

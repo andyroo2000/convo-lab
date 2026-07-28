@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Clock3, Square } from 'lucide-react';
 
-import { useStudyActivityTimer } from '../../contexts/StudyActivityContext';
+import {
+  useStudyActivityActions,
+  useStudyActivityStatus,
+} from '../../contexts/StudyActivityContext';
 
 function formatElapsed(milliseconds: number) {
   const seconds = Math.floor(milliseconds / 1000);
@@ -14,7 +17,8 @@ function formatElapsed(milliseconds: number) {
 }
 
 const ActiveStudyTimer = () => {
-  const { active, elapsedMs, stop } = useStudyActivityTimer();
+  const { active, elapsedMs } = useStudyActivityStatus();
+  const { stop } = useStudyActivityActions();
   if (!active) return null;
 
   return (

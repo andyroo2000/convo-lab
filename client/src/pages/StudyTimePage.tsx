@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
 import { addDays, startOfWeek } from 'date-fns';
 import { CalendarPlus, Clock3, Headphones, Layers3, Play, Tv, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-import { useStudyActivityTimer } from '../contexts/StudyActivityContext';
-import { useSaveStudyActivitySession, useStudyActivitySessions } from '../hooks/useStudyActivity';
+import {
+  useStudyActivityActions,
+  useStudyActivityStatus,
+} from '../contexts/StudyActivityContext';
+import { useStudyActivitySessions } from '../hooks/useStudyActivity';
 import type {
   StudyActivityCategory,
   StudyActivityKind,
@@ -14,17 +18,23 @@ import formatDuration from '../utils/studyTimeFormat';
 const ACTIVITY_OPTIONS: Array<{
   activity: StudyActivityKind;
   category: StudyActivityCategory;
-  label: string;
+  labelKey: string;
 }> = [
-  { activity: 'card_creation', category: 'create', label: 'Making cards' },
-  { activity: 'tv', category: 'immerse', label: 'TV or film' },
-  { activity: 'podcast', category: 'immerse', label: 'Podcast' },
-  { activity: 'reading', category: 'immerse', label: 'Reading' },
-  { activity: 'conversation', category: 'immerse', label: 'Conversation' },
-  { activity: 'other', category: 'immerse', label: 'Other study' },
+  { activity: 'card_creation', category: 'create', labelKey: 'time.activities.cardCreation' },
+  { activity: 'tv', category: 'immerse', labelKey: 'time.activities.tv' },
+  { activity: 'podcast', category: 'immerse', labelKey: 'time.activities.podcast' },
+  { activity: 'reading', category: 'immerse', labelKey: 'time.activities.reading' },
+  { activity: 'conversation', category: 'immerse', labelKey: 'time.activities.conversation' },
+  { activity: 'other', category: 'immerse', labelKey: 'time.activities.other' },
 ];
 
-function googleCalendarUrl(name: string, start: Date, durationMinutes: number) {
+function googleCalendarUrl(
+  name: string,
+  start: Date,
+  durationMinutes: number,
+  defaultName: string,
+  details: string
+) {
   const end = new Date(start.getTime() + durationMinutes * 60000);
   const compact = (date: Date) =>
     date
@@ -33,19 +43,20 @@ function googleCalendarUrl(name: string, start: Date, durationMinutes: number) {
       .replace(/\.\d{3}/, '');
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: name || 'Language study',
+    text: name || defaultName,
     dates: `${compact(start)}/${compact(end)}`,
-    details: 'Planned with ConvoLab study time.',
+    details,
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 const StudyTimePage = () => {
+  const { t } = useTranslation(['study']);
   const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
   const weekEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
   const sessionsQuery = useStudyActivitySessions(weekStart, weekEnd);
-  const saveSession = useSaveStudyActivitySession();
-  const { active, start, stop } = useStudyActivityTimer();
+  const { active } = useStudyActivityStatus();
+  const { start, stop, logCompleted } = useStudyActivityActions();
   const [activity, setActivity] = useState<StudyActivityKind>('card_creation');
   const [name, setName] = useState('');
   const [entryDate, setEntryDate] = useState(() => {
@@ -83,37 +94,36 @@ const StudyTimePage = () => {
       category: option.category,
       activity,
       source: 'calendar',
-      name: name.trim() || option.label,
+      name: name.trim() || t(option.labelKey),
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
       durationMs: minutes * 60000,
     };
-    saveSession.mutate(session);
+    logCompleted(session);
   };
 
   return (
     <div className="space-y-6">
       <header className="retro-paper-panel p-6">
-        <p className="retro-caps text-coral">Study time</p>
-        <h1 className="retro-headline text-5xl text-navy">Your learning week</h1>
+        <p className="retro-caps text-coral">{t('time.eyebrow')}</p>
+        <h1 className="retro-headline text-5xl text-navy">{t('time.title')}</h1>
         <p className="mt-2 max-w-2xl text-gray-600">
-          One primary activity counts at a time. Audio playback and cards created stay attached to
-          that activity without inflating your total.
+          {t('time.description')}
         </p>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-4">
         {(
           [
-            ['Total', total, Clock3],
-            ['Review', totals.review, Layers3],
-            ['Create', totals.create, Headphones],
-            ['Immerse', totals.immerse, Tv],
+            ['time.totals.total', total, Clock3],
+            ['time.totals.review', totals.review, Layers3],
+            ['time.totals.create', totals.create, Headphones],
+            ['time.totals.immerse', totals.immerse, Tv],
           ] as Array<[string, number, LucideIcon]>
         ).map(([label, value, Icon]) => (
           <div key={String(label)} className="retro-paper-panel p-5">
             <Icon className="mb-3 h-6 w-6 text-coral" />
-            <p className="retro-caps text-gray-500">{String(label)}</p>
+            <p className="retro-caps text-gray-500">{t(String(label))}</p>
             <p className="text-3xl font-black text-navy">{formatDuration(Number(value))}</p>
           </div>
         ))}
@@ -121,16 +131,16 @@ const StudyTimePage = () => {
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="retro-paper-panel space-y-4 p-6">
-          <h2 className="retro-headline text-3xl text-navy">Start a timer</h2>
+          <h2 className="retro-headline text-3xl text-navy">{t('time.timer.title')}</h2>
           <select
             value={activity}
             onChange={(event) => setActivity(event.target.value as StudyActivityKind)}
             className="input w-full"
-            aria-label="Study activity"
+            aria-label={t('time.timer.activityLabel')}
           >
             {ACTIVITY_OPTIONS.map((item) => (
               <option key={item.activity} value={item.activity}>
-                {item.label}
+                {t(item.labelKey)}
               </option>
             ))}
           </select>
@@ -138,12 +148,14 @@ const StudyTimePage = () => {
             value={name}
             onChange={(event) => setName(event.target.value)}
             className="input w-full"
-            placeholder="Optional source, show, or project"
-            aria-label="Source, show, or project"
+            placeholder={t('time.timer.namePlaceholder')}
+            aria-label={t('time.timer.nameLabel')}
           />
           {active ? (
             <button type="button" onClick={() => stop()} className="btn-secondary w-full">
-              Stop {active.name || active.activity.replace(/_/g, ' ')}
+              {t('time.timer.stop', {
+                name: active.name || active.activity.replace(/_/g, ' '),
+              })}
             </button>
           ) : (
             <button
@@ -153,24 +165,24 @@ const StudyTimePage = () => {
                   category: option.category,
                   activity,
                   source: 'manual',
-                  name: name.trim() || option.label,
+                  name: name.trim() || t(option.labelKey),
                 })
               }
               className="btn-primary flex w-full items-center justify-center gap-2"
             >
-              <Play className="h-4 w-4 fill-current" /> Start session
+              <Play className="h-4 w-4 fill-current" /> {t('time.timer.start')}
             </button>
           )}
         </div>
 
         <div className="retro-paper-panel space-y-4 p-6">
-          <h2 className="retro-headline text-3xl text-navy">Add a calendar entry</h2>
+          <h2 className="retro-headline text-3xl text-navy">{t('time.calendar.title')}</h2>
           <input
             type="datetime-local"
             value={entryDate}
             onChange={(event) => setEntryDate(event.target.value)}
             className="input w-full"
-            aria-label="Entry start date and time"
+            aria-label={t('time.calendar.dateLabel')}
           />
           <div className="flex gap-3">
             <input
@@ -180,27 +192,33 @@ const StudyTimePage = () => {
               value={minutes}
               onChange={(event) => setMinutes(event.target.valueAsNumber)}
               className="input min-w-0 flex-1"
-              aria-label="Duration in minutes"
+              aria-label={t('time.calendar.durationLabel')}
             />
-            <span className="self-center text-gray-600">minutes</span>
+            <span className="self-center text-gray-600">{t('time.calendar.minutes')}</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={addEntry}
-              disabled={saveSession.isPending || !validEntry}
+              disabled={!validEntry}
               className="btn-primary"
             >
-              Log entry
+              {t('time.calendar.log')}
             </button>
             {validEntry ? (
               <a
-                href={googleCalendarUrl(name || option.label, new Date(entryDate), minutes)}
+                href={googleCalendarUrl(
+                  name || t(option.labelKey),
+                  new Date(entryDate),
+                  minutes,
+                  t('time.calendar.defaultName'),
+                  t('time.calendar.details')
+                )}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="btn-outline flex items-center justify-center gap-2"
               >
-                <CalendarPlus className="h-4 w-4" /> Google Calendar
+                <CalendarPlus className="h-4 w-4" /> {t('time.calendar.open')}
               </a>
             ) : (
               <button
@@ -208,7 +226,7 @@ const StudyTimePage = () => {
                 disabled
                 className="btn-outline flex items-center justify-center gap-2"
               >
-                <CalendarPlus className="h-4 w-4" /> Google Calendar
+                <CalendarPlus className="h-4 w-4" /> {t('time.calendar.open')}
               </button>
             )}
           </div>
@@ -216,13 +234,15 @@ const StudyTimePage = () => {
       </section>
 
       <section className="retro-paper-panel p-6">
-        <h2 className="retro-headline text-3xl text-navy">This week</h2>
-        {sessionsQuery.isLoading ? <p className="mt-4 text-gray-600">Loading study time…</p> : null}
+        <h2 className="retro-headline text-3xl text-navy">{t('time.history.title')}</h2>
+        {sessionsQuery.isLoading ? (
+          <p className="mt-4 text-gray-600">{t('time.history.loading')}</p>
+        ) : null}
         {sessionsQuery.isError ? (
-          <p className="mt-4 text-red-700">Study time couldn’t be loaded. Please try again.</p>
+          <p className="mt-4 text-red-700">{t('time.history.error')}</p>
         ) : null}
         {!sessionsQuery.isLoading && !sessionsQuery.isError && sessions.length === 0 ? (
-          <p className="mt-4 text-gray-600">Your first completed activity will appear here.</p>
+          <p className="mt-4 text-gray-600">{t('time.history.empty')}</p>
         ) : null}
         <div className="mt-4 divide-y divide-gray-200">
           {[...sessions].reverse().map((session) => (
@@ -232,8 +252,11 @@ const StudyTimePage = () => {
                   {session.name || session.activity.replace(/_/g, ' ')}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {new Date(session.startedAt).toLocaleString()} · {session.source}
-                  {session.cardsCreated ? ` · ${session.cardsCreated} cards` : ''}
+                  {new Date(session.startedAt).toLocaleString()} ·{' '}
+                  {t(`time.sources.${session.source}`)}
+                  {session.cardsCreated
+                    ? ` · ${t('time.history.cards', { count: session.cardsCreated })}`
+                    : ''}
                 </p>
               </div>
               <p className="font-mono font-bold text-navy">{formatDuration(session.durationMs)}</p>

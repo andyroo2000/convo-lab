@@ -31,23 +31,32 @@ interface StartOptions {
   name?: string;
 }
 
-interface StudyActivityContextValue {
-  active: ActiveStudyActivity | null;
-  elapsedMs: number;
+interface StudyActivityActionsContextValue {
   start: (options: StartOptions) => void;
   stop: (activity?: StudyActivityKind, name?: string) => void;
   addCreatedCards: (count?: number) => void;
+  logCompleted: (session: StudyActivitySession) => void;
 }
 
-const inactiveStudyActivityContext: StudyActivityContextValue = {
-  active: null,
-  elapsedMs: 0,
+interface StudyActivityStatusContextValue {
+  active: ActiveStudyActivity | null;
+  elapsedMs: number;
+}
+
+const inactiveStudyActivityActions: StudyActivityActionsContextValue = {
   start: () => undefined,
   stop: () => undefined,
   addCreatedCards: () => undefined,
+  logCompleted: () => undefined,
 };
 
-const StudyActivityContext = createContext<StudyActivityContextValue>(inactiveStudyActivityContext);
+const StudyActivityActionsContext = createContext<StudyActivityActionsContextValue>(
+  inactiveStudyActivityActions
+);
+const StudyActivityStatusContext = createContext<StudyActivityStatusContextValue>({
+  active: null,
+  elapsedMs: 0,
+});
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -85,15 +94,17 @@ function sessionFromActive(
 export const StudyActivityProvider = ({
   children,
   userId,
+  enabled = true,
 }: {
   children: ReactNode;
   userId: string | number;
+  enabled?: boolean;
 }) => {
   const queryClient = useQueryClient();
   const activeKey = `${ACTIVE_KEY_PREFIX}.${userId}`;
   const pendingKey = `${PENDING_KEY_PREFIX}.${userId}`;
   const [active, setActive] = useState<ActiveStudyActivity | null>(() =>
-    readJson<ActiveStudyActivity | null>(activeKey, null)
+    enabled ? readJson<ActiveStudyActivity | null>(activeKey, null) : null
   );
   const activeRef = useRef(active);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -139,6 +150,7 @@ export const StudyActivityProvider = ({
 
   const start = useCallback(
     (options: StartOptions) => {
+      if (!enabled) return;
       const { current } = activeRef;
       if (
         current?.activity === options.activity &&
@@ -159,7 +171,7 @@ export const StudyActivityProvider = ({
       setActive(next);
       localStorage.setItem(activeKey, JSON.stringify(next));
     },
-    [activeKey, finishActive]
+    [activeKey, enabled, finishActive]
   );
 
   const addCreatedCards = useCallback(
@@ -191,6 +203,10 @@ export const StudyActivityProvider = ({
   useEffect(() => {
     activeRef.current = active;
   }, [active]);
+
+  useEffect(() => {
+    if (!enabled) finishActive();
+  }, [enabled, finishActive]);
 
   const flushPending = useCallback(() => {
     const pending = readJson<StudyActivitySession[]>(pendingKey, []);
@@ -259,16 +275,38 @@ export const StudyActivityProvider = ({
     return () => window.clearInterval(interval);
   }, [finishActive]);
 
-  const value = useMemo(
-    () => ({ active, elapsedMs, start, stop: finishActive, addCreatedCards }),
-    [active, addCreatedCards, elapsedMs, finishActive, start]
+  const actionsValue = useMemo(
+    () => ({
+      start,
+      stop: finishActive,
+      addCreatedCards,
+      logCompleted: persistCompleted,
+    }),
+    [addCreatedCards, finishActive, persistCompleted, start]
   );
+  const statusValue = useMemo(() => ({ active, elapsedMs }), [active, elapsedMs]);
 
-  return <StudyActivityContext.Provider value={value}>{children}</StudyActivityContext.Provider>;
+  return (
+    <StudyActivityActionsContext.Provider value={actionsValue}>
+      <StudyActivityStatusContext.Provider value={statusValue}>
+        {children}
+      </StudyActivityStatusContext.Provider>
+    </StudyActivityActionsContext.Provider>
+  );
 };
 
-// The timer hook intentionally shares the provider module so its context cannot drift.
+// eslint-disable-next-line react-refresh/only-export-components
+export function useStudyActivityActions() {
+  return useContext(StudyActivityActionsContext);
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function useStudyActivityStatus() {
+  return useContext(StudyActivityStatusContext);
+}
+
+// Kept for stateful timer UI and compatibility with focused provider tests.
 // eslint-disable-next-line react-refresh/only-export-components
 export function useStudyActivityTimer() {
-  return useContext(StudyActivityContext);
+  return { ...useStudyActivityActions(), ...useStudyActivityStatus() };
 }

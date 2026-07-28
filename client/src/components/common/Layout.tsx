@@ -64,7 +64,7 @@ const Layout = () => {
         : []),
       {
         id: 'time',
-        label: 'Study Time',
+        label: t('common:nav.studyTime'),
         path: '/app/study/time',
         isActive: isTimeActive,
         icon: Clock3,
@@ -178,7 +178,7 @@ const Layout = () => {
                   }`}
                 >
                   <Clock3 className="w-5 h-5 mr-2.5 flex-shrink-0" />
-                  Study Time
+                  {t('common:nav.studyTime')}
                 </Link>
               </div>
             </div>
@@ -215,7 +215,11 @@ const Layout = () => {
           </div>
         </div>
       </nav>
-      <StudyActivityProvider key={String(user.id)} userId={user.id}>
+      <StudyActivityProvider
+        key={String(user.id)}
+        userId={user.id}
+        enabled={!isImpersonating}
+      >
         <main
           className={`max-w-7xl xl:max-w-[96rem] mx-auto py-8 ${
             isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'

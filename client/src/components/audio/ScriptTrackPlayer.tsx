@@ -11,7 +11,7 @@ import {
   normalizeTimingDataForDuration,
   versionAudioUrl,
 } from './scriptTrackTiming';
-import { useStudyActivityTimer } from '../../contexts/StudyActivityContext';
+import { useStudyActivityActions } from '../../contexts/StudyActivityContext';
 
 interface ScriptTrackPlayerProps {
   title: string;
@@ -63,7 +63,7 @@ const ScriptTrackPlayer = ({
   updatedAt,
 }: ScriptTrackPlayerProps) => {
   const { audioRef, currentTime, duration, isPlaying } = useAudioPlayer();
-  const { start: startActivity, stop: stopActivity } = useStudyActivityTimer();
+  const { start: startActivity, stop: stopActivity } = useStudyActivityActions();
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
