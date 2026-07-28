@@ -171,7 +171,6 @@ const StudyPage = () => {
                   {masteryAnimation ? (
                     <MasteryReviewAnimation
                       key={masteryAnimation.id}
-                      label={masteryAnimation.label}
                       fromLevel={masteryAnimation.fromLevel}
                       toLevel={masteryAnimation.toLevel}
                       passed={masteryAnimation.passed}
