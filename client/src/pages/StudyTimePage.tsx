@@ -291,6 +291,7 @@ const StudyTimePage = () => {
   };
 
   const beginEditing = (session: StudyActivitySession) => {
+    saveSession.reset();
     setEditing(session);
     setEditActivity(session.activity);
     setEditName(session.name ?? '');
@@ -533,7 +534,10 @@ const StudyTimePage = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDeletingSession(session)}
+                  onClick={() => {
+                    deleteSession.reset();
+                    setDeletingSession(session);
+                  }}
                   className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"
                   aria-label={t('time.manual.deleteAria', {
                     name: session.name || t('time.manual.entryFallback'),
@@ -548,13 +552,31 @@ const StudyTimePage = () => {
       </section>
 
       {editing ? (
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy/45 p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="edit-study-time-title"
+          onClick={() => {
+            saveSession.reset();
+            setEditing(null);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              saveSession.reset();
+              setEditing(null);
+            }
+          }}
         >
-          <div className="retro-paper-panel w-full max-w-lg space-y-4 bg-cream p-6 shadow-2xl">
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+          <div
+            className="retro-paper-panel w-full max-w-lg space-y-4 bg-cream p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key !== 'Escape') event.stopPropagation();
+            }}
+          >
             <h2 id="edit-study-time-title" className="retro-headline text-3xl text-navy">
               {t('time.edit.title')}
             </h2>
@@ -598,7 +620,14 @@ const StudyTimePage = () => {
               </p>
             ) : null}
             <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => setEditing(null)} className="btn-outline">
+              <button
+                type="button"
+                onClick={() => {
+                  saveSession.reset();
+                  setEditing(null);
+                }}
+                className="btn-outline"
+              >
                 {t('time.edit.cancel')}
               </button>
               <button
@@ -629,7 +658,10 @@ const StudyTimePage = () => {
         confirmLabel={t('time.delete.confirm')}
         cancelLabel={t('time.edit.cancel')}
         isLoading={deleteSession.isPending}
-        onCancel={() => setDeletingSession(null)}
+        onCancel={() => {
+          deleteSession.reset();
+          setDeletingSession(null);
+        }}
         onConfirm={() => {
           if (!deletingSession) return;
           deleteSession.mutate(deletingSession.clientSessionId, {

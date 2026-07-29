@@ -3,11 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import StudyTimePage from '../StudyTimePage';
 
-const { deleteMutateMock, logCompletedMock, saveMutateMock } = vi.hoisted(() => ({
-  deleteMutateMock: vi.fn(),
-  logCompletedMock: vi.fn(),
-  saveMutateMock: vi.fn(),
-}));
+const { deleteMutateMock, deleteResetMock, logCompletedMock, saveMutateMock, saveResetMock } =
+  vi.hoisted(() => ({
+    deleteMutateMock: vi.fn(),
+    deleteResetMock: vi.fn(),
+    logCompletedMock: vi.fn(),
+    saveMutateMock: vi.fn(),
+    saveResetMock: vi.fn(),
+  }));
 
 vi.mock('../../contexts/StudyActivityContext', () => ({
   useStudyActivityActions: () => ({
@@ -101,11 +104,13 @@ vi.mock('../../hooks/useStudyActivity', () => ({
   }),
   useSaveStudyActivitySession: () => ({
     mutate: saveMutateMock,
+    reset: saveResetMock,
     isPending: false,
     isError: false,
   }),
   useDeleteStudyActivitySession: () => ({
     mutate: deleteMutateMock,
+    reset: deleteResetMock,
     isPending: false,
     isError: false,
   }),
@@ -116,6 +121,8 @@ describe('StudyTimePage', () => {
     logCompletedMock.mockReset();
     saveMutateMock.mockReset();
     deleteMutateMock.mockReset();
+    deleteResetMock.mockReset();
+    saveResetMock.mockReset();
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
       '018f22d2-6d38-7000-8000-000000000001'
     );
@@ -154,6 +161,7 @@ describe('StudyTimePage', () => {
     expect(screen.queryByText('Automatic review')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Edit Episode 8 cards' }));
 
+    expect(saveResetMock).toHaveBeenCalledOnce();
     expect(screen.getByRole('dialog', { name: 'Edit study time' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Edit name' })).toHaveValue('Episode 8 cards');
 
@@ -182,6 +190,7 @@ describe('StudyTimePage', () => {
     render(<StudyTimePage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Episode 8 cards' }));
+    expect(deleteResetMock).toHaveBeenCalledOnce();
     expect(deleteMutateMock).not.toHaveBeenCalled();
     expect(screen.getByText('Delete “Episode 8 cards”? This can’t be undone.')).toBeInTheDocument();
 

@@ -437,11 +437,8 @@
       "details": "Planned with ConvoLab study time."
     },
     "history": {
-      "title": "This week",
       "loading": "Loading study time…",
-      "error": "Study time couldn’t be loaded. Please try again.",
-      "empty": "Your first completed activity will appear here.",
-      "cards": "{{count}} cards"
+      "error": "Study time couldn’t be loaded. Please try again."
     },
     "manual": {
       "eyebrow": "Editable",
