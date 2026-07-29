@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarPlus, Clock3, Pencil, Play, Trash2, TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -257,6 +257,9 @@ const StudyTimePage = () => {
   const [editDate, setEditDate] = useState('');
   const [editMinutes, setEditMinutes] = useState(30);
   const [deletingSession, setDeletingSession] = useState<StudyActivitySession | null>(null);
+  const editDialogRef = useRef<HTMLDivElement>(null);
+  const saveResetRef = useRef(saveSession.reset);
+  saveResetRef.current = saveSession.reset;
   const validEntry =
     Number.isFinite(minutes) &&
     minutes >= 1 &&
@@ -272,6 +275,54 @@ const StudyTimePage = () => {
         .sort((left, right) => right.startedAt.localeCompare(left.startedAt)),
     [sessionsQuery.data]
   );
+
+  useEffect(() => {
+    if (!editing) return undefined;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusFrame = requestAnimationFrame(() => {
+      editDialogRef.current?.querySelector<HTMLElement>('select, input, button')?.focus();
+    });
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const dialog = editDialogRef.current;
+      if (event.key === 'Escape') {
+        saveResetRef.current();
+        setEditing(null);
+        return;
+      }
+      if (event.key !== 'Tab' || !dialog) return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) return;
+
+      if (
+        event.shiftKey &&
+        (document.activeElement === first || !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [editing]);
 
   const addEntry = () => {
     if (!validEntry) return;
@@ -379,6 +430,9 @@ const StudyTimePage = () => {
           </div>
         ) : null}
         {analyticsQuery.isError ? (
+          <div className="rounded-xl bg-red-50 p-5 text-red-800">{t('time.analytics.error')}</div>
+        ) : null}
+        {!analyticsQuery.isLoading && !analyticsQuery.isError && !analytics ? (
           <div className="rounded-xl bg-red-50 p-5 text-red-800">{t('time.analytics.error')}</div>
         ) : null}
         {analytics ? (
@@ -519,6 +573,11 @@ const StudyTimePage = () => {
                   {new Date(session.startedAt).toLocaleString()} ·{' '}
                   {t(`time.sources.${session.source}`)}
                 </p>
+                {session.activity === 'card_creation' && session.cardsCreated ? (
+                  <p className="text-sm font-bold text-amber-700">
+                    {t('time.manual.cards', { count: session.cardsCreated })}
+                  </p>
+                ) : null}
               </div>
               <p className="font-mono font-bold text-navy">{formatDuration(session.durationMs)}</p>
               <div className="flex gap-2">
@@ -553,14 +612,16 @@ const StudyTimePage = () => {
 
       {editing ? (
         // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-        <div
+        <dialog
+          open
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy/45 p-4"
-          role="dialog"
           aria-modal="true"
           aria-labelledby="edit-study-time-title"
-          onClick={() => {
-            saveSession.reset();
-            setEditing(null);
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              saveSession.reset();
+              setEditing(null);
+            }
           }}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
@@ -569,13 +630,9 @@ const StudyTimePage = () => {
             }
           }}
         >
-          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div
+            ref={editDialogRef}
             className="retro-paper-panel w-full max-w-lg space-y-4 bg-cream p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key !== 'Escape') event.stopPropagation();
-            }}
           >
             <h2 id="edit-study-time-title" className="retro-headline text-3xl text-navy">
               {t('time.edit.title')}
@@ -646,7 +703,7 @@ const StudyTimePage = () => {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       ) : null}
 
       <ConfirmModal

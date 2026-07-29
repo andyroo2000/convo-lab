@@ -444,6 +444,7 @@
       "eyebrow": "Editable",
       "title": "Manual entries",
       "empty": "Timers and study time you add yourself will appear here.",
+      "cards": "{{count}} cards",
       "entryFallback": "study entry",
       "editAria": "Edit {{name}}",
       "deleteAria": "Delete {{name}}"

@@ -427,6 +427,7 @@
       "eyebrow": "編集可能",
       "title": "手動の記録",
       "empty": "タイマーや自分で追加した学習時間がここに表示されます。",
+      "cards": "カード{{count}}枚",
       "entryFallback": "学習記録",
       "editAria": "{{name}}を編集",
       "deleteAria": "{{name}}を削除"

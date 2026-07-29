@@ -30,7 +30,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
         {
           key: 'today',
           startsAt: '2026-07-29T04:00:00Z',
-          endsAt: '2026-07-29T02:00:00Z',
+          endsAt: '2026-07-29T05:00:00Z',
           totalMs: 600_000,
           categories: {
             review: 600_000,
