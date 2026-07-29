@@ -469,6 +469,47 @@ describe('StudyPage', () => {
     expect(beginButton).not.toHaveAttribute('title');
   });
 
+  it('does not report future failed retries as reviews that are due', () => {
+    studyOverviewData.current = {
+      dueCount: 0,
+      failedCount: 8,
+      failedDueCount: 0,
+      newCount: 0,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 20,
+      newCardsAvailableToday: 0,
+      learningCount: 8,
+      reviewCount: 0,
+      suspendedCount: 0,
+      totalCards: 8,
+      nextDueAt: '2999-07-29T12:00:00.000Z',
+    };
+
+    renderStudyPage();
+
+    expect(screen.getByText('0 due')).toBeInTheDocument();
+    expect(screen.queryByText('8 due')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reviews' })).toBeDisabled();
+  });
+
+  it('includes failed retries whose due time has arrived', () => {
+    studyOverviewData.current = {
+      dueCount: 2,
+      failedCount: 8,
+      failedDueCount: 3,
+      newCount: 0,
+      learningCount: 8,
+      reviewCount: 2,
+      suspendedCount: 0,
+      totalCards: 10,
+    };
+
+    renderStudyPage();
+
+    expect(screen.getByText('5 due')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reviews' })).toBeEnabled();
+  });
+
   it('points to Lessons when reviews are exhausted but new cards remain', () => {
     studyOverviewData.current = {
       dueCount: 0,
