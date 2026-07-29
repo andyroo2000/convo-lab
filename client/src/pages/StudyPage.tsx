@@ -26,7 +26,7 @@ const StudyPage = () => {
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
   const availableCount =
-    (overviewQuery.data?.failedCount ?? 0) + (overviewQuery.data?.dueCount ?? 0);
+    (overviewQuery.data?.failedDueCount ?? 0) + (overviewQuery.data?.dueCount ?? 0);
   const reviewSession = useStudyReviewSession();
   const { start: startActivity, stop: stopActivity } = useStudyActivityActions();
   const runBackgroundTask = useStudyBackgroundTask();

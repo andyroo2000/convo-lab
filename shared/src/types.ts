@@ -391,6 +391,7 @@ export interface StudyManualCardDraftCreateCardResponse {
 export interface StudyOverview {
   dueCount: number;
   failedCount?: number;
+  failedDueCount?: number;
   newCount: number;
   newCardsPerDay?: number;
   lessonBatchSize?: number;
