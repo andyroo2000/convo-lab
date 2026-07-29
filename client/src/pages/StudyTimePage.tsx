@@ -108,12 +108,12 @@ function localInputValue(date: Date) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-function bucketLabel(date: Date, range: StudyTimeRange) {
-  if (range === 'today') return date.toLocaleTimeString([], { hour: 'numeric' });
-  if (range === 'week') return date.toLocaleDateString([], { weekday: 'short' });
-  if (range === 'month') return date.toLocaleDateString([], { day: 'numeric' });
-  if (range === 'year') return date.toLocaleDateString([], { month: 'short' });
-  return date.toLocaleDateString([], { year: 'numeric' });
+function bucketLabel(date: Date, range: StudyTimeRange, locale: string) {
+  if (range === 'today') return date.toLocaleTimeString(locale, { hour: 'numeric' });
+  if (range === 'week') return date.toLocaleDateString(locale, { weekday: 'short' });
+  if (range === 'month') return date.toLocaleDateString(locale, { day: 'numeric' });
+  if (range === 'year') return date.toLocaleDateString(locale, { month: 'short' });
+  return date.toLocaleDateString(locale, { year: 'numeric' });
 }
 
 function activityTranslationKey(activity: StudyActivityKind) {
@@ -124,8 +124,15 @@ function activityTranslationKey(activity: StudyActivityKind) {
   return activity;
 }
 
-const StudyRhythmChart = ({ analytics }: { analytics: StudyTimeAnalyticsRange }) => {
-  const { t } = useTranslation(['study']);
+const StudyRhythmChart = ({
+  analytics,
+  generatedAt,
+}: {
+  analytics: StudyTimeAnalyticsRange;
+  generatedAt: string;
+}) => {
+  const { i18n, t } = useTranslation(['study']);
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const maximum = Math.max(...analytics.buckets.map((bucket) => bucket.totalMs), 1);
   const best = analytics.buckets.reduce<StudyTimeAnalyticsBucket | null>(
     (winner, bucket) => (!winner || bucket.totalMs > winner.totalMs ? bucket : winner),
@@ -134,7 +141,7 @@ const StudyRhythmChart = ({ analytics }: { analytics: StudyTimeAnalyticsRange })
   const elapsedDays = Math.max(
     1,
     Math.ceil(
-      (Math.min(Date.now(), new Date(analytics.endsAt).getTime()) -
+      (Math.min(new Date(generatedAt).getTime(), new Date(analytics.endsAt).getTime()) -
         new Date(analytics.startsAt).getTime()) /
         86_400_000
     )
@@ -156,7 +163,7 @@ const StudyRhythmChart = ({ analytics }: { analytics: StudyTimeAnalyticsRange })
         <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
           <p className="retro-caps text-gray-500">{t('time.analytics.bestRhythm')}</p>
           <p className="mt-1 text-xl font-black text-navy">
-            {best ? bucketLabel(new Date(best.startsAt), analytics.key) : '—'}
+            {best ? bucketLabel(new Date(best.startsAt), analytics.key, locale) : '—'}
           </p>
           <p className="text-sm font-bold text-gray-500">
             {best ? formatDuration(best.totalMs) : formatDuration(0)}
@@ -180,9 +187,11 @@ const StudyRhythmChart = ({ analytics }: { analytics: StudyTimeAnalyticsRange })
                 style={{
                   height: `${Math.max(2, (bucket.totalMs / maximum) * 88)}%`,
                 }}
-                title={`${bucketLabel(new Date(bucket.startsAt), analytics.key)}: ${formatDuration(
-                  bucket.totalMs
-                )}`}
+                title={`${bucketLabel(
+                  new Date(bucket.startsAt),
+                  analytics.key,
+                  locale
+                )}: ${formatDuration(bucket.totalMs)}`}
               >
                 {CATEGORIES.map((category) => {
                   const value = bucket.categories[category.key] ?? 0;
@@ -197,7 +206,7 @@ const StudyRhythmChart = ({ analytics }: { analytics: StudyTimeAnalyticsRange })
                 })}
               </div>
               <p className="mt-2 truncate text-center text-[11px] font-bold text-gray-500">
-                {bucketLabel(new Date(bucket.startsAt), analytics.key)}
+                {bucketLabel(new Date(bucket.startsAt), analytics.key, locale)}
               </p>
             </div>
           ))}
@@ -226,9 +235,12 @@ const StudyRhythmChart = ({ analytics }: { analytics: StudyTimeAnalyticsRange })
 
 const StudyTimePage = () => {
   const { t } = useTranslation(['study']);
-  const now = useMemo(() => new Date(Date.now() + 60_000), []);
-  const rollingStart = useMemo(() => new Date(now.getTime() - 93 * 86_400_000), [now]);
-  const sessionsQuery = useStudyActivitySessions(rollingStart, now);
+  const [sessionWindowEnd, setSessionWindowEnd] = useState(() => new Date(Date.now() + 60_000));
+  const rollingStart = useMemo(
+    () => new Date(sessionWindowEnd.getTime() - 93 * 86_400_000),
+    [sessionWindowEnd]
+  );
+  const sessionsQuery = useStudyActivitySessions(rollingStart, sessionWindowEnd);
   const analyticsQuery = useStudyActivityAnalytics();
   const saveSession = useSaveStudyActivitySession();
   const deleteSession = useDeleteStudyActivitySession();
@@ -265,6 +277,7 @@ const StudyTimePage = () => {
     if (!validEntry) return;
     const startedAt = new Date(entryDate);
     const endedAt = new Date(startedAt.getTime() + minutes * 60000);
+    setSessionWindowEnd(new Date(Math.max(Date.now() + 60_000, endedAt.getTime() + 60_000)));
     logCompleted({
       clientSessionId: crypto.randomUUID(),
       category: option.category,
@@ -290,6 +303,7 @@ const StudyTimePage = () => {
     const selected =
       ACTIVITY_OPTIONS.find((item) => item.activity === editActivity) ?? ACTIVITY_OPTIONS[0];
     const startedAt = new Date(editDate);
+    const endedAt = new Date(startedAt.getTime() + editMinutes * 60_000);
     saveSession.mutate(
       {
         ...editing,
@@ -297,11 +311,17 @@ const StudyTimePage = () => {
         category: selected.category,
         name: editName.trim() || t(selected.labelKey),
         startedAt: startedAt.toISOString(),
-        endedAt: new Date(startedAt.getTime() + editMinutes * 60_000).toISOString(),
+        endedAt: endedAt.toISOString(),
         durationMs: editMinutes * 60_000,
         audioPlaybackMs: editActivity === 'daily_audio' ? editMinutes * 60_000 : null,
+        cardsCreated: editActivity === 'card_creation' ? editing.cardsCreated : null,
       },
-      { onSuccess: () => setEditing(null) }
+      {
+        onSuccess: () => {
+          setSessionWindowEnd(new Date(Math.max(Date.now() + 60_000, endedAt.getTime() + 60_000)));
+          setEditing(null);
+        },
+      }
     );
   };
 
@@ -322,28 +342,35 @@ const StudyTimePage = () => {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="retro-caps text-coral">{t('time.analytics.eyebrow')}</p>
-            <h2 className="retro-headline text-3xl text-navy">{t('time.title')}</h2>
+            <h2 className="retro-headline text-3xl text-navy">{t('time.analytics.title')}</h2>
           </div>
-          <div
+          <fieldset
             className="grid grid-cols-5 rounded-xl border-2 border-navy/10 bg-white/70 p-1"
-            role="radiogroup"
             aria-label={t('time.analytics.timeSpan')}
           >
             {RANGES.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setRange(item)}
-                className={`rounded-lg px-2.5 py-2 text-xs font-black uppercase tracking-wide transition sm:px-4 ${
-                  range === item ? 'bg-navy text-white shadow-sm' : 'text-gray-500 hover:text-navy'
-                }`}
-                role="radio"
-                aria-checked={range === item}
-              >
-                {t(`time.analytics.ranges.${item}`)}
-              </button>
+              <label key={item} htmlFor={`study-time-range-${item}`} className="cursor-pointer">
+                <input
+                  id={`study-time-range-${item}`}
+                  className="peer sr-only"
+                  type="radio"
+                  name="study-time-range"
+                  value={item}
+                  checked={range === item}
+                  onChange={() => setRange(item)}
+                />
+                <span
+                  className={`block rounded-lg px-2.5 py-2 text-center text-xs font-black uppercase tracking-wide transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-coral sm:px-4 ${
+                    range === item
+                      ? 'bg-navy text-white shadow-sm'
+                      : 'text-gray-500 hover:text-navy'
+                  }`}
+                >
+                  {t(`time.analytics.ranges.${item}`)}
+                </span>
+              </label>
             ))}
-          </div>
+          </fieldset>
         </div>
         {analyticsQuery.isLoading ? (
           <div className="flex h-72 items-center justify-center text-gray-500">
@@ -353,7 +380,12 @@ const StudyTimePage = () => {
         {analyticsQuery.isError ? (
           <div className="rounded-xl bg-red-50 p-5 text-red-800">{t('time.analytics.error')}</div>
         ) : null}
-        {analytics ? <StudyRhythmChart analytics={analytics} /> : null}
+        {analytics ? (
+          <StudyRhythmChart
+            analytics={analytics}
+            generatedAt={analyticsQuery.data?.generatedAt ?? analytics.endsAt}
+          />
+        ) : null}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
@@ -560,6 +592,11 @@ const StudyTimePage = () => {
               className="input w-full"
               aria-label={t('time.edit.durationLabel')}
             />
+            {saveSession.isError ? (
+              <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+                {t('time.edit.error')}
+              </p>
+            ) : null}
             <div className="grid grid-cols-2 gap-3">
               <button type="button" onClick={() => setEditing(null)} className="btn-outline">
                 {t('time.edit.cancel')}
@@ -599,7 +636,13 @@ const StudyTimePage = () => {
             onSuccess: () => setDeletingSession(null),
           });
         }}
-      />
+      >
+        {deleteSession.isError ? (
+          <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+            {t('time.delete.error')}
+          </p>
+        ) : null}
+      </ConfirmModal>
     </div>
   );
 };

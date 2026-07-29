@@ -374,6 +374,7 @@
     },
     "analytics": {
       "eyebrow": "学習時間",
+      "title": "学習リズムの概要",
       "timeSpan": "期間",
       "dailyAverage": "1日平均",
       "bestRhythm": "最も多い期間",
@@ -440,12 +441,14 @@
       "startLabel": "開始時刻を編集",
       "durationLabel": "時間（分）を編集",
       "cancel": "キャンセル",
-      "save": "変更を保存"
+      "save": "変更を保存",
+      "error": "変更を保存できませんでした。もう一度お試しください。"
     },
     "delete": {
       "title": "学習時間を削除しますか？",
       "message": "「{{name}}」を削除します。この操作は取り消せません。",
-      "confirm": "削除"
+      "confirm": "削除",
+      "error": "この記録を削除できませんでした。もう一度お試しください。"
     },
     "sources": {
       "automatic": "自動",

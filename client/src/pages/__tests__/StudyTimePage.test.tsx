@@ -99,8 +99,16 @@ vi.mock('../../hooks/useStudyActivity', () => ({
     isLoading: false,
     isError: false,
   }),
-  useSaveStudyActivitySession: () => ({ mutate: saveMutateMock, isPending: false }),
-  useDeleteStudyActivitySession: () => ({ mutate: deleteMutateMock, isPending: false }),
+  useSaveStudyActivitySession: () => ({
+    mutate: saveMutateMock,
+    isPending: false,
+    isError: false,
+  }),
+  useDeleteStudyActivitySession: () => ({
+    mutate: deleteMutateMock,
+    isPending: false,
+    isError: false,
+  }),
 }));
 
 describe('StudyTimePage', () => {
@@ -116,7 +124,8 @@ describe('StudyTimePage', () => {
   it('renders the dashboard and durably logs a manual calendar entry', () => {
     render(<StudyTimePage />);
 
-    expect(screen.getAllByRole('heading', { name: 'Study Rhythm' })).toHaveLength(2);
+    expect(screen.getByRole('heading', { name: 'Study Rhythm' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Study rhythm overview' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Log entry' }));
 
     expect(logCompletedMock).toHaveBeenCalledWith(
@@ -135,7 +144,7 @@ describe('StudyTimePage', () => {
     const allRange = screen.getByRole('radio', { name: 'All' });
     fireEvent.click(allRange);
 
-    expect(allRange).toHaveAttribute('aria-checked', 'true');
+    expect(allRange).toBeChecked();
     expect(screen.getByText('2h 30m')).toBeInTheDocument();
   });
 
@@ -163,6 +172,7 @@ describe('StudyTimePage', () => {
         category: 'conversation',
         durationMs: 3_600_000,
         audioPlaybackMs: null,
+        cardsCreated: null,
       }),
       expect.any(Object)
     );

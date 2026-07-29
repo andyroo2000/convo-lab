@@ -391,6 +391,7 @@
     },
     "analytics": {
       "eyebrow": "Your time",
+      "title": "Study rhythm overview",
       "timeSpan": "Time span",
       "dailyAverage": "Daily average",
       "bestRhythm": "Best rhythm",
@@ -457,12 +458,14 @@
       "startLabel": "Edit start",
       "durationLabel": "Edit duration in minutes",
       "cancel": "Cancel",
-      "save": "Save changes"
+      "save": "Save changes",
+      "error": "We couldn’t save those changes. Please try again."
     },
     "delete": {
       "title": "Delete study time?",
       "message": "Delete “{{name}}”? This can’t be undone.",
-      "confirm": "Delete"
+      "confirm": "Delete",
+      "error": "We couldn’t delete this entry. Please try again."
     },
     "sources": {
       "automatic": "automatic",
