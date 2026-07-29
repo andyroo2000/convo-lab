@@ -1,4 +1,4 @@
-export type StudyActivityCategory = 'review' | 'create' | 'immerse';
+export type StudyActivityCategory = 'review' | 'create' | 'immerse' | 'conversation' | 'wanikani';
 export type StudyActivityKind =
   | 'card_review'
   | 'daily_audio'
@@ -7,6 +7,7 @@ export type StudyActivityKind =
   | 'podcast'
   | 'reading'
   | 'conversation'
+  | 'wanikani_review'
   | 'other';
 export type StudyActivitySource = 'automatic' | 'manual' | 'calendar';
 
@@ -32,4 +33,28 @@ export interface ActiveStudyActivity {
   name?: string;
   startedAt: string;
   cardsCreated: number;
+}
+
+export type StudyTimeRange = 'today' | 'week' | 'month' | 'year' | 'all';
+
+export interface StudyTimeAnalyticsBucket {
+  startsAt: string;
+  endsAt: string;
+  totalMs: number;
+  categories: Record<StudyActivityCategory, number>;
+}
+
+export interface StudyTimeAnalyticsRange {
+  key: StudyTimeRange;
+  startsAt: string;
+  endsAt: string;
+  totalMs: number;
+  categories: Record<StudyActivityCategory, number>;
+  buckets: StudyTimeAnalyticsBucket[];
+}
+
+export interface StudyTimeAnalytics {
+  generatedAt: string;
+  timezone: string;
+  ranges: StudyTimeAnalyticsRange[];
 }
