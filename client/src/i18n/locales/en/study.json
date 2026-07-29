@@ -379,13 +379,31 @@
   },
   "time": {
     "eyebrow": "Study time",
-    "title": "Your learning week",
-    "description": "One primary activity counts at a time. Audio playback and cards created stay attached to that activity without inflating your total.",
+    "title": "Study Rhythm",
+    "description": "See where your Japanese time goes—from reviews and card making to immersion, conversation, and WaniKani.",
     "totals": {
       "total": "Total",
       "review": "Review",
       "create": "Create",
-      "immerse": "Immerse"
+      "immerse": "Immerse",
+      "conversation": "Conversation",
+      "wanikani": "WaniKani"
+    },
+    "analytics": {
+      "eyebrow": "Your time",
+      "timeSpan": "Time span",
+      "dailyAverage": "Daily average",
+      "bestRhythm": "Best rhythm",
+      "chartLabel": "Study time by period and category",
+      "loading": "Loading your rhythm…",
+      "error": "We couldn’t load study analytics. Try refreshing the page.",
+      "ranges": {
+        "today": "Today",
+        "week": "Week",
+        "month": "Month",
+        "year": "Year",
+        "all": "All"
+      }
     },
     "activities": {
       "cardCreation": "Making cards",
@@ -423,6 +441,28 @@
       "error": "Study time couldn’t be loaded. Please try again.",
       "empty": "Your first completed activity will appear here.",
       "cards": "{{count}} cards"
+    },
+    "manual": {
+      "eyebrow": "Editable",
+      "title": "Manual entries",
+      "empty": "Timers and study time you add yourself will appear here.",
+      "entryFallback": "study entry",
+      "editAria": "Edit {{name}}",
+      "deleteAria": "Delete {{name}}"
+    },
+    "edit": {
+      "title": "Edit study time",
+      "activityLabel": "Edit activity",
+      "nameLabel": "Edit name",
+      "startLabel": "Edit start",
+      "durationLabel": "Edit duration in minutes",
+      "cancel": "Cancel",
+      "save": "Save changes"
+    },
+    "delete": {
+      "title": "Delete study time?",
+      "message": "Delete “{{name}}”? This can’t be undone.",
+      "confirm": "Delete"
     },
     "sources": {
       "automatic": "automatic",

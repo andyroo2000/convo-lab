@@ -6,6 +6,9 @@ import { fetchWithCsrf } from '../lib/csrf';
 import { studyApiPath } from '../lib/studyApi';
 import type { StudyActivitySession, StudyTimeAnalytics } from '../types/studyActivity';
 
+// Learning OS numbers Sunday as 1, so Monday is 2.
+const MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING = 2;
+
 export const studyActivityKeys = {
   all: ['study-activity'] as const,
   range: (from: string, to: string) => [...studyActivityKeys.all, from, to] as const,
@@ -55,7 +58,9 @@ export function useStudyActivityAnalytics() {
     queryKey: [...studyActivityKeys.analytics(), timezone],
     queryFn: () =>
       activityRequest<StudyTimeAnalytics>(
-        `/activity-analytics?timezone=${encodeURIComponent(timezone)}&weekStartsOn=2`
+        `/activity-analytics?timezone=${encodeURIComponent(
+          timezone
+        )}&weekStartsOn=${MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING}`
       ),
   });
 }
