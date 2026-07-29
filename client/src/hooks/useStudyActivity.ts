@@ -4,11 +4,12 @@ import { useEffect } from 'react';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import { studyApiPath } from '../lib/studyApi';
-import type { StudyActivitySession } from '../types/studyActivity';
+import type { StudyActivitySession, StudyTimeAnalytics } from '../types/studyActivity';
 
 export const studyActivityKeys = {
   all: ['study-activity'] as const,
   range: (from: string, to: string) => [...studyActivityKeys.all, from, to] as const,
+  analytics: () => [...studyActivityKeys.all, 'analytics'] as const,
 };
 
 async function activityRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -25,6 +26,7 @@ async function activityRequest<T>(path: string, init?: RequestInit): Promise<T> 
     const body = await response.json().catch(() => ({ message: 'Request failed' }));
     throw new Error(body.message ?? 'Unable to save study time.');
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -47,10 +49,32 @@ export function useStudyActivitySessions(from: Date, to: Date) {
   });
 }
 
+export function useStudyActivityAnalytics() {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  return useQuery({
+    queryKey: [...studyActivityKeys.analytics(), timezone],
+    queryFn: () =>
+      activityRequest<StudyTimeAnalytics>(
+        `/activity-analytics?timezone=${encodeURIComponent(timezone)}&weekStartsOn=2`
+      ),
+  });
+}
+
 export function useSaveStudyActivitySession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (session: StudyActivitySession) => saveStudyActivitySessions([session]),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }),
+  });
+}
+
+export function useDeleteStudyActivitySession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (clientSessionId: string) =>
+      activityRequest<void>(`/activity-sessions/${encodeURIComponent(clientSessionId)}`, {
+        method: 'DELETE',
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }),
   });
 }

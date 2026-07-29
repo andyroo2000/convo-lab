@@ -17,11 +17,37 @@ vi.mock('../../contexts/StudyActivityContext', () => ({
 }));
 
 vi.mock('../../hooks/useStudyActivity', () => ({
+  useStudyActivityAnalytics: () => ({
+    data: {
+      generatedAt: '2026-07-29T02:00:00Z',
+      timezone: 'America/New_York',
+      ranges: [
+        {
+          key: 'week',
+          startsAt: '2026-07-27T04:00:00Z',
+          endsAt: '2026-07-29T02:00:00Z',
+          totalMs: 5_400_000,
+          categories: {
+            review: 1_800_000,
+            create: 1_800_000,
+            immerse: 0,
+            conversation: 1_800_000,
+            wanikani: 0,
+          },
+          buckets: [],
+        },
+      ],
+    },
+    isLoading: false,
+    isError: false,
+  }),
   useStudyActivitySessions: () => ({
     data: [],
     isLoading: false,
     isError: false,
   }),
+  useSaveStudyActivitySession: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteStudyActivitySession: () => ({ mutate: vi.fn() }),
 }));
 
 describe('StudyTimePage', () => {
@@ -35,7 +61,7 @@ describe('StudyTimePage', () => {
   it('renders the dashboard and durably logs a manual calendar entry', () => {
     render(<StudyTimePage />);
 
-    expect(screen.getByRole('heading', { name: 'Your learning week' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: 'Study Rhythm' })).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Log entry' }));
 
     expect(logCompletedMock).toHaveBeenCalledWith(

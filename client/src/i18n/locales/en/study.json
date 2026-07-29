@@ -395,6 +395,7 @@
       "podcast": "Podcast",
       "reading": "Reading",
       "conversation": "Conversation",
+      "wanikaniReview": "WaniKani reviews",
       "other": "Other study"
     },
     "timer": {
