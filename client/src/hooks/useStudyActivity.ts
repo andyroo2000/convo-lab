@@ -62,7 +62,7 @@ export function useStudyActivityAnalytics(anchorDate: string) {
           timezone
         )}&weekStartsOn=${MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING}&anchorDate=${encodeURIComponent(
           anchorDate
-        )}`
+        )}&adaptiveAllTime=1`
       ),
     placeholderData: keepPreviousData,
   });

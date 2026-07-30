@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import shiftStudyTimeAnchor from '../../utils/studyTimePeriod';
@@ -103,6 +103,8 @@ vi.mock('../../hooks/useStudyActivity', () => ({
             key: 'all',
             startsAt: '2025-01-01T05:00:00Z',
             endsAt: '2026-07-29T16:00:00Z',
+            bucketUnit: 'month',
+            bucketStep: 1,
             totalMs: 9_000_000,
             categories: {
               review: 3_600_000,
@@ -112,7 +114,34 @@ vi.mock('../../hooks/useStudyActivity', () => ({
               conversation: 1_800_000,
               wanikani: 0,
             },
-            buckets: [],
+            buckets: [
+              {
+                startsAt: '2025-01-01T05:00:00Z',
+                endsAt: '2025-02-01T05:00:00Z',
+                totalMs: 3_600_000,
+                categories: {
+                  review: 3_600_000,
+                  listen: 0,
+                  create: 0,
+                  immerse: 0,
+                  conversation: 0,
+                  wanikani: 0,
+                },
+              },
+              {
+                startsAt: '2026-07-01T04:00:00Z',
+                endsAt: '2026-07-29T16:00:00Z',
+                totalMs: 5_400_000,
+                categories: {
+                  review: 0,
+                  listen: 0,
+                  create: 1_800_000,
+                  immerse: 1_800_000,
+                  conversation: 1_800_000,
+                  wanikani: 0,
+                },
+              },
+            ],
           },
         ],
       },
@@ -201,6 +230,8 @@ describe('StudyTimePage', () => {
 
     expect(allRange).toBeChecked();
     expect(screen.getByText('2h 30m')).toBeInTheDocument();
+    expect(screen.getByText(/Jan.*25/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Jul.*26/)).not.toHaveLength(0);
   });
 
   it('navigates to an earlier period and prevents future navigation', () => {
@@ -237,6 +268,8 @@ describe('StudyTimePage', () => {
     const chart = screen.getByTestId('study-rhythm-chart-month');
 
     expect(screen.getAllByTestId('study-rhythm-chart-bucket')).toHaveLength(31);
+    expect(within(chart).getByText('1')).toBeInTheDocument();
+    expect(within(chart).queryByText('Jul 1')).not.toBeInTheDocument();
     expect(chart).toHaveClass('w-full', 'min-w-0');
     expect(chart.style.minWidth).toBe('');
     const container = screen.getByTestId('study-rhythm-chart-container-month');

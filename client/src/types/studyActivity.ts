@@ -54,6 +54,8 @@ export interface StudyTimeAnalyticsRange {
   key: StudyTimeRange;
   startsAt: string;
   endsAt: string;
+  bucketUnit?: 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'year';
+  bucketStep?: number;
   totalMs: number;
   categories: Record<StudyActivityCategory, number>;
   buckets: StudyTimeAnalyticsBucket[];
