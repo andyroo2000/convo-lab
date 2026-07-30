@@ -144,6 +144,9 @@ function bucketLabel(
   if (unit === 'day' && analytics.key === 'week') {
     return date.toLocaleDateString(locale, { weekday: 'short' });
   }
+  if (unit === 'day' && analytics.key === 'month') {
+    return date.toLocaleDateString(locale, { day: 'numeric' });
+  }
   if (unit === 'day' || unit === 'week') {
     return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
   }

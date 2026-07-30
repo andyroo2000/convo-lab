@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import shiftStudyTimeAnchor from '../../utils/studyTimePeriod';
@@ -268,6 +268,8 @@ describe('StudyTimePage', () => {
     const chart = screen.getByTestId('study-rhythm-chart-month');
 
     expect(screen.getAllByTestId('study-rhythm-chart-bucket')).toHaveLength(31);
+    expect(within(chart).getByText('1')).toBeInTheDocument();
+    expect(within(chart).queryByText('Jul 1')).not.toBeInTheDocument();
     expect(chart).toHaveClass('w-full', 'min-w-0');
     expect(chart.style.minWidth).toBe('');
     const container = screen.getByTestId('study-rhythm-chart-container-month');
