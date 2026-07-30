@@ -155,6 +155,19 @@ describe('StudyTimePage', () => {
     expect(screen.getByText('2h 30m')).toBeInTheDocument();
   });
 
+  it('fits the full analytics period inside the chart container', () => {
+    render(<StudyTimePage />);
+
+    const chart = screen.getByLabelText('Study time by period and category');
+
+    expect(chart).toHaveClass('w-full', 'min-w-0');
+    expect(chart.style.minWidth).toBe('');
+    expect(screen.getByTestId('study-rhythm-chart-container')).toHaveClass(
+      'min-w-0',
+      'overflow-hidden'
+    );
+  });
+
   it('edits a manual entry and remaps its category', () => {
     render(<StudyTimePage />);
 
