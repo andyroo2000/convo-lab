@@ -383,7 +383,7 @@
     "description": "See where your Japanese time goes—from reviews and card making to immersion, conversation, and WaniKani.",
     "totals": {
       "total": "Total",
-      "review": "Review",
+      "review": "Card review",
       "create": "Create",
       "immerse": "Immerse",
       "conversation": "Conversation",
@@ -395,7 +395,10 @@
       "timeSpan": "Time span",
       "dailyAverage": "Daily average",
       "bestRhythm": "Best rhythm",
+      "bucketTotal": "{{time}} total",
       "chartLabel": "Study time by period and category",
+      "previousPeriod": "Previous period",
+      "nextPeriod": "Next period",
       "loading": "Loading your rhythm…",
       "error": "We couldn’t load study analytics. Try refreshing the page.",
       "ranges": {

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { notifyAuthSessionExpired } from '../lib/authSession';
@@ -12,7 +12,7 @@ const MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING = 2;
 export const studyActivityKeys = {
   all: ['study-activity'] as const,
   range: (from: string, to: string) => [...studyActivityKeys.all, from, to] as const,
-  analytics: () => [...studyActivityKeys.all, 'analytics'] as const,
+  analytics: (anchorDate: string) => [...studyActivityKeys.all, 'analytics', anchorDate] as const,
 };
 
 async function activityRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -52,16 +52,19 @@ export function useStudyActivitySessions(from: Date, to: Date) {
   });
 }
 
-export function useStudyActivityAnalytics() {
+export function useStudyActivityAnalytics(anchorDate: string) {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   return useQuery({
-    queryKey: [...studyActivityKeys.analytics(), timezone],
+    queryKey: [...studyActivityKeys.analytics(anchorDate), timezone],
     queryFn: () =>
       activityRequest<StudyTimeAnalytics>(
         `/activity-analytics?timezone=${encodeURIComponent(
           timezone
-        )}&weekStartsOn=${MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING}`
+        )}&weekStartsOn=${MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING}&anchorDate=${encodeURIComponent(
+          anchorDate
+        )}`
       ),
+    placeholderData: keepPreviousData,
   });
 }
 
