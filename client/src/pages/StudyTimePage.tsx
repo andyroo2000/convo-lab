@@ -183,7 +183,11 @@ const StudyRhythmChart = ({
           aria-label={t('time.analytics.chartLabel')}
         >
           {analytics.buckets.map((bucket) => (
-            <div key={bucket.startsAt} className="flex h-full min-w-0 flex-col justify-end">
+            <div
+              key={bucket.startsAt}
+              className="flex h-full min-w-0 flex-col justify-end"
+              data-testid="study-rhythm-chart-bucket"
+            >
               <div
                 className="flex min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-md shadow-sm"
                 style={{

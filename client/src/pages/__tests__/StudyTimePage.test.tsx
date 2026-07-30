@@ -56,6 +56,31 @@ vi.mock('../../hooks/useStudyActivity', () => ({
           buckets: [],
         },
         {
+          key: 'month',
+          startsAt: '2026-07-01T04:00:00Z',
+          endsAt: '2026-08-01T04:00:00Z',
+          totalMs: 5_400_000,
+          categories: {
+            review: 1_800_000,
+            create: 1_800_000,
+            immerse: 0,
+            conversation: 1_800_000,
+            wanikani: 0,
+          },
+          buckets: Array.from({ length: 31 }, (_, index) => ({
+            startsAt: new Date(Date.UTC(2026, 6, index + 1, 4)).toISOString(),
+            endsAt: new Date(Date.UTC(2026, 6, index + 2, 4)).toISOString(),
+            totalMs: index < 29 ? 180_000 : 0,
+            categories: {
+              review: index < 29 ? 60_000 : 0,
+              create: index < 29 ? 60_000 : 0,
+              immerse: 0,
+              conversation: index < 29 ? 60_000 : 0,
+              wanikani: 0,
+            },
+          })),
+        },
+        {
           key: 'all',
           startsAt: '2025-01-01T05:00:00Z',
           endsAt: '2026-07-29T02:00:00Z',
@@ -158,14 +183,15 @@ describe('StudyTimePage', () => {
   it('fits the full analytics period inside the chart container', () => {
     render(<StudyTimePage />);
 
+    fireEvent.click(screen.getByRole('radio', { name: 'Month' }));
     const chart = screen.getByLabelText('Study time by period and category');
 
+    expect(screen.getAllByTestId('study-rhythm-chart-bucket')).toHaveLength(31);
     expect(chart).toHaveClass('w-full', 'min-w-0');
     expect(chart.style.minWidth).toBe('');
-    expect(screen.getByTestId('study-rhythm-chart-container')).toHaveClass(
-      'min-w-0',
-      'overflow-hidden'
-    );
+    const container = screen.getByTestId('study-rhythm-chart-container');
+    expect(container).toHaveClass('min-w-0', 'overflow-hidden');
+    expect(container).not.toHaveClass('overflow-x-auto');
   });
 
   it('edits a manual entry and remaps its category', () => {
