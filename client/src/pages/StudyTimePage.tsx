@@ -171,17 +171,23 @@ const StudyRhythmChart = ({
         </div>
       </div>
 
-      <div className="mt-6 overflow-x-auto pb-2">
+      <div
+        className="mt-6 min-w-0 overflow-hidden pb-2"
+        data-testid="study-rhythm-chart-container"
+      >
         <div
-          className="grid h-64 items-end gap-2 border-b-2 border-navy/20 px-2"
+          className="grid h-64 w-full min-w-0 items-end gap-1 border-b-2 border-navy/20 px-2 sm:gap-2"
           style={{
             gridTemplateColumns: `repeat(${Math.max(analytics.buckets.length, 1)}, 1fr)`,
-            minWidth: `${Math.max(analytics.buckets.length * 54, 280)}px`,
           }}
           aria-label={t('time.analytics.chartLabel')}
         >
           {analytics.buckets.map((bucket) => (
-            <div key={bucket.startsAt} className="flex h-full min-w-0 flex-col justify-end">
+            <div
+              key={bucket.startsAt}
+              className="flex h-full min-w-0 flex-col justify-end"
+              data-testid="study-rhythm-chart-bucket"
+            >
               <div
                 className="flex min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-md shadow-sm"
                 style={{
