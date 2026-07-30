@@ -29,7 +29,7 @@ import type {
   StudyTimeRange,
 } from '../types/studyActivity';
 import formatDuration from '../utils/studyTimeFormat';
-import shiftStudyTimeAnchor from '../utils/studyTimePeriod';
+import shiftStudyTimeAnchor, { localDateKey } from '../utils/studyTimePeriod';
 
 const CATEGORIES: Array<{
   key: StudyActivityCategory;
@@ -119,13 +119,6 @@ function googleCalendarUrl(
 
 function localInputValue(date: Date) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-}
-
-function localDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function bucketLabel(date: Date, range: StudyTimeRange, locale: string) {
@@ -254,13 +247,12 @@ const StudyRhythmChart = ({
                 style={{
                   height: `${Math.max(2, (bucket.totalMs / maximum) * 88)}%`,
                 }}
-                title={`${bucketLabel(
-                  new Date(bucket.startsAt),
-                  analytics.key,
-                  locale
-                )}: ${t('time.analytics.bucketTotal', {
-                  time: formatDuration(bucket.totalMs),
-                })}`}
+                title={`${bucketLabel(new Date(bucket.startsAt), analytics.key, locale)}: ${t(
+                  'time.analytics.bucketTotal',
+                  {
+                    time: formatDuration(bucket.totalMs),
+                  }
+                )}`}
               >
                 {CATEGORIES.map((category) => {
                   const value = bucket.categories[category.key] ?? 0;
@@ -348,8 +340,8 @@ const StudyTimePage = () => {
     range !== 'all' &&
     Boolean(
       analytics &&
-        new Date(analytics.endsAt).getTime() <=
-          new Date(analyticsQuery.data?.generatedAt ?? analytics.endsAt).getTime()
+      new Date(analytics.endsAt).getTime() <=
+        new Date(analyticsQuery.data?.generatedAt ?? analytics.endsAt).getTime()
     );
   const selectedPeriodLabel = analytics ? periodLabel(analytics, locale) : '';
   const manualSessions = useMemo(
@@ -424,11 +416,7 @@ const StudyTimePage = () => {
   };
 
   const navigatePeriod = (amount: -1 | 1) => {
-    if (
-      range === 'all' ||
-      analyticsQuery.isFetching ||
-      (amount === 1 && !canNavigateLater)
-    ) {
+    if (range === 'all' || analyticsQuery.isFetching || (amount === 1 && !canNavigateLater)) {
       return;
     }
     setSlideDirection(amount);
@@ -510,26 +498,42 @@ const StudyTimePage = () => {
           <div className="flex max-w-full flex-col items-end gap-2">
             <div className="flex max-w-full items-center gap-2">
               {range !== 'all' ? (
-                <div className="hidden items-center gap-1 sm:flex">
+                <>
+                  <div className="hidden items-center gap-1 sm:flex">
+                    <button
+                      type="button"
+                      className="rounded-lg p-2 text-navy transition hover:bg-navy/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label={t('time.analytics.previousPeriod')}
+                      onClick={() => navigatePeriod(-1)}
+                      disabled={analyticsQuery.isFetching}
+                    >
+                      <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg p-2 text-navy transition hover:bg-navy/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label={t('time.analytics.nextPeriod')}
+                      onClick={() => navigatePeriod(1)}
+                      disabled={!canNavigateLater || analyticsQuery.isFetching}
+                    >
+                      <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    className="rounded-lg p-2 text-navy transition hover:bg-navy/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-35"
+                    className="sr-only sm:hidden"
                     aria-label={t('time.analytics.previousPeriod')}
                     onClick={() => navigatePeriod(-1)}
                     disabled={analyticsQuery.isFetching}
-                  >
-                    <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-                  </button>
+                  />
                   <button
                     type="button"
-                    className="rounded-lg p-2 text-navy transition hover:bg-navy/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-35"
+                    className="sr-only sm:hidden"
                     aria-label={t('time.analytics.nextPeriod')}
                     onClick={() => navigatePeriod(1)}
                     disabled={!canNavigateLater || analyticsQuery.isFetching}
-                  >
-                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                  </button>
-                </div>
+                  />
+                </>
               ) : null}
               <fieldset
                 className="grid min-w-0 grid-cols-5 rounded-xl border-2 border-navy/10 bg-white/70 p-1"

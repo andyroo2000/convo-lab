@@ -12,13 +12,13 @@ const {
   saveMutateMock,
   saveResetMock,
 } = vi.hoisted(() => ({
-    analyticsAnchorMock: vi.fn(),
-    deleteMutateMock: vi.fn(),
-    deleteResetMock: vi.fn(),
-    logCompletedMock: vi.fn(),
-    saveMutateMock: vi.fn(),
-    saveResetMock: vi.fn(),
-  }));
+  analyticsAnchorMock: vi.fn(),
+  deleteMutateMock: vi.fn(),
+  deleteResetMock: vi.fn(),
+  logCompletedMock: vi.fn(),
+  saveMutateMock: vi.fn(),
+  saveResetMock: vi.fn(),
+}));
 
 vi.mock('../../contexts/StudyActivityContext', () => ({
   useStudyActivityActions: () => ({
@@ -30,84 +30,92 @@ vi.mock('../../contexts/StudyActivityContext', () => ({
 }));
 
 vi.mock('../../hooks/useStudyActivity', () => ({
-  useStudyActivityAnalytics: (anchorDate: string) => ({
-    data: {
-      generatedAt: '2026-07-29T16:00:00Z',
-      anchorDate: analyticsAnchorMock(anchorDate) ?? anchorDate,
-      timezone: 'America/New_York',
-      ranges: [
-        {
-          key: 'today',
-          startsAt: '2026-07-29T04:00:00Z',
-          endsAt: '2026-07-30T04:00:00Z',
-          totalMs: 600_000,
-          categories: {
-            review: 600_000,
-            create: 0,
-            immerse: 0,
-            conversation: 0,
-            wanikani: 0,
-          },
-          buckets: [],
-        },
-        {
-          key: 'week',
-          startsAt: '2026-07-27T04:00:00Z',
-          endsAt: '2026-08-03T04:00:00Z',
-          totalMs: 5_400_000,
-          categories: {
-            review: 1_800_000,
-            create: 1_800_000,
-            immerse: 0,
-            conversation: 1_800_000,
-            wanikani: 0,
-          },
-          buckets: [],
-        },
-        {
-          key: 'month',
-          startsAt: '2026-07-01T04:00:00Z',
-          endsAt: '2026-08-01T04:00:00Z',
-          totalMs: 5_400_000,
-          categories: {
-            review: 1_800_000,
-            create: 1_800_000,
-            immerse: 0,
-            conversation: 1_800_000,
-            wanikani: 0,
-          },
-          buckets: Array.from({ length: 31 }, (_, index) => ({
-            startsAt: new Date(Date.UTC(2026, 6, index + 1, 4)).toISOString(),
-            endsAt: new Date(Date.UTC(2026, 6, index + 2, 4)).toISOString(),
-            totalMs: index < 29 ? 180_000 : 0,
+  useStudyActivityAnalytics: (anchorDate: string) => {
+    const initialAnchor =
+      (analyticsAnchorMock.mock.calls[0]?.[0] as string | undefined) ?? anchorDate;
+    const isHistorical = anchorDate !== initialAnchor;
+    analyticsAnchorMock(anchorDate);
+
+    return {
+      data: {
+        generatedAt: '2026-07-29T16:00:00Z',
+        anchorDate,
+        timezone: 'America/New_York',
+        ranges: [
+          {
+            key: 'today',
+            startsAt: '2026-07-29T04:00:00Z',
+            endsAt: '2026-07-30T04:00:00Z',
+            totalMs: 600_000,
             categories: {
-              review: index < 29 ? 60_000 : 0,
-              create: index < 29 ? 60_000 : 0,
+              review: 600_000,
+              create: 0,
               immerse: 0,
-              conversation: index < 29 ? 60_000 : 0,
+              conversation: 0,
               wanikani: 0,
             },
-          })),
-        },
-        {
-          key: 'all',
-          startsAt: '2025-01-01T05:00:00Z',
-          endsAt: '2026-07-29T16:00:00Z',
-          totalMs: 9_000_000,
-          categories: {
-            review: 3_600_000,
-            create: 1_800_000,
-            immerse: 1_800_000,
-            conversation: 1_800_000,
-            wanikani: 0,
+            buckets: [],
           },
-          buckets: [],
-        },
-      ],
-    },
-    isLoading: false,
-    isError: false,
-  }),
+          {
+            key: 'week',
+            startsAt: '2026-07-27T04:00:00Z',
+            endsAt: isHistorical ? '2026-07-27T04:00:00Z' : '2026-08-03T04:00:00Z',
+            totalMs: 5_400_000,
+            categories: {
+              review: 1_800_000,
+              create: 1_800_000,
+              immerse: 0,
+              conversation: 1_800_000,
+              wanikani: 0,
+            },
+            buckets: [],
+          },
+          {
+            key: 'month',
+            startsAt: '2026-07-01T04:00:00Z',
+            endsAt: '2026-08-01T04:00:00Z',
+            totalMs: 5_400_000,
+            categories: {
+              review: 1_800_000,
+              create: 1_800_000,
+              immerse: 0,
+              conversation: 1_800_000,
+              wanikani: 0,
+            },
+            buckets: Array.from({ length: 31 }, (_, index) => ({
+              startsAt: new Date(Date.UTC(2026, 6, index + 1, 4)).toISOString(),
+              endsAt: new Date(Date.UTC(2026, 6, index + 2, 4)).toISOString(),
+              totalMs: index < 29 ? 180_000 : 0,
+              categories: {
+                review: index < 29 ? 60_000 : 0,
+                create: index < 29 ? 60_000 : 0,
+                immerse: 0,
+                conversation: index < 29 ? 60_000 : 0,
+                wanikani: 0,
+              },
+            })),
+          },
+          {
+            key: 'all',
+            startsAt: '2025-01-01T05:00:00Z',
+            endsAt: '2026-07-29T16:00:00Z',
+            totalMs: 9_000_000,
+            categories: {
+              review: 3_600_000,
+              create: 1_800_000,
+              immerse: 1_800_000,
+              conversation: 1_800_000,
+              wanikani: 0,
+            },
+            buckets: [],
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+    };
+  },
   useStudyActivitySessions: () => ({
     data: [
       {
@@ -194,16 +202,27 @@ describe('StudyTimePage', () => {
     render(<StudyTimePage />);
 
     const initialAnchor = analyticsAnchorMock.mock.calls[0][0] as string;
-    expect(screen.getByRole('button', { name: 'Next period' })).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'Next period' })).toHaveLength(2);
+    screen
+      .getAllByRole('button', { name: 'Next period' })
+      .forEach((button) => expect(button).toBeDisabled());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Previous period' })[0]);
 
     expect(analyticsAnchorMock).toHaveBeenLastCalledWith(
       shiftStudyTimeAnchor(initialAnchor, 'week', -1)
     );
-    expect(screen.getByTestId('study-time-period-label')).toHaveTextContent(
-      'Jul 27 – Aug 2, 2026'
-    );
+    screen
+      .getAllByRole('button', { name: 'Next period' })
+      .forEach((button) => expect(button).toBeEnabled());
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Next period' })[0]);
+
+    expect(analyticsAnchorMock).toHaveBeenLastCalledWith(initialAnchor);
+    screen
+      .getAllByRole('button', { name: 'Next period' })
+      .forEach((button) => expect(button).toBeDisabled());
+    expect(screen.getByTestId('study-time-period-label')).toHaveTextContent('Jul 27 – Aug 2, 2026');
   });
 
   it('fits the full analytics period inside the chart container', () => {
