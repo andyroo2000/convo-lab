@@ -44,6 +44,12 @@ const CATEGORIES: Array<{
     barColor: 'bg-blue-500',
   },
   {
+    key: 'listen',
+    labelKey: 'time.totals.listen',
+    color: 'text-cyan-700',
+    barColor: 'bg-cyan-500',
+  },
+  {
     key: 'create',
     labelKey: 'time.totals.create',
     color: 'text-amber-700',

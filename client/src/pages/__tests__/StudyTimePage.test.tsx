@@ -49,6 +49,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
             totalMs: 600_000,
             categories: {
               review: 600_000,
+              listen: 0,
               create: 0,
               immerse: 0,
               conversation: 0,
@@ -63,6 +64,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
             totalMs: 5_400_000,
             categories: {
               review: 1_800_000,
+              listen: 0,
               create: 1_800_000,
               immerse: 0,
               conversation: 1_800_000,
@@ -77,6 +79,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
             totalMs: 5_400_000,
             categories: {
               review: 1_800_000,
+              listen: 0,
               create: 1_800_000,
               immerse: 0,
               conversation: 1_800_000,
@@ -88,6 +91,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
               totalMs: index < 29 ? 180_000 : 0,
               categories: {
                 review: index < 29 ? 60_000 : 0,
+                listen: 0,
                 create: index < 29 ? 60_000 : 0,
                 immerse: 0,
                 conversation: index < 29 ? 60_000 : 0,
@@ -102,6 +106,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
             totalMs: 9_000_000,
             categories: {
               review: 3_600_000,
+              listen: 0,
               create: 1_800_000,
               immerse: 1_800_000,
               conversation: 1_800_000,

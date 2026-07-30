@@ -91,7 +91,7 @@ const ScriptTrackPlayer = ({
   useEffect(() => {
     if (!isPlaying) return undefined;
     startActivity({
-      category: 'review',
+      category: 'listen',
       activity: 'daily_audio',
       source: 'automatic',
       name: title,
