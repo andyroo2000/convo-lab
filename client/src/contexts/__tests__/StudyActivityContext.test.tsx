@@ -50,7 +50,7 @@ const Controls = () => {
         type="button"
         onClick={() =>
           start({
-            category: 'review',
+            category: 'listen',
             activity: 'daily_audio',
             source: 'automatic',
             name: 'Drill',
@@ -188,6 +188,7 @@ describe('StudyActivityProvider', () => {
 
     expect(saveSessionsMock).toHaveBeenCalledWith([
       expect.objectContaining({
+        category: 'listen',
         activity: 'daily_audio',
         durationMs: 120_000,
         audioPlaybackMs: 120_000,

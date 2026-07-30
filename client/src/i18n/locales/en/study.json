@@ -380,10 +380,11 @@
   "time": {
     "eyebrow": "Study time",
     "title": "Study Rhythm",
-    "description": "See where your Japanese time goes—from reviews and card making to immersion, conversation, and WaniKani.",
+    "description": "See where your Japanese time goes across card reviews, listening, card making, immersion, conversation, and WaniKani.",
     "totals": {
       "total": "Total",
       "review": "Card review",
+      "listen": "Listen",
       "create": "Create",
       "immerse": "Immerse",
       "conversation": "Conversation",

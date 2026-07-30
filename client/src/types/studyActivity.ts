@@ -1,4 +1,10 @@
-export type StudyActivityCategory = 'review' | 'create' | 'immerse' | 'conversation' | 'wanikani';
+export type StudyActivityCategory =
+  | 'review'
+  | 'listen'
+  | 'create'
+  | 'immerse'
+  | 'conversation'
+  | 'wanikani';
 export type StudyActivityKind =
   | 'card_review'
   | 'daily_audio'
