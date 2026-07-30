@@ -1,0 +1,15 @@
+import { describe, expect, it } from 'vitest';
+
+import shiftStudyTimeAnchor from '../studyTimePeriod';
+
+describe('shiftStudyTimeAnchor', () => {
+  it('steps days and weeks by local calendar dates', () => {
+    expect(shiftStudyTimeAnchor('2026-03-08', 'today', 1)).toBe('2026-03-09');
+    expect(shiftStudyTimeAnchor('2026-03-08', 'week', -1)).toBe('2026-03-01');
+  });
+
+  it('normalizes month and year navigation to stable period anchors', () => {
+    expect(shiftStudyTimeAnchor('2026-03-31', 'month', -1)).toBe('2026-02-01');
+    expect(shiftStudyTimeAnchor('2024-02-29', 'year', 1)).toBe('2025-01-01');
+  });
+});

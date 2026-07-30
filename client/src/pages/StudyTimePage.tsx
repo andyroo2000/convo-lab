@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarPlus, Clock3, Pencil, Play, Trash2, TrendingUp } from 'lucide-react';
+import {
+  CalendarPlus,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Pencil,
+  Play,
+  Trash2,
+  TrendingUp,
+} from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -19,6 +29,7 @@ import type {
   StudyTimeRange,
 } from '../types/studyActivity';
 import formatDuration from '../utils/studyTimeFormat';
+import shiftStudyTimeAnchor from '../utils/studyTimePeriod';
 
 const CATEGORIES: Array<{
   key: StudyActivityCategory;
@@ -59,6 +70,8 @@ const CATEGORIES: Array<{
 ];
 
 const RANGES: StudyTimeRange[] = ['today', 'week', 'month', 'year', 'all'];
+const SWIPE_THRESHOLD_PX = 50;
+const SWIPE_VELOCITY_THRESHOLD = 500;
 
 const ACTIVITY_OPTIONS: Array<{
   activity: StudyActivityKind;
@@ -108,12 +121,57 @@ function localInputValue(date: Date) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function bucketLabel(date: Date, range: StudyTimeRange, locale: string) {
   if (range === 'today') return date.toLocaleTimeString(locale, { hour: 'numeric' });
   if (range === 'week') return date.toLocaleDateString(locale, { weekday: 'short' });
   if (range === 'month') return date.toLocaleDateString(locale, { day: 'numeric' });
   if (range === 'year') return date.toLocaleDateString(locale, { month: 'short' });
   return date.toLocaleDateString(locale, { year: 'numeric' });
+}
+
+function periodLabel(analytics: StudyTimeAnalyticsRange, locale: string) {
+  const start = new Date(analytics.startsAt);
+  const inclusiveEnd = new Date(new Date(analytics.endsAt).getTime() - 1);
+  if (analytics.key === 'today') {
+    return start.toLocaleDateString(locale, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+  if (analytics.key === 'month') {
+    return start.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+  }
+  if (analytics.key === 'year') {
+    return start.toLocaleDateString(locale, { year: 'numeric' });
+  }
+  if (analytics.key === 'all') return '';
+
+  const startLabel = start.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+  const endLabel = inclusiveEnd.toLocaleDateString(locale, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  return `${startLabel} – ${endLabel}`;
+}
+
+function analyticsSlideOffset(
+  direction: -1 | 1,
+  phase: 'enter' | 'exit',
+  reduceMotion: boolean | null
+) {
+  if (reduceMotion) return 0;
+  if (phase === 'enter') return direction === -1 ? '-105%' : '105%';
+  return direction === -1 ? '105%' : '-105%';
 }
 
 function activityTranslationKey(activity: StudyActivityKind) {
@@ -166,14 +224,16 @@ const StudyRhythmChart = ({
             {best ? bucketLabel(new Date(best.startsAt), analytics.key, locale) : '—'}
           </p>
           <p className="text-sm font-bold text-gray-500">
-            {best ? formatDuration(best.totalMs) : formatDuration(0)}
+            {t('time.analytics.bucketTotal', {
+              time: best ? formatDuration(best.totalMs) : formatDuration(0),
+            })}
           </p>
         </div>
       </div>
 
       <div
         className="mt-6 min-w-0 overflow-hidden pb-2"
-        data-testid="study-rhythm-chart-container"
+        data-testid={`study-rhythm-chart-container-${analytics.key}`}
       >
         <div
           className="grid h-64 w-full min-w-0 items-end gap-1 border-b-2 border-navy/20 px-2 sm:gap-2"
@@ -181,6 +241,7 @@ const StudyRhythmChart = ({
             gridTemplateColumns: `repeat(${Math.max(analytics.buckets.length, 1)}, 1fr)`,
           }}
           aria-label={t('time.analytics.chartLabel')}
+          data-testid={`study-rhythm-chart-${analytics.key}`}
         >
           {analytics.buckets.map((bucket) => (
             <div
@@ -197,7 +258,9 @@ const StudyRhythmChart = ({
                   new Date(bucket.startsAt),
                   analytics.key,
                   locale
-                )}: ${formatDuration(bucket.totalMs)}`}
+                )}: ${t('time.analytics.bucketTotal', {
+                  time: formatDuration(bucket.totalMs),
+                })}`}
               >
                 {CATEGORIES.map((category) => {
                   const value = bucket.categories[category.key] ?? 0;
@@ -207,6 +270,7 @@ const StudyRhythmChart = ({
                       key={category.key}
                       className={`${category.barColor} min-h-[2px]`}
                       style={{ flexGrow: value }}
+                      title={`${t(category.labelKey)}: ${formatDuration(value)}`}
                     />
                   );
                 })}
@@ -240,19 +304,24 @@ const StudyRhythmChart = ({
 };
 
 const StudyTimePage = () => {
-  const { t } = useTranslation(['study']);
+  const { i18n, t } = useTranslation(['study']);
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+  const reduceMotion = useReducedMotion();
   const [sessionWindowEnd, setSessionWindowEnd] = useState(() => new Date(Date.now() + 60_000));
   const rollingStart = useMemo(
     () => new Date(sessionWindowEnd.getTime() - 93 * 86_400_000),
     [sessionWindowEnd]
   );
   const sessionsQuery = useStudyActivitySessions(rollingStart, sessionWindowEnd);
-  const analyticsQuery = useStudyActivityAnalytics();
+  const [anchorDate, setAnchorDate] = useState(() => localDateKey(new Date()));
+  const analyticsQuery = useStudyActivityAnalytics(anchorDate);
   const saveSession = useSaveStudyActivitySession();
   const deleteSession = useDeleteStudyActivitySession();
   const { active } = useStudyActivityStatus();
   const { start, stop, logCompleted } = useStudyActivityActions();
   const [range, setRange] = useState<StudyTimeRange>('week');
+  const [slideDirection, setSlideDirection] = useState<-1 | 1>(-1);
+  const [mobileSwipeEnabled, setMobileSwipeEnabled] = useState(false);
   const [activity, setActivity] = useState<StudyActivityKind>('card_creation');
   const [name, setName] = useState('');
   const [entryDate, setEntryDate] = useState(() => localInputValue(new Date()));
@@ -274,6 +343,15 @@ const StudyTimePage = () => {
 
   const option = ACTIVITY_OPTIONS.find((item) => item.activity === activity) ?? ACTIVITY_OPTIONS[0];
   const analytics = analyticsQuery.data?.ranges.find((item) => item.key === range);
+  const displayedAnchorDate = analyticsQuery.data?.anchorDate ?? anchorDate;
+  const canNavigateLater =
+    range !== 'all' &&
+    Boolean(
+      analytics &&
+        new Date(analytics.endsAt).getTime() <=
+          new Date(analyticsQuery.data?.generatedAt ?? analytics.endsAt).getTime()
+    );
+  const selectedPeriodLabel = analytics ? periodLabel(analytics, locale) : '';
   const manualSessions = useMemo(
     () =>
       [...(sessionsQuery.data ?? [])]
@@ -281,6 +359,15 @@ const StudyTimePage = () => {
         .sort((left, right) => right.startedAt.localeCompare(left.startedAt)),
     [sessionsQuery.data]
   );
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined;
+    const query = window.matchMedia('(max-width: 639px)');
+    const update = () => setMobileSwipeEnabled(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     if (!editing) return undefined;
@@ -329,6 +416,24 @@ const StudyTimePage = () => {
       previouslyFocused?.focus();
     };
   }, [editing]);
+
+  const selectRange = (nextRange: StudyTimeRange) => {
+    setRange(nextRange);
+    setAnchorDate(localDateKey(new Date()));
+    setSlideDirection(-1);
+  };
+
+  const navigatePeriod = (amount: -1 | 1) => {
+    if (
+      range === 'all' ||
+      analyticsQuery.isFetching ||
+      (amount === 1 && !canNavigateLater)
+    ) {
+      return;
+    }
+    setSlideDirection(amount);
+    setAnchorDate(shiftStudyTimeAnchor(displayedAnchorDate, range, amount));
+  };
 
   const addEntry = () => {
     if (!validEntry) return;
@@ -397,38 +502,73 @@ const StudyTimePage = () => {
       </header>
 
       <section className="retro-paper-panel p-4 sm:p-6">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="retro-caps text-coral">{t('time.analytics.eyebrow')}</p>
             <h2 className="retro-headline text-3xl text-navy">{t('time.analytics.title')}</h2>
           </div>
-          <fieldset
-            className="grid grid-cols-5 rounded-xl border-2 border-navy/10 bg-white/70 p-1"
-            aria-label={t('time.analytics.timeSpan')}
-          >
-            {RANGES.map((item) => (
-              <label key={item} htmlFor={`study-time-range-${item}`} className="cursor-pointer">
-                <input
-                  id={`study-time-range-${item}`}
-                  className="peer sr-only"
-                  type="radio"
-                  name="study-time-range"
-                  value={item}
-                  checked={range === item}
-                  onChange={() => setRange(item)}
-                />
-                <span
-                  className={`block rounded-lg px-2.5 py-2 text-center text-xs font-black uppercase tracking-wide transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-coral sm:px-4 ${
-                    range === item
-                      ? 'bg-navy text-white shadow-sm'
-                      : 'text-gray-500 hover:text-navy'
-                  }`}
-                >
-                  {t(`time.analytics.ranges.${item}`)}
-                </span>
-              </label>
-            ))}
-          </fieldset>
+          <div className="flex max-w-full flex-col items-end gap-2">
+            <div className="flex max-w-full items-center gap-2">
+              {range !== 'all' ? (
+                <div className="hidden items-center gap-1 sm:flex">
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-navy transition hover:bg-navy/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-35"
+                    aria-label={t('time.analytics.previousPeriod')}
+                    onClick={() => navigatePeriod(-1)}
+                    disabled={analyticsQuery.isFetching}
+                  >
+                    <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-navy transition hover:bg-navy/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-35"
+                    aria-label={t('time.analytics.nextPeriod')}
+                    onClick={() => navigatePeriod(1)}
+                    disabled={!canNavigateLater || analyticsQuery.isFetching}
+                  >
+                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </div>
+              ) : null}
+              <fieldset
+                className="grid min-w-0 grid-cols-5 rounded-xl border-2 border-navy/10 bg-white/70 p-1"
+                aria-label={t('time.analytics.timeSpan')}
+              >
+                {RANGES.map((item) => (
+                  <label key={item} htmlFor={`study-time-range-${item}`} className="cursor-pointer">
+                    <input
+                      id={`study-time-range-${item}`}
+                      className="peer sr-only"
+                      type="radio"
+                      name="study-time-range"
+                      value={item}
+                      checked={range === item}
+                      onChange={() => selectRange(item)}
+                    />
+                    <span
+                      className={`block rounded-lg px-2.5 py-2 text-center text-xs font-black uppercase tracking-wide transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-coral sm:px-4 ${
+                        range === item
+                          ? 'bg-navy text-white shadow-sm'
+                          : 'text-gray-500 hover:text-navy'
+                      }`}
+                    >
+                      {t(`time.analytics.ranges.${item}`)}
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            </div>
+            {selectedPeriodLabel ? (
+              <p
+                className="pr-1 text-xs font-bold text-gray-500"
+                aria-live="polite"
+                data-testid="study-time-period-label"
+              >
+                {selectedPeriodLabel}
+              </p>
+            ) : null}
+          </div>
         </div>
         {analyticsQuery.isLoading ? (
           <div className="flex h-72 items-center justify-center text-gray-500">
@@ -441,12 +581,57 @@ const StudyTimePage = () => {
         {!analyticsQuery.isLoading && !analyticsQuery.isError && !analytics ? (
           <div className="rounded-xl bg-red-50 p-5 text-red-800">{t('time.analytics.error')}</div>
         ) : null}
-        {analytics ? (
-          <StudyRhythmChart
-            analytics={analytics}
-            generatedAt={analyticsQuery.data?.generatedAt ?? analytics.endsAt}
-          />
-        ) : null}
+        <div
+          className="relative overflow-hidden"
+          data-testid="study-time-period-swipe-region"
+          aria-busy={analyticsQuery.isFetching}
+        >
+          <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
+            {analytics ? (
+              <motion.div
+                key={`${analyticsQuery.data?.anchorDate ?? anchorDate}-${range}`}
+                custom={slideDirection}
+                variants={{
+                  enter: (direction: -1 | 1) => ({
+                    x: analyticsSlideOffset(direction, 'enter', reduceMotion),
+                    opacity: reduceMotion ? 1 : 0.72,
+                  }),
+                  center: { x: 0, opacity: 1 },
+                  exit: (direction: -1 | 1) => ({
+                    x: analyticsSlideOffset(direction, 'exit', reduceMotion),
+                    opacity: reduceMotion ? 1 : 0.72,
+                  }),
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={
+                  reduceMotion
+                    ? { duration: 0 }
+                    : { type: 'spring', stiffness: 320, damping: 34, mass: 0.9 }
+                }
+                drag={mobileSwipeEnabled && range !== 'all' ? 'x' : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.35}
+                onDragEnd={(_, info) => {
+                  if (!mobileSwipeEnabled || analyticsQuery.isFetching) return;
+                  const intent =
+                    Math.abs(info.offset.x) > SWIPE_THRESHOLD_PX ||
+                    Math.abs(info.velocity.x) > SWIPE_VELOCITY_THRESHOLD;
+                  if (!intent) return;
+                  if (info.offset.x > 0) navigatePeriod(-1);
+                  if (info.offset.x < 0) navigatePeriod(1);
+                }}
+                style={{ touchAction: 'pan-y' }}
+              >
+                <StudyRhythmChart
+                  analytics={analytics}
+                  generatedAt={analyticsQuery.data?.generatedAt ?? analytics.endsAt}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">

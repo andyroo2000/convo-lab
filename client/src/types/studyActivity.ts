@@ -55,6 +55,7 @@ export interface StudyTimeAnalyticsRange {
 
 export interface StudyTimeAnalytics {
   generatedAt: string;
+  anchorDate: string;
   timezone: string;
   ranges: StudyTimeAnalyticsRange[];
 }

@@ -366,7 +366,7 @@
     "description": "復習やカード作成から、イマージョン、会話、WaniKaniまで、日本語学習の時間配分を確認できます。",
     "totals": {
       "total": "合計",
-      "review": "復習",
+      "review": "カード復習",
       "create": "作成",
       "immerse": "イマージョン",
       "conversation": "会話",
@@ -378,7 +378,10 @@
       "timeSpan": "期間",
       "dailyAverage": "1日平均",
       "bestRhythm": "最も多い期間",
+      "bucketTotal": "合計 {{time}}",
       "chartLabel": "期間・カテゴリ別の学習時間",
+      "previousPeriod": "前の期間",
+      "nextPeriod": "次の期間",
       "loading": "学習リズムを読み込み中…",
       "error": "学習分析を読み込めませんでした。ページを更新してください。",
       "ranges": {

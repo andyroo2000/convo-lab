@@ -1,10 +1,18 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import shiftStudyTimeAnchor from '../../utils/studyTimePeriod';
 import StudyTimePage from '../StudyTimePage';
 
-const { deleteMutateMock, deleteResetMock, logCompletedMock, saveMutateMock, saveResetMock } =
-  vi.hoisted(() => ({
+const {
+  analyticsAnchorMock,
+  deleteMutateMock,
+  deleteResetMock,
+  logCompletedMock,
+  saveMutateMock,
+  saveResetMock,
+} = vi.hoisted(() => ({
+    analyticsAnchorMock: vi.fn(),
     deleteMutateMock: vi.fn(),
     deleteResetMock: vi.fn(),
     logCompletedMock: vi.fn(),
@@ -22,15 +30,16 @@ vi.mock('../../contexts/StudyActivityContext', () => ({
 }));
 
 vi.mock('../../hooks/useStudyActivity', () => ({
-  useStudyActivityAnalytics: () => ({
+  useStudyActivityAnalytics: (anchorDate: string) => ({
     data: {
-      generatedAt: '2026-07-29T02:00:00Z',
+      generatedAt: '2026-07-29T16:00:00Z',
+      anchorDate: analyticsAnchorMock(anchorDate) ?? anchorDate,
       timezone: 'America/New_York',
       ranges: [
         {
           key: 'today',
           startsAt: '2026-07-29T04:00:00Z',
-          endsAt: '2026-07-29T05:00:00Z',
+          endsAt: '2026-07-30T04:00:00Z',
           totalMs: 600_000,
           categories: {
             review: 600_000,
@@ -44,7 +53,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
         {
           key: 'week',
           startsAt: '2026-07-27T04:00:00Z',
-          endsAt: '2026-07-29T02:00:00Z',
+          endsAt: '2026-08-03T04:00:00Z',
           totalMs: 5_400_000,
           categories: {
             review: 1_800_000,
@@ -83,7 +92,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
         {
           key: 'all',
           startsAt: '2025-01-01T05:00:00Z',
-          endsAt: '2026-07-29T02:00:00Z',
+          endsAt: '2026-07-29T16:00:00Z',
           totalMs: 9_000_000,
           categories: {
             review: 3_600_000,
@@ -143,6 +152,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
 
 describe('StudyTimePage', () => {
   beforeEach(() => {
+    analyticsAnchorMock.mockReset();
     logCompletedMock.mockReset();
     saveMutateMock.mockReset();
     deleteMutateMock.mockReset();
@@ -180,18 +190,35 @@ describe('StudyTimePage', () => {
     expect(screen.getByText('2h 30m')).toBeInTheDocument();
   });
 
+  it('navigates to an earlier period and prevents future navigation', () => {
+    render(<StudyTimePage />);
+
+    const initialAnchor = analyticsAnchorMock.mock.calls[0][0] as string;
+    expect(screen.getByRole('button', { name: 'Next period' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }));
+
+    expect(analyticsAnchorMock).toHaveBeenLastCalledWith(
+      shiftStudyTimeAnchor(initialAnchor, 'week', -1)
+    );
+    expect(screen.getByTestId('study-time-period-label')).toHaveTextContent(
+      'Jul 27 – Aug 2, 2026'
+    );
+  });
+
   it('fits the full analytics period inside the chart container', () => {
     render(<StudyTimePage />);
 
     fireEvent.click(screen.getByRole('radio', { name: 'Month' }));
-    const chart = screen.getByLabelText('Study time by period and category');
+    const chart = screen.getByTestId('study-rhythm-chart-month');
 
     expect(screen.getAllByTestId('study-rhythm-chart-bucket')).toHaveLength(31);
     expect(chart).toHaveClass('w-full', 'min-w-0');
     expect(chart.style.minWidth).toBe('');
-    const container = screen.getByTestId('study-rhythm-chart-container');
+    const container = screen.getByTestId('study-rhythm-chart-container-month');
     expect(container).toHaveClass('min-w-0', 'overflow-hidden');
     expect(container).not.toHaveClass('overflow-x-auto');
+    expect(screen.getAllByTitle('Card review: 1m')).toHaveLength(29);
   });
 
   it('edits a manual entry and remaps its category', () => {
