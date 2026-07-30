@@ -309,6 +309,7 @@ export const StudyCardFace = ({
             <div className={cueImageUrl ? 'pt-2' : ''}>
               <StudyAudioPlayer
                 ref={promptAudioRef}
+                filename={card.prompt.cueAudio?.filename}
                 url={cueAudioUrl}
                 label={audioLedPrompt ? 'Replay prompt audio' : 'Play prompt audio'}
                 testId="study-prompt-audio"
@@ -346,7 +347,12 @@ export const StudyCardFace = ({
           />
         ) : null}
         {cueAudioUrl ? (
-          <StudyAudioPlayer ref={promptAudioRef} url={cueAudioUrl} label="Play prompt audio" />
+          <StudyAudioPlayer
+            ref={promptAudioRef}
+            filename={card.prompt.cueAudio?.filename}
+            url={cueAudioUrl}
+            label="Play prompt audio"
+          />
         ) : null}
         {card.prompt.cueText ? (
           <StudyRubyText
@@ -499,6 +505,7 @@ export const StudyCardFace = ({
         {answerAudioUrl ? (
           <StudyAudioPlayer
             ref={answerAudioRef}
+            filename={card.answer.answerAudio?.filename}
             url={answerAudioUrl}
             label="Play answer audio"
             renderMode={compactMobile ? 'hidden' : 'default'}
@@ -544,6 +551,7 @@ export const StudyCardFace = ({
       {answerAudioUrl ? (
         <StudyAudioPlayer
           ref={answerAudioRef}
+          filename={card.answer.answerAudio?.filename}
           url={answerAudioUrl}
           label="Play answer audio"
           renderMode={compactMobile ? 'hidden' : 'default'}

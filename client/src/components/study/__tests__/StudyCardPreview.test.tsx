@@ -605,6 +605,27 @@ describe('StudyCardPreview', () => {
     expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute('type', 'audio/ogg');
   });
 
+  it('derives prompt audio MIME type from its filename when the media URL has no extension', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'recognition-prompt.m4a',
+              url: '/api/study/media/01K123456789ABCDEFGHJKMNPQ',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-prompt-audio-source')).toHaveAttribute('type', 'audio/mp4');
+  });
+
   it('renders pitch accent diagrams on the answer side only', () => {
     useStudyPitchAccentMock.mockReturnValue({
       pitchAccent: {
