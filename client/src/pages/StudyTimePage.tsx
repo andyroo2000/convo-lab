@@ -36,48 +36,56 @@ const CATEGORIES: Array<{
   labelKey: string;
   color: string;
   barColor: string;
+  borderColor: string;
 }> = [
   {
     key: 'review',
     labelKey: 'time.totals.review',
     color: 'text-blue-700',
     barColor: 'bg-blue-500',
+    borderColor: 'border-blue-500',
   },
   {
     key: 'listen',
     labelKey: 'time.totals.listen',
     color: 'text-cyan-700',
     barColor: 'bg-cyan-500',
+    borderColor: 'border-cyan-500',
   },
   {
     key: 'create',
     labelKey: 'time.totals.create',
     color: 'text-amber-700',
     barColor: 'bg-amber-500',
+    borderColor: 'border-amber-500',
   },
   {
     key: 'immerse',
     labelKey: 'time.totals.immerse',
     color: 'text-emerald-700',
     barColor: 'bg-emerald-500',
+    borderColor: 'border-emerald-500',
   },
   {
     key: 'conversation',
     labelKey: 'time.totals.conversation',
     color: 'text-violet-700',
     barColor: 'bg-violet-500',
+    borderColor: 'border-violet-500',
   },
   {
     key: 'wanikani',
     labelKey: 'time.totals.wanikani',
     color: 'text-pink-700',
     barColor: 'bg-pink-500',
+    borderColor: 'border-pink-500',
   },
 ];
 
 const RANGES: StudyTimeRange[] = ['today', 'week', 'month', 'year', 'all'];
 const SWIPE_THRESHOLD_PX = 50;
 const SWIPE_VELOCITY_THRESHOLD = 500;
+const DOUBLE_TAP_WINDOW_MS = 420;
 
 const ACTIVITY_OPTIONS: Array<{
   activity: StudyActivityKind;
@@ -206,6 +214,12 @@ function analyticsSlideOffset(
   return direction === -1 ? '105%' : '-105%';
 }
 
+function drillDownRange(range: StudyTimeRange): StudyTimeRange | null {
+  if (range === 'year') return 'month';
+  if (range === 'week' || range === 'month') return 'today';
+  return null;
+}
+
 function activityTranslationKey(activity: StudyActivityKind) {
   if (activity === 'card_review') return 'cardReview';
   if (activity === 'daily_audio') return 'dailyAudio';
@@ -217,17 +231,37 @@ function activityTranslationKey(activity: StudyActivityKind) {
 const StudyRhythmChart = ({
   analytics,
   generatedAt,
+  includedCategories,
+  onToggleCategory,
+  onDrillDown,
 }: {
   analytics: StudyTimeAnalyticsRange;
   generatedAt: string;
+  includedCategories: ReadonlySet<StudyActivityCategory>;
+  onToggleCategory: (category: StudyActivityCategory) => void;
+  onDrillDown?: (bucket: StudyTimeAnalyticsBucket) => void;
 }) => {
   const { i18n, t } = useTranslation(['study']);
   const locale = i18n.resolvedLanguage ?? i18n.language;
-  const maximum = Math.max(...analytics.buckets.map((bucket) => bucket.totalMs), 1);
-  const best = analytics.buckets.reduce<StudyTimeAnalyticsBucket | null>(
-    (winner, bucket) => (!winner || bucket.totalMs > winner.totalMs ? bucket : winner),
-    null
+  const lastTouchActivation = useRef({ key: '', timestamp: 0 });
+  const filteredBucketTotal = (bucket: StudyTimeAnalyticsBucket) =>
+    CATEGORIES.reduce(
+      (total, category) =>
+        total + (includedCategories.has(category.key) ? (bucket.categories[category.key] ?? 0) : 0),
+      0
+    );
+  const filteredTotal = CATEGORIES.reduce(
+    (total, category) =>
+      total +
+      (includedCategories.has(category.key) ? (analytics.categories[category.key] ?? 0) : 0),
+    0
   );
+  const maximum = Math.max(...analytics.buckets.map(filteredBucketTotal), 1);
+  const best = analytics.buckets.reduce<StudyTimeAnalyticsBucket | null>((winner, bucket) => {
+    const bucketTotal = filteredBucketTotal(bucket);
+    if (bucketTotal <= 0) return winner;
+    return !winner || bucketTotal > filteredBucketTotal(winner) ? bucket : winner;
+  }, null);
   const elapsedDays = Math.max(
     1,
     Math.ceil(
@@ -236,18 +270,40 @@ const StudyRhythmChart = ({
         86_400_000
     )
   );
+  const handleTouchActivation = (key: string, pointerType: string, activate: () => void) => {
+    if (pointerType === 'mouse') return;
+    const timestamp = Date.now();
+    if (
+      lastTouchActivation.current.key === key &&
+      timestamp - lastTouchActivation.current.timestamp <= DOUBLE_TAP_WINDOW_MS
+    ) {
+      activate();
+      // Keep the touch timestamp briefly so a browser-synthesized dblclick does
+      // not activate the same control a second time.
+      lastTouchActivation.current = { key: '', timestamp };
+      return;
+    }
+    lastTouchActivation.current = { key, timestamp };
+  };
+  const handleMouseDoubleClick = (activate: () => void) => {
+    if (Date.now() - lastTouchActivation.current.timestamp <= DOUBLE_TAP_WINDOW_MS) return;
+    activate();
+  };
 
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
+        <div
+          className="rounded-xl border border-navy/10 bg-white/70 p-4"
+          data-testid="study-time-total"
+        >
           <p className="retro-caps text-gray-500">{t('time.totals.total')}</p>
-          <p className="mt-1 text-3xl font-black text-navy">{formatDuration(analytics.totalMs)}</p>
+          <p className="mt-1 text-3xl font-black text-navy">{formatDuration(filteredTotal)}</p>
         </div>
         <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
           <p className="retro-caps text-gray-500">{t('time.analytics.dailyAverage')}</p>
           <p className="mt-1 text-3xl font-black text-navy">
-            {formatDuration(Math.round(analytics.totalMs / elapsedDays))}
+            {formatDuration(Math.round(filteredTotal / elapsedDays))}
           </p>
         </div>
         <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
@@ -257,7 +313,7 @@ const StudyRhythmChart = ({
           </p>
           <p className="text-sm font-bold text-gray-500">
             {t('time.analytics.bucketTotal', {
-              time: best ? formatDuration(best.totalMs) : formatDuration(0),
+              time: best ? formatDuration(filteredBucketTotal(best)) : formatDuration(0),
             })}
           </p>
         </div>
@@ -281,19 +337,42 @@ const StudyRhythmChart = ({
               className="flex h-full min-w-0 flex-col justify-end"
               data-testid="study-rhythm-chart-bucket"
             >
-              <div
-                className="flex min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-md shadow-sm"
+              <button
+                type="button"
+                className={`touch-manipulation flex min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-md border-0 p-0 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
+                  onDrillDown ? 'cursor-pointer' : 'cursor-default'
+                }`}
                 style={{
-                  height: `${Math.max(2, (bucket.totalMs / maximum) * 88)}%`,
+                  height: `${Math.max(2, (filteredBucketTotal(bucket) / maximum) * 88)}%`,
                 }}
                 title={`${bucketLabel(bucket, analytics, locale)}: ${t(
                   'time.analytics.bucketTotal',
                   {
-                    time: formatDuration(bucket.totalMs),
+                    time: formatDuration(filteredBucketTotal(bucket)),
                   }
                 )}`}
+                aria-label={`${bucketLabel(bucket, analytics, locale)}: ${formatDuration(
+                  filteredBucketTotal(bucket)
+                )}${onDrillDown ? `. ${t('time.analytics.drillDown')}` : ''}`}
+                onDoubleClick={() =>
+                  onDrillDown && handleMouseDoubleClick(() => onDrillDown(bucket))
+                }
+                onPointerUp={(event) =>
+                  onDrillDown &&
+                  handleTouchActivation(`bucket-${bucket.startsAt}`, event.pointerType, () =>
+                    onDrillDown(bucket)
+                  )
+                }
+                onKeyDown={(event) => {
+                  if (onDrillDown && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onDrillDown(bucket);
+                  }
+                }}
+                disabled={!onDrillDown}
               >
                 {CATEGORIES.map((category) => {
+                  if (!includedCategories.has(category.key)) return null;
                   const value = bucket.categories[category.key] ?? 0;
                   if (value === 0) return null;
                   return (
@@ -305,7 +384,7 @@ const StudyRhythmChart = ({
                     />
                   );
                 })}
-              </div>
+              </button>
               <p className="mt-2 truncate text-center text-[11px] font-bold text-gray-500">
                 {bucketLabel(bucket, analytics, locale)}
               </p>
@@ -314,21 +393,54 @@ const StudyRhythmChart = ({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {CATEGORIES.map((category) => (
-          <div
-            key={category.key}
-            className="flex items-center justify-between gap-2 rounded-lg bg-white/60 px-3 py-2"
-          >
-            <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
-              <span className={`h-2.5 w-2.5 rounded-full ${category.barColor}`} />
-              {t(category.labelKey)}
-            </span>
-            <span className={`font-mono text-sm font-black ${category.color}`}>
-              {formatDuration(analytics.categories[category.key] ?? 0)}
-            </span>
-          </div>
-        ))}
+      <p className="mt-4 text-xs font-semibold text-gray-500">
+        {t('time.analytics.interactionHint')}
+      </p>
+
+      <div
+        className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
+        aria-label={t('time.analytics.categoryFilters')}
+      >
+        {CATEGORIES.map((category) => {
+          const included = includedCategories.has(category.key);
+          const isOnlyIncludedCategory = included && includedCategories.size === 1;
+          return (
+            <button
+              type="button"
+              key={category.key}
+              className={`touch-manipulation flex min-h-11 items-center justify-between gap-2 rounded-full border-2 px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
+                included
+                  ? `${category.borderColor} bg-white/75 text-gray-700`
+                  : 'border-navy/10 bg-navy/5 text-gray-400 opacity-60'
+              } disabled:cursor-not-allowed`}
+              aria-pressed={included}
+              aria-label={`${t(category.labelKey)}: ${formatDuration(
+                analytics.categories[category.key] ?? 0
+              )}. ${t('time.analytics.toggleCategory')}`}
+              disabled={isOnlyIncludedCategory}
+              onDoubleClick={() => handleMouseDoubleClick(() => onToggleCategory(category.key))}
+              onPointerUp={(event) =>
+                handleTouchActivation(`category-${category.key}`, event.pointerType, () =>
+                  onToggleCategory(category.key)
+                )
+              }
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onToggleCategory(category.key);
+                }
+              }}
+            >
+              <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
+                <span className={`h-2.5 w-2.5 rounded-full ${category.barColor}`} />
+                {t(category.labelKey)}
+              </span>
+              <span className={`font-mono text-sm font-black ${category.color}`}>
+                {formatDuration(analytics.categories[category.key] ?? 0)}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </>
   );
@@ -351,6 +463,9 @@ const StudyTimePage = () => {
   const { active } = useStudyActivityStatus();
   const { start, stop, logCompleted } = useStudyActivityActions();
   const [range, setRange] = useState<StudyTimeRange>('week');
+  const [includedCategories, setIncludedCategories] = useState<Set<StudyActivityCategory>>(
+    () => new Set(CATEGORIES.map((category) => category.key))
+  );
   const [slideDirection, setSlideDirection] = useState<-1 | 1>(-1);
   const [mobileSwipeEnabled, setMobileSwipeEnabled] = useState(false);
   const [activity, setActivity] = useState<StudyActivityKind>('card_creation');
@@ -460,6 +575,24 @@ const StudyTimePage = () => {
     }
     setSlideDirection(amount);
     setAnchorDate(shiftStudyTimeAnchor(displayedAnchorDate, range, amount));
+  };
+
+  const toggleCategory = (category: StudyActivityCategory) => {
+    setIncludedCategories((current) => {
+      if (current.has(category) && current.size === 1) return current;
+      const next = new Set(current);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
+
+  const drillDown = (bucket: StudyTimeAnalyticsBucket) => {
+    const nextRange = drillDownRange(range);
+    if (!nextRange) return;
+    setSlideDirection(-1);
+    setAnchorDate(localDateKey(new Date(bucket.startsAt)));
+    setRange(nextRange);
   };
 
   const addEntry = () => {
@@ -670,6 +803,9 @@ const StudyTimePage = () => {
                 <StudyRhythmChart
                   analytics={analytics}
                   generatedAt={analyticsQuery.data?.generatedAt ?? analytics.endsAt}
+                  includedCategories={includedCategories}
+                  onToggleCategory={toggleCategory}
+                  onDrillDown={drillDownRange(range) === null ? undefined : drillDown}
                 />
               </motion.div>
             ) : null}
