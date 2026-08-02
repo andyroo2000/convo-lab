@@ -228,7 +228,7 @@ const StudySettingsPage = () => {
           const detail = await getStudyBrowserNoteDetail(item.noteId);
           const canonicalCard = detail.cards.find((card) => card.id === item.id);
           if (!canonicalCard) {
-            throw new Error('The selected study card is no longer available.');
+            throw new Error(t('settings.previewUnavailable'));
           }
 
           const preview = canonicalCard.answer.answerAudio?.url
@@ -245,7 +245,7 @@ const StudySettingsPage = () => {
       },
       {
         label: 'Study new-card preview',
-        errorMessage: 'The card preview could not be loaded.',
+        errorMessage: t('settings.previewFailed'),
         onError: (message) => {
           if (previewRequestIdRef.current === requestId) {
             setPreviewError(message);

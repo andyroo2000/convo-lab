@@ -134,6 +134,8 @@
     "search": "検索",
     "loadingQueue": "新規カードを読み込み中…",
     "loadingPreview": "プレビューを読み込み中…",
+    "previewUnavailable": "選択した学習カードは利用できなくなりました。",
+    "previewFailed": "カードのプレビューを読み込めませんでした。",
     "emptyQueue": "キューで待機している新規カードはありません。",
     "loadMore": "さらに読み込む",
     "loadingMore": "読み込み中…",

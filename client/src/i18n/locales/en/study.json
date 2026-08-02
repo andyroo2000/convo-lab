@@ -134,6 +134,8 @@
     "search": "Search",
     "loadingQueue": "Loading new cards…",
     "loadingPreview": "Loading preview…",
+    "previewUnavailable": "The selected study card is no longer available.",
+    "previewFailed": "The card preview could not be loaded.",
     "emptyQueue": "No new cards are waiting in the queue.",
     "loadMore": "Load more",
     "loadingMore": "Loading…",
