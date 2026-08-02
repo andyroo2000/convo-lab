@@ -124,7 +124,11 @@ describe('manual card draft mutations', () => {
       if (cleanupAttempt === 1) {
         throw new TypeError('Network request failed');
       }
-      return { ok: true, status: 204 } as Response;
+      return {
+        ok: false,
+        status: 404,
+        json: async () => ({ message: 'Draft not found' }),
+      } as Response;
     });
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false }, queries: { retry: false } },

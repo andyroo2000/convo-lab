@@ -308,7 +308,13 @@ const StudyCreatePage = () => {
   }, [selectedManualDraft, setValues]);
 
   useEffect(() => {
-    if (!selectedManualDraft || selectedManualDraft.status === 'generating') return undefined;
+    if (
+      !selectedManualDraft ||
+      selectedManualDraft.status === 'generating' ||
+      selectedManualDraft.committedCardId
+    ) {
+      return undefined;
+    }
 
     const nextPayload = {
       prompt: manualPayload.prompt,

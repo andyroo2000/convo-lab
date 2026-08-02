@@ -100,7 +100,11 @@ function withMutationHeaders(init?: RequestInit): HeadersInit {
   return headers;
 }
 
-async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
+async function apiRequest<T>(
+  endpoint: string,
+  init?: RequestInit,
+  acceptedEmptyStatuses: readonly number[] = []
+): Promise<T> {
   const headers = new Headers(withMutationHeaders(init));
   headers.set('Accept', 'application/json');
   const response = await fetchWithCsrf(studyApiPath(endpoint), {
@@ -110,6 +114,9 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   });
 
   notifyAuthSessionExpired(response);
+  if (acceptedEmptyStatuses.includes(response.status)) {
+    return undefined as T;
+  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
     const message = error.message || error.error?.message || 'Request failed';
@@ -293,9 +300,13 @@ export async function createCardFromStudyManualCardDraft(
 }
 
 export async function deleteStudyManualCardDraft(draftId: string): Promise<void> {
-  await apiRequest<unknown>(`/card-drafts/${draftId}`, {
-    method: 'DELETE',
-  });
+  await apiRequest<unknown>(
+    `/card-drafts/${draftId}`,
+    {
+      method: 'DELETE',
+    },
+    [404]
+  );
 }
 
 export async function undoStudyReview(
