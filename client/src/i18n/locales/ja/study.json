@@ -269,6 +269,8 @@
     "newDraftTitle": "新しい手動下書き",
     "newDraftDescription": "分かる範囲を入力して、残りをバックグラウンド生成に回します。",
     "reviewDraft": "下書きを確認",
+    "committedDraftDescription": "このカードはすでに作成されています。クリーンアップを完了して、残っている下書きを削除してください。",
+    "finishDraftCleanup": "クリーンアップを完了",
     "loadingDrafts": "下書きを読み込み中…",
     "failedDrafts": "下書きを読み込めませんでした。",
     "noDrafts": "キューに下書きはありません。",

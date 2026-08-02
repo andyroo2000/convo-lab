@@ -482,7 +482,14 @@ describe('StudyCreatePage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
     await userEvent.click(screen.getByTestId('study-manual-draft-row'));
-    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+    expect(
+      screen.getByText(
+        'This card was already created. Finish cleanup to remove its retained draft.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Prompt text')).toBeDisabled();
+    expect(screen.getByLabelText('Answer expression')).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Finish cleanup' }));
 
     expect(updateManualDraftMock).not.toHaveBeenCalled();
     expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
