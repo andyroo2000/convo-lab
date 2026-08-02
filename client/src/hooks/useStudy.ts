@@ -599,7 +599,12 @@ export function useCreateCardFromStudyManualCardDraft() {
       return result;
     },
     onError: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+      ]);
     },
     onSuccess: async (_result, draft) => {
       pendingCardIds.current.delete(draft.id);
