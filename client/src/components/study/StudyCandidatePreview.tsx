@@ -7,10 +7,12 @@ import { StudyCardFace } from './StudyCardPreview';
 const StudyCandidateCardPreviewModal = ({
   card,
   onClose,
+  onEdit,
   resolvePitchAccent = false,
 }: {
   card: StudyCardSummary;
   onClose: () => void;
+  onEdit?: () => void;
   resolvePitchAccent?: boolean;
 }) => {
   const { t } = useTranslation('study');
@@ -115,7 +117,17 @@ const StudyCandidateCardPreviewModal = ({
           >
             {t('create.previewPrompt')}
           </button>
-          <p className="hidden text-sm text-gray-500 sm:block">{t('create.previewHint')}</p>
+          {side === 'back' && onEdit ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-full border border-navy/30 px-4 py-2 text-sm font-semibold text-navy hover:bg-navy/5"
+            >
+              {t('browse.edit')}
+            </button>
+          ) : (
+            <p className="hidden text-sm text-gray-500 sm:block">{t('create.previewHint')}</p>
+          )}
           <button
             type="button"
             onClick={() => setSide('back')}

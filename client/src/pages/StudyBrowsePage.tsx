@@ -77,6 +77,7 @@ const StudyBrowsePage = () => {
     () => searchParams.get('cardId') ?? ''
   );
   const selectedCardIdRef = useRef(selectedCardId);
+  const editorSectionRef = useRef<HTMLDivElement | null>(null);
   // In the always-editor browse flow, Cancel means discard local edits by remounting the editor.
   const [editorResetToken, setEditorResetToken] = useState(0);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
@@ -705,54 +706,71 @@ const StudyBrowsePage = () => {
                         <p className="text-sm text-red-600">{actionErrorMessage}</p>
                       ) : null}
 
-                      <StudyCardEditor
-                        key={`${selectedCard.id}:${editorResetToken}`}
-                        card={selectedCard}
-                        isSaving={updateCardMutation.isPending}
-                        isDeleting={deleteCardMutation.isPending}
-                        isRegeneratingAudio={regenerateAudioMutation.isPending}
-                        isRegeneratingImage={regenerateImageMutation.isPending}
-                        error={updateCardErrorMessage}
-                        onCancel={() => setEditorResetToken((current) => current + 1)}
-                        onSave={async ({ prompt, answer }) => {
-                          await updateCardMutation.mutateAsync({
-                            cardId: selectedCard.id,
-                            prompt,
-                            answer,
-                          });
-                          setEditorResetToken((current) => current + 1);
-                          await detailQuery.refetch();
-                          await browserQuery.refetch();
-                        }}
-                        onDelete={() => setIsDeleteConfirmOpen(true)}
-                        onRegenerateAudio={async ({
-                          answerAudioVoiceId,
-                          answerAudioTextOverride,
-                        }) => {
-                          const updatedCard = await regenerateAudioMutation.mutateAsync({
-                            cardId: selectedCard.id,
+                      <div
+                        ref={editorSectionRef}
+                        tabIndex={-1}
+                        data-testid="study-browser-editor-section"
+                        className="scroll-mt-6 outline-none"
+                      >
+                        <StudyCardEditor
+                          key={`${selectedCard.id}:${editorResetToken}`}
+                          card={selectedCard}
+                          isSaving={updateCardMutation.isPending}
+                          isDeleting={deleteCardMutation.isPending}
+                          isRegeneratingAudio={regenerateAudioMutation.isPending}
+                          isRegeneratingImage={regenerateImageMutation.isPending}
+                          error={updateCardErrorMessage}
+                          onCancel={() => setEditorResetToken((current) => current + 1)}
+                          onSave={async ({ prompt, answer }) => {
+                            await updateCardMutation.mutateAsync({
+                              cardId: selectedCard.id,
+                              prompt,
+                              answer,
+                            });
+                            setEditorResetToken((current) => current + 1);
+                            await detailQuery.refetch();
+                            await browserQuery.refetch();
+                          }}
+                          onDelete={() => setIsDeleteConfirmOpen(true)}
+                          onRegenerateAudio={async ({
                             answerAudioVoiceId,
                             answerAudioTextOverride,
-                          });
-                          await detailQuery.refetch();
-                          await browserQuery.refetch();
-                          return updatedCard;
-                        }}
-                        onRegenerateImage={async ({ imagePrompt, imageRole }) => {
-                          const updatedCard = await regenerateImageMutation.mutateAsync({
-                            cardId: selectedCard.id,
-                            imagePrompt,
-                            imageRole,
-                          });
-                          await detailQuery.refetch();
-                          await browserQuery.refetch();
-                          return updatedCard;
-                        }}
-                      />
+                          }) => {
+                            const updatedCard = await regenerateAudioMutation.mutateAsync({
+                              cardId: selectedCard.id,
+                              answerAudioVoiceId,
+                              answerAudioTextOverride,
+                            });
+                            await detailQuery.refetch();
+                            await browserQuery.refetch();
+                            return updatedCard;
+                          }}
+                          onRegenerateImage={async ({ imagePrompt, imageRole }) => {
+                            const updatedCard = await regenerateImageMutation.mutateAsync({
+                              cardId: selectedCard.id,
+                              imagePrompt,
+                              imageRole,
+                            });
+                            await detailQuery.refetch();
+                            await browserQuery.refetch();
+                            return updatedCard;
+                          }}
+                        />
+                      </div>
                       {isPreviewOpen ? (
                         <StudyCandidateCardPreviewModal
                           card={selectedCard}
                           onClose={() => setIsPreviewOpen(false)}
+                          onEdit={() => {
+                            setIsPreviewOpen(false);
+                            window.requestAnimationFrame(() => {
+                              editorSectionRef.current?.scrollIntoView?.({
+                                behavior: 'smooth',
+                                block: 'start',
+                              });
+                              editorSectionRef.current?.focus();
+                            });
+                          }}
                           resolvePitchAccent
                         />
                       ) : null}
