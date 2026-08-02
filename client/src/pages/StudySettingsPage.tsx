@@ -37,7 +37,9 @@ import {
   useSyncWaniKani,
 } from '../hooks/useKnownKanji';
 import {
+  getStudyBrowserNoteDetail,
   getStudyNewCardQueue,
+  prepareStudyAnswerAudio,
   useReorderStudyNewCardQueue,
   useStudyNewCardQueue,
   useStudySettings,
@@ -50,13 +52,6 @@ interface SortableQueueRowProps {
   onPreview: (item: StudyNewCardQueueItem) => void;
   ordinal: number;
 }
-
-const CLOZE_MARKER_PATTERN = /\{\{c\d+::([^}:]+)(?:::[^}]*)?}}/g;
-
-const toClozePromptDisplay = (text: string) => text.replace(CLOZE_MARKER_PATTERN, '[...]');
-
-const toRestoredClozeText = (text: string) =>
-  text.replace(CLOZE_MARKER_PATTERN, (_match, clozeText: string) => clozeText);
 
 const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) => {
   const { t } = useTranslation('study');
@@ -111,59 +106,6 @@ const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) =
       </div>
     </li>
   );
-};
-
-const toQueuePreviewCard = (item: StudyNewCardQueueItem): StudyCardSummary => {
-  if (item.cardType === 'cloze') {
-    return {
-      id: item.id,
-      noteId: item.noteId,
-      cardType: 'cloze',
-      prompt: {
-        clozeText: item.displayText,
-        clozeDisplayText: toClozePromptDisplay(item.displayText),
-      },
-      answer: {
-        restoredText: toRestoredClozeText(item.displayText),
-        meaning: item.meaning,
-      },
-      state: {
-        dueAt: null,
-        introducedAt: null,
-        queueState: 'new',
-        scheduler: null,
-        source: {},
-      },
-      answerAudioSource: 'missing',
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    };
-  }
-
-  const prompt = { cueText: item.displayText };
-  const answer = {
-    expression: item.displayText,
-    meaning: item.meaning,
-  };
-
-  return {
-    id: item.id,
-    noteId: item.noteId,
-    cardType: item.cardType,
-    prompt:
-      item.cardType === 'production' ? { cueMeaning: item.meaning ?? item.displayText } : prompt,
-    answer,
-    state: {
-      dueAt: null,
-      introducedAt: null,
-      queueState: 'new',
-      scheduler: null,
-      source: {},
-    },
-    answerAudioSource: 'missing',
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-  };
 };
 
 const StudySettingsPage = () => {
@@ -256,6 +198,28 @@ const StudySettingsPage = () => {
       },
       {
         label: 'Study new-card reorder',
+      }
+    );
+  };
+
+  const handlePreview = (item: StudyNewCardQueueItem) => {
+    setPreviewCard(null);
+    runBackgroundTask(
+      async () => {
+        const detail = await getStudyBrowserNoteDetail(item.noteId);
+        const canonicalCard = detail.cards.find((card) => card.id === item.id);
+        if (!canonicalCard) {
+          throw new Error('The selected study card is no longer available.');
+        }
+
+        const preview = canonicalCard.answer.answerAudio?.url
+          ? canonicalCard
+          : await prepareStudyAnswerAudio(canonicalCard.id);
+        setPreviewCard(preview);
+      },
+      {
+        label: 'Study new-card preview',
+        errorMessage: 'The card preview could not be loaded.',
       }
     );
   };
@@ -626,7 +590,7 @@ const StudySettingsPage = () => {
                   key={item.id}
                   item={item}
                   ordinal={index + 1}
-                  onPreview={(nextItem) => setPreviewCard(toQueuePreviewCard(nextItem))}
+                  onPreview={handlePreview}
                 />
               ))}
             </ol>

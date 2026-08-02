@@ -5,12 +5,21 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import type { ReactNode } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  StudyAnswerPayload,
+  StudyCardSummary,
+  StudyCardType,
+  StudyMediaRef,
+  StudyPromptPayload,
+} from '@languageflow/shared/src/types';
 
 import StudySettingsPage from '../StudySettingsPage';
 
 const {
   updateStudySettingsMock,
   reorderStudyNewCardQueueMock,
+  getStudyBrowserNoteDetailMock,
+  prepareStudyAnswerAudioMock,
   resolveStudyCardPitchAccentMock,
   useStudySettingsMock,
   useStudyNewCardQueueMock,
@@ -20,6 +29,8 @@ const {
 } = vi.hoisted(() => ({
   updateStudySettingsMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
+  getStudyBrowserNoteDetailMock: vi.fn(),
+  prepareStudyAnswerAudioMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
   useStudySettingsMock: vi.fn(),
   useStudyNewCardQueueMock: vi.fn(),
@@ -113,7 +124,9 @@ vi.mock('../../hooks/useStudyBackgroundTask', () => ({
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
+  getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
   getStudyNewCardQueue: vi.fn(),
+  prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   useStudySettings: (...args: unknown[]) => useStudySettingsMock(...args),
   useStudyNewCardQueue: (...args: unknown[]) => useStudyNewCardQueueMock(...args),
@@ -146,10 +159,50 @@ const renderPage = () => {
   );
 };
 
+const canonicalCard = ({
+  answerAudio = {
+    id: 'answer-audio',
+    filename: 'answer.mp3',
+    url: 'https://example.com/answer.mp3',
+    mediaKind: 'audio' as const,
+    source: 'generated' as const,
+  },
+  cardType = 'recognition' as const,
+  id = 'card-1',
+  noteId = 'note-1',
+  prompt = { cueText: '会社' },
+  answer = { expression: '会社', meaning: 'company' },
+}: {
+  answerAudio?: StudyMediaRef | null;
+  cardType?: StudyCardType;
+  id?: string;
+  noteId?: string;
+  prompt?: StudyPromptPayload;
+  answer?: StudyAnswerPayload;
+} = {}): StudyCardSummary => ({
+  id,
+  noteId,
+  cardType,
+  prompt,
+  answer: { ...answer, answerAudio },
+  state: {
+    dueAt: null,
+    introducedAt: null,
+    queueState: 'new' as const,
+    scheduler: null,
+    source: {},
+  },
+  answerAudioSource: answerAudio ? ('generated' as const) : ('missing' as const),
+  createdAt: '2026-04-01T00:00:00.000Z',
+  updatedAt: '2026-04-01T00:00:00.000Z',
+});
+
 describe('StudySettingsPage', () => {
   beforeEach(() => {
     updateStudySettingsMock.mockReset();
     reorderStudyNewCardQueueMock.mockReset();
+    getStudyBrowserNoteDetailMock.mockReset();
+    prepareStudyAnswerAudioMock.mockReset();
     setManualKnownKanjiMock.mockReset();
     knownKanjiQueryData.current = {
       version: 1,
@@ -167,6 +220,10 @@ describe('StudySettingsPage', () => {
       isLoading: false,
       error: null,
     });
+    getStudyBrowserNoteDetailMock.mockResolvedValue({
+      cards: [canonicalCard()],
+    });
+    prepareStudyAnswerAudioMock.mockImplementation(async () => canonicalCard());
     useStudyNewCardQueueMock.mockReturnValue({
       data: {
         items: [
@@ -248,6 +305,34 @@ describe('StudySettingsPage', () => {
     expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
     await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute(
+      'src',
+      'https://example.com/answer.mp3'
+    );
+    expect(
+      screen.queryByText('Answer audio is being backfilled for this card.')
+    ).not.toBeInTheDocument();
+    expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
+  });
+
+  it('prepares genuinely missing answer audio before opening a queue preview', async () => {
+    getStudyBrowserNoteDetailMock.mockResolvedValue({
+      cards: [canonicalCard({ answerAudio: null })],
+    });
+    prepareStudyAnswerAudioMock.mockResolvedValue(canonicalCard());
+
+    renderPage();
+
+    const firstRow = screen.getAllByTestId('study-new-queue-row')[0];
+    await userEvent.click(within(firstRow).getByRole('button', { name: 'Preview card' }));
+    expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
+
+    expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1');
+    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
+    expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute(
+      'src',
+      'https://example.com/answer.mp3'
+    );
   });
 
   it('restores cloze text on the new-card queue preview answer side', async () => {
@@ -271,6 +356,23 @@ describe('StudySettingsPage', () => {
       },
       isLoading: false,
       error: null,
+    });
+    getStudyBrowserNoteDetailMock.mockResolvedValue({
+      cards: [
+        canonicalCard({
+          id: 'card-cloze',
+          noteId: 'note-cloze',
+          cardType: 'cloze',
+          prompt: {
+            clozeText: '試合に{{c1::勝ちました}}。',
+            clozeDisplayText: '試合に[...]。',
+          },
+          answer: {
+            restoredText: '試合に勝ちました。',
+            meaning: 'I won the match.',
+          },
+        }),
+      ],
     });
 
     renderPage();
