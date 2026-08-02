@@ -467,10 +467,37 @@ describe('StudyCreatePage', () => {
         answer: expect.objectContaining({ expression: '会社' }),
       }),
     });
-    expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-1');
+    expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'draft-1' })
+    );
     expect(
       await screen.findByText('Created recognition card and seeded it into the study queue.')
     ).toBeInTheDocument();
+  });
+
+  it('reconciles an already committed draft without overwriting its card snapshot', async () => {
+    manualDraftsState.drafts = [manualDraft({ committedCardId: 'committed-card-1' })];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    expect(
+      screen.getByText(
+        'This card was already created. Finish cleanup to remove its retained draft.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Prompt text')).toBeDisabled();
+    expect(screen.getByLabelText('Answer expression')).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Finish cleanup' }));
+
+    expect(updateManualDraftMock).not.toHaveBeenCalled();
+    expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'draft-1',
+        committedCardId: 'committed-card-1',
+      })
+    );
   });
 
   it('creates audio-recognition draft cards without requiring prompt text', async () => {
@@ -516,7 +543,9 @@ describe('StudyCreatePage', () => {
         }),
       }),
     });
-    expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-1');
+    expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'draft-1' })
+    );
   });
 
   it('selects the next draft in queue after creating a card', async () => {
@@ -532,7 +561,11 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
 
-    await waitFor(() => expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-2'));
+    await waitFor(() =>
+      expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'draft-2' })
+      )
+    );
     await waitFor(() => expect(screen.getByLabelText('Prompt text')).toHaveValue('三番目'));
   });
 
@@ -548,7 +581,11 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
 
-    await waitFor(() => expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-2'));
+    await waitFor(() =>
+      expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'draft-2' })
+      )
+    );
     await waitFor(() => expect(screen.getByLabelText('Prompt text')).toHaveValue('一番目'));
   });
 
@@ -699,7 +736,11 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getByTestId('study-manual-draft-row'));
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
 
-    await waitFor(() => expect(createCardFromManualDraftMock).toHaveBeenCalledWith('draft-1'));
+    await waitFor(() =>
+      expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'draft-1' })
+      )
+    );
     expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent('Cloze');
     expect(screen.getByLabelText('Image placement')).toHaveValue('both');
     expect(screen.getByLabelText('Cloze text')).toHaveValue('');

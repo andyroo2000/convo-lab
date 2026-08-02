@@ -100,7 +100,11 @@ function withMutationHeaders(init?: RequestInit): HeadersInit {
   return headers;
 }
 
-async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
+async function apiRequest<T>(
+  endpoint: string,
+  init?: RequestInit,
+  acceptedEmptyStatuses: readonly number[] = []
+): Promise<T> {
   const headers = new Headers(withMutationHeaders(init));
   headers.set('Accept', 'application/json');
   const response = await fetchWithCsrf(studyApiPath(endpoint), {
@@ -110,6 +114,9 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   });
 
   notifyAuthSessionExpired(response);
+  if (acceptedEmptyStatuses.includes(response.status)) {
+    return undefined as T;
+  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
     const message = error.message || error.error?.message || 'Request failed';
@@ -285,16 +292,21 @@ export async function createCardFromStudyManualCardDraft(
   draftId: string,
   cardId = createStudyCardId()
 ): Promise<StudyManualCardDraftCreateCardResponse> {
-  return apiRequest<StudyManualCardDraftCreateCardResponse>(`/card-drafts/${draftId}/create-card`, {
+  const card = await apiRequest<StudyCardSummary>(`/card-drafts/${draftId}/create-card`, {
     method: 'POST',
     body: JSON.stringify({ id: cardId }),
   });
+  return { draftId, card };
 }
 
 export async function deleteStudyManualCardDraft(draftId: string): Promise<void> {
-  await apiRequest<unknown>(`/card-drafts/${draftId}`, {
-    method: 'DELETE',
-  });
+  await apiRequest<unknown>(
+    `/card-drafts/${draftId}`,
+    {
+      method: 'DELETE',
+    },
+    [404]
+  );
 }
 
 export async function undoStudyReview(
@@ -588,13 +600,25 @@ export function useCreateCardFromStudyManualCardDraft() {
   const pendingCardIds = useRef(new Map<string, string>());
 
   return useMutation({
-    mutationFn: (draftId: string) => {
-      const cardId = pendingCardIds.current.get(draftId) ?? createStudyCardId();
+    mutationFn: async (draft: Pick<StudyManualCardDraft, 'id' | 'committedCardId'>) => {
+      const draftId = draft.id;
+      const cardId =
+        pendingCardIds.current.get(draftId) ?? draft.committedCardId ?? createStudyCardId();
       pendingCardIds.current.set(draftId, cardId);
-      return createCardFromStudyManualCardDraft(draftId, cardId);
+      const result = await createCardFromStudyManualCardDraft(draftId, cardId);
+      await deleteStudyManualCardDraft(draftId);
+      return result;
     },
-    onSuccess: async (_result, draftId) => {
-      pendingCardIds.current.delete(draftId);
+    onError: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+      ]);
+    },
+    onSuccess: async (_result, draft) => {
+      pendingCardIds.current.delete(draft.id);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),

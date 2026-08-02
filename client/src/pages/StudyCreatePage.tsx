@@ -240,6 +240,7 @@ const StudyCreatePage = () => {
   };
   const isReviewingManualDraft = Boolean(selectedManualDraft);
   const isSelectedManualDraftGenerating = selectedManualDraft?.status === 'generating';
+  const isSelectedManualDraftCommitted = Boolean(selectedManualDraft?.committedCardId);
   const canRetrySelectedManualDraft =
     selectedManualDraft?.status === 'error' || isStaleGeneratingManualDraft(selectedManualDraft);
   const isManualActionBusy =
@@ -249,6 +250,13 @@ const StudyCreatePage = () => {
     createCardFromDraft.isPending ||
     generateDraftImage.isPending ||
     regenerateManualAudio.isPending;
+  let manualSubmitLabel = t('create.submit');
+  if (isSelectedManualDraftCommitted) {
+    manualSubmitLabel = t('create.finishDraftCleanup');
+  }
+  if (createCardFromDraft.isPending) {
+    manualSubmitLabel = t('create.creating');
+  }
 
   const resetManualComposer = useCallback(
     (nextCreationKind = creationKind) => {
@@ -300,7 +308,13 @@ const StudyCreatePage = () => {
   }, [selectedManualDraft, setValues]);
 
   useEffect(() => {
-    if (!selectedManualDraft || selectedManualDraft.status === 'generating') return undefined;
+    if (
+      !selectedManualDraft ||
+      selectedManualDraft.status === 'generating' ||
+      selectedManualDraft.committedCardId
+    ) {
+      return undefined;
+    }
 
     const nextPayload = {
       prompt: manualPayload.prompt,
@@ -510,19 +524,21 @@ const StudyCreatePage = () => {
       const createdDraftIndex = manualDrafts.findIndex(
         (draft) => draft.id === selectedManualDraft.id
       );
-      await updateDraft.mutateAsync({
-        draftId: selectedManualDraft.id,
-        values: {
-          prompt: manualPayload.prompt,
-          answer: manualPayload.answer,
-          imagePlacement: manualImagePlacement,
-          imagePrompt: manualImagePrompt.trim() || null,
-          previewAudio: manualPreviewAudio,
-          previewAudioRole: manualPreviewAudioRole,
-          previewImage: manualPreviewImage,
-        },
-      });
-      const result = await createCardFromDraft.mutateAsync(selectedManualDraft.id);
+      if (!selectedManualDraft.committedCardId) {
+        await updateDraft.mutateAsync({
+          draftId: selectedManualDraft.id,
+          values: {
+            prompt: manualPayload.prompt,
+            answer: manualPayload.answer,
+            imagePlacement: manualImagePlacement,
+            imagePrompt: manualImagePrompt.trim() || null,
+            previewAudio: manualPreviewAudio,
+            previewAudioRole: manualPreviewAudioRole,
+            previewImage: manualPreviewImage,
+          },
+        });
+      }
+      const result = await createCardFromDraft.mutateAsync(selectedManualDraft);
       addCreatedCards();
       let nextDraftId: string | null = null;
       if (createdDraftIndex >= 0) {
@@ -836,19 +852,29 @@ const StudyCreatePage = () => {
                     {selectedManualDraft ? t('create.reviewDraft') : t('create.newDraftTitle')}
                   </h2>
                   {selectedManualDraft ? (
-                    <p className="text-sm text-gray-600">
-                      {draftStatusLabel}
-                      {selectedManualDraft.errorMessage
-                        ? ` · ${selectedManualDraft.errorMessage}`
-                        : ''}
-                    </p>
+                    <>
+                      <p className="text-sm text-gray-600">
+                        {draftStatusLabel}
+                        {selectedManualDraft.errorMessage
+                          ? ` · ${selectedManualDraft.errorMessage}`
+                          : ''}
+                      </p>
+                      {isSelectedManualDraftCommitted ? (
+                        <p className="mt-1 text-sm text-amber-700">
+                          {t('create.committedDraftDescription')}
+                        </p>
+                      ) : null}
+                    </>
                   ) : (
                     <p className="text-sm text-gray-600">{t('create.newDraftDescription')}</p>
                   )}
                 </div>
               </div>
 
-              <fieldset disabled={isSelectedManualDraftGenerating} className="space-y-4">
+              <fieldset
+                disabled={isSelectedManualDraftGenerating || isSelectedManualDraftCommitted}
+                className="space-y-4"
+              >
                 <StudyCardFormFields
                   values={values}
                   idPrefix="study"
@@ -949,7 +975,7 @@ const StudyCreatePage = () => {
                       disabled={isSelectedManualDraftGenerating || isManualActionBusy}
                       className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {createCardFromDraft.isPending ? t('create.creating') : t('create.submit')}
+                      {manualSubmitLabel}
                     </button>
                     <button
                       type="button"

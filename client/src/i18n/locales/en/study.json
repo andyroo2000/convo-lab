@@ -286,6 +286,8 @@
     "newDraftTitle": "New manual draft",
     "newDraftDescription": "Enter what you know, then queue the rest for background generation.",
     "reviewDraft": "Review draft",
+    "committedDraftDescription": "This card was already created. Finish cleanup to remove its retained draft.",
+    "finishDraftCleanup": "Finish cleanup",
     "loadingDrafts": "Loading drafts…",
     "failedDrafts": "Could not load drafts.",
     "noDrafts": "No drafts in the queue.",

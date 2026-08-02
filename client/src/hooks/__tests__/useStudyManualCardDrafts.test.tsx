@@ -26,25 +26,31 @@ describe('manual card draft mutations', () => {
   it('reuses the client-generated card ID after an ambiguous commit failure', async () => {
     const draftId = '01ARZ3NDEKTSV4RRFFQ69G5FAX';
     let commitAttempt = 0;
-    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+    const fetchMock = vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
       if (String(input) === '/sanctum/csrf-cookie') {
         document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-csrf-token; path=/`;
         return { ok: true, status: 204 } as Response;
       }
 
-      commitAttempt += 1;
-      if (commitAttempt === 1) {
-        throw new TypeError('Network request failed');
+      if (String(input).endsWith(`/card-drafts/${draftId}/create-card`)) {
+        commitAttempt += 1;
+        if (commitAttempt === 1) {
+          throw new TypeError('Network request failed');
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+            cardType: 'recognition',
+          }),
+        } as Response;
       }
 
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({
-          draftId,
-          card: { id: '01ARZ3NDEKTSV4RRFFQ69G5FAV', cardType: 'recognition' },
-        }),
-      } as Response;
+      expect(String(input)).toBe(`/api/study/card-drafts/${draftId}`);
+      expect(init?.method).toBe('DELETE');
+      return { ok: true, status: 204 } as Response;
     });
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
@@ -53,18 +59,19 @@ describe('manual card draft mutations', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
     const { result } = renderHook(() => useCreateCardFromStudyManualCardDraft(), { wrapper });
+    const draft = { id: draftId, committedCardId: null };
 
     let firstError: unknown;
     await act(async () => {
       try {
-        await result.current.mutateAsync(draftId);
+        await result.current.mutateAsync(draft);
       } catch (error) {
         firstError = error;
       }
     });
     expect(firstError).toEqual(new TypeError('Network request failed'));
     await act(async () => {
-      await result.current.mutateAsync(draftId);
+      await result.current.mutateAsync(draft);
     });
 
     const commitCalls = vi
@@ -83,5 +90,115 @@ describe('manual card draft mutations', () => {
     expect(requestIds).toHaveLength(2);
     expect(requestIds[0]).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
     expect(requestIds[1]).toBe(requestIds[0]);
+    expect(
+      fetchMock.mock.calls.filter(
+        ([input, init]) =>
+          String(input) === `/api/study/card-drafts/${draftId}` && init?.method === 'DELETE'
+      )
+    ).toHaveLength(1);
+  });
+
+  it('reuses the committed card ID when draft cleanup must be retried', async () => {
+    const draftId = '01ARZ3NDEKTSV4RRFFQ69G5FBX';
+    let cleanupAttempt = 0;
+    const fetchMock = vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      if (String(input) === '/sanctum/csrf-cookie') {
+        document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-csrf-token; path=/`;
+        return { ok: true, status: 204 } as Response;
+      }
+
+      if (String(input).endsWith(`/card-drafts/${draftId}/create-card`)) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: '01ARZ3NDEKTSV4RRFFQ69G5FBV',
+            cardType: 'recognition',
+          }),
+        } as Response;
+      }
+
+      expect(String(input)).toBe(`/api/study/card-drafts/${draftId}`);
+      expect(init?.method).toBe('DELETE');
+      cleanupAttempt += 1;
+      if (cleanupAttempt === 1) {
+        throw new TypeError('Network request failed');
+      }
+      return {
+        ok: false,
+        status: 404,
+        json: async () => ({ message: 'Draft not found' }),
+      } as Response;
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useCreateCardFromStudyManualCardDraft(), { wrapper });
+    const draft = { id: draftId, committedCardId: null };
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(draft)).rejects.toEqual(
+        new TypeError('Network request failed')
+      );
+    });
+    let committedCardId: string | undefined;
+    await act(async () => {
+      const committedResult = await result.current.mutateAsync(draft);
+      committedCardId = committedResult.card.id;
+    });
+
+    const commitCalls = fetchMock.mock.calls.filter(([input]) =>
+      String(input).endsWith(`/card-drafts/${draftId}/create-card`)
+    );
+    const requestIds = commitCalls.map(
+      ([, init]) => JSON.parse(String((init as RequestInit).body)).id
+    );
+    expect(requestIds).toHaveLength(2);
+    expect(requestIds[1]).toBe(requestIds[0]);
+    expect(cleanupAttempt).toBe(2);
+    expect(committedCardId).toBe('01ARZ3NDEKTSV4RRFFQ69G5FBV');
+  });
+
+  it('reconciles a committed draft after the browser lost its pending card ID', async () => {
+    const draftId = '01ARZ3NDEKTSV4RRFFQ69G5FCX';
+    const committedCardId = '01ARZ3NDEKTSV4RRFFQ69G5FCV';
+    const fetchMock = vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      if (String(input) === '/sanctum/csrf-cookie') {
+        document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=learning-os-csrf-token; path=/`;
+        return { ok: true, status: 204 } as Response;
+      }
+
+      if (String(input).endsWith(`/card-drafts/${draftId}/create-card`)) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ id: committedCardId, cardType: 'recognition' }),
+        } as Response;
+      }
+
+      expect(String(input)).toBe(`/api/study/card-drafts/${draftId}`);
+      expect(init?.method).toBe('DELETE');
+      return { ok: true, status: 204 } as Response;
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useCreateCardFromStudyManualCardDraft(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ id: draftId, committedCardId });
+    });
+
+    const commitCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).endsWith(`/card-drafts/${draftId}/create-card`)
+    );
+    expect(commitCall).toBeDefined();
+    expect(JSON.parse(String((commitCall?.[1] as RequestInit).body)).id).toBe(committedCardId);
   });
 });

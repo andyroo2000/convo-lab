@@ -337,6 +337,7 @@ export type StudyManualCardDraftStatus = 'generating' | 'ready' | 'error';
 export interface StudyManualCardDraft {
   id: string;
   status: StudyManualCardDraftStatus;
+  committedCardId?: string | null;
   creationKind: StudyCardCreationKind;
   cardType: StudyCardType;
   prompt: StudyPromptPayload;
