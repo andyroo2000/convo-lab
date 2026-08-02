@@ -510,19 +510,21 @@ const StudyCreatePage = () => {
       const createdDraftIndex = manualDrafts.findIndex(
         (draft) => draft.id === selectedManualDraft.id
       );
-      await updateDraft.mutateAsync({
-        draftId: selectedManualDraft.id,
-        values: {
-          prompt: manualPayload.prompt,
-          answer: manualPayload.answer,
-          imagePlacement: manualImagePlacement,
-          imagePrompt: manualImagePrompt.trim() || null,
-          previewAudio: manualPreviewAudio,
-          previewAudioRole: manualPreviewAudioRole,
-          previewImage: manualPreviewImage,
-        },
-      });
-      const result = await createCardFromDraft.mutateAsync(selectedManualDraft.id);
+      if (!selectedManualDraft.committedCardId) {
+        await updateDraft.mutateAsync({
+          draftId: selectedManualDraft.id,
+          values: {
+            prompt: manualPayload.prompt,
+            answer: manualPayload.answer,
+            imagePlacement: manualImagePlacement,
+            imagePrompt: manualImagePrompt.trim() || null,
+            previewAudio: manualPreviewAudio,
+            previewAudioRole: manualPreviewAudioRole,
+            previewImage: manualPreviewImage,
+          },
+        });
+      }
+      const result = await createCardFromDraft.mutateAsync(selectedManualDraft);
       addCreatedCards();
       let nextDraftId: string | null = null;
       if (createdDraftIndex >= 0) {

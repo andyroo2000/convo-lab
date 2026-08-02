@@ -285,10 +285,11 @@ export async function createCardFromStudyManualCardDraft(
   draftId: string,
   cardId = createStudyCardId()
 ): Promise<StudyManualCardDraftCreateCardResponse> {
-  return apiRequest<StudyManualCardDraftCreateCardResponse>(`/card-drafts/${draftId}/create-card`, {
+  const card = await apiRequest<StudyCardSummary>(`/card-drafts/${draftId}/create-card`, {
     method: 'POST',
     body: JSON.stringify({ id: cardId }),
   });
+  return { draftId, card };
 }
 
 export async function deleteStudyManualCardDraft(draftId: string): Promise<void> {
@@ -588,13 +589,17 @@ export function useCreateCardFromStudyManualCardDraft() {
   const pendingCardIds = useRef(new Map<string, string>());
 
   return useMutation({
-    mutationFn: (draftId: string) => {
-      const cardId = pendingCardIds.current.get(draftId) ?? createStudyCardId();
+    mutationFn: async (draft: Pick<StudyManualCardDraft, 'id' | 'committedCardId'>) => {
+      const draftId = draft.id;
+      const cardId =
+        pendingCardIds.current.get(draftId) ?? draft.committedCardId ?? createStudyCardId();
       pendingCardIds.current.set(draftId, cardId);
-      return createCardFromStudyManualCardDraft(draftId, cardId);
+      const result = await createCardFromStudyManualCardDraft(draftId, cardId);
+      await deleteStudyManualCardDraft(draftId);
+      return result;
     },
-    onSuccess: async (_result, draftId) => {
-      pendingCardIds.current.delete(draftId);
+    onSuccess: async (_result, draft) => {
+      pendingCardIds.current.delete(draft.id);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
