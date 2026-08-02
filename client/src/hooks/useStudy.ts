@@ -598,6 +598,9 @@ export function useCreateCardFromStudyManualCardDraft() {
       await deleteStudyManualCardDraft(draftId);
       return result;
     },
+    onError: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] });
+    },
     onSuccess: async (_result, draft) => {
       pendingCardIds.current.delete(draft.id);
       await Promise.all([
