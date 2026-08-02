@@ -94,6 +94,7 @@ const noteDetailById = {
         prompt: { cueText: '会社' },
         answer: {
           expression: '会社',
+          expressionReading: '会社[かいしゃ]',
           meaning: 'company',
           answerAudioVoiceId: 'ja-JP-Wavenet-D',
           answerAudioTextOverride: 'かいしゃ',
@@ -443,6 +444,12 @@ describe('StudyBrowsePage', () => {
     expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
     await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
+    expect(screen.getByText('かいしゃ', { selector: 'rt' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.queryByRole('heading', { name: 'Card preview' })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('study-browser-editor-section')).toHaveFocus();
+    });
     await waitFor(() => {
       expect(resolveStudyCardPitchAccentMock.mock.calls[0]?.[0]).toBe('card-1');
     });

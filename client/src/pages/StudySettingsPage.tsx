@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   closestCenter,
@@ -37,28 +37,27 @@ import {
   useSyncWaniKani,
 } from '../hooks/useKnownKanji';
 import {
+  getStudyBrowserNoteDetail,
   getStudyNewCardQueue,
   useReorderStudyNewCardQueue,
   useStudyNewCardQueue,
   useStudySettings,
   useUpdateStudySettings,
 } from '../hooks/useStudy';
+import useStudyAnswerAudioPrep from '../hooks/useStudyAnswerAudioPrep';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 
 interface SortableQueueRowProps {
+  isPreviewing: boolean;
   item: StudyNewCardQueueItem;
   onPreview: (item: StudyNewCardQueueItem) => void;
   ordinal: number;
 }
 
-const CLOZE_MARKER_PATTERN = /\{\{c\d+::([^}:]+)(?:::[^}]*)?}}/g;
+const ignorePreparedPreviewCard = (_card: StudyCardSummary) => undefined;
+const ignorePreviewAudioPrepError = (_message: string) => undefined;
 
-const toClozePromptDisplay = (text: string) => text.replace(CLOZE_MARKER_PATTERN, '[...]');
-
-const toRestoredClozeText = (text: string) =>
-  text.replace(CLOZE_MARKER_PATTERN, (_match, clozeText: string) => clozeText);
-
-const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) => {
+const SortableQueueRow = ({ isPreviewing, item, onPreview, ordinal }: SortableQueueRowProps) => {
   const { t } = useTranslation('study');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -103,67 +102,16 @@ const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) =
           <button
             type="button"
             onClick={() => onPreview(item)}
-            className="mt-3 rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+            disabled={isPreviewing}
+            aria-busy={isPreviewing}
+            className="mt-3 rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream disabled:cursor-wait disabled:opacity-60"
           >
-            {t('create.previewCard')}
+            {isPreviewing ? t('settings.loadingPreview') : t('create.previewCard')}
           </button>
         </div>
       </div>
     </li>
   );
-};
-
-const toQueuePreviewCard = (item: StudyNewCardQueueItem): StudyCardSummary => {
-  if (item.cardType === 'cloze') {
-    return {
-      id: item.id,
-      noteId: item.noteId,
-      cardType: 'cloze',
-      prompt: {
-        clozeText: item.displayText,
-        clozeDisplayText: toClozePromptDisplay(item.displayText),
-      },
-      answer: {
-        restoredText: toRestoredClozeText(item.displayText),
-        meaning: item.meaning,
-      },
-      state: {
-        dueAt: null,
-        introducedAt: null,
-        queueState: 'new',
-        scheduler: null,
-        source: {},
-      },
-      answerAudioSource: 'missing',
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    };
-  }
-
-  const prompt = { cueText: item.displayText };
-  const answer = {
-    expression: item.displayText,
-    meaning: item.meaning,
-  };
-
-  return {
-    id: item.id,
-    noteId: item.noteId,
-    cardType: item.cardType,
-    prompt:
-      item.cardType === 'production' ? { cueMeaning: item.meaning ?? item.displayText } : prompt,
-    answer,
-    state: {
-      dueAt: null,
-      introducedAt: null,
-      queueState: 'new',
-      scheduler: null,
-      source: {},
-    },
-    answerAudioSource: 'missing',
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-  };
 };
 
 const StudySettingsPage = () => {
@@ -181,6 +129,9 @@ const StudySettingsPage = () => {
   const [settingsSavedVisible, setSettingsSavedVisible] = useState(false);
   const [settingsSaveFailedVisible, setSettingsSaveFailedVisible] = useState(false);
   const [previewCard, setPreviewCard] = useState<StudyCardSummary | null>(null);
+  const [previewPendingCardId, setPreviewPendingCardId] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const previewRequestIdRef = useRef(0);
   const [wanikaniToken, setWanikaniToken] = useState('');
   const [manualKanji, setManualKanji] = useState('');
   const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
@@ -194,6 +145,11 @@ const StudySettingsPage = () => {
   const disconnectWaniKaniMutation = useDisconnectWaniKani();
   const syncWaniKaniMutation = useSyncWaniKani();
   const setManualKnownKanjiMutation = useSetManualKnownKanji();
+  const ensurePreviewAnswerAudio = useStudyAnswerAudioPrep({
+    enabled,
+    mergeCardIntoSession: ignorePreparedPreviewCard,
+    onError: ignorePreviewAudioPrepError,
+  });
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -256,6 +212,45 @@ const StudySettingsPage = () => {
       },
       {
         label: 'Study new-card reorder',
+      }
+    );
+  };
+
+  const handlePreview = (item: StudyNewCardQueueItem) => {
+    const requestId = previewRequestIdRef.current + 1;
+    previewRequestIdRef.current = requestId;
+    setPreviewCard(null);
+    setPreviewError(null);
+    setPreviewPendingCardId(item.id);
+    runBackgroundTask(
+      async () => {
+        try {
+          const detail = await getStudyBrowserNoteDetail(item.noteId);
+          const canonicalCard = detail.cards.find((card) => card.id === item.id);
+          if (!canonicalCard) {
+            throw new Error(t('settings.previewUnavailable'));
+          }
+
+          const preview = canonicalCard.answer.answerAudio?.url
+            ? canonicalCard
+            : await ensurePreviewAnswerAudio(canonicalCard.id);
+          if (previewRequestIdRef.current === requestId) {
+            setPreviewCard(preview);
+          }
+        } finally {
+          if (previewRequestIdRef.current === requestId) {
+            setPreviewPendingCardId(null);
+          }
+        }
+      },
+      {
+        label: 'Study new-card preview',
+        errorMessage: t('settings.previewFailed'),
+        onError: (message) => {
+          if (previewRequestIdRef.current === requestId) {
+            setPreviewError(message);
+          }
+        },
       }
     );
   };
@@ -611,6 +606,14 @@ const StudySettingsPage = () => {
             {t('settings.failedQueue')}
           </p>
         ) : null}
+        {previewError ? (
+          <p
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {previewError}
+          </p>
+        ) : null}
 
         {!queueQuery.isLoading && queueItems.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-gray-600">
@@ -624,9 +627,10 @@ const StudySettingsPage = () => {
               {queueItems.map((item, index) => (
                 <SortableQueueRow
                   key={item.id}
+                  isPreviewing={previewPendingCardId === item.id}
                   item={item}
                   ordinal={index + 1}
-                  onPreview={(nextItem) => setPreviewCard(toQueuePreviewCard(nextItem))}
+                  onPreview={handlePreview}
                 />
               ))}
             </ol>
@@ -663,7 +667,14 @@ const StudySettingsPage = () => {
           </button>
         ) : null}
         {previewCard ? (
-          <StudyCandidateCardPreviewModal card={previewCard} onClose={() => setPreviewCard(null)} />
+          <StudyCandidateCardPreviewModal
+            card={previewCard}
+            onClose={() => {
+              previewRequestIdRef.current += 1;
+              setPreviewCard(null);
+              setPreviewPendingCardId(null);
+            }}
+          />
         ) : null}
       </section>
     </div>
