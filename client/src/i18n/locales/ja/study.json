@@ -133,6 +133,7 @@
     "searchPlaceholder": "新規カードを検索",
     "search": "検索",
     "loadingQueue": "新規カードを読み込み中…",
+    "loadingPreview": "プレビューを読み込み中…",
     "emptyQueue": "キューで待機している新規カードはありません。",
     "loadMore": "さらに読み込む",
     "loadingMore": "読み込み中…",

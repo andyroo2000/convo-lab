@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   closestCenter,
@@ -39,21 +39,25 @@ import {
 import {
   getStudyBrowserNoteDetail,
   getStudyNewCardQueue,
-  prepareStudyAnswerAudio,
   useReorderStudyNewCardQueue,
   useStudyNewCardQueue,
   useStudySettings,
   useUpdateStudySettings,
 } from '../hooks/useStudy';
+import useStudyAnswerAudioPrep from '../hooks/useStudyAnswerAudioPrep';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 
 interface SortableQueueRowProps {
+  isPreviewing: boolean;
   item: StudyNewCardQueueItem;
   onPreview: (item: StudyNewCardQueueItem) => void;
   ordinal: number;
 }
 
-const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) => {
+const ignorePreparedPreviewCard = (_card: StudyCardSummary) => undefined;
+const ignorePreviewAudioPrepError = (_message: string) => undefined;
+
+const SortableQueueRow = ({ isPreviewing, item, onPreview, ordinal }: SortableQueueRowProps) => {
   const { t } = useTranslation('study');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -98,9 +102,11 @@ const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) =
           <button
             type="button"
             onClick={() => onPreview(item)}
-            className="mt-3 rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+            disabled={isPreviewing}
+            aria-busy={isPreviewing}
+            className="mt-3 rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream disabled:cursor-wait disabled:opacity-60"
           >
-            {t('create.previewCard')}
+            {isPreviewing ? t('settings.loadingPreview') : t('create.previewCard')}
           </button>
         </div>
       </div>
@@ -123,6 +129,9 @@ const StudySettingsPage = () => {
   const [settingsSavedVisible, setSettingsSavedVisible] = useState(false);
   const [settingsSaveFailedVisible, setSettingsSaveFailedVisible] = useState(false);
   const [previewCard, setPreviewCard] = useState<StudyCardSummary | null>(null);
+  const [previewPendingCardId, setPreviewPendingCardId] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const previewRequestIdRef = useRef(0);
   const [wanikaniToken, setWanikaniToken] = useState('');
   const [manualKanji, setManualKanji] = useState('');
   const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
@@ -136,6 +145,11 @@ const StudySettingsPage = () => {
   const disconnectWaniKaniMutation = useDisconnectWaniKani();
   const syncWaniKaniMutation = useSyncWaniKani();
   const setManualKnownKanjiMutation = useSetManualKnownKanji();
+  const ensurePreviewAnswerAudio = useStudyAnswerAudioPrep({
+    enabled,
+    mergeCardIntoSession: ignorePreparedPreviewCard,
+    onError: ignorePreviewAudioPrepError,
+  });
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -203,23 +217,40 @@ const StudySettingsPage = () => {
   };
 
   const handlePreview = (item: StudyNewCardQueueItem) => {
+    const requestId = previewRequestIdRef.current + 1;
+    previewRequestIdRef.current = requestId;
     setPreviewCard(null);
+    setPreviewError(null);
+    setPreviewPendingCardId(item.id);
     runBackgroundTask(
       async () => {
-        const detail = await getStudyBrowserNoteDetail(item.noteId);
-        const canonicalCard = detail.cards.find((card) => card.id === item.id);
-        if (!canonicalCard) {
-          throw new Error('The selected study card is no longer available.');
-        }
+        try {
+          const detail = await getStudyBrowserNoteDetail(item.noteId);
+          const canonicalCard = detail.cards.find((card) => card.id === item.id);
+          if (!canonicalCard) {
+            throw new Error('The selected study card is no longer available.');
+          }
 
-        const preview = canonicalCard.answer.answerAudio?.url
-          ? canonicalCard
-          : await prepareStudyAnswerAudio(canonicalCard.id);
-        setPreviewCard(preview);
+          const preview = canonicalCard.answer.answerAudio?.url
+            ? canonicalCard
+            : await ensurePreviewAnswerAudio(canonicalCard.id);
+          if (previewRequestIdRef.current === requestId) {
+            setPreviewCard(preview);
+          }
+        } finally {
+          if (previewRequestIdRef.current === requestId) {
+            setPreviewPendingCardId(null);
+          }
+        }
       },
       {
         label: 'Study new-card preview',
         errorMessage: 'The card preview could not be loaded.',
+        onError: (message) => {
+          if (previewRequestIdRef.current === requestId) {
+            setPreviewError(message);
+          }
+        },
       }
     );
   };
@@ -575,6 +606,14 @@ const StudySettingsPage = () => {
             {t('settings.failedQueue')}
           </p>
         ) : null}
+        {previewError ? (
+          <p
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {previewError}
+          </p>
+        ) : null}
 
         {!queueQuery.isLoading && queueItems.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-gray-600">
@@ -588,6 +627,7 @@ const StudySettingsPage = () => {
               {queueItems.map((item, index) => (
                 <SortableQueueRow
                   key={item.id}
+                  isPreviewing={previewPendingCardId === item.id}
                   item={item}
                   ordinal={index + 1}
                   onPreview={handlePreview}
@@ -627,7 +667,14 @@ const StudySettingsPage = () => {
           </button>
         ) : null}
         {previewCard ? (
-          <StudyCandidateCardPreviewModal card={previewCard} onClose={() => setPreviewCard(null)} />
+          <StudyCandidateCardPreviewModal
+            card={previewCard}
+            onClose={() => {
+              previewRequestIdRef.current += 1;
+              setPreviewCard(null);
+              setPreviewPendingCardId(null);
+            }}
+          />
         ) : null}
       </section>
     </div>

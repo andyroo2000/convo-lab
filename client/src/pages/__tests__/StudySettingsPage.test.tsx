@@ -114,13 +114,22 @@ vi.mock('../../hooks/useKnownKanji', () => ({
 }));
 
 vi.mock('../../hooks/useStudyBackgroundTask', () => ({
-  default: () => (task?: Promise<unknown> | (() => Promise<unknown> | unknown)) => {
+  default:
+    () =>
+    (
+      task?: Promise<unknown> | (() => Promise<unknown> | unknown),
+      options?: { onError?: (message: string) => void }
+    ) => {
     if (typeof task === 'function') {
-      Promise.resolve(task()).catch(() => undefined);
+      Promise.resolve(task()).catch((error) => {
+        options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
+      });
     } else {
-      Promise.resolve(task).catch(() => undefined);
+      Promise.resolve(task).catch((error) => {
+        options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
+      });
     }
-  },
+    },
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
@@ -319,7 +328,9 @@ describe('StudySettingsPage', () => {
     getStudyBrowserNoteDetailMock.mockResolvedValue({
       cards: [canonicalCard({ answerAudio: null })],
     });
-    prepareStudyAnswerAudioMock.mockResolvedValue(canonicalCard());
+    prepareStudyAnswerAudioMock
+      .mockResolvedValueOnce(canonicalCard({ answerAudio: null }))
+      .mockResolvedValueOnce(canonicalCard());
 
     renderPage();
 
@@ -327,12 +338,67 @@ describe('StudySettingsPage', () => {
     await userEvent.click(within(firstRow).getByRole('button', { name: 'Preview card' }));
     expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
 
-    expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1');
+    await waitFor(() => expect(prepareStudyAnswerAudioMock).toHaveBeenCalledTimes(2));
+    expect(prepareStudyAnswerAudioMock).toHaveBeenLastCalledWith('card-1');
     await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
     expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute(
       'src',
       'https://example.com/answer.mp3'
     );
+  });
+
+  it('surfaces queue preview failures and restores the preview action', async () => {
+    getStudyBrowserNoteDetailMock.mockRejectedValue(new Error('Preview request failed.'));
+
+    renderPage();
+
+    const firstRow = screen.getAllByTestId('study-new-queue-row')[0];
+    await userEvent.click(within(firstRow).getByRole('button', { name: 'Preview card' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Preview request failed.');
+    expect(within(firstRow).getByRole('button', { name: 'Preview card' })).toBeEnabled();
+  });
+
+  it('ignores an older queue preview response after another card is selected', async () => {
+    let resolveFirst: ((value: { cards: StudyCardSummary[] }) => void) | undefined;
+    let resolveSecond: ((value: { cards: StudyCardSummary[] }) => void) | undefined;
+    const firstDetail = new Promise<{ cards: StudyCardSummary[] }>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const secondDetail = new Promise<{ cards: StudyCardSummary[] }>((resolve) => {
+      resolveSecond = resolve;
+    });
+    getStudyBrowserNoteDetailMock.mockImplementation((noteId: string) =>
+      noteId === 'note-1' ? firstDetail : secondDetail
+    );
+
+    renderPage();
+
+    const rows = screen.getAllByTestId('study-new-queue-row');
+    await userEvent.click(within(rows[0]).getByRole('button', { name: 'Preview card' }));
+    await userEvent.click(within(rows[1]).getByRole('button', { name: 'Preview card' }));
+
+    resolveSecond?.({
+      cards: [
+        canonicalCard({
+          id: 'card-2',
+          noteId: 'note-2',
+          cardType: 'production',
+          prompt: { cueMeaning: 'school' },
+          answer: { expression: '学校', meaning: 'school' },
+        }),
+      ],
+    });
+    expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
+    const previewDialog = screen.getByRole('dialog', { name: 'Card preview' });
+    expect(within(previewDialog).getAllByText('school').length).toBeGreaterThan(0);
+
+    resolveFirst?.({ cards: [canonicalCard()] });
+    await act(async () => {
+      await firstDetail;
+    });
+    expect(within(previewDialog).getAllByText('school').length).toBeGreaterThan(0);
+    expect(within(previewDialog).queryByText('company')).not.toBeInTheDocument();
   });
 
   it('restores cloze text on the new-card queue preview answer side', async () => {

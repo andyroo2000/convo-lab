@@ -133,6 +133,7 @@
     "searchPlaceholder": "Search new cards",
     "search": "Search",
     "loadingQueue": "Loading new cards…",
+    "loadingPreview": "Loading preview…",
     "emptyQueue": "No new cards are waiting in the queue.",
     "loadMore": "Load more",
     "loadingMore": "Loading…",
