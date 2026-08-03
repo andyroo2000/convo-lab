@@ -505,6 +505,15 @@ describe('useStudy request helpers', () => {
     ]);
   });
 
+  it('treats an empty current-import response as no active import', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+    } as Response);
+
+    await expect(getCurrentStudyImport()).resolves.toBeNull();
+  });
+
   it('attaches the shared CSRF token header to direct import uploads', async () => {
     const file = new File(['archive'], 'deck.colpkg', {
       type: 'application/octet-stream',

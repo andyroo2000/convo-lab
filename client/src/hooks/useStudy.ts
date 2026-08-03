@@ -917,7 +917,9 @@ export async function getCurrentStudyImport(
   init?: Pick<RequestInit, 'signal'>
 ): Promise<StudyImportResult | null> {
   const response = unwrapLearningOsData(await apiRequest<unknown>('/imports/current', init));
-  return response === null ? null : normalizeStudyImportResult(response);
+  return response === null || typeof response === 'undefined'
+    ? null
+    : normalizeStudyImportResult(response);
 }
 
 export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
