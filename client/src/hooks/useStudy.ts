@@ -88,6 +88,101 @@ export interface StudyBrowserQuery {
   limit?: number;
 }
 
+type JsonRecord = Record<string, unknown>;
+
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function unwrapLearningOsData(value: unknown): unknown {
+  return isJsonRecord(value) && Object.prototype.hasOwnProperty.call(value, 'data')
+    ? value.data
+    : value;
+}
+
+function stringValue(record: JsonRecord, camelKey: string, snakeKey: string): string {
+  const value = record[camelKey] ?? record[snakeKey];
+  return typeof value === 'string' ? value : '';
+}
+
+function nullableStringValue(
+  record: JsonRecord,
+  camelKey: string,
+  snakeKey: string
+): string | null {
+  const value = record[camelKey] ?? record[snakeKey];
+  return typeof value === 'string' ? value : null;
+}
+
+function numberValue(record: JsonRecord, camelKey: string, snakeKey: string): number {
+  const value = record[camelKey] ?? record[snakeKey];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function normalizeStudyImportPreview(value: unknown): StudyImportResult['preview'] {
+  const preview = isJsonRecord(value) ? value : {};
+  const breakdownValue = preview.noteTypeBreakdown ?? preview.note_type_breakdown;
+  const warningsValue = preview.warnings;
+
+  return {
+    deckName: stringValue(preview, 'deckName', 'deck_name'),
+    cardCount: numberValue(preview, 'cardCount', 'card_count'),
+    noteCount: numberValue(preview, 'noteCount', 'note_count'),
+    reviewLogCount: numberValue(preview, 'reviewLogCount', 'review_log_count'),
+    mediaReferenceCount: numberValue(preview, 'mediaReferenceCount', 'media_reference_count'),
+    skippedMediaCount: numberValue(preview, 'skippedMediaCount', 'skipped_media_count'),
+    warnings: Array.isArray(warningsValue)
+      ? warningsValue.filter((warning): warning is string => typeof warning === 'string')
+      : [],
+    noteTypeBreakdown: Array.isArray(breakdownValue)
+      ? breakdownValue.filter(isJsonRecord).map((item) => ({
+          notetypeName: stringValue(item, 'notetypeName', 'notetype_name'),
+          noteCount: numberValue(item, 'noteCount', 'note_count'),
+          cardCount: numberValue(item, 'cardCount', 'card_count'),
+        }))
+      : [],
+  };
+}
+
+function normalizeStudyImportResult(value: unknown): StudyImportResult {
+  const result = unwrapLearningOsData(value);
+  if (!isJsonRecord(result)) {
+    throw new Error('Study import response was malformed.');
+  }
+
+  const { status } = result;
+  if (
+    status !== 'pending' &&
+    status !== 'processing' &&
+    status !== 'completed' &&
+    status !== 'failed'
+  ) {
+    throw new Error('Study import response contained an invalid status.');
+  }
+
+  const sourceSizeValue = result.sourceSizeBytes ?? result.source_size_bytes;
+  const id = stringValue(result, 'id', 'id');
+  if (!id) {
+    throw new Error('Study import response did not include an id.');
+  }
+
+  return {
+    id,
+    status,
+    sourceFilename: stringValue(result, 'sourceFilename', 'source_filename'),
+    deckName: stringValue(result, 'deckName', 'deck_name'),
+    preview: normalizeStudyImportPreview(result.preview),
+    uploadedAt: nullableStringValue(result, 'uploadedAt', 'uploaded_at'),
+    uploadExpiresAt: nullableStringValue(result, 'uploadExpiresAt', 'upload_expires_at'),
+    sourceSizeBytes:
+      typeof sourceSizeValue === 'number' && Number.isFinite(sourceSizeValue)
+        ? sourceSizeValue
+        : null,
+    importedAt: nullableStringValue(result, 'importedAt', 'completed_at'),
+    errorMessage: nullableStringValue(result, 'errorMessage', 'error_message'),
+  };
+}
+
 function withMutationHeaders(init?: RequestInit): HeadersInit {
   const headers = new Headers(init?.headers ?? {});
   const method = (init?.method ?? 'GET').toUpperCase();
@@ -703,13 +798,37 @@ export function useStudyCardAction() {
 export async function createStudyImportUploadSession(
   file: File
 ): Promise<StudyImportUploadSession> {
-  return apiRequest<StudyImportUploadSession>('/imports', {
+  const response = await apiRequest<unknown>('/imports', {
     method: 'POST',
     body: JSON.stringify({
       filename: file.name,
-      contentType: file.type || 'application/octet-stream',
+      content_type: file.type || 'application/octet-stream',
     }),
   });
+  const session = unwrapLearningOsData(response);
+  if (!isJsonRecord(session)) {
+    throw new Error('Study import upload session was malformed.');
+  }
+  const importJob = session.importJob ?? session.import_job;
+  const { upload } = session;
+  if (!isJsonRecord(upload) || upload.method !== 'PUT' || typeof upload.url !== 'string') {
+    throw new Error('Study import upload session was malformed.');
+  }
+
+  return {
+    importJob: normalizeStudyImportResult(importJob),
+    upload: {
+      method: 'PUT',
+      url: upload.url,
+      headers: isJsonRecord(upload.headers)
+        ? Object.fromEntries(
+            Object.entries(upload.headers).filter(
+              (entry): entry is [string, string] => typeof entry[1] === 'string'
+            )
+          )
+        : {},
+    },
+  };
 }
 
 export async function uploadStudyImportArchive(
@@ -779,32 +898,46 @@ export async function uploadStudyImportArchive(
 }
 
 export async function completeStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
-  return apiRequest<StudyImportResult>(`/imports/${encodeURIComponent(importJobId)}/complete`, {
-    method: 'POST',
-  });
+  return normalizeStudyImportResult(
+    await apiRequest<unknown>(`/imports/${encodeURIComponent(importJobId)}/complete`, {
+      method: 'POST',
+    })
+  );
 }
 
 export async function cancelStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
-  return apiRequest<StudyImportResult>(`/imports/${encodeURIComponent(importJobId)}/cancel`, {
-    method: 'POST',
-  });
+  return normalizeStudyImportResult(
+    await apiRequest<unknown>(`/imports/${encodeURIComponent(importJobId)}/cancel`, {
+      method: 'POST',
+    })
+  );
 }
 
 export async function getCurrentStudyImport(
   init?: Pick<RequestInit, 'signal'>
 ): Promise<StudyImportResult | null> {
-  return apiRequest<StudyImportResult | null>('/imports/current', init);
+  const response = unwrapLearningOsData(await apiRequest<unknown>('/imports/current', init));
+  return response === null ? null : normalizeStudyImportResult(response);
 }
 
 export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
-  return apiRequest<StudyImportUploadReadiness>('/imports/readiness');
+  const response = unwrapLearningOsData(await apiRequest<unknown>('/imports/readiness'));
+  if (!isJsonRecord(response)) {
+    throw new Error('Study import readiness response was malformed.');
+  }
+  return {
+    ready: response.ready === true,
+    message: typeof response.message === 'string' ? response.message : null,
+  };
 }
 
 export async function getStudyImportStatus(
   importJobId: string,
   init?: Pick<RequestInit, 'signal'>
 ): Promise<StudyImportResult> {
-  return apiRequest<StudyImportResult>(`/imports/${encodeURIComponent(importJobId)}`, init);
+  return normalizeStudyImportResult(
+    await apiRequest<unknown>(`/imports/${encodeURIComponent(importJobId)}`, init)
+  );
 }
 
 export async function uploadStudyImport(file: File): Promise<StudyImportResult> {

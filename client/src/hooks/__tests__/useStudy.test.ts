@@ -125,6 +125,31 @@ describe('useStudy request helpers', () => {
     expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
   }
 
+  function learningOsImportJob(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+      status: 'pending',
+      source_filename: 'deck.colpkg',
+      source_size_bytes: null,
+      deck_name: '日本語',
+      preview: {
+        deck_name: '日本語',
+        card_count: 0,
+        note_count: 0,
+        review_log_count: 0,
+        media_reference_count: 0,
+        skipped_media_count: 0,
+        warnings: [],
+        note_type_breakdown: [],
+      },
+      uploaded_at: null,
+      upload_expires_at: '2099-04-21T01:00:00.000Z',
+      completed_at: null,
+      error_message: null,
+      ...overrides,
+    };
+  }
+
   it('routes review and lesson starts, review, and undo through Learning OS', async () => {
     await startStudySession();
     await startStudyLesson();
@@ -362,18 +387,40 @@ describe('useStudy request helpers', () => {
         ok: true,
         status: 201,
         json: async () => ({
-          importJob: { id: importId, status: 'awaiting_upload' },
-          upload: {
-            method: 'PUT',
-            url: uploadUrl,
-            headers: { 'Content-Type': 'application/octet-stream' },
+          data: {
+            import_job: learningOsImportJob(),
+            upload: {
+              method: 'PUT',
+              url: uploadUrl,
+              headers: { 'Content-Type': 'application/octet-stream' },
+            },
           },
         }),
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 202,
-        json: async () => ({ id: importId, status: 'pending' }),
+        json: async () => ({
+          data: learningOsImportJob({
+            uploaded_at: '2026-08-03T21:00:00Z',
+            preview: {
+              deck_name: '日本語',
+              card_count: 155,
+              note_count: 155,
+              review_log_count: 0,
+              media_reference_count: 155,
+              skipped_media_count: 0,
+              warnings: [],
+              note_type_breakdown: [
+                {
+                  notetype_name: 'Japanese - Listening',
+                  note_count: 155,
+                  card_count: 155,
+                },
+              ],
+            },
+          }),
+        }),
       } as Response);
 
     const file = new File(['archive'], 'deck.colpkg', {
@@ -381,7 +428,19 @@ describe('useStudy request helpers', () => {
     });
     const result = await uploadStudyImport(file);
 
-    expect(result).toEqual({ id: importId, status: 'pending' });
+    expect(result).toMatchObject({
+      id: importId,
+      status: 'pending',
+      sourceFilename: 'deck.colpkg',
+      deckName: '日本語',
+      uploadedAt: '2026-08-03T21:00:00Z',
+      preview: {
+        cardCount: 155,
+        noteTypeBreakdown: [
+          { notetypeName: 'Japanese - Listening', noteCount: 155, cardCount: 155 },
+        ],
+      },
+    });
     expect(vi.mocked(global.fetch).mock.calls.map(([url]) => String(url))).toEqual([
       `${STUDY_API_BASE}/imports`,
       `${STUDY_API_BASE}/imports/${importId}/complete`,
@@ -395,11 +454,47 @@ describe('useStudy request helpers', () => {
 
   it('routes import status, readiness, completion, and cancellation through Learning OS', async () => {
     const importId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
-    await getCurrentStudyImport();
-    await getStudyImportUploadReadiness();
-    await getStudyImportStatus(importId);
-    await completeStudyImportUpload(importId);
-    await cancelStudyImportUpload(importId);
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: null }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: { ready: true, message: null } }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: learningOsImportJob() }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ data: learningOsImportJob({ uploaded_at: '2026-08-03T21:00:00Z' }) }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: learningOsImportJob({ status: 'failed', error_message: 'Cancelled' }),
+        }),
+      } as Response);
+
+    expect(await getCurrentStudyImport()).toBeNull();
+    expect(await getStudyImportUploadReadiness()).toEqual({ ready: true, message: null });
+    expect(await getStudyImportStatus(importId)).toMatchObject({ id: importId, status: 'pending' });
+    expect(await completeStudyImportUpload(importId)).toMatchObject({
+      id: importId,
+      uploadedAt: '2026-08-03T21:00:00Z',
+    });
+    expect(await cancelStudyImportUpload(importId)).toMatchObject({
+      id: importId,
+      status: 'failed',
+      errorMessage: 'Cancelled',
+    });
 
     expect(vi.mocked(global.fetch).mock.calls.map(([url]) => String(url))).toEqual([
       `${STUDY_API_BASE}/imports/current`,
@@ -447,6 +542,20 @@ describe('useStudy request helpers', () => {
   });
 
   it('creates import sessions with the Learning OS proxy contract', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        data: {
+          import_job: learningOsImportJob(),
+          upload: {
+            method: 'PUT',
+            url: '/api/study/imports/01ARZ3NDEKTSV4RRFFQ69G5FAW/upload',
+            headers: { 'Content-Type': 'application/octet-stream' },
+          },
+        },
+      }),
+    } as Response);
     const file = new File(['archive'], 'deck.colpkg', {
       type: 'application/octet-stream',
     });
@@ -456,7 +565,7 @@ describe('useStudy request helpers', () => {
     const requestInit = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
     expect(JSON.parse(String(requestInit.body))).toEqual({
       filename: 'deck.colpkg',
-      contentType: 'application/octet-stream',
+      content_type: 'application/octet-stream',
     });
   });
 });
