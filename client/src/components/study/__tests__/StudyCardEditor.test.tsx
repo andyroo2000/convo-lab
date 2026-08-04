@@ -65,6 +65,8 @@ describe('StudyCardEditor', () => {
     render(<StudyCardEditor card={audioRecognitionCard} onCancel={vi.fn()} onSave={onSave} />);
 
     expect(screen.queryByLabelText('Prompt text')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Image prompt')).toHaveValue('');
+    expect(screen.getByLabelText('Image placement')).toHaveValue('none');
 
     await userEvent.click(screen.getByRole('button', { name: 'Save card' }));
 
