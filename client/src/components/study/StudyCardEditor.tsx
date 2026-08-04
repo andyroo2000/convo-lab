@@ -36,10 +36,14 @@ interface StudyCardEditorProps {
 function getCardImageRole(card: StudyCardSummary): StudyCardImagePlacement {
   // Study cards currently carry at most one image, hydrated onto whichever side owns it.
   if (card.prompt.cueImage && card.answer.answerImage) return 'both';
-  return card.prompt.cueImage ? 'prompt' : 'answer';
+  if (card.prompt.cueImage) return 'prompt';
+  if (card.answer.answerImage) return 'answer';
+  return 'none';
 }
 
 function getCardImagePrompt(card: StudyCardSummary): string {
+  if (!card.prompt.cueImage && !card.answer.answerImage) return '';
+
   const subject =
     card.answer.expression ??
     card.answer.restoredText ??
