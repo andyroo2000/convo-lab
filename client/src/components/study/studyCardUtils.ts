@@ -28,6 +28,17 @@ export const getAudioMimeType = (url?: string | null, filename?: string | null) 
   return 'audio/mpeg';
 };
 
+/**
+ * Resolve the card's one logical audio asset from the legacy side-specific fields.
+ * Prompt audio wins when both fields are present because it is the recognition cue;
+ * answerAudio remains readable for cards created before audio-led prompts existed.
+ */
+export const getStudyCardAudio = (card: StudyCardSummary) =>
+  card.prompt.cueAudio ?? card.answer.answerAudio ?? null;
+
+export const getStudyCardAudioUrl = (card: StudyCardSummary) =>
+  toAssetUrl(getStudyCardAudio(card)?.url);
+
 export const isAudioLedPromptCard = (card: StudyCardSummary) =>
   Boolean(
     card.cardType === 'recognition' &&

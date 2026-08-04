@@ -2,7 +2,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import type { AudioPlayerHandle } from '../components/study/StudyAudioPlayer';
-import { isAudioLedPromptCard, toAssetUrl } from '../components/study/studyCardUtils';
+import {
+  getStudyCardAudioUrl,
+  isAudioLedPromptCard,
+  toAssetUrl,
+} from '../components/study/studyCardUtils';
 import { warmAudioCache } from '../lib/audioCache';
 
 const PREWARM_CARD_COUNT = 3;
@@ -61,7 +65,7 @@ export default function useStudyAudioAutoplay({
 
   const autoplayAnswerAudioForCard = useCallback(
     (card: StudyCardSummary) => {
-      const answerUrl = toAssetUrl(card.answer.answerAudio?.url);
+      const answerUrl = getStudyCardAudioUrl(card);
       if (!answerUrl) return;
 
       const autoplayKey = `${card.id}:answer:${answerUrl}`;
@@ -85,10 +89,7 @@ export default function useStudyAudioAutoplay({
 
     const upcomingCards = cards.slice(0, PREWARM_CARD_COUNT);
     const audioUrls = upcomingCards
-      .flatMap((card) => [
-        toAssetUrl(card.prompt.cueAudio?.url),
-        toAssetUrl(card.answer.answerAudio?.url),
-      ])
+      .map(getStudyCardAudioUrl)
       .filter((url): url is string => Boolean(url));
 
     warmAudioCache(audioUrls).catch((error) => {
@@ -96,7 +97,7 @@ export default function useStudyAudioAutoplay({
     });
 
     upcomingCards
-      .filter((card) => !toAssetUrl(card.answer.answerAudio?.url))
+      .filter((card) => !getStudyCardAudioUrl(card))
       .forEach((card) => {
         runBackgroundTask(() => ensureAnswerAudioPrepared(card.id), {
           label: 'Study answer-audio prewarm',

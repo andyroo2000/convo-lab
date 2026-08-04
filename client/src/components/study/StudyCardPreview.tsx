@@ -7,7 +7,12 @@ import StudyAudioPlayer from './StudyAudioPlayer';
 import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
-import { isAudioLedPromptCard, isMediaLedPromptCard, toAssetUrl } from './studyCardUtils';
+import {
+  getStudyCardAudioUrl,
+  isAudioLedPromptCard,
+  isMediaLedPromptCard,
+  toAssetUrl,
+} from './studyCardUtils';
 import {
   getHeadlineClasses,
   parseRubySegments,
@@ -385,7 +390,7 @@ export const StudyCardFace = ({
     );
   }
 
-  const answerAudioUrl = toAssetUrl(card.answer.answerAudio?.url);
+  const answerAudioUrl = getStudyCardAudioUrl(card);
   const reviewImage = card.answer.answerImage ?? card.prompt.cueImage ?? null;
   const reviewImageUrl = toAssetUrl(reviewImage?.url);
   const reviewImageAlt = card.answer.answerImage ? 'Answer visual' : 'Study visual';

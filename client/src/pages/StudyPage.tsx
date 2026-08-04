@@ -12,6 +12,7 @@ import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
 import StudySetDueControls from '../components/study/StudySetDueControls';
+import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useStudyOverview } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
@@ -444,7 +445,7 @@ const StudyPage = () => {
                             });
                           }}
                           onReplayAudio={
-                            reviewSession.currentCard.answer.answerAudio?.url
+                            getStudyCardAudioUrl(reviewSession.currentCard)
                               ? () => {
                                   const playPromise = reviewSession.answerAudioRef.current?.play();
                                   runBackgroundTask(playPromise, {

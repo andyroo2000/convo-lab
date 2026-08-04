@@ -28,6 +28,7 @@ import { GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
+import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
   useConnectWaniKani,
@@ -231,7 +232,7 @@ const StudySettingsPage = () => {
             throw new Error(t('settings.previewUnavailable'));
           }
 
-          const preview = canonicalCard.answer.answerAudio?.url
+          const preview = getStudyCardAudioUrl(canonicalCard)
             ? canonicalCard
             : await ensurePreviewAnswerAudio(canonicalCard.id);
           if (previewRequestIdRef.current === requestId) {
