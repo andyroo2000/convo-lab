@@ -815,7 +815,7 @@ describe('StudyPage', () => {
     expect(within(gradeTray).getByRole('button', { name: 'Replay answer audio' })).toBeEnabled();
   });
 
-  it('autoplays prompt audio for audio-led cards and prepares missing answer audio on reveal', async () => {
+  it('autoplays prompt audio and reuses it on reveal without generating duplicate audio', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {
         dueCount: 4,
@@ -878,9 +878,7 @@ describe('StudyPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
-    await waitFor(() => {
-      expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1');
-    });
+    expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Replay answer audio' })).toBeEnabled();
     });

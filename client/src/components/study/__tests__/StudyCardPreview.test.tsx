@@ -605,6 +605,33 @@ describe('StudyCardPreview', () => {
     expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute('type', 'audio/ogg');
   });
 
+  it('reuses prompt-only card audio on the answer side', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        card={{
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'listening-example.mp3',
+              url: 'https://example.com/listening-example.mp3',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute(
+      'src',
+      'https://example.com/listening-example.mp3'
+    );
+    expect(
+      screen.queryByText('Answer audio is being backfilled for this card.')
+    ).not.toBeInTheDocument();
+  });
+
   it('derives prompt audio MIME type from its filename when the media URL has no extension', () => {
     render(
       <StudyCardFace

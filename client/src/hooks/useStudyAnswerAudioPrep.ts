@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import { prepareStudyAnswerAudio } from './useStudy';
-import { toAssetUrl } from '../components/study/studyCardUtils';
+import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { warmAudioCache } from '../lib/audioCache';
 
 const ANSWER_AUDIO_PREP_MAX_ATTEMPTS = 4;
@@ -57,7 +57,7 @@ export default function useStudyAnswerAudioPrep({
             mergeCardIntoSession(updatedCard);
           }
 
-          const answerAudioUrl = toAssetUrl(updatedCard.answer.answerAudio?.url);
+          const answerAudioUrl = getStudyCardAudioUrl(updatedCard);
           if (answerAudioUrl) {
             warmAudioCache([answerAudioUrl]).catch((error) => {
               console.warn('Unable to warm prepared answer audio:', error);

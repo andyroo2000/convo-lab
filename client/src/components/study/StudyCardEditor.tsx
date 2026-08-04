@@ -8,7 +8,7 @@ import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
 import StudyCardFormFields from './StudyCardFormFields';
 import StudyCardImageControls from './StudyCardImageControls';
 import { useStudyCardForm } from './studyCardFormModel';
-import { isAudioLedPromptCard, toAssetUrl } from './studyCardUtils';
+import { getStudyCardAudio, isAudioLedPromptCard, toAssetUrl } from './studyCardUtils';
 
 interface StudyCardEditorProps {
   card: StudyCardSummary;
@@ -70,7 +70,7 @@ const StudyCardEditor = ({
   const { t } = useTranslation('study');
   const { values, setField, buildPayload } = useStudyCardForm({ card });
   const isAudioLedPrompt = isAudioLedPromptCard(card);
-  const [currentAnswerAudio, setCurrentAnswerAudio] = useState(card.answer.answerAudio ?? null);
+  const [currentAnswerAudio, setCurrentAnswerAudio] = useState(getStudyCardAudio(card));
   const [currentImage, setCurrentImage] = useState(
     card.prompt.cueImage ?? card.answer.answerImage ?? null
   );
@@ -89,13 +89,13 @@ const StudyCardEditor = ({
   ].join('\u001f');
   const lastCardResetKeyRef = useRef(cardResetKey);
   const cardMediaSnapshotRef = useRef({
-    answerAudio: card.answer.answerAudio ?? null,
+    answerAudio: getStudyCardAudio(card),
     image: card.prompt.cueImage ?? card.answer.answerImage ?? null,
     imageRole: getCardImageRole(card),
     imagePrompt: getCardImagePrompt(card),
   });
   cardMediaSnapshotRef.current = {
-    answerAudio: card.answer.answerAudio ?? null,
+    answerAudio: getStudyCardAudio(card),
     image: card.prompt.cueImage ?? card.answer.answerImage ?? null,
     imageRole: getCardImageRole(card),
     imagePrompt: getCardImagePrompt(card),
@@ -252,7 +252,7 @@ const StudyCardEditor = ({
                   answerAudioTextOverride: values.answerAudioTextOverride || null,
                 });
                 if (updatedCard) {
-                  setCurrentAnswerAudio(updatedCard.answer.answerAudio ?? null);
+                  setCurrentAnswerAudio(getStudyCardAudio(updatedCard));
                   setRegeneratedAudioPlayRequest((requestId) => requestId + 1);
                 }
               } catch {

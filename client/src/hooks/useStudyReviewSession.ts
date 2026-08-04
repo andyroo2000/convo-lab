@@ -28,7 +28,7 @@ import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
-import { toAssetUrl } from '../components/study/studyCardUtils';
+import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 
 interface StudyUndoSnapshot {
@@ -368,7 +368,7 @@ const useStudyReviewSession = () => {
     stopAllAudio();
     flushSync(() => setRevealed(true));
 
-    const answerUrl = toAssetUrl(currentCard.answer.answerAudio?.url);
+    const answerUrl = getStudyCardAudioUrl(currentCard);
     if (answerUrl) {
       autoplayAnswerAudioForCard(currentCard);
       return;
