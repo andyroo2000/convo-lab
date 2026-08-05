@@ -156,10 +156,13 @@ const StudyCardsPage = () => {
   queueDataRef.current = queueQuery.data;
   const previousQueuePageCountRef = useRef(0);
   const previousFirstQueuePageSignatureRef = useRef('');
-  const queuePageSignature =
-    queueQuery.data?.pages
-      .map((page) => `${page.nextCursor ?? 'end'}:${page.items.map((item) => item.id).join(',')}`)
-      .join('|') ?? '';
+  const queuePageSignature = useMemo(
+    () =>
+      queueQuery.data?.pages
+        .map((page) => `${page.nextCursor ?? 'end'}:${page.items.map((item) => item.id).join(',')}`)
+        .join('|') ?? '',
+    [queueQuery.data]
+  );
 
   useEffect(() => {
     const pages = queueDataRef.current?.pages ?? [];

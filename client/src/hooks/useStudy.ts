@@ -574,9 +574,15 @@ export function useReorderStudyNewCardQueue() {
   return useMutation({
     mutationFn: reorderStudyNewCardQueue,
     onSuccess: async () => {
-      // StudyCardsPage owns the optimistic queue order. Avoid refetching every
-      // loaded infinite page after each drag; only the overview count can drift.
-      await queryClient.invalidateQueries({ queryKey: ['study', 'overview'] });
+      // Keep the current page's optimistic order, but mark the cached pages stale
+      // so a later remount cannot restore their pre-reorder order.
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['study', 'new-queue'],
+          refetchType: 'none',
+        }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+      ]);
     },
   });
 }
