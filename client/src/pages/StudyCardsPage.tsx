@@ -154,21 +154,35 @@ const StudyCardsPage = () => {
   const reorderDisabled = queueItems.length > 100;
   const queueDataRef = useRef(queueQuery.data);
   queueDataRef.current = queueQuery.data;
+  const previousQueuePageCountRef = useRef(0);
+  const previousFirstQueuePageSignatureRef = useRef('');
   const queuePageSignature =
     queueQuery.data?.pages
       .map((page) => `${page.nextCursor ?? 'end'}:${page.items.map((item) => item.id).join(',')}`)
       .join('|') ?? '';
 
   useEffect(() => {
-    const loadedQueueItems = uniqueById(
-      queueDataRef.current?.pages.flatMap((page) => page.items) ?? []
-    );
+    const pages = queueDataRef.current?.pages ?? [];
+    const loadedQueueItems = uniqueById(pages.flatMap((page) => page.items));
+    const firstPageSignature = pages[0]?.items.map((item) => item.id).join(',') ?? '';
+    const previousPageCount = previousQueuePageCountRef.current;
+    const isPageAppend =
+      previousPageCount > 0 &&
+      pages.length > previousPageCount &&
+      firstPageSignature === previousFirstQueuePageSignatureRef.current;
+
     setQueueItems((current) => {
-      const matches =
-        current.length === loadedQueueItems.length &&
-        current.every((item, index) => item.id === loadedQueueItems[index]?.id);
-      return matches ? current : loadedQueueItems;
+      if (isPageAppend) {
+        return uniqueById([
+          ...current,
+          ...pages.slice(previousPageCount).flatMap((page) => page.items),
+        ]);
+      }
+
+      return loadedQueueItems;
     });
+    previousQueuePageCountRef.current = pages.length;
+    previousFirstQueuePageSignatureRef.current = firstPageSignature;
   }, [queuePageSignature]);
 
   const queueSentinelRef = useInfiniteScroll(

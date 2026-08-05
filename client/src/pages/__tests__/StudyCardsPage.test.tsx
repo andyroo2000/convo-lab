@@ -14,12 +14,14 @@ const {
   reorderMock,
   dndContextProps,
   observerCallbacks,
+  queuePages,
 } = vi.hoisted(() => ({
   queueFetchNextPage: vi.fn(),
   cardsFetchNextPage: vi.fn(),
   reorderMock: vi.fn(),
   dndContextProps: { current: null as null | { onDragEnd?: (event: DragEndEvent) => void } },
   observerCallbacks: [] as IntersectionObserverCallback[],
+  queuePages: { current: [] as Array<Record<string, unknown>> },
 }));
 
 vi.mock('@dnd-kit/core', () => ({
@@ -65,35 +67,7 @@ vi.mock('../../hooks/useStudyBackgroundTask', () => ({
 vi.mock('../../hooks/useStudy', () => ({
   useStudyNewCardQueueInfinite: () => ({
     data: {
-      pages: [
-        {
-          items: [
-            {
-              id: 'card-1',
-              noteId: 'note-1',
-              cardType: 'recognition',
-              displayText: '会社',
-              meaning: 'company',
-              queuePosition: 1,
-              createdAt: '2026-08-01T00:00:00.000Z',
-              updatedAt: '2026-08-01T00:00:00.000Z',
-            },
-            {
-              id: 'card-2',
-              noteId: 'note-2',
-              cardType: 'production',
-              displayText: '学校',
-              meaning: 'school',
-              queuePosition: 2,
-              createdAt: '2026-08-01T00:00:00.000Z',
-              updatedAt: '2026-08-01T00:00:00.000Z',
-            },
-          ],
-          total: 3,
-          limit: 2,
-          nextCursor: '2',
-        },
-      ],
+      pages: queuePages.current,
     },
     isLoading: false,
     error: null,
@@ -147,6 +121,35 @@ describe('StudyCardsPage', () => {
     cardsFetchNextPage.mockReset();
     reorderMock.mockReset().mockResolvedValue({});
     observerCallbacks.length = 0;
+    queuePages.current = [
+      {
+        items: [
+          {
+            id: 'card-1',
+            noteId: 'note-1',
+            cardType: 'recognition',
+            displayText: '会社',
+            meaning: 'company',
+            queuePosition: 1,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
+          },
+          {
+            id: 'card-2',
+            noteId: 'note-2',
+            cardType: 'production',
+            displayText: '学校',
+            meaning: 'school',
+            queuePosition: 2,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
+          },
+        ],
+        total: 3,
+        limit: 2,
+        nextCursor: '2',
+      },
+    ];
     global.IntersectionObserver = class IntersectionObserver {
       constructor(callback: IntersectionObserverCallback) {
         observerCallbacks.push(callback);
@@ -192,7 +195,7 @@ describe('StudyCardsPage', () => {
   });
 
   it('loads more at the scroll sentinel and preserves queue reorder', async () => {
-    renderPage();
+    const view = renderPage();
 
     act(() => {
       observerCallbacks[0]?.(
@@ -210,8 +213,38 @@ describe('StudyCardsPage', () => {
     });
 
     await waitFor(() => expect(reorderMock).toHaveBeenCalledWith(['card-2', 'card-1']));
-    const rows = screen.getAllByTestId('study-new-queue-row');
+    queuePages.current = [
+      ...queuePages.current,
+      {
+        items: [
+          {
+            id: 'card-4',
+            noteId: 'note-4',
+            cardType: 'recognition',
+            displayText: '先生',
+            meaning: 'teacher',
+            queuePosition: 3,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
+          },
+        ],
+        total: 3,
+        limit: 2,
+        nextCursor: null,
+      },
+    ];
+    view.rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <BrowserRouter>
+          <StudyCardsPage />
+        </BrowserRouter>
+      </QueryClientProvider>
+    );
+
+    const rows = await screen.findAllByTestId('study-new-queue-row');
     expect(within(rows[0]).getByText('学校')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('会社')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('先生')).toBeInTheDocument();
   });
 
   it('rolls back an optimistic queue reorder when the request fails', async () => {
