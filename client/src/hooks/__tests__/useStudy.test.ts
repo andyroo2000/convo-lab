@@ -18,6 +18,7 @@ import {
   getCurrentStudyImport,
   getStudyBrowser,
   getStudyBrowserNoteDetail,
+  getStudyCards,
   getStudyImportStatus,
   getStudyImportUploadReadiness,
   getStudyManualCardDrafts,
@@ -326,6 +327,7 @@ describe('useStudy request helpers', () => {
     await getStudySettings();
     await updateStudySettings({ newCardsPerDay: 15, lessonBatchSize: 7 });
     await getStudyNewCardQueue({ cursor: 'cursor-1', q: 'kana', limit: 25 });
+    await getStudyCards({ cursor: 'card-cursor', q: '会社', limit: 50 });
     await reorderStudyNewCardQueue(['card-2', 'card-1']);
     await getStudyBrowser({
       q: '学校',
@@ -340,6 +342,7 @@ describe('useStudy request helpers', () => {
       `${STUDY_API_BASE}/settings`,
       `${STUDY_API_BASE}/settings`,
       `${STUDY_API_BASE}/new-queue?cursor=cursor-1&limit=25&q=kana`,
+      `${STUDY_API_BASE}/cards?cursor=card-cursor&per_page=50&q=%E4%BC%9A%E7%A4%BE`,
       `${STUDY_API_BASE}/new-queue/reorder`,
       `${STUDY_API_BASE}/browser?q=%E5%AD%A6%E6%A0%A1&sortField=created_on&sortDirection=desc&limit=25`,
       `${STUDY_API_BASE}/browser/note%2Fwith%20spaces`,
@@ -354,7 +357,7 @@ describe('useStudy request helpers', () => {
       newCardsPerDay: 15,
       lessonBatchSize: 7,
     });
-    expectJsonMutation(3);
+    expectJsonMutation(4);
   });
 
   it('notifies the app only when Learning OS reports an expired session', async () => {

@@ -274,6 +274,7 @@ export async function getStudyCards(
 ): Promise<StudyCardListResponse> {
   const searchParams = new URLSearchParams();
   if (params.cursor) searchParams.set('cursor', params.cursor);
+  // This endpoint reuses Learning OS's canonical ListCardsRequest contract.
   if (typeof params.limit === 'number') searchParams.set('per_page', String(params.limit));
   if (params.q?.trim()) searchParams.set('q', params.q.trim());
 
@@ -533,17 +534,6 @@ export function useStudySettings(enabled: boolean) {
   });
 }
 
-export function useStudyNewCardQueue(
-  enabled: boolean,
-  params: { cursor?: string | null; limit?: number; q?: string } = {}
-) {
-  return useQuery({
-    queryKey: ['study', 'new-queue', params.cursor ?? 'start', params.limit ?? 100, params.q ?? ''],
-    queryFn: () => getStudyNewCardQueue(params),
-    enabled,
-  });
-}
-
 export function useStudyNewCardQueueInfinite(enabled: boolean, q = '') {
   return useInfiniteQuery({
     queryKey: ['study', 'new-queue', 'infinite', q],
@@ -584,10 +574,9 @@ export function useReorderStudyNewCardQueue() {
   return useMutation({
     mutationFn: reorderStudyNewCardQueue,
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-      ]);
+      // StudyCardsPage owns the optimistic queue order. Avoid refetching every
+      // loaded infinite page after each drag; only the overview count can drift.
+      await queryClient.invalidateQueries({ queryKey: ['study', 'overview'] });
     },
   });
 }

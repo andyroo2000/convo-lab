@@ -51,10 +51,10 @@ const cardDisplayText = (card: StudyCardSummary) =>
 const cardMeaning = (card: StudyCardSummary) =>
   card.answer.meaning ?? card.prompt.cueMeaning ?? card.answer.sentenceEn ?? '';
 
-const cardHref = (card: StudyCardSummary) => {
-  const params = new URLSearchParams({ cardId: card.id });
+const browserHref = (cardId: string, noteId: string | null) => {
+  const params = new URLSearchParams({ cardId });
   // Native/manual cards are their own browser group and do not expose a note id.
-  params.set('noteId', card.noteId ?? card.id);
+  params.set('noteId', noteId ?? cardId);
   return `/app/study/browse?${params.toString()}`;
 };
 
@@ -116,7 +116,7 @@ const QueueRow = ({ item, ordinal, reorderDisabled }: QueueRowProps) => {
         {ordinal}
       </span>
       <Link
-        to={`/app/study/browse?noteId=${encodeURIComponent(item.noteId)}&cardId=${encodeURIComponent(item.id)}`}
+        to={browserHref(item.id, item.noteId)}
         className="min-w-0 flex-1 rounded focus:outline-none focus:ring-2 focus:ring-navy"
       >
         <p className="break-words text-base font-bold text-navy">{item.displayText}</p>
@@ -252,7 +252,10 @@ const StudyCardsPage = () => {
               key={value}
               type="button"
               role="tab"
+              id={`study-cards-${value}-tab`}
+              aria-controls={`study-cards-${value}-panel`}
               aria-selected={mode === value}
+              tabIndex={mode === value ? 0 : -1}
               onClick={() => setMode(value)}
               className={`rounded-lg px-4 py-2 text-sm font-bold transition ${
                 mode === value ? 'bg-white text-navy shadow-sm' : 'text-navy/60 hover:text-navy'
@@ -292,7 +295,11 @@ const StudyCardsPage = () => {
         ) : null}
 
         {mode === 'queue' ? (
-          <div>
+          <div
+            id="study-cards-queue-panel"
+            role="tabpanel"
+            aria-labelledby="study-cards-queue-tab"
+          >
             <div className="flex items-center justify-between border-b border-navy/15 px-1 pb-2">
               <h2 className="font-bold uppercase tracking-[0.12em] text-navy">{t('cards.upNext')}</h2>
               <span className="text-sm text-gray-500">{t('cards.queuedCount', { count: queueTotal })}</span>
@@ -327,7 +334,11 @@ const StudyCardsPage = () => {
             ) : null}
           </div>
         ) : (
-          <div>
+          <div
+            id="study-cards-all-panel"
+            role="tabpanel"
+            aria-labelledby="study-cards-all-tab"
+          >
             {cardsQuery.isLoading ? <p className="py-8 text-center text-gray-500">{t('cards.loadingCards')}</p> : null}
             {cardsQuery.error ? (
               <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{t('cards.failedCards')}</p>
@@ -340,10 +351,12 @@ const StudyCardsPage = () => {
             <ul className="overflow-hidden rounded-xl border border-navy/10">
               {cards.map((card) => (
                 <li key={card.id} className="border-b border-navy/10 bg-white/70 last:border-b-0">
-                  <Link to={cardHref(card)} className="block px-4 py-4 hover:bg-cream/60 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-navy">
+                  <Link to={browserHref(card.id, card.noteId)} className="block px-4 py-4 hover:bg-cream/60 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-navy">
                     <p className="break-words font-bold text-navy">{cardDisplayText(card)}</p>
                     {cardMeaning(card) ? <p className="mt-1 line-clamp-2 break-words text-sm text-gray-600">{cardMeaning(card)}</p> : null}
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">{card.cardType}</p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">
+                      {t(`form.${card.cardType}`)}
+                    </p>
                   </Link>
                 </li>
               ))}
