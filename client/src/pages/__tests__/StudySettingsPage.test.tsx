@@ -1,39 +1,19 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { DragEndEvent } from '@dnd-kit/core';
-import type { ReactNode } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  StudyAnswerPayload,
-  StudyCardSummary,
-  StudyCardType,
-  StudyMediaRef,
-  StudyPromptPayload,
-} from '@languageflow/shared/src/types';
 
 import StudySettingsPage from '../StudySettingsPage';
 
 const {
   updateStudySettingsMock,
-  reorderStudyNewCardQueueMock,
-  getStudyBrowserNoteDetailMock,
-  prepareStudyAnswerAudioMock,
-  resolveStudyCardPitchAccentMock,
   useStudySettingsMock,
-  useStudyNewCardQueueMock,
   knownKanjiQueryData,
   setManualKnownKanjiMock,
-  dndContextProps,
 } = vi.hoisted(() => ({
   updateStudySettingsMock: vi.fn(),
-  reorderStudyNewCardQueueMock: vi.fn(),
-  getStudyBrowserNoteDetailMock: vi.fn(),
-  prepareStudyAnswerAudioMock: vi.fn(),
-  resolveStudyCardPitchAccentMock: vi.fn(),
   useStudySettingsMock: vi.fn(),
-  useStudyNewCardQueueMock: vi.fn(),
   knownKanjiQueryData: {
     current: {
       version: 1,
@@ -43,51 +23,6 @@ const {
     },
   },
   setManualKnownKanjiMock: vi.fn(),
-  dndContextProps: {
-    current: null as null | { onDragEnd?: (event: DragEndEvent) => void },
-  },
-}));
-
-vi.mock('@dnd-kit/core', () => ({
-  closestCenter: vi.fn(),
-  DndContext: ({
-    children,
-    onDragEnd,
-  }: {
-    children: ReactNode;
-    onDragEnd?: (event: DragEndEvent) => void;
-  }) => {
-    dndContextProps.current = { onDragEnd };
-    return <div data-testid="dnd-context">{children}</div>;
-  },
-  KeyboardSensor: vi.fn(),
-  PointerSensor: vi.fn(),
-  useSensor: vi.fn((sensor, options) => ({ sensor, options })),
-  useSensors: vi.fn((...sensors) => sensors),
-}));
-
-vi.mock('@dnd-kit/sortable', () => ({
-  arrayMove: <T,>(array: T[], from: number, to: number) => {
-    const next = [...array];
-    const [item] = next.splice(from, 1);
-    if (item !== undefined) {
-      next.splice(to, 0, item);
-    }
-    return next;
-  },
-  SortableContext: ({ children }: { children: ReactNode }) => (
-    <div data-testid="sortable-context">{children}</div>
-  ),
-  sortableKeyboardCoordinates: vi.fn(),
-  useSortable: () => ({
-    attributes: {},
-    listeners: {},
-    setNodeRef: vi.fn(),
-    transform: null,
-    transition: undefined,
-    isDragging: false,
-  }),
-  verticalListSortingStrategy: {},
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
@@ -120,33 +55,24 @@ vi.mock('../../hooks/useStudyBackgroundTask', () => ({
       task?: Promise<unknown> | (() => Promise<unknown> | unknown),
       options?: { onError?: (message: string) => void }
     ) => {
-    if (typeof task === 'function') {
-      Promise.resolve(task()).catch((error) => {
-        options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
-      });
-    } else {
-      Promise.resolve(task).catch((error) => {
-        options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
-      });
-    }
+      if (typeof task === 'function') {
+        Promise.resolve(task()).catch((error) => {
+          options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
+        });
+      } else {
+        Promise.resolve(task).catch((error) => {
+          options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
+        });
+      }
     },
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
-  getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
-  getStudyNewCardQueue: vi.fn(),
-  prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
-  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   useStudySettings: (...args: unknown[]) => useStudySettingsMock(...args),
-  useStudyNewCardQueue: (...args: unknown[]) => useStudyNewCardQueueMock(...args),
   useUpdateStudySettings: () => ({
     mutateAsync: updateStudySettingsMock,
     isPending: false,
     isSuccess: false,
-  }),
-  useReorderStudyNewCardQueue: () => ({
-    mutateAsync: reorderStudyNewCardQueueMock,
-    isPending: false,
   }),
 }));
 
@@ -168,50 +94,9 @@ const renderPage = () => {
   );
 };
 
-const canonicalCard = ({
-  answerAudio = {
-    id: 'answer-audio',
-    filename: 'answer.mp3',
-    url: 'https://example.com/answer.mp3',
-    mediaKind: 'audio' as const,
-    source: 'generated' as const,
-  },
-  cardType = 'recognition' as const,
-  id = 'card-1',
-  noteId = 'note-1',
-  prompt = { cueText: '会社' },
-  answer = { expression: '会社', meaning: 'company' },
-}: {
-  answerAudio?: StudyMediaRef | null;
-  cardType?: StudyCardType;
-  id?: string;
-  noteId?: string;
-  prompt?: StudyPromptPayload;
-  answer?: StudyAnswerPayload;
-} = {}): StudyCardSummary => ({
-  id,
-  noteId,
-  cardType,
-  prompt,
-  answer: { ...answer, answerAudio },
-  state: {
-    dueAt: null,
-    introducedAt: null,
-    queueState: 'new' as const,
-    scheduler: null,
-    source: {},
-  },
-  answerAudioSource: answerAudio ? ('generated' as const) : ('missing' as const),
-  createdAt: '2026-04-01T00:00:00.000Z',
-  updatedAt: '2026-04-01T00:00:00.000Z',
-});
-
 describe('StudySettingsPage', () => {
   beforeEach(() => {
     updateStudySettingsMock.mockReset();
-    reorderStudyNewCardQueueMock.mockReset();
-    getStudyBrowserNoteDetailMock.mockReset();
-    prepareStudyAnswerAudioMock.mockReset();
     setManualKnownKanjiMock.mockReset();
     knownKanjiQueryData.current = {
       version: 1,
@@ -219,61 +104,19 @@ describe('StudySettingsPage', () => {
       manualKanji: [],
       wanikani: { connected: false, lastSyncedAt: null },
     };
-    resolveStudyCardPitchAccentMock.mockReset();
-    resolveStudyCardPitchAccentMock.mockImplementation(async () => ({
-      answer: { pitchAccent: null },
-    }));
-    dndContextProps.current = null;
     useStudySettingsMock.mockReturnValue({
       data: { newCardsPerDay: 20 },
       isLoading: false,
       error: null,
     });
-    getStudyBrowserNoteDetailMock.mockResolvedValue({
-      cards: [canonicalCard()],
-    });
-    prepareStudyAnswerAudioMock.mockImplementation(async () => canonicalCard());
-    useStudyNewCardQueueMock.mockReturnValue({
-      data: {
-        items: [
-          {
-            id: 'card-1',
-            noteId: 'note-1',
-            cardType: 'recognition',
-            displayText: '会社',
-            meaning: 'company',
-            queuePosition: 1,
-            createdAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-            updatedAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-          },
-          {
-            id: 'card-2',
-            noteId: 'note-2',
-            cardType: 'production',
-            displayText: '学校',
-            meaning: 'school',
-            queuePosition: 2,
-            createdAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-            updatedAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-          },
-        ],
-        total: 2,
-        limit: 100,
-        nextCursor: null,
-      },
-      isLoading: false,
-      error: null,
-    });
   });
 
-  it('renders the daily limit and new-card queue rows', () => {
+  it('renders study controls without the card queue', () => {
     renderPage();
 
     expect(screen.getByRole('heading', { name: /study settings/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/new cards per day/i)).toHaveValue(20);
-    expect(screen.getByText('会社')).toBeInTheDocument();
-    expect(screen.getByText('学校')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /reorder 会社/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('study-new-queue-row')).not.toBeInTheDocument();
   });
 
   it('adds an obvious manual known-kanji override', async () => {
@@ -303,158 +146,7 @@ describe('StudySettingsPage', () => {
     });
   });
 
-  it('opens a reusable preview modal from a new-card queue row', async () => {
-    renderPage();
-
-    const firstRow = screen.getAllByTestId('study-new-queue-row')[0];
-    await userEvent.click(within(firstRow).getByRole('button', { name: 'Preview card' }));
-
-    expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
-    expect(screen.getByText('Prompt side')).toBeInTheDocument();
-    expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
-    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
-    expect(screen.getAllByText('company').length).toBeGreaterThan(0);
-    expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute(
-      'src',
-      'https://example.com/answer.mp3'
-    );
-    expect(
-      screen.queryByText('Answer audio is being backfilled for this card.')
-    ).not.toBeInTheDocument();
-    expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
-  });
-
-  it('prepares genuinely missing answer audio before opening a queue preview', async () => {
-    getStudyBrowserNoteDetailMock.mockResolvedValue({
-      cards: [canonicalCard({ answerAudio: null })],
-    });
-    prepareStudyAnswerAudioMock
-      .mockResolvedValueOnce(canonicalCard({ answerAudio: null }))
-      .mockResolvedValueOnce(canonicalCard());
-
-    renderPage();
-
-    const firstRow = screen.getAllByTestId('study-new-queue-row')[0];
-    await userEvent.click(within(firstRow).getByRole('button', { name: 'Preview card' }));
-    expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
-
-    await waitFor(() => expect(prepareStudyAnswerAudioMock).toHaveBeenCalledTimes(2));
-    expect(prepareStudyAnswerAudioMock).toHaveBeenLastCalledWith('card-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
-    expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute(
-      'src',
-      'https://example.com/answer.mp3'
-    );
-  });
-
-  it('surfaces queue preview failures and restores the preview action', async () => {
-    getStudyBrowserNoteDetailMock.mockRejectedValue(new Error('Preview request failed.'));
-
-    renderPage();
-
-    const firstRow = screen.getAllByTestId('study-new-queue-row')[0];
-    await userEvent.click(within(firstRow).getByRole('button', { name: 'Preview card' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Preview request failed.');
-    expect(within(firstRow).getByRole('button', { name: 'Preview card' })).toBeEnabled();
-  });
-
-  it('ignores an older queue preview response after another card is selected', async () => {
-    let resolveFirst: ((value: { cards: StudyCardSummary[] }) => void) | undefined;
-    let resolveSecond: ((value: { cards: StudyCardSummary[] }) => void) | undefined;
-    const firstDetail = new Promise<{ cards: StudyCardSummary[] }>((resolve) => {
-      resolveFirst = resolve;
-    });
-    const secondDetail = new Promise<{ cards: StudyCardSummary[] }>((resolve) => {
-      resolveSecond = resolve;
-    });
-    getStudyBrowserNoteDetailMock.mockImplementation((noteId: string) =>
-      noteId === 'note-1' ? firstDetail : secondDetail
-    );
-
-    renderPage();
-
-    const rows = screen.getAllByTestId('study-new-queue-row');
-    await userEvent.click(within(rows[0]).getByRole('button', { name: 'Preview card' }));
-    await userEvent.click(within(rows[1]).getByRole('button', { name: 'Preview card' }));
-
-    resolveSecond?.({
-      cards: [
-        canonicalCard({
-          id: 'card-2',
-          noteId: 'note-2',
-          cardType: 'production',
-          prompt: { cueMeaning: 'school' },
-          answer: { expression: '学校', meaning: 'school' },
-        }),
-      ],
-    });
-    expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
-    const previewDialog = screen.getByRole('dialog', { name: 'Card preview' });
-    expect(within(previewDialog).getAllByText('school').length).toBeGreaterThan(0);
-
-    resolveFirst?.({ cards: [canonicalCard()] });
-    await act(async () => {
-      await firstDetail;
-    });
-    expect(within(previewDialog).getAllByText('school').length).toBeGreaterThan(0);
-    expect(within(previewDialog).queryByText('company')).not.toBeInTheDocument();
-  });
-
-  it('restores cloze text on the new-card queue preview answer side', async () => {
-    useStudyNewCardQueueMock.mockReturnValue({
-      data: {
-        items: [
-          {
-            id: 'card-cloze',
-            noteId: 'note-cloze',
-            cardType: 'cloze',
-            displayText: '試合に{{c1::勝ちました}}。',
-            meaning: 'I won the match.',
-            queuePosition: 1,
-            createdAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-            updatedAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-          },
-        ],
-        total: 1,
-        limit: 100,
-        nextCursor: null,
-      },
-      isLoading: false,
-      error: null,
-    });
-    getStudyBrowserNoteDetailMock.mockResolvedValue({
-      cards: [
-        canonicalCard({
-          id: 'card-cloze',
-          noteId: 'note-cloze',
-          cardType: 'cloze',
-          prompt: {
-            clozeText: '試合に{{c1::勝ちました}}。',
-            clozeDisplayText: '試合に[...]。',
-          },
-          answer: {
-            restoredText: '試合に勝ちました。',
-            meaning: 'I won the match.',
-          },
-        }),
-      ],
-    });
-
-    renderPage();
-
-    const firstRow = screen.getAllByTestId('study-new-queue-row')[0];
-    await userEvent.click(within(firstRow).getByRole('button', { name: 'Preview card' }));
-
-    expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
-    expect(screen.getByText('試合に[...]。')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
-
-    expect(screen.getByText('試合に勝ちました。')).toBeInTheDocument();
-  });
-
-  it('shows a settings load error without blocking the queue', () => {
+  it('shows a localized settings load error', () => {
     useStudySettingsMock.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -465,20 +157,6 @@ describe('StudySettingsPage', () => {
 
     expect(screen.getByText(/failed to load study settings/i)).toBeInTheDocument();
     expect(screen.queryByText(/settings endpoint failed/i)).not.toBeInTheDocument();
-    expect(screen.getByText('会社')).toBeInTheDocument();
-  });
-
-  it('shows a localized queue load error', () => {
-    useStudyNewCardQueueMock.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: new Error('Queue endpoint failed'),
-    });
-
-    renderPage();
-
-    expect(screen.getByText(/failed to load the new-card queue/i)).toBeInTheDocument();
-    expect(screen.queryByText(/queue endpoint failed/i)).not.toBeInTheDocument();
   });
 
   it('saves the daily new-card limit', async () => {
@@ -546,92 +224,5 @@ describe('StudySettingsPage', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it('persists one reorder request and resets pagination from the returned first page', async () => {
-    reorderStudyNewCardQueueMock.mockResolvedValue({
-      items: [
-        {
-          id: 'card-3',
-          noteId: 'note-3',
-          cardType: 'recognition',
-          displayText: '新しい',
-          meaning: 'new',
-          queuePosition: 1,
-          createdAt: new Date('2026-04-02T00:00:00.000Z').toISOString(),
-          updatedAt: new Date('2026-04-02T00:00:00.000Z').toISOString(),
-        },
-      ],
-      total: 101,
-      limit: 100,
-      nextCursor: '100',
-    });
-
-    renderPage();
-
-    await act(async () => {
-      dndContextProps.current?.onDragEnd?.({
-        active: { id: 'card-1' },
-        over: { id: 'card-2' },
-      } as DragEndEvent);
-    });
-
-    await waitFor(() => expect(reorderStudyNewCardQueueMock).toHaveBeenCalledTimes(1));
-    expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith(['card-2', 'card-1']);
-    expect(screen.getByText('新しい')).toBeInTheDocument();
-    expect(screen.queryByText('会社')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /load more/i })).toBeInTheDocument();
-  });
-
-  it('rolls back optimistic reorder state when the reorder request fails', async () => {
-    useStudyNewCardQueueMock.mockReturnValue({
-      data: {
-        items: [
-          {
-            id: 'card-1',
-            noteId: 'note-1',
-            cardType: 'recognition',
-            displayText: '会社',
-            meaning: 'company',
-            queuePosition: 1,
-            createdAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-            updatedAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-          },
-          {
-            id: 'card-2',
-            noteId: 'note-2',
-            cardType: 'production',
-            displayText: '学校',
-            meaning: 'school',
-            queuePosition: 2,
-            createdAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-            updatedAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
-          },
-        ],
-        total: 101,
-        limit: 100,
-        nextCursor: '100',
-      },
-      isLoading: false,
-      error: null,
-    });
-    reorderStudyNewCardQueueMock.mockRejectedValue(new Error('Reorder failed'));
-
-    renderPage();
-
-    await act(async () => {
-      dndContextProps.current?.onDragEnd?.({
-        active: { id: 'card-1' },
-        over: { id: 'card-2' },
-      } as DragEndEvent);
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    await waitFor(() => expect(reorderStudyNewCardQueueMock).toHaveBeenCalledTimes(1));
-    const rows = screen.getAllByTestId('study-new-queue-row');
-    expect(rows[0]).toHaveTextContent('会社');
-    expect(rows[1]).toHaveTextContent('学校');
-    expect(screen.getByRole('button', { name: /load more/i })).toBeInTheDocument();
   });
 });

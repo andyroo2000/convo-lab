@@ -21,6 +21,7 @@ import type {
   StudyManualCardDraftUpdateRequest,
   StudyCardRegenerateImageRequest,
   StudyCardSummary,
+  StudyCardListResponse,
   StudyImportResult,
   StudyImportUploadReadiness,
   StudyImportUploadSession,
@@ -266,6 +267,19 @@ export async function getStudyNewCardQueue(
 
   const suffix = searchParams.toString();
   return apiRequest<StudyNewCardQueueResponse>(`/new-queue${suffix ? `?${suffix}` : ''}`);
+}
+
+export async function getStudyCards(
+  params: { cursor?: string | null; limit?: number; q?: string } = {}
+): Promise<StudyCardListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.cursor) searchParams.set('cursor', params.cursor);
+  // This endpoint reuses Learning OS's canonical ListCardsRequest contract.
+  if (typeof params.limit === 'number') searchParams.set('per_page', String(params.limit));
+  if (params.q?.trim()) searchParams.set('q', params.q.trim());
+
+  const suffix = searchParams.toString();
+  return apiRequest<StudyCardListResponse>(`/cards${suffix ? `?${suffix}` : ''}`);
 }
 
 export async function reorderStudyNewCardQueue(cardIds: string[]) {
@@ -520,13 +534,22 @@ export function useStudySettings(enabled: boolean) {
   });
 }
 
-export function useStudyNewCardQueue(
-  enabled: boolean,
-  params: { cursor?: string | null; limit?: number; q?: string } = {}
-) {
-  return useQuery({
-    queryKey: ['study', 'new-queue', params.cursor ?? 'start', params.limit ?? 100, params.q ?? ''],
-    queryFn: () => getStudyNewCardQueue(params),
+export function useStudyNewCardQueueInfinite(enabled: boolean, q = '') {
+  return useInfiniteQuery({
+    queryKey: ['study', 'new-queue', 'infinite', q],
+    queryFn: ({ pageParam }) => getStudyNewCardQueue({ cursor: pageParam, limit: 50, q }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled,
+  });
+}
+
+export function useStudyCardsInfinite(enabled: boolean, q = '') {
+  return useInfiniteQuery({
+    queryKey: ['study', 'cards', 'infinite', q],
+    queryFn: ({ pageParam }) => getStudyCards({ cursor: pageParam, limit: 50, q }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled,
   });
 }
@@ -551,6 +574,8 @@ export function useReorderStudyNewCardQueue() {
   return useMutation({
     mutationFn: reorderStudyNewCardQueue,
     onSuccess: async () => {
+      // Reordering changes the position-based pagination cursor. Refetch every
+      // loaded page so both the canonical order and next cursor stay coherent.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),

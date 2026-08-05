@@ -80,6 +80,9 @@ const StudyOverviewDashboard = ({
             ) : null}
           </div>
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
+            <Link to="/app/study/cards" className={STUDY_ACTION_CLASS}>
+              {t('overview.cards')}
+            </Link>
             <Link to="/app/study/browse" className={STUDY_ACTION_CLASS}>
               {t('overview.browse')}
             </Link>
