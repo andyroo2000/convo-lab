@@ -57,6 +57,7 @@
     "key": "キー {{index}}"
   },
   "overview": {
+    "cards": "カード",
     "browse": "閲覧",
     "import": "取り込み",
     "create": "カード作成",
@@ -74,6 +75,29 @@
     "noReviews": "復習期限のカードはありません。準備ができたらレッスンを始められます。",
     "empty": "`日本語` デッキを取り込むかカードを作成して、ここから学習を始めましょう。"
   },
+  "cards": {
+    "title": "カード",
+    "description": "次に学ぶ順番を整理したり、すべてのカードを確認したりできます。",
+    "back": "学習に戻る",
+    "collections": "カード一覧",
+    "queue": "キュー",
+    "all": "すべてのカード",
+    "upNext": "次のカード",
+    "queuedCount": "{{count}} 件待機中",
+    "dragHandle": "{{text}} を移動",
+    "search": "検索",
+    "searchPlaceholder": "カードを検索",
+    "loadingQueue": "キューを読み込み中…",
+    "loadingCards": "カードを読み込み中…",
+    "loadingMore": "さらに読み込み中…",
+    "failedQueue": "新規カードのキューを読み込めませんでした。",
+    "failedCards": "カードを読み込めませんでした。",
+    "reorderFailed": "キューの並べ替えに失敗しました。",
+    "reorderLimit": "読み込み済みのカードが100件以内の場合に並べ替えできます。",
+    "emptyQueue": "これから学習する新規カードがここに表示されます。",
+    "emptyCards": "同期、取り込み、またはカード作成から始めましょう。",
+    "noSearchResults": "検索に一致するカードはありません。"
+  },
   "readiness": {
     "title": "学習準備度",
     "ready": "新しいカードを学べます",
@@ -89,7 +113,7 @@
   },
   "settings": {
     "title": "学習設定",
-    "description": "レビューとは別のレッスン追加数と、新規カードの表示順を調整します。",
+    "description": "1日にレッスンへ追加する新規カード数を調整します。",
     "back": "学習に戻る",
     "dailyLimitTitle": "1日の新規カード",
     "dailyLimitDescription": "1日にレッスンへ追加できる新規カード数と、1回に予習するバッチ数を設定します。",

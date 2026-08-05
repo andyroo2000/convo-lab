@@ -1,34 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import {
   STUDY_LESSON_BATCH_SIZE_DEFAULT,
   STUDY_LESSON_BATCH_SIZE_MAX,
   STUDY_LESSON_BATCH_SIZE_MIN,
   STUDY_NEW_CARDS_PER_DAY_DEFAULT,
 } from '@languageflow/shared/src/studyConstants';
-import type { StudyCardSummary, StudyNewCardQueueItem } from '@languageflow/shared/src/types';
-import { GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
-import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
   useConnectWaniKani,
@@ -37,83 +16,8 @@ import {
   useSetManualKnownKanji,
   useSyncWaniKani,
 } from '../hooks/useKnownKanji';
-import {
-  getStudyBrowserNoteDetail,
-  getStudyNewCardQueue,
-  useReorderStudyNewCardQueue,
-  useStudyNewCardQueue,
-  useStudySettings,
-  useUpdateStudySettings,
-} from '../hooks/useStudy';
-import useStudyAnswerAudioPrep from '../hooks/useStudyAnswerAudioPrep';
+import { useStudySettings, useUpdateStudySettings } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
-
-interface SortableQueueRowProps {
-  isPreviewing: boolean;
-  item: StudyNewCardQueueItem;
-  onPreview: (item: StudyNewCardQueueItem) => void;
-  ordinal: number;
-}
-
-const ignorePreparedPreviewCard = (_card: StudyCardSummary) => undefined;
-const ignorePreviewAudioPrepError = (_message: string) => undefined;
-
-const SortableQueueRow = ({ isPreviewing, item, onPreview, ordinal }: SortableQueueRowProps) => {
-  const { t } = useTranslation('study');
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: item.id,
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className={`rounded-xl border border-gray-200 bg-white p-3 shadow-sm ${
-        isDragging ? 'relative z-10 ring-2 ring-navy/30' : ''
-      }`}
-      data-testid="study-new-queue-row"
-    >
-      <div className="flex items-start gap-3">
-        <button
-          type="button"
-          className="mt-1 rounded-md p-1 text-gray-400 hover:bg-cream hover:text-navy focus:outline-none focus:ring-2 focus:ring-navy"
-          aria-label={t('settings.dragHandle', { text: item.displayText })}
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-5 w-5" aria-hidden="true" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-cream px-2 py-0.5 text-xs font-semibold text-navy">
-              #{ordinal}
-            </span>
-            <span className="rounded-full bg-navy/10 px-2 py-0.5 text-xs font-semibold capitalize text-navy">
-              {item.cardType}
-            </span>
-          </div>
-          <p className="mt-2 break-words text-base font-semibold text-navy">{item.displayText}</p>
-          {item.meaning ? (
-            <p className="mt-1 break-words text-sm text-gray-600">{item.meaning}</p>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => onPreview(item)}
-            disabled={isPreviewing}
-            aria-busy={isPreviewing}
-            className="mt-3 rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream disabled:cursor-wait disabled:opacity-60"
-          >
-            {isPreviewing ? t('settings.loadingPreview') : t('create.previewCard')}
-          </button>
-        </div>
-      </div>
-    </li>
-  );
-};
 
 const StudySettingsPage = () => {
   const { t } = useTranslation('study');
@@ -122,41 +26,19 @@ const StudySettingsPage = () => {
   const runBackgroundTask = useStudyBackgroundTask();
   const [newCardsPerDay, setNewCardsPerDay] = useState(STUDY_NEW_CARDS_PER_DAY_DEFAULT);
   const [lessonBatchSize, setLessonBatchSize] = useState(STUDY_LESSON_BATCH_SIZE_DEFAULT);
-  const [searchDraft, setSearchDraft] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [queueItems, setQueueItems] = useState<StudyNewCardQueueItem[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loadMorePending, setLoadMorePending] = useState(false);
   const [settingsSavedVisible, setSettingsSavedVisible] = useState(false);
   const [settingsSaveFailedVisible, setSettingsSaveFailedVisible] = useState(false);
-  const [previewCard, setPreviewCard] = useState<StudyCardSummary | null>(null);
-  const [previewPendingCardId, setPreviewPendingCardId] = useState<string | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  const previewRequestIdRef = useRef(0);
   const [wanikaniToken, setWanikaniToken] = useState('');
   const [manualKanji, setManualKanji] = useState('');
   const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
 
   const settingsQuery = useStudySettings(enabled);
   const updateSettingsMutation = useUpdateStudySettings();
-  const reorderMutation = useReorderStudyNewCardQueue();
-  const queueQuery = useStudyNewCardQueue(enabled, { q: searchQuery });
   const knownKanjiQuery = useKnownKanji();
   const connectWaniKaniMutation = useConnectWaniKani();
   const disconnectWaniKaniMutation = useDisconnectWaniKani();
   const syncWaniKaniMutation = useSyncWaniKani();
   const setManualKnownKanjiMutation = useSetManualKnownKanji();
-  const ensurePreviewAnswerAudio = useStudyAnswerAudioPrep({
-    enabled,
-    mergeCardIntoSession: ignorePreparedPreviewCard,
-    onError: ignorePreviewAudioPrepError,
-  });
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   useEffect(() => {
     if (settingsQuery.data) {
@@ -164,14 +46,6 @@ const StudySettingsPage = () => {
       setLessonBatchSize(settingsQuery.data.lessonBatchSize ?? STUDY_LESSON_BATCH_SIZE_DEFAULT);
     }
   }, [settingsQuery.data]);
-
-  useEffect(() => {
-    if (queueQuery.data) {
-      // Refetches reset loaded extra pages to the canonical first page for the current search.
-      setQueueItems(queueQuery.data.items);
-      setNextCursor(queueQuery.data.nextCursor);
-    }
-  }, [queueQuery.data]);
 
   useEffect(() => {
     if (!settingsSavedVisible) return undefined;
@@ -182,79 +56,6 @@ const StudySettingsPage = () => {
 
     return () => window.clearTimeout(timer);
   }, [settingsSavedVisible]);
-
-  const queueIds = useMemo(() => queueItems.map((item) => item.id), [queueItems]);
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = queueItems.findIndex((item) => item.id === active.id);
-    const newIndex = queueItems.findIndex((item) => item.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const previousItems = queueItems;
-    const previousCursor = nextCursor;
-    const nextItems = arrayMove(queueItems, oldIndex, newIndex);
-    setQueueItems(nextItems);
-    runBackgroundTask(
-      async () => {
-        try {
-          const reorderedQueue = await reorderMutation.mutateAsync(
-            nextItems.map((item) => item.id)
-          );
-          setQueueItems(reorderedQueue.items);
-          setNextCursor(reorderedQueue.nextCursor);
-        } catch (error) {
-          setQueueItems(previousItems);
-          setNextCursor(previousCursor);
-          throw error;
-        }
-      },
-      {
-        label: 'Study new-card reorder',
-      }
-    );
-  };
-
-  const handlePreview = (item: StudyNewCardQueueItem) => {
-    const requestId = previewRequestIdRef.current + 1;
-    previewRequestIdRef.current = requestId;
-    setPreviewCard(null);
-    setPreviewError(null);
-    setPreviewPendingCardId(item.id);
-    runBackgroundTask(
-      async () => {
-        try {
-          const detail = await getStudyBrowserNoteDetail(item.noteId);
-          const canonicalCard = detail.cards.find((card) => card.id === item.id);
-          if (!canonicalCard) {
-            throw new Error(t('settings.previewUnavailable'));
-          }
-
-          const preview = getStudyCardAudioUrl(canonicalCard)
-            ? canonicalCard
-            : await ensurePreviewAnswerAudio(canonicalCard.id);
-          if (previewRequestIdRef.current === requestId) {
-            setPreviewCard(preview);
-          }
-        } finally {
-          if (previewRequestIdRef.current === requestId) {
-            setPreviewPendingCardId(null);
-          }
-        }
-      },
-      {
-        label: 'Study new-card preview',
-        errorMessage: t('settings.previewFailed'),
-        onError: (message) => {
-          if (previewRequestIdRef.current === requestId) {
-            setPreviewError(message);
-          }
-        },
-      }
-    );
-  };
 
   if (!enabled) {
     return (
@@ -570,114 +371,6 @@ const StudySettingsPage = () => {
         ) : null}
       </section>
 
-      <section className="card retro-paper-panel space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-semibold text-navy">{t('settings.queueTitle')}</h2>
-            <p className="text-sm text-gray-500">{t('settings.queueDescription')}</p>
-          </div>
-          <form
-            className="flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setSearchQuery(searchDraft.trim());
-            }}
-          >
-            <input
-              type="search"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
-              placeholder={t('settings.searchPlaceholder')}
-              className="w-52 rounded-xl border border-gray-300 px-3 py-2 text-sm text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
-            />
-            <button
-              type="submit"
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-white/50"
-            >
-              {t('settings.search')}
-            </button>
-          </form>
-        </div>
-
-        {queueQuery.isLoading ? (
-          <p className="text-gray-500">{t('settings.loadingQueue')}</p>
-        ) : null}
-        {queueQuery.error ? (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {t('settings.failedQueue')}
-          </p>
-        ) : null}
-        {previewError ? (
-          <p
-            role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          >
-            {previewError}
-          </p>
-        ) : null}
-
-        {!queueQuery.isLoading && queueItems.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-gray-600">
-            {t('settings.emptyQueue')}
-          </div>
-        ) : null}
-
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={queueIds} strategy={verticalListSortingStrategy}>
-            <ol className="space-y-2">
-              {queueItems.map((item, index) => (
-                <SortableQueueRow
-                  key={item.id}
-                  isPreviewing={previewPendingCardId === item.id}
-                  item={item}
-                  ordinal={index + 1}
-                  onPreview={handlePreview}
-                />
-              ))}
-            </ol>
-          </SortableContext>
-        </DndContext>
-
-        {nextCursor ? (
-          <button
-            type="button"
-            disabled={loadMorePending}
-            onClick={() => {
-              setLoadMorePending(true);
-              runBackgroundTask(
-                async () => {
-                  try {
-                    const nextPage = await getStudyNewCardQueue({
-                      cursor: nextCursor,
-                      q: searchQuery,
-                    });
-                    setQueueItems((current) => [...current, ...nextPage.items]);
-                    setNextCursor(nextPage.nextCursor);
-                  } finally {
-                    setLoadMorePending(false);
-                  }
-                },
-                {
-                  label: 'Study new-card queue load more',
-                }
-              );
-            }}
-            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-white/50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loadMorePending ? t('settings.loadingMore') : t('settings.loadMore')}
-          </button>
-        ) : null}
-        {previewCard ? (
-          <StudyCandidateCardPreviewModal
-            card={previewCard}
-            onClose={() => {
-              previewRequestIdRef.current += 1;
-              setPreviewCard(null);
-              setPreviewPendingCardId(null);
-            }}
-          />
-        ) : null}
-      </section>
     </div>
   );
 };

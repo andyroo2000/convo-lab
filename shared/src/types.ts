@@ -431,6 +431,12 @@ export interface StudyNewCardQueueResponse {
   nextCursor: string | null;
 }
 
+export interface StudyCardListResponse {
+  items: StudyCardSummary[];
+  limit: number;
+  nextCursor: string | null;
+}
+
 export interface StudyReviewEvent {
   id: string;
   cardId: string;

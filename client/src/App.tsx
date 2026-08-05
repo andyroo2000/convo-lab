@@ -50,6 +50,7 @@ const StudyPage = lazy(() => import('./pages/StudyPage'));
 const StudyBrowsePage = lazy(() => import('./pages/StudyBrowsePage'));
 const StudyImportPage = lazy(() => import('./pages/StudyImportPage'));
 const StudyCreatePage = lazy(() => import('./pages/StudyCreatePage'));
+const StudyCardsPage = lazy(() => import('./pages/StudyCardsPage'));
 const StudySettingsPage = lazy(() => import('./pages/StudySettingsPage'));
 const DailyAudioPracticePage = lazy(() => import('./pages/DailyAudioPracticePage'));
 const StudyTimePage = lazy(() => import('./pages/StudyTimePage'));
@@ -258,6 +259,14 @@ const App = () => (
                     element={
                       <StudyRouteWrapper>
                         <StudyImportPage />
+                      </StudyRouteWrapper>
+                    }
+                  />
+                  <Route
+                    path="study/cards"
+                    element={
+                      <StudyRouteWrapper>
+                        <StudyCardsPage />
                       </StudyRouteWrapper>
                     }
                   />

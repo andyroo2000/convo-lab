@@ -57,6 +57,7 @@
     "key": "Key {{index}}"
   },
   "overview": {
+    "cards": "Cards",
     "browse": "Browse",
     "import": "Import",
     "create": "Create Card",
@@ -74,6 +75,29 @@
     "noReviews": "No reviews are due. You can start a Lesson whenever you’re ready.",
     "empty": "Import your `日本語` deck or create a card to start studying here."
   },
+  "cards": {
+    "title": "Cards",
+    "description": "Arrange what you’ll learn next or browse every card in your collection.",
+    "back": "Back to study",
+    "collections": "Card collection",
+    "queue": "Queue",
+    "all": "All Cards",
+    "upNext": "Up Next",
+    "queuedCount": "{{count}} queued",
+    "dragHandle": "Move {{text}}",
+    "search": "Search",
+    "searchPlaceholder": "Search your cards",
+    "loadingQueue": "Loading queue…",
+    "loadingCards": "Loading cards…",
+    "loadingMore": "Loading more…",
+    "failedQueue": "Failed to load the new-card queue.",
+    "failedCards": "Failed to load your cards.",
+    "reorderFailed": "Could not reorder the queue.",
+    "reorderLimit": "Reordering is available while up to 100 cards are loaded.",
+    "emptyQueue": "New cards waiting to be introduced appear here.",
+    "emptyCards": "Sync, import, or create a card to begin.",
+    "noSearchResults": "No cards match that search."
+  },
   "readiness": {
     "title": "Learning readiness",
     "ready": "Ready to learn",
@@ -89,7 +113,7 @@
   },
   "settings": {
     "title": "Study settings",
-    "description": "Control your separate lesson intake and arrange the order new cards appear in.",
+    "description": "Control how many new cards enter your lessons each day.",
     "back": "Back to study",
     "dailyLimitTitle": "Daily new cards",
     "dailyLimitDescription": "Choose how many new cards can enter lessons each day and how many you preview in each batch.",
