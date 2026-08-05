@@ -213,4 +213,21 @@ describe('StudyCardsPage', () => {
     const rows = screen.getAllByTestId('study-new-queue-row');
     expect(within(rows[0]).getByText('学校')).toBeInTheDocument();
   });
+
+  it('rolls back an optimistic queue reorder when the request fails', async () => {
+    reorderMock.mockRejectedValue(new Error('Reorder failed'));
+    renderPage();
+
+    await act(async () => {
+      dndContextProps.current?.onDragEnd?.({
+        active: { id: 'card-1' },
+        over: { id: 'card-2' },
+      } as DragEndEvent);
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Reorder failed');
+    const rows = screen.getAllByTestId('study-new-queue-row');
+    expect(within(rows[0]).getByText('会社')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('学校')).toBeInTheDocument();
+  });
 });

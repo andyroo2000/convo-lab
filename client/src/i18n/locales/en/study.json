@@ -150,20 +150,7 @@
     "manualKanjiInvalid": "Enter exactly one kanji character.",
     "manualKanjiFailed": "Could not update the manual known list.",
     "manualKanjiList": "Manually known kanji",
-    "manualKanjiRemove": "Remove manual override for {{kanji}}",
-    "failedQueue": "Failed to load the new-card queue.",
-    "queueTitle": "New-card queue",
-    "queueDescription": "Drag cards into the order they should be introduced.",
-    "searchPlaceholder": "Search new cards",
-    "search": "Search",
-    "loadingQueue": "Loading new cards…",
-    "loadingPreview": "Loading preview…",
-    "previewUnavailable": "The selected study card is no longer available.",
-    "previewFailed": "The card preview could not be loaded.",
-    "emptyQueue": "No new cards are waiting in the queue.",
-    "loadMore": "Load more",
-    "loadingMore": "Loading…",
-    "dragHandle": "Reorder {{text}}"
+    "manualKanjiRemove": "Remove manual override for {{kanji}}"
   },
   "setDue": {
     "title": "Set due",
