@@ -574,13 +574,10 @@ export function useReorderStudyNewCardQueue() {
   return useMutation({
     mutationFn: reorderStudyNewCardQueue,
     onSuccess: async () => {
-      // Keep the current page's optimistic order, but mark the cached pages stale
-      // so a later remount cannot restore their pre-reorder order.
+      // Reordering changes the position-based pagination cursor. Refetch every
+      // loaded page so both the canonical order and next cursor stay coherent.
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['study', 'new-queue'],
-          refetchType: 'none',
-        }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
       ]);
     },

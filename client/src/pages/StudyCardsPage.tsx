@@ -169,6 +169,8 @@ const StudyCardsPage = () => {
     const loadedQueueItems = uniqueById(pages.flatMap((page) => page.items));
     const firstPageSignature = pages[0]?.items.map((item) => item.id).join(',') ?? '';
     const previousPageCount = previousQueuePageCountRef.current;
+    // Only a larger page count with an unchanged first page is an append.
+    // Any first-page change is authoritative server data from a refresh/reset.
     const isPageAppend =
       previousPageCount > 0 &&
       pages.length > previousPageCount &&
