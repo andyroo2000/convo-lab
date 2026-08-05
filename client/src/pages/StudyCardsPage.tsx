@@ -274,7 +274,6 @@ const StudyCardsPage = () => {
               id={`study-cards-${value}-tab`}
               aria-controls={`study-cards-${value}-panel`}
               aria-selected={mode === value}
-              tabIndex={mode === value ? 0 : -1}
               onClick={() => setMode(value)}
               className={`rounded-lg px-4 py-2 text-sm font-bold transition ${
                 mode === value ? 'bg-white text-navy shadow-sm' : 'text-navy/60 hover:text-navy'
