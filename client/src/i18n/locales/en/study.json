@@ -266,6 +266,8 @@
     "edit": "Edit",
     "forget": "Forget",
     "setDue": "Set due",
+    "moveToFront": "Move to front",
+    "movedToFront": "Moved to the front of the new-card queue.",
     "selectNote": "Select a note to preview it.",
     "importedFields": "Imported fields",
     "canonicalFields": "Canonical fields",

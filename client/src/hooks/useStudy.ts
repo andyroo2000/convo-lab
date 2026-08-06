@@ -289,6 +289,21 @@ export async function reorderStudyNewCardQueue(cardIds: string[]) {
   });
 }
 
+export async function promoteStudyNewCardToFront(cardId: string) {
+  const queue = await getStudyNewCardQueue({ limit: 1 });
+  const firstCardId = queue.items[0]?.id;
+
+  if (!firstCardId) {
+    throw new Error('No active new-card queue is available.');
+  }
+  if (firstCardId === cardId) return queue;
+
+  // The reorder API swaps only the supplied cards' existing queue positions.
+  // Pairing the selected card with the current first card keeps this mutation
+  // bounded even when the learner has a very large new-card queue.
+  return reorderStudyNewCardQueue([cardId, firstCardId]);
+}
+
 export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(`/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`, {
     method: 'POST',
@@ -576,6 +591,20 @@ export function useReorderStudyNewCardQueue() {
     onSuccess: async () => {
       // Reordering changes the position-based pagination cursor. Refetch every
       // loaded page so both the canonical order and next cursor stay coherent.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+      ]);
+    },
+  });
+}
+
+export function usePromoteStudyNewCardToFront() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: promoteStudyNewCardToFront,
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),

@@ -21,6 +21,7 @@ import {
   useStudyBrowserNoteDetail,
   useRegenerateStudyAnswerAudio,
   useRegenerateStudyCardImage,
+  usePromoteStudyNewCardToFront,
   useUpdateStudyCard,
 } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
@@ -60,6 +61,7 @@ const StudyBrowsePage = () => {
   const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
   const regenerateImageMutation = useRegenerateStudyCardImage();
   const cardActionMutation = useStudyCardAction();
+  const promoteNewCardMutation = usePromoteStudyNewCardToFront();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState<StudyBrowserQuery>({
@@ -83,18 +85,21 @@ const StudyBrowsePage = () => {
   const [showSetDueControls, setShowSetDueControls] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [promotedCardId, setPromotedCardId] = useState<string | null>(null);
   const runBackgroundTask = useStudyBackgroundTask();
   const mutationResetRef = useRef({
     updateCard: updateCardMutation.reset,
     regenerateAudio: regenerateAudioMutation.reset,
     regenerateImage: regenerateImageMutation.reset,
     deleteCard: deleteCardMutation.reset,
+    promoteNewCard: promoteNewCardMutation.reset,
   });
   mutationResetRef.current = {
     updateCard: updateCardMutation.reset,
     regenerateAudio: regenerateAudioMutation.reset,
     regenerateImage: regenerateImageMutation.reset,
     deleteCard: deleteCardMutation.reset,
+    promoteNewCard: promoteNewCardMutation.reset,
   };
 
   useEffect(() => {
@@ -156,10 +161,12 @@ const StudyBrowsePage = () => {
   useEffect(() => {
     setShowSetDueControls(false);
     setIsPreviewOpen(false);
+    setPromotedCardId(null);
     mutationResetRef.current.updateCard?.();
     mutationResetRef.current.regenerateAudio?.();
     mutationResetRef.current.regenerateImage?.();
     mutationResetRef.current.deleteCard?.();
+    mutationResetRef.current.promoteNewCard?.();
     setEditorResetToken((current) => current + 1);
   }, [selectedCardId]);
 
@@ -175,6 +182,8 @@ const StudyBrowsePage = () => {
   let actionErrorMessage: string | null = null;
   if (cardActionMutation.error instanceof Error) {
     actionErrorMessage = cardActionMutation.error.message;
+  } else if (promoteNewCardMutation.error instanceof Error) {
+    actionErrorMessage = promoteNewCardMutation.error.message;
   } else if (updateCardMutation.error instanceof Error) {
     actionErrorMessage = updateCardMutation.error.message;
   } else if (deleteCardMutation.error instanceof Error) {
@@ -684,8 +693,37 @@ const StudyBrowsePage = () => {
                           >
                             {t('browse.setDue')}
                           </button>
+                          {selectedCard.state.queueState === 'new' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                runBackgroundTask(
+                                  async () => {
+                                    await promoteNewCardMutation.mutateAsync(selectedCard.id);
+                                    setPromotedCardId(selectedCard.id);
+                                  },
+                                  { label: 'Promote study new card' }
+                                );
+                              }}
+                              disabled={
+                                updateCardMutation.isPending ||
+                                deleteCardMutation.isPending ||
+                                cardActionMutation.isPending ||
+                                promoteNewCardMutation.isPending
+                              }
+                              className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {t('browse.moveToFront')}
+                            </button>
+                          ) : null}
                         </div>
                       </div>
+
+                      {promotedCardId === selectedCard.id ? (
+                        <p role="status" className="text-sm font-medium text-green-700">
+                          {t('browse.movedToFront')}
+                        </p>
+                      ) : null}
 
                       {showSetDueControls ? (
                         <StudySetDueControls
