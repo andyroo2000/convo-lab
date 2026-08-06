@@ -701,6 +701,50 @@ describe('StudyPage', () => {
     expect(screen.getByText('Card 1 of 2')).toBeInTheDocument();
   });
 
+  it('autoplays an audio-recognition prompt when the lesson quiz starts', async () => {
+    startStudyLessonMock.mockResolvedValue({
+      overview: {
+        dueCount: 0,
+        newCount: 1,
+        newCardsPerDay: 20,
+        newCardsAvailableToday: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [
+        {
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'lesson-prompt.mp3',
+              url: 'https://example.com/lesson-prompt.mp3',
+              mediaKind: 'audio' as const,
+              source: 'imported' as const,
+            },
+          },
+          state: {
+            ...baseCard.state,
+            queueState: 'new' as const,
+          },
+        },
+      ],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+
+    expect(await screen.findByText('Card 1 of 1')).toBeInTheDocument();
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Start quiz' }));
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('keeps Reviews enabled while overview counts are loading', () => {
     studyOverviewLoading.current = true;
     studyOverviewData.current = undefined;
