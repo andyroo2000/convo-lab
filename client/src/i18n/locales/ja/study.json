@@ -249,6 +249,8 @@
     "edit": "編集",
     "forget": "忘却",
     "setDue": "期限を設定",
+    "moveToFront": "先頭へ移動",
+    "movedToFront": "新規カードキューの先頭へ移動しました。",
     "selectNote": "プレビューするノートを選択してください。",
     "importedFields": "取り込んだフィールド",
     "canonicalFields": "正規化フィールド",

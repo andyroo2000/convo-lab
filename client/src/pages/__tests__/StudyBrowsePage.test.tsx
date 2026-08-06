@@ -19,6 +19,7 @@ const {
   regenerateStudyCardImageMock,
   deleteStudyCardMock,
   cardActionMutateAsyncMock,
+  promoteStudyNewCardToFrontMock,
   resolveStudyCardPitchAccentMock,
 } = vi.hoisted(() => ({
   useStudyBrowserMock: vi.fn(),
@@ -28,6 +29,7 @@ const {
   regenerateStudyCardImageMock: vi.fn(),
   deleteStudyCardMock: vi.fn(),
   cardActionMutateAsyncMock: vi.fn(),
+  promoteStudyNewCardToFrontMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
 }));
 
@@ -107,8 +109,8 @@ const noteDetailById = {
           },
         },
         state: {
-          dueAt: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-          queueState: 'review' as const,
+          dueAt: null,
+          queueState: 'new' as const,
           scheduler: null,
           source: { templateName: 'Word -> Meaning' },
         },
@@ -179,6 +181,11 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: cardActionMutateAsyncMock,
     isPending: false,
   }),
+  usePromoteStudyNewCardToFront: () => ({
+    mutateAsync: promoteStudyNewCardToFrontMock,
+    isPending: false,
+    error: null,
+  }),
   useUpdateStudyCard: () => ({
     mutateAsync: updateStudyCardMock,
     isPending: false,
@@ -237,6 +244,7 @@ describe('StudyBrowsePage', () => {
     regenerateStudyCardImageMock.mockReset();
     deleteStudyCardMock.mockReset();
     cardActionMutateAsyncMock.mockReset();
+    promoteStudyNewCardToFrontMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
 
     useStudyBrowserMock.mockReturnValue({
@@ -332,6 +340,12 @@ describe('StudyBrowsePage', () => {
         },
       })
     );
+    promoteStudyNewCardToFrontMock.mockResolvedValue({
+      items: [],
+      total: 2,
+      limit: 50,
+      nextCursor: null,
+    });
     resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
       id: cardId,
       answer: { pitchAccent: null },
@@ -431,6 +445,20 @@ describe('StudyBrowsePage', () => {
         })
       );
     });
+  });
+
+  it('promotes a selected new card to the front of the queue', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.click(screen.getByRole('button', { name: 'Move to front' }));
+
+    await waitFor(() => {
+      expect(promoteStudyNewCardToFrontMock).toHaveBeenCalledWith('card-1');
+    });
+    expect(
+      await screen.findByText('Moved to the front of the new-card queue.')
+    ).toBeInTheDocument();
   });
 
   it('opens a reusable preview modal for the selected browse card', async () => {

@@ -26,6 +26,7 @@ import {
   getStudySettings,
   performStudyCardAction,
   prepareStudyAnswerAudio,
+  promoteStudyNewCardToFront,
   regenerateStudyAnswerAudio,
   regenerateStudyCardImage,
   reorderStudyNewCardQueue,
@@ -358,6 +359,70 @@ describe('useStudy request helpers', () => {
       lessonBatchSize: 7,
     });
     expectJsonMutation(4);
+  });
+
+  it('promotes a new card by swapping it with the current first queue card', async () => {
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: [{ id: 'card-first' }],
+          total: 2,
+          limit: 1,
+          nextCursor: null,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [], total: 2, limit: 50, nextCursor: null }),
+      } as Response);
+
+    await promoteStudyNewCardToFront('card-selected');
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+      `${STUDY_API_BASE}/new-queue?limit=1`,
+      `${STUDY_API_BASE}/new-queue/reorder`,
+    ]);
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ cardIds: ['card-selected', 'card-first'] }),
+      })
+    );
+  });
+
+  it('does not reorder a card that is already first', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [{ id: 'card-selected' }],
+        total: 1,
+        limit: 1,
+        nextCursor: null,
+      }),
+    } as Response);
+
+    await promoteStudyNewCardToFront('card-selected');
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects promotion when the active new-card queue is empty', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], total: 0, limit: 1, nextCursor: null }),
+    } as Response);
+
+    await expect(promoteStudyNewCardToFront('card-selected')).rejects.toThrow(
+      'No active new-card queue is available.'
+    );
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('notifies the app only when Learning OS reports an expired session', async () => {
