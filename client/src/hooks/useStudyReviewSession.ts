@@ -299,7 +299,10 @@ const useStudyReviewSession = () => {
     resetAutoplayForCard: resetStudyAudioAutoplayForCard,
     stopAllAudio,
   } = useStudyAudioAutoplay({
-    autoplayBlocked: masteryAnimation !== null || reviewSubmitPending,
+    autoplayBlocked:
+      masteryAnimation !== null ||
+      reviewSubmitPending ||
+      (sessionKind === 'lessons' && lessonPhase !== 'quiz'),
     cards,
     currentCard,
     ensureAnswerAudioPrepared,

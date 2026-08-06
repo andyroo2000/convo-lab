@@ -123,8 +123,11 @@ export default function useStudyAudioAutoplay({
     const autoplayKey = `${currentCard.id}:prompt:${promptUrl}`;
     if (promptAutoplayKeys.current.has(autoplayKey)) return;
 
+    const player = promptAudioRef.current;
+    if (!player) return;
+
     promptAutoplayKeys.current.add(autoplayKey);
-    runBackgroundTask(() => promptAudioRef.current?.play(), {
+    runBackgroundTask(player.play(), {
       label: 'Study prompt-audio autoplay',
     });
   }, [autoplayBlocked, currentCard, focusMode, revealed, runBackgroundTask]);
