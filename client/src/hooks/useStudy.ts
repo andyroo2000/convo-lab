@@ -289,19 +289,50 @@ export async function reorderStudyNewCardQueue(cardIds: string[]) {
   });
 }
 
-export async function promoteStudyNewCardToFront(cardId: string) {
-  const queue = await getStudyNewCardQueue({ limit: 1 });
-  const firstCardId = queue.items[0]?.id;
+async function getStudyNewCardQueuePrefix(
+  cardId: string,
+  cursor: string | null = null,
+  precedingCardIds: string[] = [],
+  firstPage: StudyNewCardQueueResponse | null = null
+): Promise<{ firstPage: StudyNewCardQueueResponse; precedingCardIds: string[] }> {
+  const page = await getStudyNewCardQueue({ cursor, limit: 100 });
+  const initialPage = firstPage ?? page;
+  const selectedIndex = page.items.findIndex((item) => item.id === cardId);
 
-  if (!firstCardId) {
+  if (selectedIndex >= 0) {
+    return {
+      firstPage: initialPage,
+      precedingCardIds: [
+        ...precedingCardIds,
+        ...page.items.slice(0, selectedIndex).map((item) => item.id),
+      ],
+    };
+  }
+
+  if (page.nextCursor) {
+    return getStudyNewCardQueuePrefix(
+      cardId,
+      page.nextCursor,
+      [...precedingCardIds, ...page.items.map((item) => item.id)],
+      initialPage
+    );
+  }
+
+  if (initialPage.items.length === 0) {
     throw new Error('No active new-card queue is available.');
   }
-  if (firstCardId === cardId) return queue;
 
-  // The reorder API swaps only the supplied cards' existing queue positions.
-  // Pairing the selected card with the current first card keeps this mutation
-  // bounded even when the learner has a very large new-card queue.
-  return reorderStudyNewCardQueue([cardId, firstCardId]);
+  throw new Error('The selected card is not in the active new-card queue.');
+}
+
+export async function promoteStudyNewCardToFront(cardId: string) {
+  const { firstPage, precedingCardIds } = await getStudyNewCardQueuePrefix(cardId);
+  if (precedingCardIds.length === 0) return firstPage;
+
+  // The reorder API assigns the supplied cards to their existing queue
+  // positions in the requested order. Including every card ahead of the
+  // selected card shifts that prefix down instead of swapping position 1.
+  return reorderStudyNewCardQueue([cardId, ...precedingCardIds]);
 }
 
 export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
