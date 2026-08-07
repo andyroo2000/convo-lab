@@ -361,15 +361,25 @@ describe('useStudy request helpers', () => {
     expectJsonMutation(4);
   });
 
-  it('promotes a new card by swapping it with the current first queue card', async () => {
+  it('promotes a new card by shifting every preceding queue card down', async () => {
     vi.mocked(global.fetch)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => ({
-          items: [{ id: 'card-first' }],
-          total: 2,
-          limit: 1,
+          items: [{ id: 'card-first' }, { id: 'card-second' }],
+          total: 4,
+          limit: 100,
+          nextCursor: 'cursor-2',
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: [{ id: 'card-third' }, { id: 'card-selected' }],
+          total: 4,
+          limit: 100,
           nextCursor: null,
         }),
       } as Response)
@@ -383,13 +393,16 @@ describe('useStudy request helpers', () => {
 
     const fetchMock = vi.mocked(global.fetch);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-      `${STUDY_API_BASE}/new-queue?limit=1`,
+      `${STUDY_API_BASE}/new-queue?limit=100`,
+      `${STUDY_API_BASE}/new-queue?cursor=cursor-2&limit=100`,
       `${STUDY_API_BASE}/new-queue/reorder`,
     ]);
-    expect(fetchMock.mock.calls[1]?.[1]).toEqual(
+    expect(fetchMock.mock.calls[2]?.[1]).toEqual(
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ cardIds: ['card-selected', 'card-first'] }),
+        body: JSON.stringify({
+          cardIds: ['card-selected', 'card-first', 'card-second', 'card-third'],
+        }),
       })
     );
   });
@@ -401,7 +414,7 @@ describe('useStudy request helpers', () => {
       json: async () => ({
         items: [{ id: 'card-selected' }],
         total: 1,
-        limit: 1,
+        limit: 100,
         nextCursor: null,
       }),
     } as Response);
@@ -415,11 +428,30 @@ describe('useStudy request helpers', () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ items: [], total: 0, limit: 1, nextCursor: null }),
+      json: async () => ({ items: [], total: 0, limit: 100, nextCursor: null }),
     } as Response);
 
     await expect(promoteStudyNewCardToFront('card-selected')).rejects.toThrow(
       'No active new-card queue is available.'
+    );
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects promotion when the selected card is not in the active queue', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [{ id: 'card-first' }],
+        total: 1,
+        limit: 100,
+        nextCursor: null,
+      }),
+    } as Response);
+
+    await expect(promoteStudyNewCardToFront('card-selected')).rejects.toThrow(
+      'The selected card is not in the active new-card queue.'
     );
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
