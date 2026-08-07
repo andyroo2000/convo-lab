@@ -289,6 +289,23 @@ export async function reorderStudyNewCardQueue(cardIds: string[]) {
   });
 }
 
+const MAX_REORDER_CARD_IDS = 500;
+
+async function reorderStudyNewCardQueuePrefix(
+  cardId: string,
+  precedingCardIds: string[]
+): Promise<StudyNewCardQueueResponse> {
+  const precedingChunk = precedingCardIds.slice(-(MAX_REORDER_CARD_IDS - 1));
+  const remainingPrecedingCardIds = precedingCardIds.slice(
+    0,
+    precedingCardIds.length - precedingChunk.length
+  );
+  const result = await reorderStudyNewCardQueue([cardId, ...precedingChunk]);
+
+  if (remainingPrecedingCardIds.length === 0) return result;
+  return reorderStudyNewCardQueuePrefix(cardId, remainingPrecedingCardIds);
+}
+
 async function getStudyNewCardQueuePrefix(
   cardId: string,
   cursor: string | null = null,
@@ -332,7 +349,9 @@ export async function promoteStudyNewCardToFront(cardId: string) {
   // The reorder API assigns the supplied cards to their existing queue
   // positions in the requested order. Including every card ahead of the
   // selected card shifts that prefix down instead of swapping position 1.
-  return reorderStudyNewCardQueue([cardId, ...precedingCardIds]);
+  // Large prefixes are shifted from the selected card backward in bounded
+  // chunks because the backend accepts at most 500 card IDs per request.
+  return reorderStudyNewCardQueuePrefix(cardId, precedingCardIds);
 }
 
 export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {

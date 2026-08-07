@@ -424,6 +424,42 @@ describe('useStudy request helpers', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('promotes through long queue prefixes in bounded reorder batches', async () => {
+    const precedingCardIds = Array.from({ length: 501 }, (_, index) => `card-${index}`);
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: [...precedingCardIds, 'card-selected'].map((id) => ({ id })),
+          total: 502,
+          limit: 100,
+          nextCursor: null,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [], total: 502, limit: 100, nextCursor: null }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [], total: 502, limit: 100, nextCursor: null }),
+      } as Response);
+
+    await promoteStudyNewCardToFront('card-selected');
+
+    const fetchMock = vi.mocked(global.fetch);
+    const firstBatch = JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body));
+    const secondBatch = JSON.parse(String((fetchMock.mock.calls[2]?.[1] as RequestInit).body));
+
+    expect(firstBatch.cardIds).toEqual(['card-selected', ...precedingCardIds.slice(2)]);
+    expect(firstBatch.cardIds).toHaveLength(500);
+    expect(secondBatch.cardIds).toEqual(['card-selected', 'card-0', 'card-1']);
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
   it('rejects promotion when the active new-card queue is empty', async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
