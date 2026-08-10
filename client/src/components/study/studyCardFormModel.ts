@@ -111,9 +111,6 @@ export const buildStudyCardFormPayload = (
         ...(card?.prompt ?? {}),
         clozeText: values.cueText,
         clozeHint: emptyToNull(values.cueMeaning),
-        // A resolved hint is derived import metadata. Once the learner edits the
-        // visible hint, it must no longer override or outlive that manual value.
-        ...(hintWasEdited ? { clozeResolvedHint: null } : {}),
       },
       {
         restoredText: emptyToNull(values.answerExpression),
@@ -128,6 +125,8 @@ export const buildStudyCardFormPayload = (
 
     return {
       cardType: 'cloze',
+      // A resolved hint is derived import metadata. Once the learner edits the
+      // visible hint, it must no longer override or outlive that manual value.
       prompt: hintWasEdited
         ? { ...normalized.prompt, clozeResolvedHint: null }
         : normalized.prompt,

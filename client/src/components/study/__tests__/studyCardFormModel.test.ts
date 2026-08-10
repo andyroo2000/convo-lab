@@ -336,6 +336,29 @@ describe('studyCardFormModel', () => {
     expect(payload.prompt.clozeResolvedHint).toBeNull();
   });
 
+  it('preserves a derived cloze hint when the visible hint is not edited', () => {
+    const card = {
+      id: 'card-1',
+      noteId: 'note-1',
+      cardType: 'cloze' as const,
+      prompt: {
+        clozeText: '母が帰る{{c1::まで}}、本を読みます。',
+        clozeHint: '',
+        clozeResolvedHint: 'the endpoint of an ongoing action',
+      },
+      answer: { restoredText: '母が帰るまで、本を読みます。' },
+      state: { dueAt: null, queueState: 'new' as const, scheduler: null, source: {} },
+      answerAudioSource: 'missing' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const values = getStudyCardFormValues({ card });
+
+    const payload = buildStudyCardFormPayload(values, card);
+
+    expect(payload.prompt.clozeResolvedHint).toBe('the endpoint of an ongoing action');
+  });
+
   it('offers only Fish voices while preserving legacy Japanese voices in the catalog', () => {
     const japaneseVoices = TTS_VOICES.ja.voices;
     const selectableJapaneseVoices = getSelectableTtsVoices('ja');

@@ -245,6 +245,8 @@ export const StudyCardFace = ({
         card.answer.restoredTextReading
       );
       const cueImageUrl = toAssetUrl(card.prompt.cueImage?.url);
+      const effectiveHint =
+        card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() || '';
 
       return (
         <div
@@ -274,7 +276,7 @@ export const StudyCardFace = ({
             }`}
             rtClassName="text-[0.34em] font-medium text-gray-500"
           />
-          {card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() ? (
+          {effectiveHint ? (
             <p
               className={
                 compactMobile
@@ -282,9 +284,7 @@ export const StudyCardFace = ({
                   : 'pb-1 text-xl leading-snug text-gray-700 sm:text-2xl md:text-3xl'
               }
             >
-              {toDisplayText(
-                card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() || ''
-              )}
+              {toDisplayText(effectiveHint)}
             </p>
           ) : null}
         </div>
