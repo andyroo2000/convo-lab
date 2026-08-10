@@ -489,6 +489,31 @@ describe('StudyCardPreview', () => {
     );
   });
 
+  it('renders a manual cloze hint instead of stale resolved metadata', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          cardType: 'cloze',
+          prompt: {
+            clozeText: '母が帰る{{c1::まで}}、本を読みます。',
+            clozeHint: 'I will read a book until my mother comes home.',
+            clozeResolvedHint: 'the endpoint of an ongoing action',
+          },
+          answer: {
+            restoredText: '母が帰るまで、本を読みます。',
+          },
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText('I will read a book until my mother comes home.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('the endpoint of an ongoing action')).not.toBeInTheDocument();
+  });
+
   it('gives revealed focus-mode answer text enough room for descenders', () => {
     render(
       <StudyCardFace
