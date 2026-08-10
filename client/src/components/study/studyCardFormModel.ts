@@ -39,6 +39,9 @@ export interface StudyCardFormConfig {
 
 const emptyToNull = (value: string) => (value === '' ? null : value);
 
+const firstNonBlank = (...values: Array<string | null | undefined>) =>
+  values.find((value): value is string => Boolean(value?.trim())) ?? '';
+
 export const getStudyCardFormValues = ({
   card,
   initialCardType = 'recognition',
@@ -50,7 +53,7 @@ export const getStudyCardFormValues = ({
         cardType: 'cloze',
         cueText: card.prompt.clozeText ?? '',
         cueReading: '',
-        cueMeaning: card.prompt.clozeHint ?? card.prompt.clozeResolvedHint ?? '',
+        cueMeaning: firstNonBlank(card.prompt.clozeHint, card.prompt.clozeResolvedHint),
         answerExpression: card.answer.restoredText ?? '',
         answerReading: card.answer.restoredTextReading ?? '',
         answerMeaning: card.answer.meaning ?? '',
@@ -99,11 +102,18 @@ export const buildStudyCardFormPayload = (
   card?: StudyCardSummary
 ): StudyCardFormPayload => {
   if (values.cardType === 'cloze') {
+    const previousHint = card
+      ? firstNonBlank(card.prompt.clozeHint, card.prompt.clozeResolvedHint)
+      : '';
+    const hintWasEdited = Boolean(card) && values.cueMeaning.trim() !== previousHint.trim();
     const normalized = normalizeClozePayloadFields(
       {
         ...(card?.prompt ?? {}),
         clozeText: values.cueText,
         clozeHint: emptyToNull(values.cueMeaning),
+        // A resolved hint is derived import metadata. Once the learner edits the
+        // visible hint, it must no longer override or outlive that manual value.
+        ...(hintWasEdited ? { clozeResolvedHint: null } : {}),
       },
       {
         restoredText: emptyToNull(values.answerExpression),
@@ -118,7 +128,9 @@ export const buildStudyCardFormPayload = (
 
     return {
       cardType: 'cloze',
-      prompt: normalized.prompt,
+      prompt: hintWasEdited
+        ? { ...normalized.prompt, clozeResolvedHint: null }
+        : normalized.prompt,
       answer: normalized.answer,
     };
   }

@@ -274,7 +274,7 @@ export const StudyCardFace = ({
             }`}
             rtClassName="text-[0.34em] font-medium text-gray-500"
           />
-          {card.prompt.clozeResolvedHint ? (
+          {card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() ? (
             <p
               className={
                 compactMobile
@@ -282,7 +282,9 @@ export const StudyCardFace = ({
                   : 'pb-1 text-xl leading-snug text-gray-700 sm:text-2xl md:text-3xl'
               }
             >
-              {toDisplayText(card.prompt.clozeResolvedHint)}
+              {toDisplayText(
+                card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() || ''
+              )}
             </p>
           ) : null}
         </div>
