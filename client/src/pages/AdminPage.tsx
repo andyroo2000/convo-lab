@@ -82,8 +82,11 @@ const AdminPage = () => {
   const speakerAvatarsReadControllerRef = useRef<AbortController | null>(null);
   const featureFlagsReadControllerRef = useRef<AbortController | null>(null);
   const pronunciationReadControllerRef = useRef<AbortController | null>(null);
+  const featureFlagsReadRevisionRef = useRef(0);
   const featureFlagMutationsRef = useRef(new Set<AdminFeatureFlagKey>());
+  const featureFlagMutationControllersRef = useRef(new Map<AdminFeatureFlagKey, AbortController>());
   const pronunciationMutationRef = useRef(false);
+  const pronunciationMutationControllerRef = useRef<AbortController | null>(null);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -252,7 +255,9 @@ const AdminPage = () => {
     setIsLoading(true);
     setError('');
     try {
-      setFeatureFlags(await getAdminFeatureFlags(init));
+      const data = await getAdminFeatureFlags(init);
+      featureFlagsReadRevisionRef.current += 1;
+      setFeatureFlags(data);
     } catch (err) {
       if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch feature flags');
@@ -277,22 +282,33 @@ const AdminPage = () => {
     if (!featureFlags || featureFlagMutationsRef.current.has(key)) return;
 
     const previousValue = featureFlags[key];
+    const readRevision = featureFlagsReadRevisionRef.current;
+    const controller = new AbortController();
     featureFlagMutationsRef.current.add(key);
+    featureFlagMutationControllersRef.current.set(key, controller);
     setSavingFeatureFlags(new Set(featureFlagMutationsRef.current));
 
     // Optimistic update
     setFeatureFlags((current) => (current ? { ...current, [key]: value } : current));
 
     try {
-      const updated = await updateAdminFeatureFlag(key, value);
+      const updated = await updateAdminFeatureFlag(key, value, { signal: controller.signal });
       setFeatureFlags((current) => (current ? { ...current, [key]: updated[key] } : updated));
       showToast('Settings updated successfully', 'success');
     } catch (err) {
-      setFeatureFlags((current) => (current ? { ...current, [key]: previousValue } : current));
+      if (isAbortError(err)) return;
+      if (featureFlagsReadRevisionRef.current === readRevision) {
+        setFeatureFlags((current) => (current ? { ...current, [key]: previousValue } : current));
+      }
       showToast(err instanceof Error ? err.message : 'Failed to update settings', 'error');
     } finally {
-      featureFlagMutationsRef.current.delete(key);
-      setSavingFeatureFlags(new Set(featureFlagMutationsRef.current));
+      if (featureFlagMutationControllersRef.current.get(key) === controller) {
+        featureFlagMutationControllersRef.current.delete(key);
+        featureFlagMutationsRef.current.delete(key);
+        if (!controller.signal.aborted) {
+          setSavingFeatureFlags(new Set(featureFlagMutationsRef.current));
+        }
+      }
     }
   };
 
@@ -391,10 +407,15 @@ const AdminPage = () => {
       forceKana: forceKanaText,
       verbKana: verbKanaText,
     };
+    const controller = new AbortController();
     pronunciationMutationRef.current = true;
+    pronunciationMutationControllerRef.current = controller;
     setPronunciationSaving(true);
     try {
-      const updated = await updateAdminPronunciationDictionary({ keepKanji, forceKana, verbKana });
+      const updated = await updateAdminPronunciationDictionary(
+        { keepKanji, forceKana, verbKana },
+        { signal: controller.signal }
+      );
       setPronunciationDictionary(updated);
       setKeepKanjiText((current) =>
         current === submittedText.keepKanji ? formatKeepKanjiText(updated.keepKanji || []) : current
@@ -407,13 +428,17 @@ const AdminPage = () => {
       );
       showToast('Pronunciation dictionary updated', 'success');
     } catch (err) {
+      if (isAbortError(err)) return;
       showToast(
         err instanceof Error ? err.message : 'Failed to update pronunciation dictionary',
         'error'
       );
     } finally {
-      pronunciationMutationRef.current = false;
-      setPronunciationSaving(false);
+      if (pronunciationMutationControllerRef.current === controller) {
+        pronunciationMutationControllerRef.current = null;
+        pronunciationMutationRef.current = false;
+        if (!controller.signal.aborted) setPronunciationSaving(false);
+      }
     }
   };
 
@@ -612,6 +637,14 @@ const AdminPage = () => {
     };
   }, [activeTab]);
   /* eslint-enable react-hooks/exhaustive-deps */
+
+  useEffect(
+    () => () => {
+      featureFlagMutationControllersRef.current.forEach((controller) => controller.abort());
+      pronunciationMutationControllerRef.current?.abort();
+    },
+    []
+  );
 
   if (!user || user.role !== 'admin') {
     return null;

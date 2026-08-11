@@ -89,7 +89,8 @@ interface AdminUsersResponse {
   users: AdminUser[];
 }
 
-export type AdminReadRequestInit = Pick<RequestInit, 'signal'>;
+export type AdminRequestInit = Pick<RequestInit, 'signal'>;
+export type AdminReadRequestInit = AdminRequestInit;
 
 export interface AdminApiContract {
   stats: string;
@@ -188,9 +189,11 @@ export function getAdminFeatureFlags(init?: AdminReadRequestInit): Promise<Admin
 
 export function updateAdminFeatureFlag(
   key: AdminFeatureFlagKey,
-  value: boolean
+  value: boolean,
+  init?: AdminRequestInit
 ): Promise<AdminFeatureFlags> {
   return requestJson<AdminFeatureFlags>(adminApi.featureFlags, {
+    ...init,
     method: 'PATCH',
     body: JSON.stringify({ [key]: value }),
   });
@@ -203,9 +206,11 @@ export function getAdminPronunciationDictionary(
 }
 
 export function updateAdminPronunciationDictionary(
-  dictionary: AdminPronunciationDictionaryUpdate
+  dictionary: AdminPronunciationDictionaryUpdate,
+  init?: AdminRequestInit
 ): Promise<AdminPronunciationDictionary> {
   return requestJson<AdminPronunciationDictionary>(adminApi.pronunciationDictionaries, {
+    ...init,
     method: 'PUT',
     body: JSON.stringify(dictionary),
   });

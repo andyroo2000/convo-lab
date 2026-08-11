@@ -1010,6 +1010,70 @@ describe('AdminPage', () => {
       });
     });
 
+    it('does not let a failed feature mutation overwrite a newer same-key refresh', async () => {
+      let featureReadCount = 0;
+      let resolvePatch: ((response: unknown) => void) | undefined;
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options?: RequestInit) => {
+          if (url.includes('/sanctum/csrf-cookie')) {
+            return Promise.resolve({ ok: true });
+          }
+          if (url.includes('/api/feature-flags') && options?.method === 'PATCH') {
+            return new Promise((resolve) => {
+              resolvePatch = resolve;
+            });
+          }
+          if (url.includes('/api/feature-flags')) {
+            featureReadCount += 1;
+            return Promise.resolve({
+              ok: true,
+              json: () =>
+                Promise.resolve({
+                  ...mockFeatureFlags,
+                  dialoguesEnabled: featureReadCount === 1,
+                }),
+            });
+          }
+          if (url.includes('/api/convolab/admin/pronunciation-dictionaries')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockPronunciationDictionary),
+            });
+          }
+          if (url.includes('/api/convolab/admin/users')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: [] }) });
+          }
+          return Promise.reject(new Error('Unknown endpoint'));
+        }
+      );
+
+      renderPage('settings');
+      const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+      expect(dialoguesToggle).toBeChecked();
+      fireEvent.click(dialoguesToggle);
+      await waitFor(() => expect(resolvePatch).toBeDefined());
+
+      fireEvent.click(screen.getByRole('link', { name: 'Users' }));
+      fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+
+      const refreshedDialoguesToggle = await screen.findByLabelText(
+        'Toggle AI-Generated Dialogues'
+      );
+      await waitFor(() => {
+        expect(featureReadCount).toBe(2);
+        expect(refreshedDialoguesToggle).not.toBeChecked();
+      });
+
+      resolvePatch?.({
+        ok: false,
+        status: 503,
+        json: () => Promise.resolve({ message: 'Feature settings unavailable' }),
+      });
+
+      expect(await screen.findByText('Feature settings unavailable (503)')).toBeInTheDocument();
+      expect(refreshedDialoguesToggle).not.toBeChecked();
+    });
+
     it('should save verb pronunciation overrides', async () => {
       renderPage('settings');
 
@@ -1228,6 +1292,69 @@ describe('AdminPage', () => {
 
       expect(featureFlagsSignal?.aborted).toBe(true);
       expect(pronunciationSignal?.aborted).toBe(true);
+    });
+
+    it('aborts both settings mutations when the page unmounts', async () => {
+      let featureMutationOptions: RequestInit | undefined;
+      let pronunciationMutationOptions: RequestInit | undefined;
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options?: RequestInit) => {
+          if (url.includes('/sanctum/csrf-cookie')) {
+            return Promise.resolve({ ok: true });
+          }
+          if (url.includes('/api/feature-flags') && options?.method === 'PATCH') {
+            featureMutationOptions = options;
+            return new Promise((_resolve, reject) => {
+              options.signal?.addEventListener(
+                'abort',
+                () => reject(new DOMException('The operation was aborted.', 'AbortError')),
+                { once: true }
+              );
+            });
+          }
+          if (url.includes('/api/feature-flags')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(mockFeatureFlags) });
+          }
+          if (
+            url.includes('/api/convolab/admin/pronunciation-dictionaries') &&
+            options?.method === 'PUT'
+          ) {
+            pronunciationMutationOptions = options;
+            return new Promise((_resolve, reject) => {
+              options.signal?.addEventListener(
+                'abort',
+                () => reject(new DOMException('The operation was aborted.', 'AbortError')),
+                { once: true }
+              );
+            });
+          }
+          if (url.includes('/api/convolab/admin/pronunciation-dictionaries')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockPronunciationDictionary),
+            });
+          }
+          return Promise.reject(new Error('Unknown endpoint'));
+        }
+      );
+
+      const view = renderPage('settings');
+      const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+      await screen.findByDisplayValue('話す=はなす');
+      fireEvent.click(dialoguesToggle);
+      fireEvent.click(screen.getByText('Save Dictionary'));
+
+      await waitFor(() => {
+        expect(featureMutationOptions).toBeDefined();
+        expect(pronunciationMutationOptions).toBeDefined();
+      });
+      expect(featureMutationOptions?.signal).toBeDefined();
+      expect(pronunciationMutationOptions?.signal).toBeDefined();
+
+      view.unmount();
+
+      expect(featureMutationOptions?.signal?.aborted).toBe(true);
+      expect(pronunciationMutationOptions?.signal?.aborted).toBe(true);
     });
 
     it('shows structured errors for failed feature-flag reads', async () => {
