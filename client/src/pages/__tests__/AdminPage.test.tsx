@@ -788,6 +788,9 @@ describe('AdminPage', () => {
     beforeEach(() => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
         (url: string, options: RequestInit | undefined) => {
+          if (url.includes('/sanctum/csrf-cookie')) {
+            return Promise.resolve({ ok: true });
+          }
           if (url.includes('/api/feature-flags')) {
             if (options?.method === 'PATCH') {
               return Promise.resolve({
@@ -851,6 +854,159 @@ describe('AdminPage', () => {
             method: 'PATCH',
           })
         );
+      });
+    });
+
+    it('rolls back a feature toggle and shows the structured mutation error', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options?: RequestInit) => {
+          if (url.includes('/sanctum/csrf-cookie')) {
+            return Promise.resolve({ ok: true });
+          }
+          if (url.includes('/api/feature-flags') && options?.method === 'PATCH') {
+            return Promise.resolve({
+              ok: false,
+              status: 503,
+              json: () => Promise.resolve({ message: 'Feature settings unavailable' }),
+            });
+          }
+          if (url.includes('/api/feature-flags')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(mockFeatureFlags) });
+          }
+          if (url.includes('/api/convolab/admin/pronunciation-dictionaries')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockPronunciationDictionary),
+            });
+          }
+          return Promise.reject(new Error('Unknown endpoint'));
+        }
+      );
+
+      renderPage('settings');
+      const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+      expect(dialoguesToggle).toBeChecked();
+
+      fireEvent.click(dialoguesToggle);
+
+      expect(await screen.findByText('Feature settings unavailable (503)')).toBeInTheDocument();
+      expect(dialoguesToggle).toBeChecked();
+    });
+
+    it('uses shared session-expiry behavior for unauthorized feature mutations', async () => {
+      const expiredListener = vi.fn();
+      window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, expiredListener);
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options?: RequestInit) => {
+          if (url.includes('/sanctum/csrf-cookie')) {
+            return Promise.resolve({ ok: true });
+          }
+          if (url.includes('/api/feature-flags') && options?.method === 'PATCH') {
+            return Promise.resolve({
+              ok: false,
+              status: 401,
+              json: () => Promise.resolve({ message: 'Admin session expired' }),
+            });
+          }
+          if (url.includes('/api/feature-flags')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(mockFeatureFlags) });
+          }
+          if (url.includes('/api/convolab/admin/pronunciation-dictionaries')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockPronunciationDictionary),
+            });
+          }
+          return Promise.reject(new Error('Unknown endpoint'));
+        }
+      );
+
+      try {
+        renderPage('settings');
+        const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+        fireEvent.click(dialoguesToggle);
+
+        await waitFor(() => {
+          expect(expiredListener).toHaveBeenCalledTimes(1);
+          expect(screen.getByText('Admin session expired (401)')).toBeInTheDocument();
+          expect(dialoguesToggle).toBeChecked();
+        });
+      } finally {
+        window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, expiredListener);
+      }
+    });
+
+    it('keeps concurrent feature mutations isolated when responses arrive out of order', async () => {
+      let resolveDialogues: ((response: unknown) => void) | undefined;
+      let resolveScripts: ((response: unknown) => void) | undefined;
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options?: RequestInit) => {
+          if (url.includes('/sanctum/csrf-cookie')) {
+            return Promise.resolve({ ok: true });
+          }
+          if (url.includes('/api/feature-flags') && options?.method === 'PATCH') {
+            const body = JSON.parse(String(options.body)) as Record<string, boolean>;
+            return new Promise((resolve) => {
+              if ('dialoguesEnabled' in body) resolveDialogues = resolve;
+              if ('scriptsEnabled' in body) resolveScripts = resolve;
+            });
+          }
+          if (url.includes('/api/feature-flags')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(mockFeatureFlags) });
+          }
+          if (url.includes('/api/convolab/admin/pronunciation-dictionaries')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockPronunciationDictionary),
+            });
+          }
+          return Promise.reject(new Error('Unknown endpoint'));
+        }
+      );
+
+      renderPage('settings');
+      const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+      const scriptsToggle = screen.getByLabelText('Toggle Script Player');
+      fireEvent.click(dialoguesToggle);
+      fireEvent.click(scriptsToggle);
+
+      await waitFor(() => {
+        expect(resolveDialogues).toBeDefined();
+        expect(resolveScripts).toBeDefined();
+        expect(dialoguesToggle).toBeDisabled();
+        expect(scriptsToggle).toBeDisabled();
+      });
+
+      resolveScripts?.({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            ...mockFeatureFlags,
+            dialoguesEnabled: true,
+            scriptsEnabled: false,
+          }),
+      });
+      await waitFor(() => {
+        expect(scriptsToggle).not.toBeChecked();
+        expect(scriptsToggle).not.toBeDisabled();
+        expect(dialoguesToggle).toBeDisabled();
+      });
+
+      resolveDialogues?.({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            ...mockFeatureFlags,
+            dialoguesEnabled: false,
+            scriptsEnabled: true,
+          }),
+      });
+      await waitFor(() => {
+        expect(dialoguesToggle).not.toBeChecked();
+        expect(scriptsToggle).not.toBeChecked();
+        expect(dialoguesToggle).not.toBeDisabled();
       });
     });
 

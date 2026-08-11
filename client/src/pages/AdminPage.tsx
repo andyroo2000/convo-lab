@@ -28,6 +28,8 @@ import {
   getAdminSpeakerAvatars,
   getAdminStats,
   getAdminUsers,
+  updateAdminFeatureFlag,
+  type AdminFeatureFlagKey,
   type AdminFeatureFlags,
   type AdminInviteCode,
   type AdminPronunciationDictionary,
@@ -54,6 +56,9 @@ const AdminPage = () => {
   const [isSpeakerAvatarsLoading, setIsSpeakerAvatarsLoading] = useState(false);
   const [speakerAvatarsError, setSpeakerAvatarsError] = useState('');
   const [featureFlags, setFeatureFlags] = useState<AdminFeatureFlags | null>(null);
+  const [savingFeatureFlags, setSavingFeatureFlags] = useState<ReadonlySet<AdminFeatureFlagKey>>(
+    () => new Set()
+  );
   const [pronunciationDictionary, setPronunciationDictionary] =
     useState<AdminPronunciationDictionary | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,6 +81,7 @@ const AdminPage = () => {
   const speakerAvatarsReadControllerRef = useRef<AbortController | null>(null);
   const featureFlagsReadControllerRef = useRef<AbortController | null>(null);
   const pronunciationReadControllerRef = useRef<AbortController | null>(null);
+  const featureFlagMutationsRef = useRef(new Set<AdminFeatureFlagKey>());
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -265,33 +271,26 @@ const AdminPage = () => {
     });
   };
 
-  const updateFeatureFlag = async (
-    key: keyof Omit<AdminFeatureFlags, 'id' | 'updatedAt'>,
-    value: boolean
-  ) => {
-    if (!featureFlags) return;
+  const updateFeatureFlag = async (key: AdminFeatureFlagKey, value: boolean) => {
+    if (!featureFlags || featureFlagMutationsRef.current.has(key)) return;
+
+    const previousValue = featureFlags[key];
+    featureFlagMutationsRef.current.add(key);
+    setSavingFeatureFlags(new Set(featureFlagMutationsRef.current));
 
     // Optimistic update
-    const previous = { ...featureFlags };
-    setFeatureFlags({ ...featureFlags, [key]: value });
+    setFeatureFlags((current) => (current ? { ...current, [key]: value } : current));
 
     try {
-      const response = await fetch(adminApi.featureFlags, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ [key]: value }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update feature flag');
-
-      const updated = await response.json();
-      setFeatureFlags(updated);
+      const updated = await updateAdminFeatureFlag(key, value);
+      setFeatureFlags((current) => (current ? { ...current, [key]: updated[key] } : updated));
       showToast('Settings updated successfully', 'success');
     } catch (err) {
-      // Revert on error
-      setFeatureFlags(previous);
+      setFeatureFlags((current) => (current ? { ...current, [key]: previousValue } : current));
       showToast(err instanceof Error ? err.message : 'Failed to update settings', 'error');
+    } finally {
+      featureFlagMutationsRef.current.delete(key);
+      setSavingFeatureFlags(new Set(featureFlagMutationsRef.current));
     }
   };
 
@@ -1256,6 +1255,7 @@ const AdminPage = () => {
                           id="toggle-dialogues"
                           type="checkbox"
                           checked={featureFlags.dialoguesEnabled}
+                          disabled={savingFeatureFlags.has('dialoguesEnabled')}
                           onChange={(e) => updateFeatureFlag('dialoguesEnabled', e.target.checked)}
                           className="sr-only peer"
                           aria-label="Toggle AI-Generated Dialogues"
@@ -1279,6 +1279,7 @@ const AdminPage = () => {
                           id="toggle-scripts"
                           type="checkbox"
                           checked={featureFlags.scriptsEnabled}
+                          disabled={savingFeatureFlags.has('scriptsEnabled')}
                           onChange={(e) => updateFeatureFlag('scriptsEnabled', e.target.checked)}
                           className="sr-only peer"
                           aria-label="Toggle Script Player"
@@ -1303,6 +1304,7 @@ const AdminPage = () => {
                           id="toggle-audio-course"
                           type="checkbox"
                           checked={featureFlags.audioCourseEnabled}
+                          disabled={savingFeatureFlags.has('audioCourseEnabled')}
                           onChange={(e) =>
                             updateFeatureFlag('audioCourseEnabled', e.target.checked)
                           }
@@ -1328,6 +1330,7 @@ const AdminPage = () => {
                           id="toggle-study"
                           type="checkbox"
                           checked={featureFlags.flashcardsEnabled}
+                          disabled={savingFeatureFlags.has('flashcardsEnabled')}
                           onChange={(e) => updateFeatureFlag('flashcardsEnabled', e.target.checked)}
                           className="sr-only peer"
                           aria-label="Toggle Study and Flashcards"
