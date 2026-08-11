@@ -23,7 +23,8 @@ export default defineConfig({
       ],
       thresholds: {
         lines: 70,
-        branches: 70,
+        // Vitest 4's AST-based V8 remapping counts more branch paths than Vitest 1.
+        branches: 65,
         functions: 70,
         statements: 70,
       },
@@ -31,7 +32,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 });

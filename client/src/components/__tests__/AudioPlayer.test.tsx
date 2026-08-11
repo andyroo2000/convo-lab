@@ -1,5 +1,5 @@
 /* eslint-disable testing-library/no-node-access */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import AudioPlayer, { RepeatMode } from '../AudioPlayer';
 import { defineNavigatorValue } from '../../test/utils';
@@ -60,18 +60,18 @@ class MockAudioElement {
 }
 
 describe('AudioPlayer', () => {
-  let mockAudioRef: ReturnType<typeof vi.fn>;
-  let mockOnRepeatModeChange: ReturnType<typeof vi.fn>;
-  let mockOnEnded: ReturnType<typeof vi.fn>;
+  let mockAudioRef: Mock<(element: HTMLAudioElement | null) => void>;
+  let mockOnRepeatModeChange: Mock<(mode: RepeatMode) => void>;
+  let mockOnEnded: Mock<() => void>;
   let mockAudioElement: MockAudioElement;
   let originalRAF: typeof requestAnimationFrame;
   let originalCAF: typeof cancelAnimationFrame;
 
   beforeEach(() => {
     defineNavigatorValue('connection', undefined);
-    mockAudioRef = vi.fn();
-    mockOnRepeatModeChange = vi.fn();
-    mockOnEnded = vi.fn();
+    mockAudioRef = vi.fn<(element: HTMLAudioElement | null) => void>();
+    mockOnRepeatModeChange = vi.fn<(mode: RepeatMode) => void>();
+    mockOnEnded = vi.fn<() => void>();
     mockAudioElement = new MockAudioElement();
 
     // Mock HTMLAudioElement methods that jsdom doesn't implement

@@ -8,25 +8,21 @@ import VoicePreview from '../VoicePreview';
 const mockObserve = vi.fn();
 const mockDisconnect = vi.fn();
 
+function MockIntersectionObserver(callback: IntersectionObserverCallback) {
+  // Trigger immediately on observe
+  setTimeout(() => {
+    callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+  }, 0);
+  return {
+    observe: mockObserve,
+    disconnect: mockDisconnect,
+    unobserve: vi.fn(),
+  };
+}
+
 beforeEach(() => {
   // Make IntersectionObserver immediately call callback with isIntersecting: true
-  vi.stubGlobal(
-    'IntersectionObserver',
-    vi.fn((callback: IntersectionObserverCallback) => {
-      // Trigger immediately on observe
-      setTimeout(() => {
-        callback(
-          [{ isIntersecting: true } as IntersectionObserverEntry],
-          {} as IntersectionObserver
-        );
-      }, 0);
-      return {
-        observe: mockObserve,
-        disconnect: mockDisconnect,
-        unobserve: vi.fn(),
-      };
-    })
-  );
+  vi.stubGlobal('IntersectionObserver', vi.fn(MockIntersectionObserver));
 });
 
 // Wrapper that provides the AudioPreviewContext

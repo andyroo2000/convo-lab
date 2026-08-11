@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
 
-import pwaManifest from './src/config/pwaManifest';
+import pwaManifest from './src/config/pwaManifest.ts';
 
 const learningOsApiUrl = process.env.LEARNING_OS_API_URL ?? 'http://localhost:8080';
 
@@ -38,9 +38,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../shared/src'),
-      '@languageflow/shared': path.resolve(__dirname, '../shared'),
+      '@': path.resolve(import.meta.dirname, './src'),
+      '@shared': path.resolve(import.meta.dirname, '../shared/src'),
+      '@languageflow/shared': path.resolve(import.meta.dirname, '../shared'),
     },
   },
   server: {
@@ -136,19 +136,40 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React - rarely changes, cache long-term
-          'vendor-react': ['react', 'react-dom'],
-          // Routing - separate chunk for navigation
-          'vendor-router': ['react-router-dom'],
-          // Data fetching - React Query
-          'vendor-query': ['@tanstack/react-query'],
-          // Animation library - large, used selectively
-          'vendor-framer': ['framer-motion'],
-          // Audio - WaveSurfer is large
-          'vendor-audio': ['wavesurfer.js'],
-          // Utilities
-          'vendor-utils': ['date-fns', 'clsx'],
+        codeSplitting: {
+          includeDependenciesRecursively: false,
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/,
+              priority: 60,
+            },
+            {
+              name: 'vendor-router',
+              test: /node_modules[\\/]react-router(?:-dom)?[\\/]/,
+              priority: 50,
+            },
+            {
+              name: 'vendor-query',
+              test: /node_modules[\\/]@tanstack[\\/](?:react-query|query-core)[\\/]/,
+              priority: 40,
+            },
+            {
+              name: 'vendor-framer',
+              test: /node_modules[\\/](?:framer-motion|motion-dom|motion-utils)[\\/]/,
+              priority: 30,
+            },
+            {
+              name: 'vendor-audio',
+              test: /node_modules[\\/]wavesurfer\.js[\\/]/,
+              priority: 20,
+            },
+            {
+              name: 'vendor-utils',
+              test: /node_modules[\\/](?:date-fns|clsx)[\\/]/,
+              priority: 10,
+            },
+          ],
         },
       },
     },
