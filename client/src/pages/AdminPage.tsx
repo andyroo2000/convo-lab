@@ -570,8 +570,9 @@ const AdminPage = () => {
         return;
       }
 
-      if (!closeCropperSession(cropperSessionId)) return;
-      showToast('Speaker avatar re-cropped successfully', 'success');
+      if (closeCropperSession(cropperSessionId)) {
+        showToast('Speaker avatar re-cropped successfully', 'success');
+      }
 
       // Refresh speaker avatars to show the updated avatar (bust cache)
       await refreshSpeakerAvatars(true);
@@ -649,8 +650,9 @@ const AdminPage = () => {
         return;
       }
 
-      if (!closeCropperSession(cropperSessionId)) return;
-      showToast('Speaker avatar updated successfully', 'success');
+      if (closeCropperSession(cropperSessionId)) {
+        showToast('Speaker avatar updated successfully', 'success');
+      }
 
       // Refresh speaker avatars to show the updated avatar (bust cache)
       await refreshSpeakerAvatars(true);

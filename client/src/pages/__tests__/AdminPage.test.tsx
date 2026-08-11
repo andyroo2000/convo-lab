@@ -840,6 +840,7 @@ describe('AdminPage', () => {
 
     it('keeps a replacement preview alive when an older upload finishes late', async () => {
       let finishUpload: ((response: unknown) => void) | undefined;
+      let speakerAvatarReads = 0;
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
         if (url.includes('/sanctum/csrf-cookie')) return Promise.resolve({ ok: true });
         if (url.endsWith('/upload')) {
@@ -848,6 +849,7 @@ describe('AdminPage', () => {
           });
         }
         if (url.includes('/api/convolab/admin/avatars/speakers')) {
+          speakerAvatarReads += 1;
           return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSpeakerAvatars) });
         }
         if (url.includes('/api/convolab/admin/users')) {
@@ -898,6 +900,7 @@ describe('AdminPage', () => {
 
         expect(screen.getByText('blob:new-speaker')).toBeInTheDocument();
         expect(objectUrls.revokeObjectUrl).not.toHaveBeenCalledWith('blob:new-speaker');
+        await waitFor(() => expect(speakerAvatarReads).toBe(2));
       } finally {
         view.unmount();
         pendingCreateElementSpy.mockRestore();
