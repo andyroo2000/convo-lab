@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   BrowserRouter,
+  Link,
   Navigate,
   Outlet,
   Route,
@@ -72,8 +74,31 @@ describe('React Router compatibility', () => {
 
     await waitFor(() => {
       expect(window.location.pathname).toBe('/app/library');
+      expect(JSON.parse(screen.getByTestId('route-probe').textContent ?? '')).toMatchObject({
+        pathname: '/app/library',
+      });
     });
-    expect(JSON.parse(screen.getByTestId('route-probe').textContent ?? '')).toMatchObject({
+  });
+
+  it('completes link navigation when route updates are transition-wrapped', async () => {
+    window.history.replaceState(null, '', '/app/home');
+
+    render(
+      <BrowserRouter>
+        <Routes>
+          <Route path="/app" element={<Outlet />}>
+            <Route path="home" element={<Link to="/app/library">Open library</Link>} />
+            <Route path="library" element={<RouteProbe />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    );
+
+    await userEvent.click(screen.getByRole('link', { name: 'Open library' }));
+
+    const routeProbe = await screen.findByTestId('route-probe');
+    expect(window.location.pathname).toBe('/app/library');
+    expect(JSON.parse(routeProbe.textContent ?? '')).toMatchObject({
       pathname: '/app/library',
     });
   });
