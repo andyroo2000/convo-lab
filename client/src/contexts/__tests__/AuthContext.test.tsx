@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { AuthProvider, useAuth } from '../AuthContext';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
@@ -9,18 +10,31 @@ import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+let queryClient: QueryClient;
+
 // Wrapper component for hooks
-const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>;
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>{children}</AuthProvider>
+  </QueryClientProvider>
+);
 
 describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=test-csrf-token`;
     // Default: no session
     mockFetch.mockResolvedValue({
       ok: false,
       json: async () => ({ error: 'Not authenticated' }),
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('useAuth hook', () => {
@@ -78,16 +92,29 @@ describe('AuthContext', () => {
         ok: true,
         json: async () => mockUser,
       });
+      const postMessage = vi.fn();
+      Object.defineProperty(window.navigator, 'serviceWorker', {
+        configurable: true,
+        value: {
+          controller: { postMessage },
+          ready: Promise.resolve({ active: { postMessage } }),
+        },
+      });
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.user).toEqual(mockUser);
       });
+      queryClient.setQueryData(['study', 'overview'], { due: 12 });
       act(() => {
         window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
       });
 
       expect(result.current.user).toBe(null);
+      expect(queryClient.getQueryData(['study', 'overview'])).toBeUndefined();
+      await waitFor(() => {
+        expect(postMessage).toHaveBeenCalledWith({ type: 'CLEAR_AUDIO_CACHE' });
+      });
     });
 
     it('should clear a stale user when an auth refresh returns unauthorized', async () => {
@@ -107,16 +134,27 @@ describe('AuthContext', () => {
           status: 401,
           json: async () => ({ error: 'Not authenticated' }),
         });
+      const postMessage = vi.fn();
+      Object.defineProperty(window.navigator, 'serviceWorker', {
+        configurable: true,
+        value: {
+          controller: { postMessage },
+          ready: Promise.resolve({ active: { postMessage } }),
+        },
+      });
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.user).toEqual(mockUser);
       });
+      queryClient.setQueryData(['study', 'overview'], { due: 12 });
       await act(async () => {
         await result.current.refreshUser();
       });
 
       expect(result.current.user).toBe(null);
+      expect(queryClient.getQueryData(['study', 'overview'])).toBeUndefined();
+      expect(postMessage).toHaveBeenCalledWith({ type: 'CLEAR_AUDIO_CACHE' });
     });
   });
 
@@ -240,6 +278,62 @@ describe('AuthContext', () => {
       expect(result.current.user).toBe(null);
       expect(postMessage).toHaveBeenCalledWith({ type: 'CLEAR_AUDIO_CACHE' });
     });
+
+    it('should clear local user data when the logout request fails', async () => {
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'user',
+      };
+      const postMessage = vi.fn();
+      Object.defineProperty(window.navigator, 'serviceWorker', {
+        configurable: true,
+        value: {
+          controller: { postMessage },
+          ready: Promise.resolve({ active: { postMessage } }),
+        },
+      });
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      mockFetch.mockImplementation((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/api/convolab/auth/me') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => mockUser,
+          });
+        }
+        if (url === '/sanctum/csrf-cookie') {
+          return Promise.resolve({
+            ok: true,
+            status: 204,
+            json: async () => ({}),
+          });
+        }
+        if (url === '/api/convolab/browser/auth/logout') {
+          return Promise.reject(new Error('Network unavailable'));
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.user).toEqual(mockUser));
+      queryClient.setQueryData(['study', 'overview'], { due: 12 });
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      expect(result.current.user).toBeNull();
+      expect(queryClient.getQueryData(['study', 'overview'])).toBeUndefined();
+      expect(postMessage).toHaveBeenCalledWith({ type: 'CLEAR_AUDIO_CACHE' });
+      expect(consoleWarn).toHaveBeenCalledWith(
+        'Unable to revoke the server session during logout:',
+        expect.any(Error)
+      );
+    });
   });
 
   describe('signup', () => {
@@ -344,12 +438,14 @@ describe('AuthContext', () => {
       await waitFor(() => {
         expect(result.current.user).toEqual(mockUser);
       });
+      queryClient.setQueryData(['study', 'overview'], { due: 12 });
 
       await act(async () => {
         await result.current.deleteAccount('correct-password123');
       });
 
       expect(result.current.user).toBe(null);
+      expect(queryClient.getQueryData(['study', 'overview'])).toBeUndefined();
       expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('/api/convolab/auth/me'),
         expect.objectContaining({

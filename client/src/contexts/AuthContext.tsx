@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { User } from '../types';
 import { fetchWithCsrf } from '../lib/csrf';
 import { clearAudioCache } from '../lib/audioCache';
@@ -33,6 +34,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const clearLocalSession = useCallback(async () => {
+    setUser(null);
+    queryClient.clear();
+    await clearAudioCache().catch((error) => {
+      console.warn('Unable to clear audio cache after session ended:', error);
+    });
+  }, [queryClient]);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -44,14 +54,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userData = await response.json();
         setUser(userData);
       } else if (response.status === 401) {
-        setUser(null);
+        await clearLocalSession();
       }
     } catch (error) {
       console.error('Auth check failed:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearLocalSession]);
 
   useEffect(() => {
     // Check for existing session
@@ -60,14 +70,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const handleSessionExpired = () => {
-      setUser(null);
+      clearLocalSession().catch((error) => {
+        console.warn('Unable to clear local session after it expired:', error);
+      });
     };
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
     return () => {
       window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
     };
-  }, []);
+  }, [clearLocalSession]);
 
   const login = async (email: string, password: string) => {
     const response = await fetchWithCsrf(authApi.login, {
@@ -87,14 +99,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    await fetchWithCsrf(authApi.logout, {
-      method: 'POST',
-      credentials: 'include',
-    });
-    await clearAudioCache().catch((error) => {
-      console.warn('Unable to clear audio cache after logout:', error);
-    });
-    setUser(null);
+    try {
+      const response = await fetchWithCsrf(authApi.logout, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        console.warn(
+          'Unable to revoke the server session during logout:',
+          new Error(`Logout failed with status ${response.status}`)
+        );
+      }
+    } catch (error) {
+      console.warn('Unable to revoke the server session during logout:', error);
+    } finally {
+      await clearLocalSession();
+    }
   };
 
   const signup = async (email: string, password: string, name: string, inviteCode: string) => {
@@ -154,10 +174,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error(error.error?.message || error.message || 'Delete failed');
     }
 
-    await clearAudioCache().catch((error) => {
-      console.warn('Unable to clear audio cache after account deletion:', error);
-    });
-    setUser(null);
+    await clearLocalSession();
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
