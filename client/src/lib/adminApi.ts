@@ -53,7 +53,7 @@ interface AdminUsersResponse {
   users: AdminUser[];
 }
 
-type AdminReadRequestInit = Pick<RequestInit, 'signal'>;
+export type AdminReadRequestInit = Pick<RequestInit, 'signal'>;
 
 export interface AdminApiContract {
   stats: string;

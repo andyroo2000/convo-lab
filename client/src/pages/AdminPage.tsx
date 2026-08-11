@@ -26,6 +26,7 @@ import {
   getAdminStats,
   getAdminUsers,
   type AdminInviteCode,
+  type AdminReadRequestInit,
   type AdminStats,
   type AdminUser,
 } from '../lib/adminApi';
@@ -59,6 +60,9 @@ interface PronunciationDictionary {
   verbKana?: Record<string, string>;
   updatedAt?: string;
 }
+
+const isAbortError = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError';
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -170,39 +174,39 @@ const AdminPage = () => {
     'ja-male-formal.jpg',
   ];
 
-  const fetchUsers = async (init?: Pick<RequestInit, 'signal'>) => {
+  const fetchUsers = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
     setError('');
     try {
       setUsers(await getAdminUsers(searchQuery, init));
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
     } finally {
       if (!init?.signal?.aborted) setIsLoading(false);
     }
   };
 
-  const fetchInviteCodes = async (init?: Pick<RequestInit, 'signal'>) => {
+  const fetchInviteCodes = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
     setError('');
     try {
       setInviteCodes(await getAdminInviteCodes(init));
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch invite codes');
     } finally {
       if (!init?.signal?.aborted) setIsLoading(false);
     }
   };
 
-  const fetchStats = async (init?: Pick<RequestInit, 'signal'>) => {
+  const fetchStats = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
     setError('');
     try {
       setStats(await getAdminStats(init));
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch stats');
     } finally {
       if (!init?.signal?.aborted) setIsLoading(false);
@@ -210,7 +214,7 @@ const AdminPage = () => {
   };
 
   const refreshDashboardRead = (
-    read: (init: Pick<RequestInit, 'signal'>) => Promise<void>
+    read: (init: AdminReadRequestInit) => Promise<void>
   ): Promise<void> => {
     dashboardReadControllerRef.current?.abort();
     const controller = new AbortController();

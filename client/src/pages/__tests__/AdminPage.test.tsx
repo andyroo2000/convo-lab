@@ -309,6 +309,50 @@ describe('AdminPage', () => {
       expect(requestSignal?.aborted).toBe(true);
     });
 
+    it('silently aborts a superseded users read while the replacement succeeds', async () => {
+      renderPage('users');
+      await screen.findByText('user1@test.com');
+
+      const foreignRealm = document.createElement('iframe');
+      document.body.appendChild(foreignRealm);
+      const ForeignDOMException = (foreignRealm.contentWindow as unknown as typeof globalThis)
+        .DOMException;
+      const abortError = new ForeignDOMException('The operation was aborted.', 'AbortError');
+      expect(abortError).not.toBeInstanceOf(Error);
+
+      let pendingSignal: AbortSignal | undefined;
+      let searchRequestCount = 0;
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (_url: string, init?: RequestInit) => {
+          searchRequestCount += 1;
+          if (searchRequestCount === 1) {
+            return new Promise((_resolve, reject) => {
+              pendingSignal = init?.signal ?? undefined;
+              pendingSignal?.addEventListener('abort', () => reject(abortError), { once: true });
+            });
+          }
+
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ users: [mockUsers[1]] }),
+          });
+        }
+      );
+
+      const searchInput = screen.getByPlaceholderText('Search users by name or email...');
+      fireEvent.change(searchInput, { target: { value: 'pending' } });
+      fireEvent.click(screen.getByText('Search'));
+      await waitFor(() => expect(pendingSignal).toBeDefined());
+
+      fireEvent.change(searchInput, { target: { value: 'replacement' } });
+      fireEvent.click(screen.getByText('Search'));
+
+      await screen.findByText('user2@test.com');
+      expect(pendingSignal?.aborted).toBe(true);
+      expect(screen.queryByText('Failed to fetch users')).not.toBeInTheDocument();
+      foreignRealm.remove();
+    });
+
     it('should handle user deletion', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
         (url: string, options: RequestInit | undefined) => {
