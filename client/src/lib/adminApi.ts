@@ -49,6 +49,18 @@ export interface AdminStats {
   };
 }
 
+export interface AdminSpeakerAvatar {
+  id: string;
+  filename: string;
+  croppedUrl: string;
+  originalUrl: string;
+  language: string;
+  gender: string;
+  tone: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface AdminUsersResponse {
   users: AdminUser[];
 }
@@ -137,4 +149,11 @@ export function getAdminInviteCodes(init?: AdminReadRequestInit): Promise<AdminI
 
 export function getAdminStats(init?: AdminReadRequestInit): Promise<AdminStats> {
   return requestJson<AdminStats>(adminApi.stats, init);
+}
+
+export function getAdminSpeakerAvatars(
+  cacheBust?: number,
+  init?: AdminReadRequestInit
+): Promise<AdminSpeakerAvatar[]> {
+  return requestJson<AdminSpeakerAvatar[]>(adminApi.speakerAvatars(cacheBust), init);
 }

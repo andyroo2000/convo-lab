@@ -5,6 +5,7 @@ import {
   getAdminStats,
   getAdminUsers,
   getAdminInviteCodes,
+  getAdminSpeakerAvatars,
 } from '../adminApi';
 
 const { requestJsonMock } = vi.hoisted(() => ({
@@ -109,6 +110,29 @@ describe('admin API contract', () => {
       signal: controller.signal,
     });
     expect(requestJsonMock).toHaveBeenNthCalledWith(3, '/api/convolab/admin/stats', {
+      signal: controller.signal,
+    });
+  });
+
+  it('loads speaker avatars through the shared JSON client with cancellation and cache busting', async () => {
+    const controller = new AbortController();
+    const avatars = [
+      {
+        id: 'avatar-1',
+        filename: 'ja-female-casual.jpg',
+        croppedUrl: 'https://example.com/cropped.jpg',
+        originalUrl: 'https://example.com/original.jpg',
+        language: 'ja',
+        gender: 'female',
+        tone: 'casual',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    requestJsonMock.mockResolvedValue(avatars);
+
+    await expect(getAdminSpeakerAvatars(123, { signal: controller.signal })).resolves.toBe(avatars);
+    expect(requestJsonMock).toHaveBeenCalledWith('/api/convolab/admin/avatars/speakers?t=123', {
       signal: controller.signal,
     });
   });
