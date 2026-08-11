@@ -192,7 +192,7 @@ const baseCard = {
 };
 
 class MockDeviceMotionEvent extends Event {
-  static requestPermission = vi.fn<[], Promise<'granted' | 'denied'>>(async () => 'granted');
+  static requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>(async () => 'granted');
 
   accelerationIncludingGravity: { x?: number | null; y?: number | null; z?: number | null } | null;
 
