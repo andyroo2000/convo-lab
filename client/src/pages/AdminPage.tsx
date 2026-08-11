@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   Users,
@@ -20,48 +20,18 @@ import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import ConfirmModal from '../components/common/ConfirmModal';
 import Toast from '../components/common/Toast';
 import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
-import { adminApi } from '../lib/adminApi';
+import {
+  adminApi,
+  getAdminInviteCodes,
+  getAdminStats,
+  getAdminUsers,
+  type AdminInviteCode,
+  type AdminReadRequestInit,
+  type AdminStats,
+  type AdminUser,
+} from '../lib/adminApi';
 
 type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings' | 'script-lab';
-
-interface UserData {
-  id: string;
-  email: string;
-  name: string;
-  displayName?: string;
-  avatarColor?: string;
-  avatarUrl?: string;
-  role: string;
-  createdAt: string;
-  _count: {
-    episodes: number;
-    courses: number;
-  };
-}
-
-interface InviteCode {
-  id: string;
-  code: string;
-  usedBy: string | null;
-  usedAt: string | null;
-  createdAt: string;
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-  };
-}
-
-interface Stats {
-  users: number;
-  episodes: number;
-  courses: number;
-  inviteCodes: {
-    total: number;
-    used: number;
-    available: number;
-  };
-}
 
 interface SpeakerAvatar {
   id: string;
@@ -91,14 +61,17 @@ interface PronunciationDictionary {
   updatedAt?: string;
 }
 
+const isAbortError = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError';
+
 const AdminPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'users';
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [inviteCodes, setInviteCodes] = useState<AdminInviteCode[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [speakerAvatars, setSpeakerAvatars] = useState<SpeakerAvatar[]>([]);
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags | null>(null);
   const [pronunciationDictionary, setPronunciationDictionary] =
@@ -119,6 +92,7 @@ const AdminPage = () => {
     | null
   >(null);
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
+  const dashboardReadControllerRef = useRef<AbortController | null>(null);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -200,55 +174,57 @@ const AdminPage = () => {
     'ja-male-formal.jpg',
   ];
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(adminApi.users(searchQuery), {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch users');
-      const data = await response.json();
-      setUsers(data.users);
+      setUsers(await getAdminUsers(searchQuery, init));
     } catch (err) {
+      if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
     } finally {
-      setIsLoading(false);
+      if (!init?.signal?.aborted) setIsLoading(false);
     }
   };
 
-  const fetchInviteCodes = async () => {
+  const fetchInviteCodes = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(adminApi.inviteCodes, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch invite codes');
-      const data = await response.json();
-      setInviteCodes(data);
+      setInviteCodes(await getAdminInviteCodes(init));
     } catch (err) {
+      if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch invite codes');
     } finally {
-      setIsLoading(false);
+      if (!init?.signal?.aborted) setIsLoading(false);
     }
   };
 
-  const fetchStats = async () => {
+  const fetchStats = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(adminApi.stats, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      const data = await response.json();
-      setStats(data);
+      setStats(await getAdminStats(init));
     } catch (err) {
+      if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch stats');
     } finally {
-      setIsLoading(false);
+      if (!init?.signal?.aborted) setIsLoading(false);
     }
+  };
+
+  const refreshDashboardRead = (
+    read: (init: AdminReadRequestInit) => Promise<void>
+  ): Promise<void> => {
+    dashboardReadControllerRef.current?.abort();
+    const controller = new AbortController();
+    dashboardReadControllerRef.current = controller;
+
+    return read({ signal: controller.signal }).finally(() => {
+      if (dashboardReadControllerRef.current === controller) {
+        dashboardReadControllerRef.current = null;
+      }
+    });
   };
 
   const fetchSpeakerAvatars = async (bustCache = false) => {
@@ -435,7 +411,7 @@ const AdminPage = () => {
           const data = await response.json();
           throw new Error(data.message || 'Failed to delete user');
         }
-        fetchUsers();
+        refreshDashboardRead(fetchUsers);
         showToast('User deleted successfully', 'success');
       } else if (confirmAction.type === 'delete-invite-code') {
         const response = await fetch(adminApi.inviteCode(confirmAction.id), {
@@ -446,7 +422,7 @@ const AdminPage = () => {
           const data = await response.json();
           throw new Error(data.message || 'Failed to delete invite code');
         }
-        fetchInviteCodes();
+        refreshDashboardRead(fetchInviteCodes);
         showToast('Invite code deleted successfully', 'success');
       }
     } catch (err) {
@@ -470,7 +446,7 @@ const AdminPage = () => {
         body: JSON.stringify({}),
       });
       if (!response.ok) throw new Error('Failed to create invite code');
-      fetchInviteCodes();
+      refreshDashboardRead(fetchInviteCodes);
       showToast('Invite code created successfully', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to create invite code', 'error');
@@ -590,18 +566,23 @@ const AdminPage = () => {
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (activeTab === 'users') {
-      fetchUsers();
+      refreshDashboardRead(fetchUsers);
     } else if (activeTab === 'invite-codes') {
-      fetchInviteCodes();
+      refreshDashboardRead(fetchInviteCodes);
     } else if (activeTab === 'analytics') {
-      fetchStats();
+      refreshDashboardRead(fetchStats);
     } else if (activeTab === 'avatars') {
-      fetchUsers();
+      refreshDashboardRead(fetchUsers);
       fetchSpeakerAvatars();
     } else if (activeTab === 'settings') {
       fetchFeatureFlags();
       fetchPronunciationDictionary();
     }
+
+    return () => {
+      dashboardReadControllerRef.current?.abort();
+      dashboardReadControllerRef.current = null;
+    };
   }, [activeTab]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
@@ -692,13 +673,17 @@ const AdminPage = () => {
                     placeholder="Search users by name or email..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') refreshDashboardRead(fetchUsers);
+                    }}
                     className="retro-admin-v3-input pl-10"
                   />
                 </div>
                 <button
                   type="button"
-                  onClick={fetchUsers}
+                  onClick={() => {
+                    refreshDashboardRead(fetchUsers);
+                  }}
                   className="retro-admin-v3-btn-primary shrink-0"
                 >
                   Search
@@ -1177,7 +1162,7 @@ const AdminPage = () => {
                                             setCropperOpen(false);
 
                                             // Reload users to show updated avatar
-                                            fetchUsers();
+                                            refreshDashboardRead(fetchUsers);
                                           } catch (err) {
                                             showToast(
                                               err instanceof Error
