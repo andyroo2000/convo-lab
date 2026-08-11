@@ -34,7 +34,7 @@
     "react-dom": "^18.3.1",
     "react-easy-crop": "^5.5.5",
     "react-i18next": "^16.5.0",
-    "react-router-dom": "^6.26.1",
+    "react-router-dom": "^7.18.2",
     "ts-fsrs": "^5.3.3",
     "ulid": "^3.0.2",
     "wavesurfer.js": "^7.8.6",
