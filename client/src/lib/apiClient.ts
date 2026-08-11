@@ -10,9 +10,16 @@ function requestHeaders(init?: RequestInit): Headers {
   const headers = new Headers(init?.headers ?? {});
   const method = (init?.method ?? 'GET').toUpperCase();
   const hasBody = typeof init?.body !== 'undefined' && init.body !== null;
+  const hasMultipartBody = typeof FormData !== 'undefined' && init?.body instanceof FormData;
 
   headers.set('Accept', 'application/json');
-  if (hasBody && !headers.has('Content-Type') && method !== 'GET' && method !== 'HEAD') {
+  if (
+    hasBody &&
+    !hasMultipartBody &&
+    !headers.has('Content-Type') &&
+    method !== 'GET' &&
+    method !== 'HEAD'
+  ) {
     headers.set('Content-Type', 'application/json');
   }
 

@@ -25,11 +25,14 @@ import {
   getAdminFeatureFlags,
   getAdminInviteCodes,
   getAdminPronunciationDictionary,
+  getAdminSpeakerAvatarOriginal,
   getAdminSpeakerAvatars,
   getAdminStats,
   getAdminUsers,
+  recropAdminSpeakerAvatar,
   updateAdminFeatureFlag,
   updateAdminPronunciationDictionary,
+  uploadAdminSpeakerAvatar,
   type AdminFeatureFlagKey,
   type AdminFeatureFlags,
   type AdminInviteCode,
@@ -56,6 +59,9 @@ const AdminPage = () => {
   const [speakerAvatars, setSpeakerAvatars] = useState<AdminSpeakerAvatar[]>([]);
   const [isSpeakerAvatarsLoading, setIsSpeakerAvatarsLoading] = useState(false);
   const [speakerAvatarsError, setSpeakerAvatarsError] = useState('');
+  const [loadingSpeakerAvatarOriginal, setLoadingSpeakerAvatarOriginal] = useState<string | null>(
+    null
+  );
   const [featureFlags, setFeatureFlags] = useState<AdminFeatureFlags | null>(null);
   const [savingFeatureFlags, setSavingFeatureFlags] = useState<ReadonlySet<AdminFeatureFlagKey>>(
     () => new Set()
@@ -80,6 +86,8 @@ const AdminPage = () => {
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const dashboardReadControllerRef = useRef<AbortController | null>(null);
   const speakerAvatarsReadControllerRef = useRef<AbortController | null>(null);
+  const speakerAvatarOriginalReadControllerRef = useRef<AbortController | null>(null);
+  const speakerAvatarMutationControllerRef = useRef<AbortController | null>(null);
   const featureFlagsReadControllerRef = useRef<AbortController | null>(null);
   const pronunciationReadControllerRef = useRef<AbortController | null>(null);
   const featureFlagsReadRevisionRef = useRef(0);
@@ -514,17 +522,17 @@ const AdminPage = () => {
 
   // Avatar handler functions
   const handleSaveSpeakerRecrop = async (filename: string, cropArea: Area) => {
-    try {
-      const response = await fetch(adminApi.speakerAvatarRecrop(filename), {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ cropArea }),
-      });
+    speakerAvatarMutationControllerRef.current?.abort();
+    const controller = new AbortController();
+    speakerAvatarMutationControllerRef.current = controller;
 
-      if (!response.ok) throw new Error('Failed to re-crop speaker avatar');
+    try {
+      await recropAdminSpeakerAvatar(filename, cropArea, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted || speakerAvatarMutationControllerRef.current !== controller) {
+        return;
+      }
 
       showToast('Speaker avatar re-cropped successfully', 'success');
       setCropperOpen(false);
@@ -532,18 +540,35 @@ const AdminPage = () => {
       // Refresh speaker avatars to show the updated avatar (bust cache)
       await refreshSpeakerAvatars(true);
     } catch (err) {
+      if (
+        isAbortError(err) ||
+        controller.signal.aborted ||
+        speakerAvatarMutationControllerRef.current !== controller
+      ) {
+        return;
+      }
       showToast(err instanceof Error ? err.message : 'Failed to re-crop speaker avatar', 'error');
+    } finally {
+      if (speakerAvatarMutationControllerRef.current === controller) {
+        speakerAvatarMutationControllerRef.current = null;
+      }
     }
   };
 
   const handleRecropSpeaker = async (filename: string) => {
+    speakerAvatarOriginalReadControllerRef.current?.abort();
+    const controller = new AbortController();
+    speakerAvatarOriginalReadControllerRef.current = controller;
+    setLoadingSpeakerAvatarOriginal(filename);
+
     try {
-      // Fetch the original image URL from the API
-      const response = await fetch(adminApi.speakerAvatarOriginal(filename), {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch original avatar URL');
-      const data = await response.json();
+      const data = await getAdminSpeakerAvatarOriginal(filename, { signal: controller.signal });
+      if (
+        controller.signal.aborted ||
+        speakerAvatarOriginalReadControllerRef.current !== controller
+      ) {
+        return;
+      }
 
       setCropperImageUrl(data.originalUrl);
       setCropperTitle(`Re-crop ${filename}`);
@@ -551,25 +576,35 @@ const AdminPage = () => {
         await handleSaveSpeakerRecrop(filename, cropArea);
       });
       setCropperOpen(true);
-    } catch (cropError) {
-      console.error('Failed to open cropper:', cropError);
-      showToast('Failed to load original image', 'error');
+    } catch (err) {
+      if (
+        isAbortError(err) ||
+        controller.signal.aborted ||
+        speakerAvatarOriginalReadControllerRef.current !== controller
+      ) {
+        return;
+      }
+      showToast(err instanceof Error ? err.message : 'Failed to load original image', 'error');
+    } finally {
+      if (speakerAvatarOriginalReadControllerRef.current === controller) {
+        speakerAvatarOriginalReadControllerRef.current = null;
+        if (!controller.signal.aborted) setLoadingSpeakerAvatarOriginal(null);
+      }
     }
   };
 
   const handleSaveSpeakerCrop = async (filename: string, originalFile: File, cropArea: Area) => {
+    speakerAvatarMutationControllerRef.current?.abort();
+    const controller = new AbortController();
+    speakerAvatarMutationControllerRef.current = controller;
+
     try {
-      const formData = new FormData();
-      formData.append('image', originalFile, filename);
-      formData.append('cropArea', JSON.stringify(cropArea));
-
-      const response = await fetch(adminApi.speakerAvatarUpload(filename), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
+      await uploadAdminSpeakerAvatar(filename, originalFile, cropArea, {
+        signal: controller.signal,
       });
-
-      if (!response.ok) throw new Error('Failed to upload speaker avatar');
+      if (controller.signal.aborted || speakerAvatarMutationControllerRef.current !== controller) {
+        return;
+      }
 
       showToast('Speaker avatar updated successfully', 'success');
       setCropperOpen(false);
@@ -577,7 +612,18 @@ const AdminPage = () => {
       // Refresh speaker avatars to show the updated avatar (bust cache)
       await refreshSpeakerAvatars(true);
     } catch (err) {
+      if (
+        isAbortError(err) ||
+        controller.signal.aborted ||
+        speakerAvatarMutationControllerRef.current !== controller
+      ) {
+        return;
+      }
       showToast(err instanceof Error ? err.message : 'Failed to upload speaker avatar', 'error');
+    } finally {
+      if (speakerAvatarMutationControllerRef.current === controller) {
+        speakerAvatarMutationControllerRef.current = null;
+      }
     }
   };
 
@@ -618,6 +664,7 @@ const AdminPage = () => {
     } else if (activeTab === 'analytics') {
       refreshDashboardRead(fetchStats);
     } else if (activeTab === 'avatars') {
+      setLoadingSpeakerAvatarOriginal(null);
       refreshDashboardRead(fetchUsers);
       refreshSpeakerAvatars();
     } else if (activeTab === 'settings') {
@@ -630,6 +677,8 @@ const AdminPage = () => {
       dashboardReadControllerRef.current = null;
       speakerAvatarsReadControllerRef.current?.abort();
       speakerAvatarsReadControllerRef.current = null;
+      speakerAvatarOriginalReadControllerRef.current?.abort();
+      speakerAvatarOriginalReadControllerRef.current = null;
       featureFlagsReadControllerRef.current?.abort();
       featureFlagsReadControllerRef.current = null;
       pronunciationReadControllerRef.current?.abort();
@@ -640,6 +689,7 @@ const AdminPage = () => {
 
   useEffect(
     () => () => {
+      speakerAvatarMutationControllerRef.current?.abort();
       featureFlagMutationControllersRef.current.forEach((controller) => controller.abort());
       pronunciationMutationControllerRef.current?.abort();
     },
@@ -1077,9 +1127,12 @@ const AdminPage = () => {
                               <button
                                 type="button"
                                 onClick={() => handleRecropSpeaker(filename)}
+                                disabled={loadingSpeakerAvatarOriginal === filename}
                                 className="retro-admin-v3-btn-secondary text-xs sm:text-sm py-1"
                               >
-                                Re-crop
+                                {loadingSpeakerAvatarOriginal === filename
+                                  ? 'Loading...'
+                                  : 'Re-crop'}
                               </button>
                               <button
                                 type="button"
