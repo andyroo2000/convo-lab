@@ -54,6 +54,7 @@ test('Docker build contexts exclude local dependencies, build output, and secret
     '.git',
     '**/node_modules',
     '**/dist',
+    '**/dev-dist',
     '**/coverage',
     '.env',
     '.env.*',
@@ -62,6 +63,25 @@ test('Docker build contexts exclude local dependencies, build output, and secret
   ]) {
     assert.ok(ignoredPatterns.has(pattern), `Expected .dockerignore to contain ${pattern}`);
   }
+});
+
+test('generated development PWA output stays out of version control', async () => {
+  const gitignore = await readFile(path.join(repositoryRoot, '.gitignore'), 'utf8');
+  const ignoredPatterns = new Set(
+    gitignore
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+  );
+
+  assert.ok(ignoredPatterns.has('client/dev-dist/'));
+
+  const { stdout: trackedDevOutput } = await execFileAsync(
+    'git',
+    ['ls-files', 'client/dev-dist'],
+    { cwd: repositoryRoot }
+  );
+  assert.equal(trackedDevOutput.trim(), '');
 });
 
 test('nginx keeps backend paths out of the SPA fallback', async () => {
