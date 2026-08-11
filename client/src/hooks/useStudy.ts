@@ -7,10 +7,6 @@ import type {
   StudyCardActionRequest,
   StudyCardActionResult,
   StudyCardSetDueMode,
-  StudyBrowserListResponse,
-  StudyBrowserNoteDetail,
-  StudyBrowserSortDirection,
-  StudyBrowserSortField,
   StudyCardCreationKind,
   StudyCardDraftImageResponse,
   StudyCardDraftPreviewAudioResponse,
@@ -35,10 +31,18 @@ import type {
   StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types';
 
-import { CSRF_TOKEN_HEADER_NAME, fetchWithCsrf, getCsrfToken } from '../lib/csrf';
-import { notifyAuthSessionExpired } from '../lib/authSession';
+import { CSRF_TOKEN_HEADER_NAME, getCsrfToken } from '../lib/csrf';
+import { requestJson } from '../lib/apiClient';
 import { studyApiPath } from '../lib/studyApi';
+import {
+  getStudyBrowser,
+  getStudyBrowserNoteDetail,
+  type StudyBrowserQuery,
+} from '../lib/studyBrowseApi';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
+
+export { getStudyBrowser, getStudyBrowserNoteDetail };
+export type { StudyBrowserQuery };
 
 export interface StudySessionResponse {
   overview: StudyOverview;
@@ -76,17 +80,6 @@ interface StudyCardActionPayload {
   dueAt?: string;
   timeZone?: string;
   currentOverview?: StudyOverview;
-}
-
-export interface StudyBrowserQuery {
-  q?: string;
-  noteType?: string;
-  cardType?: 'recognition' | 'production' | 'cloze';
-  queueState?: 'new' | 'learning' | 'review' | 'relearning' | 'suspended' | 'buried';
-  sortField?: StudyBrowserSortField;
-  sortDirection?: StudyBrowserSortDirection;
-  cursor?: string;
-  limit?: number;
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -184,46 +177,14 @@ function normalizeStudyImportResult(value: unknown): StudyImportResult {
   };
 }
 
-function withMutationHeaders(init?: RequestInit): HeadersInit {
-  const headers = new Headers(init?.headers ?? {});
-  const method = (init?.method ?? 'GET').toUpperCase();
-  const hasBody = typeof init?.body !== 'undefined' && init.body !== null;
-
-  if (hasBody && !headers.has('Content-Type') && method !== 'GET' && method !== 'HEAD') {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  return headers;
-}
-
 async function apiRequest<T>(
   endpoint: string,
   init?: RequestInit,
   acceptedEmptyStatuses: readonly number[] = []
 ): Promise<T> {
-  const headers = new Headers(withMutationHeaders(init));
-  headers.set('Accept', 'application/json');
-  const response = await fetchWithCsrf(studyApiPath(endpoint), {
-    ...init,
-    credentials: 'include',
-    headers,
+  return requestJson<T>(studyApiPath(endpoint), init, {
+    acceptedEmptyStatuses,
   });
-
-  notifyAuthSessionExpired(response);
-  if (acceptedEmptyStatuses.includes(response.status)) {
-    return undefined as T;
-  }
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    const message = error.message || error.error?.message || 'Request failed';
-    throw new Error(`${message} (${String(response.status)})`);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
 }
 
 export async function startStudySession(): Promise<StudySessionResponse> {
@@ -512,27 +473,6 @@ export async function submitStudyReview(
   });
 }
 
-export async function getStudyBrowser(
-  query: StudyBrowserQuery = {}
-): Promise<StudyBrowserListResponse> {
-  const searchParams = new URLSearchParams();
-  if (query.q) searchParams.set('q', query.q);
-  if (query.noteType) searchParams.set('noteType', query.noteType);
-  if (query.cardType) searchParams.set('cardType', query.cardType);
-  if (query.queueState) searchParams.set('queueState', query.queueState);
-  if (query.sortField) searchParams.set('sortField', query.sortField);
-  if (query.sortDirection) searchParams.set('sortDirection', query.sortDirection);
-  if (query.cursor) searchParams.set('cursor', query.cursor);
-  if (typeof query.limit === 'number') searchParams.set('limit', String(query.limit));
-
-  const suffix = searchParams.toString();
-  return apiRequest<StudyBrowserListResponse>(`/browser${suffix ? `?${suffix}` : ''}`);
-}
-
-export async function getStudyBrowserNoteDetail(noteId: string): Promise<StudyBrowserNoteDetail> {
-  return apiRequest<StudyBrowserNoteDetail>(`/browser/${encodeURIComponent(noteId)}`);
-}
-
 export async function createStudyCard(payload: CreateStudyCardPayload): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>('/cards', {
     method: 'POST',
@@ -666,7 +606,7 @@ export function usePromoteStudyNewCardToFront() {
 export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
   return useQuery({
     queryKey: ['study', 'browser', query],
-    queryFn: () => getStudyBrowser(query),
+    queryFn: ({ signal }) => getStudyBrowser(query, { signal }),
     enabled,
   });
 }
@@ -674,7 +614,7 @@ export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
 export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
   return useQuery({
     queryKey: ['study', 'browser', 'note', noteId ?? 'none'],
-    queryFn: () => getStudyBrowserNoteDetail(noteId as string),
+    queryFn: ({ signal }) => getStudyBrowserNoteDetail(noteId as string, { signal }),
     enabled: enabled && Boolean(noteId),
   });
 }
