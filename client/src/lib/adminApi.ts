@@ -79,6 +79,12 @@ export interface AdminPronunciationDictionary {
   updatedAt?: string;
 }
 
+export interface AdminPronunciationDictionaryUpdate {
+  keepKanji: string[];
+  forceKana: Record<string, string>;
+  verbKana: Record<string, string>;
+}
+
 interface AdminUsersResponse {
   users: AdminUser[];
 }
@@ -194,4 +200,13 @@ export function getAdminPronunciationDictionary(
   init?: AdminReadRequestInit
 ): Promise<AdminPronunciationDictionary> {
   return requestJson<AdminPronunciationDictionary>(adminApi.pronunciationDictionaries, init);
+}
+
+export function updateAdminPronunciationDictionary(
+  dictionary: AdminPronunciationDictionaryUpdate
+): Promise<AdminPronunciationDictionary> {
+  return requestJson<AdminPronunciationDictionary>(adminApi.pronunciationDictionaries, {
+    method: 'PUT',
+    body: JSON.stringify(dictionary),
+  });
 }

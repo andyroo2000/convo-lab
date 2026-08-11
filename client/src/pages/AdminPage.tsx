@@ -29,6 +29,7 @@ import {
   getAdminStats,
   getAdminUsers,
   updateAdminFeatureFlag,
+  updateAdminPronunciationDictionary,
   type AdminFeatureFlagKey,
   type AdminFeatureFlags,
   type AdminInviteCode,
@@ -82,6 +83,7 @@ const AdminPage = () => {
   const featureFlagsReadControllerRef = useRef<AbortController | null>(null);
   const pronunciationReadControllerRef = useRef<AbortController | null>(null);
   const featureFlagMutationsRef = useRef(new Set<AdminFeatureFlagKey>());
+  const pronunciationMutationRef = useRef(false);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -355,6 +357,8 @@ const AdminPage = () => {
   };
 
   const refreshPronunciationDictionary = (): Promise<void> => {
+    if (pronunciationMutationRef.current) return Promise.resolve();
+
     pronunciationReadControllerRef.current?.abort();
     const controller = new AbortController();
     pronunciationReadControllerRef.current = controller;
@@ -367,6 +371,8 @@ const AdminPage = () => {
   };
 
   const handleSavePronunciationDictionary = async () => {
+    if (pronunciationMutationRef.current) return;
+
     const keepKanji = parseKeepKanjiText(keepKanjiText);
     const { entries: forceKana, errors } = parseForceKanaText(forceKanaText);
     const { entries: verbKana, errors: verbKanaErrors } = parseForceKanaText(verbKanaText);
@@ -380,22 +386,25 @@ const AdminPage = () => {
       return;
     }
 
+    const submittedText = {
+      keepKanji: keepKanjiText,
+      forceKana: forceKanaText,
+      verbKana: verbKanaText,
+    };
+    pronunciationMutationRef.current = true;
     setPronunciationSaving(true);
     try {
-      const response = await fetch(adminApi.pronunciationDictionaries, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ keepKanji, forceKana, verbKana }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update pronunciation dictionary');
-
-      const updated = (await response.json()) as AdminPronunciationDictionary;
+      const updated = await updateAdminPronunciationDictionary({ keepKanji, forceKana, verbKana });
       setPronunciationDictionary(updated);
-      setKeepKanjiText(formatKeepKanjiText(updated.keepKanji || []));
-      setForceKanaText(formatForceKanaText(updated.forceKana || {}));
-      setVerbKanaText(formatForceKanaText(updated.verbKana || {}));
+      setKeepKanjiText((current) =>
+        current === submittedText.keepKanji ? formatKeepKanjiText(updated.keepKanji || []) : current
+      );
+      setForceKanaText((current) =>
+        current === submittedText.forceKana ? formatForceKanaText(updated.forceKana || {}) : current
+      );
+      setVerbKanaText((current) =>
+        current === submittedText.verbKana ? formatForceKanaText(updated.verbKana || {}) : current
+      );
       showToast('Pronunciation dictionary updated', 'success');
     } catch (err) {
       showToast(
@@ -403,6 +412,7 @@ const AdminPage = () => {
         'error'
       );
     } finally {
+      pronunciationMutationRef.current = false;
       setPronunciationSaving(false);
     }
   };
@@ -1410,6 +1420,7 @@ const AdminPage = () => {
                         type="button"
                         onClick={refreshPronunciationDictionary}
                         className="retro-admin-v3-btn-secondary text-sm"
+                        disabled={pronunciationSaving}
                       >
                         Reload
                       </button>
