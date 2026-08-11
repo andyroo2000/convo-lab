@@ -3,11 +3,11 @@ function errorMessageFromPayload(payload: unknown): string | null {
     return null;
   }
 
-  if ('error' in payload && typeof payload.error === 'string') {
+  if ('error' in payload && typeof payload.error === 'string' && payload.error.trim()) {
     return payload.error;
   }
 
-  if ('message' in payload && typeof payload.message === 'string') {
+  if ('message' in payload && typeof payload.message === 'string' && payload.message.trim()) {
     return payload.message;
   }
 
@@ -16,7 +16,8 @@ function errorMessageFromPayload(payload: unknown): string | null {
     typeof payload.error === 'object' &&
     payload.error !== null &&
     'message' in payload.error &&
-    typeof payload.error.message === 'string'
+    typeof payload.error.message === 'string' &&
+    payload.error.message.trim()
   ) {
     return payload.error.message;
   }
