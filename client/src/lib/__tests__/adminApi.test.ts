@@ -177,6 +177,7 @@ describe('admin API contract', () => {
   });
 
   it('updates one feature flag through the shared JSON client', async () => {
+    const controller = new AbortController();
     const updated = {
       id: 'flags-1',
       dialoguesEnabled: false,
@@ -187,14 +188,18 @@ describe('admin API contract', () => {
     };
     requestJsonMock.mockResolvedValue(updated);
 
-    await expect(updateAdminFeatureFlag('dialoguesEnabled', false)).resolves.toBe(updated);
+    await expect(
+      updateAdminFeatureFlag('dialoguesEnabled', false, { signal: controller.signal })
+    ).resolves.toBe(updated);
     expect(requestJsonMock).toHaveBeenCalledWith('/api/feature-flags', {
+      signal: controller.signal,
       method: 'PATCH',
       body: JSON.stringify({ dialoguesEnabled: false }),
     });
   });
 
   it('updates the pronunciation dictionary through the shared JSON client', async () => {
+    const controller = new AbortController();
     const update = {
       keepKanji: ['橋'],
       forceKana: { 北海道: 'ほっかいどう' },
@@ -206,8 +211,11 @@ describe('admin API contract', () => {
     };
     requestJsonMock.mockResolvedValue(updated);
 
-    await expect(updateAdminPronunciationDictionary(update)).resolves.toBe(updated);
+    await expect(
+      updateAdminPronunciationDictionary(update, { signal: controller.signal })
+    ).resolves.toBe(updated);
     expect(requestJsonMock).toHaveBeenCalledWith('/api/convolab/admin/pronunciation-dictionaries', {
+      signal: controller.signal,
       method: 'PUT',
       body: JSON.stringify(update),
     });
