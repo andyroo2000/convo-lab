@@ -1,8 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createAdminApiContract } from '../adminApi';
+import {
+  createAdminApiContract,
+  getAdminStats,
+  getAdminUsers,
+  getAdminInviteCodes,
+} from '../adminApi';
+
+const { requestJsonMock } = vi.hoisted(() => ({
+  requestJsonMock: vi.fn(),
+}));
+
+vi.mock('../apiClient', () => ({
+  requestJson: requestJsonMock,
+}));
 
 describe('admin API contract', () => {
+  beforeEach(() => {
+    requestJsonMock.mockReset();
+  });
+
   it('uses the permanent Learning OS namespace', () => {
     const base = '/api/convolab/admin';
     const contract = createAdminApiContract('');
@@ -43,5 +60,56 @@ describe('admin API contract', () => {
     expect(createAdminApiContract('https://app.test').featureFlags).toBe(
       'https://app.test/api/feature-flags'
     );
+  });
+
+  it('normalizes dashboard reads through the shared JSON client', async () => {
+    const controller = new AbortController();
+    const users = [
+      {
+        id: 'user-1',
+        email: 'learner@example.com',
+        name: 'Learner',
+        role: 'user',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        _count: { episodes: 2, courses: 1 },
+      },
+    ];
+    const inviteCodes = [
+      {
+        id: 'invite-1',
+        code: 'WELCOME',
+        usedBy: null,
+        usedAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    const stats = {
+      users: 1,
+      episodes: 2,
+      courses: 1,
+      inviteCodes: { total: 1, used: 0, available: 1 },
+    };
+    requestJsonMock
+      .mockResolvedValueOnce({ users })
+      .mockResolvedValueOnce(inviteCodes)
+      .mockResolvedValueOnce(stats);
+
+    await expect(
+      getAdminUsers('name+tag@example.com', { signal: controller.signal })
+    ).resolves.toEqual(users);
+    await expect(getAdminInviteCodes({ signal: controller.signal })).resolves.toBe(inviteCodes);
+    await expect(getAdminStats({ signal: controller.signal })).resolves.toBe(stats);
+
+    expect(requestJsonMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/convolab/admin/users?search=name%2Btag%40example.com',
+      { signal: controller.signal }
+    );
+    expect(requestJsonMock).toHaveBeenNthCalledWith(2, '/api/convolab/admin/invite-codes', {
+      signal: controller.signal,
+    });
+    expect(requestJsonMock).toHaveBeenNthCalledWith(3, '/api/convolab/admin/stats', {
+      signal: controller.signal,
+    });
   });
 });

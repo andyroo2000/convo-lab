@@ -1,3 +1,5 @@
+import { requestJson } from './apiClient';
+
 type AdminCourseOperation =
   | 'build-prompt'
   | 'build-script-config'
@@ -7,6 +9,51 @@ type AdminCourseOperation =
   | 'pipeline-data'
   | 'synthesize-line'
   | 'line-renderings';
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  displayName?: string;
+  avatarColor?: string;
+  avatarUrl?: string;
+  role: string;
+  createdAt: string;
+  _count: {
+    episodes: number;
+    courses: number;
+  };
+}
+
+export interface AdminInviteCode {
+  id: string;
+  code: string;
+  usedBy: string | null;
+  usedAt: string | null;
+  createdAt: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+  };
+}
+
+export interface AdminStats {
+  users: number;
+  episodes: number;
+  courses: number;
+  inviteCodes: {
+    total: number;
+    used: number;
+    available: number;
+  };
+}
+
+interface AdminUsersResponse {
+  users: AdminUser[];
+}
+
+type AdminReadRequestInit = Pick<RequestInit, 'signal'>;
 
 export interface AdminApiContract {
   stats: string;
@@ -75,3 +122,19 @@ export function createAdminApiContract(apiUrl = ''): AdminApiContract {
 }
 
 export const adminApi = createAdminApiContract();
+
+export async function getAdminUsers(
+  search: string,
+  init?: AdminReadRequestInit
+): Promise<AdminUser[]> {
+  const response = await requestJson<AdminUsersResponse>(adminApi.users(search), init);
+  return response.users;
+}
+
+export function getAdminInviteCodes(init?: AdminReadRequestInit): Promise<AdminInviteCode[]> {
+  return requestJson<AdminInviteCode[]>(adminApi.inviteCodes, init);
+}
+
+export function getAdminStats(init?: AdminReadRequestInit): Promise<AdminStats> {
+  return requestJson<AdminStats>(adminApi.stats, init);
+}
