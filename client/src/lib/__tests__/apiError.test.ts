@@ -54,6 +54,14 @@ describe('readApiError', () => {
   });
 
   it.each([
+    [{ error: '  Top-level error\n' }, 'Top-level error'],
+    [{ message: '\tMessage  ' }, 'Message'],
+    [{ error: { message: '\n Nested error \t' } }, 'Nested error'],
+  ])('trims the selected API error candidate', async (body, expected) => {
+    await expect(readApiError(response(body), 'Fallback')).resolves.toBe(expected);
+  });
+
+  it.each([
     [{ error: '' }],
     [{ error: '   ' }],
     [{ message: '' }],
