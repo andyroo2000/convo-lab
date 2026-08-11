@@ -1,10 +1,11 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex layout structure testing requires direct node access for navigation and content areas
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
+import type { User } from '../../../types';
 import Layout from '../Layout';
 
 const mockAuthState = vi.hoisted(() => ({
@@ -16,7 +17,9 @@ const mockAuthState = vi.hoisted(() => ({
     role: 'user',
     onboardingCompleted: true as boolean | undefined,
     avatarColor: '#000000',
-  },
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  } as User | null,
   loading: false,
 }));
 
@@ -87,6 +90,8 @@ describe('Layout', () => {
     role: 'user' as const,
     onboardingCompleted: true as boolean | undefined,
     avatarColor: '#000000',
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   };
 
   const renderLayout = (_initialPath: string) => {
@@ -112,9 +117,88 @@ describe('Layout', () => {
     );
   };
 
+  const renderAuthRoutes = () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const routes = () => (
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<div data-testid="login-page">Login Page</div>} />
+            <Route path="/public" element={<div data-testid="public-page">Public Page</div>} />
+            <Route path="/app" element={<Layout />}>
+              <Route
+                path="study/browse"
+                element={<div data-testid="protected-page">Protected Page</div>}
+              />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    );
+    const view = render(routes());
+    return { ...view, rerenderAuthRoutes: () => view.rerender(routes()) };
+  };
+
   beforeEach(() => {
     mockAuthState.user = { ...baseMockUser };
     mockAuthState.loading = false;
+  });
+
+  describe('Authentication routing', () => {
+    it('redirects after render without adding history or losing the protected return URL', async () => {
+      mockAuthState.user = null;
+      mockAuthState.loading = true;
+      window.history.replaceState({}, '', '/app/study/browse?noteId=note-2&cardId=card-2#editor');
+      const historyLength = window.history.length;
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      try {
+        const { rerenderAuthRoutes } = renderAuthRoutes();
+        expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+
+        mockAuthState.loading = false;
+        rerenderAuthRoutes();
+
+        expect(await screen.findByTestId('login-page')).toBeInTheDocument();
+        expect(new URLSearchParams(window.location.search).get('returnUrl')).toBe(
+          '/app/study/browse?noteId=note-2&cardId=card-2#editor'
+        );
+        expect(window.history.length).toBe(historyLength);
+        expect(
+          consoleError.mock.calls.some((call) =>
+            call.join(' ').includes('Cannot update a component (`BrowserRouter`) while rendering')
+          )
+        ).toBe(false);
+
+        const redirectedUrl = window.location.href;
+        await act(async () => Promise.resolve());
+        expect(window.location.href).toBe(redirectedUrl);
+        expect(window.history.length).toBe(historyLength);
+      } finally {
+        consoleError.mockRestore();
+      }
+    });
+
+    it('leaves signed-in protected routes and signed-out public routes unchanged', async () => {
+      window.history.replaceState({}, '', '/app/study/browse?noteId=note-1');
+      const view = renderAuthRoutes();
+
+      expect(await screen.findByTestId('protected-page')).toBeInTheDocument();
+      expect(window.location.pathname).toBe('/app/study/browse');
+      expect(window.location.search).toBe('?noteId=note-1');
+
+      view.unmount();
+      mockAuthState.user = null;
+      window.history.replaceState({}, '', '/public?source=home#practice');
+      renderAuthRoutes();
+
+      expect(await screen.findByTestId('public-page')).toBeInTheDocument();
+      await waitFor(() => expect(window.location.pathname).toBe('/public'));
+      expect(window.location.search).toBe('?source=home');
+      expect(window.location.hash).toBe('#practice');
+    });
   });
 
   describe('Full-width mobile pages', () => {

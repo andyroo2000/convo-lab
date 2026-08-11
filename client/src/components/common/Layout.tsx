@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Library, Mic, Eye, BookOpen, Clock3 } from 'lucide-react';
@@ -23,6 +23,16 @@ const Layout = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
+  const protectedReturnUrl = `${location.pathname}${location.search}${location.hash}`;
+  const loginRedirect = `/login?${new URLSearchParams({
+    returnUrl: protectedReturnUrl,
+  }).toString()}`;
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate(loginRedirect, { replace: true });
+    }
+  }, [loading, loginRedirect, navigate, user]);
 
   const handleLogout = async () => {
     await logout();
@@ -94,9 +104,6 @@ const Layout = () => {
   }
 
   if (!user) {
-    // Redirect to login with return URL
-    const returnUrl = encodeURIComponent(location.pathname);
-    navigate(`/login?returnUrl=${returnUrl}`);
     return null;
   }
 
