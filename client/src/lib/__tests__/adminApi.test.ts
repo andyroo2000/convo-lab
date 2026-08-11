@@ -8,6 +8,7 @@ import {
   getAdminSpeakerAvatars,
   getAdminFeatureFlags,
   getAdminPronunciationDictionary,
+  updateAdminFeatureFlag,
 } from '../adminApi';
 
 const { requestJsonMock } = vi.hoisted(() => ({
@@ -172,5 +173,23 @@ describe('admin API contract', () => {
       '/api/convolab/admin/pronunciation-dictionaries',
       { signal: controller.signal }
     );
+  });
+
+  it('updates one feature flag through the shared JSON client', async () => {
+    const updated = {
+      id: 'flags-1',
+      dialoguesEnabled: false,
+      scriptsEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    requestJsonMock.mockResolvedValue(updated);
+
+    await expect(updateAdminFeatureFlag('dialoguesEnabled', false)).resolves.toBe(updated);
+    expect(requestJsonMock).toHaveBeenCalledWith('/api/feature-flags', {
+      method: 'PATCH',
+      body: JSON.stringify({ dialoguesEnabled: false }),
+    });
   });
 });

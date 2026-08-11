@@ -70,6 +70,8 @@ export interface AdminFeatureFlags {
   updatedAt: string;
 }
 
+export type AdminFeatureFlagKey = keyof Omit<AdminFeatureFlags, 'id' | 'updatedAt'>;
+
 export interface AdminPronunciationDictionary {
   keepKanji: string[];
   forceKana: Record<string, string>;
@@ -176,6 +178,16 @@ export function getAdminSpeakerAvatars(
 
 export function getAdminFeatureFlags(init?: AdminReadRequestInit): Promise<AdminFeatureFlags> {
   return requestJson<AdminFeatureFlags>(adminApi.featureFlags, init);
+}
+
+export function updateAdminFeatureFlag(
+  key: AdminFeatureFlagKey,
+  value: boolean
+): Promise<AdminFeatureFlags> {
+  return requestJson<AdminFeatureFlags>(adminApi.featureFlags, {
+    method: 'PATCH',
+    body: JSON.stringify({ [key]: value }),
+  });
 }
 
 export function getAdminPronunciationDictionary(
