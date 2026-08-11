@@ -23,27 +23,17 @@ import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
 import {
   adminApi,
   getAdminInviteCodes,
+  getAdminSpeakerAvatars,
   getAdminStats,
   getAdminUsers,
   type AdminInviteCode,
   type AdminReadRequestInit,
+  type AdminSpeakerAvatar,
   type AdminStats,
   type AdminUser,
 } from '../lib/adminApi';
 
 type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings' | 'script-lab';
-
-interface SpeakerAvatar {
-  id: string;
-  filename: string;
-  croppedUrl: string;
-  originalUrl: string;
-  language: string;
-  gender: string;
-  tone: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface FeatureFlags {
   id: string;
@@ -72,7 +62,9 @@ const AdminPage = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [inviteCodes, setInviteCodes] = useState<AdminInviteCode[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [speakerAvatars, setSpeakerAvatars] = useState<SpeakerAvatar[]>([]);
+  const [speakerAvatars, setSpeakerAvatars] = useState<AdminSpeakerAvatar[]>([]);
+  const [isSpeakerAvatarsLoading, setIsSpeakerAvatarsLoading] = useState(false);
+  const [speakerAvatarsError, setSpeakerAvatarsError] = useState('');
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags | null>(null);
   const [pronunciationDictionary, setPronunciationDictionary] =
     useState<PronunciationDictionary | null>(null);
@@ -93,6 +85,7 @@ const AdminPage = () => {
   >(null);
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const dashboardReadControllerRef = useRef<AbortController | null>(null);
+  const speakerAvatarsReadControllerRef = useRef<AbortController | null>(null);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -227,22 +220,34 @@ const AdminPage = () => {
     });
   };
 
-  const fetchSpeakerAvatars = async (bustCache = false) => {
+  const fetchSpeakerAvatars = async (
+    bustCache = false,
+    init?: AdminReadRequestInit
+  ): Promise<void> => {
+    setIsSpeakerAvatarsLoading(true);
+    setSpeakerAvatarsError('');
     try {
-      // Add cache-busting timestamp when needed (e.g., after upload)
-      const url = adminApi.speakerAvatars(bustCache ? Date.now() : undefined);
-
-      const response = await fetch(url, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch speaker avatars');
-      const data = await response.json();
-      setSpeakerAvatars(data);
+      setSpeakerAvatars(await getAdminSpeakerAvatars(bustCache ? Date.now() : undefined, init));
     } catch (err) {
-      console.error('Failed to fetch speaker avatars:', err);
+      if (isAbortError(err)) return;
+      setSpeakerAvatarsError(
+        err instanceof Error ? err.message : 'Failed to fetch speaker avatars'
+      );
     } finally {
-      setIsLoading(false);
+      if (!init?.signal?.aborted) setIsSpeakerAvatarsLoading(false);
     }
+  };
+
+  const refreshSpeakerAvatars = (bustCache = false): Promise<void> => {
+    speakerAvatarsReadControllerRef.current?.abort();
+    const controller = new AbortController();
+    speakerAvatarsReadControllerRef.current = controller;
+
+    return fetchSpeakerAvatars(bustCache, { signal: controller.signal }).finally(() => {
+      if (speakerAvatarsReadControllerRef.current === controller) {
+        speakerAvatarsReadControllerRef.current = null;
+      }
+    });
   };
 
   const fetchFeatureFlags = async () => {
@@ -484,7 +489,7 @@ const AdminPage = () => {
       setCropperOpen(false);
 
       // Refresh speaker avatars to show the updated avatar (bust cache)
-      await fetchSpeakerAvatars(true);
+      await refreshSpeakerAvatars(true);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to re-crop speaker avatar', 'error');
     }
@@ -529,7 +534,7 @@ const AdminPage = () => {
       setCropperOpen(false);
 
       // Refresh speaker avatars to show the updated avatar (bust cache)
-      await fetchSpeakerAvatars(true);
+      await refreshSpeakerAvatars(true);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to upload speaker avatar', 'error');
     }
@@ -573,7 +578,7 @@ const AdminPage = () => {
       refreshDashboardRead(fetchStats);
     } else if (activeTab === 'avatars') {
       refreshDashboardRead(fetchUsers);
-      fetchSpeakerAvatars();
+      refreshSpeakerAvatars();
     } else if (activeTab === 'settings') {
       fetchFeatureFlags();
       fetchPronunciationDictionary();
@@ -582,6 +587,8 @@ const AdminPage = () => {
     return () => {
       dashboardReadControllerRef.current?.abort();
       dashboardReadControllerRef.current = null;
+      speakerAvatarsReadControllerRef.current?.abort();
+      speakerAvatarsReadControllerRef.current = null;
     };
   }, [activeTab]);
   /* eslint-enable react-hooks/exhaustive-deps */
@@ -978,27 +985,80 @@ const AdminPage = () => {
                   Manage the 6 speaker avatar images used in dialogues and courses
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {DEFAULT_SPEAKER_AVATARS.map((filename) => {
-                    const avatar = speakerAvatars.find((a) => a.filename === filename);
+                {speakerAvatarsError && (
+                  <div className="retro-admin-v3-alert is-error mb-6">{speakerAvatarsError}</div>
+                )}
 
-                    if (avatar) {
-                      // Avatar exists - show it with manage buttons
+                {isSpeakerAvatarsLoading ? (
+                  <div className="text-center py-12 text-gray-500">Loading speaker avatars...</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {DEFAULT_SPEAKER_AVATARS.map((filename) => {
+                      const avatar = speakerAvatars.find((a) => a.filename === filename);
+
+                      if (avatar) {
+                        // Avatar exists - show it with manage buttons
+                        return (
+                          <div
+                            key={filename}
+                            className="bg-white rounded-lg shadow p-4 retro-admin-v3-card"
+                          >
+                            <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
+                              <img
+                                src={avatar.croppedUrl}
+                                alt={filename}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            </div>
+                            <p
+                              className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
+                              title={filename}
+                            >
+                              {formatAvatarTitle(filename)}
+                            </p>
+                            <div className="flex flex-col gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRecropSpeaker(filename)}
+                                className="retro-admin-v3-btn-secondary text-xs sm:text-sm py-1"
+                              >
+                                Re-crop
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUploadNewSpeaker(filename)}
+                                className="retro-admin-v3-btn-primary text-xs sm:text-sm py-1"
+                              >
+                                Upload New
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+                      // Avatar missing - show upload placeholder
                       return (
                         <div
                           key={filename}
-                          className="bg-white rounded-lg shadow p-4 retro-admin-v3-card"
+                          className="bg-white rounded-lg shadow p-4 border-2 border-dashed border-gray-300 retro-admin-v3-card"
                         >
-                          <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
-                            <img
-                              src={avatar.croppedUrl}
-                              alt={filename}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src =
-                                  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
+                          <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                            <svg
+                              className="w-12 h-12 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 4v16m8-8H4"
+                              />
+                            </svg>
                           </div>
                           <p
                             className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
@@ -1006,63 +1066,18 @@ const AdminPage = () => {
                           >
                             {formatAvatarTitle(filename)}
                           </p>
-                          <div className="flex flex-col gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleRecropSpeaker(filename)}
-                              className="retro-admin-v3-btn-secondary text-xs sm:text-sm py-1"
-                            >
-                              Re-crop
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleUploadNewSpeaker(filename)}
-                              className="retro-admin-v3-btn-primary text-xs sm:text-sm py-1"
-                            >
-                              Upload New
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleUploadNewSpeaker(filename)}
+                            className="retro-admin-v3-btn-primary text-xs sm:text-sm py-1 w-full"
+                          >
+                            Upload
+                          </button>
                         </div>
                       );
-                    }
-                    // Avatar missing - show upload placeholder
-                    return (
-                      <div
-                        key={filename}
-                        className="bg-white rounded-lg shadow p-4 border-2 border-dashed border-gray-300 retro-admin-v3-card"
-                      >
-                        <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
-                          <svg
-                            className="w-12 h-12 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 4v16m8-8H4"
-                            />
-                          </svg>
-                        </div>
-                        <p
-                          className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
-                          title={filename}
-                        >
-                          {formatAvatarTitle(filename)}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => handleUploadNewSpeaker(filename)}
-                          className="retro-admin-v3-btn-primary text-xs sm:text-sm py-1 w-full"
-                        >
-                          Upload
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* User Avatars Section */}
