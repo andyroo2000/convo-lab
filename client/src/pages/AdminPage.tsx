@@ -1334,11 +1334,12 @@ const AdminPage = () => {
                                             if (!response.ok)
                                               throw new Error('Failed to upload user avatar');
 
-                                            if (!closeCropperSession(cropperSessionId)) return;
-                                            showToast(
-                                              'User avatar updated successfully',
-                                              'success'
-                                            );
+                                            if (closeCropperSession(cropperSessionId)) {
+                                              showToast(
+                                                'User avatar updated successfully',
+                                                'success'
+                                              );
+                                            }
 
                                             // Reload users to show updated avatar
                                             refreshDashboardRead(fetchUsers);
