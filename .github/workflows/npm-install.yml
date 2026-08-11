@@ -1,0 +1,30 @@
+name: NPM Install Contract
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Verify clean install and Git hooks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19'
+
+      - name: Install from committed lockfile
+        run: npm ci
+
+      - name: Verify installed Git hook contract
+        run: node --test .github/scripts/npm-install-runtime.node-test.mjs
