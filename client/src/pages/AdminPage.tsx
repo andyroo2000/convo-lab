@@ -6,9 +6,6 @@ import {
   BarChart3,
   Search,
   Trash2,
-  Copy,
-  Plus,
-  Check,
   Image,
   Settings,
   Eye,
@@ -16,16 +13,15 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminAvatarsTab from '../components/admin/AdminAvatarsTab';
+import AdminInviteCodesTab from '../components/admin/AdminInviteCodesTab';
 import AdminSettingsTab from '../components/admin/AdminSettingsTab';
 import ConfirmModal from '../components/common/ConfirmModal';
 import Toast from '../components/common/Toast';
 import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
 import {
   adminApi,
-  getAdminInviteCodes,
   getAdminStats,
   getAdminUsers,
-  type AdminInviteCode,
   type AdminReadRequestInit,
   type AdminStats,
   type AdminUser,
@@ -42,18 +38,16 @@ const AdminPage = () => {
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'users';
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [inviteCodes, setInviteCodes] = useState<AdminInviteCode[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<
-    | { type: 'delete-user'; id: string; email: string }
-    | { type: 'delete-invite-code'; id: string; code: string }
-    | null
-  >(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'delete-user';
+    id: string;
+    email: string;
+  } | null>(null);
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const dashboardReadControllerRef = useRef<AbortController | null>(null);
 
@@ -94,19 +88,6 @@ const AdminPage = () => {
     }
   };
 
-  const fetchInviteCodes = async (init?: AdminReadRequestInit) => {
-    setIsLoading(true);
-    setError('');
-    try {
-      setInviteCodes(await getAdminInviteCodes(init));
-    } catch (err) {
-      if (isAbortError(err)) return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch invite codes');
-    } finally {
-      if (!init?.signal?.aborted) setIsLoading(false);
-    }
-  };
-
   const fetchStats = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
     setError('');
@@ -140,61 +121,22 @@ const AdminPage = () => {
     }
     setIsConfirmingAction(true);
     try {
-      if (confirmAction.type === 'delete-user') {
-        const response = await fetch(adminApi.user(confirmAction.id), {
-          method: 'DELETE',
-          credentials: 'include',
-        });
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Failed to delete user');
-        }
-        refreshDashboardRead(fetchUsers);
-        showToast('User deleted successfully', 'success');
-      } else if (confirmAction.type === 'delete-invite-code') {
-        const response = await fetch(adminApi.inviteCode(confirmAction.id), {
-          method: 'DELETE',
-          credentials: 'include',
-        });
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Failed to delete invite code');
-        }
-        refreshDashboardRead(fetchInviteCodes);
-        showToast('Invite code deleted successfully', 'success');
+      const response = await fetch(adminApi.user(confirmAction.id), {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to delete user');
       }
+      refreshDashboardRead(fetchUsers);
+      showToast('User deleted successfully', 'success');
     } catch (err) {
-      const fallbackMessage =
-        confirmAction.type === 'delete-user'
-          ? 'Failed to delete user'
-          : 'Failed to delete invite code';
-      showToast(err instanceof Error ? err.message : fallbackMessage, 'error');
+      showToast(err instanceof Error ? err.message : 'Failed to delete user', 'error');
     } finally {
       setIsConfirmingAction(false);
       setConfirmAction(null);
     }
-  };
-
-  const handleCreateInviteCode = async () => {
-    try {
-      const response = await fetch(adminApi.inviteCodes, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({}),
-      });
-      if (!response.ok) throw new Error('Failed to create invite code');
-      refreshDashboardRead(fetchInviteCodes);
-      showToast('Invite code created successfully', 'success');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to create invite code', 'error');
-    }
-  };
-
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
   };
 
   const formatDate = (dateString: string) =>
@@ -217,7 +159,7 @@ const AdminPage = () => {
     if (activeTab === 'users') {
       refreshDashboardRead(fetchUsers);
     } else if (activeTab === 'invite-codes') {
-      refreshDashboardRead(fetchInviteCodes);
+      setError('');
     } else if (activeTab === 'analytics') {
       refreshDashboardRead(fetchStats);
     } else if (activeTab === 'avatars') {
@@ -437,122 +379,7 @@ const AdminPage = () => {
           )}
 
           {/* Invite Codes Tab */}
-          {activeTab === 'invite-codes' && (
-            <div className="retro-admin-v3-pane">
-              <div className="retro-admin-v3-pane-header mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-navy">Invite Codes</h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Create and manage invite codes for new users
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCreateInviteCode}
-                  className="retro-admin-v3-btn-primary flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create Code
-                </button>
-              </div>
-
-              {isLoading ? (
-                <div className="text-center py-12 text-gray-500">Loading invite codes...</div>
-              ) : (
-                <div className="bg-white rounded-lg shadow overflow-x-auto retro-admin-v3-table-wrap">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Code
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Status
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Used By
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Created
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {inviteCodes.map((code) => (
-                        <tr key={code.id} className="hover:bg-gray-50">
-                          <td className="px-3 sm:px-6 py-4">
-                            <div className="flex items-center gap-2 whitespace-nowrap">
-                              <code className="font-mono font-semibold text-navy">{code.code}</code>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyCode(code.code)}
-                                className="text-gray-400 hover:text-indigo transition-colors"
-                                title="Copy code"
-                              >
-                                {copiedCode === code.code ? (
-                                  <Check className="w-4 h-4 text-green-600" />
-                                ) : (
-                                  <Copy className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-3 sm:px-6 py-4">
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
-                                code.usedBy
-                                  ? 'bg-gray-100 text-gray-800'
-                                  : 'bg-green-100 text-green-800'
-                              }`}
-                            >
-                              {code.usedBy ? 'Used' : 'Available'}
-                            </span>
-                          </td>
-                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
-                            {code.user ? (
-                              <div className="whitespace-nowrap">
-                                <div className="font-medium">{code.user.name}</div>
-                                <div className="text-xs text-gray-400">{code.user.email}</div>
-                              </div>
-                            ) : (
-                              '-'
-                            )}
-                          </td>
-                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                            {formatDate(code.createdAt)}
-                          </td>
-                          <td className="px-3 sm:px-6 py-4 text-right">
-                            {!code.usedBy && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setConfirmAction({
-                                    type: 'delete-invite-code',
-                                    id: code.id,
-                                    code: code.code,
-                                  })
-                                }
-                                className="text-red-600 hover:text-red-800 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  {inviteCodes.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">No invite codes found</div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {activeTab === 'invite-codes' && <AdminInviteCodesTab showToast={showToast} />}
 
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (
@@ -710,13 +537,9 @@ const AdminPage = () => {
       {/* Toast Notification */}
       <ConfirmModal
         isOpen={!!confirmAction}
-        title={confirmAction?.type === 'delete-user' ? 'Delete User' : 'Delete Invite Code'}
-        message={
-          confirmAction?.type === 'delete-user'
-            ? `Are you sure you want to delete user ${confirmAction?.email ?? ''}? This action cannot be undone.`
-            : `Are you sure you want to delete invite code ${confirmAction?.code ?? ''}?`
-        }
-        confirmLabel={confirmAction?.type === 'delete-user' ? 'Delete User' : 'Delete Code'}
+        title="Delete User"
+        message={`Are you sure you want to delete user ${confirmAction?.email ?? ''}? This action cannot be undone.`}
+        confirmLabel="Delete User"
         onConfirm={handleConfirmAction}
         onCancel={() => setConfirmAction(null)}
         isLoading={isConfirmingAction}
