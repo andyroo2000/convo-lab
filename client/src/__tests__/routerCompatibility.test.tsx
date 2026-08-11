@@ -62,8 +62,10 @@ describe('React Router compatibility', () => {
     render(
       <BrowserRouter>
         <Routes>
-          <Route path="/app" element={<Navigate to="/app/library" replace />} />
-          <Route path="/app/library" element={<RouteProbe />} />
+          <Route path="/app" element={<Outlet />}>
+            <Route index element={<Navigate to="/app/library" replace />} />
+            <Route path="library" element={<RouteProbe />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     );
