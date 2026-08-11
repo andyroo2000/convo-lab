@@ -330,9 +330,7 @@ describe('studyCardFormModel', () => {
       card
     );
 
-    expect(payload.prompt.clozeHint).toBe(
-      'I will read a book until my mother comes home.'
-    );
+    expect(payload.prompt.clozeHint).toBe('I will read a book until my mother comes home.');
     expect(payload.prompt.clozeResolvedHint).toBeNull();
   });
 

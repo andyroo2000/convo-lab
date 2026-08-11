@@ -370,7 +370,6 @@ const StudySettingsPage = () => {
           </p>
         ) : null}
       </section>
-
     </div>
   );
 };

@@ -1698,7 +1698,8 @@ describe('StudyPage', () => {
     });
     const clozePrompt = screen.getByTestId('study-cloze-prompt');
     expect(clozePrompt).toHaveTextContent('お風呂ふろに虫むし[...]！');
-    expect(screen.getByText('are (existence verb)')).toBeInTheDocument();
+    expect(screen.getByText('backup hint')).toBeInTheDocument();
+    expect(screen.queryByText('are (existence verb)')).not.toBeInTheDocument();
     expect(screen.queryByText('Click or push space to reveal')).not.toBeInTheDocument();
     expect(screen.queryByText('Tap to reveal')).not.toBeInTheDocument();
     expect(

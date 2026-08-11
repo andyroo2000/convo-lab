@@ -275,7 +275,7 @@ describe('useStudyReviewSession', () => {
     expect(result.current.lessonPhase).toBe('quiz');
   });
 
-  it('warms nearby study prompt and answer audio after entering focus mode', async () => {
+  it("warms each nearby card's logical audio asset after entering focus mode", async () => {
     const cardOneWithAudio = {
       ...baseCardOne,
       prompt: {
@@ -326,7 +326,6 @@ describe('useStudyReviewSession', () => {
 
     expect(warmAudioCacheMock).toHaveBeenCalledWith([
       'https://example.com/prompt-1.mp3',
-      'https://example.com/answer-1.mp3',
       'https://example.com/answer-2.mp3',
     ]);
   });

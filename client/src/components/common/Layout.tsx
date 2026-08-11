@@ -215,11 +215,7 @@ const Layout = () => {
           </div>
         </div>
       </nav>
-      <StudyActivityProvider
-        key={String(user.id)}
-        userId={user.id}
-        enabled={!isImpersonating}
-      >
+      <StudyActivityProvider key={String(user.id)} userId={user.id} enabled={!isImpersonating}>
         <main
           className={`max-w-7xl xl:max-w-[96rem] mx-auto py-8 ${
             isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'
