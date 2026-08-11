@@ -6,6 +6,8 @@ import {
   getAdminUsers,
   getAdminInviteCodes,
   getAdminSpeakerAvatars,
+  getAdminFeatureFlags,
+  getAdminPronunciationDictionary,
 } from '../adminApi';
 
 const { requestJsonMock } = vi.hoisted(() => ({
@@ -135,5 +137,40 @@ describe('admin API contract', () => {
     expect(requestJsonMock).toHaveBeenCalledWith('/api/convolab/admin/avatars/speakers?t=123', {
       signal: controller.signal,
     });
+  });
+
+  it('loads both admin settings resources through the shared JSON client', async () => {
+    const controller = new AbortController();
+    const featureFlags = {
+      id: 'flags-1',
+      dialoguesEnabled: true,
+      scriptsEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const pronunciationDictionary = {
+      keepKanji: ['橋'],
+      forceKana: { 北海道: 'ほっかいどう' },
+      verbKana: { 話す: 'はなす' },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    requestJsonMock
+      .mockResolvedValueOnce(featureFlags)
+      .mockResolvedValueOnce(pronunciationDictionary);
+
+    await expect(getAdminFeatureFlags({ signal: controller.signal })).resolves.toBe(featureFlags);
+    await expect(getAdminPronunciationDictionary({ signal: controller.signal })).resolves.toBe(
+      pronunciationDictionary
+    );
+
+    expect(requestJsonMock).toHaveBeenNthCalledWith(1, '/api/feature-flags', {
+      signal: controller.signal,
+    });
+    expect(requestJsonMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/convolab/admin/pronunciation-dictionaries',
+      { signal: controller.signal }
+    );
   });
 });

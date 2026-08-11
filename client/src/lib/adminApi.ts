@@ -61,6 +61,22 @@ export interface AdminSpeakerAvatar {
   updatedAt: string;
 }
 
+export interface AdminFeatureFlags {
+  id: string;
+  dialoguesEnabled: boolean;
+  scriptsEnabled: boolean;
+  audioCourseEnabled: boolean;
+  flashcardsEnabled: boolean;
+  updatedAt: string;
+}
+
+export interface AdminPronunciationDictionary {
+  keepKanji: string[];
+  forceKana: Record<string, string>;
+  verbKana?: Record<string, string>;
+  updatedAt?: string;
+}
+
 interface AdminUsersResponse {
   users: AdminUser[];
 }
@@ -156,4 +172,14 @@ export function getAdminSpeakerAvatars(
   init?: AdminReadRequestInit
 ): Promise<AdminSpeakerAvatar[]> {
   return requestJson<AdminSpeakerAvatar[]>(adminApi.speakerAvatars(cacheBust), init);
+}
+
+export function getAdminFeatureFlags(init?: AdminReadRequestInit): Promise<AdminFeatureFlags> {
+  return requestJson<AdminFeatureFlags>(adminApi.featureFlags, init);
+}
+
+export function getAdminPronunciationDictionary(
+  init?: AdminReadRequestInit
+): Promise<AdminPronunciationDictionary> {
+  return requestJson<AdminPronunciationDictionary>(adminApi.pronunciationDictionaries, init);
 }

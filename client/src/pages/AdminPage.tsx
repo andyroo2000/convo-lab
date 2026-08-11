@@ -22,11 +22,15 @@ import Toast from '../components/common/Toast';
 import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
 import {
   adminApi,
+  getAdminFeatureFlags,
   getAdminInviteCodes,
+  getAdminPronunciationDictionary,
   getAdminSpeakerAvatars,
   getAdminStats,
   getAdminUsers,
+  type AdminFeatureFlags,
   type AdminInviteCode,
+  type AdminPronunciationDictionary,
   type AdminReadRequestInit,
   type AdminSpeakerAvatar,
   type AdminStats,
@@ -34,22 +38,6 @@ import {
 } from '../lib/adminApi';
 
 type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings' | 'script-lab';
-
-interface FeatureFlags {
-  id: string;
-  dialoguesEnabled: boolean;
-  scriptsEnabled: boolean;
-  audioCourseEnabled: boolean;
-  flashcardsEnabled: boolean;
-  updatedAt: string;
-}
-
-interface PronunciationDictionary {
-  keepKanji: string[];
-  forceKana: Record<string, string>;
-  verbKana?: Record<string, string>;
-  updatedAt?: string;
-}
 
 const isAbortError = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError';
@@ -65,9 +53,9 @@ const AdminPage = () => {
   const [speakerAvatars, setSpeakerAvatars] = useState<AdminSpeakerAvatar[]>([]);
   const [isSpeakerAvatarsLoading, setIsSpeakerAvatarsLoading] = useState(false);
   const [speakerAvatarsError, setSpeakerAvatarsError] = useState('');
-  const [featureFlags, setFeatureFlags] = useState<FeatureFlags | null>(null);
+  const [featureFlags, setFeatureFlags] = useState<AdminFeatureFlags | null>(null);
   const [pronunciationDictionary, setPronunciationDictionary] =
-    useState<PronunciationDictionary | null>(null);
+    useState<AdminPronunciationDictionary | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +74,8 @@ const AdminPage = () => {
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const dashboardReadControllerRef = useRef<AbortController | null>(null);
   const speakerAvatarsReadControllerRef = useRef<AbortController | null>(null);
+  const featureFlagsReadControllerRef = useRef<AbortController | null>(null);
+  const pronunciationReadControllerRef = useRef<AbortController | null>(null);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -250,25 +240,33 @@ const AdminPage = () => {
     });
   };
 
-  const fetchFeatureFlags = async () => {
+  const fetchFeatureFlags = async (init?: AdminReadRequestInit): Promise<void> => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(adminApi.featureFlags, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch feature flags');
-      const data = await response.json();
-      setFeatureFlags(data);
+      setFeatureFlags(await getAdminFeatureFlags(init));
     } catch (err) {
+      if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch feature flags');
     } finally {
-      setIsLoading(false);
+      if (!init?.signal?.aborted) setIsLoading(false);
     }
   };
 
+  const refreshFeatureFlags = (): Promise<void> => {
+    featureFlagsReadControllerRef.current?.abort();
+    const controller = new AbortController();
+    featureFlagsReadControllerRef.current = controller;
+
+    return fetchFeatureFlags({ signal: controller.signal }).finally(() => {
+      if (featureFlagsReadControllerRef.current === controller) {
+        featureFlagsReadControllerRef.current = null;
+      }
+    });
+  };
+
   const updateFeatureFlag = async (
-    key: keyof Omit<FeatureFlags, 'id' | 'updatedAt'>,
+    key: keyof Omit<AdminFeatureFlags, 'id' | 'updatedAt'>,
     value: boolean
   ) => {
     if (!featureFlags) return;
@@ -338,26 +336,35 @@ const AdminPage = () => {
     return { entries, errors };
   };
 
-  const fetchPronunciationDictionary = async () => {
+  const fetchPronunciationDictionary = async (init?: AdminReadRequestInit): Promise<void> => {
     setPronunciationLoading(true);
     try {
-      const response = await fetch(adminApi.pronunciationDictionaries, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch pronunciation dictionary');
-      const data = (await response.json()) as PronunciationDictionary;
+      const data = await getAdminPronunciationDictionary(init);
       setPronunciationDictionary(data);
       setKeepKanjiText(formatKeepKanjiText(data.keepKanji || []));
       setForceKanaText(formatForceKanaText(data.forceKana || {}));
       setVerbKanaText(formatForceKanaText(data.verbKana || {}));
     } catch (err) {
+      if (isAbortError(err)) return;
       showToast(
         err instanceof Error ? err.message : 'Failed to fetch pronunciation dictionary',
         'error'
       );
     } finally {
-      setPronunciationLoading(false);
+      if (!init?.signal?.aborted) setPronunciationLoading(false);
     }
+  };
+
+  const refreshPronunciationDictionary = (): Promise<void> => {
+    pronunciationReadControllerRef.current?.abort();
+    const controller = new AbortController();
+    pronunciationReadControllerRef.current = controller;
+
+    return fetchPronunciationDictionary({ signal: controller.signal }).finally(() => {
+      if (pronunciationReadControllerRef.current === controller) {
+        pronunciationReadControllerRef.current = null;
+      }
+    });
   };
 
   const handleSavePronunciationDictionary = async () => {
@@ -385,7 +392,7 @@ const AdminPage = () => {
 
       if (!response.ok) throw new Error('Failed to update pronunciation dictionary');
 
-      const updated = (await response.json()) as PronunciationDictionary;
+      const updated = (await response.json()) as AdminPronunciationDictionary;
       setPronunciationDictionary(updated);
       setKeepKanjiText(formatKeepKanjiText(updated.keepKanji || []));
       setForceKanaText(formatForceKanaText(updated.forceKana || {}));
@@ -580,8 +587,8 @@ const AdminPage = () => {
       refreshDashboardRead(fetchUsers);
       refreshSpeakerAvatars();
     } else if (activeTab === 'settings') {
-      fetchFeatureFlags();
-      fetchPronunciationDictionary();
+      refreshFeatureFlags();
+      refreshPronunciationDictionary();
     }
 
     return () => {
@@ -589,6 +596,10 @@ const AdminPage = () => {
       dashboardReadControllerRef.current = null;
       speakerAvatarsReadControllerRef.current?.abort();
       speakerAvatarsReadControllerRef.current = null;
+      featureFlagsReadControllerRef.current?.abort();
+      featureFlagsReadControllerRef.current = null;
+      pronunciationReadControllerRef.current?.abort();
+      pronunciationReadControllerRef.current = null;
     };
   }, [activeTab]);
   /* eslint-enable react-hooks/exhaustive-deps */
@@ -1394,7 +1405,7 @@ const AdminPage = () => {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={fetchPronunciationDictionary}
+                        onClick={refreshPronunciationDictionary}
                         className="retro-admin-v3-btn-secondary text-sm"
                       >
                         Reload
