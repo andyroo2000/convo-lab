@@ -508,9 +508,7 @@ describe('StudyCardPreview', () => {
       />
     );
 
-    expect(
-      screen.getByText('I will read a book until my mother comes home.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('I will read a book until my mother comes home.')).toBeInTheDocument();
     expect(screen.queryByText('the endpoint of an ongoing action')).not.toBeInTheDocument();
   });
 

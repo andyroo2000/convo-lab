@@ -26,7 +26,13 @@ const {
 
 vi.mock('@dnd-kit/core', () => ({
   closestCenter: vi.fn(),
-  DndContext: ({ children, onDragEnd }: { children: ReactNode; onDragEnd?: (event: DragEndEvent) => void }) => {
+  DndContext: ({
+    children,
+    onDragEnd,
+  }: {
+    children: ReactNode;
+    onDragEnd?: (event: DragEndEvent) => void;
+  }) => {
     dndContextProps.current = { onDragEnd };
     return <div>{children}</div>;
   },

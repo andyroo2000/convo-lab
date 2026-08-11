@@ -313,26 +313,38 @@ const StudyCardsPage = () => {
         ) : null}
 
         {mode === 'queue' ? (
-          <div
-            id="study-cards-queue-panel"
-            role="tabpanel"
-            aria-labelledby="study-cards-queue-tab"
-          >
+          <div id="study-cards-queue-panel" role="tabpanel" aria-labelledby="study-cards-queue-tab">
             <div className="flex items-center justify-between border-b border-navy/15 px-1 pb-2">
-              <h2 className="font-bold uppercase tracking-[0.12em] text-navy">{t('cards.upNext')}</h2>
-              <span className="text-sm text-gray-500">{t('cards.queuedCount', { count: queueTotal })}</span>
+              <h2 className="font-bold uppercase tracking-[0.12em] text-navy">
+                {t('cards.upNext')}
+              </h2>
+              <span className="text-sm text-gray-500">
+                {t('cards.queuedCount', { count: queueTotal })}
+              </span>
             </div>
-            {queueQuery.isLoading ? <p className="py-8 text-center text-gray-500">{t('cards.loadingQueue')}</p> : null}
+            {queueQuery.isLoading ? (
+              <p className="py-8 text-center text-gray-500">{t('cards.loadingQueue')}</p>
+            ) : null}
             {queueQuery.error || queueError ? (
-              <p role="alert" className="my-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <p
+                role="alert"
+                className="my-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
                 {queueError ?? t('cards.failedQueue')}
               </p>
             ) : null}
             {!queueQuery.isLoading && queueItems.length === 0 ? (
               <p className="py-10 text-center text-gray-500">{t('cards.emptyQueue')}</p>
             ) : null}
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={queueItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={queueItems.map((item) => item.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 <ol className="overflow-hidden rounded-xl border border-navy/10">
                   {queueItems.map((item, index) => (
                     <QueueRow
@@ -346,20 +358,25 @@ const StudyCardsPage = () => {
               </SortableContext>
             </DndContext>
             <div ref={queueSentinelRef} data-testid="queue-scroll-sentinel" className="h-1" />
-            {queueQuery.isFetchingNextPage ? <p className="py-3 text-center text-sm text-gray-500">{t('cards.loadingMore')}</p> : null}
+            {queueQuery.isFetchingNextPage ? (
+              <p className="py-3 text-center text-sm text-gray-500">{t('cards.loadingMore')}</p>
+            ) : null}
             {reorderDisabled ? (
               <p className="py-3 text-center text-sm text-gray-500">{t('cards.reorderLimit')}</p>
             ) : null}
           </div>
         ) : (
-          <div
-            id="study-cards-all-panel"
-            role="tabpanel"
-            aria-labelledby="study-cards-all-tab"
-          >
-            {cardsQuery.isLoading ? <p className="py-8 text-center text-gray-500">{t('cards.loadingCards')}</p> : null}
+          <div id="study-cards-all-panel" role="tabpanel" aria-labelledby="study-cards-all-tab">
+            {cardsQuery.isLoading ? (
+              <p className="py-8 text-center text-gray-500">{t('cards.loadingCards')}</p>
+            ) : null}
             {cardsQuery.error ? (
-              <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{t('cards.failedCards')}</p>
+              <p
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
+                {t('cards.failedCards')}
+              </p>
             ) : null}
             {!cardsQuery.isLoading && cards.length === 0 ? (
               <p className="py-10 text-center text-gray-500">
@@ -369,9 +386,16 @@ const StudyCardsPage = () => {
             <ul className="overflow-hidden rounded-xl border border-navy/10">
               {cards.map((card) => (
                 <li key={card.id} className="border-b border-navy/10 bg-white/70 last:border-b-0">
-                  <Link to={browserHref(card.id, card.noteId)} className="block px-4 py-4 hover:bg-cream/60 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-navy">
+                  <Link
+                    to={browserHref(card.id, card.noteId)}
+                    className="block px-4 py-4 hover:bg-cream/60 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-navy"
+                  >
                     <p className="break-words font-bold text-navy">{cardDisplayText(card)}</p>
-                    {cardMeaning(card) ? <p className="mt-1 line-clamp-2 break-words text-sm text-gray-600">{cardMeaning(card)}</p> : null}
+                    {cardMeaning(card) ? (
+                      <p className="mt-1 line-clamp-2 break-words text-sm text-gray-600">
+                        {cardMeaning(card)}
+                      </p>
+                    ) : null}
                     <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">
                       {t(`form.${card.cardType}`)}
                     </p>
@@ -380,7 +404,9 @@ const StudyCardsPage = () => {
               ))}
             </ul>
             <div ref={cardsSentinelRef} data-testid="cards-scroll-sentinel" className="h-1" />
-            {cardsQuery.isFetchingNextPage ? <p className="py-3 text-center text-sm text-gray-500">{t('cards.loadingMore')}</p> : null}
+            {cardsQuery.isFetchingNextPage ? (
+              <p className="py-3 text-center text-sm text-gray-500">{t('cards.loadingMore')}</p>
+            ) : null}
           </div>
         )}
       </section>
