@@ -17,6 +17,7 @@ pnpm-debug.log*
 # Build outputs
 dist/
 build/
+client/dev-dist/
 *.tsbuildinfo
 
 # IDE
