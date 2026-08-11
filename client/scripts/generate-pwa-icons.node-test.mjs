@@ -46,6 +46,7 @@ test('renders the SVG source as correctly sized metadata-free RGBA PNG icons', a
       };
 
       assert.deepEqual(pixelAt(0, 0), [0, 0, 0, 0]);
+      // Sample the flat purple background below the white glyphs to catch resize/geometry drift.
       assert.deepEqual(pixelAt(Math.floor(size / 2), Math.floor((size * 3) / 4)), [94, 106, 216, 255]);
     }
   } finally {
