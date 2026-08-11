@@ -5,11 +5,14 @@ import {
   getAdminStats,
   getAdminUsers,
   getAdminInviteCodes,
+  getAdminSpeakerAvatarOriginal,
   getAdminSpeakerAvatars,
   getAdminFeatureFlags,
   getAdminPronunciationDictionary,
+  recropAdminSpeakerAvatar,
   updateAdminFeatureFlag,
   updateAdminPronunciationDictionary,
+  uploadAdminSpeakerAvatar,
 } from '../adminApi';
 
 const { requestJsonMock } = vi.hoisted(() => ({
@@ -40,6 +43,12 @@ describe('admin API contract', () => {
     expect(contract.speakerAvatars(123)).toBe(`${base}/avatars/speakers?t=123`);
     expect(contract.speakerAvatarOriginal('ja/female.png')).toBe(
       `${base}/avatars/speaker/ja%2Ffemale.png/original`
+    );
+    expect(contract.speakerAvatarUpload('ja/female.png')).toBe(
+      `${base}/avatars/speaker/ja%2Ffemale.png/upload`
+    );
+    expect(contract.speakerAvatarRecrop('ja/female.png')).toBe(
+      `${base}/avatars/speaker/ja%2Ffemale.png/recrop`
     );
     expect(contract.userAvatarUpload('user/id')).toBe(`${base}/avatars/user/user%2Fid/upload`);
     expect(contract.pronunciationDictionaries).toBe(`${base}/pronunciation-dictionaries`);
@@ -139,6 +148,65 @@ describe('admin API contract', () => {
     expect(requestJsonMock).toHaveBeenCalledWith('/api/convolab/admin/avatars/speakers?t=123', {
       signal: controller.signal,
     });
+  });
+
+  it('loads and mutates one speaker avatar through typed shared clients', async () => {
+    const controller = new AbortController();
+    const cropArea = { x: 1, y: 2, width: 100, height: 100 };
+    const original = { originalUrl: 'https://example.com/original.jpg' };
+    const updated = {
+      message: 'Speaker avatar updated successfully',
+      filename: 'ja-female-casual.jpg',
+      croppedUrl: 'https://example.com/cropped.jpg',
+      originalUrl: original.originalUrl,
+    };
+    const image = new File(['image-bytes'], 'source.png', { type: 'image/png' });
+    requestJsonMock
+      .mockResolvedValueOnce(original)
+      .mockResolvedValueOnce(updated)
+      .mockResolvedValueOnce(updated);
+
+    await expect(
+      getAdminSpeakerAvatarOriginal('ja-female-casual.jpg', { signal: controller.signal })
+    ).resolves.toBe(original);
+    await expect(
+      recropAdminSpeakerAvatar('ja-female-casual.jpg', cropArea, {
+        signal: controller.signal,
+      })
+    ).resolves.toBe(updated);
+    await expect(
+      uploadAdminSpeakerAvatar('ja-female-casual.jpg', image, cropArea, {
+        signal: controller.signal,
+      })
+    ).resolves.toBe(updated);
+
+    expect(requestJsonMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/convolab/admin/avatars/speaker/ja-female-casual.jpg/original',
+      { signal: controller.signal }
+    );
+    expect(requestJsonMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/convolab/admin/avatars/speaker/ja-female-casual.jpg/recrop',
+      {
+        signal: controller.signal,
+        method: 'POST',
+        body: JSON.stringify({ cropArea }),
+      }
+    );
+    expect(requestJsonMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/convolab/admin/avatars/speaker/ja-female-casual.jpg/upload',
+      expect.objectContaining({ signal: controller.signal, method: 'POST' })
+    );
+    const uploadBody = requestJsonMock.mock.calls[2]?.[1]?.body as FormData;
+    expect(uploadBody).toBeInstanceOf(FormData);
+    expect(uploadBody.get('image')).toMatchObject({
+      name: 'ja-female-casual.jpg',
+      type: 'image/png',
+      size: image.size,
+    });
+    expect(uploadBody.get('cropArea')).toBe(JSON.stringify(cropArea));
   });
 
   it('loads both admin settings resources through the shared JSON client', async () => {

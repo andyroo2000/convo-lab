@@ -53,6 +53,25 @@ describe('requestJson', () => {
     expect(headers.get('Content-Type')).toBeNull();
   });
 
+  it('leaves multipart boundaries to the browser for FormData requests', async () => {
+    fetchWithCsrfMock.mockResolvedValue(
+      response({ ok: true, status: 200, body: { message: 'Uploaded' } })
+    );
+    const body = new FormData();
+    body.append('image', new File(['image-bytes'], 'avatar.png', { type: 'image/png' }));
+
+    await requestJson('/api/convolab/admin/avatars/speaker/avatar.png/upload', {
+      method: 'POST',
+      body,
+    });
+
+    const init = fetchWithCsrfMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(init.headers);
+    expect(init.body).toBe(body);
+    expect(headers.get('Accept')).toBe('application/json');
+    expect(headers.get('Content-Type')).toBeNull();
+  });
+
   it.each([
     [403, { message: 'Browse denied' }, 'Browse denied (403)'],
     [502, { error: { message: 'Learning OS unavailable' } }, 'Learning OS unavailable (502)'],

@@ -61,6 +61,24 @@ export interface AdminSpeakerAvatar {
   updatedAt: string;
 }
 
+export interface AdminAvatarCropArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface AdminSpeakerAvatarOriginal {
+  originalUrl: string;
+}
+
+export interface AdminSpeakerAvatarMutationResult {
+  message: string;
+  filename: string;
+  croppedUrl: string;
+  originalUrl: string;
+}
+
 export interface AdminFeatureFlags {
   id: string;
   dialoguesEnabled: boolean;
@@ -181,6 +199,42 @@ export function getAdminSpeakerAvatars(
   init?: AdminReadRequestInit
 ): Promise<AdminSpeakerAvatar[]> {
   return requestJson<AdminSpeakerAvatar[]>(adminApi.speakerAvatars(cacheBust), init);
+}
+
+export function getAdminSpeakerAvatarOriginal(
+  filename: string,
+  init?: AdminReadRequestInit
+): Promise<AdminSpeakerAvatarOriginal> {
+  return requestJson<AdminSpeakerAvatarOriginal>(adminApi.speakerAvatarOriginal(filename), init);
+}
+
+export function recropAdminSpeakerAvatar(
+  filename: string,
+  cropArea: AdminAvatarCropArea,
+  init?: AdminRequestInit
+): Promise<AdminSpeakerAvatarMutationResult> {
+  return requestJson<AdminSpeakerAvatarMutationResult>(adminApi.speakerAvatarRecrop(filename), {
+    ...init,
+    method: 'POST',
+    body: JSON.stringify({ cropArea }),
+  });
+}
+
+export function uploadAdminSpeakerAvatar(
+  filename: string,
+  image: File,
+  cropArea: AdminAvatarCropArea,
+  init?: AdminRequestInit
+): Promise<AdminSpeakerAvatarMutationResult> {
+  const body = new FormData();
+  body.append('image', image, filename);
+  body.append('cropArea', JSON.stringify(cropArea));
+
+  return requestJson<AdminSpeakerAvatarMutationResult>(adminApi.speakerAvatarUpload(filename), {
+    ...init,
+    method: 'POST',
+    body,
+  });
 }
 
 export function getAdminFeatureFlags(init?: AdminReadRequestInit): Promise<AdminFeatureFlags> {
