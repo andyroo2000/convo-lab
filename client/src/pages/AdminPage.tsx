@@ -14,9 +14,8 @@ import {
   Eye,
   TestTube,
 } from 'lucide-react';
-import { Area } from 'react-easy-crop';
 import { useAuth } from '../contexts/AuthContext';
-import AvatarCropperModal from '../components/admin/AvatarCropperModal';
+import AdminAvatarsTab from '../components/admin/AdminAvatarsTab';
 import ConfirmModal from '../components/common/ConfirmModal';
 import Toast from '../components/common/Toast';
 import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
@@ -25,20 +24,15 @@ import {
   getAdminFeatureFlags,
   getAdminInviteCodes,
   getAdminPronunciationDictionary,
-  getAdminSpeakerAvatarOriginal,
-  getAdminSpeakerAvatars,
   getAdminStats,
   getAdminUsers,
-  recropAdminSpeakerAvatar,
   updateAdminFeatureFlag,
   updateAdminPronunciationDictionary,
-  uploadAdminSpeakerAvatar,
   type AdminFeatureFlagKey,
   type AdminFeatureFlags,
   type AdminInviteCode,
   type AdminPronunciationDictionary,
   type AdminReadRequestInit,
-  type AdminSpeakerAvatar,
   type AdminStats,
   type AdminUser,
 } from '../lib/adminApi';
@@ -56,12 +50,6 @@ const AdminPage = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [inviteCodes, setInviteCodes] = useState<AdminInviteCode[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [speakerAvatars, setSpeakerAvatars] = useState<AdminSpeakerAvatar[]>([]);
-  const [isSpeakerAvatarsLoading, setIsSpeakerAvatarsLoading] = useState(false);
-  const [speakerAvatarsError, setSpeakerAvatarsError] = useState('');
-  const [loadingSpeakerAvatarOriginal, setLoadingSpeakerAvatarOriginal] = useState<string | null>(
-    null
-  );
   const [featureFlags, setFeatureFlags] = useState<AdminFeatureFlags | null>(null);
   const [savingFeatureFlags, setSavingFeatureFlags] = useState<ReadonlySet<AdminFeatureFlagKey>>(
     () => new Set()
@@ -85,9 +73,6 @@ const AdminPage = () => {
   >(null);
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const dashboardReadControllerRef = useRef<AbortController | null>(null);
-  const speakerAvatarsReadControllerRef = useRef<AbortController | null>(null);
-  const speakerAvatarOriginalReadControllerRef = useRef<AbortController | null>(null);
-  const speakerAvatarMutationControllerRef = useRef<AbortController | null>(null);
   const featureFlagsReadControllerRef = useRef<AbortController | null>(null);
   const pronunciationReadControllerRef = useRef<AbortController | null>(null);
   const featureFlagsReadRevisionRef = useRef(0);
@@ -95,17 +80,6 @@ const AdminPage = () => {
   const featureFlagMutationControllersRef = useRef(new Map<AdminFeatureFlagKey, AbortController>());
   const pronunciationMutationRef = useRef(false);
   const pronunciationMutationControllerRef = useRef<AbortController | null>(null);
-  const cropperObjectUrlRef = useRef<string | null>(null);
-  const cropperSessionRef = useRef(0);
-
-  // Avatar cropper state
-  const [cropperOpen, setCropperOpen] = useState(false);
-  const [activeCropperSessionId, setActiveCropperSessionId] = useState(0);
-  const [cropperImageUrl, setCropperImageUrl] = useState('');
-  const [cropperTitle, setCropperTitle] = useState('');
-  const [cropperSaveHandler, setCropperSaveHandler] = useState<
-    ((blob: Blob, cropArea: Area) => Promise<void>) | null
-  >(null);
 
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -116,58 +90,6 @@ const AdminPage = () => {
     setToastMessage(message);
     setToastType(type);
     setToastVisible(true);
-  };
-
-  const revokeCropperObjectUrl = () => {
-    const objectUrl = cropperObjectUrlRef.current;
-    if (!objectUrl) return;
-
-    if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(objectUrl);
-    cropperObjectUrlRef.current = null;
-  };
-
-  const beginCropperSession = () => {
-    cropperSessionRef.current += 1;
-    const sessionId = cropperSessionRef.current;
-    setActiveCropperSessionId(sessionId);
-    return sessionId;
-  };
-
-  const closeCropperSession = (expectedSessionId?: number) => {
-    if (expectedSessionId !== undefined && cropperSessionRef.current !== expectedSessionId) {
-      return false;
-    }
-
-    cropperSessionRef.current += 1;
-    revokeCropperObjectUrl();
-    setCropperOpen(false);
-    setCropperImageUrl('');
-    setCropperTitle('');
-    setCropperSaveHandler(null);
-    return true;
-  };
-
-  // Helper function to format avatar filename to human-friendly title
-  const formatAvatarTitle = (filename: string): string => {
-    // Remove file extension
-    const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|webp)$/i, '');
-
-    // Split by dash: ja-female-casual -> ["ja", "female", "casual"]
-    const parts = nameWithoutExt.split('-');
-
-    // Map language codes
-    const languageMap: { [key: string]: string } = {
-      ja: 'Japanese',
-    };
-
-    // Capitalize first letter
-    const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
-
-    const language = languageMap[parts[0]] || capitalize(parts[0]);
-    const gender = capitalize(parts[1]);
-    const tone = capitalize(parts[2]);
-
-    return `${language} ${gender} - ${tone}`;
   };
 
   const getRoleBadgeClass = (role: string): string => {
@@ -182,31 +104,6 @@ const AdminPage = () => {
         return 'retro-admin-v3-badge retro-admin-v3-badge-user';
     }
   };
-
-  const getAvatarColorClass = (color?: string): string => {
-    const colorMap: Record<string, string> = {
-      indigo: 'bg-indigo-500',
-      teal: 'bg-teal-500',
-      purple: 'bg-purple-500',
-      pink: 'bg-pink-500',
-      emerald: 'bg-emerald-500',
-      amber: 'bg-amber-500',
-      rose: 'bg-rose-500',
-      cyan: 'bg-cyan-500',
-    };
-
-    return color ? colorMap[color] || 'bg-indigo-500' : 'bg-indigo-500';
-  };
-
-  // Speaker avatar filenames for initial upload (when no avatars in DB)
-  const DEFAULT_SPEAKER_AVATARS = [
-    'ja-female-casual.jpg',
-    'ja-female-polite.jpg',
-    'ja-female-formal.jpg',
-    'ja-male-casual.jpg',
-    'ja-male-polite.jpg',
-    'ja-male-formal.jpg',
-  ];
 
   const fetchUsers = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
@@ -257,36 +154,6 @@ const AdminPage = () => {
     return read({ signal: controller.signal }).finally(() => {
       if (dashboardReadControllerRef.current === controller) {
         dashboardReadControllerRef.current = null;
-      }
-    });
-  };
-
-  const fetchSpeakerAvatars = async (
-    bustCache = false,
-    init?: AdminReadRequestInit
-  ): Promise<void> => {
-    setIsSpeakerAvatarsLoading(true);
-    setSpeakerAvatarsError('');
-    try {
-      setSpeakerAvatars(await getAdminSpeakerAvatars(bustCache ? Date.now() : undefined, init));
-    } catch (err) {
-      if (isAbortError(err)) return;
-      setSpeakerAvatarsError(
-        err instanceof Error ? err.message : 'Failed to fetch speaker avatars'
-      );
-    } finally {
-      if (!init?.signal?.aborted) setIsSpeakerAvatarsLoading(false);
-    }
-  };
-
-  const refreshSpeakerAvatars = (bustCache = false): Promise<void> => {
-    speakerAvatarsReadControllerRef.current?.abort();
-    const controller = new AbortController();
-    speakerAvatarsReadControllerRef.current = controller;
-
-    return fetchSpeakerAvatars(bustCache, { signal: controller.signal }).finally(() => {
-      if (speakerAvatarsReadControllerRef.current === controller) {
-        speakerAvatarsReadControllerRef.current = null;
       }
     });
   };
@@ -552,152 +419,6 @@ const AdminPage = () => {
       day: 'numeric',
     });
 
-  // Avatar handler functions
-  const handleSaveSpeakerRecrop = async (
-    filename: string,
-    cropArea: Area,
-    cropperSessionId: number
-  ) => {
-    speakerAvatarMutationControllerRef.current?.abort();
-    const controller = new AbortController();
-    speakerAvatarMutationControllerRef.current = controller;
-
-    try {
-      await recropAdminSpeakerAvatar(filename, cropArea, {
-        signal: controller.signal,
-      });
-      if (controller.signal.aborted || speakerAvatarMutationControllerRef.current !== controller) {
-        return;
-      }
-
-      if (closeCropperSession(cropperSessionId)) {
-        showToast('Speaker avatar re-cropped successfully', 'success');
-      }
-
-      // Refresh speaker avatars to show the updated avatar (bust cache)
-      await refreshSpeakerAvatars(true);
-    } catch (err) {
-      if (
-        isAbortError(err) ||
-        controller.signal.aborted ||
-        speakerAvatarMutationControllerRef.current !== controller
-      ) {
-        return;
-      }
-      showToast(err instanceof Error ? err.message : 'Failed to re-crop speaker avatar', 'error');
-    } finally {
-      if (speakerAvatarMutationControllerRef.current === controller) {
-        speakerAvatarMutationControllerRef.current = null;
-      }
-    }
-  };
-
-  const handleRecropSpeaker = async (filename: string) => {
-    speakerAvatarOriginalReadControllerRef.current?.abort();
-    const controller = new AbortController();
-    speakerAvatarOriginalReadControllerRef.current = controller;
-    setLoadingSpeakerAvatarOriginal(filename);
-
-    try {
-      const data = await getAdminSpeakerAvatarOriginal(filename, { signal: controller.signal });
-      if (
-        controller.signal.aborted ||
-        speakerAvatarOriginalReadControllerRef.current !== controller
-      ) {
-        return;
-      }
-
-      const cropperSessionId = beginCropperSession();
-      revokeCropperObjectUrl();
-      setCropperImageUrl(data.originalUrl);
-      setCropperTitle(`Re-crop ${filename}`);
-      setCropperSaveHandler(() => async (_blob: Blob, cropArea: Area) => {
-        await handleSaveSpeakerRecrop(filename, cropArea, cropperSessionId);
-      });
-      setCropperOpen(true);
-    } catch (err) {
-      if (
-        isAbortError(err) ||
-        controller.signal.aborted ||
-        speakerAvatarOriginalReadControllerRef.current !== controller
-      ) {
-        return;
-      }
-      showToast(err instanceof Error ? err.message : 'Failed to load original image', 'error');
-    } finally {
-      if (speakerAvatarOriginalReadControllerRef.current === controller) {
-        speakerAvatarOriginalReadControllerRef.current = null;
-        if (!controller.signal.aborted) setLoadingSpeakerAvatarOriginal(null);
-      }
-    }
-  };
-
-  const handleSaveSpeakerCrop = async (
-    filename: string,
-    originalFile: File,
-    cropArea: Area,
-    cropperSessionId: number
-  ) => {
-    speakerAvatarMutationControllerRef.current?.abort();
-    const controller = new AbortController();
-    speakerAvatarMutationControllerRef.current = controller;
-
-    try {
-      await uploadAdminSpeakerAvatar(filename, originalFile, cropArea, {
-        signal: controller.signal,
-      });
-      if (controller.signal.aborted || speakerAvatarMutationControllerRef.current !== controller) {
-        return;
-      }
-
-      if (closeCropperSession(cropperSessionId)) {
-        showToast('Speaker avatar updated successfully', 'success');
-      }
-
-      // Refresh speaker avatars to show the updated avatar (bust cache)
-      await refreshSpeakerAvatars(true);
-    } catch (err) {
-      if (
-        isAbortError(err) ||
-        controller.signal.aborted ||
-        speakerAvatarMutationControllerRef.current !== controller
-      ) {
-        return;
-      }
-      showToast(err instanceof Error ? err.message : 'Failed to upload speaker avatar', 'error');
-    } finally {
-      if (speakerAvatarMutationControllerRef.current === controller) {
-        speakerAvatarMutationControllerRef.current = null;
-      }
-    }
-  };
-
-  const handleUploadNewSpeaker = async (filename: string) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        speakerAvatarOriginalReadControllerRef.current?.abort();
-        speakerAvatarOriginalReadControllerRef.current = null;
-        setLoadingSpeakerAvatarOriginal(null);
-        const cropperSessionId = beginCropperSession();
-        revokeCropperObjectUrl();
-        const url = URL.createObjectURL(file);
-        cropperObjectUrlRef.current = url;
-        setCropperImageUrl(url);
-        setCropperTitle(`Upload New ${filename}`);
-        // Capture the file in the closure directly instead of relying on state
-        setCropperSaveHandler(() => async (_blob: Blob, cropArea: Area) => {
-          await handleSaveSpeakerCrop(filename, file, cropArea, cropperSessionId);
-        });
-        setCropperOpen(true);
-      }
-    };
-    input.click();
-  };
-
   // Redirect if not admin
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -715,9 +436,7 @@ const AdminPage = () => {
     } else if (activeTab === 'analytics') {
       refreshDashboardRead(fetchStats);
     } else if (activeTab === 'avatars') {
-      setLoadingSpeakerAvatarOriginal(null);
       refreshDashboardRead(fetchUsers);
-      refreshSpeakerAvatars();
     } else if (activeTab === 'settings') {
       refreshFeatureFlags();
       refreshPronunciationDictionary();
@@ -726,11 +445,6 @@ const AdminPage = () => {
     return () => {
       dashboardReadControllerRef.current?.abort();
       dashboardReadControllerRef.current = null;
-      speakerAvatarsReadControllerRef.current?.abort();
-      speakerAvatarsReadControllerRef.current = null;
-      speakerAvatarOriginalReadControllerRef.current?.abort();
-      speakerAvatarOriginalReadControllerRef.current = null;
-      closeCropperSession();
       featureFlagsReadControllerRef.current?.abort();
       featureFlagsReadControllerRef.current = null;
       pronunciationReadControllerRef.current?.abort();
@@ -741,7 +455,6 @@ const AdminPage = () => {
 
   useEffect(
     () => () => {
-      speakerAvatarMutationControllerRef.current?.abort();
       featureFlagMutationControllersRef.current.forEach((controller) => controller.abort());
       pronunciationMutationControllerRef.current?.abort();
     },
@@ -1132,249 +845,12 @@ const AdminPage = () => {
 
           {/* Avatars Tab */}
           {activeTab === 'avatars' && (
-            <div className="retro-admin-v3-pane">
-              {/* Speaker Avatars Section */}
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold text-navy mb-4">Speaker Avatars</h2>
-                <p className="text-sm text-gray-600 mb-6">
-                  Manage the 6 speaker avatar images used in dialogues and courses
-                </p>
-
-                {speakerAvatarsError && (
-                  <div className="retro-admin-v3-alert is-error mb-6">{speakerAvatarsError}</div>
-                )}
-
-                {isSpeakerAvatarsLoading ? (
-                  <div className="text-center py-12 text-gray-500">Loading speaker avatars...</div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {DEFAULT_SPEAKER_AVATARS.map((filename) => {
-                      const avatar = speakerAvatars.find((a) => a.filename === filename);
-
-                      if (avatar) {
-                        // Avatar exists - show it with manage buttons
-                        return (
-                          <div
-                            key={filename}
-                            className="bg-white rounded-lg shadow p-4 retro-admin-v3-card"
-                          >
-                            <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
-                              <img
-                                src={avatar.croppedUrl}
-                                alt={filename}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src =
-                                    'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
-                                }}
-                              />
-                            </div>
-                            <p
-                              className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
-                              title={filename}
-                            >
-                              {formatAvatarTitle(filename)}
-                            </p>
-                            <div className="flex flex-col gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleRecropSpeaker(filename)}
-                                disabled={loadingSpeakerAvatarOriginal === filename}
-                                className="retro-admin-v3-btn-secondary text-xs sm:text-sm py-1"
-                              >
-                                {loadingSpeakerAvatarOriginal === filename
-                                  ? 'Loading...'
-                                  : 'Re-crop'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleUploadNewSpeaker(filename)}
-                                className="retro-admin-v3-btn-primary text-xs sm:text-sm py-1"
-                              >
-                                Upload New
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      }
-                      // Avatar missing - show upload placeholder
-                      return (
-                        <div
-                          key={filename}
-                          className="bg-white rounded-lg shadow p-4 border-2 border-dashed border-gray-300 retro-admin-v3-card"
-                        >
-                          <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
-                            <svg
-                              className="w-12 h-12 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4v16m8-8H4"
-                              />
-                            </svg>
-                          </div>
-                          <p
-                            className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
-                            title={filename}
-                          >
-                            {formatAvatarTitle(filename)}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => handleUploadNewSpeaker(filename)}
-                            className="retro-admin-v3-btn-primary text-xs sm:text-sm py-1 w-full"
-                          >
-                            Upload
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* User Avatars Section */}
-              <div>
-                <h2 className="text-xl font-semibold text-navy mb-4">User Avatars</h2>
-                <p className="text-sm text-gray-600 mb-6">Manage custom avatar images for users</p>
-
-                {isLoading ? (
-                  <div className="text-center py-12 text-gray-500">Loading users...</div>
-                ) : (
-                  <div className="bg-white rounded-lg shadow overflow-x-auto retro-admin-v3-table-wrap">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                            User
-                          </th>
-                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                            Avatar
-                          </th>
-                          <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {users.map((u) => (
-                          <tr key={u.id} className="hover:bg-gray-50">
-                            <td className="px-3 sm:px-6 py-4">
-                              <div>
-                                <div className="font-medium text-navy whitespace-nowrap">
-                                  {u.displayName || u.name}
-                                </div>
-                                <div className="text-sm text-gray-500 whitespace-nowrap">
-                                  {u.email}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-3 sm:px-6 py-4">
-                              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                                {u.avatarUrl ? (
-                                  <img
-                                    src={u.avatarUrl}
-                                    alt={u.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div
-                                    className={`w-full h-full flex items-center justify-center text-white font-semibold ${getAvatarColorClass(
-                                      u.avatarColor
-                                    )}`}
-                                  >
-                                    {(u.displayName || u.name).charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-3 sm:px-6 py-4 text-right">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const input = document.createElement('input');
-                                  input.type = 'file';
-                                  input.accept = 'image/*';
-                                  input.onchange = async (e) => {
-                                    const file = (e.target as HTMLInputElement).files?.[0];
-                                    if (file) {
-                                      speakerAvatarOriginalReadControllerRef.current?.abort();
-                                      speakerAvatarOriginalReadControllerRef.current = null;
-                                      setLoadingSpeakerAvatarOriginal(null);
-                                      const cropperSessionId = beginCropperSession();
-                                      revokeCropperObjectUrl();
-                                      const url = URL.createObjectURL(file);
-                                      cropperObjectUrlRef.current = url;
-                                      setCropperImageUrl(url);
-                                      setCropperTitle(
-                                        `Upload Avatar for ${u.displayName || u.name}`
-                                      );
-                                      // Capture the file in the closure directly
-                                      setCropperSaveHandler(
-                                        () => async (_blob: Blob, cropArea: Area) => {
-                                          try {
-                                            const formData = new FormData();
-                                            formData.append('image', file, `avatar.jpg`);
-                                            formData.append('cropArea', JSON.stringify(cropArea));
-
-                                            const response = await fetch(
-                                              adminApi.userAvatarUpload(u.id),
-                                              {
-                                                method: 'POST',
-                                                credentials: 'include',
-                                                body: formData,
-                                              }
-                                            );
-
-                                            if (!response.ok)
-                                              throw new Error('Failed to upload user avatar');
-
-                                            if (closeCropperSession(cropperSessionId)) {
-                                              showToast(
-                                                'User avatar updated successfully',
-                                                'success'
-                                              );
-                                            }
-
-                                            // Reload users to show updated avatar
-                                            refreshDashboardRead(fetchUsers);
-                                          } catch (err) {
-                                            showToast(
-                                              err instanceof Error
-                                                ? err.message
-                                                : 'Failed to upload user avatar',
-                                              'error'
-                                            );
-                                          }
-                                        }
-                                      );
-                                      setCropperOpen(true);
-                                    }
-                                  };
-                                  input.click();
-                                }}
-                                className="btn-primary text-xs sm:text-sm whitespace-nowrap"
-                              >
-                                Upload Avatar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    {users.length === 0 && (
-                      <div className="text-center py-12 text-gray-500">No users found</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <AdminAvatarsTab
+              users={users}
+              isUsersLoading={isLoading}
+              refreshUsers={() => refreshDashboardRead(fetchUsers)}
+              showToast={showToast}
+            />
           )}
 
           {/* Settings Tab */}
@@ -1588,15 +1064,6 @@ const AdminPage = () => {
           {activeTab === 'script-lab' && <ScriptLabTab />}
         </div>
       </div>
-
-      {/* Avatar Cropper Modal */}
-      <AvatarCropperModal
-        isOpen={cropperOpen}
-        onClose={() => closeCropperSession(activeCropperSessionId)}
-        imageUrl={cropperImageUrl}
-        onSave={cropperSaveHandler || (async () => {})}
-        title={cropperTitle}
-      />
 
       {/* User Details Modal */}
       {selectedUserId &&
