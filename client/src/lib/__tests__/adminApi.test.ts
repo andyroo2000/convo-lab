@@ -9,6 +9,7 @@ import {
   getAdminFeatureFlags,
   getAdminPronunciationDictionary,
   updateAdminFeatureFlag,
+  updateAdminPronunciationDictionary,
 } from '../adminApi';
 
 const { requestJsonMock } = vi.hoisted(() => ({
@@ -190,6 +191,25 @@ describe('admin API contract', () => {
     expect(requestJsonMock).toHaveBeenCalledWith('/api/feature-flags', {
       method: 'PATCH',
       body: JSON.stringify({ dialoguesEnabled: false }),
+    });
+  });
+
+  it('updates the pronunciation dictionary through the shared JSON client', async () => {
+    const update = {
+      keepKanji: ['橋'],
+      forceKana: { 北海道: 'ほっかいどう' },
+      verbKana: { 話す: 'はなす' },
+    };
+    const updated = {
+      ...update,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    requestJsonMock.mockResolvedValue(updated);
+
+    await expect(updateAdminPronunciationDictionary(update)).resolves.toBe(updated);
+    expect(requestJsonMock).toHaveBeenCalledWith('/api/convolab/admin/pronunciation-dictionaries', {
+      method: 'PUT',
+      body: JSON.stringify(update),
     });
   });
 });
