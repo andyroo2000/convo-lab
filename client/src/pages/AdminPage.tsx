@@ -95,9 +95,12 @@ const AdminPage = () => {
   const featureFlagMutationControllersRef = useRef(new Map<AdminFeatureFlagKey, AbortController>());
   const pronunciationMutationRef = useRef(false);
   const pronunciationMutationControllerRef = useRef<AbortController | null>(null);
+  const cropperObjectUrlRef = useRef<string | null>(null);
+  const cropperSessionRef = useRef(0);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
+  const [activeCropperSessionId, setActiveCropperSessionId] = useState(0);
   const [cropperImageUrl, setCropperImageUrl] = useState('');
   const [cropperTitle, setCropperTitle] = useState('');
   const [cropperSaveHandler, setCropperSaveHandler] = useState<
@@ -113,6 +116,35 @@ const AdminPage = () => {
     setToastMessage(message);
     setToastType(type);
     setToastVisible(true);
+  };
+
+  const revokeCropperObjectUrl = () => {
+    const objectUrl = cropperObjectUrlRef.current;
+    if (!objectUrl) return;
+
+    if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(objectUrl);
+    cropperObjectUrlRef.current = null;
+  };
+
+  const beginCropperSession = () => {
+    cropperSessionRef.current += 1;
+    const sessionId = cropperSessionRef.current;
+    setActiveCropperSessionId(sessionId);
+    return sessionId;
+  };
+
+  const closeCropperSession = (expectedSessionId?: number) => {
+    if (expectedSessionId !== undefined && cropperSessionRef.current !== expectedSessionId) {
+      return false;
+    }
+
+    cropperSessionRef.current += 1;
+    revokeCropperObjectUrl();
+    setCropperOpen(false);
+    setCropperImageUrl('');
+    setCropperTitle('');
+    setCropperSaveHandler(null);
+    return true;
   };
 
   // Helper function to format avatar filename to human-friendly title
@@ -521,7 +553,11 @@ const AdminPage = () => {
     });
 
   // Avatar handler functions
-  const handleSaveSpeakerRecrop = async (filename: string, cropArea: Area) => {
+  const handleSaveSpeakerRecrop = async (
+    filename: string,
+    cropArea: Area,
+    cropperSessionId: number
+  ) => {
     speakerAvatarMutationControllerRef.current?.abort();
     const controller = new AbortController();
     speakerAvatarMutationControllerRef.current = controller;
@@ -534,8 +570,9 @@ const AdminPage = () => {
         return;
       }
 
-      showToast('Speaker avatar re-cropped successfully', 'success');
-      setCropperOpen(false);
+      if (closeCropperSession(cropperSessionId)) {
+        showToast('Speaker avatar re-cropped successfully', 'success');
+      }
 
       // Refresh speaker avatars to show the updated avatar (bust cache)
       await refreshSpeakerAvatars(true);
@@ -570,10 +607,12 @@ const AdminPage = () => {
         return;
       }
 
+      const cropperSessionId = beginCropperSession();
+      revokeCropperObjectUrl();
       setCropperImageUrl(data.originalUrl);
       setCropperTitle(`Re-crop ${filename}`);
       setCropperSaveHandler(() => async (_blob: Blob, cropArea: Area) => {
-        await handleSaveSpeakerRecrop(filename, cropArea);
+        await handleSaveSpeakerRecrop(filename, cropArea, cropperSessionId);
       });
       setCropperOpen(true);
     } catch (err) {
@@ -593,7 +632,12 @@ const AdminPage = () => {
     }
   };
 
-  const handleSaveSpeakerCrop = async (filename: string, originalFile: File, cropArea: Area) => {
+  const handleSaveSpeakerCrop = async (
+    filename: string,
+    originalFile: File,
+    cropArea: Area,
+    cropperSessionId: number
+  ) => {
     speakerAvatarMutationControllerRef.current?.abort();
     const controller = new AbortController();
     speakerAvatarMutationControllerRef.current = controller;
@@ -606,8 +650,9 @@ const AdminPage = () => {
         return;
       }
 
-      showToast('Speaker avatar updated successfully', 'success');
-      setCropperOpen(false);
+      if (closeCropperSession(cropperSessionId)) {
+        showToast('Speaker avatar updated successfully', 'success');
+      }
 
       // Refresh speaker avatars to show the updated avatar (bust cache)
       await refreshSpeakerAvatars(true);
@@ -634,12 +679,18 @@ const AdminPage = () => {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
+        speakerAvatarOriginalReadControllerRef.current?.abort();
+        speakerAvatarOriginalReadControllerRef.current = null;
+        setLoadingSpeakerAvatarOriginal(null);
+        const cropperSessionId = beginCropperSession();
+        revokeCropperObjectUrl();
         const url = URL.createObjectURL(file);
+        cropperObjectUrlRef.current = url;
         setCropperImageUrl(url);
         setCropperTitle(`Upload New ${filename}`);
         // Capture the file in the closure directly instead of relying on state
         setCropperSaveHandler(() => async (_blob: Blob, cropArea: Area) => {
-          await handleSaveSpeakerCrop(filename, file, cropArea);
+          await handleSaveSpeakerCrop(filename, file, cropArea, cropperSessionId);
         });
         setCropperOpen(true);
       }
@@ -679,6 +730,7 @@ const AdminPage = () => {
       speakerAvatarsReadControllerRef.current = null;
       speakerAvatarOriginalReadControllerRef.current?.abort();
       speakerAvatarOriginalReadControllerRef.current = null;
+      closeCropperSession();
       featureFlagsReadControllerRef.current?.abort();
       featureFlagsReadControllerRef.current = null;
       pronunciationReadControllerRef.current?.abort();
@@ -1251,7 +1303,13 @@ const AdminPage = () => {
                                   input.onchange = async (e) => {
                                     const file = (e.target as HTMLInputElement).files?.[0];
                                     if (file) {
+                                      speakerAvatarOriginalReadControllerRef.current?.abort();
+                                      speakerAvatarOriginalReadControllerRef.current = null;
+                                      setLoadingSpeakerAvatarOriginal(null);
+                                      const cropperSessionId = beginCropperSession();
+                                      revokeCropperObjectUrl();
                                       const url = URL.createObjectURL(file);
+                                      cropperObjectUrlRef.current = url;
                                       setCropperImageUrl(url);
                                       setCropperTitle(
                                         `Upload Avatar for ${u.displayName || u.name}`
@@ -1276,11 +1334,12 @@ const AdminPage = () => {
                                             if (!response.ok)
                                               throw new Error('Failed to upload user avatar');
 
-                                            showToast(
-                                              'User avatar updated successfully',
-                                              'success'
-                                            );
-                                            setCropperOpen(false);
+                                            if (closeCropperSession(cropperSessionId)) {
+                                              showToast(
+                                                'User avatar updated successfully',
+                                                'success'
+                                              );
+                                            }
 
                                             // Reload users to show updated avatar
                                             refreshDashboardRead(fetchUsers);
@@ -1533,7 +1592,7 @@ const AdminPage = () => {
       {/* Avatar Cropper Modal */}
       <AvatarCropperModal
         isOpen={cropperOpen}
-        onClose={() => setCropperOpen(false)}
+        onClose={() => closeCropperSession(activeCropperSessionId)}
         imageUrl={cropperImageUrl}
         onSave={cropperSaveHandler || (async () => {})}
         title={cropperTitle}

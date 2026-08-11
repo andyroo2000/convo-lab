@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useCallback, useEffect } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { X } from 'lucide-react';
@@ -68,6 +67,10 @@ const AvatarCropperModal = ({
   useEffect(() => {
     if (!isOpen || !imageUrl) return undefined;
 
+    let active = true;
+    let ownedBlobUrl: string | null = null;
+    setBlobUrl(null);
+
     const fetchImage = async () => {
       try {
         // Only send credentials for same-origin requests (not for GCS URLs)
@@ -80,8 +83,14 @@ const AvatarCropperModal = ({
         }
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
+        if (!active) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        ownedBlobUrl = url;
         setBlobUrl(url);
       } catch (error) {
+        if (!active) return;
         console.error('Failed to load image:', error);
         // eslint-disable-next-line no-alert
         alert(
@@ -94,8 +103,9 @@ const AvatarCropperModal = ({
 
     // Cleanup blob URL when component unmounts or image changes
     return () => {
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
+      active = false;
+      if (ownedBlobUrl) {
+        URL.revokeObjectURL(ownedBlobUrl);
       }
     };
   }, [isOpen, imageUrl]);

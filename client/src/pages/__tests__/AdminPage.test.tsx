@@ -30,6 +30,7 @@ vi.mock('../../components/admin/AvatarCropperModal', () => ({
   default: ({
     isOpen,
     imageUrl,
+    onClose,
     onSave,
     title,
   }: {
@@ -58,6 +59,9 @@ vi.mock('../../components/admin/AvatarCropperModal', () => ({
           }}
         >
           Save Crop
+        </button>
+        <button type="button" onClick={onClose}>
+          Cancel Crop
         </button>
       </div>
     ) : null,
@@ -164,6 +168,47 @@ const mockPronunciationDictionary = {
   forceKana: { 北海道: 'ほっかいどう' },
   verbKana: { 話す: 'はなす' },
   updatedAt: new Date('2024-01-02').toISOString(),
+};
+
+const selectAvatarFile = async (input: HTMLInputElement, file: File) => {
+  Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+  await act(async () => {
+    input.onchange?.({ target: input } as unknown as Event);
+  });
+};
+
+const mockAvatarObjectUrls = (...urls: string[]) => {
+  const originalCreateObjectUrl = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+  const originalRevokeObjectUrl = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
+  const createObjectUrl = vi.fn();
+  urls.forEach((url) => createObjectUrl.mockReturnValueOnce(url));
+  const revokeObjectUrl = vi.fn();
+
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    value: createObjectUrl,
+  });
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    value: revokeObjectUrl,
+  });
+
+  return {
+    createObjectUrl,
+    revokeObjectUrl,
+    restore: () => {
+      if (originalCreateObjectUrl) {
+        Object.defineProperty(URL, 'createObjectURL', originalCreateObjectUrl);
+      } else {
+        Reflect.deleteProperty(URL, 'createObjectURL');
+      }
+      if (originalRevokeObjectUrl) {
+        Object.defineProperty(URL, 'revokeObjectURL', originalRevokeObjectUrl);
+      } else {
+        Reflect.deleteProperty(URL, 'revokeObjectURL');
+      }
+    },
+  };
 };
 
 describe('AdminPage', () => {
@@ -655,6 +700,309 @@ describe('AdminPage', () => {
         const recropButtons = screen.getAllByText('Re-crop');
         expect(recropButtons.length).toBeGreaterThan(0);
       });
+    });
+
+    it('revokes replaced and cancelled speaker upload preview URLs exactly once', async () => {
+      const objectUrls = mockAvatarObjectUrls('blob:first-speaker', 'blob:second-speaker');
+      const firstInput = document.createElement('input');
+      const secondInput = document.createElement('input');
+      const view = renderPage('avatars');
+      const uploadButton = (await screen.findAllByRole('button', { name: 'Upload New' }))[0];
+      const firstCreateElementSpy = vi
+        .spyOn(document, 'createElement')
+        .mockReturnValueOnce(firstInput);
+      let secondCreateElementSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+      try {
+        fireEvent.click(uploadButton);
+        await selectAvatarFile(firstInput, new File(['first'], 'first.png', { type: 'image/png' }));
+        expect(screen.getByText('blob:first-speaker')).toBeInTheDocument();
+        firstCreateElementSpy.mockRestore();
+
+        secondCreateElementSpy = vi
+          .spyOn(document, 'createElement')
+          .mockReturnValueOnce(secondInput);
+        fireEvent.click(uploadButton);
+        await selectAvatarFile(
+          secondInput,
+          new File(['second'], 'second.png', { type: 'image/png' })
+        );
+
+        expect(objectUrls.createObjectUrl).toHaveBeenCalledTimes(2);
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledTimes(1);
+        expect(objectUrls.revokeObjectUrl).toHaveBeenNthCalledWith(1, 'blob:first-speaker');
+        expect(screen.getByText('blob:second-speaker')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel Crop' }));
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledTimes(2);
+        expect(objectUrls.revokeObjectUrl).toHaveBeenNthCalledWith(2, 'blob:second-speaker');
+        expect(screen.queryByTestId('avatar-cropper-modal')).not.toBeInTheDocument();
+      } finally {
+        view.unmount();
+        firstCreateElementSpy.mockRestore();
+        secondCreateElementSpy?.mockRestore();
+        objectUrls.restore();
+      }
+    });
+
+    it('revokes the speaker upload preview after a successful save', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+        if (url.includes('/sanctum/csrf-cookie')) return Promise.resolve({ ok: true });
+        if (url.endsWith('/upload')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () =>
+              Promise.resolve({
+                message: 'Updated',
+                filename: 'ja-female-casual.jpg',
+                croppedUrl: 'https://example.com/cropped.jpg',
+                originalUrl: 'https://example.com/original.jpg',
+              }),
+          });
+        }
+        if (url.includes('/api/convolab/admin/avatars/speakers')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSpeakerAvatars) });
+        }
+        if (url.includes('/api/convolab/admin/users')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: [] }) });
+        }
+        return Promise.reject(new Error('Unknown endpoint'));
+      });
+      const objectUrls = mockAvatarObjectUrls('blob:saved-speaker');
+      const fileInput = document.createElement('input');
+      const view = renderPage('avatars');
+      const uploadButton = (await screen.findAllByRole('button', { name: 'Upload New' }))[0];
+      const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValueOnce(fileInput);
+
+      try {
+        fireEvent.click(uploadButton);
+        await selectAvatarFile(
+          fileInput,
+          new File(['speaker'], 'speaker.png', { type: 'image/png' })
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Save Crop' }));
+
+        expect(await screen.findByText('Speaker avatar updated successfully')).toBeInTheDocument();
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledOnce();
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledWith('blob:saved-speaker');
+      } finally {
+        view.unmount();
+        createElementSpy.mockRestore();
+        objectUrls.restore();
+      }
+    });
+
+    it('revokes speaker upload previews on tab changes and page unmount', async () => {
+      const objectUrls = mockAvatarObjectUrls('blob:tab-change', 'blob:page-unmount');
+      const tabInput = document.createElement('input');
+      const unmountInput = document.createElement('input');
+      const view = renderPage('avatars');
+      const firstUploadButton = (await screen.findAllByRole('button', { name: 'Upload New' }))[0];
+      const tabCreateElementSpy = vi.spyOn(document, 'createElement').mockReturnValueOnce(tabInput);
+      let unmountCreateElementSpy: ReturnType<typeof vi.spyOn> | undefined;
+      let secondView: ReturnType<typeof render> | undefined;
+
+      try {
+        fireEvent.click(firstUploadButton);
+        await selectAvatarFile(tabInput, new File(['tab'], 'tab.png', { type: 'image/png' }));
+        fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+        await waitFor(() =>
+          expect(objectUrls.revokeObjectUrl).toHaveBeenCalledWith('blob:tab-change')
+        );
+        view.unmount();
+        tabCreateElementSpy.mockRestore();
+
+        secondView = renderPage('avatars');
+        const secondUploadButton = (
+          await screen.findAllByRole('button', { name: 'Upload New' })
+        )[0];
+        unmountCreateElementSpy = vi
+          .spyOn(document, 'createElement')
+          .mockReturnValueOnce(unmountInput);
+        fireEvent.click(secondUploadButton);
+        await selectAvatarFile(
+          unmountInput,
+          new File(['unmount'], 'unmount.png', { type: 'image/png' })
+        );
+        secondView.unmount();
+
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledTimes(2);
+        expect(objectUrls.revokeObjectUrl).toHaveBeenNthCalledWith(2, 'blob:page-unmount');
+      } finally {
+        view.unmount();
+        secondView?.unmount();
+        tabCreateElementSpy.mockRestore();
+        unmountCreateElementSpy?.mockRestore();
+        objectUrls.restore();
+      }
+    });
+
+    it('keeps a replacement preview alive when an older upload finishes late', async () => {
+      let finishUpload: ((response: unknown) => void) | undefined;
+      let speakerAvatarReads = 0;
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+        if (url.includes('/sanctum/csrf-cookie')) return Promise.resolve({ ok: true });
+        if (url.endsWith('/upload')) {
+          return new Promise((resolve) => {
+            finishUpload = resolve;
+          });
+        }
+        if (url.includes('/api/convolab/admin/avatars/speakers')) {
+          speakerAvatarReads += 1;
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSpeakerAvatars) });
+        }
+        if (url.includes('/api/convolab/admin/users')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: [] }) });
+        }
+        return Promise.reject(new Error('Unknown endpoint'));
+      });
+      const objectUrls = mockAvatarObjectUrls('blob:pending-speaker', 'blob:new-speaker');
+      const pendingInput = document.createElement('input');
+      const newInput = document.createElement('input');
+      const view = renderPage('avatars');
+      const uploadButton = (await screen.findAllByRole('button', { name: 'Upload New' }))[0];
+      const pendingCreateElementSpy = vi
+        .spyOn(document, 'createElement')
+        .mockReturnValueOnce(pendingInput);
+      let newCreateElementSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+      try {
+        fireEvent.click(uploadButton);
+        await selectAvatarFile(
+          pendingInput,
+          new File(['pending'], 'pending.png', { type: 'image/png' })
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Save Crop' }));
+        await waitFor(() => expect(finishUpload).toBeDefined());
+        pendingCreateElementSpy.mockRestore();
+
+        newCreateElementSpy = vi.spyOn(document, 'createElement').mockReturnValueOnce(newInput);
+        fireEvent.click(uploadButton);
+        await selectAvatarFile(newInput, new File(['new'], 'new.png', { type: 'image/png' }));
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledWith('blob:pending-speaker');
+
+        await act(async () => {
+          finishUpload?.({
+            ok: true,
+            status: 200,
+            json: () =>
+              Promise.resolve({
+                message: 'Updated',
+                filename: 'ja-female-casual.jpg',
+                croppedUrl: 'https://example.com/cropped.jpg',
+                originalUrl: 'https://example.com/original.jpg',
+              }),
+          });
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        expect(screen.getByText('blob:new-speaker')).toBeInTheDocument();
+        expect(objectUrls.revokeObjectUrl).not.toHaveBeenCalledWith('blob:new-speaker');
+        await waitFor(() => expect(speakerAvatarReads).toBe(2));
+      } finally {
+        view.unmount();
+        pendingCreateElementSpy.mockRestore();
+        newCreateElementSpy?.mockRestore();
+        objectUrls.restore();
+      }
+    });
+
+    it('revokes user avatar upload previews after successful saves', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+        if (url.includes('/avatars/user/') && url.endsWith('/upload')) {
+          return Promise.resolve({ ok: true });
+        }
+        if (url.includes('/api/convolab/admin/avatars/speakers')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSpeakerAvatars) });
+        }
+        if (url.includes('/api/convolab/admin/users')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: mockUsers }) });
+        }
+        return Promise.reject(new Error('Unknown endpoint'));
+      });
+      const objectUrls = mockAvatarObjectUrls('blob:saved-user');
+      const fileInput = document.createElement('input');
+      const view = renderPage('avatars');
+      const uploadButton = (await screen.findAllByRole('button', { name: 'Upload Avatar' }))[0];
+      const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValueOnce(fileInput);
+
+      try {
+        fireEvent.click(uploadButton);
+        await selectAvatarFile(fileInput, new File(['user'], 'user.png', { type: 'image/png' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Save Crop' }));
+
+        expect(await screen.findByText('User avatar updated successfully')).toBeInTheDocument();
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledOnce();
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledWith('blob:saved-user');
+      } finally {
+        view.unmount();
+        createElementSpy.mockRestore();
+        objectUrls.restore();
+      }
+    });
+
+    it('refreshes users without disturbing a replacement preview when an older upload finishes', async () => {
+      let finishUpload: ((response: unknown) => void) | undefined;
+      let userReads = 0;
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+        if (url.includes('/avatars/user/') && url.endsWith('/upload')) {
+          return new Promise((resolve) => {
+            finishUpload = resolve;
+          });
+        }
+        if (url.includes('/api/convolab/admin/avatars/speakers')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSpeakerAvatars) });
+        }
+        if (url.includes('/api/convolab/admin/users')) {
+          userReads += 1;
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: mockUsers }) });
+        }
+        return Promise.reject(new Error('Unknown endpoint'));
+      });
+      const objectUrls = mockAvatarObjectUrls('blob:pending-user', 'blob:new-user');
+      const pendingInput = document.createElement('input');
+      const newInput = document.createElement('input');
+      const view = renderPage('avatars');
+      const [firstUploadButton, secondUploadButton] = await screen.findAllByRole('button', {
+        name: 'Upload Avatar',
+      });
+      const pendingCreateElementSpy = vi
+        .spyOn(document, 'createElement')
+        .mockReturnValueOnce(pendingInput);
+      let newCreateElementSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+      try {
+        fireEvent.click(firstUploadButton);
+        await selectAvatarFile(
+          pendingInput,
+          new File(['pending'], 'pending.png', { type: 'image/png' })
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Save Crop' }));
+        await waitFor(() => expect(finishUpload).toBeDefined());
+        pendingCreateElementSpy.mockRestore();
+
+        newCreateElementSpy = vi.spyOn(document, 'createElement').mockReturnValueOnce(newInput);
+        fireEvent.click(secondUploadButton);
+        await selectAvatarFile(newInput, new File(['new'], 'new.png', { type: 'image/png' }));
+        expect(objectUrls.revokeObjectUrl).toHaveBeenCalledWith('blob:pending-user');
+
+        await act(async () => {
+          finishUpload?.({ ok: true });
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        expect(screen.getByText('blob:new-user')).toBeInTheDocument();
+        expect(objectUrls.revokeObjectUrl).not.toHaveBeenCalledWith('blob:new-user');
+        await waitFor(() => expect(userReads).toBe(2));
+      } finally {
+        view.unmount();
+        pendingCreateElementSpy.mockRestore();
+        newCreateElementSpy?.mockRestore();
+        objectUrls.restore();
+      }
     });
 
     it('shows original-image loading and cancels the read when the page unmounts', async () => {
