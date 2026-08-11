@@ -237,6 +237,7 @@ const getNoteRow = (text: string) => {
 
 describe('StudyBrowsePage', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/app/study/browse');
     useStudyBrowserMock.mockReset();
     useStudyBrowserNoteDetailMock.mockReset();
     updateStudyCardMock.mockReset();
@@ -385,6 +386,66 @@ describe('StudyBrowsePage', () => {
     expect(await screen.findByText('Imported fields')).toBeInTheDocument();
   });
 
+  it('preserves loading states for both browse contracts', () => {
+    useStudyBrowserMock.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+      refetch: vi.fn(),
+    });
+    useStudyBrowserNoteDetailMock.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Loading notes…')).toBeInTheDocument();
+    expect(screen.getByText('Loading note preview…')).toBeInTheDocument();
+  });
+
+  it('preserves API error messages for both browse contracts', () => {
+    useStudyBrowserMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Browse unavailable.'),
+      refetch: vi.fn(),
+    });
+    useStudyBrowserNoteDetailMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Detail unavailable.'),
+      refetch: vi.fn(),
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Browse unavailable.')).toBeInTheDocument();
+    expect(screen.getByText('Detail unavailable.')).toBeInTheDocument();
+  });
+
+  it('preserves the empty browse and unselected-detail states', () => {
+    useStudyBrowserMock.mockReturnValue({
+      data: { ...browserData, rows: [], total: 0, nextCursor: null },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    useStudyBrowserNoteDetailMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    renderPage();
+
+    expect(screen.getByText('No notes match the current filters.')).toBeInTheDocument();
+    expect(screen.getByText('Select a note to preview it.')).toBeInTheDocument();
+  });
+
   it('updates the reusable editor when another note row is selected', async () => {
     renderPage();
 
@@ -397,6 +458,17 @@ describe('StudyBrowsePage', () => {
     expect(screen.getByLabelText('Answer reading')).toBeEnabled();
     expect(screen.getByLabelText('Answer meaning')).toHaveValue('There are bugs in the bath!');
     expect(screen.queryByRole('button', { name: 'Front' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the selected note and card in the URL', async () => {
+    renderPage();
+
+    const noteItems = await screen.findAllByTestId('study-browser-note-item');
+    await userEvent.click(within(noteItems[1]).getByText('お風呂に虫[...]！'));
+
+    await waitFor(() => {
+      expect(window.location.search).toBe('?noteId=note-2&cardId=card-2');
+    });
   });
 
   it('updates the browser query when search and filters are submitted', async () => {
