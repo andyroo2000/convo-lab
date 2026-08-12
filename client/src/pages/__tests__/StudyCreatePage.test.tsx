@@ -298,6 +298,29 @@ describe('StudyCreatePage', () => {
     ).toBeInTheDocument();
   });
 
+  it('queues only one manual draft while the first request is still in flight', async () => {
+    let resolveQueue!: (draft: StudyManualCardDraft) => void;
+    createManualDraftMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveQueue = resolve;
+      })
+    );
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    const fillButton = screen.getByRole('button', { name: 'Fill remaining fields' });
+
+    fireEvent.click(fillButton);
+    fireEvent.click(fillButton);
+
+    expect(createManualDraftMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveQueue(manualDraft({ status: 'generating' }));
+      await Promise.resolve();
+    });
+  });
+
   it('does not clear a draft selected while a new draft is being queued', async () => {
     let resolveQueue!: (draft: StudyManualCardDraft) => void;
     createManualDraftMock.mockReturnValueOnce(
@@ -1054,6 +1077,37 @@ describe('StudyCreatePage', () => {
       'data-url',
       '/api/study/media/draft-b-audio'
     );
+  });
+
+  it('does not delete a draft while audio regeneration is still in flight', async () => {
+    let resolveRegeneration!: (result: {
+      previewAudio: StudyManualCardDraft['previewAudio'];
+      previewAudioRole: StudyManualCardDraft['previewAudioRole'];
+    }) => void;
+    regenerateCandidateAudioMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRegeneration = resolve;
+      })
+    );
+    manualDraftsState.drafts = [manualDraft()];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+    await waitFor(() => expect(regenerateCandidateAudioMock).toHaveBeenCalledWith('draft-1'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    expect(deleteManualDraftMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveRegeneration({
+        previewAudio: manualDraft().previewAudio,
+        previewAudioRole: 'answer',
+      });
+      await Promise.resolve();
+    });
   });
 
   it('does not generate preview media when persisting the current draft fails', async () => {
