@@ -709,6 +709,73 @@ describe('PlaybackPage', () => {
       });
     });
 
+    it('starts only one audio job for same-frame Generate Audio clicks', async () => {
+      mockGetEpisode.mockResolvedValue({
+        ...mockEpisode,
+        autoGenerateAudio: false,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      });
+      const generationRequest = deferred<string>();
+      mockGenerateAllSpeedsAudio.mockReturnValue(generationRequest.promise);
+
+      renderPlaybackPage();
+
+      const generateButton = await screen.findByRole('button', { name: 'Generate Audio' });
+      act(() => {
+        generateButton.click();
+        generateButton.click();
+      });
+
+      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledTimes(1);
+
+      generationRequest.resolve('job-123');
+      await act(async () => generationRequest.promise);
+    });
+
+    it('releases generation ownership when a completed job cannot refresh the episode', async () => {
+      const episodeMissingSpeeds = {
+        ...mockEpisode,
+        autoGenerateAudio: false,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      };
+      mockGetEpisode.mockImplementation((_id: string, bustCache: boolean) =>
+        bustCache
+          ? Promise.reject(new Error('reload failed'))
+          : Promise.resolve(episodeMissingSpeeds)
+      );
+      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      let pollJob: (() => Promise<void>) | undefined;
+      const realSetInterval = globalThis.setInterval;
+      vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
+        if (delay === 1000) {
+          pollJob = callback as () => Promise<void>;
+          return 1 as unknown as NodeJS.Timeout;
+        }
+
+        return realSetInterval(callback, delay, ...args);
+      });
+
+      renderPlaybackPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Generate Audio' }));
+      await waitFor(() => expect(pollJob).toBeDefined());
+
+      await act(async () => pollJob?.());
+
+      expect(
+        await screen.findByText('Audio generated, but the episode could not be refreshed.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Generating audio at all speeds/)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate Audio' }));
+      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledTimes(2);
+    });
+
     it('stops polling an audio job after navigating to another episode', async () => {
       const episodeMissingSpeeds = {
         ...mockEpisode,
@@ -751,6 +818,40 @@ describe('PlaybackPage', () => {
 
       expect(global.fetch).not.toHaveBeenCalled();
       expect(screen.queryByText('Audio generated successfully!')).not.toBeInTheDocument();
+    });
+
+    it('records an accepted audio job even when its route is no longer current', async () => {
+      const episodeMissingSpeeds = {
+        ...mockEpisode,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      };
+      const nextEpisode = {
+        ...mockEpisode,
+        id: 'episode-456',
+        title: 'Next Episode',
+      };
+      const generationRequest = deferred<string>();
+      mockGetEpisode.mockImplementation((id: string) =>
+        Promise.resolve(id === 'episode-123' ? episodeMissingSpeeds : nextEpisode)
+      );
+      mockGenerateAllSpeedsAudio.mockReturnValue(generationRequest.promise);
+
+      renderPlaybackPage();
+      await waitFor(() => {
+        expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith('episode-123', 'dialogue-123');
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open next episode' }));
+      expect(await screen.findByText('Next Episode')).toBeInTheDocument();
+
+      generationRequest.resolve('job-123');
+      await act(async () => generationRequest.promise);
+
+      expect(sessionStorage.getItem('audio-generation-queued')).toBe(
+        JSON.stringify(['episode-123'])
+      );
     });
 
     it('does not overlap slow audio job polling requests', async () => {
