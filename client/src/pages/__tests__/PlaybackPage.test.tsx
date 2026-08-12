@@ -2,7 +2,7 @@
 // Complex playback page testing with audio elements requires direct node access
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 
 import PlaybackPage from '../PlaybackPage';
 import type { Episode } from '../../types';
@@ -230,6 +230,30 @@ const mockScriptEpisode: Episode = {
   },
 };
 
+const PlaybackRouteControls = () => {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <button type="button" onClick={() => navigate('/playback/episode-456')}>
+        Open next episode
+      </button>
+      <button type="button" onClick={() => navigate('/playback/episode-123?viewAs=user-456')}>
+        View as next user
+      </button>
+    </>
+  );
+};
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  return { promise, resolve };
+}
+
 describe('PlaybackPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -247,11 +271,19 @@ describe('PlaybackPage', () => {
     vi.clearAllMocks();
   });
 
-  const renderPlaybackPage = (episodeId = 'episode-123') =>
+  const renderPlaybackPage = (episodeId = 'episode-123', search = '') =>
     render(
-      <MemoryRouter initialEntries={[`/playback/${episodeId}`]}>
+      <MemoryRouter initialEntries={[`/playback/${episodeId}${search}`]}>
         <Routes>
-          <Route path="/playback/:episodeId" element={<PlaybackPage />} />
+          <Route
+            path="/playback/:episodeId"
+            element={
+              <>
+                <PlaybackRouteControls />
+                <PlaybackPage />
+              </>
+            }
+          />
         </Routes>
       </MemoryRouter>
     );
@@ -554,6 +586,44 @@ describe('PlaybackPage', () => {
       await waitFor(() => {
         expect(mockGetEpisode).toHaveBeenCalledWith('episode-123', false, undefined);
       });
+    });
+
+    it('reloads the episode when the impersonated user changes', async () => {
+      renderPlaybackPage('episode-123', '?viewAs=user-123');
+
+      await waitFor(() => {
+        expect(mockGetEpisode).toHaveBeenCalledWith('episode-123', false, 'user-123');
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'View as next user' }));
+
+      await waitFor(() => {
+        expect(mockGetEpisode).toHaveBeenCalledWith('episode-123', false, 'user-456');
+      });
+    });
+
+    it('does not let a stale episode response overwrite the current route', async () => {
+      const firstEpisode = deferred<Episode>();
+      const nextEpisode = {
+        ...mockEpisode,
+        id: 'episode-456',
+        title: 'Next Episode',
+      };
+      mockGetEpisode.mockImplementation((id: string) =>
+        id === 'episode-123' ? firstEpisode.promise : Promise.resolve(nextEpisode)
+      );
+
+      renderPlaybackPage();
+      fireEvent.click(screen.getByRole('button', { name: 'Open next episode' }));
+
+      expect(await screen.findByText('Next Episode')).toBeInTheDocument();
+
+      firstEpisode.resolve(mockEpisode);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Test Episode')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('Next Episode')).toBeInTheDocument();
     });
   });
 

@@ -6,7 +6,8 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import useWarmAudioCache from '../hooks/useWarmAudioCache';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
-import { Episode, Sentence, AudioSpeed, Speaker } from '../types';
+import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
+import { Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
 import AudioScriptPlayback from '../components/audio/AudioScriptPlayback';
@@ -43,12 +44,15 @@ const PlaybackPage = () => {
     generateAudio: _generateAudio,
     generateAllSpeedsAudio,
     pollJobStatus: _pollJobStatus,
-    loading,
   } = useEpisodes();
   const { isFeatureEnabled } = useFeatureFlags();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const { avatarUrlMap } = useSpeakerAvatars();
-  const [episode, setEpisode] = useState<Episode | null>(null);
+  const { episode, isEpisodeLoading, loadEpisode } = usePlaybackEpisode({
+    episodeId,
+    viewAsUserId,
+    getEpisode,
+  });
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
@@ -86,16 +90,6 @@ const PlaybackPage = () => {
 
     // Return GCS URL if available, otherwise return a placeholder
     return url || '/placeholder-avatar.jpg';
-  };
-
-  const loadEpisode = async (bustCache = false) => {
-    if (!episodeId) return;
-    try {
-      const data = await getEpisode(episodeId, bustCache, viewAsUserId);
-      setEpisode(data);
-    } catch (err) {
-      console.error('Failed to load episode:', err);
-    }
   };
 
   const handleGenerateAllSpeeds = async () => {
@@ -180,13 +174,6 @@ const PlaybackPage = () => {
       setToastType('error');
     }
   };
-
-  useEffect(() => {
-    if (episodeId) {
-      loadEpisode();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodeId]);
 
   // Track which episode we've already triggered generation for to prevent duplicates
   const lastProcessedEpisodeRef = useRef<string | null>(null);
@@ -423,7 +410,7 @@ const PlaybackPage = () => {
     }
   };
 
-  if (loading) {
+  if (isEpisodeLoading) {
     return (
       <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
         <div className="card text-center py-12">
