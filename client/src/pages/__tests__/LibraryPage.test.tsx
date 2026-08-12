@@ -1,8 +1,8 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex library page testing with dynamic content requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import LibraryPage from '../LibraryPage';
 
 const mockUpdateUser = vi.fn();
@@ -23,6 +23,31 @@ const mockUser = {
   seenSampleContentGuide: false,
   preferredStudyLanguage: 'ja',
   preferredNativeLanguage: 'en',
+};
+
+function deferredResponse() {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
+const RouteControls = () => {
+  const navigate = useNavigate();
+  return (
+    <>
+      <button type="button" onClick={() => navigate('/app/library?viewAs=user-a')}>
+        View A
+      </button>
+      <button type="button" onClick={() => navigate('/app/library?viewAs=user-b')}>
+        View B
+      </button>
+      <button type="button" onClick={() => navigate('/app/library')}>
+        View self
+      </button>
+    </>
+  );
 };
 
 const createMockLibraryData = (overrides: Record<string, unknown> = {}) => ({
@@ -84,14 +109,71 @@ describe('LibraryPage', () => {
       audioCourseEnabled: true,
       flashcardsEnabled: true,
     };
+    vi.stubGlobal('fetch', vi.fn());
   });
 
   const renderLibraryPage = (route = '/app/library') =>
     render(
       <MemoryRouter initialEntries={[route]}>
+        <RouteControls />
         <LibraryPage />
       </MemoryRouter>
     );
+
+  describe('Impersonation banner request ownership', () => {
+    it('clears the old banner immediately and ignores stale A responses after A to B to self', async () => {
+      const aRequest = deferredResponse();
+      const bRequest = deferredResponse();
+      vi.mocked(fetch).mockReturnValueOnce(aRequest.promise).mockReturnValueOnce(bRequest.promise);
+      renderLibraryPage('/app/library?viewAs=user-a');
+
+      fireEvent.click(screen.getByRole('button', { name: 'View B' }));
+      fireEvent.click(screen.getByRole('button', { name: 'View self' }));
+
+      aRequest.resolve(
+        new Response(JSON.stringify({ name: 'User A', email: 'a@example.com' }), { status: 200 })
+      );
+      bRequest.resolve(
+        new Response(JSON.stringify({ name: 'User B', email: 'b@example.com' }), { status: 200 })
+      );
+
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+      expect(screen.queryByText(/User A/)).toBeNull();
+      expect(screen.queryByText(/User B/)).toBeNull();
+    });
+
+    it('clears A during the A to B transition and only renders B from the current response', async () => {
+      const bRequest = deferredResponse();
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ name: 'User A', email: 'a@example.com' }), { status: 200 })
+        )
+        .mockReturnValueOnce(bRequest.promise);
+      renderLibraryPage('/app/library?viewAs=user-a');
+      expect(await screen.findByText(/User A/)).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'View B' }));
+      expect(screen.queryByText(/User A/)).toBeNull();
+
+      bRequest.resolve(
+        new Response(JSON.stringify({ name: 'User B', email: 'b@example.com' }), { status: 200 })
+      );
+      expect(await screen.findByText(/User B/)).toBeTruthy();
+    });
+
+    it('does not render error response bodies as impersonated users', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(
+        new Response(JSON.stringify({ name: 'Wrong User', email: 'wrong@example.com' }), {
+          status: 500,
+        })
+      );
+
+      renderLibraryPage('/app/library?viewAs=user-a');
+
+      await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+      expect(screen.queryByText(/Wrong User/)).toBeNull();
+    });
+  });
 
   describe('Mobile layout - Filter buttons', () => {
     it('should render the v3 toolbar container', () => {
