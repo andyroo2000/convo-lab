@@ -113,7 +113,13 @@ describe('AdminScriptWorkbench', () => {
     fireEvent.change(screen.getByLabelText('Text (L2)'), {
       target: { value: 'Edited dialogue' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    act(() => {
+      saveButton.click();
+      saveButton.click();
+    });
+
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
 
     expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
@@ -137,6 +143,66 @@ describe('AdminScriptWorkbench', () => {
     expect(screen.getByText('Original dialogue')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Edited dialogue')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  it('ignores an exchange save that completes in a later session for the same course', async () => {
+    let resolveOldSave!: (response: Response) => void;
+    const oldSaveResponse = new Promise<Response>((resolve) => {
+      resolveOldSave = resolve;
+    });
+    let courseALoads = 0;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/courses/course-a/pipeline-data') && init?.method === 'PUT') {
+        return oldSaveResponse;
+      }
+      if (url.includes('/courses/course-a/pipeline-data')) {
+        courseALoads += 1;
+        return Promise.resolve(exchangeResponse(courseALoads === 1 ? 'Original' : 'Current A'));
+      }
+      if (url.includes('/courses/course-b/pipeline-data')) {
+        return Promise.resolve(exchangeResponse('Course B'));
+      }
+      if (url.includes('/build-prompt')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/line-renderings')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ renderings: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { rerender } = render(<AdminScriptWorkbench courseId="course-a" />);
+
+    fireEvent.click(await screen.findByText('Original dialogue'));
+    fireEvent.change(screen.getByLabelText('Text (L2)'), {
+      target: { value: 'Stale edited dialogue' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    rerender(<AdminScriptWorkbench courseId="course-b" />);
+    expect(await screen.findByText('Course B dialogue')).toBeInTheDocument();
+    rerender(<AdminScriptWorkbench courseId="course-a" />);
+    expect(await screen.findByText('Current A dialogue')).toBeInTheDocument();
+
+    await act(async () => {
+      resolveOldSave(new Response(null, { status: 204 }));
+      await oldSaveResponse;
+    });
+
+    expect(screen.getByText('Current A dialogue')).toBeInTheDocument();
+    expect(screen.queryByText('Stale edited dialogue')).not.toBeInTheDocument();
   });
 
   it('shows a fallback error when the API message is empty', async () => {

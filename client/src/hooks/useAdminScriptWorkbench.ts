@@ -12,9 +12,12 @@ import { adminApi } from '../lib/adminApi';
 import { courseApi } from '../lib/courseApi';
 
 export default function useAdminScriptWorkbench(courseId: string, readOnly: boolean) {
-  const currentCourseId = useRef(courseId);
+  const courseSession = useRef({ courseId, token: Symbol(courseId) });
   const exchangeSaveInFlight = useRef(false);
-  currentCourseId.current = courseId;
+  if (courseSession.current.courseId !== courseId) {
+    courseSession.current = { courseId, token: Symbol(courseId) };
+  }
+  const courseSessionToken = courseSession.current.token;
   const [activeStep, setActiveStep] = useState<PipelineStage>('prompt');
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +35,10 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [courseStatus, setCourseStatus] = useState('draft');
   const [audioPolling, setAudioPolling] = useState(false);
-  const isCurrentCourse = useCallback(() => currentCourseId.current === courseId, [courseId]);
+  const isCurrentCourse = useCallback(
+    () => courseSession.current.token === courseSessionToken,
+    [courseSessionToken]
+  );
 
   const handleBuildPrompt = useCallback(
     async (silent = false) => {
@@ -65,7 +71,7 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
   useEffect(() => {
     const controller = new AbortController();
     let cancelled = false;
-    const isActive = () => !cancelled && currentCourseId.current === courseId;
+    const isActive = () => !cancelled && isCurrentCourse();
 
     setActiveStep('prompt');
     setLoading(null);
@@ -129,7 +135,7 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
       cancelled = true;
       controller.abort();
     };
-  }, [courseId, handleBuildPrompt, readOnly]);
+  }, [courseId, handleBuildPrompt, isCurrentCourse, readOnly]);
 
   useEffect(() => {
     if (!audioPolling) return undefined;
