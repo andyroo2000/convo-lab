@@ -538,6 +538,61 @@ describe('StudyCreatePage', () => {
     });
   });
 
+  it('flushes a debounced edit before selecting another draft', async () => {
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-a' }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'enterprise');
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+
+    await waitFor(() => {
+      expect(updateManualDraftMock).toHaveBeenCalledWith({
+        draftId: 'draft-a',
+        values: expect.objectContaining({
+          answer: expect.objectContaining({ meaning: 'enterprise' }),
+        }),
+      });
+    });
+    expect(screen.getByLabelText('Answer meaning')).toHaveValue('weather');
+  });
+
+  it('flushes a debounced edit before starting a new draft', async () => {
+    manualDraftsState.drafts = [manualDraft({ id: 'draft-a' })];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'enterprise');
+    await userEvent.click(screen.getByRole('button', { name: 'New draft' }));
+
+    await waitFor(() => {
+      expect(updateManualDraftMock).toHaveBeenCalledWith({
+        draftId: 'draft-a',
+        values: expect.objectContaining({
+          answer: expect.objectContaining({ meaning: 'enterprise' }),
+        }),
+      });
+    });
+    expect(screen.getByLabelText('Answer meaning')).toHaveValue('');
+  });
+
   it('serializes autosaves so an older slow save cannot finish after a newer edit', async () => {
     let resolveFirstAutosave!: (draft: StudyManualCardDraft) => void;
     updateManualDraftMock

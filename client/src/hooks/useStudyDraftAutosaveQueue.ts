@@ -12,6 +12,7 @@ const useStudyDraftAutosaveQueue = (
   const saveDraftRef = useRef(saveDraft);
   saveDraftRef.current = saveDraft;
   const scheduledSaveRef = useRef<number | null>(null);
+  const scheduledRequestRef = useRef<StudyDraftSaveRequest | null>(null);
   const saveTailRef = useRef<Promise<void>>(Promise.resolve());
 
   const cancelScheduledSave = useCallback(() => {
@@ -19,6 +20,7 @@ const useStudyDraftAutosaveQueue = (
 
     window.clearTimeout(scheduledSaveRef.current);
     scheduledSaveRef.current = null;
+    scheduledRequestRef.current = null;
   }, []);
 
   const enqueueSave = useCallback((request: StudyDraftSaveRequest) => {
@@ -33,13 +35,26 @@ const useStudyDraftAutosaveQueue = (
   const scheduleSave = useCallback(
     (request: StudyDraftSaveRequest, delayMs = 700) => {
       cancelScheduledSave();
+      scheduledRequestRef.current = request;
       scheduledSaveRef.current = window.setTimeout(() => {
         scheduledSaveRef.current = null;
-        enqueueSave(request).catch(() => undefined);
+        const scheduledRequest = scheduledRequestRef.current;
+        scheduledRequestRef.current = null;
+        if (scheduledRequest) enqueueSave(scheduledRequest).catch(() => undefined);
       }, delayMs);
     },
     [cancelScheduledSave, enqueueSave]
   );
+
+  const flushScheduledSave = useCallback(() => {
+    if (scheduledSaveRef.current === null) return null;
+
+    window.clearTimeout(scheduledSaveRef.current);
+    scheduledSaveRef.current = null;
+    const scheduledRequest = scheduledRequestRef.current;
+    scheduledRequestRef.current = null;
+    return scheduledRequest ? enqueueSave(scheduledRequest) : null;
+  }, [enqueueSave]);
 
   const flushSave = useCallback(
     async (request: StudyDraftSaveRequest) => {
@@ -59,6 +74,7 @@ const useStudyDraftAutosaveQueue = (
   return {
     cancelScheduledSave,
     flushSave,
+    flushScheduledSave,
     scheduleSave,
     waitForIdle,
   };

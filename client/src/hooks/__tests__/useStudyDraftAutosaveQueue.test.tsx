@@ -67,4 +67,23 @@ describe('useStudyDraftAutosaveQueue', () => {
     expect(saveDraft).toHaveBeenCalledTimes(2);
     expect(saveDraft).toHaveBeenLastCalledWith(saveRequest('enterprise'));
   });
+
+  it('flushes a scheduled save immediately without replaying its timer', async () => {
+    vi.useFakeTimers();
+    const saveDraft = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft));
+
+    let flushPromise: Promise<unknown> | null = null;
+    act(() => {
+      result.current.scheduleSave(saveRequest('business'));
+      flushPromise = result.current.flushScheduledSave();
+    });
+    await act(async () => flushPromise);
+
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(saveDraft).toHaveBeenCalledWith(saveRequest('business'));
+
+    await act(async () => vi.advanceTimersByTimeAsync(700));
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+  });
 });
