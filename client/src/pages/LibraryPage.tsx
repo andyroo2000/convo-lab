@@ -319,6 +319,35 @@ const LibraryPage = () => {
     return getCreateUrl('/app/create/dialogue');
   };
 
+  const renderEmptyState = () => {
+    if (hasNextPage) {
+      return (
+        <div className="retro-library-v3-empty">
+          <h3 className="retro-headline text-3xl">{t('library:filteredPagination.title')}</h3>
+          <p>{t('library:filteredPagination.description')}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="retro-library-v3-empty">
+        <h3 className="retro-headline text-3xl">{getEmptyTitle()}</h3>
+        <p>{getEmptyDescription()}</p>
+        <button
+          type="button"
+          onClick={() => {
+            const createUrl = filter === 'all' ? getCreateUrl('/app/create') : getEmptyCreateUrl();
+            window.location.href = createUrl;
+          }}
+          className="retro-library-v3-empty-btn"
+          data-testid={filter === 'all' ? 'library-button-browse-all' : undefined}
+        >
+          {getEmptyButtonLabel()}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="retro-library-v3-wrap space-y-4">
       {/* Impersonation Banner */}
@@ -408,39 +437,7 @@ const LibraryPage = () => {
             </div>
 
             {allItems.length === 0 ? (
-              <div className="retro-library-v3-empty">
-                {filter === 'all' ? (
-                  <>
-                    <h3 className="retro-headline text-3xl">{getEmptyTitle()}</h3>
-                    <p>{getEmptyDescription()}</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const createUrl = getCreateUrl('/app/create');
-                        window.location.href = createUrl;
-                      }}
-                      className="retro-library-v3-empty-btn"
-                      data-testid="library-button-browse-all"
-                    >
-                      {getEmptyButtonLabel()}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <h3 className="retro-headline text-3xl">{getEmptyTitle()}</h3>
-                    <p>{getEmptyDescription()}</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        window.location.href = getEmptyCreateUrl();
-                      }}
-                      className="retro-library-v3-empty-btn"
-                    >
-                      {getEmptyButtonLabel()}
-                    </button>
-                  </>
-                )}
-              </div>
+              renderEmptyState()
             ) : (
               <div className="retro-library-v3-grid">
                 {allItems.map((item, index) => {

@@ -183,6 +183,36 @@ describe('useLibraryData', () => {
       expect(result.current.courses).toEqual(mockCourses);
     });
 
+    it('should stay in the initial loading state until both all-scope resources resolve', async () => {
+      let resolveEpisodes: ((value: unknown) => void) | undefined;
+      let resolveCourses: ((value: unknown) => void) | undefined;
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/episodes')) {
+          return new Promise((resolve) => {
+            resolveEpisodes = resolve;
+          });
+        }
+        return new Promise((resolve) => {
+          resolveCourses = resolve;
+        });
+      });
+
+      const { result } = renderHook(() => useLibraryData(), {
+        wrapper: createWrapper(),
+      });
+
+      resolveEpisodes?.({ ok: true, json: () => Promise.resolve([{ id: 'episode-1' }]) });
+      await waitFor(() => {
+        expect(result.current.episodes).toHaveLength(1);
+      });
+      expect(result.current.isLoading).toBe(true);
+
+      resolveCourses?.({ ok: true, json: () => Promise.resolve([]) });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+    });
+
     it('should only fetch courses for the courses scope', async () => {
       mockFetch.mockResolvedValue({
         ok: true,

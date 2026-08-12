@@ -43,17 +43,9 @@ const createMockLibraryData = (overrides: Record<string, unknown> = {}) => ({
 });
 
 // Mock hooks
-vi.mock('../../hooks/useLibraryData', () => ({
+vi.mock('../../hooks/useLibraryData', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../hooks/useLibraryData')>()),
   useLibraryData: mockUseLibraryData,
-  parseLibraryContentScope: (value: string | null) =>
-    value === 'dialogues' || value === 'scripts' || value === 'courses' ? value : 'all',
-  episodeMatchesLibraryScope: (
-    episode: { contentType?: string },
-    scope: 'all' | 'dialogues' | 'scripts' | 'courses'
-  ) =>
-    scope === 'all' ||
-    (scope === 'dialogues' && (episode.contentType ?? 'dialogue') === 'dialogue') ||
-    (scope === 'scripts' && episode.contentType === 'script'),
 }));
 
 vi.mock('../../hooks/useDemo', () => ({
@@ -166,6 +158,8 @@ describe('LibraryPage', () => {
 
       expect(screen.queryByTestId('scroll-sentinel')).toBeNull();
       expect(screen.getByRole('button', { name: 'Load more' })).toBeTruthy();
+      expect(screen.getByRole('heading', { name: 'More content may be available' })).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: 'Create Your First Dialogue' })).toBeNull();
     });
 
     it('should keep paging available once the filtered result set has visible items', () => {

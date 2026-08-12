@@ -5,7 +5,7 @@ import {
   QueryClient,
   type InfiniteData,
 } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { Episode, Course } from '../types';
 import { courseApi, readCourseApiError } from '../lib/courseApi';
 import { episodeApi, readEpisodeApiError } from '../lib/episodeApi';
@@ -137,6 +137,12 @@ export function useLibraryData(
   const hasCachedCourses = Boolean(
     queryClient.getQueryData<InfiniteData<LibraryCourse[]>>(coursesQueryKey)?.pages.length
   );
+  const previousContentScopeRef = useRef(contentScope);
+  const preserveVisibleContentRef = useRef(false);
+  if (previousContentScopeRef.current !== contentScope) {
+    preserveVisibleContentRef.current = hasCachedEpisodes || hasCachedCourses;
+    previousContentScopeRef.current = contentScope;
+  }
 
   // Infinite queries - all run in parallel automatically
   const episodesQuery = useInfiniteQuery({
@@ -184,9 +190,12 @@ export function useLibraryData(
   const { isLoading: coursesLoading } = coursesQuery;
   let isLoading = episodesLoading;
   if (contentScope === 'all') {
-    isLoading = (episodesLoading && !hasCachedCourses) || (coursesLoading && !hasCachedEpisodes);
+    isLoading = !preserveVisibleContentRef.current && (episodesLoading || coursesLoading);
   } else if (contentScope === 'courses') {
     isLoading = coursesLoading;
+  }
+  if (!episodesLoading && !coursesLoading) {
+    preserveVisibleContentRef.current = false;
   }
 
   // The combined view can still show episodes when the secondary course read fails, but a
