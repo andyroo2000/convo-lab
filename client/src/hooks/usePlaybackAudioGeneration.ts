@@ -105,6 +105,7 @@ export default function usePlaybackAudioGeneration({
 
     cancelActiveRun();
     activeGenerationRouteRef.current = routeIdentity;
+    activeRefreshRouteRef.current = null;
     const runId = runIdRef.current;
     const isCurrentRun = () => runIdRef.current === runId;
     const releaseCurrentRun = () => {
@@ -112,6 +113,7 @@ export default function usePlaybackAudioGeneration({
     };
 
     setIsGeneratingAudio(true);
+    setIsRefreshingEpisode(false);
     setNeedsEpisodeRefresh(false);
     setGenerationProgress(0);
 
