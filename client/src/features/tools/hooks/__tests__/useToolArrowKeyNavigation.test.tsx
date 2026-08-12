@@ -46,6 +46,21 @@ describe('useToolArrowKeyNavigation', () => {
     expect(onPrevious).not.toHaveBeenCalled();
   });
 
+  it('does not handle arrow keys from ARIA controls', () => {
+    const onNext = vi.fn();
+    const onPrevious = vi.fn();
+
+    render(<TestHarness onNext={onNext} onPrevious={onPrevious} />);
+    const ariaButton = document.createElement('div');
+    ariaButton.setAttribute('role', 'button');
+    document.body.append(ariaButton);
+    fireEvent.keyDown(ariaButton, { key: 'ArrowRight' });
+
+    expect(onNext).not.toHaveBeenCalled();
+    expect(onPrevious).not.toHaveBeenCalled();
+    ariaButton.remove();
+  });
+
   it('ignores shift+arrow navigation shortcuts', () => {
     const onNext = vi.fn();
     const onPrevious = vi.fn();
