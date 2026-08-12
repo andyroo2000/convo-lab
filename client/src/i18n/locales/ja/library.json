@@ -33,6 +33,13 @@
   },
   "loading": "コンテンツを読み込み中...",
   "loadMore": "もっと読み込む",
+  "error": {
+    "showAll": "すべてのコンテンツに戻る"
+  },
+  "filteredPagination": {
+    "title": "さらにコンテンツがある可能性があります",
+    "description": "次のページを読み込んで、一致する項目を探し続けます。"
+  },
   "impersonation": {
     "viewing": "表示中",
     "library": "ライブラリ",

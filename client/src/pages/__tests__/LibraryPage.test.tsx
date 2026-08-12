@@ -1,11 +1,12 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex library page testing with dynamic content requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import LibraryPage from '../LibraryPage';
 
 const mockUpdateUser = vi.fn();
+const mockUseLibraryData = vi.hoisted(() => vi.fn());
 const mockFeatureFlags = vi.hoisted(() => ({
   value: {
     dialoguesEnabled: true,
@@ -24,18 +25,27 @@ const mockUser = {
   preferredNativeLanguage: 'en',
 };
 
+const createMockLibraryData = (overrides: Record<string, unknown> = {}) => ({
+  episodes: [],
+  courses: [],
+  isLoading: false,
+  error: null,
+  retry: vi.fn(),
+  hasNextPage: false,
+  shouldAutoLoadMore: false,
+  fetchNextPage: vi.fn(),
+  isFetchingNextPage: false,
+  deleteEpisode: vi.fn(),
+  deleteCourse: vi.fn(),
+  isDeletingEpisode: false,
+  isDeletingCourse: false,
+  ...overrides,
+});
+
 // Mock hooks
-vi.mock('../../hooks/useLibraryData', () => ({
-  useLibraryData: () => ({
-    episodes: [],
-    courses: [],
-    isLoading: false,
-    error: null,
-    deleteEpisode: vi.fn(),
-    deleteCourse: vi.fn(),
-    isDeletingEpisode: false,
-    isDeletingCourse: false,
-  }),
+vi.mock('../../hooks/useLibraryData', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../hooks/useLibraryData')>()),
+  useLibraryData: mockUseLibraryData,
 }));
 
 vi.mock('../../hooks/useDemo', () => ({
@@ -66,6 +76,8 @@ vi.mock('../../components/common/ConfirmModal', () => ({
 
 describe('LibraryPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseLibraryData.mockReturnValue(createMockLibraryData());
     mockFeatureFlags.value = {
       dialoguesEnabled: true,
       scriptsEnabled: true,
@@ -74,11 +86,11 @@ describe('LibraryPage', () => {
     };
   });
 
-  const renderLibraryPage = () =>
+  const renderLibraryPage = (route = '/app/library') =>
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={[route]}>
         <LibraryPage />
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
   describe('Mobile layout - Filter buttons', () => {
@@ -114,6 +126,12 @@ describe('LibraryPage', () => {
       expect(allButton).toHaveClass('is-active');
       expect(allButton).toHaveAttribute('aria-pressed', 'true');
     });
+
+    it('should scope library queries to the selected filter', () => {
+      renderLibraryPage('/app/library?filter=courses');
+
+      expect(mockUseLibraryData).toHaveBeenCalledWith(undefined, false, 'courses');
+    });
   });
 
   describe('Mobile layout - Empty states', () => {
@@ -129,6 +147,41 @@ describe('LibraryPage', () => {
 
       // The "all" filter empty state has a "Browse All Options" button
       expect(screen.getByTestId('library-button-browse-all')).toBeTruthy();
+    });
+
+    it('should not auto-page an empty filtered result set', () => {
+      const fetchNextPage = vi.fn();
+      mockUseLibraryData.mockReturnValue(
+        createMockLibraryData({ hasNextPage: true, shouldAutoLoadMore: false, fetchNextPage })
+      );
+
+      renderLibraryPage('/app/library?filter=dialogues');
+
+      expect(screen.queryByTestId('scroll-sentinel')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      expect(fetchNextPage).toHaveBeenCalledOnce();
+      expect(screen.getByRole('heading', { name: 'More content may be available' })).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: 'Create Your First Dialogue' })).toBeNull();
+    });
+
+    it('should keep paging available once the filtered result set has visible items', () => {
+      mockUseLibraryData.mockReturnValue(
+        createMockLibraryData({ hasNextPage: true, shouldAutoLoadMore: true })
+      );
+
+      renderLibraryPage('/app/library?filter=dialogues');
+
+      expect(screen.getByTestId('scroll-sentinel')).toBeTruthy();
+    });
+  });
+
+  describe('Error recovery', () => {
+    it('offers a route back to all content from a scoped query failure', () => {
+      mockUseLibraryData.mockReturnValue(createMockLibraryData({ error: 'Courses failed' }));
+
+      renderLibraryPage('/app/library?filter=courses');
+
+      expect(screen.getByRole('button', { name: 'Back to all content' })).toBeTruthy();
     });
   });
 

@@ -33,6 +33,13 @@
   },
   "loading": "Loading your content...",
   "loadMore": "Load more",
+  "error": {
+    "showAll": "Back to all content"
+  },
+  "filteredPagination": {
+    "title": "More content may be available",
+    "description": "Load the next page to keep looking for matching items."
+  },
   "impersonation": {
     "viewing": "Viewing",
     "library": "library",
