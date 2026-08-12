@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
@@ -12,29 +12,60 @@ const VerifyEmailPage = () => {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
-  const [status, setStatus] = useState<
-    'verifying' | 'success' | 'error' | 'already-verified' | 'idle'
-  >(token ? 'verifying' : 'idle');
-  const [error, setError] = useState('');
+  const [verification, setVerification] = useState<{
+    token: string;
+    status: 'verifying' | 'success' | 'error';
+    error: string;
+  } | null>(token ? { token, status: 'verifying', error: '' } : null);
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState('');
+  const verificationGenerationRef = useRef(0);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigateRef = useRef(navigate);
+  const refreshUserRef = useRef(refreshUser);
+
+  navigateRef.current = navigate;
+  refreshUserRef.current = refreshUser;
+
+  let status: 'verifying' | 'success' | 'error' | 'already-verified' | 'idle';
+  if (token) {
+    status = verification?.token === token ? verification.status : 'verifying';
+  } else {
+    status = user?.emailVerified ? 'already-verified' : 'idle';
+  }
+  const error = resendError || (token && verification?.token === token ? verification.error : '');
 
   useEffect(() => {
-    if (!token) {
-      // User is just viewing the page (not coming from email link)
-      if (user?.emailVerified) {
-        setStatus('already-verified');
-      } else if (user) {
-        setStatus('idle');
-      }
-      return;
+    verificationGenerationRef.current += 1;
+    const generation = verificationGenerationRef.current;
+    const controller = new AbortController();
+
+    if (redirectTimerRef.current !== null) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
     }
 
-    // Verify the token
+    if (!token) {
+      return () => controller.abort();
+    }
+
+    setVerification({ token, status: 'verifying', error: '' });
+    setResendError('');
+    setResendSuccess(false);
+
+    const ownsVerification = () =>
+      verificationGenerationRef.current === generation && !controller.signal.aborted;
+
     const verifyToken = async () => {
+      if (!ownsVerification()) return;
+
       try {
         const request = authApi.verifyEmail(token);
-        const response = await fetch(request.url, request.init);
+        const response = await fetch(request.url, {
+          ...request.init,
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
           const data = await response.json();
@@ -43,28 +74,51 @@ const VerifyEmailPage = () => {
           );
         }
 
-        setStatus('success');
+        if (!ownsVerification()) return;
 
-        // Refresh user data to get updated emailVerified status
-        await refreshUser();
+        setVerification({ token, status: 'success', error: '' });
 
-        // Redirect to app after 3 seconds
-        setTimeout(() => {
-          navigate('/app/library');
+        redirectTimerRef.current = setTimeout(() => {
+          if (!ownsVerification()) return;
+          redirectTimerRef.current = null;
+          navigateRef.current('/app/library');
         }, 3000);
+
+        // Verification already succeeded. Refreshing the session is secondary and
+        // must never turn that success into an error or start another token POST.
+        try {
+          await refreshUserRef.current();
+        } catch {
+          // The destination will refresh account state again after navigation.
+        }
       } catch (err) {
-        setStatus('error');
-        setError(err instanceof Error ? err.message : 'Verification failed');
+        if (!ownsVerification()) return;
+
+        setVerification({
+          token,
+          status: 'error',
+          error: err instanceof Error ? err.message : 'Verification failed',
+        });
       }
     };
 
-    verifyToken();
-  }, [token, user, navigate, refreshUser]);
+    // Deferring one microtask lets React's development effect replay retire its
+    // first generation before any single-use token request is sent.
+    Promise.resolve().then(verifyToken);
+
+    return () => {
+      controller.abort();
+      if (redirectTimerRef.current !== null) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
+  }, [token]);
 
   const handleResendEmail = async () => {
     setResending(true);
     setResendSuccess(false);
-    setError('');
+    setResendError('');
 
     try {
       const response = await fetch(authApi.resendVerification, {
@@ -81,7 +135,7 @@ const VerifyEmailPage = () => {
 
       setResendSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend email');
+      setResendError(err instanceof Error ? err.message : 'Failed to resend email');
     } finally {
       setResending(false);
     }
