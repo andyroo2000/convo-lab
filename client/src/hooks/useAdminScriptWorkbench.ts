@@ -140,10 +140,15 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
   useEffect(() => {
     if (!audioPolling) return undefined;
     let cancelled = false;
+    let requestInFlight = false;
+    const controller = new AbortController();
     const interval = setInterval(async () => {
+      if (requestInFlight) return;
+      requestInFlight = true;
       try {
         const response = await fetch(courseApi.operation(courseId, 'status'), {
           credentials: 'include',
+          signal: controller.signal,
         });
         if (!response.ok) return;
         const data = await response.json();
@@ -158,10 +163,13 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
         }
       } catch {
         // Ignore polling errors and retry on the next interval.
+      } finally {
+        requestInFlight = false;
       }
     }, 3000);
     return () => {
       cancelled = true;
+      controller.abort();
       clearInterval(interval);
     };
   }, [audioPolling, courseId, isCurrentCourse]);
