@@ -59,7 +59,95 @@ function editableCourseFetch(putResponse: Response | Promise<Response>) {
 
 describe('AdminScriptWorkbench', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('does not overlap slow audio status polls', async () => {
+    let resolveStatus!: (response: Response) => void;
+    const statusResponse = new Promise<Response>((resolve) => {
+      resolveStatus = resolve;
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/courses/course-a/pipeline-data')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              status: 'draft',
+              audioUrl: null,
+              stage: 'script',
+              scriptUnits: [],
+              exchanges: [],
+              approxDurationSeconds: 0,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
+      }
+      if (url.includes('/courses/course-a/build-prompt')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/line-renderings')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ renderings: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/courses/course-a/generate-audio')) {
+        return Promise.resolve(new Response(null, { status: 202 }));
+      }
+      if (url.includes('/courses/course-a/status')) return statusResponse;
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    let pollStatus: (() => Promise<void>) | undefined;
+    const realSetInterval = window.setInterval.bind(window);
+    vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
+      if (delay === 3000) {
+        pollStatus = callback as () => Promise<void>;
+        return 1 as unknown as NodeJS.Timeout;
+      }
+      return realSetInterval(callback, delay, ...args) as unknown as NodeJS.Timeout;
+    });
+
+    const { unmount } = render(<AdminScriptWorkbench courseId="course-a" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Generate Audio' }));
+    await waitFor(() => expect(pollStatus).toBeDefined());
+
+    let firstPoll: Promise<void> | undefined;
+    await act(async () => {
+      firstPoll = pollStatus?.();
+      pollStatus?.();
+      await Promise.resolve();
+    });
+
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/status'))
+    ).toHaveLength(1);
+    const statusRequest = fetchMock.mock.calls.find(([input]) => String(input).includes('/status'));
+    const statusSignal = statusRequest?.[1]?.signal;
+    expect(statusSignal?.aborted).toBe(false);
+
+    unmount();
+
+    expect(statusSignal?.aborted).toBe(true);
+
+    resolveStatus(
+      new Response(JSON.stringify({ status: 'generating', audioUrl: null }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    await act(async () => firstPoll);
   });
 
   it('ignores pipeline hydration that completes after the course changes', async () => {
