@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import shiftStudyTimeAnchor from '../../utils/studyTimePeriod';
 import StudyTimePage from '../StudyTimePage';
@@ -11,6 +11,9 @@ const {
   logCompletedMock,
   saveMutateMock,
   saveResetMock,
+  sessionsRangeMock,
+  studyActivityStatusMock,
+  stopMock,
 } = vi.hoisted(() => ({
   analyticsAnchorMock: vi.fn(),
   deleteMutateMock: vi.fn(),
@@ -18,15 +21,18 @@ const {
   logCompletedMock: vi.fn(),
   saveMutateMock: vi.fn(),
   saveResetMock: vi.fn(),
+  sessionsRangeMock: vi.fn(),
+  studyActivityStatusMock: vi.fn(),
+  stopMock: vi.fn(),
 }));
 
 vi.mock('../../contexts/StudyActivityContext', () => ({
   useStudyActivityActions: () => ({
     start: vi.fn(),
-    stop: vi.fn(),
+    stop: stopMock,
     logCompleted: logCompletedMock,
   }),
-  useStudyActivityStatus: () => ({ active: null }),
+  useStudyActivityStatus: () => studyActivityStatusMock(),
 }));
 
 vi.mock('../../hooks/useStudyActivity', () => ({
@@ -205,34 +211,37 @@ vi.mock('../../hooks/useStudyActivity', () => ({
       isFetching: false,
     };
   },
-  useStudyActivitySessions: () => ({
-    data: [
-      {
-        clientSessionId: '018f22d2-6d38-7000-8000-000000000002',
-        category: 'create',
-        activity: 'card_creation',
-        source: 'manual',
-        name: 'Episode 8 cards',
-        startedAt: '2026-07-28T19:00:00Z',
-        endedAt: '2026-07-28T19:45:00Z',
-        durationMs: 2_700_000,
-        audioPlaybackMs: null,
-        cardsCreated: 12,
-      },
-      {
-        clientSessionId: '018f22d2-6d38-7000-8000-000000000003',
-        category: 'review',
-        activity: 'card_review',
-        source: 'automatic',
-        name: 'Automatic review',
-        startedAt: '2026-07-28T18:00:00Z',
-        endedAt: '2026-07-28T18:30:00Z',
-        durationMs: 1_800_000,
-      },
-    ],
-    isLoading: false,
-    isError: false,
-  }),
+  useStudyActivitySessions: (from: Date, to: Date) => {
+    sessionsRangeMock(from, to);
+    return {
+      data: [
+        {
+          clientSessionId: '018f22d2-6d38-7000-8000-000000000002',
+          category: 'create',
+          activity: 'card_creation',
+          source: 'manual',
+          name: 'Episode 8 cards',
+          startedAt: '2026-07-28T19:00:00Z',
+          endedAt: '2026-07-28T19:45:00Z',
+          durationMs: 2_700_000,
+          audioPlaybackMs: null,
+          cardsCreated: 12,
+        },
+        {
+          clientSessionId: '018f22d2-6d38-7000-8000-000000000003',
+          category: 'review',
+          activity: 'card_review',
+          source: 'automatic',
+          name: 'Automatic review',
+          startedAt: '2026-07-28T18:00:00Z',
+          endedAt: '2026-07-28T18:30:00Z',
+          durationMs: 1_800_000,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    };
+  },
   useSaveStudyActivitySession: () => ({
     mutate: saveMutateMock,
     reset: saveResetMock,
@@ -248,6 +257,10 @@ vi.mock('../../hooks/useStudyActivity', () => ({
 }));
 
 describe('StudyTimePage', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     analyticsAnchorMock.mockReset();
     logCompletedMock.mockReset();
@@ -255,6 +268,10 @@ describe('StudyTimePage', () => {
     deleteMutateMock.mockReset();
     deleteResetMock.mockReset();
     saveResetMock.mockReset();
+    sessionsRangeMock.mockReset();
+    stopMock.mockReset();
+    studyActivityStatusMock.mockReset();
+    studyActivityStatusMock.mockReturnValue({ active: null });
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
       '018f22d2-6d38-7000-8000-000000000001'
     );
@@ -275,6 +292,31 @@ describe('StudyTimePage', () => {
         durationMs: 1_800_000,
       })
     );
+  });
+
+  it('advances the session window before stopping a timer so the completed session is visible', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-29T16:00:00Z'));
+    studyActivityStatusMock.mockReturnValue({
+      active: {
+        clientSessionId: '018f22d2-6d38-7000-8000-000000000004',
+        category: 'immerse',
+        activity: 'tv',
+        source: 'manual',
+        name: 'Evening drama',
+        startedAt: '2026-07-29T16:00:00Z',
+        cardsCreated: 0,
+      },
+    });
+
+    render(<StudyTimePage />);
+    expect(sessionsRangeMock.mock.calls.at(-1)?.[1]).toEqual(new Date('2026-07-29T16:01:00Z'));
+
+    vi.setSystemTime(new Date('2026-07-29T16:05:00Z'));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Evening drama' }));
+
+    expect(stopMock).toHaveBeenCalledOnce();
+    expect(sessionsRangeMock.mock.calls.at(-1)?.[1]).toEqual(new Date('2026-07-29T16:06:00Z'));
   });
 
   it('switches analytics ranges', () => {
