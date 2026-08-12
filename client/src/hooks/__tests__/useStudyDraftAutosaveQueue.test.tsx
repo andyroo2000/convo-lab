@@ -6,6 +6,7 @@ import useStudyDraftAutosaveQueue, {
 } from '../useStudyDraftAutosaveQueue';
 
 const saveRequest = (meaning: string): StudyDraftSaveRequest => ({
+  ownerId: 'user-1',
   draftId: 'draft-1',
   baseRevision: 4,
   values: {
@@ -46,7 +47,9 @@ describe('useStudyDraftAutosaveQueue', () => {
     act(() => result.current.scheduleSave(saveRequest('enterprise')));
 
     expect(
-      JSON.parse(window.localStorage.getItem('convolab.studyDraftIntent.v1.draft-1') ?? 'null')
+      JSON.parse(
+        window.localStorage.getItem('convolab.studyDraftIntent.v2.user-1.draft-1') ?? 'null'
+      )
     ).toEqual(
       expect.objectContaining({
         baseRevision: 4,
@@ -54,6 +57,24 @@ describe('useStudyDraftAutosaveQueue', () => {
         values: { answer: { meaning: 'enterprise' } },
       })
     );
+    expect(saveDraft).not.toHaveBeenCalled();
+  });
+
+  it('does not send an edit when durable storage fails', () => {
+    vi.useFakeTimers();
+    const saveDraft = vi.fn().mockResolvedValue({ revision: 5 });
+    const onStorageError = vi.fn();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    });
+    const { result } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft, { onStorageError }));
+
+    act(() => {
+      result.current.scheduleSave(saveRequest('enterprise'));
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(onStorageError).toHaveBeenCalledTimes(1);
     expect(saveDraft).not.toHaveBeenCalled();
   });
 
@@ -92,7 +113,7 @@ describe('useStudyDraftAutosaveQueue', () => {
       draftId: 'draft-1',
       values: { answer: { meaning: 'enterprise' }, expectedRevision: 5 },
     });
-    expect(window.localStorage.getItem('convolab.studyDraftIntent.v1.draft-1')).toBeNull();
+    expect(window.localStorage.getItem('convolab.studyDraftIntent.v2.user-1.draft-1')).toBeNull();
   });
 
   it('flushes the latest state after an active save finishes', async () => {

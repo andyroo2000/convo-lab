@@ -3,33 +3,56 @@ import type {
   StudyManualCardDraftUpdateRequest,
 } from '@languageflow/shared/src/types';
 
-const STORAGE_KEY_PREFIX = 'convolab.studyDraftIntent.v1.';
+const STORAGE_KEY_PREFIX = 'convolab.studyDraftIntent.v2.';
+
+export class StudyDraftIntentStorageError extends Error {
+  constructor(
+    message: string,
+    public readonly cause: unknown
+  ) {
+    super(message);
+    this.name = 'StudyDraftIntentStorageError';
+  }
+}
 
 export interface StudyDraftIntent {
-  version: 1;
+  version: 2;
   intentId: string;
+  ownerId: string;
   draftId: string;
   baseRevision: number;
   values: Omit<StudyManualCardDraftUpdateRequest, 'expectedRevision'>;
   createdAt: string;
 }
 
-type NewStudyDraftIntent = Pick<StudyDraftIntent, 'draftId' | 'baseRevision' | 'values'>;
+type NewStudyDraftIntent = Pick<
+  StudyDraftIntent,
+  'ownerId' | 'draftId' | 'baseRevision' | 'values'
+>;
 
-function storageKey(draftId: string) {
-  return `${STORAGE_KEY_PREFIX}${draftId}`;
+export function studyDraftIntentStorageKey(ownerId: string, draftId: string) {
+  return `${STORAGE_KEY_PREFIX}${encodeURIComponent(ownerId)}.${draftId}`;
+}
+
+export function isStudyDraftIntentStorageKeyForOwner(key: string | null, ownerId: string) {
+  return key?.startsWith(`${STORAGE_KEY_PREFIX}${encodeURIComponent(ownerId)}.`) ?? false;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isStudyDraftIntent(value: unknown, draftId: string): value is StudyDraftIntent {
+function isStudyDraftIntent(
+  value: unknown,
+  ownerId: string,
+  draftId: string
+): value is StudyDraftIntent {
   return (
     isRecord(value) &&
-    value.version === 1 &&
+    value.version === 2 &&
     typeof value.intentId === 'string' &&
     value.intentId.length > 0 &&
+    value.ownerId === ownerId &&
     value.draftId === draftId &&
     typeof value.baseRevision === 'number' &&
     Number.isSafeInteger(value.baseRevision) &&
@@ -44,69 +67,93 @@ function createIntentId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function readStudyDraftIntent(draftId: string): StudyDraftIntent | null {
-  const key = storageKey(draftId);
-  const stored = window.localStorage.getItem(key);
-  if (!stored) return null;
-
-  try {
-    const value: unknown = JSON.parse(stored);
-    if (isStudyDraftIntent(value, draftId)) return value;
-  } catch {
-    // Corrupt storage cannot be recovered safely.
-  }
-
-  window.localStorage.removeItem(key);
-  return null;
-}
-
-export function writeStudyDraftIntent(input: NewStudyDraftIntent): StudyDraftIntent {
-  const intent: StudyDraftIntent = {
-    version: 1,
+export function createStudyDraftIntent(input: NewStudyDraftIntent): StudyDraftIntent {
+  return {
+    version: 2,
     intentId: createIntentId(),
+    ownerId: input.ownerId,
     draftId: input.draftId,
     baseRevision: input.baseRevision,
     values: input.values,
     createdAt: new Date().toISOString(),
   };
-  window.localStorage.setItem(storageKey(input.draftId), JSON.stringify(intent));
+}
+
+export function readStudyDraftIntent(ownerId: string, draftId: string): StudyDraftIntent | null {
+  const key = studyDraftIntentStorageKey(ownerId, draftId);
+  let stored: string | null;
+  try {
+    stored = window.localStorage.getItem(key);
+  } catch (error) {
+    throw new StudyDraftIntentStorageError('Could not read the saved draft edit.', error);
+  }
+  if (!stored) return null;
+
+  try {
+    const value: unknown = JSON.parse(stored);
+    if (isStudyDraftIntent(value, ownerId, draftId)) return value;
+  } catch (error) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // The original corruption error is the actionable failure.
+    }
+    throw new StudyDraftIntentStorageError('The saved draft edit was corrupt.', error);
+  }
+
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // The invalid payload remains isolated to this owner and draft.
+  }
+  throw new StudyDraftIntentStorageError('The saved draft edit had an unsupported format.', null);
+}
+
+export function persistStudyDraftIntent(intent: StudyDraftIntent): void {
+  try {
+    window.localStorage.setItem(
+      studyDraftIntentStorageKey(intent.ownerId, intent.draftId),
+      JSON.stringify(intent)
+    );
+  } catch (error) {
+    throw new StudyDraftIntentStorageError('Could not store the latest draft edit.', error);
+  }
+}
+
+export function writeStudyDraftIntent(input: NewStudyDraftIntent): StudyDraftIntent {
+  const intent = createStudyDraftIntent(input);
+  persistStudyDraftIntent(intent);
   return intent;
 }
 
-export function acknowledgeStudyDraftIntent(intent: StudyDraftIntent, revision: number): void {
-  const current = readStudyDraftIntent(intent.draftId);
-  if (!current) return;
-
-  if (current.intentId === intent.intentId) {
-    window.localStorage.removeItem(storageKey(intent.draftId));
-    return;
+export function removeStudyDraftIntent(ownerId: string, draftId: string): void {
+  try {
+    window.localStorage.removeItem(studyDraftIntentStorageKey(ownerId, draftId));
+  } catch (error) {
+    throw new StudyDraftIntentStorageError('Could not remove the saved draft edit.', error);
   }
+}
 
-  if (current.baseRevision === intent.baseRevision) {
-    window.localStorage.setItem(
-      storageKey(intent.draftId),
-      JSON.stringify({ ...current, baseRevision: revision })
-    );
+export function acknowledgeStudyDraftIntent(intent: StudyDraftIntent): void {
+  const current = readStudyDraftIntent(intent.ownerId, intent.draftId);
+  if (current?.intentId === intent.intentId) {
+    removeStudyDraftIntent(intent.ownerId, intent.draftId);
   }
 }
 
 export function clearStudyDraftIntent(intent: StudyDraftIntent): void {
-  const current = readStudyDraftIntent(intent.draftId);
+  const current = readStudyDraftIntent(intent.ownerId, intent.draftId);
   if (current?.intentId === intent.intentId) {
-    window.localStorage.removeItem(storageKey(intent.draftId));
+    removeStudyDraftIntent(intent.ownerId, intent.draftId);
   }
-}
-
-export function removeStudyDraftIntent(draftId: string): void {
-  window.localStorage.removeItem(storageKey(draftId));
 }
 
 export function isStudyDraftIntentApplied(
   intent: StudyDraftIntent,
   draft: StudyManualCardDraft
 ): boolean {
-  return Object.entries(intent.values).every(([field, value]) => {
-    if (field === 'expectedRevision') return true;
-    return JSON.stringify(draft[field as keyof StudyManualCardDraft]) === JSON.stringify(value);
-  });
+  return Object.entries(intent.values).every(
+    ([field, value]) =>
+      JSON.stringify(draft[field as keyof StudyManualCardDraft]) === JSON.stringify(value)
+  );
 }

@@ -296,6 +296,7 @@
     "draftConflictDescription": "Your unsaved edits are safe on this device. Restore them to overwrite the newer draft, or use the newer saved version.",
     "restoreDraftEdits": "Restore my edits",
     "useServerDraft": "Use saved version",
+    "draftStorageFailed": "This edit could not be saved safely on this device. Free browser storage and try again.",
     "draftQueueCount_one": "{{count}} draft",
     "draftQueueCount_other": "{{count}} drafts",
     "draftQueueGenerating": "Drafts are still filling in.",

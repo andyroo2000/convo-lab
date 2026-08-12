@@ -12,6 +12,7 @@ import {
 import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 
 export interface StudyDraftSaveRequest {
+  ownerId: string;
   draftId: string;
   baseRevision: number;
   values: Omit<StudyManualCardDraftUpdateRequest, 'expectedRevision'>;
@@ -20,6 +21,7 @@ export interface StudyDraftSaveRequest {
 interface StudyDraftAutosaveQueueOptions {
   onConflict?: (intent: StudyDraftIntent, error: StudyDraftRevisionConflictError) => void;
   onSaved?: (intent: StudyDraftIntent, draft: StudyManualCardDraft) => void;
+  onStorageError?: (error: Error) => void;
 }
 
 const useStudyDraftAutosaveQueue = (
@@ -57,7 +59,7 @@ const useStudyDraftAutosaveQueue = (
           values: { ...intent.values, expectedRevision },
         });
         acknowledgedRevisionRef.current.set(intent.draftId, draft.revision);
-        acknowledgeStudyDraftIntent(intent, draft.revision);
+        acknowledgeStudyDraftIntent(intent);
         optionsRef.current.onSaved?.(intent, draft);
         return draft;
       } catch (error) {
@@ -76,7 +78,15 @@ const useStudyDraftAutosaveQueue = (
 
   const scheduleSave = useCallback(
     (request: StudyDraftSaveRequest, delayMs = 700) => {
-      const intent = writeStudyDraftIntent(request);
+      let intent: StudyDraftIntent;
+      try {
+        intent = writeStudyDraftIntent(request);
+      } catch (error) {
+        optionsRef.current.onStorageError?.(
+          error instanceof Error ? error : new Error('Could not store the latest draft edit.')
+        );
+        return null;
+      }
       sessionIntentIdsRef.current.add(intent.intentId);
       cancelScheduledSave();
       scheduledIntentRef.current = intent;
@@ -103,7 +113,15 @@ const useStudyDraftAutosaveQueue = (
 
   const flushSave = useCallback(
     (request: StudyDraftSaveRequest) => {
-      const intent = writeStudyDraftIntent(request);
+      let intent: StudyDraftIntent;
+      try {
+        intent = writeStudyDraftIntent(request);
+      } catch (error) {
+        const storageError =
+          error instanceof Error ? error : new Error('Could not store the latest draft edit.');
+        optionsRef.current.onStorageError?.(storageError);
+        return Promise.reject(storageError);
+      }
       sessionIntentIdsRef.current.add(intent.intentId);
       cancelScheduledSave();
       return enqueueIntent(intent);
@@ -117,6 +135,7 @@ const useStudyDraftAutosaveQueue = (
         expectedRevision === intent.baseRevision
           ? intent
           : writeStudyDraftIntent({
+              ownerId: intent.ownerId,
               draftId: intent.draftId,
               baseRevision: expectedRevision,
               values: intent.values,

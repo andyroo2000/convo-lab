@@ -279,6 +279,7 @@
     "draftConflictDescription": "未保存の編集内容はこの端末に保持されています。復元して新しい下書きを上書きするか、保存済みの新しい版を使用してください。",
     "restoreDraftEdits": "編集内容を復元",
     "useServerDraft": "保存済みの版を使用",
+    "draftStorageFailed": "この端末に編集内容を安全に保存できませんでした。ブラウザの保存領域を空けて、もう一度お試しください。",
     "draftQueueCount_one": "{{count}} 件の下書き",
     "draftQueueCount_other": "{{count}} 件の下書き",
     "draftQueueGenerating": "下書きを生成中です。",

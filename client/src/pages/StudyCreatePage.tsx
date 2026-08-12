@@ -39,12 +39,14 @@ import {
   useUpdateStudyManualCardDraft,
 } from '../hooks/useStudy';
 import { useStudyActivityActions } from '../contexts/StudyActivityContext';
+import useEffectiveUser from '../hooks/useEffectiveUser';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 import useStudyDraftAutosaveQueue from '../hooks/useStudyDraftAutosaveQueue';
 import useStudyCreateActionGuard from '../hooks/useStudyCreateActionGuard';
 import {
   clearStudyDraftIntent,
   isStudyDraftIntentApplied,
+  isStudyDraftIntentStorageKeyForOwner,
   readStudyDraftIntent,
   removeStudyDraftIntent,
   type StudyDraftIntent,
@@ -130,6 +132,8 @@ function buildManualPayloadForCreationKind(input: {
 
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
+  const { effectiveUser } = useEffectiveUser();
+  const draftIntentOwnerId = effectiveUser?.id ?? null;
   const createDraft = useCreateStudyManualCardDraft();
   const updateDraft = useUpdateStudyManualCardDraft();
   const deleteDraft = useDeleteStudyManualCardDraft();
@@ -179,6 +183,8 @@ const StudyCreatePage = () => {
   const manualFormBaseRevisionRef = useRef<number | null>(null);
   const replayingIntentIdsRef = useRef(new Set<string>());
   const [draftRecovery, setDraftRecovery] = useState<StudyDraftRecovery | null>(null);
+  const [draftStorageError, setDraftStorageError] = useState<string | null>(null);
+  const [draftStorageVersion, setDraftStorageVersion] = useState(0);
   const showDraftRecovery = useCallback((next: StudyDraftRecovery) => {
     setDraftRecovery((current) =>
       current?.intent.intentId === next.intent.intentId &&
@@ -230,6 +236,7 @@ const StudyCreatePage = () => {
         current?.intent.intentId === intent.intentId ? null : current
       );
     },
+    onStorageError: () => setDraftStorageError(t('create.draftStorageFailed')),
   });
   const manualCardType = cardTypeForStudyCardCreationKind(creationKind);
   const manualPayloadWithoutMedia = buildManualPayloadForCreationKind({
@@ -301,6 +308,19 @@ const StudyCreatePage = () => {
   }, [manualDrafts, resetManualComposer, selectedManualDraftId]);
 
   useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        draftIntentOwnerId &&
+        isStudyDraftIntentStorageKeyForOwner(event.key, draftIntentOwnerId)
+      ) {
+        setDraftStorageVersion((current) => current + 1);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [draftIntentOwnerId]);
+
+  useEffect(() => {
     if (!selectedManualDraft) {
       hydratedManualDraftKeyRef.current = null;
       manualFormBaseRevisionRef.current = null;
@@ -314,7 +334,14 @@ const StudyCreatePage = () => {
     if (hydratedManualDraftKeyRef.current === hydrationKey) return;
     hydratedManualDraftKeyRef.current = hydrationKey;
 
-    const persistedIntent = readStudyDraftIntent(selectedManualDraft.id);
+    let persistedIntent: StudyDraftIntent | null = null;
+    if (draftIntentOwnerId) {
+      try {
+        persistedIntent = readStudyDraftIntent(draftIntentOwnerId, selectedManualDraft.id);
+      } catch {
+        setDraftStorageError(t('create.draftStorageFailed'));
+      }
+    }
     if (
       persistedIntent &&
       persistedIntent.baseRevision !== selectedManualDraft.revision &&
@@ -337,11 +364,18 @@ const StudyCreatePage = () => {
     setManualPreviewAudioRole(draftForHydration.previewAudioRole);
     setManualSuccess(null);
     setIsManualPreviewOpen(false);
-  }, [selectedManualDraft, setValues, showDraftRecovery]);
+  }, [draftIntentOwnerId, selectedManualDraft, setValues, showDraftRecovery, t]);
 
   useEffect(() => {
     manualDrafts.forEach((draft) => {
-      const intent = readStudyDraftIntent(draft.id);
+      if (!draftIntentOwnerId) return;
+      let intent: StudyDraftIntent | null = null;
+      try {
+        intent = readStudyDraftIntent(draftIntentOwnerId, draft.id);
+      } catch {
+        setDraftStorageError(t('create.draftStorageFailed'));
+        return;
+      }
       if (!intent) return;
       if (isManualDraftSessionIntent(intent)) return;
 
@@ -366,7 +400,15 @@ const StudyCreatePage = () => {
         replayingIntentIdsRef.current.delete(intent.intentId);
       });
     });
-  }, [isManualDraftSessionIntent, manualDrafts, replayManualDraftIntent, showDraftRecovery]);
+  }, [
+    draftIntentOwnerId,
+    draftStorageVersion,
+    isManualDraftSessionIntent,
+    manualDrafts,
+    replayManualDraftIntent,
+    showDraftRecovery,
+    t,
+  ]);
 
   useEffect(() => {
     if (
@@ -400,13 +442,21 @@ const StudyCreatePage = () => {
       return undefined;
     }
 
-    const persistedIntent = readStudyDraftIntent(selectedManualDraft.id);
+    if (!draftIntentOwnerId) return undefined;
+    let persistedIntent: StudyDraftIntent | null = null;
+    try {
+      persistedIntent = readStudyDraftIntent(draftIntentOwnerId, selectedManualDraft.id);
+    } catch {
+      setDraftStorageError(t('create.draftStorageFailed'));
+      return undefined;
+    }
     if (persistedIntent) {
       if (!isManualDraftSessionIntent(persistedIntent)) return undefined;
       if (JSON.stringify(nextPayload) === JSON.stringify(persistedIntent.values)) return undefined;
     }
 
     scheduleManualDraftAutosave({
+      ownerId: draftIntentOwnerId,
       draftId: selectedManualDraft.id,
       baseRevision: manualFormBaseRevisionRef.current ?? selectedManualDraft.revision,
       values: nextPayload,
@@ -415,6 +465,7 @@ const StudyCreatePage = () => {
     return cancelManualDraftAutosave;
   }, [
     cancelManualDraftAutosave,
+    draftIntentOwnerId,
     manualImagePlacement,
     manualImagePrompt,
     manualPayload.answer,
@@ -425,6 +476,7 @@ const StudyCreatePage = () => {
     isManualDraftSessionIntent,
     scheduleManualDraftAutosave,
     selectedManualDraft,
+    t,
   ]);
 
   const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
@@ -487,6 +539,7 @@ const StudyCreatePage = () => {
   const persistSelectedManualDraft = async () => {
     if (!selectedManualDraft) return null;
     await flushManualDraftAutosave({
+      ownerId: draftIntentOwnerId ?? '',
       draftId: selectedManualDraft.id,
       baseRevision: manualFormBaseRevisionRef.current ?? selectedManualDraft.revision,
       values: {
@@ -567,7 +620,7 @@ const StudyCreatePage = () => {
         cancelManualDraftAutosave();
         await waitForManualDraftAutosave();
         await deleteDraft.mutateAsync(draftId);
-        removeStudyDraftIntent(draftId);
+        if (draftIntentOwnerId) removeStudyDraftIntent(draftIntentOwnerId, draftId);
         if (selectedManualDraftIdRef.current !== draftId) return;
         setSelectedManualDraftId(null);
         resetManualComposer(creationKind);
@@ -596,7 +649,7 @@ const StudyCreatePage = () => {
           await waitForManualDraftAutosave();
         }
         const result = await createCardFromDraft.mutateAsync(selectedManualDraft);
-        removeStudyDraftIntent(draftId);
+        if (draftIntentOwnerId) removeStudyDraftIntent(draftIntentOwnerId, draftId);
         addCreatedCards();
         if (selectedManualDraftIdRef.current !== draftId) return;
         let nextDraftId: string | null = null;
@@ -644,7 +697,9 @@ const StudyCreatePage = () => {
     deleteDraft.error ??
     retryDraft.error;
   let manualErrorMessage: string | null = null;
-  if (manualError instanceof StudyDraftRevisionConflictError) {
+  if (draftStorageError) {
+    manualErrorMessage = draftStorageError;
+  } else if (manualError instanceof StudyDraftRevisionConflictError) {
     manualErrorMessage = null;
   } else if (manualError instanceof Error) {
     manualErrorMessage = manualError.message;

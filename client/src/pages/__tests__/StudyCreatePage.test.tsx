@@ -124,6 +124,10 @@ vi.mock('../../hooks/useStudy', () => ({
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
 }));
 
+vi.mock('../../hooks/useEffectiveUser', () => ({
+  default: () => ({ effectiveUser: { id: 'user-1' }, isImpersonating: false, loading: false }),
+}));
+
 vi.mock('../../components/common/VoicePreview', () => ({
   default: ({ voiceId }: { voiceId: string }) => <span data-testid="voice-preview">{voiceId}</span>,
 }));
@@ -551,6 +555,7 @@ describe('StudyCreatePage', () => {
   it('replays a durable edit after reload when the server revision still matches', async () => {
     manualDraftsState.drafts = [manualDraft({ revision: 4 })];
     writeStudyDraftIntent({
+      ownerId: 'user-1',
       draftId: 'draft-1',
       baseRevision: 4,
       values: { answer: { meaning: 'enterprise' } },
@@ -565,13 +570,14 @@ describe('StudyCreatePage', () => {
       });
     });
     await waitFor(() => {
-      expect(window.localStorage.getItem('convolab.studyDraftIntent.v1.draft-1')).toBeNull();
+      expect(window.localStorage.getItem('convolab.studyDraftIntent.v2.user-1.draft-1')).toBeNull();
     });
   });
 
   it('retains a conflicting durable edit and requires explicit restore', async () => {
     manualDraftsState.drafts = [manualDraft({ revision: 5 })];
     writeStudyDraftIntent({
+      ownerId: 'user-1',
       draftId: 'draft-1',
       baseRevision: 4,
       values: { answer: { meaning: 'enterprise' } },
@@ -602,6 +608,7 @@ describe('StudyCreatePage', () => {
   it('clears a durable intent when the server already contains its values', async () => {
     manualDraftsState.drafts = [manualDraft({ revision: 5, answer: { meaning: 'enterprise' } })];
     writeStudyDraftIntent({
+      ownerId: 'user-1',
       draftId: 'draft-1',
       baseRevision: 4,
       values: { answer: { meaning: 'enterprise' } },
@@ -610,9 +617,34 @@ describe('StudyCreatePage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(window.localStorage.getItem('convolab.studyDraftIntent.v1.draft-1')).toBeNull();
+      expect(window.localStorage.getItem('convolab.studyDraftIntent.v2.user-1.draft-1')).toBeNull();
     });
     expect(updateManualDraftMock).not.toHaveBeenCalled();
+  });
+
+  it('reconciles a same-owner intent written by another tab', async () => {
+    manualDraftsState.drafts = [manualDraft({ revision: 4 })];
+    renderPage();
+
+    const intent = writeStudyDraftIntent({
+      ownerId: 'user-1',
+      draftId: 'draft-1',
+      baseRevision: 4,
+      values: { answer: { meaning: 'enterprise' } },
+    });
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'convolab.studyDraftIntent.v2.user-1.draft-1',
+        newValue: JSON.stringify(intent),
+      })
+    );
+
+    await waitFor(() => {
+      expect(updateManualDraftMock).toHaveBeenCalledWith({
+        draftId: 'draft-1',
+        values: { answer: { meaning: 'enterprise' }, expectedRevision: 4 },
+      });
+    });
   });
 
   it('flushes a debounced edit before selecting another draft', async () => {
