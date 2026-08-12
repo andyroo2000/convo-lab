@@ -593,6 +593,26 @@ describe('StudyCreatePage', () => {
     expect(screen.getByLabelText('Answer meaning')).toHaveValue('');
   });
 
+  it('flushes a debounced edit when the page unmounts', async () => {
+    manualDraftsState.drafts = [manualDraft({ id: 'draft-a' })];
+    const { unmount } = renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'enterprise');
+    unmount();
+
+    await waitFor(() => {
+      expect(updateManualDraftMock).toHaveBeenCalledWith({
+        draftId: 'draft-a',
+        values: expect.objectContaining({
+          answer: expect.objectContaining({ meaning: 'enterprise' }),
+        }),
+      });
+    });
+  });
+
   it('serializes autosaves so an older slow save cannot finish after a newer edit', async () => {
     let resolveFirstAutosave!: (draft: StudyManualCardDraft) => void;
     updateManualDraftMock
