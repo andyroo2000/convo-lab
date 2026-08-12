@@ -338,11 +338,15 @@ const StudyCreatePage = () => {
     }
     manualAutosaveTimeoutRef.current = window.setTimeout(() => {
       manualAutosaveTimeoutRef.current = null;
-      const autosavePromise = updateDraft
-        .mutateAsync({
-          draftId: selectedManualDraft.id,
-          values: nextPayload,
-        })
+      const previousAutosave = manualAutosavePromiseRef.current ?? Promise.resolve();
+      const autosavePromise = previousAutosave
+        .catch(() => undefined)
+        .then(() =>
+          updateDraft.mutateAsync({
+            draftId: selectedManualDraft.id,
+            values: nextPayload,
+          })
+        )
         .catch(() => undefined)
         .finally(() => {
           if (manualAutosavePromiseRef.current === autosavePromise) {

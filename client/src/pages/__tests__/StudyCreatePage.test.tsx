@@ -492,6 +492,51 @@ describe('StudyCreatePage', () => {
     });
   });
 
+  it('serializes autosaves so an older slow save cannot finish after a newer edit', async () => {
+    let resolveFirstAutosave!: (draft: StudyManualCardDraft) => void;
+    updateManualDraftMock
+      .mockImplementationOnce(
+        () =>
+          new Promise<StudyManualCardDraft>((resolve) => {
+            resolveFirstAutosave = resolve;
+          })
+      )
+      .mockImplementation(async ({ draftId, values }) => manualDraft({ id: draftId, ...values }));
+    manualDraftsState.drafts = [manualDraft()];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'business');
+
+    await waitFor(() => expect(updateManualDraftMock).toHaveBeenCalledTimes(1));
+
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'enterprise');
+    await act(async () => {
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 800);
+      });
+    });
+
+    expect(updateManualDraftMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveFirstAutosave(manualDraft());
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(updateManualDraftMock).toHaveBeenCalledTimes(2));
+    expect(updateManualDraftMock).toHaveBeenLastCalledWith({
+      draftId: 'draft-1',
+      values: expect.objectContaining({
+        answer: expect.objectContaining({ meaning: 'enterprise' }),
+      }),
+    });
+  });
+
   it('keeps draft actions enabled while an autosave is pending', async () => {
     updateManualDraftState.isPending = true;
     manualDraftsState.drafts = [
