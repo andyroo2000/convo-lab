@@ -712,13 +712,13 @@ export function useGenerateStudyManualCardDraftPreviewImage() {
   });
 }
 
-export function useStudyManualCardDrafts(enabled: boolean) {
+export function useStudyManualCardDrafts(effectiveOwnerId: string | null) {
   return useInfiniteQuery({
-    queryKey: ['study', 'manual-card-drafts'],
+    queryKey: ['study', 'manual-card-drafts', effectiveOwnerId],
     queryFn: ({ pageParam }) => getStudyManualCardDrafts({ cursor: pageParam, limit: 200 }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    enabled,
+    enabled: effectiveOwnerId !== null,
     refetchInterval: (query) =>
       query.state.data?.pages.some((page) =>
         page.drafts.some((draft) => draft.status === 'generating')

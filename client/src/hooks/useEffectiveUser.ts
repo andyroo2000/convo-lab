@@ -21,12 +21,18 @@ export default function useEffectiveUser(): {
   const [searchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs');
   const [impersonatedUser, setImpersonatedUser] = useState<{
+    authenticatedUserId: string;
     viewAsUserId: string;
     user: User;
   } | null>(null);
-  const [resolvedViewAsUserId, setResolvedViewAsUserId] = useState<string | null>(null);
+  const [resolvedScope, setResolvedScope] = useState<{
+    authenticatedUserId: string;
+    viewAsUserId: string;
+  } | null>(null);
   const requestGenerationRef = useRef(0);
-  const shouldLoadImpersonatedUser = !!viewAsUserId && user?.role === 'admin';
+  const authenticatedUserId = user?.id ?? null;
+  const shouldLoadImpersonatedUser =
+    !!viewAsUserId && !!authenticatedUserId && user?.role === 'admin';
 
   useEffect(() => {
     requestGenerationRef.current += 1;
@@ -37,10 +43,10 @@ export default function useEffectiveUser(): {
     // viewAs guard below also prevents this previous identity from being observed before the
     // effect runs.
     setImpersonatedUser(null);
-    setResolvedViewAsUserId(null);
+    setResolvedScope(null);
 
     // If not impersonating, use the authenticated user
-    if (!shouldLoadImpersonatedUser || !viewAsUserId) {
+    if (!shouldLoadImpersonatedUser || !viewAsUserId || !authenticatedUserId) {
       return () => controller.abort();
     }
 
@@ -57,26 +63,34 @@ export default function useEffectiveUser(): {
       })
       .then((data: User) => {
         if (controller.signal.aborted || requestGenerationRef.current !== requestGeneration) return;
-        setImpersonatedUser({ viewAsUserId, user: data });
-        setResolvedViewAsUserId(viewAsUserId);
+        if (data.id !== viewAsUserId) {
+          throw new Error('Impersonated user response did not match the requested user');
+        }
+        setImpersonatedUser({ authenticatedUserId, viewAsUserId, user: data });
+        setResolvedScope({ authenticatedUserId, viewAsUserId });
       })
       .catch((err) => {
         if (controller.signal.aborted || requestGenerationRef.current !== requestGeneration) return;
         console.error('Failed to fetch impersonated user:', err);
         setImpersonatedUser(null);
-        setResolvedViewAsUserId(viewAsUserId);
+        setResolvedScope({ authenticatedUserId, viewAsUserId });
       });
 
     return () => controller.abort();
-  }, [shouldLoadImpersonatedUser, user?.id, viewAsUserId]);
+  }, [authenticatedUserId, shouldLoadImpersonatedUser, viewAsUserId]);
 
   const resolvedImpersonatedUser =
-    shouldLoadImpersonatedUser && impersonatedUser?.viewAsUserId === viewAsUserId
+    shouldLoadImpersonatedUser &&
+    impersonatedUser?.authenticatedUserId === authenticatedUserId &&
+    impersonatedUser.viewAsUserId === viewAsUserId
       ? impersonatedUser.user
       : null;
-  const isImpersonating = resolvedImpersonatedUser !== null;
+  const isImpersonating = shouldLoadImpersonatedUser;
   const effectiveUser = shouldLoadImpersonatedUser ? resolvedImpersonatedUser : user;
-  const loading = shouldLoadImpersonatedUser && resolvedViewAsUserId !== viewAsUserId;
+  const loading =
+    shouldLoadImpersonatedUser &&
+    (resolvedScope?.authenticatedUserId !== authenticatedUserId ||
+      resolvedScope.viewAsUserId !== viewAsUserId);
 
   return {
     effectiveUser,

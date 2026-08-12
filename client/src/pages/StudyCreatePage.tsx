@@ -195,7 +195,7 @@ const StudyCreatePage = () => {
   }, []);
   const runManualAction = useStudyCreateActionGuard();
   const runVocabGeneration = useStudyCreateActionGuard();
-  const manualDraftsQuery = useStudyManualCardDrafts(true);
+  const manualDraftsQuery = useStudyManualCardDrafts(draftIntentOwnerId);
   const { data: manualDraftData } = manualDraftsQuery;
   const manualDraftPages = useMemo(() => {
     if (!manualDraftData) return [];
