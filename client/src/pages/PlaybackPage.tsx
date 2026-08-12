@@ -59,10 +59,13 @@ const PlaybackPage = () => {
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const {
     isGeneratingAudio,
+    isRefreshingEpisode,
+    needsEpisodeRefresh,
     generationProgress,
     toastMessage,
     toastType,
     generateAllSpeeds,
+    retryEpisodeRefresh,
     clearToast,
   } = usePlaybackAudioGeneration({
     episodeId,
@@ -336,6 +339,19 @@ const PlaybackPage = () => {
   );
   const needsAudioGeneration = !hasAllSpeeds;
   const autoGenerationEnabled = episode.autoGenerateAudio !== false;
+  let audioGenerationTitle = hasAnyAudio
+    ? 'More audio speeds are available.'
+    : 'Audio isn’t generated yet.';
+  let audioGenerationDescription = autoGenerationEnabled
+    ? 'Generate audio to enable slow, medium, and normal playback.'
+    : 'Auto-generation is off for this dialogue. Generate audio to enable playback.';
+  let audioGenerationButtonLabel = 'Generate Audio';
+
+  if (needsEpisodeRefresh) {
+    audioGenerationTitle = 'Audio finished generating, but playback needs to refresh.';
+    audioGenerationDescription = 'Retry loading this episode without starting another audio job.';
+    audioGenerationButtonLabel = isRefreshingEpisode ? 'Refreshing...' : 'Retry refresh';
+  }
 
   // Get current audio URL based on selected speed
   /* eslint-disable no-nested-ternary */
@@ -454,21 +470,16 @@ const PlaybackPage = () => {
           <div className="retro-paper-panel bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
             <div className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-dark-brown">
-                  {hasAnyAudio ? 'More audio speeds are available.' : 'Audio isn’t generated yet.'}
-                </p>
-                <p className="text-xs text-gray-600">
-                  {autoGenerationEnabled
-                    ? 'Generate audio to enable slow, medium, and normal playback.'
-                    : 'Auto-generation is off for this dialogue. Generate audio to enable playback.'}
-                </p>
+                <p className="text-sm font-semibold text-dark-brown">{audioGenerationTitle}</p>
+                <p className="text-xs text-gray-600">{audioGenerationDescription}</p>
               </div>
               <button
                 type="button"
-                onClick={generateAllSpeeds}
-                className="btn-secondary text-sm px-3 py-2"
+                onClick={needsEpisodeRefresh ? retryEpisodeRefresh : generateAllSpeeds}
+                disabled={isRefreshingEpisode}
+                className="btn-secondary text-sm px-3 py-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Generate Audio
+                {audioGenerationButtonLabel}
               </button>
             </div>
           </div>
