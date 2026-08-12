@@ -68,6 +68,7 @@ const useStudyReviewSession = () => {
   const [reviewSubmitPending, setReviewSubmitPending] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const reviewSubmitPendingRef = useRef(false);
+  const cardActionRequestRef = useRef<symbol | null>(null);
   const sessionEpochRef = useRef(0);
   const sessionLoadRequestRef = useRef(0);
   const sessionCardCountRef = useRef(0);
@@ -142,6 +143,7 @@ const useStudyReviewSession = () => {
   useEffect(
     () => () => {
       sessionEpochRef.current += 1;
+      cardActionRequestRef.current = null;
       canSurfaceAsyncSessionErrorRef.current = false;
     },
     []
@@ -373,6 +375,7 @@ const useStudyReviewSession = () => {
     setShowSetDueControls(false);
     setUndoPending(false);
     reviewSubmitPendingRef.current = false;
+    cardActionRequestRef.current = null;
     setReviewSubmitPending(false);
     autoRefreshEmptySessionRef.current = false;
     answeredCardIdsRef.current = new Set();
@@ -387,6 +390,7 @@ const useStudyReviewSession = () => {
       if (
         !currentCard ||
         reviewSubmitPendingRef.current ||
+        cardActionRequestRef.current !== null ||
         reviewMutation.isPending ||
         undoPending ||
         editing ||
@@ -545,9 +549,19 @@ const useStudyReviewSession = () => {
       action: 'suspend' | 'unsuspend' | 'forget' | 'set_due',
       options?: { mode?: StudyCardSetDueMode; dueAt?: string }
     ) => {
-      if (!currentCard || editing || cardActionMutation.isPending) return;
+      if (
+        !currentCard ||
+        editing ||
+        reviewSubmitPendingRef.current ||
+        cardActionRequestRef.current !== null ||
+        cardActionMutation.isPending
+      ) {
+        return;
+      }
 
       const expectedEpoch = sessionEpochRef.current;
+      const requestToken = Symbol(currentCard.id);
+      cardActionRequestRef.current = requestToken;
       try {
         stopAllAudio();
         const result = await cardActionMutation.mutateAsync({
@@ -581,6 +595,10 @@ const useStudyReviewSession = () => {
         if (sessionEpochRef.current !== expectedEpoch) return;
 
         setSessionError(error instanceof Error ? error.message : 'Card action failed.');
+      } finally {
+        if (cardActionRequestRef.current === requestToken) {
+          cardActionRequestRef.current = null;
+        }
       }
     },
     [
@@ -768,6 +786,7 @@ const useStudyReviewSession = () => {
     async (kind: 'reviews' | 'lessons' = 'reviews') => {
       const expectedEpoch = sessionEpochRef.current + 1;
       sessionEpochRef.current = expectedEpoch;
+      cardActionRequestRef.current = null;
       stopAllAudio();
       resetStudyAudioAutoplay();
       resetUndo();

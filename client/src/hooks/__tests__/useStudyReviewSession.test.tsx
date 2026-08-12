@@ -1144,6 +1144,79 @@ describe('useStudyReviewSession', () => {
     expect(result.current.revealed).toBe(false);
   });
 
+  it('submits only one card action while the first action is still in flight', async () => {
+    const deferredAction = createDeferred<{
+      card: typeof baseCardOne;
+      overview: typeof baseOverview;
+    }>();
+    cardActionMutateAsyncMock.mockReturnValue(deferredAction.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    let firstAction: Promise<void> | undefined;
+    let duplicateAction: Promise<void> | undefined;
+    let conflictingGrade: Promise<void> | undefined;
+    await act(async () => {
+      firstAction = result.current.handleCardAction('suspend');
+      duplicateAction = result.current.handleCardAction('forget');
+      conflictingGrade = result.current.handleGrade('good');
+      await Promise.resolve();
+
+      expect(cardActionMutateAsyncMock).toHaveBeenCalledTimes(1);
+      expect(reviewMutateAsyncMock).not.toHaveBeenCalled();
+
+      deferredAction.resolve({
+        card: baseCardOne,
+        overview: baseOverview,
+      });
+      await Promise.all([firstAction, duplicateAction, conflictingGrade]);
+    });
+
+    await act(async () => {
+      await result.current.handleCardAction('suspend');
+    });
+
+    expect(cardActionMutateAsyncMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not submit a card action while a review is still in flight', async () => {
+    const deferredReview = createDeferred<{
+      reviewLogId: string;
+      card: typeof baseCardOne;
+      overview: typeof baseOverview;
+    }>();
+    reviewMutateAsyncMock.mockReturnValue(deferredReview.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    let reviewPromise: Promise<void> | undefined;
+    await act(async () => {
+      reviewPromise = result.current.handleGrade('good');
+      await result.current.handleCardAction('suspend');
+
+      expect(cardActionMutateAsyncMock).not.toHaveBeenCalled();
+
+      deferredReview.resolve({
+        reviewLogId: 'review-log-1',
+        card: baseCardOne,
+        overview: baseOverview,
+      });
+      await reviewPromise;
+    });
+  });
+
   it('retries answer-audio preparation until a generated URL becomes available', async () => {
     prepareStudyAnswerAudioMock.mockResolvedValueOnce(baseCardOne).mockResolvedValueOnce({
       ...baseCardOne,
