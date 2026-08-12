@@ -1,93 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { courseApi } from '../../lib/courseApi';
-import { adminApi } from '../../lib/adminApi';
+import useAdminScriptWorkbench from '../../hooks/useAdminScriptWorkbench';
+import AdminScriptWorkbenchAudioSection from './AdminScriptWorkbenchAudioSection';
 import LineTTSTester from './LineTTSTester';
-
-interface DialogueExchange {
-  order: number;
-  speakerName: string;
-  relationshipName: string;
-  speakerVoiceId: string;
-  textL2: string;
-  readingL2: string | null;
-  translationL1: string;
-  vocabularyItems: VocabularyItem[];
-}
-
-interface VocabularyItem {
-  textL2: string;
-  readingL2?: string;
-  translationL1: string;
-  jlptLevel?: string;
-}
-
-interface ScriptUnit {
-  type: 'narration_L1' | 'L2' | 'pause' | 'marker';
-  text?: string;
-  reading?: string;
-  translation?: string;
-  voiceId?: string;
-  speed?: number;
-  pitch?: number;
-  seconds?: number;
-  label?: string;
-}
-
-interface PromptMetadata {
-  targetExchangeCount: number;
-  vocabularySeeds: string;
-  grammarSeeds: string;
-}
-
-interface ScriptConfig {
-  // Timing constants
-  reviewAnticipationSeconds: number;
-  reviewRepeatPauseSeconds: number;
-  reviewSlowSpeed: number;
-  pauseAfterScenarioIntro: number;
-  pauseAfterSpeakerIntro: number;
-  pauseAfterL2Playback: number;
-  pauseAfterTranslation: number;
-  pauseAfterVocabItem: number;
-  pauseAfterFullPhrase: number;
-  pauseForLearnerResponse: number;
-  pauseBetweenRepetitions: number;
-
-  // AI Prompts
-  scenarioIntroPrompt: string;
-  progressivePhrasePrompt: string;
-
-  // Narration templates
-  speakerSaysTemplate: string;
-  translationTemplate: string;
-  vocabIntroTemplate: string;
-  responseIntroTemplate: string;
-  vocabTeachTemplate: string;
-  progressiveChunkTemplate: string;
-  fullPhraseTemplate: string;
-  fullPhraseReplayTemplate: string;
-  noVocabTeachTemplate: string;
-  reviewIntroTemplate: string;
-  reviewQuestionTemplate: string;
-  outroTemplate: string;
-}
-
-interface LineRendering {
-  id: string;
-  unitIndex: number;
-  text: string;
-  speed: number;
-  voiceId: string;
-  audioUrl: string;
-  createdAt: string;
-}
+import type { PipelineStage } from './adminScriptWorkbenchTypes';
 
 interface AdminScriptWorkbenchProps {
   courseId: string;
   readOnly?: boolean;
 }
-
-type PipelineStage = 'prompt' | 'exchanges' | 'config' | 'script' | 'audio';
 
 function getStepButtonClass(stepKey: PipelineStage, activeStep: PipelineStage, enabled: boolean) {
   if (activeStep === stepKey) return 'bg-coral text-white';
@@ -96,280 +15,37 @@ function getStepButtonClass(stepKey: PipelineStage, activeStep: PipelineStage, e
 }
 
 const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkbenchProps) => {
-  const [activeStep, setActiveStep] = useState<PipelineStage>('prompt');
-  const [loading, setLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Step 1: Prompt
-  const [prompt, setPrompt] = useState('');
-  const [promptMetadata, setPromptMetadata] = useState<PromptMetadata | null>(null);
-
-  // Step 2: Exchanges
-  const [exchanges, setExchanges] = useState<DialogueExchange[] | null>(null);
-  const [editingExchange, setEditingExchange] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<DialogueExchange | null>(null);
-
-  // Step 2.5: Script Config
-  const [scriptConfig, setScriptConfig] = useState<ScriptConfig | null>(null);
-
-  // Step 3: Script
-  const [scriptUnits, setScriptUnits] = useState<ScriptUnit[] | null>(null);
-  const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null);
-
-  // Line TTS Tester
-  const [selectedUnitIndex, setSelectedUnitIndex] = useState<number | null>(null);
-  const [lineRenderings, setLineRenderings] = useState<LineRendering[]>([]);
-
-  // Step 4: Audio
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [courseStatus, setCourseStatus] = useState<string>('draft');
-  const [audioPolling, setAudioPolling] = useState(false);
-
-  const handleBuildPrompt = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoading('Building prompt...');
-      setError(null);
-
-      try {
-        const res = await fetch(adminApi.adminCourseOperation(courseId, 'build-prompt'), {
-          method: 'POST',
-          credentials: 'include',
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || 'Failed to build prompt');
-        }
-
-        const data = await res.json();
-        setPrompt(data.prompt);
-        setPromptMetadata(data.metadata);
-      } catch (err) {
-        if (!silent) setError(err instanceof Error ? err.message : 'Failed to build prompt');
-      } finally {
-        if (!silent) setLoading(null);
-      }
-    },
-    [courseId]
-  );
-
-  // Load existing pipeline data on mount
-  useEffect(() => {
-    const loadPipelineData = async () => {
-      try {
-        const res = await fetch(adminApi.adminCourseOperation(courseId, 'pipeline-data'), {
-          credentials: 'include',
-        });
-        if (!res.ok) return;
-
-        const data = await res.json();
-        setCourseStatus(data.status);
-        setAudioUrl(data.audioUrl);
-
-        if (data.stage === 'script' && data.scriptUnits) {
-          setScriptUnits(data.scriptUnits);
-          setExchanges(data.exchanges);
-          setEstimatedDuration(data.approxDurationSeconds);
-          if (data.scriptConfig) {
-            setScriptConfig(data.scriptConfig);
-          }
-          setActiveStep(data.audioUrl ? 'audio' : 'script');
-        } else if (data.stage === 'exchanges' && data.exchanges) {
-          setExchanges(data.exchanges);
-          setActiveStep('exchanges');
-        }
-
-        // Load the prompt (skip in readOnly mode since it's a POST action)
-        if (!readOnly) {
-          await handleBuildPrompt(true);
-        }
-
-        // Load line renderings
-        try {
-          const renderingsRes = await fetch(
-            adminApi.adminCourseOperation(courseId, 'line-renderings'),
-            {
-              credentials: 'include',
-            }
-          );
-          if (renderingsRes.ok) {
-            const renderingsData = await renderingsRes.json();
-            setLineRenderings(renderingsData.renderings || []);
-          }
-        } catch {
-          // Ignore - renderings are optional
-        }
-      } catch {
-        // Ignore load errors - start fresh
-      }
-    };
-    loadPipelineData();
-  }, [courseId, handleBuildPrompt, readOnly]);
-
-  // Poll for audio completion
-  useEffect(() => {
-    if (!audioPolling) return undefined;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(courseApi.operation(courseId, 'status'), {
-          credentials: 'include',
-        });
-        if (!res.ok) return;
-
-        const data = await res.json();
-        setCourseStatus(data.status);
-
-        if (data.status === 'ready' && data.audioUrl) {
-          setAudioUrl(data.audioUrl);
-          setAudioPolling(false);
-        } else if (data.status === 'error') {
-          setError('Audio generation failed');
-          setAudioPolling(false);
-        }
-      } catch {
-        // Ignore polling errors
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [audioPolling, courseId]);
-
-  const handleGenerateDialogue = async () => {
-    setLoading('Generating dialogue (this may take 30-60s)...');
-    setError(null);
-
-    try {
-      const res = await fetch(adminApi.adminCourseOperation(courseId, 'generate-dialogue'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ customPrompt: prompt }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to generate dialogue');
-      }
-
-      const data = await res.json();
-      setExchanges(data.exchanges);
-      setScriptUnits(null);
-      setAudioUrl(null);
-      setActiveStep('exchanges');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate dialogue');
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleBuildScriptConfig = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoading('Building script configuration...');
-      setError(null);
-
-      try {
-        const res = await fetch(adminApi.adminCourseOperation(courseId, 'build-script-config'), {
-          method: 'POST',
-          credentials: 'include',
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || 'Failed to build script config');
-        }
-
-        const data = await res.json();
-        setScriptConfig(data.config);
-      } catch (err) {
-        if (!silent) setError(err instanceof Error ? err.message : 'Failed to build script config');
-      } finally {
-        if (!silent) setLoading(null);
-      }
-    },
-    [courseId]
-  );
-
-  const handleGenerateScript = async () => {
-    setLoading('Generating script (this may take 30-60s)...');
-    setError(null);
-
-    try {
-      const res = await fetch(adminApi.adminCourseOperation(courseId, 'generate-script'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to generate script');
-      }
-
-      const data = await res.json();
-      setScriptUnits(data.scriptUnits);
-      setEstimatedDuration(data.estimatedDurationSeconds);
-      setAudioUrl(null);
-      setActiveStep('script');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate script');
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleGenerateAudio = async () => {
-    setLoading('Queuing audio generation...');
-    setError(null);
-
-    try {
-      const res = await fetch(adminApi.adminCourseOperation(courseId, 'generate-audio'), {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to start audio generation');
-      }
-
-      setCourseStatus('generating');
-      setAudioPolling(true);
-      setActiveStep('audio');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start audio generation');
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleSaveExchangeEdit = async () => {
-    if (editingExchange === null || !editForm || !exchanges) return;
-
-    const updatedExchanges = [...exchanges];
-    updatedExchanges[editingExchange] = editForm;
-    setExchanges(updatedExchanges);
-    setEditingExchange(null);
-    setEditForm(null);
-
-    // Persist to server
-    try {
-      await fetch(adminApi.adminCourseOperation(courseId, 'pipeline-data'), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ stage: 'exchanges', data: updatedExchanges }),
-      });
-    } catch {
-      setError('Failed to save exchange edit');
-    }
-  };
-
-  const openExchangeEditor = (idx: number, exchange: DialogueExchange) => {
-    setEditingExchange(idx);
-    setEditForm({ ...exchange, vocabularyItems: [...exchange.vocabularyItems] });
-  };
+  const {
+    activeStep,
+    audioUrl,
+    courseStatus,
+    editForm,
+    editingExchange,
+    error,
+    estimatedDuration,
+    exchanges,
+    handleBuildPrompt,
+    handleBuildScriptConfig,
+    handleGenerateAudio,
+    handleGenerateDialogue,
+    handleGenerateScript,
+    handleSaveExchangeEdit,
+    lineRenderings,
+    loading,
+    openExchangeEditor,
+    prompt,
+    promptMetadata,
+    scriptConfig,
+    scriptUnits,
+    selectedUnitIndex,
+    setActiveStep,
+    setEditForm,
+    setEditingExchange,
+    setLineRenderings,
+    setPrompt,
+    setScriptConfig,
+    setSelectedUnitIndex,
+  } = useAdminScriptWorkbench(courseId, readOnly);
 
   const stepConfig = [
     { key: 'prompt' as const, label: '1. Prompt', enabled: readOnly ? !!prompt : true },
@@ -938,88 +614,12 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
 
       {/* Step 4: Audio Generation */}
       {activeStep === 'audio' && (
-        <div className="bg-white border-l-8 border-purple-500 p-6 shadow-sm space-y-4">
-          <h3 className="text-lg font-bold text-dark-brown">Audio Generation</h3>
-
-          {courseStatus === 'generating' && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <svg className="animate-spin h-5 w-5 text-purple-600" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                <span className="text-gray-700 font-medium">
-                  Generating audio... This takes 2-10 minutes.
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-purple-600 h-2 rounded-full transition-all duration-500 animate-pulse"
-                  style={{ width: '60%' }}
-                />
-              </div>
-            </div>
-          )}
-
-          {courseStatus === 'ready' && audioUrl && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-green-700">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="font-bold">Audio generation complete!</span>
-              </div>
-              <audio controls src={audioUrl} className="w-full" />
-            </div>
-          )}
-
-          {courseStatus === 'error' && (
-            <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
-              Audio generation failed. You can try again.
-              <button
-                type="button"
-                onClick={handleGenerateAudio}
-                className="ml-3 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 font-bold text-xs rounded"
-              >
-                Retry
-              </button>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setActiveStep('config')}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
-            >
-              Back to Config
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveStep('script')}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
-            >
-              Back to Script
-            </button>
-          </div>
-        </div>
+        <AdminScriptWorkbenchAudioSection
+          audioUrl={audioUrl}
+          courseStatus={courseStatus}
+          onGenerateAudio={handleGenerateAudio}
+          onNavigate={setActiveStep}
+        />
       )}
     </div>
   );
