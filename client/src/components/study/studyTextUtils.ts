@@ -3,6 +3,21 @@ const HIRAGANA_REGEX = /[\u3040-\u309f]/u;
 const KATAKANA_REGEX = /[\u30a0-\u30ff]/u;
 const RUBY_PATTERN =
   /([\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff々\u3040-\u309f\u30a0-\u30ff]+)(?:\[([^\]]+)\]|\(([^)]+)\))/gu;
+const PARTICLE_PREFIXES = new Set([
+  'は',
+  'が',
+  'を',
+  'に',
+  'へ',
+  'で',
+  'と',
+  'も',
+  'の',
+  'や',
+  'か',
+  'ね',
+  'よ',
+]);
 const BLOCK_LEVEL_TAGS = new Set([
   'p',
   'div',
@@ -147,7 +162,7 @@ const normalizeRubyMatch = (base: string, reading: string) => {
   const suffix = base.substring(kanjiEnd);
 
   let adjustedReading = cleanReading;
-  if (prefix && adjustedReading.startsWith(prefix)) {
+  if (prefix && !PARTICLE_PREFIXES.has(prefix) && adjustedReading.startsWith(prefix)) {
     adjustedReading = adjustedReading.slice(prefix.length);
   }
   if (suffix && adjustedReading.endsWith(suffix)) {

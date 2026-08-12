@@ -74,6 +74,17 @@ describe('studyTextUtils', () => {
     ]);
   });
 
+  it('does not remove a particle that matches the start of the following reading', () => {
+    expect(parseRubySegments('虫[むし]は本当[ほんとう]に苦手[にがて]。')).toEqual([
+      { kind: 'ruby', key: 'ruby-0', base: '虫', reading: 'むし' },
+      { kind: 'text', key: 'prefix-5', text: 'は' },
+      { kind: 'ruby', key: 'ruby-5', base: '本当', reading: 'ほんとう' },
+      { kind: 'text', key: 'prefix-14', text: 'に' },
+      { kind: 'ruby', key: 'ruby-14', base: '苦手', reading: 'にがて' },
+      { kind: 'text', key: 'text-22', text: '。' },
+    ]);
+  });
+
   it('leaves non-reading parentheses as plain text', () => {
     expect(parseRubySegments('予定(plan)が変(か)わった。')).toEqual([
       {
