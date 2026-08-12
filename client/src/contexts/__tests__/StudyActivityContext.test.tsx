@@ -188,6 +188,9 @@ describe('StudyActivityProvider', () => {
   });
 
   it('records audio playback duration and one-off card output', async () => {
+    vi.mocked(globalThis.crypto.randomUUID)
+      .mockReturnValueOnce('018f22d2-6d38-7000-8000-000000000001')
+      .mockReturnValueOnce('018f22d2-6d38-7000-8000-000000000002');
     renderProvider();
 
     fireEvent.click(screen.getByRole('button', { name: 'Start audio' }));
@@ -285,5 +288,70 @@ describe('StudyActivityProvider', () => {
         cardsCreated: 2,
       }),
     ]);
+  });
+
+  it('does not start overlapping flushes for the same queued session', async () => {
+    const pendingKey = 'convolab.studyActivity.pending.v1.42';
+    const queuedSession = {
+      clientSessionId: '018f22d2-6d38-7000-8000-000000000002',
+      category: 'review' as const,
+      activity: 'card_review' as const,
+      source: 'automatic' as const,
+      startedAt: '2026-07-28T14:55:00.000Z',
+      endedAt: '2026-07-28T15:00:00.000Z',
+      durationMs: 300_000,
+      cardsCreated: null,
+    };
+    localStorage.setItem(pendingKey, JSON.stringify([queuedSession]));
+
+    let finishFlush!: (value: never[]) => void;
+    saveSessionsMock.mockReturnValueOnce(
+      new Promise<never[]>((resolve) => {
+        finishFlush = resolve;
+      })
+    );
+
+    renderProvider();
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('online'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    expect(saveSessionsMock).toHaveBeenCalledTimes(1);
+    expect(saveSessionsMock).toHaveBeenCalledWith([queuedSession]);
+
+    await act(async () => {
+      finishFlush([]);
+      await Promise.resolve();
+    });
+    expect(localStorage.getItem(pendingKey)).toBeNull();
+  });
+
+  it('shares immediate persistence ownership with queue flushes', async () => {
+    let finishPersistence!: (value: never[]) => void;
+    saveSessionsMock.mockReturnValueOnce(
+      new Promise<never[]>((resolve) => {
+        finishPersistence = resolve;
+      })
+    );
+
+    renderProvider();
+    fireEvent.click(screen.getByRole('button', { name: 'Add cards' }));
+    window.dispatchEvent(new Event('focus'));
+
+    expect(saveSessionsMock).toHaveBeenCalledTimes(1);
+    expect(saveSessionsMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        clientSessionId: '018f22d2-6d38-7000-8000-000000000001',
+        activity: 'card_creation',
+      }),
+    ]);
+
+    await act(async () => {
+      finishPersistence([]);
+      await Promise.resolve();
+    });
+    expect(localStorage.getItem('convolab.studyActivity.pending.v1.42')).toBeNull();
   });
 });

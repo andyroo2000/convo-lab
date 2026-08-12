@@ -123,21 +123,52 @@ export const StudyActivityProvider = ({
     enabled ? readJson<ActiveStudyActivity | null>(activeKey, null) : null
   );
   const activeRef = useRef(active);
+  const inFlightSessionsRef = useRef(new Map<string, Promise<void>>());
   const [elapsedMs, setElapsedMs] = useState(0);
+
+  const persistSessions = useCallback(
+    (sessions: StudyActivitySession[]) => {
+      const inFlightSessions = inFlightSessionsRef.current;
+      const unownedSessions = sessions.filter(
+        (session) => !inFlightSessions.has(session.clientSessionId)
+      );
+
+      if (unownedSessions.length) {
+        const submittedSessionIds = unownedSessions.map((session) => session.clientSessionId);
+        const request = saveStudyActivitySessions(unownedSessions)
+          .then(async () => {
+            acknowledgePending(pendingKey, submittedSessionIds);
+            await queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
+          })
+          .catch(() => {
+            // The local queue is flushed on the next authenticated app load.
+          })
+          .finally(() => {
+            submittedSessionIds.forEach((clientSessionId) => {
+              if (inFlightSessions.get(clientSessionId) === request) {
+                inFlightSessions.delete(clientSessionId);
+              }
+            });
+          });
+
+        submittedSessionIds.forEach((clientSessionId) => {
+          inFlightSessions.set(clientSessionId, request);
+        });
+      }
+
+      return Promise.all(
+        sessions.map((session) => inFlightSessions.get(session.clientSessionId))
+      ).then(() => undefined);
+    },
+    [pendingKey, queryClient]
+  );
 
   const persistCompleted = useCallback(
     (session: StudyActivitySession) => {
       queuePending(pendingKey, session);
-      return saveStudyActivitySessions([session])
-        .then(async () => {
-          acknowledgePending(pendingKey, [session.clientSessionId]);
-          await queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
-        })
-        .catch(() => {
-          // The local queue is flushed on the next authenticated app load.
-        });
+      return persistSessions([session]);
     },
-    [pendingKey, queryClient]
+    [pendingKey, persistSessions]
   );
 
   const finishActive = useCallback(
@@ -220,14 +251,8 @@ export const StudyActivityProvider = ({
   const flushPending = useCallback(() => {
     const pending = readJson<StudyActivitySession[]>(pendingKey, []);
     if (!pending.length) return;
-    const submittedSessionIds = pending.map((session) => session.clientSessionId);
-    saveStudyActivitySessions(pending)
-      .then(() => {
-        acknowledgePending(pendingKey, submittedSessionIds);
-        queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
-      })
-      .catch(() => undefined);
-  }, [pendingKey, queryClient]);
+    persistSessions(pending).catch(() => undefined);
+  }, [pendingKey, persistSessions]);
 
   useEffect(() => {
     flushPending();
