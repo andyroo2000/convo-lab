@@ -1337,6 +1337,29 @@ describe('StudyCreatePage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('queues only one vocab bundle while generation is still in flight', async () => {
+    let resolveVocabBundle!: (value: unknown) => void;
+    createVocabBundleDraftsMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveVocabBundle = resolve;
+      })
+    );
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word'), '営業する');
+    const form = screen.getByRole('form', { name: 'Vocab bundle generator' });
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    expect(createVocabBundleDraftsMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveVocabBundle({ groupId: 'group-1', drafts: [] });
+      await Promise.resolve();
+    });
+  });
+
   it('queues vocab bundle drafts from target word and optional sentence without waiting for generation', async () => {
     createVocabBundleDraftsMock.mockResolvedValue({
       groupId: 'group-1',

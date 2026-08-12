@@ -15,7 +15,7 @@ import StudyCardFormFields, { StudyCardNotesField } from '../components/study/St
 import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import StudyManualDraftListPanel from '../components/study/StudyManualDraftListPanel';
-import StudyVocabCandidateForm from '../components/study/StudyVocabCandidateForm';
+import StudyVocabDraftGeneratorPanel from '../components/study/StudyVocabDraftGeneratorPanel';
 import {
   buildStudyCardFormPayload,
   getStudyCardFormValues,
@@ -31,7 +31,6 @@ import {
   isStudyCardCreationDefaultVoice,
 } from '../components/study/studyCardCreationModel';
 import { toAssetUrl } from '../components/study/studyCardUtils';
-import useFakeProgress from '../hooks/useFakeProgress';
 import {
   useCreateCardFromStudyManualCardDraft,
   useCreateStudyManualCardDraft,
@@ -170,6 +169,7 @@ const StudyCreatePage = () => {
   const [selectedManualDraftId, setSelectedManualDraftId] = useState<string | null>(null);
   const selectedManualDraftIdRef = useRef(selectedManualDraftId);
   selectedManualDraftIdRef.current = selectedManualDraftId;
+  const vocabGenerationRequestRef = useRef<symbol | null>(null);
   const hydratedManualDraftKeyRef = useRef<string | null>(null);
   const manualDraftsQuery = useStudyManualCardDrafts(true);
   const { data: manualDraftData } = manualDraftsQuery;
@@ -192,10 +192,6 @@ const StudyCreatePage = () => {
     () => manualDrafts.find((draft) => draft.id === selectedManualDraftId) ?? null,
     [manualDrafts, selectedManualDraftId]
   );
-  const generationProgress = useFakeProgress(createVocabBundleDrafts.isPending, {
-    expectedMs: 4_000,
-  });
-  const roundedGenerationProgress = Math.round(generationProgress.progress);
   const { values, setField, setValues } = useStudyCardForm({
     initialCardType: 'recognition',
     initialAnswerAudioVoiceId: manualDefaultVoiceId,
@@ -531,6 +527,10 @@ const StudyCreatePage = () => {
   };
 
   const handleGenerateSubmit = async () => {
+    if (vocabGenerationRequestRef.current || createVocabBundleDrafts.isPending) return;
+
+    const requestToken = Symbol(targetWord);
+    vocabGenerationRequestRef.current = requestToken;
     setVocabSuccess(null);
     try {
       const result = await createVocabBundleDrafts.mutateAsync({
@@ -545,6 +545,10 @@ const StudyCreatePage = () => {
       setVocabSuccess(t('create.generatedSuccess', { count: result.drafts.length }));
     } catch {
       // React Query stores the mutation error for the visible form message.
+    } finally {
+      if (vocabGenerationRequestRef.current === requestToken) {
+        vocabGenerationRequestRef.current = null;
+      }
     }
   };
 
@@ -616,62 +620,23 @@ const StudyCreatePage = () => {
       </section>
 
       {mode === 'generate' ? (
-        <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
-          {draftListPanel}
-          <div className="space-y-4">
-            <StudyVocabCandidateForm
-              targetWord={targetWord}
-              sourceSentence={sourceSentence}
-              context={context}
-              includeLearnerContext={includeLearnerContext}
-              isGenerating={createVocabBundleDrafts.isPending}
-              onContextChange={setContext}
-              onIncludeLearnerContextChange={setIncludeLearnerContext}
-              onSourceSentenceChange={setSourceSentence}
-              onSubmit={() => {
-                handleGenerateSubmit().catch(() => undefined);
-              }}
-              onTargetWordChange={setTargetWord}
-            />
-
-            {createVocabBundleDrafts.error ? (
-              <p className="text-sm text-red-600">
-                {createVocabBundleDrafts.error instanceof Error
-                  ? createVocabBundleDrafts.error.message
-                  : t('create.generateFailed')}
-              </p>
-            ) : null}
-            {vocabSuccess ? <p className="text-sm text-emerald-700">{vocabSuccess}</p> : null}
-            {generationProgress.isVisible && !createVocabBundleDrafts.error && !vocabSuccess ? (
-              <div
-                role="status"
-                aria-label={t('create.generationProgressLabel')}
-                className="max-w-xl rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3 text-sm font-medium text-navy">
-                  <span>{t('create.generationProgressTitle')}</span>
-                  <span data-testid="study-generate-progress-percent">
-                    {roundedGenerationProgress}%
-                  </span>
-                </div>
-                <div
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={roundedGenerationProgress}
-                  className="mt-2 h-2 overflow-hidden rounded-full bg-white"
-                >
-                  <div
-                    data-testid="study-generate-progress-bar"
-                    className="h-full rounded-full bg-navy transition-[width] duration-300 ease-out"
-                    style={{ width: `${generationProgress.progress}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-gray-600">{t('create.generationProgressHint')}</p>
-              </div>
-            ) : null}
-          </div>
-        </section>
+        <StudyVocabDraftGeneratorPanel
+          context={context}
+          draftList={draftListPanel}
+          error={createVocabBundleDrafts.error}
+          includeLearnerContext={includeLearnerContext}
+          isGenerating={createVocabBundleDrafts.isPending}
+          onContextChange={setContext}
+          onIncludeLearnerContextChange={setIncludeLearnerContext}
+          onSourceSentenceChange={setSourceSentence}
+          onSubmit={() => {
+            handleGenerateSubmit().catch(() => undefined);
+          }}
+          onTargetWordChange={setTargetWord}
+          sourceSentence={sourceSentence}
+          successMessage={vocabSuccess}
+          targetWord={targetWord}
+        />
       ) : (
         <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
           {draftListPanel}
