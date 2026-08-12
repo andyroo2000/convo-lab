@@ -222,7 +222,7 @@ export function useLibraryData(
   const refetchEpisodes = episodesQuery.refetch;
   const refetchCourses = coursesQuery.refetch;
 
-  // Stable ownership avoids rebuilding IntersectionObserver subscriptions after every query tick.
+  // Keep page fetching stable across unrelated query-state updates.
   const fetchNextPage = useCallback(() => {
     if (includeEpisodes && episodesQuery.hasNextPage) fetchNextEpisodesPage();
     if (includeCourses && coursesQuery.hasNextPage) fetchNextCoursesPage();

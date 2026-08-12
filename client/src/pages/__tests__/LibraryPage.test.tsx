@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex library page testing with dynamic content requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LibraryPage from '../LibraryPage';
 
@@ -150,14 +150,16 @@ describe('LibraryPage', () => {
     });
 
     it('should not auto-page an empty filtered result set', () => {
+      const fetchNextPage = vi.fn();
       mockUseLibraryData.mockReturnValue(
-        createMockLibraryData({ hasNextPage: true, shouldAutoLoadMore: false })
+        createMockLibraryData({ hasNextPage: true, shouldAutoLoadMore: false, fetchNextPage })
       );
 
       renderLibraryPage('/app/library?filter=dialogues');
 
       expect(screen.queryByTestId('scroll-sentinel')).toBeNull();
-      expect(screen.getByRole('button', { name: 'Load more' })).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      expect(fetchNextPage).toHaveBeenCalledOnce();
       expect(screen.getByRole('heading', { name: 'More content may be available' })).toBeTruthy();
       expect(screen.queryByRole('heading', { name: 'Create Your First Dialogue' })).toBeNull();
     });
