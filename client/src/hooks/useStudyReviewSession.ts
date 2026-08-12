@@ -69,6 +69,7 @@ const useStudyReviewSession = () => {
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const reviewSubmitPendingRef = useRef(false);
   const cardActionRequestRef = useRef<symbol | null>(null);
+  const undoRequestRef = useRef<symbol | null>(null);
   const sessionEpochRef = useRef(0);
   const sessionLoadRequestRef = useRef(0);
   const sessionCardCountRef = useRef(0);
@@ -144,6 +145,7 @@ const useStudyReviewSession = () => {
     () => () => {
       sessionEpochRef.current += 1;
       cardActionRequestRef.current = null;
+      undoRequestRef.current = null;
       canSurfaceAsyncSessionErrorRef.current = false;
     },
     []
@@ -376,6 +378,7 @@ const useStudyReviewSession = () => {
     setUndoPending(false);
     reviewSubmitPendingRef.current = false;
     cardActionRequestRef.current = null;
+    undoRequestRef.current = null;
     setReviewSubmitPending(false);
     autoRefreshEmptySessionRef.current = false;
     answeredCardIdsRef.current = new Set();
@@ -391,6 +394,7 @@ const useStudyReviewSession = () => {
         !currentCard ||
         reviewSubmitPendingRef.current ||
         cardActionRequestRef.current !== null ||
+        undoRequestRef.current !== null ||
         reviewMutation.isPending ||
         undoPending ||
         editing ||
@@ -554,6 +558,7 @@ const useStudyReviewSession = () => {
         editing ||
         reviewSubmitPendingRef.current ||
         cardActionRequestRef.current !== null ||
+        undoRequestRef.current !== null ||
         cardActionMutation.isPending
       ) {
         return;
@@ -702,7 +707,9 @@ const useStudyReviewSession = () => {
   const handleUndo = useCallback(async () => {
     if (
       undoPending ||
+      undoRequestRef.current !== null ||
       reviewSubmitPendingRef.current ||
+      cardActionRequestRef.current !== null ||
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
@@ -723,6 +730,8 @@ const useStudyReviewSession = () => {
       return;
     }
 
+    const requestToken = Symbol(action.reviewLogId);
+    undoRequestRef.current = requestToken;
     setUndoPending(true);
     try {
       const undoResult = await undoStudyReview(
@@ -739,6 +748,9 @@ const useStudyReviewSession = () => {
       pushUndo(action);
       setSessionError(error instanceof Error ? error.message : 'Unable to undo study action.');
     } finally {
+      if (undoRequestRef.current === requestToken) {
+        undoRequestRef.current = null;
+      }
       if (sessionEpochRef.current === expectedEpoch) {
         setUndoPending(false);
       }
@@ -787,6 +799,7 @@ const useStudyReviewSession = () => {
       const expectedEpoch = sessionEpochRef.current + 1;
       sessionEpochRef.current = expectedEpoch;
       cardActionRequestRef.current = null;
+      undoRequestRef.current = null;
       stopAllAudio();
       resetStudyAudioAutoplay();
       resetUndo();

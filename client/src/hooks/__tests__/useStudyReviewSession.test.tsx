@@ -1124,6 +1124,67 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentCard?.id).toBe('card-2');
   });
 
+  it('submits only one review undo while the first undo is still in flight', async () => {
+    reviewMutateAsyncMock
+      .mockResolvedValueOnce({
+        reviewLogId: 'review-log-1',
+        card: baseCardOne,
+        overview: baseOverview,
+      })
+      .mockResolvedValueOnce({
+        reviewLogId: 'review-log-2',
+        card: baseCardTwo,
+        overview: baseOverview,
+      });
+    const deferredUndo = createDeferred<{
+      reviewLogId: string;
+      card: typeof baseCardOne;
+      overview: typeof baseOverview;
+    }>();
+    undoStudyReviewMock.mockReturnValue(deferredUndo.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+
+    let firstUndo: Promise<void> | undefined;
+    let duplicateUndo: Promise<void> | undefined;
+    await act(async () => {
+      firstUndo = result.current.handleUndo();
+      duplicateUndo = result.current.handleUndo();
+      await Promise.resolve();
+
+      expect(undoStudyReviewMock).toHaveBeenCalledTimes(1);
+      expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-2', expect.any(Object));
+
+      deferredUndo.resolve({
+        reviewLogId: 'review-log-2',
+        card: baseCardTwo,
+        overview: baseOverview,
+      });
+      await Promise.all([firstUndo, duplicateUndo]);
+    });
+
+    await act(async () => {
+      await result.current.handleUndo();
+    });
+
+    expect(undoStudyReviewMock).toHaveBeenCalledTimes(2);
+    expect(undoStudyReviewMock).toHaveBeenLastCalledWith('review-log-1', expect.any(Object));
+  });
+
   it('keeps session selection stable after a card action removes the current card', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
