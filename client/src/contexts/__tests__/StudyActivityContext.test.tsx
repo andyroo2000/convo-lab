@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StudyActivityProvider, useStudyActivityTimer } from '../StudyActivityContext';
 
-const { saveSessionsMock } = vi.hoisted(() => ({
+const { saveSessionsMock, stopResultMock } = vi.hoisted(() => ({
   saveSessionsMock: vi.fn(),
+  stopResultMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useStudyActivity', () => ({
@@ -14,7 +15,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
 }));
 
 const Controls = () => {
-  const { active, start, stop, addCreatedCards } = useStudyActivityTimer();
+  const { active, start, stop, stopAndWait, addCreatedCards } = useStudyActivityTimer();
   return (
     <>
       <p>{active?.activity ?? 'inactive'}</p>
@@ -43,8 +44,16 @@ const Controls = () => {
       >
         Start automatic
       </button>
-      <button type="button" onClick={() => stop()}>
+      <button
+        type="button"
+        onClick={() => {
+          stop();
+        }}
+      >
         Stop
+      </button>
+      <button type="button" onClick={() => stopResultMock(stopAndWait())}>
+        Stop and wait
       </button>
       <button
         type="button"
@@ -85,6 +94,7 @@ describe('StudyActivityProvider', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-28T15:00:00.000Z'));
     saveSessionsMock.mockReset().mockResolvedValue([]);
+    stopResultMock.mockReset();
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
       '018f22d2-6d38-7000-8000-000000000001'
     );
@@ -203,5 +213,34 @@ describe('StudyActivityProvider', () => {
         cardsCreated: 2,
       }),
     ]);
+  });
+
+  it('returns a stop promise that settles after the session is persisted', async () => {
+    let finishPersistence!: (value: never[]) => void;
+    saveSessionsMock.mockReturnValueOnce(
+      new Promise<never[]>((resolve) => {
+        finishPersistence = resolve;
+      })
+    );
+    renderProvider();
+    fireEvent.click(screen.getByRole('button', { name: 'Start manual' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop and wait' }));
+
+    const stopResult = stopResultMock.mock.calls[0][0] as Promise<void>;
+    let settled = false;
+    stopResult.then(
+      () => {
+        settled = true;
+      },
+      () => undefined
+    );
+    await act(async () => Promise.resolve());
+    expect(settled).toBe(false);
+
+    await act(async () => {
+      finishPersistence([]);
+      await stopResult;
+    });
+    expect(settled).toBe(true);
   });
 });

@@ -34,8 +34,10 @@ interface StartOptions {
 interface StudyActivityActionsContextValue {
   start: (options: StartOptions) => void;
   stop: (activity?: StudyActivityKind, name?: string) => void;
+  stopAndWait: (activity?: StudyActivityKind, name?: string) => Promise<void>;
   addCreatedCards: (count?: number) => void;
   logCompleted: (session: StudyActivitySession) => void;
+  logCompletedAndWait: (session: StudyActivitySession) => Promise<void>;
 }
 
 interface StudyActivityStatusContextValue {
@@ -46,8 +48,10 @@ interface StudyActivityStatusContextValue {
 const inactiveStudyActivityActions: StudyActivityActionsContextValue = {
   start: () => undefined,
   stop: () => undefined,
+  stopAndWait: () => Promise.resolve(),
   addCreatedCards: () => undefined,
   logCompleted: () => undefined,
+  logCompletedAndWait: () => Promise.resolve(),
 };
 
 const StudyActivityActionsContext = createContext<StudyActivityActionsContextValue>(
@@ -112,8 +116,8 @@ export const StudyActivityProvider = ({
   const persistCompleted = useCallback(
     (session: StudyActivitySession) => {
       queuePending(pendingKey, session);
-      saveStudyActivitySessions([session])
-        .then(() => {
+      return saveStudyActivitySessions([session])
+        .then(async () => {
           const pending = readJson<StudyActivitySession[]>(pendingKey, []);
           localStorage.setItem(
             pendingKey,
@@ -121,7 +125,7 @@ export const StudyActivityProvider = ({
               pending.filter((item) => item.clientSessionId !== session.clientSessionId)
             )
           );
-          queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
+          await queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
         })
         .catch(() => {
           // The local queue is flushed on the next authenticated app load.
@@ -138,12 +142,12 @@ export const StudyActivityProvider = ({
         (expectedActivity && current.activity !== expectedActivity) ||
         (expectedName !== undefined && current.name !== expectedName)
       ) {
-        return;
+        return Promise.resolve();
       }
       activeRef.current = null;
       setActive(null);
       localStorage.removeItem(activeKey);
-      persistCompleted(sessionFromActive(current, endedAt));
+      return persistCompleted(sessionFromActive(current, endedAt));
     },
     [activeKey, persistCompleted]
   );
@@ -277,9 +281,15 @@ export const StudyActivityProvider = ({
   const actionsValue = useMemo(
     () => ({
       start,
-      stop: finishActive,
+      stop: (...args: Parameters<typeof finishActive>) => {
+        finishActive(...args).catch(() => undefined);
+      },
+      stopAndWait: finishActive,
       addCreatedCards,
-      logCompleted: persistCompleted,
+      logCompleted: (session: StudyActivitySession) => {
+        persistCompleted(session).catch(() => undefined);
+      },
+      logCompletedAndWait: persistCompleted,
     }),
     [addCreatedCards, finishActive, persistCompleted, start]
   );

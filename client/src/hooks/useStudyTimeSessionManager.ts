@@ -70,7 +70,7 @@ export function useStudyTimeSessionManager() {
   const saveSession = useSaveStudyActivitySession();
   const deleteSession = useDeleteStudyActivitySession();
   const { active } = useStudyActivityStatus();
-  const { start, stop, logCompleted } = useStudyActivityActions();
+  const { start, stopAndWait, logCompletedAndWait } = useStudyActivityActions();
 
   const [activity, setActivity] = useState<StudyActivityKind>('card_creation');
   const [name, setName] = useState('');
@@ -112,20 +112,21 @@ export function useStudyTimeSessionManager() {
     });
   };
 
-  const stopTimer = () => {
+  const stopTimer = async () => {
     // The sessions query has a bounded upper timestamp. Advance it before the
     // provider persists and invalidates the stopped timer so the refetch can
     // include the newly completed session.
     setSessionWindowEnd(bufferedWindowEnd());
-    stop();
+    await stopAndWait();
+    setSessionWindowEnd(bufferedWindowEnd());
   };
 
-  const addEntry = () => {
+  const addEntry = async () => {
     if (!validEntry) return;
     const startedAt = new Date(entryDate);
     const endedAt = new Date(startedAt.getTime() + minutes * 60_000);
     setSessionWindowEnd(bufferedWindowEnd(endedAt));
-    logCompleted({
+    await logCompletedAndWait({
       clientSessionId: crypto.randomUUID(),
       category: selectedOption.category,
       activity,
@@ -135,6 +136,7 @@ export function useStudyTimeSessionManager() {
       endedAt: endedAt.toISOString(),
       durationMs: minutes * 60_000,
     });
+    setSessionWindowEnd(bufferedWindowEnd(endedAt));
   };
 
   const beginEditing = (session: StudyActivitySession) => {
