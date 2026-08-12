@@ -36,6 +36,7 @@ import {
 import {
   generationRequestErrorMessage,
   isAcknowledgedGenerationFailure,
+  isDefinitiveGenerationRejection,
   isGenerationRequestConflict,
 } from '../../lib/generationRequest';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
@@ -198,6 +199,9 @@ const DialogueGenerator = () => {
         return courseId;
       } catch (caught) {
         if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
+          acknowledgeGenerationIntent(intent);
+        }
+        if (isDefinitiveGenerationRejection(caught)) {
           acknowledgeGenerationIntent(intent);
         }
         if (isGenerationRequestConflict(caught)) setConflictedCourseIntent(intent);
@@ -388,6 +392,9 @@ const DialogueGenerator = () => {
         if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
           acknowledgeGenerationIntent(intent);
         }
+        if (isDefinitiveGenerationRejection(caught)) {
+          acknowledgeGenerationIntent(intent);
+        }
         console.error('Failed to generate dialogue:', caught);
         if (isGenerationRequestConflict(caught)) setConflictedIntent(intent);
         setGenerationError(
@@ -427,6 +434,9 @@ const DialogueGenerator = () => {
         })
         .catch((caught: unknown) => {
           if (isAcknowledgedGenerationFailure(caught, savedIntent.intentId)) {
+            acknowledgeGenerationIntent(savedIntent);
+          }
+          if (isDefinitiveGenerationRejection(caught)) {
             acknowledgeGenerationIntent(savedIntent);
           }
           if (isGenerationRequestConflict(caught)) setConflictedCourseIntent(savedIntent);
@@ -565,7 +575,6 @@ const DialogueGenerator = () => {
       abandonGenerationIntent(conflictedCourseIntent);
       setConflictedCourseIntent(null);
       setCourseError(null);
-      setStep('input');
     } catch (caught) {
       setCourseError(caught instanceof Error ? caught.message : 'Could not clear the request.');
     }

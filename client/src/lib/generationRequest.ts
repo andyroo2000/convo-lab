@@ -50,6 +50,15 @@ export function isAcknowledgedGenerationFailure(
   );
 }
 
+export function isDefinitiveGenerationRejection(error: unknown): error is JsonRequestError {
+  return (
+    error instanceof JsonRequestError &&
+    error.status >= 400 &&
+    error.status < 500 &&
+    !isGenerationRequestConflict(error)
+  );
+}
+
 export function generationRequestErrorMessage(error: unknown, fallback: string): string {
   if (isGenerationRequestConflict(error)) {
     return `${error.payload.message} Start a new request or contact support if this keeps happening.`;

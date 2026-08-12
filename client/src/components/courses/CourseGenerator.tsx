@@ -25,6 +25,7 @@ import {
 import {
   generationRequestErrorMessage,
   isAcknowledgedGenerationFailure,
+  isDefinitiveGenerationRejection,
   isGenerationRequestConflict,
 } from '../../lib/generationRequest';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
@@ -147,6 +148,9 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
         }, 2000);
       } catch (caught) {
         if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
+          acknowledgeGenerationIntent(intent);
+        }
+        if (isDefinitiveGenerationRejection(caught)) {
           acknowledgeGenerationIntent(intent);
         }
         console.error('Course creation error:', caught);

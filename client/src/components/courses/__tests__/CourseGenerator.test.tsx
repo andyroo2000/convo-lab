@@ -188,4 +188,17 @@ describe('CourseGenerator paid submission intent', () => {
     fireEvent.click(screen.getByRole('button', { name: /Start a new request/i }));
     expect(window.localStorage.length).toBe(0);
   });
+
+  it('clears a definitive validation rejection so corrected form data can create a new intent', async () => {
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValueOnce(jsonResponse({ message: 'Title is invalid' }, 422));
+    renderCourseGenerator();
+    fireEvent.change(screen.getByLabelText(/Course Title/i), { target: { value: 'Bad title' } });
+    fireEvent.change(screen.getByLabelText(/Your Story/i), { target: { value: 'A trip' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Audio Course/i }));
+
+    expect(await screen.findByText(/Title is invalid/)).toBeInTheDocument();
+    expect(window.localStorage.length).toBe(0);
+  });
 });
