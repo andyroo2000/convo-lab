@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,20 +20,34 @@ export default function useEffectiveUser(): {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs');
-  const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [impersonatedUser, setImpersonatedUser] = useState<{
+    viewAsUserId: string;
+    user: User;
+  } | null>(null);
+  const [resolvedViewAsUserId, setResolvedViewAsUserId] = useState<string | null>(null);
+  const requestGenerationRef = useRef(0);
+  const shouldLoadImpersonatedUser = !!viewAsUserId && user?.role === 'admin';
 
   useEffect(() => {
+    requestGenerationRef.current += 1;
+    const requestGeneration = requestGenerationRef.current;
+    const controller = new AbortController();
+
+    // Clear the stored identity immediately after every scope transition. The render-time
+    // viewAs guard below also prevents this previous identity from being observed before the
+    // effect runs.
+    setImpersonatedUser(null);
+    setResolvedViewAsUserId(null);
+
     // If not impersonating, use the authenticated user
-    if (!viewAsUserId || user?.role !== 'admin') {
-      setImpersonatedUser(null);
-      return;
+    if (!shouldLoadImpersonatedUser || !viewAsUserId) {
+      return () => controller.abort();
     }
 
     // Fetch the impersonated user's data
-    setLoading(true);
     fetch(adminApi.userInfo(viewAsUserId), {
       credentials: 'include',
+      signal: controller.signal,
     })
       .then((res) => {
         if (!res.ok) {
@@ -41,20 +55,28 @@ export default function useEffectiveUser(): {
         }
         return res.json();
       })
-      .then((data) => {
-        setImpersonatedUser(data);
+      .then((data: User) => {
+        if (controller.signal.aborted || requestGenerationRef.current !== requestGeneration) return;
+        setImpersonatedUser({ viewAsUserId, user: data });
+        setResolvedViewAsUserId(viewAsUserId);
       })
       .catch((err) => {
+        if (controller.signal.aborted || requestGenerationRef.current !== requestGeneration) return;
         console.error('Failed to fetch impersonated user:', err);
         setImpersonatedUser(null);
-      })
-      .finally(() => {
-        setLoading(false);
+        setResolvedViewAsUserId(viewAsUserId);
       });
-  }, [viewAsUserId, user?.role]);
 
-  const isImpersonating = !!viewAsUserId && user?.role === 'admin' && !!impersonatedUser;
-  const effectiveUser = isImpersonating ? impersonatedUser : user;
+    return () => controller.abort();
+  }, [shouldLoadImpersonatedUser, user?.id, viewAsUserId]);
+
+  const resolvedImpersonatedUser =
+    shouldLoadImpersonatedUser && impersonatedUser?.viewAsUserId === viewAsUserId
+      ? impersonatedUser.user
+      : null;
+  const isImpersonating = resolvedImpersonatedUser !== null;
+  const effectiveUser = shouldLoadImpersonatedUser ? resolvedImpersonatedUser : user;
+  const loading = shouldLoadImpersonatedUser && resolvedViewAsUserId !== viewAsUserId;
 
   return {
     effectiveUser,
