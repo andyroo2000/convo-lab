@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-node-access */
 // Complex playback page testing with audio elements requires direct node access
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 
 import PlaybackPage from '../PlaybackPage';
@@ -257,6 +257,7 @@ function deferred<T>() {
 describe('PlaybackPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     mockAudioState.currentTime = 0;
     mockAudioState.duration = 0;
     mockAudioState.isPlaying = false;
@@ -268,7 +269,7 @@ describe('PlaybackPage', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   const renderPlaybackPage = (episodeId = 'episode-123', search = '') =>
@@ -706,6 +707,115 @@ describe('PlaybackPage', () => {
       await waitFor(() => {
         expect(screen.queryByText(/Generating audio/)).not.toBeInTheDocument();
       });
+    });
+
+    it('stops polling an audio job after navigating to another episode', async () => {
+      const episodeMissingSpeeds = {
+        ...mockEpisode,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      };
+      const nextEpisode = {
+        ...mockEpisode,
+        id: 'episode-456',
+        title: 'Next Episode',
+      };
+      mockGetEpisode.mockImplementation((id: string) =>
+        Promise.resolve(id === 'episode-123' ? episodeMissingSpeeds : nextEpisode)
+      );
+      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
+
+      let pollJob: (() => Promise<void>) | undefined;
+      const realSetInterval = globalThis.setInterval;
+      vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
+        if (delay === 1000) {
+          pollJob = callback as () => Promise<void>;
+          return 1 as unknown as NodeJS.Timeout;
+        }
+
+        return realSetInterval(callback, delay, ...args);
+      });
+
+      renderPlaybackPage();
+
+      await waitFor(() => {
+        expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith('episode-123', 'dialogue-123');
+        expect(pollJob).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open next episode' }));
+      expect(await screen.findByText('Next Episode')).toBeInTheDocument();
+
+      await pollJob?.();
+
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(screen.queryByText('Audio generated successfully!')).not.toBeInTheDocument();
+    });
+
+    it('does not overlap slow audio job polling requests', async () => {
+      mockGetEpisode.mockResolvedValue({
+        ...mockEpisode,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      });
+      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
+      const pollResponse = deferred<{
+        ok: boolean;
+        status: number;
+        json: () => Promise<{ state: string; progress: number }>;
+      }>();
+      (global.fetch as ReturnType<typeof vi.fn>).mockReturnValue(pollResponse.promise);
+
+      let pollJob: (() => Promise<void>) | undefined;
+      const realSetInterval = globalThis.setInterval;
+      vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
+        if (delay === 1000) {
+          pollJob = callback as () => Promise<void>;
+          return 1 as unknown as NodeJS.Timeout;
+        }
+
+        return realSetInterval(callback, delay, ...args);
+      });
+
+      renderPlaybackPage();
+      await waitFor(() => expect(pollJob).toBeDefined());
+
+      let firstPoll: Promise<void> | undefined;
+      await act(async () => {
+        firstPoll = pollJob?.();
+        await pollJob?.();
+      });
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      pollResponse.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ state: 'processing', progress: 30 }),
+      });
+      await act(async () => firstPoll);
+    });
+
+    it('recovers from malformed queued-generation session data', async () => {
+      sessionStorage.setItem('audio-generation-queued', '{not-json');
+      mockGetEpisode.mockResolvedValue({
+        ...mockEpisode,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      });
+      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
+
+      renderPlaybackPage();
+
+      await waitFor(() => {
+        expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith('episode-123', 'dialogue-123');
+      });
+      expect(sessionStorage.getItem('audio-generation-queued')).toBe(
+        JSON.stringify(['episode-123'])
+      );
     });
   });
 
