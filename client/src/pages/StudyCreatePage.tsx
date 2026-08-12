@@ -45,6 +45,7 @@ import {
 import { useStudyActivityActions } from '../contexts/StudyActivityContext';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 import useStudyDraftAutosaveQueue from '../hooks/useStudyDraftAutosaveQueue';
+import useStudyCreateActionGuard from '../hooks/useStudyCreateActionGuard';
 
 type CreateMode = 'generate' | 'manual';
 const STALE_GENERATING_DRAFT_RETRY_AFTER_MS = 10 * 60 * 1000;
@@ -169,8 +170,9 @@ const StudyCreatePage = () => {
   const [selectedManualDraftId, setSelectedManualDraftId] = useState<string | null>(null);
   const selectedManualDraftIdRef = useRef(selectedManualDraftId);
   selectedManualDraftIdRef.current = selectedManualDraftId;
-  const vocabGenerationRequestRef = useRef<symbol | null>(null);
   const hydratedManualDraftKeyRef = useRef<string | null>(null);
+  const runManualAction = useStudyCreateActionGuard();
+  const runVocabGeneration = useStudyCreateActionGuard();
   const manualDraftsQuery = useStudyManualCardDrafts(true);
   const { data: manualDraftData } = manualDraftsQuery;
   const manualDraftPages = useMemo(() => {
@@ -388,24 +390,26 @@ const StudyCreatePage = () => {
   };
 
   const handleFillRemainingFields = async () => {
-    setManualSuccess(null);
-    const selectedDraftIdAtStart = selectedManualDraftIdRef.current;
-    try {
-      await createDraft.mutateAsync({
-        creationKind,
-        cardType: manualPayloadWithoutMedia.cardType,
-        prompt: manualPayloadWithoutMedia.prompt,
-        answer: manualPayloadWithoutMedia.answer,
-        imagePlacement: manualImagePlacement,
-        imagePrompt: manualImagePrompt.trim() || null,
-      });
-      if (selectedManualDraftIdRef.current !== selectedDraftIdAtStart) return;
-      setSelectedManualDraftId(null);
-      resetManualComposer(creationKind);
-      setManualSuccess(t('create.draftQueued'));
-    } catch {
-      // React Query exposes the queue error through createDraft.error.
-    }
+    await runManualAction(async () => {
+      setManualSuccess(null);
+      const selectedDraftIdAtStart = selectedManualDraftIdRef.current;
+      try {
+        await createDraft.mutateAsync({
+          creationKind,
+          cardType: manualPayloadWithoutMedia.cardType,
+          prompt: manualPayloadWithoutMedia.prompt,
+          answer: manualPayloadWithoutMedia.answer,
+          imagePlacement: manualImagePlacement,
+          imagePrompt: manualImagePrompt.trim() || null,
+        });
+        if (selectedManualDraftIdRef.current !== selectedDraftIdAtStart) return;
+        setSelectedManualDraftId(null);
+        resetManualComposer(creationKind);
+        setManualSuccess(t('create.draftQueued'));
+      } catch {
+        // React Query exposes the queue error through createDraft.error.
+      }
+    });
   };
 
   const persistSelectedManualDraft = async () => {
@@ -427,129 +431,133 @@ const StudyCreatePage = () => {
   };
 
   const handleRegenerateManualAudio = async () => {
-    setManualSuccess(null);
-    try {
-      const draftId = await persistSelectedManualDraft();
-      if (!draftId) return;
-      const result = await regenerateManualAudio.mutateAsync(draftId);
-      if (selectedManualDraftIdRef.current !== draftId) return;
-      setManualPreviewAudio(result.previewAudio);
-      setManualPreviewAudioRole(result.previewAudioRole);
-    } catch {
-      // React Query exposes the regeneration error through regenerateManualAudio.error.
-    }
+    await runManualAction(async () => {
+      setManualSuccess(null);
+      try {
+        const draftId = await persistSelectedManualDraft();
+        if (!draftId) return;
+        const result = await regenerateManualAudio.mutateAsync(draftId);
+        if (selectedManualDraftIdRef.current !== draftId) return;
+        setManualPreviewAudio(result.previewAudio);
+        setManualPreviewAudioRole(result.previewAudioRole);
+      } catch {
+        // React Query exposes the regeneration error through regenerateManualAudio.error.
+      }
+    });
   };
 
   const handleGenerateManualImage = async () => {
-    setManualSuccess(null);
-    try {
-      const draftId = await persistSelectedManualDraft();
-      if (!draftId) return;
-      const result = await generateDraftImage.mutateAsync(draftId);
-      if (selectedManualDraftIdRef.current !== draftId) return;
-      setManualImagePrompt(result.imagePrompt);
-      setManualImagePlacement(result.imagePlacement);
-      setManualPreviewImage(result.previewImage);
-    } catch {
-      // React Query exposes the image-generation error through generateDraftImage.error.
-    }
+    await runManualAction(async () => {
+      setManualSuccess(null);
+      try {
+        const draftId = await persistSelectedManualDraft();
+        if (!draftId) return;
+        const result = await generateDraftImage.mutateAsync(draftId);
+        if (selectedManualDraftIdRef.current !== draftId) return;
+        setManualImagePrompt(result.imagePrompt);
+        setManualImagePlacement(result.imagePlacement);
+        setManualPreviewImage(result.previewImage);
+      } catch {
+        // React Query exposes the image-generation error through generateDraftImage.error.
+      }
+    });
   };
 
   const handleRetrySelectedDraft = async () => {
     if (!selectedManualDraft) return;
-    const draftId = selectedManualDraft.id;
-    setManualSuccess(null);
-    try {
-      if (selectedManualDraft.status === 'generating') {
-        cancelManualDraftAutosave();
-        await waitForManualDraftAutosave();
-      } else {
-        await persistSelectedManualDraft();
+    await runManualAction(async () => {
+      const draftId = selectedManualDraft.id;
+      setManualSuccess(null);
+      try {
+        if (selectedManualDraft.status === 'generating') {
+          cancelManualDraftAutosave();
+          await waitForManualDraftAutosave();
+        } else {
+          await persistSelectedManualDraft();
+        }
+        if (selectedManualDraftIdRef.current !== draftId) return;
+        await retryDraft.mutateAsync(draftId);
+      } catch {
+        // React Query exposes the retry error through retryDraft.error.
       }
-      if (selectedManualDraftIdRef.current !== draftId) return;
-      await retryDraft.mutateAsync(draftId);
-    } catch {
-      // React Query exposes the retry error through retryDraft.error.
-    }
+    });
   };
 
   const handleDeleteSelectedDraft = async () => {
     if (!selectedManualDraft) return;
-    const draftId = selectedManualDraft.id;
-    setManualSuccess(null);
-    try {
-      cancelManualDraftAutosave();
-      await waitForManualDraftAutosave();
-      await deleteDraft.mutateAsync(draftId);
-      if (selectedManualDraftIdRef.current !== draftId) return;
-      setSelectedManualDraftId(null);
-      resetManualComposer(creationKind);
-      setManualSuccess(t('create.draftDeleted'));
-    } catch {
-      // React Query exposes the delete error through deleteDraft.error.
-    }
+    await runManualAction(async () => {
+      const draftId = selectedManualDraft.id;
+      setManualSuccess(null);
+      try {
+        cancelManualDraftAutosave();
+        await waitForManualDraftAutosave();
+        await deleteDraft.mutateAsync(draftId);
+        if (selectedManualDraftIdRef.current !== draftId) return;
+        setSelectedManualDraftId(null);
+        resetManualComposer(creationKind);
+        setManualSuccess(t('create.draftDeleted'));
+      } catch {
+        // React Query exposes the delete error through deleteDraft.error.
+      }
+    });
   };
 
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedManualDraft) return;
-    const draftId = selectedManualDraft.id;
-    setManualSuccess(null);
+    await runManualAction(async () => {
+      const draftId = selectedManualDraft.id;
+      setManualSuccess(null);
 
-    try {
-      const createdDraftIndex = manualDrafts.findIndex(
-        (draft) => draft.id === selectedManualDraft.id
-      );
-      if (!selectedManualDraft.committedCardId) {
-        await persistSelectedManualDraft();
-      } else {
-        cancelManualDraftAutosave();
-        await waitForManualDraftAutosave();
-      }
-      const result = await createCardFromDraft.mutateAsync(selectedManualDraft);
-      addCreatedCards();
-      if (selectedManualDraftIdRef.current !== draftId) return;
-      let nextDraftId: string | null = null;
-      if (createdDraftIndex >= 0) {
-        nextDraftId =
-          manualDrafts[createdDraftIndex + 1]?.id ??
-          (createdDraftIndex > 0 ? manualDrafts[createdDraftIndex - 1]?.id : null);
-      }
+      try {
+        const createdDraftIndex = manualDrafts.findIndex(
+          (draft) => draft.id === selectedManualDraft.id
+        );
+        if (!selectedManualDraft.committedCardId) {
+          await persistSelectedManualDraft();
+        } else {
+          cancelManualDraftAutosave();
+          await waitForManualDraftAutosave();
+        }
+        const result = await createCardFromDraft.mutateAsync(selectedManualDraft);
+        addCreatedCards();
+        if (selectedManualDraftIdRef.current !== draftId) return;
+        let nextDraftId: string | null = null;
+        if (createdDraftIndex >= 0) {
+          nextDraftId =
+            manualDrafts[createdDraftIndex + 1]?.id ??
+            (createdDraftIndex > 0 ? manualDrafts[createdDraftIndex - 1]?.id : null);
+        }
 
-      setManualSuccess(t('create.success', { cardType: result.card.cardType }));
-      setSelectedManualDraftId(nextDraftId);
-      if (!nextDraftId) {
-        resetManualComposer(creationKind);
+        setManualSuccess(t('create.success', { cardType: result.card.cardType }));
+        setSelectedManualDraftId(nextDraftId);
+        if (!nextDraftId) {
+          resetManualComposer(creationKind);
+        }
+      } catch {
+        // React Query stores the mutation error for the visible form message.
       }
-    } catch {
-      // React Query stores the mutation error for the visible form message.
-    }
+    });
   };
 
   const handleGenerateSubmit = async () => {
-    if (vocabGenerationRequestRef.current || createVocabBundleDrafts.isPending) return;
-
-    const requestToken = Symbol(targetWord);
-    vocabGenerationRequestRef.current = requestToken;
-    setVocabSuccess(null);
-    try {
-      const result = await createVocabBundleDrafts.mutateAsync({
-        targetWord,
-        sourceSentence: sourceSentence || null,
-        context,
-        includeLearnerContext,
-      });
-      setTargetWord('');
-      setSourceSentence('');
-      setContext('');
-      setVocabSuccess(t('create.generatedSuccess', { count: result.drafts.length }));
-    } catch {
-      // React Query stores the mutation error for the visible form message.
-    } finally {
-      if (vocabGenerationRequestRef.current === requestToken) {
-        vocabGenerationRequestRef.current = null;
+    await runVocabGeneration(async () => {
+      setVocabSuccess(null);
+      try {
+        const result = await createVocabBundleDrafts.mutateAsync({
+          targetWord,
+          sourceSentence: sourceSentence || null,
+          context,
+          includeLearnerContext,
+        });
+        setTargetWord('');
+        setSourceSentence('');
+        setContext('');
+        setVocabSuccess(t('create.generatedSuccess', { count: result.drafts.length }));
+      } catch {
+        // React Query stores the mutation error for the visible form message.
       }
-    }
+    });
   };
 
   const manualError =
