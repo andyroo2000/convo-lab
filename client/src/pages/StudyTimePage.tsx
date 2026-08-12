@@ -1,29 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  CalendarPlus,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-  Pencil,
-  Play,
-  Trash2,
-  TrendingUp,
-} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-import ConfirmModal from '../components/common/ConfirmModal';
-import { useStudyActivityActions, useStudyActivityStatus } from '../contexts/StudyActivityContext';
-import {
-  useDeleteStudyActivitySession,
-  useSaveStudyActivitySession,
-  useStudyActivityAnalytics,
-  useStudyActivitySessions,
-} from '../hooks/useStudyActivity';
+import StudyTimeSessionSections from '../components/study/StudyTimeSessionSections';
+import { useStudyActivityAnalytics } from '../hooks/useStudyActivity';
 import type {
   StudyActivityCategory,
-  StudyActivityKind,
-  StudyActivitySession,
   StudyTimeAnalyticsBucket,
   StudyTimeAnalyticsRange,
   StudyTimeRange,
@@ -86,54 +69,6 @@ const RANGES: StudyTimeRange[] = ['today', 'week', 'month', 'year', 'all'];
 const SWIPE_THRESHOLD_PX = 50;
 const SWIPE_VELOCITY_THRESHOLD = 500;
 const DOUBLE_TAP_WINDOW_MS = 420;
-
-const ACTIVITY_OPTIONS: Array<{
-  activity: StudyActivityKind;
-  category: StudyActivityCategory;
-  labelKey: string;
-}> = [
-  { activity: 'card_creation', category: 'create', labelKey: 'time.activities.cardCreation' },
-  { activity: 'tv', category: 'immerse', labelKey: 'time.activities.tv' },
-  { activity: 'podcast', category: 'immerse', labelKey: 'time.activities.podcast' },
-  { activity: 'reading', category: 'immerse', labelKey: 'time.activities.reading' },
-  {
-    activity: 'conversation',
-    category: 'conversation',
-    labelKey: 'time.activities.conversation',
-  },
-  {
-    activity: 'wanikani_review',
-    category: 'wanikani',
-    labelKey: 'time.activities.wanikaniReview',
-  },
-  { activity: 'other', category: 'immerse', labelKey: 'time.activities.other' },
-];
-
-function googleCalendarUrl(
-  name: string,
-  start: Date,
-  durationMinutes: number,
-  defaultName: string,
-  details: string
-) {
-  const end = new Date(start.getTime() + durationMinutes * 60000);
-  const compact = (date: Date) =>
-    date
-      .toISOString()
-      .replace(/[-:]/g, '')
-      .replace(/\.\d{3}/, '');
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: name || defaultName,
-    dates: `${compact(start)}/${compact(end)}`,
-    details,
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-function localInputValue(date: Date) {
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-}
 
 function bucketLabel(
   bucket: StudyTimeAnalyticsBucket,
@@ -218,14 +153,6 @@ function drillDownRange(range: StudyTimeRange): StudyTimeRange | null {
   if (range === 'year') return 'month';
   if (range === 'week' || range === 'month') return 'today';
   return null;
-}
-
-function activityTranslationKey(activity: StudyActivityKind) {
-  if (activity === 'card_review') return 'cardReview';
-  if (activity === 'daily_audio') return 'dailyAudio';
-  if (activity === 'card_creation') return 'cardCreation';
-  if (activity === 'wanikani_review') return 'wanikaniReview';
-  return activity;
 }
 
 const StudyRhythmChart = ({
@@ -450,44 +377,14 @@ const StudyTimePage = () => {
   const { i18n, t } = useTranslation(['study']);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const reduceMotion = useReducedMotion();
-  const [sessionWindowEnd, setSessionWindowEnd] = useState(() => new Date(Date.now() + 60_000));
-  const rollingStart = useMemo(
-    () => new Date(sessionWindowEnd.getTime() - 93 * 86_400_000),
-    [sessionWindowEnd]
-  );
-  const sessionsQuery = useStudyActivitySessions(rollingStart, sessionWindowEnd);
   const [anchorDate, setAnchorDate] = useState(() => localDateKey(new Date()));
   const analyticsQuery = useStudyActivityAnalytics(anchorDate);
-  const saveSession = useSaveStudyActivitySession();
-  const deleteSession = useDeleteStudyActivitySession();
-  const { active } = useStudyActivityStatus();
-  const { start, stop, logCompleted } = useStudyActivityActions();
   const [range, setRange] = useState<StudyTimeRange>('week');
   const [includedCategories, setIncludedCategories] = useState<Set<StudyActivityCategory>>(
     () => new Set(CATEGORIES.map((category) => category.key))
   );
   const [slideDirection, setSlideDirection] = useState<-1 | 1>(-1);
   const [mobileSwipeEnabled, setMobileSwipeEnabled] = useState(false);
-  const [activity, setActivity] = useState<StudyActivityKind>('card_creation');
-  const [name, setName] = useState('');
-  const [entryDate, setEntryDate] = useState(() => localInputValue(new Date()));
-  const [minutes, setMinutes] = useState(30);
-  const [editing, setEditing] = useState<StudyActivitySession | null>(null);
-  const [editActivity, setEditActivity] = useState<StudyActivityKind>('tv');
-  const [editName, setEditName] = useState('');
-  const [editDate, setEditDate] = useState('');
-  const [editMinutes, setEditMinutes] = useState(30);
-  const [deletingSession, setDeletingSession] = useState<StudyActivitySession | null>(null);
-  const editDialogRef = useRef<HTMLDivElement>(null);
-  const saveResetRef = useRef(saveSession.reset);
-  saveResetRef.current = saveSession.reset;
-  const validEntry =
-    Number.isFinite(minutes) &&
-    minutes >= 1 &&
-    minutes <= 1440 &&
-    Number.isFinite(new Date(entryDate).getTime());
-
-  const option = ACTIVITY_OPTIONS.find((item) => item.activity === activity) ?? ACTIVITY_OPTIONS[0];
   const analytics = analyticsQuery.data?.ranges.find((item) => item.key === range);
   const displayedAnchorDate = analyticsQuery.data?.anchorDate ?? anchorDate;
   const canNavigateLater =
@@ -498,13 +395,6 @@ const StudyTimePage = () => {
         new Date(analyticsQuery.data?.generatedAt ?? analytics.endsAt).getTime()
     );
   const selectedPeriodLabel = analytics ? periodLabel(analytics, locale) : '';
-  const manualSessions = useMemo(
-    () =>
-      [...(sessionsQuery.data ?? [])]
-        .filter((session) => session.source !== 'automatic')
-        .sort((left, right) => right.startedAt.localeCompare(left.startedAt)),
-    [sessionsQuery.data]
-  );
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return undefined;
@@ -514,54 +404,6 @@ const StudyTimePage = () => {
     query.addEventListener('change', update);
     return () => query.removeEventListener('change', update);
   }, []);
-
-  useEffect(() => {
-    if (!editing) return undefined;
-
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const focusFrame = requestAnimationFrame(() => {
-      editDialogRef.current?.querySelector<HTMLElement>('select, input, button')?.focus();
-    });
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const dialog = editDialogRef.current;
-      if (event.key === 'Escape') {
-        saveResetRef.current();
-        setEditing(null);
-        return;
-      }
-      if (event.key !== 'Tab' || !dialog) return;
-
-      const focusable = Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      );
-      const first = focusable[0];
-      const last = focusable.at(-1);
-      if (!first || !last) return;
-
-      if (
-        event.shiftKey &&
-        (document.activeElement === first || !dialog.contains(document.activeElement))
-      ) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      cancelAnimationFrame(focusFrame);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previouslyFocused?.focus();
-    };
-  }, [editing]);
 
   const selectRange = (nextRange: StudyTimeRange) => {
     setRange(nextRange);
@@ -593,59 +435,6 @@ const StudyTimePage = () => {
     setSlideDirection(-1);
     setAnchorDate(localDateKey(new Date(bucket.startsAt)));
     setRange(nextRange);
-  };
-
-  const addEntry = () => {
-    if (!validEntry) return;
-    const startedAt = new Date(entryDate);
-    const endedAt = new Date(startedAt.getTime() + minutes * 60000);
-    setSessionWindowEnd(new Date(Math.max(Date.now() + 60_000, endedAt.getTime() + 60_000)));
-    logCompleted({
-      clientSessionId: crypto.randomUUID(),
-      category: option.category,
-      activity,
-      source: 'calendar',
-      name: name.trim() || t(option.labelKey),
-      startedAt: startedAt.toISOString(),
-      endedAt: endedAt.toISOString(),
-      durationMs: minutes * 60000,
-    });
-  };
-
-  const beginEditing = (session: StudyActivitySession) => {
-    saveSession.reset();
-    setEditing(session);
-    setEditActivity(session.activity);
-    setEditName(session.name ?? '');
-    setEditDate(localInputValue(new Date(session.startedAt)));
-    setEditMinutes(Math.max(1, Math.round(session.durationMs / 60_000)));
-  };
-
-  const commitEdit = () => {
-    if (!editing) return;
-    const selected =
-      ACTIVITY_OPTIONS.find((item) => item.activity === editActivity) ?? ACTIVITY_OPTIONS[0];
-    const startedAt = new Date(editDate);
-    const endedAt = new Date(startedAt.getTime() + editMinutes * 60_000);
-    saveSession.mutate(
-      {
-        ...editing,
-        activity: editActivity,
-        category: selected.category,
-        name: editName.trim() || t(selected.labelKey),
-        startedAt: startedAt.toISOString(),
-        endedAt: endedAt.toISOString(),
-        durationMs: editMinutes * 60_000,
-        audioPlaybackMs: editActivity === 'daily_audio' ? editMinutes * 60_000 : null,
-        cardsCreated: editActivity === 'card_creation' ? editing.cardsCreated : null,
-      },
-      {
-        onSuccess: () => {
-          setSessionWindowEnd(new Date(Math.max(Date.now() + 60_000, endedAt.getTime() + 60_000)));
-          setEditing(null);
-        },
-      }
-    );
   };
 
   return (
@@ -813,295 +602,7 @@ const StudyTimePage = () => {
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="retro-paper-panel space-y-4 p-6">
-          <h2 className="retro-headline text-3xl text-navy">{t('time.timer.title')}</h2>
-          <select
-            value={activity}
-            onChange={(event) => setActivity(event.target.value as StudyActivityKind)}
-            className="input w-full"
-            aria-label={t('time.timer.activityLabel')}
-          >
-            {ACTIVITY_OPTIONS.map((item) => (
-              <option key={item.activity} value={item.activity}>
-                {t(item.labelKey)}
-              </option>
-            ))}
-          </select>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            className="input w-full"
-            placeholder={t('time.timer.namePlaceholder')}
-            aria-label={t('time.timer.nameLabel')}
-          />
-          {active ? (
-            <button type="button" onClick={() => stop()} className="btn-secondary w-full">
-              {t('time.timer.stop', {
-                name: active.name || active.activity.replace(/_/g, ' '),
-              })}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() =>
-                start({
-                  category: option.category,
-                  activity,
-                  source: 'manual',
-                  name: name.trim() || t(option.labelKey),
-                })
-              }
-              className="btn-primary flex w-full items-center justify-center gap-2"
-            >
-              <Play className="h-4 w-4 fill-current" /> {t('time.timer.start')}
-            </button>
-          )}
-        </div>
-
-        <div className="retro-paper-panel space-y-4 p-6">
-          <h2 className="retro-headline text-3xl text-navy">{t('time.calendar.title')}</h2>
-          <input
-            type="datetime-local"
-            value={entryDate}
-            onChange={(event) => setEntryDate(event.target.value)}
-            className="input w-full"
-            aria-label={t('time.calendar.dateLabel')}
-          />
-          <div className="flex gap-3">
-            <input
-              type="number"
-              min={1}
-              max={1440}
-              value={minutes}
-              onChange={(event) => setMinutes(event.target.valueAsNumber)}
-              className="input min-w-0 flex-1"
-              aria-label={t('time.calendar.durationLabel')}
-            />
-            <span className="self-center text-gray-600">{t('time.calendar.minutes')}</span>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button type="button" onClick={addEntry} disabled={!validEntry} className="btn-primary">
-              {t('time.calendar.log')}
-            </button>
-            {validEntry ? (
-              <a
-                href={googleCalendarUrl(
-                  name || t(option.labelKey),
-                  new Date(entryDate),
-                  minutes,
-                  t('time.calendar.defaultName'),
-                  t('time.calendar.details')
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-outline flex items-center justify-center gap-2"
-              >
-                <CalendarPlus className="h-4 w-4" /> {t('time.calendar.open')}
-              </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="btn-outline flex items-center justify-center gap-2"
-              >
-                <CalendarPlus className="h-4 w-4" /> {t('time.calendar.open')}
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="retro-paper-panel p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="retro-caps text-coral">{t('time.manual.eyebrow')}</p>
-            <h2 className="retro-headline text-3xl text-navy">{t('time.manual.title')}</h2>
-          </div>
-          <Clock3 className="h-7 w-7 text-coral" aria-hidden="true" />
-        </div>
-        {sessionsQuery.isLoading ? (
-          <p className="mt-4 text-gray-600">{t('time.history.loading')}</p>
-        ) : null}
-        {sessionsQuery.isError ? (
-          <p className="mt-4 text-red-700">{t('time.history.error')}</p>
-        ) : null}
-        {!sessionsQuery.isLoading && !sessionsQuery.isError && manualSessions.length === 0 ? (
-          <p className="mt-4 text-gray-600">{t('time.manual.empty')}</p>
-        ) : null}
-        <div className="mt-4 divide-y divide-gray-200">
-          {manualSessions.map((session) => (
-            <div
-              key={session.clientSessionId}
-              className="flex flex-wrap items-center justify-between gap-4 py-4"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-bold text-navy">
-                  {session.name || t(`time.activities.${activityTranslationKey(session.activity)}`)}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {new Date(session.startedAt).toLocaleString()} ·{' '}
-                  {t(`time.sources.${session.source}`)}
-                </p>
-                {session.activity === 'card_creation' && session.cardsCreated ? (
-                  <p className="text-sm font-bold text-amber-700">
-                    {t('time.manual.cards', { count: session.cardsCreated })}
-                  </p>
-                ) : null}
-              </div>
-              <p className="font-mono font-bold text-navy">{formatDuration(session.durationMs)}</p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => beginEditing(session)}
-                  className="rounded-lg border border-navy/15 p-2 text-navy hover:bg-navy/5"
-                  aria-label={t('time.manual.editAria', {
-                    name: session.name || t('time.manual.entryFallback'),
-                  })}
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    deleteSession.reset();
-                    setDeletingSession(session);
-                  }}
-                  className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"
-                  aria-label={t('time.manual.deleteAria', {
-                    name: session.name || t('time.manual.entryFallback'),
-                  })}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {editing ? (
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-        <dialog
-          open
-          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/45 p-4"
-          aria-modal="true"
-          aria-labelledby="edit-study-time-title"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              saveSession.reset();
-              setEditing(null);
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              saveSession.reset();
-              setEditing(null);
-            }
-          }}
-        >
-          <div
-            ref={editDialogRef}
-            className="retro-paper-panel w-full max-w-lg space-y-4 bg-cream p-6 shadow-2xl"
-          >
-            <h2 id="edit-study-time-title" className="retro-headline text-3xl text-navy">
-              {t('time.edit.title')}
-            </h2>
-            <select
-              value={editActivity}
-              onChange={(event) => setEditActivity(event.target.value as StudyActivityKind)}
-              className="input w-full"
-              aria-label={t('time.edit.activityLabel')}
-            >
-              {ACTIVITY_OPTIONS.map((item) => (
-                <option key={item.activity} value={item.activity}>
-                  {t(item.labelKey)}
-                </option>
-              ))}
-            </select>
-            <input
-              value={editName}
-              onChange={(event) => setEditName(event.target.value)}
-              className="input w-full"
-              aria-label={t('time.edit.nameLabel')}
-            />
-            <input
-              type="datetime-local"
-              value={editDate}
-              onChange={(event) => setEditDate(event.target.value)}
-              className="input w-full"
-              aria-label={t('time.edit.startLabel')}
-            />
-            <input
-              type="number"
-              min={1}
-              max={1440}
-              value={editMinutes}
-              onChange={(event) => setEditMinutes(event.target.valueAsNumber)}
-              className="input w-full"
-              aria-label={t('time.edit.durationLabel')}
-            />
-            {saveSession.isError ? (
-              <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
-                {t('time.edit.error')}
-              </p>
-            ) : null}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  saveSession.reset();
-                  setEditing(null);
-                }}
-                className="btn-outline"
-              >
-                {t('time.edit.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={commitEdit}
-                disabled={
-                  saveSession.isPending ||
-                  !Number.isFinite(editMinutes) ||
-                  editMinutes < 1 ||
-                  editMinutes > 1440 ||
-                  !Number.isFinite(new Date(editDate).getTime())
-                }
-                className="btn-primary"
-              >
-                {t('time.edit.save')}
-              </button>
-            </div>
-          </div>
-        </dialog>
-      ) : null}
-
-      <ConfirmModal
-        isOpen={deletingSession !== null}
-        title={t('time.delete.title')}
-        message={t('time.delete.message', {
-          name: deletingSession?.name || t('time.manual.entryFallback'),
-        })}
-        confirmLabel={t('time.delete.confirm')}
-        cancelLabel={t('time.edit.cancel')}
-        isLoading={deleteSession.isPending}
-        onCancel={() => {
-          deleteSession.reset();
-          setDeletingSession(null);
-        }}
-        onConfirm={() => {
-          if (!deletingSession) return;
-          deleteSession.mutate(deletingSession.clientSessionId, {
-            onSuccess: () => setDeletingSession(null),
-          });
-        }}
-      >
-        {deleteSession.isError ? (
-          <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
-            {t('time.delete.error')}
-          </p>
-        ) : null}
-      </ConfirmModal>
+      <StudyTimeSessionSections />
     </div>
   );
 };
