@@ -8,6 +8,7 @@ import Layout from './components/common/Layout';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
+import StudyFeatureBoundary from './components/study/StudyFeatureBoundary';
 import StudyImpersonationBoundary from './components/study/StudyImpersonationBoundary';
 import StudyRouteErrorBoundary from './components/study/StudyRouteErrorBoundary';
 import {
@@ -240,62 +241,64 @@ const App = () => (
                   <Route path="admin" element={<AdminPage />} />
                   <Route path="admin/:tab" element={<AdminPage />} />
                   <Route path="study" element={<StudyImpersonationBoundary />}>
-                    <Route
-                      index
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyPage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="browse"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyBrowsePage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="import"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyImportPage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="cards"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyCardsPage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="create"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyCreatePage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="settings"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudySettingsPage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="daily-audio"
-                      element={
-                        <StudyRouteWrapper>
-                          <DailyAudioPracticePage />
-                        </StudyRouteWrapper>
-                      }
-                    />
+                    <Route element={<StudyFeatureBoundary />}>
+                      <Route
+                        index
+                        element={
+                          <StudyRouteWrapper>
+                            <StudyPage />
+                          </StudyRouteWrapper>
+                        }
+                      />
+                      <Route
+                        path="browse"
+                        element={
+                          <StudyRouteWrapper>
+                            <StudyBrowsePage />
+                          </StudyRouteWrapper>
+                        }
+                      />
+                      <Route
+                        path="import"
+                        element={
+                          <StudyRouteWrapper>
+                            <StudyImportPage />
+                          </StudyRouteWrapper>
+                        }
+                      />
+                      <Route
+                        path="cards"
+                        element={
+                          <StudyRouteWrapper>
+                            <StudyCardsPage />
+                          </StudyRouteWrapper>
+                        }
+                      />
+                      <Route
+                        path="create"
+                        element={
+                          <StudyRouteWrapper>
+                            <StudyCreatePage />
+                          </StudyRouteWrapper>
+                        }
+                      />
+                      <Route
+                        path="settings"
+                        element={
+                          <StudyRouteWrapper>
+                            <StudySettingsPage />
+                          </StudyRouteWrapper>
+                        }
+                      />
+                      <Route
+                        path="daily-audio"
+                        element={
+                          <StudyRouteWrapper>
+                            <DailyAudioPracticePage />
+                          </StudyRouteWrapper>
+                        }
+                      />
+                    </Route>
                     <Route path="time" element={<StudyTimePage />} />
                   </Route>
 
