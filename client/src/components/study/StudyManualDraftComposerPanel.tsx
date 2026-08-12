@@ -218,7 +218,7 @@ const StudyManualDraftComposerPanel = ({
           <button
             type="button"
             onClick={onPreviewOpen}
-            disabled={isGeneratingDraft}
+            disabled={isGeneratingDraft || Boolean(draftRecovery)}
             className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {t('create.previewCard')}
@@ -229,7 +229,7 @@ const StudyManualDraftComposerPanel = ({
                 <button
                   type="button"
                   onClick={onRetryDraft}
-                  disabled={isActionBusy}
+                  disabled={isActionBusy || Boolean(draftRecovery)}
                   className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isRetryingDraft ? t('create.retryingDraft') : t('create.retryDraft')}
@@ -237,7 +237,7 @@ const StudyManualDraftComposerPanel = ({
               ) : null}
               <button
                 type="submit"
-                disabled={isGeneratingDraft || isActionBusy}
+                disabled={isGeneratingDraft || isActionBusy || Boolean(draftRecovery)}
                 className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitLabel}
@@ -245,7 +245,7 @@ const StudyManualDraftComposerPanel = ({
               <button
                 type="button"
                 onClick={onDeleteDraft}
-                disabled={isActionBusy}
+                disabled={isActionBusy || Boolean(draftRecovery)}
                 className="rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isDeletingDraft ? t('create.deletingDraft') : t('create.deleteDraft')}

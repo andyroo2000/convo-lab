@@ -592,6 +592,8 @@ describe('StudyCreatePage', () => {
     );
     expect(screen.getByLabelText('Answer meaning')).toHaveValue('company');
     expect(updateManualDraftMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Create card' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Delete draft' })).toBeDisabled();
 
     await userEvent.click(screen.getByRole('button', { name: 'Restore my edits' }));
     expect(screen.getByLabelText('Answer meaning')).toHaveValue('enterprise');

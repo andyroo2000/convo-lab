@@ -24,7 +24,6 @@ function response(options: {
       if (options.jsonError) throw options.jsonError;
       return options.body;
     }),
-    clone: vi.fn(),
   } as unknown as Response;
 }
 

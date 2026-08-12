@@ -127,4 +127,19 @@ describe('studyDraftIntentStore', () => {
       } as never)
     ).toBe(true);
   });
+
+  it('matches applied nested values regardless of object key order', () => {
+    const intent = writeStudyDraftIntent({
+      ownerId: 'user-1',
+      draftId: 'draft-1',
+      baseRevision: 4,
+      values: { answer: { expression: '会社', meaning: 'enterprise' } },
+    });
+
+    expect(
+      isStudyDraftIntentApplied(intent, {
+        answer: { meaning: 'enterprise', expression: '会社' },
+      } as never)
+    ).toBe(true);
+  });
 });
