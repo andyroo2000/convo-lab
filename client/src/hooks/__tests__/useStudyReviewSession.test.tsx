@@ -1185,6 +1185,53 @@ describe('useStudyReviewSession', () => {
     expect(undoStudyReviewMock).toHaveBeenLastCalledWith('review-log-1', expect.any(Object));
   });
 
+  it('blocks grading and card actions while a review undo is still in flight', async () => {
+    reviewMutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-log-1',
+      card: baseCardOne,
+      overview: baseOverview,
+    });
+    const deferredUndo = createDeferred<{
+      reviewLogId: string;
+      card: typeof baseCardOne;
+      overview: typeof baseOverview;
+    }>();
+    undoStudyReviewMock.mockReturnValue(deferredUndo.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+
+    let undoPromise: Promise<void> | undefined;
+    act(() => {
+      undoPromise = result.current.handleUndo();
+    });
+    expect(undoStudyReviewMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.handleGrade('good');
+      await result.current.handleCardAction('suspend');
+
+      expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+      expect(cardActionMutateAsyncMock).not.toHaveBeenCalled();
+
+      deferredUndo.resolve({
+        reviewLogId: 'review-log-1',
+        card: baseCardOne,
+        overview: baseOverview,
+      });
+      await undoPromise;
+    });
+  });
+
   it('keeps session selection stable after a card action removes the current card', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
