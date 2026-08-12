@@ -32,6 +32,7 @@ const StudyVocabCandidateForm = ({
       </p>
     </div>
     <form
+      aria-label="Vocab bundle generator"
       className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
