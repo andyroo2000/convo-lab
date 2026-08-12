@@ -47,6 +47,13 @@ vi.mock('../../hooks/useLibraryData', () => ({
   useLibraryData: mockUseLibraryData,
   parseLibraryContentScope: (value: string | null) =>
     value === 'dialogues' || value === 'scripts' || value === 'courses' ? value : 'all',
+  episodeMatchesLibraryScope: (
+    episode: { contentType?: string },
+    scope: 'all' | 'dialogues' | 'scripts' | 'courses'
+  ) =>
+    scope === 'all' ||
+    (scope === 'dialogues' && (episode.contentType ?? 'dialogue') === 'dialogue') ||
+    (scope === 'scripts' && episode.contentType === 'script'),
 }));
 
 vi.mock('../../hooks/useDemo', () => ({

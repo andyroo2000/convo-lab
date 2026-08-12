@@ -16,6 +16,7 @@ import { Episode, Course } from '../types';
 import {
   useLibraryData,
   LibraryCourse,
+  episodeMatchesLibraryScope,
   parseLibraryContentScope,
   type LibraryContentScope,
 } from '../hooks/useLibraryData';
@@ -213,11 +214,7 @@ const LibraryPage = () => {
     const filteredEpisodes =
       filter === 'courses'
         ? []
-        : episodes.filter((episode) => {
-            if (filter === 'dialogues') return (episode.contentType ?? 'dialogue') === 'dialogue';
-            if (filter === 'scripts') return episode.contentType === 'script';
-            return true;
-          });
+        : episodes.filter((episode) => episodeMatchesLibraryScope(episode, filter));
     const filteredCourses = filter === 'dialogues' ? [] : courses;
     const visibleCourses = filter === 'scripts' ? [] : filteredCourses;
 

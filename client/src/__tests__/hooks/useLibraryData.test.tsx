@@ -4,6 +4,7 @@ import {
   useLibraryData,
   libraryKeys,
   invalidateLibraryCache,
+  episodeMatchesLibraryScope,
   parseLibraryContentScope,
 } from '../../hooks/useLibraryData';
 import { createWrapper, createTestQueryClient } from './test-utils';
@@ -41,6 +42,26 @@ describe('useLibraryData', () => {
       [null, 'all'],
     ] as const)('maps %s to %s', (value, expected) => {
       expect(parseLibraryContentScope(value)).toBe(expected);
+    });
+  });
+
+  describe('episodeMatchesLibraryScope', () => {
+    const dialogue = { contentType: 'dialogue' } as Parameters<
+      typeof episodeMatchesLibraryScope
+    >[0];
+    const legacyDialogue = {} as Parameters<typeof episodeMatchesLibraryScope>[0];
+    const script = { contentType: 'script' } as Parameters<typeof episodeMatchesLibraryScope>[0];
+
+    it.each([
+      [dialogue, 'dialogues', true],
+      [legacyDialogue, 'dialogues', true],
+      [script, 'dialogues', false],
+      [script, 'scripts', true],
+      [dialogue, 'scripts', false],
+      [script, 'all', true],
+      [dialogue, 'courses', false],
+    ] as const)('matches the requested library scope', (episode, scope, expected) => {
+      expect(episodeMatchesLibraryScope(episode, scope)).toBe(expected);
     });
   });
 
@@ -241,6 +262,49 @@ describe('useLibraryData', () => {
 
       expect(result.current.isLoading).toBe(false);
       resolveEpisodes?.({ ok: true, json: () => Promise.resolve([]) });
+    });
+
+    it('should require manual paging until a filtered episode is visible', async () => {
+      const firstPage = Array.from({ length: 20 }, (_, index) => ({
+        id: `dialogue-${String(index)}`,
+        contentType: 'dialogue',
+      }));
+      const secondPage = [
+        { id: 'script-1', contentType: 'script' },
+        ...Array.from({ length: 19 }, (_, index) => ({
+          id: `dialogue-next-${String(index)}`,
+          contentType: 'dialogue',
+        })),
+      ];
+
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/episodes')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(url.includes('offset=20') ? secondPage : firstPage),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+      });
+
+      const { result } = renderHook(() => useLibraryData(undefined, false, 'scripts'), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasNextPage).toBe(true);
+      });
+      expect(result.current.shouldAutoLoadMore).toBe(false);
+
+      await result.current.fetchNextPage();
+
+      await waitFor(() => {
+        expect(result.current.episodes).toHaveLength(40);
+      });
+      expect(result.current.shouldAutoLoadMore).toBe(true);
+      expect(
+        result.current.episodes.some((episode) => episodeMatchesLibraryScope(episode, 'scripts'))
+      ).toBe(true);
     });
   });
 
