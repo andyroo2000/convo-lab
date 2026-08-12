@@ -61,7 +61,7 @@ const Layout = () => {
         isActive: isCreateActive,
         icon: Mic,
       },
-      ...(flashcardsEnabled
+      ...(flashcardsEnabled && !viewAsUserId
         ? [
             {
               id: 'study',
@@ -72,13 +72,17 @@ const Layout = () => {
             },
           ]
         : []),
-      {
-        id: 'time',
-        label: t('common:nav.studyTime'),
-        path: '/app/study/time',
-        isActive: isTimeActive,
-        icon: Clock3,
-      },
+      ...(!viewAsUserId
+        ? [
+            {
+              id: 'time',
+              label: t('common:nav.studyTime'),
+              path: '/app/study/time',
+              isActive: isTimeActive,
+              icon: Clock3,
+            },
+          ]
+        : []),
     ],
     [
       flashcardsEnabled,
@@ -163,9 +167,9 @@ const Layout = () => {
                   <Mic className="w-5 h-5 mr-2.5 flex-shrink-0" />
                   {t('common:nav.create')}
                 </Link>
-                {flashcardsEnabled ? (
+                {flashcardsEnabled && !viewAsUserId ? (
                   <Link
-                    to={viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study'}
+                    to="/app/study"
                     className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
                       isStudyActive
                         ? 'is-active bg-white text-navy shadow-md'
@@ -176,17 +180,19 @@ const Layout = () => {
                     {t('common:nav.study')}
                   </Link>
                 ) : null}
-                <Link
-                  to="/app/study/time"
-                  className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
-                    isTimeActive
-                      ? 'is-active bg-white text-navy shadow-md'
-                      : 'text-white hover:bg-white/20'
-                  }`}
-                >
-                  <Clock3 className="w-5 h-5 mr-2.5 flex-shrink-0" />
-                  {t('common:nav.studyTime')}
-                </Link>
+                {!viewAsUserId ? (
+                  <Link
+                    to="/app/study/time"
+                    className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
+                      isTimeActive
+                        ? 'is-active bg-white text-navy shadow-md'
+                        : 'text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <Clock3 className="w-5 h-5 mr-2.5 flex-shrink-0" />
+                    {t('common:nav.studyTime')}
+                  </Link>
+                ) : null}
               </div>
             </div>
 
