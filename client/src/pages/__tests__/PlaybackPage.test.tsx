@@ -1014,6 +1014,47 @@ describe('PlaybackPage', () => {
       await act(async () => firstPoll);
     });
 
+    it('releases queued-generation suppression when the server reports failure', async () => {
+      sessionStorage.setItem('audio-generation-queued', JSON.stringify(['another-episode']));
+      mockGetEpisode.mockResolvedValue({
+        ...mockEpisode,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      });
+      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ state: 'failed', progress: 25 }),
+      });
+
+      let pollJob: (() => Promise<void>) | undefined;
+      const realSetInterval = globalThis.setInterval;
+      vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
+        if (delay === 1000) {
+          pollJob = callback as () => Promise<void>;
+          return 1 as unknown as NodeJS.Timeout;
+        }
+
+        return realSetInterval(callback, delay, ...args);
+      });
+
+      renderPlaybackPage();
+      await waitFor(() => {
+        expect(pollJob).toBeDefined();
+        expect(sessionStorage.getItem('audio-generation-queued')).toBe(
+          JSON.stringify(['another-episode', 'episode-123'])
+        );
+      });
+
+      await act(async () => pollJob?.());
+
+      expect(await screen.findByText('Failed to generate audio. Please try again.')).toBeVisible();
+      expect(sessionStorage.getItem('audio-generation-queued')).toBe(
+        JSON.stringify(['another-episode'])
+      );
+    });
+
     it('recovers from malformed queued-generation session data', async () => {
       sessionStorage.setItem('audio-generation-queued', '{not-json');
       mockGetEpisode.mockResolvedValue({
