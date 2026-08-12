@@ -50,6 +50,16 @@ function recordQueuedEpisode(episodeId: string): void {
   sessionStorage.setItem(QUEUED_EPISODES_KEY, JSON.stringify([...queuedEpisodes, episodeId]));
 }
 
+function removeQueuedEpisode(episodeId: string): void {
+  const remainingEpisodes = readQueuedEpisodes().filter((queuedId) => queuedId !== episodeId);
+  if (remainingEpisodes.length === 0) {
+    sessionStorage.removeItem(QUEUED_EPISODES_KEY);
+    return;
+  }
+
+  sessionStorage.setItem(QUEUED_EPISODES_KEY, JSON.stringify(remainingEpisodes));
+}
+
 /** Owns the lifecycle of Playback's asynchronous multi-speed audio job. */
 export default function usePlaybackAudioGeneration({
   episodeId,
@@ -173,6 +183,7 @@ export default function usePlaybackAudioGeneration({
             }
           } else if (data.state === 'failed') {
             clearPolling();
+            removeQueuedEpisode(episode.id);
             releaseCurrentRun();
             setIsGeneratingAudio(false);
             setGenerationProgress(0);
