@@ -210,3 +210,55 @@ test('the Learning OS deployment does not borrow Node from the frontend runtime'
     /docker exec(?:\s|\\\n)+(?:-[^\n]+\n\s+)*"convolab-server-\$active_color"[\s\S]{0,80}\bnode\b/u
   );
 });
+
+test('production defines a healthy always-on Learning OS scheduler', async () => {
+  const compose = YAML.parse(
+    await readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8')
+  );
+  const learningOsService = compose['x-learning-os-service'];
+  const scheduler = compose.services['learning-os-scheduler'];
+
+  assert.deepEqual(scheduler['<<'], learningOsService);
+  assert.equal(scheduler.container_name, 'learning-os-scheduler');
+  assert.deepEqual(scheduler.command, ['php', 'artisan', 'schedule:work']);
+  assert.deepEqual(scheduler.healthcheck.test, [
+    'CMD-SHELL',
+    "tr '\\0' ' ' < /proc/1/cmdline | grep -q 'artisan schedule:work'",
+  ]);
+  assert.equal(scheduler.healthcheck.interval, '30s');
+  assert.equal(scheduler.healthcheck.timeout, '5s');
+  assert.equal(scheduler.healthcheck.retries, 3);
+  assert.equal(scheduler.healthcheck.start_period, '10s');
+});
+
+test('the Learning OS deployment reconciles and health-gates the scheduler', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
+    'utf8'
+  );
+
+  for (const requiredContract of [
+    'timeout 600 $COMPOSE pull learning-os learning-os-worker learning-os-scheduler',
+    'ensure_learning_os_scheduler() {',
+    'container="learning-os-scheduler"',
+    'desired_scheduler_command="php artisan schedule:work"',
+    '[[ "$current_command" = "$desired_scheduler_command" ]]',
+    '$COMPOSE up -d --no-deps --force-recreate learning-os-scheduler',
+    'ensure_learning_os_scheduler',
+    'wait_for_health learning-os-scheduler',
+    'verify_learning_os_scheduler() {',
+    "scheduler_image=\"$(docker inspect --format='{{.Config.Image}}' learning-os-scheduler)\"",
+    "scheduler_command=\"$(docker inspect --format='{{join .Config.Cmd \" \"}}' learning-os-scheduler)\"",
+    'docker exec learning-os-scheduler php artisan schedule:list',
+    'study:prune-import-archives',
+    'docker exec learning-os-scheduler php artisan study:prune-import-archives --dry-run',
+    'Dry run completed: [0-9]+ candidate\\(s\\), 0 deleted, 0 already missing, 0 failed \\(0 unsafe\\)\\.',
+    'verify_learning_os_scheduler',
+    '$COMPOSE ps learning-os learning-os-worker learning-os-scheduler "server-$active_color"',
+  ]) {
+    assert.ok(
+      workflow.includes(requiredContract),
+      `Missing production scheduler deployment contract: ${requiredContract}`
+    );
+  }
+});
