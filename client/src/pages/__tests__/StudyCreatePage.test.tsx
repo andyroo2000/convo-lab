@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -398,6 +398,44 @@ describe('StudyCreatePage', () => {
     expect(retryManualDraftMock).toHaveBeenCalledWith('draft-stale');
   });
 
+  it('does not clear a newer selection when an earlier draft deletion finishes', async () => {
+    let resolveDeletion!: () => void;
+    deleteManualDraftMock.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveDeletion = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-a', prompt: { cueText: '会社' } }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    await waitFor(() => expect(deleteManualDraftMock).toHaveBeenCalledWith('draft-a'));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+
+    await act(async () => {
+      resolveDeletion();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+    expect(screen.getByRole('heading', { name: 'Review draft' })).toBeInTheDocument();
+  });
+
   it('selecting and editing a ready draft autosaves changes', async () => {
     manualDraftsState.drafts = [manualDraft()];
 
@@ -778,6 +816,70 @@ describe('StudyCreatePage', () => {
           previewAudioRole: 'answer',
         }),
       })
+    );
+  });
+
+  it('does not apply regenerated audio after another draft is selected', async () => {
+    let resolveRegeneration!: (result: {
+      previewAudio: StudyManualCardDraft['previewAudio'];
+      previewAudioRole: StudyManualCardDraft['previewAudioRole'];
+    }) => void;
+    regenerateCandidateAudioMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRegeneration = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-a', prompt: { cueText: '会社' } }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        previewAudio: {
+          id: 'draft-b-audio',
+          filename: 'draft-b.mp3',
+          url: '/api/study/media/draft-b-audio',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'answer',
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+    await waitFor(() => expect(regenerateCandidateAudioMock).toHaveBeenCalledWith('draft-a'));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-url',
+      '/api/study/media/draft-b-audio'
+    );
+
+    await act(async () => {
+      resolveRegeneration({
+        previewAudio: {
+          id: 'draft-a-regenerated',
+          filename: 'draft-a-regenerated.mp3',
+          url: '/api/study/media/draft-a-regenerated',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'answer',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-url',
+      '/api/study/media/draft-b-audio'
     );
   });
 
