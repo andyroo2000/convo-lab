@@ -144,6 +144,8 @@ const DialogueGenerator = () => {
   const redirectTimerRef = useRef<number | null>(null);
   const submissionInFlightRef = useRef(false);
   const courseRecoveryInFlightRef = useRef(false);
+  const dialogueRecoveryAttemptedForOwnerRef = useRef<string | null>(null);
+  const courseRecoveryAttemptedForOwnerRef = useRef<string | null>(null);
 
   const scopedRoute = useCallback(
     (path: string, scopedUserId = viewAsUserId) =>
@@ -416,7 +418,14 @@ const DialogueGenerator = () => {
 
   useEffect(() => {
     const ownerId = viewAsUserId ?? user?.id;
-    if (!ownerId || courseRecoveryInFlightRef.current) return;
+    if (
+      !ownerId ||
+      courseRecoveryAttemptedForOwnerRef.current === ownerId ||
+      courseRecoveryInFlightRef.current
+    ) {
+      return;
+    }
+    courseRecoveryAttemptedForOwnerRef.current = ownerId;
 
     try {
       const savedIntent = readGenerationIntent<CourseGenerationIntentPayload>(
@@ -465,7 +474,14 @@ const DialogueGenerator = () => {
 
   useEffect(() => {
     const ownerId = viewAsUserId ?? user?.id;
-    if (!ownerId || submissionInFlightRef.current) return;
+    if (
+      !ownerId ||
+      dialogueRecoveryAttemptedForOwnerRef.current === ownerId ||
+      submissionInFlightRef.current
+    ) {
+      return;
+    }
+    dialogueRecoveryAttemptedForOwnerRef.current = ownerId;
 
     try {
       const savedIntent = readGenerationIntent<DialogueGenerationIntentPayload>(

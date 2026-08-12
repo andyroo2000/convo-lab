@@ -66,6 +66,7 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
   const [conflictedIntent, setConflictedIntent] =
     useState<GenerationIntent<CourseGenerationIntentPayload> | null>(null);
   const submissionInFlightRef = useRef(false);
+  const recoveryAttemptedForOwnerRef = useRef<string | null>(null);
 
   // Initialize default voices when languages change
   useEffect(() => {
@@ -167,7 +168,14 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
 
   useEffect(() => {
     const ownerId = viewAsUserId ?? user?.id;
-    if (!ownerId || submissionInFlightRef.current) return;
+    if (
+      !ownerId ||
+      recoveryAttemptedForOwnerRef.current === ownerId ||
+      submissionInFlightRef.current
+    ) {
+      return;
+    }
+    recoveryAttemptedForOwnerRef.current = ownerId;
     try {
       const savedIntent = readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'course');
       if (!savedIntent) return;

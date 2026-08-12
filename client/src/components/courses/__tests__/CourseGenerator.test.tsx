@@ -214,6 +214,10 @@ describe('CourseGenerator paid submission intent', () => {
 
     expect(await screen.findByText(/Network connection lost/)).toBeInTheDocument();
     expect(window.localStorage.length).toBe(1);
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByRole('button', { name: /Start a new request/i }));
     expect(window.localStorage.length).toBe(0);
   });
