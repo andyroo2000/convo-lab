@@ -35,11 +35,13 @@ const {
   deleteManualDraftState,
   generateDraftImageMock,
   generateDraftImageState,
+  effectiveUserState,
   manualDraftsState,
   regenerateCandidateAudioMock,
   retryManualDraftMock,
   retryManualDraftState,
   resolveStudyCardPitchAccentMock,
+  useStudyManualCardDraftsMock,
   updateManualDraftMock,
   updateManualDraftMutateMock,
   updateManualDraftState,
@@ -55,6 +57,11 @@ const {
   deleteManualDraftState: { isPending: false },
   generateDraftImageMock: vi.fn(),
   generateDraftImageState: { error: null as Error | null, isPending: false },
+  effectiveUserState: {
+    effectiveUser: { id: 'user-1' } as { id: string } | null,
+    isImpersonating: false,
+    loading: false,
+  },
   manualDraftsState: {
     drafts: [] as StudyManualCardDraft[],
     error: null as Error | null,
@@ -64,6 +71,7 @@ const {
   retryManualDraftMock: vi.fn(),
   retryManualDraftState: { isPending: false },
   resolveStudyCardPitchAccentMock: vi.fn(),
+  useStudyManualCardDraftsMock: vi.fn(),
   updateManualDraftMock: vi.fn(),
   updateManualDraftMutateMock: vi.fn(),
   updateManualDraftState: { error: null as Error | null, isPending: false },
@@ -75,11 +83,14 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
-  useStudyManualCardDrafts: () => ({
-    data: { drafts: manualDraftsState.drafts },
-    isLoading: manualDraftsState.isLoading,
-    error: manualDraftsState.error,
-  }),
+  useStudyManualCardDrafts: (effectiveOwnerId: string | null) => {
+    useStudyManualCardDraftsMock(effectiveOwnerId);
+    return {
+      data: { drafts: manualDraftsState.drafts },
+      isLoading: manualDraftsState.isLoading,
+      error: manualDraftsState.error,
+    };
+  },
   useCreateStudyManualCardDraft: () => ({
     mutateAsync: createManualDraftMock,
     isPending: createManualDraftState.isPending,
@@ -125,7 +136,7 @@ vi.mock('../../hooks/useStudy', () => ({
 }));
 
 vi.mock('../../hooks/useEffectiveUser', () => ({
-  default: () => ({ effectiveUser: { id: 'user-1' }, isImpersonating: false, loading: false }),
+  default: () => effectiveUserState,
 }));
 
 vi.mock('../../components/common/VoicePreview', () => ({
@@ -207,6 +218,9 @@ describe('StudyCreatePage', () => {
     generateDraftImageMock.mockReset();
     generateDraftImageState.error = null;
     generateDraftImageState.isPending = false;
+    effectiveUserState.effectiveUser = { id: 'user-1' };
+    effectiveUserState.isImpersonating = false;
+    effectiveUserState.loading = false;
     manualDraftsState.drafts = [];
     manualDraftsState.error = null;
     manualDraftsState.isLoading = false;
@@ -214,6 +228,7 @@ describe('StudyCreatePage', () => {
     retryManualDraftMock.mockReset();
     retryManualDraftState.isPending = false;
     resolveStudyCardPitchAccentMock.mockReset();
+    useStudyManualCardDraftsMock.mockReset();
     updateManualDraftMock.mockReset();
     updateManualDraftMutateMock.mockReset();
     updateManualDraftState.error = null;
@@ -264,6 +279,23 @@ describe('StudyCreatePage', () => {
       id: cardId,
       answer: { pitchAccent: null },
     }));
+  });
+
+  it('does not expose authenticated-user study drafts while viewing as another user', () => {
+    effectiveUserState.effectiveUser = { id: 'view-as-user' };
+    effectiveUserState.isImpersonating = true;
+    manualDraftsState.drafts = [manualDraft({ id: 'authenticated-user-draft' })];
+
+    renderPage();
+
+    expect(
+      screen.getByText(
+        'Study card creation is unavailable while viewing as another user. Exit View As to manage your own drafts.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('study-manual-draft-list')).not.toBeInTheDocument();
+    expect(screen.queryByText('会社')).not.toBeInTheDocument();
+    expect(useStudyManualCardDraftsMock).toHaveBeenLastCalledWith(null);
   });
 
   afterEach(() => {

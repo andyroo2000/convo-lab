@@ -38,6 +38,8 @@ export default function useEffectiveUser(): {
     requestGenerationRef.current += 1;
     const requestGeneration = requestGenerationRef.current;
     const controller = new AbortController();
+    // Abort avoids wasted native-fetch work; the generation still owns correctness for
+    // implementations and test doubles that settle without honoring the abort signal.
 
     // Clear the stored identity immediately after every scope transition. The render-time
     // viewAs guard below also prevents this previous identity from being observed before the

@@ -276,6 +276,7 @@
   "create": {
     "title": "Create study card",
     "description": "Generate staged vocab cards or create one manually.",
+    "impersonationUnavailable": "Study card creation is unavailable while viewing as another user. Exit View As to manage your own drafts.",
     "generate": "Vocab Card Generator",
     "manual": "Create manually",
     "targetText": "Target word or sentence",
