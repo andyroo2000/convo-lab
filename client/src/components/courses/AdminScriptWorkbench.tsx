@@ -37,6 +37,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
     promptMetadata,
     scriptConfig,
     scriptUnits,
+    savingExchange,
     selectedUnitIndex,
     setActiveStep,
     setEditForm,
@@ -193,7 +194,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
                 type="button"
                 className={`w-full text-left border-2 border-gray-100 rounded-lg p-4 transition-all ${readOnly ? '' : 'hover:border-gray-300 cursor-pointer'}`}
                 onClick={() => !readOnly && openExchangeEditor(exchange.order, exchange)}
-                disabled={readOnly}
+                disabled={readOnly || savingExchange}
               >
                 <div className="flex items-start gap-3">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 shrink-0">
@@ -340,16 +341,18 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
                   setEditingExchange(null);
                   setEditForm(null);
                 }}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg"
+                disabled={savingExchange}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveExchangeEdit}
-                className="px-4 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg"
+                disabled={savingExchange}
+                className="px-4 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg disabled:opacity-50"
               >
-                Save
+                {savingExchange ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
