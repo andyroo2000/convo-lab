@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import shiftStudyTimeAnchor from '../../utils/studyTimePeriod';
@@ -29,8 +29,9 @@ const {
 vi.mock('../../contexts/StudyActivityContext', () => ({
   useStudyActivityActions: () => ({
     start: vi.fn(),
-    stop: stopMock,
+    stopAndWait: stopMock,
     logCompleted: logCompletedMock,
+    logCompletedAndWait: logCompletedMock,
   }),
   useStudyActivityStatus: () => studyActivityStatusMock(),
 }));
@@ -294,9 +295,15 @@ describe('StudyTimePage', () => {
     );
   });
 
-  it('advances the session window before stopping a timer so the completed session is visible', () => {
+  it('refreshes the session window after a stopped timer finishes persisting', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-29T16:00:00Z'));
+    let finishPersistence!: () => void;
+    stopMock.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishPersistence = resolve;
+      })
+    );
     studyActivityStatusMock.mockReturnValue({
       active: {
         clientSessionId: '018f22d2-6d38-7000-8000-000000000004',
@@ -317,6 +324,14 @@ describe('StudyTimePage', () => {
 
     expect(stopMock).toHaveBeenCalledOnce();
     expect(sessionsRangeMock.mock.calls.at(-1)?.[1]).toEqual(new Date('2026-07-29T16:06:00Z'));
+
+    vi.setSystemTime(new Date('2026-07-29T16:05:30Z'));
+    await act(async () => {
+      finishPersistence();
+      await Promise.resolve();
+    });
+
+    expect(sessionsRangeMock.mock.calls.at(-1)?.[1]).toEqual(new Date('2026-07-29T16:06:30Z'));
   });
 
   it('switches analytics ranges', () => {
