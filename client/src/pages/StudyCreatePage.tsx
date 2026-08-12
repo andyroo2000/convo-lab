@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new';
 import type {
@@ -10,10 +9,7 @@ import type {
   StudyMediaRef,
 } from '@languageflow/shared/src/types';
 
-import StudyCardImageControls from '../components/study/StudyCardImageControls';
-import StudyCardFormFields, { StudyCardNotesField } from '../components/study/StudyCardFormFields';
-import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
-import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
+import StudyManualDraftComposerPanel from '../components/study/StudyManualDraftComposerPanel';
 import StudyManualDraftListPanel from '../components/study/StudyManualDraftListPanel';
 import StudyVocabDraftGeneratorPanel from '../components/study/StudyVocabDraftGeneratorPanel';
 import {
@@ -216,10 +212,6 @@ const StudyCreatePage = () => {
   );
   const manualPreviewImageUrl = toAssetUrl(manualPreviewImage?.url);
   const manualPreviewAudioUrl = toAssetUrl(manualPreviewAudio?.url);
-  const manualPreviewAudioTitle =
-    manualPreviewAudioRole === 'prompt'
-      ? t('create.audioRecognitionPrompt')
-      : t('create.answerPreview');
   const manualPreviewCard: StudyCardSummary = {
     id: 'manual-preview',
     noteId: 'manual-preview-note',
@@ -235,9 +227,6 @@ const StudyCreatePage = () => {
     createdAt: '1970-01-01T00:00:00.000Z',
     updatedAt: '1970-01-01T00:00:00.000Z',
   };
-  const isReviewingManualDraft = Boolean(selectedManualDraft);
-  const isSelectedManualDraftGenerating = selectedManualDraft?.status === 'generating';
-  const isSelectedManualDraftCommitted = Boolean(selectedManualDraft?.committedCardId);
   const canRetrySelectedManualDraft =
     selectedManualDraft?.status === 'error' || isStaleGeneratingManualDraft(selectedManualDraft);
   const isManualActionBusy =
@@ -247,13 +236,6 @@ const StudyCreatePage = () => {
     createCardFromDraft.isPending ||
     generateDraftImage.isPending ||
     regenerateManualAudio.isPending;
-  let manualSubmitLabel = t('create.submit');
-  if (isSelectedManualDraftCommitted) {
-    manualSubmitLabel = t('create.finishDraftCleanup');
-  }
-  if (createCardFromDraft.isPending) {
-    manualSubmitLabel = t('create.creating');
-  }
 
   const resetManualComposer = useCallback(
     (nextCreationKind = creationKind) => {
@@ -572,9 +554,6 @@ const StudyCreatePage = () => {
   } else if (manualError) {
     manualErrorMessage = t('create.failed');
   }
-  const draftStatusLabel = selectedManualDraft
-    ? t(`create.draftStatuses.${selectedManualDraft.status}`)
-    : null;
   const draftListPanel = (
     <StudyManualDraftListPanel
       drafts={manualDrafts}
@@ -649,173 +628,48 @@ const StudyCreatePage = () => {
         <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
           {draftListPanel}
 
-          <section className="card retro-paper-panel min-w-0">
-            <form className="space-y-4" onSubmit={handleManualSubmit}>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h2 className="text-2xl font-semibold text-navy">
-                    {selectedManualDraft ? t('create.reviewDraft') : t('create.newDraftTitle')}
-                  </h2>
-                  {selectedManualDraft ? (
-                    <>
-                      <p className="text-sm text-gray-600">
-                        {draftStatusLabel}
-                        {selectedManualDraft.errorMessage
-                          ? ` · ${selectedManualDraft.errorMessage}`
-                          : ''}
-                      </p>
-                      {isSelectedManualDraftCommitted ? (
-                        <p className="mt-1 text-sm text-amber-700">
-                          {t('create.committedDraftDescription')}
-                        </p>
-                      ) : null}
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-600">{t('create.newDraftDescription')}</p>
-                  )}
-                </div>
-              </div>
-
-              <fieldset
-                disabled={isSelectedManualDraftGenerating || isSelectedManualDraftCommitted}
-                className="space-y-4"
-              >
-                <StudyCardFormFields
-                  values={values}
-                  idPrefix="study"
-                  creationKind={creationKind}
-                  includeCardTypeSelect={!isReviewingManualDraft}
-                  includeNotesField={false}
-                  hidePromptFields={creationKind === 'audio-recognition'}
-                  onCreationKindChange={handleCreationKindChange}
-                  onFieldChange={handleManualFieldChange}
-                />
-
-                <StudyCandidatePreviewAudio
-                  isRegenerateDisabled={
-                    !selectedManualDraft || isSelectedManualDraftGenerating || isManualActionBusy
-                  }
-                  isRegenerating={regenerateManualAudio.isPending}
-                  label={t('create.playPreview')}
-                  onRegenerate={handleRegenerateManualAudio}
-                  previewUrl={manualPreviewAudioUrl}
-                  regenerateError={
-                    regenerateManualAudio.error instanceof Error
-                      ? regenerateManualAudio.error.message
-                      : null
-                  }
-                  regenerateLabel={
-                    regenerateManualAudio.isPending
-                      ? t('create.regeneratingPreview')
-                      : t('create.regeneratePreview')
-                  }
-                  staleLabel={t('create.previewStale')}
-                  title={manualPreviewAudioTitle}
-                />
-
-                <StudyCardNotesField
-                  values={values}
-                  idPrefix="study"
-                  onFieldChange={handleManualFieldChange}
-                />
-
-                <StudyCardImageControls
-                  altText={t('create.generatedCardPromptAlt')}
-                  imagePlacement={manualImagePlacement}
-                  imagePrompt={manualImagePrompt}
-                  imagePromptId="study-manual-image-prompt"
-                  imagePromptLabel={t('create.imagePrompt')}
-                  isRegenerateDisabled={
-                    !selectedManualDraft || isSelectedManualDraftGenerating || isManualActionBusy
-                  }
-                  isRegenerating={generateDraftImage.isPending}
-                  onImagePlacementChange={setManualImagePlacement}
-                  onImagePromptChange={(value) => {
-                    setManualImagePrompt(value);
-                  }}
-                  onRegenerate={handleGenerateManualImage}
-                  previewUrl={manualPreviewImageUrl}
-                  regenerateError={
-                    generateDraftImage.error instanceof Error
-                      ? generateDraftImage.error.message
-                      : null
-                  }
-                  regenerateLabel={
-                    generateDraftImage.isPending
-                      ? t('create.regeneratingImage')
-                      : t('create.generateImage')
-                  }
-                  title={t('create.imagePreview')}
-                />
-              </fieldset>
-
-              {manualErrorMessage ? (
-                <p className="text-sm text-red-600">{manualErrorMessage}</p>
-              ) : null}
-              {manualSuccess ? <p className="text-sm text-emerald-700">{manualSuccess}</p> : null}
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsManualPreviewOpen(true)}
-                  disabled={isSelectedManualDraftGenerating}
-                  className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {t('create.previewCard')}
-                </button>
-                {selectedManualDraft ? (
-                  <>
-                    {canRetrySelectedManualDraft ? (
-                      <button
-                        type="button"
-                        onClick={handleRetrySelectedDraft}
-                        disabled={isManualActionBusy}
-                        className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {retryDraft.isPending ? t('create.retryingDraft') : t('create.retryDraft')}
-                      </button>
-                    ) : null}
-                    <button
-                      type="submit"
-                      disabled={isSelectedManualDraftGenerating || isManualActionBusy}
-                      className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {manualSubmitLabel}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDeleteSelectedDraft}
-                      disabled={isManualActionBusy}
-                      className="rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {deleteDraft.isPending ? t('create.deletingDraft') : t('create.deleteDraft')}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleFillRemainingFields}
-                    disabled={isManualActionBusy}
-                    className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {createDraft.isPending ? t('create.queueingDraft') : t('create.fillRemaining')}
-                  </button>
-                )}
-                <Link
-                  to="/app/study"
-                  className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
-                >
-                  {t('create.back')}
-                </Link>
-              </div>
-              {isManualPreviewOpen ? (
-                <StudyCandidateCardPreviewModal
-                  card={manualPreviewCard}
-                  onClose={() => setIsManualPreviewOpen(false)}
-                />
-              ) : null}
-            </form>
-          </section>
+          <StudyManualDraftComposerPanel
+            audioError={
+              regenerateManualAudio.error instanceof Error
+                ? regenerateManualAudio.error.message
+                : null
+            }
+            canRetryDraft={canRetrySelectedManualDraft}
+            creationKind={creationKind}
+            draft={selectedManualDraft}
+            errorMessage={manualErrorMessage}
+            imageError={
+              generateDraftImage.error instanceof Error ? generateDraftImage.error.message : null
+            }
+            imagePlacement={manualImagePlacement}
+            imagePrompt={manualImagePrompt}
+            isActionBusy={isManualActionBusy}
+            isCreatingCard={createCardFromDraft.isPending}
+            isCreatingDraft={createDraft.isPending}
+            isDeletingDraft={deleteDraft.isPending}
+            isGeneratingImage={generateDraftImage.isPending}
+            isPreviewOpen={isManualPreviewOpen}
+            isRegeneratingAudio={regenerateManualAudio.isPending}
+            isRetryingDraft={retryDraft.isPending}
+            onCreationKindChange={handleCreationKindChange}
+            onDeleteDraft={handleDeleteSelectedDraft}
+            onFieldChange={handleManualFieldChange}
+            onFillRemainingFields={handleFillRemainingFields}
+            onGenerateImage={handleGenerateManualImage}
+            onImagePlacementChange={setManualImagePlacement}
+            onImagePromptChange={setManualImagePrompt}
+            onPreviewClose={() => setIsManualPreviewOpen(false)}
+            onPreviewOpen={() => setIsManualPreviewOpen(true)}
+            onRegenerateAudio={handleRegenerateManualAudio}
+            onRetryDraft={handleRetrySelectedDraft}
+            onSubmit={handleManualSubmit}
+            previewAudioRole={manualPreviewAudioRole}
+            previewAudioUrl={manualPreviewAudioUrl}
+            previewCard={manualPreviewCard}
+            previewImageUrl={manualPreviewImageUrl}
+            successMessage={manualSuccess}
+            values={values}
+          />
         </section>
       )}
     </div>
