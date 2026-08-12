@@ -30,78 +30,14 @@ import useStudyUndoStack from './useStudyUndoStack';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
-
-interface StudyUndoSnapshot {
-  session: StudySessionResponse | null;
-  overview: StudyOverview | null;
-  currentIndex: number;
-  revealed: boolean;
-  answeredCardIds: string[];
-}
-
-type StudyUndoAction =
-  | {
-      kind: 'reveal';
-      snapshot: StudyUndoSnapshot;
-    }
-  | {
-      kind: 'bury';
-      snapshot: StudyUndoSnapshot;
-    }
-  | {
-      kind: 'grade';
-      snapshot: StudyUndoSnapshot;
-      reviewLogId: string;
-    };
-
-const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot =>
-  structuredClone(snapshot);
-
-const isCardEligibleForSession = (card: StudyCardSummary) => {
-  if (card.state.queueState === 'new') return !card.state.failedAt;
-  if (!['learning', 'review', 'relearning'].includes(card.state.queueState)) {
-    return false;
-  }
-  if (!card.state.dueAt) return false;
-  return new Date(card.state.dueAt).getTime() <= Date.now();
-};
-
-const hasPersistedFailure = (card: StudyCardSummary) => Boolean(card.state.failedAt);
-
-const orderStudySessionCards = (cards: StudyCardSummary[]) =>
-  [...cards].sort((left, right) => {
-    const leftIsNew = left.state.queueState === 'new';
-    const rightIsNew = right.state.queueState === 'new';
-    if (leftIsNew !== rightIsNew) return leftIsNew ? 1 : -1;
-    if (leftIsNew && rightIsNew) return 0;
-
-    const leftDueAt = left.state.dueAt
-      ? new Date(left.state.dueAt).getTime()
-      : Number.MAX_SAFE_INTEGER;
-    const rightDueAt = right.state.dueAt
-      ? new Date(right.state.dueAt).getTime()
-      : Number.MAX_SAFE_INTEGER;
-    if (leftDueAt !== rightDueAt) return leftDueAt - rightDueAt;
-
-    return left.id.localeCompare(right.id);
-  });
-
-const getCardsAfterReview = (
-  currentCards: StudyCardSummary[],
-  updatedCard: StudyCardSummary,
-  grade: 'again' | 'hard' | 'good' | 'easy'
-) => {
-  let nextCards = currentCards.filter((card) => card.id !== updatedCard.id);
-
-  if (grade === 'again' && hasPersistedFailure(updatedCard)) {
-    nextCards = nextCards.filter((card) => card.state.queueState !== 'new');
-    if (isCardEligibleForSession(updatedCard)) {
-      nextCards.push(updatedCard);
-    }
-  }
-
-  return orderStudySessionCards(nextCards);
-};
+import {
+  cloneStudySnapshot,
+  getCardsAfterReview,
+  hasPersistedFailure,
+  isCardEligibleForSession,
+  type StudyUndoAction,
+  type StudyUndoSnapshot,
+} from './studyReviewSessionUtils';
 
 const useStudyReviewSession = () => {
   const queryClient = useQueryClient();
@@ -132,6 +68,8 @@ const useStudyReviewSession = () => {
   const [reviewSubmitPending, setReviewSubmitPending] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const reviewSubmitPendingRef = useRef(false);
+  const sessionEpochRef = useRef(0);
+  const sessionLoadRequestRef = useRef(0);
   const sessionCardCountRef = useRef(0);
   const canSurfaceAsyncSessionErrorRef = useRef(false);
   const answeredCardIdsRef = useRef<Set<string>>(new Set());
@@ -200,6 +138,14 @@ const useStudyReviewSession = () => {
   useEffect(() => {
     canSurfaceAsyncSessionErrorRef.current = focusMode;
   }, [focusMode]);
+
+  useEffect(
+    () => () => {
+      sessionEpochRef.current += 1;
+      canSurfaceAsyncSessionErrorRef.current = false;
+    },
+    []
+  );
 
   const reportAsyncSessionError = useCallback((message: string) => {
     if (canSurfaceAsyncSessionErrorRef.current) {
@@ -332,14 +278,22 @@ const useStudyReviewSession = () => {
   const loadSession = useCallback(
     async (
       kind: 'reviews' | 'lessons' = sessionKind,
-      options: { allowEmptySessionRefresh?: boolean } = {}
+      options: { allowEmptySessionRefresh?: boolean } = {},
+      expectedEpoch = sessionEpochRef.current
     ) => {
+      const requestId = sessionLoadRequestRef.current + 1;
+      sessionLoadRequestRef.current = requestId;
+      const isCurrentRequest = () =>
+        sessionEpochRef.current === expectedEpoch && sessionLoadRequestRef.current === requestId;
+
       setSessionLoading(true);
       setSessionError(null);
 
       try {
         const nextSession =
           kind === 'lessons' ? await startStudyLesson() : await startStudySession();
+        if (!isCurrentRequest()) return null;
+
         autoRefreshEmptySessionRef.current =
           kind === 'reviews' &&
           nextSession.cards.length === 0 &&
@@ -350,12 +304,16 @@ const useStudyReviewSession = () => {
         syncOverview(nextSession.overview);
         return nextSession;
       } catch (error) {
+        if (!isCurrentRequest()) return null;
+
         setSession(null);
         const message = error instanceof Error ? error.message : 'Study session failed to load.';
         setSessionError(message);
         throw error;
       } finally {
-        setSessionLoading(false);
+        if (isCurrentRequest()) {
+          setSessionLoading(false);
+        }
       }
     },
     [sessionKind, syncOverview]
@@ -398,6 +356,7 @@ const useStudyReviewSession = () => {
   ]);
 
   const exitFocusMode = useCallback(() => {
+    sessionEpochRef.current += 1;
     stopAllAudio();
     resetUndo();
     canSurfaceAsyncSessionErrorRef.current = false;
@@ -406,6 +365,7 @@ const useStudyReviewSession = () => {
     setLessonPhase('preview');
     setMasteryAnimation(null);
     setSession(null);
+    setSessionLoading(false);
     setSessionError(null);
     setCurrentIndex(0);
     setRevealed(false);
@@ -453,12 +413,15 @@ const useStudyReviewSession = () => {
       }
 
       const undoSnapshot = captureUndoSnapshot();
+      const expectedEpoch = sessionEpochRef.current;
       try {
         reviewSubmitPendingRef.current = true;
         setReviewSubmitPending(true);
         setMasteryAnimation(null);
         stopAllAudio();
         const reviewResult = await reviewMutation.mutateAsync({ cardId: currentCard.id, grade });
+        if (sessionEpochRef.current !== expectedEpoch) return;
+
         answeredCardIdsRef.current.add(currentCard.id);
         setAnsweredCardIds((current) =>
           current.includes(currentCard.id) ? current : [...current, currentCard.id]
@@ -516,11 +479,15 @@ const useStudyReviewSession = () => {
         }
         setSessionError(null);
       } catch (error) {
+        if (sessionEpochRef.current !== expectedEpoch) return;
+
         setSessionError(error instanceof Error ? error.message : 'Review failed.');
         throw error;
       } finally {
-        reviewSubmitPendingRef.current = false;
-        setReviewSubmitPending(false);
+        if (sessionEpochRef.current === expectedEpoch) {
+          reviewSubmitPendingRef.current = false;
+          setReviewSubmitPending(false);
+        }
       }
     },
     [
@@ -580,6 +547,7 @@ const useStudyReviewSession = () => {
     ) => {
       if (!currentCard || editing || cardActionMutation.isPending) return;
 
+      const expectedEpoch = sessionEpochRef.current;
       try {
         stopAllAudio();
         const result = await cardActionMutation.mutateAsync({
@@ -589,6 +557,7 @@ const useStudyReviewSession = () => {
           dueAt: options?.dueAt,
           timeZone: options?.mode === 'tomorrow' ? getDeviceStudyTimeZone() : undefined,
         });
+        if (sessionEpochRef.current !== expectedEpoch) return;
 
         syncOverview(result.overview);
         setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
@@ -609,6 +578,8 @@ const useStudyReviewSession = () => {
         setRevealed(false);
         setSessionError(null);
       } catch (error) {
+        if (sessionEpochRef.current !== expectedEpoch) return;
+
         setSessionError(error instanceof Error ? error.message : 'Card action failed.');
       }
     },
@@ -629,6 +600,7 @@ const useStudyReviewSession = () => {
     async (payload: { prompt: StudyPromptPayload; answer: StudyAnswerPayload }) => {
       const card = currentCardRef.current; // read live value, not stale closure
       if (!card) return;
+      const expectedEpoch = sessionEpochRef.current;
 
       stopAllAudio();
       const updatedCard = await updateCardMutation.mutateAsync({
@@ -636,6 +608,8 @@ const useStudyReviewSession = () => {
         prompt: payload.prompt,
         answer: payload.answer,
       });
+      if (sessionEpochRef.current !== expectedEpoch) return;
+
       mergeCardIntoSession(updatedCard);
       resetStudyAudioAutoplayForCard(card.id);
       setEditing(false);
@@ -658,6 +632,7 @@ const useStudyReviewSession = () => {
     }) => {
       const card = currentCardRef.current; // read live value, not stale closure
       if (!card) return undefined;
+      const expectedEpoch = sessionEpochRef.current;
 
       stopAllAudio();
       const updatedCard = await regenerateAudioMutation.mutateAsync({
@@ -665,6 +640,8 @@ const useStudyReviewSession = () => {
         answerAudioVoiceId: payload.answerAudioVoiceId,
         answerAudioTextOverride: payload.answerAudioTextOverride,
       });
+      if (sessionEpochRef.current !== expectedEpoch) return undefined;
+
       mergeCardIntoSession(updatedCard);
       resetStudyAudioAutoplayForCard(card.id);
       setSessionError(null);
@@ -681,10 +658,13 @@ const useStudyReviewSession = () => {
 
   const deleteCurrentCard = useCallback(async () => {
     if (!currentCard) return;
+    const expectedEpoch = sessionEpochRef.current;
 
     stopAllAudio();
     try {
       await deleteCardMutation.mutateAsync(currentCard.id);
+      if (sessionEpochRef.current !== expectedEpoch) return;
+
       autoRefreshEmptySessionRef.current = false;
       setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
       removeCardFromSession(currentCard.id);
@@ -694,6 +674,8 @@ const useStudyReviewSession = () => {
       setRevealed(false);
       setSessionError(null);
     } catch (error) {
+      if (sessionEpochRef.current !== expectedEpoch) return;
+
       setSessionError(error instanceof Error ? error.message : 'Unable to delete card.');
       throw error;
     }
@@ -714,6 +696,7 @@ const useStudyReviewSession = () => {
 
     const action = popUndo();
     if (!action) return;
+    const expectedEpoch = sessionEpochRef.current;
 
     stopAllAudio();
 
@@ -728,13 +711,19 @@ const useStudyReviewSession = () => {
         action.reviewLogId,
         action.snapshot.overview ?? undefined
       );
+      if (sessionEpochRef.current !== expectedEpoch) return;
+
       restoreUndoSnapshot(action.snapshot);
       syncOverview(undoResult.overview);
     } catch (error) {
+      if (sessionEpochRef.current !== expectedEpoch) return;
+
       pushUndo(action);
       setSessionError(error instanceof Error ? error.message : 'Unable to undo study action.');
     } finally {
-      setUndoPending(false);
+      if (sessionEpochRef.current === expectedEpoch) {
+        setUndoPending(false);
+      }
     }
   }, [
     popUndo,
@@ -777,6 +766,8 @@ const useStudyReviewSession = () => {
 
   const enterFocusMode = useCallback(
     async (kind: 'reviews' | 'lessons' = 'reviews') => {
+      const expectedEpoch = sessionEpochRef.current + 1;
+      sessionEpochRef.current = expectedEpoch;
       stopAllAudio();
       resetStudyAudioAutoplay();
       resetUndo();
@@ -796,7 +787,7 @@ const useStudyReviewSession = () => {
         label: 'Study motion-permission request',
       });
       try {
-        await loadSession(kind);
+        await loadSession(kind, {}, expectedEpoch);
       } catch {
         // loadSession already updates session error state for the dashboard.
       }
