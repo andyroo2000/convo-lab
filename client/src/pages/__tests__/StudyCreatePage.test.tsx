@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -298,6 +298,42 @@ describe('StudyCreatePage', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not clear a draft selected while a new draft is being queued', async () => {
+    let resolveQueue!: (draft: StudyManualCardDraft) => void;
+    createManualDraftMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveQueue = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
+    await waitFor(() => expect(createManualDraftMock).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+
+    await act(async () => {
+      resolveQueue(manualDraft({ id: 'new-draft', status: 'generating' }));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+    expect(screen.getByRole('heading', { name: 'Review draft' })).toBeInTheDocument();
+  });
+
   it('renders the draft queue and loads selected ready draft fields', async () => {
     manualDraftsState.drafts = [
       manualDraft({
@@ -396,6 +432,44 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Retry fill' }));
 
     expect(retryManualDraftMock).toHaveBeenCalledWith('draft-stale');
+  });
+
+  it('does not clear a newer selection when an earlier draft deletion finishes', async () => {
+    let resolveDeletion!: () => void;
+    deleteManualDraftMock.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveDeletion = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-a', prompt: { cueText: '会社' } }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    await waitFor(() => expect(deleteManualDraftMock).toHaveBeenCalledWith('draft-a'));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+
+    await act(async () => {
+      resolveDeletion();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+    expect(screen.getByRole('heading', { name: 'Review draft' })).toBeInTheDocument();
   });
 
   it('selecting and editing a ready draft autosaves changes', async () => {
@@ -567,6 +641,47 @@ describe('StudyCreatePage', () => {
       )
     );
     await waitFor(() => expect(screen.getByLabelText('Prompt text')).toHaveValue('三番目'));
+  });
+
+  it('does not replace a newer selection when an earlier card creation finishes', async () => {
+    let resolveCreation!: (result: { card: { id: string; cardType: 'recognition' } }) => void;
+    createCardFromManualDraftMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveCreation = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-a', prompt: { cueText: '会社' } }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+    await waitFor(() =>
+      expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'draft-a' })
+      )
+    );
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+
+    await act(async () => {
+      resolveCreation({ card: { id: 'created-a', cardType: 'recognition' } });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+    expect(screen.getByRole('heading', { name: 'Review draft' })).toBeInTheDocument();
   });
 
   it('selects the previous draft when creating the last draft in queue', async () => {
@@ -781,6 +896,70 @@ describe('StudyCreatePage', () => {
     );
   });
 
+  it('does not apply regenerated audio after another draft is selected', async () => {
+    let resolveRegeneration!: (result: {
+      previewAudio: StudyManualCardDraft['previewAudio'];
+      previewAudioRole: StudyManualCardDraft['previewAudioRole'];
+    }) => void;
+    regenerateCandidateAudioMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRegeneration = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-a', prompt: { cueText: '会社' } }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        previewAudio: {
+          id: 'draft-b-audio',
+          filename: 'draft-b.mp3',
+          url: '/api/study/media/draft-b-audio',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'answer',
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+    await waitFor(() => expect(regenerateCandidateAudioMock).toHaveBeenCalledWith('draft-a'));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-url',
+      '/api/study/media/draft-b-audio'
+    );
+
+    await act(async () => {
+      resolveRegeneration({
+        previewAudio: {
+          id: 'draft-a-regenerated',
+          filename: 'draft-a-regenerated.mp3',
+          url: '/api/study/media/draft-a-regenerated',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'answer',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-url',
+      '/api/study/media/draft-b-audio'
+    );
+  });
+
   it('does not generate preview media when persisting the current draft fails', async () => {
     manualDraftsState.drafts = [manualDraft()];
     updateManualDraftMock.mockRejectedValueOnce(new Error('Draft save failed'));
@@ -923,6 +1102,71 @@ describe('StudyCreatePage', () => {
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
       '/api/study/media/manual-image'
+    );
+  });
+
+  it('does not apply a generated image after another draft is selected', async () => {
+    let resolveImage!: (result: {
+      previewImage: StudyManualCardDraft['previewImage'];
+      imagePrompt: string;
+      imagePlacement: StudyManualCardDraft['imagePlacement'];
+    }) => void;
+    generateDraftImageMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveImage = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({
+        id: 'draft-a',
+        prompt: { cueText: '会社' },
+        imagePlacement: 'both',
+        imagePrompt: 'Draft A image',
+      }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        previewImage: {
+          id: 'draft-b-image',
+          filename: 'draft-b.webp',
+          url: '/api/study/media/draft-b-image',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+        imagePlacement: 'both',
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
+    await waitFor(() => expect(generateDraftImageMock).toHaveBeenCalledWith('draft-a'));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      '/api/study/media/draft-b-image'
+    );
+
+    await act(async () => {
+      resolveImage({
+        previewImage: {
+          id: 'draft-a-image',
+          filename: 'draft-a.webp',
+          url: '/api/study/media/draft-a-image',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+        imagePrompt: 'Draft A image',
+        imagePlacement: 'both',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      '/api/study/media/draft-b-image'
     );
   });
 

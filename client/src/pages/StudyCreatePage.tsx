@@ -14,7 +14,7 @@ import StudyCardImageControls from '../components/study/StudyCardImageControls';
 import StudyCardFormFields, { StudyCardNotesField } from '../components/study/StudyCardFormFields';
 import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
 import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
-import StudyScrollableListPanel from '../components/study/StudyScrollableListPanel';
+import StudyManualDraftListPanel from '../components/study/StudyManualDraftListPanel';
 import StudyVocabCandidateForm from '../components/study/StudyVocabCandidateForm';
 import {
   buildStudyCardFormPayload,
@@ -75,14 +75,6 @@ function getDraftFormValues(result: StudyManualCardDraft) {
       updatedAt: '1970-01-01T00:00:00.000Z',
     },
   });
-}
-
-function creationKindLabelKey(creationKind: StudyCardCreationKind) {
-  if (creationKind === 'text-recognition') return 'textRecognition';
-  if (creationKind === 'audio-recognition') return 'audioRecognition';
-  if (creationKind === 'production-text') return 'productionText';
-  if (creationKind === 'production-image') return 'productionImage';
-  return 'cloze';
 }
 
 function isStaleGeneratingManualDraft(draft: StudyManualCardDraft | null | undefined) {
@@ -175,6 +167,8 @@ const StudyCreatePage = () => {
   );
   const [isManualPreviewOpen, setIsManualPreviewOpen] = useState(false);
   const [selectedManualDraftId, setSelectedManualDraftId] = useState<string | null>(null);
+  const selectedManualDraftIdRef = useRef(selectedManualDraftId);
+  selectedManualDraftIdRef.current = selectedManualDraftId;
   const manualAutosaveTimeoutRef = useRef<number | null>(null);
   const manualAutosavePromiseRef = useRef<Promise<unknown> | null>(null);
   const hydratedManualDraftKeyRef = useRef<string | null>(null);
@@ -412,6 +406,7 @@ const StudyCreatePage = () => {
 
   const handleFillRemainingFields = async () => {
     setManualSuccess(null);
+    const selectedDraftIdAtStart = selectedManualDraftIdRef.current;
     try {
       await createDraft.mutateAsync({
         creationKind,
@@ -421,6 +416,7 @@ const StudyCreatePage = () => {
         imagePlacement: manualImagePlacement,
         imagePrompt: manualImagePrompt.trim() || null,
       });
+      if (selectedManualDraftIdRef.current !== selectedDraftIdAtStart) return;
       setSelectedManualDraftId(null);
       resetManualComposer(creationKind);
       setManualSuccess(t('create.draftQueued'));
@@ -458,6 +454,7 @@ const StudyCreatePage = () => {
       const draftId = await persistSelectedManualDraft();
       if (!draftId) return;
       const result = await regenerateManualAudio.mutateAsync(draftId);
+      if (selectedManualDraftIdRef.current !== draftId) return;
       setManualPreviewAudio(result.previewAudio);
       setManualPreviewAudioRole(result.previewAudioRole);
     } catch {
@@ -471,6 +468,7 @@ const StudyCreatePage = () => {
       const draftId = await persistSelectedManualDraft();
       if (!draftId) return;
       const result = await generateDraftImage.mutateAsync(draftId);
+      if (selectedManualDraftIdRef.current !== draftId) return;
       setManualImagePrompt(result.imagePrompt);
       setManualImagePlacement(result.imagePlacement);
       setManualPreviewImage(result.previewImage);
@@ -495,13 +493,15 @@ const StudyCreatePage = () => {
 
   const handleDeleteSelectedDraft = async () => {
     if (!selectedManualDraft) return;
+    const draftId = selectedManualDraft.id;
     setManualSuccess(null);
     if (manualAutosaveTimeoutRef.current !== null) {
       window.clearTimeout(manualAutosaveTimeoutRef.current);
       manualAutosaveTimeoutRef.current = null;
     }
     try {
-      await deleteDraft.mutateAsync(selectedManualDraft.id);
+      await deleteDraft.mutateAsync(draftId);
+      if (selectedManualDraftIdRef.current !== draftId) return;
       setSelectedManualDraftId(null);
       resetManualComposer(creationKind);
       setManualSuccess(t('create.draftDeleted'));
@@ -513,6 +513,7 @@ const StudyCreatePage = () => {
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedManualDraft) return;
+    const draftId = selectedManualDraft.id;
     setManualSuccess(null);
     if (manualAutosaveTimeoutRef.current !== null) {
       window.clearTimeout(manualAutosaveTimeoutRef.current);
@@ -540,6 +541,7 @@ const StudyCreatePage = () => {
       }
       const result = await createCardFromDraft.mutateAsync(selectedManualDraft);
       addCreatedCards();
+      if (selectedManualDraftIdRef.current !== draftId) return;
       let nextDraftId: string | null = null;
       if (createdDraftIndex >= 0) {
         nextDraftId =
@@ -590,170 +592,29 @@ const StudyCreatePage = () => {
   const draftStatusLabel = selectedManualDraft
     ? t(`create.draftStatuses.${selectedManualDraft.status}`)
     : null;
-  const draftListHeader = (
-    <div className="flex items-center justify-between gap-3">
-      <p className="text-sm text-gray-600">
-        {t('create.draftQueueCount', { count: manualDraftTotal })}
-      </p>
-      <button
-        type="button"
-        onClick={() => {
-          setSelectedManualDraftId(null);
-          resetManualComposer(creationKind);
-          setManualSuccess(null);
-        }}
-        className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-gray-50"
-      >
-        {t('create.newDraft')}
-      </button>
-    </div>
-  );
-  const draftListFooter = (
-    <>
-      <div className="text-sm text-gray-500">
-        <p>
-          {manualDrafts.some((draft) => draft.status === 'generating')
-            ? t('create.draftQueueGenerating')
-            : t('create.draftQueueReady')}
-        </p>
-        <p className="mt-1">
-          {t('create.draftQueueShowing', {
-            shown: manualDrafts.length,
-            total: manualDraftTotal,
-          })}
-        </p>
-      </div>
-      {manualDraftsQuery.hasNextPage ? (
-        <button
-          type="button"
-          onClick={() => {
-            manualDraftsQuery.fetchNextPage().catch(() => undefined);
-          }}
-          disabled={manualDraftsQuery.isFetchingNextPage}
-          className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {manualDraftsQuery.isFetchingNextPage
-            ? t('create.loadingDrafts')
-            : t('create.loadMoreDrafts')}
-        </button>
-      ) : null}
-      {manualDraftsQuery.isFetchNextPageError && manualDraftsQuery.error ? (
-        <p className="text-xs text-red-600">
-          {manualDraftsQuery.error instanceof Error
-            ? manualDraftsQuery.error.message
-            : t('create.failedDrafts')}
-        </p>
-      ) : null}
-    </>
-  );
   const draftListPanel = (
-    <StudyScrollableListPanel
-      panelTestId="study-manual-draft-list"
-      scrollRegionTestId="study-manual-draft-scroll-region"
-      header={draftListHeader}
-      footer={draftListFooter}
-    >
-      {manualDraftsQuery.isLoading ? (
-        <p className="p-6 text-gray-500">{t('create.loadingDrafts')}</p>
-      ) : null}
-      {manualDraftsQuery.error ? (
-        <p className="p-6 text-red-600">
-          {manualDraftsQuery.error instanceof Error
-            ? manualDraftsQuery.error.message
-            : t('create.failedDrafts')}
-        </p>
-      ) : null}
-      {!manualDraftsQuery.isLoading && manualDrafts.length === 0 ? (
-        <div className="p-6 text-center text-gray-600">{t('create.noDrafts')}</div>
-      ) : null}
-      {manualDrafts.length > 0 ? (
-        <>
-          <div className="space-y-3 p-4 md:hidden">
-            {manualDrafts.map((draft) => {
-              const isSelected = draft.id === selectedManualDraftId;
-              return (
-                <button
-                  key={draft.id}
-                  type="button"
-                  data-testid="study-manual-draft-item"
-                  onClick={() => {
-                    setMode('manual');
-                    setSelectedManualDraftId(draft.id);
-                  }}
-                  className={`block w-full rounded-2xl border px-4 py-4 text-left ${
-                    isSelected
-                      ? 'border-navy bg-blue-50'
-                      : 'border-gray-200 bg-white hover:bg-cream/50'
-                  }`}
-                >
-                  <p className="break-words text-base font-semibold text-gray-900">
-                    {draft.prompt.cueText ??
-                      draft.prompt.clozeDisplayText ??
-                      draft.prompt.clozeText ??
-                      draft.answer.expression ??
-                      draft.answer.restoredText ??
-                      t('create.untitledDraft')}
-                  </p>
-                  <p className="mt-2 text-sm text-gray-600">
-                    {t(`form.${creationKindLabelKey(draft.creationKind)}`)} ·{' '}
-                    {t(`create.draftStatuses.${draft.status}`)}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="min-w-full text-left text-sm">
-              <thead className="sticky top-0 z-[1] bg-cream/95 text-gray-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{t('create.draftColumn')}</th>
-                  <th className="px-4 py-3 font-medium">{t('create.statusColumn')}</th>
-                  <th className="px-4 py-3 font-medium">{t('create.createdColumn')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {manualDrafts.map((draft) => {
-                  const isSelected = draft.id === selectedManualDraftId;
-                  return (
-                    <tr
-                      key={draft.id}
-                      data-testid="study-manual-draft-row"
-                      onClick={() => {
-                        setMode('manual');
-                        setSelectedManualDraftId(draft.id);
-                      }}
-                      className={`cursor-pointer border-t border-gray-200 ${
-                        isSelected ? 'bg-blue-100/70' : 'hover:bg-cream/50'
-                      }`}
-                    >
-                      <td className="max-w-[16rem] px-4 py-3 align-top">
-                        <p className="line-clamp-2 break-words text-gray-900">
-                          {draft.prompt.cueText ??
-                            draft.prompt.clozeDisplayText ??
-                            draft.prompt.clozeText ??
-                            draft.answer.expression ??
-                            draft.answer.restoredText ??
-                            t('create.untitledDraft')}
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500">
-                          {t(`form.${creationKindLabelKey(draft.creationKind)}`)}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 align-top text-gray-700">
-                        {t(`create.draftStatuses.${draft.status}`)}
-                      </td>
-                      <td className="px-4 py-3 align-top text-gray-700">
-                        {new Date(draft.createdAt).toLocaleString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      ) : null}
-    </StudyScrollableListPanel>
+    <StudyManualDraftListPanel
+      drafts={manualDrafts}
+      error={manualDraftsQuery.error}
+      hasNextPage={manualDraftsQuery.hasNextPage}
+      isFetchNextPageError={manualDraftsQuery.isFetchNextPageError}
+      isFetchingNextPage={manualDraftsQuery.isFetchingNextPage}
+      isLoading={manualDraftsQuery.isLoading}
+      onFetchNextPage={() => {
+        manualDraftsQuery.fetchNextPage().catch(() => undefined);
+      }}
+      onNewDraft={() => {
+        setSelectedManualDraftId(null);
+        resetManualComposer(creationKind);
+        setManualSuccess(null);
+      }}
+      onSelectDraft={(draftId) => {
+        setMode('manual');
+        setSelectedManualDraftId(draftId);
+      }}
+      selectedDraftId={selectedManualDraftId}
+      total={manualDraftTotal}
+    />
   );
 
   return (
