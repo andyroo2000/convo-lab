@@ -406,6 +406,7 @@ const StudyCreatePage = () => {
 
   const handleFillRemainingFields = async () => {
     setManualSuccess(null);
+    const selectedDraftIdAtStart = selectedManualDraftIdRef.current;
     try {
       await createDraft.mutateAsync({
         creationKind,
@@ -415,6 +416,7 @@ const StudyCreatePage = () => {
         imagePlacement: manualImagePlacement,
         imagePrompt: manualImagePrompt.trim() || null,
       });
+      if (selectedManualDraftIdRef.current !== selectedDraftIdAtStart) return;
       setSelectedManualDraftId(null);
       resetManualComposer(creationKind);
       setManualSuccess(t('create.draftQueued'));

@@ -298,6 +298,42 @@ describe('StudyCreatePage', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not clear a draft selected while a new draft is being queued', async () => {
+    let resolveQueue!: (draft: StudyManualCardDraft) => void;
+    createManualDraftMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveQueue = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));
+    await waitFor(() => expect(createManualDraftMock).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+
+    await act(async () => {
+      resolveQueue(manualDraft({ id: 'new-draft', status: 'generating' }));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+    expect(screen.getByRole('heading', { name: 'Review draft' })).toBeInTheDocument();
+  });
+
   it('renders the draft queue and loads selected ready draft fields', async () => {
     manualDraftsState.drafts = [
       manualDraft({
@@ -1066,6 +1102,71 @@ describe('StudyCreatePage', () => {
     expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
       'src',
       '/api/study/media/manual-image'
+    );
+  });
+
+  it('does not apply a generated image after another draft is selected', async () => {
+    let resolveImage!: (result: {
+      previewImage: StudyManualCardDraft['previewImage'];
+      imagePrompt: string;
+      imagePlacement: StudyManualCardDraft['imagePlacement'];
+    }) => void;
+    generateDraftImageMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveImage = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({
+        id: 'draft-a',
+        prompt: { cueText: '会社' },
+        imagePlacement: 'both',
+        imagePrompt: 'Draft A image',
+      }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        previewImage: {
+          id: 'draft-b-image',
+          filename: 'draft-b.webp',
+          url: '/api/study/media/draft-b-image',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+        imagePlacement: 'both',
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
+    await waitFor(() => expect(generateDraftImageMock).toHaveBeenCalledWith('draft-a'));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      '/api/study/media/draft-b-image'
+    );
+
+    await act(async () => {
+      resolveImage({
+        previewImage: {
+          id: 'draft-a-image',
+          filename: 'draft-a.webp',
+          url: '/api/study/media/draft-a-image',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+        imagePrompt: 'Draft A image',
+        imagePlacement: 'both',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      '/api/study/media/draft-b-image'
     );
   });
 

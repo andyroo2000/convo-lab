@@ -5,7 +5,7 @@ import StudyScrollableListPanel from './StudyScrollableListPanel';
 
 type Props = {
   drafts: StudyManualCardDraft[];
-  error: unknown;
+  error: Error | null;
   hasNextPage: boolean;
   isFetchNextPageError: boolean;
   isFetchingNextPage: boolean;
