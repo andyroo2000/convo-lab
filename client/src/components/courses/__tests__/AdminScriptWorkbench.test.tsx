@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import AdminScriptWorkbench from '../AdminScriptWorkbench';
@@ -26,6 +26,35 @@ function exchangeResponse(name: string) {
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
   );
+}
+
+function editableCourseFetch(putResponse: Response | Promise<Response>) {
+  return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes('/courses/course-a/pipeline-data') && init?.method === 'PUT') {
+      return Promise.resolve(putResponse);
+    }
+    if (url.includes('/courses/course-a/pipeline-data')) {
+      return Promise.resolve(exchangeResponse('Original'));
+    }
+    if (url.includes('/courses/course-a/build-prompt')) {
+      return Promise.resolve(
+        new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }
+    if (url.includes('/line-renderings')) {
+      return Promise.resolve(
+        new Response(JSON.stringify({ renderings: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  });
 }
 
 describe('AdminScriptWorkbench', () => {
@@ -68,5 +97,64 @@ describe('AdminScriptWorkbench', () => {
 
     expect(screen.getByText('Course B dialogue')).toBeInTheDocument();
     expect(screen.queryByText('Course A dialogue')).not.toBeInTheDocument();
+  });
+
+  it('serializes exchange saves and keeps the edit available when saving fails', async () => {
+    let resolvePut!: (response: Response) => void;
+    const putResponse = new Promise<Response>((resolve) => {
+      resolvePut = resolve;
+    });
+    const fetchMock = editableCourseFetch(putResponse);
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AdminScriptWorkbench courseId="course-a" />);
+
+    fireEvent.click(await screen.findByText('Original dialogue'));
+    fireEvent.change(screen.getByLabelText('Text (L2)'), {
+      target: { value: 'Edited dialogue' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(screen.getByDisplayValue('Edited dialogue')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '+ Add vocabulary item' })).toBeDisabled();
+    expect(screen.getByText('Original dialogue')).toBeInTheDocument();
+
+    await act(async () => {
+      resolvePut(
+        new Response(JSON.stringify({ message: 'Exchange could not be saved' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      await putResponse;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Exchange could not be saved')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Original dialogue')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Edited dialogue')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  it('shows a fallback error when the API message is empty', async () => {
+    vi.stubGlobal(
+      'fetch',
+      editableCourseFetch(
+        new Response(JSON.stringify({ message: '   ' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    );
+
+    render(<AdminScriptWorkbench courseId="course-a" />);
+
+    fireEvent.click(await screen.findByText('Original dialogue'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Failed to save exchange edit')).toBeInTheDocument();
   });
 });

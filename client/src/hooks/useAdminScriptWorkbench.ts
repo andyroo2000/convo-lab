@@ -13,6 +13,7 @@ import { courseApi } from '../lib/courseApi';
 
 export default function useAdminScriptWorkbench(courseId: string, readOnly: boolean) {
   const currentCourseId = useRef(courseId);
+  const exchangeSaveInFlight = useRef(false);
   currentCourseId.current = courseId;
   const [activeStep, setActiveStep] = useState<PipelineStage>('prompt');
   const [loading, setLoading] = useState<string | null>(null);
@@ -22,6 +23,7 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
   const [exchanges, setExchanges] = useState<DialogueExchange[] | null>(null);
   const [editingExchange, setEditingExchange] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<DialogueExchange | null>(null);
+  const [savingExchange, setSavingExchange] = useState(false);
   const [scriptConfig, setScriptConfig] = useState<ScriptConfig | null>(null);
   const [scriptUnits, setScriptUnits] = useState<ScriptUnit[] | null>(null);
   const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null);
@@ -73,6 +75,8 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
     setExchanges(null);
     setEditingExchange(null);
     setEditForm(null);
+    exchangeSaveInFlight.current = false;
+    setSavingExchange(false);
     setScriptConfig(null);
     setScriptUnits(null);
     setEstimatedDuration(null);
@@ -265,21 +269,39 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
   };
 
   const handleSaveExchangeEdit = async () => {
-    if (editingExchange === null || !editForm || !exchanges) return;
+    if (editingExchange === null || !editForm || !exchanges || exchangeSaveInFlight.current) {
+      return;
+    }
+    exchangeSaveInFlight.current = true;
+    setSavingExchange(true);
     const updatedExchanges = [...exchanges];
     updatedExchanges[editingExchange] = editForm;
-    setExchanges(updatedExchanges);
-    setEditingExchange(null);
-    setEditForm(null);
+    setError(null);
     try {
-      await fetch(adminApi.adminCourseOperation(courseId, 'pipeline-data'), {
+      const response = await fetch(adminApi.adminCourseOperation(courseId, 'pipeline-data'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ stage: 'exchanges', data: updatedExchanges }),
       });
-    } catch {
-      if (isCurrentCourse()) setError('Failed to save exchange edit');
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const apiMessage = data && typeof data.message === 'string' ? data.message.trim() : '';
+        throw new Error(apiMessage || 'Failed to save exchange edit');
+      }
+      if (!isCurrentCourse()) return;
+      setExchanges(updatedExchanges);
+      setEditingExchange(null);
+      setEditForm(null);
+    } catch (caught) {
+      if (isCurrentCourse()) {
+        setError(caught instanceof Error ? caught.message : 'Failed to save exchange edit');
+      }
+    } finally {
+      if (isCurrentCourse()) {
+        exchangeSaveInFlight.current = false;
+        setSavingExchange(false);
+      }
     }
   };
 
@@ -310,6 +332,7 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
     promptMetadata,
     scriptConfig,
     scriptUnits,
+    savingExchange,
     selectedUnitIndex,
     setActiveStep,
     setEditForm,
