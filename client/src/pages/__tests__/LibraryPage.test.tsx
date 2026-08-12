@@ -30,7 +30,9 @@ const createMockLibraryData = (overrides: Record<string, unknown> = {}) => ({
   courses: [],
   isLoading: false,
   error: null,
+  retry: vi.fn(),
   hasNextPage: false,
+  shouldAutoLoadMore: false,
   fetchNextPage: vi.fn(),
   isFetchingNextPage: false,
   deleteEpisode: vi.fn(),
@@ -43,6 +45,8 @@ const createMockLibraryData = (overrides: Record<string, unknown> = {}) => ({
 // Mock hooks
 vi.mock('../../hooks/useLibraryData', () => ({
   useLibraryData: mockUseLibraryData,
+  parseLibraryContentScope: (value: string | null) =>
+    value === 'dialogues' || value === 'scripts' || value === 'courses' ? value : 'all',
 }));
 
 vi.mock('../../hooks/useDemo', () => ({
@@ -146,12 +150,35 @@ describe('LibraryPage', () => {
       expect(screen.getByTestId('library-button-browse-all')).toBeTruthy();
     });
 
-    it('should keep the pagination sentinel mounted while a filtered page is empty', () => {
-      mockUseLibraryData.mockReturnValue(createMockLibraryData({ hasNextPage: true }));
+    it('should not auto-page an empty filtered result set', () => {
+      mockUseLibraryData.mockReturnValue(
+        createMockLibraryData({ hasNextPage: true, shouldAutoLoadMore: false })
+      );
+
+      renderLibraryPage('/app/library?filter=dialogues');
+
+      expect(screen.queryByTestId('scroll-sentinel')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Load more' })).toBeTruthy();
+    });
+
+    it('should keep paging available once the filtered result set has visible items', () => {
+      mockUseLibraryData.mockReturnValue(
+        createMockLibraryData({ hasNextPage: true, shouldAutoLoadMore: true })
+      );
 
       renderLibraryPage('/app/library?filter=dialogues');
 
       expect(screen.getByTestId('scroll-sentinel')).toBeTruthy();
+    });
+  });
+
+  describe('Error recovery', () => {
+    it('offers a route back to all content from a scoped query failure', () => {
+      mockUseLibraryData.mockReturnValue(createMockLibraryData({ error: 'Courses failed' }));
+
+      renderLibraryPage('/app/library?filter=courses');
+
+      expect(screen.getByRole('button', { name: 'Back to all content' })).toBeTruthy();
     });
   });
 

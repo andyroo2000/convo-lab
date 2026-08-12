@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useLibraryData, libraryKeys, invalidateLibraryCache } from '../../hooks/useLibraryData';
+import {
+  useLibraryData,
+  libraryKeys,
+  invalidateLibraryCache,
+  parseLibraryContentScope,
+} from '../../hooks/useLibraryData';
 import { createWrapper, createTestQueryClient } from './test-utils';
 
 // Mock the config
@@ -23,6 +28,19 @@ describe('useLibraryData', () => {
       expect(libraryKeys.all).toEqual(['library']);
       expect(libraryKeys.episodes()).toEqual(['library', 'episodes']);
       expect(libraryKeys.courses()).toEqual(['library', 'courses']);
+    });
+  });
+
+  describe('parseLibraryContentScope', () => {
+    it.each([
+      ['dialogues', 'dialogues'],
+      ['scripts', 'scripts'],
+      ['courses', 'courses'],
+      ['all', 'all'],
+      ['unknown', 'all'],
+      [null, 'all'],
+    ] as const)('maps %s to %s', (value, expected) => {
+      expect(parseLibraryContentScope(value)).toBe(expected);
     });
   });
 
@@ -192,6 +210,38 @@ describe('useLibraryData', () => {
         );
       }
     );
+
+    it('should keep existing courses visible while episodes first load after widening scope', async () => {
+      let resolveEpisodes: ((value: unknown) => void) | undefined;
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/episodes')) {
+          return new Promise((resolve) => {
+            resolveEpisodes = resolve;
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([{ id: 'course-1', status: 'ready' }]),
+        });
+      });
+
+      const { result, rerender } = renderHook(
+        ({ scope }) => useLibraryData(undefined, false, scope),
+        {
+          initialProps: { scope: 'courses' as 'all' | 'courses' },
+          wrapper: createWrapper(),
+        }
+      );
+
+      await waitFor(() => {
+        expect(result.current.courses).toHaveLength(1);
+      });
+
+      rerender({ scope: 'all' });
+
+      expect(result.current.isLoading).toBe(false);
+      resolveEpisodes?.({ ok: true, json: () => Promise.resolve([]) });
+    });
   });
 
   describe('Error Handling', () => {

@@ -13,7 +13,12 @@ import {
   CassetteTape,
 } from 'lucide-react';
 import { Episode, Course } from '../types';
-import { useLibraryData, LibraryCourse, type LibraryContentScope } from '../hooks/useLibraryData';
+import {
+  useLibraryData,
+  LibraryCourse,
+  parseLibraryContentScope,
+  type LibraryContentScope,
+} from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,20 +31,6 @@ import { SHOW_ONBOARDING_WELCOME } from '../config';
 import { adminApi } from '../lib/adminApi';
 
 type FilterType = LibraryContentScope;
-
-const FILTER_PARAM_TO_TYPE: Record<string, FilterType> = {
-  all: 'all',
-  dialogues: 'dialogues',
-  scripts: 'scripts',
-  courses: 'courses',
-};
-
-const FILTER_TYPE_TO_PARAM: Record<FilterType, string> = {
-  all: 'all',
-  dialogues: 'dialogues',
-  scripts: 'scripts',
-  courses: 'courses',
-};
 
 const LEGACY_DIALOGUE_TURN_FALLBACKS: Record<string, number> = {
   'hokkaido food trip': 15,
@@ -61,8 +52,7 @@ const LibraryPage = () => {
   const { t } = useTranslation(['library', 'common']);
   const [searchParams, setSearchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
-  const filterParam = searchParams.get('filter');
-  const filter: FilterType = FILTER_PARAM_TO_TYPE[filterParam || ''] || 'all';
+  const filter = parseLibraryContentScope(searchParams.get('filter'));
 
   // Admin draft toggle
   const [showDrafts, setShowDrafts] = useState(false);
@@ -72,7 +62,9 @@ const LibraryPage = () => {
     courses,
     isLoading,
     error,
+    retry,
     hasNextPage,
+    shouldAutoLoadMore,
     fetchNextPage,
     isFetchingNextPage,
     deleteEpisode,
@@ -144,7 +136,7 @@ const LibraryPage = () => {
     if (newFilter === 'all') {
       params.delete('filter');
     } else {
-      params.set('filter', FILTER_TYPE_TO_PARAM[newFilter]);
+      params.set('filter', newFilter);
     }
 
     setSearchParams(params);
@@ -156,7 +148,7 @@ const LibraryPage = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        if (entries[0].isIntersecting && shouldAutoLoadMore && !isFetchingNextPage) {
           fetchNextPage();
         }
       },
@@ -170,7 +162,7 @@ const LibraryPage = () => {
     return () => {
       observer.disconnect();
     };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [shouldAutoLoadMore, isFetchingNextPage, fetchNextPage]);
 
   const handleDeleteClick = (episode: Episode, e: React.MouseEvent) => {
     e.preventDefault();
@@ -249,7 +241,20 @@ const LibraryPage = () => {
   }
 
   if (error) {
-    return <ErrorDisplay error={error} onRetry={() => window.location.reload()} />;
+    return (
+      <div className="space-y-4">
+        <ErrorDisplay error={error} onRetry={retry} />
+        {filter !== 'all' ? (
+          <button
+            type="button"
+            onClick={() => handleFilterChange('all')}
+            className="retro-library-v3-empty-btn"
+          >
+            {t('library:error.showAll')}
+          </button>
+        ) : null}
+      </div>
+    );
   }
 
   // Handler to exit impersonation
@@ -642,7 +647,20 @@ const LibraryPage = () => {
             )}
 
             {/* Infinite scroll sentinel */}
-            {hasNextPage && (
+            {hasNextPage && !shouldAutoLoadMore ? (
+              <div className="flex h-16 items-center justify-center">
+                <button
+                  type="button"
+                  onClick={fetchNextPage}
+                  disabled={isFetchingNextPage}
+                  className="retro-library-v3-empty-btn"
+                >
+                  {isFetchingNextPage ? t('common:loadingMore') : t('library:loadMore')}
+                </button>
+              </div>
+            ) : null}
+
+            {shouldAutoLoadMore && (
               <div
                 ref={loadMoreRef}
                 className="h-10 flex items-center justify-center"
