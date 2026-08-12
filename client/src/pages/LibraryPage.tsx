@@ -105,25 +105,45 @@ const LibraryPage = () => {
   const [impersonatedUser, setImpersonatedUser] = useState<{ name: string; email: string } | null>(
     null
   );
+  const impersonatedUserRequestRef = useRef(0);
 
   useEffect(() => {
+    impersonatedUserRequestRef.current += 1;
+    const requestGeneration = impersonatedUserRequestRef.current;
+    const controller = new AbortController();
+
+    // Never carry the previous user's identity through a scope transition.
+    setImpersonatedUser(null);
+
     if (viewAsUserId) {
       fetch(adminApi.userInfo(viewAsUserId), {
         credentials: 'include',
+        signal: controller.signal,
       })
-        .then((res) => res.json())
-        .then((impUser) => {
+        .then(async (response) => {
+          if (!response.ok) throw new Error('Failed to fetch impersonated user');
+          return response.json();
+        })
+        .then((impUser: { displayName?: string; name: string; email: string }) => {
+          if (
+            controller.signal.aborted ||
+            impersonatedUserRequestRef.current !== requestGeneration
+          ) {
+            return;
+          }
           setImpersonatedUser({
             name: impUser.displayName || impUser.name,
             email: impUser.email,
           });
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
+          if (controller.signal.aborted || impersonatedUserRequestRef.current !== requestGeneration)
+            return;
           console.error('Failed to fetch impersonated user:', err);
         });
-    } else {
-      setImpersonatedUser(null);
     }
+
+    return () => controller.abort();
   }, [viewAsUserId]);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<LibraryCourse | null>(null);
