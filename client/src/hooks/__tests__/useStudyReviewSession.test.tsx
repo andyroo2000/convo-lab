@@ -626,6 +626,91 @@ describe('useStudyReviewSession', () => {
     });
   });
 
+  it('does not restore a stale session after focus mode exits while loading', async () => {
+    const deferredSession = createDeferred<{
+      overview: typeof baseOverview;
+      cards: (typeof baseCardOne)[];
+    }>();
+    startStudySessionMock.mockReturnValue(deferredSession.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    let enterPromise!: Promise<void>;
+    act(() => {
+      enterPromise = result.current.enterFocusMode();
+    });
+    await waitFor(() => {
+      expect(result.current.sessionLoading).toBe(true);
+    });
+
+    act(() => {
+      result.current.exitFocusMode();
+    });
+    await act(async () => {
+      deferredSession.resolve({ overview: baseOverview, cards: [baseCardOne] });
+      await enterPromise;
+    });
+
+    expect(result.current.focusMode).toBe(false);
+    expect(result.current.sessionLoading).toBe(false);
+    expect(result.current.currentCard).toBeNull();
+  });
+
+  it('does not let a grade from an exited session overwrite a newly opened session', async () => {
+    const deferredReview = createDeferred<{
+      reviewLogId: string;
+      card: typeof baseCardOne;
+      overview: typeof baseOverview;
+    }>();
+    const replacementCard = {
+      ...baseCardOne,
+      id: 'card-replacement',
+      noteId: 'note-replacement',
+    };
+    startStudySessionMock
+      .mockResolvedValueOnce({ overview: baseOverview, cards: [baseCardOne, baseCardTwo] })
+      .mockResolvedValueOnce({ overview: baseOverview, cards: [replacementCard] });
+    reviewMutateAsyncMock.mockReturnValue(deferredReview.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    let gradePromise!: Promise<void>;
+    act(() => {
+      gradePromise = result.current.handleGrade('good');
+    });
+    await waitFor(() => {
+      expect(result.current.reviewBusy).toBe(true);
+    });
+
+    act(() => {
+      result.current.exitFocusMode();
+    });
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    expect(result.current.currentCard?.id).toBe(replacementCard.id);
+
+    await act(async () => {
+      deferredReview.resolve({
+        reviewLogId: 'stale-review-log',
+        card: baseCardOne,
+        overview: baseOverview,
+      });
+      await gradePromise;
+    });
+
+    expect(result.current.currentCard?.id).toBe(replacementCard.id);
+    expect(result.current.masteryAnimation).toBeNull();
+  });
+
   it('increments the failed count for a due card while it waits for its retry due time', async () => {
     const retryDueAt = new Date('2999-04-21T12:05:00.000Z').toISOString();
 
