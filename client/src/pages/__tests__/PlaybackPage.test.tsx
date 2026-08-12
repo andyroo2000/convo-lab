@@ -734,7 +734,7 @@ describe('PlaybackPage', () => {
       await act(async () => generationRequest.promise);
     });
 
-    it('releases generation ownership when a completed job cannot refresh the episode', async () => {
+    it('retries only the episode refresh after completed audio generation', async () => {
       const episodeMissingSpeeds = {
         ...mockEpisode,
         autoGenerateAudio: false,
@@ -742,11 +742,16 @@ describe('PlaybackPage', () => {
         audioUrl_0_85: undefined,
         audioUrl_1_0: undefined,
       };
-      mockGetEpisode.mockImplementation((_id: string, bustCache: boolean) =>
-        bustCache
+      const retryRequest = deferred<Episode>();
+      let bustCacheRequests = 0;
+      mockGetEpisode.mockImplementation((_id: string, bustCache: boolean) => {
+        if (!bustCache) return Promise.resolve(episodeMissingSpeeds);
+
+        bustCacheRequests += 1;
+        return bustCacheRequests === 1
           ? Promise.reject(new Error('reload failed'))
-          : Promise.resolve(episodeMissingSpeeds)
-      );
+          : retryRequest.promise;
+      });
       mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
       vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
@@ -772,8 +777,20 @@ describe('PlaybackPage', () => {
       ).toBeInTheDocument();
       expect(screen.queryByText(/Generating audio at all speeds/)).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Generate Audio' }));
-      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledTimes(2);
+      const retryButton = screen.getByRole('button', { name: 'Retry refresh' });
+      act(() => {
+        retryButton.click();
+        retryButton.click();
+      });
+
+      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledTimes(1);
+      expect(bustCacheRequests).toBe(2);
+
+      retryRequest.resolve(mockEpisode);
+      await act(async () => retryRequest.promise);
+
+      expect(await screen.findByText('Audio is ready!')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Retry refresh' })).not.toBeInTheDocument();
     });
 
     it('stops polling an audio job after navigating to another episode', async () => {
