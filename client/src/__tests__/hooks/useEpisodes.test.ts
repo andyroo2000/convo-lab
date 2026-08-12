@@ -424,6 +424,59 @@ describe('useEpisodes', () => {
 
       expect(status).toBe('failed');
     });
+
+    it('aborts the current status request', async () => {
+      const controller = new AbortController();
+      mockFetch.mockImplementationOnce(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('Polling aborted', 'AbortError'));
+            });
+          })
+      );
+
+      const { result } = renderHook(() => useEpisodes());
+      const poll = result.current.pollJobStatus(
+        'job-123',
+        undefined,
+        'dialogue',
+        controller.signal
+      );
+
+      controller.abort();
+
+      await expect(poll).rejects.toMatchObject({ name: 'AbortError' });
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/convolab/dialogue/job/job-123',
+        expect.objectContaining({ signal: controller.signal })
+      );
+    });
+
+    it('aborts the wait before the next status request', async () => {
+      vi.useFakeTimers();
+      const controller = new AbortController();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ state: 'active' }),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+      const poll = result.current.pollJobStatus(
+        'job-123',
+        undefined,
+        'dialogue',
+        controller.signal
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+
+      controller.abort();
+
+      await expect(poll).rejects.toMatchObject({ name: 'AbortError' });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
   });
 
   describe('Error Handling', () => {

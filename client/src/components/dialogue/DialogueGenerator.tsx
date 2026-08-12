@@ -95,13 +95,14 @@ const DialogueGenerator = () => {
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [generatedEpisodeId, setGeneratedEpisodeId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const courseCreationStartedRef = useRef(false);
+  const pollingRunRef = useRef<symbol | null>(null);
+  const redirectTimerRef = useRef<number | null>(null);
 
   // Helper function to get proficiency level
   const getProficiencyLevel = () => jlptLevel;
 
   const createCourseFromEpisode = useCallback(
-    async (episodeId: string): Promise<string | null> => {
+    async (episodeId: string, signal: AbortSignal): Promise<string | null> => {
       if (!createAudioCourse || !audioCourseEnabled) return null;
 
       const getTargetVoiceGender = (voiceId: string): 'male' | 'female' => {
@@ -113,6 +114,7 @@ const DialogueGenerator = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        signal,
         body: JSON.stringify({
           title: courseTitle.trim(),
           episodeIds: [episodeId],
@@ -139,11 +141,13 @@ const DialogueGenerator = () => {
       }
 
       const course = await createResponse.json();
+      if (signal.aborted) return null;
 
       const generateResponse = await fetch(courseApi.operation(course.id, 'generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        signal,
       });
 
       if (!generateResponse.ok) {
@@ -171,81 +175,122 @@ const DialogueGenerator = () => {
     ]
   );
 
-  // Poll job status when generating
+  // pollJobStatus owns the entire poll-until-terminal loop. This effect owns exactly one
+  // abortable run for the current job and rejects all completions from superseded runs.
   useEffect(() => {
-    if (!jobId || step !== 'generating') return undefined;
+    if (!jobId) return undefined;
 
-    const pollInterval = setInterval(async () => {
-      const status = await pollJobStatus(jobId);
+    if (redirectTimerRef.current !== null) {
+      window.clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+    const controller = new AbortController();
+    const runToken = Symbol(jobId);
+    pollingRunRef.current = runToken;
+    const isCurrentRun = () => pollingRunRef.current === runToken && !controller.signal.aborted;
 
-      if (status === 'completed') {
-        clearInterval(pollInterval);
+    const run = async () => {
+      try {
+        const status = await pollJobStatus(jobId, undefined, 'dialogue', controller.signal);
+        if (!isCurrentRun()) return;
 
-        // Guard against duplicate completion handling from effect restarts
-        if (courseCreationStartedRef.current) return;
-        courseCreationStartedRef.current = true;
+        if (status === 'completed') {
+          setCourseError(null);
 
-        setCourseError(null);
+          let createdCourseId: string | null = null;
 
-        let createdCourseId: string | null = null;
+          // Automatically trigger audio generation after dialogue completes (opt-out)
+          if (generatedEpisodeId && autoGenerateAudio) {
+            try {
+              // Get the episode to find the dialogue ID
+              const episode = await getEpisode(
+                generatedEpisodeId,
+                false,
+                undefined,
+                controller.signal
+              );
+              if (!isCurrentRun()) return;
 
-        // Automatically trigger audio generation after dialogue completes (opt-out)
-        if (generatedEpisodeId && autoGenerateAudio) {
-          try {
-            // Get the episode to find the dialogue ID
-            const episode = await getEpisode(generatedEpisodeId);
-
-            if (episode.dialogue?.id) {
-              // Trigger multi-speed audio generation
-              await generateAllSpeedsAudio(generatedEpisodeId, episode.dialogue.id);
+              if (episode.dialogue?.id) {
+                // Trigger multi-speed audio generation
+                await generateAllSpeedsAudio(
+                  generatedEpisodeId,
+                  episode.dialogue.id,
+                  controller.signal
+                );
+                if (!isCurrentRun()) return;
+              }
+            } catch (audioError) {
+              if (!isCurrentRun()) return;
+              console.error('Failed to trigger audio generation:', audioError);
             }
-          } catch (audioError) {
-            console.error('Failed to trigger audio generation:', audioError);
           }
-        }
 
-        if (generatedEpisodeId && createAudioCourse && audioCourseEnabled) {
-          try {
-            createdCourseId = await createCourseFromEpisode(generatedEpisodeId);
-          } catch (courseErr) {
-            console.error('Failed to create audio course:', courseErr);
-            const message =
-              courseErr instanceof Error
-                ? courseErr.message
-                : t('dialogue:complete.courseFailureFallback');
-            setCourseError(message);
-          }
-        }
-
-        setStep('complete');
-
-        // Invalidate library cache so new episode shows up
-        invalidateLibrary();
-
-        const shouldAutoRedirect = !createAudioCourse || !!createdCourseId;
-
-        if (shouldAutoRedirect) {
-          // Navigate to playback page or course page
-          setTimeout(() => {
-            if (createdCourseId) {
-              navigate(`/app/courses/${createdCourseId}`);
-            } else if (generatedEpisodeId) {
-              navigate(`/app/playback/${generatedEpisodeId}`);
+          if (generatedEpisodeId && createAudioCourse && audioCourseEnabled) {
+            try {
+              createdCourseId = await createCourseFromEpisode(
+                generatedEpisodeId,
+                controller.signal
+              );
+              if (!isCurrentRun()) return;
+            } catch (courseErr) {
+              if (!isCurrentRun()) return;
+              console.error('Failed to create audio course:', courseErr);
+              const message =
+                courseErr instanceof Error
+                  ? courseErr.message
+                  : t('dialogue:complete.courseFailureFallback');
+              setCourseError(message);
             }
-          }, 2000);
+          }
+
+          if (!isCurrentRun()) return;
+          setStep('complete');
+
+          // Invalidate library cache so new episode shows up
+          invalidateLibrary();
+
+          const shouldAutoRedirect = !createAudioCourse || !!createdCourseId;
+
+          if (shouldAutoRedirect) {
+            // Navigate to playback page or course page
+            redirectTimerRef.current = window.setTimeout(() => {
+              redirectTimerRef.current = null;
+              if (!isCurrentRun()) return;
+              if (createdCourseId) {
+                navigate(`/app/courses/${createdCourseId}`);
+              } else if (generatedEpisodeId) {
+                navigate(`/app/playback/${generatedEpisodeId}`);
+              }
+            }, 2000);
+          }
+        } else if (status === 'failed') {
+          setJobId(null);
+          setStep('input');
+          // eslint-disable-next-line no-alert
+          alert(t('dialogue:alerts.generationFailed'));
         }
-      } else if (status === 'failed') {
-        clearInterval(pollInterval);
-        setStep('input');
-        // eslint-disable-next-line no-alert
-        alert(t('dialogue:alerts.generationFailed'));
+      } catch (pollError) {
+        if (isCurrentRun()) {
+          console.error('Failed to poll dialogue generation:', pollError);
+        }
       }
-    }, 5000); // Poll every 5 seconds (reduced from 2s to minimize Redis usage)
+    };
 
-    return () => clearInterval(pollInterval);
+    run().catch(() => undefined);
+
+    return () => {
+      if (pollingRunRef.current === runToken) {
+        pollingRunRef.current = null;
+      }
+      controller.abort();
+      if (redirectTimerRef.current !== null) {
+        window.clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
   }, [
     jobId,
-    step,
     generatedEpisodeId,
     autoGenerateAudio,
     createAudioCourse,
@@ -286,7 +331,6 @@ const DialogueGenerator = () => {
 
     try {
       setCourseError(null);
-      courseCreationStartedRef.current = false;
       setStep('generating');
 
       // Get the appropriate proficiency level based on target language

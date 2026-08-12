@@ -13,6 +13,28 @@ interface ErrorWithMetadata {
   };
 }
 
+function pollingDelay(delay: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Polling aborted', 'AbortError'));
+      return;
+    }
+
+    let timeoutId: number | undefined;
+    const onAbort = () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+      reject(new DOMException('Polling aborted', 'AbortError'));
+    };
+    timeoutId = window.setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, delay);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
 // Named export is intentional for hooks
 // eslint-disable-next-line import/prefer-default-export
 export function useEpisodes() {
@@ -150,7 +172,7 @@ export function useEpisodes() {
   };
 
   const generateAllSpeedsAudio = useCallback(
-    async (episodeId: string, dialogueId: string): Promise<string> => {
+    async (episodeId: string, dialogueId: string, signal?: AbortSignal): Promise<string> => {
       setLoading(true);
       setError(null);
 
@@ -161,6 +183,7 @@ export function useEpisodes() {
             'Content-Type': 'application/json',
           },
           credentials: 'include',
+          signal,
           body: JSON.stringify({ episodeId, dialogueId }),
         });
 
@@ -184,7 +207,12 @@ export function useEpisodes() {
   );
 
   const getEpisode = useCallback(
-    async (episodeId: string, bustCache = false, viewAsUserId?: string): Promise<Episode> => {
+    async (
+      episodeId: string,
+      bustCache = false,
+      viewAsUserId?: string,
+      signal?: AbortSignal
+    ): Promise<Episode> => {
       setLoading(true);
       setError(null);
 
@@ -199,6 +227,7 @@ export function useEpisodes() {
 
         const response = await fetch(url, {
           credentials: 'include',
+          signal,
           ...(bustCache && { cache: 'no-store' }), // Also prevent browser caching
         });
 
@@ -245,7 +274,8 @@ export function useEpisodes() {
     async (
       jobId: string,
       onStatusChange?: (status: 'completed' | 'failed' | 'pending') => void | Promise<void>,
-      endpoint: 'dialogue' | 'audio' = 'dialogue'
+      endpoint: 'dialogue' | 'audio' = 'dialogue',
+      signal?: AbortSignal
     ): Promise<'completed' | 'failed' | 'pending'> => {
       const checkStatus = async (): Promise<'completed' | 'failed' | 'pending'> => {
         const MAX_RETRIES = 3;
@@ -256,6 +286,7 @@ export function useEpisodes() {
             // eslint-disable-next-line no-await-in-loop -- Sequential retry attempts required
             const response = await fetch(generationApi[endpoint].job(jobId), {
               credentials: 'include',
+              signal,
             });
 
             if (!response.ok) {
@@ -265,9 +296,7 @@ export function useEpisodes() {
                   `Transient error ${response.status} polling job status, retrying in ${RETRY_DELAYS[attempt]}ms...`
                 );
                 // eslint-disable-next-line no-await-in-loop -- Delay needed for retry backoff
-                await new Promise((resolve) => {
-                  setTimeout(resolve, RETRY_DELAYS[attempt]);
-                });
+                await pollingDelay(RETRY_DELAYS[attempt], signal);
                 // eslint-disable-next-line no-continue -- Continue needed to retry on transient errors
                 continue; // Retry
               }
@@ -280,6 +309,9 @@ export function useEpisodes() {
             if (data.state === 'failed') return 'failed';
             return 'pending';
           } catch (err) {
+            if (signal?.aborted) {
+              throw err;
+            }
             // Network errors or other failures
             if (attempt < MAX_RETRIES - 1) {
               console.warn(
@@ -288,9 +320,7 @@ export function useEpisodes() {
               );
               console.warn(`Retrying in ${RETRY_DELAYS[attempt]}ms...`);
               // eslint-disable-next-line no-await-in-loop -- Delay needed for retry backoff
-              await new Promise((resolve) => {
-                setTimeout(resolve, RETRY_DELAYS[attempt]);
-              });
+              await pollingDelay(RETRY_DELAYS[attempt], signal);
               // eslint-disable-next-line no-continue -- Continue needed to retry on network errors
               continue; // Retry
             }
@@ -307,19 +337,28 @@ export function useEpisodes() {
       // Poll every 2 seconds until completed or failed
       let status: 'completed' | 'failed' | 'pending' = 'pending';
       while (status === 'pending') {
+        if (signal?.aborted) {
+          throw new DOMException('Polling aborted', 'AbortError');
+        }
         // eslint-disable-next-line no-await-in-loop -- Sequential status check required
         status = await checkStatus();
+
+        if (signal?.aborted) {
+          throw new DOMException('Polling aborted', 'AbortError');
+        }
 
         if (onStatusChange) {
           // eslint-disable-next-line no-await-in-loop -- Callback execution must complete before next poll
           await onStatusChange(status);
         }
 
+        if (signal?.aborted) {
+          throw new DOMException('Polling aborted', 'AbortError');
+        }
+
         if (status === 'pending') {
           // eslint-disable-next-line no-await-in-loop -- Polling interval delay required
-          await new Promise((resolve) => {
-            setTimeout(resolve, 2000);
-          });
+          await pollingDelay(2000, signal);
         }
       }
 

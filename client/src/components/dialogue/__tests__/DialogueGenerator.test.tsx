@@ -15,6 +15,17 @@ const mockPollJobStatus = vi.fn();
 const mockNavigate = vi.fn();
 const mockInvalidateLibrary = vi.fn();
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return { promise, resolve, reject };
+}
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
@@ -412,7 +423,10 @@ describe('DialogueGenerator', () => {
   });
 
   describe('job polling', () => {
-    it('should poll for job status after generation starts', async () => {
+    it('starts exactly one poll-until-terminal owner for a long-running job', async () => {
+      const pendingPoll = deferred<'completed' | 'failed' | 'pending'>();
+      mockPollJobStatus.mockReturnValue(pendingPoll.promise);
+
       renderDialogueGenerator();
 
       const input = screen.getByTestId('dialogue-input-source-text');
@@ -424,48 +438,48 @@ describe('DialogueGenerator', () => {
         fireEvent.click(button);
       });
 
-      // Advance timer to trigger polling
       await act(async () => {
-        vi.advanceTimersByTime(5000);
+        await Promise.resolve();
       });
 
-      expect(mockPollJobStatus).toHaveBeenCalledWith('job-123');
+      await act(async () => {
+        vi.advanceTimersByTime(20_000);
+      });
+
+      expect(mockPollJobStatus).toHaveBeenCalledTimes(1);
+      expect(mockPollJobStatus).toHaveBeenCalledWith(
+        'job-123',
+        undefined,
+        'dialogue',
+        expect.any(AbortSignal)
+      );
     });
 
-    it('should continue polling until completed', async () => {
-      mockPollJobStatus
-        .mockResolvedValueOnce('pending')
-        .mockResolvedValueOnce('pending')
-        .mockResolvedValueOnce('completed');
+    it('aborts polling and ignores a terminal result after unmount', async () => {
+      const pendingPoll = deferred<'completed' | 'failed' | 'pending'>();
+      mockPollJobStatus.mockReturnValue(pendingPoll.promise);
+      const view = renderDialogueGenerator();
 
-      renderDialogueGenerator();
-
-      const input = screen.getByTestId('dialogue-input-source-text');
-      fireEvent.change(input, { target: { value: 'My story' } });
-
-      const button = screen.getByTestId('dialogue-button-generate');
-
+      fireEvent.change(screen.getByTestId('dialogue-input-source-text'), {
+        target: { value: 'My story' },
+      });
       await act(async () => {
-        fireEvent.click(button);
+        fireEvent.click(screen.getByTestId('dialogue-button-generate'));
       });
 
-      // First poll
-      await act(async () => {
-        vi.advanceTimersByTime(5000);
-      });
-      expect(mockPollJobStatus).toHaveBeenCalledTimes(1);
+      const signal = mockPollJobStatus.mock.calls[0]?.[3] as AbortSignal;
+      view.unmount();
+      expect(signal.aborted).toBe(true);
 
-      // Second poll
       await act(async () => {
-        vi.advanceTimersByTime(5000);
+        pendingPoll.resolve('completed');
+        await pendingPoll.promise;
       });
-      expect(mockPollJobStatus).toHaveBeenCalledTimes(2);
 
-      // Third poll (completes)
-      await act(async () => {
-        vi.advanceTimersByTime(5000);
-      });
-      expect(mockPollJobStatus).toHaveBeenCalledTimes(3);
+      expect(mockGetEpisode).not.toHaveBeenCalled();
+      expect(mockGenerateAllSpeedsAudio).not.toHaveBeenCalled();
+      expect(mockInvalidateLibrary).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 
@@ -537,6 +551,28 @@ describe('DialogueGenerator', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/app/playback/episode-123');
     });
 
+    it('cancels the delayed redirect when unmounted after completion', async () => {
+      mockPollJobStatus.mockResolvedValue('completed');
+      const view = renderDialogueGenerator();
+
+      fireEvent.change(screen.getByTestId('dialogue-input-source-text'), {
+        target: { value: 'My story' },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('dialogue-button-generate'));
+        await Promise.resolve();
+      });
+
+      expect(screen.getByText('Dialogue Generated!')).toBeInTheDocument();
+      view.unmount();
+
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
     it('should trigger audio generation after dialogue completes', async () => {
       mockPollJobStatus.mockResolvedValue('completed');
 
@@ -555,8 +591,17 @@ describe('DialogueGenerator', () => {
         vi.advanceTimersByTime(5000);
       });
 
-      expect(mockGetEpisode).toHaveBeenCalledWith('episode-123');
-      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith('episode-123', 'dialogue-123');
+      expect(mockGetEpisode).toHaveBeenCalledWith(
+        'episode-123',
+        false,
+        undefined,
+        expect.any(AbortSignal)
+      );
+      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith(
+        'episode-123',
+        'dialogue-123',
+        expect.any(AbortSignal)
+      );
     });
 
     it('should invalidate library cache on completion', async () => {
@@ -583,8 +628,7 @@ describe('DialogueGenerator', () => {
 
   describe('failure handling', () => {
     it('should return to input state on job failure', async () => {
-      // Start with pending, then fail
-      mockPollJobStatus.mockResolvedValueOnce('pending').mockResolvedValueOnce('failed');
+      mockPollJobStatus.mockResolvedValue('failed');
 
       const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -599,12 +643,6 @@ describe('DialogueGenerator', () => {
         fireEvent.click(button);
       });
 
-      // First poll (pending)
-      await act(async () => {
-        vi.advanceTimersByTime(5000);
-      });
-
-      // Second poll (failed)
       await act(async () => {
         vi.advanceTimersByTime(5000);
       });
