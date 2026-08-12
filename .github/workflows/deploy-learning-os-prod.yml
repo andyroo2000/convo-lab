@@ -304,7 +304,7 @@ jobs:
             fi
 
             echo "$DEPLOY_GITHUB_TOKEN" | docker login ghcr.io -u "$DEPLOY_GITHUB_ACTOR" --password-stdin
-            timeout 600 $COMPOSE pull learning-os learning-os-worker
+            timeout 600 $COMPOSE pull learning-os learning-os-worker learning-os-scheduler
             $COMPOSE up -d postgres
 
             $COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force < /dev/null
@@ -426,11 +426,81 @@ jobs:
               DRAINING_WORKER_CONTAINER_ID=""
             }
 
+            ensure_learning_os_scheduler() {
+              container="learning-os-scheduler"
+              current_image="$(docker inspect --format='{{.Config.Image}}' "$container" 2>/dev/null || true)"
+              running="$(docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null || true)"
+              current_command="$(docker inspect --format='{{join .Config.Cmd " "}}' "$container" 2>/dev/null || true)"
+              current_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
+              current_auth_mail_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
+              current_google_oauth_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
+              desired_scheduler_command="php artisan schedule:work"
+
+              if [ "$current_image" = "$desired_learning_os_image" ] \
+                && [ "$running" = true ] \
+                && [ "$current_config_revision" = "$desired_deploy_config_revision" ] \
+                && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ] \
+                && [ "$current_google_oauth_config_revision" = "$google_oauth_config_revision" ] \
+                && [[ "$current_command" = "$desired_scheduler_command" ]]; then
+                echo "Reusing running $container on immutable image $desired_learning_os_image."
+                return
+              fi
+
+              $COMPOSE up -d --no-deps --force-recreate learning-os-scheduler
+            }
+
+            verify_learning_os_scheduler() {
+              scheduler_image="$(docker inspect --format='{{.Config.Image}}' learning-os-scheduler)"
+              if [ "$scheduler_image" != "$desired_learning_os_image" ]; then
+                echo "Learning OS scheduler uses $scheduler_image instead of $desired_learning_os_image."
+                return 1
+              fi
+
+              scheduler_command="$(docker inspect --format='{{join .Config.Cmd " "}}' learning-os-scheduler)"
+              if [ "$scheduler_command" != "php artisan schedule:work" ]; then
+                echo "Learning OS scheduler has unexpected PID 1 command: $scheduler_command"
+                return 1
+              fi
+
+              schedule_output="$(docker exec learning-os-scheduler php artisan schedule:list)"
+              printf '%s\n' "$schedule_output"
+              if ! grep -Fq 'study:prune-import-archives' <<< "$schedule_output"; then
+                echo "Learning OS archive cleanup is not registered with the scheduler."
+                return 1
+              fi
+
+              dry_run_output="$(docker exec learning-os-scheduler php artisan study:prune-import-archives --dry-run)"
+              printf '%s\n' "$dry_run_output"
+              if ! grep -Eq \
+                'Dry run completed: [0-9]+ candidate\(s\), 0 deleted, 0 already missing, 0 failed \(0 unsafe\)\.' \
+                <<< "$dry_run_output"; then
+                echo "Learning OS archive cleanup dry run returned an unexpected summary."
+                return 1
+              fi
+
+              echo "Learning OS scheduler registration and dry-run smoke checks passed."
+            }
+
             # Reconcile independently so an unchanged busy worker is not drained.
             ensure_learning_os_service learning-os learning-os-api
             ensure_learning_os_worker
+            ensure_learning_os_scheduler
             wait_for_health learning-os-api
             wait_for_health learning-os-worker
+            wait_for_health learning-os-scheduler
+            verify_learning_os_scheduler
 
             docker exec \
               -e EXPECTED_CLIENT_URL="$client_url" \
@@ -3373,7 +3443,7 @@ jobs:
             cleanup_deployment_resources
             trap - EXIT
 
-            $COMPOSE ps learning-os learning-os-worker "server-$active_color"
+            $COMPOSE ps learning-os learning-os-worker learning-os-scheduler "server-$active_color"
             echo "Learning OS production deployment completed."
           ENDSSH
 

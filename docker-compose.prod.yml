@@ -177,6 +177,17 @@ services:
       retries: 3
       start_period: 10s
 
+  learning-os-scheduler:
+    <<: *learning-os-service
+    container_name: learning-os-scheduler
+    command: ['php', 'artisan', 'schedule:work']
+    healthcheck:
+      test: ['CMD-SHELL', "tr '\\0' ' ' < /proc/1/cmdline | grep -q 'artisan schedule:work'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   deployment-tools:
     image: node:20-alpine@sha256:658d0f63e501824d6c23e06d4bb95c71e7d704537c9d9272f488ac03a370d448
     container_name: convolab-deployment-tools
