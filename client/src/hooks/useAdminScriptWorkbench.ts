@@ -209,11 +209,14 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
           throw new Error(data.message || 'Failed to build script config');
         }
         const data = await response.json();
-        if (isCurrentCourse()) setScriptConfig(data.config);
+        if (!isCurrentCourse()) return false;
+        setScriptConfig(data.config);
+        return true;
       } catch (caught) {
         if (!silent && isCurrentCourse()) {
           setError(caught instanceof Error ? caught.message : 'Failed to build script config');
         }
+        return false;
       } finally {
         if (!silent && isCurrentCourse()) setLoading(null);
       }

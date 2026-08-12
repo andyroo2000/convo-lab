@@ -5,7 +5,7 @@ interface AdminScriptWorkbenchDialogueSectionProps {
   editingExchange: number | null;
   exchanges: DialogueExchange[];
   loading: boolean;
-  onBuildScriptConfig: () => Promise<void>;
+  onBuildScriptConfig: () => Promise<boolean>;
   onEditFormChange: (exchange: DialogueExchange | null) => void;
   onEditingExchangeChange: (index: number | null) => void;
   onNavigate: (stage: PipelineStage) => void;
@@ -47,8 +47,7 @@ const AdminScriptWorkbenchDialogueSection = ({
             <button
               type="button"
               onClick={async () => {
-                await onBuildScriptConfig();
-                onNavigate('config');
+                if (await onBuildScriptConfig()) onNavigate('config');
               }}
               disabled={loading}
               className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
