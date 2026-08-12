@@ -266,20 +266,31 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
 
   const handleSaveExchangeEdit = async () => {
     if (editingExchange === null || !editForm || !exchanges) return;
+    const previousExchanges = exchanges;
     const updatedExchanges = [...exchanges];
     updatedExchanges[editingExchange] = editForm;
+    setError(null);
     setExchanges(updatedExchanges);
     setEditingExchange(null);
     setEditForm(null);
     try {
-      await fetch(adminApi.adminCourseOperation(courseId, 'pipeline-data'), {
+      const response = await fetch(adminApi.adminCourseOperation(courseId, 'pipeline-data'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ stage: 'exchanges', data: updatedExchanges }),
       });
-    } catch {
-      if (isCurrentCourse()) setError('Failed to save exchange edit');
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(
+          data && typeof data.message === 'string' ? data.message : 'Failed to save exchange edit'
+        );
+      }
+    } catch (caught) {
+      if (isCurrentCourse()) {
+        setExchanges(previousExchanges);
+        setError(caught instanceof Error ? caught.message : 'Failed to save exchange edit');
+      }
     }
   };
 
