@@ -523,6 +523,17 @@ describe('PlaybackPage', () => {
 
       expect(mockSeek).toHaveBeenCalledWith(1);
     });
+
+    it('does not hijack Space from focused playback controls', async () => {
+      renderPlaybackPage();
+
+      const furiganaButton = await screen.findByRole('button', { name: 'Furigana' });
+      const wasNotPrevented = fireEvent.keyDown(furiganaButton, { key: ' ', code: 'Space' });
+
+      expect(wasNotPrevented).toBe(true);
+      expect(mockPlay).not.toHaveBeenCalled();
+      expect(mockPause).not.toHaveBeenCalled();
+    });
   });
 
   describe('speed selector', () => {
@@ -589,6 +600,17 @@ describe('PlaybackPage', () => {
       fireEvent.click(sentence);
 
       expect(mockPlay).toHaveBeenCalled();
+    });
+
+    it('activates a focused sentence with Space instead of toggling global playback', async () => {
+      renderPlaybackPage();
+
+      const sentence = await screen.findByTestId('playback-sentence-sentence-2');
+      const wasNotPrevented = fireEvent.keyDown(sentence, { key: ' ', code: 'Space' });
+
+      expect(wasNotPrevented).toBe(false);
+      expect(mockSeek).toHaveBeenCalledWith(2.353);
+      expect(mockPlay).toHaveBeenCalledOnce();
     });
   });
 

@@ -8,11 +8,8 @@ import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
 import usePlaybackAudioGeneration from '../hooks/usePlaybackAudioGeneration';
-import {
-  getSentenceNavigationTargetMs,
-  getSentenceTiming,
-  isSentenceActive,
-} from '../lib/playbackTiming';
+import usePlaybackKeyboardControls from '../hooks/usePlaybackKeyboardControls';
+import { getSentenceTiming, isSentenceActive } from '../lib/playbackTiming';
 import { Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
@@ -87,6 +84,16 @@ const PlaybackPage = () => {
 
   useWarmAudioCache(episodeAudioUrls, Boolean(episode && !isGeneratingAudio));
 
+  usePlaybackKeyboardControls({
+    currentTimeSeconds: currentTime,
+    isPlaying,
+    pause,
+    play,
+    seek,
+    selectedSpeed,
+    sentences: episode?.dialogue?.sentences ?? [],
+  });
+
   // Helper function to get speaker avatar URL from GCS
   const getSpeakerAvatarUrl = (
     speaker: Speaker,
@@ -99,53 +106,6 @@ const PlaybackPage = () => {
     // Return GCS URL if available, otherwise return a placeholder
     return url || '/placeholder-avatar.jpg';
   };
-
-  // Keyboard controls: Space bar to play/pause, Arrow keys to navigate turns
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input or textarea
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.tagName === 'SELECT'
-      ) {
-        return;
-      }
-
-      // Handle space bar for play/pause
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (isPlaying) {
-          pause();
-        } else {
-          play();
-        }
-        return;
-      }
-
-      // Handle arrow keys for turn navigation
-      if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
-        e.preventDefault();
-
-        if (!episode?.dialogue?.sentences || episode.dialogue.sentences.length === 0) return;
-
-        const { sentences } = episode.dialogue;
-        const currentTimeMs = currentTime * 1000;
-        const targetTimeMs = getSentenceNavigationTargetMs(
-          sentences,
-          selectedSpeed,
-          currentTimeMs,
-          e.code === 'ArrowLeft' ? 'previous' : 'next'
-        );
-
-        if (targetTimeMs !== undefined) seek(targetTimeMs / 1000);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, play, pause, episode, currentTime, seek, selectedSpeed]);
 
   // Auto-scroll to currently playing sentence
   useEffect(() => {
@@ -408,7 +368,12 @@ const PlaybackPage = () => {
                 borderLeft: `4px solid ${borderTone}`,
               }}
               onClick={() => seekToSentence(sentence)}
-              onKeyDown={(e) => e.key === 'Enter' && seekToSentence(sentence)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+
+                event.preventDefault();
+                seekToSentence(sentence);
+              }}
               role="button"
               tabIndex={0}
               data-testid={`playback-sentence-${sentence.id}`}
