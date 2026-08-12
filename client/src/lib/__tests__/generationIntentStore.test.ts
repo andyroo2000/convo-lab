@@ -34,6 +34,7 @@ describe('generationIntentStore', () => {
     expect(readGenerationIntent('owner-a', 'dialogue')).toEqual(intent);
     expect(readGenerationIntent('owner-b', 'dialogue')).toBeNull();
     expect(readGenerationIntent('owner-a', 'course')).toBeNull();
+    expect(readGenerationIntent('owner-a', 'dialogue-course')).toBeNull();
   });
 
   it('only removes the exact intent that was acknowledged', () => {
@@ -56,6 +57,13 @@ describe('generationIntentStore', () => {
     expect(() => writeGenerationIntent('owner-a', 'dialogue', { sourceText: 'Story' })).toThrow(
       GenerationIntentStorageError
     );
+    expect(window.localStorage.length).toBe(0);
+  });
+
+  it('quarantines corrupt saved intents instead of retrying them forever', () => {
+    window.localStorage.setItem('convolab.generationIntent.v1.owner-a.dialogue', '{not-valid-json');
+
+    expect(() => readGenerationIntent('owner-a', 'dialogue')).toThrow(GenerationIntentStorageError);
     expect(window.localStorage.length).toBe(0);
   });
 });

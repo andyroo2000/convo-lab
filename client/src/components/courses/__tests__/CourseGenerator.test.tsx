@@ -63,15 +63,17 @@ describe('CourseGenerator paid submission intent', () => {
       randomUUID: vi.fn().mockReturnValue('11111111-1111-4111-8111-111111111111'),
     });
     vi.stubGlobal('fetch', mockFetch);
-    mockFetch.mockResolvedValueOnce(jsonResponse({ id: 'course-123' })).mockResolvedValueOnce(
-      jsonResponse({
-        clientRequestId: '11111111-1111-4111-8111-111111111111',
-        state: 'pending',
-        jobId: 'course-123',
-        courseId: 'course-123',
-        message: 'Course generation started',
-      })
-    );
+    mockFetch
+      .mockResolvedValueOnce(jsonResponse({ id: '11111111-1111-4111-8111-111111111111' }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          clientRequestId: '11111111-1111-4111-8111-111111111111',
+          state: 'pending',
+          jobId: 'job-123',
+          courseId: '11111111-1111-4111-8111-111111111111',
+          message: 'Course generation started',
+        })
+      );
   });
 
   it('reuses one durable request ID for course creation and generation', async () => {
@@ -90,10 +92,46 @@ describe('CourseGenerator paid submission intent', () => {
     expect(mockInvalidateLibrary).toHaveBeenCalledOnce();
   });
 
+  it('does not start a paid request when the intent cannot be stored durably', async () => {
+    mockFetch.mockReset();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    });
+    renderCourseGenerator();
+    fireEvent.change(screen.getByLabelText(/Course Title/i), { target: { value: 'My Course' } });
+    fireEvent.change(screen.getByLabelText(/Your Story/i), { target: { value: 'A trip' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Audio Course/i }));
+
+    expect(await screen.findByText(/Could not save the generation request/)).toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('blocks a second submission fired in the same browser frame', async () => {
+    mockFetch.mockReset();
+    let resolveCreate!: (response: Response) => void;
+    mockFetch.mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveCreate = resolve;
+        })
+    );
+    renderCourseGenerator();
+    fireEvent.change(screen.getByLabelText(/Course Title/i), { target: { value: 'My Course' } });
+    fireEvent.change(screen.getByLabelText(/Your Story/i), { target: { value: 'A trip' } });
+    const button = screen.getByRole('button', { name: /Create Audio Course/i });
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    resolveCreate(jsonResponse({ id: 'course-123' }));
+  });
+
   it('keeps the saved intent when the generation response is lost and replays it on reload', async () => {
     mockFetch.mockReset();
     mockFetch
-      .mockResolvedValueOnce(jsonResponse({ id: 'course-123' }))
+      .mockResolvedValueOnce(jsonResponse({ id: '11111111-1111-4111-8111-111111111111' }))
       .mockRejectedValueOnce(new TypeError('Network connection lost'));
     const view = renderCourseGenerator();
     fireEvent.change(screen.getByLabelText(/Course Title/i), { target: { value: 'My Course' } });
@@ -104,12 +142,14 @@ describe('CourseGenerator paid submission intent', () => {
     view.unmount();
 
     mockFetch
-      .mockResolvedValueOnce(jsonResponse({ id: 'course-123', existing: true }))
+      .mockResolvedValueOnce(
+        jsonResponse({ id: '11111111-1111-4111-8111-111111111111', existing: true })
+      )
       .mockResolvedValueOnce(
         jsonResponse({
           clientRequestId: '11111111-1111-4111-8111-111111111111',
           state: 'pending',
-          jobId: 'course-123',
+          jobId: 'job-123',
           message: 'Course generation started',
         })
       );
@@ -126,15 +166,17 @@ describe('CourseGenerator paid submission intent', () => {
 
   it('retains a typed conflict until the user starts a new request', async () => {
     mockFetch.mockReset();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ id: 'course-123' })).mockResolvedValueOnce(
-      jsonResponse(
-        {
-          code: 'idempotency_conflict',
-          message: 'Client request ID was already used for a different generation request.',
-        },
-        409
-      )
-    );
+    mockFetch
+      .mockResolvedValueOnce(jsonResponse({ id: '11111111-1111-4111-8111-111111111111' }))
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            code: 'idempotency_conflict',
+            message: 'Client request ID was already used for a different generation request.',
+          },
+          409
+        )
+      );
     renderCourseGenerator();
     fireEvent.change(screen.getByLabelText(/Course Title/i), { target: { value: 'My Course' } });
     fireEvent.change(screen.getByLabelText(/Your Story/i), { target: { value: 'A trip' } });

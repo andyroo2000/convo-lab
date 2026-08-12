@@ -145,6 +145,12 @@ const DialogueGenerator = () => {
   const submissionInFlightRef = useRef(false);
   const courseRecoveryInFlightRef = useRef(false);
 
+  const scopedRoute = useCallback(
+    (path: string, scopedUserId = viewAsUserId) =>
+      scopedUserId ? `${path}?${new URLSearchParams({ viewAs: scopedUserId })}` : path,
+    [viewAsUserId]
+  );
+
   // Helper function to get proficiency level
   const getProficiencyLevel = () => jlptLevel;
 
@@ -176,8 +182,8 @@ const DialogueGenerator = () => {
         ...(viewAsUserId ? { viewAsUserId } : {}),
       };
       const intent =
-        readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'course') ??
-        writeGenerationIntent(ownerId, 'course', payload);
+        readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'dialogue-course') ??
+        writeGenerationIntent(ownerId, 'dialogue-course', payload);
       try {
         const { courseId, acknowledgement } = await submitCourseGenerationIntent(
           intent.intentId,
@@ -194,6 +200,7 @@ const DialogueGenerator = () => {
         if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
           acknowledgeGenerationIntent(intent);
         }
+        if (isGenerationRequestConflict(caught)) setConflictedCourseIntent(intent);
         throw caught;
       }
     },
@@ -295,9 +302,9 @@ const DialogueGenerator = () => {
               redirectTimerRef.current = null;
               if (!isCurrentRun()) return;
               if (createdCourseId) {
-                navigate(`/app/courses/${createdCourseId}`);
+                navigate(scopedRoute(`/app/courses/${createdCourseId}`));
               } else if (generatedEpisodeId) {
-                navigate(`/app/playback/${generatedEpisodeId}`);
+                navigate(scopedRoute(`/app/playback/${generatedEpisodeId}`));
               }
             }, 2000);
           }
@@ -337,6 +344,7 @@ const DialogueGenerator = () => {
     getEpisode,
     generateAllSpeedsAudio,
     navigate,
+    scopedRoute,
   ]);
 
   const runDialogueIntent = useCallback(
@@ -398,9 +406,14 @@ const DialogueGenerator = () => {
     if (!ownerId || courseRecoveryInFlightRef.current) return;
 
     try {
-      const savedIntent = readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'course');
+      const savedIntent = readGenerationIntent<CourseGenerationIntentPayload>(
+        ownerId,
+        'dialogue-course'
+      );
       if (!savedIntent) return;
       courseRecoveryInFlightRef.current = true;
+      const recoveredEpisodeId = savedIntent.payload.course.episodeIds?.[0];
+      if (recoveredEpisodeId) setGeneratedEpisodeId(recoveredEpisodeId);
       setStep('generating');
       submitCourseGenerationIntent(savedIntent.intentId, savedIntent.payload)
         .then(({ courseId, acknowledgement }) => {
@@ -410,7 +423,7 @@ const DialogueGenerator = () => {
           }
           setStep('complete');
           invalidateLibrary();
-          navigate(`/app/courses/${courseId}`);
+          navigate(scopedRoute(`/app/courses/${courseId}`, savedIntent.payload.viewAsUserId));
         })
         .catch((caught: unknown) => {
           if (isAcknowledgedGenerationFailure(caught, savedIntent.intentId)) {
@@ -428,7 +441,7 @@ const DialogueGenerator = () => {
         caught instanceof Error ? caught.message : 'Could not recover the saved course request.'
       );
     }
-  }, [invalidateLibrary, navigate, user?.id, viewAsUserId]);
+  }, [invalidateLibrary, navigate, scopedRoute, user?.id, viewAsUserId]);
 
   useEffect(() => {
     const ownerId = viewAsUserId ?? user?.id;
@@ -617,7 +630,7 @@ const DialogueGenerator = () => {
                 <button
                   type="button"
                   className="retro-dialogue-create-v3-alert-btn"
-                  onClick={() => navigate(`/app/playback/${generatedEpisodeId}`)}
+                  onClick={() => navigate(scopedRoute(`/app/playback/${generatedEpisodeId}`))}
                 >
                   {t('dialogue:complete.courseFailureCta')}
                 </button>

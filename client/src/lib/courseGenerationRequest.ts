@@ -53,6 +53,9 @@ export async function submitCourseGenerationIntent(
     { ...payload.course, id: intentId },
     signal
   );
+  if (course.id !== intentId) {
+    throw new Error('The server created a different course for this generation request.');
+  }
 
   const acknowledgement = await postJson<GenerationRequestAcknowledgement>(
     `${courseApi.operation(course.id, 'generate')}${viewAsParam}`,

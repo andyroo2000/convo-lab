@@ -1,6 +1,6 @@
 const STORAGE_KEY_PREFIX = 'convolab.generationIntent.v1.';
 
-export type GenerationIntentKind = 'dialogue' | 'course';
+export type GenerationIntentKind = 'dialogue' | 'course' | 'dialogue-course';
 
 export interface GenerationIntent<TPayload extends object = Record<string, unknown>> {
   version: 1;
@@ -73,9 +73,19 @@ export function readGenerationIntent<TPayload extends object>(
       return parsed as GenerationIntent<TPayload>;
     }
   } catch (error) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // The original corruption error is the actionable failure.
+    }
     throw new GenerationIntentStorageError('The saved generation request is corrupt.', error);
   }
 
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // The invalid payload stays isolated to this owner and operation.
+  }
   throw new GenerationIntentStorageError(
     'The saved generation request has an unsupported format.',
     null
