@@ -495,6 +495,36 @@ describe('PlaybackPage', () => {
     });
   });
 
+  describe('keyboard sentence navigation', () => {
+    it('seeks to the first sentence when ArrowRight is pressed before dialogue starts', async () => {
+      const [firstSentence, secondSentence] = mockEpisode.dialogue!.sentences;
+      mockGetEpisode.mockResolvedValue({
+        ...mockEpisode,
+        dialogue: {
+          ...mockEpisode.dialogue!,
+          sentences: [
+            {
+              ...firstSentence,
+              startTime_0_85: 1000,
+              endTime_0_85: 3000,
+            },
+            {
+              ...secondSentence,
+              startTime_0_85: 4000,
+              endTime_0_85: 6000,
+            },
+          ],
+        },
+      });
+
+      renderPlaybackPage();
+      await screen.findByText('Test Episode');
+      fireEvent.keyDown(window, { key: 'ArrowRight', code: 'ArrowRight' });
+
+      expect(mockSeek).toHaveBeenCalledWith(1);
+    });
+  });
+
   describe('speed selector', () => {
     it('should render speed selector when audio is available', async () => {
       renderPlaybackPage();
