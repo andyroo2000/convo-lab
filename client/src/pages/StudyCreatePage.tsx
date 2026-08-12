@@ -183,6 +183,7 @@ const StudyCreatePage = () => {
   const {
     cancelScheduledSave: cancelManualDraftAutosave,
     flushSave: flushManualDraftAutosave,
+    flushScheduledSave: flushScheduledManualDraftAutosave,
     scheduleSave: scheduleManualDraftAutosave,
     waitForIdle: waitForManualDraftAutosave,
   } = useStudyDraftAutosaveQueue(updateDraft.mutateAsync);
@@ -566,11 +567,13 @@ const StudyCreatePage = () => {
         manualDraftsQuery.fetchNextPage().catch(() => undefined);
       }}
       onNewDraft={() => {
+        flushScheduledManualDraftAutosave()?.catch(() => undefined);
         setSelectedManualDraftId(null);
         resetManualComposer(creationKind);
         setManualSuccess(null);
       }}
       onSelectDraft={(draftId) => {
+        flushScheduledManualDraftAutosave()?.catch(() => undefined);
         setMode('manual');
         setSelectedManualDraftId(draftId);
       }}
