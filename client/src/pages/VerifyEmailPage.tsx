@@ -46,13 +46,14 @@ const VerifyEmailPage = () => {
       redirectTimerRef.current = null;
     }
 
+    setResendError('');
+    setResendSuccess(false);
+
     if (!token) {
       return () => controller.abort();
     }
 
     setVerification({ token, status: 'verifying', error: '' });
-    setResendError('');
-    setResendSuccess(false);
 
     const ownsVerification = () =>
       verificationGenerationRef.current === generation && !controller.signal.aborted;

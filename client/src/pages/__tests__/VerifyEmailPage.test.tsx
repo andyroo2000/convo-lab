@@ -34,7 +34,12 @@ global.fetch = vi.fn() as unknown as typeof fetch;
 function verificationRoutes(withTokenSwitch = false) {
   return (
     <>
-      {withTokenSwitch && <Link to="/verify-email/token-b">Switch token</Link>}
+      {withTokenSwitch && (
+        <>
+          <Link to="/verify-email/token-b">Switch token</Link>
+          <Link to="/verify-email">Remove token</Link>
+        </>
+      )}
       <Routes>
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
@@ -222,6 +227,28 @@ describe('VerifyEmailPage', () => {
 
       expect(await screen.findByText('Email Verified!')).toBeInTheDocument();
       expect(screen.queryByText('Account refresh failed')).not.toBeInTheDocument();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears the redirect and token-scoped state when the token is removed', async () => {
+      vi.useFakeTimers();
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
+
+      renderWithRouter('/verify-email/valid-token', false, true);
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByText('Email Verified!')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('link', { name: 'Remove token' }));
+      expect(screen.getByText('Verify Your Email')).toBeInTheDocument();
+      expect(screen.queryByText('Email Verified!')).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
