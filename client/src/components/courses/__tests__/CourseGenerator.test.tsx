@@ -201,4 +201,20 @@ describe('CourseGenerator paid submission intent', () => {
     expect(await screen.findByText(/Title is invalid/)).toBeInTheDocument();
     expect(window.localStorage.length).toBe(0);
   });
+
+  it('lets the user abandon a retained ambiguous request', async () => {
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValueOnce(jsonResponse({ id: '11111111-1111-4111-8111-111111111111' }));
+    mockFetch.mockRejectedValueOnce(new TypeError('Network connection lost'));
+    renderCourseGenerator();
+    fireEvent.change(screen.getByLabelText(/Course Title/i), { target: { value: 'My Course' } });
+    fireEvent.change(screen.getByLabelText(/Your Story/i), { target: { value: 'A trip' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Audio Course/i }));
+
+    expect(await screen.findByText(/Network connection lost/)).toBeInTheDocument();
+    expect(window.localStorage.length).toBe(1);
+    fireEvent.click(screen.getByRole('button', { name: /Start a new request/i }));
+    expect(window.localStorage.length).toBe(0);
+  });
 });

@@ -37,7 +37,6 @@ import {
   generationRequestErrorMessage,
   isAcknowledgedGenerationFailure,
   isDefinitiveGenerationRejection,
-  isGenerationRequestConflict,
 } from '../../lib/generationRequest';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import VoicePreview from '../common/VoicePreview';
@@ -198,13 +197,15 @@ const DialogueGenerator = () => {
         acknowledgeGenerationIntent(intent);
         return courseId;
       } catch (caught) {
-        if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
+        const acknowledgedFailure = isAcknowledgedGenerationFailure(caught, intent.intentId);
+        const definitiveRejection = isDefinitiveGenerationRejection(caught);
+        if (acknowledgedFailure) {
           acknowledgeGenerationIntent(intent);
         }
-        if (isDefinitiveGenerationRejection(caught)) {
+        if (definitiveRejection) {
           acknowledgeGenerationIntent(intent);
         }
-        if (isGenerationRequestConflict(caught)) setConflictedCourseIntent(intent);
+        if (!acknowledgedFailure && !definitiveRejection) setConflictedCourseIntent(intent);
         throw caught;
       }
     },
@@ -392,14 +393,16 @@ const DialogueGenerator = () => {
         acknowledgeGenerationIntent(intent);
         setJobId(acknowledgement.jobId);
       } catch (caught) {
-        if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
+        const acknowledgedFailure = isAcknowledgedGenerationFailure(caught, intent.intentId);
+        const definitiveRejection = isDefinitiveGenerationRejection(caught);
+        if (acknowledgedFailure) {
           acknowledgeGenerationIntent(intent);
         }
-        if (isDefinitiveGenerationRejection(caught)) {
+        if (definitiveRejection) {
           acknowledgeGenerationIntent(intent);
         }
         console.error('Failed to generate dialogue:', caught);
-        if (isGenerationRequestConflict(caught)) setConflictedIntent(intent);
+        if (!acknowledgedFailure && !definitiveRejection) setConflictedIntent(intent);
         setGenerationError(
           generationRequestErrorMessage(caught, 'Failed to generate dialogue. Please try again.')
         );
@@ -436,13 +439,17 @@ const DialogueGenerator = () => {
           navigate(scopedRoute(`/app/courses/${courseId}`, savedIntent.payload.viewAsUserId));
         })
         .catch((caught: unknown) => {
-          if (isAcknowledgedGenerationFailure(caught, savedIntent.intentId)) {
+          const acknowledgedFailure = isAcknowledgedGenerationFailure(caught, savedIntent.intentId);
+          const definitiveRejection = isDefinitiveGenerationRejection(caught);
+          if (acknowledgedFailure) {
             acknowledgeGenerationIntent(savedIntent);
           }
-          if (isDefinitiveGenerationRejection(caught)) {
+          if (definitiveRejection) {
             acknowledgeGenerationIntent(savedIntent);
           }
-          if (isGenerationRequestConflict(caught)) setConflictedCourseIntent(savedIntent);
+          if (!acknowledgedFailure && !definitiveRejection) {
+            setConflictedCourseIntent(savedIntent);
+          }
           setCourseError(generationRequestErrorMessage(caught, 'Failed to create audio course.'));
           setStep('complete');
         })

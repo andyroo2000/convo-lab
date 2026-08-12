@@ -26,7 +26,6 @@ import {
   generationRequestErrorMessage,
   isAcknowledgedGenerationFailure,
   isDefinitiveGenerationRejection,
-  isGenerationRequestConflict,
 } from '../../lib/generationRequest';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import AdminScriptWorkbench from './AdminScriptWorkbench';
@@ -147,14 +146,16 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
           navigate(libraryUrl);
         }, 2000);
       } catch (caught) {
-        if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
+        const acknowledgedFailure = isAcknowledgedGenerationFailure(caught, intent.intentId);
+        const definitiveRejection = isDefinitiveGenerationRejection(caught);
+        if (acknowledgedFailure) {
           acknowledgeGenerationIntent(intent);
         }
-        if (isDefinitiveGenerationRejection(caught)) {
+        if (definitiveRejection) {
           acknowledgeGenerationIntent(intent);
         }
         console.error('Course creation error:', caught);
-        if (isGenerationRequestConflict(caught)) setConflictedIntent(intent);
+        if (!acknowledgedFailure && !definitiveRejection) setConflictedIntent(intent);
         setError(generationRequestErrorMessage(caught, 'Failed to create course'));
         setIsCreating(false);
       } finally {
