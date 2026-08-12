@@ -8,6 +8,7 @@ import type {
   ScriptConfig,
   ScriptUnit,
 } from '../components/courses/adminScriptWorkbenchTypes';
+import getAdminScriptErrorMessage from '../components/courses/adminScriptWorkbenchErrors';
 import { adminApi } from '../lib/adminApi';
 import { courseApi } from '../lib/courseApi';
 
@@ -50,8 +51,7 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
           credentials: 'include',
         });
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Failed to build prompt');
+          throw new Error(await getAdminScriptErrorMessage(response, 'Failed to build prompt'));
         }
         const data = await response.json();
         if (!isCurrentCourse()) return;
@@ -177,8 +177,7 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
         body: JSON.stringify({ customPrompt: prompt }),
       });
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to generate dialogue');
+        throw new Error(await getAdminScriptErrorMessage(response, 'Failed to generate dialogue'));
       }
       const data = await response.json();
       if (!isCurrentCourse()) return;
@@ -205,8 +204,9 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
           { method: 'POST', credentials: 'include' }
         );
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Failed to build script config');
+          throw new Error(
+            await getAdminScriptErrorMessage(response, 'Failed to build script config')
+          );
         }
         const data = await response.json();
         if (!isCurrentCourse()) return false;
@@ -234,8 +234,7 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
         credentials: 'include',
       });
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to generate script');
+        throw new Error(await getAdminScriptErrorMessage(response, 'Failed to generate script'));
       }
       const data = await response.json();
       if (!isCurrentCourse()) return;
@@ -261,8 +260,9 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
         credentials: 'include',
       });
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to start audio generation');
+        throw new Error(
+          await getAdminScriptErrorMessage(response, 'Failed to start audio generation')
+        );
       }
       if (!isCurrentCourse()) return;
       setCourseStatus('generating');
@@ -294,9 +294,7 @@ export default function useAdminScriptWorkbench(courseId: string, readOnly: bool
         body: JSON.stringify({ stage: 'exchanges', data: updatedExchanges }),
       });
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        const apiMessage = data && typeof data.message === 'string' ? data.message.trim() : '';
-        throw new Error(apiMessage || 'Failed to save exchange edit');
+        throw new Error(await getAdminScriptErrorMessage(response, 'Failed to save exchange edit'));
       }
       if (!isCurrentCourse()) return;
       setExchanges(updatedExchanges);

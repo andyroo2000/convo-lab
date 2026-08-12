@@ -210,9 +210,9 @@ describe('AdminScriptWorkbench', () => {
       const url = String(input);
       if (url.includes('/courses/course-a/build-script-config')) {
         return Promise.resolve(
-          new Response(JSON.stringify({ message: 'Config could not be built' }), {
+          new Response('<html>Bad gateway</html>', {
             status: 500,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/html' },
           })
         );
       }
@@ -243,8 +243,55 @@ describe('AdminScriptWorkbench', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Configure Script' }));
 
-    expect(await screen.findByText('Config could not be built')).toBeInTheDocument();
+    expect(await screen.findByText('Failed to build script config')).toBeInTheDocument();
     expect(screen.getByText('Original dialogue')).toBeInTheDocument();
+  });
+
+  it('shows a fallback when dialogue generation returns a blank message', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/courses/course-a/pipeline-data')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ status: 'draft', audioUrl: null, stage: 'prompt' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/courses/course-a/build-prompt')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/courses/course-a/generate-dialogue')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ message: '   ' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/line-renderings')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ renderings: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AdminScriptWorkbench courseId="course-a" />);
+
+    await screen.findByDisplayValue('Prompt');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Dialogue' }));
+
+    expect(await screen.findByText('Failed to generate dialogue')).toBeInTheDocument();
   });
 
   it('does not navigate the next course when an old config request completes', async () => {
