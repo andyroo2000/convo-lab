@@ -1,30 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import {
-  Users,
-  Ticket,
-  BarChart3,
-  Search,
-  Trash2,
-  Image,
-  Settings,
-  Eye,
-  TestTube,
-} from 'lucide-react';
+import { Users, Ticket, BarChart3, Image, Settings, TestTube } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminAvatarsTab from '../components/admin/AdminAvatarsTab';
 import AdminInviteCodesTab from '../components/admin/AdminInviteCodesTab';
 import AdminSettingsTab from '../components/admin/AdminSettingsTab';
-import ConfirmModal from '../components/common/ConfirmModal';
+import AdminUsersTab, { type AdminUsersFeed } from '../components/admin/AdminUsersTab';
 import Toast from '../components/common/Toast';
 import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
 import {
-  adminApi,
   getAdminStats,
   getAdminUsers,
   type AdminReadRequestInit,
   type AdminStats,
-  type AdminUser,
 } from '../lib/adminApi';
 
 type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings' | 'script-lab';
@@ -37,18 +25,10 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'users';
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [userFeed, setUserFeed] = useState<AdminUsersFeed>({ users: [], searchQuery: '' });
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{
-    type: 'delete-user';
-    id: string;
-    email: string;
-  } | null>(null);
-  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const dashboardReadControllerRef = useRef<AbortController | null>(null);
 
   // Toast state
@@ -62,24 +42,12 @@ const AdminPage = () => {
     setToastVisible(true);
   };
 
-  const getRoleBadgeClass = (role: string): string => {
-    switch (role) {
-      case 'admin':
-        return 'retro-admin-v3-badge retro-admin-v3-badge-admin';
-      case 'moderator':
-        return 'retro-admin-v3-badge retro-admin-v3-badge-moderator';
-      case 'demo':
-        return 'retro-admin-v3-badge retro-admin-v3-badge-demo';
-      default:
-        return 'retro-admin-v3-badge retro-admin-v3-badge-user';
-    }
-  };
-
-  const fetchUsers = async (init?: AdminReadRequestInit) => {
+  const fetchAvatarUsers = async (init?: AdminReadRequestInit) => {
     setIsLoading(true);
     setError('');
     try {
-      setUsers(await getAdminUsers(searchQuery, init));
+      const users = await getAdminUsers(userFeed.searchQuery, init);
+      setUserFeed((currentFeed) => ({ ...currentFeed, users }));
     } catch (err) {
       if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
@@ -115,37 +83,6 @@ const AdminPage = () => {
     });
   };
 
-  const handleConfirmAction = async () => {
-    if (!confirmAction) {
-      return;
-    }
-    setIsConfirmingAction(true);
-    try {
-      const response = await fetch(adminApi.user(confirmAction.id), {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to delete user');
-      }
-      refreshDashboardRead(fetchUsers);
-      showToast('User deleted successfully', 'success');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to delete user', 'error');
-    } finally {
-      setIsConfirmingAction(false);
-      setConfirmAction(null);
-    }
-  };
-
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-
   // Redirect if not admin
   useEffect(() => {
     if (user && user.role !== 'admin') {
@@ -157,13 +94,13 @@ const AdminPage = () => {
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (activeTab === 'users') {
-      refreshDashboardRead(fetchUsers);
+      setError('');
     } else if (activeTab === 'invite-codes') {
       setError('');
     } else if (activeTab === 'analytics') {
       refreshDashboardRead(fetchStats);
     } else if (activeTab === 'avatars') {
-      refreshDashboardRead(fetchUsers);
+      refreshDashboardRead(fetchAvatarUsers);
     } else if (activeTab === 'settings') {
       setError('');
     }
@@ -252,132 +189,12 @@ const AdminPage = () => {
           {error && <div className="retro-admin-v3-alert is-error mb-6">{error}</div>}
 
           {/* Users Tab */}
-          {activeTab === 'users' && (
-            <div className="retro-admin-v3-pane">
-              <div className="retro-admin-v3-search-row mb-6">
-                <div className="relative flex-1 min-w-[20rem]">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search users by name or email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') refreshDashboardRead(fetchUsers);
-                    }}
-                    className="retro-admin-v3-input pl-10"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    refreshDashboardRead(fetchUsers);
-                  }}
-                  className="retro-admin-v3-btn-primary shrink-0"
-                >
-                  Search
-                </button>
-              </div>
-
-              {isLoading ? (
-                <div className="text-center py-12 text-gray-500">Loading users...</div>
-              ) : (
-                <div className="bg-white rounded-lg shadow overflow-x-auto retro-admin-v3-table-wrap">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          User
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Role
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Content
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Joined
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {users.map((u) => (
-                        <tr
-                          key={u.id}
-                          className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => setSelectedUserId(u.id)}
-                        >
-                          <td className="px-3 sm:px-6 py-4">
-                            <div>
-                              <div className="font-medium text-navy whitespace-nowrap">
-                                {u.displayName || u.name}
-                              </div>
-                              <div className="text-sm text-gray-500 whitespace-nowrap">
-                                {u.email}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3 sm:px-6 py-4">
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getRoleBadgeClass(
-                                u.role
-                              )}`}
-                            >
-                              {u.role}
-                            </span>
-                          </td>
-                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                            {u._count.episodes + u._count.courses} items
-                          </td>
-                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                            {formatDate(u.createdAt)}
-                          </td>
-                          <td
-                            className="px-3 sm:px-6 py-4 text-right"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/app/library?viewAs=${u.id}`)}
-                                className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                                title={`View as ${u.displayName || u.name}`}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              {u.role !== 'admin' && u.id !== user.id && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setConfirmAction({
-                                      type: 'delete-user',
-                                      id: u.id,
-                                      email: u.email,
-                                    })
-                                  }
-                                  className="text-red-600 hover:text-red-800 transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  {users.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">No users found</div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
+          <AdminUsersTab
+            isActive={activeTab === 'users'}
+            currentAdminUserId={user.id}
+            onUserFeedChange={setUserFeed}
+            showToast={showToast}
+          />
           {/* Invite Codes Tab */}
           {activeTab === 'invite-codes' && <AdminInviteCodesTab showToast={showToast} />}
 
@@ -445,9 +262,9 @@ const AdminPage = () => {
           {/* Avatars Tab */}
           {activeTab === 'avatars' && (
             <AdminAvatarsTab
-              users={users}
+              users={userFeed.users}
               isUsersLoading={isLoading}
-              refreshUsers={() => refreshDashboardRead(fetchUsers)}
+              refreshUsers={() => refreshDashboardRead(fetchAvatarUsers)}
               showToast={showToast}
             />
           )}
@@ -460,91 +277,7 @@ const AdminPage = () => {
         </div>
       </div>
 
-      {/* User Details Modal */}
-      {selectedUserId &&
-        (() => {
-          const selectedUser = users.find((u) => u.id === selectedUserId);
-          if (!selectedUser) return null;
-
-          return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-navy">User Details</h2>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedUserId(null)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* User Info */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold text-navy mb-2">User Information</h3>
-                    <div className="space-y-1 text-sm">
-                      <p>
-                        <span className="font-medium">Name:</span>{' '}
-                        {selectedUser.displayName || selectedUser.name}
-                      </p>
-                      <p>
-                        <span className="font-medium">Email:</span> {selectedUser.email}
-                      </p>
-                      <p>
-                        <span className="font-medium">Role:</span> {selectedUser.role}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Admin Actions */}
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/app/library?viewAs=${selectedUser.id}`)}
-                      className="btn-secondary flex items-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Impersonate User
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedUserId(null)}
-                      className="btn-secondary"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
       {/* Toast Notification */}
-      <ConfirmModal
-        isOpen={!!confirmAction}
-        title="Delete User"
-        message={`Are you sure you want to delete user ${confirmAction?.email ?? ''}? This action cannot be undone.`}
-        confirmLabel="Delete User"
-        onConfirm={handleConfirmAction}
-        onCancel={() => setConfirmAction(null)}
-        isLoading={isConfirmingAction}
-        variant="danger"
-      />
       <Toast
         message={toastMessage}
         type={toastType}
