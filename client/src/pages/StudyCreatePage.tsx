@@ -132,8 +132,11 @@ function buildManualPayloadForCreationKind(input: {
 
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
-  const { effectiveUser } = useEffectiveUser();
-  const draftIntentOwnerId = effectiveUser?.id ?? null;
+  const { effectiveUser, isImpersonating } = useEffectiveUser();
+  // Learning OS Study routes are scoped to the authenticated session and do not support
+  // ConvoLab's viewAs query parameter. Keep both remote drafts and durable local intents
+  // disabled while an admin is viewing another user.
+  const draftIntentOwnerId = isImpersonating ? null : (effectiveUser?.id ?? null);
   const createDraft = useCreateStudyManualCardDraft();
   const updateDraft = useUpdateStudyManualCardDraft();
   const deleteDraft = useDeleteStudyManualCardDraft();
@@ -195,7 +198,7 @@ const StudyCreatePage = () => {
   }, []);
   const runManualAction = useStudyCreateActionGuard();
   const runVocabGeneration = useStudyCreateActionGuard();
-  const manualDraftsQuery = useStudyManualCardDrafts(true);
+  const manualDraftsQuery = useStudyManualCardDrafts(draftIntentOwnerId);
   const { data: manualDraftData } = manualDraftsQuery;
   const manualDraftPages = useMemo(() => {
     if (!manualDraftData) return [];
@@ -705,6 +708,14 @@ const StudyCreatePage = () => {
     manualErrorMessage = manualError.message;
   } else if (manualError) {
     manualErrorMessage = t('create.failed');
+  }
+  if (isImpersonating) {
+    return (
+      <section className="card retro-paper-panel max-w-4xl" role="status">
+        <h1 className="mb-3 text-3xl font-bold text-navy">{t('create.title')}</h1>
+        <p className="text-gray-600">{t('create.impersonationUnavailable')}</p>
+      </section>
+    );
   }
   const draftListPanel = (
     <StudyManualDraftListPanel

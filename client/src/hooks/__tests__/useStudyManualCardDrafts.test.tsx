@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CSRF_TOKEN_COOKIE_NAME, resetCsrfStateForTests } from '../../lib/csrf';
-import { useCreateCardFromStudyManualCardDraft } from '../useStudy';
+import { useCreateCardFromStudyManualCardDraft, useStudyManualCardDrafts } from '../useStudy';
 
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:8080',
@@ -200,5 +200,51 @@ describe('manual card draft mutations', () => {
     );
     expect(commitCall).toBeDefined();
     expect(JSON.parse(String((commitCall?.[1] as RequestInit).body)).id).toBe(committedCardId);
+  });
+});
+
+describe('manual card draft query ownership', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('does not fetch or expose another owner cache while the effective owner is unresolved', async () => {
+    const fetchMock = vi.spyOn(global, 'fetch').mockImplementation(
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({ drafts: [], nextCursor: null, total: 0 }),
+        }) as Response
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result, rerender } = renderHook(
+      ({ ownerId }: { ownerId: string | null }) => useStudyManualCardDrafts(ownerId),
+      { initialProps: { ownerId: null as string | null }, wrapper }
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.data).toBeUndefined();
+
+    rerender({ ownerId: 'user-a' });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    rerender({ ownerId: null });
+    expect(result.current.data).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    rerender({ ownerId: 'user-b' });
+    expect(result.current.data).toBeUndefined();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 });
