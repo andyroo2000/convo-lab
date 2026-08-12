@@ -7,6 +7,7 @@ import useWarmAudioCache from '../hooks/useWarmAudioCache';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
+import usePlaybackAudioGeneration from '../hooks/usePlaybackAudioGeneration';
 import { Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
@@ -14,7 +15,6 @@ import AudioScriptPlayback from '../components/audio/AudioScriptPlayback';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
-import { generationApi } from '../lib/generationApi';
 
 // Helper function to get avatar URL based on speaker voice and gender
 function getSpeakerAvatarFilename(
@@ -53,15 +53,24 @@ const PlaybackPage = () => {
     viewAsUserId,
     getEpisode,
   });
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
   const [showReadings, setShowReadings] = useState(false); // Hide furigana by default
   const [showTranslations, setShowTranslations] = useState(true); // Show English translations by default
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const {
+    isGeneratingAudio,
+    generationProgress,
+    toastMessage,
+    toastType,
+    generateAllSpeeds,
+    clearToast,
+  } = usePlaybackAudioGeneration({
+    episodeId,
+    routeIdentity: `${episodeId ?? ''}\0${viewAsUserId ?? ''}`,
+    episode,
+    generateAllSpeedsAudio,
+    loadEpisode,
+  });
   const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
   const episodeAudioUrls = useMemo(
     () => [episode?.audioUrl_0_7, episode?.audioUrl_0_85, episode?.audioUrl_1_0, episode?.audioUrl],
@@ -91,123 +100,6 @@ const PlaybackPage = () => {
     // Return GCS URL if available, otherwise return a placeholder
     return url || '/placeholder-avatar.jpg';
   };
-
-  const handleGenerateAllSpeeds = async () => {
-    if (!episode || !episode.dialogue) return;
-
-    setIsGeneratingAudio(true);
-    setGenerationProgress(0);
-
-    try {
-      const jobId = await generateAllSpeedsAudio(episode.id, episode.dialogue.id);
-
-      // Clear any existing polling interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-
-      const startTime = Date.now();
-      const MAX_POLL_DURATION = 5 * 60 * 1000; // 5 minutes timeout
-
-      // Poll for progress
-      const pollInterval = setInterval(async () => {
-        try {
-          // Check for timeout
-          if (Date.now() - startTime > MAX_POLL_DURATION) {
-            clearInterval(pollInterval);
-            pollingIntervalRef.current = null;
-            setIsGeneratingAudio(false);
-            setGenerationProgress(0);
-            setToastMessage('Audio generation timed out. Please try again.');
-            setToastType('error');
-            return;
-          }
-
-          const response = await fetch(generationApi.audio.job(jobId), {
-            credentials: 'include',
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-
-            // Update progress
-            if (data.progress !== undefined) {
-              setGenerationProgress(data.progress);
-            }
-
-            // Check if completed
-            if (data.state === 'completed') {
-              clearInterval(pollInterval);
-              pollingIntervalRef.current = null;
-              await loadEpisode(true); // Bust cache to get fresh data with audio URLs
-              setIsGeneratingAudio(false);
-              setGenerationProgress(0);
-              setToastMessage('Audio generated successfully!');
-              setToastType('success');
-            } else if (data.state === 'failed') {
-              clearInterval(pollInterval);
-              pollingIntervalRef.current = null;
-              setIsGeneratingAudio(false);
-              setGenerationProgress(0);
-              setToastMessage('Failed to generate audio. Please try again.');
-              setToastType('error');
-            }
-          }
-        } catch (err) {
-          console.error('Error polling job:', err);
-          clearInterval(pollInterval);
-          pollingIntervalRef.current = null;
-          setIsGeneratingAudio(false);
-          setGenerationProgress(0);
-          setToastMessage('Failed to check generation status. Please refresh the page.');
-          setToastType('error');
-        }
-      }, 1000);
-
-      pollingIntervalRef.current = pollInterval;
-    } catch (err) {
-      console.error('Failed to start audio generation:', err);
-      setIsGeneratingAudio(false);
-      setGenerationProgress(0);
-      setToastMessage('Failed to start audio generation. Please try again.');
-      setToastType('error');
-    }
-  };
-
-  // Track which episode we've already triggered generation for to prevent duplicates
-  const lastProcessedEpisodeRef = useRef<string | null>(null);
-
-  // Auto-generate missing audio speeds
-  useEffect(() => {
-    if (!episode || !episode.dialogue) return;
-    if (episode.autoGenerateAudio === false) return;
-
-    // Already processed this episode in this session
-    if (lastProcessedEpisodeRef.current === episode.id) return;
-
-    // Check sessionStorage to see if we've already queued generation for this episode
-    const processedEpisodes = sessionStorage.getItem('audio-generation-queued');
-    const processedList = processedEpisodes ? JSON.parse(processedEpisodes) : [];
-    if (processedList.includes(episode.id)) {
-      lastProcessedEpisodeRef.current = episode.id;
-      return;
-    }
-
-    // Check if all three speeds are available
-    const hasAllSpeeds = episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0;
-
-    if (!hasAllSpeeds && !isGeneratingAudio) {
-      lastProcessedEpisodeRef.current = episode.id;
-
-      // Mark this episode as processed in sessionStorage
-      const updated = [...processedList, episode.id];
-      sessionStorage.setItem('audio-generation-queued', JSON.stringify(updated));
-
-      handleGenerateAllSpeeds();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episode, isGeneratingAudio]);
 
   // Keyboard controls: Space bar to play/pause, Arrow keys to navigate turns
   useEffect(() => {
@@ -375,16 +267,6 @@ const PlaybackPage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTime, episode, selectedSpeed]);
-
-  // Cleanup polling interval on unmount
-  useEffect(
-    () => () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    },
-    []
-  );
 
   const seekToSentence = (sentence: Sentence) => {
     // Get timing for current speed
@@ -583,7 +465,7 @@ const PlaybackPage = () => {
               </div>
               <button
                 type="button"
-                onClick={handleGenerateAllSpeeds}
+                onClick={generateAllSpeeds}
                 className="btn-secondary text-sm px-3 py-2"
               >
                 Generate Audio
@@ -710,7 +592,7 @@ const PlaybackPage = () => {
         message={toastMessage || ''}
         type={toastType}
         isVisible={!!toastMessage}
-        onClose={() => setToastMessage(null)}
+        onClose={clearToast}
       />
     </div>
   );
