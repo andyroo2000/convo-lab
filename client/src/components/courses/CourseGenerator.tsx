@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,6 +11,22 @@ import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { courseApi } from '../../lib/courseApi';
+import {
+  CourseGenerationIntentPayload,
+  submitCourseGenerationIntent,
+} from '../../lib/courseGenerationRequest';
+import {
+  acknowledgeGenerationIntent,
+  abandonGenerationIntent,
+  GenerationIntent,
+  readGenerationIntent,
+  writeGenerationIntent,
+} from '../../lib/generationIntentStore';
+import {
+  generationRequestErrorMessage,
+  isAcknowledgedGenerationFailure,
+  isGenerationRequestConflict,
+} from '../../lib/generationRequest';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import AdminScriptWorkbench from './AdminScriptWorkbench';
 import VoicePreview from '../common/VoicePreview';
@@ -47,6 +63,9 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
   const [_generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
   const [adminMode, setAdminMode] = useState(false);
   const [adminDraftCourseId, setAdminDraftCourseId] = useState<string | null>(null);
+  const [conflictedIntent, setConflictedIntent] =
+    useState<GenerationIntent<CourseGenerationIntentPayload> | null>(null);
+  const submissionInFlightRef = useRef(false);
 
   // Initialize default voices when languages change
   useEffect(() => {
@@ -99,7 +118,66 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
     };
   }, [episodeId, getEpisode, viewAsUserId]);
 
+  const runCourseIntent = useCallback(
+    async (intent: GenerationIntent<CourseGenerationIntentPayload>) => {
+      setIsCreating(true);
+      setError(null);
+      setConflictedIntent(null);
+      try {
+        const { courseId, acknowledgement } = await submitCourseGenerationIntent(
+          intent.intentId,
+          intent.payload
+        );
+        setGeneratedCourseId(courseId);
+        if (acknowledgement.state === 'failed') {
+          acknowledgeGenerationIntent(intent);
+          throw new Error(acknowledgement.message || 'Course generation failed.');
+        }
+
+        // The exact generation acknowledgement completes the browser submission transaction.
+        // The durable server ledger owns queue/job recovery from this point onward.
+        acknowledgeGenerationIntent(intent);
+        setStep('complete');
+        invalidateLibrary();
+        window.setTimeout(() => {
+          const libraryUrl = intent.payload.viewAsUserId
+            ? `/app/library?viewAs=${intent.payload.viewAsUserId}`
+            : '/app/library';
+          navigate(libraryUrl);
+        }, 2000);
+      } catch (caught) {
+        if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
+          acknowledgeGenerationIntent(intent);
+        }
+        console.error('Course creation error:', caught);
+        if (isGenerationRequestConflict(caught)) setConflictedIntent(intent);
+        setError(generationRequestErrorMessage(caught, 'Failed to create course'));
+        setIsCreating(false);
+      } finally {
+        submissionInFlightRef.current = false;
+      }
+    },
+    [invalidateLibrary, navigate]
+  );
+
+  useEffect(() => {
+    const ownerId = viewAsUserId ?? user?.id;
+    if (!ownerId || submissionInFlightRef.current) return;
+    try {
+      const savedIntent = readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'course');
+      if (!savedIntent) return;
+      submissionInFlightRef.current = true;
+      runCourseIntent(savedIntent).catch(() => undefined);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : 'Could not recover the saved course request.'
+      );
+    }
+  }, [runCourseIntent, user?.id, viewAsUserId]);
+
   const handleCreate = async () => {
+    if (submissionInFlightRef.current) return;
+
     // Block demo users from creating content
     if (isDemo) {
       setShowDemoModal(true);
@@ -116,17 +194,14 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
       return;
     }
 
-    setIsCreating(true);
-    setError(null);
-
     try {
-      // Create course
-      const viewAsParam = viewAsUserId ? `?${new URLSearchParams({ viewAs: viewAsUserId })}` : '';
-      const createResponse = await fetch(`${courseApi.collection}${viewAsParam}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+      const ownerId = viewAsUserId ?? user?.id;
+      if (!ownerId) {
+        setError('Your account is still loading. Please try again.');
+        return;
+      }
+      const payload: CourseGenerationIntentPayload = {
+        course: {
           title: title.trim(),
           ...(episodeId ? { episodeIds: [episodeId] } : { sourceText: sourceText.trim() }),
           nativeLanguage,
@@ -138,59 +213,27 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
           speaker2Gender: 'female',
           speaker1VoiceId,
           speaker2VoiceId,
-        }),
-      });
+        },
+        ...(viewAsUserId ? { viewAsUserId } : {}),
+      };
+      const intent =
+        readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'course') ??
+        writeGenerationIntent(ownerId, 'course', payload);
+      submissionInFlightRef.current = true;
+      await runCourseIntent(intent);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not save the course request.');
+    }
+  };
 
-      if (!createResponse.ok) {
-        const errorData = await createResponse.json();
-        // Handle both formats: { message } and { error: { message } }
-        const errorMessage =
-          errorData.message ||
-          errorData.error?.message ||
-          (typeof errorData.error === 'string' ? errorData.error : null) ||
-          'Failed to create course';
-        throw new Error(errorMessage);
-      }
-
-      const course = await createResponse.json();
-      setGeneratedCourseId(course.id);
-
-      // Start generation
-      const generateResponse = await fetch(
-        `${courseApi.operation(course.id, 'generate')}${viewAsParam}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-        }
-      );
-
-      if (!generateResponse.ok) {
-        const errorData = await generateResponse.json();
-        // Handle both formats: { message } and { error: { message } }
-        const errorMessage =
-          errorData.message ||
-          errorData.error?.message ||
-          (typeof errorData.error === 'string' ? errorData.error : null) ||
-          'Failed to start course generation';
-
-        throw new Error(errorMessage);
-      }
-
-      setStep('complete');
-
-      // Invalidate library cache so new course shows up
-      invalidateLibrary();
-
-      // Navigate to library page after a short delay
-      setTimeout(() => {
-        const libraryUrl = viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library';
-        navigate(libraryUrl);
-      }, 2000);
-    } catch (err) {
-      console.error('Course creation error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create course');
-      setIsCreating(false);
+  const abandonConflictedRequest = () => {
+    if (!conflictedIntent) return;
+    try {
+      abandonGenerationIntent(conflictedIntent);
+      setConflictedIntent(null);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not clear the request.');
     }
   };
 
@@ -592,6 +635,11 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
           <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-base font-medium">
             {error}
           </div>
+        )}
+        {conflictedIntent && (
+          <button type="button" onClick={abandonConflictedRequest} className="mt-3 underline">
+            Start a new request
+          </button>
         )}
       </div>
 

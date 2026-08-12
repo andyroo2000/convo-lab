@@ -139,9 +139,18 @@ describe('DialogueGenerator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    window.localStorage.clear();
+    vi.stubGlobal('crypto', {
+      randomUUID: vi.fn().mockReturnValue('11111111-1111-4111-8111-111111111111'),
+    });
 
     mockCreateEpisode.mockResolvedValue({ id: 'episode-123' });
-    mockGenerateDialogue.mockResolvedValue({ jobId: 'job-123' });
+    mockGenerateDialogue.mockResolvedValue({
+      clientRequestId: '11111111-1111-4111-8111-111111111111',
+      state: 'pending',
+      jobId: 'job-123',
+      message: 'Dialogue generation started',
+    });
     mockGetEpisode.mockResolvedValue({
       id: 'episode-123',
       dialogue: { id: 'dialogue-123' },
@@ -231,16 +240,15 @@ describe('DialogueGenerator', () => {
     it('should allow changing dialogue length', () => {
       renderDialogueGenerator();
       const select = screen.getByTestId('dialogue-select-length');
-      fireEvent.change(select, { target: { value: '30' } });
-      expect((select as HTMLSelectElement).value).toBe('30');
+      fireEvent.change(select, { target: { value: '20' } });
+      expect((select as HTMLSelectElement).value).toBe('20');
     });
 
     it('should show all dialogue length options', () => {
       renderDialogueGenerator();
       expect(screen.getByText('8 turns')).toBeInTheDocument();
       expect(screen.getByText('15 turns')).toBeInTheDocument();
-      expect(screen.getByText('30 turns')).toBeInTheDocument();
-      expect(screen.getByText('50 turns')).toBeInTheDocument();
+      expect(screen.getByText('20 turns')).toBeInTheDocument();
     });
   });
 
@@ -308,6 +316,73 @@ describe('DialogueGenerator', () => {
   });
 
   describe('generate dialogue flow', () => {
+    it('only offers dialogue lengths accepted by the API contract', () => {
+      renderDialogueGenerator();
+      const options = Array.from(
+        (screen.getByTestId('dialogue-select-length') as HTMLSelectElement).options
+      ).map((option) => Number(option.value));
+
+      expect(options).toEqual([8, 15, 20]);
+      expect(Math.max(...options)).toBeLessThanOrEqual(20);
+    });
+
+    it('uses one durable request ID for resource creation and generation', async () => {
+      renderDialogueGenerator();
+      fireEvent.change(screen.getByTestId('dialogue-input-source-text'), {
+        target: { value: 'My retry-safe story' },
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('dialogue-button-generate'));
+      });
+
+      expect(mockCreateEpisode).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '11111111-1111-4111-8111-111111111111' })
+      );
+      expect(mockGenerateDialogue).toHaveBeenCalledWith(
+        'episode-123',
+        expect.any(Array),
+        3,
+        8,
+        expect.objectContaining({
+          clientRequestId: '11111111-1111-4111-8111-111111111111',
+        })
+      );
+      expect(window.localStorage.length).toBe(0);
+    });
+
+    it('blocks two generate clicks in the same frame', async () => {
+      const episodeRequest = deferred<{ id: string }>();
+      mockCreateEpisode.mockReturnValue(episodeRequest.promise);
+      renderDialogueGenerator();
+      fireEvent.change(screen.getByTestId('dialogue-input-source-text'), {
+        target: { value: 'One paid request' },
+      });
+
+      const button = screen.getByTestId('dialogue-button-generate');
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      expect(mockCreateEpisode).toHaveBeenCalledTimes(1);
+      episodeRequest.resolve({ id: 'episode-123' });
+      await act(async () => undefined);
+    });
+
+    it('keeps an ambiguous request durable for reload recovery', async () => {
+      mockGenerateDialogue.mockRejectedValueOnce(new TypeError('Network connection lost'));
+      renderDialogueGenerator();
+      fireEvent.change(screen.getByTestId('dialogue-input-source-text'), {
+        target: { value: 'Recover this request' },
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('dialogue-button-generate'));
+      });
+
+      expect(window.localStorage.length).toBe(1);
+      expect(screen.getByText('Network connection lost')).toBeInTheDocument();
+    });
+
     it('should call createEpisode when generate is clicked', async () => {
       renderDialogueGenerator();
 
@@ -357,7 +432,7 @@ describe('DialogueGenerator', () => {
       fireEvent.change(input, { target: { value: 'My story' } });
 
       const lengthSelect = screen.getByTestId('dialogue-select-length');
-      fireEvent.change(lengthSelect, { target: { value: '30' } });
+      fireEvent.change(lengthSelect, { target: { value: '20' } });
 
       const button = screen.getByTestId('dialogue-button-generate');
 
@@ -369,7 +444,7 @@ describe('DialogueGenerator', () => {
         'episode-123',
         expect.any(Array),
         3,
-        30,
+        20,
         expect.objectContaining({ jlptLevel: 'N5' })
       );
     });

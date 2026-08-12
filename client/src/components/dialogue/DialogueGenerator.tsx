@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '@languageflow/shared/src/constants-new';
 import { getRandomName } from '@languageflow/shared/src/nameConstants';
@@ -10,12 +10,34 @@ import {
   getSelectableTtsVoices,
   getTtsVoiceById,
 } from '@languageflow/shared/src/voiceSelection';
-import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
+import {
+  CreateEpisodeRequest,
+  LanguageCode,
+  ProficiencyLevel,
+  Speaker,
+  ToneStyle,
+} from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
-import { courseApi } from '../../lib/courseApi';
+import {
+  CourseGenerationIntentPayload,
+  submitCourseGenerationIntent,
+} from '../../lib/courseGenerationRequest';
+import {
+  acknowledgeGenerationIntent,
+  abandonGenerationIntent,
+  GenerationIntent,
+  readGenerationIntent,
+  writeGenerationIntent,
+} from '../../lib/generationIntentStore';
+import {
+  generationRequestErrorMessage,
+  isAcknowledgedGenerationFailure,
+  isGenerationRequestConflict,
+} from '../../lib/generationRequest';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import VoicePreview from '../common/VoicePreview';
 
@@ -27,6 +49,21 @@ interface SpeakerFormData {
   color: string;
 }
 
+interface DialogueGenerationIntentPayload {
+  episode: CreateEpisodeRequest;
+  dialogue: {
+    speakers: Speaker[];
+    variationCount: number;
+    dialogueLength: number;
+    options: {
+      jlptLevel: string;
+      vocabSeedOverride: string;
+      grammarSeedOverride: string;
+    };
+  };
+  viewAsUserId?: string;
+}
+
 // Note: Speaker colors are now assigned at runtime based on index, not stored in the database
 // This constant is kept for backward compatibility with episode creation API
 const DEFAULT_SPEAKER_COLORS = SPEAKER_COLORS;
@@ -34,7 +71,10 @@ const DEFAULT_SPEAKER_COLORS = SPEAKER_COLORS;
 const DialogueGenerator = () => {
   const { t } = useTranslation(['dialogue']);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
   const isDemo = useIsDemo();
+  const { user } = useAuth();
   const { isFeatureEnabled } = useFeatureFlags();
   const {
     createEpisode,
@@ -48,6 +88,11 @@ const DialogueGenerator = () => {
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [courseError, setCourseError] = useState<string | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [conflictedIntent, setConflictedIntent] =
+    useState<GenerationIntent<DialogueGenerationIntentPayload> | null>(null);
+  const [conflictedCourseIntent, setConflictedCourseIntent] =
+    useState<GenerationIntent<CourseGenerationIntentPayload> | null>(null);
 
   const [sourceText, setSourceText] = useState('');
   const targetLanguage: LanguageCode = 'ja';
@@ -97,6 +142,8 @@ const DialogueGenerator = () => {
   const [jobId, setJobId] = useState<string | null>(null);
   const pollingRunRef = useRef<symbol | null>(null);
   const redirectTimerRef = useRef<number | null>(null);
+  const submissionInFlightRef = useRef(false);
+  const courseRecoveryInFlightRef = useRef(false);
 
   // Helper function to get proficiency level
   const getProficiencyLevel = () => jlptLevel;
@@ -104,18 +151,16 @@ const DialogueGenerator = () => {
   const createCourseFromEpisode = useCallback(
     async (episodeId: string, signal: AbortSignal): Promise<string | null> => {
       if (!createAudioCourse || !audioCourseEnabled) return null;
+      const ownerId = viewAsUserId ?? user?.id;
+      if (!ownerId) throw new Error('Your account is still loading. Please try again.');
 
       const getTargetVoiceGender = (voiceId: string): 'male' | 'female' => {
         const match = getTtsVoiceById(targetLanguage, voiceId);
         return match?.gender === 'female' ? 'female' : 'male';
       };
 
-      const createResponse = await fetch(courseApi.collection, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        signal,
-        body: JSON.stringify({
+      const payload: CourseGenerationIntentPayload = {
+        course: {
           title: courseTitle.trim(),
           episodeIds: [episodeId],
           nativeLanguage,
@@ -127,40 +172,30 @@ const DialogueGenerator = () => {
           speaker2Gender: getTargetVoiceGender(speakers[1]?.voiceId),
           speaker1VoiceId: speakers[0]?.voiceId,
           speaker2VoiceId: speakers[1]?.voiceId,
-        }),
-      });
-
-      if (!createResponse.ok) {
-        const errorData = await createResponse.json();
-        const errorMessage =
-          errorData.message ||
-          errorData.error?.message ||
-          (typeof errorData.error === 'string' ? errorData.error : null) ||
-          'Failed to create course';
-        throw new Error(errorMessage);
+        },
+        ...(viewAsUserId ? { viewAsUserId } : {}),
+      };
+      const intent =
+        readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'course') ??
+        writeGenerationIntent(ownerId, 'course', payload);
+      try {
+        const { courseId, acknowledgement } = await submitCourseGenerationIntent(
+          intent.intentId,
+          intent.payload,
+          signal
+        );
+        if (acknowledgement.state === 'failed') {
+          acknowledgeGenerationIntent(intent);
+          throw new Error(acknowledgement.message || 'Course generation failed.');
+        }
+        acknowledgeGenerationIntent(intent);
+        return courseId;
+      } catch (caught) {
+        if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
+          acknowledgeGenerationIntent(intent);
+        }
+        throw caught;
       }
-
-      const course = await createResponse.json();
-      if (signal.aborted) return null;
-
-      const generateResponse = await fetch(courseApi.operation(course.id, 'generate'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        signal,
-      });
-
-      if (!generateResponse.ok) {
-        const errorData = await generateResponse.json();
-        const errorMessage =
-          errorData.message ||
-          errorData.error?.message ||
-          (typeof errorData.error === 'string' ? errorData.error : null) ||
-          'Failed to start course generation';
-        throw new Error(errorMessage);
-      }
-
-      return course.id;
     },
     [
       audioCourseEnabled,
@@ -172,6 +207,8 @@ const DialogueGenerator = () => {
       nativeLanguage,
       speakers,
       targetLanguage,
+      user?.id,
+      viewAsUserId,
     ]
   );
 
@@ -302,7 +339,119 @@ const DialogueGenerator = () => {
     navigate,
   ]);
 
+  const runDialogueIntent = useCallback(
+    async (intent: GenerationIntent<DialogueGenerationIntentPayload>) => {
+      setGenerationError(null);
+      setConflictedIntent(null);
+      setCourseError(null);
+      setStep('generating');
+
+      try {
+        const episodeRequest = { ...intent.payload.episode, id: intent.intentId };
+        const episode = intent.payload.viewAsUserId
+          ? await createEpisode(episodeRequest, intent.payload.viewAsUserId)
+          : await createEpisode(episodeRequest);
+        setGeneratedEpisodeId(episode.id);
+
+        const acknowledgement = await generateDialogue(
+          episode.id,
+          intent.payload.dialogue.speakers,
+          intent.payload.dialogue.variationCount,
+          intent.payload.dialogue.dialogueLength,
+          {
+            ...intent.payload.dialogue.options,
+            clientRequestId: intent.intentId,
+            ...(intent.payload.viewAsUserId ? { viewAsUserId: intent.payload.viewAsUserId } : {}),
+          }
+        );
+        if (acknowledgement.clientRequestId !== intent.intentId) {
+          throw new Error('The server acknowledged a different generation request.');
+        }
+        if (acknowledgement.state === 'failed') {
+          acknowledgeGenerationIntent(intent);
+          throw new Error(acknowledgement.message || 'Dialogue generation failed.');
+        }
+
+        // The exact generation acknowledgement completes the browser submission transaction.
+        // The durable server ledger owns queue/job recovery from this point onward.
+        acknowledgeGenerationIntent(intent);
+        setJobId(acknowledgement.jobId);
+      } catch (caught) {
+        if (isAcknowledgedGenerationFailure(caught, intent.intentId)) {
+          acknowledgeGenerationIntent(intent);
+        }
+        console.error('Failed to generate dialogue:', caught);
+        if (isGenerationRequestConflict(caught)) setConflictedIntent(intent);
+        setGenerationError(
+          generationRequestErrorMessage(caught, 'Failed to generate dialogue. Please try again.')
+        );
+        setStep('input');
+      } finally {
+        submissionInFlightRef.current = false;
+      }
+    },
+    [createEpisode, generateDialogue]
+  );
+
+  useEffect(() => {
+    const ownerId = viewAsUserId ?? user?.id;
+    if (!ownerId || courseRecoveryInFlightRef.current) return;
+
+    try {
+      const savedIntent = readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'course');
+      if (!savedIntent) return;
+      courseRecoveryInFlightRef.current = true;
+      setStep('generating');
+      submitCourseGenerationIntent(savedIntent.intentId, savedIntent.payload)
+        .then(({ courseId, acknowledgement }) => {
+          acknowledgeGenerationIntent(savedIntent);
+          if (acknowledgement.state === 'failed') {
+            throw new Error(acknowledgement.message || 'Course generation failed.');
+          }
+          setStep('complete');
+          invalidateLibrary();
+          navigate(`/app/courses/${courseId}`);
+        })
+        .catch((caught: unknown) => {
+          if (isAcknowledgedGenerationFailure(caught, savedIntent.intentId)) {
+            acknowledgeGenerationIntent(savedIntent);
+          }
+          if (isGenerationRequestConflict(caught)) setConflictedCourseIntent(savedIntent);
+          setCourseError(generationRequestErrorMessage(caught, 'Failed to create audio course.'));
+          setStep('complete');
+        })
+        .finally(() => {
+          courseRecoveryInFlightRef.current = false;
+        });
+    } catch (caught) {
+      setCourseError(
+        caught instanceof Error ? caught.message : 'Could not recover the saved course request.'
+      );
+    }
+  }, [invalidateLibrary, navigate, user?.id, viewAsUserId]);
+
+  useEffect(() => {
+    const ownerId = viewAsUserId ?? user?.id;
+    if (!ownerId || submissionInFlightRef.current) return;
+
+    try {
+      const savedIntent = readGenerationIntent<DialogueGenerationIntentPayload>(
+        ownerId,
+        'dialogue'
+      );
+      if (!savedIntent) return;
+      submissionInFlightRef.current = true;
+      runDialogueIntent(savedIntent).catch(() => undefined);
+    } catch (caught) {
+      setGenerationError(
+        caught instanceof Error ? caught.message : 'Could not recover the saved generation request.'
+      );
+    }
+  }, [runDialogueIntent, user?.id, viewAsUserId]);
+
   const handleGenerate = async () => {
+    if (submissionInFlightRef.current) return;
+
     // Block demo users from generating content
     if (isDemo) {
       setShowDemoModal(true);
@@ -329,17 +478,17 @@ const DialogueGenerator = () => {
       }
     }
 
+    const ownerId = viewAsUserId ?? user?.id;
+    if (!ownerId) {
+      setGenerationError('Your account is still loading. Please try again.');
+      return;
+    }
+
     try {
-      setCourseError(null);
-      setStep('generating');
-
-      // Get the appropriate proficiency level based on target language
       const proficiencyLevel = getProficiencyLevel();
-
-      // Step 1: Create episode with placeholder title
-      const episode = await createEpisode({
+      const episode: CreateEpisodeRequest = {
         title: t('dialogue:placeholderTitle'),
-        sourceText,
+        sourceText: sourceText.trim(),
         targetLanguage,
         nativeLanguage,
         speakers: speakers.map((s) => ({
@@ -352,37 +501,60 @@ const DialogueGenerator = () => {
         audioSpeed: 'medium',
         jlptLevel,
         autoGenerateAudio,
-      });
-
-      setGeneratedEpisodeId(episode.id);
-
-      // Step 2: Generate dialogue
-      const { jobId: generationJobId } = await generateDialogue(
-        episode.id,
-        speakers.map((s) => ({
-          id: '', // Will be assigned by backend
-          name: s.name,
-          voiceId: s.voiceId,
-          proficiency: proficiencyLevel as ProficiencyLevel,
-          tone: s.tone,
-          color: s.color,
-        })),
-        3, // Generate 3 variations per sentence
-        dialogueLength, // Number of dialogue turns
-        {
-          jlptLevel,
-          vocabSeedOverride,
-          grammarSeedOverride,
-        }
+      };
+      const dialogueSpeakers = speakers.map((s) => ({
+        id: '', // Will be assigned by backend
+        name: s.name,
+        voiceId: s.voiceId,
+        proficiency: proficiencyLevel as ProficiencyLevel,
+        tone: s.tone,
+        color: s.color,
+      }));
+      const intent =
+        readGenerationIntent<DialogueGenerationIntentPayload>(ownerId, 'dialogue') ??
+        writeGenerationIntent(ownerId, 'dialogue', {
+          episode,
+          dialogue: {
+            speakers: dialogueSpeakers,
+            variationCount: 3,
+            dialogueLength,
+            options: {
+              jlptLevel,
+              vocabSeedOverride,
+              grammarSeedOverride,
+            },
+          },
+          ...(viewAsUserId ? { viewAsUserId } : {}),
+        });
+      submissionInFlightRef.current = true;
+      await runDialogueIntent(intent);
+    } catch (caught) {
+      setGenerationError(
+        caught instanceof Error ? caught.message : 'Could not save the generation request.'
       );
+    }
+  };
 
-      // Save job ID for polling
-      setJobId(generationJobId);
+  const abandonConflictedRequest = () => {
+    if (!conflictedIntent) return;
+    try {
+      abandonGenerationIntent(conflictedIntent);
+      setConflictedIntent(null);
+      setGenerationError(null);
+    } catch (caught) {
+      setGenerationError(caught instanceof Error ? caught.message : 'Could not clear the request.');
+    }
+  };
 
-      // The useEffect hook will now poll for completion
-    } catch (err) {
-      console.error('Failed to generate dialogue:', err);
+  const abandonConflictedCourseRequest = () => {
+    if (!conflictedCourseIntent) return;
+    try {
+      abandonGenerationIntent(conflictedCourseIntent);
+      setConflictedCourseIntent(null);
+      setCourseError(null);
       setStep('input');
+    } catch (caught) {
+      setCourseError(caught instanceof Error ? caught.message : 'Could not clear the request.');
     }
   };
 
@@ -395,7 +567,11 @@ const DialogueGenerator = () => {
           <p className="retro-dialogue-create-v3-state-copy">
             {t('dialogue:generating.description')}
           </p>
-          {error && <div className="retro-dialogue-create-v3-alert is-error">{error}</div>}
+          {(generationError || error) && (
+            <div className="retro-dialogue-create-v3-alert is-error">
+              {generationError || error}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -446,6 +622,15 @@ const DialogueGenerator = () => {
                   {t('dialogue:complete.courseFailureCta')}
                 </button>
               )}
+              {conflictedCourseIntent && (
+                <button
+                  type="button"
+                  className="retro-dialogue-create-v3-alert-btn"
+                  onClick={abandonConflictedCourseRequest}
+                >
+                  Start a new request
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -493,8 +678,7 @@ const DialogueGenerator = () => {
               >
                 <option value="8">{t('dialogue:form.turns', { count: 8 })}</option>
                 <option value="15">{t('dialogue:form.turns', { count: 15 })}</option>
-                <option value="30">{t('dialogue:form.turns', { count: 30 })}</option>
-                <option value="50">{t('dialogue:form.turns', { count: 50 })}</option>
+                <option value="20">{t('dialogue:form.turns', { count: 20 })}</option>
               </select>
             </div>
 
@@ -792,7 +976,14 @@ const DialogueGenerator = () => {
           </button>
         </div>
 
-        {error && <div className="retro-dialogue-create-v3-alert is-error">{error}</div>}
+        {(generationError || error) && (
+          <div className="retro-dialogue-create-v3-alert is-error">{generationError || error}</div>
+        )}
+        {conflictedIntent && (
+          <button type="button" onClick={abandonConflictedRequest}>
+            Start a new request
+          </button>
+        )}
       </section>
 
       {/* Demo Restriction Modal */}

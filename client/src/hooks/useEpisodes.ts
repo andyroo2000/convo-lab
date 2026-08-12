@@ -3,6 +3,9 @@ import { Episode, CreateEpisodeRequest, Speaker, AudioSpeed } from '../types';
 
 import { episodeApi, readEpisodeApiError } from '../lib/episodeApi';
 import { generationApi, readGenerationApiError } from '../lib/generationApi';
+import { JsonRequestError } from '../lib/apiClient';
+import { errorMessageFromPayload } from '../lib/apiError';
+import type { GenerationRequestAcknowledgement } from '../lib/generationRequest';
 
 interface ErrorWithMetadata {
   message: string;
@@ -42,26 +45,27 @@ export function useEpisodes() {
   const [error, setError] = useState<string | null>(null);
   const [errorMetadata, setErrorMetadata] = useState<ErrorWithMetadata | null>(null);
 
-  const createEpisode = async (request: CreateEpisodeRequest): Promise<Episode> => {
+  const createEpisode = async (
+    request: CreateEpisodeRequest,
+    viewAsUserId?: string
+  ): Promise<Episode> => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(episodeApi.collection, {
+      const viewAsParam = viewAsUserId ? `?${new URLSearchParams({ viewAs: viewAsUserId })}` : '';
+      const response = await fetch(`${episodeApi.collection}${viewAsParam}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(request),
       });
-
       if (!response.ok) {
-        throw new Error(await readEpisodeApiError(response, 'Failed to create episode'));
+        const payload: unknown = await response.json().catch(() => null);
+        const message = errorMessageFromPayload(payload) ?? 'Failed to create episode';
+        throw new JsonRequestError(message, response.status, payload);
       }
-
-      const episode = await response.json();
-      return episode;
+      return await response.json();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
@@ -80,18 +84,21 @@ export function useEpisodes() {
       jlptLevel?: string;
       vocabSeedOverride?: string;
       grammarSeedOverride?: string;
+      clientRequestId?: string;
+      viewAsUserId?: string;
     }
-  ): Promise<{ jobId: string }> => {
+  ): Promise<GenerationRequestAcknowledgement> => {
     setLoading(true);
     setError(null);
     setErrorMetadata(null);
 
     try {
-      const response = await fetch(generationApi.dialogue.generate, {
+      const viewAsParam = options?.viewAsUserId
+        ? `?${new URLSearchParams({ viewAs: options.viewAsUserId })}`
+        : '';
+      const response = await fetch(`${generationApi.dialogue.generate}${viewAsParam}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           episodeId,
@@ -101,33 +108,26 @@ export function useEpisodes() {
           jlptLevel: options?.jlptLevel,
           vocabSeedOverride: options?.vocabSeedOverride,
           grammarSeedOverride: options?.grammarSeedOverride,
+          clientRequestId: options?.clientRequestId,
         }),
       });
-
       if (!response.ok) {
-        const errorData: {
-          error?: string;
-          message?: string;
-          cooldown?: ErrorWithMetadata['cooldown'];
-        } = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || errorData.message || 'Failed to generate dialogue';
-
-        // Preserve short-window cooldown metadata for retry guidance.
-        const metadata: ErrorWithMetadata = {
-          message: errorMessage,
-          status: response.status,
-        };
-
-        if (errorData.cooldown) {
-          metadata.cooldown = errorData.cooldown;
+        const payload: unknown = await response.json().catch(() => null);
+        const message = errorMessageFromPayload(payload) ?? 'Failed to generate dialogue';
+        const metadata: ErrorWithMetadata = { message, status: response.status };
+        if (
+          typeof payload === 'object' &&
+          payload !== null &&
+          'cooldown' in payload &&
+          typeof payload.cooldown === 'object' &&
+          payload.cooldown !== null
+        ) {
+          metadata.cooldown = payload.cooldown as ErrorWithMetadata['cooldown'];
         }
-
         setErrorMetadata(metadata);
-        throw new Error(errorMessage);
+        throw new JsonRequestError(message, response.status, payload);
       }
-
-      const data = await response.json();
-      return { jobId: data.jobId };
+      return await response.json();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
