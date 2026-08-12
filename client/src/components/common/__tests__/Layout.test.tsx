@@ -253,20 +253,22 @@ describe('Layout', () => {
       expect(container.querySelector('.sm\\:hidden .retro-nav-tab')).toBeNull();
     });
 
-    it('passes mobile primary navigation into the user menu', () => {
+    it('preserves supported View As navigation without advertising unscoped Study routes', () => {
       window.history.pushState({}, '', '/app/study?viewAs=user-1');
       renderLayout('/app/study?viewAs=user-1');
 
       const mobileNav = screen.getByTestId('user-menu-mobile-nav-items');
       expect(mobileNav).toHaveTextContent('Library');
       expect(mobileNav).toHaveTextContent('Create');
-      expect(mobileNav).toHaveTextContent('Study');
-      expect(mobileNav).toHaveTextContent('Study Time');
-      expect(within(mobileNav).getByText('Study')).toHaveAttribute('data-active', 'true');
+      expect(mobileNav).not.toHaveTextContent('Study');
+      expect(mobileNav).not.toHaveTextContent('Study Time');
       expect(within(mobileNav).getByText('Library')).toHaveAttribute(
         'data-path',
         '/app/library?viewAs=user-1'
       );
+
+      expect(document.querySelector('a[href="/app/study?viewAs=user-1"]')).toBeNull();
+      expect(document.querySelector('a[href="/app/study/time"]')).toBeNull();
     });
 
     it('should highlight active library navigation', () => {
