@@ -6,7 +6,9 @@ import useStudyDraftAutosaveQueue, {
 } from '../useStudyDraftAutosaveQueue';
 
 const saveRequest = (meaning: string): StudyDraftSaveRequest => ({
+  ownerId: 'user-1',
   draftId: 'draft-1',
+  baseRevision: 4,
   values: {
     answer: { meaning },
   },
@@ -15,11 +17,12 @@ const saveRequest = (meaning: string): StudyDraftSaveRequest => ({
 describe('useStudyDraftAutosaveQueue', () => {
   afterEach(() => {
     vi.useRealTimers();
+    window.localStorage.clear();
   });
 
   it('debounces scheduled saves to the newest draft state', async () => {
     vi.useFakeTimers();
-    const saveDraft = vi.fn().mockResolvedValue(undefined);
+    const saveDraft = vi.fn().mockResolvedValue({ revision: 5 });
     const { result } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft));
 
     act(() => {
@@ -30,21 +33,101 @@ describe('useStudyDraftAutosaveQueue', () => {
     await act(async () => result.current.waitForIdle());
 
     expect(saveDraft).toHaveBeenCalledTimes(1);
-    expect(saveDraft).toHaveBeenCalledWith(saveRequest('enterprise'));
+    expect(saveDraft).toHaveBeenCalledWith({
+      draftId: 'draft-1',
+      values: { answer: { meaning: 'enterprise' }, expectedRevision: 4 },
+    });
   });
 
-  it('flushes the latest state after an active save finishes', async () => {
+  it('writes the newest intent before waiting for the debounce timer', () => {
     vi.useFakeTimers();
-    let resolveFirstSave!: () => void;
+    const saveDraft = vi.fn().mockResolvedValue({ revision: 5 });
+    const { result } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft));
+
+    act(() => result.current.scheduleSave(saveRequest('enterprise')));
+
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('convolab.studyDraftIntent.v2.user-1.draft-1') ?? 'null'
+      )
+    ).toEqual(
+      expect.objectContaining({
+        baseRevision: 4,
+        draftId: 'draft-1',
+        values: { answer: { meaning: 'enterprise' } },
+      })
+    );
+    expect(saveDraft).not.toHaveBeenCalled();
+  });
+
+  it('does not send an edit when durable storage fails', () => {
+    vi.useFakeTimers();
+    const saveDraft = vi.fn().mockResolvedValue({ revision: 5 });
+    const onStorageError = vi.fn();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    });
+    const { result } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft, { onStorageError }));
+
+    act(() => {
+      result.current.scheduleSave(saveRequest('enterprise'));
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(onStorageError).toHaveBeenCalledTimes(1);
+    expect(saveDraft).not.toHaveBeenCalled();
+  });
+
+  it('chains the acknowledged revision into a newer serialized save', async () => {
+    vi.useFakeTimers();
+    let resolveFirstSave!: (draft: { revision: number }) => void;
     const saveDraft = vi
       .fn()
       .mockImplementationOnce(
         () =>
-          new Promise<void>((resolve) => {
+          new Promise<{ revision: number }>((resolve) => {
             resolveFirstSave = resolve;
           })
       )
-      .mockResolvedValue(undefined);
+      .mockResolvedValueOnce({ revision: 6 });
+    const { result } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft));
+
+    act(() => {
+      result.current.scheduleSave(saveRequest('business'));
+      vi.advanceTimersByTime(700);
+    });
+    await act(async () => Promise.resolve());
+    act(() => {
+      result.current.scheduleSave(saveRequest('enterprise'));
+      vi.advanceTimersByTime(700);
+    });
+
+    await act(async () => resolveFirstSave({ revision: 5 }));
+    await act(async () => result.current.waitForIdle());
+
+    expect(saveDraft).toHaveBeenNthCalledWith(1, {
+      draftId: 'draft-1',
+      values: { answer: { meaning: 'business' }, expectedRevision: 4 },
+    });
+    expect(saveDraft).toHaveBeenNthCalledWith(2, {
+      draftId: 'draft-1',
+      values: { answer: { meaning: 'enterprise' }, expectedRevision: 5 },
+    });
+    expect(window.localStorage.getItem('convolab.studyDraftIntent.v2.user-1.draft-1')).toBeNull();
+  });
+
+  it('flushes the latest state after an active save finishes', async () => {
+    vi.useFakeTimers();
+    let resolveFirstSave!: (draft: { revision: number }) => void;
+    const saveDraft = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<{ revision: number }>((resolve) => {
+            resolveFirstSave = resolve;
+          })
+      )
+      .mockResolvedValue({ revision: 6 });
     const { result } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft));
 
     act(() => {
@@ -60,17 +143,20 @@ describe('useStudyDraftAutosaveQueue', () => {
     expect(saveDraft).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      resolveFirstSave();
+      resolveFirstSave({ revision: 5 });
       await flushPromise;
     });
 
     expect(saveDraft).toHaveBeenCalledTimes(2);
-    expect(saveDraft).toHaveBeenLastCalledWith(saveRequest('enterprise'));
+    expect(saveDraft).toHaveBeenLastCalledWith({
+      draftId: 'draft-1',
+      values: { answer: { meaning: 'enterprise' }, expectedRevision: 5 },
+    });
   });
 
   it('flushes a scheduled save immediately without replaying its timer', async () => {
     vi.useFakeTimers();
-    const saveDraft = vi.fn().mockResolvedValue(undefined);
+    const saveDraft = vi.fn().mockResolvedValue({ revision: 5 });
     const { result } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft));
 
     let flushPromise: Promise<unknown> | null = null;
@@ -81,7 +167,10 @@ describe('useStudyDraftAutosaveQueue', () => {
     await act(async () => flushPromise);
 
     expect(saveDraft).toHaveBeenCalledTimes(1);
-    expect(saveDraft).toHaveBeenCalledWith(saveRequest('business'));
+    expect(saveDraft).toHaveBeenCalledWith({
+      draftId: 'draft-1',
+      values: { answer: { meaning: 'business' }, expectedRevision: 4 },
+    });
 
     await act(async () => vi.advanceTimersByTimeAsync(700));
     expect(saveDraft).toHaveBeenCalledTimes(1);
@@ -89,13 +178,16 @@ describe('useStudyDraftAutosaveQueue', () => {
 
   it('flushes a scheduled save through the normal queue on unmount', async () => {
     vi.useFakeTimers();
-    const saveDraft = vi.fn().mockResolvedValue(undefined);
+    const saveDraft = vi.fn().mockResolvedValue({ revision: 5 });
     const { result, unmount } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft));
 
     act(() => result.current.scheduleSave(saveRequest('business')));
     unmount();
     await act(async () => Promise.resolve());
 
-    expect(saveDraft).toHaveBeenCalledWith(saveRequest('business'));
+    expect(saveDraft).toHaveBeenCalledWith({
+      draftId: 'draft-1',
+      values: { answer: { meaning: 'business' }, expectedRevision: 4 },
+    });
   });
 });

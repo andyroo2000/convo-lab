@@ -42,6 +42,7 @@ import {
   uploadStudyImport,
   uploadStudyImportArchive,
 } from '../useStudy';
+import StudyDraftRevisionConflictError from '../../lib/studyDraftRevisionConflict';
 
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:8080',
@@ -285,7 +286,7 @@ describe('useStudy request helpers', () => {
     await createStudyManualCardDraft(draftRequest);
     await updateStudyManualCardDraft({
       draftId,
-      values: { prompt: draftRequest.prompt, answer: draftRequest.answer },
+      values: { expectedRevision: 7, prompt: draftRequest.prompt, answer: draftRequest.answer },
     });
     await retryStudyManualCardDraft(draftId);
     await generateStudyManualCardDraftPreviewAudio(draftId);
@@ -321,6 +322,33 @@ describe('useStudy request helpers', () => {
       expect(init.method).toBe('POST');
       expect(init.body).toBeUndefined();
       expect(new Headers(init.headers).get('Content-Type')).toBeNull();
+    });
+    expect(
+      JSON.parse(String((vi.mocked(global.fetch).mock.calls[2]?.[1] as RequestInit).body))
+    ).toEqual(expect.objectContaining({ expectedRevision: 7 }));
+  });
+
+  it('maps the draft revision conflict payload to a typed domain error', async () => {
+    const serverDraft = { id: 'draft-1', revision: 8 };
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        code: 'draft_revision_conflict',
+        message: 'Study card draft changed since it was loaded.',
+        draft: serverDraft,
+      }),
+    } as Response);
+
+    const request = updateStudyManualCardDraft({
+      draftId: 'draft-1',
+      values: { expectedRevision: 7, answer: { meaning: 'enterprise' } },
+    });
+
+    await expect(request).rejects.toBeInstanceOf(StudyDraftRevisionConflictError);
+    await expect(request).rejects.toMatchObject({
+      name: 'StudyDraftRevisionConflictError',
+      draft: serverDraft,
     });
   });
 

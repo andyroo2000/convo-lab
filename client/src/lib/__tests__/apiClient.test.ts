@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AUTH_SESSION_EXPIRED_EVENT } from '../authSession';
-import { requestJson } from '../apiClient';
+import { JsonRequestError, requestJson } from '../apiClient';
 
 const { fetchWithCsrfMock } = vi.hoisted(() => ({
   fetchWithCsrfMock: vi.fn(),
@@ -79,6 +79,15 @@ describe('requestJson', () => {
     fetchWithCsrfMock.mockResolvedValue(response({ ok: false, status, body }));
 
     await expect(requestJson('/api/study/browser')).rejects.toThrow(expectedMessage);
+  });
+
+  it('exposes an error status and payload for typed domain errors', async () => {
+    const body = { code: 'draft_revision_conflict', message: 'Changed', draft: { id: 'draft-1' } };
+    fetchWithCsrfMock.mockResolvedValue(response({ ok: false, status: 409, body }));
+
+    await expect(requestJson('/api/study/card-drafts/draft-1')).rejects.toEqual(
+      expect.objectContaining({ status: 409, payload: body } satisfies Partial<JsonRequestError>)
+    );
   });
 
   it('uses the stable fallback for non-JSON errors', async () => {

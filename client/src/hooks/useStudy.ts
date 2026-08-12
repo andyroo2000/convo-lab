@@ -32,7 +32,8 @@ import type {
 } from '@languageflow/shared/src/types';
 
 import { CSRF_TOKEN_HEADER_NAME, getCsrfToken } from '../lib/csrf';
-import { requestJson } from '../lib/apiClient';
+import { JsonRequestError, requestJson } from '../lib/apiClient';
+import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 import { studyApiPath } from '../lib/studyApi';
 import {
   getStudyBrowser,
@@ -185,6 +186,25 @@ async function apiRequest<T>(
   return requestJson<T>(studyApiPath(endpoint), init, {
     acceptedEmptyStatuses,
   });
+}
+
+function isStudyDraftRevisionConflictPayload(error: unknown): error is JsonRequestError & {
+  payload: { code: 'draft_revision_conflict'; message: string; draft: StudyManualCardDraft };
+} {
+  if (!(error instanceof JsonRequestError) || error.status !== 409) return false;
+  const { payload } = error;
+  if (typeof payload !== 'object' || payload === null) return false;
+  if (!('code' in payload) || payload.code !== 'draft_revision_conflict') return false;
+  if (!('message' in payload) || typeof payload.message !== 'string') return false;
+  if (!('draft' in payload) || typeof payload.draft !== 'object' || payload.draft === null) {
+    return false;
+  }
+  return (
+    'id' in payload.draft &&
+    typeof payload.draft.id === 'string' &&
+    'revision' in payload.draft &&
+    typeof payload.draft.revision === 'number'
+  );
 }
 
 export async function startStudySession(): Promise<StudySessionResponse> {
@@ -411,10 +431,17 @@ export async function updateStudyManualCardDraft(payload: {
   draftId: string;
   values: StudyManualCardDraftUpdateRequest;
 }): Promise<StudyManualCardDraft> {
-  return apiRequest<StudyManualCardDraft>(`/card-drafts/${payload.draftId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(payload.values),
-  });
+  try {
+    return await apiRequest<StudyManualCardDraft>(`/card-drafts/${payload.draftId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload.values),
+    });
+  } catch (error) {
+    if (isStudyDraftRevisionConflictPayload(error)) {
+      throw new StudyDraftRevisionConflictError(error.payload.message, error.payload.draft);
+    }
+    throw error;
+  }
 }
 
 export async function retryStudyManualCardDraft(draftId: string): Promise<StudyManualCardDraft> {
