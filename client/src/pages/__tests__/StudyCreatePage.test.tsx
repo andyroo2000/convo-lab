@@ -607,6 +607,47 @@ describe('StudyCreatePage', () => {
     await waitFor(() => expect(screen.getByLabelText('Prompt text')).toHaveValue('三番目'));
   });
 
+  it('does not replace a newer selection when an earlier card creation finishes', async () => {
+    let resolveCreation!: (result: { card: { id: string; cardType: 'recognition' } }) => void;
+    createCardFromManualDraftMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveCreation = resolve;
+      })
+    );
+    manualDraftsState.drafts = [
+      manualDraft({ id: 'draft-a', prompt: { cueText: '会社' } }),
+      manualDraft({
+        id: 'draft-b',
+        prompt: { cueText: '天気' },
+        answer: {
+          expression: '天気',
+          meaning: 'weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
+    await waitFor(() =>
+      expect(createCardFromManualDraftMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'draft-a' })
+      )
+    );
+    await userEvent.click(screen.getAllByTestId('study-manual-draft-row')[1]);
+
+    await act(async () => {
+      resolveCreation({ card: { id: 'created-a', cardType: 'recognition' } });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('天気');
+    expect(screen.getByRole('heading', { name: 'Review draft' })).toBeInTheDocument();
+  });
+
   it('selects the previous draft when creating the last draft in queue', async () => {
     manualDraftsState.drafts = [
       manualDraft({ id: 'draft-1', prompt: { cueText: '一番目' } }),
