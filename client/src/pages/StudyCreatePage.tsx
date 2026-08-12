@@ -42,8 +42,17 @@ import { useStudyActivityActions } from '../contexts/StudyActivityContext';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 import useStudyDraftAutosaveQueue from '../hooks/useStudyDraftAutosaveQueue';
 import useStudyCreateActionGuard from '../hooks/useStudyCreateActionGuard';
+import {
+  clearStudyDraftIntent,
+  isStudyDraftIntentApplied,
+  readStudyDraftIntent,
+  removeStudyDraftIntent,
+  type StudyDraftIntent,
+} from '../lib/studyDraftIntentStore';
+import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 
 type CreateMode = 'generate' | 'manual';
+type StudyDraftRecovery = { intent: StudyDraftIntent; serverDraft: StudyManualCardDraft };
 const STALE_GENERATING_DRAFT_RETRY_AFTER_MS = 10 * 60 * 1000;
 const STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS = new Set<keyof StudyCardFormValues>([
   'answerExpression',
@@ -167,6 +176,17 @@ const StudyCreatePage = () => {
   const selectedManualDraftIdRef = useRef(selectedManualDraftId);
   selectedManualDraftIdRef.current = selectedManualDraftId;
   const hydratedManualDraftKeyRef = useRef<string | null>(null);
+  const manualFormBaseRevisionRef = useRef<number | null>(null);
+  const replayingIntentIdsRef = useRef(new Set<string>());
+  const [draftRecovery, setDraftRecovery] = useState<StudyDraftRecovery | null>(null);
+  const showDraftRecovery = useCallback((next: StudyDraftRecovery) => {
+    setDraftRecovery((current) =>
+      current?.intent.intentId === next.intent.intentId &&
+      current.serverDraft.revision === next.serverDraft.revision
+        ? current
+        : next
+    );
+  }, []);
   const runManualAction = useStudyCreateActionGuard();
   const runVocabGeneration = useStudyCreateActionGuard();
   const manualDraftsQuery = useStudyManualCardDrafts(true);
@@ -180,13 +200,6 @@ const StudyCreatePage = () => {
     [manualDraftPages]
   );
   const manualDraftTotal = manualDraftPages[0]?.total ?? manualDrafts.length;
-  const {
-    cancelScheduledSave: cancelManualDraftAutosave,
-    flushSave: flushManualDraftAutosave,
-    flushScheduledSave: flushScheduledManualDraftAutosave,
-    scheduleSave: scheduleManualDraftAutosave,
-    waitForIdle: waitForManualDraftAutosave,
-  } = useStudyDraftAutosaveQueue(updateDraft.mutateAsync);
   const selectedManualDraft = useMemo(
     () => manualDrafts.find((draft) => draft.id === selectedManualDraftId) ?? null,
     [manualDrafts, selectedManualDraftId]
@@ -194,6 +207,29 @@ const StudyCreatePage = () => {
   const { values, setField, setValues } = useStudyCardForm({
     initialCardType: 'recognition',
     initialAnswerAudioVoiceId: manualDefaultVoiceId,
+  });
+  const {
+    cancelScheduledSave: cancelManualDraftAutosave,
+    flushSave: flushManualDraftAutosave,
+    flushScheduledSave: flushScheduledManualDraftAutosave,
+    isSessionIntent: isManualDraftSessionIntent,
+    replayIntent: replayManualDraftIntent,
+    scheduleSave: scheduleManualDraftAutosave,
+    waitForIdle: waitForManualDraftAutosave,
+  } = useStudyDraftAutosaveQueue(updateDraft.mutateAsync, {
+    onConflict: (intent, error) => {
+      replayingIntentIdsRef.current.delete(intent.intentId);
+      showDraftRecovery({ intent, serverDraft: error.draft });
+    },
+    onSaved: (intent, draft) => {
+      replayingIntentIdsRef.current.delete(intent.intentId);
+      if (selectedManualDraftIdRef.current === draft.id) {
+        manualFormBaseRevisionRef.current = draft.revision;
+      }
+      setDraftRecovery((current) =>
+        current?.intent.intentId === intent.intentId ? null : current
+      );
+    },
   });
   const manualCardType = cardTypeForStudyCardCreationKind(creationKind);
   const manualPayloadWithoutMedia = buildManualPayloadForCreationKind({
@@ -267,6 +303,8 @@ const StudyCreatePage = () => {
   useEffect(() => {
     if (!selectedManualDraft) {
       hydratedManualDraftKeyRef.current = null;
+      manualFormBaseRevisionRef.current = null;
+      setDraftRecovery(null);
       return;
     }
 
@@ -276,16 +314,59 @@ const StudyCreatePage = () => {
     if (hydratedManualDraftKeyRef.current === hydrationKey) return;
     hydratedManualDraftKeyRef.current = hydrationKey;
 
-    setCreationKind(selectedManualDraft.creationKind);
-    setValues(getDraftFormValues(selectedManualDraft));
-    setManualImagePrompt(selectedManualDraft.imagePrompt ?? '');
-    setManualImagePlacement(selectedManualDraft.imagePlacement);
-    setManualPreviewImage(selectedManualDraft.previewImage);
-    setManualPreviewAudio(selectedManualDraft.previewAudio);
-    setManualPreviewAudioRole(selectedManualDraft.previewAudioRole);
+    const persistedIntent = readStudyDraftIntent(selectedManualDraft.id);
+    if (
+      persistedIntent &&
+      persistedIntent.baseRevision !== selectedManualDraft.revision &&
+      !isStudyDraftIntentApplied(persistedIntent, selectedManualDraft)
+    ) {
+      showDraftRecovery({ intent: persistedIntent, serverDraft: selectedManualDraft });
+    }
+    const draftForHydration =
+      persistedIntent && persistedIntent.baseRevision === selectedManualDraft.revision
+        ? { ...selectedManualDraft, ...persistedIntent.values }
+        : selectedManualDraft;
+
+    manualFormBaseRevisionRef.current = selectedManualDraft.revision;
+    setCreationKind(draftForHydration.creationKind);
+    setValues(getDraftFormValues(draftForHydration));
+    setManualImagePrompt(draftForHydration.imagePrompt ?? '');
+    setManualImagePlacement(draftForHydration.imagePlacement);
+    setManualPreviewImage(draftForHydration.previewImage);
+    setManualPreviewAudio(draftForHydration.previewAudio);
+    setManualPreviewAudioRole(draftForHydration.previewAudioRole);
     setManualSuccess(null);
     setIsManualPreviewOpen(false);
-  }, [selectedManualDraft, setValues]);
+  }, [selectedManualDraft, setValues, showDraftRecovery]);
+
+  useEffect(() => {
+    manualDrafts.forEach((draft) => {
+      const intent = readStudyDraftIntent(draft.id);
+      if (!intent) return;
+      if (isManualDraftSessionIntent(intent)) return;
+
+      if (isStudyDraftIntentApplied(intent, draft)) {
+        clearStudyDraftIntent(intent);
+        setDraftRecovery((current) =>
+          current?.intent.intentId === intent.intentId ? null : current
+        );
+        return;
+      }
+
+      if (draft.revision !== intent.baseRevision) {
+        if (selectedManualDraftIdRef.current === draft.id) {
+          showDraftRecovery({ intent, serverDraft: draft });
+        }
+        return;
+      }
+
+      if (replayingIntentIdsRef.current.has(intent.intentId)) return;
+      replayingIntentIdsRef.current.add(intent.intentId);
+      replayManualDraftIntent(intent).catch(() => {
+        replayingIntentIdsRef.current.delete(intent.intentId);
+      });
+    });
+  }, [isManualDraftSessionIntent, manualDrafts, replayManualDraftIntent, showDraftRecovery]);
 
   useEffect(() => {
     if (
@@ -319,8 +400,15 @@ const StudyCreatePage = () => {
       return undefined;
     }
 
+    const persistedIntent = readStudyDraftIntent(selectedManualDraft.id);
+    if (persistedIntent) {
+      if (!isManualDraftSessionIntent(persistedIntent)) return undefined;
+      if (JSON.stringify(nextPayload) === JSON.stringify(persistedIntent.values)) return undefined;
+    }
+
     scheduleManualDraftAutosave({
       draftId: selectedManualDraft.id,
+      baseRevision: manualFormBaseRevisionRef.current ?? selectedManualDraft.revision,
       values: nextPayload,
     });
 
@@ -334,6 +422,7 @@ const StudyCreatePage = () => {
     manualPreviewAudio,
     manualPreviewAudioRole,
     manualPreviewImage,
+    isManualDraftSessionIntent,
     scheduleManualDraftAutosave,
     selectedManualDraft,
   ]);
@@ -399,6 +488,7 @@ const StudyCreatePage = () => {
     if (!selectedManualDraft) return null;
     await flushManualDraftAutosave({
       draftId: selectedManualDraft.id,
+      baseRevision: manualFormBaseRevisionRef.current ?? selectedManualDraft.revision,
       values: {
         prompt: manualPayload.prompt,
         answer: manualPayload.answer,
@@ -421,6 +511,7 @@ const StudyCreatePage = () => {
         if (!draftId) return;
         const result = await regenerateManualAudio.mutateAsync(draftId);
         if (selectedManualDraftIdRef.current !== draftId) return;
+        manualFormBaseRevisionRef.current = result.revision;
         setManualPreviewAudio(result.previewAudio);
         setManualPreviewAudioRole(result.previewAudioRole);
       } catch {
@@ -437,6 +528,7 @@ const StudyCreatePage = () => {
         if (!draftId) return;
         const result = await generateDraftImage.mutateAsync(draftId);
         if (selectedManualDraftIdRef.current !== draftId) return;
+        manualFormBaseRevisionRef.current = result.revision;
         setManualImagePrompt(result.imagePrompt);
         setManualImagePlacement(result.imagePlacement);
         setManualPreviewImage(result.previewImage);
@@ -475,6 +567,7 @@ const StudyCreatePage = () => {
         cancelManualDraftAutosave();
         await waitForManualDraftAutosave();
         await deleteDraft.mutateAsync(draftId);
+        removeStudyDraftIntent(draftId);
         if (selectedManualDraftIdRef.current !== draftId) return;
         setSelectedManualDraftId(null);
         resetManualComposer(creationKind);
@@ -503,6 +596,7 @@ const StudyCreatePage = () => {
           await waitForManualDraftAutosave();
         }
         const result = await createCardFromDraft.mutateAsync(selectedManualDraft);
+        removeStudyDraftIntent(draftId);
         addCreatedCards();
         if (selectedManualDraftIdRef.current !== draftId) return;
         let nextDraftId: string | null = null;
@@ -550,7 +644,9 @@ const StudyCreatePage = () => {
     deleteDraft.error ??
     retryDraft.error;
   let manualErrorMessage: string | null = null;
-  if (manualError instanceof Error) {
+  if (manualError instanceof StudyDraftRevisionConflictError) {
+    manualErrorMessage = null;
+  } else if (manualError instanceof Error) {
     manualErrorMessage = manualError.message;
   } else if (manualError) {
     manualErrorMessage = t('create.failed');
@@ -638,6 +734,9 @@ const StudyCreatePage = () => {
                 : null
             }
             canRetryDraft={canRetrySelectedManualDraft}
+            draftRecovery={
+              draftRecovery?.intent.draftId === selectedManualDraftId ? draftRecovery : null
+            }
             creationKind={creationKind}
             draft={selectedManualDraft}
             errorMessage={manualErrorMessage}
@@ -655,6 +754,18 @@ const StudyCreatePage = () => {
             isRegeneratingAudio={regenerateManualAudio.isPending}
             isRetryingDraft={retryDraft.isPending}
             onCreationKindChange={handleCreationKindChange}
+            onDiscardRecoveredDraft={() => {
+              if (!draftRecovery) return;
+              clearStudyDraftIntent(draftRecovery.intent);
+              manualFormBaseRevisionRef.current = draftRecovery.serverDraft.revision;
+              setValues(getDraftFormValues(draftRecovery.serverDraft));
+              setManualImagePrompt(draftRecovery.serverDraft.imagePrompt ?? '');
+              setManualImagePlacement(draftRecovery.serverDraft.imagePlacement);
+              setManualPreviewImage(draftRecovery.serverDraft.previewImage);
+              setManualPreviewAudio(draftRecovery.serverDraft.previewAudio);
+              setManualPreviewAudioRole(draftRecovery.serverDraft.previewAudioRole);
+              setDraftRecovery(null);
+            }}
             onDeleteDraft={handleDeleteSelectedDraft}
             onFieldChange={handleManualFieldChange}
             onFillRemainingFields={handleFillRemainingFields}
@@ -665,6 +776,25 @@ const StudyCreatePage = () => {
             onPreviewOpen={() => setIsManualPreviewOpen(true)}
             onRegenerateAudio={handleRegenerateManualAudio}
             onRetryDraft={handleRetrySelectedDraft}
+            onRestoreRecoveredDraft={() => {
+              if (!draftRecovery) return;
+              const restoredDraft = {
+                ...draftRecovery.serverDraft,
+                ...draftRecovery.intent.values,
+              };
+              manualFormBaseRevisionRef.current = draftRecovery.serverDraft.revision;
+              setValues(getDraftFormValues(restoredDraft));
+              setManualImagePrompt(restoredDraft.imagePrompt ?? '');
+              setManualImagePlacement(restoredDraft.imagePlacement);
+              setManualPreviewImage(restoredDraft.previewImage);
+              setManualPreviewAudio(restoredDraft.previewAudio);
+              setManualPreviewAudioRole(restoredDraft.previewAudioRole);
+              setDraftRecovery(null);
+              replayManualDraftIntent(
+                draftRecovery.intent,
+                draftRecovery.serverDraft.revision
+              ).catch(() => undefined);
+            }}
             onSubmit={handleManualSubmit}
             previewAudioRole={manualPreviewAudioRole}
             previewAudioUrl={manualPreviewAudioUrl}

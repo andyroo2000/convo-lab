@@ -11,6 +11,7 @@ import {
 import type { StudyManualCardDraft } from '@languageflow/shared/src/types';
 
 import StudyCreatePage from '../StudyCreatePage';
+import { writeStudyDraftIntent } from '../../lib/studyDraftIntentStore';
 
 async function chooseAnswerAudioVoice(name: RegExp | string) {
   await userEvent.click(screen.getByLabelText('Answer audio voice'));
@@ -158,6 +159,7 @@ const renderPage = () => {
 
 const manualDraft = (overrides: Partial<StudyManualCardDraft> = {}): StudyManualCardDraft => ({
   id: 'draft-1',
+  revision: 1,
   status: 'ready',
   creationKind: 'text-recognition',
   cardType: 'recognition',
@@ -186,6 +188,7 @@ const manualDraft = (overrides: Partial<StudyManualCardDraft> = {}): StudyManual
 
 describe('StudyCreatePage', () => {
   beforeEach(() => {
+    window.localStorage.clear();
     createManualDraftMock.mockReset();
     createManualDraftState.error = null;
     createManualDraftState.isPending = false;
@@ -234,10 +237,16 @@ describe('StudyCreatePage', () => {
     createStudyCardMock.mockResolvedValue({ cardType: 'recognition' });
     deleteManualDraftMock.mockResolvedValue(undefined);
     retryManualDraftMock.mockResolvedValue(manualDraft({ status: 'generating' }));
-    updateManualDraftMock.mockImplementation(async ({ draftId, values }) =>
-      manualDraft({ id: draftId, ...values })
-    );
+    updateManualDraftMock.mockImplementation(async ({ draftId, values }) => {
+      const { expectedRevision, ...draftValues } = values;
+      return manualDraft({
+        id: draftId,
+        revision: (expectedRevision ?? 0) + 1,
+        ...draftValues,
+      });
+    });
     regenerateCandidateAudioMock.mockResolvedValue({
+      revision: 2,
       previewAudio: {
         id: 'media-regenerated',
         filename: 'candidate-regenerated.mp3',
@@ -533,9 +542,77 @@ describe('StudyCreatePage', () => {
         draftId: 'draft-1',
         values: expect.objectContaining({
           answer: expect.objectContaining({ meaning: 'business' }),
+          expectedRevision: 1,
         }),
       });
     });
+  });
+
+  it('replays a durable edit after reload when the server revision still matches', async () => {
+    manualDraftsState.drafts = [manualDraft({ revision: 4 })];
+    writeStudyDraftIntent({
+      draftId: 'draft-1',
+      baseRevision: 4,
+      values: { answer: { meaning: 'enterprise' } },
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(updateManualDraftMock).toHaveBeenCalledWith({
+        draftId: 'draft-1',
+        values: { answer: { meaning: 'enterprise' }, expectedRevision: 4 },
+      });
+    });
+    await waitFor(() => {
+      expect(window.localStorage.getItem('convolab.studyDraftIntent.v1.draft-1')).toBeNull();
+    });
+  });
+
+  it('retains a conflicting durable edit and requires explicit restore', async () => {
+    manualDraftsState.drafts = [manualDraft({ revision: 5 })];
+    writeStudyDraftIntent({
+      draftId: 'draft-1',
+      baseRevision: 4,
+      values: { answer: { meaning: 'enterprise' } },
+    });
+
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This draft changed somewhere else.'
+    );
+    expect(screen.getByLabelText('Answer meaning')).toHaveValue('company');
+    expect(updateManualDraftMock).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Restore my edits' }));
+    expect(screen.getByLabelText('Answer meaning')).toHaveValue('enterprise');
+
+    await waitFor(() => {
+      expect(updateManualDraftMock).toHaveBeenCalledWith({
+        draftId: 'draft-1',
+        values: expect.objectContaining({ expectedRevision: 5 }),
+      });
+    });
+    expect(updateManualDraftMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears a durable intent when the server already contains its values', async () => {
+    manualDraftsState.drafts = [manualDraft({ revision: 5, answer: { meaning: 'enterprise' } })];
+    writeStudyDraftIntent({
+      draftId: 'draft-1',
+      baseRevision: 4,
+      values: { answer: { meaning: 'enterprise' } },
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('convolab.studyDraftIntent.v1.draft-1')).toBeNull();
+    });
+    expect(updateManualDraftMock).not.toHaveBeenCalled();
   });
 
   it('flushes a debounced edit before selecting another draft', async () => {
@@ -1284,6 +1361,7 @@ describe('StudyCreatePage', () => {
 
   it('generates a manual image from the edited prompt before create', async () => {
     generateDraftImageMock.mockResolvedValue({
+      revision: 2,
       previewImage: {
         id: 'manual-image',
         filename: 'manual-image.webp',

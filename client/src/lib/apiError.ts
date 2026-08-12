@@ -6,7 +6,7 @@ function nonBlankString(value: unknown): string | null {
   return value.trim() || null;
 }
 
-function errorMessageFromPayload(payload: unknown): string | null {
+export function errorMessageFromPayload(payload: unknown): string | null {
   if (typeof payload !== 'object' || payload === null) {
     return null;
   }

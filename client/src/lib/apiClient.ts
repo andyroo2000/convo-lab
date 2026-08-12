@@ -1,9 +1,20 @@
 import { notifyAuthSessionExpired } from './authSession';
-import readApiError from './apiError';
+import { errorMessageFromPayload } from './apiError';
 import { fetchWithCsrf } from './csrf';
 
 export interface JsonRequestOptions {
   acceptedEmptyStatuses?: readonly number[];
+}
+
+export class JsonRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly payload: unknown
+  ) {
+    super(message);
+    this.name = 'JsonRequestError';
+  }
 }
 
 function requestHeaders(init?: RequestInit): Headers {
@@ -42,8 +53,14 @@ export async function requestJson<T>(
     return undefined as T;
   }
   if (!response.ok) {
-    const message = await readApiError(response, 'Request failed');
-    throw new Error(`${message} (${String(response.status)})`);
+    let payload: unknown = null;
+    try {
+      payload = await response.json();
+    } catch {
+      // Keep the normalized message when an upstream returned a non-JSON error page.
+    }
+    const message = errorMessageFromPayload(payload) ?? 'Request failed';
+    throw new JsonRequestError(`${message} (${String(response.status)})`, response.status, payload);
   }
   if (response.status === 204) {
     return undefined as T;

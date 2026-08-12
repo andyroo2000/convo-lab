@@ -13,11 +13,13 @@ import StudyCardFormFields, { StudyCardNotesField } from './StudyCardFormFields'
 import StudyCandidatePreviewAudio from './StudyCandidatePreviewAudio';
 import StudyCandidateCardPreviewModal from './StudyCandidatePreview';
 import type { StudyCardFormValues } from './studyCardFormModel';
+import type { StudyDraftIntent } from '../../lib/studyDraftIntentStore';
 
 interface StudyManualDraftComposerPanelProps {
   audioError: string | null;
   canRetryDraft: boolean;
   creationKind: StudyCardCreationKind;
+  draftRecovery: { intent: StudyDraftIntent; serverDraft: StudyManualCardDraft } | null;
   draft: StudyManualCardDraft | null;
   errorMessage: string | null;
   imageError: string | null;
@@ -32,6 +34,7 @@ interface StudyManualDraftComposerPanelProps {
   isRegeneratingAudio: boolean;
   isRetryingDraft: boolean;
   onCreationKindChange: (creationKind: StudyCardCreationKind) => void;
+  onDiscardRecoveredDraft: () => void;
   onDeleteDraft: () => void;
   onFieldChange: <Key extends keyof StudyCardFormValues>(
     field: Key,
@@ -45,6 +48,7 @@ interface StudyManualDraftComposerPanelProps {
   onPreviewOpen: () => void;
   onRegenerateAudio: () => void;
   onRetryDraft: () => void;
+  onRestoreRecoveredDraft: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   previewAudioRole: 'prompt' | 'answer' | null;
   previewAudioUrl: string | null;
@@ -58,6 +62,7 @@ const StudyManualDraftComposerPanel = ({
   audioError,
   canRetryDraft,
   creationKind,
+  draftRecovery,
   draft,
   errorMessage,
   imageError,
@@ -72,6 +77,7 @@ const StudyManualDraftComposerPanel = ({
   isRegeneratingAudio,
   isRetryingDraft,
   onCreationKindChange,
+  onDiscardRecoveredDraft,
   onDeleteDraft,
   onFieldChange,
   onFillRemainingFields,
@@ -82,6 +88,7 @@ const StudyManualDraftComposerPanel = ({
   onPreviewOpen,
   onRegenerateAudio,
   onRetryDraft,
+  onRestoreRecoveredDraft,
   onSubmit,
   previewAudioRole,
   previewAudioUrl,
@@ -123,7 +130,36 @@ const StudyManualDraftComposerPanel = ({
           </div>
         </div>
 
-        <fieldset disabled={isGeneratingDraft || isCommittedDraft} className="space-y-4">
+        {draftRecovery ? (
+          <div
+            className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+            role="alert"
+          >
+            <p className="font-semibold">{t('create.draftConflictTitle')}</p>
+            <p className="mt-1">{t('create.draftConflictDescription')}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-full bg-amber-700 px-3 py-1.5 font-semibold text-white hover:bg-amber-800"
+                onClick={onRestoreRecoveredDraft}
+              >
+                {t('create.restoreDraftEdits')}
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-amber-400 px-3 py-1.5 font-semibold hover:bg-amber-100"
+                onClick={onDiscardRecoveredDraft}
+              >
+                {t('create.useServerDraft')}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <fieldset
+          disabled={isGeneratingDraft || isCommittedDraft || Boolean(draftRecovery)}
+          className="space-y-4"
+        >
           <StudyCardFormFields
             values={values}
             idPrefix="study"

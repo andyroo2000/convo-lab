@@ -291,6 +291,7 @@ export interface StudyVocabBundleDraftCreateResponse {
 }
 
 export interface StudyCardDraftPreviewAudioResponse {
+  revision: number;
   previewAudio: StudyMediaRef | null;
   previewAudioRole: 'prompt' | 'answer' | null;
 }
@@ -327,6 +328,7 @@ export interface StudyCardDraftImageRequest {
 }
 
 export interface StudyCardDraftImageResponse {
+  revision: number;
   previewImage: StudyMediaRef;
   imagePrompt: string;
   imagePlacement: StudyCardImagePlacement;
@@ -336,6 +338,7 @@ export type StudyManualCardDraftStatus = 'generating' | 'ready' | 'error';
 
 export interface StudyManualCardDraft {
   id: string;
+  revision: number;
   status: StudyManualCardDraftStatus;
   committedCardId?: string | null;
   creationKind: StudyCardCreationKind;
@@ -375,6 +378,7 @@ export interface StudyManualCardDraftCreateRequest {
 }
 
 export interface StudyManualCardDraftUpdateRequest {
+  expectedRevision: number;
   prompt?: StudyPromptPayload;
   answer?: StudyAnswerPayload;
   imagePlacement?: StudyCardImagePlacement;
