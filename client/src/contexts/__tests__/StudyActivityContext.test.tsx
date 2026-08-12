@@ -243,4 +243,47 @@ describe('StudyActivityProvider', () => {
     });
     expect(settled).toBe(true);
   });
+
+  it('keeps sessions queued while an older offline batch is being flushed', async () => {
+    const pendingKey = 'convolab.studyActivity.pending.v1.42';
+    const olderSession = {
+      clientSessionId: '018f22d2-6d38-7000-8000-000000000002',
+      category: 'review' as const,
+      activity: 'card_review' as const,
+      source: 'automatic' as const,
+      startedAt: '2026-07-28T14:55:00.000Z',
+      endedAt: '2026-07-28T15:00:00.000Z',
+      durationMs: 300_000,
+      cardsCreated: null,
+    };
+    localStorage.setItem(pendingKey, JSON.stringify([olderSession]));
+
+    let finishFlush!: (value: never[]) => void;
+    saveSessionsMock
+      .mockReturnValueOnce(
+        new Promise<never[]>((resolve) => {
+          finishFlush = resolve;
+        })
+      )
+      .mockRejectedValueOnce(new Error('offline'));
+
+    renderProvider();
+    expect(saveSessionsMock).toHaveBeenNthCalledWith(1, [olderSession]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add cards' }));
+    expect(saveSessionsMock).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      finishFlush([]);
+      await Promise.resolve();
+    });
+
+    expect(JSON.parse(localStorage.getItem(pendingKey) ?? '[]')).toEqual([
+      expect.objectContaining({
+        clientSessionId: '018f22d2-6d38-7000-8000-000000000001',
+        activity: 'card_creation',
+        cardsCreated: 2,
+      }),
+    ]);
+  });
 });

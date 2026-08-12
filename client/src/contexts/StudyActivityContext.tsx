@@ -80,6 +80,18 @@ function queuePending(key: string, session: StudyActivitySession) {
   localStorage.setItem(key, JSON.stringify(next));
 }
 
+function acknowledgePending(key: string, clientSessionIds: Iterable<string>) {
+  const acknowledged = new Set(clientSessionIds);
+  const pending = readJson<StudyActivitySession[]>(key, []);
+  const remaining = pending.filter((item) => !acknowledged.has(item.clientSessionId));
+
+  if (remaining.length) {
+    localStorage.setItem(key, JSON.stringify(remaining));
+  } else {
+    localStorage.removeItem(key);
+  }
+}
+
 function sessionFromActive(
   active: ActiveStudyActivity,
   endedAt = new Date()
@@ -118,13 +130,7 @@ export const StudyActivityProvider = ({
       queuePending(pendingKey, session);
       return saveStudyActivitySessions([session])
         .then(async () => {
-          const pending = readJson<StudyActivitySession[]>(pendingKey, []);
-          localStorage.setItem(
-            pendingKey,
-            JSON.stringify(
-              pending.filter((item) => item.clientSessionId !== session.clientSessionId)
-            )
-          );
+          acknowledgePending(pendingKey, [session.clientSessionId]);
           await queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
         })
         .catch(() => {
@@ -214,9 +220,10 @@ export const StudyActivityProvider = ({
   const flushPending = useCallback(() => {
     const pending = readJson<StudyActivitySession[]>(pendingKey, []);
     if (!pending.length) return;
+    const submittedSessionIds = pending.map((session) => session.clientSessionId);
     saveStudyActivitySessions(pending)
       .then(() => {
-        localStorage.removeItem(pendingKey);
+        acknowledgePending(pendingKey, submittedSessionIds);
         queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
       })
       .catch(() => undefined);
