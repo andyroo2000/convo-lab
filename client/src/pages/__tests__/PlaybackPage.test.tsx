@@ -640,6 +640,15 @@ describe('PlaybackPage', () => {
       expect(mockSeek).not.toHaveBeenCalled();
       expect(mockPlay).not.toHaveBeenCalled();
     });
+
+    it('keeps arrow navigation working while a sentence row has focus', async () => {
+      renderPlaybackPage();
+
+      const sentence = await screen.findByTestId('playback-sentence-sentence-1');
+      fireEvent.keyDown(sentence, { key: 'ArrowRight', code: 'ArrowRight' });
+
+      expect(mockSeek).toHaveBeenCalledWith(2.353);
+    });
   });
 
   describe('speaker avatars', () => {

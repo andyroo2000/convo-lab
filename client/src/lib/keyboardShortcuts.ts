@@ -26,11 +26,22 @@ export const isInteractiveShortcutTarget = (target: EventTarget | null): boolean
   return target.isContentEditable || target.closest(interactiveTargetSelector) !== null;
 };
 
-export const shouldIgnoreGlobalShortcut = (event: KeyboardEvent): boolean =>
+interface KeyboardShortcutEventState {
+  altKey: boolean;
+  ctrlKey: boolean;
+  defaultPrevented: boolean;
+  metaKey: boolean;
+  repeat: boolean;
+  shiftKey: boolean;
+}
+
+export const hasBlockingShortcutState = (event: KeyboardShortcutEventState): boolean =>
   event.defaultPrevented ||
   event.repeat ||
   event.altKey ||
   event.ctrlKey ||
   event.metaKey ||
-  event.shiftKey ||
-  isInteractiveShortcutTarget(event.target);
+  event.shiftKey;
+
+export const shouldIgnoreGlobalShortcut = (event: KeyboardEvent): boolean =>
+  hasBlockingShortcutState(event) || isInteractiveShortcutTarget(event.target);

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { isInteractiveShortcutTarget, shouldIgnoreGlobalShortcut } from '../keyboardShortcuts';
+import {
+  hasBlockingShortcutState,
+  isInteractiveShortcutTarget,
+  shouldIgnoreGlobalShortcut,
+} from '../keyboardShortcuts';
 
 describe('keyboard shortcut policy', () => {
   it('recognizes native and ARIA interactive targets, including their descendants', () => {
@@ -30,9 +34,9 @@ describe('keyboard shortcut policy', () => {
     const prevented = new KeyboardEvent('keydown', { cancelable: true });
     prevented.preventDefault();
 
-    expect(shouldIgnoreGlobalShortcut(prevented)).toBe(true);
-    expect(shouldIgnoreGlobalShortcut(new KeyboardEvent('keydown', { repeat: true }))).toBe(true);
-    expect(shouldIgnoreGlobalShortcut(new KeyboardEvent('keydown', { ctrlKey: true }))).toBe(true);
+    expect(hasBlockingShortcutState(prevented)).toBe(true);
+    expect(hasBlockingShortcutState(new KeyboardEvent('keydown', { repeat: true }))).toBe(true);
+    expect(hasBlockingShortcutState(new KeyboardEvent('keydown', { ctrlKey: true }))).toBe(true);
     expect(shouldIgnoreGlobalShortcut(new KeyboardEvent('keydown'))).toBe(false);
   });
 });

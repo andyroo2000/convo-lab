@@ -6,6 +6,7 @@ import type { AudioSpeed, Sentence } from '../types';
 
 interface UsePlaybackKeyboardControlsOptions {
   currentTimeSeconds: number;
+  enabled: boolean;
   isPlaying: boolean;
   pause: () => void;
   play: () => void;
@@ -14,17 +15,41 @@ interface UsePlaybackKeyboardControlsOptions {
   sentences: Sentence[];
 }
 
+type SentenceNavigationDirection = 'previous' | 'next';
+
+interface PlaybackKeyboardControls {
+  navigateSentence: (direction: SentenceNavigationDirection) => void;
+}
+
+const seekToAdjacentSentence = (
+  controls: Omit<UsePlaybackKeyboardControlsOptions, 'enabled' | 'isPlaying' | 'pause' | 'play'>,
+  direction: SentenceNavigationDirection
+): void => {
+  if (controls.sentences.length === 0) return;
+
+  const targetTimeMs = getSentenceNavigationTargetMs(
+    controls.sentences,
+    controls.selectedSpeed,
+    controls.currentTimeSeconds * 1000,
+    direction
+  );
+
+  if (targetTimeMs !== undefined) controls.seek(targetTimeMs / 1000);
+};
+
 export default function usePlaybackKeyboardControls({
   currentTimeSeconds,
+  enabled,
   isPlaying,
   pause,
   play,
   seek,
   selectedSpeed,
   sentences,
-}: UsePlaybackKeyboardControlsOptions): void {
+}: UsePlaybackKeyboardControlsOptions): PlaybackKeyboardControls {
   const controlsRef = useRef({
     currentTimeSeconds,
+    enabled,
     isPlaying,
     pause,
     play,
@@ -36,6 +61,7 @@ export default function usePlaybackKeyboardControls({
   useEffect(() => {
     controlsRef.current = {
       currentTimeSeconds,
+      enabled,
       isPlaying,
       pause,
       play,
@@ -43,13 +69,14 @@ export default function usePlaybackKeyboardControls({
       selectedSpeed,
       sentences,
     };
-  }, [currentTimeSeconds, isPlaying, pause, play, seek, selectedSpeed, sentences]);
+  }, [currentTimeSeconds, enabled, isPlaying, pause, play, seek, selectedSpeed, sentences]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (shouldIgnoreGlobalShortcut(event)) return;
 
       const controls = controlsRef.current;
+      if (!controls.enabled) return;
 
       if (event.code === 'Space') {
         event.preventDefault();
@@ -62,20 +89,16 @@ export default function usePlaybackKeyboardControls({
       }
 
       if (event.code !== 'ArrowLeft' && event.code !== 'ArrowRight') return;
-      if (controls.sentences.length === 0) return;
-
       event.preventDefault();
-      const targetTimeMs = getSentenceNavigationTargetMs(
-        controls.sentences,
-        controls.selectedSpeed,
-        controls.currentTimeSeconds * 1000,
-        event.code === 'ArrowLeft' ? 'previous' : 'next'
-      );
-
-      if (targetTimeMs !== undefined) controls.seek(targetTimeMs / 1000);
+      seekToAdjacentSentence(controls, event.code === 'ArrowLeft' ? 'previous' : 'next');
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  return {
+    navigateSentence: (direction) =>
+      seekToAdjacentSentence({ currentTimeSeconds, seek, selectedSpeed, sentences }, direction),
+  };
 }

@@ -41,6 +41,7 @@ const sentences: Sentence[] = [
 
 const createOptions = () => ({
   currentTimeSeconds: 0,
+  enabled: true,
   isPlaying: false,
   pause: vi.fn(),
   play: vi.fn(),
@@ -103,6 +104,17 @@ describe('usePlaybackKeyboardControls', () => {
     fireEvent.keyDown(window, { code: 'Space', repeat: true });
     fireEvent.keyDown(window, { code: 'ArrowRight', metaKey: true });
     fireEvent.keyDown(window, { code: 'ArrowLeft', shiftKey: true });
+
+    expect(options.play).not.toHaveBeenCalled();
+    expect(options.seek).not.toHaveBeenCalled();
+  });
+
+  it('does not install active dialogue shortcuts for script playback', () => {
+    const options = { ...createOptions(), enabled: false };
+    renderHook(() => usePlaybackKeyboardControls(options));
+
+    fireEvent.keyDown(window, { code: 'Space' });
+    fireEvent.keyDown(window, { code: 'ArrowRight' });
 
     expect(options.play).not.toHaveBeenCalled();
     expect(options.seek).not.toHaveBeenCalled();

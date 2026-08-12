@@ -9,6 +9,7 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
 import usePlaybackAudioGeneration from '../hooks/usePlaybackAudioGeneration';
 import usePlaybackKeyboardControls from '../hooks/usePlaybackKeyboardControls';
+import { hasBlockingShortcutState } from '../lib/keyboardShortcuts';
 import { getSentenceTiming, isSentenceActive } from '../lib/playbackTiming';
 import { Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
@@ -17,6 +18,8 @@ import AudioScriptPlayback from '../components/audio/AudioScriptPlayback';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
+
+const EMPTY_SENTENCES: Sentence[] = [];
 
 // Helper function to get avatar URL based on speaker voice and gender
 function getSpeakerAvatarFilename(
@@ -84,14 +87,15 @@ const PlaybackPage = () => {
 
   useWarmAudioCache(episodeAudioUrls, Boolean(episode && !isGeneratingAudio));
 
-  usePlaybackKeyboardControls({
+  const { navigateSentence } = usePlaybackKeyboardControls({
     currentTimeSeconds: currentTime,
+    enabled: Boolean(episode && episode.contentType !== 'script'),
     isPlaying,
     pause,
     play,
     seek,
     selectedSpeed,
-    sentences: episode?.dialogue?.sentences ?? [],
+    sentences: episode?.dialogue?.sentences ?? EMPTY_SENTENCES,
   });
 
   // Helper function to get speaker avatar URL from GCS
@@ -369,7 +373,15 @@ const PlaybackPage = () => {
               }}
               onClick={() => seekToSentence(sentence)}
               onKeyDown={(event) => {
-                if (event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
+                if (hasBlockingShortcutState(event)) return;
+
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                  event.preventDefault();
+                  navigateSentence(event.key === 'ArrowLeft' ? 'previous' : 'next');
+                  return;
+                }
+
+                if (event.key !== 'Enter' && event.key !== ' ') return;
 
                 event.preventDefault();
                 seekToSentence(sentence);
