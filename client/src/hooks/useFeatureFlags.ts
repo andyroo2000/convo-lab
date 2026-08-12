@@ -10,6 +10,8 @@ export interface FeatureFlags {
   updatedAt: string;
 }
 
+export type FeatureFlagStatus = 'loading' | 'ready' | 'error' | 'adminOverride';
+
 async function fetchFeatureFlags(): Promise<FeatureFlags> {
   const response = await fetch('/api/feature-flags', {
     credentials: 'include',
@@ -28,25 +30,35 @@ export function useFeatureFlags() {
     data: flags,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['featureFlags'],
     queryFn: fetchFeatureFlags,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
-  // Helper function to check if a feature is enabled
-  // Admins always see everything
+  // The admin override is an intentional product rule. Everyone else must receive a
+  // successful flag response before feature-controlled UI or behavior can be enabled.
+  const status: FeatureFlagStatus = isAdmin
+    ? 'adminOverride'
+    : error
+      ? 'error'
+      : flags
+        ? 'ready'
+        : 'loading';
+
   const isFeatureEnabled = (feature: keyof Omit<FeatureFlags, 'id' | 'updatedAt'>): boolean => {
     if (isAdmin) return true;
-    if (!flags) return true; // Default to enabled if flags haven't loaded
-    return flags[feature];
+    return status === 'ready' && flags?.[feature] === true;
   };
 
   return {
     flags,
     isLoading,
     error,
+    refetch,
     isFeatureEnabled,
     isAdmin,
+    status,
   };
 }

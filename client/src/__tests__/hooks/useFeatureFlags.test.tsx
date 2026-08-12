@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
-import { createWrapper } from './test-utils';
+import { createTestQueryClient, createWrapper } from './test-utils';
 
 // Mock the config
 vi.mock('../../config', () => ({
@@ -147,14 +147,57 @@ describe('useFeatureFlags', () => {
       expect(result.current.isFeatureEnabled('audioCourseEnabled')).toBe(false);
     });
 
-    it('should return true by default when flags not loaded', () => {
+    it('keeps non-admin features closed while flags are loading', () => {
       mockFetch.mockImplementation(() => new Promise(() => {}));
 
       const { result } = renderHook(() => useFeatureFlags(), {
         wrapper: createWrapper(),
       });
 
-      // Before flags load, should default to enabled
+      expect(result.current.status).toBe('loading');
+      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
+    });
+
+    it('keeps non-admin features closed after a fetch error', async () => {
+      mockUser.mockReturnValue({ role: 'user' });
+      mockFetch.mockResolvedValueOnce({ ok: false });
+
+      const { result } = renderHook(() => useFeatureFlags(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('error'));
+      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
+      expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(false);
+    });
+
+    it('recovers from a closed error state after a successful refetch', async () => {
+      mockUser.mockReturnValue({ role: 'user' });
+      mockFetch.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            id: 'flags-1',
+            dialoguesEnabled: true,
+            scriptsEnabled: false,
+            audioCourseEnabled: false,
+            flashcardsEnabled: true,
+            updatedAt: '2026-08-12T00:00:00Z',
+          }),
+      });
+
+      const { result } = renderHook(() => useFeatureFlags(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('error'));
+      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('ready'));
       expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
     });
   });
@@ -189,6 +232,18 @@ describe('useFeatureFlags', () => {
       expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
       expect(result.current.isFeatureEnabled('scriptsEnabled')).toBe(true);
       expect(result.current.isFeatureEnabled('audioCourseEnabled')).toBe(true);
+    });
+
+    it('documents the admin override as available even while flags are unavailable', () => {
+      mockUser.mockReturnValue({ role: 'admin' });
+      mockFetch.mockImplementation(() => new Promise(() => {}));
+
+      const { result } = renderHook(() => useFeatureFlags(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.status).toBe('adminOverride');
+      expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(true);
     });
 
     it('should set isAdmin to true for admin users', async () => {
@@ -257,6 +312,8 @@ describe('useFeatureFlags', () => {
       expect(result.current).toHaveProperty('error');
       expect(result.current).toHaveProperty('isFeatureEnabled');
       expect(result.current).toHaveProperty('isAdmin');
+      expect(result.current).toHaveProperty('status');
+      expect(result.current).toHaveProperty('refetch');
     });
   });
 
@@ -267,19 +324,19 @@ describe('useFeatureFlags', () => {
         json: () => Promise.resolve({ id: 'flags-1' }),
       });
 
-      // First render
-      const { unmount } = renderHook(() => useFeatureFlags(), {
-        wrapper: createWrapper(),
+      const queryClient = createTestQueryClient();
+      const wrapper = createWrapper(queryClient);
+      const first = renderHook(() => useFeatureFlags(), {
+        wrapper,
       });
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
+      await waitFor(() => expect(first.result.current.status).toBe('ready'));
+      first.unmount();
 
-      unmount();
+      const second = renderHook(() => useFeatureFlags(), { wrapper });
 
-      // This tests the staleTime configuration exists
-      // The actual caching behavior is handled by React Query
+      expect(second.result.current.status).toBe('ready');
+      expect(second.result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });

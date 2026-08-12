@@ -1,6 +1,11 @@
 {
   "title": "Study",
   "disabled": "Study is currently disabled for this environment.",
+  "featureAvailability": {
+    "loading": "Checking Study availability…",
+    "error": "Study availability could not be confirmed.",
+    "retry": "Try again"
+  },
   "impersonationBoundary": {
     "title": "Study unavailable in View As",
     "description": "Study data is scoped to your own account and cannot be viewed or changed for another user here. Return to the viewed user's Library, or exit View As to open your own Study data.",
