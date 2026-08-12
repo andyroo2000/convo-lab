@@ -434,6 +434,29 @@ describe('StudyCreatePage', () => {
     expect(retryManualDraftMock).toHaveBeenCalledWith('draft-stale');
   });
 
+  it('persists recent edits before retrying an errored draft', async () => {
+    manualDraftsState.drafts = [manualDraft({ id: 'draft-error', status: 'error' })];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'enterprise');
+    await userEvent.click(screen.getByRole('button', { name: 'Retry fill' }));
+
+    expect(updateManualDraftMock).toHaveBeenCalledWith({
+      draftId: 'draft-error',
+      values: expect.objectContaining({
+        answer: expect.objectContaining({ meaning: 'enterprise' }),
+      }),
+    });
+    expect(retryManualDraftMock).toHaveBeenCalledWith('draft-error');
+    expect(updateManualDraftMock.mock.invocationCallOrder[0]).toBeLessThan(
+      retryManualDraftMock.mock.invocationCallOrder[0] as number
+    );
+  });
+
   it('does not clear a newer selection when an earlier draft deletion finishes', async () => {
     let resolveDeletion!: () => void;
     deleteManualDraftMock.mockReturnValueOnce(
@@ -535,6 +558,34 @@ describe('StudyCreatePage', () => {
         answer: expect.objectContaining({ meaning: 'enterprise' }),
       }),
     });
+  });
+
+  it('waits for an active autosave before deleting its draft', async () => {
+    let resolveAutosave!: (draft: StudyManualCardDraft) => void;
+    updateManualDraftMock.mockReturnValueOnce(
+      new Promise<StudyManualCardDraft>((resolve) => {
+        resolveAutosave = resolve;
+      })
+    );
+    manualDraftsState.drafts = [manualDraft()];
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await userEvent.click(screen.getByTestId('study-manual-draft-row'));
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'enterprise');
+    await waitFor(() => expect(updateManualDraftMock).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    expect(deleteManualDraftMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveAutosave(manualDraft());
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(deleteManualDraftMock).toHaveBeenCalledWith('draft-1'));
   });
 
   it('keeps draft actions enabled while an autosave is pending', async () => {

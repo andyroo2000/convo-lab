@@ -45,6 +45,7 @@ import {
 } from '../hooks/useStudy';
 import { useStudyActivityActions } from '../contexts/StudyActivityContext';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
+import useStudyDraftAutosaveQueue from '../hooks/useStudyDraftAutosaveQueue';
 
 type CreateMode = 'generate' | 'manual';
 const STALE_GENERATING_DRAFT_RETRY_AFTER_MS = 10 * 60 * 1000;
@@ -169,8 +170,6 @@ const StudyCreatePage = () => {
   const [selectedManualDraftId, setSelectedManualDraftId] = useState<string | null>(null);
   const selectedManualDraftIdRef = useRef(selectedManualDraftId);
   selectedManualDraftIdRef.current = selectedManualDraftId;
-  const manualAutosaveTimeoutRef = useRef<number | null>(null);
-  const manualAutosavePromiseRef = useRef<Promise<unknown> | null>(null);
   const hydratedManualDraftKeyRef = useRef<string | null>(null);
   const manualDraftsQuery = useStudyManualCardDrafts(true);
   const { data: manualDraftData } = manualDraftsQuery;
@@ -183,6 +182,12 @@ const StudyCreatePage = () => {
     [manualDraftPages]
   );
   const manualDraftTotal = manualDraftPages[0]?.total ?? manualDrafts.length;
+  const {
+    cancelScheduledSave: cancelManualDraftAutosave,
+    flushSave: flushManualDraftAutosave,
+    scheduleSave: scheduleManualDraftAutosave,
+    waitForIdle: waitForManualDraftAutosave,
+  } = useStudyDraftAutosaveQueue(updateDraft.mutateAsync);
   const selectedManualDraft = useMemo(
     () => manualDrafts.find((draft) => draft.id === selectedManualDraftId) ?? null,
     [manualDrafts, selectedManualDraftId]
@@ -333,36 +338,14 @@ const StudyCreatePage = () => {
       return undefined;
     }
 
-    if (manualAutosaveTimeoutRef.current !== null) {
-      window.clearTimeout(manualAutosaveTimeoutRef.current);
-    }
-    manualAutosaveTimeoutRef.current = window.setTimeout(() => {
-      manualAutosaveTimeoutRef.current = null;
-      const previousAutosave = manualAutosavePromiseRef.current ?? Promise.resolve();
-      const autosavePromise = previousAutosave
-        .catch(() => undefined)
-        .then(() =>
-          updateDraft.mutateAsync({
-            draftId: selectedManualDraft.id,
-            values: nextPayload,
-          })
-        )
-        .catch(() => undefined)
-        .finally(() => {
-          if (manualAutosavePromiseRef.current === autosavePromise) {
-            manualAutosavePromiseRef.current = null;
-          }
-        });
-      manualAutosavePromiseRef.current = autosavePromise;
-    }, 700);
+    scheduleManualDraftAutosave({
+      draftId: selectedManualDraft.id,
+      values: nextPayload,
+    });
 
-    return () => {
-      if (manualAutosaveTimeoutRef.current !== null) {
-        window.clearTimeout(manualAutosaveTimeoutRef.current);
-        manualAutosaveTimeoutRef.current = null;
-      }
-    };
+    return cancelManualDraftAutosave;
   }, [
+    cancelManualDraftAutosave,
     manualImagePlacement,
     manualImagePrompt,
     manualPayload.answer,
@@ -370,8 +353,8 @@ const StudyCreatePage = () => {
     manualPreviewAudio,
     manualPreviewAudioRole,
     manualPreviewImage,
+    scheduleManualDraftAutosave,
     selectedManualDraft,
-    updateDraft,
   ]);
 
   const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
@@ -431,12 +414,7 @@ const StudyCreatePage = () => {
 
   const persistSelectedManualDraft = async () => {
     if (!selectedManualDraft) return null;
-    if (manualAutosaveTimeoutRef.current !== null) {
-      window.clearTimeout(manualAutosaveTimeoutRef.current);
-      manualAutosaveTimeoutRef.current = null;
-    }
-    await manualAutosavePromiseRef.current;
-    await updateDraft.mutateAsync({
+    await flushManualDraftAutosave({
       draftId: selectedManualDraft.id,
       values: {
         prompt: manualPayload.prompt,
@@ -483,13 +461,17 @@ const StudyCreatePage = () => {
 
   const handleRetrySelectedDraft = async () => {
     if (!selectedManualDraft) return;
+    const draftId = selectedManualDraft.id;
     setManualSuccess(null);
-    if (manualAutosaveTimeoutRef.current !== null) {
-      window.clearTimeout(manualAutosaveTimeoutRef.current);
-      manualAutosaveTimeoutRef.current = null;
-    }
     try {
-      await retryDraft.mutateAsync(selectedManualDraft.id);
+      if (selectedManualDraft.status === 'generating') {
+        cancelManualDraftAutosave();
+        await waitForManualDraftAutosave();
+      } else {
+        await persistSelectedManualDraft();
+      }
+      if (selectedManualDraftIdRef.current !== draftId) return;
+      await retryDraft.mutateAsync(draftId);
     } catch {
       // React Query exposes the retry error through retryDraft.error.
     }
@@ -499,11 +481,9 @@ const StudyCreatePage = () => {
     if (!selectedManualDraft) return;
     const draftId = selectedManualDraft.id;
     setManualSuccess(null);
-    if (manualAutosaveTimeoutRef.current !== null) {
-      window.clearTimeout(manualAutosaveTimeoutRef.current);
-      manualAutosaveTimeoutRef.current = null;
-    }
     try {
+      cancelManualDraftAutosave();
+      await waitForManualDraftAutosave();
       await deleteDraft.mutateAsync(draftId);
       if (selectedManualDraftIdRef.current !== draftId) return;
       setSelectedManualDraftId(null);
@@ -519,29 +499,16 @@ const StudyCreatePage = () => {
     if (!selectedManualDraft) return;
     const draftId = selectedManualDraft.id;
     setManualSuccess(null);
-    if (manualAutosaveTimeoutRef.current !== null) {
-      window.clearTimeout(manualAutosaveTimeoutRef.current);
-      manualAutosaveTimeoutRef.current = null;
-    }
-    await manualAutosavePromiseRef.current;
 
     try {
       const createdDraftIndex = manualDrafts.findIndex(
         (draft) => draft.id === selectedManualDraft.id
       );
       if (!selectedManualDraft.committedCardId) {
-        await updateDraft.mutateAsync({
-          draftId: selectedManualDraft.id,
-          values: {
-            prompt: manualPayload.prompt,
-            answer: manualPayload.answer,
-            imagePlacement: manualImagePlacement,
-            imagePrompt: manualImagePrompt.trim() || null,
-            previewAudio: manualPreviewAudio,
-            previewAudioRole: manualPreviewAudioRole,
-            previewImage: manualPreviewImage,
-          },
-        });
+        await persistSelectedManualDraft();
+      } else {
+        cancelManualDraftAutosave();
+        await waitForManualDraftAutosave();
       }
       const result = await createCardFromDraft.mutateAsync(selectedManualDraft);
       addCreatedCards();
