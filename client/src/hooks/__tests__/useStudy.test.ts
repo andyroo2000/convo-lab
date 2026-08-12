@@ -10,6 +10,7 @@ import {
   createStudyCardId,
   createStudyImportUploadSession,
   createStudyManualCardDraft,
+  createStudyReviewRequest,
   createStudyVocabBundleDrafts,
   deleteStudyCard,
   deleteStudyManualCardDraft,
@@ -43,6 +44,7 @@ import {
   uploadStudyImportArchive,
 } from '../useStudy';
 import StudyDraftRevisionConflictError from '../../lib/studyDraftRevisionConflict';
+import StudyReviewIdentityMismatchError from '../../lib/studyReviewIdentityMismatch';
 
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:8080',
@@ -154,12 +156,24 @@ describe('useStudy request helpers', () => {
   }
 
   it('routes review and lesson starts, review, and undo through Learning OS', async () => {
+    const reviewRequest = createStudyReviewRequest({
+      cardId: '123e4567-e89b-42d3-a456-426614174000',
+      grade: 'good',
+      durationMs: 1250,
+    });
+    vi.mocked(global.fetch).mockImplementation(
+      async (input: RequestInfo | URL) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () =>
+            String(input).endsWith('/reviews') ? { reviewLogId: reviewRequest.clientReviewId } : {},
+        }) as Response
+    );
+
     await startStudySession();
     await startStudyLesson();
-    await submitStudyReview(
-      { cardId: '123e4567-e89b-42d3-a456-426614174000', grade: 'good', durationMs: 1250 },
-      undefined
-    );
+    await submitStudyReview(reviewRequest, undefined);
     await undoStudyReview('review-log-1');
 
     const fetchMock = vi.mocked(global.fetch);
@@ -195,13 +209,26 @@ describe('useStudy request helpers', () => {
       totalCards: 1,
     };
 
-    await submitStudyReview({ cardId: 'card-1', grade: 'hard' }, overview);
+    const reviewRequest = createStudyReviewRequest({ cardId: 'card-1', grade: 'hard' });
+    vi.mocked(global.fetch).mockImplementation(
+      async (input: RequestInfo | URL) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () =>
+            String(input).endsWith('/reviews') ? { reviewLogId: reviewRequest.clientReviewId } : {},
+        }) as Response
+    );
+
+    await submitStudyReview(reviewRequest, overview);
     await undoStudyReview('review-log-1', overview);
 
     const fetchMock = vi.mocked(global.fetch);
     expect(JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body))).toEqual({
       cardId: 'card-1',
       grade: 'hard',
+      clientReviewId: reviewRequest.clientReviewId,
+      reviewedAt: reviewRequest.reviewedAt,
       currentOverview: overview,
       timeZone: expect.any(String),
     });
@@ -210,6 +237,42 @@ describe('useStudy request helpers', () => {
       currentOverview: overview,
       timeZone: expect.any(String),
     });
+  });
+
+  it('creates a lowercase ULID review identity with a canonical millisecond UTC timestamp', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-08-12T23:30:45.678Z'));
+
+      const request = createStudyReviewRequest({ cardId: 'card-1', grade: 'easy' });
+
+      expect(request).toMatchObject({
+        cardId: 'card-1',
+        grade: 'easy',
+        clientReviewId: expect.stringMatching(/^[0-9a-hjkmnp-tv-z]{26}$/),
+        reviewedAt: '2026-08-12T23:30:45.678Z',
+      });
+      expect(request.clientReviewId).toBe(request.clientReviewId.toLowerCase());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rejects a review response whose log ID does not match the submitted identity', async () => {
+    const request = createStudyReviewRequest({ cardId: 'card-1', grade: 'good' });
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ reviewLogId: '01differentreviewlogid0000' }),
+    } as Response);
+
+    await expect(submitStudyReview(request)).rejects.toEqual(
+      expect.objectContaining({
+        name: 'StudyReviewIdentityMismatchError',
+        submittedReviewId: request.clientReviewId,
+        receivedReviewId: '01differentreviewlogid0000',
+      } satisfies Partial<StudyReviewIdentityMismatchError>)
+    );
   });
 
   it('routes card CRUD, actions, and generated media through Learning OS', async () => {

@@ -11,12 +11,12 @@ const StudyFeatureBoundary = () => {
     return <Outlet />;
   }
 
-  const message =
-    status === 'loading'
-      ? t('featureAvailability.loading')
-      : status === 'error'
-        ? t('featureAvailability.error')
-        : t('disabled');
+  let message = t('disabled');
+  if (status === 'loading') {
+    message = t('featureAvailability.loading');
+  } else if (status === 'error') {
+    message = t('featureAvailability.error');
+  }
 
   return (
     <section
@@ -28,7 +28,9 @@ const StudyFeatureBoundary = () => {
       {status === 'error' ? (
         <button
           type="button"
-          onClick={() => void refetch()}
+          onClick={() => {
+            Promise.resolve(refetch()).catch(() => undefined);
+          }}
           className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:bg-navy/90"
         >
           {t('featureAvailability.retry')}

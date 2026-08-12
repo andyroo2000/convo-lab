@@ -11,7 +11,9 @@ import type {
 } from '@languageflow/shared/src/types';
 
 import {
+  createStudyReviewRequest,
   type StudySessionResponse,
+  type StudyReviewRequest,
   startStudyLesson,
   startStudySession,
   undoStudyReview,
@@ -21,6 +23,8 @@ import {
   useSubmitStudyReview,
   useUpdateStudyCard,
 } from './useStudy';
+import { JsonRequestError } from '../lib/apiClient';
+import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
 import useStudyAudioAutoplay from './useStudyAudioAutoplay';
 import { normalizeStudyMasteryLevel } from '../components/study/studyMastery';
 import useStudyAnswerAudioPrep from './useStudyAnswerAudioPrep';
@@ -61,12 +65,14 @@ const useStudyReviewSession = () => {
   const [session, setSession] = useState<StudySessionResponse | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [reviewConflictRecovered, setReviewConflictRecovered] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
   const [undoPending, setUndoPending] = useState(false);
   const [reviewSubmitPending, setReviewSubmitPending] = useState(false);
+  const [reviewRetryAvailable, setReviewRetryAvailable] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const requestGuardRef = useRef(createStudyReviewRequestGuard());
   const sessionEpochRef = useRef(0);
@@ -75,6 +81,10 @@ const useStudyReviewSession = () => {
   const canSurfaceAsyncSessionErrorRef = useRef(false);
   const answeredCardIdsRef = useRef<Set<string>>(new Set());
   const autoRefreshEmptySessionRef = useRef(false);
+  const pendingReviewOperationRef = useRef<{
+    request: StudyReviewRequest;
+    undoSnapshot: StudyUndoSnapshot;
+  } | null>(null);
   const runBackgroundTask = useStudyBackgroundTask();
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
@@ -85,7 +95,7 @@ const useStudyReviewSession = () => {
     null
   ) as MutableRefObject<StudyCardSummary | null>;
   currentCardRef.current = currentCard;
-  const reviewBusy = reviewMutation.isPending || reviewSubmitPending;
+  const reviewBusy = reviewMutation.isPending || reviewSubmitPending || reviewRetryAvailable;
   const sessionCounts = useMemo(() => {
     const answeredSet = new Set(answeredCardIds);
     const totals = {
@@ -369,6 +379,7 @@ const useStudyReviewSession = () => {
     setSession(null);
     setSessionLoading(false);
     setSessionError(null);
+    setReviewConflictRecovered(false);
     setCurrentIndex(0);
     setRevealed(false);
     setEditing(false);
@@ -376,6 +387,8 @@ const useStudyReviewSession = () => {
     setUndoPending(false);
     requestGuardRef.current.reset();
     setReviewSubmitPending(false);
+    pendingReviewOperationRef.current = null;
+    setReviewRetryAvailable(false);
     autoRefreshEmptySessionRef.current = false;
     answeredCardIdsRef.current = new Set();
     setAnsweredCardIds([]);
@@ -414,7 +427,21 @@ const useStudyReviewSession = () => {
         return;
       }
 
-      const undoSnapshot = captureUndoSnapshot();
+      const pendingOperation = pendingReviewOperationRef.current;
+      if (
+        pendingOperation &&
+        (pendingOperation.request.cardId !== currentCard.id ||
+          pendingOperation.request.grade !== grade)
+      ) {
+        return;
+      }
+      const operation = pendingOperation ?? {
+        request: createStudyReviewRequest({ cardId: currentCard.id, grade }),
+        undoSnapshot: captureUndoSnapshot(),
+      };
+      pendingReviewOperationRef.current = operation;
+      setReviewRetryAvailable(false);
+      setReviewConflictRecovered(false);
       const expectedEpoch = sessionEpochRef.current;
       const requestToken = requestGuardRef.current.acquire('review', currentCard.id);
       if (!requestToken) return;
@@ -422,8 +449,11 @@ const useStudyReviewSession = () => {
         setReviewSubmitPending(true);
         setMasteryAnimation(null);
         stopAllAudio();
-        const reviewResult = await reviewMutation.mutateAsync({ cardId: currentCard.id, grade });
+        const reviewResult = await reviewMutation.mutateAsync(operation.request);
         if (sessionEpochRef.current !== expectedEpoch) return;
+
+        pendingReviewOperationRef.current = null;
+        setReviewRetryAvailable(false);
 
         answeredCardIdsRef.current.add(currentCard.id);
         setAnsweredCardIds((current) =>
@@ -431,7 +461,7 @@ const useStudyReviewSession = () => {
         );
         pushUndo({
           kind: 'grade',
-          snapshot: undoSnapshot,
+          snapshot: operation.undoSnapshot,
           reviewLogId: reviewResult.reviewLogId,
         });
         if (grade === 'again') {
@@ -484,6 +514,32 @@ const useStudyReviewSession = () => {
       } catch (error) {
         if (sessionEpochRef.current !== expectedEpoch) return;
 
+        if (
+          error instanceof StudyReviewIdentityMismatchError ||
+          (error instanceof JsonRequestError && error.status === 409)
+        ) {
+          pendingReviewOperationRef.current = null;
+          setReviewRetryAvailable(false);
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+            loadSession(sessionKind, { allowEmptySessionRefresh: false }, expectedEpoch),
+          ]);
+          if (sessionEpochRef.current === expectedEpoch) {
+            setReviewConflictRecovered(true);
+          }
+          return;
+        }
+
+        const ambiguous =
+          error instanceof TypeError ||
+          (error instanceof JsonRequestError &&
+            (error.status === 408 || error.status === 429 || error.status >= 500));
+        if (ambiguous) {
+          setReviewRetryAvailable(true);
+        } else {
+          pendingReviewOperationRef.current = null;
+          setReviewRetryAvailable(false);
+        }
         setSessionError(error instanceof Error ? error.message : 'Review failed.');
         throw error;
       } finally {
@@ -508,11 +564,19 @@ const useStudyReviewSession = () => {
       syncOverview,
       undoPending,
       sessionKind,
+      loadSession,
+      queryClient,
     ]
   );
 
+  const retryPendingReview = useCallback(async () => {
+    const pendingOperation = pendingReviewOperationRef.current;
+    if (!pendingOperation) return;
+    await handleGrade(pendingOperation.request.grade);
+  }, [handleGrade]);
+
   const handleBuryForSession = useCallback(() => {
-    if (!currentCard || !revealed || editing) return;
+    if (!currentCard || !revealed || editing || pendingReviewOperationRef.current) return;
 
     // Bury is intentionally session-only: it removes the card from this in-memory
     // review queue without persisting any scheduler change on the server.
@@ -551,6 +615,7 @@ const useStudyReviewSession = () => {
       if (
         !currentCard ||
         editing ||
+        pendingReviewOperationRef.current ||
         requestGuardRef.current.isBusy() ||
         cardActionMutation.isPending
       ) {
@@ -698,6 +763,7 @@ const useStudyReviewSession = () => {
   const handleUndo = useCallback(async () => {
     if (
       undoPending ||
+      pendingReviewOperationRef.current ||
       requestGuardRef.current.isBusy() ||
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
@@ -792,6 +858,9 @@ const useStudyReviewSession = () => {
       stopAllAudio();
       resetStudyAudioAutoplay();
       resetUndo();
+      pendingReviewOperationRef.current = null;
+      setReviewRetryAvailable(false);
+      setReviewConflictRecovered(false);
       canSurfaceAsyncSessionErrorRef.current = true;
       setFocusMode(true);
       setSessionKind(kind);
@@ -945,12 +1014,14 @@ const useStudyReviewSession = () => {
     masteryAnimation,
     sessionLoading,
     sessionError,
+    reviewConflictRecovered,
     currentCard,
     revealed,
     editing,
     showSetDueControls,
     undoPending,
     reviewBusy,
+    reviewRetryAvailable,
     sessionCounts,
     sessionProgress,
     motionPermissionState,
@@ -968,6 +1039,7 @@ const useStudyReviewSession = () => {
     revealCurrentCard,
     exitFocusMode,
     handleGrade,
+    retryPendingReview,
     handleBuryForSession,
     handleCardAction,
     handleUndo,

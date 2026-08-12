@@ -34,6 +34,7 @@ import type {
 import { CSRF_TOKEN_HEADER_NAME, getCsrfToken } from '../lib/csrf';
 import { JsonRequestError, requestJson } from '../lib/apiClient';
 import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
+import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
 import { studyApiPath } from '../lib/studyApi';
 import {
   getStudyBrowser,
@@ -81,6 +82,14 @@ interface StudyCardActionPayload {
   dueAt?: string;
   timeZone?: string;
   currentOverview?: StudyOverview;
+}
+
+export interface StudyReviewRequest {
+  cardId: string;
+  grade: 'again' | 'hard' | 'good' | 'easy';
+  durationMs?: number;
+  clientReviewId: string;
+  reviewedAt: string;
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -483,14 +492,10 @@ export async function undoStudyReview(
 }
 
 export async function submitStudyReview(
-  payload: {
-    cardId: string;
-    grade: 'again' | 'hard' | 'good' | 'easy';
-    durationMs?: number;
-  },
+  payload: StudyReviewRequest,
   currentOverview?: StudyOverview
 ): Promise<StudyReviewResult> {
-  return apiRequest<StudyReviewResult>('/reviews', {
+  const result = await apiRequest<StudyReviewResult>('/reviews', {
     method: 'POST',
     body: JSON.stringify({
       ...payload,
@@ -498,6 +503,24 @@ export async function submitStudyReview(
       currentOverview,
     }),
   });
+
+  if (result.reviewLogId !== payload.clientReviewId) {
+    throw new StudyReviewIdentityMismatchError(payload.clientReviewId, result.reviewLogId);
+  }
+
+  return result;
+}
+
+export function createStudyReviewRequest(payload: {
+  cardId: string;
+  grade: 'again' | 'hard' | 'good' | 'easy';
+  durationMs?: number;
+}): StudyReviewRequest {
+  return {
+    ...payload,
+    clientReviewId: ulid().toLowerCase(),
+    reviewedAt: new Date().toISOString(),
+  };
 }
 
 export async function createStudyCard(payload: CreateStudyCardPayload): Promise<StudyCardSummary> {
@@ -654,6 +677,8 @@ export function useSubmitStudyReview() {
       cardId: string;
       grade: 'again' | 'hard' | 'good' | 'easy';
       durationMs?: number;
+      clientReviewId: string;
+      reviewedAt: string;
     }) =>
       submitStudyReview(payload, queryClient.getQueryData<StudyOverview>(['study', 'overview'])),
     onSuccess: async () => {

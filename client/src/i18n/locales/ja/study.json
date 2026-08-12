@@ -23,6 +23,8 @@
   "focus": {
     "loading": "学習セッションを読み込み中…",
     "empty": "今すぐ学習できるカードはありません。カードを追加するか、期限が来てからもう一度お試しください。",
+    "retryReview": "このレビューを再試行",
+    "reviewConflictRecovered": "サーバー上でレビュー状態が変更されたため、学習セッションを更新しました。",
     "reveal": "答えを表示",
     "revealHintDesktop": "クリックまたはスペースキーで表示",
     "revealHintMobile": "タップで表示"

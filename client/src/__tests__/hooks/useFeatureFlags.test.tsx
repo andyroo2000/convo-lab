@@ -326,17 +326,17 @@ describe('useFeatureFlags', () => {
 
       const queryClient = createTestQueryClient();
       const wrapper = createWrapper(queryClient);
-      const first = renderHook(() => useFeatureFlags(), {
+      const view = renderHook(() => useFeatureFlags(), {
         wrapper,
       });
 
-      await waitFor(() => expect(first.result.current.status).toBe('ready'));
-      first.unmount();
+      await waitFor(() => expect(view.result.current.status).toBe('ready'));
+      view.unmount();
 
-      const second = renderHook(() => useFeatureFlags(), { wrapper });
+      const utils = renderHook(() => useFeatureFlags(), { wrapper });
 
-      expect(second.result.current.status).toBe('ready');
-      expect(second.result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
+      expect(utils.result.current.status).toBe('ready');
+      expect(utils.result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });

@@ -6,6 +6,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 
 import { KnownKanjiContextProvider } from '../../contexts/KnownKanjiContext';
+import { JsonRequestError } from '../../lib/apiClient';
 import StudyPage from '../StudyPage';
 
 async function chooseAnswerAudioVoice(name: RegExp | string) {
@@ -17,6 +18,7 @@ const {
   cardActionMutateAsyncMock,
   startStudyLessonMock,
   startStudySessionMock,
+  createStudyReviewRequestMock,
   prepareStudyAnswerAudioMock,
   undoStudyReviewMock,
   mutateAsyncMock,
@@ -29,10 +31,12 @@ const {
   featureFlagsData,
   featureFlagsLoading,
   masteryAnimationFinishesImmediately,
+  reviewMutationError,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
   startStudySessionMock: vi.fn(),
+  createStudyReviewRequestMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
   mutateAsyncMock: vi.fn(),
@@ -66,6 +70,7 @@ const {
   },
   featureFlagsLoading: { current: false },
   masteryAnimationFinishesImmediately: { current: true },
+  reviewMutationError: { current: null as Error | null },
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
@@ -77,6 +82,7 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
+  createStudyReviewRequest: createStudyReviewRequestMock,
   useStudyOverview: () => ({
     data: studyOverviewData.current,
     isLoading: studyOverviewLoading.current,
@@ -86,6 +92,7 @@ vi.mock('../../hooks/useStudy', () => ({
   useSubmitStudyReview: () => ({
     mutateAsync: mutateAsyncMock,
     isPending: false,
+    error: reviewMutationError.current,
   }),
   useStudyCardAction: () => ({
     mutateAsync: cardActionMutateAsyncMock,
@@ -216,6 +223,16 @@ describe('StudyPage', () => {
     cardActionMutateAsyncMock.mockReset();
     startStudyLessonMock.mockReset();
     startStudySessionMock.mockReset();
+    createStudyReviewRequestMock.mockReset();
+    createStudyReviewRequestMock.mockImplementation(
+      (payload: { cardId: string; grade: 'again' | 'hard' | 'good' | 'easy' }) => ({
+        ...payload,
+        clientReviewId: `01arz3ndektsv4rrffq69g5fa${String(
+          createStudyReviewRequestMock.mock.calls.length
+        )}`,
+        reviewedAt: '2026-08-12T23:30:45.678Z',
+      })
+    );
     prepareStudyAnswerAudioMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
     undoStudyReviewMock.mockReset();
@@ -390,6 +407,7 @@ describe('StudyPage', () => {
     studyOverviewLoading.current = false;
     featureFlagsLoading.current = false;
     masteryAnimationFinishesImmediately.current = true;
+    reviewMutationError.current = null;
     featureFlagsData.current = {
       id: 'default',
       dialoguesEnabled: false,
@@ -624,6 +642,50 @@ describe('StudyPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Finish mastery animation' }));
 
     expect(await screen.findByText('Lesson complete')).toBeInTheDocument();
+  });
+
+  it('offers a retry only for an ambiguous review result', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: studyOverviewData.current,
+      cards: [baseCard],
+    });
+    mutateAsyncMock.mockImplementationOnce(async () => {
+      reviewMutationError.current = new TypeError('Network connection lost');
+      throw reviewMutationError.current;
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: /Good/ }));
+
+    expect(await screen.findByRole('button', { name: 'Retry this review' })).toBeInTheDocument();
+  });
+
+  it('shows conflict recovery without offering a fresh review submission', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: studyOverviewData.current,
+      cards: [baseCard],
+    });
+    mutateAsyncMock.mockImplementationOnce(async () => {
+      reviewMutationError.current = new JsonRequestError('Out of order. (409)', 409, {
+        code: 'review_out_of_order',
+      });
+      throw reviewMutationError.current;
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: /Good/ }));
+
+    expect(
+      await screen.findByText(
+        'Review status changed on the server. Your Study session was refreshed.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry this review' })).not.toBeInTheDocument();
+    expect(mutateAsyncMock).toHaveBeenCalledTimes(1);
   });
 
   it('previews one lesson card at a time before starting the isolated quiz', async () => {
@@ -1227,10 +1289,12 @@ describe('StudyPage', () => {
 
     fireEvent.keyDown(window, { code: 'Digit3', key: '3' });
     await waitFor(() => {
-      expect(mutateAsyncMock).toHaveBeenCalledWith({
-        cardId: 'card-1',
-        grade: 'good',
-      });
+      expect(mutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-1',
+          grade: 'good',
+        })
+      );
     });
   });
 
@@ -1316,10 +1380,12 @@ describe('StudyPage', () => {
 
     fireEvent.keyDown(window, { code: 'Digit1', key: '1' });
     await waitFor(() => {
-      expect(mutateAsyncMock).toHaveBeenCalledWith({
-        cardId: 'card-1',
-        grade: 'again',
-      });
+      expect(mutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-1',
+          grade: 'again',
+        })
+      );
     });
     await waitFor(() => {
       expect(screen.getByText('学校')).toBeInTheDocument();
@@ -1331,10 +1397,12 @@ describe('StudyPage', () => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(3);
     });
     await waitFor(() => {
-      expect(mutateAsyncMock).toHaveBeenCalledWith({
-        cardId: 'card-2',
-        grade: 'good',
-      });
+      expect(mutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-2',
+          grade: 'good',
+        })
+      );
     });
 
     await waitFor(() => {
@@ -1353,10 +1421,12 @@ describe('StudyPage', () => {
     // Native audio controls can consume event.key; code-based fallback should still grade.
     fireEvent.keyDown(focusedAnswerAudio!, { code: 'Digit3', key: '' });
     await waitFor(() => {
-      expect(mutateAsyncMock).toHaveBeenCalledWith({
-        cardId: 'card-1',
-        grade: 'good',
-      });
+      expect(mutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-1',
+          grade: 'good',
+        })
+      );
     });
   });
 
