@@ -203,6 +203,7 @@ export interface Image {
 
 // API request/response types
 export interface CreateEpisodeRequest {
+  id?: string;
   title: string;
   sourceText: string;
   targetLanguage: LanguageCode;
