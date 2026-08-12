@@ -245,7 +245,8 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
                 type="text"
                 value={editForm.speakerName}
                 onChange={(e) => setEditForm({ ...editForm, speakerName: e.target.value })}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm"
+                disabled={savingExchange}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm disabled:opacity-50"
               />
             </label>
 
@@ -254,7 +255,8 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
               <textarea
                 value={editForm.textL2}
                 onChange={(e) => setEditForm({ ...editForm, textL2: e.target.value })}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm h-20"
+                disabled={savingExchange}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm h-20 disabled:opacity-50"
               />
             </label>
 
@@ -264,7 +266,8 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
                 type="text"
                 value={editForm.readingL2 || ''}
                 onChange={(e) => setEditForm({ ...editForm, readingL2: e.target.value || null })}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm"
+                disabled={savingExchange}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm disabled:opacity-50"
               />
             </label>
 
@@ -273,7 +276,8 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
               <textarea
                 value={editForm.translationL1}
                 onChange={(e) => setEditForm({ ...editForm, translationL1: e.target.value })}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm h-16"
+                disabled={savingExchange}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm h-16 disabled:opacity-50"
               />
             </label>
             {/* eslint-enable jsx-a11y/label-has-associated-control */}
@@ -286,32 +290,35 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
                   <input
                     type="text"
                     value={vocab.textL2}
+                    disabled={savingExchange}
                     onChange={(e) => {
                       const items = [...editForm.vocabularyItems];
                       items[vidx] = { ...items[vidx], textL2: e.target.value };
                       setEditForm({ ...editForm, vocabularyItems: items });
                     }}
-                    className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm"
+                    className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
                     placeholder="Word"
                   />
                   <input
                     type="text"
                     value={vocab.translationL1}
+                    disabled={savingExchange}
                     onChange={(e) => {
                       const items = [...editForm.vocabularyItems];
                       items[vidx] = { ...items[vidx], translationL1: e.target.value };
                       setEditForm({ ...editForm, vocabularyItems: items });
                     }}
-                    className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm"
+                    className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
                     placeholder="Translation"
                   />
                   <button
                     type="button"
+                    disabled={savingExchange}
                     onClick={() => {
                       const items = editForm.vocabularyItems.filter((_, i) => i !== vidx);
                       setEditForm({ ...editForm, vocabularyItems: items });
                     }}
-                    className="text-red-500 hover:text-red-700 text-sm font-bold px-1"
+                    className="text-red-500 hover:text-red-700 text-sm font-bold px-1 disabled:opacity-50"
                   >
                     X
                   </button>
@@ -319,6 +326,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
               ))}
               <button
                 type="button"
+                disabled={savingExchange}
                 onClick={() => {
                   setEditForm({
                     ...editForm,
@@ -328,7 +336,7 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
                     ],
                   });
                 }}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
               >
                 + Add vocabulary item
               </button>

@@ -117,7 +117,8 @@ describe('AdminScriptWorkbench', () => {
 
     expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
-    expect(screen.getByDisplayValue('Edited dialogue')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Edited dialogue')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '+ Add vocabulary item' })).toBeDisabled();
     expect(screen.getByText('Original dialogue')).toBeInTheDocument();
 
     await act(async () => {
