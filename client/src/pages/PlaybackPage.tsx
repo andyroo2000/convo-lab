@@ -8,6 +8,11 @@ import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
 import usePlaybackAudioGeneration from '../hooks/usePlaybackAudioGeneration';
+import {
+  getSentenceNavigationTargetMs,
+  getSentenceTiming,
+  isSentenceActive,
+} from '../lib/playbackTiming';
 import { Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
@@ -82,15 +87,6 @@ const PlaybackPage = () => {
 
   useWarmAudioCache(episodeAudioUrls, Boolean(episode && !isGeneratingAudio));
 
-  // Normalize speed values: '0.7x', 'slow', 0.7 all map to slow
-  // Must be defined before useEffect hooks that reference speedKey
-  const normalizeSpeedKey = (speed: AudioSpeed): 'slow' | 'medium' | 'normal' => {
-    if (speed === 'slow') return 'slow';
-    if (speed === 'medium') return 'medium';
-    return 'normal';
-  };
-  const speedKey = normalizeSpeedKey(selectedSpeed);
-
   // Helper function to get speaker avatar URL from GCS
   const getSpeakerAvatarUrl = (
     speaker: Speaker,
@@ -136,124 +132,28 @@ const PlaybackPage = () => {
 
         const { sentences } = episode.dialogue;
         const currentTimeMs = currentTime * 1000;
+        const targetTimeMs = getSentenceNavigationTargetMs(
+          sentences,
+          selectedSpeed,
+          currentTimeMs,
+          e.code === 'ArrowLeft' ? 'previous' : 'next'
+        );
 
-        // Helper function to get effective start time for current speed
-        const getEffectiveStartTime = (sentence: Sentence) => {
-          /* eslint-disable no-nested-ternary */
-          const startTime =
-            speedKey === 'slow'
-              ? sentence.startTime_0_7
-              : speedKey === 'medium'
-                ? sentence.startTime_0_85
-                : sentence.startTime_1_0;
-          /* eslint-enable no-nested-ternary */
-          return startTime !== undefined ? startTime : sentence.startTime;
-        };
-
-        // Helper function to get effective end time for current speed
-        const getEffectiveEndTime = (sentence: Sentence) => {
-          /* eslint-disable no-nested-ternary */
-          const endTime =
-            speedKey === 'slow'
-              ? sentence.endTime_0_7
-              : speedKey === 'medium'
-                ? sentence.endTime_0_85
-                : sentence.endTime_1_0;
-          /* eslint-enable no-nested-ternary */
-          return endTime !== undefined ? endTime : sentence.endTime;
-        };
-
-        // Find current sentence index
-        let currentIndex = sentences.findIndex((sentence) => {
-          const start = getEffectiveStartTime(sentence);
-          const end = getEffectiveEndTime(sentence);
-          return (
-            start !== undefined &&
-            end !== undefined &&
-            currentTimeMs >= start &&
-            currentTimeMs < end
-          );
-        });
-
-        // If not in a sentence, find the closest one before current time
-        if (currentIndex === -1) {
-          currentIndex = sentences.findIndex((sentence) => {
-            const start = getEffectiveStartTime(sentence);
-            return start !== undefined && currentTimeMs < start;
-          });
-          // If we're before all sentences, start at 0, else use previous sentence
-          currentIndex = currentIndex === -1 ? sentences.length - 1 : Math.max(0, currentIndex - 1);
-        }
-
-        if (e.code === 'ArrowLeft') {
-          // Left arrow: go to beginning of current turn, or previous turn if at the start
-          const currentSentence = sentences[currentIndex];
-          const currentStart = getEffectiveStartTime(currentSentence);
-
-          if (currentStart !== undefined) {
-            // If we're more than 1 second into the current turn, go to its beginning
-            if (currentTimeMs - currentStart > 1000) {
-              seek(currentStart / 1000);
-            } else {
-              // Otherwise go to previous turn
-              const prevIndex = Math.max(0, currentIndex - 1);
-              const prevSentence = sentences[prevIndex];
-              const prevStart = getEffectiveStartTime(prevSentence);
-
-              if (prevStart !== undefined) {
-                seek(prevStart / 1000);
-              }
-            }
-          }
-        } else if (e.code === 'ArrowRight') {
-          // Right arrow: go to beginning of next turn
-          const nextIndex = Math.min(sentences.length - 1, currentIndex + 1);
-          const nextSentence = sentences[nextIndex];
-          const nextStart = getEffectiveStartTime(nextSentence);
-
-          if (nextStart !== undefined) {
-            seek(nextStart / 1000);
-          }
-        }
+        if (targetTimeMs !== undefined) seek(targetTimeMs / 1000);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, play, pause, episode, currentTime, seek, speedKey]);
+  }, [isPlaying, play, pause, episode, currentTime, seek, selectedSpeed]);
 
   // Auto-scroll to currently playing sentence
   useEffect(() => {
     if (!episode?.dialogue?.sentences) return;
 
-    const currentSentence = episode.dialogue.sentences.find((sentence) => {
-      // Get timing for current speed
-      /* eslint-disable no-nested-ternary */
-      const startTime =
-        speedKey === 'slow'
-          ? sentence.startTime_0_7
-          : speedKey === 'medium'
-            ? sentence.startTime_0_85
-            : sentence.startTime_1_0;
-      const endTime =
-        speedKey === 'slow'
-          ? sentence.endTime_0_7
-          : speedKey === 'medium'
-            ? sentence.endTime_0_85
-            : sentence.endTime_1_0;
-      /* eslint-enable no-nested-ternary */
-
-      // Fallback to legacy timing
-      const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
-      const effectiveEndTime = endTime !== undefined ? endTime : sentence.endTime;
-
-      return (
-        effectiveStartTime !== undefined &&
-        effectiveEndTime !== undefined &&
-        currentTime * 1000 >= effectiveStartTime &&
-        currentTime * 1000 < effectiveEndTime
-      );
-    });
+    const currentSentence = episode.dialogue.sentences.find((sentence) =>
+      isSentenceActive(sentence, selectedSpeed, currentTime * 1000)
+    );
 
     if (currentSentence) {
       const element = sentenceRefs.current.get(currentSentence.id);
@@ -268,26 +168,14 @@ const PlaybackPage = () => {
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTime, episode, selectedSpeed]);
 
   const seekToSentence = (sentence: Sentence) => {
-    // Get timing for current speed
-    /* eslint-disable no-nested-ternary */
-    const startTime =
-      speedKey === 'slow'
-        ? sentence.startTime_0_7
-        : speedKey === 'medium'
-          ? sentence.startTime_0_85
-          : sentence.startTime_1_0;
-    /* eslint-enable no-nested-ternary */
+    const { startTime } = getSentenceTiming(sentence, selectedSpeed);
 
-    // Fallback to legacy timing if multi-speed timing not available
-    const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
-
-    if (effectiveStartTime !== undefined) {
+    if (startTime !== undefined) {
       // Convert milliseconds to seconds
-      seek(effectiveStartTime / 1000);
+      seek(startTime / 1000);
       // Play if not already playing
       if (!isPlaying) {
         play();
@@ -356,9 +244,9 @@ const PlaybackPage = () => {
   // Get current audio URL based on selected speed
   /* eslint-disable no-nested-ternary */
   const currentAudioUrl = hasAllSpeeds
-    ? speedKey === 'slow'
+    ? selectedSpeed === 'slow'
       ? episode.audioUrl_0_7
-      : speedKey === 'medium'
+      : selectedSpeed === 'medium'
         ? episode.audioUrl_0_85
         : episode.audioUrl_1_0
     : episode.audioUrl; // Fallback to legacy for old episodes
@@ -503,32 +391,8 @@ const PlaybackPage = () => {
           const speakerIndex = speakerIndexMap.get(sentence.speakerId) ?? 0;
           const isAltSpeaker = speakerIndex % 2 !== 0;
 
-          // Get timing for current speed
-          /* eslint-disable no-nested-ternary */
-          const startTime =
-            speedKey === 'slow'
-              ? sentence.startTime_0_7
-              : speedKey === 'medium'
-                ? sentence.startTime_0_85
-                : sentence.startTime_1_0;
-          const endTime =
-            speedKey === 'slow'
-              ? sentence.endTime_0_7
-              : speedKey === 'medium'
-                ? sentence.endTime_0_85
-                : sentence.endTime_1_0;
-          /* eslint-enable no-nested-ternary */
-
-          // Fallback to legacy timing if multi-speed timing not available
-          const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
-          const effectiveEndTime = endTime !== undefined ? endTime : sentence.endTime;
-
           // Check if this sentence is currently being spoken
-          const isCurrentlySpeaking =
-            effectiveStartTime !== undefined &&
-            effectiveEndTime !== undefined &&
-            currentTime * 1000 >= effectiveStartTime &&
-            currentTime * 1000 < effectiveEndTime;
+          const isCurrentlySpeaking = isSentenceActive(sentence, selectedSpeed, currentTime * 1000);
           const borderTone = isAltSpeaker ? 'rgba(20, 141, 189, 0.72)' : 'rgba(17, 51, 92, 0.58)';
 
           return (
