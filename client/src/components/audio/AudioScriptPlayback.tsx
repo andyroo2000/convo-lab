@@ -10,6 +10,7 @@ import JapaneseText from '../JapaneseText';
 import SpeedSelector from '../common/SpeedSelector';
 import ViewToggleButtons from '../common/ViewToggleButtons';
 import { readScriptApiError, scriptApi } from '../../lib/scriptApi';
+import { shouldIgnoreGlobalShortcut } from '../../lib/keyboardShortcuts';
 import { findCurrentL2Unit, normalizeTimingDataForDuration } from './scriptTrackTiming';
 import {
   getSegmentImageUrl,
@@ -51,18 +52,6 @@ function buildUnits(episode: Episode, speed: number): LessonScriptUnit[] {
   });
 
   return units;
-}
-
-function shouldIgnorePlaybackShortcut(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tagName = target.tagName.toLowerCase();
-  return (
-    target.isContentEditable ||
-    tagName === 'input' ||
-    tagName === 'textarea' ||
-    tagName === 'select' ||
-    tagName === 'button'
-  );
 }
 
 interface AudioScriptPlaybackProps {
@@ -117,12 +106,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     if (!selectedAudioUrl) return undefined;
 
     const handlePlaybackShortcut = (event: KeyboardEvent) => {
-      if (event.code !== 'Space' || event.metaKey || event.ctrlKey || event.altKey) {
-        return;
-      }
-      if (shouldIgnorePlaybackShortcut(event.target)) {
-        return;
-      }
+      if (event.code !== 'Space' || shouldIgnoreGlobalShortcut(event)) return;
 
       event.preventDefault();
       if (isPlaying) {

@@ -1,27 +1,11 @@
 import { useEffect } from 'react';
+import { shouldIgnoreGlobalShortcut } from '../../../lib/keyboardShortcuts';
 
 interface UseToolArrowKeyNavigationOptions {
   onNext: () => void;
   onPrevious: () => void;
   isEnabled?: boolean;
 }
-
-const isInteractiveTarget = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  const { tagName } = target;
-  if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
-    return true;
-  }
-
-  if (target.isContentEditable) {
-    return true;
-  }
-
-  return target.closest('[contenteditable="true"]') !== null;
-};
 
 const useToolArrowKeyNavigation = ({
   onNext,
@@ -34,20 +18,7 @@ const useToolArrowKeyNavigation = ({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.defaultPrevented ||
-        event.repeat ||
-        event.altKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.shiftKey
-      ) {
-        return;
-      }
-
-      if (isInteractiveTarget(event.target)) {
-        return;
-      }
+      if (shouldIgnoreGlobalShortcut(event)) return;
 
       if (event.key === 'ArrowRight') {
         event.preventDefault();

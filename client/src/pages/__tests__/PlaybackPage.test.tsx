@@ -444,6 +444,23 @@ describe('PlaybackPage', () => {
       expect(screen.queryByTestId('script-cinema-overlay')).not.toBeInTheDocument();
     });
 
+    it('does not hijack Space from an ARIA control in script playback', async () => {
+      mockGetEpisode.mockResolvedValue(mockScriptEpisode);
+
+      renderPlaybackPage('script-episode-123');
+      expect(await screen.findByTestId('script-playback-page')).toBeInTheDocument();
+
+      const progressControl = document.createElement('div');
+      progressControl.setAttribute('role', 'button');
+      document.body.append(progressControl);
+      const wasNotPrevented = fireEvent.keyDown(progressControl, { key: ' ', code: 'Space' });
+
+      expect(wasNotPrevented).toBe(true);
+      expect(mockPlay).not.toHaveBeenCalled();
+      expect(mockPause).not.toHaveBeenCalled();
+      progressControl.remove();
+    });
+
     it('toggles script playback with the spacebar in cinema mode', async () => {
       mockAudioState.isPlaying = true;
       mockAudioState.currentTime = 0.2;
@@ -611,6 +628,17 @@ describe('PlaybackPage', () => {
       expect(wasNotPrevented).toBe(false);
       expect(mockSeek).toHaveBeenCalledWith(2.353);
       expect(mockPlay).toHaveBeenCalledOnce();
+    });
+
+    it('does not repeatedly reseek a sentence while an activation key is held', async () => {
+      renderPlaybackPage();
+
+      const sentence = await screen.findByTestId('playback-sentence-sentence-2');
+      fireEvent.keyDown(sentence, { key: ' ', code: 'Space', repeat: true });
+      fireEvent.keyDown(sentence, { key: 'Enter', code: 'Enter', repeat: true });
+
+      expect(mockSeek).not.toHaveBeenCalled();
+      expect(mockPlay).not.toHaveBeenCalled();
     });
   });
 

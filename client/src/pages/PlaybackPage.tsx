@@ -369,7 +369,7 @@ const PlaybackPage = () => {
               }}
               onClick={() => seekToSentence(sentence)}
               onKeyDown={(event) => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
+                if (event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
 
                 event.preventDefault();
                 seekToSentence(sentence);

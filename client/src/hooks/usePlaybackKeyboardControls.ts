@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { shouldIgnoreGlobalShortcut } from '../lib/keyboardShortcuts';
 import { getSentenceNavigationTargetMs } from '../lib/playbackTiming';
 import type { AudioSpeed, Sentence } from '../types';
 
@@ -12,37 +13,6 @@ interface UsePlaybackKeyboardControlsOptions {
   selectedSpeed: AudioSpeed;
   sentences: Sentence[];
 }
-
-const interactiveTargetSelector = [
-  'a[href]',
-  'audio',
-  'button',
-  'input',
-  'select',
-  'summary',
-  'textarea',
-  'video',
-  '[contenteditable]:not([contenteditable="false"])',
-  '[role="button"]',
-  '[role="checkbox"]',
-  '[role="combobox"]',
-  '[role="link"]',
-  '[role="menuitem"]',
-  '[role="option"]',
-  '[role="slider"]',
-  '[role="switch"]',
-  '[role="tab"]',
-  '[role="textbox"]',
-].join(',');
-
-const isInteractiveTarget = (target: EventTarget | null): boolean => {
-  if (!(target instanceof HTMLElement)) return false;
-
-  return target.isContentEditable || target.closest(interactiveTargetSelector) !== null;
-};
-
-const hasShortcutModifier = (event: KeyboardEvent): boolean =>
-  event.altKey || event.ctrlKey || event.metaKey || event.shiftKey;
 
 export default function usePlaybackKeyboardControls({
   currentTimeSeconds,
@@ -77,14 +47,7 @@ export default function usePlaybackKeyboardControls({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.defaultPrevented ||
-        event.repeat ||
-        hasShortcutModifier(event) ||
-        isInteractiveTarget(event.target)
-      ) {
-        return;
-      }
+      if (shouldIgnoreGlobalShortcut(event)) return;
 
       const controls = controlsRef.current;
 
