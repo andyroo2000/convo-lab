@@ -143,6 +143,55 @@ describe('useLibraryData', () => {
       expect(result.current.episodes).toEqual(mockEpisodes);
       expect(result.current.courses).toEqual(mockCourses);
     });
+
+    it('should only fetch courses for the courses scope', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+
+      renderHook(() => useLibraryData(undefined, false, 'courses'), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/convolab/courses?library=true&limit=20&offset=0',
+          expect.objectContaining({ credentials: 'include' })
+        );
+      });
+
+      expect(mockFetch).not.toHaveBeenCalledWith(
+        expect.stringContaining('/episodes'),
+        expect.anything()
+      );
+    });
+
+    it.each(['dialogues', 'scripts'] as const)(
+      'should only fetch episodes for the %s scope',
+      async (scope) => {
+        mockFetch.mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+
+        renderHook(() => useLibraryData(undefined, false, scope), {
+          wrapper: createWrapper(),
+        });
+
+        await waitFor(() => {
+          expect(mockFetch).toHaveBeenCalledWith(
+            '/api/convolab/episodes?library=true&limit=20&offset=0',
+            expect.objectContaining({ credentials: 'include' })
+          );
+        });
+
+        expect(mockFetch).not.toHaveBeenCalledWith(
+          expect.stringContaining('/courses'),
+          expect.anything()
+        );
+      }
+    );
   });
 
   describe('Error Handling', () => {
@@ -166,6 +215,21 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(result.current.error).toBe('Failed to fetch episodes');
+      });
+    });
+
+    it('should surface a courses fetch failure for the courses scope', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ error: 'Courses are unavailable' }),
+      });
+
+      const { result } = renderHook(() => useLibraryData(undefined, false, 'courses'), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Courses are unavailable');
       });
     });
   });

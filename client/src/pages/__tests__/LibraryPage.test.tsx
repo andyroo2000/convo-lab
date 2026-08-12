@@ -2,10 +2,11 @@
 // Complex library page testing with dynamic content requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import LibraryPage from '../LibraryPage';
 
 const mockUpdateUser = vi.fn();
+const mockUseLibraryData = vi.hoisted(() => vi.fn());
 const mockFeatureFlags = vi.hoisted(() => ({
   value: {
     dialoguesEnabled: true,
@@ -24,18 +25,24 @@ const mockUser = {
   preferredNativeLanguage: 'en',
 };
 
+const createMockLibraryData = (overrides: Record<string, unknown> = {}) => ({
+  episodes: [],
+  courses: [],
+  isLoading: false,
+  error: null,
+  hasNextPage: false,
+  fetchNextPage: vi.fn(),
+  isFetchingNextPage: false,
+  deleteEpisode: vi.fn(),
+  deleteCourse: vi.fn(),
+  isDeletingEpisode: false,
+  isDeletingCourse: false,
+  ...overrides,
+});
+
 // Mock hooks
 vi.mock('../../hooks/useLibraryData', () => ({
-  useLibraryData: () => ({
-    episodes: [],
-    courses: [],
-    isLoading: false,
-    error: null,
-    deleteEpisode: vi.fn(),
-    deleteCourse: vi.fn(),
-    isDeletingEpisode: false,
-    isDeletingCourse: false,
-  }),
+  useLibraryData: mockUseLibraryData,
 }));
 
 vi.mock('../../hooks/useDemo', () => ({
@@ -66,6 +73,8 @@ vi.mock('../../components/common/ConfirmModal', () => ({
 
 describe('LibraryPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseLibraryData.mockReturnValue(createMockLibraryData());
     mockFeatureFlags.value = {
       dialoguesEnabled: true,
       scriptsEnabled: true,
@@ -74,11 +83,11 @@ describe('LibraryPage', () => {
     };
   });
 
-  const renderLibraryPage = () =>
+  const renderLibraryPage = (route = '/app/library') =>
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={[route]}>
         <LibraryPage />
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
   describe('Mobile layout - Filter buttons', () => {
@@ -114,6 +123,12 @@ describe('LibraryPage', () => {
       expect(allButton).toHaveClass('is-active');
       expect(allButton).toHaveAttribute('aria-pressed', 'true');
     });
+
+    it('should scope library queries to the selected filter', () => {
+      renderLibraryPage('/app/library?filter=courses');
+
+      expect(mockUseLibraryData).toHaveBeenCalledWith(undefined, false, 'courses');
+    });
   });
 
   describe('Mobile layout - Empty states', () => {
@@ -129,6 +144,14 @@ describe('LibraryPage', () => {
 
       // The "all" filter empty state has a "Browse All Options" button
       expect(screen.getByTestId('library-button-browse-all')).toBeTruthy();
+    });
+
+    it('should keep the pagination sentinel mounted while a filtered page is empty', () => {
+      mockUseLibraryData.mockReturnValue(createMockLibraryData({ hasNextPage: true }));
+
+      renderLibraryPage('/app/library?filter=dialogues');
+
+      expect(screen.getByTestId('scroll-sentinel')).toBeTruthy();
     });
   });
 

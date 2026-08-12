@@ -17,6 +17,8 @@ export type LibraryCourse = Omit<Course, 'lessons'> & {
   };
 };
 
+export type LibraryContentScope = 'all' | 'dialogues' | 'scripts' | 'courses';
+
 // Query keys for cache management
 export const libraryKeys = {
   all: ['library'] as const,
@@ -97,8 +99,14 @@ async function deleteCourseRequest(courseId: string): Promise<void> {
 }
 
 // Main hook
-export function useLibraryData(viewAsUserId?: string, showDrafts?: boolean) {
+export function useLibraryData(
+  viewAsUserId?: string,
+  showDrafts?: boolean,
+  contentScope: LibraryContentScope = 'all'
+) {
   const queryClient = useQueryClient();
+  const includeEpisodes = contentScope !== 'courses';
+  const includeCourses = contentScope === 'all' || contentScope === 'courses';
 
   // Infinite queries - all run in parallel automatically
   const episodesQuery = useInfiniteQuery({
@@ -108,6 +116,7 @@ export function useLibraryData(viewAsUserId?: string, showDrafts?: boolean) {
       // If last page has 20 items, there might be more
       lastPage.length === 20 ? allPages.length * 20 : undefined,
     initialPageParam: 0,
+    enabled: includeEpisodes,
   });
 
   const coursesQuery = useInfiniteQuery({
@@ -116,6 +125,7 @@ export function useLibraryData(viewAsUserId?: string, showDrafts?: boolean) {
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length === 20 ? allPages.length * 20 : undefined,
     initialPageParam: 0,
+    enabled: includeCourses,
     // Poll every 5 seconds while any course is generating
     refetchInterval: (query) => {
       const allCourses = query.state.data?.pages.flat() ?? [];
@@ -140,25 +150,33 @@ export function useLibraryData(viewAsUserId?: string, showDrafts?: boolean) {
   });
 
   // Combined loading state - only show loading on initial load
-  const isLoading = episodesQuery.isLoading || coursesQuery.isLoading;
+  const isLoading =
+    (includeEpisodes && episodesQuery.isLoading) || (includeCourses && coursesQuery.isLoading);
 
-  // Error state - only show error if episodes fail (primary content)
-  const error = episodesQuery.error?.message || null;
+  // The combined view can still show episodes when the secondary course read fails, but a
+  // course-only view must not turn that same failure into a convincing empty state.
+  const error =
+    contentScope === 'courses'
+      ? coursesQuery.error?.message || null
+      : episodesQuery.error?.message || null;
 
   // Flatten paginated data
   const episodes = episodesQuery.data?.pages.flat() ?? [];
   const courses = coursesQuery.data?.pages.flat() ?? [];
 
   // Check if we're fetching more data
-  const isFetchingNextPage = episodesQuery.isFetchingNextPage || coursesQuery.isFetchingNextPage;
+  const isFetchingNextPage =
+    (includeEpisodes && episodesQuery.isFetchingNextPage) ||
+    (includeCourses && coursesQuery.isFetchingNextPage);
 
   // Check if there's more data to load
-  const hasNextPage = episodesQuery.hasNextPage || coursesQuery.hasNextPage;
+  const hasNextPage =
+    (includeEpisodes && episodesQuery.hasNextPage) || (includeCourses && coursesQuery.hasNextPage);
 
   // Fetch next page for all queries
   const fetchNextPage = () => {
-    if (episodesQuery.hasNextPage) episodesQuery.fetchNextPage();
-    if (coursesQuery.hasNextPage) coursesQuery.fetchNextPage();
+    if (includeEpisodes && episodesQuery.hasNextPage) episodesQuery.fetchNextPage();
+    if (includeCourses && coursesQuery.hasNextPage) coursesQuery.fetchNextPage();
   };
 
   return {

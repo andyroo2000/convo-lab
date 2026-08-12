@@ -13,7 +13,7 @@ import {
   CassetteTape,
 } from 'lucide-react';
 import { Episode, Course } from '../types';
-import { useLibraryData, LibraryCourse } from '../hooks/useLibraryData';
+import { useLibraryData, LibraryCourse, type LibraryContentScope } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,7 +25,21 @@ import ImpersonationBanner from '../components/ImpersonationBanner';
 import { SHOW_ONBOARDING_WELCOME } from '../config';
 import { adminApi } from '../lib/adminApi';
 
-type FilterType = 'all' | 'dialogues' | 'scripts' | 'courses';
+type FilterType = LibraryContentScope;
+
+const FILTER_PARAM_TO_TYPE: Record<string, FilterType> = {
+  all: 'all',
+  dialogues: 'dialogues',
+  scripts: 'scripts',
+  courses: 'courses',
+};
+
+const FILTER_TYPE_TO_PARAM: Record<FilterType, string> = {
+  all: 'all',
+  dialogues: 'dialogues',
+  scripts: 'scripts',
+  courses: 'courses',
+};
 
 const LEGACY_DIALOGUE_TURN_FALLBACKS: Record<string, number> = {
   'hokkaido food trip': 15,
@@ -47,6 +61,8 @@ const LibraryPage = () => {
   const { t } = useTranslation(['library', 'common']);
   const [searchParams, setSearchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
+  const filterParam = searchParams.get('filter');
+  const filter: FilterType = FILTER_PARAM_TO_TYPE[filterParam || ''] || 'all';
 
   // Admin draft toggle
   const [showDrafts, setShowDrafts] = useState(false);
@@ -63,7 +79,7 @@ const LibraryPage = () => {
     deleteCourse,
     isDeletingEpisode,
     isDeletingCourse,
-  } = useLibraryData(viewAsUserId, showDrafts);
+  } = useLibraryData(viewAsUserId, showDrafts, filter);
   const isDemo = useIsDemo();
   const { isFeatureEnabled } = useFeatureFlags();
   const { user, updateUser } = useAuth();
@@ -122,32 +138,13 @@ const LibraryPage = () => {
   // Combined deleting state for modal
   const isDeleting = isDeletingEpisode || isDeletingCourse;
 
-  // Map between URL params (kebab-case) and internal filter types (camelCase)
-  const filterParamToType: Record<string, FilterType> = {
-    all: 'all',
-    dialogues: 'dialogues',
-    scripts: 'scripts',
-    courses: 'courses',
-  };
-
-  const filterTypeToParam: Record<FilterType, string> = {
-    all: 'all',
-    dialogues: 'dialogues',
-    scripts: 'scripts',
-    courses: 'courses',
-  };
-
-  // Get filter from URL or default to 'all'
-  const filterParam = searchParams.get('filter');
-  const filter: FilterType = filterParamToType[filterParam || ''] || 'all';
-
   const handleFilterChange = (newFilter: FilterType) => {
     const params = new URLSearchParams(searchParams);
 
     if (newFilter === 'all') {
       params.delete('filter');
     } else {
-      params.set('filter', filterTypeToParam[newFilter]);
+      params.set('filter', FILTER_TYPE_TO_PARAM[newFilter]);
     }
 
     setSearchParams(params);
@@ -645,7 +642,7 @@ const LibraryPage = () => {
             )}
 
             {/* Infinite scroll sentinel */}
-            {allItems.length > 0 && (
+            {hasNextPage && (
               <div
                 ref={loadMoreRef}
                 className="h-10 flex items-center justify-center"
