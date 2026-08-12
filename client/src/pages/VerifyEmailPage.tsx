@@ -39,7 +39,6 @@ const VerifyEmailPage = () => {
   useEffect(() => {
     verificationGenerationRef.current += 1;
     const generation = verificationGenerationRef.current;
-    const controller = new AbortController();
 
     if (redirectTimerRef.current !== null) {
       clearTimeout(redirectTimerRef.current);
@@ -50,9 +49,11 @@ const VerifyEmailPage = () => {
     setResendSuccess(false);
 
     if (!token) {
-      return () => controller.abort();
+      setVerification(null);
+      return undefined;
     }
 
+    const controller = new AbortController();
     setVerification({ token, status: 'verifying', error: '' });
 
     const ownsVerification = () =>

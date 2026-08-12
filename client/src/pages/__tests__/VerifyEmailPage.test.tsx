@@ -252,6 +252,33 @@ describe('VerifyEmailPage', () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
+    it('cancels token A redirect when token B takes ownership', async () => {
+      vi.useFakeTimers();
+      const tokenB = deferred<Response>();
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({ ok: true })
+        .mockReturnValueOnce(tokenB.promise);
+
+      renderWithRouter('/verify-email/token-a', false, true);
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByText('Email Verified!')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('link', { name: 'Switch token' }));
+      expect(screen.getByText('Verifying your email...')).toBeInTheDocument();
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
     it('should show error for invalid token', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
