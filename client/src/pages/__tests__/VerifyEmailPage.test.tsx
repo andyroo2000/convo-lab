@@ -1,6 +1,7 @@
+import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import VerifyEmailPage from '../VerifyEmailPage';
 
 // Mock useNavigate
@@ -30,16 +31,42 @@ vi.mock('../../contexts/AuthContext', () => ({
 // Mock global fetch
 global.fetch = vi.fn() as unknown as typeof fetch;
 
-function renderWithRouter(initialRoute = '/verify-email') {
-  return render(
-    <MemoryRouter initialEntries={[initialRoute]}>
+function verificationRoutes(withTokenSwitch = false) {
+  return (
+    <>
+      {withTokenSwitch && (
+        <>
+          <Link to="/verify-email/token-b">Switch token</Link>
+          <Link to="/verify-email">Remove token</Link>
+        </>
+      )}
       <Routes>
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
         <Route path="/app/library" element={<div>Library Page</div>} />
       </Routes>
+    </>
+  );
+}
+
+function renderWithRouter(initialRoute = '/verify-email', strict = false, withTokenSwitch = false) {
+  const view = (
+    <MemoryRouter initialEntries={[initialRoute]}>
+      {verificationRoutes(withTokenSwitch)}
     </MemoryRouter>
   );
+
+  return render(strict ? <StrictMode>{view}</StrictMode> : view);
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
 }
 
 describe('VerifyEmailPage', () => {
@@ -47,7 +74,7 @@ describe('VerifyEmailPage', () => {
     vi.clearAllMocks();
     // Reset mockUser to a fresh object
     mockUser = { id: '1', email: 'test@example.com', emailVerified: false };
-    (global.fetch as ReturnType<typeof vi.fn>).mockClear();
+    (global.fetch as ReturnType<typeof vi.fn>).mockReset();
   });
 
   afterEach(() => {
@@ -85,12 +112,14 @@ describe('VerifyEmailPage', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: 'valid-token' }),
         credentials: 'include',
+        signal: expect.any(AbortSignal),
       });
 
       expect(mockRefreshUser).toHaveBeenCalled();
     });
 
     it('should redirect to library after successful verification', async () => {
+      vi.useFakeTimers();
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Email verified successfully' }),
@@ -98,16 +127,156 @@ describe('VerifyEmailPage', () => {
 
       renderWithRouter('/verify-email/valid-token');
 
-      await waitFor(() => {
-        expect(screen.getByText('Email Verified!')).toBeInTheDocument();
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
       });
+      expect(screen.getByText('Email Verified!')).toBeInTheDocument();
 
-      // Wait 3 seconds for the redirect timeout
-      await new Promise((resolve) => {
-        setTimeout(resolve, 3100);
+      act(() => {
+        vi.advanceTimersByTime(3000);
       });
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+    });
+
+    it('owns a single-use token once during StrictMode effect replay', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({ ok: true })
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ error: 'Verification token has already been consumed' }),
+        });
+
+      renderWithRouter('/verify-email/single-use-token', true);
+
+      expect(await screen.findByText('Email Verified!')).toBeInTheDocument();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByText('Verification token has already been consumed')
+      ).not.toBeInTheDocument();
+    });
+
+    it('ignores a stale token response after the route changes', async () => {
+      const tokenA = deferred<Response>();
+      const tokenB = deferred<Response>();
+      const requests: Array<{ token: string; signal: AbortSignal }> = [];
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((_url, init) => {
+        const body = JSON.parse(String((init as RequestInit).body)) as { token: string };
+        requests.push({ token: body.token, signal: (init as RequestInit).signal as AbortSignal });
+        return body.token === 'token-a' ? tokenA.promise : tokenB.promise;
+      });
+
+      renderWithRouter('/verify-email/token-a', false, true);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      fireEvent.click(screen.getByRole('link', { name: 'Switch token' }));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+      expect(requests.find((request) => request.token === 'token-a')?.signal.aborted).toBe(true);
+
+      tokenB.resolve({ ok: true } as Response);
+      expect(await screen.findByText('Email Verified!')).toBeInTheDocument();
+
+      tokenA.resolve({
+        ok: false,
+        json: async () => ({ error: 'Stale token error' }),
+      } as Response);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(screen.getByText('Email Verified!')).toBeInTheDocument();
+      expect(screen.queryByText('Stale token error')).not.toBeInTheDocument();
+    });
+
+    it('aborts verification and clears its redirect when unmounted', async () => {
+      vi.useFakeTimers();
+      const response = deferred<Response>();
+      let signal: AbortSignal | undefined;
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((_url, init) => {
+        signal = (init as RequestInit).signal as AbortSignal;
+        return response.promise;
+      });
+
+      const { unmount } = renderWithRouter('/verify-email/unmounted-token');
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(signal?.aborted).toBe(false);
+
+      response.resolve({ ok: true } as Response);
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByText('Email Verified!')).toBeInTheDocument();
+
+      unmount();
+      expect(signal?.aborted).toBe(true);
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('keeps successful verification when refreshing the user fails', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
+      mockRefreshUser.mockRejectedValueOnce(new Error('Account refresh failed'));
+
+      renderWithRouter('/verify-email/valid-token');
+
+      expect(await screen.findByText('Email Verified!')).toBeInTheDocument();
+      expect(screen.queryByText('Account refresh failed')).not.toBeInTheDocument();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears the redirect and token-scoped state when the token is removed', async () => {
+      vi.useFakeTimers();
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
+
+      renderWithRouter('/verify-email/valid-token', false, true);
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByText('Email Verified!')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('link', { name: 'Remove token' }));
+      expect(screen.getByText('Verify Your Email')).toBeInTheDocument();
+      expect(screen.queryByText('Email Verified!')).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancels token A redirect when token B takes ownership', async () => {
+      vi.useFakeTimers();
+      const tokenB = deferred<Response>();
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({ ok: true })
+        .mockReturnValueOnce(tokenB.promise);
+
+      renderWithRouter('/verify-email/token-a', false, true);
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByText('Email Verified!')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('link', { name: 'Switch token' }));
+      expect(screen.getByText('Verifying your email...')).toBeInTheDocument();
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it('should show error for invalid token', async () => {
