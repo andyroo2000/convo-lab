@@ -205,6 +205,101 @@ describe('AdminScriptWorkbench', () => {
     expect(screen.queryByText('Stale edited dialogue')).not.toBeInTheDocument();
   });
 
+  it('stays on dialogue when building script configuration fails', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/courses/course-a/build-script-config')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ message: 'Config could not be built' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/courses/course-a/pipeline-data') && init?.method !== 'PUT') {
+        return Promise.resolve(exchangeResponse('Original'));
+      }
+      if (url.includes('/courses/course-a/build-prompt')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/line-renderings')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ renderings: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AdminScriptWorkbench courseId="course-a" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Configure Script' }));
+
+    expect(await screen.findByText('Config could not be built')).toBeInTheDocument();
+    expect(screen.getByText('Original dialogue')).toBeInTheDocument();
+  });
+
+  it('does not navigate the next course when an old config request completes', async () => {
+    let resolveOldConfig!: (response: Response) => void;
+    const oldConfigResponse = new Promise<Response>((resolve) => {
+      resolveOldConfig = resolve;
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/courses/course-a/build-script-config')) return oldConfigResponse;
+      if (url.includes('/courses/course-a/pipeline-data')) {
+        return Promise.resolve(exchangeResponse('Course A'));
+      }
+      if (url.includes('/courses/course-b/pipeline-data')) {
+        return Promise.resolve(exchangeResponse('Course B'));
+      }
+      if (url.includes('/build-prompt')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      if (url.includes('/line-renderings')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ renderings: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { rerender } = render(<AdminScriptWorkbench courseId="course-a" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Configure Script' }));
+
+    rerender(<AdminScriptWorkbench courseId="course-b" />);
+    expect(await screen.findByText('Course B dialogue')).toBeInTheDocument();
+
+    await act(async () => {
+      resolveOldConfig(
+        new Response(JSON.stringify({ config: {} }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      await oldConfigResponse;
+    });
+
+    expect(screen.getByText('Course B dialogue')).toBeInTheDocument();
+  });
+
   it('shows a fallback error when the API message is empty', async () => {
     vi.stubGlobal(
       'fetch',
