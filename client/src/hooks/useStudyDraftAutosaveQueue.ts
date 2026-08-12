@@ -69,7 +69,12 @@ const useStudyDraftAutosaveQueue = (
     await saveTailRef.current;
   }, []);
 
-  useEffect(() => cancelScheduledSave, [cancelScheduledSave]);
+  useEffect(
+    () => () => {
+      flushScheduledSave()?.catch(() => undefined);
+    },
+    [flushScheduledSave]
+  );
 
   return {
     cancelScheduledSave,

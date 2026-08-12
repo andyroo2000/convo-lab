@@ -86,4 +86,16 @@ describe('useStudyDraftAutosaveQueue', () => {
     await act(async () => vi.advanceTimersByTimeAsync(700));
     expect(saveDraft).toHaveBeenCalledTimes(1);
   });
+
+  it('flushes a scheduled save through the normal queue on unmount', async () => {
+    vi.useFakeTimers();
+    const saveDraft = vi.fn().mockResolvedValue(undefined);
+    const { result, unmount } = renderHook(() => useStudyDraftAutosaveQueue(saveDraft));
+
+    act(() => result.current.scheduleSave(saveRequest('business')));
+    unmount();
+    await act(async () => Promise.resolve());
+
+    expect(saveDraft).toHaveBeenCalledWith(saveRequest('business'));
+  });
 });
