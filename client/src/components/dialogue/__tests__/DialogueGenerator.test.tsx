@@ -144,7 +144,7 @@ describe('DialogueGenerator', () => {
       randomUUID: vi.fn().mockReturnValue('11111111-1111-4111-8111-111111111111'),
     });
 
-    mockCreateEpisode.mockResolvedValue({ id: 'episode-123' });
+    mockCreateEpisode.mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111' });
     mockGenerateDialogue.mockResolvedValue({
       clientRequestId: '11111111-1111-4111-8111-111111111111',
       state: 'pending',
@@ -152,7 +152,7 @@ describe('DialogueGenerator', () => {
       message: 'Dialogue generation started',
     });
     mockGetEpisode.mockResolvedValue({
-      id: 'episode-123',
+      id: '11111111-1111-4111-8111-111111111111',
       dialogue: { id: 'dialogue-123' },
     });
     mockPollJobStatus.mockResolvedValue('pending');
@@ -340,7 +340,7 @@ describe('DialogueGenerator', () => {
         expect.objectContaining({ id: '11111111-1111-4111-8111-111111111111' })
       );
       expect(mockGenerateDialogue).toHaveBeenCalledWith(
-        'episode-123',
+        '11111111-1111-4111-8111-111111111111',
         expect.any(Array),
         3,
         8,
@@ -364,7 +364,7 @@ describe('DialogueGenerator', () => {
       fireEvent.click(button);
 
       expect(mockCreateEpisode).toHaveBeenCalledTimes(1);
-      episodeRequest.resolve({ id: 'episode-123' });
+      episodeRequest.resolve({ id: '11111111-1111-4111-8111-111111111111' });
       await act(async () => undefined);
     });
 
@@ -417,7 +417,7 @@ describe('DialogueGenerator', () => {
       });
 
       expect(mockGenerateDialogue).toHaveBeenCalledWith(
-        'episode-123',
+        '11111111-1111-4111-8111-111111111111',
         expect.any(Array),
         3, // variations per sentence
         8, // default dialogue length
@@ -441,7 +441,7 @@ describe('DialogueGenerator', () => {
       });
 
       expect(mockGenerateDialogue).toHaveBeenCalledWith(
-        'episode-123',
+        '11111111-1111-4111-8111-111111111111',
         expect.any(Array),
         3,
         20,
@@ -623,7 +623,9 @@ describe('DialogueGenerator', () => {
         vi.advanceTimersByTime(2000); // Navigation delay
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('/app/playback/episode-123');
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/app/playback/11111111-1111-4111-8111-111111111111'
+      );
     });
 
     it('cancels the delayed redirect when unmounted after completion', async () => {
@@ -667,13 +669,13 @@ describe('DialogueGenerator', () => {
       });
 
       expect(mockGetEpisode).toHaveBeenCalledWith(
-        'episode-123',
+        '11111111-1111-4111-8111-111111111111',
         false,
         undefined,
         expect.any(AbortSignal)
       );
       expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith(
-        'episode-123',
+        '11111111-1111-4111-8111-111111111111',
         'dialogue-123',
         expect.any(AbortSignal)
       );

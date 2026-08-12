@@ -363,6 +363,9 @@ const DialogueGenerator = () => {
         const episode = intent.payload.viewAsUserId
           ? await createEpisode(episodeRequest, intent.payload.viewAsUserId)
           : await createEpisode(episodeRequest);
+        if (episode.id !== intent.intentId) {
+          throw new Error('The server created a different episode for this generation request.');
+        }
         setGeneratedEpisodeId(episode.id);
 
         const acknowledgement = await generateDialogue(

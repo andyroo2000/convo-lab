@@ -51,12 +51,7 @@ export function isAcknowledgedGenerationFailure(
 }
 
 export function isDefinitiveGenerationRejection(error: unknown): error is JsonRequestError {
-  return (
-    error instanceof JsonRequestError &&
-    error.status >= 400 &&
-    error.status < 500 &&
-    !isGenerationRequestConflict(error)
-  );
+  return error instanceof JsonRequestError && [400, 404, 422].includes(error.status);
 }
 
 export function generationRequestErrorMessage(error: unknown, fallback: string): string {
