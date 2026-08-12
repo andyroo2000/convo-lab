@@ -709,6 +709,37 @@ describe('AdminPage', () => {
         expect(screen.getByText('20')).toBeInTheDocument(); // available
       });
     });
+
+    it('should show loading state while fetching analytics', () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
+
+      renderPage('analytics');
+
+      expect(screen.getByText('Loading stats...')).toBeInTheDocument();
+    });
+
+    it('aborts the analytics read when the page unmounts', async () => {
+      let requestSignal: AbortSignal | undefined;
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            requestSignal = init?.signal ?? undefined;
+            requestSignal?.addEventListener(
+              'abort',
+              () => reject(new DOMException('The operation was aborted.', 'AbortError')),
+              { once: true }
+            );
+          })
+      );
+
+      const view = renderPage('analytics');
+      await waitFor(() => expect(requestSignal).toBeDefined());
+      expect(requestSignal?.aborted).toBe(false);
+
+      view.unmount();
+
+      expect(requestSignal?.aborted).toBe(true);
+    });
   });
 
   describe('avatars tab', () => {

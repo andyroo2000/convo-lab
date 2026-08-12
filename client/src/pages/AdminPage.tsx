@@ -2,18 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Users, Ticket, BarChart3, Image, Settings, TestTube } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import AdminAnalyticsTab from '../components/admin/AdminAnalyticsTab';
 import AdminAvatarsTab from '../components/admin/AdminAvatarsTab';
 import AdminInviteCodesTab from '../components/admin/AdminInviteCodesTab';
 import AdminSettingsTab from '../components/admin/AdminSettingsTab';
 import AdminUsersTab, { type AdminUsersFeed } from '../components/admin/AdminUsersTab';
 import Toast from '../components/common/Toast';
 import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
-import {
-  getAdminStats,
-  getAdminUsers,
-  type AdminReadRequestInit,
-  type AdminStats,
-} from '../lib/adminApi';
+import { getAdminUsers, type AdminReadRequestInit } from '../lib/adminApi';
 
 type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings' | 'script-lab';
 
@@ -26,10 +22,9 @@ const AdminPage = () => {
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'users';
   const [userFeed, setUserFeed] = useState<AdminUsersFeed>({ users: [], searchQuery: '' });
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const dashboardReadControllerRef = useRef<AbortController | null>(null);
+  const [isAvatarUsersLoading, setIsAvatarUsersLoading] = useState(false);
+  const [avatarUsersError, setAvatarUsersError] = useState('');
+  const avatarUsersReadControllerRef = useRef<AbortController | null>(null);
 
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -43,42 +38,27 @@ const AdminPage = () => {
   };
 
   const fetchAvatarUsers = async (init?: AdminReadRequestInit) => {
-    setIsLoading(true);
-    setError('');
+    setIsAvatarUsersLoading(true);
+    setAvatarUsersError('');
     try {
       const users = await getAdminUsers(userFeed.searchQuery, init);
       setUserFeed((currentFeed) => ({ ...currentFeed, users }));
     } catch (err) {
       if (isAbortError(err)) return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch users');
+      setAvatarUsersError(err instanceof Error ? err.message : 'Failed to fetch users');
     } finally {
-      if (!init?.signal?.aborted) setIsLoading(false);
+      if (!init?.signal?.aborted) setIsAvatarUsersLoading(false);
     }
   };
 
-  const fetchStats = async (init?: AdminReadRequestInit) => {
-    setIsLoading(true);
-    setError('');
-    try {
-      setStats(await getAdminStats(init));
-    } catch (err) {
-      if (isAbortError(err)) return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch stats');
-    } finally {
-      if (!init?.signal?.aborted) setIsLoading(false);
-    }
-  };
-
-  const refreshDashboardRead = (
-    read: (init: AdminReadRequestInit) => Promise<void>
-  ): Promise<void> => {
-    dashboardReadControllerRef.current?.abort();
+  const refreshAvatarUsers = (): Promise<void> => {
+    avatarUsersReadControllerRef.current?.abort();
     const controller = new AbortController();
-    dashboardReadControllerRef.current = controller;
+    avatarUsersReadControllerRef.current = controller;
 
-    return read({ signal: controller.signal }).finally(() => {
-      if (dashboardReadControllerRef.current === controller) {
-        dashboardReadControllerRef.current = null;
+    return fetchAvatarUsers({ signal: controller.signal }).finally(() => {
+      if (avatarUsersReadControllerRef.current === controller) {
+        avatarUsersReadControllerRef.current = null;
       }
     });
   };
@@ -94,20 +74,20 @@ const AdminPage = () => {
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (activeTab === 'users') {
-      setError('');
+      setAvatarUsersError('');
     } else if (activeTab === 'invite-codes') {
-      setError('');
+      setAvatarUsersError('');
     } else if (activeTab === 'analytics') {
-      refreshDashboardRead(fetchStats);
+      setAvatarUsersError('');
     } else if (activeTab === 'avatars') {
-      refreshDashboardRead(fetchAvatarUsers);
+      refreshAvatarUsers();
     } else if (activeTab === 'settings') {
-      setError('');
+      setAvatarUsersError('');
     }
 
     return () => {
-      dashboardReadControllerRef.current?.abort();
-      dashboardReadControllerRef.current = null;
+      avatarUsersReadControllerRef.current?.abort();
+      avatarUsersReadControllerRef.current = null;
     };
   }, [activeTab]);
   /* eslint-enable react-hooks/exhaustive-deps */
@@ -186,7 +166,9 @@ const AdminPage = () => {
           </div>
 
           {/* Error Message */}
-          {error && <div className="retro-admin-v3-alert is-error mb-6">{error}</div>}
+          {avatarUsersError && (
+            <div className="retro-admin-v3-alert is-error mb-6">{avatarUsersError}</div>
+          )}
 
           {/* Users Tab */}
           <AdminUsersTab
@@ -199,72 +181,13 @@ const AdminPage = () => {
           {activeTab === 'invite-codes' && <AdminInviteCodesTab showToast={showToast} />}
 
           {/* Analytics Tab */}
-          {activeTab === 'analytics' && (
-            <div className="retro-admin-v3-pane">
-              <h2 className="text-xl font-semibold text-navy mb-6">Platform Analytics</h2>
-
-              {isLoading && <div className="text-center py-12 text-gray-500">Loading stats...</div>}
-              {!isLoading && stats && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Users */}
-                  <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-600">Total Users</h3>
-                      <Users className="w-5 h-5 text-indigo" />
-                    </div>
-                    <p className="text-3xl font-bold text-navy">{stats.users}</p>
-                  </div>
-
-                  {/* Episodes */}
-                  <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-600">Episodes</h3>
-                      <BarChart3 className="w-5 h-5 text-indigo" />
-                    </div>
-                    <p className="text-3xl font-bold text-navy">{stats.episodes}</p>
-                  </div>
-
-                  {/* Courses */}
-                  <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-600">Courses</h3>
-                      <BarChart3 className="w-5 h-5 text-indigo" />
-                    </div>
-                    <p className="text-3xl font-bold text-navy">{stats.courses}</p>
-                  </div>
-
-                  {/* Invite Codes */}
-                  <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-600">Invite Codes</h3>
-                      <Ticket className="w-5 h-5 text-indigo" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-600">
-                        Total:{' '}
-                        <span className="font-semibold text-navy">{stats.inviteCodes.total}</span>
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Used:{' '}
-                        <span className="font-semibold text-navy">{stats.inviteCodes.used}</span>
-                      </p>
-                      <p className="text-sm text-green-600">
-                        Available:{' '}
-                        <span className="font-semibold">{stats.inviteCodes.available}</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
+          {activeTab === 'analytics' && <AdminAnalyticsTab />}
           {/* Avatars Tab */}
           {activeTab === 'avatars' && (
             <AdminAvatarsTab
               users={userFeed.users}
-              isUsersLoading={isLoading}
-              refreshUsers={() => refreshDashboardRead(fetchAvatarUsers)}
+              isUsersLoading={isAvatarUsersLoading}
+              refreshUsers={refreshAvatarUsers}
               showToast={showToast}
             />
           )}
