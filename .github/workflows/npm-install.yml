@@ -33,6 +33,9 @@ jobs:
       - name: Verify installed Git hook contract
         run: node --test .github/scripts/npm-install-runtime.node-test.mjs
 
+      - name: Verify frontend quality workflow contract
+        run: node --test .github/scripts/npm-install-contract.test.mjs
+
       - name: Type-check workspaces
         run: npm run type-check
 

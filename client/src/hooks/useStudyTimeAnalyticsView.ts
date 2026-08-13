@@ -49,10 +49,12 @@ export default function useStudyTimeAnalyticsView(categories: readonly StudyActi
   const selectRange = (nextRange: StudyTimeRange) => {
     setRange(nextRange);
     setAnchorDate(
-      zonedDateKey(
-        new Date(analyticsQuery.data?.generatedAt ?? Date.now()),
-        safeTimeZone(analyticsQuery.data?.timezone)
-      )
+      analyticsQuery.data
+        ? zonedDateKey(
+            new Date(analyticsQuery.data.generatedAt),
+            safeTimeZone(analyticsQuery.data.timezone)
+          )
+        : localDateKey(new Date())
     );
     setSlideDirection(-1);
   };

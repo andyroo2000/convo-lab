@@ -72,6 +72,7 @@ test('CI runs the complete frontend quality gate after one plain clean install',
   assert.deepEqual(runSteps, [
     'npm ci',
     'node --test .github/scripts/npm-install-runtime.node-test.mjs',
+    'node --test .github/scripts/npm-install-contract.test.mjs',
     'npm run type-check',
     'npm run lint',
     'npm run format:check',
