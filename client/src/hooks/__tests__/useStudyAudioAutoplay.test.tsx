@@ -20,7 +20,7 @@ const audioPromptCard = {
 } as StudyCardSummary;
 
 describe('useStudyAudioAutoplay', () => {
-  it('does not consume prompt autoplay before the player mounts', async () => {
+  it('autoplays the first prompt when its player mounts after the card effect', async () => {
     const play = vi.fn().mockResolvedValue(true);
     const runBackgroundTask = vi.fn(
       (task?: Promise<unknown> | (() => Promise<unknown> | unknown)) => {
@@ -30,30 +30,26 @@ describe('useStudyAudioAutoplay', () => {
       }
     );
     const ensureAnswerAudioPrepared = vi.fn();
-    const { result, rerender } = renderHook(
-      ({ autoplayBlocked }: { autoplayBlocked: boolean }) =>
-        useStudyAudioAutoplay({
-          autoplayBlocked,
-          cards: [],
-          currentCard: audioPromptCard,
-          ensureAnswerAudioPrepared,
-          focusMode: true,
-          runBackgroundTask,
-          revealed: false,
-        }),
-      { initialProps: { autoplayBlocked: false } }
+    const { result } = renderHook(() =>
+      useStudyAudioAutoplay({
+        autoplayBlocked: false,
+        cards: [],
+        currentCard: audioPromptCard,
+        ensureAnswerAudioPrepared,
+        focusMode: true,
+        runBackgroundTask,
+        revealed: false,
+      })
     );
 
     expect(play).not.toHaveBeenCalled();
 
     act(() => {
-      result.current.promptAudioRef.current = {
+      result.current.promptAudioRef({
         play,
         stop: vi.fn(),
-      };
+      });
     });
-    rerender({ autoplayBlocked: true });
-    rerender({ autoplayBlocked: false });
 
     await waitFor(() => expect(play).toHaveBeenCalledOnce());
   });
@@ -83,10 +79,10 @@ describe('useStudyAudioAutoplay', () => {
     );
 
     act(() => {
-      result.current.promptAudioRef.current = {
+      result.current.promptAudioRef({
         play,
         stop: vi.fn(),
-      };
+      });
     });
 
     expect(play).not.toHaveBeenCalled();

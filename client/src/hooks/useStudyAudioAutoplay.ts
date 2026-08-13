@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import type { AudioPlayerHandle } from '../components/study/StudyAudioPlayer';
@@ -34,6 +34,7 @@ export default function useStudyAudioAutoplay({
   revealed,
 }: UseStudyAudioAutoplayOptions) {
   const promptAudioRef = useRef<AudioPlayerHandle | null>(null);
+  const [promptAudioPlayer, setPromptAudioPlayer] = useState<AudioPlayerHandle | null>(null);
   const answerAudioRef = useRef<AudioPlayerHandle | null>(null);
   const promptAutoplayKeys = useRef(new Set<string>());
   const answerAutoplayKeys = useRef(new Set<string>());
@@ -41,6 +42,11 @@ export default function useStudyAudioAutoplay({
   const stopAllAudio = useCallback(() => {
     promptAudioRef.current?.stop();
     answerAudioRef.current?.stop();
+  }, []);
+
+  const bindPromptAudioPlayer = useCallback((player: AudioPlayerHandle | null) => {
+    promptAudioRef.current = player;
+    setPromptAudioPlayer(player);
   }, []);
 
   const resetAutoplayForCard = useCallback((cardId: string) => {
@@ -123,14 +129,14 @@ export default function useStudyAudioAutoplay({
     const autoplayKey = `${currentCard.id}:prompt:${promptUrl}`;
     if (promptAutoplayKeys.current.has(autoplayKey)) return;
 
-    const player = promptAudioRef.current;
+    const player = promptAudioPlayer;
     if (!player) return;
 
     promptAutoplayKeys.current.add(autoplayKey);
     runBackgroundTask(player.play(), {
       label: 'Study prompt-audio autoplay',
     });
-  }, [autoplayBlocked, currentCard, focusMode, revealed, runBackgroundTask]);
+  }, [autoplayBlocked, currentCard, focusMode, promptAudioPlayer, revealed, runBackgroundTask]);
 
   // The reveal commit mounts the answer player. Running this as a layout effect keeps
   // mobile playback inside the reveal tap instead of waiting for a post-paint effect.
@@ -142,7 +148,7 @@ export default function useStudyAudioAutoplay({
 
   return {
     autoplayAnswerAudioForCard,
-    promptAudioRef,
+    promptAudioRef: bindPromptAudioPlayer,
     answerAudioRef,
     resetAllAutoplay,
     resetAutoplayForCard,
