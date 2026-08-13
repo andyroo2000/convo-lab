@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -43,29 +44,42 @@ function userResponse(id: string, name: string): Response {
 
 const Consumer = () => {
   const navigate = useNavigate();
-  const { effectiveUser, isImpersonating, loading } = useEffectiveUser();
+  const { effectiveUser, effectiveUserId, isImpersonating, loading, status, retry } =
+    useEffectiveUser();
 
   return (
     <>
       <div data-testid="layout-identity">{effectiveUser?.id ?? 'none'}</div>
       <div data-testid="draft-intent-owner">{effectiveUser?.id ?? 'none'}</div>
+      <div data-testid="effective-user-id">{effectiveUserId ?? 'none'}</div>
       <div data-testid="impersonating">{String(isImpersonating)}</div>
       <div data-testid="loading">{String(loading)}</div>
+      <div data-testid="status">{status}</div>
       <button type="button" onClick={() => navigate('/app/create?viewAs=user-b')}>
         View B
       </button>
       <button type="button" onClick={() => navigate('/app/create')}>
         View self
       </button>
+      <button type="button" onClick={() => retry()}>
+        Retry
+      </button>
     </>
   );
 };
 
-function renderConsumer() {
+function renderConsumer({ count = 1, route = '/app/create?viewAs=user-a' } = {}) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
   return render(
-    <MemoryRouter initialEntries={['/app/create?viewAs=user-a']}>
-      <Consumer />
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[route]}>
+        {Array.from({ length: count }, (_, index) => (
+          <Consumer key={index} />
+        ))}
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
@@ -80,11 +94,39 @@ describe('useEffectiveUser request ownership', () => {
     } as User;
   });
 
+  it('returns the authenticated user ID as ready without fetching outside impersonation', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    renderConsumer({ route: '/app/create' });
+
+    expect(screen.getByTestId('effective-user-id')).toHaveTextContent('admin-user');
+    expect(screen.getByTestId('status')).toHaveTextContent('ready');
+    expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('shares one impersonated-user request across multiple consumers', async () => {
+    const request = deferredResponse();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockReturnValue(request.promise);
+
+    renderConsumer({ count: 2 });
+
+    expect(screen.getAllByTestId('status')).toHaveLength(2);
+    expect(screen.getAllByTestId('status')[0]).toHaveTextContent('loading');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => request.resolve(userResponse('user-a', 'User A')));
+    await waitFor(() =>
+      expect(screen.getAllByTestId('effective-user-id')[0]).toHaveTextContent('user-a')
+    );
+    expect(screen.getAllByTestId('status')[0]).toHaveTextContent('ready');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('does not expose A to Layout or the StudyCreate intent owner while B is loading', async () => {
     const requestA = deferredResponse();
     const requestB = deferredResponse();
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
+    vi.spyOn(globalThis, 'fetch')
       .mockImplementationOnce(() => requestA.promise)
       .mockImplementationOnce(() => requestB.promise);
 
@@ -95,11 +137,11 @@ describe('useEffectiveUser request ownership', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'View B' }));
-    expect((fetchSpy.mock.calls[0][1] as RequestInit).signal?.aborted).toBe(true);
     expect(screen.getByTestId('layout-identity')).toHaveTextContent('none');
     expect(screen.getByTestId('draft-intent-owner')).toHaveTextContent('none');
     expect(screen.getByTestId('impersonating')).toHaveTextContent('true');
     expect(screen.getByTestId('loading')).toHaveTextContent('true');
+    expect(screen.getByTestId('status')).toHaveTextContent('loading');
 
     await act(async () => requestB.resolve(userResponse('user-b', 'User B')));
     await waitFor(() => expect(screen.getByTestId('layout-identity')).toHaveTextContent('user-b'));
@@ -117,10 +159,16 @@ describe('useEffectiveUser request ownership', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View B' }));
     fireEvent.click(screen.getByRole('button', { name: 'View self' }));
 
+    await waitFor(() => {
+      expect((vi.mocked(fetch).mock.calls[0][1] as RequestInit).signal?.aborted).toBe(true);
+      expect((vi.mocked(fetch).mock.calls[1][1] as RequestInit).signal?.aborted).toBe(true);
+    });
+
     expect(screen.getByTestId('layout-identity')).toHaveTextContent('admin-user');
     expect(screen.getByTestId('draft-intent-owner')).toHaveTextContent('admin-user');
     expect(screen.getByTestId('impersonating')).toHaveTextContent('false');
     expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    expect(screen.getByTestId('status')).toHaveTextContent('ready');
 
     await act(async () => {
       requestB.resolve(userResponse('user-b', 'User B'));
@@ -158,7 +206,27 @@ describe('useEffectiveUser request ownership', () => {
     expect(screen.getByTestId('layout-identity')).toHaveTextContent('none');
     expect(screen.getByTestId('draft-intent-owner')).toHaveTextContent('none');
     expect(screen.getByTestId('impersonating')).toHaveTextContent('true');
+    expect(screen.getByTestId('status')).toHaveTextContent('error');
     expect(consoleError).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers from an error when the current impersonated-user request is retried', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({ ok: false, status: 500 } as Response)
+      .mockResolvedValueOnce(userResponse('user-a', 'Recovered User A'));
+
+    renderConsumer();
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('error'));
+    expect(screen.getByTestId('effective-user-id')).toHaveTextContent('none');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
+    expect(screen.getByTestId('effective-user-id')).toHaveTextContent('user-a');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   it('rejects a successful response whose identity does not match the requested owner', async () => {
@@ -194,10 +262,15 @@ describe('useEffectiveUser request ownership', () => {
       email: 'second-admin@example.com',
       role: 'admin',
     } as User;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
     view.rerender(
-      <MemoryRouter initialEntries={['/app/create?viewAs=user-a']}>
-        <Consumer />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/app/create?viewAs=user-a']}>
+          <Consumer />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
     expect(screen.getByTestId('layout-identity')).toHaveTextContent('none');
