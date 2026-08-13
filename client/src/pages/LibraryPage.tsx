@@ -12,10 +12,11 @@ import {
   MessagesSquare,
   CassetteTape,
 } from 'lucide-react';
-import { Episode, Course } from '../types';
+import { Course } from '../types';
 import {
   useLibraryData,
   LibraryCourse,
+  LibraryEpisode,
   episodeMatchesLibraryScope,
   parseLibraryContentScope,
   type LibraryContentScope,
@@ -33,21 +34,8 @@ import { SHOW_ONBOARDING_WELCOME } from '../config';
 
 type FilterType = LibraryContentScope;
 
-const LEGACY_DIALOGUE_TURN_FALLBACKS: Record<string, number> = {
-  'hokkaido food trip': 15,
-  'hokkaido cycling trip': 15,
-  'favorite places': 15,
-};
-
-const getDialogueTurnCount = (episode: Episode): number => {
-  const directCount = episode.dialogue?.sentences?.length ?? 0;
-  if (directCount > 0) return directCount;
-
-  const normalizedTitle = episode.title?.trim().toLowerCase();
-  if (!normalizedTitle) return 0;
-
-  return LEGACY_DIALOGUE_TURN_FALLBACKS[normalizedTitle] ?? 0;
-};
+const getDialogueTurnCount = (episode: LibraryEpisode): number =>
+  episode.dialogue?.turnCount ?? episode.dialogue?.sentences?.length ?? 0;
 
 const LibraryPage = () => {
   const { t } = useTranslation(['library', 'common']);
@@ -102,7 +90,7 @@ const LibraryPage = () => {
     }
   };
 
-  const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
+  const [episodeToDelete, setEpisodeToDelete] = useState<LibraryEpisode | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<LibraryCourse | null>(null);
 
   // Combined deleting state for modal
@@ -142,7 +130,7 @@ const LibraryPage = () => {
     };
   }, [shouldAutoLoadMore, isFetchingNextPage, fetchNextPage]);
 
-  const handleDeleteClick = (episode: Episode, e: React.MouseEvent) => {
+  const handleDeleteClick = (episode: LibraryEpisode, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setEpisodeToDelete(episode);
@@ -425,7 +413,7 @@ const LibraryPage = () => {
               <div className="retro-library-v3-grid">
                 {allItems.map((item, index) => {
                   if (item.type === 'episode') {
-                    const episode = item.data as Episode;
+                    const episode = item.data as LibraryEpisode;
                     const contentType = episode.contentType ?? 'dialogue';
                     const isScript = contentType === 'script';
                     const scriptSegmentCount =

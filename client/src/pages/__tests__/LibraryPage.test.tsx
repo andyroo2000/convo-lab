@@ -284,6 +284,23 @@ describe('LibraryPage', () => {
   });
 
   describe('Content rendering', () => {
+    const createDialogueEpisode = (overrides: Record<string, unknown> = {}) => ({
+      id: 'episode-1',
+      userId: 'user-1',
+      title: 'A dialogue',
+      sourceText: 'Source text',
+      targetLanguage: 'ja',
+      nativeLanguage: 'en',
+      contentType: 'dialogue',
+      status: 'ready',
+      createdAt: '2026-08-12T00:00:00.000Z',
+      updatedAt: '2026-08-12T00:00:00.000Z',
+      dialogue: {
+        speakers: [],
+      },
+      ...overrides,
+    });
+
     it('should render filter buttons with correct styling', () => {
       renderLibraryPage();
 
@@ -296,6 +313,46 @@ describe('LibraryPage', () => {
 
       const emptyMessage = screen.getByRole('heading', { name: /No content yet/i });
       expect(emptyMessage).toBeTruthy();
+    });
+
+    it('renders the authoritative dialogue turn count from the library response', () => {
+      mockUseLibraryData.mockReturnValue(
+        createMockLibraryData({
+          episodes: [
+            createDialogueEpisode({
+              dialogue: { speakers: [], turnCount: 7 },
+            }),
+          ],
+        })
+      );
+
+      renderLibraryPage();
+
+      expect(
+        screen.getByText(
+          (_content, element) =>
+            element?.classList.contains('retro-caps') === true &&
+            element.textContent === 'Dialogue / Turns: 7'
+        )
+      ).toBeTruthy();
+    });
+
+    it('does not infer a dialogue turn count from a legacy title', () => {
+      mockUseLibraryData.mockReturnValue(
+        createMockLibraryData({
+          episodes: [createDialogueEpisode({ title: 'Hokkaido Food Trip' })],
+        })
+      );
+
+      renderLibraryPage();
+
+      expect(
+        screen.getByText(
+          (_content, element) =>
+            element?.classList.contains('retro-caps') === true &&
+            element.textContent === 'Dialogue / Turns: 0'
+        )
+      ).toBeTruthy();
     });
   });
 
