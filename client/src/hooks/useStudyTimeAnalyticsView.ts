@@ -5,7 +5,11 @@ import type {
   StudyTimeAnalyticsBucket,
   StudyTimeRange,
 } from '../types/studyActivity';
-import shiftStudyTimeAnchor, { localDateKey } from '../utils/studyTimePeriod';
+import shiftStudyTimeAnchor, {
+  localDateKey,
+  safeTimeZone,
+  zonedDateKey,
+} from '../utils/studyTimePeriod';
 import { useStudyActivityAnalytics } from './useStudyActivity';
 
 function drillDownRange(range: StudyTimeRange): StudyTimeRange | null {
@@ -15,6 +19,7 @@ function drillDownRange(range: StudyTimeRange): StudyTimeRange | null {
 }
 
 export default function useStudyTimeAnalyticsView(categories: readonly StudyActivityCategory[]) {
+  // The bootstrap request must use the device date until the API reports its analytics timezone.
   const [anchorDate, setAnchorDate] = useState(() => localDateKey(new Date()));
   const analyticsQuery = useStudyActivityAnalytics(anchorDate);
   const [range, setRange] = useState<StudyTimeRange>('week');
@@ -44,7 +49,14 @@ export default function useStudyTimeAnalyticsView(categories: readonly StudyActi
 
   const selectRange = (nextRange: StudyTimeRange) => {
     setRange(nextRange);
-    setAnchorDate(localDateKey(new Date()));
+    setAnchorDate(
+      analyticsQuery.data
+        ? zonedDateKey(
+            new Date(analyticsQuery.data.generatedAt),
+            safeTimeZone(analyticsQuery.data.timezone)
+          )
+        : localDateKey(new Date())
+    );
     setSlideDirection(-1);
   };
 
@@ -70,7 +82,9 @@ export default function useStudyTimeAnalyticsView(categories: readonly StudyActi
     const nextRange = drillDownRange(range);
     if (!nextRange) return;
     setSlideDirection(-1);
-    setAnchorDate(localDateKey(new Date(bucket.startsAt)));
+    setAnchorDate(
+      zonedDateKey(new Date(bucket.startsAt), safeTimeZone(analyticsQuery.data?.timezone))
+    );
     setRange(nextRange);
   };
 

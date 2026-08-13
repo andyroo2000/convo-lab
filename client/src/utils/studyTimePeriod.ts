@@ -2,17 +2,32 @@ import type { StudyTimeRange } from '../types/studyActivity';
 
 const DAY_MS = 86_400_000;
 
-function zonedCalendarDayOrdinal(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat('en-US-u-ca-iso8601', {
-    timeZone,
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  }).formatToParts(date);
-  const partValue = (type: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((part) => part.type === type)?.value);
+export function safeTimeZone(timeZone: string | null | undefined) {
+  if (!timeZone) return 'UTC';
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone }).format();
+    return timeZone;
+  } catch {
+    return 'UTC';
+  }
+}
 
-  return Date.UTC(partValue('year'), partValue('month') - 1, partValue('day')) / DAY_MS;
+function zonedCalendarParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-US-u-ca-iso8601', {
+    timeZone: safeTimeZone(timeZone),
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  return { year: value('year'), month: value('month'), day: value('day') };
+}
+
+function zonedCalendarDayOrdinal(date: Date, timeZone: string) {
+  const { year, month, day } = zonedCalendarParts(date, timeZone);
+
+  return Date.UTC(Number(year), Number(month) - 1, Number(day)) / DAY_MS;
 }
 
 export function calendarDayCount(
@@ -40,6 +55,11 @@ export function localDateKey(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function zonedDateKey(date: Date, timeZone: string) {
+  const { year, month, day } = zonedCalendarParts(date, timeZone);
   return `${year}-${month}-${day}`;
 }
 

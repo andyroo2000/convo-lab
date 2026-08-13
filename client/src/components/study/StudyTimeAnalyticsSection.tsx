@@ -11,7 +11,8 @@ import type {
   StudyTimeRange,
 } from '../../types/studyActivity';
 import formatDuration from '../../utils/studyTimeFormat';
-import { calendarDayCount } from '../../utils/studyTimePeriod';
+import bucketLabel from '../../utils/studyTimeLabels';
+import { calendarDayCount, safeTimeZone } from '../../utils/studyTimePeriod';
 
 const CATEGORIES: Array<{
   key: StudyActivityCategory;
@@ -70,52 +71,12 @@ const SWIPE_THRESHOLD_PX = 50;
 const SWIPE_VELOCITY_THRESHOLD = 500;
 const DOUBLE_TAP_WINDOW_MS = 420;
 
-function bucketLabel(
-  bucket: StudyTimeAnalyticsBucket,
-  analytics: StudyTimeAnalyticsRange,
-  locale: string
-) {
-  const date = new Date(bucket.startsAt);
-  const unit =
-    analytics.bucketUnit ??
-    ({ today: 'hour', week: 'day', month: 'day', year: 'month', all: 'year' } as const)[
-      analytics.key
-    ];
-  const step = analytics.bucketStep ?? 1;
-
-  if (unit === 'hour') return date.toLocaleTimeString(locale, { hour: 'numeric' });
-  if (unit === 'day' && analytics.key === 'week') {
-    return date.toLocaleDateString(locale, { weekday: 'short' });
-  }
-  if (unit === 'day' && analytics.key === 'month') {
-    return date.toLocaleDateString(locale, { day: 'numeric' });
-  }
-  if (unit === 'day' || unit === 'week') {
-    return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
-  }
-  if (unit === 'month') {
-    return date.toLocaleDateString(locale, {
-      month: 'short',
-      ...(analytics.key === 'all' ? { year: '2-digit' as const } : {}),
-    });
-  }
-  if (unit === 'quarter') {
-    const quarter = Math.floor(date.getMonth() / 3) + 1;
-    const year = date.toLocaleDateString(locale, { year: 'numeric' });
-    return `Q${quarter} ${year}`;
-  }
-  if (step > 1) {
-    const inclusiveEnd = new Date(new Date(bucket.endsAt).getTime() - 1);
-    return `${date.getFullYear()}–${inclusiveEnd.getFullYear()}`;
-  }
-  return date.toLocaleDateString(locale, { year: 'numeric' });
-}
-
-function periodLabel(analytics: StudyTimeAnalyticsRange, locale: string) {
+function periodLabel(analytics: StudyTimeAnalyticsRange, locale: string, timeZone: string) {
   const start = new Date(analytics.startsAt);
   const inclusiveEnd = new Date(new Date(analytics.endsAt).getTime() - 1);
   if (analytics.key === 'today') {
     return start.toLocaleDateString(locale, {
+      timeZone,
       weekday: 'long',
       month: 'long',
       day: 'numeric',
@@ -123,15 +84,20 @@ function periodLabel(analytics: StudyTimeAnalyticsRange, locale: string) {
     });
   }
   if (analytics.key === 'month') {
-    return start.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+    return start.toLocaleDateString(locale, { timeZone, month: 'long', year: 'numeric' });
   }
   if (analytics.key === 'year') {
-    return start.toLocaleDateString(locale, { year: 'numeric' });
+    return start.toLocaleDateString(locale, { timeZone, year: 'numeric' });
   }
   if (analytics.key === 'all') return '';
 
-  const startLabel = start.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+  const startLabel = start.toLocaleDateString(locale, {
+    timeZone,
+    month: 'short',
+    day: 'numeric',
+  });
   const endLabel = inclusiveEnd.toLocaleDateString(locale, {
+    timeZone,
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -226,7 +192,7 @@ const StudyRhythmChart = ({
         <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
           <p className="retro-caps text-gray-500">{t('time.analytics.bestRhythm')}</p>
           <p className="mt-1 text-xl font-black text-navy">
-            {best ? bucketLabel(best, analytics, locale) : '—'}
+            {best ? bucketLabel(best, analytics, locale, timeZone) : '—'}
           </p>
           <p className="text-sm font-bold text-gray-500">
             {t('time.analytics.bucketTotal', {
@@ -262,11 +228,11 @@ const StudyRhythmChart = ({
                 style={{
                   height: `${Math.max(2, (filteredBucketTotal(bucket) / maximum) * 88)}%`,
                 }}
-                title={`${bucketLabel(bucket, analytics, locale)}: ${t(
+                title={`${bucketLabel(bucket, analytics, locale, timeZone)}: ${t(
                   'time.analytics.bucketTotal',
                   { time: formatDuration(filteredBucketTotal(bucket)) }
                 )}`}
-                aria-label={`${bucketLabel(bucket, analytics, locale)}: ${formatDuration(
+                aria-label={`${bucketLabel(bucket, analytics, locale, timeZone)}: ${formatDuration(
                   filteredBucketTotal(bucket)
                 )}${onDrillDown ? `. ${t('time.analytics.drillDown')}` : ''}`}
                 onDoubleClick={() =>
@@ -301,7 +267,7 @@ const StudyRhythmChart = ({
                 })}
               </button>
               <p className="mt-2 truncate text-center text-[11px] font-bold text-gray-500">
-                {bucketLabel(bucket, analytics, locale)}
+                {bucketLabel(bucket, analytics, locale, timeZone)}
               </p>
             </div>
           ))}
@@ -380,7 +346,8 @@ const StudyTimeAnalyticsSection = () => {
     toggleCategory,
     transitionKey,
   } = useStudyTimeAnalyticsView(CATEGORY_KEYS);
-  const selectedPeriodLabel = analytics ? periodLabel(analytics, locale) : '';
+  const analyticsTimeZone = safeTimeZone(analyticsQuery.data?.timezone);
+  const selectedPeriodLabel = analytics ? periodLabel(analytics, locale, analyticsTimeZone) : '';
 
   return (
     <section className="retro-paper-panel p-4 sm:p-6">
@@ -525,7 +492,7 @@ const StudyTimeAnalyticsSection = () => {
               <StudyRhythmChart
                 analytics={analytics}
                 generatedAt={analyticsQuery.data?.generatedAt ?? analytics.endsAt}
-                timeZone={analyticsQuery.data?.timezone ?? 'UTC'}
+                timeZone={analyticsTimeZone}
                 includedCategories={includedCategories}
                 onToggleCategory={toggleCategory}
                 onDrillDown={drillDownEnabled ? drillDown : undefined}
