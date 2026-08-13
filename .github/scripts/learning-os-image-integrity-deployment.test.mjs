@@ -97,6 +97,7 @@ test('the deploy resolves OCI indexes and verifies the tag before migrations', a
 
   for (const contract of [
     'resolve_expected_platform_digest() {',
+    'DOCKER_CLI_EXPERIMENTAL=enabled',
     'docker manifest inspect --verbose "$desired_learning_os_reference"',
     'EXPECTED_PLATFORM_DIGEST',
     'resolve-oci-platform-digest.mjs',

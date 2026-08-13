@@ -248,7 +248,7 @@ test('the Learning OS deployment reconciles and health-gates the scheduler', asy
     'ensure_learning_os_scheduler',
     'wait_for_health learning-os-scheduler',
     'verify_learning_os_scheduler() {',
-    "scheduler_image=\"$(docker inspect --format='{{.Config.Image}}' learning-os-scheduler)\"",
+    'verify_learning_os_container_image learning-os-scheduler',
     "scheduler_command=\"$(docker inspect --format='{{join .Config.Cmd \" \"}}' learning-os-scheduler)\"",
     'docker exec learning-os-scheduler php artisan schedule:list',
     'study:prune-import-archives',

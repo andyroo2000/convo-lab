@@ -242,7 +242,8 @@ jobs:
                 aarch64) runtime_arch=arm64 ;;
               esac
 
-              manifest_json="$(docker manifest inspect --verbose "$desired_learning_os_reference")"
+              manifest_json="$(DOCKER_CLI_EXPERIMENTAL=enabled \
+                docker manifest inspect --verbose "$desired_learning_os_reference")"
               EXPECTED_PLATFORM_DIGEST="$(printf '%s' "$manifest_json" | docker run \
                 --rm -i \
                 -e EXPECTED_IMAGE_DIGEST="$EXPECTED_IMAGE_DIGEST" \
@@ -585,11 +586,7 @@ jobs:
             }
 
             verify_learning_os_scheduler() {
-              scheduler_image="$(docker inspect --format='{{.Config.Image}}' learning-os-scheduler)"
-              if [ "$scheduler_image" != "$desired_learning_os_image" ]; then
-                echo "Learning OS scheduler uses $scheduler_image instead of $desired_learning_os_image."
-                return 1
-              fi
+              verify_learning_os_container_image learning-os-scheduler
 
               scheduler_command="$(docker inspect --format='{{join .Config.Cmd " "}}' learning-os-scheduler)"
               if [ "$scheduler_command" != "php artisan schedule:work" ]; then
