@@ -44,3 +44,11 @@ jobs:
 
       - name: Run full client suite and enforce coverage thresholds
         run: npm run test:coverage --workspace=client
+
+      - name: Upload coverage report on failure
+        if: ${{ failure() && hashFiles('client/coverage/**') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-${{ github.run_id }}
+          path: client/coverage
+          retention-days: 7

@@ -7,6 +7,7 @@ import YAML from 'yaml';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const packageJson = JSON.parse(readFileSync(resolve(rootDir, 'package.json'), 'utf8'));
+const packageLock = JSON.parse(readFileSync(resolve(rootDir, 'package-lock.json'), 'utf8'));
 const workflow = YAML.parse(
   readFileSync(resolve(rootDir, '.github/workflows/npm-install.yml'), 'utf8')
 );
@@ -30,12 +31,22 @@ test('tracked hooks preserve the intended commit and push gates', () => {
   }
 });
 
+test('the committed lockfile pins matching Vitest and V8 coverage versions', () => {
+  const vitest = packageLock.packages['client/node_modules/vitest'];
+  const coverage = packageLock.packages['client/node_modules/@vitest/coverage-v8'];
+
+  assert.equal(vitest.version, coverage.version);
+  assert.equal(coverage.peerDependencies.vitest, vitest.version);
+});
+
 test('CI runs the complete frontend quality gate after one plain clean install', () => {
   const qualityJob = workflow.jobs.quality;
 
   assert.equal(workflow.name, 'Frontend Quality Gate');
-  assert.ok(Object.hasOwn(workflow.on, 'pull_request'));
+  assert.equal(workflow.on.pull_request, null);
   assert.deepEqual(workflow.on.push.branches, ['main']);
+  assert.equal(Object.hasOwn(workflow.on.push, 'paths'), false);
+  assert.equal(Object.hasOwn(workflow.on.push, 'paths-ignore'), false);
   assert.equal(workflow.permissions.contents, 'read');
   assert.equal(
     workflow.concurrency.group,
@@ -57,4 +68,14 @@ test('CI runs the complete frontend quality gate after one plain clean install',
     'npm run format:check',
     'npm run test:coverage --workspace=client',
   ]);
+
+  const artifactStep = qualityJob.steps.find(
+    (step) => step.uses === 'actions/upload-artifact@v4'
+  );
+  assert.equal(
+    artifactStep.if,
+    "${{ failure() && hashFiles('client/coverage/**') != '' }}"
+  );
+  assert.equal(artifactStep.with.path, 'client/coverage');
+  assert.equal(artifactStep.with['retention-days'], 7);
 });
