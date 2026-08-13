@@ -72,7 +72,7 @@ test('CI runs the complete frontend quality gate after one plain clean install',
     'npm run type-check',
     'npm run lint',
     'npm run format:check',
-    'npm run test:coverage --workspace=client',
+    'npm run test:coverage --workspace=client -- --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-junit.xml',
   ]);
 
   const artifactStep = qualityJob.steps.find(
@@ -80,8 +80,8 @@ test('CI runs the complete frontend quality gate after one plain clean install',
   );
   assert.equal(
     artifactStep.if,
-    "${{ failure() && hashFiles('client/coverage/**') != '' }}"
+    "${{ failure() && hashFiles('client/test-results/**') != '' }}"
   );
-  assert.equal(artifactStep.with.path, 'client/coverage');
+  assert.equal(artifactStep.with.path, 'client/test-results\nclient/coverage\n');
   assert.equal(artifactStep.with['retention-days'], 7);
 });

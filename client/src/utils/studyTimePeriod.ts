@@ -43,6 +43,18 @@ export function localDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+export function zonedDateKey(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-US-u-ca-iso8601', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value;
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
 export default function shiftStudyTimeAnchor(
   anchorDate: string,
   range: Exclude<StudyTimeRange, 'all'>,

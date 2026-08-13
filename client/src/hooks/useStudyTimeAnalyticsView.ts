@@ -5,7 +5,7 @@ import type {
   StudyTimeAnalyticsBucket,
   StudyTimeRange,
 } from '../types/studyActivity';
-import shiftStudyTimeAnchor, { localDateKey } from '../utils/studyTimePeriod';
+import shiftStudyTimeAnchor, { localDateKey, zonedDateKey } from '../utils/studyTimePeriod';
 import { useStudyActivityAnalytics } from './useStudyActivity';
 
 function drillDownRange(range: StudyTimeRange): StudyTimeRange | null {
@@ -70,7 +70,7 @@ export default function useStudyTimeAnalyticsView(categories: readonly StudyActi
     const nextRange = drillDownRange(range);
     if (!nextRange) return;
     setSlideDirection(-1);
-    setAnchorDate(localDateKey(new Date(bucket.startsAt)));
+    setAnchorDate(zonedDateKey(new Date(bucket.startsAt), analyticsQuery.data?.timezone ?? 'UTC'));
     setRange(nextRange);
   };
 

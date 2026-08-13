@@ -43,12 +43,14 @@ jobs:
         run: npm run format:check
 
       - name: Run full client suite and enforce coverage thresholds
-        run: npm run test:coverage --workspace=client
+        run: npm run test:coverage --workspace=client -- --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-junit.xml
 
-      - name: Upload coverage report on failure
-        if: ${{ failure() && hashFiles('client/coverage/**') != '' }}
+      - name: Upload test diagnostics on failure
+        if: ${{ failure() && hashFiles('client/test-results/**') != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-coverage-${{ github.run_id }}
-          path: client/coverage
+          name: frontend-test-diagnostics-${{ github.run_id }}
+          path: |
+            client/test-results
+            client/coverage
           retention-days: 7
