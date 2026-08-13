@@ -520,6 +520,14 @@ const useStudyReviewSession = () => {
         ) {
           pendingReviewOperationRef.current = null;
           setReviewRetryAvailable(false);
+          resetUndo();
+          answeredCardIdsRef.current = new Set();
+          setAnsweredCardIds([]);
+          setCurrentIndex(0);
+          setRevealed(false);
+          setEditing(false);
+          setShowSetDueControls(false);
+          setMasteryAnimation(null);
           await Promise.all([
             queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
             loadSession(sessionKind, { allowEmptySessionRefresh: false }, expectedEpoch),
@@ -566,6 +574,7 @@ const useStudyReviewSession = () => {
       sessionKind,
       loadSession,
       queryClient,
+      resetUndo,
     ]
   );
 

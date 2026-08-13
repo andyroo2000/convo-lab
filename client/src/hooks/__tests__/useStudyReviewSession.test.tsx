@@ -643,6 +643,56 @@ describe('useStudyReviewSession', () => {
     expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
   });
 
+  it('resets queue position and answered state after authoritative conflict recovery', async () => {
+    const replacementCard = {
+      ...baseCardOne,
+      id: 'card-replacement',
+      noteId: 'note-replacement',
+    };
+    startStudySessionMock
+      .mockResolvedValueOnce({ overview: baseOverview, cards: [baseCardOne, baseCardTwo] })
+      .mockResolvedValueOnce({
+        overview: { ...baseOverview, dueCount: 1, reviewCount: 1, totalCards: 1 },
+        cards: [replacementCard],
+      });
+    reviewMutateAsyncMock
+      .mockResolvedValueOnce({
+        reviewLogId: '01arz3ndektsv4rrffq69g5fa1',
+        card: baseCardOne,
+        overview: { ...baseOverview, dueCount: 1, reviewCount: 1 },
+      })
+      .mockRejectedValueOnce(
+        new JsonRequestError('Review is out of order. (409)', 409, {
+          code: 'review_out_of_order',
+        })
+      );
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+    expect(result.current.currentCard?.id).toBe(baseCardTwo.id);
+    expect(result.current.sessionProgress).toBeGreaterThan(0);
+
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(result.current.currentCard?.id).toBe(replacementCard.id);
+    expect(result.current.revealed).toBe(false);
+    expect(result.current.sessionCounts.reviewRemaining).toBe(1);
+    expect(result.current.sessionProgress).toBe(0);
+    expect(result.current.reviewConflictRecovered).toBe(true);
+  });
+
   it('recovers from a mismatched response log ID without allowing a fresh review', async () => {
     reviewMutateAsyncMock.mockRejectedValueOnce(
       new StudyReviewIdentityMismatchError(

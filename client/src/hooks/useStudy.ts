@@ -518,6 +518,7 @@ export function createStudyReviewRequest(payload: {
 }): StudyReviewRequest {
   return {
     ...payload,
+    // The Learning OS review contract normalizes client-supplied ULIDs to lowercase.
     clientReviewId: ulid().toLowerCase(),
     reviewedAt: new Date().toISOString(),
   };
@@ -673,13 +674,7 @@ export function useSubmitStudyReview() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: {
-      cardId: string;
-      grade: 'again' | 'hard' | 'good' | 'easy';
-      durationMs?: number;
-      clientReviewId: string;
-      reviewedAt: string;
-    }) =>
+    mutationFn: (payload: StudyReviewRequest) =>
       submitStudyReview(payload, queryClient.getQueryData<StudyOverview>(['study', 'overview'])),
     onSuccess: async () => {
       await Promise.all([
