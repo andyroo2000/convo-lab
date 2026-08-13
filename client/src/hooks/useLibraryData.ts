@@ -10,7 +10,17 @@ import { Episode, Course } from '../types';
 import { courseApi, readCourseApiError } from '../lib/courseApi';
 import { episodeApi, readEpisodeApiError } from '../lib/episodeApi';
 
-// Library-specific types with _count instead of full relations
+// Library-specific types expose compact relation summaries instead of full relations.
+export type LibraryEpisode = Omit<Episode, 'dialogue'> & {
+  dialogue?: {
+    turnCount?: number;
+    sentences?: Array<{ id: string }>;
+    speakers?: Array<{
+      proficiency: string;
+    }>;
+  } | null;
+};
+
 export type LibraryCourse = Omit<Course, 'lessons'> & {
   courseEpisodes?: Array<{
     episode?: {
@@ -31,7 +41,7 @@ export function parseLibraryContentScope(value: string | null): LibraryContentSc
 }
 
 export function episodeMatchesLibraryScope(
-  episode: Episode,
+  episode: Pick<Episode, 'contentType'>,
   contentScope: LibraryContentScope
 ): boolean {
   if (contentScope === 'all') return true;
@@ -60,7 +70,7 @@ export function useInvalidateLibrary() {
 }
 
 // Fetch functions with pagination support
-async function fetchEpisodes(offset: number = 0, viewAsUserId?: string): Promise<Episode[]> {
+async function fetchEpisodes(offset: number = 0, viewAsUserId?: string): Promise<LibraryEpisode[]> {
   const params = new URLSearchParams({
     library: 'true',
     limit: '20',
@@ -132,7 +142,7 @@ export function useLibraryData(
   const episodesQueryKey = [...libraryKeys.episodes(), viewAsUserId] as const;
   const coursesQueryKey = [...libraryKeys.courses(), viewAsUserId, showDrafts] as const;
   const hasCachedEpisodes = Boolean(
-    queryClient.getQueryData<InfiniteData<Episode[]>>(episodesQueryKey)?.pages.length
+    queryClient.getQueryData<InfiniteData<LibraryEpisode[]>>(episodesQueryKey)?.pages.length
   );
   const hasCachedCourses = Boolean(
     queryClient.getQueryData<InfiniteData<LibraryCourse[]>>(coursesQueryKey)?.pages.length
