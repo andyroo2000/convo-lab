@@ -4,9 +4,12 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import useStudyReviewSession from '../useStudyReviewSession';
+import { JsonRequestError } from '../../lib/apiClient';
+import StudyReviewIdentityMismatchError from '../../lib/studyReviewIdentityMismatch';
 
 const {
   cardActionMutateAsyncMock,
+  createStudyReviewRequestMock,
   startStudyLessonMock,
   startStudySessionMock,
   prepareStudyAnswerAudioMock,
@@ -18,6 +21,7 @@ const {
   warmAudioCacheMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
+  createStudyReviewRequestMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
@@ -30,6 +34,7 @@ const {
 }));
 
 vi.mock('../useStudy', () => ({
+  createStudyReviewRequest: createStudyReviewRequestMock,
   useSubmitStudyReview: () => ({
     mutateAsync: reviewMutateAsyncMock,
     isPending: false,
@@ -146,6 +151,16 @@ describe('useStudyReviewSession', () => {
     startStudySessionMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
     reviewMutateAsyncMock.mockReset();
+    createStudyReviewRequestMock.mockReset();
+    createStudyReviewRequestMock.mockImplementation(
+      (payload: { cardId: string; grade: 'again' | 'hard' | 'good' | 'easy' }) => ({
+        ...payload,
+        clientReviewId: `01arz3ndektsv4rrffq69g5fa${String(
+          createStudyReviewRequestMock.mock.calls.length
+        )}`,
+        reviewedAt: '2026-08-12T23:30:45.678Z',
+      })
+    );
     cardActionMutateAsyncMock.mockReset();
     undoStudyReviewMock.mockReset();
     updateStudyCardMock.mockReset();
@@ -509,6 +524,229 @@ describe('useStudyReviewSession', () => {
       await result.current.handleUndo();
     });
     expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-committed', expect.any(Object));
+  });
+
+  it('reuses the exact review identity and timestamp after an ambiguous lost response', async () => {
+    reviewMutateAsyncMock
+      .mockRejectedValueOnce(new TypeError('Network connection lost'))
+      .mockImplementationOnce(async (payload: { clientReviewId: string }) => ({
+        reviewLogId: payload.clientReviewId,
+        card: baseCardOne,
+        overview: baseOverview,
+      }));
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+
+    await act(async () => {
+      try {
+        await result.current.handleGrade('good');
+      } catch (error) {
+        expect(error).toEqual(new TypeError('Network connection lost'));
+      }
+    });
+    await waitFor(() => expect(result.current.reviewRetryAvailable).toBe(true));
+    await act(async () => {
+      await result.current.retryPendingReview();
+    });
+
+    expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(2);
+    expect(createStudyReviewRequestMock).toHaveBeenCalledTimes(1);
+    const firstPayload = reviewMutateAsyncMock.mock.calls[0]?.[0];
+    const retryPayload = reviewMutateAsyncMock.mock.calls[1]?.[0];
+    expect(retryPayload).toEqual(firstPayload);
+    expect(firstPayload).toMatchObject({
+      cardId: 'card-1',
+      grade: 'good',
+      clientReviewId: expect.stringMatching(/^[0-9a-hjkmnp-tv-z]{26}$/),
+      reviewedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
+    });
+    expect(result.current.masteryAnimation?.id).toBe(firstPayload.clientReviewId);
+  });
+
+  it('discards an ambiguous review identity when the user exits the session', async () => {
+    const replacementCard = {
+      ...baseCardTwo,
+      id: 'card-replacement',
+      noteId: 'note-replacement',
+    };
+    startStudySessionMock
+      .mockResolvedValueOnce({ overview: baseOverview, cards: [baseCardOne] })
+      .mockResolvedValueOnce({ overview: baseOverview, cards: [replacementCard] });
+    reviewMutateAsyncMock
+      .mockRejectedValueOnce(new TypeError('Network connection lost'))
+      .mockImplementationOnce(async (payload: { clientReviewId: string }) => ({
+        reviewLogId: payload.clientReviewId,
+        card: replacementCard,
+        overview: baseOverview,
+      }));
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await expect(result.current.handleGrade('good')).rejects.toThrow('Network connection lost');
+    });
+    expect(result.current.reviewRetryAvailable).toBe(true);
+
+    act(() => result.current.exitFocusMode());
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    const firstPayload = reviewMutateAsyncMock.mock.calls[0]?.[0];
+    const nextSessionPayload = reviewMutateAsyncMock.mock.calls[1]?.[0];
+    expect(createStudyReviewRequestMock).toHaveBeenCalledTimes(2);
+    expect(nextSessionPayload.cardId).toBe(replacementCard.id);
+    expect(nextSessionPayload.clientReviewId).not.toBe(firstPayload.clientReviewId);
+  });
+
+  it('treats a review conflict as authoritative and never resubmits with a fresh ID', async () => {
+    reviewMutateAsyncMock.mockRejectedValueOnce(
+      new JsonRequestError('Review is out of order. (409)', 409, {
+        code: 'review_out_of_order',
+      })
+    );
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+    expect(createStudyReviewRequestMock).toHaveBeenCalledTimes(1);
+    expect(startStudySessionMock).toHaveBeenCalledTimes(2);
+    expect(result.current.reviewConflictRecovered).toBe(true);
+    expect(result.current.sessionError).toBeNull();
+    await act(async () => {
+      await result.current.retryPendingReview();
+    });
+    expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets queue position and answered state after authoritative conflict recovery', async () => {
+    const replacementCard = {
+      ...baseCardOne,
+      id: 'card-replacement',
+      noteId: 'note-replacement',
+    };
+    startStudySessionMock
+      .mockResolvedValueOnce({ overview: baseOverview, cards: [baseCardOne, baseCardTwo] })
+      .mockResolvedValueOnce({
+        overview: { ...baseOverview, dueCount: 1, reviewCount: 1, totalCards: 1 },
+        cards: [replacementCard],
+      });
+    reviewMutateAsyncMock
+      .mockResolvedValueOnce({
+        reviewLogId: '01arz3ndektsv4rrffq69g5fa1',
+        card: baseCardOne,
+        overview: { ...baseOverview, dueCount: 1, reviewCount: 1 },
+      })
+      .mockRejectedValueOnce(
+        new JsonRequestError('Review is out of order. (409)', 409, {
+          code: 'review_out_of_order',
+        })
+      );
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+    expect(result.current.currentCard?.id).toBe(baseCardTwo.id);
+    expect(result.current.sessionProgress).toBeGreaterThan(0);
+
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(result.current.currentCard?.id).toBe(replacementCard.id);
+    expect(result.current.revealed).toBe(false);
+    expect(result.current.sessionCounts.reviewRemaining).toBe(1);
+    expect(result.current.sessionProgress).toBe(0);
+    expect(result.current.reviewConflictRecovered).toBe(true);
+  });
+
+  it('recovers from a mismatched response log ID without allowing a fresh review', async () => {
+    reviewMutateAsyncMock.mockRejectedValueOnce(
+      new StudyReviewIdentityMismatchError(
+        '01arz3ndektsv4rrffq69g5fa1',
+        '01arz3ndektsv4rrffq69g5fzz'
+      )
+    );
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+    expect(createStudyReviewRequestMock).toHaveBeenCalledTimes(1);
+    expect(result.current.reviewConflictRecovered).toBe(true);
+    expect(result.current.reviewRetryAvailable).toBe(false);
+    await act(async () => {
+      await result.current.retryPendingReview();
+    });
+    expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retain an identity after a definitive review rejection', async () => {
+    reviewMutateAsyncMock.mockRejectedValueOnce(
+      new JsonRequestError('Grade is invalid. (422)', 422, { message: 'Grade is invalid.' })
+    );
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      try {
+        await result.current.handleGrade('good');
+      } catch {
+        // The hook exposes the definitive error in session state.
+      }
+    });
+
+    expect(result.current.reviewRetryAvailable).toBe(false);
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    expect(createStudyReviewRequestMock).toHaveBeenCalledTimes(2);
   });
 
   it('counts only current new queue-state cards as new in the focus header', async () => {

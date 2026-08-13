@@ -39,13 +39,14 @@ export function useFeatureFlags() {
 
   // The admin override is an intentional product rule. Everyone else must receive a
   // successful flag response before feature-controlled UI or behavior can be enabled.
-  const status: FeatureFlagStatus = isAdmin
-    ? 'adminOverride'
-    : error
-      ? 'error'
-      : flags
-        ? 'ready'
-        : 'loading';
+  let status: FeatureFlagStatus = 'loading';
+  if (isAdmin) {
+    status = 'adminOverride';
+  } else if (error) {
+    status = 'error';
+  } else if (flags) {
+    status = 'ready';
+  }
 
   const isFeatureEnabled = (feature: keyof Omit<FeatureFlags, 'id' | 'updatedAt'>): boolean => {
     if (isAdmin) return true;

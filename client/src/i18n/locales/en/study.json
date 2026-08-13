@@ -23,6 +23,8 @@
   "focus": {
     "loading": "Loading study session…",
     "empty": "No cards are ready right now. Import more cards or come back when something is due.",
+    "retryReview": "Retry this review",
+    "reviewConflictRecovered": "Review status changed on the server. Your Study session was refreshed.",
     "reveal": "Reveal answer",
     "revealHintDesktop": "Click or push space to reveal",
     "revealHintMobile": "Tap to reveal"

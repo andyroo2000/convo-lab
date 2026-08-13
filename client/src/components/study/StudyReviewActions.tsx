@@ -75,7 +75,8 @@ const StudyReviewActions = ({
         <button
           type="button"
           onClick={onOpenBrowse}
-          className="rounded-full border border-gray-300 px-1.5 py-1 text-[0.68rem] font-medium leading-tight text-navy hover:bg-gray-50 sm:px-2.5 sm:text-xs"
+          disabled={disabled}
+          className="rounded-full border border-gray-300 px-1.5 py-1 text-[0.68rem] font-medium leading-tight text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5 sm:text-xs"
         >
           {t('reviewActions.openBrowse')}
         </button>

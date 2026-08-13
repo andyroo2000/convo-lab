@@ -110,7 +110,7 @@ const StudyPage = () => {
     return (
       <StudyReviewActions
         card={reviewSession.currentCard}
-        disabled={reviewSession.cardActionMutation.isPending}
+        disabled={reviewSession.cardActionMutation.isPending || reviewSession.reviewBusy}
         onEdit={() => {
           reviewSession.setEditing(true);
         }}
@@ -345,7 +345,27 @@ const StudyPage = () => {
                 <p className="py-16 text-center text-gray-500">{t('focus.loading')}</p>
               ) : null}
               {reviewSession.sessionError ? (
-                <p className="py-16 text-center text-red-600">{reviewSession.sessionError}</p>
+                <div className="space-y-4 py-16 text-center text-red-600">
+                  <p>{reviewSession.sessionError}</p>
+                  {reviewSession.reviewRetryAvailable ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        runBackgroundTask(() => reviewSession.retryPendingReview(), {
+                          label: 'Study review retry',
+                        });
+                      }}
+                      className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:bg-navy/90"
+                    >
+                      {t('focus.retryReview')}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+              {reviewSession.reviewConflictRecovered ? (
+                <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
+                  {t('focus.reviewConflictRecovered')}
+                </p>
               ) : null}
 
               {showQuizSurface &&
