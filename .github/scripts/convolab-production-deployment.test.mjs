@@ -238,7 +238,8 @@ test('the Learning OS deployment reconciles and health-gates the scheduler', asy
   );
 
   for (const requiredContract of [
-    'timeout 600 $COMPOSE pull learning-os learning-os-worker learning-os-scheduler',
+    'timeout 600 docker pull "$desired_learning_os_reference"',
+    'verify_learning_os_container_image learning-os-scheduler',
     'ensure_learning_os_scheduler() {',
     'container="learning-os-scheduler"',
     'desired_scheduler_command="php artisan schedule:work"',
