@@ -34,15 +34,18 @@ test('tracked hooks preserve the intended commit and push gates', () => {
   }
 });
 
-test('the committed lockfile pins matching Vitest and V8 coverage versions', () => {
+test('the committed lockfile pins matching Vitest tool versions', () => {
   const clientLock = packageLock.packages.client;
   const vitestVersion = clientPackageJson.devDependencies.vitest;
   const coverageVersion = clientPackageJson.devDependencies['@vitest/coverage-v8'];
+  const uiVersion = clientPackageJson.devDependencies['@vitest/ui'];
 
   assert.match(vitestVersion, /^\d+\.\d+\.\d+$/);
   assert.equal(coverageVersion, vitestVersion);
+  assert.equal(uiVersion, vitestVersion);
   assert.equal(clientLock.devDependencies.vitest, vitestVersion);
   assert.equal(clientLock.devDependencies['@vitest/coverage-v8'], coverageVersion);
+  assert.equal(clientLock.devDependencies['@vitest/ui'], uiVersion);
 });
 
 test('CI runs the complete frontend quality gate after one plain clean install', () => {

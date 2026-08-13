@@ -11,7 +11,7 @@ import type {
   StudyTimeRange,
 } from '../../types/studyActivity';
 import formatDuration from '../../utils/studyTimeFormat';
-import { calendarDayCount } from '../../utils/studyTimePeriod';
+import { calendarDayCount, safeTimeZone, zonedDateKey } from '../../utils/studyTimePeriod';
 
 const CATEGORIES: Array<{
   key: StudyActivityCategory;
@@ -111,8 +111,8 @@ function bucketLabel(
   }
   if (step > 1) {
     const inclusiveEnd = new Date(new Date(bucket.endsAt).getTime() - 1);
-    const startYear = date.toLocaleDateString(locale, { timeZone, year: 'numeric' });
-    const endYear = inclusiveEnd.toLocaleDateString(locale, { timeZone, year: 'numeric' });
+    const startYear = zonedDateKey(date, timeZone).slice(0, 4);
+    const endYear = zonedDateKey(inclusiveEnd, timeZone).slice(0, 4);
     return `${startYear}–${endYear}`;
   }
   return date.toLocaleDateString(locale, { timeZone, year: 'numeric' });
@@ -393,7 +393,7 @@ const StudyTimeAnalyticsSection = () => {
     toggleCategory,
     transitionKey,
   } = useStudyTimeAnalyticsView(CATEGORY_KEYS);
-  const analyticsTimeZone = analyticsQuery.data?.timezone ?? 'UTC';
+  const analyticsTimeZone = safeTimeZone(analyticsQuery.data?.timezone);
   const selectedPeriodLabel = analytics ? periodLabel(analytics, locale, analyticsTimeZone) : '';
 
   return (

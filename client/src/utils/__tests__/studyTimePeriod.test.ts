@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import shiftStudyTimeAnchor, { calendarDayCount, zonedDateKey } from '../studyTimePeriod';
+import shiftStudyTimeAnchor, {
+  calendarDayCount,
+  safeTimeZone,
+  zonedDateKey,
+} from '../studyTimePeriod';
 
 describe('shiftStudyTimeAnchor', () => {
   it('steps days and weeks by local calendar dates', () => {
@@ -20,6 +24,12 @@ describe('zonedDateKey', () => {
 
     expect(zonedDateKey(instant, 'America/New_York')).toBe('2026-03-01');
     expect(zonedDateKey(instant, 'America/Los_Angeles')).toBe('2026-02-28');
+  });
+
+  it('falls back to UTC for an invalid analytics timezone', () => {
+    expect(safeTimeZone('')).toBe('UTC');
+    expect(safeTimeZone('Not/A_Timezone')).toBe('UTC');
+    expect(zonedDateKey(new Date('2026-03-01T00:30:00Z'), 'Not/A_Timezone')).toBe('2026-03-01');
   });
 });
 
