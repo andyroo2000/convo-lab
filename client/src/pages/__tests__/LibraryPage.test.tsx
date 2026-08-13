@@ -2,6 +2,7 @@
 // Complex library page testing with dynamic content requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import LibraryPage from '../LibraryPage';
 
@@ -23,6 +24,7 @@ const mockUser = {
   seenSampleContentGuide: false,
   preferredStudyLanguage: 'ja',
   preferredNativeLanguage: 'en',
+  role: 'admin' as const,
 };
 
 function deferredResponse() {
@@ -112,13 +114,19 @@ describe('LibraryPage', () => {
     vi.stubGlobal('fetch', vi.fn());
   });
 
-  const renderLibraryPage = (route = '/app/library') =>
-    render(
-      <MemoryRouter initialEntries={[route]}>
-        <RouteControls />
-        <LibraryPage />
-      </MemoryRouter>
+  const renderLibraryPage = (route = '/app/library') => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[route]}>
+          <RouteControls />
+          <LibraryPage />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
+  };
 
   describe('Impersonation banner request ownership', () => {
     it('clears the old banner immediately and ignores stale A responses after A to B to self', async () => {
@@ -131,10 +139,14 @@ describe('LibraryPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'View self' }));
 
       aRequest.resolve(
-        new Response(JSON.stringify({ name: 'User A', email: 'a@example.com' }), { status: 200 })
+        new Response(JSON.stringify({ id: 'user-a', name: 'User A', email: 'a@example.com' }), {
+          status: 200,
+        })
       );
       bRequest.resolve(
-        new Response(JSON.stringify({ name: 'User B', email: 'b@example.com' }), { status: 200 })
+        new Response(JSON.stringify({ id: 'user-b', name: 'User B', email: 'b@example.com' }), {
+          status: 200,
+        })
       );
 
       await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
@@ -146,7 +158,9 @@ describe('LibraryPage', () => {
       const bRequest = deferredResponse();
       vi.mocked(fetch)
         .mockResolvedValueOnce(
-          new Response(JSON.stringify({ name: 'User A', email: 'a@example.com' }), { status: 200 })
+          new Response(JSON.stringify({ id: 'user-a', name: 'User A', email: 'a@example.com' }), {
+            status: 200,
+          })
         )
         .mockReturnValueOnce(bRequest.promise);
       renderLibraryPage('/app/library?viewAs=user-a');
@@ -156,7 +170,9 @@ describe('LibraryPage', () => {
       expect(screen.queryByText(/User A/)).toBeNull();
 
       bRequest.resolve(
-        new Response(JSON.stringify({ name: 'User B', email: 'b@example.com' }), { status: 200 })
+        new Response(JSON.stringify({ id: 'user-b', name: 'User B', email: 'b@example.com' }), {
+          status: 200,
+        })
       );
       expect(await screen.findByText(/User B/)).toBeTruthy();
     });

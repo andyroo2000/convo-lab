@@ -1,102 +1,78 @@
-import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { adminApi } from '../lib/adminApi';
 
+export type EffectiveUserStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+async function resolveImpersonatedUser(viewAsUserId: string, signal: AbortSignal): Promise<User> {
+  try {
+    const response = await fetch(adminApi.userInfo(viewAsUserId), {
+      credentials: 'include',
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch impersonated user');
+    }
+
+    const impersonatedUser = (await response.json()) as User;
+    if (impersonatedUser.id !== viewAsUserId) {
+      throw new Error('Impersonated user response did not match the requested user');
+    }
+
+    return impersonatedUser;
+  } catch (error) {
+    if (!signal.aborted) {
+      console.error('Failed to fetch impersonated user:', error);
+    }
+    throw error;
+  }
+}
+
 /**
- * Hook that returns the effective user for the current context.
- * If admin is impersonating (viewAs parameter present), returns the impersonated user's data.
- * Otherwise returns the authenticated user's data.
- *
- * This ensures that UI elements (language preferences, defaults, etc.) reflect
- * the impersonated user's settings during admin impersonation.
+ * Resolves the user whose preferences and identity the current route should display.
+ * Authorization must continue to use the authenticated user from useAuth().
  */
 export default function useEffectiveUser(): {
   effectiveUser: User | null;
+  effectiveUserId: string | null;
   isImpersonating: boolean;
   loading: boolean;
+  status: EffectiveUserStatus;
+  retry: () => Promise<unknown>;
 } {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs');
-  const [impersonatedUser, setImpersonatedUser] = useState<{
-    authenticatedUserId: string;
-    viewAsUserId: string;
-    user: User;
-  } | null>(null);
-  const [resolvedScope, setResolvedScope] = useState<{
-    authenticatedUserId: string;
-    viewAsUserId: string;
-  } | null>(null);
-  const requestGenerationRef = useRef(0);
   const authenticatedUserId = user?.id ?? null;
-  const shouldLoadImpersonatedUser =
-    !!viewAsUserId && !!authenticatedUserId && user?.role === 'admin';
+  const isImpersonating = !!viewAsUserId && !!authenticatedUserId && user?.role === 'admin';
 
-  useEffect(() => {
-    requestGenerationRef.current += 1;
-    const requestGeneration = requestGenerationRef.current;
-    const controller = new AbortController();
-    // Abort avoids wasted native-fetch work; the generation still owns correctness for
-    // implementations and test doubles that settle without honoring the abort signal.
+  const impersonatedUserQuery = useQuery({
+    queryKey: ['effective-user', authenticatedUserId, viewAsUserId],
+    queryFn: ({ signal }) => resolveImpersonatedUser(viewAsUserId!, signal),
+    enabled: isImpersonating,
+    retry: false,
+  });
 
-    // Clear the stored identity immediately after every scope transition. The render-time
-    // viewAs guard below also prevents this previous identity from being observed before the
-    // effect runs.
-    setImpersonatedUser(null);
-    setResolvedScope(null);
-
-    // If not impersonating, use the authenticated user
-    if (!shouldLoadImpersonatedUser || !viewAsUserId || !authenticatedUserId) {
-      return () => controller.abort();
-    }
-
-    // Fetch the impersonated user's data
-    fetch(adminApi.userInfo(viewAsUserId), {
-      credentials: 'include',
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error('Failed to fetch impersonated user');
-        }
-        return res.json();
-      })
-      .then((data: User) => {
-        if (controller.signal.aborted || requestGenerationRef.current !== requestGeneration) return;
-        if (data.id !== viewAsUserId) {
-          throw new Error('Impersonated user response did not match the requested user');
-        }
-        setImpersonatedUser({ authenticatedUserId, viewAsUserId, user: data });
-        setResolvedScope({ authenticatedUserId, viewAsUserId });
-      })
-      .catch((err) => {
-        if (controller.signal.aborted || requestGenerationRef.current !== requestGeneration) return;
-        console.error('Failed to fetch impersonated user:', err);
-        setImpersonatedUser(null);
-        setResolvedScope({ authenticatedUserId, viewAsUserId });
-      });
-
-    return () => controller.abort();
-  }, [authenticatedUserId, shouldLoadImpersonatedUser, viewAsUserId]);
-
-  const resolvedImpersonatedUser =
-    shouldLoadImpersonatedUser &&
-    impersonatedUser?.authenticatedUserId === authenticatedUserId &&
-    impersonatedUser.viewAsUserId === viewAsUserId
-      ? impersonatedUser.user
-      : null;
-  const isImpersonating = shouldLoadImpersonatedUser;
-  const effectiveUser = shouldLoadImpersonatedUser ? resolvedImpersonatedUser : user;
-  const loading =
-    shouldLoadImpersonatedUser &&
-    (resolvedScope?.authenticatedUserId !== authenticatedUserId ||
-      resolvedScope.viewAsUserId !== viewAsUserId);
+  const effectiveUser = isImpersonating ? (impersonatedUserQuery.data ?? null) : user;
+  let status: EffectiveUserStatus;
+  if (!user) {
+    status = 'idle';
+  } else if (!isImpersonating || impersonatedUserQuery.isSuccess) {
+    status = 'ready';
+  } else if (impersonatedUserQuery.isError) {
+    status = 'error';
+  } else {
+    status = 'loading';
+  }
 
   return {
     effectiveUser,
+    effectiveUserId: effectiveUser?.id ?? null,
     isImpersonating,
-    loading,
+    loading: status === 'loading',
+    status,
+    retry: async () => impersonatedUserQuery.refetch(),
   };
 }

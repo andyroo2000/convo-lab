@@ -2,7 +2,7 @@
 // Complex page testing with multiple card elements requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import CreatePage from '../CreatePage';
 
 const mockNavigate = vi.fn();
@@ -51,11 +51,11 @@ vi.mock('../../contexts/AuthContext', () => ({
 }));
 
 describe('CreatePage', () => {
-  const renderCreatePage = () =>
+  const renderCreatePage = (route = '/app/create') =>
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={[route]}>
         <CreatePage />
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
   beforeEach(() => {
@@ -158,6 +158,16 @@ describe('CreatePage', () => {
       fireEvent.click(scriptCard);
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/create/script');
+    });
+
+    it('preserves supported viewAs scope when navigating to creation flows', () => {
+      renderCreatePage('/app/create?viewAs=user-a');
+
+      fireEvent.click(screen.getByTestId('create-card-dialogues'));
+      fireEvent.click(screen.getByTestId('create-card-scripts'));
+
+      expect(mockNavigate).toHaveBeenNthCalledWith(1, '/app/create/dialogue?viewAs=user-a');
+      expect(mockNavigate).toHaveBeenNthCalledWith(2, '/app/create/script?viewAs=user-a');
     });
   });
 
