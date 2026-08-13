@@ -157,11 +157,11 @@ test('the production workflow verifies the always-on Study API without rollout f
 
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[ "\$current_google_oauth_config_revision" = "\$google_oauth_config_revision" \]; then/
+    /if container_uses_verified_learning_os_image "\$container" \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[ "\$current_google_oauth_config_revision" = "\$google_oauth_config_revision" \]; then/
   );
   assert.match(
     workflow,
-    /if \[ "\$current_image" = "\$desired_learning_os_image" \] \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[\[ " \$current_command " == \*" \$desired_queue_argument "\* \]\]; then/
+    /if container_uses_verified_learning_os_image "\$container" \\\n\s+&& \[ "\$running" = true \] \\\n\s+&& \[ "\$current_config_revision" = "\$desired_deploy_config_revision" \] \\\n\s+&& \[ "\$current_auth_mail_config_revision" = "\$auth_mail_config_revision" \] \\\n\s+&& \[\[ " \$current_command " == \*" \$desired_queue_argument "\* \]\]; then/
   );
   assert.doesNotMatch(workflow, /static-media-v2/);
   assert.doesNotMatch(workflow, /enable_(?:settings|overview|browser|new_queue|review|card|media|daily_audio|imports)/);
@@ -278,7 +278,7 @@ test('the production workflow verifies the always-on Study API without rollout f
     'if [ ! -s "$GCS_CREDENTIAL_PATH" ] && [ -s "$LEGACY_GCS_CREDENTIAL_PATH" ]; then'
   );
   const credentialCheck = workflow.indexOf('if [ ! -s "$GCS_CREDENTIAL_PATH" ]; then');
-  const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
+  const imagePull = workflow.indexOf('timeout 600 docker pull "$desired_learning_os_reference"');
   const migration = workflow.indexOf(
     '$COMPOSE run --rm -T --no-deps learning-os php artisan migrate --force'
   );
@@ -1120,7 +1120,7 @@ test('the production stack configures Learning OS auth mail and password reset l
   const emailFromValidation = workflow.indexOf(
     'if ! [[ "$mail_from_address" =~'
   );
-  const imagePull = workflow.indexOf('timeout 600 $COMPOSE pull learning-os learning-os-worker');
+  const imagePull = workflow.indexOf('timeout 600 docker pull "$desired_learning_os_reference"');
   const apiHealth = workflow.indexOf('wait_for_health learning-os-api');
   const runtimeConfiguration = workflow.indexOf(
     'config("mail.default") !== "resend"'

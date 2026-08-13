@@ -89,7 +89,7 @@ x-learning-os-environment: &learning-os-environment
   TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS: ${TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS:-120}
 
 x-learning-os-service: &learning-os-service
-  image: ghcr.io/andyroo2000/learning-os:${LEARNING_OS_IMAGE_TAG:-latest}
+  image: ${LEARNING_OS_IMAGE_REFERENCE:-ghcr.io/andyroo2000/learning-os:${LEARNING_OS_IMAGE_TAG:-latest}}
   restart: unless-stopped
   environment: *learning-os-environment
   volumes:
