@@ -19,6 +19,7 @@ function drillDownRange(range: StudyTimeRange): StudyTimeRange | null {
 }
 
 export default function useStudyTimeAnalyticsView(categories: readonly StudyActivityCategory[]) {
+  // The bootstrap request must use the device date until the API reports its analytics timezone.
   const [anchorDate, setAnchorDate] = useState(() => localDateKey(new Date()));
   const analyticsQuery = useStudyActivityAnalytics(anchorDate);
   const [range, setRange] = useState<StudyTimeRange>('week');
