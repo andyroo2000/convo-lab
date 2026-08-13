@@ -7,6 +7,9 @@ import YAML from 'yaml';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const packageJson = JSON.parse(readFileSync(resolve(rootDir, 'package.json'), 'utf8'));
+const clientPackageJson = JSON.parse(
+  readFileSync(resolve(rootDir, 'client/package.json'), 'utf8')
+);
 const packageLock = JSON.parse(readFileSync(resolve(rootDir, 'package-lock.json'), 'utf8'));
 const workflow = YAML.parse(
   readFileSync(resolve(rootDir, '.github/workflows/npm-install.yml'), 'utf8')
@@ -32,11 +35,14 @@ test('tracked hooks preserve the intended commit and push gates', () => {
 });
 
 test('the committed lockfile pins matching Vitest and V8 coverage versions', () => {
-  const vitest = packageLock.packages['client/node_modules/vitest'];
-  const coverage = packageLock.packages['client/node_modules/@vitest/coverage-v8'];
+  const clientLock = packageLock.packages.client;
+  const vitestVersion = clientPackageJson.devDependencies.vitest;
+  const coverageVersion = clientPackageJson.devDependencies['@vitest/coverage-v8'];
 
-  assert.equal(vitest.version, coverage.version);
-  assert.equal(coverage.peerDependencies.vitest, vitest.version);
+  assert.match(vitestVersion, /^\d+\.\d+\.\d+$/);
+  assert.equal(coverageVersion, vitestVersion);
+  assert.equal(clientLock.devDependencies.vitest, vitestVersion);
+  assert.equal(clientLock.devDependencies['@vitest/coverage-v8'], coverageVersion);
 });
 
 test('CI runs the complete frontend quality gate after one plain clean install', () => {
