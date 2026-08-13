@@ -7,6 +7,12 @@ import YAML from 'yaml';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const packageJson = JSON.parse(readFileSync(resolve(rootDir, 'package.json'), 'utf8'));
+const clientPackageJson = JSON.parse(
+  readFileSync(resolve(rootDir, 'client/package.json'), 'utf8')
+);
+const sharedPackageJson = JSON.parse(
+  readFileSync(resolve(rootDir, 'shared/package.json'), 'utf8')
+);
 const workflow = YAML.parse(
   readFileSync(resolve(rootDir, '.github/workflows/npm-audit.yml'), 'utf8')
 );
@@ -40,4 +46,9 @@ test('CI rejects high or critical advisories in the committed all-dependency loc
   );
   assert.doesNotMatch(packageJson.scripts['audit:dependencies'], /--omit(?:=|\s)/);
   assert.doesNotMatch(packageJson.scripts['audit:dependencies'], /--force/);
+});
+
+test('FSRS scheduling stays in the client-only Japanese Time Practice feature', () => {
+  assert.equal(clientPackageJson.dependencies['ts-fsrs'], '^5.3.3');
+  assert.equal(sharedPackageJson.dependencies?.['ts-fsrs'], undefined);
 });

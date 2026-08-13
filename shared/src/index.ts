@@ -3,6 +3,5 @@
 
 export * from './types.js';
 export * from './constants-new.js';
-export * from './studyFsrs.js';
 export * from './studyCloze.js';
 export * from './audioScript.js';
