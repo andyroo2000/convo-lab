@@ -482,6 +482,7 @@
       "scopeReadonly": "カレンダーの予定を表示",
       "scopeCalendar": "カレンダーの予定を管理",
       "scopeOther": "追加のカレンダーアクセス",
+      "scopeSeparator": "、",
       "scopeUnavailable": "アクセス情報を確認できません",
       "disconnect": "連携を解除",
       "disconnectTitle": "Google カレンダーの連携を解除しますか？",

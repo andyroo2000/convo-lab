@@ -499,6 +499,7 @@
       "scopeReadonly": "View calendar events",
       "scopeCalendar": "Manage calendar events",
       "scopeOther": "Additional calendar access",
+      "scopeSeparator": ", ",
       "scopeUnavailable": "Access details unavailable",
       "disconnect": "Disconnect",
       "disconnectTitle": "Disconnect Google Calendar?",

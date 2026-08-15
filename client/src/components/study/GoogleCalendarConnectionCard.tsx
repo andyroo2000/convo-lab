@@ -63,8 +63,16 @@ const GoogleCalendarConnectionCard = () => {
 
   const confirmDisconnect = () => {
     disconnect.mutate(undefined, {
-      onSuccess: () => setDisconnectOpen(false),
+      onSuccess: () => {
+        disconnect.reset();
+        setDisconnectOpen(false);
+      },
     });
+  };
+
+  const closeDisconnect = () => {
+    disconnect.reset();
+    setDisconnectOpen(false);
   };
 
   return (
@@ -114,7 +122,7 @@ const GoogleCalendarConnectionCard = () => {
           </div>
         ) : null}
 
-        {connection.data && !connection.data.connected ? (
+        {!connection.isError && connection.data && !connection.data.connected ? (
           <div className="grid items-center gap-5 md:grid-cols-[1fr_auto]">
             <div>
               <p className="font-bold text-navy">{t('time.calendarConnection.disconnected')}</p>
@@ -128,7 +136,7 @@ const GoogleCalendarConnectionCard = () => {
           </div>
         ) : null}
 
-        {connection.data?.connected ? (
+        {!connection.isError && connection.data?.connected ? (
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-1 text-sm font-bold text-white">
@@ -162,7 +170,7 @@ const GoogleCalendarConnectionCard = () => {
                   {connection.data.scopes.length > 0
                     ? [
                         ...new Set(connection.data.scopes.map((scope) => scopeLabel(scope, t))),
-                      ].join(', ')
+                      ].join(t('time.calendarConnection.scopeSeparator'))
                     : t('time.calendarConnection.scopeUnavailable')}
                 </dd>
               </div>
@@ -182,7 +190,7 @@ const GoogleCalendarConnectionCard = () => {
         confirmLabel={t('time.calendarConnection.disconnect')}
         cancelLabel={t('time.edit.cancel')}
         isLoading={disconnect.isPending}
-        onCancel={() => setDisconnectOpen(false)}
+        onCancel={closeDisconnect}
         onConfirm={confirmDisconnect}
       >
         {disconnect.isError ? (

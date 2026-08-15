@@ -4,11 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import GoogleCalendarConnectionCard from '../GoogleCalendarConnectionCard';
 
-const { connectionMock, disconnectMock, mutateMock, refetchMock } = vi.hoisted(() => ({
+const { connectionMock, disconnectMock, mutateMock, refetchMock, resetMock } = vi.hoisted(() => ({
   connectionMock: vi.fn(),
   disconnectMock: vi.fn(),
   mutateMock: vi.fn(),
   refetchMock: vi.fn(),
+  resetMock: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useGoogleCalendarConnection', () => ({
@@ -44,6 +45,7 @@ describe('GoogleCalendarConnectionCard', () => {
   beforeEach(() => {
     refetchMock.mockReset().mockResolvedValue(undefined);
     mutateMock.mockReset();
+    resetMock.mockReset();
     connectionMock.mockReset().mockReturnValue({
       data: disconnected,
       isLoading: false,
@@ -52,6 +54,7 @@ describe('GoogleCalendarConnectionCard', () => {
     });
     disconnectMock.mockReset().mockReturnValue({
       mutate: mutateMock,
+      reset: resetMock,
       isPending: false,
       isError: false,
     });
@@ -136,13 +139,33 @@ describe('GoogleCalendarConnectionCard', () => {
       isError: false,
       refetch: refetchMock,
     });
-    disconnectMock.mockReturnValue({ mutate: mutateMock, isPending: false, isError: true });
+    disconnectMock.mockReturnValue({
+      mutate: mutateMock,
+      reset: resetMock,
+      isPending: false,
+      isError: true,
+    });
     renderCard();
 
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
 
     expect(screen.getByRole('dialog')).toContainElement(screen.getByRole('alert'));
     expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t disconnect/i);
+  });
+
+  it('clears a stale disconnect error when the dialog is closed', () => {
+    connectionMock.mockReturnValue({
+      data: { ...disconnected, connected: true },
+      isLoading: false,
+      isError: false,
+      refetch: refetchMock,
+    });
+    renderCard();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+    fireEvent.click(screen.getByTestId('modal-button-cancel'));
+
+    expect(resetMock).toHaveBeenCalledOnce();
   });
 
   it('refreshes status, keeps a friendly callback result, and cleans callback parameters', async () => {
@@ -165,6 +188,20 @@ describe('GoogleCalendarConnectionCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(refetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not show stale connection data alongside a status error', () => {
+    connectionMock.mockReturnValue({
+      data: { ...disconnected, connected: true, accountEmail: 'stale@example.com' },
+      isLoading: false,
+      isError: true,
+      refetch: refetchMock,
+    });
+    renderCard();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t check/i);
+    expect(screen.queryByText('stale@example.com')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Disconnect' })).not.toBeInTheDocument();
   });
 
   it('shows a successful callback result after cleaning its query parameter', async () => {
