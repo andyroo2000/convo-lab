@@ -89,6 +89,25 @@ describe('canonicalizeGoogleCalendarSettings', () => {
     ).toContainEqual({ field: 'titleMatchTerms', code: 'too_long' });
   });
 
+  it('reports repeated overlong values once per field', () => {
+    const result = canonicalizeGoogleCalendarSettings({
+      calendarIds: [
+        'x'.repeat(GOOGLE_CALENDAR_SETTINGS_LIMITS.calendarIdLength + 1),
+        'y'.repeat(GOOGLE_CALENDAR_SETTINGS_LIMITS.calendarIdLength + 1),
+      ],
+      titleMatchTerms: [
+        'x'.repeat(GOOGLE_CALENDAR_SETTINGS_LIMITS.termCodePoints + 1),
+        'y'.repeat(GOOGLE_CALENDAR_SETTINGS_LIMITS.termCodePoints + 1),
+      ],
+      syncEnabled: true,
+    });
+
+    expect(result.errors).toEqual([
+      { field: 'calendarIds', code: 'too_long' },
+      { field: 'titleMatchTerms', code: 'too_long' },
+    ]);
+  });
+
   it('rejects invalid collection item types and overlong calendar IDs', () => {
     const result = canonicalizeGoogleCalendarSettings({
       calendarIds: ['x'.repeat(GOOGLE_CALENDAR_SETTINGS_LIMITS.calendarIdLength + 1)],

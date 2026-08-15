@@ -71,6 +71,22 @@ function errorKind(status: number): GoogleCalendarErrorKind {
   return 'request_failed';
 }
 
+function validationErrorsFromPayload(payload: unknown): GoogleCalendarSettingsError[] {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return [];
+  const errors = Reflect.get(payload, 'errors');
+  if (!errors || typeof errors !== 'object' || Array.isArray(errors)) return [];
+
+  const fields = new Set<GoogleCalendarSettingsError['field']>();
+  Object.keys(errors).forEach((key) => {
+    if (key === 'calendarIds' || key.startsWith('calendarIds.')) fields.add('calendarIds');
+    if (key === 'titleMatchTerms' || key.startsWith('titleMatchTerms.')) {
+      fields.add('titleMatchTerms');
+    }
+    if (key === 'syncEnabled') fields.add('syncEnabled');
+  });
+  return [...fields].map((field) => ({ field, code: 'server_rejected' }));
+}
+
 async function googleCalendarRequest<T>(path = '', init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set('Accept', 'application/json');
@@ -83,7 +99,15 @@ async function googleCalendarRequest<T>(path = '', init?: RequestInit): Promise<
   notifyAuthSessionExpired(response);
 
   if (!response.ok) {
-    throw new GoogleCalendarRequestError(errorKind(response.status), response.status);
+    const validationErrors =
+      response.status === 422
+        ? validationErrorsFromPayload(await response.json().catch(() => null))
+        : [];
+    throw new GoogleCalendarRequestError(
+      errorKind(response.status),
+      response.status,
+      validationErrors
+    );
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;

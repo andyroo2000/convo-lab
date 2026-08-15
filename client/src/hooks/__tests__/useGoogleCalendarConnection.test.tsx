@@ -146,6 +146,54 @@ describe('Google Calendar connection requests', () => {
     expect(notifyAuthSessionExpiredMock).toHaveBeenCalledOnce();
   });
 
+  it('maps only allowlisted 422 fields without retaining private server messages', async () => {
+    const privateDetail = 'private provider validation detail';
+    fetchWithCsrfMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: privateDetail,
+          errors: {
+            calendarIds: [privateDetail],
+            'calendarIds.2': [privateDetail],
+            'titleMatchTerms.0': [privateDetail],
+            syncEnabled: [privateDetail],
+            'syncEnabled.value': [privateDetail],
+            providerAccount: [privateDetail],
+          },
+        }),
+        { status: 422 }
+      )
+    );
+    const { result } = renderHook(() => useGoogleCalendars(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error).toBeInstanceOf(GoogleCalendarRequestError);
+    const error = result.current.error as GoogleCalendarRequestError;
+    expect(error.validationErrors).toEqual([
+      { field: 'calendarIds', code: 'server_rejected' },
+      { field: 'titleMatchTerms', code: 'server_rejected' },
+      { field: 'syncEnabled', code: 'server_rejected' },
+    ]);
+    expect(error.message).not.toContain(privateDetail);
+    expect(JSON.stringify(error)).not.toContain(privateDetail);
+  });
+
+  it.each([
+    ['malformed JSON', '{not-json'],
+    ['an invalid errors collection', JSON.stringify({ errors: ['private detail'] })],
+  ])('ignores %s in a 422 response', async (_description, body) => {
+    fetchWithCsrfMock.mockResolvedValue(new Response(body, { status: 422 }));
+    const { result } = renderHook(() => useGoogleCalendars(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error).toMatchObject({
+      kind: 'validation',
+      validationErrors: [],
+    });
+  });
+
   it('uses an operation-neutral fallback for an unmapped read failure', async () => {
     fetchWithCsrfMock.mockResolvedValue(new Response(null, { status: 500 }));
     const { result } = renderHook(() => useGoogleCalendars(), { wrapper: createWrapper() });

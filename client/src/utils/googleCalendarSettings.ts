@@ -16,6 +16,7 @@ export type GoogleCalendarSettingsErrorCode =
   | 'blank'
   | 'invalid_type'
   | 'required'
+  | 'server_rejected'
   | 'too_many'
   | 'too_long';
 
@@ -58,8 +59,11 @@ function canonicalStrings(
     const comparison = caseInsensitive ? trimmed.toLowerCase() : trimmed;
     if (seen.has(comparison)) return;
     seen.add(comparison);
-    if ([...trimmed].length > maximumLength) errors.push({ field, code: 'too_long' });
-    else values.push(trimmed);
+    if ([...trimmed].length > maximumLength) {
+      if (!errors.some((error) => error.code === 'too_long')) {
+        errors.push({ field, code: 'too_long' });
+      }
+    } else values.push(trimmed);
   });
 
   return { values, errors };
