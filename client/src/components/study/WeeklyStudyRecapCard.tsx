@@ -1,21 +1,9 @@
 import { CalendarRange, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { useWeeklyStudyRecap, type WeeklyRecapCategories } from '../../hooks/useWeeklyStudyRecap';
+import STUDY_TIME_CATEGORIES from '../../data/studyTimeCategories';
+import { useWeeklyStudyRecap } from '../../hooks/useWeeklyStudyRecap';
 import formatDuration from '../../utils/studyTimeFormat';
-
-const CATEGORIES: Array<{
-  key: keyof WeeklyRecapCategories;
-  color: string;
-  labelKey: string;
-}> = [
-  { key: 'review', color: 'bg-blue-500', labelKey: 'time.totals.review' },
-  { key: 'listen', color: 'bg-cyan-500', labelKey: 'time.totals.listen' },
-  { key: 'create', color: 'bg-amber-500', labelKey: 'time.totals.create' },
-  { key: 'immerse', color: 'bg-emerald-500', labelKey: 'time.totals.immerse' },
-  { key: 'conversation', color: 'bg-violet-500', labelKey: 'time.totals.conversation' },
-  { key: 'wanikani', color: 'bg-pink-500', labelKey: 'time.totals.wanikani' },
-];
 
 function formatRecall(rate: number | null, locale: string) {
   if (rate === null) return '—';
@@ -62,7 +50,7 @@ const WeeklyStudyRecapCard = () => {
   const { week, previousWeek } = recap.data;
   const categoryTotal = Object.values(week.categories).reduce((sum, value) => sum + value, 0);
   const noActivity = week.totalMs === 0 && week.reviewCount === 0 && week.newCardsIntroduced === 0;
-  const primaryCategory = CATEGORIES.reduce((best, category) =>
+  const primaryCategory = STUDY_TIME_CATEGORIES.reduce((best, category) =>
     week.categories[category.key] > week.categories[best.key] ? category : best
   );
   let headline =
@@ -153,11 +141,11 @@ const WeeklyStudyRecapCard = () => {
                 role="img"
                 aria-label={t('time.weeklyRecap.categoryMixLabel')}
               >
-                {CATEGORIES.map((category) =>
+                {STUDY_TIME_CATEGORIES.map((category) =>
                   week.categories[category.key] > 0 ? (
                     <span
                       key={category.key}
-                      className={category.color}
+                      className={category.barColor}
                       style={{ width: `${(week.categories[category.key] / categoryTotal) * 100}%` }}
                       title={`${t(category.labelKey)}: ${formatDuration(week.categories[category.key])}`}
                     />
@@ -165,13 +153,13 @@ const WeeklyStudyRecapCard = () => {
                 )}
               </div>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {CATEGORIES.map((category) => (
+                {STUDY_TIME_CATEGORIES.map((category) => (
                   <div
                     key={category.key}
                     className="flex items-center justify-between gap-3 text-sm"
                   >
                     <span className="flex items-center gap-2 text-gray-600">
-                      <span className={`h-2.5 w-2.5 rounded-full ${category.color}`} />
+                      <span className={`h-2.5 w-2.5 rounded-full ${category.barColor}`} />
                       {t(category.labelKey)}
                     </span>
                     <strong className="text-navy">

@@ -3,11 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import { studyApiPath } from '../lib/studyApi';
+import type { StudyActivityCategory } from '../types/studyActivity';
+import { MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING } from './useStudyActivity';
 
-export type WeeklyRecapCategories = Record<
-  'review' | 'listen' | 'create' | 'immerse' | 'conversation' | 'wanikani',
-  number
->;
+export type WeeklyRecapCategories = Record<StudyActivityCategory, number>;
 
 interface WeeklyRecapStats {
   totalMs: number;
@@ -29,17 +28,15 @@ export interface WeeklyStudyRecap {
 }
 
 export const weeklyStudyRecapKey = ['study', 'weekly-recap'] as const;
-// Learning OS numbers Sunday as 1, so Monday is 2.
-export const WEEK_STARTS_ON = 2;
 
 export function useWeeklyStudyRecap() {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   return useQuery({
-    queryKey: [...weeklyStudyRecapKey, timezone, WEEK_STARTS_ON],
+    queryKey: [...weeklyStudyRecapKey, timezone, MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING],
     queryFn: async () => {
       const response = await fetchWithCsrf(
         studyApiPath(
-          `/weekly-recap?timezone=${encodeURIComponent(timezone)}&weekStartsOn=${WEEK_STARTS_ON}`
+          `/weekly-recap?timezone=${encodeURIComponent(timezone)}&weekStartsOn=${MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING}`
         ),
         { credentials: 'include', headers: { Accept: 'application/json' } }
       );

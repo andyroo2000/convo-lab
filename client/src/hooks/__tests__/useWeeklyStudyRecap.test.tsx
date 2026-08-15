@@ -8,34 +8,7 @@ const { fetchWithCsrfMock } = vi.hoisted(() => ({ fetchWithCsrfMock: vi.fn() }))
 
 vi.mock('../../lib/csrf', () => ({ fetchWithCsrf: fetchWithCsrfMock }));
 
-const recap = {
-  generatedAt: '2026-08-17T12:00:00Z',
-  week: {
-    startsAt: '2026-08-10T04:00:00Z',
-    endsAt: '2026-08-17T04:00:00Z',
-    totalMs: 7_200_000,
-    activeDays: 4,
-    bestDay: { date: '2026-08-12', totalMs: 3_600_000 },
-    categories: {
-      review: 3_600_000,
-      listen: 0,
-      create: 0,
-      immerse: 0,
-      conversation: 3_600_000,
-      wanikani: 0,
-    },
-    reviewCount: 120,
-    recallRate: 0.94,
-    newCardsIntroduced: 20,
-  },
-  previousWeek: {
-    totalMs: 3_600_000,
-    activeDays: 3,
-    reviewCount: 90,
-    recallRate: 0.9,
-    newCardsIntroduced: 10,
-  },
-};
+const recap = { generatedAt: '2026-08-17T12:00:00Z' };
 
 describe('useWeeklyStudyRecap', () => {
   beforeEach(() => fetchWithCsrfMock.mockReset());
