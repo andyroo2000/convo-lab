@@ -16,8 +16,16 @@ export type StudyActivityKind =
   | 'wanikani_review'
   | 'other';
 export type StudyActivitySource = 'automatic' | 'manual' | 'calendar';
+export type StudyActivityOrigin =
+  | 'legacy'
+  | 'ios'
+  | 'web'
+  | 'google_calendar'
+  | 'wanikani'
+  | 'system';
+export type StudyActivityProvider = Extract<StudyActivityOrigin, 'google_calendar' | 'wanikani'>;
 
-export interface StudyActivitySession {
+export interface StudyActivitySessionInput {
   id?: string;
   clientSessionId: string;
   category: StudyActivityCategory;
@@ -29,6 +37,12 @@ export interface StudyActivitySession {
   durationMs: number;
   audioPlaybackMs?: number | null;
   cardsCreated?: number | null;
+}
+
+export interface StudyActivitySession extends StudyActivitySessionInput {
+  editable: boolean;
+  origin: StudyActivityOrigin;
+  provider: StudyActivityProvider | null;
 }
 
 export interface ActiveStudyActivity {

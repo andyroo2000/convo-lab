@@ -15,7 +15,7 @@ import type {
   ActiveStudyActivity,
   StudyActivityCategory,
   StudyActivityKind,
-  StudyActivitySession,
+  StudyActivitySessionInput,
   StudyActivitySource,
 } from '../types/studyActivity';
 
@@ -36,8 +36,8 @@ interface StudyActivityActionsContextValue {
   stop: (activity?: StudyActivityKind, name?: string) => void;
   stopAndWait: (activity?: StudyActivityKind, name?: string) => Promise<void>;
   addCreatedCards: (count?: number) => void;
-  logCompleted: (session: StudyActivitySession) => void;
-  logCompletedAndWait: (session: StudyActivitySession) => Promise<void>;
+  logCompleted: (session: StudyActivitySessionInput) => void;
+  logCompletedAndWait: (session: StudyActivitySessionInput) => Promise<void>;
 }
 
 interface StudyActivityStatusContextValue {
@@ -71,8 +71,8 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-function queuePending(key: string, session: StudyActivitySession) {
-  const pending = readJson<StudyActivitySession[]>(key, []);
+function queuePending(key: string, session: StudyActivitySessionInput) {
+  const pending = readJson<StudyActivitySessionInput[]>(key, []);
   const next = [
     ...pending.filter((item) => item.clientSessionId !== session.clientSessionId),
     session,
@@ -82,7 +82,7 @@ function queuePending(key: string, session: StudyActivitySession) {
 
 function acknowledgePending(key: string, clientSessionIds: Iterable<string>) {
   const acknowledged = new Set(clientSessionIds);
-  const pending = readJson<StudyActivitySession[]>(key, []);
+  const pending = readJson<StudyActivitySessionInput[]>(key, []);
   const remaining = pending.filter((item) => !acknowledged.has(item.clientSessionId));
 
   if (remaining.length) {
@@ -95,7 +95,7 @@ function acknowledgePending(key: string, clientSessionIds: Iterable<string>) {
 function sessionFromActive(
   active: ActiveStudyActivity,
   endedAt = new Date()
-): StudyActivitySession {
+): StudyActivitySessionInput {
   const startedAt = new Date(active.startedAt);
   const durationMs = Math.max(0, Math.min(86_400_000, endedAt.getTime() - startedAt.getTime()));
   return {
@@ -127,7 +127,7 @@ export const StudyActivityProvider = ({
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const persistSessions = useCallback(
-    (sessions: StudyActivitySession[]) => {
+    (sessions: StudyActivitySessionInput[]) => {
       const inFlightSessions = inFlightSessionsRef.current;
       const unownedSessions = sessions.filter(
         (session) => !inFlightSessions.has(session.clientSessionId)
@@ -164,7 +164,7 @@ export const StudyActivityProvider = ({
   );
 
   const persistCompleted = useCallback(
-    (session: StudyActivitySession) => {
+    (session: StudyActivitySessionInput) => {
       queuePending(pendingKey, session);
       return persistSessions([session]);
     },
@@ -249,7 +249,7 @@ export const StudyActivityProvider = ({
   }, [enabled, finishActive]);
 
   const flushPending = useCallback(() => {
-    const pending = readJson<StudyActivitySession[]>(pendingKey, []);
+    const pending = readJson<StudyActivitySessionInput[]>(pendingKey, []);
     if (!pending.length) return;
     persistSessions(pending).catch(() => undefined);
   }, [pendingKey, persistSessions]);
@@ -318,7 +318,7 @@ export const StudyActivityProvider = ({
       },
       stopAndWait: finishActive,
       addCreatedCards,
-      logCompleted: (session: StudyActivitySession) => {
+      logCompleted: (session: StudyActivitySessionInput) => {
         persistCompleted(session).catch(() => undefined);
       },
       logCompletedAndWait: persistCompleted,

@@ -3,8 +3,17 @@ import { useEffect } from 'react';
 
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
+import {
+  decodeStudyActivitySession,
+  encodeStudyActivitySession,
+  type StudyActivitySessionWire,
+} from '../lib/studyActivityContract';
 import { studyApiPath } from '../lib/studyApi';
-import type { StudyActivitySession, StudyTimeAnalytics } from '../types/studyActivity';
+import type {
+  StudyActivitySession,
+  StudyActivitySessionInput,
+  StudyTimeAnalytics,
+} from '../types/studyActivity';
 
 // Learning OS numbers Sunday as 1, so Monday is 2.
 const MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING = 2;
@@ -33,11 +42,17 @@ async function activityRequest<T>(path: string, init?: RequestInit): Promise<T> 
   return response.json() as Promise<T>;
 }
 
-export async function saveStudyActivitySessions(sessions: StudyActivitySession[]) {
-  return activityRequest<StudyActivitySession[]>('/activity-sessions/batch', {
-    method: 'POST',
-    body: JSON.stringify({ sessions }),
-  });
+export async function saveStudyActivitySessions(
+  sessions: Array<StudyActivitySessionInput | StudyActivitySession>
+) {
+  const storedSessions = await activityRequest<StudyActivitySessionWire[]>(
+    '/activity-sessions/batch',
+    {
+      method: 'POST',
+      body: JSON.stringify({ sessions: sessions.map(encodeStudyActivitySession) }),
+    }
+  );
+  return storedSessions.map(decodeStudyActivitySession);
 }
 
 export function useStudyActivitySessions(from: Date, to: Date) {
@@ -45,10 +60,12 @@ export function useStudyActivitySessions(from: Date, to: Date) {
   const toIso = to.toISOString();
   return useQuery({
     queryKey: studyActivityKeys.range(fromIso, toIso),
-    queryFn: () =>
-      activityRequest<StudyActivitySession[]>(
+    queryFn: async () => {
+      const sessions = await activityRequest<StudyActivitySessionWire[]>(
         `/activity-sessions?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`
-      ),
+      );
+      return sessions.map(decodeStudyActivitySession);
+    },
   });
 }
 
@@ -71,7 +88,8 @@ export function useStudyActivityAnalytics(anchorDate: string) {
 export function useSaveStudyActivitySession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (session: StudyActivitySession) => saveStudyActivitySessions([session]),
+    mutationFn: (session: StudyActivitySessionInput | StudyActivitySession) =>
+      saveStudyActivitySessions([session]),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }),
   });
 }
