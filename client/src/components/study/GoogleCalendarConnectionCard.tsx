@@ -161,11 +161,6 @@ const GoogleCalendarConnectionCard = () => {
               </div>
             </dl>
 
-            {disconnect.isError ? (
-              <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">
-                {t('time.calendarConnection.disconnectError')}
-              </p>
-            ) : null}
             <button type="button" className="btn-outline" onClick={() => setDisconnectOpen(true)}>
               {t('time.calendarConnection.disconnect')}
             </button>
@@ -182,7 +177,13 @@ const GoogleCalendarConnectionCard = () => {
         isLoading={disconnect.isPending}
         onCancel={() => setDisconnectOpen(false)}
         onConfirm={confirmDisconnect}
-      />
+      >
+        {disconnect.isError ? (
+          <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">
+            {t('time.calendarConnection.disconnectError')}
+          </p>
+        ) : null}
+      </ConfirmModal>
     </section>
   );
 };

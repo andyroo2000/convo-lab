@@ -115,6 +115,22 @@ describe('GoogleCalendarConnectionCard', () => {
     );
   });
 
+  it('shows a failed disconnect inside the open confirmation dialog', () => {
+    connectionMock.mockReturnValue({
+      data: { ...disconnected, connected: true, accountEmail: 'andrew@example.com' },
+      isLoading: false,
+      isError: false,
+      refetch: refetchMock,
+    });
+    disconnectMock.mockReturnValue({ mutate: mutateMock, isPending: false, isError: true });
+    renderCard();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+
+    expect(screen.getByRole('dialog')).toContainElement(screen.getByRole('alert'));
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t disconnect/i);
+  });
+
   it('refreshes status, keeps a friendly callback result, and cleans callback parameters', async () => {
     renderCard('/app/study/time?calendarConnection=error&reason=access_denied&keep=1');
 
@@ -135,5 +151,12 @@ describe('GoogleCalendarConnectionCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(refetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('shows a successful callback result after cleaning its query parameter', async () => {
+    renderCard('/app/study/time?calendarConnection=connected');
+
+    expect(screen.getByText(/is connected\. Your study timeline/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement());
   });
 });
