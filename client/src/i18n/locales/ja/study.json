@@ -497,6 +497,42 @@
         "unknown": "Google カレンダーを連携できませんでした。もう一度お試しください。"
       }
     },
+    "weeklyRecap": {
+      "eyebrow": "先週の振り返り",
+      "title": "週間まとめ",
+      "loading": "先週の学習をまとめています…",
+      "error": "週間まとめを読み込めませんでした。",
+      "retry": "もう一度試す",
+      "yourWeek": "先週の学習",
+      "emptyTitle": "静かな一週間も学びの一部です",
+      "emptyBody": "先週の学習記録はありませんでした。次のセッションから、新しいリズムを始めましょう。",
+      "headlines": {
+        "strongRecall": "高い正答率が一週間を支えました",
+        "steady": "安定した学習リズムを築きました",
+        "progress": "学びを一歩進めた一週間でした",
+        "categoryLed": "{{category}}が中心の一週間でした"
+      },
+      "metrics": {
+        "total": "学習時間",
+        "activeDays": "学習日数",
+        "recall": "正答率",
+        "reviews": "レビュー",
+        "newCards": "新しいカード"
+      },
+      "categoryMix": "時間の内訳",
+      "categoryMixLabel": "カテゴリ別の学習時間",
+      "bestDay": "最も学習した日",
+      "noBestDay": "記録はありません",
+      "comparison": {
+        "title": "前週との比較",
+        "percent": "{{value}}%",
+        "points": "{{value}}ポイント",
+        "newBaseline": "新しい基準",
+        "noChange": "変化なし",
+        "notAvailable": "比較できません",
+        "previous": "前週 {{value}}"
+      }
+    },
     "history": {
       "loading": "学習時間を読み込み中…",
       "error": "学習時間を読み込めませんでした。もう一度お試しください。"

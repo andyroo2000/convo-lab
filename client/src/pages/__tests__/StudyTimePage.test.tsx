@@ -40,6 +40,10 @@ vi.mock('../../components/study/GoogleCalendarConnectionCard', () => ({
   default: () => null,
 }));
 
+vi.mock('../../components/study/WeeklyStudyRecapCard', () => ({
+  default: () => null,
+}));
+
 vi.mock('../../hooks/useStudyActivity', () => ({
   useStudyActivityAnalytics: (anchorDate: string) => {
     const initialAnchor =
