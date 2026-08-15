@@ -221,6 +221,9 @@ vi.mock('../../hooks/useStudyActivity', () => ({
           category: 'create',
           activity: 'card_creation',
           source: 'manual',
+          origin: 'legacy',
+          provider: null,
+          editable: true,
           name: 'Episode 8 cards',
           startedAt: '2026-07-28T19:00:00Z',
           endedAt: '2026-07-28T19:45:00Z',
@@ -233,10 +236,26 @@ vi.mock('../../hooks/useStudyActivity', () => ({
           category: 'review',
           activity: 'card_review',
           source: 'automatic',
+          origin: 'legacy',
+          provider: null,
+          editable: false,
           name: 'Automatic review',
           startedAt: '2026-07-28T18:00:00Z',
           endedAt: '2026-07-28T18:30:00Z',
           durationMs: 1_800_000,
+        },
+        {
+          clientSessionId: '018f22d2-6d38-7000-8000-000000000004',
+          category: 'conversation',
+          activity: 'conversation',
+          source: 'calendar',
+          origin: 'google_calendar',
+          provider: 'google_calendar',
+          editable: false,
+          name: 'Imported iTalki lesson',
+          startedAt: '2026-07-28T17:00:00Z',
+          endedAt: '2026-07-28T18:00:00Z',
+          durationMs: 3_600_000,
         },
       ],
       isLoading: false,
@@ -435,6 +454,7 @@ describe('StudyTimePage', () => {
     render(<StudyTimePage />);
 
     expect(screen.queryByText('Automatic review')).not.toBeInTheDocument();
+    expect(screen.queryByText('Imported iTalki lesson')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Edit Episode 8 cards' }));
 
     expect(saveResetMock).toHaveBeenCalledOnce();
