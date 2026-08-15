@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the ConvoLab database backup nightly
+
+[Timer]
+OnCalendar=*-*-* 03:15:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+Unit=convolab-backup.service
+
+[Install]
+WantedBy=timers.target

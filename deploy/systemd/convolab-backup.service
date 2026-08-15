@@ -1,0 +1,16 @@
+[Unit]
+Description=Back up ConvoLab PostgreSQL databases to Google Cloud Storage
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/convolab-backup.env
+ExecStart=/opt/convolab/backup-convolab.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target
