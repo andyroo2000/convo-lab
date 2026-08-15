@@ -2,6 +2,7 @@ import { TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import StudyTimeAnalyticsSection from '../components/study/StudyTimeAnalyticsSection';
+import GoogleCalendarConnectionCard from '../components/study/GoogleCalendarConnectionCard';
 import StudyTimeSessionSections from '../components/study/StudyTimeSessionSections';
 
 const StudyTimePage = () => {
@@ -21,6 +22,7 @@ const StudyTimePage = () => {
       </header>
 
       <StudyTimeAnalyticsSection />
+      <GoogleCalendarConnectionCard />
       <StudyTimeSessionSections />
     </div>
   );
