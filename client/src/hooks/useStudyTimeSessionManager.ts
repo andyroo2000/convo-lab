@@ -98,7 +98,7 @@ export function useStudyTimeSessionManager() {
   const manualSessions = useMemo(
     () =>
       [...(sessionsQuery.data ?? [])]
-        .filter((session) => session.source !== 'automatic')
+        .filter((session) => session.editable)
         .sort((left, right) => right.startedAt.localeCompare(left.startedAt)),
     [sessionsQuery.data]
   );
@@ -140,6 +140,7 @@ export function useStudyTimeSessionManager() {
   };
 
   const beginEditing = (session: StudyActivitySession) => {
+    if (!session.editable) return;
     saveSession.reset();
     setEditing(session);
     setEditActivity(session.activity);
@@ -154,7 +155,7 @@ export function useStudyTimeSessionManager() {
   };
 
   const commitEdit = () => {
-    if (!editing || !validEdit) return;
+    if (!editing?.editable || !validEdit) return;
     const selected =
       STUDY_ACTIVITY_OPTIONS.find((item) => item.activity === editActivity) ??
       STUDY_ACTIVITY_OPTIONS[0];
@@ -182,6 +183,7 @@ export function useStudyTimeSessionManager() {
   };
 
   const beginDeleting = (session: StudyActivitySession) => {
+    if (!session.editable) return;
     deleteSession.reset();
     setDeletingSession(session);
   };
@@ -192,7 +194,7 @@ export function useStudyTimeSessionManager() {
   };
 
   const confirmDeleting = () => {
-    if (!deletingSession) return;
+    if (!deletingSession?.editable) return;
     deleteSession.mutate(deletingSession.clientSessionId, {
       onSuccess: () => setDeletingSession(null),
     });

@@ -4,24 +4,19 @@ import type {
   StudyActivitySession,
   StudyActivitySessionInput,
 } from '../types/studyActivity';
+import { STUDY_ACTIVITY_ORIGINS } from '../types/studyActivity';
 
-const STUDY_ACTIVITY_ORIGINS = new Set<StudyActivityOrigin>([
-  'legacy',
-  'ios',
-  'web',
-  'google_calendar',
-  'wanikani',
-  'system',
-]);
+const STUDY_ACTIVITY_ORIGIN_SET = new Set<string>(STUDY_ACTIVITY_ORIGINS);
 
 export type StudyActivitySessionWire = StudyActivitySessionInput & {
   origin?: unknown;
 };
 
-function decodeOrigin(origin: unknown): StudyActivityOrigin {
-  return typeof origin === 'string' && STUDY_ACTIVITY_ORIGINS.has(origin as StudyActivityOrigin)
-    ? (origin as StudyActivityOrigin)
-    : 'legacy';
+function decodeOrigin(origin: unknown): { origin: StudyActivityOrigin; recognized: boolean } {
+  if (typeof origin === 'string' && STUDY_ACTIVITY_ORIGIN_SET.has(origin)) {
+    return { origin: origin as StudyActivityOrigin, recognized: true };
+  }
+  return { origin: 'legacy', recognized: origin === undefined || origin === null };
 }
 
 function providerForOrigin(origin: StudyActivityOrigin): StudyActivityProvider | null {
@@ -29,7 +24,12 @@ function providerForOrigin(origin: StudyActivityOrigin): StudyActivityProvider |
   return null;
 }
 
-function isEditable(session: StudyActivitySessionInput, origin: StudyActivityOrigin) {
+function isEditable(
+  session: StudyActivitySessionInput,
+  origin: StudyActivityOrigin,
+  recognized: boolean
+) {
+  if (!recognized) return false;
   if (session.source === 'automatic') return false;
   return origin === 'legacy' || origin === 'ios' || origin === 'web';
 }
@@ -37,10 +37,10 @@ function isEditable(session: StudyActivitySessionInput, origin: StudyActivityOri
 export function decodeStudyActivitySession(
   session: StudyActivitySessionWire
 ): StudyActivitySession {
-  const origin = decodeOrigin(session.origin);
+  const { origin, recognized } = decodeOrigin(session.origin);
   return {
     ...session,
-    editable: isEditable(session, origin),
+    editable: isEditable(session, origin, recognized),
     origin,
     provider: providerForOrigin(origin),
   };
@@ -49,12 +49,18 @@ export function decodeStudyActivitySession(
 export function encodeStudyActivitySession(
   session: StudyActivitySessionInput | StudyActivitySession
 ): StudyActivitySessionWire & { origin: 'web' } {
-  const {
-    editable: _editable,
-    origin: _origin,
-    provider: _provider,
-    ...payload
-  } = session as StudyActivitySession;
-
-  return { ...payload, origin: 'web' };
+  return {
+    ...(session.id === undefined ? {} : { id: session.id }),
+    clientSessionId: session.clientSessionId,
+    category: session.category,
+    activity: session.activity,
+    source: session.source,
+    ...(session.name === undefined ? {} : { name: session.name }),
+    startedAt: session.startedAt,
+    endedAt: session.endedAt,
+    durationMs: session.durationMs,
+    ...(session.audioPlaybackMs === undefined ? {} : { audioPlaybackMs: session.audioPlaybackMs }),
+    ...(session.cardsCreated === undefined ? {} : { cardsCreated: session.cardsCreated }),
+    origin: 'web',
+  };
 }

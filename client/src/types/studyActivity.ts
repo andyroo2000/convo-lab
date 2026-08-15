@@ -16,13 +16,15 @@ export type StudyActivityKind =
   | 'wanikani_review'
   | 'other';
 export type StudyActivitySource = 'automatic' | 'manual' | 'calendar';
-export type StudyActivityOrigin =
-  | 'legacy'
-  | 'ios'
-  | 'web'
-  | 'google_calendar'
-  | 'wanikani'
-  | 'system';
+export const STUDY_ACTIVITY_ORIGINS = [
+  'legacy',
+  'ios',
+  'web',
+  'google_calendar',
+  'wanikani',
+  'system',
+] as const;
+export type StudyActivityOrigin = (typeof STUDY_ACTIVITY_ORIGINS)[number];
 export type StudyActivityProvider = Extract<StudyActivityOrigin, 'google_calendar' | 'wanikani'>;
 
 export interface StudyActivitySessionInput {

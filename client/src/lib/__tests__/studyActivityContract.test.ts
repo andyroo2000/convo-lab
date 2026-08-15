@@ -19,14 +19,25 @@ const input: StudyActivitySessionInput = {
 };
 
 describe('study activity API contract', () => {
-  it.each([undefined, null, '', 'calendar', 'other'])(
-    'falls back to legacy provenance for an unsupported origin (%s)',
+  it.each([undefined, null])(
+    'keeps old responses without an origin backward-compatible (%s)',
     (origin) => {
       const session = decodeStudyActivitySession({ ...input, origin });
 
       expect(session.origin).toBe('legacy');
       expect(session.provider).toBeNull();
       expect(session.editable).toBe(true);
+    }
+  );
+
+  it.each(['', 'calendar', 'other'])(
+    'fails closed while decoding an unknown origin (%s)',
+    (origin) => {
+      const session = decodeStudyActivitySession({ ...input, origin });
+
+      expect(session.origin).toBe('legacy');
+      expect(session.provider).toBeNull();
+      expect(session.editable).toBe(false);
     }
   );
 
