@@ -41,7 +41,7 @@ describe('study activity API contract', () => {
     expect(session.editable).toBe(true);
   });
 
-  it('exposes Google Calendar as explicit provider provenance', () => {
+  it('exposes Google Calendar as explicit read-only provider provenance', () => {
     const session = decodeStudyActivitySession({
       ...input,
       source: 'calendar',
@@ -50,10 +50,11 @@ describe('study activity API contract', () => {
 
     expect(session.origin).toBe('google_calendar');
     expect(session.provider).toBe('google_calendar');
-    expect(session.editable).toBe(true);
+    expect(session.editable).toBe(false);
   });
 
   it.each([
+    { origin: 'google_calendar' as const, source: 'calendar' as const },
     { origin: 'wanikani' as const, source: 'manual' as const },
     { origin: 'system' as const, source: 'manual' as const },
     { origin: 'web' as const, source: 'automatic' as const },

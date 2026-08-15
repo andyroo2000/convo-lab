@@ -61,6 +61,6 @@ describe('study activity request contract', () => {
 
     expect(stored.origin).toBe('google_calendar');
     expect(stored.provider).toBe('google_calendar');
-    expect(stored.editable).toBe(true);
+    expect(stored.editable).toBe(false);
   });
 });

@@ -31,7 +31,7 @@ function providerForOrigin(origin: StudyActivityOrigin): StudyActivityProvider |
 
 function isEditable(session: StudyActivitySessionInput, origin: StudyActivityOrigin) {
   if (session.source === 'automatic') return false;
-  return origin !== 'system' && origin !== 'wanikani';
+  return origin === 'legacy' || origin === 'ios' || origin === 'web';
 }
 
 export function decodeStudyActivitySession(
