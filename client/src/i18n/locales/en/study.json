@@ -514,6 +514,42 @@
         "unknown": "Google Calendar couldn’t be connected. Please try again."
       }
     },
+    "weeklyRecap": {
+      "eyebrow": "Last week, in focus",
+      "title": "Your weekly recap",
+      "loading": "Putting last week’s story together…",
+      "error": "We couldn’t load your weekly recap.",
+      "retry": "Try again",
+      "yourWeek": "Your week",
+      "emptyTitle": "A quiet week is still part of the story",
+      "emptyBody": "No study activity was recorded last week. Your next session is a fresh chance to begin a new rhythm.",
+      "headlines": {
+        "strongRecall": "Strong recall anchored your week",
+        "steady": "You built a steady study rhythm",
+        "progress": "You moved your learning forward",
+        "categoryLed": "{{category}} led your week"
+      },
+      "metrics": {
+        "total": "Study time",
+        "activeDays": "Active days",
+        "recall": "Recall",
+        "reviews": "Reviews",
+        "newCards": "New cards"
+      },
+      "categoryMix": "Where your time went",
+      "categoryMixLabel": "Study time split by category",
+      "bestDay": "Best day",
+      "noBestDay": "No best day recorded",
+      "comparison": {
+        "title": "Compared with the week before",
+        "percent": "{{value}}%",
+        "points": "{{value}} pts",
+        "newBaseline": "New baseline",
+        "noChange": "No change",
+        "notAvailable": "Not available",
+        "previous": "Previously {{value}}"
+      }
+    },
     "history": {
       "loading": "Loading study time…",
       "error": "Study time couldn’t be loaded. Please try again."

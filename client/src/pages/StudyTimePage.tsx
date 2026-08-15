@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import GoogleCalendarConnectionCard from '../components/study/GoogleCalendarConnectionCard';
 import StudyTimeAnalyticsSection from '../components/study/StudyTimeAnalyticsSection';
 import StudyTimeSessionSections from '../components/study/StudyTimeSessionSections';
+import WeeklyStudyRecapCard from '../components/study/WeeklyStudyRecapCard';
 
 const StudyTimePage = () => {
   const { t } = useTranslation(['study']);
@@ -22,6 +23,7 @@ const StudyTimePage = () => {
       </header>
 
       <StudyTimeAnalyticsSection />
+      <WeeklyStudyRecapCard />
       <GoogleCalendarConnectionCard />
       <StudyTimeSessionSections />
     </div>

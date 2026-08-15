@@ -16,7 +16,7 @@ import type {
 } from '../types/studyActivity';
 
 // Learning OS numbers Sunday as 1, so Monday is 2.
-const MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING = 2;
+export const MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING = 2;
 
 export const studyActivityKeys = {
   all: ['study-activity'] as const,

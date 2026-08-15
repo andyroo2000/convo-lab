@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import STUDY_TIME_CATEGORIES from '../../data/studyTimeCategories';
 import useStudyTimeAnalyticsView from '../../hooks/useStudyTimeAnalyticsView';
 import type {
   StudyActivityCategory,
@@ -15,58 +16,7 @@ import formatDuration from '../../utils/studyTimeFormat';
 import bucketLabel from '../../utils/studyTimeLabels';
 import { safeTimeZone } from '../../utils/studyTimePeriod';
 
-const CATEGORIES: Array<{
-  key: StudyActivityCategory;
-  labelKey: string;
-  color: string;
-  barColor: string;
-  borderColor: string;
-}> = [
-  {
-    key: 'review',
-    labelKey: 'time.totals.review',
-    color: 'text-blue-700',
-    barColor: 'bg-blue-500',
-    borderColor: 'border-blue-500',
-  },
-  {
-    key: 'listen',
-    labelKey: 'time.totals.listen',
-    color: 'text-cyan-700',
-    barColor: 'bg-cyan-500',
-    borderColor: 'border-cyan-500',
-  },
-  {
-    key: 'create',
-    labelKey: 'time.totals.create',
-    color: 'text-amber-700',
-    barColor: 'bg-amber-500',
-    borderColor: 'border-amber-500',
-  },
-  {
-    key: 'immerse',
-    labelKey: 'time.totals.immerse',
-    color: 'text-emerald-700',
-    barColor: 'bg-emerald-500',
-    borderColor: 'border-emerald-500',
-  },
-  {
-    key: 'conversation',
-    labelKey: 'time.totals.conversation',
-    color: 'text-violet-700',
-    barColor: 'bg-violet-500',
-    borderColor: 'border-violet-500',
-  },
-  {
-    key: 'wanikani',
-    labelKey: 'time.totals.wanikani',
-    color: 'text-pink-700',
-    barColor: 'bg-pink-500',
-    borderColor: 'border-pink-500',
-  },
-];
-
-const CATEGORY_KEYS = CATEGORIES.map((category) => category.key);
+const CATEGORY_KEYS = STUDY_TIME_CATEGORIES.map((category) => category.key);
 const RANGES: StudyTimeRange[] = ['today', 'week', 'month', 'year', 'all'];
 const SWIPE_THRESHOLD_PX = 50;
 const SWIPE_VELOCITY_THRESHOLD = 500;
@@ -242,7 +192,7 @@ const StudyRhythmChart = ({
                 }}
                 disabled={!onDrillDown}
               >
-                {CATEGORIES.map((category) => {
+                {STUDY_TIME_CATEGORIES.map((category) => {
                   if (!includedCategories.has(category.key)) return null;
                   const value = categoryTotals[category.key] ?? 0;
                   if (value === 0) return null;
@@ -272,7 +222,7 @@ const StudyRhythmChart = ({
         className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
         aria-label={t('time.analytics.categoryFilters')}
       >
-        {CATEGORIES.map((category) => {
+        {STUDY_TIME_CATEGORIES.map((category) => {
           const categoryProjection = projection.categories.find(
             (item) => item.category === category.key
           );
