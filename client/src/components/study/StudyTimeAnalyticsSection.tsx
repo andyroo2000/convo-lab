@@ -10,9 +10,10 @@ import type {
   StudyTimeAnalyticsRange,
   StudyTimeRange,
 } from '../../types/studyActivity';
+import buildStudyTimeAnalyticsProjection from '../../utils/studyTimeAnalyticsModel';
 import formatDuration from '../../utils/studyTimeFormat';
 import bucketLabel from '../../utils/studyTimeLabels';
-import { calendarDayCount, safeTimeZone } from '../../utils/studyTimePeriod';
+import { safeTimeZone } from '../../utils/studyTimePeriod';
 
 const CATEGORIES: Array<{
   key: StudyActivityCategory;
@@ -133,28 +134,13 @@ const StudyRhythmChart = ({
   const { i18n, t } = useTranslation(['study']);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const lastTouchActivation = useRef({ key: '', timestamp: 0 });
-  const filteredBucketTotal = (bucket: StudyTimeAnalyticsBucket) =>
-    CATEGORIES.reduce(
-      (total, category) =>
-        total + (includedCategories.has(category.key) ? (bucket.categories[category.key] ?? 0) : 0),
-      0
-    );
-  const filteredTotal = CATEGORIES.reduce(
-    (total, category) =>
-      total +
-      (includedCategories.has(category.key) ? (analytics.categories[category.key] ?? 0) : 0),
-    0
-  );
-  const maximum = Math.max(...analytics.buckets.map(filteredBucketTotal), 1);
-  const best = analytics.buckets.reduce<StudyTimeAnalyticsBucket | null>((winner, bucket) => {
-    const bucketTotal = filteredBucketTotal(bucket);
-    if (bucketTotal <= 0) return winner;
-    return !winner || bucketTotal > filteredBucketTotal(winner) ? bucket : winner;
-  }, null);
-  const elapsedEndsAt = new Date(
-    Math.min(new Date(generatedAt).getTime(), new Date(analytics.endsAt).getTime())
-  );
-  const elapsedDays = calendarDayCount(analytics.startsAt, elapsedEndsAt, timeZone);
+  const projection = buildStudyTimeAnalyticsProjection({
+    analytics,
+    categories: CATEGORY_KEYS,
+    generatedAt,
+    includedCategories,
+    timeZone,
+  });
   const handleTouchActivation = (key: string, pointerType: string, activate: () => void) => {
     if (pointerType === 'mouse') return;
     const timestamp = Date.now();
@@ -181,22 +167,26 @@ const StudyRhythmChart = ({
           data-testid="study-time-total"
         >
           <p className="retro-caps text-gray-500">{t('time.totals.total')}</p>
-          <p className="mt-1 text-3xl font-black text-navy">{formatDuration(filteredTotal)}</p>
+          <p className="mt-1 text-3xl font-black text-navy">{formatDuration(projection.totalMs)}</p>
         </div>
         <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
           <p className="retro-caps text-gray-500">{t('time.analytics.dailyAverage')}</p>
           <p className="mt-1 text-3xl font-black text-navy">
-            {formatDuration(Math.round(filteredTotal / elapsedDays))}
+            {formatDuration(projection.dailyAverageMs)}
           </p>
         </div>
         <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
           <p className="retro-caps text-gray-500">{t('time.analytics.bestRhythm')}</p>
           <p className="mt-1 text-xl font-black text-navy">
-            {best ? bucketLabel(best, analytics, locale, timeZone) : '—'}
+            {projection.bestBucket
+              ? bucketLabel(projection.bestBucket.bucket, analytics, locale, timeZone)
+              : '—'}
           </p>
           <p className="text-sm font-bold text-gray-500">
             {t('time.analytics.bucketTotal', {
-              time: best ? formatDuration(filteredBucketTotal(best)) : formatDuration(0),
+              time: projection.bestBucket
+                ? formatDuration(projection.bestBucket.totalMs)
+                : formatDuration(0),
             })}
           </p>
         </div>
@@ -214,7 +204,7 @@ const StudyRhythmChart = ({
           aria-label={t('time.analytics.chartLabel')}
           data-testid={`study-rhythm-chart-${analytics.key}`}
         >
-          {analytics.buckets.map((bucket) => (
+          {projection.buckets.map(({ bucket, categoryTotals, totalMs }) => (
             <div
               key={bucket.startsAt}
               className="flex h-full min-w-0 flex-col justify-end"
@@ -226,14 +216,14 @@ const StudyRhythmChart = ({
                   onDrillDown ? 'cursor-pointer' : 'cursor-default'
                 }`}
                 style={{
-                  height: `${Math.max(2, (filteredBucketTotal(bucket) / maximum) * 88)}%`,
+                  height: `${Math.max(2, (totalMs / projection.maximumBucketMs) * 88)}%`,
                 }}
                 title={`${bucketLabel(bucket, analytics, locale, timeZone)}: ${t(
                   'time.analytics.bucketTotal',
-                  { time: formatDuration(filteredBucketTotal(bucket)) }
+                  { time: formatDuration(totalMs) }
                 )}`}
                 aria-label={`${bucketLabel(bucket, analytics, locale, timeZone)}: ${formatDuration(
-                  filteredBucketTotal(bucket)
+                  totalMs
                 )}${onDrillDown ? `. ${t('time.analytics.drillDown')}` : ''}`}
                 onDoubleClick={() =>
                   onDrillDown && handleMouseDoubleClick(() => onDrillDown(bucket))
@@ -254,7 +244,7 @@ const StudyRhythmChart = ({
               >
                 {CATEGORIES.map((category) => {
                   if (!includedCategories.has(category.key)) return null;
-                  const value = bucket.categories[category.key] ?? 0;
+                  const value = categoryTotals[category.key] ?? 0;
                   if (value === 0) return null;
                   return (
                     <div
@@ -283,7 +273,11 @@ const StudyRhythmChart = ({
         aria-label={t('time.analytics.categoryFilters')}
       >
         {CATEGORIES.map((category) => {
-          const included = includedCategories.has(category.key);
+          const categoryProjection = projection.categories.find(
+            (item) => item.category === category.key
+          );
+          const included = categoryProjection?.included ?? false;
+          const categoryTotalMs = categoryProjection?.totalMs ?? 0;
           const isOnlyIncludedCategory = included && includedCategories.size === 1;
           return (
             <button
@@ -295,9 +289,9 @@ const StudyRhythmChart = ({
                   : 'border-navy/10 bg-navy/5 text-gray-400 opacity-60'
               } disabled:cursor-not-allowed`}
               aria-pressed={included}
-              aria-label={`${t(category.labelKey)}: ${formatDuration(
-                analytics.categories[category.key] ?? 0
-              )}. ${t('time.analytics.toggleCategory')}`}
+              aria-label={`${t(category.labelKey)}: ${formatDuration(categoryTotalMs)}. ${t(
+                'time.analytics.toggleCategory'
+              )}`}
               disabled={isOnlyIncludedCategory}
               onDoubleClick={() => handleMouseDoubleClick(() => onToggleCategory(category.key))}
               onPointerUp={(event) =>
@@ -317,7 +311,7 @@ const StudyRhythmChart = ({
                 {t(category.labelKey)}
               </span>
               <span className={`font-mono text-sm font-black ${category.color}`}>
-                {formatDuration(analytics.categories[category.key] ?? 0)}
+                {formatDuration(categoryTotalMs)}
               </span>
             </button>
           );
