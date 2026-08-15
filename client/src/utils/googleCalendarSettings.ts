@@ -1,0 +1,101 @@
+export const GOOGLE_CALENDAR_SETTINGS_LIMITS = {
+  calendars: 25,
+  calendarIdLength: 1024,
+  terms: 50,
+  termCodePoints: 100,
+} as const;
+
+export interface GoogleCalendarSettings {
+  calendarIds: string[];
+  titleMatchTerms: string[];
+  syncEnabled: boolean;
+}
+
+export type GoogleCalendarSettingsField = keyof GoogleCalendarSettings;
+export type GoogleCalendarSettingsErrorCode =
+  | 'blank'
+  | 'invalid_type'
+  | 'required'
+  | 'too_many'
+  | 'too_long';
+
+export interface GoogleCalendarSettingsError {
+  field: GoogleCalendarSettingsField;
+  code: GoogleCalendarSettingsErrorCode;
+}
+
+export type GoogleCalendarSettingsResult =
+  | { settings: GoogleCalendarSettings; errors: [] }
+  | { settings: null; errors: GoogleCalendarSettingsError[] };
+
+function canonicalStrings(
+  value: unknown,
+  field: Extract<GoogleCalendarSettingsField, 'calendarIds' | 'titleMatchTerms'>,
+  maximumItems: number,
+  maximumLength: number,
+  caseInsensitive: boolean
+) {
+  const errors: GoogleCalendarSettingsError[] = [];
+  if (!Array.isArray(value)) {
+    return { values: [], errors: [{ field, code: 'invalid_type' as const }] };
+  }
+  if (value.length > maximumItems) {
+    return { values: [], errors: [{ field, code: 'too_many' as const }] };
+  }
+  if (value.some((item) => typeof item !== 'string')) {
+    return { values: [], errors: [{ field, code: 'invalid_type' as const }] };
+  }
+  if (value.length === 0) errors.push({ field, code: 'required' });
+
+  const seen = new Set<string>();
+  const values: string[] = [];
+  value.forEach((raw) => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      if (!errors.some((error) => error.code === 'blank')) errors.push({ field, code: 'blank' });
+      return;
+    }
+    const comparison = caseInsensitive ? trimmed.toLowerCase() : trimmed;
+    if (seen.has(comparison)) return;
+    seen.add(comparison);
+    if ([...trimmed].length > maximumLength) errors.push({ field, code: 'too_long' });
+    else values.push(trimmed);
+  });
+
+  return { values, errors };
+}
+
+export function canonicalizeGoogleCalendarSettings(input: {
+  calendarIds?: unknown;
+  titleMatchTerms?: unknown;
+  syncEnabled?: unknown;
+}): GoogleCalendarSettingsResult {
+  const calendars = canonicalStrings(
+    input.calendarIds,
+    'calendarIds',
+    GOOGLE_CALENDAR_SETTINGS_LIMITS.calendars,
+    GOOGLE_CALENDAR_SETTINGS_LIMITS.calendarIdLength,
+    false
+  );
+  const terms = canonicalStrings(
+    input.titleMatchTerms,
+    'titleMatchTerms',
+    GOOGLE_CALENDAR_SETTINGS_LIMITS.terms,
+    GOOGLE_CALENDAR_SETTINGS_LIMITS.termCodePoints,
+    true
+  );
+  const errors = [...calendars.errors, ...terms.errors];
+  if (typeof input.syncEnabled !== 'boolean') {
+    errors.push({ field: 'syncEnabled', code: 'invalid_type' });
+  }
+  if (errors.length > 0) return { settings: null, errors };
+
+  return {
+    settings: {
+      calendarIds: calendars.values,
+      titleMatchTerms: terms.values,
+      syncEnabled: input.syncEnabled as boolean,
+    },
+    errors: [],
+  };
+}
