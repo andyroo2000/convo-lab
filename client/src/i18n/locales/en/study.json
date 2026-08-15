@@ -481,6 +481,39 @@
       "defaultName": "Language study",
       "details": "Planned with ConvoLab study time."
     },
+    "calendarConnection": {
+      "eyebrow": "Calendar-powered tracking",
+      "title": "Google Calendar connection",
+      "description": "Bring lessons and other scheduled study into your timeline automatically. ConvoLab requests read-only calendar access.",
+      "loading": "Checking your calendar connection…",
+      "loadError": "We couldn’t check your Google Calendar connection.",
+      "retry": "Try again",
+      "disconnected": "Your calendar isn’t connected yet.",
+      "connect": "Connect Google Calendar",
+      "connected": "Connected",
+      "connectedSuccess": "Google Calendar is connected. Your study timeline is ready to sync.",
+      "accountUnavailable": "Google account",
+      "lastSync": "Last sync",
+      "notSynced": "Waiting for the first sync",
+      "access": "Calendar access",
+      "scopeReadonly": "View calendar events",
+      "scopeCalendar": "Manage calendar events",
+      "scopeOther": "Additional calendar access",
+      "scopeSeparator": ", ",
+      "scopeUnavailable": "Access details unavailable",
+      "disconnect": "Disconnect",
+      "disconnectTitle": "Disconnect Google Calendar?",
+      "disconnectMessage": "ConvoLab will stop syncing calendar study events. Study time already recorded will remain in your history.",
+      "disconnectError": "We couldn’t disconnect Google Calendar. Please try again.",
+      "errors": {
+        "access_denied": "Google Calendar wasn’t connected because access was canceled.",
+        "account_conflict": "That Google Calendar is already connected to another account.",
+        "invalid_state": "The connection request expired. Please try connecting again.",
+        "missing_refresh_token": "Google didn’t grant ongoing calendar access. Please try again and approve access.",
+        "missing_token": "Google didn’t complete the connection. Please try again.",
+        "unknown": "Google Calendar couldn’t be connected. Please try again."
+      }
+    },
     "history": {
       "loading": "Loading study time…",
       "error": "Study time couldn’t be loaded. Please try again."
