@@ -22,7 +22,7 @@ const disconnected = {
   connected: false,
   accountEmail: null,
   scopes: [],
-  settings: {},
+  settings: null,
   connectedAt: null,
   lastSyncedAt: null,
 };
