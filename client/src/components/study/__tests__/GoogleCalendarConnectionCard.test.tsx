@@ -95,6 +95,20 @@ describe('GoogleCalendarConnectionCard', () => {
     expect(screen.queryByText('Waiting for the first sync')).not.toBeInTheDocument();
   });
 
+  it('uses the unsynced fallback for a malformed sync timestamp', () => {
+    connectionMock.mockReturnValue({
+      data: { ...disconnected, connected: true, lastSyncedAt: 'not-a-date' },
+      isLoading: false,
+      isError: false,
+      refetch: refetchMock,
+    });
+
+    renderCard();
+
+    expect(screen.getByText('Waiting for the first sync')).toBeInTheDocument();
+    expect(screen.queryByText('Invalid Date')).not.toBeInTheDocument();
+  });
+
   it('confirms before disconnecting', () => {
     connectionMock.mockReturnValue({
       data: { ...disconnected, connected: true, accountEmail: 'andrew@example.com' },

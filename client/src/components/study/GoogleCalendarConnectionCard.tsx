@@ -28,6 +28,12 @@ function scopeLabel(scope: string, t: (key: string) => string) {
   return t('time.calendarConnection.scopeOther');
 }
 
+function formatLastSync(value: string | null, fallback: string) {
+  if (!value) return fallback;
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? fallback : new Date(timestamp).toLocaleString();
+}
+
 const GoogleCalendarConnectionCard = () => {
   const { t } = useTranslation(['study']);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -140,9 +146,10 @@ const GoogleCalendarConnectionCard = () => {
                   {t('time.calendarConnection.lastSync')}
                 </dt>
                 <dd className="mt-1 text-sm font-bold text-navy">
-                  {connection.data.lastSyncedAt
-                    ? new Date(connection.data.lastSyncedAt).toLocaleString()
-                    : t('time.calendarConnection.notSynced')}
+                  {formatLastSync(
+                    connection.data.lastSyncedAt,
+                    t('time.calendarConnection.notSynced')
+                  )}
                 </dd>
               </div>
               <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
