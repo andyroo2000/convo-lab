@@ -49,7 +49,7 @@ const ERROR_MESSAGES: Record<GoogleCalendarErrorKind, string> = {
   validation: 'Check your Google Calendar settings and try again.',
   rate_limited: 'Google Calendar is receiving too many requests. Please try again shortly.',
   unavailable: 'Google Calendar is temporarily unavailable. Please try again.',
-  request_failed: 'Unable to update the Google Calendar connection.',
+  request_failed: "Couldn't communicate with Google Calendar. Please try again.",
 };
 
 export class GoogleCalendarRequestError extends Error {

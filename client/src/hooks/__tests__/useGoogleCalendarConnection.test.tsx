@@ -146,6 +146,19 @@ describe('Google Calendar connection requests', () => {
     expect(notifyAuthSessionExpiredMock).toHaveBeenCalledOnce();
   });
 
+  it('uses an operation-neutral fallback for an unmapped read failure', async () => {
+    fetchWithCsrfMock.mockResolvedValue(new Response(null, { status: 500 }));
+    const { result } = renderHook(() => useGoogleCalendars(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error).toMatchObject({
+      kind: 'request_failed',
+      status: 500,
+      message: "Couldn't communicate with Google Calendar. Please try again.",
+    });
+  });
+
   it('disconnects through the CSRF-aware delete contract', async () => {
     const queryClient = createTestQueryClient();
     const remove = vi.spyOn(queryClient, 'removeQueries');
