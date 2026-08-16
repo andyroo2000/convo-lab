@@ -29,6 +29,32 @@ export interface GoogleCalendarConnectionStatus {
   lastSyncedAt: string | null;
 }
 
+export interface GoogleCalendarPreviewMatch {
+  calendarId: string;
+  calendarName: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  durationMs: number;
+  matchedTerms: string[];
+  alreadySynced: boolean;
+}
+
+export interface GoogleCalendarPreview {
+  generatedAt: string;
+  startsAt: string;
+  endsAt: string;
+  scannedEventCount: number;
+  matchedEventCount: number;
+  truncated: boolean;
+  matches: GoogleCalendarPreviewMatch[];
+}
+
+export interface GoogleCalendarPreviewCriteria {
+  calendarIds: string[];
+  titleMatchTerms: string[];
+}
+
 export const googleCalendarKeys = {
   all: ['study', 'google-calendar'] as const,
   connection: () => [...googleCalendarKeys.all, 'connection'] as const,
@@ -150,6 +176,24 @@ export function useSaveGoogleCalendarSettings() {
         queryClient.invalidateQueries({ queryKey: googleCalendarConnectionKey }),
         queryClient.invalidateQueries({ queryKey: googleCalendarKeys.calendars() }),
       ]);
+    },
+  });
+}
+
+export function usePreviewGoogleCalendarEvents() {
+  return useMutation({
+    mutationFn: (criteria: GoogleCalendarPreviewCriteria) => {
+      const result = canonicalizeGoogleCalendarSettings({ ...criteria, syncEnabled: false });
+      if (!result.settings) {
+        throw new GoogleCalendarRequestError('validation', null, result.errors);
+      }
+      return googleCalendarRequest<GoogleCalendarPreview>('/preview', {
+        method: 'POST',
+        body: JSON.stringify({
+          calendarIds: result.settings.calendarIds,
+          titleMatchTerms: result.settings.titleMatchTerms,
+        }),
+      });
     },
   });
 }

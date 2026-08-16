@@ -9,6 +9,7 @@ import {
   useDisconnectGoogleCalendar,
   useGoogleCalendars,
   useGoogleCalendarConnection,
+  usePreviewGoogleCalendarEvents,
   useSaveGoogleCalendarSettings,
 } from '../useGoogleCalendarConnection';
 
@@ -112,6 +113,62 @@ describe('Google Calendar connection requests', () => {
     expect(queryClient.getQueryData(googleCalendarConnectionKey)).toEqual(savedStatus);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: googleCalendarConnectionKey });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: googleCalendarKeys.calendars() });
+  });
+
+  it('posts the exact canonical unsaved preview contract without saving settings', async () => {
+    const preview = {
+      generatedAt: '2026-08-15T12:00:00Z',
+      startsAt: '2026-07-15T12:00:00Z',
+      endsAt: '2026-08-15T12:00:00Z',
+      scannedEventCount: 8,
+      matchedEventCount: 1,
+      truncated: false,
+      matches: [
+        {
+          calendarId: 'primary',
+          calendarName: 'Andrew',
+          title: 'iTalki lesson',
+          startsAt: '2026-08-14T10:00:00Z',
+          endsAt: '2026-08-14T11:00:00Z',
+          durationMs: 3_600_000,
+          matchedTerms: ['iTalki'],
+          alreadySynced: false,
+        },
+      ],
+    };
+    fetchWithCsrfMock.mockResolvedValue(new Response(JSON.stringify(preview), { status: 200 }));
+    const { result } = renderHook(() => usePreviewGoogleCalendarEvents(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate({
+      calendarIds: [' primary ', 'primary'],
+      titleMatchTerms: [' iTalki ', 'ITALKI'],
+    });
+    await waitFor(() => expect(result.current.data).toEqual(preview));
+
+    const [url, init] = fetchWithCsrfMock.mock.calls[0];
+    expect(url).toBe('/api/study/google-calendar/preview');
+    expect(init).toEqual(expect.objectContaining({ method: 'POST', credentials: 'include' }));
+    expect(JSON.parse(init.body)).toEqual({
+      calendarIds: ['primary'],
+      titleMatchTerms: ['iTalki'],
+    });
+    expect(Object.keys(JSON.parse(init.body))).toEqual(['calendarIds', 'titleMatchTerms']);
+    expect(init.headers.get('Accept')).toBe('application/json');
+    expect(init.headers.get('Content-Type')).toBe('application/json');
+  });
+
+  it('rejects an invalid preview before querying Google Calendar', async () => {
+    const { result } = renderHook(() => usePreviewGoogleCalendarEvents(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate({ calendarIds: [], titleMatchTerms: [] });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(fetchWithCsrfMock).not.toHaveBeenCalled();
+    expect(result.current.error).toMatchObject({ kind: 'validation', status: null });
   });
 
   it('rejects an invalid draft before making a request', async () => {

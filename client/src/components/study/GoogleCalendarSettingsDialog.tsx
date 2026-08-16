@@ -4,6 +4,7 @@ import { CalendarDays, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   useGoogleCalendars,
+  usePreviewGoogleCalendarEvents,
   useSaveGoogleCalendarSettings,
 } from '../../hooks/useGoogleCalendarConnection';
 import {
@@ -13,6 +14,7 @@ import {
   trimGoogleCalendarInput,
   type GoogleCalendarSettings,
 } from '../../utils/googleCalendarSettings';
+import GoogleCalendarEventPreview from './GoogleCalendarEventPreview';
 
 interface GoogleCalendarSettingsDialogProps {
   settings: GoogleCalendarSettings | null;
@@ -52,6 +54,7 @@ const GoogleCalendarSettingsDialog = ({
   const termLimit = GOOGLE_CALENDAR_SETTINGS_LIMITS.terms;
   const calendars = useGoogleCalendars();
   const save = useSaveGoogleCalendarSettings();
+  const preview = usePreviewGoogleCalendarEvents();
   const [selectedIds, setSelectedIds] = useState(() => settings?.calendarIds ?? []);
   const nextTermId = useRef(0);
   const allocateTermId = () => {
@@ -67,7 +70,7 @@ const GoogleCalendarSettingsDialog = ({
   const [refreshError, setRefreshError] = useState(false);
   const [mergeError, setMergeError] = useState<'calendars' | 'terms' | 'conflict' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const isBusy = save.isPending || isRefreshing;
+  const isBusy = save.isPending || isRefreshing || preview.isPending;
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -106,6 +109,7 @@ const GoogleCalendarSettingsDialog = ({
     };
   }, [close]);
   const toggleCalendar = (calendarId: string) => {
+    preview.reset();
     setSelectedIds((current) =>
       current.includes(calendarId)
         ? current.filter((selectedId) => selectedId !== calendarId)
@@ -124,6 +128,13 @@ const GoogleCalendarSettingsDialog = ({
       (error) => error.field === 'titleMatchTerms'
     )
   );
+  const runPreview = () => {
+    if (!draftResult.settings) return;
+    preview.mutate({
+      calendarIds: draftResult.settings.calendarIds,
+      titleMatchTerms: draftResult.settings.titleMatchTerms,
+    });
+  };
   const submit = async () => {
     if (!draftResult.settings) return;
     setRefreshError(false);
@@ -341,13 +352,14 @@ const GoogleCalendarSettingsDialog = ({
                     type="text"
                     value={draft.value}
                     disabled={isBusy}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      preview.reset();
                       setTitleTermDrafts((current) =>
                         current.map((item) =>
                           item.id === draft.id ? { ...item, value: event.target.value } : item
                         )
-                      )
-                    }
+                      );
+                    }}
                     aria-label={t('time.calendarConnection.titleTermInput', {
                       index: index + 1,
                     })}
@@ -362,11 +374,12 @@ const GoogleCalendarSettingsDialog = ({
                   <button
                     type="button"
                     disabled={isBusy}
-                    onClick={() =>
+                    onClick={() => {
+                      preview.reset();
                       setTitleTermDrafts((current) =>
                         current.filter((item) => item.id !== draft.id)
-                      )
-                    }
+                      );
+                    }}
                     aria-label={t('time.calendarConnection.removeTitleTerm', {
                       term: trimGoogleCalendarInput(draft.value) || index + 1,
                     })}
@@ -380,9 +393,10 @@ const GoogleCalendarSettingsDialog = ({
             <button
               type="button"
               disabled={isBusy || titleTermDrafts.length >= termLimit}
-              onClick={() =>
-                setTitleTermDrafts((current) => [...current, { id: allocateTermId(), value: '' }])
-              }
+              onClick={() => {
+                preview.reset();
+                setTitleTermDrafts((current) => [...current, { id: allocateTermId(), value: '' }]);
+              }}
               className="btn-outline mt-4 min-h-11 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -421,6 +435,13 @@ const GoogleCalendarSettingsDialog = ({
               {tc('settingsConflict')}
             </p>
           ) : null}
+          <GoogleCalendarEventPreview
+            preview={preview.data}
+            isLoading={preview.isPending}
+            isError={preview.isError}
+            disabled={isBusy || !draftResult.settings || calendars.isLoading || calendars.isError}
+            onPreview={runPreview}
+          />
           {save.isError || refreshError ? (
             <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">
               {tc('saveError')}
