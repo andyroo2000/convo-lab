@@ -118,7 +118,7 @@ test('the production workflow verifies the always-on Study API without rollout f
     'current_image="$(docker inspect --format=\'{{.Config.Image}}\' "$container" 2>/dev/null || true)"',
     'current_config_revision="$(docker inspect',
     '| sed -n \'s/^LEARNING_OS_DEPLOY_CONFIG_REVISION=//p\'',
-    'desired_deploy_config_revision="browser-auth-session-v2"',
+    'desired_deploy_config_revision="calendar-oauth-redirect-v1"',
     'upsert_env LEARNING_OS_SESSION_COOKIE "learning_os_session"',
     'upsert_env LEARNING_OS_SESSION_LIFETIME "10080"',
     'upsert_env LEARNING_OS_SESSION_SECURE_COOKIE "true"',
@@ -321,7 +321,7 @@ test('production configures the permanent Learning OS browser session without a 
     )
   );
   assert.ok(
-    learningOsWorkflow.includes('desired_deploy_config_revision="browser-auth-session-v2"')
+    learningOsWorkflow.includes('desired_deploy_config_revision="calendar-oauth-redirect-v1"')
   );
 });
 
