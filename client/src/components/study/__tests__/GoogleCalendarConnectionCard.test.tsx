@@ -18,6 +18,8 @@ const {
   resetMock,
   saveMutateMock,
   saveSettingsMock,
+  syncMock,
+  syncMutateMock,
 } = vi.hoisted(() => ({
   calendarListMock: vi.fn(),
   calendarRefetchMock: vi.fn(),
@@ -31,6 +33,8 @@ const {
   resetMock: vi.fn(),
   saveMutateMock: vi.fn(),
   saveSettingsMock: vi.fn(),
+  syncMock: vi.fn(),
+  syncMutateMock: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useGoogleCalendarConnection', () => ({
@@ -40,6 +44,7 @@ vi.mock('../../../hooks/useGoogleCalendarConnection', () => ({
   useGoogleCalendars: () => calendarListMock(),
   usePreviewGoogleCalendarEvents: () => previewMock(),
   useSaveGoogleCalendarSettings: () => saveSettingsMock(),
+  useSyncGoogleCalendar: () => syncMock(),
 }));
 
 const disconnected = {
@@ -49,6 +54,7 @@ const disconnected = {
   settings: null,
   connectedAt: null,
   lastSyncedAt: null,
+  sync: null,
 };
 
 const settings = {
@@ -62,6 +68,7 @@ const connected = {
   connected: true,
   accountEmail: 'andrew@example.com',
   settings,
+  sync: { status: 'idle' as const, errorCode: null, statusAt: null },
 };
 
 const LocationProbe = () => {
@@ -121,6 +128,13 @@ describe('GoogleCalendarConnectionCard', () => {
       isPending: false,
       isError: false,
     });
+    syncMutateMock.mockReset();
+    syncMock.mockReset().mockReturnValue({
+      mutate: syncMutateMock,
+      isPending: false,
+      isError: false,
+      error: null,
+    });
     previewMock.mockReset().mockReturnValue({
       mutate: previewMutateMock,
       reset: previewResetMock,
@@ -166,6 +180,90 @@ describe('GoogleCalendarConnectionCard', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('<script>not-a-scope</script>')).not.toBeInTheDocument();
     expect(screen.queryByText('Waiting for the first sync')).not.toBeInTheDocument();
+  });
+
+  it('starts a manual sync from a large connected-card action', () => {
+    showConnected();
+    renderCard();
+
+    const action = screen.getByRole('button', { name: 'Sync now' });
+    expect(action).toHaveClass('min-h-11');
+    fireEvent.click(action);
+
+    expect(syncMutateMock).toHaveBeenCalledOnce();
+  });
+
+  it('shows active sync progress and disables conflicting actions', () => {
+    showConnected({
+      ...connected,
+      sync: { status: 'running', errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+    });
+    renderCard();
+
+    expect(screen.getByRole('button', { name: 'Syncing…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Calendar settings' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeDisabled();
+  });
+
+  it('announces a completed sync as up to date', () => {
+    showConnected({
+      ...connected,
+      sync: { status: 'succeeded', errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+    });
+    renderCard();
+
+    expect(screen.getByText('Calendar study time is up to date.')).toHaveAttribute(
+      'role',
+      'status'
+    );
+  });
+
+  it('maps a reconnect failure safely and offers sync retry', () => {
+    showConnected({
+      ...connected,
+      sync: {
+        status: 'failed',
+        errorCode: 'reconnect_required',
+        statusAt: '2026-08-16T12:00:00Z',
+      },
+    });
+    renderCard();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/reconnect Google Calendar/i);
+    expect(screen.getByRole('link', { name: 'Reconnect Google Calendar' })).toHaveAttribute(
+      'href',
+      '/api/study/google-calendar/connect'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Try sync again' }));
+    expect(syncMutateMock).toHaveBeenCalledOnce();
+  });
+
+  it('hides raw manual-sync failure details', () => {
+    syncMock.mockReturnValue({
+      mutate: syncMutateMock,
+      isPending: false,
+      isError: true,
+      error: new Error('private provider detail'),
+    });
+    showConnected();
+    renderCard();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t sync/i);
+    expect(screen.queryByText(/private provider detail/i)).not.toBeInTheDocument();
+  });
+
+  it('offers reconnection for a not-connected manual-sync response', () => {
+    syncMock.mockReturnValue({
+      mutate: syncMutateMock,
+      isPending: false,
+      isError: true,
+      error: Object.assign(new Error('provider detail'), { kind: 'not_connected' }),
+    });
+    showConnected();
+    renderCard();
+
+    expect(screen.getByRole('link', { name: 'Reconnect Google Calendar' })).toBeInTheDocument();
+    expect(screen.queryByText(/provider detail/i)).not.toBeInTheDocument();
   });
 
   it('uses the unsynced fallback for a malformed sync timestamp', () => {
@@ -532,6 +630,24 @@ describe('GoogleCalendarConnectionCard', () => {
       expect(saveMutateMock).toHaveBeenCalledWith({
         calendarIds: ['primary'],
         titleMatchTerms: ['iTalki', 'Remote lesson', 'Conversation class'],
+        syncEnabled: false,
+      })
+    );
+  });
+  it('persists an explicit automatic-tracking toggle through the settings merge', async () => {
+    refetchMock.mockResolvedValueOnce({ data: connected, isError: false });
+    showConnected();
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    const automatic = screen.getByRole('checkbox', { name: /Automatic tracking/i });
+    expect(automatic).toBeChecked();
+    expect(screen.getByText(/about every 15 minutes/i)).toBeInTheDocument();
+    fireEvent.click(automatic);
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() =>
+      expect(saveMutateMock).toHaveBeenCalledWith({
+        ...settings,
         syncEnabled: false,
       })
     );

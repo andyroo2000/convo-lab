@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createTestQueryClient, createWrapper } from '../../__tests__/hooks/test-utils';
@@ -6,12 +6,15 @@ import {
   GoogleCalendarRequestError,
   googleCalendarConnectionKey,
   googleCalendarKeys,
+  googleCalendarSyncPollInterval,
   useDisconnectGoogleCalendar,
   useGoogleCalendars,
   useGoogleCalendarConnection,
   usePreviewGoogleCalendarEvents,
   useSaveGoogleCalendarSettings,
+  useSyncGoogleCalendar,
 } from '../useGoogleCalendarConnection';
+import { studyActivityKeys } from '../useStudyActivity';
 
 const { fetchWithCsrfMock, notifyAuthSessionExpiredMock } = vi.hoisted(() => ({
   fetchWithCsrfMock: vi.fn(),
@@ -30,6 +33,7 @@ const status = {
   settings: null,
   connectedAt: '2026-08-15T14:00:00Z',
   lastSyncedAt: null,
+  sync: { status: 'idle', errorCode: null, statusAt: null },
 };
 
 describe('Google Calendar connection requests', () => {
@@ -56,6 +60,76 @@ describe('Google Calendar connection requests', () => {
       expect.objectContaining({ credentials: 'include' })
     );
     expect(notifyAuthSessionExpiredMock).toHaveBeenCalledOnce();
+  });
+
+  it('polls only while a calendar sync is queued or running', () => {
+    expect(googleCalendarSyncPollInterval('queued')).toBe(2000);
+    expect(googleCalendarSyncPollInterval('running')).toBe(2000);
+    expect(googleCalendarSyncPollInterval('idle')).toBe(false);
+    expect(googleCalendarSyncPollInterval('succeeded')).toBe(false);
+    expect(googleCalendarSyncPollInterval('failed')).toBe(false);
+    expect(googleCalendarSyncPollInterval(undefined)).toBe(false);
+  });
+
+  it('posts a bodyless sync and caches the returned full connection status', async () => {
+    const queued = {
+      ...status,
+      sync: { status: 'queued' as const, errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+    };
+    const queryClient = createTestQueryClient();
+    const setQueryData = vi.spyOn(queryClient, 'setQueryData');
+    fetchWithCsrfMock.mockResolvedValue(new Response(JSON.stringify(queued), { status: 202 }));
+    const { result } = renderHook(() => useSyncGoogleCalendar(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    result.current.mutate();
+    await waitFor(() => expect(result.current.data).toEqual(queued));
+
+    const [url, init] = fetchWithCsrfMock.mock.calls[0];
+    expect(url).toBe('/api/study/google-calendar/sync');
+    expect(init).toEqual(expect.objectContaining({ method: 'POST', credentials: 'include' }));
+    expect(init.body).toBeUndefined();
+    expect(init.headers.get('Content-Type')).toBeNull();
+    expect(setQueryData).toHaveBeenCalledWith(googleCalendarConnectionKey, queued);
+  });
+
+  it('invalidates study time once when an active sync transitions to succeeded', async () => {
+    const queryClient = createTestQueryClient();
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    const queued = {
+      ...status,
+      sync: { status: 'queued' as const, errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+    };
+    const succeeded = {
+      ...status,
+      lastSyncedAt: '2026-08-16T12:01:00Z',
+      sync: {
+        status: 'succeeded' as const,
+        errorCode: null,
+        statusAt: '2026-08-16T12:01:00Z',
+      },
+    };
+    queryClient.setQueryData(googleCalendarConnectionKey, queued);
+    fetchWithCsrfMock.mockReturnValue(new Promise(() => {}));
+    renderHook(() => useGoogleCalendarConnection(), { wrapper: createWrapper(queryClient) });
+
+    await act(async () => {
+      queryClient.setQueryData(googleCalendarConnectionKey, succeeded);
+    });
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: studyActivityKeys.analyticsAll() })
+    );
+    await act(async () => {
+      queryClient.setQueryData(googleCalendarConnectionKey, { ...succeeded });
+    });
+
+    expect(
+      invalidate.mock.calls.filter(
+        ([options]) =>
+          JSON.stringify(options?.queryKey) === JSON.stringify(studyActivityKeys.analyticsAll())
+      )
+    ).toHaveLength(1);
   });
 
   it('loads the exact calendar-list contract', async () => {
@@ -274,6 +348,7 @@ describe('Google Calendar connection requests', () => {
       settings: null,
       connectedAt: null,
       lastSyncedAt: null,
+      sync: null,
     };
     queryClient.setQueryData(googleCalendarKeys.calendars(), { calendars: [], truncated: false });
     fetchWithCsrfMock

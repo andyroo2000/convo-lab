@@ -43,6 +43,10 @@ function mergeList(
   return merged;
 }
 
+function mergeBoolean(fresh: boolean, base: boolean, draft: boolean) {
+  return draft === base ? fresh : draft;
+}
+
 const GoogleCalendarSettingsDialog = ({
   settings,
   refreshSettings,
@@ -56,6 +60,7 @@ const GoogleCalendarSettingsDialog = ({
   const save = useSaveGoogleCalendarSettings();
   const preview = usePreviewGoogleCalendarEvents();
   const [selectedIds, setSelectedIds] = useState(() => settings?.calendarIds ?? []);
+  const [syncEnabled, setSyncEnabled] = useState(() => settings?.syncEnabled ?? false);
   const nextTermId = useRef(0);
   const allocateTermId = () => {
     const id = nextTermId.current;
@@ -119,7 +124,7 @@ const GoogleCalendarSettingsDialog = ({
   const draftResult = canonicalizeGoogleCalendarSettings({
     calendarIds: selectedIds,
     titleMatchTerms: titleTerms,
-    syncEnabled: settings?.syncEnabled ?? false,
+    syncEnabled,
   });
   const titleErrors = draftResult.errors.filter((error) => error.field === 'titleMatchTerms');
   const initialTermsInvalid = Boolean(
@@ -172,6 +177,7 @@ const GoogleCalendarSettingsDialog = ({
         ...fresh,
         calendarIds,
         titleMatchTerms,
+        syncEnabled: mergeBoolean(fresh.syncEnabled, base.syncEnabled, syncEnabled),
       });
       if (!merged.settings) {
         setMergeError('conflict');
@@ -435,6 +441,25 @@ const GoogleCalendarSettingsDialog = ({
               {tc('settingsConflict')}
             </p>
           ) : null}
+          <label
+            htmlFor="google-calendar-automatic-tracking"
+            className="mt-5 flex min-h-14 cursor-pointer items-start gap-4 rounded-2xl border border-navy/10 bg-white px-4 py-3 transition hover:border-blue-300 hover:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
+          >
+            <input
+              id="google-calendar-automatic-tracking"
+              type="checkbox"
+              checked={syncEnabled}
+              disabled={isBusy}
+              onChange={(event) => setSyncEnabled(event.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-blue-600"
+            />
+            <span>
+              <span className="block font-bold text-navy">{tc('automaticTracking')}</span>
+              <span className="mt-1 block text-sm text-gray-600">
+                {tc('automaticTrackingDescription')}
+              </span>
+            </span>
+          </label>
           <GoogleCalendarEventPreview
             preview={preview.data}
             isLoading={preview.isPending}

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import { studyApiPath } from '../lib/studyApi';
+import { studyActivityKeys } from './useStudyActivity';
 import {
   canonicalizeGoogleCalendarSettings,
   type GoogleCalendarSettings,
@@ -27,6 +29,13 @@ export interface GoogleCalendarConnectionStatus {
   settings: GoogleCalendarSettings | null;
   connectedAt: string | null;
   lastSyncedAt: string | null;
+  sync: GoogleCalendarSyncStatus | null;
+}
+
+export interface GoogleCalendarSyncStatus {
+  status: 'idle' | 'queued' | 'running' | 'succeeded' | 'failed';
+  errorCode: string | null;
+  statusAt: string | null;
 }
 
 export interface GoogleCalendarPreviewMatch {
@@ -62,6 +71,13 @@ export const googleCalendarKeys = {
 };
 export const googleCalendarConnectionKey = googleCalendarKeys.connection();
 export const googleCalendarConnectPath = studyApiPath('/google-calendar/connect');
+
+const isActiveSync = (status: GoogleCalendarSyncStatus['status'] | undefined) =>
+  status === 'queued' || status === 'running';
+
+export const googleCalendarSyncPollInterval = (
+  status: GoogleCalendarSyncStatus['status'] | undefined
+) => (isActiveSync(status) ? 2000 : false);
 
 export type GoogleCalendarErrorKind =
   | 'not_connected'
@@ -140,10 +156,27 @@ async function googleCalendarRequest<T>(path = '', init?: RequestInit): Promise<
 }
 
 export function useGoogleCalendarConnection() {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const previousStatus = useRef<GoogleCalendarSyncStatus['status'] | null>(null);
+  const query = useQuery({
     queryKey: googleCalendarConnectionKey,
     queryFn: () => googleCalendarRequest<GoogleCalendarConnectionStatus>(),
+    refetchInterval: (current) => googleCalendarSyncPollInterval(current.state.data?.sync?.status),
   });
+
+  const sync = query.data?.sync;
+  useEffect(() => {
+    const completedActiveSync =
+      isActiveSync(previousStatus.current ?? undefined) && sync?.status === 'succeeded';
+    if (completedActiveSync) {
+      queryClient
+        .invalidateQueries({ queryKey: studyActivityKeys.analyticsAll() })
+        .catch(() => undefined);
+    }
+    previousStatus.current = sync?.status ?? null;
+  }, [queryClient, sync?.status]);
+
+  return query;
 }
 
 export function useGoogleCalendars(enabled = true) {
@@ -194,6 +227,17 @@ export function usePreviewGoogleCalendarEvents() {
           titleMatchTerms: result.settings.titleMatchTerms,
         }),
       });
+    },
+  });
+}
+
+export function useSyncGoogleCalendar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      googleCalendarRequest<GoogleCalendarConnectionStatus>('/sync', { method: 'POST' }),
+    onSuccess: (connection) => {
+      queryClient.setQueryData(googleCalendarConnectionKey, connection);
     },
   });
 }

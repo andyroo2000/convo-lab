@@ -9,6 +9,7 @@ import {
   googleCalendarConnectPath,
   useDisconnectGoogleCalendar,
   useGoogleCalendarConnection,
+  useSyncGoogleCalendar,
 } from '../../hooks/useGoogleCalendarConnection';
 
 const CALLBACK_ERRORS = new Set([
@@ -35,6 +36,10 @@ function formatLastSync(value: string | null, fallback: string) {
   return Number.isNaN(timestamp) ? fallback : new Date(timestamp).toLocaleString();
 }
 
+function isReconnectError(error: unknown) {
+  return error instanceof Error && Reflect.get(error, 'kind') === 'not_connected';
+}
+
 const GoogleCalendarConnectionCard = () => {
   const { t } = useTranslation(['study']);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,10 +51,28 @@ const GoogleCalendarConnectionCard = () => {
   }));
   const connection = useGoogleCalendarConnection();
   const disconnect = useDisconnectGoogleCalendar();
+  const calendarSync = useSyncGoogleCalendar();
   const callbackState = callbackResult.state;
   const callbackReason = callbackResult.reason;
   const safeReason =
     callbackReason && CALLBACK_ERRORS.has(callbackReason) ? callbackReason : 'unknown';
+  const syncStatus = connection.data?.sync?.status;
+  const syncActive = calendarSync.isPending || syncStatus === 'queued' || syncStatus === 'running';
+  const syncFailed = calendarSync.isError || syncStatus === 'failed';
+  const reconnectRequired =
+    connection.data?.sync?.errorCode === 'reconnect_required' ||
+    isReconnectError(calendarSync.error);
+  let syncStatusText = t('time.calendarConnection.syncReady');
+  let syncActionText = t('time.calendarConnection.syncNow');
+  if (syncActive) {
+    syncStatusText = t('time.calendarConnection.syncing');
+    syncActionText = t('time.calendarConnection.syncing');
+  } else if (syncFailed) {
+    syncStatusText = t('time.calendarConnection.syncNeedsAttention');
+    syncActionText = t('time.calendarConnection.syncRetry');
+  } else if (syncStatus === 'succeeded') {
+    syncStatusText = t('time.calendarConnection.syncUpToDate');
+  }
 
   useEffect(() => {
     if (callbackState !== 'connected' && callbackState !== 'error') return;
@@ -150,7 +173,7 @@ const GoogleCalendarConnectionCard = () => {
               </span>
             </div>
 
-            <dl className="grid gap-4 sm:grid-cols-2">
+            <dl className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
                 <dt className="retro-caps text-gray-500">
                   {t('time.calendarConnection.lastSync')}
@@ -160,6 +183,14 @@ const GoogleCalendarConnectionCard = () => {
                     connection.data.lastSyncedAt,
                     t('time.calendarConnection.notSynced')
                   )}
+                </dd>
+              </div>
+              <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
+                <dt className="retro-caps text-gray-500">
+                  {t('time.calendarConnection.syncStatus')}
+                </dt>
+                <dd className="mt-1 text-sm font-bold text-navy" aria-live="polite">
+                  {syncStatusText}
                 </dd>
               </div>
               <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
@@ -178,11 +209,55 @@ const GoogleCalendarConnectionCard = () => {
               </div>
             </dl>
 
+            {syncStatus === 'succeeded' && !calendarSync.isError ? (
+              <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">
+                {t('time.calendarConnection.syncSuccess')}
+              </p>
+            ) : null}
+            {syncFailed ? (
+              <div role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">
+                <p>
+                  {reconnectRequired
+                    ? t('time.calendarConnection.syncReconnect')
+                    : t('time.calendarConnection.syncError')}
+                </p>
+                {reconnectRequired ? (
+                  <a
+                    href={googleCalendarConnectPath}
+                    className="mt-2 inline-flex font-bold underline"
+                  >
+                    {t('time.calendarConnection.reconnect')}
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap gap-3">
-              <button type="button" className="btn-primary" onClick={() => setSettingsOpen(true)}>
+              <button
+                type="button"
+                className="btn-primary min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => calendarSync.mutate()}
+                disabled={syncActive}
+              >
+                {syncActive ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : null}
+                {syncActionText}
+              </button>
+              <button
+                type="button"
+                className="btn-outline min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setSettingsOpen(true)}
+                disabled={syncActive}
+              >
                 {t('time.calendarConnection.chooseCalendars')}
               </button>
-              <button type="button" className="btn-outline" onClick={() => setDisconnectOpen(true)}>
+              <button
+                type="button"
+                className="btn-outline min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setDisconnectOpen(true)}
+                disabled={syncActive}
+              >
                 {t('time.calendarConnection.disconnect')}
               </button>
             </div>
