@@ -4,18 +4,34 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import GoogleCalendarConnectionCard from '../GoogleCalendarConnectionCard';
 
-const { connectionMock, disconnectMock, mutateMock, refetchMock, resetMock } = vi.hoisted(() => ({
+const {
+  calendarListMock,
+  calendarRefetchMock,
+  connectionMock,
+  disconnectMock,
+  mutateMock,
+  refetchMock,
+  resetMock,
+  saveMutateMock,
+  saveSettingsMock,
+} = vi.hoisted(() => ({
+  calendarListMock: vi.fn(),
+  calendarRefetchMock: vi.fn(),
   connectionMock: vi.fn(),
   disconnectMock: vi.fn(),
   mutateMock: vi.fn(),
   refetchMock: vi.fn(),
   resetMock: vi.fn(),
+  saveMutateMock: vi.fn(),
+  saveSettingsMock: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useGoogleCalendarConnection', () => ({
   googleCalendarConnectPath: '/api/study/google-calendar/connect',
   useGoogleCalendarConnection: () => connectionMock(),
   useDisconnectGoogleCalendar: () => disconnectMock(),
+  useGoogleCalendars: () => calendarListMock(),
+  useSaveGoogleCalendarSettings: () => saveSettingsMock(),
 }));
 
 const disconnected = {
@@ -25,6 +41,19 @@ const disconnected = {
   settings: null,
   connectedAt: null,
   lastSyncedAt: null,
+};
+
+const settings = {
+  calendarIds: ['primary'],
+  titleMatchTerms: ['iTalki', 'Japanese lesson'],
+  syncEnabled: true,
+};
+
+const connected = {
+  ...disconnected,
+  connected: true,
+  accountEmail: 'andrew@example.com',
+  settings,
 };
 
 const LocationProbe = () => {
@@ -41,11 +70,17 @@ function renderCard(initialEntry = '/app/study/time') {
   );
 }
 
+function showConnected(data = connected) {
+  connectionMock.mockReturnValue({ data, isLoading: false, isError: false, refetch: refetchMock });
+}
+
 describe('GoogleCalendarConnectionCard', () => {
   beforeEach(() => {
-    refetchMock.mockReset().mockResolvedValue(undefined);
+    refetchMock.mockReset().mockResolvedValue({ data: connected, isSuccess: true });
     mutateMock.mockReset();
     resetMock.mockReset();
+    calendarRefetchMock.mockReset();
+    saveMutateMock.mockReset().mockResolvedValue(settings);
     connectionMock.mockReset().mockReturnValue({
       data: disconnected,
       isLoading: false,
@@ -55,6 +90,24 @@ describe('GoogleCalendarConnectionCard', () => {
     disconnectMock.mockReset().mockReturnValue({
       mutate: mutateMock,
       reset: resetMock,
+      isPending: false,
+      isError: false,
+    });
+    calendarListMock.mockReset().mockReturnValue({
+      data: {
+        calendars: [
+          { id: 'primary', name: 'Andrew', primary: true },
+          { id: 'lessons', name: 'Japanese lessons', primary: false },
+        ],
+        truncated: false,
+      },
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+      refetch: calendarRefetchMock,
+    });
+    saveSettingsMock.mockReset().mockReturnValue({
+      mutateAsync: saveMutateMock,
       isPending: false,
       isError: false,
     });
@@ -209,5 +262,200 @@ describe('GoogleCalendarConnectionCard', () => {
 
     expect(screen.getByText(/is connected\. Your study timeline/i)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement());
+  });
+
+  it('opens an accessible calendar picker with saved selections and large targets', async () => {
+    showConnected();
+    renderCard();
+
+    const openButton = screen.getByRole('button', { name: 'Choose calendars' });
+    openButton.focus();
+    fireEvent.click(openButton);
+    expect(screen.getByRole('dialog', { name: 'Choose calendars' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close calendar settings' })).toHaveFocus();
+    expect(screen.getByRole('checkbox', { name: /Andrew Primary/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Japanese lessons' })).toHaveClass('h-5', 'w-5');
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(screen.getByRole('button', { name: 'Save calendars' })).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(screen.getByRole('button', { name: 'Close calendar settings' })).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(openButton).toHaveFocus());
+  });
+  it('saves only changed calendar IDs while preserving every other setting', async () => {
+    const opened = {
+      ...connected,
+      settings: { ...settings, calendarIds: ['primary', 'remote-removed'] },
+    };
+    refetchMock.mockResolvedValueOnce({
+      isSuccess: true,
+      data: {
+        ...connected,
+        settings: {
+          calendarIds: ['primary', 'remote-added'],
+          titleMatchTerms: ['Fresh rule'],
+          syncEnabled: false,
+        },
+      },
+    });
+    showConnected(opened);
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    saveMutateMock.mockImplementationOnce(async () => {
+      expect(screen.getByRole('button', { name: 'Close calendar settings' })).toHaveFocus();
+      return settings;
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /Andrew Primary/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Japanese lessons' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    await waitFor(() =>
+      expect(saveMutateMock).toHaveBeenCalledWith({
+        calendarIds: ['remote-added', 'lessons'],
+        titleMatchTerms: ['Fresh rule'],
+        syncEnabled: false,
+      })
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+  it('shows and removes a selected calendar that is no longer available', () => {
+    showConnected({
+      ...connected,
+      settings: { ...settings, calendarIds: ['primary', 'removed-id'] },
+    });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    const unavailable = screen.getByRole('checkbox', { name: /removed-id.*unavailable/i });
+    expect(unavailable).toBeChecked();
+    fireEvent.click(unavailable);
+    expect(screen.queryByText('removed-id')).not.toBeInTheDocument();
+  });
+  it('enforces the 25-calendar selection limit until one is removed', () => {
+    const calendars = Array.from({ length: 26 }, (_, index) => ({
+      id: `calendar-${index}`,
+      name: `Calendar ${index + 1}`,
+      primary: index === 0,
+    }));
+    showConnected({
+      ...connected,
+      settings: { ...settings, calendarIds: calendars.slice(0, 25).map((c) => c.id) },
+    });
+    calendarListMock.mockReturnValue({
+      data: { calendars, truncated: false },
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+      refetch: calendarRefetchMock,
+    });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    expect(screen.getByText(/select up to 25 calendars/i)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Calendar 26' })).toBeDisabled();
+  });
+
+  it('requires one calendar and cancel discards the draft', () => {
+    showConnected();
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Andrew Primary/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/select at least one calendar/i);
+    expect(screen.getByRole('button', { name: 'Save calendars' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(saveMutateMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    expect(screen.getByRole('checkbox', { name: /Andrew Primary/ })).toBeChecked();
+  });
+  it('shows calendar loading, safe error with retry, and empty states', () => {
+    showConnected();
+    calendarListMock.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      isSuccess: false,
+      refetch: calendarRefetchMock,
+    });
+    let view = renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    expect(screen.getByText(/loading your calendars/i)).toBeInTheDocument();
+    view.unmount();
+    calendarListMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      isSuccess: false,
+      refetch: calendarRefetchMock,
+    });
+    view = renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    expect(screen.getByRole('alert')).not.toHaveTextContent('private provider detail');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(calendarRefetchMock).toHaveBeenCalledOnce();
+    view.unmount();
+    calendarListMock.mockReturnValue({
+      data: { calendars: [], truncated: false },
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+      refetch: calendarRefetchMock,
+    });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    expect(screen.getByText('No calendars found')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(calendarRefetchMock).toHaveBeenCalledTimes(2);
+  });
+  it('can close safely while refresh or save transport is stalled', async () => {
+    showConnected();
+    let finishRefresh!: (result: unknown) => void;
+    refetchMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishRefresh = resolve;
+      })
+    );
+    const view = renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close calendar settings' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    view.unmount();
+    finishRefresh({ data: connected, isError: false });
+    await Promise.resolve();
+    expect(saveMutateMock).not.toHaveBeenCalled();
+    saveMutateMock.mockReturnValueOnce(new Promise(() => {}));
+    refetchMock.mockResolvedValueOnce({ data: connected, isError: false });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    await waitFor(() => expect(saveMutateMock).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+  it('shows actionable feedback when a concurrent merge exceeds the limit', async () => {
+    showConnected();
+    refetchMock.mockResolvedValueOnce({
+      data: {
+        ...connected,
+        settings: { ...settings, calendarIds: Array.from({ length: 25 }, (_, i) => `remote-${i}`) },
+      },
+      isError: false,
+    });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Japanese lessons' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    expect(await screen.findByText(/select up to 25 calendars/i)).toBeInTheDocument();
+    expect(saveMutateMock).not.toHaveBeenCalled();
+  });
+  it('does not save stale cached settings when the pre-save refresh fails', async () => {
+    showConnected();
+    refetchMock.mockResolvedValueOnce({ data: connected, isError: true, error: new Error() });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t save your calendar choices/i)
+    );
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(saveMutateMock).not.toHaveBeenCalled();
   });
 });

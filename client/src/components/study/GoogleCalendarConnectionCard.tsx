@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import ConfirmModal from '../common/ConfirmModal';
+import GoogleCalendarSettingsDialog from './GoogleCalendarSettingsDialog';
 import {
   googleCalendarConnectPath,
   useDisconnectGoogleCalendar,
@@ -38,6 +39,7 @@ const GoogleCalendarConnectionCard = () => {
   const { t } = useTranslation(['study']);
   const [searchParams, setSearchParams] = useSearchParams();
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [callbackResult] = useState(() => ({
     state: searchParams.get('calendarConnection'),
     reason: searchParams.get('reason'),
@@ -176,9 +178,14 @@ const GoogleCalendarConnectionCard = () => {
               </div>
             </dl>
 
-            <button type="button" className="btn-outline" onClick={() => setDisconnectOpen(true)}>
-              {t('time.calendarConnection.disconnect')}
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" className="btn-primary" onClick={() => setSettingsOpen(true)}>
+                {t('time.calendarConnection.chooseCalendars')}
+              </button>
+              <button type="button" className="btn-outline" onClick={() => setDisconnectOpen(true)}>
+                {t('time.calendarConnection.disconnect')}
+              </button>
+            </div>
           </div>
         ) : null}
       </div>
@@ -199,6 +206,17 @@ const GoogleCalendarConnectionCard = () => {
           </p>
         ) : null}
       </ConfirmModal>
+      {settingsOpen ? (
+        <GoogleCalendarSettingsDialog
+          settings={connection.data?.settings ?? null}
+          refreshSettings={async () => {
+            const result = await connection.refetch();
+            if (result.isError) throw result.error;
+            return result.data?.settings ?? null;
+          }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      ) : null}
     </section>
   );
 };
