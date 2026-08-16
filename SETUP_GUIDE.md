@@ -30,6 +30,16 @@ The production workflows pass them to Learning OS and set
 `LEARNING_OS_GOOGLE_REDIRECT_URI` to the callback above. ConvoLab does not use a
 `GOOGLE_CALLBACK_URL` environment variable.
 
+Calendar-powered conversation tracking uses the same Google OAuth client with
+this additional production callback:
+
+```text
+https://convo-lab.com/api/study/google-calendar/callback
+```
+
+The Learning OS production workflow sets `GOOGLE_CALENDAR_REDIRECT_URI` to this
+public callback for the API, queue worker, and scheduler containers.
+
 For local OAuth work, configure the Learning OS checkout and its callback using
 the Learning OS development documentation. The ConvoLab client should continue
 calling same-origin paths; local Vite proxy rules route those requests to the

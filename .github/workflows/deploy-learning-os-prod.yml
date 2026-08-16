@@ -335,9 +335,11 @@ jobs:
               "https://convo-lab.com,https://www.convo-lab.com"
             upsert_env RESEND_API_KEY "$DEPLOY_RESEND_API_KEY"
             google_redirect_uri="https://convo-lab.com/api/convolab/browser/auth/google/callback"
+            google_calendar_redirect_uri="https://convo-lab.com/api/study/google-calendar/callback"
             upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"
             upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"
             upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI "$google_redirect_uri"
+            upsert_env GOOGLE_CALENDAR_REDIRECT_URI "$google_calendar_redirect_uri"
 
             read_env_value() {
               key="$1"
@@ -386,7 +388,7 @@ jobs:
               mail_from_name="ConvoLab"
             fi
 
-            desired_deploy_config_revision="browser-auth-session-v2"
+            desired_deploy_config_revision="calendar-oauth-redirect-v1"
             upsert_env LEARNING_OS_DEPLOY_CONFIG_REVISION "$desired_deploy_config_revision"
             upsert_env LEARNING_OS_MAIL_FROM_ADDRESS "$mail_from_address"
             upsert_env LEARNING_OS_MAIL_FROM_NAME "$mail_from_name"
@@ -399,10 +401,11 @@ jobs:
               | sha256sum \
               | cut -d ' ' -f 1)"
             upsert_env LEARNING_OS_AUTH_MAIL_CONFIG_REVISION "$auth_mail_config_revision"
-            google_oauth_config_revision="$(printf '%s\0%s\0%s' \
+            google_oauth_config_revision="$(printf '%s\0%s\0%s\0%s' \
               "$DEPLOY_GOOGLE_CLIENT_ID" \
               "$DEPLOY_GOOGLE_CLIENT_SECRET" \
               "$google_redirect_uri" \
+              "$google_calendar_redirect_uri" \
               | sha256sum \
               | cut -d ' ' -f 1)"
             upsert_env LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION "$google_oauth_config_revision"
@@ -505,12 +508,18 @@ jobs:
                 "$container" 2>/dev/null \
                 | sed -n 's/^LEARNING_OS_AUTH_MAIL_CONFIG_REVISION=//p' \
                 | tail -1 || true)"
+              current_google_oauth_config_revision="$(docker inspect \
+                --format='{{range .Config.Env}}{{println .}}{{end}}' \
+                "$container" 2>/dev/null \
+                | sed -n 's/^LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION=//p' \
+                | tail -1 || true)"
               desired_queue_argument="--queue=study-imports,study-card-drafts,default"
 
               if container_uses_verified_learning_os_image "$container" \
                 && [ "$running" = true ] \
                 && [ "$current_config_revision" = "$desired_deploy_config_revision" ] \
                 && [ "$current_auth_mail_config_revision" = "$auth_mail_config_revision" ] \
+                && [ "$current_google_oauth_config_revision" = "$google_oauth_config_revision" ] \
                 && [[ " $current_command " == *" $desired_queue_argument "* ]]; then
                 echo "Reusing running $container on immutable image $desired_learning_os_image."
                 return
@@ -631,6 +640,7 @@ jobs:
               -e EXPECTED_MAIL_FROM_ADDRESS="$mail_from_address" \
               -e EXPECTED_MAIL_FROM_NAME="$mail_from_name" \
               -e EXPECTED_GOOGLE_REDIRECT_URI="$google_redirect_uri" \
+              -e EXPECTED_GOOGLE_CALENDAR_REDIRECT_URI="$google_calendar_redirect_uri" \
               learning-os-api php artisan tinker --execute='
                 $expectedAdminEmails = array_values(array_filter(array_map(
                   "trim",
@@ -646,6 +656,7 @@ jobs:
                   || blank(config("services.google.client_id"))
                   || blank(config("services.google.client_secret"))
                   || config("services.google.redirect") !== getenv("EXPECTED_GOOGLE_REDIRECT_URI")
+                  || config("services.google_calendar.redirect") !== getenv("EXPECTED_GOOGLE_CALENDAR_REDIRECT_URI")
                 ) {
                   throw new RuntimeException("Learning OS browser auth configuration is incomplete.");
                 }

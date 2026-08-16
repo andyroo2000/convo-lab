@@ -10,6 +10,8 @@ const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const execFileAsync = promisify(execFile);
 const directGoogleCallback =
   'https://convo-lab.com/api/convolab/browser/auth/google/callback';
+const directGoogleCalendarCallback =
+  'https://convo-lab.com/api/study/google-calendar/callback';
 const encodedDirectGoogleCallback =
   'https%3A%2F%2Fconvo-lab.com%2Fapi%2Fconvolab%2Fbrowser%2Fauth%2Fgoogle%2Fcallback';
 
@@ -36,6 +38,10 @@ test('Learning OS production receives versioned Google OAuth configuration', asy
     '${LEARNING_OS_GOOGLE_REDIRECT_URI}'
   );
   assert.equal(
+    learningEnvironment.GOOGLE_CALENDAR_REDIRECT_URI,
+    '${GOOGLE_CALENDAR_REDIRECT_URI}'
+  );
+  assert.equal(
     learningEnvironment.LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION,
     '${LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION}'
   );
@@ -56,10 +62,13 @@ test('Learning OS production receives versioned Google OAuth configuration', asy
     'DEPLOY_GOOGLE_CLIENT_ID=%q',
     'DEPLOY_GOOGLE_CLIENT_SECRET=%q',
     `google_redirect_uri="${directGoogleCallback}"`,
+    `google_calendar_redirect_uri="${directGoogleCalendarCallback}"`,
     'upsert_env GOOGLE_CLIENT_ID "$DEPLOY_GOOGLE_CLIENT_ID"',
     'upsert_env GOOGLE_CLIENT_SECRET "$DEPLOY_GOOGLE_CLIENT_SECRET"',
     'upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI "$google_redirect_uri"',
+    'upsert_env GOOGLE_CALENDAR_REDIRECT_URI "$google_calendar_redirect_uri"',
     'google_oauth_config_revision="$(printf',
+    '"$google_calendar_redirect_uri"',
     'upsert_env LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION "$google_oauth_config_revision"',
     "sed -n 's/^LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION=//p'",
     '[ "$current_google_oauth_config_revision" = "$google_oauth_config_revision" ]',
@@ -75,9 +84,11 @@ test('Learning OS deploy validates configuration and the real OAuth redirect', a
 
   for (const contract of [
     '-e EXPECTED_GOOGLE_REDIRECT_URI="$google_redirect_uri"',
+    '-e EXPECTED_GOOGLE_CALENDAR_REDIRECT_URI="$google_calendar_redirect_uri"',
     'config("services.google.client_id")',
     'config("services.google.client_secret")',
     'config("services.google.redirect") !== getenv("EXPECTED_GOOGLE_REDIRECT_URI")',
+    'config("services.google_calendar.redirect") !== getenv("EXPECTED_GOOGLE_CALENDAR_REDIRECT_URI")',
     '"follow_location" => 0',
     '"http://127.0.0.1:8080/api/convolab/browser/auth/google"',
     'parse_url($location, PHP_URL_HOST) !== "accounts.google.com"',
