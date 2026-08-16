@@ -273,13 +273,18 @@ export function useSyncGoogleCalendar() {
       queryClient.setQueryData(googleCalendarConnectionKey, connection);
     },
     onError: async () => {
-      await queryClient
-        .refetchQueries({ queryKey: googleCalendarConnectionKey, type: 'all' })
-        .catch(() => undefined);
-      const refreshed = queryClient.getQueryData<GoogleCalendarConnectionStatus>(
+      try {
+        await queryClient.refetchQueries(
+          { queryKey: googleCalendarConnectionKey, type: 'all' },
+          { throwOnError: true }
+        );
+      } catch {
+        return;
+      }
+      const status = queryClient.getQueryData<GoogleCalendarConnectionStatus>(
         googleCalendarConnectionKey
-      );
-      if (refreshed?.sync?.status !== 'succeeded' && !isActiveSync(refreshed?.sync?.status)) {
+      )?.sync?.status;
+      if (status !== 'succeeded' && !isActiveSync(status)) {
         pendingStudyActivityRefreshes.delete(queryClient);
       }
     },

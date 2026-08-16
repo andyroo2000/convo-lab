@@ -91,10 +91,8 @@ describe('Google Calendar connection requests', () => {
     const { result } = renderHook(() => useSyncGoogleCalendar(), {
       wrapper: createWrapper(queryClient),
     });
-
     result.current.mutate();
     await waitFor(() => expect(result.current.data).toEqual(queued));
-
     const [url, init] = fetchWithCsrfMock.mock.calls[0];
     expect(url).toBe('/api/study/google-calendar/sync');
     expect(init).toEqual(expect.objectContaining({ method: 'POST', credentials: 'include' }));
@@ -117,7 +115,6 @@ describe('Google Calendar connection requests', () => {
       { wrapper: createWrapper() }
     );
     await waitFor(() => expect(result.current.connection.data).toEqual(status));
-
     result.current.sync.mutate();
 
     await waitFor(() => expect(result.current.sync.isError).toBe(true));
