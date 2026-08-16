@@ -57,7 +57,9 @@ const GoogleCalendarConnectionCard = () => {
   const safeReason =
     callbackReason && CALLBACK_ERRORS.has(callbackReason) ? callbackReason : 'unknown';
   const syncStatus = connection.data?.sync?.status;
-  const syncActive = calendarSync.isPending || syncStatus === 'queued' || syncStatus === 'running';
+  const serverSyncActive = syncStatus === 'queued' || syncStatus === 'running';
+  const syncStillRunning = serverSyncActive && connection.syncPollingTimedOut;
+  const syncActive = !syncStillRunning && (calendarSync.isPending || serverSyncActive);
   const serverStatusSupersedesMutationError =
     syncStatus === 'queued' || syncStatus === 'running' || syncStatus === 'succeeded';
   const currentMutationError = calendarSync.isError && !serverStatusSupersedesMutationError;
@@ -68,7 +70,10 @@ const GoogleCalendarConnectionCard = () => {
     (currentMutationError && isReconnectError(calendarSync.error));
   let syncStatusText = t('time.calendarConnection.syncReady');
   let syncActionText = t('time.calendarConnection.syncNow');
-  if (syncActive) {
+  if (syncStillRunning) {
+    syncStatusText = t('time.calendarConnection.syncStillRunning');
+    syncActionText = t('time.calendarConnection.syncCheckAgain');
+  } else if (syncActive) {
     syncStatusText = t('time.calendarConnection.syncing');
     syncActionText = t('time.calendarConnection.syncing');
   } else if (syncFailed) {
@@ -218,6 +223,11 @@ const GoogleCalendarConnectionCard = () => {
                 {t('time.calendarConnection.syncSuccess')}
               </p>
             ) : null}
+            {syncStillRunning ? (
+              <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+                {t('time.calendarConnection.syncStillRunningHelp')}
+              </p>
+            ) : null}
             {syncFailed ? (
               <div role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">
                 <p>
@@ -241,7 +251,13 @@ const GoogleCalendarConnectionCard = () => {
                 <button
                   type="button"
                   className="btn-primary inline-flex min-h-11 items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => calendarSync.mutate()}
+                  onClick={() => {
+                    if (syncStillRunning) {
+                      connection.refetch().catch(() => undefined);
+                    } else {
+                      calendarSync.mutate();
+                    }
+                  }}
                   disabled={syncActive}
                 >
                   {syncActive ? (

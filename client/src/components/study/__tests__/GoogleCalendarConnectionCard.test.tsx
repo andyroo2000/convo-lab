@@ -206,6 +206,27 @@ describe('GoogleCalendarConnectionCard', () => {
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeDisabled();
   });
 
+  it('stops a long-running poll and re-enables safe recovery actions', () => {
+    connectionMock.mockReturnValue({
+      data: {
+        ...connected,
+        sync: { status: 'running', errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+      },
+      isLoading: false,
+      isError: false,
+      syncPollingTimedOut: true,
+      refetch: refetchMock,
+    });
+    renderCard();
+
+    expect(screen.getByText(/taking longer than expected/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Calendar settings' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(refetchMock).toHaveBeenCalledOnce();
+    expect(syncMutateMock).not.toHaveBeenCalled();
+  });
+
   it('announces a completed sync as up to date', () => {
     showConnected({
       ...connected,

@@ -4,9 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTestQueryClient, createWrapper } from '../../__tests__/hooks/test-utils';
 import {
   GoogleCalendarRequestError,
+  GOOGLE_CALENDAR_SYNC_POLL_TIMEOUT_MS,
   googleCalendarConnectionKey,
   googleCalendarKeys,
   googleCalendarSyncPollInterval,
+  googleCalendarSyncTimeoutRemaining,
   useDisconnectGoogleCalendar,
   useGoogleCalendars,
   useGoogleCalendarConnection,
@@ -69,6 +71,13 @@ describe('Google Calendar connection requests', () => {
     expect(googleCalendarSyncPollInterval('succeeded')).toBe(false);
     expect(googleCalendarSyncPollInterval('failed')).toBe(false);
     expect(googleCalendarSyncPollInterval(undefined)).toBe(false);
+    expect(googleCalendarSyncPollInterval('running', true)).toBe(false);
+    expect(
+      googleCalendarSyncTimeoutRemaining('2026-08-16T12:00:00Z', Date.parse('2026-08-16T12:05:00Z'))
+    ).toBe(0);
+    expect(googleCalendarSyncTimeoutRemaining(null, Date.now())).toBe(
+      GOOGLE_CALENDAR_SYNC_POLL_TIMEOUT_MS
+    );
   });
 
   it('posts a bodyless sync and caches the returned full connection status', async () => {
@@ -92,6 +101,32 @@ describe('Google Calendar connection requests', () => {
     expect(init.body).toBeUndefined();
     expect(init.headers.get('Content-Type')).toBeNull();
     expect(setQueryData).toHaveBeenCalledWith(googleCalendarConnectionKey, queued);
+  });
+
+  it('refetches connection state after a sync request error', async () => {
+    const succeeded = {
+      ...status,
+      sync: { status: 'succeeded' as const, errorCode: null, statusAt: '2026-08-16T12:01:00Z' },
+    };
+    fetchWithCsrfMock
+      .mockResolvedValueOnce(new Response(JSON.stringify(status), { status: 200 }))
+      .mockRejectedValueOnce(new Error('request timed out'))
+      .mockResolvedValueOnce(new Response(JSON.stringify(succeeded), { status: 200 }));
+    const { result } = renderHook(
+      () => ({ connection: useGoogleCalendarConnection(), sync: useSyncGoogleCalendar() }),
+      { wrapper: createWrapper() }
+    );
+    await waitFor(() => expect(result.current.connection.data).toEqual(status));
+
+    result.current.sync.mutate();
+
+    await waitFor(() => expect(result.current.sync.isError).toBe(true));
+    expect(result.current.connection.data).toEqual(succeeded);
+    expect(fetchWithCsrfMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/study/google-calendar',
+      '/api/study/google-calendar/sync',
+      '/api/study/google-calendar',
+    ]);
   });
 
   it('invalidates all study time once after completion across an unmount', async () => {
