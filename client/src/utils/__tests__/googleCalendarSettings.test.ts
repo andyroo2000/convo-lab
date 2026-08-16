@@ -89,6 +89,32 @@ describe('canonicalizeGoogleCalendarSettings', () => {
     ).toContainEqual({ field: 'titleMatchTerms', code: 'too_long' });
   });
 
+  it('matches backend Unicode lowercase semantics without full case folding', () => {
+    const result = canonicalizeGoogleCalendarSettings({
+      calendarIds: ['primary'],
+      titleMatchTerms: ['\u3000Übung\u00a0', 'üBUNG', 'Straße', 'STRASSE'],
+      syncEnabled: true,
+    });
+
+    expect(result.settings?.titleMatchTerms).toEqual(['Übung', 'Straße', 'STRASSE']);
+  });
+
+  it('counts combining marks individually at the code-point boundary', () => {
+    const accepted = 'a\u0301'.repeat(GOOGLE_CALENDAR_SETTINGS_LIMITS.termCodePoints / 2);
+    const rejected = `${accepted}\u0301`;
+    const settings = (titleMatchTerms: string[]) => ({
+      calendarIds: ['primary'],
+      titleMatchTerms,
+      syncEnabled: true,
+    });
+
+    expect(canonicalizeGoogleCalendarSettings(settings([accepted])).settings).not.toBeNull();
+    expect(canonicalizeGoogleCalendarSettings(settings([rejected])).errors).toContainEqual({
+      field: 'titleMatchTerms',
+      code: 'too_long',
+    });
+  });
+
   it('reports repeated overlong values once per field', () => {
     const result = canonicalizeGoogleCalendarSettings({
       calendarIds: [

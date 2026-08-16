@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, RefreshCw, X } from 'lucide-react';
+import { CalendarDays, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   useGoogleCalendars,
   useSaveGoogleCalendarSettings,
 } from '../../hooks/useGoogleCalendarConnection';
 import {
+  canonicalizeGoogleCalendarSettings,
   GOOGLE_CALENDAR_SETTINGS_LIMITS,
+  googleCalendarTitleTermKey,
+  trimGoogleCalendarInput,
   type GoogleCalendarSettings,
 } from '../../utils/googleCalendarSettings';
 
@@ -16,6 +19,28 @@ interface GoogleCalendarSettingsDialogProps {
   refreshSettings: () => Promise<GoogleCalendarSettings | null>;
   onClose: () => void;
 }
+
+function mergeList(
+  fresh: string[],
+  base: string[],
+  draft: string[],
+  key: (value: string) => string = (value) => value
+) {
+  const draftKeys = new Set(draft.map(key));
+  const baseKeys = new Set(base.map(key));
+  const removed = new Set(base.filter((value) => !draftKeys.has(key(value))).map(key));
+  const merged = fresh.filter((value) => !removed.has(key(value)));
+  const mergedKeys = new Set(merged.map(key));
+  draft.forEach((value) => {
+    const valueKey = key(value);
+    if (!baseKeys.has(valueKey) && !mergedKeys.has(valueKey)) {
+      merged.push(value);
+      mergedKeys.add(valueKey);
+    }
+  });
+  return merged;
+}
+
 const GoogleCalendarSettingsDialog = ({
   settings,
   refreshSettings,
@@ -24,12 +49,23 @@ const GoogleCalendarSettingsDialog = ({
   const { t } = useTranslation(['study']);
   const tc = (key: string) => t(`time.calendarConnection.${key}`);
   const limit = GOOGLE_CALENDAR_SETTINGS_LIMITS.calendars;
+  const termLimit = GOOGLE_CALENDAR_SETTINGS_LIMITS.terms;
   const calendars = useGoogleCalendars();
   const save = useSaveGoogleCalendarSettings();
   const [selectedIds, setSelectedIds] = useState(() => settings?.calendarIds ?? []);
-  const baseIds = useRef(settings?.calendarIds ?? []).current;
+  const nextTermId = useRef(0);
+  const allocateTermId = () => {
+    const id = nextTermId.current;
+    nextTermId.current += 1;
+    return id;
+  };
+  const [titleTermDrafts, setTitleTermDrafts] = useState(() =>
+    (settings?.titleMatchTerms ?? ['']).map((value) => ({ id: allocateTermId(), value }))
+  );
+  const titleTerms = titleTermDrafts.map(({ value }) => value);
+  const baseSettings = useRef(settings).current;
   const [refreshError, setRefreshError] = useState(false);
-  const [limitError, setLimitError] = useState(false);
+  const [mergeError, setMergeError] = useState<'calendars' | 'terms' | 'conflict' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isBusy = save.isPending || isRefreshing;
   const dialogRef = useRef<HTMLElement>(null);
@@ -76,25 +112,61 @@ const GoogleCalendarSettingsDialog = ({
         : [...current, calendarId].slice(0, limit)
     );
   };
+  const draftResult = canonicalizeGoogleCalendarSettings({
+    calendarIds: selectedIds,
+    titleMatchTerms: titleTerms,
+    syncEnabled: settings?.syncEnabled ?? false,
+  });
+  const titleErrors = draftResult.errors.filter((error) => error.field === 'titleMatchTerms');
+  const initialTermsInvalid = Boolean(
+    settings &&
+    canonicalizeGoogleCalendarSettings(settings).errors.some(
+      (error) => error.field === 'titleMatchTerms'
+    )
+  );
   const submit = async () => {
-    if (!settings || selectedIds.length === 0) return;
+    if (!draftResult.settings) return;
     setRefreshError(false);
-    setLimitError(false);
+    setMergeError(null);
     setIsRefreshing(true);
     try {
       const freshSettings = await refreshSettings();
       if (closedRef.current) return;
-      if (!freshSettings) throw new Error('Settings unavailable');
-      const removed = new Set(baseIds.filter((id) => !selectedIds.includes(id)));
-      const added = selectedIds.filter((id) => !baseIds.includes(id));
-      const calendarIds = freshSettings.calendarIds
-        .filter((id) => !removed.has(id))
-        .concat(added.filter((id) => !freshSettings.calendarIds.includes(id)));
-      if (calendarIds.length > limit) {
-        setLimitError(true);
+      if (baseSettings && !freshSettings) {
+        setMergeError('conflict');
         return;
       }
-      await save.mutateAsync({ ...freshSettings, calendarIds });
+      const base = baseSettings ?? { calendarIds: [], titleMatchTerms: [], syncEnabled: false };
+      const fresh = freshSettings ?? { calendarIds: [], titleMatchTerms: [], syncEnabled: false };
+      const calendarIds = mergeList(
+        fresh.calendarIds,
+        base.calendarIds,
+        draftResult.settings.calendarIds
+      );
+      if (calendarIds.length > limit) {
+        setMergeError('calendars');
+        return;
+      }
+      const titleMatchTerms = mergeList(
+        fresh.titleMatchTerms,
+        base.titleMatchTerms,
+        draftResult.settings.titleMatchTerms,
+        googleCalendarTitleTermKey
+      );
+      if (titleMatchTerms.length > termLimit) {
+        setMergeError('terms');
+        return;
+      }
+      const merged = canonicalizeGoogleCalendarSettings({
+        ...fresh,
+        calendarIds,
+        titleMatchTerms,
+      });
+      if (!merged.settings) {
+        setMergeError('conflict');
+        return;
+      }
+      await save.mutateAsync(merged.settings);
       if (!closedRef.current) close();
     } catch {
       if (!closedRef.current) setRefreshError(true);
@@ -105,8 +177,15 @@ const GoogleCalendarSettingsDialog = ({
   const listedIds = new Set(calendars.data?.calendars.map((calendar) => calendar.id));
   const missingIds = calendars.isSuccess ? selectedIds.filter((id) => !listedIds.has(id)) : [];
   const selectionLimitReached = selectedIds.length >= limit;
-  const saveDisabled =
-    !settings || !selectedIds.length || calendars.isLoading || calendars.isError || isBusy;
+  const termsRequired = titleErrors.some(
+    (error) => error.code === 'required' || error.code === 'blank'
+  );
+  const termsTooLong = titleErrors.some((error) => error.code === 'too_long');
+  const termsTooMany = titleErrors.some((error) => error.code === 'too_many');
+  const saveDisabled = !draftResult.settings || calendars.isLoading || calendars.isError || isBusy;
+  let saveDescriptionId: string | undefined;
+  if (!selectedIds.length) saveDescriptionId = 'calendar-selection-error';
+  else if (titleErrors.length) saveDescriptionId = 'title-terms-error';
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-end bg-navy/55 p-0 sm:items-center sm:justify-center sm:p-5"
@@ -145,8 +224,8 @@ const GoogleCalendarSettingsDialog = ({
         </header>
         <div className="min-h-44 flex-1 overflow-y-auto p-5 sm:p-6">
           {!settings ? (
-            <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">
-              {tc('settingsUnavailable')}
+            <p role="status" className="mb-5 rounded-xl bg-blue-50 p-4 text-sm text-navy">
+              {tc('settingsSetup')}
             </p>
           ) : null}
           {calendars.isLoading ? (
@@ -238,18 +317,108 @@ const GoogleCalendarSettingsDialog = ({
           {calendars.data?.truncated ? (
             <p className="mt-4 text-sm text-gray-600">{tc('calendarsTruncated')}</p>
           ) : null}
-          {selectionLimitReached || limitError ? (
+          {selectionLimitReached || mergeError === 'calendars' ? (
             <p role="status" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
               {t('time.calendarConnection.calendarLimit', { count: limit })}
             </p>
           ) : null}
-          {settings && selectedIds.length === 0 ? (
+          {selectedIds.length === 0 ? (
             <p
               id="calendar-selection-error"
               role="alert"
               className="mt-4 text-sm font-bold text-red-700"
             >
               {tc('calendarRequired')}
+            </p>
+          ) : null}
+          <fieldset className="mt-7 border-t border-navy/10 pt-6">
+            <legend className="retro-caps text-gray-500">{tc('titleTermsLabel')}</legend>
+            <p className="mt-2 text-sm text-gray-600">{tc('titleTermsDescription')}</p>
+            <div className="mt-4 space-y-3">
+              {titleTermDrafts.map((draft, index) => (
+                <div key={draft.id} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={draft.value}
+                    disabled={isBusy}
+                    onChange={(event) =>
+                      setTitleTermDrafts((current) =>
+                        current.map((item) =>
+                          item.id === draft.id ? { ...item, value: event.target.value } : item
+                        )
+                      )
+                    }
+                    aria-label={t('time.calendarConnection.titleTermInput', {
+                      index: index + 1,
+                    })}
+                    aria-invalid={
+                      !trimGoogleCalendarInput(draft.value) ||
+                      [...trimGoogleCalendarInput(draft.value)].length >
+                        GOOGLE_CALENDAR_SETTINGS_LIMITS.termCodePoints
+                    }
+                    placeholder={tc('titleTermPlaceholder')}
+                    className="min-h-11 min-w-0 flex-1 rounded-xl border border-navy/15 bg-white px-3 text-base text-navy outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                  />
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() =>
+                      setTitleTermDrafts((current) =>
+                        current.filter((item) => item.id !== draft.id)
+                      )
+                    }
+                    aria-label={t('time.calendarConnection.removeTitleTerm', {
+                      term: trimGoogleCalendarInput(draft.value) || index + 1,
+                    })}
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-navy/15 bg-white text-navy hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={isBusy || titleTermDrafts.length >= termLimit}
+              onClick={() =>
+                setTitleTermDrafts((current) => [...current, { id: allocateTermId(), value: '' }])
+              }
+              className="btn-outline mt-4 min-h-11 disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              {tc('addTitleTerm')}
+            </button>
+          </fieldset>
+          {initialTermsInvalid && titleErrors.length > 0 ? (
+            <p role="status" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+              {tc('legacyTermsInvalid')}
+            </p>
+          ) : null}
+          {termsRequired ? (
+            <p id="title-terms-error" role="alert" className="mt-4 text-sm font-bold text-red-700">
+              {tc('titleTermsRequired')}
+            </p>
+          ) : null}
+          {!termsRequired && termsTooLong ? (
+            <p id="title-terms-error" role="alert" className="mt-4 text-sm font-bold text-red-700">
+              {t('time.calendarConnection.titleTermTooLong', {
+                count: GOOGLE_CALENDAR_SETTINGS_LIMITS.termCodePoints,
+              })}
+            </p>
+          ) : null}
+          {!termsRequired && !termsTooLong && termsTooMany ? (
+            <p id="title-terms-error" role="alert" className="mt-4 text-sm font-bold text-red-700">
+              {t('time.calendarConnection.titleTermLimit', { count: termLimit })}
+            </p>
+          ) : null}
+          {mergeError === 'terms' ? (
+            <p role="alert" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+              {t('time.calendarConnection.titleTermLimit', { count: termLimit })}
+            </p>
+          ) : null}
+          {mergeError === 'conflict' ? (
+            <p role="alert" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+              {tc('settingsConflict')}
             </p>
           ) : null}
           {save.isError || refreshError ? (
@@ -267,9 +436,7 @@ const GoogleCalendarSettingsDialog = ({
             className="btn-primary min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={submit}
             disabled={saveDisabled}
-            aria-describedby={
-              settings && !selectedIds.length ? 'calendar-selection-error' : undefined
-            }
+            aria-describedby={saveDescriptionId}
           >
             {isBusy ? tc('savingCalendars') : tc('saveCalendars')}
           </button>
