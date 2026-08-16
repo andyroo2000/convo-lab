@@ -76,7 +76,7 @@ const isActiveSync = (status: GoogleCalendarSyncStatus['status'] | undefined) =>
   status === 'queued' || status === 'running';
 
 // A query-client-scoped marker survives card navigation while avoiding duplicate refreshes.
-const pendingStudyActivityRefreshes = new WeakMap<QueryClient, string | null>();
+const pendingStudyActivityRefreshes = new WeakSet<QueryClient>();
 
 export const googleCalendarSyncPollInterval = (
   status: GoogleCalendarSyncStatus['status'] | undefined
@@ -109,6 +109,7 @@ export class GoogleCalendarRequestError extends Error {
 }
 
 function errorKind(status: number): GoogleCalendarErrorKind {
+  // Active sync triggers are idempotent 202s; 409 is reserved for a missing connection.
   if (status === 409) return 'not_connected';
   if (status === 422) return 'validation';
   if (status === 429) return 'rate_limited';
@@ -169,7 +170,7 @@ export function useGoogleCalendarConnection() {
   const sync = query.data?.sync;
   useEffect(() => {
     if (isActiveSync(sync?.status)) {
-      pendingStudyActivityRefreshes.set(queryClient, sync?.statusAt ?? null);
+      pendingStudyActivityRefreshes.add(queryClient);
     } else if (sync?.status === 'succeeded' && pendingStudyActivityRefreshes.has(queryClient)) {
       pendingStudyActivityRefreshes.delete(queryClient);
       queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }).catch(() => undefined);
@@ -235,7 +236,7 @@ export function useSyncGoogleCalendar() {
   const queryClient = useQueryClient();
   return useMutation({
     onMutate: () => {
-      pendingStudyActivityRefreshes.set(queryClient, null);
+      pendingStudyActivityRefreshes.add(queryClient);
     },
     mutationFn: () =>
       googleCalendarRequest<GoogleCalendarConnectionStatus>('/sync', { method: 'POST' }),

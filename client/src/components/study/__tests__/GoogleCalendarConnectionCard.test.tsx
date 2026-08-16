@@ -252,6 +252,23 @@ describe('GoogleCalendarConnectionCard', () => {
     expect(screen.queryByText(/private provider detail/i)).not.toBeInTheDocument();
   });
 
+  it('lets a fresh successful server status supersede a stale request error', () => {
+    syncMock.mockReturnValue({
+      mutate: syncMutateMock,
+      isPending: false,
+      isError: true,
+      error: new Error('request timed out'),
+    });
+    showConnected({
+      ...connected,
+      sync: { status: 'succeeded', errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+    });
+    renderCard();
+
+    expect(screen.getByText('Calendar study time is up to date.')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('offers reconnection for a not-connected manual-sync response', () => {
     syncMock.mockReturnValue({
       mutate: syncMutateMock,

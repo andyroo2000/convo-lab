@@ -58,11 +58,14 @@ const GoogleCalendarConnectionCard = () => {
     callbackReason && CALLBACK_ERRORS.has(callbackReason) ? callbackReason : 'unknown';
   const syncStatus = connection.data?.sync?.status;
   const syncActive = calendarSync.isPending || syncStatus === 'queued' || syncStatus === 'running';
-  const syncFailed = calendarSync.isError || syncStatus === 'failed';
+  const serverStatusSupersedesMutationError =
+    syncStatus === 'queued' || syncStatus === 'running' || syncStatus === 'succeeded';
+  const currentMutationError = calendarSync.isError && !serverStatusSupersedesMutationError;
+  const syncFailed = currentMutationError || syncStatus === 'failed';
   const reconnectRequired =
     // Persisted jobs and immediate 409 responses use different safe codes for the same UX.
     connection.data?.sync?.errorCode === 'reconnect_required' ||
-    isReconnectError(calendarSync.error);
+    (currentMutationError && isReconnectError(calendarSync.error));
   let syncStatusText = t('time.calendarConnection.syncReady');
   let syncActionText = t('time.calendarConnection.syncNow');
   if (syncActive) {
@@ -210,7 +213,7 @@ const GoogleCalendarConnectionCard = () => {
               </div>
             </dl>
 
-            {syncStatus === 'succeeded' && !calendarSync.isError ? (
+            {syncStatus === 'succeeded' ? (
               <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">
                 {t('time.calendarConnection.syncSuccess')}
               </p>
