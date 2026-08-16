@@ -29,6 +29,16 @@ export type GoogleCalendarSettingsResult =
   | { settings: GoogleCalendarSettings; errors: [] }
   | { settings: null; errors: GoogleCalendarSettingsError[] };
 
+const GOOGLE_CALENDAR_EDGE_WHITESPACE = /^[\p{Z}\s]+|[\p{Z}\s]+$/gu;
+
+export function trimGoogleCalendarInput(value: string) {
+  return value.replace(GOOGLE_CALENDAR_EDGE_WHITESPACE, '');
+}
+
+export function googleCalendarTitleTermKey(value: string) {
+  return trimGoogleCalendarInput(value).toLowerCase();
+}
+
 function canonicalStrings(
   value: unknown,
   field: Extract<GoogleCalendarSettingsField, 'calendarIds' | 'titleMatchTerms'>,
@@ -51,12 +61,19 @@ function canonicalStrings(
   const seen = new Set<string>();
   const values: string[] = [];
   value.forEach((raw) => {
-    const trimmed = raw.trim();
+    // Match the server's bounded pre-trim scan before running its Unicode whitespace regex.
+    if ([...raw].length > maximumLength + 64) {
+      if (!errors.some((error) => error.code === 'too_long')) {
+        errors.push({ field, code: 'too_long' });
+      }
+      return;
+    }
+    const trimmed = trimGoogleCalendarInput(raw);
     if (!trimmed) {
       if (!errors.some((error) => error.code === 'blank')) errors.push({ field, code: 'blank' });
       return;
     }
-    const comparison = caseInsensitive ? trimmed.toLowerCase() : trimmed;
+    const comparison = caseInsensitive ? googleCalendarTitleTermKey(trimmed) : trimmed;
     if (seen.has(comparison)) return;
     seen.add(comparison);
     if ([...trimmed].length > maximumLength) {

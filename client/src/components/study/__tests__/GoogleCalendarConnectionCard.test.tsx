@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { GoogleCalendarConnectionStatus } from '../../../hooks/useGoogleCalendarConnection';
 import GoogleCalendarConnectionCard from '../GoogleCalendarConnectionCard';
 
 const {
@@ -70,7 +71,7 @@ function renderCard(initialEntry = '/app/study/time') {
   );
 }
 
-function showConnected(data = connected) {
+function showConnected(data: GoogleCalendarConnectionStatus = connected) {
   connectionMock.mockReturnValue({ data, isLoading: false, isError: false, refetch: refetchMock });
 }
 
@@ -268,15 +269,17 @@ describe('GoogleCalendarConnectionCard', () => {
     showConnected();
     renderCard();
 
-    const openButton = screen.getByRole('button', { name: 'Choose calendars' });
+    const openButton = screen.getByRole('button', { name: 'Calendar settings' });
     openButton.focus();
     fireEvent.click(openButton);
-    expect(screen.getByRole('dialog', { name: 'Choose calendars' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Calendar settings' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Close calendar settings' })).toHaveFocus();
     expect(screen.getByRole('checkbox', { name: /Andrew Primary/ })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Japanese lessons' })).toHaveClass('h-5', 'w-5');
+    expect(screen.getByRole('textbox', { name: 'Event title term 1' })).toHaveValue('iTalki');
+    expect(screen.getByRole('button', { name: 'Add title term' })).toHaveClass('min-h-11');
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
-    expect(screen.getByRole('button', { name: 'Save calendars' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Save settings' })).toHaveFocus();
     fireEvent.keyDown(document, { key: 'Tab' });
     expect(screen.getByRole('button', { name: 'Close calendar settings' })).toHaveFocus();
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -301,14 +304,14 @@ describe('GoogleCalendarConnectionCard', () => {
     });
     showConnected(opened);
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     saveMutateMock.mockImplementationOnce(async () => {
       expect(screen.getByRole('button', { name: 'Close calendar settings' })).toHaveFocus();
       return settings;
     });
     fireEvent.click(screen.getByRole('checkbox', { name: /Andrew Primary/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Japanese lessons' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
     await waitFor(() =>
       expect(saveMutateMock).toHaveBeenCalledWith({
         calendarIds: ['remote-added', 'lessons'],
@@ -318,13 +321,79 @@ describe('GoogleCalendarConnectionCard', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
+  it('three-way merges title edits with remote additions and fresh sync state', async () => {
+    refetchMock.mockResolvedValueOnce({
+      data: {
+        ...connected,
+        settings: {
+          calendarIds: ['primary'],
+          titleMatchTerms: ['iTalki', 'Japanese lesson', 'Remote lesson'],
+          syncEnabled: false,
+        },
+      },
+      isError: false,
+    });
+    showConnected();
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Event title term 2' }), {
+      target: { value: 'Conversation class' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() =>
+      expect(saveMutateMock).toHaveBeenCalledWith({
+        calendarIds: ['primary'],
+        titleMatchTerms: ['iTalki', 'Remote lesson', 'Conversation class'],
+        syncEnabled: false,
+      })
+    );
+  });
+  it('supports first-time setup without silently adding example terms', async () => {
+    const firstTime = { ...connected, settings: null };
+    showConnected(firstTime);
+    refetchMock.mockResolvedValueOnce({ data: firstTime, isError: false });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    const term = screen.getByRole('textbox', { name: 'Event title term 1' });
+    expect(term).toHaveValue('');
+    expect(term).toHaveAttribute('placeholder', 'e.g. iTalki or lesson');
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Andrew Primary/ }));
+    fireEvent.change(term, { target: { value: '\u3000iTalki\u00a0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() =>
+      expect(saveMutateMock).toHaveBeenCalledWith({
+        calendarIds: ['primary'],
+        titleMatchTerms: ['iTalki'],
+        syncEnabled: false,
+      })
+    );
+  });
+  it('explains how to repair legacy-invalid title terms', () => {
+    showConnected({ ...connected, settings: { ...settings, titleMatchTerms: ['   '] } });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+
+    expect(screen.getByText(/saved title terms use older rules/i)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Event title term 1' })).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    );
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Event title term 1' }), {
+      target: { value: 'lesson' },
+    });
+    expect(screen.queryByText(/saved title terms use older rules/i)).not.toBeInTheDocument();
+  });
   it('shows and removes a selected calendar that is no longer available', () => {
     showConnected({
       ...connected,
       settings: { ...settings, calendarIds: ['primary', 'removed-id'] },
     });
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     const unavailable = screen.getByRole('checkbox', { name: /removed-id.*unavailable/i });
     expect(unavailable).toBeChecked();
     fireEvent.click(unavailable);
@@ -348,7 +417,7 @@ describe('GoogleCalendarConnectionCard', () => {
       refetch: calendarRefetchMock,
     });
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     expect(screen.getByText(/select up to 25 calendars/i)).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Calendar 26' })).toBeDisabled();
   });
@@ -356,13 +425,13 @@ describe('GoogleCalendarConnectionCard', () => {
   it('requires one calendar and cancel discards the draft', () => {
     showConnected();
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Andrew Primary/ }));
     expect(screen.getByRole('alert')).toHaveTextContent(/select at least one calendar/i);
-    expect(screen.getByRole('button', { name: 'Save calendars' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(saveMutateMock).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     expect(screen.getByRole('checkbox', { name: /Andrew Primary/ })).toBeChecked();
   });
   it('shows calendar loading, safe error with retry, and empty states', () => {
@@ -375,7 +444,7 @@ describe('GoogleCalendarConnectionCard', () => {
       refetch: calendarRefetchMock,
     });
     let view = renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     expect(screen.getByText(/loading your calendars/i)).toBeInTheDocument();
     view.unmount();
     calendarListMock.mockReturnValue({
@@ -386,7 +455,7 @@ describe('GoogleCalendarConnectionCard', () => {
       refetch: calendarRefetchMock,
     });
     view = renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     expect(screen.getByRole('alert')).not.toHaveTextContent('private provider detail');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(calendarRefetchMock).toHaveBeenCalledOnce();
@@ -399,7 +468,7 @@ describe('GoogleCalendarConnectionCard', () => {
       refetch: calendarRefetchMock,
     });
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     expect(screen.getByText('No calendars found')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(calendarRefetchMock).toHaveBeenCalledTimes(2);
@@ -413,8 +482,8 @@ describe('GoogleCalendarConnectionCard', () => {
       })
     );
     const view = renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
     fireEvent.click(screen.getByRole('button', { name: 'Close calendar settings' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     view.unmount();
@@ -424,8 +493,8 @@ describe('GoogleCalendarConnectionCard', () => {
     saveMutateMock.mockReturnValueOnce(new Promise(() => {}));
     refetchMock.mockResolvedValueOnce({ data: connected, isError: false });
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
     await waitFor(() => expect(saveMutateMock).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -440,20 +509,53 @@ describe('GoogleCalendarConnectionCard', () => {
       isError: false,
     });
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Japanese lessons' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
     expect(await screen.findByText(/select up to 25 calendars/i)).toBeInTheDocument();
+    expect(saveMutateMock).not.toHaveBeenCalled();
+  });
+  it('shows actionable feedback for merged title-term caps and settings conflicts', async () => {
+    showConnected();
+    refetchMock.mockResolvedValueOnce({
+      data: {
+        ...connected,
+        settings: {
+          ...settings,
+          titleMatchTerms: Array.from({ length: 50 }, (_, index) => `remote-${index}`),
+        },
+      },
+      isError: false,
+    });
+    const view = renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add title term' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Event title term 3' }), {
+      target: { value: 'New local term' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    expect(await screen.findByText(/save up to 50 title terms/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    view.unmount();
+
+    refetchMock.mockResolvedValueOnce({
+      data: { ...connected, settings: null },
+      isError: false,
+    });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    expect(await screen.findByText(/changed elsewhere.*reopen/i)).toBeInTheDocument();
     expect(saveMutateMock).not.toHaveBeenCalled();
   });
   it('does not save stale cached settings when the pre-save refresh fails', async () => {
     showConnected();
     refetchMock.mockResolvedValueOnce({ data: connected, isError: true, error: new Error() });
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose calendars' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save calendars' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t save your calendar choices/i)
+      expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t save your calendar settings/i)
     );
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(saveMutateMock).not.toHaveBeenCalled();
