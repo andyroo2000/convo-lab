@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../common/ConfirmModal';
 import GoogleCalendarSettingsDialog from './GoogleCalendarSettingsDialog';
 import {
+  GoogleCalendarRequestError,
   googleCalendarConnectPath,
   useDisconnectGoogleCalendar,
   useGoogleCalendarConnection,
@@ -37,7 +38,7 @@ function formatLastSync(value: string | null, fallback: string) {
 }
 
 function isReconnectError(error: unknown) {
-  return error instanceof Error && Reflect.get(error, 'kind') === 'not_connected';
+  return error instanceof GoogleCalendarRequestError && error.kind === 'not_connected';
 }
 
 const GoogleCalendarConnectionCard = () => {
@@ -66,7 +67,7 @@ const GoogleCalendarConnectionCard = () => {
   const syncFailed = currentMutationError || syncStatus === 'failed';
   const reconnectRequired =
     // Persisted jobs and immediate 409 responses use different safe codes for the same UX.
-    connection.data?.sync?.errorCode === 'reconnect_required' ||
+    (syncStatus === 'failed' && connection.data?.sync?.errorCode === 'reconnect_required') ||
     (currentMutationError && isReconnectError(calendarSync.error));
   let syncStatusText = t('time.calendarConnection.syncReady');
   let syncActionText = t('time.calendarConnection.syncNow');

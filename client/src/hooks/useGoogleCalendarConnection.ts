@@ -201,6 +201,8 @@ export function useGoogleCalendarConnection() {
     } else if (sync?.status === 'succeeded' && pendingStudyActivityRefreshes.has(queryClient)) {
       pendingStudyActivityRefreshes.delete(queryClient);
       queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }).catch(() => undefined);
+    } else if (sync?.status === 'failed') {
+      pendingStudyActivityRefreshes.delete(queryClient);
     }
   }, [queryClient, sync?.status, sync?.statusAt]);
 

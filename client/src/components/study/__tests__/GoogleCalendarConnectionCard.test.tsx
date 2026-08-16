@@ -2,7 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { GoogleCalendarConnectionStatus } from '../../../hooks/useGoogleCalendarConnection';
+import {
+  GoogleCalendarRequestError,
+  type GoogleCalendarConnectionStatus,
+} from '../../../hooks/useGoogleCalendarConnection';
 import GoogleCalendarConnectionCard from '../GoogleCalendarConnectionCard';
 
 const {
@@ -38,6 +41,14 @@ const {
 }));
 
 vi.mock('../../../hooks/useGoogleCalendarConnection', () => ({
+  GoogleCalendarRequestError: class extends Error {
+    constructor(
+      public kind: string,
+      public status: number | null
+    ) {
+      super(kind);
+    }
+  },
   googleCalendarConnectPath: '/api/study/google-calendar/connect',
   useGoogleCalendarConnection: () => connectionMock(),
   useDisconnectGoogleCalendar: () => disconnectMock(),
@@ -295,7 +306,7 @@ describe('GoogleCalendarConnectionCard', () => {
       mutate: syncMutateMock,
       isPending: false,
       isError: true,
-      error: Object.assign(new Error('provider detail'), { kind: 'not_connected' }),
+      error: new GoogleCalendarRequestError('not_connected', 409),
     });
     showConnected();
     renderCard();
@@ -303,6 +314,23 @@ describe('GoogleCalendarConnectionCard', () => {
     expect(screen.getByRole('link', { name: 'Reconnect Google Calendar' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Try sync again' })).not.toBeInTheDocument();
     expect(screen.queryByText(/provider detail/i)).not.toBeInTheDocument();
+  });
+
+  it('ignores a stale reconnect code on a successful server status', () => {
+    showConnected({
+      ...connected,
+      sync: {
+        status: 'succeeded',
+        errorCode: 'reconnect_required',
+        statusAt: '2026-08-16T12:00:00Z',
+      },
+    });
+    renderCard();
+
+    expect(screen.getByRole('button', { name: 'Sync now' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Reconnect Google Calendar' })
+    ).not.toBeInTheDocument();
   });
 
   it('uses the unsynced fallback for a malformed sync timestamp', () => {

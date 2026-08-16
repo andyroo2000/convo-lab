@@ -169,6 +169,48 @@ describe('Google Calendar connection requests', () => {
     ).toHaveLength(1);
   });
 
+  it('clears a failed run marker before tracking a later run', async () => {
+    const queryClient = createTestQueryClient();
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    const wrapper = createWrapper(queryClient);
+    queryClient.setQueryData(googleCalendarConnectionKey, {
+      ...status,
+      sync: { status: 'queued', errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+    });
+    fetchWithCsrfMock.mockReturnValue(new Promise(() => {}));
+    renderHook(() => useGoogleCalendarConnection(), { wrapper });
+
+    await act(async () => {
+      queryClient.setQueryData(googleCalendarConnectionKey, {
+        ...status,
+        sync: { status: 'failed', errorCode: null, statusAt: '2026-08-16T12:01:00Z' },
+      });
+    });
+    await act(async () => {
+      queryClient.setQueryData(googleCalendarConnectionKey, {
+        ...status,
+        sync: { status: 'succeeded', errorCode: null, statusAt: '2026-08-16T12:02:00Z' },
+      });
+    });
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: studyActivityKeys.all });
+
+    await act(async () => {
+      queryClient.setQueryData(googleCalendarConnectionKey, {
+        ...status,
+        sync: { status: 'running', errorCode: null, statusAt: '2026-08-16T12:03:00Z' },
+      });
+    });
+    await act(async () => {
+      queryClient.setQueryData(googleCalendarConnectionKey, {
+        ...status,
+        sync: { status: 'succeeded', errorCode: null, statusAt: '2026-08-16T12:04:00Z' },
+      });
+    });
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: studyActivityKeys.all })
+    );
+  });
+
   it('loads the exact calendar-list contract', async () => {
     const calendars = {
       calendars: [{ id: 'primary', name: 'Andrew', primary: true }],
