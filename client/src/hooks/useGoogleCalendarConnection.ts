@@ -1,8 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import { studyApiPath } from '../lib/studyApi';
+import { studyActivityKeys } from './useStudyActivity';
 import {
   canonicalizeGoogleCalendarSettings,
   type GoogleCalendarSettings,
@@ -27,6 +29,13 @@ export interface GoogleCalendarConnectionStatus {
   settings: GoogleCalendarSettings | null;
   connectedAt: string | null;
   lastSyncedAt: string | null;
+  sync: GoogleCalendarSyncStatus | null;
+}
+
+export interface GoogleCalendarSyncStatus {
+  status: 'idle' | 'queued' | 'running' | 'succeeded' | 'failed';
+  errorCode: string | null;
+  statusAt: string | null;
 }
 
 export interface GoogleCalendarPreviewMatch {
@@ -63,6 +72,28 @@ export const googleCalendarKeys = {
 export const googleCalendarConnectionKey = googleCalendarKeys.connection();
 export const googleCalendarConnectPath = studyApiPath('/google-calendar/connect');
 
+const isActiveSync = (status: GoogleCalendarSyncStatus['status'] | undefined) =>
+  status === 'queued' || status === 'running';
+
+// A query-client-scoped marker survives card navigation while avoiding duplicate refreshes.
+const pendingStudyActivityRefreshes = new WeakSet<QueryClient>();
+export const GOOGLE_CALENDAR_SYNC_POLL_TIMEOUT_MS = 5 * 60 * 1000;
+
+export const googleCalendarSyncPollInterval = (
+  status: GoogleCalendarSyncStatus['status'] | undefined,
+  timedOut = false
+) => (isActiveSync(status) && !timedOut ? 2000 : false);
+
+export const googleCalendarSyncTimeoutRemaining = (statusAt: string | null, now: number) => {
+  const startedAt = statusAt ? Date.parse(statusAt) : Number.NaN;
+  return Number.isFinite(startedAt)
+    ? Math.min(
+        GOOGLE_CALENDAR_SYNC_POLL_TIMEOUT_MS,
+        Math.max(0, GOOGLE_CALENDAR_SYNC_POLL_TIMEOUT_MS - (now - startedAt))
+      )
+    : GOOGLE_CALENDAR_SYNC_POLL_TIMEOUT_MS;
+};
+
 export type GoogleCalendarErrorKind =
   | 'not_connected'
   | 'validation'
@@ -90,6 +121,7 @@ export class GoogleCalendarRequestError extends Error {
 }
 
 function errorKind(status: number): GoogleCalendarErrorKind {
+  // Active sync triggers are idempotent 202s; 409 is reserved for a missing connection.
   if (status === 409) return 'not_connected';
   if (status === 422) return 'validation';
   if (status === 429) return 'rate_limited';
@@ -140,10 +172,41 @@ async function googleCalendarRequest<T>(path = '', init?: RequestInit): Promise<
 }
 
 export function useGoogleCalendarConnection() {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const [syncPollingTimedOut, setSyncPollingTimedOut] = useState(false);
+  const query = useQuery({
     queryKey: googleCalendarConnectionKey,
     queryFn: () => googleCalendarRequest<GoogleCalendarConnectionStatus>(),
+    refetchInterval: (current) =>
+      googleCalendarSyncPollInterval(current.state.data?.sync?.status, syncPollingTimedOut),
   });
+
+  const sync = query.data?.sync;
+  useEffect(() => {
+    setSyncPollingTimedOut(false);
+    if (!isActiveSync(sync?.status)) return undefined;
+
+    const remaining = googleCalendarSyncTimeoutRemaining(sync?.statusAt ?? null, Date.now());
+    if (remaining === 0) {
+      setSyncPollingTimedOut(true);
+      return undefined;
+    }
+    const timeout = window.setTimeout(() => setSyncPollingTimedOut(true), remaining);
+    return () => window.clearTimeout(timeout);
+  }, [sync?.status, sync?.statusAt]);
+
+  useEffect(() => {
+    if (isActiveSync(sync?.status)) {
+      pendingStudyActivityRefreshes.add(queryClient);
+    } else if (sync?.status === 'succeeded' && pendingStudyActivityRefreshes.has(queryClient)) {
+      pendingStudyActivityRefreshes.delete(queryClient);
+      queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }).catch(() => undefined);
+    } else if (sync?.status === 'failed') {
+      pendingStudyActivityRefreshes.delete(queryClient);
+    }
+  }, [queryClient, sync?.status, sync?.statusAt]);
+
+  return { ...query, syncPollingTimedOut };
 }
 
 export function useGoogleCalendars(enabled = true) {
@@ -194,6 +257,36 @@ export function usePreviewGoogleCalendarEvents() {
           titleMatchTerms: result.settings.titleMatchTerms,
         }),
       });
+    },
+  });
+}
+
+export function useSyncGoogleCalendar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    onMutate: () => {
+      pendingStudyActivityRefreshes.add(queryClient);
+    },
+    mutationFn: () =>
+      googleCalendarRequest<GoogleCalendarConnectionStatus>('/sync', { method: 'POST' }),
+    onSuccess: (connection) => {
+      queryClient.setQueryData(googleCalendarConnectionKey, connection);
+    },
+    onError: async () => {
+      try {
+        await queryClient.refetchQueries(
+          { queryKey: googleCalendarConnectionKey, type: 'all' },
+          { throwOnError: true }
+        );
+      } catch {
+        return;
+      }
+      const status = queryClient.getQueryData<GoogleCalendarConnectionStatus>(
+        googleCalendarConnectionKey
+      )?.sync?.status;
+      if (status !== 'succeeded' && !isActiveSync(status)) {
+        pendingStudyActivityRefreshes.delete(queryClient);
+      }
     },
   });
 }
