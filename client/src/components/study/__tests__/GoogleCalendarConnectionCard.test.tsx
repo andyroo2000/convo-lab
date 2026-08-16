@@ -11,6 +11,9 @@ const {
   connectionMock,
   disconnectMock,
   mutateMock,
+  previewMock,
+  previewMutateMock,
+  previewResetMock,
   refetchMock,
   resetMock,
   saveMutateMock,
@@ -21,6 +24,9 @@ const {
   connectionMock: vi.fn(),
   disconnectMock: vi.fn(),
   mutateMock: vi.fn(),
+  previewMock: vi.fn(),
+  previewMutateMock: vi.fn(),
+  previewResetMock: vi.fn(),
   refetchMock: vi.fn(),
   resetMock: vi.fn(),
   saveMutateMock: vi.fn(),
@@ -32,6 +38,7 @@ vi.mock('../../../hooks/useGoogleCalendarConnection', () => ({
   useGoogleCalendarConnection: () => connectionMock(),
   useDisconnectGoogleCalendar: () => disconnectMock(),
   useGoogleCalendars: () => calendarListMock(),
+  usePreviewGoogleCalendarEvents: () => previewMock(),
   useSaveGoogleCalendarSettings: () => saveSettingsMock(),
 }));
 
@@ -79,6 +86,8 @@ describe('GoogleCalendarConnectionCard', () => {
   beforeEach(() => {
     refetchMock.mockReset().mockResolvedValue({ data: connected, isSuccess: true });
     mutateMock.mockReset();
+    previewMutateMock.mockReset();
+    previewResetMock.mockReset();
     resetMock.mockReset();
     calendarRefetchMock.mockReset();
     saveMutateMock.mockReset().mockResolvedValue(settings);
@@ -109,6 +118,13 @@ describe('GoogleCalendarConnectionCard', () => {
     });
     saveSettingsMock.mockReset().mockReturnValue({
       mutateAsync: saveMutateMock,
+      isPending: false,
+      isError: false,
+    });
+    previewMock.mockReset().mockReturnValue({
+      mutate: previewMutateMock,
+      reset: previewResetMock,
+      data: undefined,
       isPending: false,
       isError: false,
     });
@@ -285,6 +301,177 @@ describe('GoogleCalendarConnectionCard', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await waitFor(() => expect(openButton).toHaveFocus());
+  });
+
+  it('previews the current unsaved canonical choices without saving or refreshing settings', () => {
+    showConnected();
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Japanese lessons' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Event title term 1' }), {
+      target: { value: '  Conversation class  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview matching events' }));
+
+    expect(previewMutateMock).toHaveBeenCalledWith({
+      calendarIds: ['primary', 'lessons'],
+      titleMatchTerms: ['Conversation class', 'Japanese lesson'],
+    });
+    expect(previewResetMock).toHaveBeenCalledTimes(2);
+    expect(saveMutateMock).not.toHaveBeenCalled();
+    expect(refetchMock).not.toHaveBeenCalled();
+  });
+
+  it('shows server bounds, truncation, match details, and imported state as preview-only', () => {
+    previewMock.mockReturnValue({
+      mutate: previewMutateMock,
+      reset: previewResetMock,
+      isPending: false,
+      isError: false,
+      data: {
+        generatedAt: '2026-08-15T12:00:00Z',
+        startsAt: '2026-07-15T12:00:00Z',
+        endsAt: '2026-08-15T12:00:00Z',
+        scannedEventCount: 42,
+        matchedEventCount: 3,
+        truncated: true,
+        matches: [
+          {
+            calendarId: 'primary',
+            calendarName: 'Andrew',
+            title: 'iTalki conversation lesson',
+            startsAt: '2026-08-14T10:00:00Z',
+            endsAt: '2026-08-14T11:00:00Z',
+            durationMs: 3_600_000,
+            matchedTerms: ['iTalki', 'lesson'],
+            alreadySynced: true,
+          },
+          {
+            calendarId: 'lessons',
+            calendarName: 'Japanese lessons',
+            title: 'Speaking practice',
+            startsAt: '2026-08-13T15:00:00Z',
+            endsAt: '2026-08-13T15:30:00Z',
+            durationMs: 1_800_000,
+            matchedTerms: ['practice'],
+            alreadySynced: false,
+          },
+        ],
+      },
+    });
+    showConnected();
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+
+    expect(screen.getByText(/Server search range:/)).toHaveTextContent('2026');
+    expect(screen.getByText(/partial preview: showing 2 of 3/i)).toBeInTheDocument();
+    expect(screen.getByText('iTalki conversation lesson')).toBeInTheDocument();
+    expect(screen.getAllByText('Japanese lessons')).toHaveLength(2);
+    expect(screen.getByLabelText(/to .*1h/)).toBeInTheDocument();
+    expect(screen.getByText('Matched: iTalki, lesson')).toBeInTheDocument();
+    expect(screen.getByText('Imported')).toBeInTheDocument();
+    expect(screen.getByText('Not imported')).toBeInTheDocument();
+    expect(screen.getByText(/42 events checked.*no study time was imported/i)).toBeInTheDocument();
+  });
+
+  it('shows empty, loading, and safe retry states without exposing provider details', () => {
+    previewMock.mockReturnValue({
+      mutate: previewMutateMock,
+      reset: previewResetMock,
+      data: undefined,
+      isPending: false,
+      isError: true,
+      error: new Error('private provider detail'),
+    });
+    showConnected();
+    const { rerender } = renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t preview/i);
+    expect(screen.queryByText(/private provider detail/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try preview again' }));
+    expect(previewMutateMock).toHaveBeenCalledWith({
+      calendarIds: ['primary'],
+      titleMatchTerms: ['iTalki', 'Japanese lesson'],
+    });
+
+    previewMock.mockReturnValue({
+      mutate: previewMutateMock,
+      reset: previewResetMock,
+      data: undefined,
+      isPending: true,
+      isError: false,
+    });
+    rerender(
+      <MemoryRouter initialEntries={['/app/study/time']}>
+        <GoogleCalendarConnectionCard />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(/without importing anything/i);
+    expect(screen.getByRole('button', { name: 'Checking…' })).toBeDisabled();
+
+    previewMock.mockReturnValue({
+      mutate: previewMutateMock,
+      reset: previewResetMock,
+      data: {
+        generatedAt: '2026-08-15T12:00:00Z',
+        startsAt: '2026-08-01T12:00:00Z',
+        endsAt: '2026-08-15T12:00:00Z',
+        scannedEventCount: 4,
+        matchedEventCount: 0,
+        truncated: false,
+        matches: [],
+      },
+      isPending: false,
+      isError: false,
+    });
+    rerender(
+      <MemoryRouter initialEntries={['/app/study/time']}>
+        <GoogleCalendarConnectionCard />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('No matching events')).toBeInTheDocument();
+  });
+
+  it('blocks preview and retry while a settings save is in flight', () => {
+    saveSettingsMock.mockReturnValue({
+      mutateAsync: saveMutateMock,
+      isPending: true,
+      isError: false,
+    });
+    previewMock.mockReturnValue({
+      mutate: previewMutateMock,
+      reset: previewResetMock,
+      data: undefined,
+      isPending: false,
+      isError: true,
+    });
+    showConnected();
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+
+    expect(screen.getByRole('button', { name: 'Refresh preview' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Try preview again' })).toBeDisabled();
+  });
+
+  it('blocks preview while refreshing remote settings before save', async () => {
+    refetchMock.mockReturnValue(new Promise(() => {}));
+    previewMock.mockReturnValue({
+      mutate: previewMutateMock,
+      reset: previewResetMock,
+      data: undefined,
+      isPending: false,
+      isError: true,
+    });
+    showConnected();
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Refresh preview' })).toBeDisabled()
+    );
+    expect(screen.getByRole('button', { name: 'Try preview again' })).toBeDisabled();
   });
   it('saves only changed calendar IDs while preserving every other setting', async () => {
     const opened = {
