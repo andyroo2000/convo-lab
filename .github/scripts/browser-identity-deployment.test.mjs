@@ -68,6 +68,7 @@ test('Learning OS production receives versioned Google OAuth configuration', asy
     'upsert_env LEARNING_OS_GOOGLE_REDIRECT_URI "$google_redirect_uri"',
     'upsert_env GOOGLE_CALENDAR_REDIRECT_URI "$google_calendar_redirect_uri"',
     'google_oauth_config_revision="$(printf',
+    '"$google_calendar_redirect_uri"',
     'upsert_env LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION "$google_oauth_config_revision"',
     "sed -n 's/^LEARNING_OS_GOOGLE_OAUTH_CONFIG_REVISION=//p'",
     '[ "$current_google_oauth_config_revision" = "$google_oauth_config_revision" ]',
