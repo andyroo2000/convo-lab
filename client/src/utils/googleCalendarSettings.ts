@@ -61,6 +61,7 @@ function canonicalStrings(
   const seen = new Set<string>();
   const values: string[] = [];
   value.forEach((raw) => {
+    // Match the server's bounded pre-trim scan before running its Unicode whitespace regex.
     if ([...raw].length > maximumLength + 64) {
       if (!errors.some((error) => error.code === 'too_long')) {
         errors.push({ field, code: 'too_long' });
