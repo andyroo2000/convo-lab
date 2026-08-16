@@ -94,7 +94,7 @@ describe('Google Calendar connection requests', () => {
     expect(setQueryData).toHaveBeenCalledWith(googleCalendarConnectionKey, queued);
   });
 
-  it('invalidates study time once when an active sync transitions to succeeded', async () => {
+  it('invalidates all study time once after completion across an unmount', async () => {
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     const queued = {
@@ -112,13 +112,16 @@ describe('Google Calendar connection requests', () => {
     };
     queryClient.setQueryData(googleCalendarConnectionKey, queued);
     fetchWithCsrfMock.mockReturnValue(new Promise(() => {}));
-    renderHook(() => useGoogleCalendarConnection(), { wrapper: createWrapper(queryClient) });
+    const wrapper = createWrapper(queryClient);
+    const { unmount } = renderHook(() => useGoogleCalendarConnection(), { wrapper });
+    unmount();
 
     await act(async () => {
       queryClient.setQueryData(googleCalendarConnectionKey, succeeded);
     });
+    renderHook(() => useGoogleCalendarConnection(), { wrapper });
     await waitFor(() =>
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: studyActivityKeys.analyticsAll() })
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: studyActivityKeys.all })
     );
     await act(async () => {
       queryClient.setQueryData(googleCalendarConnectionKey, { ...succeeded });
@@ -126,8 +129,7 @@ describe('Google Calendar connection requests', () => {
 
     expect(
       invalidate.mock.calls.filter(
-        ([options]) =>
-          JSON.stringify(options?.queryKey) === JSON.stringify(studyActivityKeys.analyticsAll())
+        ([options]) => JSON.stringify(options?.queryKey) === JSON.stringify(studyActivityKeys.all)
       )
     ).toHaveLength(1);
   });

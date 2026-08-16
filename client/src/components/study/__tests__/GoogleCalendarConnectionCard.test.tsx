@@ -200,6 +200,7 @@ describe('GoogleCalendarConnectionCard', () => {
     });
     renderCard();
 
+    expect(screen.getByRole('button', { name: 'Syncing…' })).toHaveClass('gap-2');
     expect(screen.getByRole('button', { name: 'Syncing…' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Calendar settings' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeDisabled();
@@ -218,7 +219,7 @@ describe('GoogleCalendarConnectionCard', () => {
     );
   });
 
-  it('maps a reconnect failure safely and offers sync retry', () => {
+  it('maps a persisted reconnect failure to the sole recovery action', () => {
     showConnected({
       ...connected,
       sync: {
@@ -234,8 +235,7 @@ describe('GoogleCalendarConnectionCard', () => {
       'href',
       '/api/study/google-calendar/connect'
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Try sync again' }));
-    expect(syncMutateMock).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('button', { name: 'Try sync again' })).not.toBeInTheDocument();
   });
 
   it('hides raw manual-sync failure details', () => {
@@ -263,6 +263,7 @@ describe('GoogleCalendarConnectionCard', () => {
     renderCard();
 
     expect(screen.getByRole('link', { name: 'Reconnect Google Calendar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Try sync again' })).not.toBeInTheDocument();
     expect(screen.queryByText(/provider detail/i)).not.toBeInTheDocument();
   });
 

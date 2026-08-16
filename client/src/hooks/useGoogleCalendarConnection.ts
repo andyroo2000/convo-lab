@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
@@ -74,6 +74,9 @@ export const googleCalendarConnectPath = studyApiPath('/google-calendar/connect'
 
 const isActiveSync = (status: GoogleCalendarSyncStatus['status'] | undefined) =>
   status === 'queued' || status === 'running';
+
+// A query-client-scoped marker survives card navigation while avoiding duplicate refreshes.
+const pendingStudyActivityRefreshes = new WeakMap<QueryClient, string | null>();
 
 export const googleCalendarSyncPollInterval = (
   status: GoogleCalendarSyncStatus['status'] | undefined
@@ -157,7 +160,6 @@ async function googleCalendarRequest<T>(path = '', init?: RequestInit): Promise<
 
 export function useGoogleCalendarConnection() {
   const queryClient = useQueryClient();
-  const previousStatus = useRef<GoogleCalendarSyncStatus['status'] | null>(null);
   const query = useQuery({
     queryKey: googleCalendarConnectionKey,
     queryFn: () => googleCalendarRequest<GoogleCalendarConnectionStatus>(),
@@ -166,15 +168,13 @@ export function useGoogleCalendarConnection() {
 
   const sync = query.data?.sync;
   useEffect(() => {
-    const completedActiveSync =
-      isActiveSync(previousStatus.current ?? undefined) && sync?.status === 'succeeded';
-    if (completedActiveSync) {
-      queryClient
-        .invalidateQueries({ queryKey: studyActivityKeys.analyticsAll() })
-        .catch(() => undefined);
+    if (isActiveSync(sync?.status)) {
+      pendingStudyActivityRefreshes.set(queryClient, sync?.statusAt ?? null);
+    } else if (sync?.status === 'succeeded' && pendingStudyActivityRefreshes.has(queryClient)) {
+      pendingStudyActivityRefreshes.delete(queryClient);
+      queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }).catch(() => undefined);
     }
-    previousStatus.current = sync?.status ?? null;
-  }, [queryClient, sync?.status]);
+  }, [queryClient, sync?.status, sync?.statusAt]);
 
   return query;
 }
@@ -234,10 +234,16 @@ export function usePreviewGoogleCalendarEvents() {
 export function useSyncGoogleCalendar() {
   const queryClient = useQueryClient();
   return useMutation({
+    onMutate: () => {
+      pendingStudyActivityRefreshes.set(queryClient, null);
+    },
     mutationFn: () =>
       googleCalendarRequest<GoogleCalendarConnectionStatus>('/sync', { method: 'POST' }),
     onSuccess: (connection) => {
       queryClient.setQueryData(googleCalendarConnectionKey, connection);
+    },
+    onError: () => {
+      pendingStudyActivityRefreshes.delete(queryClient);
     },
   });
 }

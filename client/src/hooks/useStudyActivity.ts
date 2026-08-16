@@ -21,8 +21,7 @@ export const MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING = 2;
 export const studyActivityKeys = {
   all: ['study-activity'] as const,
   range: (from: string, to: string) => [...studyActivityKeys.all, from, to] as const,
-  analyticsAll: () => [...studyActivityKeys.all, 'analytics'] as const,
-  analytics: (anchorDate: string) => [...studyActivityKeys.analyticsAll(), anchorDate] as const,
+  analytics: (anchorDate: string) => [...studyActivityKeys.all, 'analytics', anchorDate] as const,
 };
 
 async function activityRequest<T>(path: string, init?: RequestInit): Promise<T> {

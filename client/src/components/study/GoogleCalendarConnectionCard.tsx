@@ -60,6 +60,7 @@ const GoogleCalendarConnectionCard = () => {
   const syncActive = calendarSync.isPending || syncStatus === 'queued' || syncStatus === 'running';
   const syncFailed = calendarSync.isError || syncStatus === 'failed';
   const reconnectRequired =
+    // Persisted jobs and immediate 409 responses use different safe codes for the same UX.
     connection.data?.sync?.errorCode === 'reconnect_required' ||
     isReconnectError(calendarSync.error);
   let syncStatusText = t('time.calendarConnection.syncReady');
@@ -233,17 +234,19 @@ const GoogleCalendarConnectionCard = () => {
             ) : null}
 
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="btn-primary min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={() => calendarSync.mutate()}
-                disabled={syncActive}
-              >
-                {syncActive ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : null}
-                {syncActionText}
-              </button>
+              {!reconnectRequired ? (
+                <button
+                  type="button"
+                  className="btn-primary inline-flex min-h-11 items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => calendarSync.mutate()}
+                  disabled={syncActive}
+                >
+                  {syncActive ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  {syncActionText}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="btn-outline min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
