@@ -178,7 +178,7 @@ describe('Google Calendar connection requests', () => {
       sync: { status: 'queued', errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
     });
     fetchWithCsrfMock.mockReturnValue(new Promise(() => {}));
-    renderHook(() => useGoogleCalendarConnection(), { wrapper });
+    const view = renderHook(() => useGoogleCalendarConnection(), { wrapper });
 
     await act(async () => {
       queryClient.setQueryData(googleCalendarConnectionKey, {
@@ -186,6 +186,7 @@ describe('Google Calendar connection requests', () => {
         sync: { status: 'failed', errorCode: null, statusAt: '2026-08-16T12:01:00Z' },
       });
     });
+    await waitFor(() => expect(view.result.current.data?.sync?.status).toBe('failed'));
     await act(async () => {
       queryClient.setQueryData(googleCalendarConnectionKey, {
         ...status,
@@ -200,6 +201,7 @@ describe('Google Calendar connection requests', () => {
         sync: { status: 'running', errorCode: null, statusAt: '2026-08-16T12:03:00Z' },
       });
     });
+    await waitFor(() => expect(view.result.current.data?.sync?.status).toBe('running'));
     await act(async () => {
       queryClient.setQueryData(googleCalendarConnectionKey, {
         ...status,
