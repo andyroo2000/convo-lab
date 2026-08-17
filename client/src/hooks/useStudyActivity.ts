@@ -26,7 +26,6 @@ export const MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING = 2;
 
 export const studyActivityKeys = {
   all: ['study-activity'] as const,
-  range: (from: string, to: string) => [...studyActivityKeys.all, from, to] as const,
   analytics: (anchorDate: string) => [...studyActivityKeys.all, 'analytics', anchorDate] as const,
   editable: () => [...studyActivityKeys.all, 'editable'] as const,
 };
@@ -60,20 +59,6 @@ export async function saveStudyActivitySessions(
     }
   );
   return storedSessions.map(decodeStudyActivitySession);
-}
-
-export function useStudyActivitySessions(from: Date, to: Date) {
-  const fromIso = from.toISOString();
-  const toIso = to.toISOString();
-  return useQuery({
-    queryKey: studyActivityKeys.range(fromIso, toIso),
-    queryFn: async () => {
-      const sessions = await activityRequest<StudyActivitySessionWire[]>(
-        `/activity-sessions?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`
-      );
-      return sessions.map(decodeStudyActivitySession);
-    },
-  });
 }
 
 interface EditableStudyActivitySessionPageWire {

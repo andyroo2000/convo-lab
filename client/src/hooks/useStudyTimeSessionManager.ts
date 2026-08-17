@@ -80,9 +80,9 @@ export function useStudyTimeSessionManager() {
     Number.isFinite(new Date(editDate).getTime());
   const manualSessions = useMemo(
     () =>
-      [...(sessionsQuery.data?.pages.flatMap((page) => page.items) ?? [])].sort((left, right) =>
-        right.startedAt.localeCompare(left.startedAt)
-      ),
+      [...(sessionsQuery.data?.pages.flatMap((page) => page.items) ?? [])]
+        .filter((session) => session.editable)
+        .sort((left, right) => right.startedAt.localeCompare(left.startedAt)),
     [sessionsQuery.data]
   );
 
