@@ -404,7 +404,7 @@ describe('GoogleCalendarConnectionCard', () => {
   });
 
   it('refreshes status, keeps a friendly callback result, and cleans callback parameters', async () => {
-    renderCard('/app/study/time?calendarConnection=error&reason=access_denied&keep=1');
+    renderCard('/app/settings/integrations?calendarConnection=error&reason=access_denied&keep=1');
 
     expect(screen.getByRole('alert')).toHaveTextContent(/access was canceled/i);
     await waitFor(() => expect(refetchMock).toHaveBeenCalledOnce());
@@ -440,7 +440,7 @@ describe('GoogleCalendarConnectionCard', () => {
   });
 
   it('shows a successful callback result after cleaning its query parameter', async () => {
-    renderCard('/app/study/time?calendarConnection=connected');
+    renderCard('/app/settings/integrations?calendarConnection=connected');
 
     expect(screen.getByText(/is connected\. Your study timeline/i)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId('location-search')).toBeEmptyDOMElement());

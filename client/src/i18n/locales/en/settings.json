@@ -4,6 +4,7 @@
   "tabs": {
     "profile": "Profile",
     "security": "Security",
+    "integrations": "Integrations",
     "danger": "Danger Zone"
   },
   "profile": {

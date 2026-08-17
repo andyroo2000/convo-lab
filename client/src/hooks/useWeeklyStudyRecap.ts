@@ -44,5 +44,6 @@ export function useWeeklyStudyRecap() {
       if (!response.ok) throw new Error('Unable to load the weekly study recap.');
       return response.json() as Promise<WeeklyStudyRecap>;
     },
+    staleTime: 15 * 60 * 1000,
   });
 }

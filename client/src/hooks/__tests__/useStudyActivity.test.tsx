@@ -1,7 +1,18 @@
-import { act, render } from '@testing-library/react';
+import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useAutomaticStudyActivity } from '../useStudyActivity';
+import { createWrapper } from '../../__tests__/hooks/test-utils';
+import { useAutomaticStudyActivity, useEditableStudyActivitySessions } from '../useStudyActivity';
+
+const { fetchWithCsrfMock, notifyAuthSessionExpiredMock } = vi.hoisted(() => ({
+  fetchWithCsrfMock: vi.fn(),
+  notifyAuthSessionExpiredMock: vi.fn(),
+}));
+
+vi.mock('../../lib/csrf', () => ({ fetchWithCsrf: fetchWithCsrfMock }));
+vi.mock('../../lib/authSession', () => ({
+  notifyAuthSessionExpired: notifyAuthSessionExpiredMock,
+}));
 
 const start = vi.fn();
 const stop = vi.fn();
@@ -45,5 +56,58 @@ describe('useAutomaticStudyActivity', () => {
     visibility = 'visible';
     act(() => document.dispatchEvent(new Event('visibilitychange')));
     expect(start).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('useEditableStudyActivitySessions', () => {
+  beforeEach(() => {
+    fetchWithCsrfMock.mockReset();
+    notifyAuthSessionExpiredMock.mockReset();
+  });
+
+  it('loads cursor pages and stops after a null next cursor', async () => {
+    const session = (clientSessionId: string) => ({
+      id: `server-${clientSessionId}`,
+      clientSessionId,
+      category: 'immerse',
+      activity: 'tv',
+      source: 'manual',
+      origin: 'web',
+      name: 'Drama',
+      startedAt: '2026-08-16T14:00:00Z',
+      endedAt: '2026-08-16T14:30:00Z',
+      durationMs: 1_800_000,
+    });
+    fetchWithCsrfMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ items: [session('first')], limit: 20, nextCursor: 'next page' }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ items: [session('second')], limit: 20, nextCursor: null }), {
+          status: 200,
+        })
+      );
+
+    const { result } = renderHook(() => useEditableStudyActivitySessions(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.data?.pages).toHaveLength(1));
+
+    await act(() => result.current.fetchNextPage());
+    await waitFor(() => expect(result.current.data?.pages).toHaveLength(2));
+
+    expect(fetchWithCsrfMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/study/activity-sessions/editable?per_page=20',
+      '/api/study/activity-sessions/editable?per_page=20&cursor=next+page',
+    ]);
+    expect(result.current.data?.pages.flatMap((page) => page.items)).toEqual([
+      expect.objectContaining({ clientSessionId: 'first', editable: true }),
+      expect.objectContaining({ clientSessionId: 'second', editable: true }),
+    ]);
+    expect(result.current.hasNextPage).toBe(false);
+    expect(notifyAuthSessionExpiredMock).toHaveBeenCalledTimes(2);
   });
 });

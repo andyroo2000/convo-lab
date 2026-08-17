@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import SettingsPage from '../SettingsPage';
 
+vi.mock('../../components/study/GoogleCalendarConnectionCard', () => ({
+  default: () => <section aria-label="Google Calendar settings">Google Calendar settings</section>,
+}));
+
 // Mock useNavigate
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -70,12 +74,21 @@ describe('SettingsPage', () => {
 
       expect(screen.getByTestId('settings-tab-profile')).toBeInTheDocument();
       expect(screen.getByTestId('settings-tab-security')).toBeInTheDocument();
+      expect(screen.getByTestId('settings-tab-integrations')).toBeInTheDocument();
       expect(screen.getByTestId('settings-tab-danger')).toBeInTheDocument();
     });
 
     it('should redirect unknown tabs to profile', () => {
       renderWithRouter('/app/settings/language');
       expect(mockNavigate).toHaveBeenCalledWith('/app/settings/profile', { replace: true });
+    });
+  });
+
+  describe('Integrations Tab', () => {
+    it('keeps Google Calendar controls in settings', () => {
+      renderWithRouter('/app/settings/integrations');
+
+      expect(screen.getByLabelText('Google Calendar settings')).toBeInTheDocument();
     });
   });
 

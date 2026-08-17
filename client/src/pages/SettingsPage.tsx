@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Trash2, Lock, Camera } from 'lucide-react';
+import { User, Trash2, Lock, Camera, CalendarDays } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import { adminApi } from '../lib/adminApi';
+import GoogleCalendarConnectionCard from '../components/study/GoogleCalendarConnectionCard';
 
-type Tab = 'profile' | 'security' | 'danger';
-const SETTINGS_TABS = new Set<string>(['profile', 'security', 'danger']);
+type Tab = 'profile' | 'security' | 'integrations' | 'danger';
+const SETTINGS_TABS = new Set<string>(['profile', 'security', 'integrations', 'danger']);
 
 const SettingsPage = () => {
   const { t } = useTranslation(['settings', 'common']);
@@ -309,6 +310,15 @@ const SettingsPage = () => {
             </button>
             <button
               type="button"
+              onClick={() => navigate('/app/settings/integrations')}
+              className={getTabButtonClass('integrations')}
+              data-testid="settings-tab-integrations"
+            >
+              <CalendarDays className="w-4 h-4" />
+              <span>{t('settings:tabs.integrations')}</span>
+            </button>
+            <button
+              type="button"
               onClick={() => navigate('/app/settings/danger')}
               className={getTabButtonClass('danger')}
               data-testid="settings-tab-danger"
@@ -527,6 +537,12 @@ const SettingsPage = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'integrations' && (
+            <div className="mx-auto max-w-4xl">
+              <GoogleCalendarConnectionCard />
             </div>
           )}
 
