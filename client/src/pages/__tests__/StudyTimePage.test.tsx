@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import shiftStudyTimeAnchor from '../../utils/studyTimePeriod';
@@ -8,20 +8,20 @@ const {
   analyticsAnchorMock,
   deleteMutateMock,
   deleteResetMock,
+  fetchNextPageMock,
   logCompletedMock,
   saveMutateMock,
   saveResetMock,
-  sessionsRangeMock,
   studyActivityStatusMock,
   stopMock,
 } = vi.hoisted(() => ({
   analyticsAnchorMock: vi.fn(),
   deleteMutateMock: vi.fn(),
   deleteResetMock: vi.fn(),
+  fetchNextPageMock: vi.fn(),
   logCompletedMock: vi.fn(),
   saveMutateMock: vi.fn(),
   saveResetMock: vi.fn(),
-  sessionsRangeMock: vi.fn(),
   studyActivityStatusMock: vi.fn(),
   stopMock: vi.fn(),
 }));
@@ -220,56 +220,36 @@ vi.mock('../../hooks/useStudyActivity', () => ({
       isFetching: false,
     };
   },
-  useStudyActivitySessions: (from: Date, to: Date) => {
-    sessionsRangeMock(from, to);
-    return {
-      data: [
+  useEditableStudyActivitySessions: () => ({
+    data: {
+      pages: [
         {
-          clientSessionId: '018f22d2-6d38-7000-8000-000000000002',
-          category: 'create',
-          activity: 'card_creation',
-          source: 'manual',
-          origin: 'legacy',
-          provider: null,
-          editable: true,
-          name: 'Episode 8 cards',
-          startedAt: '2026-07-28T19:00:00Z',
-          endedAt: '2026-07-28T19:45:00Z',
-          durationMs: 2_700_000,
-          audioPlaybackMs: null,
-          cardsCreated: 12,
-        },
-        {
-          clientSessionId: '018f22d2-6d38-7000-8000-000000000003',
-          category: 'review',
-          activity: 'card_review',
-          source: 'automatic',
-          origin: 'legacy',
-          provider: null,
-          editable: false,
-          name: 'Automatic review',
-          startedAt: '2026-07-28T18:00:00Z',
-          endedAt: '2026-07-28T18:30:00Z',
-          durationMs: 1_800_000,
-        },
-        {
-          clientSessionId: '018f22d2-6d38-7000-8000-000000000004',
-          category: 'conversation',
-          activity: 'conversation',
-          source: 'calendar',
-          origin: 'google_calendar',
-          provider: 'google_calendar',
-          editable: false,
-          name: 'Imported iTalki lesson',
-          startedAt: '2026-07-28T17:00:00Z',
-          endedAt: '2026-07-28T18:00:00Z',
-          durationMs: 3_600_000,
+          items: [
+            {
+              clientSessionId: '018f22d2-6d38-7000-8000-000000000002',
+              category: 'create',
+              activity: 'card_creation',
+              source: 'manual',
+              origin: 'legacy',
+              provider: null,
+              editable: true,
+              name: 'Episode 8 cards',
+              startedAt: '2026-07-28T19:00:00Z',
+              endedAt: '2026-07-28T19:45:00Z',
+              durationMs: 2_700_000,
+              audioPlaybackMs: null,
+              cardsCreated: 12,
+            },
+          ],
         },
       ],
-      isLoading: false,
-      isError: false,
-    };
-  },
+    },
+    isLoading: false,
+    isError: false,
+    hasNextPage: true,
+    isFetchingNextPage: false,
+    fetchNextPage: fetchNextPageMock,
+  }),
   useSaveStudyActivitySession: () => ({
     mutate: saveMutateMock,
     reset: saveResetMock,
@@ -296,7 +276,7 @@ describe('StudyTimePage', () => {
     deleteMutateMock.mockReset();
     deleteResetMock.mockReset();
     saveResetMock.mockReset();
-    sessionsRangeMock.mockReset();
+    fetchNextPageMock.mockReset();
     stopMock.mockReset();
     studyActivityStatusMock.mockReset();
     studyActivityStatusMock.mockReturnValue({ active: null });
@@ -322,43 +302,10 @@ describe('StudyTimePage', () => {
     );
   });
 
-  it('refreshes the session window after a stopped timer finishes persisting', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-07-29T16:00:00Z'));
-    let finishPersistence!: () => void;
-    stopMock.mockReturnValue(
-      new Promise<void>((resolve) => {
-        finishPersistence = resolve;
-      })
-    );
-    studyActivityStatusMock.mockReturnValue({
-      active: {
-        clientSessionId: '018f22d2-6d38-7000-8000-000000000004',
-        category: 'immerse',
-        activity: 'tv',
-        source: 'manual',
-        name: 'Evening drama',
-        startedAt: '2026-07-29T16:00:00Z',
-        cardsCreated: 0,
-      },
-    });
-
+  it('loads additional editable entries without expanding the sync window', () => {
     render(<StudyTimePage />);
-    expect(sessionsRangeMock.mock.calls.at(-1)?.[1]).toEqual(new Date('2026-07-29T16:01:00Z'));
-
-    vi.setSystemTime(new Date('2026-07-29T16:05:00Z'));
-    fireEvent.click(screen.getByRole('button', { name: 'Stop Evening drama' }));
-
-    expect(stopMock).toHaveBeenCalledOnce();
-    expect(sessionsRangeMock.mock.calls.at(-1)?.[1]).toEqual(new Date('2026-07-29T16:06:00Z'));
-
-    vi.setSystemTime(new Date('2026-07-29T16:05:30Z'));
-    await act(async () => {
-      finishPersistence();
-      await Promise.resolve();
-    });
-
-    expect(sessionsRangeMock.mock.calls.at(-1)?.[1]).toEqual(new Date('2026-07-29T16:06:30Z'));
+    fireEvent.click(screen.getByRole('button', { name: 'Load more entries' }));
+    expect(fetchNextPageMock).toHaveBeenCalledOnce();
   });
 
   it('switches analytics ranges', () => {
@@ -455,7 +402,7 @@ describe('StudyTimePage', () => {
     const drillableBar = within(chart).getAllByRole('button')[0];
     fireEvent.doubleClick(drillableBar);
 
-    expect(screen.getByRole('radio', { name: 'Today' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Day' })).toBeChecked();
   });
 
   it('edits a manual entry and remaps its category', () => {

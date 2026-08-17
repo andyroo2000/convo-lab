@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { notifyAuthSessionExpired } from '../lib/authSession';
@@ -22,6 +28,7 @@ export const studyActivityKeys = {
   all: ['study-activity'] as const,
   range: (from: string, to: string) => [...studyActivityKeys.all, from, to] as const,
   analytics: (anchorDate: string) => [...studyActivityKeys.all, 'analytics', anchorDate] as const,
+  editable: () => [...studyActivityKeys.all, 'editable'] as const,
 };
 
 async function activityRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -66,6 +73,31 @@ export function useStudyActivitySessions(from: Date, to: Date) {
       );
       return sessions.map(decodeStudyActivitySession);
     },
+  });
+}
+
+interface EditableStudyActivitySessionPageWire {
+  items: StudyActivitySessionWire[];
+  limit: number;
+  nextCursor: string | null;
+}
+
+export function useEditableStudyActivitySessions() {
+  return useInfiniteQuery({
+    queryKey: studyActivityKeys.editable(),
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
+      const query = new URLSearchParams({ per_page: '20' });
+      if (pageParam) query.set('cursor', pageParam);
+      const page = await activityRequest<EditableStudyActivitySessionPageWire>(
+        `/activity-sessions/editable?${query.toString()}`
+      );
+      return {
+        ...page,
+        items: page.items.map(decodeStudyActivitySession),
+      };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 }
 

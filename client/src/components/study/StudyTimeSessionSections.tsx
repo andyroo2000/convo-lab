@@ -209,6 +209,16 @@ const StudyManualSessionsSection = ({
           </div>
         ))}
       </div>
+      {history.hasNextPage ? (
+        <button
+          type="button"
+          className="btn-outline mt-4 w-full"
+          onClick={() => history.loadMore()}
+          disabled={history.isFetchingNextPage}
+        >
+          {history.isFetchingNextPage ? t('time.manual.loadingMore') : t('time.manual.loadMore')}
+        </button>
+      ) : null}
     </section>
   );
 };

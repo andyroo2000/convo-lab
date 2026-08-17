@@ -4,17 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useStudyActivityActions, useStudyActivityStatus } from '../contexts/StudyActivityContext';
 import {
   useDeleteStudyActivitySession,
+  useEditableStudyActivitySessions,
   useSaveStudyActivitySession,
-  useStudyActivitySessions,
 } from './useStudyActivity';
 import type {
   StudyActivityCategory,
   StudyActivityKind,
   StudyActivitySession,
 } from '../types/studyActivity';
-
-const SESSION_HISTORY_DAYS = 93;
-const SESSION_WINDOW_BUFFER_MS = 60_000;
 
 export const STUDY_ACTIVITY_OPTIONS: Array<{
   activity: StudyActivityKind;
@@ -50,23 +47,9 @@ export function studyActivityTranslationKey(activity: StudyActivityKind) {
   return activity;
 }
 
-function bufferedWindowEnd(endedAt?: Date) {
-  return new Date(
-    Math.max(
-      Date.now() + SESSION_WINDOW_BUFFER_MS,
-      (endedAt?.getTime() ?? 0) + SESSION_WINDOW_BUFFER_MS
-    )
-  );
-}
-
 export function useStudyTimeSessionManager() {
   const { t } = useTranslation(['study']);
-  const [sessionWindowEnd, setSessionWindowEnd] = useState(() => bufferedWindowEnd());
-  const rollingStart = useMemo(
-    () => new Date(sessionWindowEnd.getTime() - SESSION_HISTORY_DAYS * 86_400_000),
-    [sessionWindowEnd]
-  );
-  const sessionsQuery = useStudyActivitySessions(rollingStart, sessionWindowEnd);
+  const sessionsQuery = useEditableStudyActivitySessions();
   const saveSession = useSaveStudyActivitySession();
   const deleteSession = useDeleteStudyActivitySession();
   const { active } = useStudyActivityStatus();
@@ -97,9 +80,9 @@ export function useStudyTimeSessionManager() {
     Number.isFinite(new Date(editDate).getTime());
   const manualSessions = useMemo(
     () =>
-      [...(sessionsQuery.data ?? [])]
-        .filter((session) => session.editable)
-        .sort((left, right) => right.startedAt.localeCompare(left.startedAt)),
+      [...(sessionsQuery.data?.pages.flatMap((page) => page.items) ?? [])].sort((left, right) =>
+        right.startedAt.localeCompare(left.startedAt)
+      ),
     [sessionsQuery.data]
   );
 
@@ -113,19 +96,13 @@ export function useStudyTimeSessionManager() {
   };
 
   const stopTimer = async () => {
-    // The sessions query has a bounded upper timestamp. Advance it before the
-    // provider persists and invalidates the stopped timer so the refetch can
-    // include the newly completed session.
-    setSessionWindowEnd(bufferedWindowEnd());
     await stopAndWait();
-    setSessionWindowEnd(bufferedWindowEnd());
   };
 
   const addEntry = async () => {
     if (!validEntry) return;
     const startedAt = new Date(entryDate);
     const endedAt = new Date(startedAt.getTime() + minutes * 60_000);
-    setSessionWindowEnd(bufferedWindowEnd(endedAt));
     await logCompletedAndWait({
       clientSessionId: crypto.randomUUID(),
       category: selectedOption.category,
@@ -136,7 +113,6 @@ export function useStudyTimeSessionManager() {
       endedAt: endedAt.toISOString(),
       durationMs: minutes * 60_000,
     });
-    setSessionWindowEnd(bufferedWindowEnd(endedAt));
   };
 
   const beginEditing = (session: StudyActivitySession) => {
@@ -175,7 +151,6 @@ export function useStudyTimeSessionManager() {
       },
       {
         onSuccess: () => {
-          setSessionWindowEnd(bufferedWindowEnd(endedAt));
           setEditing(null);
         },
       }
@@ -224,6 +199,9 @@ export function useStudyTimeSessionManager() {
       sessions: manualSessions,
       isLoading: sessionsQuery.isLoading,
       isError: sessionsQuery.isError,
+      hasNextPage: sessionsQuery.hasNextPage,
+      isFetchingNextPage: sessionsQuery.isFetchingNextPage,
+      loadMore: () => sessionsQuery.fetchNextPage(),
       beginEditing,
       beginDeleting,
     },

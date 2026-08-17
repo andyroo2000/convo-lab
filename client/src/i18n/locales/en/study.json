@@ -444,7 +444,7 @@
       "loading": "Loading your rhythm…",
       "error": "We couldn’t load study analytics. Try refreshing the page.",
       "ranges": {
-        "today": "Today",
+        "today": "Day",
         "week": "Week",
         "month": "Month",
         "year": "Year",
@@ -630,7 +630,9 @@
       "cards": "{{count}} cards",
       "entryFallback": "study entry",
       "editAria": "Edit {{name}}",
-      "deleteAria": "Delete {{name}}"
+      "deleteAria": "Delete {{name}}",
+      "loadMore": "Load more entries",
+      "loadingMore": "Loading more entries…"
     },
     "edit": {
       "title": "Edit study time",

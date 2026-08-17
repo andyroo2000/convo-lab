@@ -427,7 +427,7 @@
       "loading": "学習リズムを読み込み中…",
       "error": "学習分析を読み込めませんでした。ページを更新してください。",
       "ranges": {
-        "today": "今日",
+        "today": "日",
         "week": "週",
         "month": "月",
         "year": "年",
@@ -613,7 +613,9 @@
       "cards": "カード{{count}}枚",
       "entryFallback": "学習記録",
       "editAria": "{{name}}を編集",
-      "deleteAria": "{{name}}を削除"
+      "deleteAria": "{{name}}を削除",
+      "loadMore": "さらに読み込む",
+      "loadingMore": "読み込み中…"
     },
     "edit": {
       "title": "学習時間を編集",

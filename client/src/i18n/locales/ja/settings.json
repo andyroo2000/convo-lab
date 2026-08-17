@@ -4,6 +4,7 @@
   "tabs": {
     "profile": "プロフィール",
     "security": "セキュリティ",
+    "integrations": "連携",
     "danger": "危険ゾーン"
   },
   "profile": {
