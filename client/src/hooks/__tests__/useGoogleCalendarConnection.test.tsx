@@ -80,6 +80,50 @@ describe('Google Calendar connection requests', () => {
     );
   });
 
+  it('performs a final timeout refetch and surfaces a terminal sync status', async () => {
+    const running = {
+      ...status,
+      sync: { status: 'running' as const, errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+    };
+    const failed = {
+      ...status,
+      sync: {
+        status: 'failed' as const,
+        errorCode: 'invalid_provider_response',
+        statusAt: '2026-08-16T12:05:01Z',
+      },
+    };
+    fetchWithCsrfMock
+      .mockResolvedValueOnce(new Response(JSON.stringify(running), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(failed), { status: 200 }));
+
+    const { result } = renderHook(() => useGoogleCalendarConnection(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.data?.sync?.status).toBe('failed'));
+    expect(result.current.syncPollingTimedOut).toBe(false);
+    expect(fetchWithCsrfMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('offers recovery when the final timeout refetch is still active', async () => {
+    const running = {
+      ...status,
+      sync: { status: 'running' as const, errorCode: null, statusAt: '2026-08-16T12:00:00Z' },
+    };
+    fetchWithCsrfMock.mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify(running), { status: 200 }))
+    );
+
+    const { result } = renderHook(() => useGoogleCalendarConnection(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.syncPollingTimedOut).toBe(true));
+    expect(result.current.data?.sync?.status).toBe('running');
+    expect(fetchWithCsrfMock).toHaveBeenCalledTimes(2);
+  });
+
   it('posts a bodyless sync and caches the returned full connection status', async () => {
     const queued = {
       ...status,

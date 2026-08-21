@@ -181,19 +181,45 @@ export function useGoogleCalendarConnection() {
       googleCalendarSyncPollInterval(current.state.data?.sync?.status, syncPollingTimedOut),
   });
 
+  const { refetch } = query;
   const sync = query.data?.sync;
   useEffect(() => {
+    let current = true;
     setSyncPollingTimedOut(false);
-    if (!isActiveSync(sync?.status)) return undefined;
+    if (!isActiveSync(sync?.status)) {
+      return () => {
+        current = false;
+      };
+    }
+
+    const finishPolling = async () => {
+      try {
+        const refreshed = await refetch();
+        if (current) {
+          setSyncPollingTimedOut(isActiveSync(refreshed.data?.sync?.status));
+        }
+      } catch {
+        if (current) {
+          setSyncPollingTimedOut(true);
+        }
+      }
+    };
 
     const remaining = googleCalendarSyncTimeoutRemaining(sync?.statusAt ?? null, Date.now());
     if (remaining === 0) {
-      setSyncPollingTimedOut(true);
-      return undefined;
+      finishPolling().catch(() => undefined);
+      return () => {
+        current = false;
+      };
     }
-    const timeout = window.setTimeout(() => setSyncPollingTimedOut(true), remaining);
-    return () => window.clearTimeout(timeout);
-  }, [sync?.status, sync?.statusAt]);
+    const timeout = window.setTimeout(() => {
+      finishPolling().catch(() => undefined);
+    }, remaining);
+    return () => {
+      current = false;
+      window.clearTimeout(timeout);
+    };
+  }, [refetch, sync?.status, sync?.statusAt]);
 
   useEffect(() => {
     if (isActiveSync(sync?.status)) {
