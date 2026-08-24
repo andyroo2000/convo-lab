@@ -5670,27 +5670,30 @@
   animation: mastery-track-failed 1.45s ease-in-out forwards;
 }
 
-.mastery-level-segment {
+.mastery-stage-color {
   --mastery-stage-color: #e85d75;
-  position: relative;
-  flex: 0 0 12rem;
-  height: 4.25rem;
 }
 
-.mastery-level-segment[data-level='guru'] {
+.mastery-stage-color[data-level='guru'] {
   --mastery-stage-color: #8b5cf6;
 }
 
-.mastery-level-segment[data-level='master'] {
+.mastery-stage-color[data-level='master'] {
   --mastery-stage-color: #2563eb;
 }
 
-.mastery-level-segment[data-level='enlightened'] {
+.mastery-stage-color[data-level='enlightened'] {
   --mastery-stage-color: #f59e0b;
 }
 
-.mastery-level-segment[data-level='burned'] {
+.mastery-stage-color[data-level='burned'] {
   --mastery-stage-color: #22c55e;
+}
+
+.mastery-level-segment {
+  position: relative;
+  flex: 0 0 12rem;
+  height: 4.25rem;
 }
 
 .mastery-level-segment::before {

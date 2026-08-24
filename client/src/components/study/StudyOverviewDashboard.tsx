@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import type { StudyOverview } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
 
+import MasterySpreadChart from './MasterySpreadChart';
+
 interface StudyOverviewDashboardProps {
   headline: string;
   overview: StudyOverview | undefined;
@@ -34,12 +36,6 @@ const StudyOverviewDashboard = ({
   const lessonsAvailable = overview?.newCount ?? 0;
   const reviewEmptyMessage = lessonsAvailable > 0 ? t('overview.noReviews') : t('overview.empty');
   const readiness = overview?.learningReadiness;
-  const masteryEntries = overview?.masterySpread
-    ? (Object.entries(overview.masterySpread) as Array<
-        [keyof typeof overview.masterySpread, number]
-      >)
-    : [];
-  const masteryTotal = masteryEntries.reduce((sum, [, count]) => sum + count, 0);
   let readinessBorderClass = 'border-l-red-500';
   if (readiness?.recommendation === 'ready') {
     readinessBorderClass = 'border-l-emerald-500';
@@ -159,29 +155,7 @@ const StudyOverviewDashboard = ({
         </section>
       ) : null}
 
-      {masteryEntries.length > 0 ? (
-        <section className="card retro-paper-panel">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-            {t('mastery.title')}
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-5">
-            {masteryEntries.map(([level, count]) => (
-              <div key={level}>
-                <div className="mb-1 flex items-center justify-between gap-2 text-sm">
-                  <span className="font-semibold capitalize text-navy">{level}</span>
-                  <span className="tabular-nums text-gray-500">{count}</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-navy/10">
-                  <div
-                    className="h-full rounded-full bg-navy"
-                    style={{ width: `${String(masteryTotal ? (count / masteryTotal) * 100 : 0)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      {overview?.masterySpread ? <MasterySpreadChart spread={overview.masterySpread} /> : null}
     </div>
   );
 };

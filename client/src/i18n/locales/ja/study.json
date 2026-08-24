@@ -122,7 +122,20 @@
     "learnAnyway": "それでも学ぶ"
   },
   "mastery": {
-    "title": "項目の分布"
+    "title": "項目の分布",
+    "total_one": "{{count}}枚",
+    "total_other": "{{count}}枚",
+    "details": "習熟度別のカード",
+    "stage": "段階",
+    "cards": "カード",
+    "share": "割合",
+    "levels": {
+      "apprentice": "Apprentice",
+      "guru": "Guru",
+      "master": "Master",
+      "enlightened": "Enlightened",
+      "burned": "Burned"
+    }
   },
   "settings": {
     "title": "学習設定",
