@@ -131,7 +131,11 @@ export const getHeadlineClasses = (
   return 'text-4xl sm:text-5xl md:text-6xl';
 };
 
-const normalizeRubyMatch = (base: string, reading: string) => {
+const normalizeRubyMatch = (
+  base: string,
+  reading: string,
+  options: { preservePrefixReading?: boolean } = {}
+) => {
   const cleanReading = reading.replace(/\s+/g, '');
 
   let kanjiStart = 0;
@@ -162,7 +166,12 @@ const normalizeRubyMatch = (base: string, reading: string) => {
   const suffix = base.substring(kanjiEnd);
 
   let adjustedReading = cleanReading;
-  if (prefix && !PARTICLE_PREFIXES.has(prefix) && adjustedReading.startsWith(prefix)) {
+  if (
+    prefix &&
+    !options.preservePrefixReading &&
+    !PARTICLE_PREFIXES.has(prefix) &&
+    adjustedReading.startsWith(prefix)
+  ) {
     adjustedReading = adjustedReading.slice(prefix.length);
   }
   if (suffix && adjustedReading.endsWith(suffix)) {
@@ -207,7 +216,13 @@ export const parseRubySegments = (value?: string | null): StudyRubySegment[] => 
       });
     }
 
-    const normalized = normalizeRubyMatch(base, reading);
+    // When ruby annotations are adjacent, any leading kana in this regex match was
+    // written after the previous annotation and belongs to the plain surface text.
+    // It must not consume the start of the following kanji reading, as in
+    // `悪[わる]い意味[いみ]`.
+    const normalized = normalizeRubyMatch(base, reading, {
+      preservePrefixReading: lastIndex > 0 && matchIndex === lastIndex,
+    });
 
     if (normalized.prefix) {
       segments.push({

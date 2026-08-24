@@ -85,6 +85,18 @@ describe('studyTextUtils', () => {
     ]);
   });
 
+  it('does not remove a reading mora that matches kana between adjacent ruby annotations', () => {
+    expect(parseRubySegments('いい意味[いみ]でも悪[わる]い意味[いみ]でも')).toEqual([
+      { kind: 'text', key: 'prefix-0', text: 'いい' },
+      { kind: 'ruby', key: 'ruby-0', base: '意味', reading: 'いみ' },
+      { kind: 'text', key: 'prefix-8', text: 'でも' },
+      { kind: 'ruby', key: 'ruby-8', base: '悪', reading: 'わる' },
+      { kind: 'text', key: 'prefix-15', text: 'い' },
+      { kind: 'ruby', key: 'ruby-15', base: '意味', reading: 'いみ' },
+      { kind: 'text', key: 'text-22', text: 'でも' },
+    ]);
+  });
+
   it('leaves non-reading parentheses as plain text', () => {
     expect(parseRubySegments('予定(plan)が変(か)わった。')).toEqual([
       {
