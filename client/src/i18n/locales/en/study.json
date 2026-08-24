@@ -122,7 +122,19 @@
     "learnAnyway": "Learn anyway"
   },
   "mastery": {
-    "title": "Item spread"
+    "title": "Item spread",
+    "total": "{{count}} cards",
+    "details": "Cards by mastery stage",
+    "stage": "Stage",
+    "cards": "Cards",
+    "share": "Share",
+    "levels": {
+      "apprentice": "Apprentice",
+      "guru": "Guru",
+      "master": "Master",
+      "enlightened": "Enlightened",
+      "burned": "Burned"
+    }
   },
   "settings": {
     "title": "Study settings",
