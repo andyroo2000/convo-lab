@@ -123,7 +123,8 @@
   },
   "mastery": {
     "title": "項目の分布",
-    "total": "{{count}}枚",
+    "total_one": "{{count}}枚",
+    "total_other": "{{count}}枚",
     "details": "習熟度別のカード",
     "stage": "段階",
     "cards": "カード",

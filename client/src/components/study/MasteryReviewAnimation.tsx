@@ -70,6 +70,7 @@ const MasteryReviewAnimation = ({
           {STUDY_MASTERY_LEVELS.map((masteryLevel, index) => (
             <div
               className={[
+                'mastery-stage-color',
                 'mastery-level-segment',
                 index === fromIndex ? 'mastery-level-segment--from' : '',
                 index === toIndex ? 'mastery-level-segment--to' : '',

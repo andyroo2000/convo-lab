@@ -62,4 +62,29 @@ describe('MasterySpreadChart', () => {
     expect(screen.getByText('4 cards')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /Apprentice 0%.*Guru 100%/ })).toBeInTheDocument();
   });
+
+  it('allocates rounding remainders so displayed shares total 100 percent', () => {
+    render(
+      <MasterySpreadChart
+        spread={{ apprentice: 1, guru: 1, master: 1, enlightened: 0, burned: 0 }}
+      />
+    );
+
+    const table = screen.getByRole('table', { name: 'Cards by mastery stage' });
+    expect(
+      within(table)
+        .getAllByText(/^(34|33|0)%$/)
+        .map((cell) => cell.textContent)
+    ).toEqual(['34%', '33%', '33%', '0%', '0%']);
+  });
+
+  it('uses the singular total label for one card', () => {
+    render(
+      <MasterySpreadChart
+        spread={{ apprentice: 1, guru: 0, master: 0, enlightened: 0, burned: 0 }}
+      />
+    );
+
+    expect(screen.getByText('1 card')).toBeInTheDocument();
+  });
 });

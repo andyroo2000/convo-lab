@@ -123,7 +123,8 @@
   },
   "mastery": {
     "title": "Item spread",
-    "total": "{{count}} cards",
+    "total_one": "{{count}} card",
+    "total_other": "{{count}} cards",
     "details": "Cards by mastery stage",
     "stage": "Stage",
     "cards": "Cards",
