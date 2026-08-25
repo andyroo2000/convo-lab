@@ -57,6 +57,13 @@ test('integration train is manual/scheduled, exact-pinned, temporary, and never 
     /needs\.prepare\.outputs\..*_fixture_directory/u
   );
   assert.match(source, /CompatibilityPayloadContractFixtureTest\.php/u);
+  assert.match(source, /KnownKanjiContractFixtureTest\.php/u);
+  assert.match(source, /KnownKanjiApiTest\.php/u);
+  assert.match(source, /StudyPreferenceJapaneseRouteContractTest\.php/u);
+  assert.match(source, /WaniKaniTransferBridgeTest\.php/u);
+  assert.match(source, /WaniKaniTransferImportTest\.php/u);
   assert.match(source, /learningOsCompatibilityContracts\.test\.ts/u);
+  assert.match(source, /KnownKanjiContext\.test\.tsx/u);
   assert.match(source, /only-testing:ConvoLabTests\/APICompatibilityGoldenFixtureTests/u);
+  assert.match(source, /only-testing:ConvoLabTests\/KnownKanjiServiceTests/u);
 });

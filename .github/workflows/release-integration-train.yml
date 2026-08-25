@@ -71,19 +71,19 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: andyroo2000/learning-os
-          ref: d6aad389ad55afa0803e65c37eb38db3844a21b7
+          ref: c2ed3d75bbad869c6481e1c38368806ff931c689
           path: provider
       - name: Checkout pinned web consumer
         uses: actions/checkout@v6
         with:
           repository: andyroo2000/convo-lab
-          ref: 99c44ba960341e245b7185e0322358d182d57f45
+          ref: 0d37791e177304df0e5d49085bc197de836bcddf
           path: web
       - name: Checkout pinned iOS consumer
         uses: actions/checkout@v6
         with:
           repository: andyroo2000/convo-lab-ios
-          ref: d7a4280d481d0a67c3b6694495ce13a46adc77e7
+          ref: fa21d9e815533c91b6d653506d2661b8a915d0d0
           path: ios
       - name: Verify checked out commits and canonical bytes
         env:
@@ -112,7 +112,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: andyroo2000/learning-os
-          ref: d6aad389ad55afa0803e65c37eb38db3844a21b7
+          ref: c2ed3d75bbad869c6481e1c38368806ff931c689
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
@@ -129,6 +129,11 @@ jobs:
         run: |
           php artisan test \
             tests/Feature/Contracts/CompatibilityPayloadContractFixtureTest.php \
+            tests/Feature/Contracts/KnownKanjiContractFixtureTest.php \
+            tests/Feature/Study/KnownKanjiApiTest.php \
+            tests/Feature/Study/StudyPreferenceJapaneseRouteContractTest.php \
+            tests/Feature/Study/WaniKaniTransferBridgeTest.php \
+            tests/Feature/Study/WaniKaniTransferImportTest.php \
             tests/Unit/Contracts/CompatibilityFixtureManifestTest.php
 
   web-contracts:
@@ -140,7 +145,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: andyroo2000/convo-lab
-          ref: 99c44ba960341e245b7185e0322358d182d57f45
+          ref: 0d37791e177304df0e5d49085bc197de836bcddf
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -150,6 +155,7 @@ jobs:
           npm run contracts:verify
           npm run test --workspace=client -- --run \
             src/lib/__tests__/learningOsCompatibilityContracts.test.ts \
+            src/contexts/__tests__/KnownKanjiContext.test.tsx \
             src/hooks/__tests__/useStudy.test.ts \
             src/hooks/__tests__/useGoogleCalendarConnection.test.tsx \
             src/hooks/__tests__/useStudyActivity.test.tsx \
@@ -167,7 +173,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: andyroo2000/convo-lab-ios
-          ref: d7a4280d481d0a67c3b6694495ce13a46adc77e7
+          ref: fa21d9e815533c91b6d653506d2661b8a915d0d0
       - name: Run API compatibility golden-fixture tests
         run: |
           xcodebuild test \
@@ -176,7 +182,8 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
             -parallel-testing-enabled NO \
             -maximum-concurrent-test-simulator-destinations 1 \
-            -only-testing:ConvoLabTests/APICompatibilityGoldenFixtureTests
+            -only-testing:ConvoLabTests/APICompatibilityGoldenFixtureTests \
+            -only-testing:ConvoLabTests/KnownKanjiServiceTests
 
   cleanup:
     name: Delete short-lived integration branch
