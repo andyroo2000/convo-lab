@@ -2,7 +2,7 @@
 
 The release compatibility train is a scheduled or manually dispatched compatibility gate. It validates one immutable set of Learning OS, web, and iOS commits without merging, deploying, or promoting any component.
 
-Exact component commits live in `.github/release-integration/components.json`. Updating a pin is a reviewed repository change. Executable checkout refs are repeated as immutable literals in the workflow so GitHub security analysis can prove that component code is trusted; deployment tests require those literals to match the manifest and prevent drift. The workflow creates a uniquely named `integration/compatibility-<run>-<attempt>` branch at the pinned web commit, runs the gates, and deletes that exact branch even when a gate fails. It never opens or merges a pull request.
+Exact component commits live in `.github/release-integration/components.json`. Updating a pin is a reviewed repository change and treats that exact component code as trusted for the compatibility run. Executable checkout refs are repeated as immutable literals in the workflow so GitHub security analysis can prove that component code is trusted; deployment tests require those literals to match the manifest and prevent drift. The workflow creates a uniquely named `integration/compatibility-<run>-<attempt>` branch at the pinned web commit, runs the gates, and deletes that exact branch even when a gate fails. It never opens or merges a pull request.
 
 The gates are:
 

@@ -8,6 +8,7 @@ const COMPONENTS = ['provider', 'web', 'ios'];
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 const BRANCH_PATTERN = /^integration\/compatibility-[0-9]+-[0-9]+$/u;
+const FIXTURE_DIRECTORY_PATTERN = /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/u;
 
 export async function readReleaseIntegrationPins(pinsFile, branch) {
   if (!BRANCH_PATTERN.test(branch)) {
@@ -28,8 +29,9 @@ export async function readReleaseIntegrationPins(pinsFile, branch) {
     const fixtureDirectory = component.fixtureDirectory;
     if (
       typeof fixtureDirectory !== 'string' ||
+      !FIXTURE_DIRECTORY_PATTERN.test(fixtureDirectory) ||
       path.posix.isAbsolute(fixtureDirectory) ||
-      fixtureDirectory.split('/').some((segment) => !segment || segment === '..')
+      fixtureDirectory.split('/').some((segment) => segment === '.' || segment === '..')
     ) {
       throw new Error(`${name} must declare a safe repository-relative fixture directory.`);
     }
@@ -42,7 +44,12 @@ export async function readReleaseIntegrationPins(pinsFile, branch) {
 
 export function githubOutputLines(outputs) {
   return `${Object.entries(outputs)
-    .map(([name, value]) => `${name}=${value}`)
+    .map(([name, value]) => {
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(name) || /[\r\n]/u.test(String(value))) {
+        throw new Error('GitHub output names and values must be single-line safe.');
+      }
+      return `${name}=${value}`;
+    })
     .join('\n')}\n`;
 }
 

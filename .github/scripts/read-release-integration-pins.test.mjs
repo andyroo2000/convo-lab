@@ -42,6 +42,10 @@ test('emits validated exact pins and safe fixture directories as GitHub outputs'
   assert.equal(outputs.provider_sha, fullSha);
   assert.equal(outputs.ios_fixture_directory, 'fixtures/ios');
   assert.match(githubOutputLines(outputs), /^branch=integration\/compatibility-123-2$/mu);
+  assert.throws(
+    () => githubOutputLines({ provider_sha: `${fullSha}\nbranch=injected` }),
+    /single-line safe/u
+  );
 });
 
 test('rejects abbreviated SHAs, traversal paths, repositories, and branch injection', async () => {
@@ -59,6 +63,19 @@ test('rejects abbreviated SHAs, traversal paths, repositories, and branch inject
     ),
     /safe repository-relative fixture directory/u
   );
+  for (const fixtureDirectory of [
+    'fixtures/web\nweb_sha=deadbeef',
+    'fixtures/web"; echo injected',
+    'fixtures/$(echo injected)',
+  ]) {
+    await assert.rejects(
+      readReleaseIntegrationPins(
+        await pinsFile({ web: { fixtureDirectory } }),
+        'integration/compatibility-123-1'
+      ),
+      /safe repository-relative fixture directory/u
+    );
+  }
   await assert.rejects(
     readReleaseIntegrationPins(
       await pinsFile({ provider: { repository: 'invalid\nrepository' } }),

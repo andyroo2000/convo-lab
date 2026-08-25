@@ -18,6 +18,9 @@ test('integration train is manual/scheduled, exact-pinned, temporary, and never 
   assert.equal(workflow.permissions.contents, 'read');
   assert.equal(workflow.jobs.prepare.permissions.contents, 'write');
   assert.equal(workflow.jobs.cleanup.permissions.contents, 'write');
+  for (const job of Object.values(workflow.jobs)) {
+    assert.ok(job['timeout-minutes'] > 0, 'every train job must have a bounded timeout');
+  }
   for (const job of ['fixture-bytes', 'provider-contracts', 'web-contracts', 'ios-contracts']) {
     assert.equal(workflow.jobs[job].permissions, undefined);
     assert.doesNotMatch(
@@ -49,6 +52,10 @@ test('integration train is manual/scheduled, exact-pinned, temporary, and never 
   }
   assert.match(source, /verify-release-integration\.mjs/u);
   assert.match(source, /read-release-integration-pins\.mjs/u);
+  assert.doesNotMatch(
+    workflow.jobs['fixture-bytes'].steps.at(-1).run,
+    /needs\.prepare\.outputs\..*_fixture_directory/u
+  );
   assert.match(source, /CompatibilityPayloadContractFixtureTest\.php/u);
   assert.match(source, /learningOsCompatibilityContracts\.test\.ts/u);
   assert.match(source, /only-testing:ConvoLabTests\/APICompatibilityGoldenFixtureTests/u);

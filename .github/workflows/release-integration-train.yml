@@ -19,6 +19,7 @@ jobs:
   prepare:
     name: Create short-lived integration branch
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
     outputs:
@@ -58,12 +59,15 @@ jobs:
     name: Provider → web/iOS fixture bytes
     needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout train tooling
         uses: actions/checkout@v6
         with:
           path: train
       - name: Checkout pinned provider
+        # These literals intentionally mirror components.json. Deployment tests enforce
+        # equality so security analysis can trust the executable component checkouts.
         uses: actions/checkout@v6
         with:
           repository: andyroo2000/learning-os
@@ -82,20 +86,28 @@ jobs:
           ref: d7a4280d481d0a67c3b6694495ce13a46adc77e7
           path: ios
       - name: Verify checked out commits and canonical bytes
+        env:
+          PROVIDER_SHA: ${{ needs.prepare.outputs.provider_sha }}
+          PROVIDER_FIXTURE_DIRECTORY: ${{ needs.prepare.outputs.provider_fixture_directory }}
+          WEB_SHA: ${{ needs.prepare.outputs.web_sha }}
+          WEB_FIXTURE_DIRECTORY: ${{ needs.prepare.outputs.web_fixture_directory }}
+          IOS_SHA: ${{ needs.prepare.outputs.ios_sha }}
+          IOS_FIXTURE_DIRECTORY: ${{ needs.prepare.outputs.ios_fixture_directory }}
         run: |
-          test "$(git -C provider rev-parse HEAD)" = "${{ needs.prepare.outputs.provider_sha }}"
-          test "$(git -C web rev-parse HEAD)" = "${{ needs.prepare.outputs.web_sha }}"
-          test "$(git -C ios rev-parse HEAD)" = "${{ needs.prepare.outputs.ios_sha }}"
+          test "$(git -C provider rev-parse HEAD)" = "$PROVIDER_SHA"
+          test "$(git -C web rev-parse HEAD)" = "$WEB_SHA"
+          test "$(git -C ios rev-parse HEAD)" = "$IOS_SHA"
           node train/.github/scripts/verify-release-integration.mjs \
             train/${PINS_FILE} \
-            "provider/${{ needs.prepare.outputs.provider_fixture_directory }}" \
-            "web/${{ needs.prepare.outputs.web_fixture_directory }}" \
-            "ios/${{ needs.prepare.outputs.ios_fixture_directory }}"
+            "provider/${PROVIDER_FIXTURE_DIRECTORY}" \
+            "web/${WEB_FIXTURE_DIRECTORY}" \
+            "ios/${IOS_FIXTURE_DIRECTORY}"
 
   provider-contracts:
     name: Pinned provider compatibility tests
     needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -123,6 +135,7 @@ jobs:
     name: Pinned web compatibility tests
     needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
         with:
@@ -170,6 +183,7 @@ jobs:
     if: always() && needs.prepare.result == 'success'
     needs: [prepare, fixture-bytes, provider-contracts, web-contracts, ios-contracts]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
     steps:
