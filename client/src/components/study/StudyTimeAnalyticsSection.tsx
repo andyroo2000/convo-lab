@@ -294,7 +294,13 @@ const StudyTimeAnalyticsSection = () => {
   const selectedPeriodLabel = analytics ? periodLabel(analytics, locale, analyticsTimeZone) : '';
 
   return (
-    <section className="retro-paper-panel p-4 sm:p-6">
+    <section
+      className="retro-paper-panel p-4 sm:p-6"
+      aria-labelledby="study-time-analytics-heading"
+    >
+      <h2 id="study-time-analytics-heading" className="sr-only">
+        {t('time.analytics.sectionTitle')}
+      </h2>
       <div className="mb-6 flex flex-wrap items-end justify-end gap-3">
         <div className="flex max-w-full flex-col items-end gap-2">
           <div className="flex max-w-full items-center gap-2">

@@ -293,6 +293,7 @@ describe('StudyTimePage', () => {
     render(<StudyTimePage />);
 
     expect(screen.getByRole('heading', { name: 'Study Time' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Study time analytics' })).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'Study rhythm overview' })
     ).not.toBeInTheDocument();

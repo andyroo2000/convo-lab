@@ -512,6 +512,7 @@
       "wanikani": "WaniKani"
     },
     "analytics": {
+      "sectionTitle": "学習時間分析",
       "timeSpan": "期間",
       "dailyAverage": "1日平均",
       "bestRhythm": "最も多い期間",

@@ -536,6 +536,7 @@
       "wanikani": "WaniKani"
     },
     "analytics": {
+      "sectionTitle": "Study time analytics",
       "timeSpan": "Time span",
       "dailyAverage": "Daily average",
       "bestRhythm": "Best",
