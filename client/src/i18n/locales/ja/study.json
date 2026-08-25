@@ -120,7 +120,16 @@
     "reorderLimit": "読み込み済みのカードが100件以内の場合に並べ替えできます。",
     "emptyQueue": "これから学習する新規カードがここに表示されます。",
     "emptyCards": "同期、取り込み、またはカード作成から始めましょう。",
-    "noSearchResults": "検索に一致するカードはありません。"
+    "noSearchResults": "検索に一致するカードはありません。",
+    "learningPathItem": "学習パス",
+    "stageProgress": "{{total}}段階中 {{current}}段階目",
+    "stageCount": "{{count}}段階",
+    "cardCount": "カード{{count}}枚",
+    "viewStages": "{{count}}段階を表示",
+    "pathProgressLabel": "学習パスの進捗：{{total}}段階中 {{current}}段階目",
+    "pathProgressPending": "学習パスは{{total}}段階あり、現在有効な番号付き段階はありません",
+    "transferDemonstrated": "応用できました",
+    "independentStage": "利用可能"
   },
   "readiness": {
     "title": "学習準備度",

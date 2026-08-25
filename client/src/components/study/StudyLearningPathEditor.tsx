@@ -25,6 +25,8 @@ const cardDisplayText = (card: StudyCardSummary) =>
 const cardMeaning = (card: StudyCardSummary) =>
   card.answer.meaning ?? card.prompt.cueMeaning ?? card.answer.sentenceEn ?? '';
 
+const canonicalCardId = (card: StudyCardSummary) => card.syncId ?? card.id;
+
 const browserHref = (cardId: string, noteId: string | null) => {
   const params = new URLSearchParams({ cardId, noteId: noteId ?? cardId });
   return `/app/study/browse?${params.toString()}`;
@@ -32,7 +34,8 @@ const browserHref = (cardId: string, noteId: string | null) => {
 
 const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
   const { t } = useTranslation('study');
-  const pathQuery = useStudyLearningPath(card.id);
+  const currentCardId = canonicalCardId(card);
+  const pathQuery = useStudyLearningPath(currentCardId);
   const linkMutation = useLinkStudyLearningPathSuccessor();
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<StudyCardSummary[]>([]);
@@ -53,7 +56,7 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
     setHasMoreResults(false);
     setLinkedSuccess(false);
     searchRequestId.current += 1;
-  }, [card.id]);
+  }, [currentCardId]);
 
   const pathCardIds = useMemo(
     () => new Set(pathQuery.data?.stages.flatMap((stage) => stage.cards.map((item) => item.id))),
@@ -63,7 +66,7 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
   const isTail =
     !pathQuery.data ||
     pathQuery.data.stages.length === 0 ||
-    Boolean(tailStage?.cards.some((item) => item.id === card.id));
+    Boolean(tailStage?.cards.some((item) => item.id === currentCardId));
   const tailCard = tailStage?.cards.at(-1) ?? null;
 
   const runSearch = async () => {
@@ -79,7 +82,10 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
       const response = await getStudyCards({ q: query, limit: 20 });
       if (searchRequestId.current !== requestId) return;
       setSearchResults(
-        response.items.filter((item) => item.id !== card.id && !pathCardIds.has(item.id))
+        response.items.filter(
+          (item) =>
+            canonicalCardId(item) !== currentCardId && !pathCardIds.has(canonicalCardId(item))
+        )
       );
       setHasSearched(true);
       setHasMoreResults(Boolean(response.nextCursor));
@@ -153,7 +159,7 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                           ) : null}
                         </div>
                         <div className="flex shrink-0 flex-wrap justify-end gap-1">
-                          {pathCard.id === card.id ? (
+                          {pathCard.id === currentCardId ? (
                             <span className="rounded-full bg-navy px-2 py-1 text-[0.65rem] font-semibold text-white">
                               {t('learningPath.current')}
                             </span>
@@ -281,8 +287,8 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                       setLinkedSuccess(false);
                       try {
                         await linkMutation.mutateAsync({
-                          cardId: card.id,
-                          successorCardId: selectedSuccessor.id,
+                          cardId: currentCardId,
+                          successorCardId: canonicalCardId(selectedSuccessor),
                         });
                         setSearchInput('');
                         setSearchResults([]);

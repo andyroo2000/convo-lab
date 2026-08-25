@@ -17,14 +17,18 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { StudyCardSummary, StudyNewCardQueueItem } from '@languageflow/shared/src/types';
-import { GripVertical, Plus } from 'lucide-react';
+import type {
+  StudyLearningItem,
+  StudyLearningItemStageStatus,
+  StudyNewCardQueueItem,
+} from '@languageflow/shared/src/types';
+import { CheckCircle2, ChevronDown, GripVertical, Layers3, LockKeyhole, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
   useReorderStudyNewCardQueue,
-  useStudyCardsInfinite,
+  useStudyLearningItemsInfinite,
   useStudyNewCardQueueInfinite,
 } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
@@ -40,22 +44,166 @@ const uniqueById = <T extends { id: string }>(items: T[]) => {
   });
 };
 
-const cardDisplayText = (card: StudyCardSummary) =>
-  card.prompt.clozeDisplayText ??
-  card.prompt.cueText ??
-  card.answer.expressionReading ??
-  card.answer.expression ??
-  card.prompt.clozeText ??
-  '';
-
-const cardMeaning = (card: StudyCardSummary) =>
-  card.answer.meaning ?? card.prompt.cueMeaning ?? card.answer.sentenceEn ?? '';
-
 const browserHref = (cardId: string, noteId: string | null) => {
   const params = new URLSearchParams({ cardId });
   // Native/manual cards are their own browser group and do not expose a note id.
   params.set('noteId', noteId ?? cardId);
   return `/app/study/browse?${params.toString()}`;
+};
+
+const stageStatusClass = (status: StudyLearningItemStageStatus, isCurrent: boolean) => {
+  if (status === 'retired') return 'bg-green-500';
+  if (isCurrent) return 'bg-navy';
+  if (status === 'available') return 'bg-sky-300';
+  return 'bg-gray-200';
+};
+
+const LearningItemRow = ({ item }: { item: StudyLearningItem }) => {
+  const { t } = useTranslation('study');
+  const isPath = item.groupId !== null;
+  // Keep the family row's title and destination stable as later stages unlock.
+  const destinationCard = item.representativeCard;
+
+  if (!isPath) {
+    return (
+      <li className="border-b border-navy/10 bg-white/70 last:border-b-0">
+        <Link
+          to={browserHref(destinationCard.id, destinationCard.noteId)}
+          className="block px-4 py-4 hover:bg-cream/60 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-navy"
+        >
+          <p className="break-words font-bold text-navy">{destinationCard.displayText}</p>
+          {destinationCard.meaning ? (
+            <p className="mt-1 line-clamp-2 break-words text-sm text-gray-600">
+              {destinationCard.meaning}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">
+            {t(`form.${destinationCard.cardType}`)}
+          </p>
+        </Link>
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className="border-b border-navy/10 bg-white/70 px-4 py-4 last:border-b-0"
+      data-testid="study-learning-item"
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 rounded-lg bg-sky-100 p-2 text-navy" aria-hidden="true">
+          <Layers3 className="h-4 w-4" />
+        </span>
+        <Link
+          to={browserHref(destinationCard.id, destinationCard.noteId)}
+          className="min-w-0 flex-1 rounded focus:outline-none focus:ring-2 focus:ring-navy"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="break-words font-bold text-navy">{item.representativeCard.displayText}</p>
+            {item.transferDemonstrated ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-green-700">
+                <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                {t('cards.transferDemonstrated')}
+              </span>
+            ) : null}
+          </div>
+          {item.representativeCard.meaning ? (
+            <p className="mt-1 line-clamp-2 break-words text-sm text-gray-600">
+              {item.representativeCard.meaning}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-sky-700">
+            {t('cards.learningPathItem')} ·{' '}
+            {item.currentStageNumber === null
+              ? t('cards.stageCount', { count: item.stageCount })
+              : t('cards.stageProgress', {
+                  current: item.currentStageNumber,
+                  total: item.stageCount,
+                })}{' '}
+            · {t('cards.cardCount', { count: item.cardCount })}
+          </p>
+        </Link>
+      </div>
+
+      <div
+        className="mt-3 grid gap-1"
+        style={{ gridTemplateColumns: `repeat(${Math.max(item.stageCount, 1)}, minmax(0, 1fr))` }}
+        role="img"
+        aria-label={
+          item.currentStageNumber === null
+            ? t('cards.pathProgressPending', { total: item.stageCount })
+            : t('cards.pathProgressLabel', {
+                current: item.currentStageNumber,
+                total: item.stageCount,
+              })
+        }
+      >
+        {item.stages.map((stage, index) => (
+          <span
+            key={stage.number ?? stage.representativeCard.syncId}
+            className={`h-1.5 rounded-full ${stageStatusClass(
+              stage.status,
+              stage.number === item.currentStageNumber
+            )}`}
+            title={t('learningPath.stage', { number: stage.number ?? index + 1 })}
+          />
+        ))}
+      </div>
+
+      <details className="group mt-3 rounded-xl border border-navy/10 bg-white/60">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-semibold text-navy focus:outline-none focus:ring-2 focus:ring-inset focus:ring-navy">
+          {t('cards.viewStages', { count: item.stageCount })}
+          <ChevronDown
+            className="h-4 w-4 transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          />
+        </summary>
+        <ol className="space-y-2 border-t border-navy/10 p-3">
+          {item.stages.map((stage, stageIndex) => (
+            <li
+              key={stage.number ?? stage.representativeCard.syncId}
+              className="rounded-lg bg-cream/50 p-3"
+            >
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-navy">
+                  {t('learningPath.stage', { number: stage.number ?? stageIndex + 1 })}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[0.65rem] font-semibold text-gray-600">
+                  {stage.status === 'locked' ? (
+                    <LockKeyhole className="h-3 w-3" aria-hidden="true" />
+                  ) : null}
+                  {stage.status
+                    ? t(`learningPath.status.${stage.status}`)
+                    : t('cards.independentStage')}
+                  {' · '}
+                  {t('cards.cardCount', { count: stage.cardCount })}
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {stage.cards.map((card) => (
+                  <li key={card.syncId}>
+                    <Link
+                      to={browserHref(card.id, card.noteId)}
+                      className="block rounded-lg px-2 py-2 hover:bg-white focus:outline-none focus:ring-2 focus:ring-navy"
+                    >
+                      <span className="block break-words text-sm font-semibold text-navy">
+                        {card.displayText}
+                      </span>
+                      {card.meaning ? (
+                        <span className="block break-words text-xs text-gray-600">
+                          {card.meaning}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ol>
+      </details>
+    </li>
+  );
 };
 
 const useInfiniteScroll = (enabled: boolean, loadMore: () => void) => {
@@ -138,7 +286,7 @@ const StudyCardsPage = () => {
   const [queueItems, setQueueItems] = useState<StudyNewCardQueueItem[]>([]);
   const [queueError, setQueueError] = useState<string | null>(null);
   const queueQuery = useStudyNewCardQueueInfinite(enabled && mode === 'queue');
-  const cardsQuery = useStudyCardsInfinite(enabled && mode === 'all', searchQuery);
+  const learningItemsQuery = useStudyLearningItemsInfinite(enabled && mode === 'all', searchQuery);
   const reorderMutation = useReorderStudyNewCardQueue();
   const runBackgroundTask = useStudyBackgroundTask();
   const sensors = useSensors(
@@ -146,9 +294,9 @@ const StudyCardsPage = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const cards = useMemo(
-    () => uniqueById(cardsQuery.data?.pages.flatMap((page) => page.items) ?? []),
-    [cardsQuery.data]
+  const learningItems = useMemo(
+    () => uniqueById(learningItemsQuery.data?.pages.flatMap((page) => page.items) ?? []),
+    [learningItemsQuery.data]
   );
   const queueTotal = queueQuery.data?.pages[0]?.total ?? queueItems.length;
   const reorderDisabled = queueItems.length > 100;
@@ -195,8 +343,10 @@ const StudyCardsPage = () => {
     () => queueQuery.fetchNextPage()
   );
   const cardsSentinelRef = useInfiniteScroll(
-    mode === 'all' && Boolean(cardsQuery.hasNextPage) && !cardsQuery.isFetchingNextPage,
-    () => cardsQuery.fetchNextPage()
+    mode === 'all' &&
+      Boolean(learningItemsQuery.hasNextPage) &&
+      !learningItemsQuery.isFetchingNextPage,
+    () => learningItemsQuery.fetchNextPage()
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -367,10 +517,10 @@ const StudyCardsPage = () => {
           </div>
         ) : (
           <div id="study-cards-all-panel" role="tabpanel" aria-labelledby="study-cards-all-tab">
-            {cardsQuery.isLoading ? (
+            {learningItemsQuery.isLoading ? (
               <p className="py-8 text-center text-gray-500">{t('cards.loadingCards')}</p>
             ) : null}
-            {cardsQuery.error ? (
+            {learningItemsQuery.error ? (
               <p
                 role="alert"
                 className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
@@ -378,33 +528,18 @@ const StudyCardsPage = () => {
                 {t('cards.failedCards')}
               </p>
             ) : null}
-            {!cardsQuery.isLoading && cards.length === 0 ? (
+            {!learningItemsQuery.isLoading && learningItems.length === 0 ? (
               <p className="py-10 text-center text-gray-500">
                 {searchQuery ? t('cards.noSearchResults') : t('cards.emptyCards')}
               </p>
             ) : null}
             <ul className="overflow-hidden rounded-xl border border-navy/10">
-              {cards.map((card) => (
-                <li key={card.id} className="border-b border-navy/10 bg-white/70 last:border-b-0">
-                  <Link
-                    to={browserHref(card.id, card.noteId)}
-                    className="block px-4 py-4 hover:bg-cream/60 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-navy"
-                  >
-                    <p className="break-words font-bold text-navy">{cardDisplayText(card)}</p>
-                    {cardMeaning(card) ? (
-                      <p className="mt-1 line-clamp-2 break-words text-sm text-gray-600">
-                        {cardMeaning(card)}
-                      </p>
-                    ) : null}
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">
-                      {t(`form.${card.cardType}`)}
-                    </p>
-                  </Link>
-                </li>
+              {learningItems.map((item) => (
+                <LearningItemRow key={item.id} item={item} />
               ))}
             </ul>
             <div ref={cardsSentinelRef} data-testid="cards-scroll-sentinel" className="h-1" />
-            {cardsQuery.isFetchingNextPage ? (
+            {learningItemsQuery.isFetchingNextPage ? (
               <p className="py-3 text-center text-sm text-gray-500">{t('cards.loadingMore')}</p>
             ) : null}
           </div>

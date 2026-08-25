@@ -81,21 +81,133 @@ vi.mock('../../hooks/useStudy', () => ({
     isFetchingNextPage: false,
     fetchNextPage: queueFetchNextPage,
   }),
-  useStudyCardsInfinite: () => ({
+  useStudyLearningItemsInfinite: () => ({
     data: {
       pages: [
         {
           items: [
             {
-              id: 'card-3',
-              noteId: 'note-3',
-              cardType: 'recognition',
-              prompt: { cueText: '猫' },
-              answer: { expression: '猫', meaning: 'cat' },
-              state: { dueAt: null, queueState: 'new', scheduler: null, source: {} },
-              answerAudioSource: null,
-              createdAt: '2026-08-01T00:00:00.000Z',
-              updatedAt: '2026-08-01T00:00:00.000Z',
+              id: 'card:card-3',
+              groupId: null,
+              representativeCard: {
+                id: 'card-3',
+                syncId: 'sync-3',
+                noteId: null,
+                cardType: 'recognition',
+                displayText: '猫',
+                meaning: 'cat',
+                variantKind: null,
+              },
+              currentStageNumber: null,
+              stageCount: 1,
+              cardCount: 1,
+              retiredStageCount: 0,
+              transferDemonstrated: false,
+              stages: [],
+            },
+            {
+              id: 'path:company-path',
+              groupId: 'company-path',
+              representativeCard: {
+                id: 'card-4',
+                syncId: 'sync-4',
+                noteId: 'note-4',
+                cardType: 'recognition',
+                displayText: '会社で働いています。',
+                meaning: 'I work at a company.',
+                variantKind: 'sentence_audio_recognition',
+              },
+              currentStageNumber: 2,
+              stageCount: 3,
+              cardCount: 4,
+              retiredStageCount: 0,
+              transferDemonstrated: false,
+              stages: [
+                {
+                  number: 1,
+                  status: 'available',
+                  cardCount: 2,
+                  representativeCard: {
+                    id: 'card-4',
+                    syncId: 'sync-4',
+                    noteId: 'note-4',
+                    cardType: 'recognition',
+                    displayText: '会社で働いています。',
+                    meaning: 'I work at a company.',
+                    variantKind: 'sentence_audio_recognition',
+                  },
+                  cards: [
+                    {
+                      id: 'card-4',
+                      syncId: 'sync-4',
+                      noteId: 'note-4',
+                      cardType: 'recognition',
+                      displayText: '会社で働いています。',
+                      meaning: 'I work at a company.',
+                      variantKind: 'sentence_audio_recognition',
+                    },
+                    {
+                      id: 'card-5',
+                      syncId: 'sync-5',
+                      noteId: 'note-5',
+                      cardType: 'recognition',
+                      displayText: '会社を辞めました。',
+                      meaning: 'I left the company.',
+                      variantKind: 'sentence_audio_recognition',
+                    },
+                  ],
+                },
+                {
+                  number: 2,
+                  status: 'available',
+                  cardCount: 1,
+                  representativeCard: {
+                    id: 'card-6',
+                    syncId: 'sync-6',
+                    noteId: 'note-6',
+                    cardType: 'recognition',
+                    displayText: '会社',
+                    meaning: 'company',
+                    variantKind: 'word_audio_recognition',
+                  },
+                  cards: [
+                    {
+                      id: 'card-6',
+                      syncId: 'sync-6',
+                      noteId: 'note-6',
+                      cardType: 'recognition',
+                      displayText: '会社',
+                      meaning: 'company',
+                      variantKind: 'word_audio_recognition',
+                    },
+                  ],
+                },
+                {
+                  number: 3,
+                  status: 'locked',
+                  cardCount: 1,
+                  representativeCard: {
+                    id: 'card-7',
+                    syncId: 'sync-7',
+                    noteId: 'note-7',
+                    cardType: 'cloze',
+                    displayText: '＿＿で働いています。',
+                    meaning: 'I work at a company.',
+                    variantKind: 'cloze',
+                  },
+                  cards: [
+                    {
+                      id: 'card-7',
+                      syncId: 'sync-7',
+                      noteId: 'note-7',
+                      cardType: 'cloze',
+                      displayText: '＿＿で働いています。',
+                      meaning: 'I work at a company.',
+                      variantKind: 'cloze',
+                    },
+                  ],
+                },
+              ],
             },
           ],
           limit: 50,
@@ -196,8 +308,19 @@ describe('StudyCardsPage', () => {
     expect(screen.getByText('猫')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /猫/ })).toHaveAttribute(
       'href',
-      '/app/study/browse?cardId=card-3&noteId=note-3'
+      '/app/study/browse?cardId=card-3&noteId=card-3'
     );
+
+    const learningItem = screen.getByTestId('study-learning-item');
+    expect(within(learningItem).getByText('Stage 2 of 3', { exact: false })).toBeInTheDocument();
+    expect(within(learningItem).getByText('4 cards', { exact: false })).toBeInTheDocument();
+    expect(
+      within(learningItem).getByRole('link', { name: /Learning path.*Stage 2 of 3/ })
+    ).toHaveAttribute('href', '/app/study/browse?cardId=card-4&noteId=note-4');
+
+    await userEvent.click(within(learningItem).getByText('View 3 stages'));
+    expect(within(learningItem).getByText('会社を辞めました。')).toBeInTheDocument();
+    expect(within(learningItem).getByText('Locked', { exact: false })).toBeInTheDocument();
   });
 
   it('loads more at the scroll sentinel and preserves queue reorder', async () => {
