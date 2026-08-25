@@ -12,7 +12,6 @@
     "backToLibrary": "表示中のライブラリに戻る",
     "exitAndOpenStudy": "代理表示を終了して自分の学習を開く"
   },
-  "headline": "期限 {{dueCount}} 件",
   "motion": {
     "unsupported": "この端末ではシェイクで取り消しは使えません。",
     "denied": "モーションアクセスが拒否されたため、シェイクで取り消しはオフになっています。",

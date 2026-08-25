@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import estimateReviewMinutes from '../../../utils/studyTodayPresentation';
+import estimateReviewMinutes, { calendarDayLabel } from '../../../utils/studyTodayPresentation';
 import StudyOverviewDashboard from '../StudyOverviewDashboard';
 
 const useKnownKanji = vi.fn();
@@ -68,6 +68,14 @@ describe('StudyOverviewDashboard', () => {
     expect(estimateReviewMinutes(0, 25)).toBeNull();
   });
 
+  it('labels calendar lessons across day boundaries', () => {
+    const now = new Date(2026, 7, 24, 12);
+
+    expect(calendarDayLabel(new Date(2026, 7, 24, 19), 'en-US', now)).toBe('Today');
+    expect(calendarDayLabel(new Date(2026, 7, 25, 19), 'en-US', now)).toBe('Tomorrow');
+    expect(calendarDayLabel(new Date(2026, 7, 27, 19), 'en-US', now)).toBe('Aug 27');
+  });
+
   it('puts the study plan and integrations in one place', () => {
     const onBeginReview = vi.fn();
     const onBeginLesson = vi.fn();
@@ -97,8 +105,12 @@ describe('StudyOverviewDashboard', () => {
       'https://www.wanikani.com/subjects/review'
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-    fireEvent.click(screen.getByRole('button', { name: /Lessons/ }));
+    const reviewsButton = screen.getByRole('button', { name: 'Reviews' });
+    const lessonsButton = screen.getByRole('button', { name: 'Lessons' });
+    expect(reviewsButton).toHaveAccessibleDescription('14 reviews About 6 min');
+    expect(lessonsButton).toHaveAccessibleDescription('5 new cards');
+    fireEvent.click(reviewsButton);
+    fireEvent.click(lessonsButton);
     expect(onBeginReview).toHaveBeenCalledOnce();
     expect(onBeginLesson).toHaveBeenCalledOnce();
   });

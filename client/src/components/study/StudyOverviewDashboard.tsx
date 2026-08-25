@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useGoogleCalendarConnection } from '../../hooks/useGoogleCalendarConnection';
 import { useKnownKanji } from '../../hooks/useKnownKanji';
-import estimateReviewMinutes from '../../utils/studyTodayPresentation';
+import estimateReviewMinutes, { calendarDayLabel } from '../../utils/studyTodayPresentation';
 import MasterySpreadChart from './MasterySpreadChart';
 
 interface StudyOverviewDashboardProps {
@@ -22,23 +22,6 @@ interface StudyOverviewDashboardProps {
 const STUDY_ACTION_CLASS =
   'inline-flex min-h-11 items-center justify-center border-2 border-[#8b756d] bg-[#bfa192] px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] text-[#fbf5e0] shadow-[0_4px_0_rgba(75,24,0,0.18)] transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dark-brown';
 
-const calendarDayLabel = (startsAt: Date, locale: string) => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const eventDay = new Date(startsAt.getFullYear(), startsAt.getMonth(), startsAt.getDate());
-  const dayDifference = Math.round((eventDay.getTime() - today.getTime()) / 86_400_000);
-
-  if (dayDifference >= 0 && dayDifference <= 1) {
-    const label = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(
-      dayDifference,
-      'day'
-    );
-    return label.charAt(0).toLocaleUpperCase(locale) + label.slice(1);
-  }
-
-  return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(startsAt);
-};
-
 const StudyOverviewDashboard = ({
   overview,
   reviewAvailableCount,
@@ -52,6 +35,9 @@ const StudyOverviewDashboard = ({
   const knownKanji = useKnownKanji();
   const googleCalendar = useGoogleCalendarConnection();
   const emptyStateId = useId();
+  const reviewCountId = useId();
+  const reviewTimeId = useId();
+  const lessonCountId = useId();
   const showEmptyState = reviewAvailableCount === 0 && !loading;
   const beginStudyDisabled = isStartingSession || showEmptyState;
   const lessonsAvailable = overview?.newCardsAvailableToday ?? overview?.newCount ?? 0;
@@ -61,6 +47,12 @@ const StudyOverviewDashboard = ({
     reviewAvailableCount,
     readiness?.medianReviewDurationSeconds
   );
+  const reviewCountText = t('overview.reviewCount', { count: reviewAvailableCount });
+  const reviewTimeText =
+    estimatedMinutes === null
+      ? t('overview.reviewEstimateCalibrating')
+      : t('overview.reviewMinutes', { count: estimatedMinutes });
+  const newCardCountText = t('overview.newCardCount', { count: lessonsAvailable });
   const wanikani = knownKanji.data?.wanikani;
   const nextLesson = googleCalendar.data?.nextLesson;
   const locale = i18n.resolvedLanguage ?? i18n.language;
@@ -87,20 +79,23 @@ const StudyOverviewDashboard = ({
             onClick={onBeginReview}
             disabled={beginStudyDisabled}
             aria-label={t('overview.reviews')}
-            aria-describedby={showEmptyState ? emptyStateId : undefined}
+            aria-describedby={[reviewCountId, reviewTimeId, showEmptyState ? emptyStateId : null]
+              .filter(Boolean)
+              .join(' ')}
             className="flex min-h-32 w-full items-center gap-5 bg-navy px-5 py-5 text-left text-[#fbf5e0] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-cyan disabled:cursor-not-allowed disabled:opacity-65 sm:px-6"
           >
             <span className="min-w-0 flex-1">
               <span className="mb-1 block text-sm font-bold text-[#fbf5e0]/80">
                 {t('overview.convolabReviews')}
               </span>
-              <span className="block text-3xl font-black leading-none tracking-tight">
-                {t('overview.reviewCount', { count: reviewAvailableCount })}
+              <span
+                id={reviewCountId}
+                className="block text-3xl font-black leading-none tracking-tight"
+              >
+                {reviewCountText}
               </span>
-              <span className="mt-2 block text-sm text-[#fbf5e0]/75">
-                {estimatedMinutes === null
-                  ? t('overview.reviewEstimateCalibrating')
-                  : t('overview.reviewMinutes', { count: estimatedMinutes })}
+              <span id={reviewTimeId} className="mt-2 block text-sm text-[#fbf5e0]/75">
+                {reviewTimeText}
               </span>
             </span>
             <span
@@ -117,14 +112,15 @@ const StudyOverviewDashboard = ({
               onClick={onBeginLesson}
               disabled={isStartingSession || lessonsAvailable === 0}
               aria-label={t('overview.lessons')}
+              aria-describedby={lessonCountId}
               className="min-h-28 px-4 py-4 text-left transition hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
             >
               <span className="mb-2 grid size-8 place-items-center rounded-lg bg-emerald-700 text-white">
                 <BookOpen aria-hidden="true" className="size-4" />
               </span>
               <span className="block font-bold text-navy">{t('overview.lessons')}</span>
-              <span className="mt-0.5 block text-sm text-gray-600">
-                {t('overview.newCardCount', { count: lessonsAvailable })}
+              <span id={lessonCountId} className="mt-0.5 block text-sm text-gray-600">
+                {newCardCountText}
               </span>
             </button>
 

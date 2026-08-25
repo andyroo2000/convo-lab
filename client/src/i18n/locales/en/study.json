@@ -12,7 +12,6 @@
     "backToLibrary": "Back to viewed Library",
     "exitAndOpenStudy": "Exit View As and open my Study"
   },
-  "headline": "{{dueCount}} due",
   "motion": {
     "unsupported": "Shake to undo is not available on this device.",
     "denied": "Shake to undo is off because motion access was denied.",
