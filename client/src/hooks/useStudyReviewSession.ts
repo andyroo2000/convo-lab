@@ -679,9 +679,7 @@ const useStudyReviewSession = () => {
             setSessionWasEnded(true);
             setMilestoneCompletion(recoveredMilestoneCompletion);
             setCurrentMilestoneAwardIndex(0);
-            setMilestoneCelebrationPresented(
-              recoveredMilestoneCompletion.celebrationPresented
-            );
+            setMilestoneCelebrationPresented(recoveredMilestoneCompletion.celebrationPresented);
             setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? []);
           }
           if (sessionEpochRef.current === expectedEpoch) {

@@ -315,9 +315,8 @@ describe('useStudyReviewSession', () => {
     });
 
     const persisted = JSON.parse(
-      window.localStorage.getItem(
-        'convo-lab.study-milestones-v1.study-review-hook-test-user'
-      ) ?? '{}'
+      window.localStorage.getItem('convo-lab.study-milestones-v1.study-review-hook-test-user') ??
+        '{}'
     ) as { activeSession?: unknown };
     expect(persisted.activeSession).toBeNull();
   });
