@@ -7,9 +7,11 @@ Exact component commits live in `.github/release-integration/components.json`. U
 The gates are:
 
 1. Byte equality from the Learning OS authority to both vendored consumers, including the canonical manifest and checksum files.
-2. Producer-backed Learning OS compatibility fixture tests.
-3. Web manifest/hash verification and focused runtime-boundary hook tests.
-4. iOS golden-fixture decoding tests on the supported simulator toolchain.
+2. Producer-backed Learning OS compatibility fixture tests plus the Known Kanji API, route,
+   transfer-bridge, and import lifecycle suites.
+3. Web manifest/hash verification, strict Known Kanji decoder/context coverage, and focused
+   runtime-boundary hook tests.
+4. iOS golden-fixture decoding and Known Kanji service tests on the supported simulator toolchain.
 
 ## Promotion order
 
