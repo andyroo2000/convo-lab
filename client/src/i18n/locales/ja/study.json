@@ -37,7 +37,9 @@
     "noneStabilized": "今回は1週間以上の定着度に到達したカードはありません。",
     "toughest": "今回難しかったカード",
     "practice": "{{count}}枚を練習",
-    "misses": "{{count}}回ミス",
+    "misses_one": "{{count}}回ミス",
+    "misses_other": "{{count}}回ミス",
+    "cardFallback": "学習カード",
     "done": "完了"
   },
   "practice": {

@@ -68,6 +68,7 @@ export function buildStudySessionWrapUp(
   const recalledCount = recallAttempts.filter(({ grade }) => grade !== 'again').length;
 
   const aggregateValues = [...aggregates.values()];
+  // Preserve both signals: repeated misses and unusually slow individual answers.
   const byMisses = [...aggregateValues]
     .filter(({ missCount }) => missCount > 0)
     .sort((left, right) => right.missCount - left.missCount || right.durationMs - left.durationMs)

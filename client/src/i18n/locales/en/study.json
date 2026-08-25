@@ -39,6 +39,7 @@
     "practice": "Practice {{count}}",
     "misses_one": "{{count}} miss",
     "misses_other": "{{count}} misses",
+    "cardFallback": "Study card",
     "done": "Done"
   },
   "practice": {

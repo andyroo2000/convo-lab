@@ -11,14 +11,14 @@ interface StudySessionWrapUpProps {
   onDone: () => void;
 }
 
-const cardLabel = (card: StudyCardSummary) =>
+const cardLabel = (card: StudyCardSummary, fallback: string) =>
   toDisplayText(
     card.answer.expressionReading ??
       card.answer.expression ??
       card.prompt.cueText ??
       card.answer.restoredText ??
       card.prompt.clozeDisplayText ??
-      'Study card'
+      fallback
   );
 
 const cardMeaning = (card: StudyCardSummary) =>
@@ -29,6 +29,7 @@ const formatSeconds = (durationMs: number) =>
 
 const StudySessionWrapUp = ({ summary, onPractice, onDone }: StudySessionWrapUpProps) => {
   const { t } = useTranslation('study');
+  const fallbackCardLabel = t('wrapUp.cardFallback');
   const recall =
     summary.firstPassRecall === null
       ? '—'
@@ -71,7 +72,9 @@ const StudySessionWrapUp = ({ summary, onPractice, onDone }: StudySessionWrapUpP
             <h3 className="font-bold text-gray-900">{t('wrapUp.stabilized')}</h3>
             {summary.stabilizedCards.length > 0 ? (
               <p className="truncate text-sm text-gray-500">
-                {summary.stabilizedCards.map(cardLabel).join(' · ')}
+                {summary.stabilizedCards
+                  .map((card) => cardLabel(card, fallbackCardLabel))
+                  .join(' · ')}
               </p>
             ) : (
               <p className="text-sm text-gray-500">{t('wrapUp.noneStabilized')}</p>
@@ -101,7 +104,7 @@ const StudySessionWrapUp = ({ summary, onPractice, onDone }: StudySessionWrapUpP
                   className="flex min-h-11 items-center justify-between gap-4 py-2"
                 >
                   <p className="min-w-0 truncate font-semibold text-gray-900">
-                    {cardLabel(card)}
+                    {cardLabel(card, fallbackCardLabel)}
                     {cardMeaning(card) ? (
                       <span className="ml-2 text-sm font-normal text-gray-500">
                         {cardMeaning(card)}
