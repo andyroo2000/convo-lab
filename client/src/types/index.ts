@@ -303,7 +303,7 @@ export interface CourseStatusResponse {
   currentStage?: string;
 }
 
-export type DailyAudioPracticeMode = 'drill' | 'dialogue' | 'story';
+export type DailyAudioPracticeMode = 'drill' | 'dialogue' | 'story' | 'context';
 
 export interface DailyAudioPracticeTiming {
   unitIndex: number;

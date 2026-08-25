@@ -9,6 +9,8 @@ build
 out
 *.tsbuildinfo
 client/dev-dist
+# Byte-for-byte provider contract fixtures; formatting would invalidate checksums.
+client/src/test/fixtures/learning-os/Compatibility
 
 # Environment files
 .env

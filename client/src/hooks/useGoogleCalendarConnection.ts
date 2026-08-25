@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import { studyApiPath } from '../lib/studyApi';
+import { decodeGoogleCalendarConnectionStatus } from '../lib/learningOsContractDecoders';
 import { studyActivityKeys } from './useStudyActivity';
 import {
   canonicalizeGoogleCalendarSettings,
@@ -181,7 +182,8 @@ export function useGoogleCalendarConnection() {
   const [syncPollingTimedOut, setSyncPollingTimedOut] = useState(false);
   const query = useQuery({
     queryKey: googleCalendarConnectionKey,
-    queryFn: () => googleCalendarRequest<GoogleCalendarConnectionStatus>(),
+    queryFn: async () =>
+      decodeGoogleCalendarConnectionStatus(await googleCalendarRequest<unknown>()),
     refetchInterval: (current) =>
       googleCalendarSyncPollInterval(current.state.data?.sync?.status, syncPollingTimedOut),
   });

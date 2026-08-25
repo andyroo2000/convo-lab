@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import { studyApiPath } from '../lib/studyApi';
+import { decodeWeeklyStudyRecap } from '../lib/learningOsContractDecoders';
 import type { StudyActivityCategory } from '../types/studyActivity';
 import { MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING } from './useStudyActivity';
 
@@ -42,7 +43,7 @@ export function useWeeklyStudyRecap() {
       );
       notifyAuthSessionExpired(response);
       if (!response.ok) throw new Error('Unable to load the weekly study recap.');
-      return response.json() as Promise<WeeklyStudyRecap>;
+      return decodeWeeklyStudyRecap(await response.json());
     },
     staleTime: 15 * 60 * 1000,
   });

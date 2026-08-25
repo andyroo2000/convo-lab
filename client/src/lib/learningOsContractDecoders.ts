@@ -1,0 +1,330 @@
+import type { StudyCardSummary } from '@languageflow/shared/src/types';
+
+import type {
+  DailyAudioPractice,
+  DailyAudioPracticeMode,
+  DailyAudioPracticeTiming,
+  LessonScriptUnit,
+} from '../types';
+import type {
+  StudyActivityCategory,
+  StudyTimeAnalytics,
+  StudyTimeRange,
+} from '../types/studyActivity';
+import type { GoogleCalendarConnectionStatus } from '../hooks/useGoogleCalendarConnection';
+import type { WeeklyStudyRecap } from '../hooks/useWeeklyStudyRecap';
+
+type JsonRecord = Record<string, unknown>;
+
+const STUDY_ACTIVITY_CATEGORIES: readonly StudyActivityCategory[] = [
+  'review',
+  'listen',
+  'create',
+  'immerse',
+  'conversation',
+  'wanikani',
+];
+const STUDY_TIME_RANGES: readonly StudyTimeRange[] = ['today', 'week', 'month', 'year', 'all'];
+const DAILY_AUDIO_MODES: readonly DailyAudioPracticeMode[] = [
+  'drill',
+  'dialogue',
+  'story',
+  'context',
+];
+const DAILY_AUDIO_PRACTICE_STATUSES = ['draft', 'generating', 'ready', 'error'] as const;
+const DAILY_AUDIO_TRACK_STATUSES = ['draft', 'generating', 'ready', 'error', 'skipped'] as const;
+
+function record(value: unknown, path: string): JsonRecord {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error(`${path} must be an object.`);
+  }
+  return value as JsonRecord;
+}
+
+function array(value: unknown, path: string): unknown[] {
+  if (!Array.isArray(value)) throw new Error(`${path} must be an array.`);
+  return value;
+}
+
+function string(value: unknown, path: string): string {
+  if (typeof value !== 'string') throw new Error(`${path} must be a string.`);
+  return value;
+}
+
+function number(value: unknown, path: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`${path} must be a finite number.`);
+  }
+  return value;
+}
+
+function boolean(value: unknown, path: string): boolean {
+  if (typeof value !== 'boolean') throw new Error(`${path} must be a boolean.`);
+  return value;
+}
+
+function nullableString(value: unknown, path: string): string | null {
+  if (value === null) return null;
+  return string(value, path);
+}
+
+function optionalNullableNumber(value: unknown, path: string): number | null | undefined {
+  if (value === undefined || value === null) return value;
+  return number(value, path);
+}
+
+function optionalNullableArray<T>(
+  value: unknown,
+  path: string,
+  decode: (item: unknown, index: number) => T
+): T[] | null | undefined {
+  if (value === undefined || value === null) return value;
+  return array(value, path).map(decode);
+}
+
+function optionalNullableRecord(value: unknown, path: string): JsonRecord | null | undefined {
+  if (value === undefined || value === null) return value;
+  return record(value, path);
+}
+
+function optionalNullableString(value: unknown, path: string): string | null | undefined {
+  if (value === undefined) return undefined;
+  return nullableString(value, path);
+}
+
+function numericCategories(value: unknown, path: string) {
+  const categories = record(value, path);
+  STUDY_ACTIVITY_CATEGORIES.forEach((category) =>
+    number(categories[category], `${path}.${category}`)
+  );
+}
+
+export function decodeStudyCardSummary(value: unknown): StudyCardSummary {
+  const card = record(value, 'study card');
+  string(card.id, 'study card.id');
+  if (card.syncId !== undefined) string(card.syncId, 'study card.syncId');
+  nullableString(card.noteId, 'study card.noteId');
+  string(card.cardType, 'study card.cardType');
+  record(card.prompt, 'study card.prompt');
+  record(card.answer, 'study card.answer');
+  const state = record(card.state, 'study card.state');
+  nullableString(state.dueAt, 'study card.state.dueAt');
+  optionalNullableString(state.introducedAt, 'study card.state.introducedAt');
+  optionalNullableString(state.failedAt, 'study card.state.failedAt');
+  string(state.queueState, 'study card.state.queueState');
+  if (state.scheduler !== null) record(state.scheduler, 'study card.state.scheduler');
+  record(state.source, 'study card.state.source');
+  string(card.answerAudioSource, 'study card.answerAudioSource');
+  string(card.createdAt, 'study card.createdAt');
+  string(card.updatedAt, 'study card.updatedAt');
+  return card as unknown as StudyCardSummary;
+}
+
+export function decodeGoogleCalendarConnectionStatus(
+  value: unknown
+): GoogleCalendarConnectionStatus {
+  const connection = record(value, 'Google Calendar connection');
+  boolean(connection.connected, 'Google Calendar connection.connected');
+  nullableString(connection.accountEmail, 'Google Calendar connection.accountEmail');
+  array(connection.scopes, 'Google Calendar connection.scopes').forEach((scope, index) =>
+    string(scope, `Google Calendar connection.scopes[${index}]`)
+  );
+  nullableString(connection.connectedAt, 'Google Calendar connection.connectedAt');
+  nullableString(connection.lastSyncedAt, 'Google Calendar connection.lastSyncedAt');
+
+  if (connection.settings !== null) {
+    const settings = record(connection.settings, 'Google Calendar connection.settings');
+    array(settings.calendarIds, 'Google Calendar connection.settings.calendarIds').forEach(
+      (calendarId, index) =>
+        string(calendarId, `Google Calendar connection.settings.calendarIds[${index}]`)
+    );
+    array(settings.titleMatchTerms, 'Google Calendar connection.settings.titleMatchTerms').forEach(
+      (term, index) => string(term, `Google Calendar connection.settings.titleMatchTerms[${index}]`)
+    );
+    boolean(settings.syncEnabled, 'Google Calendar connection.settings.syncEnabled');
+  }
+
+  if (connection.sync !== null) {
+    const sync = record(connection.sync, 'Google Calendar connection.sync');
+    string(sync.status, 'Google Calendar connection.sync.status');
+    nullableString(sync.errorCode, 'Google Calendar connection.sync.errorCode');
+    nullableString(sync.statusAt, 'Google Calendar connection.sync.statusAt');
+  }
+
+  if (connection.nextLesson !== null && connection.nextLesson !== undefined) {
+    const lesson = record(connection.nextLesson, 'Google Calendar connection.nextLesson');
+    string(lesson.title, 'Google Calendar connection.nextLesson.title');
+    string(lesson.startsAt, 'Google Calendar connection.nextLesson.startsAt');
+    string(lesson.endsAt, 'Google Calendar connection.nextLesson.endsAt');
+  }
+  return connection as unknown as GoogleCalendarConnectionStatus;
+}
+
+export function decodeStudyTimeAnalytics(value: unknown): StudyTimeAnalytics {
+  const analytics = record(value, 'study activity analytics');
+  string(analytics.generatedAt, 'study activity analytics.generatedAt');
+  string(analytics.anchorDate, 'study activity analytics.anchorDate');
+  string(analytics.timezone, 'study activity analytics.timezone');
+  array(analytics.ranges, 'study activity analytics.ranges').forEach((rangeValue, rangeIndex) => {
+    const path = `study activity analytics.ranges[${rangeIndex}]`;
+    const range = record(rangeValue, path);
+    const key = string(range.key, `${path}.key`);
+    if (!STUDY_TIME_RANGES.includes(key as StudyTimeRange)) {
+      throw new Error(`${path}.key is not a supported range.`);
+    }
+    string(range.startsAt, `${path}.startsAt`);
+    string(range.endsAt, `${path}.endsAt`);
+    string(range.bucketUnit, `${path}.bucketUnit`);
+    number(range.bucketStep, `${path}.bucketStep`);
+    number(range.totalMs, `${path}.totalMs`);
+    numericCategories(range.categories, `${path}.categories`);
+    array(range.buckets, `${path}.buckets`).forEach((bucketValue, bucketIndex) => {
+      const bucketPath = `${path}.buckets[${bucketIndex}]`;
+      const bucket = record(bucketValue, bucketPath);
+      string(bucket.startsAt, `${bucketPath}.startsAt`);
+      string(bucket.endsAt, `${bucketPath}.endsAt`);
+      number(bucket.totalMs, `${bucketPath}.totalMs`);
+      numericCategories(bucket.categories, `${bucketPath}.categories`);
+    });
+  });
+  return analytics as unknown as StudyTimeAnalytics;
+}
+
+function decodeDailyAudioTiming(value: unknown, index: number): DailyAudioPracticeTiming {
+  const path = `Daily Audio timing[${index}]`;
+  const timing = record(value, path);
+  if ('unitIndex' in timing && 'startTime' in timing && 'endTime' in timing) {
+    return {
+      unitIndex: number(timing.unitIndex, `${path}.unitIndex`),
+      startTime: number(timing.startTime, `${path}.startTime`),
+      endTime: number(timing.endTime, `${path}.endTime`),
+    };
+  }
+  return {
+    unitIndex: index,
+    startTime: number(timing.startMs, `${path}.startMs`),
+    endTime: number(timing.endMs, `${path}.endMs`),
+  };
+}
+
+function decodeDailyAudioScriptUnit(value: unknown): LessonScriptUnit {
+  const unit = record(value, 'Daily Audio script unit');
+  if ('type' in unit) return unit as unknown as LessonScriptUnit;
+  const kind = string(unit.kind, 'Daily Audio script unit.kind');
+  const text = string(unit.text, 'Daily Audio script unit.text');
+  if (kind === 'target_language') return { type: 'L2', text, voiceId: '' };
+  if (kind === 'native_language') return { type: 'narration_L1', text, voiceId: '' };
+  throw new Error(`Daily Audio script unit kind ${kind} is not supported.`);
+}
+
+export function decodeDailyAudioPractice(value: unknown): DailyAudioPractice {
+  const practice = record(value, 'Daily Audio practice');
+  string(practice.id, 'Daily Audio practice.id');
+  string(practice.userId, 'Daily Audio practice.userId');
+  string(practice.practiceDate, 'Daily Audio practice.practiceDate');
+  const practiceStatus = string(practice.status, 'Daily Audio practice.status');
+  if (!(DAILY_AUDIO_PRACTICE_STATUSES as readonly string[]).includes(practiceStatus)) {
+    throw new Error('Daily Audio practice.status is not supported.');
+  }
+  number(practice.targetDurationMinutes, 'Daily Audio practice.targetDurationMinutes');
+  string(practice.targetLanguage, 'Daily Audio practice.targetLanguage');
+  string(practice.nativeLanguage, 'Daily Audio practice.nativeLanguage');
+  optionalNullableString(practice.errorMessage, 'Daily Audio practice.errorMessage');
+  string(practice.createdAt, 'Daily Audio practice.createdAt');
+  string(practice.updatedAt, 'Daily Audio practice.updatedAt');
+
+  const sourceCardIds = optionalNullableArray(
+    practice.sourceCardIdsJson,
+    'Daily Audio practice.sourceCardIdsJson',
+    (cardId, index) => string(cardId, `Daily Audio practice.sourceCardIdsJson[${index}]`)
+  );
+  const rawSummary = optionalNullableRecord(
+    practice.selectionSummaryJson,
+    'Daily Audio practice.selectionSummaryJson'
+  );
+  let selectionSummary: DailyAudioPractice['selectionSummaryJson'];
+  if (rawSummary) {
+    selectionSummary = {
+      totalCandidates: number(rawSummary.totalCandidates ?? 0, 'selection totalCandidates'),
+      totalEligible: number(rawSummary.totalEligible ?? 0, 'selection totalEligible'),
+      selectedCount: number(rawSummary.selectedCount ?? 0, 'selection selectedCount'),
+      dueCount: number(rawSummary.dueCount ?? 0, 'selection dueCount'),
+      learningCount: number(rawSummary.learningCount ?? 0, 'selection learningCount'),
+      recentMissCount: number(rawSummary.recentMissCount ?? 0, 'selection recentMissCount'),
+    };
+  } else {
+    selectionSummary = rawSummary;
+  }
+
+  const tracks = array(practice.tracks, 'Daily Audio practice.tracks').map((trackValue, index) => {
+    const path = `Daily Audio practice.tracks[${index}]`;
+    const track = record(trackValue, path);
+    string(track.id, `${path}.id`);
+    string(track.practiceId, `${path}.practiceId`);
+    const mode = string(track.mode, `${path}.mode`);
+    if (!DAILY_AUDIO_MODES.includes(mode as DailyAudioPracticeMode)) {
+      throw new Error(`${path}.mode is not supported.`);
+    }
+    const status = string(track.status, `${path}.status`);
+    if (!(DAILY_AUDIO_TRACK_STATUSES as readonly string[]).includes(status)) {
+      throw new Error(`${path}.status is not supported.`);
+    }
+    string(track.title, `${path}.title`);
+    number(track.sortOrder, `${path}.sortOrder`);
+    optionalNullableString(track.audioUrl, `${path}.audioUrl`);
+    optionalNullableNumber(track.approxDurationSeconds, `${path}.approxDurationSeconds`);
+    if (track.generationMetadataJson !== undefined && track.generationMetadataJson !== null) {
+      record(track.generationMetadataJson, `${path}.generationMetadataJson`);
+    }
+    optionalNullableString(track.errorMessage, `${path}.errorMessage`);
+    string(track.createdAt, `${path}.createdAt`);
+    string(track.updatedAt, `${path}.updatedAt`);
+    return {
+      ...track,
+      mode: mode as DailyAudioPracticeMode,
+      scriptUnitsJson: optionalNullableArray(
+        track.scriptUnitsJson,
+        `${path}.scriptUnitsJson`,
+        decodeDailyAudioScriptUnit
+      ),
+      timingData: optionalNullableArray(
+        track.timingData,
+        `${path}.timingData`,
+        decodeDailyAudioTiming
+      ),
+    };
+  });
+
+  return {
+    ...(practice as unknown as DailyAudioPractice),
+    sourceCardIdsJson: sourceCardIds,
+    selectionSummaryJson: selectionSummary,
+    tracks: tracks as DailyAudioPractice['tracks'],
+  };
+}
+
+function decodeWeeklyStats(value: unknown, path: string) {
+  const stats = record(value, path);
+  number(stats.totalMs, `${path}.totalMs`);
+  number(stats.activeDays, `${path}.activeDays`);
+  number(stats.reviewCount, `${path}.reviewCount`);
+  if (stats.recallRate !== null) number(stats.recallRate, `${path}.recallRate`);
+  number(stats.newCardsIntroduced, `${path}.newCardsIntroduced`);
+  return stats;
+}
+
+export function decodeWeeklyStudyRecap(value: unknown): WeeklyStudyRecap {
+  const recap = record(value, 'weekly study recap');
+  string(recap.generatedAt, 'weekly study recap.generatedAt');
+  const week = decodeWeeklyStats(recap.week, 'weekly study recap.week');
+  string(week.startsAt, 'weekly study recap.week.startsAt');
+  string(week.endsAt, 'weekly study recap.week.endsAt');
+  numericCategories(week.categories, 'weekly study recap.week.categories');
+  if (week.bestDay !== null) {
+    const bestDay = record(week.bestDay, 'weekly study recap.week.bestDay');
+    string(bestDay.date, 'weekly study recap.week.bestDay.date');
+    number(bestDay.totalMs, 'weekly study recap.week.bestDay.totalMs');
+  }
+  decodeWeeklyStats(recap.previousWeek, 'weekly study recap.previousWeek');
+  return recap as unknown as WeeklyStudyRecap;
+}

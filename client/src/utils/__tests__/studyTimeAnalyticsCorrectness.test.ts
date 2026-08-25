@@ -69,16 +69,10 @@ describe('study analytics correctness matrix', () => {
 
     expect(projection.buckets).toHaveLength(7);
     expect(projection.buckets.map((bucket) => bucket.totalMs)).toEqual([
-      0,
-      30 * 60_000,
-      60 * 60_000,
-      0,
-      0,
-      0,
-      0,
+      1_800_001, 4_801_001, 0, 0, 0, 0, 0,
     ]);
-    expect(projection.totalMs).toBe(90 * 60_000);
-    expect(projection.bestBucket?.bucket.startsAt).toBe('2026-08-12T04:00:00.000Z');
+    expect(projection.totalMs).toBe(6_601_002);
+    expect(projection.bestBucket?.bucket.startsAt).toBe('2026-07-28T04:00:00.000000Z');
     expectProjectionConservation(projection);
   });
 
@@ -86,34 +80,32 @@ describe('study analytics correctness matrix', () => {
     {
       name: 'all categories',
       included: STUDY_ACTIVITY_CATEGORIES,
-      expectedTotalMinutes: 90,
-      expectedBucketsMinutes: [0, 30, 60, 0, 0, 0, 0],
+      expectedTotalMs: 6_601_002,
+      expectedBucketsMs: [1_800_001, 4_801_001, 0, 0, 0, 0, 0],
     },
     {
       name: 'review only',
       included: ['review'] as const,
-      expectedTotalMinutes: 60,
-      expectedBucketsMinutes: [0, 20, 40, 0, 0, 0, 0],
+      expectedTotalMs: 3_600_001,
+      expectedBucketsMs: [1_800_001, 1_800_000, 0, 0, 0, 0, 0],
     },
     {
       name: 'listen only',
       included: ['listen'] as const,
-      expectedTotalMinutes: 30,
-      expectedBucketsMinutes: [0, 10, 20, 0, 0, 0, 0],
+      expectedTotalMs: 900_001,
+      expectedBucketsMs: [0, 900_001, 0, 0, 0, 0, 0],
     },
     {
-      name: 'a category with no time',
+      name: 'conversation only',
       included: ['conversation'] as const,
-      expectedTotalMinutes: 0,
-      expectedBucketsMinutes: [0, 0, 0, 0, 0, 0, 0],
+      expectedTotalMs: 1_200_000,
+      expectedBucketsMs: [0, 1_200_000, 0, 0, 0, 0, 0],
     },
   ])('conserves totals when filtering to $name', (fixture) => {
     const projection = project(CROSS_MIDNIGHT_STUDY_TIME_RANGE, fixture.included);
 
-    expect(projection.totalMs).toBe(fixture.expectedTotalMinutes * 60_000);
-    expect(projection.buckets.map((bucket) => bucket.totalMs / 60_000)).toEqual(
-      fixture.expectedBucketsMinutes
-    );
+    expect(projection.totalMs).toBe(fixture.expectedTotalMs);
+    expect(projection.buckets.map((bucket) => bucket.totalMs)).toEqual(fixture.expectedBucketsMs);
     expectProjectionConservation(projection);
   });
 

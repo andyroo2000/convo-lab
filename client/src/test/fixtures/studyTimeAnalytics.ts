@@ -3,6 +3,8 @@ import type {
   StudyTimeAnalyticsBucket,
   StudyTimeAnalyticsRange,
 } from '../../types/studyActivity';
+import { decodeStudyTimeAnalytics } from '../../lib/learningOsContractDecoders';
+import { studyAnalyticsCompatibilityFixture } from './learningOsCompatibility';
 
 export const STUDY_ACTIVITY_CATEGORIES: readonly StudyActivityCategory[] = [
   'review',
@@ -167,20 +169,10 @@ export const FIXED_STUDY_TIME_AXIS_FIXTURES: readonly FixedStudyTimeAxisFixture[
   },
 ];
 
-export const CROSS_MIDNIGHT_STUDY_TIME_RANGE = studyTimeRange({
-  key: 'week',
-  startsAt: '2026-08-10T04:00:00.000Z',
-  endsAt: '2026-08-17T04:00:00.000Z',
-  buckets: [
-    studyTimeBucket('2026-08-10T04:00:00.000Z', '2026-08-11T04:00:00.000Z'),
-    studyTimeBucket('2026-08-11T04:00:00.000Z', '2026-08-12T04:00:00.000Z', {
-      review: 20 * 60_000,
-      listen: 10 * 60_000,
-    }),
-    studyTimeBucket('2026-08-12T04:00:00.000Z', '2026-08-13T04:00:00.000Z', {
-      review: 40 * 60_000,
-      listen: 20 * 60_000,
-    }),
-    ...emptyBuckets(dailyBoundaries('2026-08-13T04:00:00.000Z', 4)),
-  ],
-});
+export const PROVIDER_STUDY_TIME_ANALYTICS = decodeStudyTimeAnalytics(
+  studyAnalyticsCompatibilityFixture.cases[0].payload
+);
+
+export const CROSS_MIDNIGHT_STUDY_TIME_RANGE = PROVIDER_STUDY_TIME_ANALYTICS.ranges.find(
+  ({ key }) => key === 'week'
+)!;

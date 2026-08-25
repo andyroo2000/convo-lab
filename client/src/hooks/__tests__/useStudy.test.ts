@@ -48,6 +48,7 @@ import {
 } from '../useStudy';
 import StudyDraftRevisionConflictError from '../../lib/studyDraftRevisionConflict';
 import StudyReviewIdentityMismatchError from '../../lib/studyReviewIdentityMismatch';
+import { studyCardCompatibilityFixture } from '../../test/fixtures/learningOsCompatibility';
 
 vi.mock('../../config', () => ({
   API_URL: 'http://localhost:8080',
@@ -111,7 +112,7 @@ describe('useStudy request helpers', () => {
         return {
           ok: true,
           status: 200,
-          json: async () => ({}),
+          json: async () => studyCardCompatibilityFixture.cases[0].payload,
         } as Response;
       })
     );

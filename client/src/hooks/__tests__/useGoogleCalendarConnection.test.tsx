@@ -17,6 +17,7 @@ import {
   useSyncGoogleCalendar,
 } from '../useGoogleCalendarConnection';
 import { studyActivityKeys } from '../useStudyActivity';
+import { googleCalendarCompatibilityFixture } from '../../test/fixtures/learningOsCompatibility';
 
 const { fetchWithCsrfMock, notifyAuthSessionExpiredMock } = vi.hoisted(() => ({
   fetchWithCsrfMock: vi.fn(),
@@ -62,6 +63,27 @@ describe('Google Calendar connection requests', () => {
       expect.objectContaining({ credentials: 'include' })
     );
     expect(notifyAuthSessionExpiredMock).toHaveBeenCalledOnce();
+  });
+
+  it('loads the canonical provider connection shape including sync diagnostics', async () => {
+    const providerStatus = googleCalendarCompatibilityFixture.cases[1].payload;
+    fetchWithCsrfMock.mockResolvedValue(
+      new Response(JSON.stringify(providerStatus), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const { result } = renderHook(() => useGoogleCalendarConnection(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.data).toEqual(providerStatus));
+
+    expect(result.current.data?.nextLesson?.title).toBe('iTalki with Yuki');
+    expect(result.current.data?.sync).toMatchObject({
+      status: 'failed',
+      errorCode: 'provider_unavailable',
+    });
   });
 
   it('polls only while a calendar sync is queued or running', () => {

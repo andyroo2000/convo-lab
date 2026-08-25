@@ -2,7 +2,12 @@ import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createWrapper } from '../../__tests__/hooks/test-utils';
-import { useAutomaticStudyActivity, useEditableStudyActivitySessions } from '../useStudyActivity';
+import { studyAnalyticsCompatibilityFixture } from '../../test/fixtures/learningOsCompatibility';
+import {
+  useAutomaticStudyActivity,
+  useEditableStudyActivitySessions,
+  useStudyActivityAnalytics,
+} from '../useStudyActivity';
 
 const { fetchWithCsrfMock, notifyAuthSessionExpiredMock } = vi.hoisted(() => ({
   fetchWithCsrfMock: vi.fn(),
@@ -109,5 +114,27 @@ describe('useEditableStudyActivitySessions', () => {
     ]);
     expect(result.current.hasNextPage).toBe(false);
     expect(notifyAuthSessionExpiredMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('useStudyActivityAnalytics', () => {
+  beforeEach(() => {
+    fetchWithCsrfMock.mockReset();
+    notifyAuthSessionExpiredMock.mockReset();
+  });
+
+  it('loads and decodes the canonical provider analytics payload', async () => {
+    fetchWithCsrfMock.mockResolvedValue(
+      new Response(JSON.stringify(studyAnalyticsCompatibilityFixture.cases[0].payload), {
+        status: 200,
+      })
+    );
+    const { result } = renderHook(() => useStudyActivityAnalytics('2026-07-28'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.ranges).toHaveLength(5);
+    expect(result.current.data?.ranges.find(({ key }) => key === 'week')?.totalMs).toBe(6_601_002);
   });
 });
