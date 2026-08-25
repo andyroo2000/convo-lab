@@ -173,6 +173,7 @@ export interface StudyCardState {
 
 export interface StudyCardSummary {
   id: string;
+  syncId?: string;
   noteId: string | null;
   cardType: StudyCardType;
   prompt: StudyPromptPayload;
@@ -465,6 +466,44 @@ export interface StudyNewCardQueueResponse {
 
 export interface StudyCardListResponse {
   items: StudyCardSummary[];
+  limit: number;
+  nextCursor: string | null;
+}
+
+export type StudyLearningItemStageStatus = 'locked' | 'available' | 'retired' | null;
+
+export interface StudyLearningItemCard {
+  id: string;
+  syncId: string;
+  noteId: string;
+  cardType: StudyCardType;
+  displayText: string;
+  meaning: string | null;
+  variantKind: StudyVocabVariantKind | null;
+}
+
+export interface StudyLearningItemStage {
+  number: number | null;
+  status: StudyLearningItemStageStatus;
+  cardCount: number;
+  representativeCard: StudyLearningItemCard;
+  cards: StudyLearningItemCard[];
+}
+
+export interface StudyLearningItem {
+  id: string;
+  groupId: string | null;
+  representativeCard: StudyLearningItemCard;
+  currentStageNumber: number | null;
+  stageCount: number;
+  cardCount: number;
+  retiredStageCount: number;
+  transferDemonstrated: boolean;
+  stages: StudyLearningItemStage[];
+}
+
+export interface StudyLearningItemListResponse {
+  items: StudyLearningItem[];
   limit: number;
   nextCursor: string | null;
 }

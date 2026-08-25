@@ -9,7 +9,8 @@ import { render, screen } from '../../../test/utils';
 import StudyLearningPathEditor from '../StudyLearningPathEditor';
 
 const currentCard: StudyCardSummary = {
-  id: '01arz3ndektsv4rrffq69g5fav',
+  id: '0191f917-f689-7d3f-9988-56aa3149a101',
+  syncId: '01arz3ndektsv4rrffq69g5fav',
   noteId: null,
   cardType: 'recognition' as const,
   prompt: { cueText: '会社を辞めました。' },
@@ -22,14 +23,15 @@ const currentCard: StudyCardSummary = {
 
 const successorCard = {
   ...currentCard,
-  id: '01arz3ndektsv4rrffq69g5faw',
+  id: '0191f917-f689-7d3f-9988-56aa3149a102',
+  syncId: '01arz3ndektsv4rrffq69g5faw',
   noteId: 'note-successor',
   prompt: { cueText: '会社' },
   answer: { expression: '会社', meaning: 'company' },
 };
 
 const canonicalCard = (card: StudyCardSummary, stage: number, status: 'available' | 'locked') => ({
-  id: card.id,
+  id: card.syncId ?? card.id,
   source_note_id: card.noteId,
   front_text: card.prompt.cueText,
   back_text: card.answer.meaning,
@@ -68,19 +70,19 @@ describe('StudyLearningPathEditor query integration', () => {
           } as Response;
         }
         if (
-          url === `/api/cards/${currentCard.id}/learning-path/successor` &&
+          url === `/api/cards/${currentCard.syncId}/learning-path/successor` &&
           init?.method === 'PUT'
         ) {
           linked = true;
         }
-        if (url === `/api/cards/${currentCard.id}/learning-path` || linked) {
+        if (url === `/api/cards/${currentCard.syncId}/learning-path` || linked) {
           return {
             ok: true,
             status: 200,
             json: async () => ({
               data: {
                 group_id: linked ? '01arz3ndektsv4rrffq69g5fax' : null,
-                anchor_card_id: currentCard.id,
+                anchor_card_id: currentCard.syncId,
                 stages: linked
                   ? [
                       {
@@ -126,5 +128,13 @@ describe('StudyLearningPathEditor query integration', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Paths grow from their final stage.')).toBeInTheDocument();
     expect(screen.queryByText('What should this card unlock?')).not.toBeInTheDocument();
+
+    const linkRequest = vi
+      .mocked(global.fetch)
+      .mock.calls.find(([url]) => String(url).endsWith('/learning-path/successor'));
+    expect(linkRequest).toBeDefined();
+    expect(JSON.parse(String((linkRequest?.[1] as RequestInit).body))).toEqual({
+      successor_card_id: successorCard.syncId,
+    });
   });
 });

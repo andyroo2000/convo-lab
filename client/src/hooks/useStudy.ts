@@ -21,6 +21,7 @@ import type {
   StudyImportResult,
   StudyImportUploadReadiness,
   StudyImportUploadSession,
+  StudyLearningItemListResponse,
   StudyNewCardQueueResponse,
   StudyOverview,
   StudyPromptPayload,
@@ -390,6 +391,18 @@ export async function getStudyCards(
   return apiRequest<StudyCardListResponse>(`/cards${suffix ? `?${suffix}` : ''}`);
 }
 
+export async function getStudyLearningItems(
+  params: { cursor?: string | null; limit?: number; q?: string } = {}
+): Promise<StudyLearningItemListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.cursor) searchParams.set('cursor', params.cursor);
+  if (typeof params.limit === 'number') searchParams.set('per_page', String(params.limit));
+  if (params.q?.trim()) searchParams.set('q', params.q.trim());
+
+  const suffix = searchParams.toString();
+  return apiRequest<StudyLearningItemListResponse>(`/learning-items${suffix ? `?${suffix}` : ''}`);
+}
+
 export async function reorderStudyNewCardQueue(cardIds: string[]) {
   return apiRequest<StudyNewCardQueueResponse>('/new-queue/reorder', {
     method: 'POST',
@@ -749,6 +762,16 @@ export function useStudyCardsInfinite(enabled: boolean, q = '') {
   });
 }
 
+export function useStudyLearningItemsInfinite(enabled: boolean, q = '') {
+  return useInfiniteQuery({
+    queryKey: ['study', 'learning-items', 'infinite', q],
+    queryFn: ({ pageParam }) => getStudyLearningItems({ cursor: pageParam, limit: 20, q }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled,
+  });
+}
+
 export function useStudyLearningPath(cardId: string, enabled = true) {
   return useQuery({
     queryKey: ['study', 'learning-path', cardId],
@@ -767,6 +790,7 @@ export function useLinkStudyLearningPathSuccessor() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'learning-path'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'cards'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'learning-items'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),

@@ -124,7 +124,19 @@
     "reorderLimit": "Reordering is available while up to 100 cards are loaded.",
     "emptyQueue": "New cards waiting to be introduced appear here.",
     "emptyCards": "Sync, import, or create a card to begin.",
-    "noSearchResults": "No cards match that search."
+    "noSearchResults": "No cards match that search.",
+    "learningPathItem": "Learning path",
+    "stageProgress": "Stage {{current}} of {{total}}",
+    "stageCount_one": "{{count}} stage",
+    "stageCount_other": "{{count}} stages",
+    "cardCount_one": "{{count}} card",
+    "cardCount_other": "{{count}} cards",
+    "viewStages_one": "View {{count}} stage",
+    "viewStages_other": "View {{count}} stages",
+    "pathProgressLabel": "Learning path progress: stage {{current}} of {{total}}",
+    "pathProgressPending": "Learning path has {{total}} stages and no active numbered stage",
+    "transferDemonstrated": "Transfer demonstrated",
+    "independentStage": "Available"
   },
   "readiness": {
     "title": "Learning readiness",
