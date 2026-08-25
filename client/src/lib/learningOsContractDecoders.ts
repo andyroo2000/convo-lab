@@ -3,6 +3,7 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import type {
   DailyAudioPractice,
   DailyAudioPracticeMode,
+  DailyAudioPracticeStatusResponse,
   DailyAudioPracticeTiming,
   LessonScriptUnit,
 } from '../types';
@@ -165,32 +166,45 @@ export function decodeStudyTimeAnalytics(value: unknown): StudyTimeAnalytics {
   string(analytics.generatedAt, 'study activity analytics.generatedAt');
   string(analytics.anchorDate, 'study activity analytics.anchorDate');
   string(analytics.timezone, 'study activity analytics.timezone');
-  array(analytics.ranges, 'study activity analytics.ranges').forEach((rangeValue, rangeIndex) => {
-    const path = `study activity analytics.ranges[${rangeIndex}]`;
-    const range = record(rangeValue, path);
-    const key = string(range.key, `${path}.key`);
-    if (!STUDY_TIME_RANGES.includes(key as StudyTimeRange)) {
-      throw new Error(`${path}.key is not a supported range.`);
+  const rangeKeys = array(analytics.ranges, 'study activity analytics.ranges').map(
+    (rangeValue, rangeIndex) => {
+      const path = `study activity analytics.ranges[${rangeIndex}]`;
+      const range = record(rangeValue, path);
+      const key = string(range.key, `${path}.key`);
+      if (!STUDY_TIME_RANGES.includes(key as StudyTimeRange)) {
+        throw new Error(`${path}.key is not a supported range.`);
+      }
+      string(range.startsAt, `${path}.startsAt`);
+      string(range.endsAt, `${path}.endsAt`);
+      string(range.bucketUnit, `${path}.bucketUnit`);
+      number(range.bucketStep, `${path}.bucketStep`);
+      number(range.totalMs, `${path}.totalMs`);
+      numericCategories(range.categories, `${path}.categories`);
+      array(range.buckets, `${path}.buckets`).forEach((bucketValue, bucketIndex) => {
+        const bucketPath = `${path}.buckets[${bucketIndex}]`;
+        const bucket = record(bucketValue, bucketPath);
+        string(bucket.startsAt, `${bucketPath}.startsAt`);
+        string(bucket.endsAt, `${bucketPath}.endsAt`);
+        number(bucket.totalMs, `${bucketPath}.totalMs`);
+        numericCategories(bucket.categories, `${bucketPath}.categories`);
+      });
+      return key as StudyTimeRange;
     }
-    string(range.startsAt, `${path}.startsAt`);
-    string(range.endsAt, `${path}.endsAt`);
-    string(range.bucketUnit, `${path}.bucketUnit`);
-    number(range.bucketStep, `${path}.bucketStep`);
-    number(range.totalMs, `${path}.totalMs`);
-    numericCategories(range.categories, `${path}.categories`);
-    array(range.buckets, `${path}.buckets`).forEach((bucketValue, bucketIndex) => {
-      const bucketPath = `${path}.buckets[${bucketIndex}]`;
-      const bucket = record(bucketValue, bucketPath);
-      string(bucket.startsAt, `${bucketPath}.startsAt`);
-      string(bucket.endsAt, `${bucketPath}.endsAt`);
-      number(bucket.totalMs, `${bucketPath}.totalMs`);
-      numericCategories(bucket.categories, `${bucketPath}.categories`);
-    });
-  });
+  );
+  if (
+    rangeKeys.length !== STUDY_TIME_RANGES.length ||
+    STUDY_TIME_RANGES.some((expected) => !rangeKeys.includes(expected))
+  ) {
+    throw new Error('study activity analytics.ranges must contain each supported range once.');
+  }
   return analytics as unknown as StudyTimeAnalytics;
 }
 
-function decodeDailyAudioTiming(value: unknown, index: number): DailyAudioPracticeTiming {
+function decodeDailyAudioTiming(
+  value: unknown,
+  index: number,
+  legacyUnitIndices: number[]
+): DailyAudioPracticeTiming {
   const path = `Daily Audio timing[${index}]`;
   const timing = record(value, path);
   if ('unitIndex' in timing && 'startTime' in timing && 'endTime' in timing) {
@@ -200,8 +214,12 @@ function decodeDailyAudioTiming(value: unknown, index: number): DailyAudioPracti
       endTime: number(timing.endTime, `${path}.endTime`),
     };
   }
+  const unitIndex = legacyUnitIndices[index];
+  if (unitIndex === undefined) {
+    throw new Error(`${path} has no matching script unit.`);
+  }
   return {
-    unitIndex: index,
+    unitIndex,
     startTime: number(timing.startMs, `${path}.startMs`),
     endTime: number(timing.endMs, `${path}.endMs`),
   };
@@ -209,7 +227,37 @@ function decodeDailyAudioTiming(value: unknown, index: number): DailyAudioPracti
 
 function decodeDailyAudioScriptUnit(value: unknown): LessonScriptUnit {
   const unit = record(value, 'Daily Audio script unit');
-  if ('type' in unit) return unit as unknown as LessonScriptUnit;
+  if ('type' in unit) {
+    const type = string(unit.type, 'Daily Audio script unit.type');
+    if (type === 'pause') {
+      return { type, seconds: number(unit.seconds, 'Daily Audio script unit.seconds') };
+    }
+    if (type === 'marker') {
+      return { type, label: string(unit.label, 'Daily Audio script unit.label') };
+    }
+    if (type === 'narration_L1') {
+      return {
+        type,
+        text: string(unit.text, 'Daily Audio script unit.text'),
+        voiceId: string(unit.voiceId, 'Daily Audio script unit.voiceId'),
+      };
+    }
+    if (type === 'L2') {
+      const decoded: Extract<LessonScriptUnit, { type: 'L2' }> = {
+        type,
+        text: string(unit.text, 'Daily Audio script unit.text'),
+        voiceId: string(unit.voiceId, 'Daily Audio script unit.voiceId'),
+      };
+      if (unit.reading !== undefined)
+        decoded.reading = string(unit.reading, 'Daily Audio script unit.reading');
+      if (unit.translation !== undefined)
+        decoded.translation = string(unit.translation, 'Daily Audio script unit.translation');
+      if (unit.speed !== undefined)
+        decoded.speed = number(unit.speed, 'Daily Audio script unit.speed');
+      return decoded;
+    }
+    throw new Error(`Daily Audio script unit type ${type} is not supported.`);
+  }
   const kind = string(unit.kind, 'Daily Audio script unit.kind');
   const text = string(unit.text, 'Daily Audio script unit.text');
   if (kind === 'target_language') return { type: 'L2', text, voiceId: '' };
@@ -245,12 +293,19 @@ export function decodeDailyAudioPractice(value: unknown): DailyAudioPractice {
   let selectionSummary: DailyAudioPractice['selectionSummaryJson'];
   if (rawSummary) {
     selectionSummary = {
-      totalCandidates: number(rawSummary.totalCandidates ?? 0, 'selection totalCandidates'),
-      totalEligible: number(rawSummary.totalEligible ?? 0, 'selection totalEligible'),
-      selectedCount: number(rawSummary.selectedCount ?? 0, 'selection selectedCount'),
-      dueCount: number(rawSummary.dueCount ?? 0, 'selection dueCount'),
-      learningCount: number(rawSummary.learningCount ?? 0, 'selection learningCount'),
-      recentMissCount: number(rawSummary.recentMissCount ?? 0, 'selection recentMissCount'),
+      totalCandidates:
+        optionalNullableNumber(rawSummary.totalCandidates, 'selection totalCandidates') ??
+        undefined,
+      totalEligible:
+        optionalNullableNumber(rawSummary.totalEligible, 'selection totalEligible') ?? undefined,
+      selectedCount:
+        optionalNullableNumber(rawSummary.selectedCount, 'selection selectedCount') ?? undefined,
+      dueCount: optionalNullableNumber(rawSummary.dueCount, 'selection dueCount') ?? undefined,
+      learningCount:
+        optionalNullableNumber(rawSummary.learningCount, 'selection learningCount') ?? undefined,
+      recentMissCount:
+        optionalNullableNumber(rawSummary.recentMissCount, 'selection recentMissCount') ??
+        undefined,
     };
   } else {
     selectionSummary = rawSummary;
@@ -279,18 +334,22 @@ export function decodeDailyAudioPractice(value: unknown): DailyAudioPractice {
     optionalNullableString(track.errorMessage, `${path}.errorMessage`);
     string(track.createdAt, `${path}.createdAt`);
     string(track.updatedAt, `${path}.updatedAt`);
+    const scriptUnitsJson = optionalNullableArray(
+      track.scriptUnitsJson,
+      `${path}.scriptUnitsJson`,
+      decodeDailyAudioScriptUnit
+    );
+    const legacyUnitIndices = (scriptUnitsJson ?? []).flatMap((unit, unitIndex) =>
+      unit.type === 'marker' ? [] : [unitIndex]
+    );
     return {
       ...track,
       mode: mode as DailyAudioPracticeMode,
-      scriptUnitsJson: optionalNullableArray(
-        track.scriptUnitsJson,
-        `${path}.scriptUnitsJson`,
-        decodeDailyAudioScriptUnit
-      ),
+      scriptUnitsJson,
       timingData: optionalNullableArray(
         track.timingData,
         `${path}.timingData`,
-        decodeDailyAudioTiming
+        (timing, timingIndex) => decodeDailyAudioTiming(timing, timingIndex, legacyUnitIndices)
       ),
     };
   });
@@ -301,6 +360,32 @@ export function decodeDailyAudioPractice(value: unknown): DailyAudioPractice {
     selectionSummaryJson: selectionSummary,
     tracks: tracks as DailyAudioPractice['tracks'],
   };
+}
+
+export function decodeDailyAudioPracticeStatus(value: unknown): DailyAudioPracticeStatusResponse {
+  const response = record(value, 'Daily Audio practice status');
+  string(response.id, 'Daily Audio practice status.id');
+  const status = string(response.status, 'Daily Audio practice status.status');
+  if (!(DAILY_AUDIO_PRACTICE_STATUSES as readonly string[]).includes(status)) {
+    throw new Error('Daily Audio practice status.status is not supported.');
+  }
+  if (response.progress !== null) number(response.progress, 'Daily Audio practice status.progress');
+  array(response.tracks, 'Daily Audio practice status.tracks').forEach((trackValue, index) => {
+    const path = `Daily Audio practice status.tracks[${index}]`;
+    const track = record(trackValue, path);
+    string(track.id, `${path}.id`);
+    const mode = string(track.mode, `${path}.mode`);
+    if (!DAILY_AUDIO_MODES.includes(mode as DailyAudioPracticeMode)) {
+      throw new Error(`${path}.mode is not supported.`);
+    }
+    const trackStatus = string(track.status, `${path}.status`);
+    if (!(DAILY_AUDIO_TRACK_STATUSES as readonly string[]).includes(trackStatus)) {
+      throw new Error(`${path}.status is not supported.`);
+    }
+    optionalNullableString(track.audioUrl, `${path}.audioUrl`);
+    optionalNullableNumber(track.approxDurationSeconds, `${path}.approxDurationSeconds`);
+  });
+  return response as unknown as DailyAudioPracticeStatusResponse;
 }
 
 function decodeWeeklyStats(value: unknown, path: string) {

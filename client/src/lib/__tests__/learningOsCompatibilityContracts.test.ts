@@ -20,6 +20,7 @@ import {
 } from '../../test/fixtures/learningOsCompatibility';
 import {
   decodeDailyAudioPractice,
+  decodeDailyAudioPracticeStatus,
   decodeGoogleCalendarConnectionStatus,
   decodeStudyCardSummary,
   decodeStudyTimeAnalytics,
@@ -133,11 +134,86 @@ describe('vendored Learning OS compatibility fixtures', () => {
       timingData: [{ unitIndex: 0, startTime: 0, endTime: 1200 }],
     });
     expect(practices[0].tracks[1]).toMatchObject({ mode: 'context', status: 'skipped' });
+    expect(practices[0].selectionSummaryJson).toEqual({
+      dueCount: 1,
+      learningCount: 1,
+    });
+    expect(practices[0].selectionSummaryJson?.selectedCount).toBeUndefined();
     expect(practices[1]).toMatchObject({
       status: 'error',
       tracks: [],
       errorMessage: 'Generation failed.',
     });
+  });
+
+  it('maps legacy Daily Audio timing entries to interleaved non-marker script units', () => {
+    const payload = structuredClone(dailyAudioCompatibilityFixture.cases[0].payload) as {
+      tracks: Array<{ scriptUnitsJson: unknown[]; timingData: unknown[] }>;
+    };
+    payload.tracks[0]!.scriptUnitsJson = [
+      { type: 'narration_L1', text: 'Listen.', voiceId: 'narrator' },
+      { type: 'marker', label: 'prompt' },
+      { type: 'L2', text: '会社', voiceId: 'speaker' },
+    ];
+    payload.tracks[0]!.timingData = [
+      { startMs: 0, endMs: 500 },
+      { startMs: 500, endMs: 1200 },
+    ];
+
+    expect(decodeDailyAudioPractice(payload).tracks[0]?.timingData).toEqual([
+      { unitIndex: 0, startTime: 0, endTime: 500 },
+      { unitIndex: 2, startTime: 500, endTime: 1200 },
+    ]);
+  });
+
+  it('strictly validates type-keyed Daily Audio script units', () => {
+    const payload = structuredClone(dailyAudioCompatibilityFixture.cases[0].payload) as {
+      tracks: Array<{ scriptUnitsJson: unknown[] }>;
+    };
+    payload.tracks[0]!.scriptUnitsJson = [
+      { type: 'L2', text: '会社', voiceId: 42 as unknown as string },
+    ];
+
+    expect(() => decodeDailyAudioPractice(payload)).toThrow(
+      'Daily Audio script unit.voiceId must be a string'
+    );
+  });
+
+  it('rejects analytics responses that omit a required range', () => {
+    const payload = structuredClone(studyAnalyticsCompatibilityFixture.cases[0].payload) as {
+      ranges: Array<{ key: string }>;
+    };
+    payload.ranges = payload.ranges.filter(({ key }) => key !== 'year');
+
+    expect(() => decodeStudyTimeAnalytics(payload)).toThrow(
+      'study activity analytics.ranges must contain each supported range once'
+    );
+  });
+
+  it('decodes and rejects malformed Daily Audio generation status payloads', () => {
+    const status = decodeDailyAudioPracticeStatus({
+      id: 'practice-1',
+      status: 'generating',
+      progress: 33,
+      tracks: [
+        {
+          id: 'track-1',
+          mode: 'drill',
+          status: 'ready',
+          audioUrl: '/audio/drill.mp3',
+          approxDurationSeconds: 30,
+        },
+      ],
+    });
+    expect(status.progress).toBe(33);
+    expect(() =>
+      decodeDailyAudioPracticeStatus({
+        id: 'practice-1',
+        status: 'generating',
+        progress: '33',
+        tracks: [],
+      })
+    ).toThrow('Daily Audio practice status.progress must be a finite number');
   });
 
   it('decodes empty and populated weekly recap boundary cases without losing nulls', () => {

@@ -4,8 +4,11 @@ import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import { DAILY_AUDIO_API_BASE } from '../lib/studyApi';
-import { decodeDailyAudioPractice } from '../lib/learningOsContractDecoders';
-import type { DailyAudioPracticeStatusResponse, DailyAudioPracticeTrack } from '../types';
+import {
+  decodeDailyAudioPractice,
+  decodeDailyAudioPracticeStatus,
+} from '../lib/learningOsContractDecoders';
+import type { DailyAudioPracticeTrack } from '../types';
 
 export const DAILY_AUDIO_DURATION_OPTIONS = [15, 30, 45, 60] as const;
 export type DailyAudioDurationMinutes = (typeof DAILY_AUDIO_DURATION_OPTIONS)[number];
@@ -68,8 +71,8 @@ async function fetchDailyAudioPractice(id: string) {
 }
 
 async function fetchDailyAudioPracticeStatus(id: string) {
-  return apiRequest<DailyAudioPracticeStatusResponse>(
-    `${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}/status`
+  return decodeDailyAudioPracticeStatus(
+    await apiRequest<unknown>(`${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}/status`)
   );
 }
 

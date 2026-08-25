@@ -312,12 +312,12 @@ export interface DailyAudioPracticeTiming {
 }
 
 export interface DailyAudioSelectionSummary {
-  totalCandidates: number;
-  totalEligible: number;
-  selectedCount: number;
-  dueCount: number;
-  learningCount: number;
-  recentMissCount: number;
+  totalCandidates?: number;
+  totalEligible?: number;
+  selectedCount?: number;
+  dueCount?: number;
+  learningCount?: number;
+  recentMissCount?: number;
 }
 
 export interface DailyAudioPracticeTrack {
