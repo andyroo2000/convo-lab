@@ -501,7 +501,7 @@
   },
   "time": {
     "eyebrow": "学習時間",
-    "title": "学習リズム",
+    "title": "学習時間",
     "description": "カード復習、リスニング、カード作成、イマージョン、会話、WaniKaniなど、日本語学習の時間配分を確認できます。",
     "totals": {
       "total": "合計",
@@ -513,8 +513,6 @@
       "wanikani": "WaniKani"
     },
     "analytics": {
-      "eyebrow": "学習時間",
-      "title": "学習リズムの概要",
       "timeSpan": "期間",
       "dailyAverage": "1日平均",
       "bestRhythm": "最も多い期間",
