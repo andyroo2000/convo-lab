@@ -19,6 +19,8 @@ const {
   deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
   warmAudioCacheMock,
+  evaluateStudyMilestonesMock,
+  presentStudyMilestonesMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   createStudyReviewRequestMock: vi.fn(),
@@ -31,6 +33,8 @@ const {
   deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   warmAudioCacheMock: vi.fn(),
+  evaluateStudyMilestonesMock: vi.fn(),
+  presentStudyMilestonesMock: vi.fn(),
 }));
 
 vi.mock('../useStudy', () => ({
@@ -66,6 +70,11 @@ vi.mock('../useStudy', () => ({
 
 vi.mock('../../lib/audioCache', () => ({
   warmAudioCache: warmAudioCacheMock,
+}));
+
+vi.mock('../../lib/studyMilestoneApi', () => ({
+  evaluateStudyMilestones: evaluateStudyMilestonesMock,
+  presentStudyMilestones: presentStudyMilestonesMock,
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
@@ -172,6 +181,10 @@ describe('useStudyReviewSession', () => {
     regenerateStudyAnswerAudioMock.mockReset();
     warmAudioCacheMock.mockReset();
     warmAudioCacheMock.mockResolvedValue(undefined);
+    evaluateStudyMilestonesMock.mockReset();
+    evaluateStudyMilestonesMock.mockResolvedValue({ milestones: [], pendingMilestones: [] });
+    presentStudyMilestonesMock.mockReset();
+    presentStudyMilestonesMock.mockResolvedValue(undefined);
     window.localStorage.clear();
 
     startStudySessionMock.mockResolvedValue({
@@ -271,6 +284,135 @@ describe('useStudyReviewSession', () => {
       configurable: true,
       value: vi.fn(),
     });
+  });
+
+  it('shows a server-pending award even when this device has no saved session', async () => {
+    const award = {
+      id: 'burned100' as const,
+      earnedAt: '2026-08-25T21:00:00.000Z',
+      presentedAt: null,
+    };
+    evaluateStudyMilestonesMock.mockResolvedValue({
+      milestones: [award],
+      pendingMilestones: [award],
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.currentMilestoneAward).toEqual(award));
+
+    act(() => result.current.advanceMilestoneAward());
+
+    await waitFor(() => {
+      expect(presentStudyMilestonesMock).toHaveBeenCalledWith(['burned100']);
+      expect(result.current.focusMode).toBe(false);
+    });
+  });
+
+  it('acknowledges only awards committed to a recovered celebration', async () => {
+    const burned100 = {
+      id: 'burned100' as const,
+      earnedAt: '2026-08-25T21:00:00.000Z',
+      presentedAt: null,
+    };
+    const burned500 = {
+      id: 'burned500' as const,
+      earnedAt: '2026-08-25T22:00:00.000Z',
+      presentedAt: null,
+    };
+    window.localStorage.setItem(
+      'convo-lab.study-milestones-v1.study-review-hook-test-user',
+      JSON.stringify({
+        earnedAwards: [burned100],
+        activeSession: {
+          id: 'presented-session',
+          records: [
+            {
+              id: 'prior-review',
+              cardBefore: baseCardOne,
+              cardAfter: baseCardOne,
+              grade: 'good',
+              durationMs: 1_000,
+            },
+          ],
+          newAwardIds: ['burned100'],
+          isReadyForPresentation: true,
+          celebrationPresented: true,
+        },
+      })
+    );
+    evaluateStudyMilestonesMock.mockResolvedValue({
+      milestones: [burned100, burned500],
+      pendingMilestones: [burned100, burned500],
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.milestoneCompletion?.newAwards).toEqual([burned100]);
+      expect(presentStudyMilestonesMock).toHaveBeenCalledWith(['burned100']);
+    });
+    expect(presentStudyMilestonesMock).not.toHaveBeenCalledWith(['burned100', 'burned500']);
+  });
+
+  it('does not replace a newly started review with a slow interrupted-session restore', async () => {
+    const award = {
+      id: 'burned100' as const,
+      earnedAt: '2026-08-25T21:00:00.000Z',
+      presentedAt: null,
+    };
+    window.localStorage.setItem(
+      'convo-lab.study-milestones-v1.study-review-hook-test-user',
+      JSON.stringify({
+        earnedAwards: [],
+        activeSession: {
+          id: 'interrupted-session',
+          records: [
+            {
+              id: 'prior-review',
+              cardBefore: baseCardOne,
+              cardAfter: baseCardOne,
+              grade: 'good',
+              durationMs: 1_000,
+            },
+          ],
+          newAwardIds: [],
+          isReadyForPresentation: false,
+          celebrationPresented: false,
+        },
+      })
+    );
+    const deferredRestore = createDeferred<{
+      milestones: [typeof award];
+      pendingMilestones: [typeof award];
+    }>();
+    evaluateStudyMilestonesMock
+      .mockReturnValueOnce(deferredRestore.promise)
+      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(evaluateStudyMilestonesMock).toHaveBeenCalledTimes(1));
+
+    let enterPromise: Promise<void> | undefined;
+    act(() => {
+      enterPromise = result.current.enterFocusMode();
+    });
+    expect(result.current.focusMode).toBe(true);
+
+    await act(async () => {
+      deferredRestore.resolve({ milestones: [award], pendingMilestones: [award] });
+      await enterPromise;
+    });
+
+    expect(result.current.currentCard?.id).toBe('card-1');
+    expect(result.current.milestoneCompletion).toBeNull();
+    expect(result.current.currentMilestoneAward).toBeNull();
   });
 
   it('requeues an incorrect lesson card without submitting or introducing it', async () => {
@@ -700,6 +842,25 @@ describe('useStudyReviewSession', () => {
           code: 'review_out_of_order',
         })
       );
+    evaluateStudyMilestonesMock
+      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
+      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
+      .mockResolvedValueOnce({
+        milestones: [
+          {
+            id: 'burned100',
+            earnedAt: '2026-08-25T12:00:00.000Z',
+            presentedAt: null,
+          },
+        ],
+        pendingMilestones: [
+          {
+            id: 'burned100',
+            earnedAt: '2026-08-25T12:00:00.000Z',
+            presentedAt: null,
+          },
+        ],
+      });
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
@@ -1440,6 +1601,46 @@ describe('useStudyReviewSession', () => {
     });
 
     expect(result.current.currentCard?.id).toBe('card-2');
+  });
+
+  it('blocks undo while the completed session is evaluating milestones', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: { ...baseOverview, dueCount: 1, reviewCount: 1, totalCards: 1 },
+      cards: [baseCardOne],
+    });
+    reviewMutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-log-1',
+      card: baseCardOne,
+      overview: { ...baseOverview, dueCount: 0, reviewCount: 0 },
+    });
+    const deferredEvaluation = createDeferred<{
+      milestones: [];
+      pendingMilestones: [];
+    }>();
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    evaluateStudyMilestonesMock.mockReturnValueOnce(deferredEvaluation.promise);
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+
+    await waitFor(() => expect(result.current.sessionLoading).toBe(true));
+    await act(async () => {
+      await result.current.handleUndo();
+    });
+    expect(undoStudyReviewMock).not.toHaveBeenCalled();
+
+    deferredEvaluation.resolve({ milestones: [], pendingMilestones: [] });
+    await waitFor(() => expect(result.current.sessionLoading).toBe(false));
+    expect(result.current.reviewSessionComplete).toBe(true);
   });
 
   it('submits only one review undo while the first undo is still in flight', async () => {

@@ -1,5 +1,4 @@
 import type { StudySessionReviewRecord } from './studySessionWrapUpModel';
-import { buildStudySessionWrapUp } from './studySessionWrapUpModel';
 
 export type StudyMilestoneId = 'burned100' | 'burned500' | 'burned1000';
 
@@ -14,6 +13,12 @@ export interface StudyMilestoneDefinition {
 export interface StudyMilestoneAward {
   id: StudyMilestoneId;
   earnedAt: string;
+  presentedAt?: string | null;
+}
+
+export interface StudyMilestoneSnapshot {
+  milestones: StudyMilestoneAward[];
+  pendingMilestones: StudyMilestoneAward[];
 }
 
 export interface StudyMilestoneCompletion {
@@ -31,7 +36,6 @@ export interface StudyMilestoneStorage {
 
 interface PersistedReviewSession {
   id: string;
-  initialBurnedCount: number;
   records: StudySessionReviewRecord[];
   newAwardIds: StudyMilestoneId[];
   isReadyForPresentation: boolean;
@@ -41,13 +45,11 @@ interface PersistedReviewSession {
 interface PersistedMilestoneState {
   earnedAwards: StudyMilestoneAward[];
   activeSession: PersistedReviewSession | null;
-  hasSeededBurnedMilestones: boolean;
 }
 
 const emptyState = (): PersistedMilestoneState => ({
   earnedAwards: [],
   activeSession: null,
-  hasSeededBurnedMilestones: false,
 });
 
 export const STUDY_MILESTONE_DEFINITIONS: StudyMilestoneDefinition[] = [
@@ -106,7 +108,10 @@ const loadState = (storage: StudyMilestoneStorage, userId: string): PersistedMil
             typeof award === 'object' &&
             award !== null &&
             isMilestoneId((award as StudyMilestoneAward).id) &&
-            typeof (award as StudyMilestoneAward).earnedAt === 'string'
+            typeof (award as StudyMilestoneAward).earnedAt === 'string' &&
+            (typeof (award as StudyMilestoneAward).presentedAt === 'string' ||
+              (award as StudyMilestoneAward).presentedAt === null ||
+              typeof (award as StudyMilestoneAward).presentedAt === 'undefined')
         )
       : [];
     const { activeSession } = parsed;
@@ -117,7 +122,6 @@ const loadState = (storage: StudyMilestoneStorage, userId: string): PersistedMil
       Array.isArray(activeSession.newAwardIds)
         ? {
             ...activeSession,
-            initialBurnedCount: Math.max(0, Number(activeSession.initialBurnedCount) || 0),
             newAwardIds: activeSession.newAwardIds.filter(isMilestoneId),
             isReadyForPresentation: activeSession.isReadyForPresentation === true,
             celebrationPresented: activeSession.celebrationPresented === true,
@@ -127,7 +131,6 @@ const loadState = (storage: StudyMilestoneStorage, userId: string): PersistedMil
     return {
       earnedAwards,
       activeSession: validSession,
-      hasSeededBurnedMilestones: parsed.hasSeededBurnedMilestones === true,
     };
   } catch {
     return emptyState();
@@ -135,14 +138,11 @@ const loadState = (storage: StudyMilestoneStorage, userId: string): PersistedMil
 };
 
 interface StudyMilestoneStoreOptions {
-  now?: () => Date;
   createId?: () => string;
 }
 
 export class StudyMilestoneStore {
   private state: PersistedMilestoneState;
-
-  private readonly now: () => Date;
 
   private readonly createId: () => string;
 
@@ -151,7 +151,6 @@ export class StudyMilestoneStore {
     private readonly userId: string,
     options: StudyMilestoneStoreOptions = {}
   ) {
-    this.now = options.now ?? (() => new Date());
     this.createId =
       options.createId ??
       (() =>
@@ -177,11 +176,7 @@ export class StudyMilestoneStore {
     return STUDY_MILESTONE_DEFINITIONS.filter(({ id }) => !earnedIds.has(id));
   }
 
-  beginReviewSession(burnedCount?: number): void {
-    const hasBurnedCount = typeof burnedCount === 'number' && Number.isFinite(burnedCount);
-    const normalizedCount = hasBurnedCount ? Math.max(0, burnedCount) : 0;
-    if (hasBurnedCount) this.seedExistingMilestones(normalizedCount);
-
+  beginReviewSession(): void {
     if (this.state.activeSession?.isReadyForPresentation) {
       this.persist();
       return;
@@ -189,7 +184,6 @@ export class StudyMilestoneStore {
 
     this.state.activeSession = {
       id: this.createId(),
-      initialBurnedCount: normalizedCount,
       records: [],
       newAwardIds: [],
       isReadyForPresentation: false,
@@ -212,12 +206,21 @@ export class StudyMilestoneStore {
     this.persist();
   }
 
-  prepareCurrentSessionCompletion(): StudyMilestoneCompletion | null {
-    return this.prepareCompletion(false);
+  applyServerSnapshot(snapshot: StudyMilestoneSnapshot): void {
+    this.state.earnedAwards = [...snapshot.milestones];
+    this.persist();
   }
 
-  prepareInterruptedCompletion(): StudyMilestoneCompletion | null {
-    return this.prepareCompletion(true);
+  prepareCurrentSessionCompletion(
+    newAwards: StudyMilestoneAward[] = []
+  ): StudyMilestoneCompletion | null {
+    return this.prepareCompletion(newAwards, false);
+  }
+
+  prepareInterruptedCompletion(
+    newAwards: StudyMilestoneAward[] = []
+  ): StudyMilestoneCompletion | null {
+    return this.prepareCompletion(newAwards, true);
   }
 
   markCelebrationPresented(sessionId: string): void {
@@ -237,8 +240,12 @@ export class StudyMilestoneStore {
     const session = this.state.activeSession;
     if (!session || session.id !== sessionId || !session.isReadyForPresentation) return;
 
-    const awardedIds = new Set(session.newAwardIds);
-    this.state.earnedAwards = this.state.earnedAwards.filter(({ id }) => !awardedIds.has(id));
+    if (!session.celebrationPresented) {
+      const unpresentedAwardIds = new Set(session.newAwardIds);
+      this.state.earnedAwards = this.state.earnedAwards.filter(
+        ({ id }) => !unpresentedAwardIds.has(id)
+      );
+    }
     session.newAwardIds = [];
     session.isReadyForPresentation = false;
     session.celebrationPresented = false;
@@ -251,22 +258,25 @@ export class StudyMilestoneStore {
     this.persist();
   }
 
-  private prepareCompletion(requireNewAward: boolean): StudyMilestoneCompletion | null {
+  private prepareCompletion(
+    newAwards: StudyMilestoneAward[],
+    requireNewAward: boolean
+  ): StudyMilestoneCompletion | null {
     const session = this.state.activeSession;
     if (!session || session.records.length === 0) return null;
 
     if (!session.isReadyForPresentation) {
-      const newAwardIds = this.newMilestoneIds(session);
-      if (requireNewAward && newAwardIds.length === 0) return null;
-
-      const earnedAt = this.now().toISOString();
-      this.state.earnedAwards.push(
-        ...newAwardIds.map((id): StudyMilestoneAward => ({ id, earnedAt }))
-      );
-      session.newAwardIds = newAwardIds;
+      if (requireNewAward && newAwards.length === 0) return null;
       session.isReadyForPresentation = true;
-      this.persist();
+      session.newAwardIds = newAwards.map(({ id }) => id);
+    } else if (session.newAwardIds.length === 0 && newAwards.length > 0) {
+      // A wrap-up prepared offline can pick up an award once review state reaches
+      // the server. Once this session commits to a celebration, do not erase it.
+      session.newAwardIds = newAwards.map(({ id }) => id);
     }
+
+    this.mergeAwards(newAwards);
+    this.persist();
 
     return this.completion(session);
   }
@@ -284,25 +294,10 @@ export class StudyMilestoneStore {
     };
   }
 
-  private newMilestoneIds(session: PersistedReviewSession): StudyMilestoneId[] {
-    const summary = buildStudySessionWrapUp(session.records);
-    const burnedCount = Math.max(0, session.initialBurnedCount + summary.burnedCountChange);
-    const earnedIds = new Set(this.state.earnedAwards.map(({ id }) => id));
-    return STUDY_MILESTONE_DEFINITIONS.filter(
-      ({ id, threshold }) => !earnedIds.has(id) && burnedCount >= threshold
-    ).map(({ id }) => id);
-  }
-
-  private seedExistingMilestones(burnedCount: number): void {
-    if (this.state.hasSeededBurnedMilestones) return;
-    const earnedIds = new Set(this.state.earnedAwards.map(({ id }) => id));
-    const earnedAt = this.now().toISOString();
-    this.state.earnedAwards.push(
-      ...STUDY_MILESTONE_DEFINITIONS.filter(
-        ({ id, threshold }) => !earnedIds.has(id) && burnedCount >= threshold
-      ).map(({ id }): StudyMilestoneAward => ({ id, earnedAt }))
-    );
-    this.state.hasSeededBurnedMilestones = true;
+  private mergeAwards(awards: StudyMilestoneAward[]): void {
+    const awardsById = new Map(this.state.earnedAwards.map((award) => [award.id, award]));
+    awards.forEach((award) => awardsById.set(award.id, award));
+    this.state.earnedAwards = [...awardsById.values()];
   }
 
   private persist(): void {

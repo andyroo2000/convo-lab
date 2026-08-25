@@ -53,6 +53,7 @@ import {
   type StudyMilestoneAward,
   type StudyMilestoneCompletion,
 } from '../components/study/studyMilestoneModel';
+import { evaluateStudyMilestones, presentStudyMilestones } from '../lib/studyMilestoneApi';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -93,6 +94,7 @@ const useStudyReviewSession = () => {
   const [earnedMilestoneAwards, setEarnedMilestoneAwards] = useState<StudyMilestoneAward[]>([]);
   const [currentMilestoneAwardIndex, setCurrentMilestoneAwardIndex] = useState(0);
   const [milestoneCelebrationPresented, setMilestoneCelebrationPresented] = useState(false);
+  const [milestoneEvaluationPending, setMilestoneEvaluationPending] = useState(false);
   const [practiceCards, setPracticeCards] = useState<StudyCardSummary[] | null>(null);
   const [practiceInitialCount, setPracticeInitialCount] = useState(0);
   const requestGuardRef = useRef(createStudyReviewRequestGuard());
@@ -102,6 +104,7 @@ const useStudyReviewSession = () => {
   const canSurfaceAsyncSessionErrorRef = useRef(false);
   const answeredCardIdsRef = useRef<Set<string>>(new Set());
   const autoRefreshEmptySessionRef = useRef(false);
+  const milestoneCompletionRequestRef = useRef(false);
   const pendingReviewOperationRef = useRef<{
     request: StudyReviewRequest;
     undoSnapshot: StudyUndoSnapshot;
@@ -115,6 +118,23 @@ const useStudyReviewSession = () => {
         : null,
     [userId]
   );
+  const milestoneSyncQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  const syncMilestones = useCallback(() => {
+    const request = milestoneSyncQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const snapshot = await evaluateStudyMilestones();
+        milestoneStore?.applyServerSnapshot(snapshot);
+        setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? snapshot.milestones);
+        return snapshot;
+      });
+    milestoneSyncQueueRef.current = request.then(
+      () => undefined,
+      () => undefined
+    );
+    return request;
+  }, [milestoneStore]);
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
   const practiceMode = practiceCards !== null;
@@ -133,7 +153,8 @@ const useStudyReviewSession = () => {
     (session?.overview.dueCount ?? 0) === 0 &&
     (session?.overview.failedCount ?? 0) === 0 &&
     !practiceMode;
-  const reviewSessionComplete = !practiceMode && (reviewQueueExhausted || sessionWasEnded);
+  const reviewSessionComplete =
+    !practiceMode && !milestoneEvaluationPending && (reviewQueueExhausted || sessionWasEnded);
   const currentMilestoneAward =
     !milestoneCelebrationPresented && milestoneCompletion?.newAwards[currentMilestoneAwardIndex]
       ? milestoneCompletion.newAwards[currentMilestoneAwardIndex]
@@ -206,34 +227,68 @@ const useStudyReviewSession = () => {
   useEffect(() => {
     if (!milestoneStore) {
       setEarnedMilestoneAwards([]);
-      return;
+      return undefined;
     }
 
     setEarnedMilestoneAwards(milestoneStore.earnedAwards);
-    const restoredCompletion = milestoneStore.prepareInterruptedCompletion();
-    if (!restoredCompletion) return;
+    let cancelled = false;
+    const expectedEpoch = sessionEpochRef.current;
 
-    sessionEpochRef.current += 1;
-    canSurfaceAsyncSessionErrorRef.current = false;
-    setFocusMode(true);
-    setSessionKind('reviews');
-    setLessonPhase('quiz');
-    setSession(null);
-    setSessionLoading(false);
-    setSessionError(null);
-    setReviewConflictRecovered(false);
-    setCurrentIndex(0);
-    setRevealed(false);
-    setEditing(false);
-    setShowSetDueControls(false);
-    setMasteryAnimation(null);
-    setSessionReviewRecords(restoredCompletion.records);
-    setSessionWasEnded(true);
-    setMilestoneCompletion(restoredCompletion);
-    setCurrentMilestoneAwardIndex(0);
-    setMilestoneCelebrationPresented(restoredCompletion.celebrationPresented);
-    setEarnedMilestoneAwards(milestoneStore.earnedAwards);
-  }, [milestoneStore]);
+    (async () => {
+      let pendingAwards: StudyMilestoneAward[] = [];
+      try {
+        const snapshot = await syncMilestones();
+        if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
+        pendingAwards = snapshot.pendingMilestones;
+      } catch {
+        // Cached history and a formally completed local wrap-up remain available offline.
+      }
+
+      const restoredCompletion =
+        milestoneStore.prepareInterruptedCompletion(pendingAwards) ??
+        (pendingAwards.length > 0
+          ? {
+              id: `server:${pendingAwards.map(({ id }) => id).join(',')}`,
+              records: [],
+              newAwards: pendingAwards,
+              celebrationPresented: false,
+            }
+          : null);
+      if (!restoredCompletion) {
+        return;
+      }
+
+      if (restoredCompletion.celebrationPresented && restoredCompletion.newAwards.length > 0) {
+        presentStudyMilestones(restoredCompletion.newAwards.map(({ id }) => id)).catch(() => {});
+      }
+      if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
+
+      sessionEpochRef.current += 1;
+      canSurfaceAsyncSessionErrorRef.current = false;
+      setFocusMode(true);
+      setSessionKind('reviews');
+      setLessonPhase('quiz');
+      setSession(null);
+      setSessionLoading(false);
+      setSessionError(null);
+      setReviewConflictRecovered(false);
+      setCurrentIndex(0);
+      setRevealed(false);
+      setEditing(false);
+      setShowSetDueControls(false);
+      setMasteryAnimation(null);
+      setSessionReviewRecords(restoredCompletion.records);
+      setSessionWasEnded(true);
+      setMilestoneCompletion(restoredCompletion);
+      setCurrentMilestoneAwardIndex(0);
+      setMilestoneCelebrationPresented(restoredCompletion.celebrationPresented);
+      setEarnedMilestoneAwards(milestoneStore.earnedAwards);
+    })().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [milestoneStore, syncMilestones]);
 
   useEffect(
     () => () => {
@@ -452,18 +507,32 @@ const useStudyReviewSession = () => {
     stopAllAudio,
   ]);
 
-  const prepareSessionCompletion = useCallback(() => {
+  const prepareSessionCompletion = useCallback(async () => {
+    if (milestoneCompletionRequestRef.current) return;
+    milestoneCompletionRequestRef.current = true;
     setSessionWasEnded(true);
-    const completion = milestoneStore?.prepareCurrentSessionCompletion() ?? null;
-    setMilestoneCompletion(completion);
-    setCurrentMilestoneAwardIndex(0);
-    setMilestoneCelebrationPresented(completion?.celebrationPresented ?? true);
-    setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? []);
-  }, [milestoneStore]);
+    setMilestoneEvaluationPending(true);
+    try {
+      let pendingAwards: StudyMilestoneAward[] = [];
+      try {
+        pendingAwards = (await syncMilestones()).pendingMilestones;
+      } catch {
+        // The wrap-up must remain available offline; the server will reconcile next launch.
+      }
+      const completion = milestoneStore?.prepareCurrentSessionCompletion(pendingAwards) ?? null;
+      setMilestoneCompletion(completion);
+      setCurrentMilestoneAwardIndex(0);
+      setMilestoneCelebrationPresented(completion?.celebrationPresented ?? true);
+      setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? []);
+    } finally {
+      milestoneCompletionRequestRef.current = false;
+      setMilestoneEvaluationPending(false);
+    }
+  }, [milestoneStore, syncMilestones]);
 
   useEffect(() => {
     if (!reviewQueueExhausted || milestoneCompletion || masteryAnimation !== null) return;
-    prepareSessionCompletion();
+    prepareSessionCompletion().catch(() => {});
   }, [masteryAnimation, milestoneCompletion, prepareSessionCompletion, reviewQueueExhausted]);
 
   const exitFocusMode = useCallback(() => {
@@ -661,9 +730,17 @@ const useStudyReviewSession = () => {
           setEditing(false);
           setShowSetDueControls(false);
           setMasteryAnimation(null);
+          let pendingAwards: StudyMilestoneAward[] = [];
+          if (sessionKind === 'reviews') {
+            try {
+              pendingAwards = (await syncMilestones()).pendingMilestones;
+            } catch {
+              // Recovery still refreshes the authoritative review queue below.
+            }
+          }
           const recoveredMilestoneCompletion =
             sessionKind === 'reviews'
-              ? (milestoneStore?.prepareInterruptedCompletion() ?? null)
+              ? (milestoneStore?.prepareInterruptedCompletion(pendingAwards) ?? null)
               : null;
           if (!recoveredMilestoneCompletion) {
             milestoneStore?.cancelCurrentSession();
@@ -673,7 +750,7 @@ const useStudyReviewSession = () => {
             loadSession(sessionKind, { allowEmptySessionRefresh: false }, expectedEpoch),
           ]);
           if (sessionKind === 'reviews' && refreshedSession) {
-            milestoneStore?.beginReviewSession(refreshedSession.overview.masterySpread?.burned);
+            milestoneStore?.beginReviewSession();
           }
           if (recoveredMilestoneCompletion) {
             setSessionWasEnded(true);
@@ -727,6 +804,7 @@ const useStudyReviewSession = () => {
       milestoneStore,
       queryClient,
       resetUndo,
+      syncMilestones,
     ]
   );
 
@@ -929,6 +1007,8 @@ const useStudyReviewSession = () => {
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
+      milestoneEvaluationPending ||
+      milestoneCompletionRequestRef.current ||
       editing ||
       masteryAnimation !== null
     ) {
@@ -973,6 +1053,11 @@ const useStudyReviewSession = () => {
       }
       milestoneStore?.undoReview(action.reviewLogId);
       setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? []);
+      try {
+        await syncMilestones();
+      } catch {
+        // The successful review undo is authoritative; milestone reconciliation retries later.
+      }
     } catch (error) {
       if (sessionEpochRef.current !== expectedEpoch) return;
 
@@ -989,6 +1074,7 @@ const useStudyReviewSession = () => {
     pushUndo,
     editing,
     masteryAnimation,
+    milestoneEvaluationPending,
     milestoneCompletion,
     milestoneStore,
     cardActionMutation.isPending,
@@ -997,6 +1083,7 @@ const useStudyReviewSession = () => {
     sessionLoading,
     stopAllAudio,
     syncOverview,
+    syncMilestones,
     undoPending,
   ]);
 
@@ -1006,6 +1093,7 @@ const useStudyReviewSession = () => {
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
+      milestoneEvaluationPending ||
       editing ||
       masteryAnimation !== null,
     focusMode,
@@ -1062,9 +1150,16 @@ const useStudyReviewSession = () => {
         label: 'Study motion-permission request',
       });
       try {
+        if (kind === 'reviews') {
+          try {
+            await syncMilestones();
+          } catch {
+            // Starting reviews remains available offline with cached milestone history.
+          }
+        }
         const nextSession = await loadSession(kind, {}, expectedEpoch);
         if (kind === 'reviews' && nextSession) {
-          milestoneStore?.beginReviewSession(nextSession.overview.masterySpread?.burned);
+          milestoneStore?.beginReviewSession();
           setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? []);
         }
       } catch {
@@ -1079,6 +1174,7 @@ const useStudyReviewSession = () => {
       runBackgroundTask,
       resetUndo,
       stopAllAudio,
+      syncMilestones,
     ]
   );
 
@@ -1134,7 +1230,7 @@ const useStudyReviewSession = () => {
       return;
     }
 
-    prepareSessionCompletion();
+    prepareSessionCompletion().catch(() => {});
   }, [
     exitFocusMode,
     exitPracticeMode,
@@ -1155,7 +1251,20 @@ const useStudyReviewSession = () => {
 
     milestoneStore?.markCelebrationPresented(milestoneCompletion.id);
     setMilestoneCelebrationPresented(true);
-  }, [currentMilestoneAwardIndex, milestoneCompletion, milestoneStore]);
+    runBackgroundTask(
+      () => presentStudyMilestones(milestoneCompletion.newAwards.map(({ id }) => id)),
+      { label: 'Study milestone presentation acknowledgement' }
+    );
+    if (milestoneCompletion.records.length === 0) {
+      exitFocusMode();
+    }
+  }, [
+    currentMilestoneAwardIndex,
+    exitFocusMode,
+    milestoneCompletion,
+    milestoneStore,
+    runBackgroundTask,
+  ]);
 
   const finishReviewSession = useCallback(() => {
     if (milestoneCompletion) {
@@ -1264,7 +1373,7 @@ const useStudyReviewSession = () => {
     focusMode,
     handleGrade,
     handleUndo,
-    interactionBlocked: masteryAnimation !== null,
+    interactionBlocked: masteryAnimation !== null || milestoneEvaluationPending,
     onError: reportAsyncSessionError,
     revealCurrentCard,
     revealed,
@@ -1281,7 +1390,7 @@ const useStudyReviewSession = () => {
     lessonPhase,
     cards,
     masteryAnimation,
-    sessionLoading,
+    sessionLoading: sessionLoading || milestoneEvaluationPending,
     sessionError,
     reviewConflictRecovered,
     currentCard,

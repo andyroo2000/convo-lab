@@ -1,5 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -9,6 +9,7 @@ import {
   getStudyMilestoneDefinition,
   StudyMilestoneStore,
 } from '../components/study/studyMilestoneModel';
+import { evaluateStudyMilestones } from '../lib/studyMilestoneApi';
 
 const StudyMilestonesPage = () => {
   const { t } = useTranslation('study');
@@ -17,9 +18,32 @@ const StudyMilestonesPage = () => {
     () => (user ? new StudyMilestoneStore(window.localStorage, user.id) : null),
     [user]
   );
-  const earnedDefinitions =
-    store?.earnedAwards.map(({ id }) => getStudyMilestoneDefinition(id)) ?? [];
-  const upcomingDefinitions = store?.upcomingMilestones ?? [];
+  const [earnedAwards, setEarnedAwards] = useState(() => store?.earnedAwards ?? []);
+
+  useEffect(() => {
+    setEarnedAwards(store?.earnedAwards ?? []);
+    if (!store) return undefined;
+
+    let cancelled = false;
+    evaluateStudyMilestones()
+      .then((snapshot) => {
+        if (cancelled) return;
+        store.applyServerSnapshot(snapshot);
+        setEarnedAwards(store.earnedAwards);
+      })
+      .catch(() => {
+        // Keep the locally cached server snapshot available while offline.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [store]);
+
+  const earnedDefinitions = earnedAwards.map(({ id }) => getStudyMilestoneDefinition(id));
+  const earnedIds = new Set(earnedAwards.map(({ id }) => id));
+  const upcomingDefinitions =
+    store?.upcomingMilestones.filter(({ id }) => !earnedIds.has(id)) ?? [];
 
   return (
     <div className="mx-auto max-w-2xl space-y-7 pb-8">
