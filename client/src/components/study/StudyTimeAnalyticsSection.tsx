@@ -147,7 +147,7 @@ const StudyRhythmChart = ({
         data-testid={`study-rhythm-chart-container-${analytics.key}`}
       >
         <div
-          className="grid h-64 w-full min-w-0 items-end gap-1 border-b-2 border-navy/20 px-2 sm:gap-2"
+          className="grid h-64 w-full min-w-0 items-end gap-0.5 border-b-2 border-navy/20 px-0.5"
           style={{
             gridTemplateColumns: `repeat(${Math.max(analytics.buckets.length, 1)}, 1fr)`,
           }}
@@ -162,7 +162,7 @@ const StudyRhythmChart = ({
             >
               <button
                 type="button"
-                className={`touch-manipulation flex min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-md border-0 p-0 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
+                className={`touch-manipulation flex min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-sm border-0 p-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
                   onDrillDown ? 'cursor-pointer' : 'cursor-default'
                 }`}
                 style={{
@@ -294,12 +294,14 @@ const StudyTimeAnalyticsSection = () => {
   const selectedPeriodLabel = analytics ? periodLabel(analytics, locale, analyticsTimeZone) : '';
 
   return (
-    <section className="retro-paper-panel p-4 sm:p-6">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="retro-caps text-coral">{t('time.analytics.eyebrow')}</p>
-          <h2 className="retro-headline text-3xl text-navy">{t('time.analytics.title')}</h2>
-        </div>
+    <section
+      className="retro-paper-panel p-4 sm:p-6"
+      aria-labelledby="study-time-analytics-heading"
+    >
+      <h2 id="study-time-analytics-heading" className="sr-only">
+        {t('time.analytics.sectionTitle')}
+      </h2>
+      <div className="mb-6 flex flex-wrap items-end justify-end gap-3">
         <div className="flex max-w-full flex-col items-end gap-2">
           <div className="flex max-w-full items-center gap-2">
             {range !== 'all' ? (

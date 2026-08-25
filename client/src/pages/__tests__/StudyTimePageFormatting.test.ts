@@ -45,7 +45,7 @@ describe('formatDuration', () => {
   });
 });
 
-describe('Study Rhythm bucket labels', () => {
+describe('Study time bucket labels', () => {
   it('derives quarters from the analytics timezone at a month boundary', () => {
     const bucket = {
       startsAt: '2026-04-01T00:30:00Z',
