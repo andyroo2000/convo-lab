@@ -56,7 +56,7 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
     setHasMoreResults(false);
     setLinkedSuccess(false);
     searchRequestId.current += 1;
-  }, [card.id]);
+  }, [currentCardId]);
 
   const pathCardIds = useMemo(
     () => new Set(pathQuery.data?.stages.flatMap((stage) => stage.cards.map((item) => item.id))),

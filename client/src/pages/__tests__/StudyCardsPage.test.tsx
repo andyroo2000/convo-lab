@@ -92,7 +92,7 @@ vi.mock('../../hooks/useStudy', () => ({
               representativeCard: {
                 id: 'card-3',
                 syncId: 'sync-3',
-                noteId: 'note-3',
+                noteId: null,
                 cardType: 'recognition',
                 displayText: '猫',
                 meaning: 'cat',
@@ -308,7 +308,7 @@ describe('StudyCardsPage', () => {
     expect(screen.getByText('猫')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /猫/ })).toHaveAttribute(
       'href',
-      '/app/study/browse?cardId=card-3&noteId=note-3'
+      '/app/study/browse?cardId=card-3&noteId=card-3'
     );
 
     const learningItem = screen.getByTestId('study-learning-item');

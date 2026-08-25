@@ -475,7 +475,7 @@ export type StudyLearningItemStageStatus = 'locked' | 'available' | 'retired' | 
 export interface StudyLearningItemCard {
   id: string;
   syncId: string;
-  noteId: string;
+  noteId: string | null;
   cardType: StudyCardType;
   displayText: string;
   meaning: string | null;
