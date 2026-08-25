@@ -39,7 +39,7 @@ const MasteryMetric = ({
   return (
     <article className="rounded-2xl border border-navy/10 bg-white/75 p-5 shadow-sm">
       <div className="flex items-baseline justify-between gap-4">
-        <h3 className="text-lg font-black text-navy">{label}</h3>
+        <h4 className="text-lg font-black text-navy">{label}</h4>
         <p className="font-mono text-3xl font-black text-navy">{masteryPercent}%</p>
       </div>
 
@@ -108,6 +108,7 @@ interface LevelBandProps {
 
 const LevelBand = ({ level, mastery }: LevelBandProps) => {
   const { t } = useTranslation('study');
+  const captionKey = level === 'N5' ? 'time.jlptMastery.n5Caption' : 'time.jlptMastery.n4Caption';
 
   return (
     <section
@@ -125,7 +126,7 @@ const LevelBand = ({ level, mastery }: LevelBandProps) => {
           </h3>
         </div>
         <p className="text-right text-xs font-bold uppercase tracking-wide text-gray-500">
-          {t(`time.jlptMastery.${level.toLowerCase()}Caption`)}
+          {t(captionKey)}
         </p>
       </div>
 

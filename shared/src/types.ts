@@ -212,7 +212,7 @@ export interface StudyJlptLevelMastery {
 
 export interface StudyJlptMastery {
   N5: StudyJlptLevelMastery;
-  N4?: StudyJlptLevelMastery | null;
+  N4?: StudyJlptLevelMastery;
 }
 
 export interface StudyLearningReadiness {
