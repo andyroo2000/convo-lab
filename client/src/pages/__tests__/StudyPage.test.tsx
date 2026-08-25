@@ -1706,7 +1706,7 @@ describe('StudyPage', () => {
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
     });
-    expect(screen.getByText(/No cards are ready right now/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nice work/i)).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'z', metaKey: true });
 
@@ -1720,7 +1720,7 @@ describe('StudyPage', () => {
       );
     });
     expect(screen.getByText('company')).toBeInTheDocument();
-    expect(screen.queryByText(/No cards are ready right now/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Nice work/i)).not.toBeInTheDocument();
   });
 
   it('renders cloze cards with masked front text and restored furigana answer text', async () => {
@@ -2169,5 +2169,80 @@ describe('StudyPage', () => {
         })
       );
     });
+  });
+
+  it('shows the session wrap-up and practices toughest cards without new reviews', async () => {
+    const cardBefore = {
+      ...baseCard,
+      state: {
+        ...baseCard.state,
+        scheduler: {
+          due: '2026-08-25T12:00:00.000Z',
+          stability: 6,
+          difficulty: 5,
+          elapsed_days: 3,
+          scheduled_days: 6,
+          learning_steps: 0,
+          reps: 4,
+          lapses: 0,
+          state: 2,
+          last_review: '2026-08-19T12:00:00.000Z',
+        },
+      },
+    };
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        failedCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [cardBefore],
+    });
+    mutateAsyncMock.mockResolvedValueOnce({
+      reviewLogId: 'review-wrap-up',
+      card: {
+        ...cardBefore,
+        state: {
+          ...cardBefore.state,
+          dueAt: '2026-09-02T12:00:00.000Z',
+          scheduler: {
+            ...cardBefore.state.scheduler,
+            due: '2026-09-02T12:00:00.000Z',
+            stability: 8,
+            scheduled_days: 8,
+          },
+        },
+      },
+      overview: {
+        dueCount: 0,
+        failedCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
+
+    expect(await screen.findByText('Nice work')).toBeInTheDocument();
+    expect(screen.getByText('First-pass recall')).toBeInTheDocument();
+    expect(screen.queryByText(/Ranked using/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Practice 1' }));
+    expect(screen.getByText('Practice only')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
+
+    expect(await screen.findByText('Practice complete')).toBeInTheDocument();
+    expect(mutateAsyncMock).toHaveBeenCalledTimes(1);
   });
 });

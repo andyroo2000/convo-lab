@@ -5,9 +5,10 @@ interface StudyReviewHeaderProps {
   progress: number;
   actions?: ReactNode;
   onExit: () => void;
+  exitLabel?: string;
 }
 
-const StudyReviewHeader = ({ progress, actions, onExit }: StudyReviewHeaderProps) => {
+const StudyReviewHeader = ({ progress, actions, onExit, exitLabel }: StudyReviewHeaderProps) => {
   const { t } = useTranslation('study');
 
   return (
@@ -31,7 +32,7 @@ const StudyReviewHeader = ({ progress, actions, onExit }: StudyReviewHeaderProps
           onClick={onExit}
           className="rounded-full border border-gray-300 px-2.5 py-1 text-xs font-medium text-navy hover:bg-gray-50"
         >
-          {t('reviewHeader.exit')}
+          {exitLabel ?? t('reviewHeader.exit')}
         </button>
         {actions}
       </div>
