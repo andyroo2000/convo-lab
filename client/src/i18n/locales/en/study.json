@@ -31,6 +31,7 @@
   "wrapUp": {
     "title": "Nice work",
     "description": "You’re caught up for today.",
+    "partialDescription": "Here’s what you reviewed this session.",
     "reviews": "Reviews",
     "recall": "First-pass recall",
     "stabilized": "Newly stabilized",
@@ -41,6 +42,27 @@
     "misses_other": "{{count}} misses",
     "cardFallback": "Study card",
     "done": "Done"
+  },
+  "milestones": {
+    "title": "Milestones",
+    "recent": "Recent milestones",
+    "earned": "Earned",
+    "ahead": "Ahead",
+    "continue": "Continue",
+    "replay": "Replay",
+    "back": "Back to Study",
+    "burned100": {
+      "title": "100 items burned",
+      "detail": "One hundred cards have reached a year of memory stability."
+    },
+    "burned500": {
+      "title": "500 items burned",
+      "detail": "Five hundred cards have reached a year of memory stability."
+    },
+    "burned1000": {
+      "title": "1,000 items burned",
+      "detail": "One thousand cards have reached a year of memory stability."
+    }
   },
   "practice": {
     "title": "Practice only",
@@ -79,7 +101,7 @@
     "openBrowse": "Open in Browse"
   },
   "reviewHeader": {
-    "exit": "Exit Study",
+    "exit": "End session",
     "progress": "Review session progress"
   },
   "gradeButtons": {

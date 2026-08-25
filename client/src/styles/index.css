@@ -5624,6 +5624,201 @@
   }
 }
 
+.study-milestone-orbit {
+  position: relative;
+  width: 16rem;
+  height: 16rem;
+  flex: 0 0 16rem;
+}
+
+.study-milestone-orbit-ring {
+  position: absolute;
+  inset: 1.5rem;
+  border: 2px solid rgb(56 189 248 / 16%);
+  border-radius: 9999px;
+  animation: study-milestone-star-fade 3.8s linear forwards;
+}
+
+.study-milestone-stars {
+  position: absolute;
+  inset: 0;
+  animation: study-milestone-orbit-spin 3.8s linear forwards;
+}
+
+.study-milestone-star-position {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: -0.625rem;
+  transform: rotate(calc(var(--study-star-index) * 45deg)) translateY(-6.5rem);
+}
+
+.study-milestone-star {
+  display: block;
+  animation: study-milestone-star-swell 3.8s linear forwards;
+}
+
+.study-milestone-award-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 7rem;
+  height: 7rem;
+  margin: -3.5rem;
+  place-items: center;
+  border: 0.5rem solid rgb(56 189 248 / 18%);
+  border-radius: 2.1rem;
+  background: #194873;
+  box-shadow: 0 1rem 2rem rgb(17 51 92 / 22%);
+  color: #fbf5e0;
+  font-family: ui-rounded, "SF Pro Rounded", ui-sans-serif, system-ui, sans-serif;
+  font-size: 2.4rem;
+  font-weight: 900;
+  animation: study-milestone-badge-arrival 4.8s linear forwards;
+}
+
+@keyframes study-milestone-orbit-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  12% {
+    transform: rotate(300deg);
+  }
+
+  36% {
+    transform: rotate(650deg);
+  }
+
+  58% {
+    transform: rotate(875deg);
+  }
+
+  77% {
+    transform: rotate(1010deg);
+  }
+
+  91% {
+    transform: rotate(1062deg);
+  }
+
+  100% {
+    transform: rotate(1080deg);
+  }
+}
+
+@keyframes study-milestone-star-swell {
+  0% {
+    opacity: 0;
+    transform: scale(0.68);
+  }
+
+  5% {
+    opacity: 1;
+  }
+
+  8% {
+    transform: scale(1.52);
+  }
+
+  18% {
+    transform: scale(1.46);
+  }
+
+  36% {
+    transform: scale(1.34);
+  }
+
+  58% {
+    transform: scale(1.22);
+  }
+
+  77% {
+    transform: scale(0.96);
+  }
+
+  91% {
+    opacity: 1;
+    transform: scale(0.62);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.62);
+  }
+}
+
+@keyframes study-milestone-star-fade {
+  0%,
+  91% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes study-milestone-badge-arrival {
+  0% {
+    background: #194873;
+    opacity: 0;
+    transform: rotate(-170deg) scale(0.28);
+  }
+
+  19% {
+    background: #194873;
+    opacity: 1;
+    transform: rotate(10deg) scale(1.08);
+  }
+
+  29%,
+  70% {
+    background: #194873;
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+
+  75% {
+    background: #194873;
+    transform: rotate(0deg) scale(1.055);
+  }
+
+  79.16% {
+    background: #194873;
+    transform: rotate(0deg) scale(1);
+  }
+
+  100% {
+    background: #11335c;
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-milestone-stars,
+  .study-milestone-star,
+  .study-milestone-orbit-ring,
+  .study-milestone-award-badge {
+    animation: none;
+  }
+
+  .study-milestone-stars,
+  .study-milestone-orbit-ring {
+    opacity: 0;
+  }
+
+  .study-milestone-award-badge {
+    background: #11335c;
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
 .mastery-feedback-lane {
   position: relative;
   flex: 0 0 4.25rem;

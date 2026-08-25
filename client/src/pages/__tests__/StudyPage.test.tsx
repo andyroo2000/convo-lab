@@ -124,6 +124,10 @@ vi.mock('../../components/study/studyTimeZoneUtils', () => ({
   default: () => 'America/New_York',
 }));
 
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'study-page-test-user' } }),
+}));
+
 vi.mock('../../components/common/VoicePreview', () => ({
   default: ({ voiceId }: { voiceId: string }) => <span data-testid="voice-preview">{voiceId}</span>,
 }));
@@ -408,6 +412,7 @@ describe('StudyPage', () => {
     featureFlagsLoading.current = false;
     masteryAnimationFinishesImmediately.current = true;
     reviewMutationError.current = null;
+    window.localStorage.clear();
     featureFlagsData.current = {
       id: 'default',
       dialoguesEnabled: false,
@@ -2244,5 +2249,124 @@ describe('StudyPage', () => {
 
     expect(await screen.findByText('Practice complete')).toBeInTheDocument();
     expect(mutateAsyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a partial wrap-up when ending a review session with cards remaining', async () => {
+    const remainingCard = {
+      ...baseCard,
+      id: 'card-2',
+      noteId: 'note-2',
+      prompt: { cueText: '学校', cueReading: 'がっこう' },
+      answer: {
+        expression: '学校',
+        expressionReading: '学校[がっこう]',
+        meaning: 'school',
+      },
+    };
+    startStudySessionMock.mockResolvedValueOnce({
+      overview: {
+        dueCount: 2,
+        failedCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 2,
+        suspendedCount: 0,
+        totalCards: 2,
+      },
+      cards: [baseCard, remainingCard],
+    });
+    mutateAsyncMock.mockResolvedValueOnce({
+      reviewLogId: 'review-before-early-exit',
+      card: {
+        ...baseCard,
+        state: { ...baseCard.state, dueAt: '2026-09-25T12:00:00.000Z' },
+      },
+      overview: {
+        dueCount: 1,
+        failedCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 2,
+      },
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'End session' }));
+
+    expect(await screen.findByText('Nice work')).toBeInTheDocument();
+    expect(screen.getByText('Here’s what you reviewed this session.')).toBeInTheDocument();
+    expect(screen.queryByText('学校')).not.toBeInTheDocument();
+    expect(screen.getByText('1', { selector: 'p' })).toBeInTheDocument();
+  });
+
+  it('awards the Orbit milestone before wrap-up and moves it into recent milestones', async () => {
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query) =>
+        ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+          media: query,
+          onchange: null,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }) as MediaQueryList
+    );
+    startStudySessionMock.mockResolvedValueOnce({
+      overview: {
+        dueCount: 1,
+        failedCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 100,
+        masterySpread: { apprentice: 0, guru: 0, master: 0, enlightened: 1, burned: 99 },
+      },
+      cards: [{ ...baseCard, masteryLevel: 'enlightened' }],
+    });
+    mutateAsyncMock.mockResolvedValueOnce({
+      reviewLogId: 'review-burned-100',
+      card: {
+        ...baseCard,
+        masteryLevel: 'burned',
+        state: { ...baseCard.state, dueAt: '2027-08-25T12:00:00.000Z' },
+      },
+      overview: {
+        dueCount: 0,
+        failedCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 100,
+        masterySpread: { apprentice: 0, guru: 0, master: 0, enlightened: 0, burned: 100 },
+      },
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
+
+    expect(await screen.findByTestId('study-milestone-award')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '100 items burned' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(await screen.findByText('Nice work')).toBeInTheDocument();
+    expect(screen.getByTestId('study-recent-milestones')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    expect(await screen.findByTestId('study-recent-milestones')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Recent milestones/ })).toHaveAttribute(
+      'href',
+      '/app/study/milestones'
+    );
   });
 });

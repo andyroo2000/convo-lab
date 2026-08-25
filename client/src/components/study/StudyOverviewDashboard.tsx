@@ -1,5 +1,5 @@
 import { BookOpen, CalendarDays, ExternalLink, Languages, Play } from 'lucide-react';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { StudyOverview } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,7 @@ interface StudyOverviewDashboardProps {
   onBeginReview: () => void;
   onBeginLesson: () => void;
   isStartingSession: boolean;
+  recentMilestones?: ReactNode;
 }
 
 const STUDY_ACTION_CLASS =
@@ -30,6 +31,7 @@ const StudyOverviewDashboard = ({
   onBeginReview,
   onBeginLesson,
   isStartingSession,
+  recentMilestones,
 }: StudyOverviewDashboardProps) => {
   const { t, i18n } = useTranslation('study');
   const knownKanji = useKnownKanji();
@@ -188,6 +190,8 @@ const StudyOverviewDashboard = ({
         {loading ? <p className="mt-2 text-gray-500">{t('overview.loading')}</p> : null}
         {error ? <p className="mt-2 text-red-600">{error.message}</p> : null}
       </section>
+
+      {recentMilestones}
 
       <nav aria-label={t('overview.studyTools')} className="flex flex-wrap gap-2">
         <Link to="/app/study/cards" className={STUDY_ACTION_CLASS}>
