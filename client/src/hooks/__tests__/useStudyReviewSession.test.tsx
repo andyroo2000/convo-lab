@@ -1499,6 +1499,46 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentCard?.id).toBe('card-2');
   });
 
+  it('blocks undo while the completed session is evaluating milestones', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: { ...baseOverview, dueCount: 1, reviewCount: 1, totalCards: 1 },
+      cards: [baseCardOne],
+    });
+    reviewMutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-log-1',
+      card: baseCardOne,
+      overview: { ...baseOverview, dueCount: 0, reviewCount: 0 },
+    });
+    const deferredEvaluation = createDeferred<{
+      milestones: [];
+      pendingMilestones: [];
+    }>();
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    evaluateStudyMilestonesMock.mockReturnValueOnce(deferredEvaluation.promise);
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+
+    await waitFor(() => expect(result.current.sessionLoading).toBe(true));
+    await act(async () => {
+      await result.current.handleUndo();
+    });
+    expect(undoStudyReviewMock).not.toHaveBeenCalled();
+
+    deferredEvaluation.resolve({ milestones: [], pendingMilestones: [] });
+    await waitFor(() => expect(result.current.sessionLoading).toBe(false));
+    expect(result.current.reviewSessionComplete).toBe(true);
+  });
+
   it('submits only one review undo while the first undo is still in flight', async () => {
     reviewMutateAsyncMock
       .mockResolvedValueOnce({

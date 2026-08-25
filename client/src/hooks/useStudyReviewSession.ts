@@ -1006,6 +1006,8 @@ const useStudyReviewSession = () => {
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
+      milestoneEvaluationPending ||
+      milestoneCompletionRequestRef.current ||
       editing ||
       masteryAnimation !== null
     ) {
@@ -1071,6 +1073,7 @@ const useStudyReviewSession = () => {
     pushUndo,
     editing,
     masteryAnimation,
+    milestoneEvaluationPending,
     milestoneCompletion,
     milestoneStore,
     cardActionMutation.isPending,
@@ -1089,6 +1092,7 @@ const useStudyReviewSession = () => {
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
+      milestoneEvaluationPending ||
       editing ||
       masteryAnimation !== null,
     focusMode,
@@ -1368,7 +1372,7 @@ const useStudyReviewSession = () => {
     focusMode,
     handleGrade,
     handleUndo,
-    interactionBlocked: masteryAnimation !== null,
+    interactionBlocked: masteryAnimation !== null || milestoneEvaluationPending,
     onError: reportAsyncSessionError,
     revealCurrentCard,
     revealed,
