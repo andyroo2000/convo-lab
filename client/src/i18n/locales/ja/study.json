@@ -223,7 +223,7 @@
   },
   "learningPath": {
     "title": "学習パス",
-    "description": "この内容を段階的に学びます。レビューに成功すると次の段階が解放され、応用カードを習得すると以前のバリエーションを終了できます。",
+    "description": "この内容を段階的に学びます。次の段階は想起成功・Guru・Masterのいずれかで解放でき、応用カードを習得すると以前のバリエーションを終了できます。",
     "loading": "学習パスを読み込み中…",
     "loadFailed": "学習パスを読み込めませんでした。",
     "retry": "もう一度試す",
@@ -239,7 +239,7 @@
     "tailOnly": "パスは最後のステージから追加できます。",
     "editTail": "次のステージを追加するには「{{card}}」を編集してください。",
     "chooseNext": "このカードの次に何を解放しますか？",
-    "chooseNextHelp": "既存のカードを選びます。このステージの想起に成功するまでロックされます。",
+    "chooseNextHelp": "既存のカードを選び、現在のステージをどの程度習得したら解放するかを指定します。",
     "searchLabel": "次のカードを検索",
     "searchPlaceholder": "日本語または英語で検索",
     "findCard": "カードを検索",
@@ -247,11 +247,27 @@
     "searchFailed": "カードを検索できませんでした。",
     "noMatches": "この検索に一致する他のカードはありません。",
     "moreMatches": "さらに一致するカードがあります。目的のカードが表示されない場合は検索を絞り込んでください。",
-    "confirm": "「{{current}}」を習得したら、次のステージとして「{{next}}」を解放します。",
+    "confirm": "「{{current}}」が{{requirement}}に達したら「{{next}}」を解放します。",
+    "requirementLabel": "次のステージを解放する条件",
+    "requirement": {
+      "successful_retrieval": "2回の想起成功",
+      "guru": "Guru",
+      "master": "Master"
+    },
+    "requirementHelp": {
+      "successful_retrieval": "このステージの解放後、GoodまたはEasyが2回続くと進みます。",
+      "guru": "FSRSの安定度がおよそ1週間に達するまで待ちます。",
+      "master": "FSRSの安定度がおよそ1か月に達するまで待ちます。穴埋め・産出カードの既定値です。"
+    },
+    "requirementBadge": {
+      "successful_retrieval": "成功2回で解放",
+      "guru": "Guruが必要",
+      "master": "Masterが必要"
+    },
     "linkNext": "次のステージを追加",
     "linking": "追加中…",
     "linkFailed": "次のステージを追加できませんでした。",
-    "linked": "次のステージを追加しました。現在のステージのレビューに成功すると解放されます。"
+    "linked": "選択した解放条件で次のステージを追加しました。"
   },
   "form": {
     "cardType": "カード種別",

@@ -122,9 +122,7 @@ describe('StudyLearningPathEditor query integration', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Add next stage' }));
 
     expect(
-      await screen.findByText(
-        'Next stage added. It will unlock after a successful review of the current stage.'
-      )
+      await screen.findByText('Next stage added with the selected unlock requirement.')
     ).toBeInTheDocument();
     expect(screen.getByText('Paths grow from their final stage.')).toBeInTheDocument();
     expect(screen.queryByText('What should this card unlock?')).not.toBeInTheDocument();
@@ -135,6 +133,7 @@ describe('StudyLearningPathEditor query integration', () => {
     expect(linkRequest).toBeDefined();
     expect(JSON.parse(String((linkRequest?.[1] as RequestInit).body))).toEqual({
       successor_card_id: successorCard.syncId,
+      unlock_requirement: 'guru',
     });
   });
 });

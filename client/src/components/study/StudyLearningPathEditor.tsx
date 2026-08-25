@@ -9,6 +9,7 @@ import {
   useLinkStudyLearningPathSuccessor,
   useStudyLearningPath,
 } from '../../hooks/useStudy';
+import type { StudyLearningPathUnlockRequirement } from '../../hooks/useStudy';
 
 interface StudyLearningPathEditorProps {
   card: StudyCardSummary;
@@ -27,6 +28,9 @@ const cardMeaning = (card: StudyCardSummary) =>
 
 const canonicalCardId = (card: StudyCardSummary) => card.syncId ?? card.id;
 
+const defaultUnlockRequirement = (card: StudyCardSummary): StudyLearningPathUnlockRequirement =>
+  card.cardType === 'cloze' || card.cardType === 'production' ? 'master' : 'guru';
+
 const browserHref = (cardId: string, noteId: string | null) => {
   const params = new URLSearchParams({ cardId, noteId: noteId ?? cardId });
   return `/app/study/browse?${params.toString()}`;
@@ -40,6 +44,8 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<StudyCardSummary[]>([]);
   const [selectedSuccessor, setSelectedSuccessor] = useState<StudyCardSummary | null>(null);
+  const [unlockRequirement, setUnlockRequirement] =
+    useState<StudyLearningPathUnlockRequirement>('guru');
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [hasMoreResults, setHasMoreResults] = useState(false);
@@ -51,6 +57,7 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
     setSearchInput('');
     setSearchResults([]);
     setSelectedSuccessor(null);
+    setUnlockRequirement('guru');
     setSearchError(null);
     setHasSearched(false);
     setHasMoreResults(false);
@@ -169,6 +176,11 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                               {t(`learningPath.status.${pathCard.variantStatus}`)}
                             </span>
                           ) : null}
+                          {pathCard.unlockRequirement ? (
+                            <span className="rounded-full bg-sky-100 px-2 py-1 text-[0.65rem] font-semibold text-navy">
+                              {t(`learningPath.requirementBadge.${pathCard.unlockRequirement}`)}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                     ))}
@@ -245,6 +257,7 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                         type="button"
                         onClick={() => {
                           setSelectedSuccessor(result);
+                          setUnlockRequirement(defaultUnlockRequirement(result));
                           setLinkedSuccess(false);
                         }}
                         className={`w-full rounded-xl border px-3 py-2 text-left ${
@@ -279,8 +292,36 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                     {t('learningPath.confirm', {
                       current: cardDisplayText(card),
                       next: cardDisplayText(selectedSuccessor),
+                      requirement: t(`learningPath.requirement.${unlockRequirement}`),
                     })}
                   </p>
+                  <div>
+                    <label
+                      htmlFor={`learning-path-requirement-${card.id}`}
+                      className="block text-sm font-medium text-navy"
+                    >
+                      {t('learningPath.requirementLabel')}
+                    </label>
+                    <select
+                      id={`learning-path-requirement-${card.id}`}
+                      value={unlockRequirement}
+                      onChange={(event) =>
+                        setUnlockRequirement(
+                          event.target.value as StudyLearningPathUnlockRequirement
+                        )
+                      }
+                      className="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+                    >
+                      <option value="successful_retrieval">
+                        {t('learningPath.requirement.successful_retrieval')}
+                      </option>
+                      <option value="guru">{t('learningPath.requirement.guru')}</option>
+                      <option value="master">{t('learningPath.requirement.master')}</option>
+                    </select>
+                    <span className="mt-1 block text-xs font-normal text-gray-500">
+                      {t(`learningPath.requirementHelp.${unlockRequirement}`)}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={async () => {
@@ -289,6 +330,7 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                         await linkMutation.mutateAsync({
                           cardId: currentCardId,
                           successorCardId: canonicalCardId(selectedSuccessor),
+                          unlockRequirement,
                         });
                         setSearchInput('');
                         setSearchResults([]);

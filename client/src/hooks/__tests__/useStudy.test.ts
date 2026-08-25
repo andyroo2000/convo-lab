@@ -355,6 +355,7 @@ describe('useStudy request helpers', () => {
                 answer_json: { expression: '会社', meaning: 'company' },
                 variant_stage: 2,
                 variant_status: 'locked',
+                variant_unlock_requirement: 'guru',
               },
             ],
           },
@@ -371,6 +372,7 @@ describe('useStudy request helpers', () => {
     const linkedPath = await linkStudyLearningPathSuccessor({
       cardId: predecessorId,
       successorCardId: successorId,
+      unlockRequirement: 'guru',
     });
 
     expect(path).toEqual(linkedPath);
@@ -398,6 +400,7 @@ describe('useStudy request helpers', () => {
               displayText: '会社',
               meaning: 'company',
               variantStatus: 'locked',
+              unlockRequirement: 'guru',
             },
           ],
         },
@@ -415,7 +418,7 @@ describe('useStudy request helpers', () => {
     );
     expect(
       JSON.parse(String((vi.mocked(global.fetch).mock.calls[1]?.[1] as RequestInit).body))
-    ).toEqual({ successor_card_id: successorId });
+    ).toEqual({ successor_card_id: successorId, unlock_requirement: 'guru' });
     expectJsonMutation(1);
   });
 

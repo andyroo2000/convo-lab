@@ -233,7 +233,7 @@
   },
   "learningPath": {
     "title": "Learning path",
-    "description": "Teach this material in stages. A successful review unlocks the next stage, and completed transfer cards can retire earlier variants.",
+    "description": "Teach this material in stages. Each transition can wait for successful retrieval, Guru, or Master mastery, and completed transfer cards can retire earlier variants.",
     "loading": "Loading learning path…",
     "loadFailed": "Could not load this learning path.",
     "retry": "Try again",
@@ -249,7 +249,7 @@
     "tailOnly": "Paths grow from their final stage.",
     "editTail": "Edit “{{card}}” to add the next stage.",
     "chooseNext": "What should this card unlock?",
-    "chooseNextHelp": "Choose an existing card. It will stay locked until this stage is retrieved successfully.",
+    "chooseNextHelp": "Choose an existing card, then decide how well the current stage must be known before it unlocks.",
     "searchLabel": "Search for the next card",
     "searchPlaceholder": "Search Japanese or English",
     "findCard": "Find card",
@@ -257,11 +257,27 @@
     "searchFailed": "Could not search cards.",
     "noMatches": "No other cards match this search.",
     "moreMatches": "More cards match. Refine your search if the card you want is not shown.",
-    "confirm": "After “{{current}}” is learned, unlock “{{next}}” as the next stage.",
+    "confirm": "Unlock “{{next}}” after “{{current}}” reaches {{requirement}}.",
+    "requirementLabel": "Unlock next stage when current stage reaches",
+    "requirement": {
+      "successful_retrieval": "two successful reviews",
+      "guru": "Guru",
+      "master": "Master"
+    },
+    "requirementHelp": {
+      "successful_retrieval": "Fast progression after two Good or Easy reviews since this stage unlocked.",
+      "guru": "Wait until FSRS stability reaches about one week.",
+      "master": "Wait until FSRS stability reaches about one month. This is the default for cloze and production cards."
+    },
+    "requirementBadge": {
+      "successful_retrieval": "After 2 successes",
+      "guru": "Requires Guru",
+      "master": "Requires Master"
+    },
     "linkNext": "Add next stage",
     "linking": "Adding…",
     "linkFailed": "Could not add the next stage.",
-    "linked": "Next stage added. It will unlock after a successful review of the current stage."
+    "linked": "Next stage added with the selected unlock requirement."
   },
   "form": {
     "cardType": "Card type",
