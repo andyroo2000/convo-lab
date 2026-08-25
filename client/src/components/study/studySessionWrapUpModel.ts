@@ -21,6 +21,7 @@ export interface StudySessionWrapUpSummary {
   firstPassRecall: number | null;
   stabilizedCards: StudyCardSummary[];
   toughestCards: StudySessionToughCard[];
+  burnedCountChange: number;
 }
 
 const cardIdentity = (card: StudyCardSummary) => card.syncId ?? card.id;
@@ -39,9 +40,19 @@ export function buildStudySessionWrapUp(
   const firstAttempts = new Map<string, StudySessionReviewRecord>();
   const aggregates = new Map<string, AggregatedCard>();
   const stabilized = new Map<string, StudyCardSummary>();
+  const burnedStates = new Map<string, { initial: boolean; final: boolean }>();
 
   records.forEach((record) => {
     const identity = cardIdentity(record.cardBefore);
+    const wasBurned =
+      record.cardBefore.masteryLevel === 'burned' || schedulerStability(record.cardBefore) >= 365;
+    const finalCard = record.cardAfter ?? record.cardBefore;
+    const isBurned = finalCard.masteryLevel === 'burned' || schedulerStability(finalCard) >= 365;
+    const existingBurnedState = burnedStates.get(identity);
+    burnedStates.set(identity, {
+      initial: existingBurnedState?.initial ?? wasBurned,
+      final: isBurned,
+    });
     if (!firstAttempts.has(identity)) firstAttempts.set(identity, record);
 
     const aggregate = aggregates.get(identity) ?? {
@@ -89,5 +100,9 @@ export function buildStudySessionWrapUp(
     firstPassRecall: recallAttempts.length === 0 ? null : recalledCount / recallAttempts.length,
     stabilizedCards: [...stabilized.values()],
     toughestCards,
+    burnedCountChange: [...burnedStates.values()].reduce(
+      (total, state) => total + Number(state.final) - Number(state.initial),
+      0
+    ),
   };
 }

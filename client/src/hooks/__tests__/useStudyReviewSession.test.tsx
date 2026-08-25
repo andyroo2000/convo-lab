@@ -68,6 +68,10 @@ vi.mock('../../lib/audioCache', () => ({
   warmAudioCache: warmAudioCacheMock,
 }));
 
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'study-review-hook-test-user' } }),
+}));
+
 const baseOverview = {
   dueCount: 2,
   newCount: 0,
@@ -168,6 +172,7 @@ describe('useStudyReviewSession', () => {
     regenerateStudyAnswerAudioMock.mockReset();
     warmAudioCacheMock.mockReset();
     warmAudioCacheMock.mockResolvedValue(undefined);
+    window.localStorage.clear();
 
     startStudySessionMock.mockResolvedValue({
       overview: baseOverview,

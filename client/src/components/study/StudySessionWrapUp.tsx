@@ -4,9 +4,13 @@ import { useTranslation } from 'react-i18next';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import type { StudySessionWrapUpSummary } from './studySessionWrapUpModel';
 import { toDisplayText } from './studyTextUtils';
+import { StudyRecentMilestones } from './StudyMilestoneViews';
+import type { StudyMilestoneAward } from './studyMilestoneModel';
 
 interface StudySessionWrapUpProps {
   summary: StudySessionWrapUpSummary;
+  caughtUp: boolean;
+  awards: StudyMilestoneAward[];
   onPractice: (cards: StudyCardSummary[]) => void;
   onDone: () => void;
 }
@@ -27,7 +31,13 @@ const cardMeaning = (card: StudyCardSummary) =>
 const formatSeconds = (durationMs: number) =>
   `${Math.max(1, Math.round(durationMs / 1000)).toLocaleString()} sec`;
 
-const StudySessionWrapUp = ({ summary, onPractice, onDone }: StudySessionWrapUpProps) => {
+const StudySessionWrapUp = ({
+  summary,
+  caughtUp,
+  awards,
+  onPractice,
+  onDone,
+}: StudySessionWrapUpProps) => {
   const { t } = useTranslation('study');
   const fallbackCardLabel = t('wrapUp.cardFallback');
   const recall =
@@ -46,7 +56,9 @@ const StudySessionWrapUp = ({ summary, onPractice, onDone }: StudySessionWrapUpP
             <Check className="h-8 w-8" aria-hidden="true" />
           </span>
           <h2 className="mt-3 text-3xl font-bold text-navy">{t('wrapUp.title')}</h2>
-          <p className="mt-1 text-gray-600">{t('wrapUp.description')}</p>
+          <p className="mt-1 text-gray-600">
+            {t(caughtUp ? 'wrapUp.description' : 'wrapUp.partialDescription')}
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -124,6 +136,8 @@ const StudySessionWrapUp = ({ summary, onPractice, onDone }: StudySessionWrapUpP
             </div>
           </section>
         ) : null}
+
+        <StudyRecentMilestones awards={awards} />
 
         <button
           type="button"

@@ -83,4 +83,18 @@ describe('buildStudySessionWrapUp', () => {
     });
     expect(new Set(summary.toughestCards.map(({ card }) => card.id)).size).toBe(5);
   });
+
+  it('counts the net burned change across the session', () => {
+    const crossed = makeCard('crossed', { stability: 364 });
+    const burned = makeCard('crossed', { stability: 365 });
+    const regressedBurned = makeCard('regressed', { stability: 400 });
+    const regressed = makeCard('regressed', { stability: 100 });
+
+    const summary = buildStudySessionWrapUp([
+      review('one', crossed, 'good', 1_000, burned),
+      review('two', regressedBurned, 'again', 1_000, regressed),
+    ]);
+
+    expect(summary.burnedCountChange).toBe(0);
+  });
 });

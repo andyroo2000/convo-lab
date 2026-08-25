@@ -6,6 +6,7 @@ import { clearAudioCache } from '../lib/audioCache';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../lib/authSession';
 import { accountApi } from '../lib/accountApi';
 import { authApi } from '../lib/authApi';
+import { deleteStudyMilestoneData } from '../components/study/studyMilestoneModel';
 
 interface AuthContextType {
   user: User | null;
@@ -174,6 +175,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error(error.error?.message || error.message || 'Delete failed');
     }
 
+    if (user) {
+      deleteStudyMilestoneData(window.localStorage, user.id);
+    }
     await clearLocalSession();
   };
 
