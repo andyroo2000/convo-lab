@@ -9,16 +9,28 @@ interface MasteryMetricProps {
   label: string;
   metric: StudyJlptMasteryMetric;
   tone: 'navy' | 'coral';
+  showSourceBreakdown?: boolean;
 }
 
 const clamp = (value: number, minimum: number, maximum: number) =>
   Math.min(Math.max(value, minimum), maximum);
 
-const MasteryMetric = ({ label, metric, tone }: MasteryMetricProps) => {
+const MasteryMetric = ({
+  label,
+  metric,
+  tone,
+  showSourceBreakdown = false,
+}: MasteryMetricProps) => {
   const { t } = useTranslation('study');
   const total = Math.max(0, metric.total);
   const matched = clamp(metric.matched ?? metric.covered, 0, total);
-  const known = metric.known == null ? undefined : clamp(metric.known, 0, matched);
+  const known = metric.known == null ? undefined : clamp(metric.known, 0, total);
+  const knownFromCards =
+    metric.knownFromCards == null ? undefined : clamp(metric.knownFromCards, 0, total);
+  const knownFromWaniKani =
+    metric.knownFromWaniKani == null ? undefined : clamp(metric.knownFromWaniKani, 0, total);
+  const knownFromBoth =
+    metric.knownFromBoth == null ? undefined : clamp(metric.knownFromBoth, 0, total);
   const masteryPercent = clamp(metric.masteryPercent, 0, 100);
   const barColor = tone === 'navy' ? 'bg-navy' : 'bg-coral';
 
@@ -50,6 +62,30 @@ const MasteryMetric = ({ label, metric, tone }: MasteryMetricProps) => {
             <dd className="font-mono font-black text-navy">
               {t('time.jlptMastery.count', { value: known, total })}
             </dd>
+          </div>
+        ) : null}
+        {showSourceBreakdown && knownFromCards !== undefined ? (
+          <div className="flex items-center justify-between gap-4 pl-3">
+            <dt className="font-semibold text-gray-500">
+              {t('time.jlptMastery.cardsSourceLabel')}
+            </dt>
+            <dd className="font-mono font-black text-navy">{knownFromCards}</dd>
+          </div>
+        ) : null}
+        {showSourceBreakdown && knownFromWaniKani !== undefined ? (
+          <div className="flex items-center justify-between gap-4 pl-3">
+            <dt className="font-semibold text-gray-500">
+              {t('time.jlptMastery.wanikaniSourceLabel')}
+            </dt>
+            <dd className="font-mono font-black text-navy">{knownFromWaniKani}</dd>
+          </div>
+        ) : null}
+        {showSourceBreakdown && knownFromBoth !== undefined && knownFromBoth > 0 ? (
+          <div className="flex items-center justify-between gap-4 pl-3">
+            <dt className="font-semibold text-gray-500">
+              {t('time.jlptMastery.overlapSourceLabel')}
+            </dt>
+            <dd className="font-mono font-black text-navy">{knownFromBoth}</dd>
           </div>
         ) : null}
         <div className="flex items-center justify-between gap-4">
@@ -97,6 +133,7 @@ const JlptMasteryCard = () => {
             label={t('time.jlptMastery.vocabulary')}
             metric={n5.vocabulary}
             tone="navy"
+            showSourceBreakdown
           />
           <MasteryMetric label={t('time.jlptMastery.grammar')} metric={n5.grammar} tone="coral" />
         </div>
