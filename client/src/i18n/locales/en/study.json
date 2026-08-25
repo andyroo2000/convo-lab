@@ -88,6 +88,7 @@
     "reviewCount_one": "{{count}} review",
     "reviewCount_other": "{{count}} reviews",
     "reviewMinutes": "About {{count}} min",
+    "reviewAllCaughtUp": "All caught up",
     "reviewEstimateCalibrating": "Time estimate is calibrating",
     "newCardCount_one": "{{count}} new card",
     "newCardCount_other": "{{count}} new cards",

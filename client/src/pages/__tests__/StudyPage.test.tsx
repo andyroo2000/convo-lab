@@ -485,9 +485,7 @@ describe('StudyPage', () => {
     const emptyState = screen.getByText(emptyMessage);
     expect(beginButton).toBeDisabled();
     expect(beginButton.getAttribute('aria-describedby')?.split(' ')).toContain(emptyState.id);
-    expect(beginButton).toHaveAccessibleDescription(
-      `0 reviews Time estimate is calibrating ${emptyMessage}`
-    );
+    expect(beginButton).toHaveAccessibleDescription(`0 reviews All caught up ${emptyMessage}`);
     expect(beginButton).not.toHaveAttribute('title');
   });
 
@@ -819,7 +817,7 @@ describe('StudyPage', () => {
 
     const beginButton = screen.getByRole('button', { name: 'Reviews' });
     expect(beginButton).toBeEnabled();
-    expect(beginButton).toHaveAccessibleDescription('0 reviews Time estimate is calibrating');
+    expect(beginButton).toHaveAccessibleDescription('0 reviews All caught up');
     expect(screen.getByText('Loading overview…')).toBeInTheDocument();
     expect(
       screen.queryByText('Import your `日本語` deck or create a card to start studying here.')

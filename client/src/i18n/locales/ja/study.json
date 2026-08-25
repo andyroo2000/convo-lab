@@ -87,6 +87,7 @@
     "convolabReviews": "ConvoLab レビュー",
     "reviewCount": "{{count}} 件のレビュー",
     "reviewMinutes": "約 {{count}} 分",
+    "reviewAllCaughtUp": "復習はすべて完了",
     "reviewEstimateCalibrating": "所要時間を計算中",
     "newCardCount": "新規カード {{count}} 枚",
     "wanikaniReviewCount": "レビュー {{count}} 件",

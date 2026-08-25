@@ -48,10 +48,13 @@ const StudyOverviewDashboard = ({
     readiness?.medianReviewDurationSeconds
   );
   const reviewCountText = t('overview.reviewCount', { count: reviewAvailableCount });
-  const reviewTimeText =
-    estimatedMinutes === null
-      ? t('overview.reviewEstimateCalibrating')
-      : t('overview.reviewMinutes', { count: estimatedMinutes });
+  let reviewTimeText = t('overview.reviewAllCaughtUp');
+  if (reviewAvailableCount > 0) {
+    reviewTimeText =
+      estimatedMinutes === null
+        ? t('overview.reviewEstimateCalibrating')
+        : t('overview.reviewMinutes', { count: estimatedMinutes });
+  }
   const newCardCountText = t('overview.newCardCount', { count: lessonsAvailable });
   const wanikani = knownKanji.data?.wanikani;
   const nextLesson = googleCalendar.data?.nextLesson;
