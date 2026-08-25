@@ -63,9 +63,9 @@ describe('StudyOverviewDashboard', () => {
   });
 
   it('estimates a whole-number review duration', () => {
-    expect(estimateReviewMinutes(14, 25)).toBe(6);
-    expect(estimateReviewMinutes(14, null)).toBeNull();
-    expect(estimateReviewMinutes(0, 25)).toBeNull();
+    expect(estimateReviewMinutes(14)).toBe(6);
+    expect(estimateReviewMinutes(74)).toBe(29);
+    expect(estimateReviewMinutes(0)).toBeNull();
   });
 
   it('labels calendar lessons across day boundaries', () => {

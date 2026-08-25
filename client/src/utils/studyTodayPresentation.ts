@@ -1,18 +1,11 @@
-const estimateReviewMinutes = (
-  reviewCount: number,
-  medianReviewDurationSeconds: number | null | undefined
-) => {
-  if (
-    reviewCount <= 0 ||
-    medianReviewDurationSeconds === null ||
-    medianReviewDurationSeconds === undefined ||
-    !Number.isFinite(medianReviewDurationSeconds) ||
-    medianReviewDurationSeconds <= 0
-  ) {
+const REVIEW_ESTIMATE_SECONDS_PER_CARD = 23;
+
+const estimateReviewMinutes = (reviewCount: number) => {
+  if (reviewCount <= 0) {
     return null;
   }
 
-  return Math.max(1, Math.ceil((reviewCount * medianReviewDurationSeconds) / 60));
+  return Math.max(1, Math.ceil((reviewCount * REVIEW_ESTIMATE_SECONDS_PER_CARD) / 60));
 };
 
 export const calendarDayLabel = (startsAt: Date, locale: string, now = new Date()) => {

@@ -43,10 +43,7 @@ const StudyOverviewDashboard = ({
   const lessonsAvailable = overview?.newCardsAvailableToday ?? overview?.newCount ?? 0;
   const reviewEmptyMessage = lessonsAvailable > 0 ? t('overview.noReviews') : t('overview.empty');
   const readiness = overview?.learningReadiness;
-  const estimatedMinutes = estimateReviewMinutes(
-    reviewAvailableCount,
-    readiness?.medianReviewDurationSeconds
-  );
+  const estimatedMinutes = estimateReviewMinutes(reviewAvailableCount);
   const reviewCountText = t('overview.reviewCount', { count: reviewAvailableCount });
   let reviewTimeText = t('overview.reviewAllCaughtUp');
   if (reviewAvailableCount > 0) {
