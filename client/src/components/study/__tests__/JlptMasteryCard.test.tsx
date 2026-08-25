@@ -16,7 +16,10 @@ const mastery = {
   N5: {
     vocabulary: {
       masteryPercent: 76,
-      known: 522,
+      known: 560,
+      knownFromCards: 522,
+      knownFromWaniKani: 110,
+      knownFromBoth: 72,
       matched: 554,
       covered: 554,
       total: 684,
@@ -24,6 +27,9 @@ const mastery = {
     grammar: {
       masteryPercent: 99,
       known: 76,
+      knownFromCards: 76,
+      knownFromWaniKani: 0,
+      knownFromBoth: 0,
       matched: 77,
       covered: 77,
       total: 77,
@@ -61,7 +67,11 @@ describe('JlptMasteryCard', () => {
       'aria-valuenow',
       '99'
     );
-    expect(screen.getByText('522 of 684')).toBeInTheDocument();
+    expect(screen.getByText('560 of 684')).toBeInTheDocument();
+    expect(screen.getByText('522')).toBeInTheDocument();
+    expect(screen.getByText('110')).toBeInTheDocument();
+    expect(screen.getByText('From ConvoLab cards')).toBeInTheDocument();
+    expect(screen.getByText('From WaniKani')).toBeInTheDocument();
     expect(screen.getByText('554 of 684')).toBeInTheDocument();
     expect(screen.getByText('76 of 77')).toBeInTheDocument();
     expect(screen.getByText('77 of 77')).toBeInTheDocument();

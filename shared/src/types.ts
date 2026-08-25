@@ -197,6 +197,9 @@ export interface StudyMasterySpread {
 export interface StudyJlptMasteryMetric {
   masteryPercent: number;
   known?: number | null;
+  knownFromCards?: number | null;
+  knownFromWaniKani?: number | null;
+  knownFromBoth?: number | null;
   matched?: number | null;
   covered: number;
   total: number;
