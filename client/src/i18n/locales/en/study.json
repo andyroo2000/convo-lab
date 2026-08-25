@@ -243,6 +243,8 @@
     "findCard": "Find card",
     "searching": "Searching…",
     "searchFailed": "Could not search cards.",
+    "noMatches": "No other cards match this search.",
+    "moreMatches": "More cards match. Refine your search if the card you want is not shown.",
     "confirm": "After “{{current}}” is learned, unlock “{{next}}” as the next stage.",
     "linkNext": "Add next stage",
     "linking": "Adding…",

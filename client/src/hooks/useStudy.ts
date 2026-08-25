@@ -191,6 +191,7 @@ function normalizeLearningPathCard(value: unknown): StudyLearningPathCard {
     stringValue(prompt, 'cueText', 'cue_text') ||
     stringValue(answer, 'expressionReading', 'expression_reading') ||
     stringValue(answer, 'expression', 'expression') ||
+    stringValue(prompt, 'clozeText', 'cloze_text') ||
     id;
   const meaning =
     stringValue(answer, 'meaning', 'meaning') ||

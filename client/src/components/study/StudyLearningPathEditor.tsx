@@ -38,6 +38,8 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
   const [searchResults, setSearchResults] = useState<StudyCardSummary[]>([]);
   const [selectedSuccessor, setSelectedSuccessor] = useState<StudyCardSummary | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [linkedSuccess, setLinkedSuccess] = useState(false);
   const searchRequestId = useRef(0);
@@ -47,6 +49,8 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
     setSearchResults([]);
     setSelectedSuccessor(null);
     setSearchError(null);
+    setHasSearched(false);
+    setHasMoreResults(false);
     setLinkedSuccess(false);
     searchRequestId.current += 1;
   }, [card.id]);
@@ -77,10 +81,14 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
       setSearchResults(
         response.items.filter((item) => item.id !== card.id && !pathCardIds.has(item.id))
       );
+      setHasSearched(true);
+      setHasMoreResults(Boolean(response.nextCursor));
     } catch (error) {
       if (searchRequestId.current !== requestId) return;
       setSearchError(error instanceof Error ? error.message : t('learningPath.searchFailed'));
       setSearchResults([]);
+      setHasSearched(false);
+      setHasMoreResults(false);
     } finally {
       if (searchRequestId.current === requestId) setIsSearching(false);
     }
@@ -166,6 +174,15 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
             <p className="text-sm text-gray-600">{t('learningPath.startsHere')}</p>
           )}
 
+          {linkedSuccess ? (
+            <p
+              role="status"
+              className="rounded-xl border border-green-200 bg-green-50 px-3 py-3 text-sm font-medium text-green-700"
+            >
+              {t('learningPath.linked')}
+            </p>
+          ) : null}
+
           {!isTail && tailCard ? (
             <p className="rounded-xl bg-white px-3 py-3 text-sm text-gray-600">
               {t('learningPath.tailOnly')}{' '}
@@ -243,6 +260,12 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                   ))}
                 </ul>
               ) : null}
+              {!isSearching && hasSearched && searchResults.length === 0 ? (
+                <p className="text-sm text-gray-600">{t('learningPath.noMatches')}</p>
+              ) : null}
+              {!isSearching && hasMoreResults ? (
+                <p className="text-xs text-gray-500">{t('learningPath.moreMatches')}</p>
+              ) : null}
 
               {selectedSuccessor ? (
                 <div className="space-y-2 rounded-xl border border-navy/20 bg-cream/50 p-3">
@@ -263,6 +286,8 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                         });
                         setSearchInput('');
                         setSearchResults([]);
+                        setHasSearched(false);
+                        setHasMoreResults(false);
                         setSelectedSuccessor(null);
                         setLinkedSuccess(true);
                       } catch {
@@ -284,11 +309,6 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                   {linkMutation.error instanceof Error
                     ? linkMutation.error.message
                     : t('learningPath.linkFailed')}
-                </p>
-              ) : null}
-              {linkedSuccess ? (
-                <p role="status" className="text-sm font-medium text-green-700">
-                  {t('learningPath.linked')}
                 </p>
               ) : null}
             </div>
