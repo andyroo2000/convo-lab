@@ -157,7 +157,7 @@ describe('Daily Audio API requests', () => {
     });
 
     await act(async () => {
-      await result.current.mutateAsync();
+      await result.current.mutateAsync(45);
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
@@ -174,6 +174,9 @@ describe('Daily Audio API requests', () => {
     );
     const mutationHeaders = new Headers(mockFetch.mock.calls[1]?.[1]?.headers);
     expect(mutationHeaders.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(JSON.parse(String(mockFetch.mock.calls[1]?.[1]?.body))).toMatchObject({
+      targetDurationMinutes: 45,
+    });
     expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toEqual({
       ...practice,
       tracks: [...practice.tracks].sort((left, right) => left.sortOrder - right.sortOrder),
