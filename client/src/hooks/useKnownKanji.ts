@@ -10,6 +10,8 @@ export interface KnownKanjiResponse {
   wanikani: {
     connected: boolean;
     lastSyncedAt: string | null;
+    reviewCount?: number | null;
+    reviewCountUpdatedAt?: string | null;
   };
 }
 
@@ -17,6 +19,7 @@ export interface WaniKaniSyncResponse {
   added: number;
   effectiveTotal: number;
   version: number;
+  reviewCount?: number;
 }
 
 const KNOWN_KANJI_QUERY_KEY = ['study', 'known-kanji'] as const;
