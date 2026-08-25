@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CSRF_TOKEN_COOKIE_NAME, resetCsrfStateForTests } from '../../lib/csrf';
+import { studyCardCompatibilityFixture } from '../../test/fixtures/learningOsCompatibility';
 import { useCreateCardFromStudyManualCardDraft, useStudyManualCardDrafts } from '../useStudy';
 
 vi.mock('../../config', () => ({
@@ -42,8 +43,8 @@ describe('manual card draft mutations', () => {
           ok: true,
           status: 200,
           json: async () => ({
+            ...(studyCardCompatibilityFixture.cases[0].payload as object),
             id: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
-            cardType: 'recognition',
           }),
         } as Response;
       }
@@ -112,8 +113,8 @@ describe('manual card draft mutations', () => {
           ok: true,
           status: 200,
           json: async () => ({
+            ...(studyCardCompatibilityFixture.cases[0].payload as object),
             id: '01ARZ3NDEKTSV4RRFFQ69G5FBV',
-            cardType: 'recognition',
           }),
         } as Response;
       }
@@ -175,7 +176,10 @@ describe('manual card draft mutations', () => {
         return {
           ok: true,
           status: 200,
-          json: async () => ({ id: committedCardId, cardType: 'recognition' }),
+          json: async () => ({
+            ...(studyCardCompatibilityFixture.cases[0].payload as object),
+            id: committedCardId,
+          }),
         } as Response;
       }
 

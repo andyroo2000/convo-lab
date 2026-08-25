@@ -4,11 +4,11 @@ import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { notifyAuthSessionExpired } from '../lib/authSession';
 import { fetchWithCsrf } from '../lib/csrf';
 import { DAILY_AUDIO_API_BASE } from '../lib/studyApi';
-import type {
-  DailyAudioPractice,
-  DailyAudioPracticeStatusResponse,
-  DailyAudioPracticeTrack,
-} from '../types';
+import {
+  decodeDailyAudioPractice,
+  decodeDailyAudioPracticeStatus,
+} from '../lib/learningOsContractDecoders';
+import type { DailyAudioPracticeTrack } from '../types';
 
 export const DAILY_AUDIO_DURATION_OPTIONS = [15, 30, 45, 60] as const;
 export type DailyAudioDurationMinutes = (typeof DAILY_AUDIO_DURATION_OPTIONS)[number];
@@ -57,31 +57,35 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
 }
 
 async function fetchRecentDailyAudioPractice() {
-  const practices = await apiRequest<DailyAudioPractice[]>(DAILY_AUDIO_API_BASE);
+  const payload = await apiRequest<unknown>(DAILY_AUDIO_API_BASE);
+  if (!Array.isArray(payload)) throw new Error('Daily Audio practice list must be an array.');
+  const practices = payload.map(decodeDailyAudioPractice);
   return practices.map((practice) => ({ ...practice, tracks: normalizeTracks(practice.tracks) }));
 }
 
 async function fetchDailyAudioPractice(id: string) {
-  const practice = await apiRequest<DailyAudioPractice>(
-    `${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}`
+  const practice = decodeDailyAudioPractice(
+    await apiRequest<unknown>(`${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}`)
   );
   return { ...practice, tracks: normalizeTracks(practice.tracks) };
 }
 
 async function fetchDailyAudioPracticeStatus(id: string) {
-  return apiRequest<DailyAudioPracticeStatusResponse>(
-    `${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}/status`
+  return decodeDailyAudioPracticeStatus(
+    await apiRequest<unknown>(`${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}/status`)
   );
 }
 
 async function createDailyAudioPractice(targetDurationMinutes: DailyAudioDurationMinutes) {
-  return apiRequest<DailyAudioPractice>(DAILY_AUDIO_API_BASE, {
-    method: 'POST',
-    body: JSON.stringify({
-      timeZone: getDeviceStudyTimeZone(),
-      targetDurationMinutes,
-    }),
-  });
+  return decodeDailyAudioPractice(
+    await apiRequest<unknown>(DAILY_AUDIO_API_BASE, {
+      method: 'POST',
+      body: JSON.stringify({
+        timeZone: getDeviceStudyTimeZone(),
+        targetDurationMinutes,
+      }),
+    })
+  );
 }
 
 export function useRecentDailyAudioPractice() {

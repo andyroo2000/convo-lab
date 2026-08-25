@@ -15,11 +15,8 @@ import {
   type StudyActivitySessionWire,
 } from '../lib/studyActivityContract';
 import { studyApiPath } from '../lib/studyApi';
-import type {
-  StudyActivitySession,
-  StudyActivitySessionInput,
-  StudyTimeAnalytics,
-} from '../types/studyActivity';
+import { decodeStudyTimeAnalytics } from '../lib/learningOsContractDecoders';
+import type { StudyActivitySession, StudyActivitySessionInput } from '../types/studyActivity';
 
 // Learning OS numbers Sunday as 1, so Monday is 2.
 export const MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING = 2;
@@ -90,13 +87,15 @@ export function useStudyActivityAnalytics(anchorDate: string) {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   return useQuery({
     queryKey: [...studyActivityKeys.analytics(anchorDate), timezone],
-    queryFn: () =>
-      activityRequest<StudyTimeAnalytics>(
-        `/activity-analytics?timezone=${encodeURIComponent(
-          timezone
-        )}&weekStartsOn=${MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING}&anchorDate=${encodeURIComponent(
-          anchorDate
-        )}&adaptiveAllTime=1`
+    queryFn: async () =>
+      decodeStudyTimeAnalytics(
+        await activityRequest<unknown>(
+          `/activity-analytics?timezone=${encodeURIComponent(
+            timezone
+          )}&weekStartsOn=${MONDAY_IN_LEARNING_OS_WEEKDAY_NUMBERING}&anchorDate=${encodeURIComponent(
+            anchorDate
+          )}&adaptiveAllTime=1`
+        )
       ),
     placeholderData: keepPreviousData,
   });

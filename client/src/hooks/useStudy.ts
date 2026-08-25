@@ -36,6 +36,7 @@ import { CSRF_TOKEN_HEADER_NAME, getCsrfToken } from '../lib/csrf';
 import { JsonRequestError, requestJson } from '../lib/apiClient';
 import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
+import { decodeStudyCardSummary } from '../lib/learningOsContractDecoders';
 import { studyApiPath } from '../lib/studyApi';
 import {
   getStudyBrowser,
@@ -487,45 +488,50 @@ export async function promoteStudyNewCardToFront(cardId: string) {
 }
 
 export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(`/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`, {
-    method: 'POST',
-  });
+  return decodeStudyCardSummary(
+    await apiRequest<unknown>(`/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`, {
+      method: 'POST',
+    })
+  );
 }
 
 export async function regenerateStudyAnswerAudio(
   payload: RegenerateStudyAnswerAudioPayload
 ): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(
-    `/cards/${encodeURIComponent(payload.cardId)}/regenerate-answer-audio`,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        answerAudioVoiceId: payload.answerAudioVoiceId,
-        answerAudioTextOverride: payload.answerAudioTextOverride,
-      }),
-    }
+  return decodeStudyCardSummary(
+    await apiRequest<unknown>(
+      `/cards/${encodeURIComponent(payload.cardId)}/regenerate-answer-audio`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          answerAudioVoiceId: payload.answerAudioVoiceId,
+          answerAudioTextOverride: payload.answerAudioTextOverride,
+        }),
+      }
+    )
   );
 }
 
 export async function regenerateStudyCardImage(
   payload: RegenerateStudyCardImagePayload
 ): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(
-    `/cards/${encodeURIComponent(payload.cardId)}/regenerate-image`,
-    {
+  return decodeStudyCardSummary(
+    await apiRequest<unknown>(`/cards/${encodeURIComponent(payload.cardId)}/regenerate-image`, {
       method: 'POST',
       body: JSON.stringify({
         imagePrompt: payload.imagePrompt,
         imageRole: payload.imageRole,
       }),
-    }
+    })
   );
 }
 
 export async function resolveStudyCardPitchAccent(cardId: string): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(`/cards/${encodeURIComponent(cardId)}/pitch-accent`, {
-    method: 'POST',
-  });
+  return decodeStudyCardSummary(
+    await apiRequest<unknown>(`/cards/${encodeURIComponent(cardId)}/pitch-accent`, {
+      method: 'POST',
+    })
+  );
 }
 
 export async function createStudyVocabBundleDrafts(
@@ -605,10 +611,12 @@ export async function createCardFromStudyManualCardDraft(
   draftId: string,
   cardId = createStudyCardId()
 ): Promise<StudyManualCardDraftCreateCardResponse> {
-  const card = await apiRequest<StudyCardSummary>(`/card-drafts/${draftId}/create-card`, {
-    method: 'POST',
-    body: JSON.stringify({ id: cardId }),
-  });
+  const card = decodeStudyCardSummary(
+    await apiRequest<unknown>(`/card-drafts/${draftId}/create-card`, {
+      method: 'POST',
+      body: JSON.stringify({ id: cardId }),
+    })
+  );
   return { draftId, card };
 }
 
@@ -667,20 +675,24 @@ export function createStudyReviewRequest(payload: {
 }
 
 export async function createStudyCard(payload: CreateStudyCardPayload): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>('/cards', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  return decodeStudyCardSummary(
+    await apiRequest<unknown>('/cards', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  );
 }
 
 export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(`/cards/${encodeURIComponent(payload.cardId)}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      prompt: payload.prompt,
-      answer: payload.answer,
-    }),
-  });
+  return decodeStudyCardSummary(
+    await apiRequest<unknown>(`/cards/${encodeURIComponent(payload.cardId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        prompt: payload.prompt,
+        answer: payload.answer,
+      }),
+    })
+  );
 }
 
 export async function deleteStudyCard(cardId: string): Promise<void> {

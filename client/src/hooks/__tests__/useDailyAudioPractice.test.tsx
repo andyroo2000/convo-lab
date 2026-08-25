@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
+import { dailyAudioCompatibilityFixture } from '../../test/fixtures/learningOsCompatibility';
 import {
   dailyAudioPracticeKeys,
   useCreateDailyAudioPractice,
@@ -106,6 +107,23 @@ describe('Daily Audio API requests', () => {
       expect.objectContaining({ credentials: 'include' })
     );
     expect(result.current.data?.[0]?.tracks.map((track) => track.sortOrder)).toEqual([1, 2]);
+  });
+
+  it('normalizes the canonical provider resource for browser playback', async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse([dailyAudioCompatibilityFixture.cases[0].payload])
+    );
+
+    const { result } = renderHook(() => useRecentDailyAudioPractice(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.[0]?.tracks[0]).toMatchObject({
+      scriptUnitsJson: [{ type: 'L2', text: '会社' }],
+      timingData: [{ unitIndex: 0, startTime: 0, endTime: 1200 }],
+    });
+    expect(result.current.data?.[0]?.tracks[1]?.mode).toBe('context');
   });
 
   it('routes detail and status reads through Learning OS with encoded IDs', async () => {

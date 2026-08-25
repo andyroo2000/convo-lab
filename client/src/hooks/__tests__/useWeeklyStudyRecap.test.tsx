@@ -2,13 +2,14 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createWrapper } from '../../__tests__/hooks/test-utils';
+import { weeklyRecapCompatibilityFixture } from '../../test/fixtures/learningOsCompatibility';
 import { useWeeklyStudyRecap } from '../useWeeklyStudyRecap';
 
 const { fetchWithCsrfMock } = vi.hoisted(() => ({ fetchWithCsrfMock: vi.fn() }));
 
 vi.mock('../../lib/csrf', () => ({ fetchWithCsrf: fetchWithCsrfMock }));
 
-const recap = { generatedAt: '2026-08-17T12:00:00Z' };
+const recap = weeklyRecapCompatibilityFixture.cases[1].payload;
 
 describe('useWeeklyStudyRecap', () => {
   beforeEach(() => fetchWithCsrfMock.mockReset());
