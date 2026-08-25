@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { BookOpenCheck, RefreshCw } from 'lucide-react';
-import type { StudyJlptMasteryMetric } from '@languageflow/shared/src/types';
+import type { StudyJlptLevelMastery, StudyJlptMasteryMetric } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
 
 import { useStudyOverview } from '../../hooks/useStudy';
 
 interface MasteryMetricProps {
+  level: 'N5' | 'N4';
   label: string;
   metric: StudyJlptMasteryMetric;
   tone: 'navy' | 'coral';
@@ -16,6 +17,7 @@ const clamp = (value: number, minimum: number, maximum: number) =>
   Math.min(Math.max(value, minimum), maximum);
 
 const MasteryMetric = ({
+  level,
   label,
   metric,
   tone,
@@ -37,14 +39,14 @@ const MasteryMetric = ({
   return (
     <article className="rounded-2xl border border-navy/10 bg-white/75 p-5 shadow-sm">
       <div className="flex items-baseline justify-between gap-4">
-        <h3 className="text-lg font-black text-navy">{label}</h3>
+        <h4 className="text-lg font-black text-navy">{label}</h4>
         <p className="font-mono text-3xl font-black text-navy">{masteryPercent}%</p>
       </div>
 
       <div
         className="mt-3 h-3 overflow-hidden rounded-full bg-navy/10"
         role="progressbar"
-        aria-label={t('time.jlptMastery.progressLabel', { category: label })}
+        aria-label={t('time.jlptMastery.progressLabel', { level, category: label })}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={masteryPercent}
@@ -99,10 +101,59 @@ const MasteryMetric = ({
   );
 };
 
+interface LevelBandProps {
+  level: 'N5' | 'N4';
+  mastery: StudyJlptLevelMastery;
+}
+
+const LevelBand = ({ level, mastery }: LevelBandProps) => {
+  const { t } = useTranslation('study');
+  const captionKey = level === 'N5' ? 'time.jlptMastery.n5Caption' : 'time.jlptMastery.n4Caption';
+
+  return (
+    <section
+      className="rounded-3xl border border-navy/10 bg-navy/[0.035] p-4 sm:p-5"
+      aria-labelledby={`jlpt-${level.toLowerCase()}-title`}
+    >
+      <div className="mb-4 flex items-end justify-between gap-4 border-b border-navy/10 pb-3">
+        <div>
+          <p className="retro-caps text-coral">{t('time.jlptMastery.levelEyebrow')}</p>
+          <h3
+            id={`jlpt-${level.toLowerCase()}-title`}
+            className="font-mono text-2xl font-black text-navy"
+          >
+            {level}
+          </h3>
+        </div>
+        <p className="text-right text-xs font-bold uppercase tracking-wide text-gray-500">
+          {t(captionKey)}
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <MasteryMetric
+          level={level}
+          label={t('time.jlptMastery.vocabulary')}
+          metric={mastery.vocabulary}
+          tone="navy"
+          showSourceBreakdown
+        />
+        <MasteryMetric
+          level={level}
+          label={t('time.jlptMastery.grammar')}
+          metric={mastery.grammar}
+          tone="coral"
+        />
+      </div>
+    </section>
+  );
+};
+
 const JlptMasteryCard = () => {
   const { t } = useTranslation('study');
   const overviewQuery = useStudyOverview(true, 'always');
   const n5 = overviewQuery.data?.jlptMastery?.N5;
+  const n4 = overviewQuery.data?.jlptMastery?.N4;
   let body: ReactNode;
 
   if (overviewQuery.isLoading) {
@@ -128,14 +179,9 @@ const JlptMasteryCard = () => {
   } else if (n5) {
     body = (
       <div className="p-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <MasteryMetric
-            label={t('time.jlptMastery.vocabulary')}
-            metric={n5.vocabulary}
-            tone="navy"
-            showSourceBreakdown
-          />
-          <MasteryMetric label={t('time.jlptMastery.grammar')} metric={n5.grammar} tone="coral" />
+        <div className="space-y-5">
+          <LevelBand level="N5" mastery={n5} />
+          {n4 ? <LevelBand level="N4" mastery={n4} /> : null}
         </div>
         <p className="mt-4 text-xs font-semibold leading-relaxed text-gray-500">
           {t('time.jlptMastery.explanation')}
