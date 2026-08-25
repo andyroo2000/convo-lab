@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "components": {
+    "provider": {
+      "repository": "andyroo2000/learning-os",
+      "sha": "d6aad389ad55afa0803e65c37eb38db3844a21b7",
+      "fixtureDirectory": "tests/Fixtures/Compatibility"
+    },
+    "web": {
+      "repository": "andyroo2000/convo-lab",
+      "sha": "99c44ba960341e245b7185e0322358d182d57f45",
+      "fixtureDirectory": "client/src/test/fixtures/learning-os/Compatibility"
+    },
+    "ios": {
+      "repository": "andyroo2000/convo-lab-ios",
+      "sha": "d7a4280d481d0a67c3b6694495ce13a46adc77e7",
+      "fixtureDirectory": "ConvoLabTests/Fixtures/Compatibility"
+    }
+  }
+}

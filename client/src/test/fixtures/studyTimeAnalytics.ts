@@ -1,3 +1,4 @@
+import { STUDY_ACTIVITY_CATEGORIES } from '../../types/studyActivity';
 import type {
   StudyActivityCategory,
   StudyTimeAnalyticsBucket,
@@ -6,14 +7,7 @@ import type {
 import { decodeStudyTimeAnalytics } from '../../lib/learningOsContractDecoders';
 import { studyAnalyticsCompatibilityFixture } from './learningOsCompatibility';
 
-export const STUDY_ACTIVITY_CATEGORIES: readonly StudyActivityCategory[] = [
-  'review',
-  'listen',
-  'create',
-  'immerse',
-  'conversation',
-  'wanikani',
-];
+export { STUDY_ACTIVITY_CATEGORIES } from '../../types/studyActivity';
 
 export function studyCategoryTotals(
   values: Partial<Record<StudyActivityCategory, number>> = {}

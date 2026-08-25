@@ -5,6 +5,15 @@ export type StudyActivityCategory =
   | 'immerse'
   | 'conversation'
   | 'wanikani';
+
+export const STUDY_ACTIVITY_CATEGORIES = [
+  'review',
+  'listen',
+  'create',
+  'immerse',
+  'conversation',
+  'wanikani',
+] as const satisfies readonly StudyActivityCategory[];
 export type StudyActivityKind =
   | 'card_review'
   | 'daily_audio'
