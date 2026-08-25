@@ -4,6 +4,7 @@ import type { StudyBrowseController } from '../../../hooks/useStudyBrowseControl
 import ConfirmModal from '../../common/ConfirmModal';
 import StudyCardEditor from '../StudyCardEditor';
 import StudyCandidateCardPreviewModal from '../StudyCandidatePreview';
+import StudyLearningPathEditor from '../StudyLearningPathEditor';
 import StudySetDueControls from '../StudySetDueControls';
 import StudyBrowseFieldSections from './StudyBrowseFieldSections';
 
@@ -203,6 +204,9 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
                       onRegenerateAudio={regenerateSelectedAudio}
                       onRegenerateImage={regenerateSelectedImage}
                     />
+                    <div className="mt-5">
+                      <StudyLearningPathEditor card={selectedCard} />
+                    </div>
                   </div>
                   {isPreviewOpen ? (
                     <StudyCandidateCardPreviewModal

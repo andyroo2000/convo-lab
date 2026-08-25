@@ -84,6 +84,34 @@ interface StudyCardActionPayload {
   currentOverview?: StudyOverview;
 }
 
+export type StudyLearningPathVariantStatus = 'locked' | 'available' | 'retired';
+
+export interface StudyLearningPathCard {
+  id: string;
+  noteId: string | null;
+  cardType: 'recognition' | 'production' | 'cloze';
+  displayText: string;
+  meaning: string;
+  variantStage: number | null;
+  variantStatus: StudyLearningPathVariantStatus | null;
+}
+
+export interface StudyLearningPathStage {
+  number: number | null;
+  cards: StudyLearningPathCard[];
+}
+
+export interface StudyLearningPath {
+  groupId: string | null;
+  anchorCardId: string;
+  stages: StudyLearningPathStage[];
+}
+
+interface LinkStudyLearningPathSuccessorPayload {
+  cardId: string;
+  successorCardId: string;
+}
+
 export interface StudyReviewRequest {
   cardId: string;
   grade: 'again' | 'hard' | 'good' | 'easy';
@@ -121,6 +149,95 @@ function nullableStringValue(
 function numberValue(record: JsonRecord, camelKey: string, snakeKey: string): number {
   const value = record[camelKey] ?? record[snakeKey];
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function nullableNumberValue(
+  record: JsonRecord,
+  camelKey: string,
+  snakeKey: string
+): number | null {
+  const value = record[camelKey] ?? record[snakeKey];
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function nestedRecord(record: JsonRecord, camelKey: string, snakeKey: string): JsonRecord {
+  const value = record[camelKey] ?? record[snakeKey];
+  return isJsonRecord(value) ? value : {};
+}
+
+function normalizeLearningPathCard(value: unknown): StudyLearningPathCard {
+  if (!isJsonRecord(value)) {
+    throw new Error('Learning path response contained an invalid card.');
+  }
+
+  const id = stringValue(value, 'id', 'id');
+  if (!id) {
+    throw new Error('Learning path response contained a card without an id.');
+  }
+
+  const prompt = nestedRecord(value, 'promptJson', 'prompt_json');
+  const answer = nestedRecord(value, 'answerJson', 'answer_json');
+  const rawCardType = value.cardType ?? value.card_type;
+  const cardType =
+    rawCardType === 'production' || rawCardType === 'cloze' ? rawCardType : 'recognition';
+  const rawStatus = value.variantStatus ?? value.variant_status;
+  const variantStatus =
+    rawStatus === 'locked' || rawStatus === 'available' || rawStatus === 'retired'
+      ? rawStatus
+      : null;
+  const displayText =
+    stringValue(value, 'frontText', 'front_text') ||
+    stringValue(prompt, 'clozeDisplayText', 'cloze_display_text') ||
+    stringValue(prompt, 'cueText', 'cue_text') ||
+    stringValue(answer, 'expressionReading', 'expression_reading') ||
+    stringValue(answer, 'expression', 'expression') ||
+    id;
+  const meaning =
+    stringValue(answer, 'meaning', 'meaning') ||
+    stringValue(prompt, 'cueMeaning', 'cue_meaning') ||
+    stringValue(answer, 'sentenceEn', 'sentence_en') ||
+    stringValue(value, 'backText', 'back_text');
+
+  return {
+    id,
+    noteId: nullableStringValue(value, 'sourceNoteId', 'source_note_id'),
+    cardType,
+    displayText,
+    meaning,
+    variantStage: nullableNumberValue(value, 'variantStage', 'variant_stage'),
+    variantStatus,
+  };
+}
+
+function normalizeStudyLearningPath(value: unknown): StudyLearningPath {
+  const path = unwrapLearningOsData(value);
+  if (!isJsonRecord(path)) {
+    throw new Error('Learning path response was malformed.');
+  }
+
+  const anchorCardId = stringValue(path, 'anchorCardId', 'anchor_card_id');
+  if (!anchorCardId) {
+    throw new Error('Learning path response did not include its anchor card.');
+  }
+
+  const rawStages = path.stages;
+  if (!Array.isArray(rawStages)) {
+    throw new Error('Learning path response did not include stages.');
+  }
+
+  return {
+    groupId: nullableStringValue(path, 'groupId', 'group_id'),
+    anchorCardId,
+    stages: rawStages.map((stageValue) => {
+      if (!isJsonRecord(stageValue) || !Array.isArray(stageValue.cards)) {
+        throw new Error('Learning path response contained an invalid stage.');
+      }
+      return {
+        number: nullableNumberValue(stageValue, 'number', 'number'),
+        cards: stageValue.cards.map(normalizeLearningPathCard),
+      };
+    }),
+  };
 }
 
 function normalizeStudyImportPreview(value: unknown): StudyImportResult['preview'] {
@@ -547,6 +664,26 @@ export async function deleteStudyCard(cardId: string): Promise<void> {
   });
 }
 
+export async function getStudyLearningPath(cardId: string): Promise<StudyLearningPath> {
+  return normalizeStudyLearningPath(
+    await requestJson<unknown>(`/api/cards/${encodeURIComponent(cardId)}/learning-path`)
+  );
+}
+
+export async function linkStudyLearningPathSuccessor(
+  payload: LinkStudyLearningPathSuccessorPayload
+): Promise<StudyLearningPath> {
+  return normalizeStudyLearningPath(
+    await requestJson<unknown>(
+      `/api/cards/${encodeURIComponent(payload.cardId)}/learning-path/successor`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ successor_card_id: payload.successorCardId }),
+      }
+    )
+  );
+}
+
 export async function performStudyCardAction(
   payload: StudyCardActionPayload
 ): Promise<StudyCardActionResult> {
@@ -608,6 +745,33 @@ export function useStudyCardsInfinite(enabled: boolean, q = '') {
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled,
+  });
+}
+
+export function useStudyLearningPath(cardId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['study', 'learning-path', cardId],
+    queryFn: () => getStudyLearningPath(cardId),
+    enabled: enabled && Boolean(cardId),
+  });
+}
+
+export function useLinkStudyLearningPathSuccessor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: linkStudyLearningPathSuccessor,
+    onSuccess: async (path, payload) => {
+      queryClient.setQueryData(['study', 'learning-path', payload.cardId], path);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'learning-path'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'cards'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
+      ]);
+    },
   });
 }
 

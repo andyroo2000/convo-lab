@@ -22,9 +22,11 @@ import {
   getStudyCards,
   getStudyImportStatus,
   getStudyImportUploadReadiness,
+  getStudyLearningPath,
   getStudyManualCardDrafts,
   getStudyNewCardQueue,
   getStudySettings,
+  linkStudyLearningPathSuccessor,
   performStudyCardAction,
   prepareStudyAnswerAudio,
   promoteStudyNewCardToFront,
@@ -313,6 +315,107 @@ describe('useStudy request helpers', () => {
       `/cards/${cardId}`,
     ]);
     expect(new Set(paths)).not.toContain('/api/study');
+  });
+
+  it('reads and extends canonical learning paths while normalizing their card resources', async () => {
+    const predecessorId = '01arz3ndektsv4rrffq69g5fav';
+    const successorId = '01arz3ndektsv4rrffq69g5faw';
+    const responsePayload = {
+      data: {
+        group_id: '01arz3ndektsv4rrffq69g5fax',
+        anchor_card_id: predecessorId,
+        stages: [
+          {
+            number: 1,
+            cards: [
+              {
+                id: predecessorId,
+                source_note_id: null,
+                front_text: '会社を辞めました。',
+                back_text: 'I left the company.',
+                card_type: 'recognition',
+                prompt_json: { cue_text: '会社を辞めました。' },
+                answer_json: { meaning: 'I left the company.' },
+                variant_stage: 1,
+                variant_status: 'available',
+              },
+            ],
+          },
+          {
+            number: 2,
+            cards: [
+              {
+                id: successorId,
+                source_note_id: 'note-2',
+                front_text: '会社',
+                back_text: 'company',
+                card_type: 'recognition',
+                prompt_json: {},
+                answer_json: { expression: '会社', meaning: 'company' },
+                variant_stage: 2,
+                variant_status: 'locked',
+              },
+            ],
+          },
+        ],
+      },
+    };
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => responsePayload,
+    } as Response);
+
+    const path = await getStudyLearningPath(predecessorId);
+    const linkedPath = await linkStudyLearningPathSuccessor({
+      cardId: predecessorId,
+      successorCardId: successorId,
+    });
+
+    expect(path).toEqual(linkedPath);
+    expect(path).toMatchObject({
+      groupId: '01arz3ndektsv4rrffq69g5fax',
+      anchorCardId: predecessorId,
+      stages: [
+        {
+          number: 1,
+          cards: [
+            {
+              id: predecessorId,
+              displayText: '会社を辞めました。',
+              meaning: 'I left the company.',
+              variantStatus: 'available',
+            },
+          ],
+        },
+        {
+          number: 2,
+          cards: [
+            {
+              id: successorId,
+              noteId: 'note-2',
+              displayText: '会社',
+              meaning: 'company',
+              variantStatus: 'locked',
+            },
+          ],
+        },
+      ],
+    });
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      1,
+      `/api/cards/${predecessorId}/learning-path`,
+      expect.any(Object)
+    );
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      `/api/cards/${predecessorId}/learning-path/successor`,
+      expect.objectContaining({ method: 'PUT' })
+    );
+    expect(
+      JSON.parse(String((vi.mocked(global.fetch).mock.calls[1]?.[1] as RequestInit).body))
+    ).toEqual({ successor_card_id: successorId });
+    expectJsonMutation(1);
   });
 
   it('reuses a caller-owned card ID when card creation is retried', async () => {

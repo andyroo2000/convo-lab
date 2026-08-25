@@ -21,6 +21,7 @@ const {
   cardActionMutateAsyncMock,
   promoteStudyNewCardToFrontMock,
   resolveStudyCardPitchAccentMock,
+  linkStudyLearningPathSuccessorMock,
 } = vi.hoisted(() => ({
   useStudyBrowserMock: vi.fn(),
   useStudyBrowserNoteDetailMock: vi.fn(),
@@ -31,6 +32,7 @@ const {
   cardActionMutateAsyncMock: vi.fn(),
   promoteStudyNewCardToFrontMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
+  linkStudyLearningPathSuccessorMock: vi.fn(),
 }));
 
 vi.mock('../../components/study/studyTimeZoneUtils', () => ({
@@ -174,6 +176,7 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
+  getStudyCards: vi.fn().mockResolvedValue({ items: [], limit: 20, nextCursor: null }),
   useStudyBrowser: (enabled: boolean, query: unknown) => useStudyBrowserMock(enabled, query),
   useStudyBrowserNoteDetail: (enabled: boolean, noteId?: string) =>
     useStudyBrowserNoteDetailMock(enabled, noteId),
@@ -208,6 +211,19 @@ vi.mock('../../hooks/useStudy', () => ({
     reset: vi.fn(),
   }),
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
+  useStudyLearningPath: (cardId: string) => ({
+    data: { groupId: null, anchorCardId: cardId, stages: [] },
+    error: null,
+    isError: false,
+    isPending: false,
+    refetch: vi.fn(),
+  }),
+  useLinkStudyLearningPathSuccessor: () => ({
+    mutateAsync: linkStudyLearningPathSuccessorMock,
+    isPending: false,
+    isError: false,
+    error: null,
+  }),
 }));
 
 const renderPage = () => {

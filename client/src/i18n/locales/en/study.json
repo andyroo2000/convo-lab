@@ -219,6 +219,36 @@
     "confirmDelete": "Delete this card? This cannot be undone.",
     "cancel": "Cancel"
   },
+  "learningPath": {
+    "title": "Learning path",
+    "description": "Teach this material in stages. A successful review unlocks the next stage, and completed transfer cards can retire earlier variants.",
+    "loading": "Loading learning path…",
+    "loadFailed": "Could not load this learning path.",
+    "retry": "Try again",
+    "stagesLabel": "Learning path stages",
+    "stage": "Stage {{number}}",
+    "current": "Current card",
+    "status": {
+      "locked": "Locked",
+      "available": "Available",
+      "retired": "Retired"
+    },
+    "startsHere": "This card is not in a path yet. Choose what it should unlock to start one.",
+    "tailOnly": "Paths grow from their final stage.",
+    "editTail": "Edit “{{card}}” to add the next stage.",
+    "chooseNext": "What should this card unlock?",
+    "chooseNextHelp": "Choose an existing card. It will stay locked until this stage is retrieved successfully.",
+    "searchLabel": "Search for the next card",
+    "searchPlaceholder": "Search Japanese or English",
+    "findCard": "Find card",
+    "searching": "Searching…",
+    "searchFailed": "Could not search cards.",
+    "confirm": "After “{{current}}” is learned, unlock “{{next}}” as the next stage.",
+    "linkNext": "Add next stage",
+    "linking": "Adding…",
+    "linkFailed": "Could not add the next stage.",
+    "linked": "Next stage added. It will unlock after a successful review of the current stage."
+  },
   "form": {
     "cardType": "Card type",
     "recognition": "Recognition",
