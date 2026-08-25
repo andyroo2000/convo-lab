@@ -147,7 +147,7 @@ const StudyRhythmChart = ({
         data-testid={`study-rhythm-chart-container-${analytics.key}`}
       >
         <div
-          className="grid h-64 w-full min-w-0 items-end gap-0.5 border-b-2 border-navy/20"
+          className="grid h-64 w-full min-w-0 items-end gap-0.5 border-b-2 border-navy/20 px-0.5"
           style={{
             gridTemplateColumns: `repeat(${Math.max(analytics.buckets.length, 1)}, 1fr)`,
           }}

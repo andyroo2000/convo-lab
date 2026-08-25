@@ -524,7 +524,6 @@
     "back": "Back to study"
   },
   "time": {
-    "eyebrow": "Study time",
     "title": "Study Time",
     "description": "See where your Japanese time goes across card reviews, listening, card making, immersion, conversation, and WaniKani.",
     "totals": {
@@ -539,7 +538,7 @@
     "analytics": {
       "timeSpan": "Time span",
       "dailyAverage": "Daily average",
-      "bestRhythm": "Best rhythm",
+      "bestRhythm": "Best",
       "bucketTotal": "{{time}} total",
       "chartLabel": "Study time by period and category",
       "categoryFilters": "Study category filters",
