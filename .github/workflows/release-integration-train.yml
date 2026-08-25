@@ -1,0 +1,194 @@
+name: Release Compatibility Integration Train
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 12 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-compatibility-integration-train
+  cancel-in-progress: false
+
+env:
+  PINS_FILE: .github/release-integration/components.json
+
+jobs:
+  prepare:
+    name: Create short-lived integration branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      branch: ${{ steps.pins.outputs.branch }}
+      provider_repository: ${{ steps.pins.outputs.provider_repository }}
+      provider_sha: ${{ steps.pins.outputs.provider_sha }}
+      provider_fixture_directory: ${{ steps.pins.outputs.provider_fixture_directory }}
+      web_repository: ${{ steps.pins.outputs.web_repository }}
+      web_sha: ${{ steps.pins.outputs.web_sha }}
+      web_fixture_directory: ${{ steps.pins.outputs.web_fixture_directory }}
+      ios_repository: ${{ steps.pins.outputs.ios_repository }}
+      ios_sha: ${{ steps.pins.outputs.ios_sha }}
+      ios_fixture_directory: ${{ steps.pins.outputs.ios_fixture_directory }}
+    steps:
+      - name: Checkout train definition
+        uses: actions/checkout@v6
+
+      - name: Read and validate exact component pins
+        id: pins
+        env:
+          INTEGRATION_BRANCH: integration/compatibility-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          node .github/scripts/read-release-integration-pins.mjs \
+            "$PINS_FILE" \
+            "$INTEGRATION_BRANCH" >> "$GITHUB_OUTPUT"
+
+      # Give each run an inspectable integration ref while every gate still checks out
+      # the immutable component SHAs directly.
+      - name: Create integration branch at pinned web commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.pins.outputs.branch }}
+          WEB_SHA: ${{ steps.pins.outputs.web_sha }}
+        run: gh api "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/heads/${BRANCH}" -f sha="${WEB_SHA}"
+
+  fixture-bytes:
+    name: Provider → web/iOS fixture bytes
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout train tooling
+        uses: actions/checkout@v6
+        with:
+          path: train
+      - name: Checkout pinned provider
+        # These literals intentionally mirror components.json. Deployment tests enforce
+        # equality so security analysis can trust the executable component checkouts.
+        uses: actions/checkout@v6
+        with:
+          repository: andyroo2000/learning-os
+          ref: d6aad389ad55afa0803e65c37eb38db3844a21b7
+          path: provider
+      - name: Checkout pinned web consumer
+        uses: actions/checkout@v6
+        with:
+          repository: andyroo2000/convo-lab
+          ref: 99c44ba960341e245b7185e0322358d182d57f45
+          path: web
+      - name: Checkout pinned iOS consumer
+        uses: actions/checkout@v6
+        with:
+          repository: andyroo2000/convo-lab-ios
+          ref: d7a4280d481d0a67c3b6694495ce13a46adc77e7
+          path: ios
+      - name: Verify checked out commits and canonical bytes
+        env:
+          PROVIDER_SHA: ${{ needs.prepare.outputs.provider_sha }}
+          PROVIDER_FIXTURE_DIRECTORY: ${{ needs.prepare.outputs.provider_fixture_directory }}
+          WEB_SHA: ${{ needs.prepare.outputs.web_sha }}
+          WEB_FIXTURE_DIRECTORY: ${{ needs.prepare.outputs.web_fixture_directory }}
+          IOS_SHA: ${{ needs.prepare.outputs.ios_sha }}
+          IOS_FIXTURE_DIRECTORY: ${{ needs.prepare.outputs.ios_fixture_directory }}
+        run: |
+          test "$(git -C provider rev-parse HEAD)" = "$PROVIDER_SHA"
+          test "$(git -C web rev-parse HEAD)" = "$WEB_SHA"
+          test "$(git -C ios rev-parse HEAD)" = "$IOS_SHA"
+          node train/.github/scripts/verify-release-integration.mjs \
+            train/${PINS_FILE} \
+            "provider/${PROVIDER_FIXTURE_DIRECTORY}" \
+            "web/${WEB_FIXTURE_DIRECTORY}" \
+            "ios/${IOS_FIXTURE_DIRECTORY}"
+
+  provider-contracts:
+    name: Pinned provider compatibility tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: andyroo2000/learning-os
+          ref: d6aad389ad55afa0803e65c37eb38db3844a21b7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: gd, mbstring, pdo_sqlite, sqlite3
+          coverage: none
+      - name: Install provider dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare provider test environment
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
+          php artisan key:generate --ansi
+      - name: Run producer-backed compatibility fixture tests
+        run: |
+          php artisan test \
+            tests/Feature/Contracts/CompatibilityPayloadContractFixtureTest.php \
+            tests/Unit/Contracts/CompatibilityFixtureManifestTest.php
+
+  web-contracts:
+    name: Pinned web compatibility tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: andyroo2000/convo-lab
+          ref: 99c44ba960341e245b7185e0322358d182d57f45
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Verify vendored bytes and consumer boundaries
+        run: |
+          npm run contracts:verify
+          npm run test --workspace=client -- --run \
+            src/lib/__tests__/learningOsCompatibilityContracts.test.ts \
+            src/hooks/__tests__/useStudy.test.ts \
+            src/hooks/__tests__/useGoogleCalendarConnection.test.tsx \
+            src/hooks/__tests__/useStudyActivity.test.tsx \
+            src/hooks/__tests__/useDailyAudioPractice.test.tsx \
+            src/hooks/__tests__/useWeeklyStudyRecap.test.tsx
+
+  ios-contracts:
+    name: Pinned iOS compatibility tests
+    needs: prepare
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: andyroo2000/convo-lab-ios
+          ref: d7a4280d481d0a67c3b6694495ce13a46adc77e7
+      - name: Run API compatibility golden-fixture tests
+        run: |
+          xcodebuild test \
+            -project ConvoLab.xcodeproj \
+            -scheme ConvoLab \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
+            -parallel-testing-enabled NO \
+            -maximum-concurrent-test-simulator-destinations 1 \
+            -only-testing:ConvoLabTests/APICompatibilityGoldenFixtureTests
+
+  cleanup:
+    name: Delete short-lived integration branch
+    if: always() && needs.prepare.result == 'success'
+    needs: [prepare, fixture-bytes, provider-contracts, web-contracts, ios-contracts]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Delete exact integration branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.prepare.outputs.branch }}
+        run: gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${BRANCH}"

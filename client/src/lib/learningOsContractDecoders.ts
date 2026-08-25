@@ -7,24 +7,13 @@ import type {
   DailyAudioPracticeTiming,
   LessonScriptUnit,
 } from '../types';
-import type {
-  StudyActivityCategory,
-  StudyTimeAnalytics,
-  StudyTimeRange,
-} from '../types/studyActivity';
+import { STUDY_ACTIVITY_CATEGORIES } from '../types/studyActivity';
+import type { StudyTimeAnalytics, StudyTimeRange } from '../types/studyActivity';
 import type { GoogleCalendarConnectionStatus } from '../hooks/useGoogleCalendarConnection';
 import type { WeeklyStudyRecap } from '../hooks/useWeeklyStudyRecap';
 
 type JsonRecord = Record<string, unknown>;
 
-const STUDY_ACTIVITY_CATEGORIES: readonly StudyActivityCategory[] = [
-  'review',
-  'listen',
-  'create',
-  'immerse',
-  'conversation',
-  'wanikani',
-];
 const STUDY_TIME_RANGES: readonly StudyTimeRange[] = ['today', 'week', 'month', 'year', 'all'];
 const STUDY_TIME_BUCKET_UNITS = ['hour', 'day', 'week', 'month', 'quarter', 'year'] as const;
 const DAILY_AUDIO_MODES: readonly DailyAudioPracticeMode[] = [
