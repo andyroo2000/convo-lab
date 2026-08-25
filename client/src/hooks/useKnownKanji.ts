@@ -1,7 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { fetchWithCsrf } from '../lib/csrf';
+import { decodeKnownKanjiResponse } from '../lib/learningOsContractDecoders';
 import { studyApiPath } from '../lib/studyApi';
+
+export interface WaniKaniTransferBridgeStatus {
+  enabled: boolean;
+  importedVocabularyCount: number;
+  pendingVocabularyCount: number;
+  failedVocabularyCount: number;
+  lastImportedAt: string | null;
+}
 
 export interface KnownKanjiResponse {
   version: number;
@@ -12,6 +21,7 @@ export interface KnownKanjiResponse {
     lastSyncedAt: string | null;
     reviewCount?: number | null;
     reviewCountUpdatedAt?: string | null;
+    transferBridge?: WaniKaniTransferBridgeStatus;
   };
 }
 
@@ -49,7 +59,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export function useKnownKanji() {
   return useQuery({
     queryKey: KNOWN_KANJI_QUERY_KEY,
-    queryFn: () => request<KnownKanjiResponse>(KNOWN_KANJI_ENDPOINT),
+    queryFn: async () => decodeKnownKanjiResponse(await request<unknown>(KNOWN_KANJI_ENDPOINT)),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -58,11 +68,13 @@ export function useConnectWaniKani() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (apiToken: string) =>
-      request<KnownKanjiResponse>(WANIKANI_ENDPOINT, {
-        method: 'PUT',
-        body: JSON.stringify({ apiToken }),
-      }),
+    mutationFn: async (apiToken: string) =>
+      decodeKnownKanjiResponse(
+        await request<unknown>(WANIKANI_ENDPOINT, {
+          method: 'PUT',
+          body: JSON.stringify({ apiToken }),
+        })
+      ),
     onSuccess: (data) => queryClient.setQueryData(KNOWN_KANJI_QUERY_KEY, data),
   });
 }
@@ -92,11 +104,13 @@ export function useSetManualKnownKanji() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ kanji, known }: { kanji: string; known: boolean }) =>
-      request<KnownKanjiResponse>(`${KNOWN_KANJI_ENDPOINT}/manual`, {
-        method: 'PATCH',
-        body: JSON.stringify({ kanji, known }),
-      }),
+    mutationFn: async ({ kanji, known }: { kanji: string; known: boolean }) =>
+      decodeKnownKanjiResponse(
+        await request<unknown>(`${KNOWN_KANJI_ENDPOINT}/manual`, {
+          method: 'PATCH',
+          body: JSON.stringify({ kanji, known }),
+        })
+      ),
     onSuccess: (data) => queryClient.setQueryData(KNOWN_KANJI_QUERY_KEY, data),
   });
 }

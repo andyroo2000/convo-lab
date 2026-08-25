@@ -10,6 +10,7 @@ import type {
 import { STUDY_ACTIVITY_CATEGORIES } from '../types/studyActivity';
 import type { StudyTimeAnalytics, StudyTimeRange } from '../types/studyActivity';
 import type { GoogleCalendarConnectionStatus } from '../hooks/useGoogleCalendarConnection';
+import type { KnownKanjiResponse } from '../hooks/useKnownKanji';
 import type { WeeklyStudyRecap } from '../hooks/useWeeklyStudyRecap';
 
 type JsonRecord = Record<string, unknown>;
@@ -49,6 +50,14 @@ function number(value: unknown, path: string): number {
   return value;
 }
 
+function nonNegativeInteger(value: unknown, path: string): number {
+  const decoded = number(value, path);
+  if (!Number.isInteger(decoded) || decoded < 0) {
+    throw new Error(`${path} must be a nonnegative integer.`);
+  }
+  return decoded;
+}
+
 function boolean(value: unknown, path: string): boolean {
   if (typeof value !== 'boolean') throw new Error(`${path} must be a boolean.`);
   return value;
@@ -62,6 +71,14 @@ function nullableString(value: unknown, path: string): string | null {
 function optionalNullableNumber(value: unknown, path: string): number | null | undefined {
   if (value === undefined || value === null) return value;
   return number(value, path);
+}
+
+function optionalNullableNonNegativeInteger(
+  value: unknown,
+  path: string
+): number | null | undefined {
+  if (value === undefined || value === null) return value;
+  return nonNegativeInteger(value, path);
 }
 
 function optionalNullableArray<T>(
@@ -88,6 +105,49 @@ function numericCategories(value: unknown, path: string) {
   STUDY_ACTIVITY_CATEGORIES.forEach((category) =>
     number(categories[category], `${path}.${category}`)
   );
+}
+
+export function decodeKnownKanjiResponse(value: unknown): KnownKanjiResponse {
+  const response = record(value, 'known kanji');
+  nonNegativeInteger(response.version, 'known kanji.version');
+  array(response.kanji, 'known kanji.kanji').forEach((kanji, index) =>
+    string(kanji, `known kanji.kanji[${index}]`)
+  );
+  array(response.manualKanji, 'known kanji.manualKanji').forEach((kanji, index) =>
+    string(kanji, `known kanji.manualKanji[${index}]`)
+  );
+
+  const wanikani = record(response.wanikani, 'known kanji.wanikani');
+  boolean(wanikani.connected, 'known kanji.wanikani.connected');
+  nullableString(wanikani.lastSyncedAt, 'known kanji.wanikani.lastSyncedAt');
+  optionalNullableNonNegativeInteger(wanikani.reviewCount, 'known kanji.wanikani.reviewCount');
+  optionalNullableString(
+    wanikani.reviewCountUpdatedAt,
+    'known kanji.wanikani.reviewCountUpdatedAt'
+  );
+
+  if (wanikani.transferBridge !== undefined) {
+    const transferBridge = record(wanikani.transferBridge, 'known kanji.wanikani.transferBridge');
+    boolean(transferBridge.enabled, 'known kanji.wanikani.transferBridge.enabled');
+    nonNegativeInteger(
+      transferBridge.importedVocabularyCount,
+      'known kanji.wanikani.transferBridge.importedVocabularyCount'
+    );
+    nonNegativeInteger(
+      transferBridge.pendingVocabularyCount,
+      'known kanji.wanikani.transferBridge.pendingVocabularyCount'
+    );
+    nonNegativeInteger(
+      transferBridge.failedVocabularyCount,
+      'known kanji.wanikani.transferBridge.failedVocabularyCount'
+    );
+    nullableString(
+      transferBridge.lastImportedAt,
+      'known kanji.wanikani.transferBridge.lastImportedAt'
+    );
+  }
+
+  return response as unknown as KnownKanjiResponse;
 }
 
 export function decodeStudyCardSummary(value: unknown): StudyCardSummary {

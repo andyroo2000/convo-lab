@@ -2,7 +2,7 @@
 
 `Compatibility/` is a byte-for-byte vendor of the canonical wire fixtures from
 `andyroo2000/learning-os` commit
-`d6aad389ad55afa0803e65c37eb38db3844a21b7`. Learning OS remains the sole fixture
+`c2ed3d75bbad869c6481e1c38368806ff931c689`. Learning OS remains the sole fixture
 authority; do not hand-edit the vendored JSON or checksum files.
 
 - `npm run contracts:verify` checks the local manifest and SHA-256 declarations.

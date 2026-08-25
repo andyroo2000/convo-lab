@@ -1,12 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 
 import { useKnownKanji, useSyncWaniKani } from '../hooks/useKnownKanji';
+import type { WaniKaniTransferBridgeStatus } from '../hooks/useKnownKanji';
 
 const AUTO_SYNC_AFTER_MS = 15 * 60 * 1000;
 
 interface KnownKanjiContextValue {
   active: boolean;
   knownKanji: ReadonlySet<string>;
+  transferBridge?: WaniKaniTransferBridgeStatus;
 }
 
 const KnownKanjiContext = createContext<KnownKanjiContextValue>({
@@ -18,8 +20,12 @@ export const KnownKanjiContextProvider = ({
   active,
   children,
   knownKanji,
+  transferBridge,
 }: KnownKanjiContextValue & { children: ReactNode }) => {
-  const value = useMemo(() => ({ active, knownKanji }), [active, knownKanji]);
+  const value = useMemo(
+    () => ({ active, knownKanji, transferBridge }),
+    [active, knownKanji, transferBridge]
+  );
 
   return <KnownKanjiContext.Provider value={value}>{children}</KnownKanjiContext.Provider>;
 };
@@ -59,8 +65,9 @@ export const KnownKanjiProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       active: query.isSuccess,
       knownKanji: new Set(query.data?.kanji ?? []),
+      transferBridge: query.data?.wanikani.transferBridge,
     }),
-    [query.data?.kanji, query.isSuccess]
+    [query.data?.kanji, query.data?.wanikani.transferBridge, query.isSuccess]
   );
 
   return <KnownKanjiContextProvider {...value}>{children}</KnownKanjiContextProvider>;
