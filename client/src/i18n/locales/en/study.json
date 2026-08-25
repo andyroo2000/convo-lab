@@ -464,6 +464,22 @@
         "all": "All"
       }
     },
+    "jlptMastery": {
+      "eyebrow": "Rough coverage estimate",
+      "title": "JLPT N5 Mastery",
+      "description": "A ballpark view of how much of ConvoLab’s current N5 catalog your cards suggest you know.",
+      "vocabulary": "Vocabulary",
+      "grammar": "Grammar",
+      "knownLabel": "Known (Guru+)",
+      "matchedLabel": "Matched in your cards",
+      "count": "{{value}} of {{total}}",
+      "progressLabel": "{{category}} mastery",
+      "explanation": "Known means the strongest matched card is Guru or above. Matched in your cards is a separate, rough coverage estimate against this app’s N5 catalog.",
+      "loading": "Loading your mastery estimate…",
+      "error": "We couldn’t load your mastery estimate.",
+      "retry": "Try again",
+      "unavailable": "A mastery estimate isn’t available yet."
+    },
     "activities": {
       "cardCreation": "Making cards",
       "cardReview": "Card review",

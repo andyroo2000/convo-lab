@@ -1,6 +1,7 @@
 import { TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import JlptMasteryCard from '../components/study/JlptMasteryCard';
 import StudyTimeAnalyticsSection from '../components/study/StudyTimeAnalyticsSection';
 import StudyTimeSessionSections from '../components/study/StudyTimeSessionSections';
 import WeeklyStudyRecapCard from '../components/study/WeeklyStudyRecapCard';
@@ -22,6 +23,7 @@ const StudyTimePage = () => {
       </header>
 
       <StudyTimeAnalyticsSection />
+      <JlptMasteryCard />
       <WeeklyStudyRecapCard />
       <StudyTimeSessionSections />
     </div>
