@@ -42,14 +42,12 @@ interface PersistedMilestoneState {
   earnedAwards: StudyMilestoneAward[];
   activeSession: PersistedReviewSession | null;
   hasSeededBurnedMilestones: boolean;
-  lastKnownBurnedCount: number;
 }
 
 const emptyState = (): PersistedMilestoneState => ({
   earnedAwards: [],
   activeSession: null,
   hasSeededBurnedMilestones: false,
-  lastKnownBurnedCount: 0,
 });
 
 export const STUDY_MILESTONE_DEFINITIONS: StudyMilestoneDefinition[] = [
@@ -130,7 +128,6 @@ const loadState = (storage: StudyMilestoneStorage, userId: string): PersistedMil
       earnedAwards,
       activeSession: validSession,
       hasSeededBurnedMilestones: parsed.hasSeededBurnedMilestones === true,
-      lastKnownBurnedCount: Math.max(0, Number(parsed.lastKnownBurnedCount) || 0),
     };
   } catch {
     return emptyState();
@@ -180,10 +177,10 @@ export class StudyMilestoneStore {
     return STUDY_MILESTONE_DEFINITIONS.filter(({ id }) => !earnedIds.has(id));
   }
 
-  beginReviewSession(burnedCount: number): void {
-    const normalizedCount = Math.max(0, burnedCount);
-    this.seedExistingMilestones(normalizedCount);
-    this.state.lastKnownBurnedCount = normalizedCount;
+  beginReviewSession(burnedCount?: number): void {
+    const hasBurnedCount = typeof burnedCount === 'number' && Number.isFinite(burnedCount);
+    const normalizedCount = hasBurnedCount ? Math.max(0, burnedCount) : 0;
+    if (hasBurnedCount) this.seedExistingMilestones(normalizedCount);
 
     if (this.state.activeSession?.isReadyForPresentation) {
       this.persist();
@@ -205,7 +202,6 @@ export class StudyMilestoneStore {
     const session = this.state.activeSession;
     if (!session || session.isReadyForPresentation) return;
     session.records = [...session.records.filter(({ id }) => id !== record.id), record];
-    this.updateLastKnownBurnedCount(session);
     this.persist();
   }
 
@@ -213,7 +209,6 @@ export class StudyMilestoneStore {
     const session = this.state.activeSession;
     if (!session || session.isReadyForPresentation) return;
     session.records = session.records.filter(({ id }) => id !== reviewId);
-    this.updateLastKnownBurnedCount(session);
     this.persist();
   }
 
@@ -270,7 +265,6 @@ export class StudyMilestoneStore {
       );
       session.newAwardIds = newAwardIds;
       session.isReadyForPresentation = true;
-      this.updateLastKnownBurnedCount(session);
       this.persist();
     }
 
@@ -309,14 +303,6 @@ export class StudyMilestoneStore {
       ).map(({ id }): StudyMilestoneAward => ({ id, earnedAt }))
     );
     this.state.hasSeededBurnedMilestones = true;
-  }
-
-  private updateLastKnownBurnedCount(session: PersistedReviewSession): void {
-    const summary = buildStudySessionWrapUp(session.records);
-    this.state.lastKnownBurnedCount = Math.max(
-      0,
-      session.initialBurnedCount + summary.burnedCountChange
-    );
   }
 
   private persist(): void {

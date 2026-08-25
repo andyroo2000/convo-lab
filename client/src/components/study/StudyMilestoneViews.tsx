@@ -102,14 +102,14 @@ export const StudyMilestoneAwardView = ({ award, onContinue }: StudyMilestoneAwa
     setCanContinue(false);
     const timeoutId = window.setTimeout(() => setCanContinue(true), 4_800);
     return () => window.clearTimeout(timeoutId);
-  }, [animationKey]);
+  }, [award.id, animationKey]);
 
   return (
     <div
       className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto py-5 text-center"
       data-testid="study-milestone-award"
     >
-      <div key={animationKey} className="study-milestone-orbit" aria-hidden="true">
+      <div key={`${award.id}-${animationKey}`} className="study-milestone-orbit" aria-hidden="true">
         <div className="study-milestone-orbit-ring" />
         <div className="study-milestone-stars">
           {starColors.map((color, index) => (

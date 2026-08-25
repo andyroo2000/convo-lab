@@ -134,6 +134,16 @@ describe('StudyMilestoneStore', () => {
     expect(store.earnedAwards.map(({ id }) => id)).toEqual(['burned100']);
   });
 
+  it('waits to seed existing milestones until the burned count is available', () => {
+    const store = makeStore();
+    store.beginReviewSession();
+
+    const reloaded = makeStore();
+    reloaded.beginReviewSession(120);
+
+    expect(reloaded.earnedAwards.map(({ id }) => id)).toEqual(['burned100']);
+  });
+
   it('retracts a prepared award when its qualifying review is undone', () => {
     const store = makeStore();
     store.beginReviewSession(99);

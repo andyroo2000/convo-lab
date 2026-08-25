@@ -665,9 +665,7 @@ const useStudyReviewSession = () => {
             loadSession(sessionKind, { allowEmptySessionRefresh: false }, expectedEpoch),
           ]);
           if (sessionKind === 'reviews' && refreshedSession) {
-            milestoneStore?.beginReviewSession(
-              refreshedSession.overview.masterySpread?.burned ?? 0
-            );
+            milestoneStore?.beginReviewSession(refreshedSession.overview.masterySpread?.burned);
           }
           if (sessionEpochRef.current === expectedEpoch) {
             setReviewConflictRecovered(true);
@@ -1048,7 +1046,7 @@ const useStudyReviewSession = () => {
       try {
         const nextSession = await loadSession(kind, {}, expectedEpoch);
         if (kind === 'reviews' && nextSession) {
-          milestoneStore?.beginReviewSession(nextSession.overview.masterySpread?.burned ?? 0);
+          milestoneStore?.beginReviewSession(nextSession.overview.masterySpread?.burned);
           setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? []);
         }
       } catch {
