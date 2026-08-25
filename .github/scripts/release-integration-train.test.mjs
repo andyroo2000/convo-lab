@@ -33,6 +33,14 @@ test('integration train is manual/scheduled, exact-pinned, temporary, and never 
   for (const name of ['provider', 'web', 'ios']) {
     assert.match(pins.components[name].sha, /^[0-9a-f]{40}$/u);
     assert.match(source, new RegExp(`needs\\.prepare\\.outputs\\.${name}_sha`, 'u'));
+    assert.ok(
+      source.match(new RegExp(`ref: ${pins.components[name].sha}`, 'gu'))?.length >= 2,
+      `${name} checkout refs must be immutable literals matching the manifest pin`
+    );
+    assert.ok(
+      source.match(new RegExp(`repository: ${pins.components[name].repository}`, 'gu'))?.length >= 2,
+      `${name} checkout repositories must be literals matching the manifest`
+    );
     assert.ok(!path.isAbsolute(pins.components[name].fixtureDirectory));
     assert.match(
       source,

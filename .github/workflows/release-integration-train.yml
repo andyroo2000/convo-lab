@@ -66,20 +66,20 @@ jobs:
       - name: Checkout pinned provider
         uses: actions/checkout@v6
         with:
-          repository: ${{ needs.prepare.outputs.provider_repository }}
-          ref: ${{ needs.prepare.outputs.provider_sha }}
+          repository: andyroo2000/learning-os
+          ref: d6aad389ad55afa0803e65c37eb38db3844a21b7
           path: provider
       - name: Checkout pinned web consumer
         uses: actions/checkout@v6
         with:
-          repository: ${{ needs.prepare.outputs.web_repository }}
-          ref: ${{ needs.prepare.outputs.web_sha }}
+          repository: andyroo2000/convo-lab
+          ref: 99c44ba960341e245b7185e0322358d182d57f45
           path: web
       - name: Checkout pinned iOS consumer
         uses: actions/checkout@v6
         with:
-          repository: ${{ needs.prepare.outputs.ios_repository }}
-          ref: ${{ needs.prepare.outputs.ios_sha }}
+          repository: andyroo2000/convo-lab-ios
+          ref: d7a4280d481d0a67c3b6694495ce13a46adc77e7
           path: ios
       - name: Verify checked out commits and canonical bytes
         run: |
@@ -99,8 +99,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          repository: ${{ needs.prepare.outputs.provider_repository }}
-          ref: ${{ needs.prepare.outputs.provider_sha }}
+          repository: andyroo2000/learning-os
+          ref: d6aad389ad55afa0803e65c37eb38db3844a21b7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
@@ -126,8 +126,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          repository: ${{ needs.prepare.outputs.web_repository }}
-          ref: ${{ needs.prepare.outputs.web_sha }}
+          repository: andyroo2000/convo-lab
+          ref: 99c44ba960341e245b7185e0322358d182d57f45
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -153,8 +153,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          repository: ${{ needs.prepare.outputs.ios_repository }}
-          ref: ${{ needs.prepare.outputs.ios_sha }}
+          repository: andyroo2000/convo-lab-ios
+          ref: d7a4280d481d0a67c3b6694495ce13a46adc77e7
       - name: Run API compatibility golden-fixture tests
         run: |
           xcodebuild test \
