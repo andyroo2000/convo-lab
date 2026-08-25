@@ -59,12 +59,6 @@ const StudyPage = () => {
     return t('motion.prompt');
   }, [reviewSession.motionPermissionState, t]);
 
-  const headline = useMemo(() => {
-    if (!overviewQuery.data) return t('title');
-    return t('headline', {
-      dueCount: availableCount,
-    });
-  }, [availableCount, overviewQuery.data, t]);
   const lessonPreviewCard = reviewSession.cards[lessonPreviewIndex] ?? null;
   const lessonPreviewIsFirst = lessonPreviewIndex === 0;
   const lessonPreviewIsLast =
@@ -511,7 +505,6 @@ const StudyPage = () => {
 
   return (
     <StudyOverviewDashboard
-      headline={headline}
       overview={overviewQuery.data}
       reviewAvailableCount={availableCount}
       loading={overviewQuery.isLoading}

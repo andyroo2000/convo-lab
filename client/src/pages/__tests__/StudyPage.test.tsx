@@ -433,9 +433,10 @@ describe('StudyPage', () => {
     renderStudyPage();
 
     expect(screen.getByRole('button', { name: 'Reviews' })).toBeInTheDocument();
-    expect(screen.getByText('4 due')).toBeInTheDocument();
-    expect(screen.getByText('Due')).toBeInTheDocument();
-    expect(screen.getByText('Total')).toBeInTheDocument();
+    expect(screen.getByText('4 reviews')).toBeInTheDocument();
+    expect(screen.getByText('20 cards total')).toBeInTheDocument();
+    expect(screen.queryByText('Due')).not.toBeInTheDocument();
+    expect(screen.queryByText('Total')).not.toBeInTheDocument();
     expect(screen.queryByText('Failed')).not.toBeInTheDocument();
     expect(screen.queryByText('New')).not.toBeInTheDocument();
     expect(screen.queryByText('Learning')).not.toBeInTheDocument();
@@ -483,7 +484,8 @@ describe('StudyPage', () => {
     const beginButton = screen.getByRole('button', { name: 'Reviews' });
     const emptyState = screen.getByText(emptyMessage);
     expect(beginButton).toBeDisabled();
-    expect(beginButton).toHaveAttribute('aria-describedby', emptyState.id);
+    expect(beginButton.getAttribute('aria-describedby')?.split(' ')).toContain(emptyState.id);
+    expect(beginButton).toHaveAccessibleDescription(`0 reviews All caught up ${emptyMessage}`);
     expect(beginButton).not.toHaveAttribute('title');
   });
 
@@ -505,8 +507,8 @@ describe('StudyPage', () => {
 
     renderStudyPage();
 
-    expect(screen.getByText('0 due')).toBeInTheDocument();
-    expect(screen.queryByText('8 due')).not.toBeInTheDocument();
+    expect(screen.getByText('0 reviews')).toBeInTheDocument();
+    expect(screen.queryByText('8 reviews')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reviews' })).toBeDisabled();
   });
 
@@ -524,7 +526,7 @@ describe('StudyPage', () => {
 
     renderStudyPage();
 
-    expect(screen.getByText('5 due')).toBeInTheDocument();
+    expect(screen.getByText('5 reviews')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reviews' })).toBeEnabled();
   });
 
@@ -815,7 +817,7 @@ describe('StudyPage', () => {
 
     const beginButton = screen.getByRole('button', { name: 'Reviews' });
     expect(beginButton).toBeEnabled();
-    expect(beginButton).not.toHaveAttribute('aria-describedby');
+    expect(beginButton).toHaveAccessibleDescription('0 reviews All caught up');
     expect(screen.getByText('Loading overview…')).toBeInTheDocument();
     expect(
       screen.queryByText('Import your `日本語` deck or create a card to start studying here.')

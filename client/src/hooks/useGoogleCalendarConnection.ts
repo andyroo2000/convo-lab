@@ -30,6 +30,11 @@ export interface GoogleCalendarConnectionStatus {
   connectedAt: string | null;
   lastSyncedAt: string | null;
   sync: GoogleCalendarSyncStatus | null;
+  nextLesson?: {
+    title: string;
+    startsAt: string;
+    endsAt: string;
+  } | null;
 }
 
 export interface GoogleCalendarSyncStatus {

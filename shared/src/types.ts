@@ -213,6 +213,7 @@ export interface StudyJlptMastery {
 
 export interface StudyLearningReadiness {
   recommendation: 'ready' | 'caution' | 'pause';
+  readinessLevel?: string | null;
   sampleSize: number;
   sufficientData: boolean;
   recentRecall: number | null;
@@ -220,6 +221,11 @@ export interface StudyLearningReadiness {
   dueBacklog: number;
   apprenticeCount: number;
   projectedSevenDayReviews: number;
+  timedReviewSampleSize?: number | null;
+  medianReviewDurationSeconds?: number | null;
+  projectedDailyReviewMinutes?: number | null;
+  reviewTimeBudgetMinutes?: number | null;
+  reviewTimeHeadroomMinutes?: number | null;
   suggestedBatchSize: number;
 }
 
