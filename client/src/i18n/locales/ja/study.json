@@ -212,6 +212,38 @@
     "regeneratingImage": "画像を再生成中…",
     "cancel": "キャンセル"
   },
+  "learningPath": {
+    "title": "学習パス",
+    "description": "この内容を段階的に学びます。レビューに成功すると次の段階が解放され、応用カードを習得すると以前のバリエーションを終了できます。",
+    "loading": "学習パスを読み込み中…",
+    "loadFailed": "学習パスを読み込めませんでした。",
+    "retry": "もう一度試す",
+    "stagesLabel": "学習パスの段階",
+    "stage": "ステージ {{number}}",
+    "current": "現在のカード",
+    "status": {
+      "locked": "ロック中",
+      "available": "利用可能",
+      "retired": "終了"
+    },
+    "startsHere": "このカードはまだパスに含まれていません。次に解放するカードを選ぶとパスが始まります。",
+    "tailOnly": "パスは最後のステージから追加できます。",
+    "editTail": "次のステージを追加するには「{{card}}」を編集してください。",
+    "chooseNext": "このカードの次に何を解放しますか？",
+    "chooseNextHelp": "既存のカードを選びます。このステージの想起に成功するまでロックされます。",
+    "searchLabel": "次のカードを検索",
+    "searchPlaceholder": "日本語または英語で検索",
+    "findCard": "カードを検索",
+    "searching": "検索中…",
+    "searchFailed": "カードを検索できませんでした。",
+    "noMatches": "この検索に一致する他のカードはありません。",
+    "moreMatches": "さらに一致するカードがあります。目的のカードが表示されない場合は検索を絞り込んでください。",
+    "confirm": "「{{current}}」を習得したら、次のステージとして「{{next}}」を解放します。",
+    "linkNext": "次のステージを追加",
+    "linking": "追加中…",
+    "linkFailed": "次のステージを追加できませんでした。",
+    "linked": "次のステージを追加しました。現在のステージのレビューに成功すると解放されます。"
+  },
   "form": {
     "cardType": "カード種別",
     "recognition": "認識",
