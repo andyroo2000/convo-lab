@@ -118,12 +118,22 @@ const useStudyReviewSession = () => {
         : null,
     [userId]
   );
+  const milestoneSyncQueueRef = useRef<Promise<void>>(Promise.resolve());
 
-  const syncMilestones = useCallback(async () => {
-    const snapshot = await evaluateStudyMilestones();
-    milestoneStore?.applyServerSnapshot(snapshot);
-    setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? snapshot.milestones);
-    return snapshot;
+  const syncMilestones = useCallback(() => {
+    const request = milestoneSyncQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const snapshot = await evaluateStudyMilestones();
+        milestoneStore?.applyServerSnapshot(snapshot);
+        setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? snapshot.milestones);
+        return snapshot;
+      });
+    milestoneSyncQueueRef.current = request.then(
+      () => undefined,
+      () => undefined
+    );
+    return request;
   }, [milestoneStore]);
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);

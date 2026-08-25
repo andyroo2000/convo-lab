@@ -40,6 +40,10 @@ describe('studyMilestoneApi', () => {
       milestones: [{ id: 'unknown', earnedAt: '2026-08-25T12:00:00.000Z', presentedAt: null }],
       pendingMilestones: [],
     },
+    {
+      milestones: [{ id: 'burned100', earnedAt: '2026-08-25T12:00:00.000Z' }],
+      pendingMilestones: [],
+    },
   ])('rejects malformed milestone responses %#', async (response) => {
     requestJsonMock.mockResolvedValue(response);
 

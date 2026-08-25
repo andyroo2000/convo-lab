@@ -108,6 +108,28 @@ describe('StudyMilestoneStore', () => {
     });
   });
 
+  it('keeps a prepared celebration when a later snapshot has no pending award', () => {
+    const store = makeStore();
+    store.beginReviewSession();
+    store.recordReview(review('review-1'));
+
+    const prepared = store.prepareInterruptedCompletion([burned100]);
+    const restored = store.prepareInterruptedCompletion([]);
+
+    expect(prepared?.newAwards).toEqual([burned100]);
+    expect(restored?.newAwards).toEqual([burned100]);
+    expect(restored?.celebrationPresented).toBe(false);
+  });
+
+  it('adds a server award to a wrap-up that was prepared offline', () => {
+    const store = makeStore();
+    store.beginReviewSession();
+    store.recordReview(review('review-1'));
+
+    expect(store.prepareCurrentSessionCompletion()?.newAwards).toEqual([]);
+    expect(store.prepareInterruptedCompletion([burned100])?.newAwards).toEqual([burned100]);
+  });
+
   it('does not force an ordinary abandoned session into a stale wrap-up', () => {
     const store = makeStore();
     store.beginReviewSession();

@@ -262,9 +262,13 @@ export class StudyMilestoneStore {
     if (!session.isReadyForPresentation) {
       if (requireNewAward && newAwards.length === 0) return null;
       session.isReadyForPresentation = true;
+      session.newAwardIds = newAwards.map(({ id }) => id);
+    } else if (session.newAwardIds.length === 0 && newAwards.length > 0) {
+      // A wrap-up prepared offline can pick up an award once review state reaches
+      // the server. Once this session commits to a celebration, do not erase it.
+      session.newAwardIds = newAwards.map(({ id }) => id);
     }
 
-    session.newAwardIds = newAwards.map(({ id }) => id);
     this.mergeAwards(newAwards);
     this.persist();
 
