@@ -20,6 +20,7 @@ const {
 }));
 
 vi.mock('../../hooks/useDailyAudioPractice', () => ({
+  DAILY_AUDIO_DURATION_OPTIONS: [15, 30, 45, 60],
   dailyAudioPracticeKeys: {
     list: () => ['daily-audio-practice', 'list'],
     detail: (id: string) => ['daily-audio-practice', 'detail', id],
@@ -146,7 +147,19 @@ describe('DailyAudioPracticePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
 
     await waitFor(() => {
-      expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1);
+      expect(mockCreateMutateAsync).toHaveBeenCalledWith(60);
+    });
+  });
+
+  it.each([15, 30, 45, 60])('creates the selected %i-minute edition', async (duration) => {
+    mockCreateMutateAsync.mockResolvedValue(readyPractice);
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: `${duration} min` }));
+    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
+
+    await waitFor(() => {
+      expect(mockCreateMutateAsync).toHaveBeenCalledWith(duration);
     });
   });
 
@@ -169,7 +182,9 @@ describe('DailyAudioPracticePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /regenerate today's audio/i }));
 
     expect(screen.getByText('Regenerate today’s audio?')).toBeInTheDocument();
-    expect(screen.getByText(/overwrite today’s existing audio drills/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/overwrite today’s existing audio with a 60-minute edition/i)
+    ).toBeInTheDocument();
     expect(mockCreateMutateAsync).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Keep Existing Audio' }));
@@ -262,7 +277,7 @@ describe('DailyAudioPracticePage', () => {
 
     renderPage();
 
-    expect(screen.getByText("Generating today's tracks")).toBeInTheDocument();
+    expect(screen.getByText("Generating today's 30-minute edition")).toBeInTheDocument();
     expect(screen.getByText('45%')).toBeInTheDocument();
     expect(screen.getByText(/Drills: Ready/)).toBeInTheDocument();
   });

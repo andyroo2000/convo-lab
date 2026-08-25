@@ -15,7 +15,9 @@ import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-
 import ScriptTrackPlayer from '../components/audio/ScriptTrackPlayer';
 import ConfirmModal from '../components/common/ConfirmModal';
 import {
+  DAILY_AUDIO_DURATION_OPTIONS,
   dailyAudioPracticeKeys,
+  type DailyAudioDurationMinutes,
   useCreateDailyAudioPractice,
   useDailyAudioPractice,
   useDailyAudioPracticeStatus,
@@ -24,6 +26,7 @@ import {
 
 const GENERATION_STALE_AFTER_MS = 90 * 60 * 1000;
 const SWIPE_THRESHOLD_PX = 50;
+const DEFAULT_DAILY_AUDIO_DURATION_MINUTES: DailyAudioDurationMinutes = 60;
 
 function localPracticeDate() {
   const now = new Date();
@@ -106,6 +109,9 @@ const DailyAudioPracticePage = () => {
   const [selectedPracticeId, setSelectedPracticeId] = useState<string | undefined>();
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const [confirmingRegeneration, setConfirmingRegeneration] = useState(false);
+  const [targetDurationMinutes, setTargetDurationMinutes] = useState<DailyAudioDurationMinutes>(
+    DEFAULT_DAILY_AUDIO_DURATION_MINUTES
+  );
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const dayRegionRef = useRef<HTMLDivElement>(null);
   const createPractice = useCreateDailyAudioPractice();
@@ -188,7 +194,7 @@ const DailyAudioPracticePage = () => {
 
   const handleGenerate = async () => {
     try {
-      const nextPractice = await createPractice.mutateAsync();
+      const nextPractice = await createPractice.mutateAsync(targetDurationMinutes);
       setSelectedPracticeId(nextPractice.id);
     } catch {
       // React Query retains the mutation error for the inline alert below.
@@ -209,7 +215,7 @@ const DailyAudioPracticePage = () => {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5">
       <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <div className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Study audio</div>
             <h1 className="retro-headline text-4xl sm:text-6xl">Daily Audio Practice</h1>
@@ -218,19 +224,41 @@ const DailyAudioPracticePage = () => {
               on.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleGenerateRequest}
-            disabled={createPractice.isPending || todayGenerating}
-            className="inline-flex min-h-12 items-center gap-2 border-2 border-navy/20 bg-navy px-5 py-3 font-black uppercase tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {todayGenerating ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Headphones className="h-4 w-4" />
-            )}
-            {todayHasAudio ? "Regenerate Today's Audio" : "Generate Today's Audio"}
-          </button>
+          <div className="space-y-3">
+            <fieldset disabled={createPractice.isPending || todayGenerating}>
+              <legend className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Edition length</legend>
+              <div className="grid grid-cols-4 gap-1" aria-label="Edition length">
+                {DAILY_AUDIO_DURATION_OPTIONS.map((duration) => (
+                  <button
+                    key={duration}
+                    type="button"
+                    aria-pressed={targetDurationMinutes === duration}
+                    onClick={() => setTargetDurationMinutes(duration)}
+                    className={`min-h-10 border-2 px-3 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      targetDurationMinutes === duration
+                        ? 'border-navy bg-navy text-[#fbf5e0]'
+                        : 'border-navy/20 bg-[#fbf5e0]/80 text-navy hover:bg-white'
+                    }`}
+                  >
+                    {duration} min
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <button
+              type="button"
+              onClick={handleGenerateRequest}
+              disabled={createPractice.isPending || todayGenerating}
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 border-2 border-navy/20 bg-navy px-5 py-3 font-black uppercase tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {todayGenerating ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Headphones className="h-4 w-4" />
+              )}
+              {todayHasAudio ? "Regenerate Today's Audio" : "Generate Today's Audio"}
+            </button>
+          </div>
         </div>
       </section>
 
@@ -314,7 +342,9 @@ const DailyAudioPracticePage = () => {
               <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="retro-headline text-3xl">Generating today&apos;s tracks</h2>
+                    <h2 className="retro-headline text-3xl">
+                      Generating today&apos;s {practice.targetDurationMinutes}-minute edition
+                    </h2>
                     <p className="text-[rgba(20,50,86,0.68)]">
                       {tracks
                         .map((track) => `${track.title}: ${formatStatus(track.status)}`)
@@ -335,7 +365,13 @@ const DailyAudioPracticePage = () => {
             {practice?.status === 'ready' ? (
               <>
                 <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-4 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
-                  <div className="grid gap-3 sm:grid-cols-4">
+                  <div className="grid gap-3 sm:grid-cols-5">
+                    <div>
+                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Edition</p>
+                      <p className="text-2xl font-black text-navy">
+                        {practice.targetDurationMinutes} min
+                      </p>
+                    </div>
                     <div>
                       <p className="retro-caps text-[rgba(20,50,86,0.5)]">Date</p>
                       <p className="text-2xl font-black text-navy">{practice.practiceDate}</p>
@@ -411,7 +447,7 @@ const DailyAudioPracticePage = () => {
       <ConfirmModal
         isOpen={confirmingRegeneration}
         title="Regenerate today’s audio?"
-        message="This will overwrite today’s existing audio drills. Previously downloaded versions may need to be downloaded again."
+        message={`This will overwrite today’s existing audio with a ${targetDurationMinutes}-minute edition. Previously downloaded versions may need to be downloaded again.`}
         confirmLabel="Regenerate Audio"
         cancelLabel="Keep Existing Audio"
         variant="warning"
