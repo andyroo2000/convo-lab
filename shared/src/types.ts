@@ -194,6 +194,23 @@ export interface StudyMasterySpread {
   burned: number;
 }
 
+export interface StudyJlptMasteryMetric {
+  masteryPercent: number;
+  known?: number | null;
+  matched?: number | null;
+  covered: number;
+  total: number;
+}
+
+export interface StudyJlptLevelMastery {
+  vocabulary: StudyJlptMasteryMetric;
+  grammar: StudyJlptMasteryMetric;
+}
+
+export interface StudyJlptMastery {
+  N5: StudyJlptLevelMastery;
+}
+
 export interface StudyLearningReadiness {
   recommendation: 'ready' | 'caution' | 'pause';
   sampleSize: number;
@@ -409,6 +426,7 @@ export interface StudyOverview {
   latestImport?: StudyImportResult | null;
   nextDueAt?: string | null;
   masterySpread?: StudyMasterySpread;
+  jlptMastery?: StudyJlptMastery | null;
   learningReadiness?: StudyLearningReadiness;
 }
 

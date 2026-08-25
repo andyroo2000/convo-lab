@@ -564,7 +564,7 @@ export async function performStudyCardAction(
   });
 }
 
-export function useStudyOverview(enabled: boolean) {
+export function useStudyOverview(enabled: boolean, refetchOnMount: boolean | 'always' = true) {
   const timeZone = getDeviceStudyTimeZone();
   const searchParams = new URLSearchParams();
   if (timeZone) searchParams.set('timeZone', timeZone);
@@ -576,6 +576,7 @@ export function useStudyOverview(enabled: boolean) {
         `/overview${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
       ),
     enabled,
+    refetchOnMount,
     // The app-wide QueryClient disables focus refetches; study counts should refresh
     // when returning to the dashboard now that the manual refresh control is gone.
     refetchOnWindowFocus: true,

@@ -44,6 +44,10 @@ vi.mock('../../components/study/WeeklyStudyRecapCard', () => ({
   default: () => null,
 }));
 
+vi.mock('../../components/study/JlptMasteryCard', () => ({
+  default: () => <div data-testid="jlpt-mastery-card" />,
+}));
+
 vi.mock('../../hooks/useStudyActivity', () => ({
   useStudyActivityAnalytics: (anchorDate: string) => {
     const initialAnchor =
@@ -290,6 +294,7 @@ describe('StudyTimePage', () => {
 
     expect(screen.getByRole('heading', { name: 'Study Rhythm' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Study rhythm overview' })).toBeInTheDocument();
+    expect(screen.getByTestId('jlpt-mastery-card')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Log entry' }));
 
     expect(logCompletedMock).toHaveBeenCalledWith(
