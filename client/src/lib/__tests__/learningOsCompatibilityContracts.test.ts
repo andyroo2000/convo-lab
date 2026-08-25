@@ -190,6 +190,23 @@ describe('vendored Learning OS compatibility fixtures', () => {
     );
   });
 
+  it('allows absent analytics bucket metadata but rejects unknown units', () => {
+    const withoutMetadata = structuredClone(
+      studyAnalyticsCompatibilityFixture.cases[0].payload
+    ) as { ranges: Array<{ bucketUnit?: unknown; bucketStep?: unknown }> };
+    delete withoutMetadata.ranges[0]!.bucketUnit;
+    delete withoutMetadata.ranges[0]!.bucketStep;
+    expect(decodeStudyTimeAnalytics(withoutMetadata).ranges[0]?.bucketUnit).toBeUndefined();
+
+    const unknownUnit = structuredClone(studyAnalyticsCompatibilityFixture.cases[0].payload) as {
+      ranges: Array<{ bucketUnit: unknown }>;
+    };
+    unknownUnit.ranges[0]!.bucketUnit = 'fortnight';
+    expect(() => decodeStudyTimeAnalytics(unknownUnit)).toThrow(
+      'study activity analytics.ranges[0].bucketUnit is not supported'
+    );
+  });
+
   it('decodes and rejects malformed Daily Audio generation status payloads', () => {
     const status = decodeDailyAudioPracticeStatus({
       id: 'practice-1',

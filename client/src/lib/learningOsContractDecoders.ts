@@ -26,6 +26,7 @@ const STUDY_ACTIVITY_CATEGORIES: readonly StudyActivityCategory[] = [
   'wanikani',
 ];
 const STUDY_TIME_RANGES: readonly StudyTimeRange[] = ['today', 'week', 'month', 'year', 'all'];
+const STUDY_TIME_BUCKET_UNITS = ['hour', 'day', 'week', 'month', 'quarter', 'year'] as const;
 const DAILY_AUDIO_MODES: readonly DailyAudioPracticeMode[] = [
   'drill',
   'dialogue',
@@ -176,8 +177,13 @@ export function decodeStudyTimeAnalytics(value: unknown): StudyTimeAnalytics {
       }
       string(range.startsAt, `${path}.startsAt`);
       string(range.endsAt, `${path}.endsAt`);
-      string(range.bucketUnit, `${path}.bucketUnit`);
-      number(range.bucketStep, `${path}.bucketStep`);
+      if (range.bucketUnit !== undefined) {
+        const bucketUnit = string(range.bucketUnit, `${path}.bucketUnit`);
+        if (!(STUDY_TIME_BUCKET_UNITS as readonly string[]).includes(bucketUnit)) {
+          throw new Error(`${path}.bucketUnit is not supported.`);
+        }
+      }
+      if (range.bucketStep !== undefined) number(range.bucketStep, `${path}.bucketStep`);
       number(range.totalMs, `${path}.totalMs`);
       numericCategories(range.categories, `${path}.categories`);
       array(range.buckets, `${path}.buckets`).forEach((bucketValue, bucketIndex) => {
