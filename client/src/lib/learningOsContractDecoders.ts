@@ -10,6 +10,7 @@ import type {
 import { STUDY_ACTIVITY_CATEGORIES } from '../types/studyActivity';
 import type { StudyTimeAnalytics, StudyTimeRange } from '../types/studyActivity';
 import type { GoogleCalendarConnectionStatus } from '../hooks/useGoogleCalendarConnection';
+import type { KnownKanjiResponse } from '../hooks/useKnownKanji';
 import type { WeeklyStudyRecap } from '../hooks/useWeeklyStudyRecap';
 
 type JsonRecord = Record<string, unknown>;
@@ -88,6 +89,49 @@ function numericCategories(value: unknown, path: string) {
   STUDY_ACTIVITY_CATEGORIES.forEach((category) =>
     number(categories[category], `${path}.${category}`)
   );
+}
+
+export function decodeKnownKanjiResponse(value: unknown): KnownKanjiResponse {
+  const response = record(value, 'known kanji');
+  number(response.version, 'known kanji.version');
+  array(response.kanji, 'known kanji.kanji').forEach((kanji, index) =>
+    string(kanji, `known kanji.kanji[${index}]`)
+  );
+  array(response.manualKanji, 'known kanji.manualKanji').forEach((kanji, index) =>
+    string(kanji, `known kanji.manualKanji[${index}]`)
+  );
+
+  const wanikani = record(response.wanikani, 'known kanji.wanikani');
+  boolean(wanikani.connected, 'known kanji.wanikani.connected');
+  nullableString(wanikani.lastSyncedAt, 'known kanji.wanikani.lastSyncedAt');
+  optionalNullableNumber(wanikani.reviewCount, 'known kanji.wanikani.reviewCount');
+  optionalNullableString(
+    wanikani.reviewCountUpdatedAt,
+    'known kanji.wanikani.reviewCountUpdatedAt'
+  );
+
+  if (wanikani.transferBridge !== undefined) {
+    const transferBridge = record(wanikani.transferBridge, 'known kanji.wanikani.transferBridge');
+    boolean(transferBridge.enabled, 'known kanji.wanikani.transferBridge.enabled');
+    number(
+      transferBridge.importedVocabularyCount,
+      'known kanji.wanikani.transferBridge.importedVocabularyCount'
+    );
+    number(
+      transferBridge.pendingVocabularyCount,
+      'known kanji.wanikani.transferBridge.pendingVocabularyCount'
+    );
+    number(
+      transferBridge.failedVocabularyCount,
+      'known kanji.wanikani.transferBridge.failedVocabularyCount'
+    );
+    nullableString(
+      transferBridge.lastImportedAt,
+      'known kanji.wanikani.transferBridge.lastImportedAt'
+    );
+  }
+
+  return response as unknown as KnownKanjiResponse;
 }
 
 export function decodeStudyCardSummary(value: unknown): StudyCardSummary {
