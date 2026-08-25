@@ -630,7 +630,9 @@ const useStudyReviewSession = () => {
           durationMs: operation.request.durationMs ?? durationMs,
         };
         setSessionReviewRecords((current) => [...current, reviewRecord]);
-        milestoneStore?.recordReview(reviewRecord);
+        if (sessionKind === 'reviews') {
+          milestoneStore?.recordReview(reviewRecord);
+        }
         setCurrentIndex((current) => {
           const nextLength = nextCards.length;
           if (nextLength === 0) return 0;
@@ -659,13 +661,28 @@ const useStudyReviewSession = () => {
           setEditing(false);
           setShowSetDueControls(false);
           setMasteryAnimation(null);
-          milestoneStore?.cancelCurrentSession();
+          const recoveredMilestoneCompletion =
+            sessionKind === 'reviews'
+              ? (milestoneStore?.prepareInterruptedCompletion() ?? null)
+              : null;
+          if (!recoveredMilestoneCompletion) {
+            milestoneStore?.cancelCurrentSession();
+          }
           const [, refreshedSession] = await Promise.all([
             queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
             loadSession(sessionKind, { allowEmptySessionRefresh: false }, expectedEpoch),
           ]);
           if (sessionKind === 'reviews' && refreshedSession) {
             milestoneStore?.beginReviewSession(refreshedSession.overview.masterySpread?.burned);
+          }
+          if (recoveredMilestoneCompletion) {
+            setSessionWasEnded(true);
+            setMilestoneCompletion(recoveredMilestoneCompletion);
+            setCurrentMilestoneAwardIndex(0);
+            setMilestoneCelebrationPresented(
+              recoveredMilestoneCompletion.celebrationPresented
+            );
+            setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? []);
           }
           if (sessionEpochRef.current === expectedEpoch) {
             setReviewConflictRecovered(true);
@@ -1040,6 +1057,9 @@ const useStudyReviewSession = () => {
       setMilestoneCelebrationPresented(false);
       setPracticeCards(null);
       setPracticeInitialCount(0);
+      if (kind !== 'reviews') {
+        milestoneStore?.cancelCurrentSession();
+      }
       runBackgroundTask(() => requestMotionPermission(), {
         label: 'Study motion-permission request',
       });

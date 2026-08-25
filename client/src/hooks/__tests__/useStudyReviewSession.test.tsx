@@ -295,6 +295,33 @@ describe('useStudyReviewSession', () => {
     expect(result.current.lessonPhase).toBe('quiz');
   });
 
+  it('clears an ordinary interrupted review session before starting lessons', async () => {
+    const { result: firstResult, unmount: unmountFirst } = renderHook(
+      () => useStudyReviewSession(),
+      {
+        wrapper: createWrapper(),
+      }
+    );
+    await act(async () => {
+      await firstResult.current.enterFocusMode();
+    });
+    unmountFirst();
+
+    const { result: secondResult } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+    await act(async () => {
+      await secondResult.current.enterFocusMode('lessons');
+    });
+
+    const persisted = JSON.parse(
+      window.localStorage.getItem(
+        'convo-lab.study-milestones-v1.study-review-hook-test-user'
+      ) ?? '{}'
+    ) as { activeSession?: unknown };
+    expect(persisted.activeSession).toBeNull();
+  });
+
   it("warms each nearby card's logical audio asset after entering focus mode", async () => {
     const cardOneWithAudio = {
       ...baseCardOne,
@@ -646,6 +673,55 @@ describe('useStudyReviewSession', () => {
       await result.current.retryPendingReview();
     });
     expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves a milestone crossed before a later review conflict', async () => {
+    const masterySpread = {
+      apprentice: 0,
+      guru: 0,
+      master: 0,
+      enlightened: 1,
+      burned: 99,
+    };
+    startStudySessionMock.mockResolvedValue({
+      overview: { ...baseOverview, masterySpread },
+      cards: [baseCardOne, baseCardTwo],
+    });
+    reviewMutateAsyncMock
+      .mockResolvedValueOnce({
+        reviewLogId: 'review-burned-100',
+        card: { ...baseCardOne, masteryLevel: 'burned' },
+        overview: {
+          ...baseOverview,
+          masterySpread: { ...masterySpread, enlightened: 0, burned: 100 },
+        },
+      })
+      .mockRejectedValueOnce(
+        new JsonRequestError('Review is out of order. (409)', 409, {
+          code: 'review_out_of_order',
+        })
+      );
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(result.current.currentMilestoneAward?.id).toBe('burned100');
+    expect(result.current.milestoneCompletion?.records.map(({ id }) => id)).toEqual([
+      'review-burned-100',
+    ]);
   });
 
   it('resets queue position and answered state after authoritative conflict recovery', async () => {

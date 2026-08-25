@@ -139,7 +139,7 @@ const StudyPage = () => {
             noteId: reviewSession.currentCard?.noteId ?? '',
             cardId: reviewSession.currentCard?.id ?? '',
           });
-          reviewSession.exitFocusMode();
+          reviewSession.endReviewSession();
           navigate(`/app/study/browse?${params.toString()}`);
         }}
       />
