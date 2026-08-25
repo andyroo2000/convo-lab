@@ -181,4 +181,39 @@ describe('StudyLearningPathEditor', () => {
       'master'
     );
   });
+
+  it('can override the default with the successful-retrieval requirement', async () => {
+    studyMocks.getStudyCards.mockResolvedValue({
+      items: [successorCard],
+      limit: 20,
+      nextCursor: null,
+    });
+    studyMocks.mutateAsync.mockResolvedValue({
+      groupId: 'group-1',
+      anchorCardId: currentCard.id,
+      stages: [],
+    });
+    renderEditor();
+
+    await userEvent.type(screen.getByLabelText('Search for the next card'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Find card' }));
+    await userEvent.click(await screen.findByRole('button', { name: /会社 company/ }));
+    await userEvent.selectOptions(
+      screen.getByLabelText('Unlock next stage when current stage reaches'),
+      'successful_retrieval'
+    );
+
+    expect(
+      screen.getByText('Fast progression after two Good or Easy reviews since this stage unlocked.')
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Add next stage' }));
+
+    await waitFor(() => {
+      expect(studyMocks.mutateAsync).toHaveBeenCalledWith({
+        cardId: currentCard.id,
+        successorCardId: successorCard.id,
+        unlockRequirement: 'successful_retrieval',
+      });
+    });
+  });
 });

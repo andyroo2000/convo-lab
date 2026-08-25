@@ -295,14 +295,15 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                       requirement: t(`learningPath.requirement.${unlockRequirement}`),
                     })}
                   </p>
-                  <label
-                    htmlFor={`learning-path-requirement-${card.id}`}
-                    className="block text-sm font-medium text-navy"
-                  >
-                    {t('learningPath.requirementLabel')}
+                  <div>
+                    <label
+                      htmlFor={`learning-path-requirement-${card.id}`}
+                      className="block text-sm font-medium text-navy"
+                    >
+                      {t('learningPath.requirementLabel')}
+                    </label>
                     <select
                       id={`learning-path-requirement-${card.id}`}
-                      aria-label={t('learningPath.requirementLabel')}
                       value={unlockRequirement}
                       onChange={(event) =>
                         setUnlockRequirement(
@@ -320,7 +321,7 @@ const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
                     <span className="mt-1 block text-xs font-normal text-gray-500">
                       {t(`learningPath.requirementHelp.${unlockRequirement}`)}
                     </span>
-                  </label>
+                  </div>
                   <button
                     type="button"
                     onClick={async () => {
