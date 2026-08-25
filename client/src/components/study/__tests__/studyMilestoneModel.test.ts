@@ -56,6 +56,12 @@ const review = (id: string): StudySessionReviewRecord => ({
   durationMs: 1_000,
 });
 
+const burned100 = {
+  id: 'burned100' as const,
+  earnedAt: '2026-08-25T12:00:00.000Z',
+  presentedAt: null,
+};
+
 describe('StudyMilestoneStore', () => {
   let storage: MemoryStorage;
   let nextId: number;
@@ -67,19 +73,19 @@ describe('StudyMilestoneStore', () => {
 
   const makeStore = (userId = 'user-1') =>
     new StudyMilestoneStore(storage, userId, {
-      now: () => new Date('2026-08-25T12:00:00.000Z'),
       createId: () => {
         nextId += 1;
         return `session-${String(nextId)}`;
       },
     });
 
-  it('awards 100 burned when a review session crosses the threshold', () => {
+  it('uses the server snapshot to award 100 burned at session completion', () => {
     const store = makeStore();
-    store.beginReviewSession(99);
+    store.beginReviewSession();
     store.recordReview(review('review-1'));
+    store.applyServerSnapshot({ milestones: [burned100], pendingMilestones: [burned100] });
 
-    const completion = store.prepareCurrentSessionCompletion();
+    const completion = store.prepareCurrentSessionCompletion([burned100]);
 
     expect(completion?.newAwards.map(({ id }) => id)).toEqual(['burned100']);
     expect(store.earnedAwards.map(({ id }) => id)).toEqual(['burned100']);
@@ -87,10 +93,12 @@ describe('StudyMilestoneStore', () => {
 
   it('restores an interrupted qualifying session as award then wrap-up data', () => {
     const store = makeStore();
-    store.beginReviewSession(99);
+    store.beginReviewSession();
     store.recordReview(review('review-1'));
 
-    const restored = makeStore().prepareInterruptedCompletion();
+    const reloaded = makeStore();
+    reloaded.applyServerSnapshot({ milestones: [burned100], pendingMilestones: [burned100] });
+    const restored = reloaded.prepareInterruptedCompletion([burned100]);
 
     expect(restored).toMatchObject({
       id: 'session-1',
@@ -102,7 +110,7 @@ describe('StudyMilestoneStore', () => {
 
   it('does not force an ordinary abandoned session into a stale wrap-up', () => {
     const store = makeStore();
-    store.beginReviewSession(20);
+    store.beginReviewSession();
     store.recordReview(review('review-1'));
 
     expect(makeStore().prepareInterruptedCompletion()).toBeNull();
@@ -110,7 +118,7 @@ describe('StudyMilestoneStore', () => {
 
   it('restores a formally ended ordinary session if the page closes on the wrap-up', () => {
     const store = makeStore();
-    store.beginReviewSession(20);
+    store.beginReviewSession();
     store.recordReview(review('review-1'));
     const prepared = store.prepareCurrentSessionCompletion();
 
@@ -121,9 +129,13 @@ describe('StudyMilestoneStore', () => {
     expect(restored?.records.map(({ id }) => id)).toEqual(['review-1']);
   });
 
-  it('backfills previously reached thresholds without replaying their award', () => {
+  it('caches backfilled server history without replaying its award', () => {
     const store = makeStore();
-    store.beginReviewSession(120);
+    store.applyServerSnapshot({
+      milestones: [{ ...burned100, presentedAt: burned100.earnedAt }],
+      pendingMilestones: [],
+    });
+    store.beginReviewSession();
     store.recordReview({
       ...review('review-1'),
       cardBefore: card('review-1', 10),
@@ -134,24 +146,26 @@ describe('StudyMilestoneStore', () => {
     expect(store.earnedAwards.map(({ id }) => id)).toEqual(['burned100']);
   });
 
-  it('waits to seed existing milestones until the burned count is available', () => {
+  it('persists server history for offline milestone views', () => {
     const store = makeStore();
-    store.beginReviewSession();
+    store.applyServerSnapshot({
+      milestones: [{ ...burned100, presentedAt: burned100.earnedAt }],
+      pendingMilestones: [],
+    });
 
-    const reloaded = makeStore();
-    reloaded.beginReviewSession(120);
-
-    expect(reloaded.earnedAwards.map(({ id }) => id)).toEqual(['burned100']);
+    expect(makeStore().earnedAwards.map(({ id }) => id)).toEqual(['burned100']);
   });
 
   it('retracts a prepared award when its qualifying review is undone', () => {
     const store = makeStore();
-    store.beginReviewSession(99);
+    store.beginReviewSession();
     store.recordReview(review('review-1'));
-    const completion = store.prepareCurrentSessionCompletion();
+    store.applyServerSnapshot({ milestones: [burned100], pendingMilestones: [burned100] });
+    const completion = store.prepareCurrentSessionCompletion([burned100]);
 
     store.reopenCompletion(completion?.id ?? 'missing');
     store.undoReview('review-1');
+    store.applyServerSnapshot({ milestones: [], pendingMilestones: [] });
 
     expect(store.earnedAwards).toEqual([]);
     expect(store.prepareCurrentSessionCompletion()).toBeNull();
@@ -159,9 +173,7 @@ describe('StudyMilestoneStore', () => {
 
   it('keeps earned milestones scoped to the signed-in account', () => {
     const first = makeStore('user-1');
-    first.beginReviewSession(99);
-    first.recordReview(review('review-1'));
-    first.prepareCurrentSessionCompletion();
+    first.applyServerSnapshot({ milestones: [burned100], pendingMilestones: [] });
 
     expect(makeStore('user-2').earnedAwards).toEqual([]);
     expect(makeStore('user-1').earnedAwards.map(({ id }) => id)).toEqual(['burned100']);

@@ -32,6 +32,8 @@ const {
   featureFlagsLoading,
   masteryAnimationFinishesImmediately,
   reviewMutationError,
+  evaluateStudyMilestonesMock,
+  presentStudyMilestonesMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
@@ -71,6 +73,8 @@ const {
   featureFlagsLoading: { current: false },
   masteryAnimationFinishesImmediately: { current: true },
   reviewMutationError: { current: null as Error | null },
+  evaluateStudyMilestonesMock: vi.fn(),
+  presentStudyMilestonesMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
@@ -118,6 +122,11 @@ vi.mock('../../hooks/useStudy', () => ({
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   undoStudyReview: undoStudyReviewMock,
+}));
+
+vi.mock('../../lib/studyMilestoneApi', () => ({
+  evaluateStudyMilestones: evaluateStudyMilestonesMock,
+  presentStudyMilestones: presentStudyMilestonesMock,
 }));
 
 vi.mock('../../components/study/studyTimeZoneUtils', () => ({
@@ -224,6 +233,11 @@ class MockDeviceMotionEvent extends Event {
 
 describe('StudyPage', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
+    evaluateStudyMilestonesMock.mockReset();
+    evaluateStudyMilestonesMock.mockResolvedValue({ milestones: [], pendingMilestones: [] });
+    presentStudyMilestonesMock.mockReset();
+    presentStudyMilestonesMock.mockResolvedValue(undefined);
     cardActionMutateAsyncMock.mockReset();
     startStudyLessonMock.mockReset();
     startStudySessionMock.mockReset();
@@ -244,7 +258,6 @@ describe('StudyPage', () => {
     updateStudyCardMock.mockReset();
     deleteStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
-    vi.restoreAllMocks();
 
     prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
       ...baseCard,
@@ -2305,6 +2318,25 @@ describe('StudyPage', () => {
   });
 
   it('awards the Orbit milestone before wrap-up and moves it into recent milestones', async () => {
+    evaluateStudyMilestonesMock
+      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
+      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
+      .mockResolvedValueOnce({
+        milestones: [
+          {
+            id: 'burned100',
+            earnedAt: '2026-08-25T12:00:00.000Z',
+            presentedAt: null,
+          },
+        ],
+        pendingMilestones: [
+          {
+            id: 'burned100',
+            earnedAt: '2026-08-25T12:00:00.000Z',
+            presentedAt: null,
+          },
+        ],
+      });
     vi.spyOn(window, 'matchMedia').mockImplementation(
       (query) =>
         ({

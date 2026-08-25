@@ -19,6 +19,8 @@ const {
   deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
   warmAudioCacheMock,
+  evaluateStudyMilestonesMock,
+  presentStudyMilestonesMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   createStudyReviewRequestMock: vi.fn(),
@@ -31,6 +33,8 @@ const {
   deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   warmAudioCacheMock: vi.fn(),
+  evaluateStudyMilestonesMock: vi.fn(),
+  presentStudyMilestonesMock: vi.fn(),
 }));
 
 vi.mock('../useStudy', () => ({
@@ -66,6 +70,11 @@ vi.mock('../useStudy', () => ({
 
 vi.mock('../../lib/audioCache', () => ({
   warmAudioCache: warmAudioCacheMock,
+}));
+
+vi.mock('../../lib/studyMilestoneApi', () => ({
+  evaluateStudyMilestones: evaluateStudyMilestonesMock,
+  presentStudyMilestones: presentStudyMilestonesMock,
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
@@ -172,6 +181,10 @@ describe('useStudyReviewSession', () => {
     regenerateStudyAnswerAudioMock.mockReset();
     warmAudioCacheMock.mockReset();
     warmAudioCacheMock.mockResolvedValue(undefined);
+    evaluateStudyMilestonesMock.mockReset();
+    evaluateStudyMilestonesMock.mockResolvedValue({ milestones: [], pendingMilestones: [] });
+    presentStudyMilestonesMock.mockReset();
+    presentStudyMilestonesMock.mockResolvedValue(undefined);
     window.localStorage.clear();
 
     startStudySessionMock.mockResolvedValue({
@@ -270,6 +283,31 @@ describe('useStudyReviewSession', () => {
     Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
       configurable: true,
       value: vi.fn(),
+    });
+  });
+
+  it('shows a server-pending award even when this device has no saved session', async () => {
+    const award = {
+      id: 'burned100' as const,
+      earnedAt: '2026-08-25T21:00:00.000Z',
+      presentedAt: null,
+    };
+    evaluateStudyMilestonesMock.mockResolvedValue({
+      milestones: [award],
+      pendingMilestones: [award],
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.currentMilestoneAward).toEqual(award));
+
+    act(() => result.current.advanceMilestoneAward());
+
+    await waitFor(() => {
+      expect(presentStudyMilestonesMock).toHaveBeenCalledWith(['burned100']);
+      expect(result.current.focusMode).toBe(false);
     });
   });
 
@@ -700,6 +738,25 @@ describe('useStudyReviewSession', () => {
           code: 'review_out_of_order',
         })
       );
+    evaluateStudyMilestonesMock
+      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
+      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
+      .mockResolvedValueOnce({
+        milestones: [
+          {
+            id: 'burned100',
+            earnedAt: '2026-08-25T12:00:00.000Z',
+            presentedAt: null,
+          },
+        ],
+        pendingMilestones: [
+          {
+            id: 'burned100',
+            earnedAt: '2026-08-25T12:00:00.000Z',
+            presentedAt: null,
+          },
+        ],
+      });
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
