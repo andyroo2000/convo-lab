@@ -86,6 +86,7 @@ interface StudyCardActionPayload {
 }
 
 export type StudyLearningPathVariantStatus = 'locked' | 'available' | 'retired';
+export type StudyLearningPathUnlockRequirement = 'successful_retrieval' | 'guru' | 'master';
 
 export interface StudyLearningPathCard {
   id: string;
@@ -95,6 +96,7 @@ export interface StudyLearningPathCard {
   meaning: string;
   variantStage: number | null;
   variantStatus: StudyLearningPathVariantStatus | null;
+  unlockRequirement: StudyLearningPathUnlockRequirement | null;
 }
 
 export interface StudyLearningPathStage {
@@ -111,6 +113,7 @@ export interface StudyLearningPath {
 interface LinkStudyLearningPathSuccessorPayload {
   cardId: string;
   successorCardId: string;
+  unlockRequirement: StudyLearningPathUnlockRequirement;
 }
 
 export interface StudyReviewRequest {
@@ -186,6 +189,13 @@ function normalizeLearningPathCard(value: unknown): StudyLearningPathCard {
     rawStatus === 'locked' || rawStatus === 'available' || rawStatus === 'retired'
       ? rawStatus
       : null;
+  const rawUnlockRequirement = value.variantUnlockRequirement ?? value.variant_unlock_requirement;
+  const unlockRequirement =
+    rawUnlockRequirement === 'successful_retrieval' ||
+    rawUnlockRequirement === 'guru' ||
+    rawUnlockRequirement === 'master'
+      ? rawUnlockRequirement
+      : null;
   const displayText =
     stringValue(value, 'frontText', 'front_text') ||
     stringValue(prompt, 'clozeDisplayText', 'cloze_display_text') ||
@@ -208,6 +218,7 @@ function normalizeLearningPathCard(value: unknown): StudyLearningPathCard {
     meaning,
     variantStage: nullableNumberValue(value, 'variantStage', 'variant_stage'),
     variantStatus,
+    unlockRequirement,
   };
 }
 
@@ -692,7 +703,10 @@ export async function linkStudyLearningPathSuccessor(
       `/api/cards/${encodeURIComponent(payload.cardId)}/learning-path/successor`,
       {
         method: 'PUT',
-        body: JSON.stringify({ successor_card_id: payload.successorCardId }),
+        body: JSON.stringify({
+          successor_card_id: payload.successorCardId,
+          unlock_requirement: payload.unlockRequirement,
+        }),
       }
     )
   );

@@ -97,7 +97,7 @@ describe('StudyLearningPathEditor', () => {
     await userEvent.click(screen.getByRole('button', { name: /会社 company/ }));
 
     expect(
-      screen.getByText('After “会社を辞めました。” is learned, unlock “会社” as the next stage.')
+      screen.getByText('Unlock “会社” after “会社を辞めました。” reaches Guru.')
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Add next stage' }));
 
@@ -105,12 +105,11 @@ describe('StudyLearningPathEditor', () => {
       expect(studyMocks.mutateAsync).toHaveBeenCalledWith({
         cardId: currentCard.id,
         successorCardId: successorCard.id,
+        unlockRequirement: 'guru',
       });
     });
     expect(
-      screen.getByText(
-        'Next stage added. It will unlock after a successful review of the current stage.'
-      )
+      screen.getByText('Next stage added with the selected unlock requirement.')
     ).toBeInTheDocument();
   });
 
@@ -130,6 +129,7 @@ describe('StudyLearningPathEditor', () => {
               meaning: 'I left the company.',
               variantStage: 1,
               variantStatus: 'available',
+              unlockRequirement: null,
             },
           ],
         },
@@ -144,6 +144,7 @@ describe('StudyLearningPathEditor', () => {
               meaning: 'company',
               variantStage: 2,
               variantStatus: 'locked',
+              unlockRequirement: 'guru',
             },
           ],
         },
@@ -157,5 +158,27 @@ describe('StudyLearningPathEditor', () => {
     expect(
       screen.getByRole('link', { name: 'Edit “会社” to add the next stage.' })
     ).toHaveAttribute('href', '/app/study/browse?cardId=card-successor&noteId=note-successor');
+  });
+
+  it('defaults cloze successors to Master', async () => {
+    const clozeSuccessor = {
+      ...successorCard,
+      id: 'card-cloze-successor',
+      cardType: 'cloze' as const,
+    };
+    studyMocks.getStudyCards.mockResolvedValue({
+      items: [clozeSuccessor],
+      limit: 20,
+      nextCursor: null,
+    });
+    renderEditor();
+
+    await userEvent.type(screen.getByLabelText('Search for the next card'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Find card' }));
+    await userEvent.click(await screen.findByRole('button', { name: /会社 company/ }));
+
+    expect(screen.getByLabelText('Unlock next stage when current stage reaches')).toHaveValue(
+      'master'
+    );
   });
 });
