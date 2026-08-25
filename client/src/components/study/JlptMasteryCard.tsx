@@ -29,6 +29,8 @@ const MasteryMetric = ({
     metric.knownFromCards == null ? undefined : clamp(metric.knownFromCards, 0, total);
   const knownFromWaniKani =
     metric.knownFromWaniKani == null ? undefined : clamp(metric.knownFromWaniKani, 0, total);
+  const knownFromBoth =
+    metric.knownFromBoth == null ? undefined : clamp(metric.knownFromBoth, 0, total);
   const masteryPercent = clamp(metric.masteryPercent, 0, 100);
   const barColor = tone === 'navy' ? 'bg-navy' : 'bg-coral';
 
@@ -76,6 +78,14 @@ const MasteryMetric = ({
               {t('time.jlptMastery.wanikaniSourceLabel')}
             </dt>
             <dd className="font-mono font-black text-navy">{knownFromWaniKani}</dd>
+          </div>
+        ) : null}
+        {showSourceBreakdown && knownFromBoth !== undefined && knownFromBoth > 0 ? (
+          <div className="flex items-center justify-between gap-4 pl-3">
+            <dt className="font-semibold text-gray-500">
+              {t('time.jlptMastery.overlapSourceLabel')}
+            </dt>
+            <dd className="font-mono font-black text-navy">{knownFromBoth}</dd>
           </div>
         ) : null}
         <div className="flex items-center justify-between gap-4">

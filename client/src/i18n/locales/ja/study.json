@@ -467,6 +467,7 @@
       "knownLabel": "習得済み（Guru以上）",
       "cardsSourceLabel": "ConvoLab カードから",
       "wanikaniSourceLabel": "WaniKani から",
+      "overlapSourceLabel": "両方に含まれる項目",
       "matchedLabel": "カード内で一致",
       "count": "{{total}}項目中{{value}}項目",
       "progressLabel": "{{category}}の習得度",
