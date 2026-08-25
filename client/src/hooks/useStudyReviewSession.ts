@@ -43,6 +43,10 @@ import {
   type StudyUndoSnapshot,
 } from './studyReviewSessionUtils';
 import { createStudyReviewRequestGuard } from './studyReviewRequestGuard';
+import {
+  buildStudySessionWrapUp,
+  type StudySessionReviewRecord,
+} from '../components/study/studySessionWrapUpModel';
 
 const useStudyReviewSession = () => {
   const queryClient = useQueryClient();
@@ -74,6 +78,9 @@ const useStudyReviewSession = () => {
   const [reviewSubmitPending, setReviewSubmitPending] = useState(false);
   const [reviewRetryAvailable, setReviewRetryAvailable] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
+  const [sessionReviewRecords, setSessionReviewRecords] = useState<StudySessionReviewRecord[]>([]);
+  const [practiceCards, setPracticeCards] = useState<StudyCardSummary[] | null>(null);
+  const [practiceInitialCount, setPracticeInitialCount] = useState(0);
   const requestGuardRef = useRef(createStudyReviewRequestGuard());
   const sessionEpochRef = useRef(0);
   const sessionLoadRequestRef = useRef(0);
@@ -86,9 +93,25 @@ const useStudyReviewSession = () => {
     undoSnapshot: StudyUndoSnapshot;
   } | null>(null);
   const runBackgroundTask = useStudyBackgroundTask();
+  const cardStartedAtRef = useRef(Date.now());
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
-  const currentCard = cards[currentIndex] ?? null;
+  const practiceMode = practiceCards !== null;
+  const practiceComplete = practiceMode && practiceCards.length === 0;
+  const presentedCards = practiceCards ?? cards;
+  const currentCard = practiceMode ? (practiceCards[0] ?? null) : (cards[currentIndex] ?? null);
+  const sessionWrapUp = useMemo(
+    () => buildStudySessionWrapUp(sessionReviewRecords),
+    [sessionReviewRecords]
+  );
+  const reviewSessionComplete =
+    focusMode &&
+    sessionKind === 'reviews' &&
+    sessionReviewRecords.length > 0 &&
+    cards.length === 0 &&
+    (session?.overview.dueCount ?? 0) === 0 &&
+    (session?.overview.failedCount ?? 0) === 0 &&
+    !practiceMode;
   // Ref so handlers always read the live card even if a background session update
   // races with a click (stale-closure guard). Cast needed for @types/react 18.3.5.
   const currentCardRef = useRef<StudyCardSummary | null>(
@@ -122,7 +145,11 @@ const useStudyReviewSession = () => {
     return totals;
   }, [answeredCardIds, cards, session?.overview.failedCount]);
   let sessionProgress = 0;
-  if (sessionCardCountRef.current > 0) {
+  if (practiceMode && practiceInitialCount > 0) {
+    sessionProgress = practiceComplete
+      ? 1
+      : Math.max(0, (practiceInitialCount - practiceCards.length) / practiceInitialCount);
+  } else if (sessionCardCountRef.current > 0) {
     sessionProgress =
       cards.length === 0 ? 1 : Math.min(0.99, answeredCardIds.length / sessionCardCountRef.current);
   }
@@ -261,7 +288,7 @@ const useStudyReviewSession = () => {
       masteryAnimation !== null ||
       reviewSubmitPending ||
       (sessionKind === 'lessons' && lessonPhase !== 'quiz'),
-    cards,
+    cards: presentedCards,
     currentCard,
     ensureAnswerAudioPrepared,
     focusMode,
@@ -392,6 +419,9 @@ const useStudyReviewSession = () => {
     autoRefreshEmptySessionRef.current = false;
     answeredCardIdsRef.current = new Set();
     setAnsweredCardIds([]);
+    setSessionReviewRecords([]);
+    setPracticeCards(null);
+    setPracticeInitialCount(0);
     runBackgroundTask(() => queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }), {
       label: 'Study overview refresh',
     });
@@ -407,6 +437,20 @@ const useStudyReviewSession = () => {
         editing ||
         masteryAnimation !== null
       ) {
+        return;
+      }
+
+      if (practiceMode) {
+        stopAllAudio();
+        resetStudyAudioAutoplayForCard(currentCard.id);
+        setPracticeCards((current) => {
+          if (!current || current.length === 0) return current;
+          const [reviewedCard, ...remaining] = current;
+          return grade === 'again' ? [...remaining, reviewedCard] : remaining;
+        });
+        setRevealed(false);
+        setSessionError(null);
+        cardStartedAtRef.current = Date.now();
         return;
       }
 
@@ -435,8 +479,9 @@ const useStudyReviewSession = () => {
       ) {
         return;
       }
+      const durationMs = Math.max(0, Date.now() - cardStartedAtRef.current);
       const operation = pendingOperation ?? {
-        request: createStudyReviewRequest({ cardId: currentCard.id, grade }),
+        request: createStudyReviewRequest({ cardId: currentCard.id, grade, durationMs }),
         undoSnapshot: captureUndoSnapshot(),
       };
       pendingReviewOperationRef.current = operation;
@@ -501,6 +546,16 @@ const useStudyReviewSession = () => {
           );
         }
         syncOverview(reviewResult.overview);
+        setSessionReviewRecords((current) => [
+          ...current,
+          {
+            id: reviewResult.reviewLogId,
+            cardBefore: currentCard,
+            cardAfter: reviewResult.card,
+            grade,
+            durationMs: operation.request.durationMs ?? durationMs,
+          },
+        ]);
         setCurrentIndex((current) => {
           const nextLength = nextCards.length;
           if (nextLength === 0) return 0;
@@ -523,6 +578,7 @@ const useStudyReviewSession = () => {
           resetUndo();
           answeredCardIdsRef.current = new Set();
           setAnsweredCardIds([]);
+          setSessionReviewRecords([]);
           setCurrentIndex(0);
           setRevealed(false);
           setEditing(false);
@@ -572,6 +628,7 @@ const useStudyReviewSession = () => {
       syncOverview,
       undoPending,
       sessionKind,
+      practiceMode,
       loadSession,
       queryClient,
       resetUndo,
@@ -809,6 +866,9 @@ const useStudyReviewSession = () => {
 
       restoreUndoSnapshot(action.snapshot);
       syncOverview(undoResult.overview);
+      setSessionReviewRecords((current) =>
+        current.filter((record) => record.id !== action.reviewLogId)
+      );
     } catch (error) {
       if (sessionEpochRef.current !== expectedEpoch) return;
 
@@ -882,6 +942,9 @@ const useStudyReviewSession = () => {
       autoRefreshEmptySessionRef.current = false;
       answeredCardIdsRef.current = new Set();
       setAnsweredCardIds([]);
+      setSessionReviewRecords([]);
+      setPracticeCards(null);
+      setPracticeInitialCount(0);
       runBackgroundTask(() => requestMotionPermission(), {
         label: 'Study motion-permission request',
       });
@@ -907,6 +970,35 @@ const useStudyReviewSession = () => {
     setLessonPhase('quiz');
   }, []);
 
+  const startToughestPractice = useCallback(
+    (nextCards: StudyCardSummary[]) => {
+      if (nextCards.length === 0) return;
+      stopAllAudio();
+      resetStudyAudioAutoplay();
+      resetUndo();
+      setMasteryAnimation(null);
+      setPracticeCards([...nextCards]);
+      setPracticeInitialCount(nextCards.length);
+      setCurrentIndex(0);
+      setRevealed(false);
+      setEditing(false);
+      setShowSetDueControls(false);
+      setSessionError(null);
+      cardStartedAtRef.current = Date.now();
+    },
+    [resetStudyAudioAutoplay, resetUndo, stopAllAudio]
+  );
+
+  const exitPracticeMode = useCallback(() => {
+    stopAllAudio();
+    resetStudyAudioAutoplay();
+    setPracticeCards(null);
+    setPracticeInitialCount(0);
+    setCurrentIndex(0);
+    setRevealed(false);
+    setSessionError(null);
+  }, [resetStudyAudioAutoplay, stopAllAudio]);
+
   const loadNextLessonBatch = useCallback(async () => {
     answeredCardIdsRef.current = new Set();
     setAnsweredCardIds([]);
@@ -918,6 +1010,7 @@ const useStudyReviewSession = () => {
   useEffect(() => {
     if (
       !focusMode ||
+      practiceMode ||
       sessionLoading ||
       sessionError ||
       currentCard ||
@@ -963,6 +1056,7 @@ const useStudyReviewSession = () => {
     focusMode,
     getCachedOverview,
     loadSession,
+    practiceMode,
     reviewBusy,
     runBackgroundTask,
     session?.overview,
@@ -973,6 +1067,7 @@ const useStudyReviewSession = () => {
 
   useEffect(() => {
     stopAllAudio();
+    cardStartedAtRef.current = Date.now();
   }, [currentCard?.id, stopAllAudio]);
 
   useEffect(() => {
@@ -1000,7 +1095,7 @@ const useStudyReviewSession = () => {
   useStudyKeyboardShortcuts({
     cardActionPending: cardActionMutation.isPending,
     editing,
-    exitFocusMode,
+    exitFocusMode: practiceMode ? exitPracticeMode : exitFocusMode,
     focusMode,
     handleGrade,
     handleUndo,
@@ -1011,7 +1106,7 @@ const useStudyReviewSession = () => {
     reviewPending: reviewMutation.isPending,
     reviewSubmitPending,
     runBackgroundTask,
-    setEditing,
+    setEditing: practiceMode ? () => {} : setEditing,
     toggleAnswerAudio,
   });
 
@@ -1033,6 +1128,10 @@ const useStudyReviewSession = () => {
     reviewRetryAvailable,
     sessionCounts,
     sessionProgress,
+    sessionWrapUp,
+    reviewSessionComplete,
+    practiceMode,
+    practiceComplete,
     motionPermissionState,
     promptAudioRef,
     answerAudioRef,
@@ -1059,6 +1158,8 @@ const useStudyReviewSession = () => {
     enterFocusMode,
     beginLessonQuiz,
     loadNextLessonBatch,
+    startToughestPractice,
+    exitPracticeMode,
   };
 };
 

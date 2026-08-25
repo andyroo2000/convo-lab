@@ -28,6 +28,27 @@
     "revealHintDesktop": "クリックまたはスペースキーで表示",
     "revealHintMobile": "タップで表示"
   },
+  "wrapUp": {
+    "title": "おつかれさまでした",
+    "description": "今日の復習は完了です。",
+    "reviews": "レビュー",
+    "recall": "初回正答率",
+    "stabilized": "新たに定着",
+    "noneStabilized": "今回は1週間以上の定着度に到達したカードはありません。",
+    "toughest": "今回難しかったカード",
+    "practice": "{{count}}枚を練習",
+    "misses_one": "{{count}}回ミス",
+    "misses_other": "{{count}}回ミス",
+    "cardFallback": "学習カード",
+    "done": "完了"
+  },
+  "practice": {
+    "title": "練習のみ",
+    "description": "ここでの評価は、レビュー数・カードの予定・セッション結果に影響しません。",
+    "back": "まとめに戻る",
+    "completeTitle": "練習完了",
+    "completeDescription": "レビュー予定を変更せずにカードを練習しました。"
+  },
   "lesson": {
     "previewTitle": "このレッスンを予習",
     "previewDescription": "まずカードを確認します。クイズにはこのバッチだけが出題されます。",

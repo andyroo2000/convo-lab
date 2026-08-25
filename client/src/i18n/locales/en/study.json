@@ -28,6 +28,27 @@
     "revealHintDesktop": "Click or push space to reveal",
     "revealHintMobile": "Tap to reveal"
   },
+  "wrapUp": {
+    "title": "Nice work",
+    "description": "You’re caught up for today.",
+    "reviews": "Reviews",
+    "recall": "First-pass recall",
+    "stabilized": "Newly stabilized",
+    "noneStabilized": "No cards crossed into week-plus stability this time.",
+    "toughest": "Toughest this session",
+    "practice": "Practice {{count}}",
+    "misses_one": "{{count}} miss",
+    "misses_other": "{{count}} misses",
+    "cardFallback": "Study card",
+    "done": "Done"
+  },
+  "practice": {
+    "title": "Practice only",
+    "description": "Ratings here won’t change review counts, card schedules, or session results.",
+    "back": "Back to wrap-up",
+    "completeTitle": "Practice complete",
+    "completeDescription": "These cards were practiced without changing their review schedules."
+  },
   "lesson": {
     "previewTitle": "Preview this lesson",
     "previewDescription": "Get familiar with these cards first. The quiz will contain only this batch.",

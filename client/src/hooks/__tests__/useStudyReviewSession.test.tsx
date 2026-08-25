@@ -1680,4 +1680,36 @@ describe('useStudyReviewSession', () => {
       expect(result.current.sessionError).toBeNull();
     });
   });
+
+  it('runs toughest-card practice without submitting scheduler reviews', async () => {
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => {
+      result.current.startToughestPractice([baseCardOne, baseCardTwo]);
+      result.current.revealCurrentCard();
+    });
+
+    await act(async () => {
+      await result.current.handleGrade('again');
+    });
+    expect(result.current.currentCard?.id).toBe('card-2');
+
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(reviewMutateAsyncMock).not.toHaveBeenCalled();
+    expect(result.current.practiceComplete).toBe(true);
+    expect(result.current.sessionWrapUp.reviewsCompleted).toBe(0);
+  });
 });

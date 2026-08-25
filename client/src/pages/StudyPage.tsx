@@ -11,6 +11,7 @@ import { masteryReviewAnnouncementKind } from '../components/study/studyMastery'
 import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
+import StudySessionWrapUp from '../components/study/StudySessionWrapUp';
 import StudySetDueControls from '../components/study/StudySetDueControls';
 import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
@@ -171,12 +172,23 @@ const StudyPage = () => {
               <StudyReviewHeader
                 progress={reviewSession.sessionProgress}
                 actions={
-                  reviewSession.revealed && !reviewSession.editing
+                  reviewSession.revealed && !reviewSession.editing && !reviewSession.practiceMode
                     ? renderReviewActionButtons()
                     : null
                 }
-                onExit={reviewSession.exitFocusMode}
+                onExit={
+                  reviewSession.practiceMode
+                    ? reviewSession.exitPracticeMode
+                    : reviewSession.exitFocusMode
+                }
+                exitLabel={reviewSession.practiceMode ? t('practice.back') : undefined}
               />
+              {reviewSession.practiceMode ? (
+                <div className="mt-2 rounded-2xl border border-cyan/30 bg-cyan/10 px-4 py-3 text-sm text-gray-700">
+                  <p className="font-bold text-cyan-700">{t('practice.title')}</p>
+                  <p>{t('practice.description')}</p>
+                </div>
+              ) : null}
               {showQuizSurface ? (
                 <div className="mastery-feedback-lane" data-testid="mastery-feedback-lane">
                   {masteryAnimation ? (
@@ -362,10 +374,36 @@ const StudyPage = () => {
                 </p>
               ) : null}
 
+              {reviewSession.reviewSessionComplete && !masteryAnimation ? (
+                <StudySessionWrapUp
+                  summary={reviewSession.sessionWrapUp}
+                  onPractice={reviewSession.startToughestPractice}
+                  onDone={reviewSession.exitFocusMode}
+                />
+              ) : null}
+
+              {reviewSession.practiceComplete ? (
+                <div className="flex min-h-[60vh] flex-1 items-center justify-center">
+                  <div className="max-w-lg rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-200">
+                    <h2 className="text-3xl font-bold text-navy">{t('practice.completeTitle')}</h2>
+                    <p className="mt-3 text-gray-600">{t('practice.completeDescription')}</p>
+                    <button
+                      type="button"
+                      onClick={reviewSession.exitPracticeMode}
+                      className="mt-6 rounded-xl bg-navy px-6 py-3 font-bold text-white hover:bg-navy/90"
+                    >
+                      {t('practice.back')}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               {showQuizSurface &&
               !reviewSession.sessionLoading &&
               !reviewSession.sessionError &&
-              !displayedCard ? (
+              !displayedCard &&
+              !reviewSession.reviewSessionComplete &&
+              !reviewSession.practiceComplete ? (
                 <div className="flex min-h-[60vh] flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-600 sm:rounded-[2rem]">
                   {t('focus.empty')}
                 </div>
