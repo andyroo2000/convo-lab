@@ -15,7 +15,12 @@ test('integration train is manual/scheduled, exact-pinned, temporary, and never 
 
   assert.ok(workflow.on.workflow_dispatch !== undefined);
   assert.equal(workflow.on.schedule.length, 1);
-  assert.equal(workflow.permissions.contents, 'write');
+  assert.equal(workflow.permissions.contents, 'read');
+  assert.equal(workflow.jobs.prepare.permissions.contents, 'write');
+  assert.equal(workflow.jobs.cleanup.permissions.contents, 'write');
+  for (const job of ['fixture-bytes', 'provider-contracts', 'web-contracts', 'ios-contracts']) {
+    assert.equal(workflow.jobs[job].permissions, undefined);
+  }
   assert.match(source, /integration\/compatibility-\$\{\{ github\.run_id \}\}/u);
   assert.match(source, /gh api -X DELETE/u);
   assert.doesNotMatch(source, /gh pr merge|merge-pull-request|workflow_run/u);
@@ -30,6 +35,7 @@ test('integration train is manual/scheduled, exact-pinned, temporary, and never 
     );
   }
   assert.match(source, /verify-release-integration\.mjs/u);
+  assert.match(source, /read-release-integration-pins\.mjs/u);
   assert.match(source, /CompatibilityPayloadContractFixtureTest\.php/u);
   assert.match(source, /learningOsCompatibilityContracts\.test\.ts/u);
   assert.match(source, /only-testing:ConvoLabTests\/APICompatibilityGoldenFixtureTests/u);

@@ -6,7 +6,7 @@ on:
     - cron: '17 12 * * 1'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-compatibility-integration-train
@@ -19,6 +19,8 @@ jobs:
   prepare:
     name: Create short-lived integration branch
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       branch: ${{ steps.pins.outputs.branch }}
       provider_repository: ${{ steps.pins.outputs.provider_repository }}
@@ -39,27 +41,12 @@ jobs:
         env:
           INTEGRATION_BRANCH: integration/compatibility-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          node --input-type=module <<'NODE'
-          import { readFileSync, appendFileSync } from 'node:fs';
-          const pins = JSON.parse(readFileSync(process.env.PINS_FILE, 'utf8'));
-          const lines = [`branch=${process.env.INTEGRATION_BRANCH}`];
-          for (const name of ['provider', 'web', 'ios']) {
-            const component = pins.components?.[name];
-            if (!component || !/^[0-9a-f]{40}$/.test(component.sha)) {
-              throw new Error(`${name} must use a full immutable commit SHA`);
-            }
-            if (!component.fixtureDirectory || component.fixtureDirectory.startsWith('/')) {
-              throw new Error(`${name} must declare a repository-relative fixture directory`);
-            }
-            lines.push(
-              `${name}_repository=${component.repository}`,
-              `${name}_sha=${component.sha}`,
-              `${name}_fixture_directory=${component.fixtureDirectory}`
-            );
-          }
-          appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`);
-          NODE
+          node .github/scripts/read-release-integration-pins.mjs \
+            "$PINS_FILE" \
+            "$INTEGRATION_BRANCH" >> "$GITHUB_OUTPUT"
 
+      # Give each run an inspectable integration ref while every gate still checks out
+      # the immutable component SHAs directly.
       - name: Create integration branch at pinned web commit
         env:
           GH_TOKEN: ${{ github.token }}
@@ -184,6 +171,8 @@ jobs:
     if: always() && needs.prepare.result == 'success'
     needs: [prepare, fixture-bytes, provider-contracts, web-contracts, ios-contracts]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Delete exact integration branch
         env:
