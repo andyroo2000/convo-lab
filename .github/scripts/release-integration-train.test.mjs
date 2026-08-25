@@ -20,6 +20,11 @@ test('integration train is manual/scheduled, exact-pinned, temporary, and never 
   assert.equal(workflow.jobs.cleanup.permissions.contents, 'write');
   for (const job of ['fixture-bytes', 'provider-contracts', 'web-contracts', 'ios-contracts']) {
     assert.equal(workflow.jobs[job].permissions, undefined);
+    assert.doesNotMatch(
+      YAML.stringify(workflow.jobs[job]),
+      /actions\/cache|cache:\s/u,
+      `${job} must not expose a shared cache to exact-SHA component code`
+    );
   }
   assert.match(source, /integration\/compatibility-\$\{\{ github\.run_id \}\}/u);
   assert.match(source, /gh api -X DELETE/u);
