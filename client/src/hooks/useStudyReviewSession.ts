@@ -258,8 +258,8 @@ const useStudyReviewSession = () => {
         return;
       }
 
-      if (restoredCompletion.celebrationPresented && pendingAwards.length > 0) {
-        presentStudyMilestones(pendingAwards.map(({ id }) => id)).catch(() => {});
+      if (restoredCompletion.celebrationPresented && restoredCompletion.newAwards.length > 0) {
+        presentStudyMilestones(restoredCompletion.newAwards.map(({ id }) => id)).catch(() => {});
       }
       if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
 

@@ -240,6 +240,12 @@ export class StudyMilestoneStore {
     const session = this.state.activeSession;
     if (!session || session.id !== sessionId || !session.isReadyForPresentation) return;
 
+    if (!session.celebrationPresented) {
+      const unpresentedAwardIds = new Set(session.newAwardIds);
+      this.state.earnedAwards = this.state.earnedAwards.filter(
+        ({ id }) => !unpresentedAwardIds.has(id)
+      );
+    }
     session.newAwardIds = [];
     session.isReadyForPresentation = false;
     session.celebrationPresented = false;

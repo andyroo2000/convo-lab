@@ -186,11 +186,25 @@ describe('StudyMilestoneStore', () => {
     const completion = store.prepareCurrentSessionCompletion([burned100]);
 
     store.reopenCompletion(completion?.id ?? 'missing');
+    expect(store.earnedAwards).toEqual([]);
     store.undoReview('review-1');
     store.applyServerSnapshot({ milestones: [], pendingMilestones: [] });
 
     expect(store.earnedAwards).toEqual([]);
     expect(store.prepareCurrentSessionCompletion()).toBeNull();
+  });
+
+  it('keeps presented milestone history when reopening a completion', () => {
+    const store = makeStore();
+    store.beginReviewSession();
+    store.recordReview(review('review-1'));
+    store.applyServerSnapshot({ milestones: [burned100], pendingMilestones: [burned100] });
+    const completion = store.prepareCurrentSessionCompletion([burned100]);
+
+    store.markCelebrationPresented(completion?.id ?? 'missing');
+    store.reopenCompletion(completion?.id ?? 'missing');
+
+    expect(store.earnedAwards).toEqual([burned100]);
   });
 
   it('keeps earned milestones scoped to the signed-in account', () => {

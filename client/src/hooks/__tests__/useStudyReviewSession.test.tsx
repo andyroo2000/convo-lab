@@ -311,6 +311,54 @@ describe('useStudyReviewSession', () => {
     });
   });
 
+  it('acknowledges only awards committed to a recovered celebration', async () => {
+    const burned100 = {
+      id: 'burned100' as const,
+      earnedAt: '2026-08-25T21:00:00.000Z',
+      presentedAt: null,
+    };
+    const burned500 = {
+      id: 'burned500' as const,
+      earnedAt: '2026-08-25T22:00:00.000Z',
+      presentedAt: null,
+    };
+    window.localStorage.setItem(
+      'convo-lab.study-milestones-v1.study-review-hook-test-user',
+      JSON.stringify({
+        earnedAwards: [burned100],
+        activeSession: {
+          id: 'presented-session',
+          records: [
+            {
+              id: 'prior-review',
+              cardBefore: baseCardOne,
+              cardAfter: baseCardOne,
+              grade: 'good',
+              durationMs: 1_000,
+            },
+          ],
+          newAwardIds: ['burned100'],
+          isReadyForPresentation: true,
+          celebrationPresented: true,
+        },
+      })
+    );
+    evaluateStudyMilestonesMock.mockResolvedValue({
+      milestones: [burned100, burned500],
+      pendingMilestones: [burned100, burned500],
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.milestoneCompletion?.newAwards).toEqual([burned100]);
+      expect(presentStudyMilestonesMock).toHaveBeenCalledWith(['burned100']);
+    });
+    expect(presentStudyMilestonesMock).not.toHaveBeenCalledWith(['burned100', 'burned500']);
+  });
+
   it('does not replace a newly started review with a slow interrupted-session restore', async () => {
     const award = {
       id: 'burned100' as const,
