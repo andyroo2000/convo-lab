@@ -311,6 +311,62 @@ describe('useStudyReviewSession', () => {
     });
   });
 
+  it('does not replace a newly started review with a slow interrupted-session restore', async () => {
+    const award = {
+      id: 'burned100' as const,
+      earnedAt: '2026-08-25T21:00:00.000Z',
+      presentedAt: null,
+    };
+    window.localStorage.setItem(
+      'convo-lab.study-milestones-v1.study-review-hook-test-user',
+      JSON.stringify({
+        earnedAwards: [],
+        activeSession: {
+          id: 'interrupted-session',
+          records: [
+            {
+              id: 'prior-review',
+              cardBefore: baseCardOne,
+              cardAfter: baseCardOne,
+              grade: 'good',
+              durationMs: 1_000,
+            },
+          ],
+          newAwardIds: [],
+          isReadyForPresentation: false,
+          celebrationPresented: false,
+        },
+      })
+    );
+    const deferredRestore = createDeferred<{
+      milestones: [typeof award];
+      pendingMilestones: [typeof award];
+    }>();
+    evaluateStudyMilestonesMock
+      .mockReturnValueOnce(deferredRestore.promise)
+      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(evaluateStudyMilestonesMock).toHaveBeenCalledTimes(1));
+
+    let enterPromise: Promise<void> | undefined;
+    act(() => {
+      enterPromise = result.current.enterFocusMode();
+    });
+    expect(result.current.focusMode).toBe(true);
+
+    await act(async () => {
+      deferredRestore.resolve({ milestones: [award], pendingMilestones: [award] });
+      await enterPromise;
+    });
+
+    expect(result.current.currentCard?.id).toBe('card-1');
+    expect(result.current.milestoneCompletion).toBeNull();
+    expect(result.current.currentMilestoneAward).toBeNull();
+  });
+
   it('requeues an incorrect lesson card without submitting or introducing it', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),

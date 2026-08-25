@@ -232,12 +232,13 @@ const useStudyReviewSession = () => {
 
     setEarnedMilestoneAwards(milestoneStore.earnedAwards);
     let cancelled = false;
+    const expectedEpoch = sessionEpochRef.current;
 
     (async () => {
       let pendingAwards: StudyMilestoneAward[] = [];
       try {
         const snapshot = await syncMilestones();
-        if (cancelled) return;
+        if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
         pendingAwards = snapshot.pendingMilestones;
       } catch {
         // Cached history and a formally completed local wrap-up remain available offline.
@@ -260,7 +261,7 @@ const useStudyReviewSession = () => {
       if (restoredCompletion.celebrationPresented && pendingAwards.length > 0) {
         presentStudyMilestones(pendingAwards.map(({ id }) => id)).catch(() => {});
       }
-      if (cancelled) return;
+      if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
 
       sessionEpochRef.current += 1;
       canSurfaceAsyncSessionErrorRef.current = false;
