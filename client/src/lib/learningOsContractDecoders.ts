@@ -50,6 +50,14 @@ function number(value: unknown, path: string): number {
   return value;
 }
 
+function nonNegativeInteger(value: unknown, path: string): number {
+  const decoded = number(value, path);
+  if (!Number.isInteger(decoded) || decoded < 0) {
+    throw new Error(`${path} must be a nonnegative integer.`);
+  }
+  return decoded;
+}
+
 function boolean(value: unknown, path: string): boolean {
   if (typeof value !== 'boolean') throw new Error(`${path} must be a boolean.`);
   return value;
@@ -63,6 +71,14 @@ function nullableString(value: unknown, path: string): string | null {
 function optionalNullableNumber(value: unknown, path: string): number | null | undefined {
   if (value === undefined || value === null) return value;
   return number(value, path);
+}
+
+function optionalNullableNonNegativeInteger(
+  value: unknown,
+  path: string
+): number | null | undefined {
+  if (value === undefined || value === null) return value;
+  return nonNegativeInteger(value, path);
 }
 
 function optionalNullableArray<T>(
@@ -93,7 +109,7 @@ function numericCategories(value: unknown, path: string) {
 
 export function decodeKnownKanjiResponse(value: unknown): KnownKanjiResponse {
   const response = record(value, 'known kanji');
-  number(response.version, 'known kanji.version');
+  nonNegativeInteger(response.version, 'known kanji.version');
   array(response.kanji, 'known kanji.kanji').forEach((kanji, index) =>
     string(kanji, `known kanji.kanji[${index}]`)
   );
@@ -104,7 +120,7 @@ export function decodeKnownKanjiResponse(value: unknown): KnownKanjiResponse {
   const wanikani = record(response.wanikani, 'known kanji.wanikani');
   boolean(wanikani.connected, 'known kanji.wanikani.connected');
   nullableString(wanikani.lastSyncedAt, 'known kanji.wanikani.lastSyncedAt');
-  optionalNullableNumber(wanikani.reviewCount, 'known kanji.wanikani.reviewCount');
+  optionalNullableNonNegativeInteger(wanikani.reviewCount, 'known kanji.wanikani.reviewCount');
   optionalNullableString(
     wanikani.reviewCountUpdatedAt,
     'known kanji.wanikani.reviewCountUpdatedAt'
@@ -113,15 +129,15 @@ export function decodeKnownKanjiResponse(value: unknown): KnownKanjiResponse {
   if (wanikani.transferBridge !== undefined) {
     const transferBridge = record(wanikani.transferBridge, 'known kanji.wanikani.transferBridge');
     boolean(transferBridge.enabled, 'known kanji.wanikani.transferBridge.enabled');
-    number(
+    nonNegativeInteger(
       transferBridge.importedVocabularyCount,
       'known kanji.wanikani.transferBridge.importedVocabularyCount'
     );
-    number(
+    nonNegativeInteger(
       transferBridge.pendingVocabularyCount,
       'known kanji.wanikani.transferBridge.pendingVocabularyCount'
     );
-    number(
+    nonNegativeInteger(
       transferBridge.failedVocabularyCount,
       'known kanji.wanikani.transferBridge.failedVocabularyCount'
     );

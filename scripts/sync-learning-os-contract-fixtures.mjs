@@ -5,7 +5,7 @@ import { basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PROVIDER_REPOSITORY = 'andyroo2000/learning-os';
-const PROVIDER_COMMIT = 'd6aad389ad55afa0803e65c37eb38db3844a21b7';
+const PROVIDER_COMMIT = '097efbdb8ff0b244c840bb8f14e8d980cfefccdc';
 const PROVIDER_DIRECTORY = 'tests/Fixtures/Compatibility';
 const destination = fileURLToPath(
   new URL('../client/src/test/fixtures/learning-os/Compatibility/', import.meta.url)

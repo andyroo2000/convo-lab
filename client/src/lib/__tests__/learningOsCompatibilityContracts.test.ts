@@ -9,19 +9,23 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import type { DailyAudioPractice } from '../../types';
 import type { StudyTimeAnalytics } from '../../types/studyActivity';
 import type { GoogleCalendarConnectionStatus } from '../../hooks/useGoogleCalendarConnection';
+import type { KnownKanjiResponse } from '../../hooks/useKnownKanji';
 import type { WeeklyStudyRecap } from '../../hooks/useWeeklyStudyRecap';
 import {
   dailyAudioCompatibilityFixture,
   googleCalendarCompatibilityFixture,
   learningOsCompatibilityFixtures,
+  knownKanjiCompatibilityFixture,
   studyAnalyticsCompatibilityFixture,
   studyCardCompatibilityFixture,
   weeklyRecapCompatibilityFixture,
+  wanikaniTransferBridgeUpdateCompatibilityFixture,
 } from '../../test/fixtures/learningOsCompatibility';
 import {
   decodeDailyAudioPractice,
   decodeDailyAudioPracticeStatus,
   decodeGoogleCalendarConnectionStatus,
+  decodeKnownKanjiResponse,
   decodeStudyCardSummary,
   decodeStudyTimeAnalytics,
   decodeWeeklyStudyRecap,
@@ -104,6 +108,50 @@ describe('vendored Learning OS compatibility fixtures', () => {
       accountEmail: 'andrew@example.com',
       sync: { status: 'failed', errorCode: 'provider_unavailable' },
     });
+  });
+
+  it('decodes legacy and v2 known-kanji snapshots without synthesizing bridge state', () => {
+    const snapshots = knownKanjiCompatibilityFixture.cases.map(({ payload }) =>
+      decodeKnownKanjiResponse(payload)
+    );
+    expectTypeOf(snapshots).toEqualTypeOf<KnownKanjiResponse[]>();
+    expect(snapshots[0].wanikani).toEqual({
+      connected: true,
+      lastSyncedAt: '2026-08-25T10:15:30.000000Z',
+    });
+    expect(snapshots[0].wanikani.transferBridge).toBeUndefined();
+    expect(snapshots[1].wanikani).toMatchObject({
+      reviewCount: 17,
+      transferBridge: {
+        enabled: true,
+        importedVocabularyCount: 1,
+        pendingVocabularyCount: 1,
+        failedVocabularyCount: 1,
+        lastImportedAt: '2026-08-25T11:00:00.000000Z',
+      },
+    });
+  });
+
+  it('decodes the canonical transfer-bridge update response as a full v2 snapshot', () => {
+    const update = wanikaniTransferBridgeUpdateCompatibilityFixture.cases[0];
+    expect(update.request).toEqual({ enabled: true });
+    expect(decodeKnownKanjiResponse(update.response).wanikani.transferBridge).toEqual({
+      enabled: true,
+      importedVocabularyCount: 0,
+      pendingVocabularyCount: 0,
+      failedVocabularyCount: 0,
+      lastImportedAt: null,
+    });
+  });
+
+  it('rejects invalid known-kanji transfer counts before they reach context consumers', () => {
+    const payload = structuredClone(knownKanjiCompatibilityFixture.cases[1].payload) as {
+      wanikani: { transferBridge: { pendingVocabularyCount: number } };
+    };
+    payload.wanikani.transferBridge.pendingVocabularyCount = -1;
+    expect(() => decodeKnownKanjiResponse(payload)).toThrow(
+      'known kanji.wanikani.transferBridge.pendingVocabularyCount must be a nonnegative integer'
+    );
   });
 
   it('decodes all analytics ranges and preserves fractional cross-midnight allocation', () => {
