@@ -28,7 +28,9 @@ const ActiveStudyTimer = () => {
   const { t } = useTranslation(['study']);
   const { active, elapsedMs } = useStudyActivityStatus();
   const { stop } = useStudyActivityActions();
-  if (!active) return null;
+  // Card creation is timed automatically, but the editor should remain focused
+  // and free of session controls while the user is composing a card.
+  if (!active || active.activity === 'card_creation') return null;
 
   return (
     <div className="active-study-timer fixed z-50 flex items-center gap-3 px-3 py-2">
