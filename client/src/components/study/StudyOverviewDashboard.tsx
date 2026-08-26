@@ -21,7 +21,7 @@ interface StudyOverviewDashboardProps {
 }
 
 const STUDY_ACTION_CLASS =
-  'study-console-action inline-flex min-h-11 items-center justify-center px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+  'study-console-action inline-flex min-h-11 items-center justify-center px-4 py-2 text-center font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 const StudyOverviewDashboard = ({
   overview,
@@ -66,8 +66,8 @@ const StudyOverviewDashboard = ({
   }
 
   return (
-    <div className="study-console poster-classroom space-y-7">
-      <section aria-labelledby="study-today-title" className="poster-classroom-stage">
+    <div className="study-console ios-study-home space-y-7">
+      <section aria-labelledby="study-today-title" className="ios-study-section">
         <p id="study-today-title" className="study-console-kicker">
           {t('overview.today')}
         </p>
@@ -207,9 +207,7 @@ const StudyOverviewDashboard = ({
       </nav>
 
       {readiness ? (
-        <section
-          className={`study-console-readiness retro-paper-panel border-l-4 ${readinessBorderClass}`}
-        >
+        <section className={`study-console-readiness border-l-4 ${readinessBorderClass}`}>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
             {t('readiness.title')}
           </p>

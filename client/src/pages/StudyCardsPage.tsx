@@ -451,7 +451,7 @@ const StudyCardsPage = () => {
 
   if (!enabled) {
     return (
-      <section className="card retro-paper-panel max-w-3xl">
+      <section className="card ios-surface max-w-3xl">
         <h1 className="mb-4 text-3xl font-bold text-navy">{t('cards.title')}</h1>
         <p className="text-gray-600">{t('disabled')}</p>
       </section>
@@ -459,8 +459,8 @@ const StudyCardsPage = () => {
   }
 
   return (
-    <div className="poster-classroom-cards mx-auto max-w-4xl space-y-5">
-      <section className="card retro-paper-panel poster-card-sheet poster-card-header">
+    <div className="ios-cards-page mx-auto max-w-4xl space-y-5">
+      <section className="card ios-surface ios-cards-header">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-3xl font-bold text-navy">{t('cards.title')}</h1>
@@ -470,16 +470,16 @@ const StudyCardsPage = () => {
             to="/app/study/create"
             aria-label={t('overview.create')}
             title={t('overview.create')}
-            className="poster-plus grid size-11 shrink-0 place-items-center border-2 border-navy bg-navy text-white transition hover:bg-cyan hover:text-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan"
+            className="ios-plus grid size-11 shrink-0 place-items-center bg-navy text-white transition hover:bg-cyan hover:text-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan"
           >
             <Plus className="size-6" strokeWidth={2.5} aria-hidden="true" />
           </Link>
         </div>
       </section>
 
-      <section className="card retro-paper-panel poster-card-sheet poster-card-tray space-y-4">
+      <section className="card ios-surface ios-cards-tray space-y-4">
         <div
-          className="poster-index-tabs grid grid-cols-2 rounded-xl bg-navy/10 p-1"
+          className="ios-segmented-control grid grid-cols-2 rounded-xl bg-navy/10 p-1"
           role="tablist"
           aria-label={t('cards.collections')}
         >
