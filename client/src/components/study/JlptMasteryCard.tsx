@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BookOpenCheck, RefreshCw } from 'lucide-react';
+import { BookOpenCheck, ChevronDown, RefreshCw } from 'lucide-react';
 import type { StudyJlptLevelMastery, StudyJlptMasteryMetric } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
 
@@ -198,8 +198,8 @@ const JlptMasteryCard = () => {
 
   return (
     <section className="card app-surface overflow-hidden" aria-labelledby="jlpt-mastery-title">
-      <div className="border-b border-gray-200 p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-start justify-between gap-4 border-gray-200 p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-navy group-open:border-b sm:p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               {t('time.jlptMastery.eyebrow')}
@@ -211,11 +211,17 @@ const JlptMasteryCard = () => {
               {t('time.jlptMastery.description')}
             </p>
           </div>
-          <BookOpenCheck className="h-9 w-9 shrink-0 text-coral" aria-hidden="true" />
-        </div>
-      </div>
+          <div className="flex shrink-0 items-center gap-2 text-coral">
+            <BookOpenCheck className="h-9 w-9" aria-hidden="true" />
+            <ChevronDown
+              className="h-5 w-5 transition-transform group-open:rotate-180"
+              aria-hidden="true"
+            />
+          </div>
+        </summary>
 
-      {body}
+        {body}
+      </details>
     </section>
   );
 };
