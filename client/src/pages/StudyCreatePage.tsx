@@ -794,9 +794,7 @@ const StudyCreatePage = () => {
         />
       ) : (
         <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
-          <div className="order-2 min-w-0 xl:order-1">{draftListPanel}</div>
-
-          <div className="order-1 min-w-0 xl:order-2">
+          <div className="min-w-0 xl:order-2">
             <StudyManualDraftComposerPanel
               audioError={
                 regenerateManualAudio.error instanceof Error
@@ -874,6 +872,7 @@ const StudyCreatePage = () => {
               values={values}
             />
           </div>
+          <div className="min-w-0 xl:order-1">{draftListPanel}</div>
         </section>
       )}
     </div>
