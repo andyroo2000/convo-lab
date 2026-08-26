@@ -38,12 +38,12 @@ const StudyTimerSection = ({ timer }: { timer: StudyTimeSessionManager['timer'] 
   const { t } = useTranslation(['study']);
 
   return (
-    <div className="retro-paper-panel space-y-4 p-6">
-      <h2 className="retro-headline text-3xl text-navy">{t('time.timer.title')}</h2>
+    <div className="card app-surface space-y-4 p-4 sm:p-6">
+      <h2 className="text-xl font-bold text-navy">{t('time.timer.title')}</h2>
       <select
         value={timer.activity}
         onChange={(event) => timer.setActivity(event.target.value as StudyActivityKind)}
-        className="input w-full"
+        className="app-form-control w-full"
         aria-label={t('time.timer.activityLabel')}
       >
         {STUDY_ACTIVITY_OPTIONS.map((item) => (
@@ -55,12 +55,12 @@ const StudyTimerSection = ({ timer }: { timer: StudyTimeSessionManager['timer'] 
       <input
         value={timer.name}
         onChange={(event) => timer.setName(event.target.value)}
-        className="input w-full"
+        className="app-form-control w-full"
         placeholder={t('time.timer.namePlaceholder')}
         aria-label={t('time.timer.nameLabel')}
       />
       {timer.active ? (
-        <button type="button" onClick={timer.stop} className="btn-secondary w-full">
+        <button type="button" onClick={timer.stop} className="app-button-secondary w-full">
           {t('time.timer.stop', {
             name: timer.active.name || timer.active.activity.replace(/_/g, ' '),
           })}
@@ -69,7 +69,7 @@ const StudyTimerSection = ({ timer }: { timer: StudyTimeSessionManager['timer'] 
         <button
           type="button"
           onClick={timer.start}
-          className="btn-primary flex w-full items-center justify-center gap-2"
+          className="app-button-primary flex w-full items-center justify-center gap-2"
         >
           <Play className="h-4 w-4 fill-current" /> {t('time.timer.start')}
         </button>
@@ -82,13 +82,13 @@ const StudyCalendarSection = ({ calendar }: { calendar: StudyTimeSessionManager[
   const { t } = useTranslation(['study']);
 
   return (
-    <div className="retro-paper-panel space-y-4 p-6">
-      <h2 className="retro-headline text-3xl text-navy">{t('time.calendar.title')}</h2>
+    <div className="card app-surface space-y-4 p-4 sm:p-6">
+      <h2 className="text-xl font-bold text-navy">{t('time.calendar.title')}</h2>
       <input
         type="datetime-local"
         value={calendar.entryDate}
         onChange={(event) => calendar.setEntryDate(event.target.value)}
-        className="input w-full"
+        className="app-form-control w-full"
         aria-label={t('time.calendar.dateLabel')}
       />
       <div className="flex gap-3">
@@ -98,7 +98,7 @@ const StudyCalendarSection = ({ calendar }: { calendar: StudyTimeSessionManager[
           max={1440}
           value={calendar.minutes}
           onChange={(event) => calendar.setMinutes(event.target.valueAsNumber)}
-          className="input min-w-0 flex-1"
+          className="app-form-control min-w-0 flex-1"
           aria-label={t('time.calendar.durationLabel')}
         />
         <span className="self-center text-gray-600">{t('time.calendar.minutes')}</span>
@@ -108,7 +108,7 @@ const StudyCalendarSection = ({ calendar }: { calendar: StudyTimeSessionManager[
           type="button"
           onClick={calendar.addEntry}
           disabled={!calendar.isValid}
-          className="btn-primary"
+          className="app-button-primary"
         >
           {t('time.calendar.log')}
         </button>
@@ -123,7 +123,7 @@ const StudyCalendarSection = ({ calendar }: { calendar: StudyTimeSessionManager[
             )}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-outline flex items-center justify-center gap-2"
+            className="app-button-secondary flex items-center justify-center gap-2"
           >
             <CalendarPlus className="h-4 w-4" /> {t('time.calendar.open')}
           </a>
@@ -131,7 +131,7 @@ const StudyCalendarSection = ({ calendar }: { calendar: StudyTimeSessionManager[
           <button
             type="button"
             disabled
-            className="btn-outline flex items-center justify-center gap-2"
+            className="app-button-secondary flex items-center justify-center gap-2"
           >
             <CalendarPlus className="h-4 w-4" /> {t('time.calendar.open')}
           </button>
@@ -149,11 +149,13 @@ const StudyManualSessionsSection = ({
   const { t } = useTranslation(['study']);
 
   return (
-    <section className="retro-paper-panel p-6">
+    <section className="card app-surface p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="retro-caps text-coral">{t('time.manual.eyebrow')}</p>
-          <h2 className="retro-headline text-3xl text-navy">{t('time.manual.title')}</h2>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {t('time.manual.eyebrow')}
+          </p>
+          <h2 className="text-xl font-bold text-navy">{t('time.manual.title')}</h2>
         </div>
         <Clock3 className="h-7 w-7 text-coral" aria-hidden="true" />
       </div>
@@ -212,7 +214,7 @@ const StudyManualSessionsSection = ({
       {history.hasNextPage ? (
         <button
           type="button"
-          className="btn-outline mt-4 w-full"
+          className="app-button-secondary mt-4 w-full"
           onClick={() => history.loadMore()}
           disabled={history.isFetchingNextPage}
         >
@@ -294,15 +296,15 @@ const StudyTimeEditDialog = ({ edit }: { edit: StudyTimeSessionManager['edit'] }
     >
       <div
         ref={dialogRef}
-        className="retro-paper-panel w-full max-w-lg space-y-4 bg-cream p-6 shadow-2xl"
+        className="app-surface w-full max-w-lg space-y-4 bg-white p-6 shadow-2xl"
       >
-        <h2 id="edit-study-time-title" className="retro-headline text-3xl text-navy">
+        <h2 id="edit-study-time-title" className="text-2xl font-bold text-navy">
           {t('time.edit.title')}
         </h2>
         <select
           value={edit.activity}
           onChange={(event) => edit.setActivity(event.target.value as StudyActivityKind)}
-          className="input w-full"
+          className="app-form-control w-full"
           aria-label={t('time.edit.activityLabel')}
         >
           {STUDY_ACTIVITY_OPTIONS.map((item) => (
@@ -314,14 +316,14 @@ const StudyTimeEditDialog = ({ edit }: { edit: StudyTimeSessionManager['edit'] }
         <input
           value={edit.name}
           onChange={(event) => edit.setName(event.target.value)}
-          className="input w-full"
+          className="app-form-control w-full"
           aria-label={t('time.edit.nameLabel')}
         />
         <input
           type="datetime-local"
           value={edit.date}
           onChange={(event) => edit.setDate(event.target.value)}
-          className="input w-full"
+          className="app-form-control w-full"
           aria-label={t('time.edit.startLabel')}
         />
         <input
@@ -330,7 +332,7 @@ const StudyTimeEditDialog = ({ edit }: { edit: StudyTimeSessionManager['edit'] }
           max={1440}
           value={edit.minutes}
           onChange={(event) => edit.setMinutes(event.target.valueAsNumber)}
-          className="input w-full"
+          className="app-form-control w-full"
           aria-label={t('time.edit.durationLabel')}
         />
         {edit.isError ? (
@@ -339,14 +341,14 @@ const StudyTimeEditDialog = ({ edit }: { edit: StudyTimeSessionManager['edit'] }
           </p>
         ) : null}
         <div className="grid grid-cols-2 gap-3">
-          <button type="button" onClick={edit.cancel} className="btn-outline">
+          <button type="button" onClick={edit.cancel} className="app-button-secondary">
             {t('time.edit.cancel')}
           </button>
           <button
             type="button"
             onClick={edit.save}
             disabled={edit.isPending || !edit.isValid}
-            className="btn-primary"
+            className="app-button-primary"
           >
             {t('time.edit.save')}
           </button>

@@ -294,10 +294,7 @@ const StudyTimeAnalyticsSection = () => {
   const selectedPeriodLabel = analytics ? periodLabel(analytics, locale, analyticsTimeZone) : '';
 
   return (
-    <section
-      className="retro-paper-panel p-4 sm:p-6"
-      aria-labelledby="study-time-analytics-heading"
-    >
+    <section className="card app-surface p-4 sm:p-6" aria-labelledby="study-time-analytics-heading">
       <h2 id="study-time-analytics-heading" className="sr-only">
         {t('time.analytics.sectionTitle')}
       </h2>
@@ -343,7 +340,7 @@ const StudyTimeAnalyticsSection = () => {
               </>
             ) : null}
             <fieldset
-              className="grid min-w-0 grid-cols-5 rounded-xl border-2 border-navy/10 bg-white/70 p-1"
+              className="grid min-w-0 grid-cols-5 rounded-lg border border-gray-200 bg-gray-50 p-1"
               aria-label={t('time.analytics.timeSpan')}
             >
               {RANGES.map((item) => (

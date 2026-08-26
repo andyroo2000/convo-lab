@@ -1,4 +1,4 @@
-import { CalendarRange, RefreshCw, Sparkles } from 'lucide-react';
+import { CalendarRange, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import STUDY_TIME_CATEGORIES from '../../data/studyTimeCategories';
@@ -22,7 +22,7 @@ const WeeklyStudyRecapCard = () => {
 
   if (recap.isLoading) {
     return (
-      <section className="retro-paper-panel p-6" aria-labelledby="weekly-recap-title">
+      <section className="card app-surface p-6" aria-labelledby="weekly-recap-title">
         <h2 id="weekly-recap-title" className="sr-only">
           {t('time.weeklyRecap.title')}
         </h2>
@@ -36,11 +36,11 @@ const WeeklyStudyRecapCard = () => {
 
   if (recap.isError || !recap.data) {
     return (
-      <section className="retro-paper-panel p-6" aria-labelledby="weekly-recap-title">
+      <section className="card app-surface p-6" aria-labelledby="weekly-recap-title">
         <p id="weekly-recap-title" role="alert" className="text-red-700">
           {t('time.weeklyRecap.error')}
         </p>
-        <button type="button" className="btn-outline mt-3" onClick={() => recap.refetch()}>
+        <button type="button" className="app-button-secondary mt-3" onClick={() => recap.refetch()}>
           {t('time.weeklyRecap.retry')}
         </button>
       </section>
@@ -91,12 +91,14 @@ const WeeklyStudyRecapCard = () => {
       : t('time.weeklyRecap.comparison.notAvailable');
 
   return (
-    <section className="retro-paper-panel overflow-hidden" aria-labelledby="weekly-recap-title">
-      <div className="border-b border-navy/10 bg-gradient-to-r from-violet-50 via-white to-cyan-50 p-6">
+    <section className="card app-surface overflow-hidden" aria-labelledby="weekly-recap-title">
+      <div className="border-b border-gray-200 p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="retro-caps text-violet-700">{t('time.weeklyRecap.eyebrow')}</p>
-            <h2 id="weekly-recap-title" className="retro-headline text-3xl text-navy">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t('time.weeklyRecap.eyebrow')}
+            </p>
+            <h2 id="weekly-recap-title" className="text-xl font-bold text-navy sm:text-2xl">
               {t('time.weeklyRecap.title')}
             </h2>
             <p className="mt-1 text-sm font-bold text-gray-500">{period}</p>
@@ -106,16 +108,17 @@ const WeeklyStudyRecapCard = () => {
       </div>
 
       {noActivity ? (
-        <div className="p-8 text-center">
-          <Sparkles className="mx-auto h-9 w-9 text-coral" aria-hidden="true" />
-          <h3 className="mt-3 text-xl font-black text-navy">{t('time.weeklyRecap.emptyTitle')}</h3>
+        <div className="p-6 text-center sm:p-8">
+          <h3 className="text-lg font-semibold text-navy">{t('time.weeklyRecap.emptyTitle')}</h3>
           <p className="mx-auto mt-2 max-w-xl text-gray-600">{t('time.weeklyRecap.emptyBody')}</p>
         </div>
       ) : (
         <div className="space-y-6 p-6">
           <div>
-            <p className="retro-caps text-coral">{t('time.weeklyRecap.yourWeek')}</p>
-            <h3 className="mt-1 text-2xl font-black text-navy">{headline}</h3>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t('time.weeklyRecap.yourWeek')}
+            </p>
+            <h3 className="mt-1 text-xl font-bold text-navy">{headline}</h3>
           </div>
 
           <dl className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -126,15 +129,17 @@ const WeeklyStudyRecapCard = () => {
               [t('time.weeklyRecap.metrics.reviews'), week.reviewCount],
               [t('time.weeklyRecap.metrics.newCards'), week.newCardsIntroduced],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-navy/10 bg-white/70 p-4">
-                <dt className="retro-caps text-gray-500">{label}</dt>
+              <div key={label} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {label}
+                </dt>
                 <dd className="mt-1 text-2xl font-black text-navy">{value}</dd>
               </div>
             ))}
           </dl>
 
           <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
-            <div className="rounded-xl border border-navy/10 bg-white/70 p-5">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
               <h3 className="font-black text-navy">{t('time.weeklyRecap.categoryMix')}</h3>
               <div
                 className="mt-4 flex h-4 overflow-hidden rounded-full bg-gray-100"
@@ -171,7 +176,9 @@ const WeeklyStudyRecapCard = () => {
             </div>
 
             <div className="rounded-xl bg-navy p-5 text-cream">
-              <p className="retro-caps text-cyan-200">{t('time.weeklyRecap.bestDay')}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">
+                {t('time.weeklyRecap.bestDay')}
+              </p>
               <p className="mt-2 text-2xl font-black">
                 {week.bestDay
                   ? new Date(`${week.bestDay.date}T12:00:00`).toLocaleDateString(locale, {
@@ -189,7 +196,7 @@ const WeeklyStudyRecapCard = () => {
             </div>
           </div>
 
-          <div className="rounded-xl border border-navy/10 bg-cream/70 p-5">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
             <h3 className="font-black text-navy">{t('time.weeklyRecap.comparison.title')}</h3>
             <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-5">
               {[
@@ -220,7 +227,9 @@ const WeeklyStudyRecapCard = () => {
                 ],
               ].map(([label, change, previous]) => (
                 <div key={label}>
-                  <dt className="retro-caps text-gray-500">{label}</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    {label}
+                  </dt>
                   <dd className="mt-1 font-black text-navy">{change}</dd>
                   <dd className="text-xs text-gray-500">
                     {t('time.weeklyRecap.comparison.previous', { value: previous })}

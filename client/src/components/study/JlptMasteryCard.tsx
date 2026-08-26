@@ -37,7 +37,7 @@ const MasteryMetric = ({
   const barColor = tone === 'navy' ? 'bg-navy' : 'bg-coral';
 
   return (
-    <article className="rounded-2xl border border-navy/10 bg-white/75 p-5 shadow-sm">
+    <article className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-4">
         <h4 className="text-lg font-black text-navy">{label}</h4>
         <p className="font-mono text-3xl font-black text-navy">{masteryPercent}%</p>
@@ -112,12 +112,14 @@ const LevelBand = ({ level, mastery }: LevelBandProps) => {
 
   return (
     <section
-      className="rounded-3xl border border-navy/10 bg-navy/[0.035] p-4 sm:p-5"
+      className="rounded-lg border border-gray-200 bg-gray-50/70 p-4 sm:p-5"
       aria-labelledby={`jlpt-${level.toLowerCase()}-title`}
     >
       <div className="mb-4 flex items-end justify-between gap-4 border-b border-navy/10 pb-3">
         <div>
-          <p className="retro-caps text-coral">{t('time.jlptMastery.levelEyebrow')}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {t('time.jlptMastery.levelEyebrow')}
+          </p>
           <h3
             id={`jlpt-${level.toLowerCase()}-title`}
             className="font-mono text-2xl font-black text-navy"
@@ -169,7 +171,7 @@ const JlptMasteryCard = () => {
         <p className="font-bold text-gray-700">{t('time.jlptMastery.error')}</p>
         <button
           type="button"
-          className="mt-4 min-h-11 rounded-xl border-2 border-navy bg-navy px-5 py-2 font-black text-cream transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+          className="app-button-primary mt-4"
           onClick={() => overviewQuery.refetch()}
         >
           {t('time.jlptMastery.retry')}
@@ -195,12 +197,14 @@ const JlptMasteryCard = () => {
   }
 
   return (
-    <section className="retro-paper-panel overflow-hidden" aria-labelledby="jlpt-mastery-title">
-      <div className="border-b border-navy/10 bg-gradient-to-r from-cyan-50 via-white to-orange-50 p-6">
+    <section className="card app-surface overflow-hidden" aria-labelledby="jlpt-mastery-title">
+      <div className="border-b border-gray-200 p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="retro-caps text-coral">{t('time.jlptMastery.eyebrow')}</p>
-            <h2 id="jlpt-mastery-title" className="retro-headline text-3xl text-navy">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t('time.jlptMastery.eyebrow')}
+            </p>
+            <h2 id="jlpt-mastery-title" className="text-xl font-bold text-navy sm:text-2xl">
               {t('time.jlptMastery.title')}
             </h2>
             <p className="mt-1 max-w-2xl text-sm font-semibold text-gray-500">
