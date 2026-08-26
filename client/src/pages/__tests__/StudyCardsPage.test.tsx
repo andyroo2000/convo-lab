@@ -310,6 +310,10 @@ describe('StudyCardsPage', () => {
     renderPage();
 
     expect(screen.getByRole('heading', { name: 'Cards' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Create Card' })).toHaveAttribute(
+      'href',
+      '/app/study/create'
+    );
     expect(screen.getByRole('tab', { name: 'Queue' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('会社')).toBeInTheDocument();
     expect(screen.getByText('3 queued')).toBeInTheDocument();

@@ -463,18 +463,10 @@ describe('StudyPage', () => {
     expect(screen.queryByText('Failed')).not.toBeInTheDocument();
     expect(screen.queryByText('New')).not.toBeInTheDocument();
     expect(screen.queryByText('Learning')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Browse' })).toHaveAttribute(
-      'href',
-      '/app/study/browse'
-    );
-    expect(screen.getByRole('link', { name: 'Import' })).toHaveAttribute(
-      'href',
-      '/app/study/import'
-    );
-    expect(screen.getByRole('link', { name: 'Create Card' })).toHaveAttribute(
-      'href',
-      '/app/study/create'
-    );
+    expect(screen.queryByRole('link', { name: 'Browse' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Import' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Create Card' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute('href', '/app/study/cards');
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/app/study/settings'
@@ -503,7 +495,7 @@ describe('StudyPage', () => {
 
     renderStudyPage();
 
-    const emptyMessage = 'Import your `日本語` deck or create a card to start studying here.';
+    const emptyMessage = 'Open Cards to create your first card and start studying here.';
     const beginButton = screen.getByRole('button', { name: 'Reviews' });
     const emptyState = screen.getByText(emptyMessage);
     expect(beginButton).toBeDisabled();
@@ -843,7 +835,7 @@ describe('StudyPage', () => {
     expect(beginButton).toHaveAccessibleDescription('0 reviews All caught up');
     expect(screen.getByText('Loading overview…')).toBeInTheDocument();
     expect(
-      screen.queryByText('Import your `日本語` deck or create a card to start studying here.')
+      screen.queryByText('Open Cards to create your first card and start studying here.')
     ).not.toBeInTheDocument();
   });
 
