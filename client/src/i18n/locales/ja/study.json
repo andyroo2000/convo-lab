@@ -102,7 +102,11 @@
   },
   "reviewHeader": {
     "exit": "セッションを終了",
-    "progress": "レビューセッションの進捗"
+    "progress": "レビューセッションの進捗",
+    "failed": "失敗",
+    "queued": "待機中",
+    "new": "新規",
+    "counts": "失敗 {{failed}}、待機中 {{queued}}、新規 {{new}}"
   },
   "gradeButtons": {
     "again": "もう一度",

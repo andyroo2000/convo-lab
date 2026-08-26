@@ -52,7 +52,7 @@ const StudySessionWrapUp = ({
     <div className="min-h-0 flex-1 overflow-y-auto py-4" data-testid="study-session-wrap-up">
       <div className="mx-auto flex max-w-xl flex-col gap-3 pb-6">
         <div className="text-center">
-          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-cyan text-white shadow-sm">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-navy text-white shadow-sm">
             <Check className="h-8 w-8" aria-hidden="true" />
           </span>
           <h2 className="mt-3 text-3xl font-bold text-navy">{t('wrapUp.title')}</h2>
@@ -62,13 +62,13 @@ const StudySessionWrapUp = ({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-gray-200">
+          <div className="app-surface p-4 text-center">
             <p className="text-3xl font-bold tabular-nums text-navy">{summary.reviewsCompleted}</p>
             <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
               {t('wrapUp.reviews')}
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-gray-200">
+          <div className="app-surface p-4 text-center">
             <p className="text-3xl font-bold tabular-nums text-navy">{recall}</p>
             <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
               {t('wrapUp.recall')}
@@ -76,7 +76,7 @@ const StudySessionWrapUp = ({
           </div>
         </div>
 
-        <section className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+        <section className="app-surface flex items-center gap-3 p-4">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-600 text-white">
             <TrendingUp className="h-5 w-5" aria-hidden="true" />
           </span>
@@ -98,13 +98,13 @@ const StudySessionWrapUp = ({
         </section>
 
         {summary.toughestCards.length > 0 ? (
-          <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+          <section className="app-surface p-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-bold text-gray-900">{t('wrapUp.toughest')}</h3>
               <button
                 type="button"
                 onClick={() => onPractice(summary.toughestCards.map(({ card }) => card))}
-                className="shrink-0 rounded-xl bg-navy px-4 py-2 text-sm font-bold text-white hover:bg-navy/90"
+                className="app-button-primary shrink-0"
               >
                 {t('wrapUp.practice', { count: summary.toughestCards.length })}
               </button>
@@ -139,11 +139,7 @@ const StudySessionWrapUp = ({
 
         <StudyRecentMilestones awards={awards} />
 
-        <button
-          type="button"
-          onClick={onDone}
-          className="mt-1 w-full rounded-xl bg-navy px-5 py-3 font-bold text-white hover:bg-navy/90"
-        >
+        <button type="button" onClick={onDone} className="app-button-primary mt-1 w-full">
           {t('wrapUp.done')}
         </button>
       </div>
