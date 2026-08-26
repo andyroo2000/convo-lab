@@ -10,7 +10,7 @@ const FieldValue = ({ field }: { field: StudyBrowserField }) => {
   const audioUrl = toAssetUrl(field.audio?.url);
 
   return (
-    <div className="space-y-3 rounded-xl border border-gray-200 bg-white/80 p-4">
+    <div className="space-y-3 rounded-xl border border-navy/10 bg-white/70 p-4">
       {field.textValue ? (
         <p className="whitespace-pre-wrap break-words text-gray-900">{field.textValue}</p>
       ) : null}
@@ -49,7 +49,7 @@ const StudyBrowseFieldSections = ({ detail }: StudyBrowseFieldSectionsProps) => 
 
   return (
     <>
-      <section className="card retro-paper-panel">
+      <section className="card app-surface p-4 sm:p-6">
         <details open>
           <summary className="cursor-pointer text-lg font-semibold text-navy">
             {t('browse.importedFields')}
@@ -59,7 +59,7 @@ const StudyBrowseFieldSections = ({ detail }: StudyBrowseFieldSectionsProps) => 
       </section>
 
       {detail.canonicalFields.length ? (
-        <section className="card retro-paper-panel">
+        <section className="card app-surface p-4 sm:p-6">
           <details>
             <summary className="cursor-pointer text-lg font-semibold text-navy">
               {t('browse.canonicalFields')}

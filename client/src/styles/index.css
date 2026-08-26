@@ -518,6 +518,27 @@
     opacity: 0.52;
   }
 
+  .app-form-control {
+    min-height: 2.75rem;
+    padding: 0.65rem 0.8rem;
+    color: #374151;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid rgba(17, 51, 92, 0.16);
+    border-radius: 0.75rem;
+    box-shadow: none;
+  }
+
+  .app-form-control:focus {
+    border-color: var(--retro-cyan-deep);
+    outline: 3px solid rgba(26, 178, 209, 0.16);
+    outline-offset: 0;
+  }
+
+  .app-browse-page {
+    max-width: 76rem;
+    margin-inline: auto;
+  }
+
   .ios-create-page {
     max-width: 72rem;
     margin-inline: auto;

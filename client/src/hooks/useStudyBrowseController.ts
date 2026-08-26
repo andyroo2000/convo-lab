@@ -115,7 +115,7 @@ export default function useStudyBrowseController(enabled: boolean) {
       return;
     }
 
-    if (!selectedNoteId || !rows.some((row) => row.noteId === selectedNoteId)) {
+    if (selectedNoteId && !rows.some((row) => row.noteId === selectedNoteId)) {
       setSelectedNoteId(rows[0].noteId);
     }
   }, [browserQuery.data, rows, selectedNoteId]);

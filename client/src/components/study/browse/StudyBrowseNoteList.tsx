@@ -47,7 +47,7 @@ const StudyBrowseNoteList = ({ controller }: StudyBrowseNoteListProps) => {
               type="button"
               disabled={!browserData?.nextCursor || isBrowserLoading}
               onClick={loadMore}
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy disabled:cursor-not-allowed disabled:opacity-50"
+              className="app-button-secondary"
             >
               {isBrowserLoading && query.cursor ? t('browse.loadingMore') : t('browse.loadMore')}
             </button>
@@ -68,23 +68,23 @@ const StudyBrowseNoteList = ({ controller }: StudyBrowseNoteListProps) => {
 
       {rows.length ? (
         <>
-          <div className="space-y-3 p-4 md:hidden">
+          <div className="divide-y divide-navy/10 md:hidden">
             {rows.map((row) => (
               <button
                 key={row.noteId}
                 type="button"
                 data-testid="study-browser-note-item"
-                className={`block w-full rounded-2xl border px-4 py-4 text-left ${
+                className={`block w-full border-l-2 px-4 py-4 text-left transition ${
                   row.noteId === selectedNoteId
-                    ? 'border-navy bg-blue-50'
-                    : 'border-gray-200 bg-white hover:bg-cream/50'
+                    ? 'border-l-navy bg-cyan/5'
+                    : 'border-l-transparent bg-white/60 hover:bg-cream/60'
                 }`}
                 onClick={() => selectNote(row.noteId)}
               >
                 <p className="break-words text-base font-semibold text-gray-900">
                   {row.displayText}
                 </p>
-                <p className="mt-2 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-500">
                   {row.noteTypeName ?? t('browse.unknown')} ·{' '}
                   {t('browse.cardsLabel', { count: row.cardCount })} ·{' '}
                   {t('browse.reviewsLabel', { count: row.reviewCount })}
@@ -94,7 +94,7 @@ const StudyBrowseNoteList = ({ controller }: StudyBrowseNoteListProps) => {
           </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-left text-sm">
-              <thead className="sticky top-0 z-[1] bg-cream/95 text-gray-600">
+              <thead className="sticky top-0 z-[1] bg-white/95 text-gray-600 backdrop-blur">
                 <tr>
                   <th className="px-4 py-3 font-medium">{t('browse.sortField')}</th>
                   <th className="px-4 py-3 font-medium">{t('browse.noteType')}</th>
@@ -106,8 +106,8 @@ const StudyBrowseNoteList = ({ controller }: StudyBrowseNoteListProps) => {
                 {rows.map((row) => (
                   <tr
                     key={row.noteId}
-                    className={`cursor-pointer border-t border-gray-200 ${
-                      row.noteId === selectedNoteId ? 'bg-blue-100/70' : 'hover:bg-cream/50'
+                    className={`cursor-pointer border-t border-navy/10 ${
+                      row.noteId === selectedNoteId ? 'bg-cyan/10' : 'hover:bg-cream/60'
                     }`}
                     onClick={() => selectNote(row.noteId)}
                   >

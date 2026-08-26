@@ -235,11 +235,7 @@ const StudyCardEditor = ({
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          disabled={isBusy}
-          className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <button type="submit" disabled={isBusy} className="app-button-primary">
           {isSaving ? t('editor.saving') : t('editor.save')}
         </button>
         {onRegenerateAudio ? (
@@ -260,26 +256,16 @@ const StudyCardEditor = ({
               }
             }}
             disabled={isBusy}
-            className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="app-button-secondary"
           >
             {isRegeneratingAudio ? t('editor.regeneratingAudio') : t('editor.regenerateAudio')}
           </button>
         ) : null}
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isBusy}
-          className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <button type="button" onClick={onCancel} disabled={isBusy} className="app-button-secondary">
           {t('editor.cancel')}
         </button>
         {onDelete ? (
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={isBusy}
-            className="rounded-full border border-red-300 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <button type="button" onClick={onDelete} disabled={isBusy} className="app-button-danger">
             {isDeleting ? t('editor.deleting') : t('editor.delete')}
           </button>
         ) : null}
