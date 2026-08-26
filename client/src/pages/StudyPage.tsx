@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -28,6 +28,7 @@ import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 const StudyPage = () => {
   const { t } = useTranslation('study');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
@@ -38,6 +39,8 @@ const StudyPage = () => {
   const runBackgroundTask = useStudyBackgroundTask();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [lessonPreviewIndex, setLessonPreviewIndex] = useState(0);
+  const startedLessonCohortRef = useRef<string | null>(null);
+  const lessonCohortId = searchParams.get('lessonCohortId');
   const startReviewTimer = useCallback(
     () =>
       startActivity({
@@ -75,6 +78,19 @@ const StudyPage = () => {
       Math.min(current, Math.max(reviewSession.cards.length - 1, 0))
     );
   }, [reviewSession.cards.length]);
+
+  useEffect(() => {
+    if (!lessonCohortId || startedLessonCohortRef.current === lessonCohortId) return;
+
+    startedLessonCohortRef.current = lessonCohortId;
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete('lessonCohortId');
+    setSearchParams(nextSearchParams, { replace: true });
+    setLessonPreviewIndex(0);
+    runBackgroundTask(() => reviewSession.enterFocusMode('lessons', { lessonCohortId }), {
+      label: 'Study lesson follow-up start',
+    });
+  }, [lessonCohortId, reviewSession, runBackgroundTask, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (

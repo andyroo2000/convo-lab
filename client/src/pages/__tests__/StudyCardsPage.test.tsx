@@ -12,6 +12,7 @@ const {
   queueFetchNextPage,
   cardsFetchNextPage,
   reorderMock,
+  createLessonFollowupMock,
   dndContextProps,
   observerCallbacks,
   queuePages,
@@ -19,6 +20,7 @@ const {
   queueFetchNextPage: vi.fn(),
   cardsFetchNextPage: vi.fn(),
   reorderMock: vi.fn(),
+  createLessonFollowupMock: vi.fn(),
   dndContextProps: { current: null as null | { onDragEnd?: (event: DragEndEvent) => void } },
   observerCallbacks: [] as IntersectionObserverCallback[],
   queuePages: { current: [] as Array<Record<string, unknown>> },
@@ -71,6 +73,7 @@ vi.mock('../../hooks/useStudyBackgroundTask', () => ({
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
+  createStudyIntroductionCohortId: () => '01K00000000000000000000000',
   useStudyNewCardQueueInfinite: () => ({
     data: {
       pages: queuePages.current,
@@ -222,6 +225,10 @@ vi.mock('../../hooks/useStudy', () => ({
     fetchNextPage: cardsFetchNextPage,
   }),
   useReorderStudyNewCardQueue: () => ({ mutateAsync: reorderMock, isPending: false }),
+  useCreateStudyLessonFollowupCohort: () => ({
+    mutateAsync: createLessonFollowupMock,
+    isPending: false,
+  }),
 }));
 
 const renderPage = () =>
@@ -238,6 +245,10 @@ describe('StudyCardsPage', () => {
     queueFetchNextPage.mockReset();
     cardsFetchNextPage.mockReset();
     reorderMock.mockReset().mockResolvedValue({});
+    createLessonFollowupMock.mockReset().mockResolvedValue({
+      id: '01k00000000000000000000000',
+    });
+    window.history.replaceState({}, '', '/app/study/cards');
     observerCallbacks.length = 0;
     queuePages.current = [
       {
@@ -391,5 +402,31 @@ describe('StudyCardsPage', () => {
     const rows = screen.getAllByTestId('study-new-queue-row');
     expect(within(rows[0]).getByText('会社')).toBeInTheDocument();
     expect(within(rows[1]).getByText('学校')).toBeInTheDocument();
+  });
+
+  it('creates a prioritized lesson follow-up and routes directly into its lesson', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Make lesson follow-up' }));
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Select 学校 for lesson follow-up' })
+    );
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Select 会社 for lesson follow-up' })
+    );
+    await userEvent.type(screen.getByLabelText('Lesson label (optional)'), 'iTalki · August 26');
+    await userEvent.click(screen.getByRole('button', { name: 'Study 2 selected cards now' }));
+
+    await waitFor(() =>
+      expect(createLessonFollowupMock).toHaveBeenCalledWith({
+        cohortId: '01K00000000000000000000000',
+        cardIds: ['card-1', 'card-2'],
+        label: 'iTalki · August 26',
+      })
+    );
+    expect(window.location.pathname).toBe('/app/study');
+    expect(new URLSearchParams(window.location.search).get('lessonCohortId')).toBe(
+      '01k00000000000000000000000'
+    );
   });
 });

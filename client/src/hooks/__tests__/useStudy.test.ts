@@ -8,6 +8,7 @@ import {
   createCardFromStudyManualCardDraft,
   createStudyCard,
   createStudyCardId,
+  createStudyLessonFollowupCohort,
   createStudyImportUploadSession,
   createStudyManualCardDraft,
   createStudyReviewRequest,
@@ -37,6 +38,7 @@ import {
   resolveStudyCardPitchAccent,
   retryStudyManualCardDraft,
   startStudyLesson,
+  startStudyIntroductionCohortLesson,
   startStudySession,
   submitStudyReview,
   undoStudyReview,
@@ -201,6 +203,40 @@ describe('useStudy request helpers', () => {
     expectJsonMutation(1);
     expectJsonMutation(2);
     expectJsonMutation(3);
+  });
+
+  it('creates and starts an explicit lesson-follow-up cohort', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    } as Response);
+
+    await createStudyLessonFollowupCohort({
+      cohortId: '01K00000000000000000000000',
+      cardIds: ['01K00000000000000000000001'],
+      label: 'iTalki · August 26',
+    });
+    await startStudyIntroductionCohortLesson('01k00000000000000000000000');
+
+    expect(vi.mocked(global.fetch)).toHaveBeenNthCalledWith(
+      1,
+      `${STUDY_API_BASE}/introduction-cohorts/lesson-followup`,
+      expect.objectContaining({
+        body: JSON.stringify({
+          cohortId: '01K00000000000000000000000',
+          cardIds: ['01K00000000000000000000001'],
+          label: 'iTalki · August 26',
+        }),
+      })
+    );
+    expect(vi.mocked(global.fetch)).toHaveBeenNthCalledWith(
+      2,
+      `${STUDY_API_BASE}/introduction-cohorts/01k00000000000000000000000/lessons/start`,
+      expect.any(Object)
+    );
+    expectJsonMutation(0);
+    expectJsonMutation(1);
   });
 
   it('sends device timezone and current overview with review operations', async () => {

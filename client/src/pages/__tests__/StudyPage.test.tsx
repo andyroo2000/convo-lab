@@ -17,6 +17,7 @@ async function chooseAnswerAudioVoice(name: RegExp | string) {
 const {
   cardActionMutateAsyncMock,
   startStudyLessonMock,
+  startStudyIntroductionCohortLessonMock,
   startStudySessionMock,
   createStudyReviewRequestMock,
   prepareStudyAnswerAudioMock,
@@ -37,6 +38,7 @@ const {
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
+  startStudyIntroductionCohortLessonMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   createStudyReviewRequestMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
@@ -118,6 +120,7 @@ vi.mock('../../hooks/useStudy', () => ({
     error: null,
   }),
   startStudyLesson: startStudyLessonMock,
+  startStudyIntroductionCohortLesson: startStudyIntroductionCohortLessonMock,
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
@@ -240,6 +243,7 @@ describe('StudyPage', () => {
     presentStudyMilestonesMock.mockResolvedValue(undefined);
     cardActionMutateAsyncMock.mockReset();
     startStudyLessonMock.mockReset();
+    startStudyIntroductionCohortLessonMock.mockReset();
     startStudySessionMock.mockReset();
     createStudyReviewRequestMock.mockReset();
     createStudyReviewRequestMock.mockImplementation(
@@ -258,6 +262,7 @@ describe('StudyPage', () => {
     updateStudyCardMock.mockReset();
     deleteStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
+    window.history.replaceState({}, '', '/app/study');
 
     prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
       ...baseCard,
@@ -2400,5 +2405,23 @@ describe('StudyPage', () => {
       'href',
       '/app/study/milestones'
     );
+  });
+
+  it('opens a requested lesson-follow-up cohort directly in lesson preview', async () => {
+    startStudyIntroductionCohortLessonMock.mockResolvedValue({
+      overview: studyOverviewData.current,
+      cards: [{ ...baseCard, state: { ...baseCard.state, queueState: 'new' } }],
+    });
+    window.history.replaceState({}, '', '/app/study?lessonCohortId=01k00000000000000000000000');
+
+    renderStudyPage();
+
+    await waitFor(() =>
+      expect(startStudyIntroductionCohortLessonMock).toHaveBeenCalledWith(
+        '01k00000000000000000000000'
+      )
+    );
+    expect(await screen.findByText('Preview this lesson')).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.search).has('lessonCohortId')).toBe(false);
   });
 });

@@ -15,6 +15,7 @@ import {
   type StudySessionResponse,
   type StudyReviewRequest,
   startStudyLesson,
+  startStudyIntroductionCohortLesson,
   startStudySession,
   undoStudyReview,
   useRegenerateStudyAnswerAudio,
@@ -100,6 +101,7 @@ const useStudyReviewSession = () => {
   const requestGuardRef = useRef(createStudyReviewRequestGuard());
   const sessionEpochRef = useRef(0);
   const sessionLoadRequestRef = useRef(0);
+  const activeLessonCohortIdRef = useRef<string | null>(null);
   const sessionCardCountRef = useRef(0);
   const canSurfaceAsyncSessionErrorRef = useRef(false);
   const answeredCardIdsRef = useRef<Set<string>>(new Set());
@@ -430,7 +432,7 @@ const useStudyReviewSession = () => {
   const loadSession = useCallback(
     async (
       kind: 'reviews' | 'lessons' = sessionKind,
-      options: { allowEmptySessionRefresh?: boolean } = {},
+      options: { allowEmptySessionRefresh?: boolean; lessonCohortId?: string } = {},
       expectedEpoch = sessionEpochRef.current
     ) => {
       const requestId = sessionLoadRequestRef.current + 1;
@@ -442,8 +444,14 @@ const useStudyReviewSession = () => {
       setSessionError(null);
 
       try {
-        const nextSession =
-          kind === 'lessons' ? await startStudyLesson() : await startStudySession();
+        let nextSession: StudySessionResponse;
+        if (kind === 'lessons' && options.lessonCohortId) {
+          nextSession = await startStudyIntroductionCohortLesson(options.lessonCohortId);
+        } else if (kind === 'lessons') {
+          nextSession = await startStudyLesson();
+        } else {
+          nextSession = await startStudySession();
+        }
         if (!isCurrentRequest()) return null;
 
         autoRefreshEmptySessionRef.current =
@@ -553,6 +561,7 @@ const useStudyReviewSession = () => {
     setEditing(false);
     setShowSetDueControls(false);
     setUndoPending(false);
+    activeLessonCohortIdRef.current = null;
     requestGuardRef.current.reset();
     setReviewSubmitPending(false);
     pendingReviewOperationRef.current = null;
@@ -1114,7 +1123,7 @@ const useStudyReviewSession = () => {
   }, [answerAudioRef, editing, revealed, runBackgroundTask]);
 
   const enterFocusMode = useCallback(
-    async (kind: 'reviews' | 'lessons' = 'reviews') => {
+    async (kind: 'reviews' | 'lessons' = 'reviews', options: { lessonCohortId?: string } = {}) => {
       const expectedEpoch = sessionEpochRef.current + 1;
       sessionEpochRef.current = expectedEpoch;
       requestGuardRef.current.reset();
@@ -1127,6 +1136,8 @@ const useStudyReviewSession = () => {
       canSurfaceAsyncSessionErrorRef.current = true;
       setFocusMode(true);
       setSessionKind(kind);
+      activeLessonCohortIdRef.current =
+        kind === 'lessons' ? (options.lessonCohortId ?? null) : null;
       setLessonPhase(kind === 'lessons' ? 'preview' : 'quiz');
       setMasteryAnimation(null);
       setCurrentIndex(0);
@@ -1157,7 +1168,7 @@ const useStudyReviewSession = () => {
             // Starting reviews remains available offline with cached milestone history.
           }
         }
-        const nextSession = await loadSession(kind, {}, expectedEpoch);
+        const nextSession = await loadSession(kind, options, expectedEpoch);
         if (kind === 'reviews' && nextSession) {
           milestoneStore?.beginReviewSession();
           setEarnedMilestoneAwards(milestoneStore?.earnedAwards ?? []);
@@ -1278,7 +1289,9 @@ const useStudyReviewSession = () => {
     setAnsweredCardIds([]);
     setCurrentIndex(0);
     setRevealed(false);
-    await loadSession('lessons');
+    await loadSession('lessons', {
+      lessonCohortId: activeLessonCohortIdRef.current ?? undefined,
+    });
   }, [loadSession]);
 
   useEffect(() => {
