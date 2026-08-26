@@ -16,8 +16,8 @@ const StudyTimePage = () => {
       </header>
 
       <StudyTimeAnalyticsSection />
-      <JlptMasteryCard />
       <WeeklyStudyRecapCard />
+      <JlptMasteryCard />
       <StudyTimeSessionSections />
     </div>
   );

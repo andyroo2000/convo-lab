@@ -41,7 +41,7 @@ vi.mock('../../components/study/GoogleCalendarConnectionCard', () => ({
 }));
 
 vi.mock('../../components/study/WeeklyStudyRecapCard', () => ({
-  default: () => null,
+  default: () => <div data-testid="weekly-study-recap-card" />,
 }));
 
 vi.mock('../../components/study/JlptMasteryCard', () => ({
@@ -297,7 +297,13 @@ describe('StudyTimePage', () => {
     expect(
       screen.queryByRole('heading', { name: 'Study rhythm overview' })
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('jlpt-mastery-card')).toBeInTheDocument();
+    const weeklyRecap = screen.getByTestId('weekly-study-recap-card');
+    const jlptMastery = screen.getByTestId('jlpt-mastery-card');
+    const manualEntries = screen.getByRole('heading', { name: 'Manual entries' });
+    expect(weeklyRecap.compareDocumentPosition(jlptMastery)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(jlptMastery.compareDocumentPosition(manualEntries)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Log entry' }));
 
     expect(logCompletedMock).toHaveBeenCalledWith(
