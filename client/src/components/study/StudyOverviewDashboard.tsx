@@ -195,7 +195,7 @@ const StudyOverviewDashboard = ({
         aria-label={t('overview.studyTools')}
         className="study-console-tools flex flex-wrap gap-2"
       >
-        <Link to="/app/study/cards" className={STUDY_ACTION_CLASS}>
+        <Link to="/app/study/cards" className={`${STUDY_ACTION_CLASS} hidden sm:inline-flex`}>
           {t('overview.cards')}
         </Link>
         <Link to="/app/study/browse" className={STUDY_ACTION_CLASS}>
@@ -207,10 +207,10 @@ const StudyOverviewDashboard = ({
         <Link to="/app/study/create" className={STUDY_ACTION_CLASS}>
           {t('overview.create')}
         </Link>
-        <Link to="/app/study/daily-audio" className={STUDY_ACTION_CLASS}>
+        <Link to="/app/study/daily-audio" className={`${STUDY_ACTION_CLASS} hidden sm:inline-flex`}>
           {t('overview.dailyAudio')}
         </Link>
-        <Link to="/app/study/settings" className={STUDY_ACTION_CLASS}>
+        <Link to="/app/study/settings" className={`${STUDY_ACTION_CLASS} hidden sm:inline-flex`}>
           {t('overview.settings')}
         </Link>
       </nav>

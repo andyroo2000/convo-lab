@@ -319,6 +319,15 @@
     z-index: 1;
   }
 
+  .study-console-review:disabled {
+    opacity: 1;
+  }
+
+  .study-console-review:disabled .study-console-play {
+    opacity: 0.52;
+    box-shadow: none;
+  }
+
   .study-console-review:focus-visible,
   .study-console-quick:focus-visible,
   .study-console-action:focus-visible {
@@ -5913,7 +5922,7 @@
   background: #194873;
   box-shadow: 0 1rem 2rem rgb(17 51 92 / 22%);
   color: #fbf5e0;
-  font-family: ui-rounded, "SF Pro Rounded", ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-rounded, 'SF Pro Rounded', ui-sans-serif, system-ui, sans-serif;
   font-size: 2.4rem;
   font-weight: 900;
   animation: study-milestone-badge-arrival 4.8s linear forwards;
