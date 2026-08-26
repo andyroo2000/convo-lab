@@ -127,6 +127,7 @@
     "reviews": "Reviews",
     "lessons": "Lessons",
     "today": "Today",
+    "practiceHeading": "Today's practice",
     "convolabReviews": "ConvoLab reviews",
     "reviewCount_one": "{{count}} review",
     "reviewCount_other": "{{count}} reviews",

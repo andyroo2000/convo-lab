@@ -3,7 +3,11 @@
     "library": "Library",
     "create": "Create",
     "study": "Study",
-    "studyTime": "Study Time"
+    "studyTime": "Study Time",
+    "cards": "Cards",
+    "dailyAudio": "Daily Audio",
+    "time": "Time",
+    "learning": "Learning navigation"
   },
   "demoMode": "Demo Mode",
   "loading": "Loading...",

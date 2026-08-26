@@ -12,6 +12,7 @@ import OnboardingModal from '../onboarding/OnboardingModal';
 import { SHOW_ONBOARDING_WELCOME } from '../../config';
 import { StudyActivityProvider } from '../../contexts/StudyActivityContext';
 import ActiveStudyTimer from '../study/ActiveStudyTimer';
+import MobileLearningDock from './MobileLearningDock';
 
 const Layout = () => {
   const { user, loading, logout } = useAuth();
@@ -45,6 +46,7 @@ const Layout = () => {
   const isTimeActive = location.pathname === '/app/study/time';
   const isStudyActive = location.pathname.startsWith('/app/study') && !isTimeActive;
   const flashcardsEnabled = isFeatureEnabled('flashcardsEnabled');
+  const showMobileLearningDock = flashcardsEnabled && !viewAsUserId && !isImpersonating;
   const mobileNavItems = useMemo<UserMenuMobileNavItem[]>(
     () => [
       {
@@ -61,38 +63,8 @@ const Layout = () => {
         isActive: isCreateActive,
         icon: Mic,
       },
-      ...(flashcardsEnabled && !viewAsUserId
-        ? [
-            {
-              id: 'study',
-              label: t('common:nav.study'),
-              path: viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study',
-              isActive: isStudyActive,
-              icon: BookOpen,
-            },
-          ]
-        : []),
-      ...(!viewAsUserId
-        ? [
-            {
-              id: 'time',
-              label: t('common:nav.studyTime'),
-              path: '/app/study/time',
-              isActive: isTimeActive,
-              icon: Clock3,
-            },
-          ]
-        : []),
     ],
-    [
-      flashcardsEnabled,
-      isCreateActive,
-      isLibraryActive,
-      isStudyActive,
-      isTimeActive,
-      t,
-      viewAsUserId,
-    ]
+    [isCreateActive, isLibraryActive, t, viewAsUserId]
   );
 
   // Show loading spinner while checking authentication
@@ -230,14 +202,15 @@ const Layout = () => {
       </nav>
       <StudyActivityProvider key={String(user.id)} userId={user.id} enabled={!isImpersonating}>
         <main
-          className={`max-w-7xl xl:max-w-[96rem] mx-auto py-8 ${
+          className={`max-w-7xl xl:max-w-[96rem] mx-auto pt-8 ${
             isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'
-          }`}
+          } ${showMobileLearningDock ? 'pb-28 sm:pb-8' : 'pb-8'}`}
         >
           <Outlet />
         </main>
         <ActiveStudyTimer />
       </StudyActivityProvider>
+      {showMobileLearningDock ? <MobileLearningDock /> : null}
     </div>
   );
 };

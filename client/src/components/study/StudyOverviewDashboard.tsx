@@ -21,7 +21,7 @@ interface StudyOverviewDashboardProps {
 }
 
 const STUDY_ACTION_CLASS =
-  'inline-flex min-h-11 items-center justify-center border-2 border-[#8b756d] bg-[#bfa192] px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] text-[#fbf5e0] shadow-[0_4px_0_rgba(75,24,0,0.18)] transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dark-brown';
+  'study-console-action inline-flex min-h-11 items-center justify-center px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 const StudyOverviewDashboard = ({
   overview,
@@ -66,16 +66,14 @@ const StudyOverviewDashboard = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="study-console space-y-7">
       <section aria-labelledby="study-today-title">
-        <p
-          id="study-today-title"
-          className="mb-2 pl-1 text-xs font-black uppercase tracking-[0.2em] text-navy/60"
-        >
+        <p id="study-today-title" className="study-console-kicker">
           {t('overview.today')}
         </p>
+        <h1 className="study-console-title">{t('overview.practiceHeading')}</h1>
 
-        <div className="overflow-hidden rounded-[1.35rem] border-2 border-navy/10 bg-white/80 shadow-[0_8px_24px_rgba(17,51,92,0.08)]">
+        <div className="study-console-plan">
           <button
             type="button"
             onClick={onBeginReview}
@@ -84,7 +82,7 @@ const StudyOverviewDashboard = ({
             aria-describedby={[reviewCountId, reviewTimeId, showEmptyState ? emptyStateId : null]
               .filter(Boolean)
               .join(' ')}
-            className="flex min-h-32 w-full items-center gap-5 bg-navy px-5 py-5 text-left text-[#fbf5e0] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-cyan disabled:cursor-not-allowed disabled:opacity-65 sm:px-6"
+            className="study-console-review flex min-h-32 w-full items-center gap-5 px-5 py-5 text-left text-[#fbf5e0] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-cyan disabled:cursor-not-allowed disabled:opacity-65 sm:px-6"
           >
             <span className="min-w-0 flex-1">
               <span className="mb-1 block text-sm font-bold text-[#fbf5e0]/80">
@@ -102,22 +100,22 @@ const StudyOverviewDashboard = ({
             </span>
             <span
               aria-hidden="true"
-              className="grid size-14 shrink-0 place-items-center rounded-full bg-[#fbf5e0] text-navy shadow-lg"
+              className="study-console-play grid size-14 shrink-0 place-items-center rounded-full text-navy"
             >
               <Play className="ml-0.5 size-6 fill-current" />
             </span>
           </button>
 
-          <div className="grid grid-cols-2 divide-x divide-navy/10">
+          <div className="study-console-quick-grid grid grid-cols-2">
             <button
               type="button"
               onClick={onBeginLesson}
               disabled={isStartingSession || lessonsAvailable === 0}
               aria-label={t('overview.lessons')}
               aria-describedby={lessonCountId}
-              className="min-h-28 px-4 py-4 text-left transition hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
+              className="study-console-quick min-h-28 px-4 py-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan disabled:cursor-not-allowed disabled:opacity-55"
             >
-              <span className="mb-2 grid size-8 place-items-center rounded-lg bg-emerald-700 text-white">
+              <span className="study-console-quick-icon is-lessons mb-2 grid size-8 place-items-center text-white">
                 <BookOpen aria-hidden="true" className="size-4" />
               </span>
               <span className="block font-bold text-navy">{t('overview.lessons')}</span>
@@ -130,9 +128,9 @@ const StudyOverviewDashboard = ({
               href="https://www.wanikani.com/subjects/review"
               target="_blank"
               rel="noreferrer"
-              className="min-h-28 px-4 py-4 text-left transition hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#ee685a]"
+              className="study-console-quick min-h-28 px-4 py-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#ee685a]"
             >
-              <span className="mb-2 grid size-8 place-items-center rounded-lg bg-[#ee685a] text-white">
+              <span className="study-console-quick-icon is-wanikani mb-2 grid size-8 place-items-center text-white">
                 <Languages aria-hidden="true" className="size-4" />
               </span>
               <span className="flex items-center gap-1 font-bold text-navy">
@@ -149,9 +147,9 @@ const StudyOverviewDashboard = ({
           {nextLesson ? (
             <Link
               to="/app/study/time"
-              className="flex min-h-20 items-center gap-3 border-t border-navy/10 px-4 py-3 transition hover:bg-cyan/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan"
+              className="study-console-next flex min-h-20 items-center gap-3 px-4 py-3 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan"
             >
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-cyan text-white">
+              <span className="study-console-next-icon grid size-10 shrink-0 place-items-center bg-cyan text-navy">
                 <CalendarDays aria-hidden="true" className="size-5" />
               </span>
               <span className="min-w-0 flex-1">
@@ -175,7 +173,7 @@ const StudyOverviewDashboard = ({
           ) : null}
         </div>
 
-        <p className="mt-2 pr-1 text-right text-xs text-gray-500">
+        <p className="study-console-total mt-3 pr-1 text-right text-xs text-gray-500">
           {t('overview.totalCardCount', {
             count: overview?.totalCards ?? 0,
             formattedCount: new Intl.NumberFormat(locale).format(overview?.totalCards ?? 0),
@@ -193,7 +191,10 @@ const StudyOverviewDashboard = ({
 
       {recentMilestones}
 
-      <nav aria-label={t('overview.studyTools')} className="flex flex-wrap gap-2">
+      <nav
+        aria-label={t('overview.studyTools')}
+        className="study-console-tools flex flex-wrap gap-2"
+      >
         <Link to="/app/study/cards" className={STUDY_ACTION_CLASS}>
           {t('overview.cards')}
         </Link>
@@ -215,7 +216,9 @@ const StudyOverviewDashboard = ({
       </nav>
 
       {readiness ? (
-        <section className={`card retro-paper-panel border-l-4 ${readinessBorderClass}`}>
+        <section
+          className={`study-console-readiness retro-paper-panel border-l-4 ${readinessBorderClass}`}
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
             {t('readiness.title')}
           </p>

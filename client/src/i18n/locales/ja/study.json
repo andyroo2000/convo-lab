@@ -127,6 +127,7 @@
     "reviews": "レビュー",
     "lessons": "レッスン",
     "today": "今日",
+    "practiceHeading": "今日の練習",
     "convolabReviews": "ConvoLab レビュー",
     "reviewCount": "{{count}} 件のレビュー",
     "reviewMinutes": "約 {{count}} 分",
