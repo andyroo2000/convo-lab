@@ -242,7 +242,7 @@ describe('Layout', () => {
       expect(createLinks.length).toBeGreaterThan(0);
     });
 
-    it('should render desktop navigation tabs and no separate mobile tab row', () => {
+    it('renders desktop workspace tabs and the mobile learning dock', () => {
       window.history.pushState({}, '', '/app/library');
       const { container } = renderLayout('/app/library');
 
@@ -251,6 +251,28 @@ describe('Layout', () => {
       expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study"]')).toBeTruthy();
       expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study/time"]')).toBeTruthy();
       expect(container.querySelector('.sm\\:hidden .retro-nav-tab')).toBeNull();
+
+      const learningDock = screen.getByRole('navigation', { name: 'Learning navigation' });
+      expect(within(learningDock).getByRole('link', { name: 'Study' })).toHaveAttribute(
+        'href',
+        '/app/study'
+      );
+      expect(within(learningDock).getByRole('link', { name: 'Cards' })).toHaveAttribute(
+        'href',
+        '/app/study/cards'
+      );
+      expect(within(learningDock).getByRole('link', { name: 'Daily Audio' })).toHaveAttribute(
+        'href',
+        '/app/study/daily-audio'
+      );
+      expect(within(learningDock).getByRole('link', { name: 'Time' })).toHaveAttribute(
+        'href',
+        '/app/study/time'
+      );
+      expect(within(learningDock).getByRole('link', { name: 'Settings' })).toHaveAttribute(
+        'href',
+        '/app/settings'
+      );
     });
 
     it('preserves supported View As navigation without advertising unscoped Study routes', () => {
@@ -269,6 +291,18 @@ describe('Layout', () => {
 
       expect(document.querySelector('a[href="/app/study?viewAs=user-1"]')).toBeNull();
       expect(document.querySelector('a[href="/app/study/time"]')).toBeNull();
+      expect(screen.queryByTestId('mobile-learning-dock')).not.toBeInTheDocument();
+    });
+
+    it('marks the matching mobile learning destination as current', () => {
+      window.history.pushState({}, '', '/app/study/daily-audio');
+      renderLayout('/app/study/daily-audio');
+
+      expect(screen.getByTestId('mobile-learning-dock-audio')).toHaveAttribute(
+        'aria-current',
+        'page'
+      );
+      expect(screen.getByTestId('mobile-learning-dock-study')).not.toHaveAttribute('aria-current');
     });
 
     it('should highlight active library navigation', () => {
@@ -318,7 +352,7 @@ describe('Layout', () => {
 
       const main = container.querySelector('main');
       expect(main).toBeTruthy();
-      expect(main).toHaveClass('max-w-7xl', 'mx-auto', 'py-8');
+      expect(main).toHaveClass('max-w-7xl', 'mx-auto', 'pt-8');
     });
 
     it('should render user menu', () => {

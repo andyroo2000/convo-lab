@@ -127,6 +127,7 @@
     "reviews": "Reviews",
     "lessons": "Lessons",
     "today": "Today",
+    "practiceHeading": "Today's practice",
     "convolabReviews": "ConvoLab reviews",
     "reviewCount_one": "{{count}} review",
     "reviewCount_other": "{{count}} reviews",
@@ -144,7 +145,7 @@
     "studyTools": "Study tools",
     "loading": "Loading overview…",
     "noReviews": "No reviews are due. You can start a Lesson whenever you’re ready.",
-    "empty": "Import your `日本語` deck or create a card to start studying here."
+    "empty": "Open Cards to create your first card and start studying here."
   },
   "cards": {
     "title": "Cards",

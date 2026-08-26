@@ -451,7 +451,7 @@ const StudyCardsPage = () => {
 
   if (!enabled) {
     return (
-      <section className="card retro-paper-panel max-w-3xl">
+      <section className="card ios-surface max-w-3xl">
         <h1 className="mb-4 text-3xl font-bold text-navy">{t('cards.title')}</h1>
         <p className="text-gray-600">{t('disabled')}</p>
       </section>
@@ -459,34 +459,27 @@ const StudyCardsPage = () => {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
-      <section className="card retro-paper-panel">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+    <div className="ios-cards-page mx-auto max-w-4xl space-y-5">
+      <section className="card ios-surface ios-cards-header">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-navy">{t('cards.title')}</h1>
             <p className="text-gray-600">{t('cards.description')}</p>
           </div>
-          <div className="flex gap-2">
-            <Link
-              to="/app/study/create"
-              className="inline-flex items-center gap-2 rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              {t('overview.create')}
-            </Link>
-            <Link
-              to="/app/study"
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-navy hover:bg-white/50"
-            >
-              {t('cards.back')}
-            </Link>
-          </div>
+          <Link
+            to="/app/study/create"
+            aria-label={t('overview.create')}
+            title={t('overview.create')}
+            className="ios-plus grid size-11 shrink-0 place-items-center bg-navy text-white transition hover:bg-cyan hover:text-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan"
+          >
+            <Plus className="size-6" strokeWidth={2.5} aria-hidden="true" />
+          </Link>
         </div>
       </section>
 
-      <section className="card retro-paper-panel space-y-4">
+      <section className="card ios-surface ios-cards-tray space-y-4">
         <div
-          className="grid grid-cols-2 rounded-xl bg-navy/10 p-1"
+          className="ios-segmented-control grid grid-cols-2 rounded-xl bg-navy/10 p-1"
           role="tablist"
           aria-label={t('cards.collections')}
         >

@@ -2,13 +2,20 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { expectNoHorizontalOverflow, loginAsUser } from './utils/test-helpers';
 
-async function expectMobilePrimaryNavInUserMenu(page: Page) {
+async function expectMobileLearningNavigation(page: Page) {
   await page.getByTestId('user-menu-button').click();
   await expect(page.getByTestId('user-menu-mobile-nav-library')).toBeVisible();
   await expect(page.getByTestId('user-menu-mobile-nav-create')).toBeVisible();
-  // The e2e fixture enables flashcards, so Study should be present in mobile primary nav.
-  await expect(page.getByTestId('user-menu-mobile-nav-study')).toBeVisible();
+  await expect(page.getByTestId('user-menu-mobile-nav-study')).toHaveCount(0);
   await page.keyboard.press('Escape');
+
+  const learningDock = page.getByTestId('mobile-learning-dock');
+  await expect(learningDock).toBeVisible();
+  await expect(learningDock.getByRole('link', { name: 'Study' })).toBeVisible();
+  await expect(learningDock.getByRole('link', { name: 'Cards' })).toBeVisible();
+  await expect(learningDock.getByRole('link', { name: 'Daily Audio' })).toBeVisible();
+  await expect(learningDock.getByRole('link', { name: 'Time' })).toBeVisible();
+  await expect(learningDock.getByRole('link', { name: 'Settings' })).toBeVisible();
 }
 
 async function expectTopbarControlsDoNotOverlap(page: Page) {
@@ -31,11 +38,12 @@ test.describe('Study mobile experience', () => {
     await page.goto('/app/study');
     await expect(page.getByRole('button', { name: 'Begin Study' })).toBeVisible();
     await expectTopbarControlsDoNotOverlap(page);
-    await expectMobilePrimaryNavInUserMenu(page);
+    await expectMobileLearningNavigation(page);
     await expectNoHorizontalOverflow(page);
 
     await page.getByRole('button', { name: 'Begin Study' }).click();
     await expect(page.getByTestId('study-focus-shell')).toBeVisible();
+    await expect(page.getByTestId('mobile-learning-dock')).not.toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await page.getByRole('button', { name: 'Reveal answer' }).click();
@@ -144,7 +152,7 @@ test.describe('Study mobile narrow overflow checks', () => {
     await page.goto('/app/study');
     await expect(page.getByRole('button', { name: 'Begin Study' })).toBeVisible();
     await expectTopbarControlsDoNotOverlap(page);
-    await expectMobilePrimaryNavInUserMenu(page);
+    await expectMobileLearningNavigation(page);
     await expectNoHorizontalOverflow(page);
     await page.getByRole('button', { name: 'Begin Study' }).click();
     await page.getByRole('button', { name: 'Reveal answer' }).click();
