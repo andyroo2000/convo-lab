@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   closestCenter,
   DndContext,
@@ -22,11 +22,21 @@ import type {
   StudyLearningItemStageStatus,
   StudyNewCardQueueItem,
 } from '@languageflow/shared/src/types';
-import { CheckCircle2, ChevronDown, GripVertical, Layers3, LockKeyhole, Plus } from 'lucide-react';
+import {
+  BookOpenCheck,
+  CheckCircle2,
+  ChevronDown,
+  GripVertical,
+  Layers3,
+  LockKeyhole,
+  Plus,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
+  createStudyIntroductionCohortId,
+  useCreateStudyLessonFollowupCohort,
   useReorderStudyNewCardQueue,
   useStudyLearningItemsInfinite,
   useStudyNewCardQueueInfinite,
@@ -232,9 +242,19 @@ interface QueueRowProps {
   item: StudyNewCardQueueItem;
   ordinal: number;
   reorderDisabled: boolean;
+  selectionMode: boolean;
+  selected: boolean;
+  onToggleSelected: () => void;
 }
 
-const QueueRow = ({ item, ordinal, reorderDisabled }: QueueRowProps) => {
+const QueueRow = ({
+  item,
+  ordinal,
+  reorderDisabled,
+  selectionMode,
+  selected,
+  onToggleSelected,
+}: QueueRowProps) => {
   const { t } = useTranslation('study');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -249,17 +269,27 @@ const QueueRow = ({ item, ordinal, reorderDisabled }: QueueRowProps) => {
       }`}
       data-testid="study-new-queue-row"
     >
-      <button
-        type="button"
-        className="mt-0.5 rounded p-1 text-gray-400 hover:bg-cream hover:text-navy focus:outline-none focus:ring-2 focus:ring-navy"
-        aria-label={t('cards.dragHandle', { text: item.displayText })}
-        disabled={reorderDisabled}
-        title={reorderDisabled ? t('cards.reorderLimit') : undefined}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-5 w-5" aria-hidden="true" />
-      </button>
+      {selectionMode ? (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelected}
+          aria-label={t('cards.selectForLessonFollowup', { text: item.displayText })}
+          className="mt-1 h-5 w-5 rounded border-gray-300 text-navy focus:ring-navy"
+        />
+      ) : (
+        <button
+          type="button"
+          className="mt-0.5 rounded p-1 text-gray-400 hover:bg-cream hover:text-navy focus:outline-none focus:ring-2 focus:ring-navy"
+          aria-label={t('cards.dragHandle', { text: item.displayText })}
+          disabled={reorderDisabled}
+          title={reorderDisabled ? t('cards.reorderLimit') : undefined}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-5 w-5" aria-hidden="true" />
+        </button>
+      )}
       <span className="mt-1 w-8 shrink-0 text-right font-mono text-xs font-bold text-gray-500">
         {ordinal}
       </span>
@@ -278,6 +308,7 @@ const QueueRow = ({ item, ordinal, reorderDisabled }: QueueRowProps) => {
 
 const StudyCardsPage = () => {
   const { t } = useTranslation('study');
+  const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const [mode, setMode] = useState<CollectionMode>('queue');
@@ -285,9 +316,13 @@ const StudyCardsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [queueItems, setQueueItems] = useState<StudyNewCardQueueItem[]>([]);
   const [queueError, setQueueError] = useState<string | null>(null);
+  const [selectingLessonFollowup, setSelectingLessonFollowup] = useState(false);
+  const [selectedLessonCardIds, setSelectedLessonCardIds] = useState<Set<string>>(new Set());
+  const [lessonLabel, setLessonLabel] = useState('');
   const queueQuery = useStudyNewCardQueueInfinite(enabled && mode === 'queue');
   const learningItemsQuery = useStudyLearningItemsInfinite(enabled && mode === 'all', searchQuery);
   const reorderMutation = useReorderStudyNewCardQueue();
+  const createLessonFollowupMutation = useCreateStudyLessonFollowupCohort();
   const runBackgroundTask = useStudyBackgroundTask();
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -304,6 +339,7 @@ const StudyCardsPage = () => {
   queueDataRef.current = queueQuery.data;
   const previousQueuePageCountRef = useRef(0);
   const previousFirstQueuePageSignatureRef = useRef('');
+  const creatingLessonFollowupRef = useRef(false);
   const queuePageSignature = useMemo(
     () =>
       queueQuery.data?.pages
@@ -350,7 +386,7 @@ const StudyCardsPage = () => {
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
-    if (reorderDisabled) return;
+    if (reorderDisabled || selectingLessonFollowup) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = queueItems.findIndex((item) => item.id === active.id);
@@ -372,6 +408,44 @@ const StudyCardsPage = () => {
         }
       },
       { label: 'Study new-card reorder' }
+    );
+  };
+
+  const cancelLessonFollowup = () => {
+    setSelectingLessonFollowup(false);
+    setSelectedLessonCardIds(new Set());
+    setLessonLabel('');
+    setQueueError(null);
+  };
+
+  const startLessonFollowup = () => {
+    if (creatingLessonFollowupRef.current) return;
+    const cardIds = queueItems
+      .filter((item) => selectedLessonCardIds.has(item.id))
+      .map((item) => item.id);
+    if (cardIds.length === 0) return;
+
+    creatingLessonFollowupRef.current = true;
+    setQueueError(null);
+    runBackgroundTask(
+      async () => {
+        try {
+          const cohort = await createLessonFollowupMutation.mutateAsync({
+            cohortId: createStudyIntroductionCohortId(),
+            cardIds,
+            label: lessonLabel.trim() || null,
+          });
+          navigate(`/app/study?lessonCohortId=${encodeURIComponent(cohort.id)}`);
+        } catch (error) {
+          setQueueError(
+            error instanceof Error ? error.message : t('cards.lessonFollowupCreateFailed')
+          );
+          throw error;
+        } finally {
+          creatingLessonFollowupRef.current = false;
+        }
+      },
+      { label: 'Create lesson follow-up cohort' }
     );
   };
 
@@ -472,6 +546,56 @@ const StudyCardsPage = () => {
                 {t('cards.queuedCount', { count: queueTotal })}
               </span>
             </div>
+            {selectingLessonFollowup ? (
+              <div className="my-3 space-y-3 rounded-xl border border-sky-200 bg-sky-50 p-3">
+                <div>
+                  <label htmlFor="lesson-followup-label" className="text-sm font-bold text-navy">
+                    {t('cards.lessonFollowupLabel')}
+                  </label>
+                  <input
+                    id="lesson-followup-label"
+                    value={lessonLabel}
+                    onChange={(event) => setLessonLabel(event.target.value)}
+                    placeholder={t('cards.lessonFollowupLabelPlaceholder')}
+                    maxLength={120}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+                  />
+                </div>
+                <p className="text-sm text-gray-600">{t('cards.lessonFollowupHelp')}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={startLessonFollowup}
+                    disabled={
+                      selectedLessonCardIds.size === 0 || createLessonFollowupMutation.isPending
+                    }
+                    className="rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {createLessonFollowupMutation.isPending
+                      ? t('cards.lessonFollowupStarting')
+                      : t('cards.studySelectedNow', { count: selectedLessonCardIds.size })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelLessonFollowup}
+                    disabled={createLessonFollowupMutation.isPending}
+                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-navy"
+                  >
+                    {t('cards.cancelLessonFollowup')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setSelectingLessonFollowup(true)}
+                disabled={queueItems.length === 0}
+                className="my-3 inline-flex items-center gap-2 rounded-full border border-navy/20 bg-white px-4 py-2 text-sm font-semibold text-navy disabled:opacity-50"
+              >
+                <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
+                {t('cards.makeLessonFollowup')}
+              </button>
+            )}
             {queueQuery.isLoading ? (
               <p className="py-8 text-center text-gray-500">{t('cards.loadingQueue')}</p>
             ) : null}
@@ -501,7 +625,17 @@ const StudyCardsPage = () => {
                       key={item.id}
                       item={item}
                       ordinal={index + 1}
-                      reorderDisabled={reorderDisabled}
+                      reorderDisabled={reorderDisabled || selectingLessonFollowup}
+                      selectionMode={selectingLessonFollowup}
+                      selected={selectedLessonCardIds.has(item.id)}
+                      onToggleSelected={() => {
+                        setSelectedLessonCardIds((current) => {
+                          const next = new Set(current);
+                          if (next.has(item.id)) next.delete(item.id);
+                          else next.add(item.id);
+                          return next;
+                        });
+                      }}
                     />
                   ))}
                 </ol>

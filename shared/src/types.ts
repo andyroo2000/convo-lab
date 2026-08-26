@@ -471,6 +471,16 @@ export interface StudyNewCardQueueResponse {
   nextCursor: string | null;
 }
 
+export interface StudyIntroductionCohort {
+  id: string;
+  sourceKind: 'lesson_followup' | 'wanikani';
+  label: string | null;
+  priorityUntil: string;
+  cards: StudyCardSummary[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StudyCardListResponse {
   items: StudyCardSummary[];
   limit: number;

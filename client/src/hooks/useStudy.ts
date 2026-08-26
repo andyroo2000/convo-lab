@@ -21,6 +21,7 @@ import type {
   StudyImportResult,
   StudyImportUploadReadiness,
   StudyImportUploadSession,
+  StudyIntroductionCohort,
   StudyLearningItemListResponse,
   StudyNewCardQueueResponse,
   StudyOverview,
@@ -363,6 +364,30 @@ export async function startStudyLesson(): Promise<StudySessionResponse> {
   });
 }
 
+export async function startStudyIntroductionCohortLesson(
+  cohortId: string
+): Promise<StudySessionResponse> {
+  const timeZone = getDeviceStudyTimeZone();
+  return apiRequest<StudySessionResponse>(
+    `/introduction-cohorts/${encodeURIComponent(cohortId)}/lessons/start`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ timeZone }),
+    }
+  );
+}
+
+export async function createStudyLessonFollowupCohort(payload: {
+  cohortId: string;
+  cardIds: string[];
+  label?: string | null;
+}): Promise<StudyIntroductionCohort> {
+  return apiRequest<StudyIntroductionCohort>('/introduction-cohorts/lesson-followup', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getStudySettings(): Promise<StudySettings> {
   return apiRequest<StudySettings>('/settings');
 }
@@ -562,6 +587,10 @@ export async function generateStudyManualCardDraftPreviewImage(
 }
 
 export function createStudyCardId(): string {
+  return ulid();
+}
+
+export function createStudyIntroductionCohortId(): string {
   return ulid();
 }
 
@@ -851,6 +880,21 @@ export function useReorderStudyNewCardQueue() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+      ]);
+    },
+  });
+}
+
+export function useCreateStudyLessonFollowupCohort() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createStudyLessonFollowupCohort,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'cards'] }),
       ]);
     },
   });
