@@ -66,8 +66,8 @@ const StudyOverviewDashboard = ({
   }
 
   return (
-    <div className="study-console space-y-7">
-      <section aria-labelledby="study-today-title">
+    <div className="study-console papercraft-desk space-y-7">
+      <section aria-labelledby="study-today-title" className="papercraft-desk-sheet">
         <p id="study-today-title" className="study-console-kicker">
           {t('overview.today')}
         </p>
@@ -181,7 +181,7 @@ const StudyOverviewDashboard = ({
         </p>
 
         {showEmptyState ? (
-          <p id={emptyStateId} className="mt-2 text-sm text-gray-600">
+          <p id={emptyStateId} className="study-console-empty-note mt-2 text-sm text-gray-600">
             {reviewEmptyMessage}
           </p>
         ) : null}

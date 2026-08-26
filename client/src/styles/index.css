@@ -190,14 +190,28 @@
   .mobile-learning-dock {
     position: fixed;
     z-index: 60;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    right: 0.65rem;
+    bottom: 0.55rem;
+    left: 0.65rem;
     padding: 0 0 env(safe-area-inset-bottom);
-    color: var(--retro-cream);
-    background: var(--retro-ink-strong);
-    border-top: 5px solid var(--retro-cyan);
-    box-shadow: 0 -9px 22px rgba(17, 51, 92, 0.18);
+    color: var(--retro-ink-strong);
+    background: #fffdf6;
+    border: 1px solid rgba(17, 51, 92, 0.46);
+    border-radius: 7px;
+    box-shadow: 5px 6px 0 rgba(17, 51, 92, 0.16);
+    transform: rotate(-0.18deg);
+  }
+
+  .mobile-learning-dock::before {
+    content: '';
+    position: absolute;
+    top: -0.55rem;
+    left: calc(50% - 2rem);
+    width: 4rem;
+    height: 0.95rem;
+    pointer-events: none;
+    background: rgba(26, 178, 209, 0.48);
+    transform: rotate(1.5deg);
   }
 
   .mobile-learning-dock-inner {
@@ -214,7 +228,7 @@
     align-content: center;
     gap: 0.2rem;
     padding: 0.15rem;
-    color: rgba(251, 245, 224, 0.72);
+    color: rgba(17, 51, 92, 0.66);
     font-family: 'Oswald', 'Noto Sans JP', sans-serif;
     font-size: 0.63rem;
     font-weight: 700;
@@ -228,8 +242,10 @@
     width: 1.85rem;
     height: 1.85rem;
     place-items: center;
-    border: 1px solid rgba(251, 245, 224, 0.32);
-    color: var(--retro-cream);
+    border: 1px solid rgba(17, 51, 92, 0.28);
+    border-radius: 999px;
+    color: var(--retro-ink-strong);
+    background: #f4ecd4;
   }
 
   .mobile-learning-dock-icon svg {
@@ -239,14 +255,14 @@
   }
 
   .mobile-learning-dock-link[aria-current='page'] {
-    color: var(--retro-cream);
+    color: var(--retro-ink-strong);
   }
 
   .mobile-learning-dock-link[aria-current='page'] .mobile-learning-dock-icon {
     color: var(--retro-cream);
     background: #ee685a;
     border-color: #ee685a;
-    box-shadow: 2px 2px 0 rgba(251, 245, 224, 0.85);
+    box-shadow: 2px 2px 0 var(--retro-ink-strong);
   }
 
   .mobile-learning-dock-link:focus-visible {
@@ -423,6 +439,213 @@
     border-bottom: 2px solid rgba(17, 51, 92, 0.18);
     border-radius: 2px;
     box-shadow: 5px 6px 0 rgba(17, 51, 92, 0.1);
+  }
+
+  .papercraft-desk,
+  .papercraft-cards {
+    --paper-white: #fffdf6;
+    --paper-warm: #f4ecd4;
+    --paper-edge: #d7caa8;
+    --paper-tape-cyan: rgba(26, 178, 209, 0.48);
+    --paper-tape-coral: rgba(238, 104, 90, 0.72);
+  }
+
+  .papercraft-desk {
+    max-width: 56rem;
+  }
+
+  .papercraft-desk-sheet {
+    position: relative;
+    padding: 1rem 0.35rem 1.1rem;
+  }
+
+  .papercraft-desk-sheet::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -0.35rem;
+    left: -0.45rem;
+    width: min(18rem, 72%);
+    height: 5.4rem;
+    background: var(--paper-white);
+    border: 1px solid rgba(17, 51, 92, 0.24);
+    border-radius: 3px 3px 11px 3px;
+    box-shadow: 4px 5px 0 rgba(17, 51, 92, 0.1);
+    transform: rotate(-0.7deg);
+  }
+
+  .papercraft-desk-sheet::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    top: -0.72rem;
+    left: 4.4rem;
+    width: 4.5rem;
+    height: 1rem;
+    pointer-events: none;
+    background: var(--paper-tape-cyan);
+    transform: rotate(1.8deg);
+  }
+
+  .papercraft-desk-sheet > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .papercraft-desk .study-console-plan {
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .papercraft-desk .study-console-review {
+    border: 1px solid rgba(17, 51, 92, 0.58);
+    border-radius: 4px 4px 12px 4px;
+    box-shadow: 7px 8px 0 var(--paper-edge);
+    transform: rotate(0.3deg);
+  }
+
+  .papercraft-desk .study-console-review::before {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: -0.55rem;
+    left: 1rem;
+    width: 3.75rem;
+    height: 1rem;
+    pointer-events: none;
+    background: var(--paper-tape-coral);
+    transform: rotate(-2.3deg);
+  }
+
+  .papercraft-desk .study-console-quick-grid {
+    gap: 0.85rem;
+    margin-top: 1.15rem;
+    padding: 0 0.3rem;
+    border: 0;
+  }
+
+  .papercraft-desk .study-console-quick {
+    background: var(--paper-white);
+    border: 1px solid rgba(17, 51, 92, 0.34);
+    border-radius: 4px;
+    box-shadow: 4px 5px 0 rgba(17, 51, 92, 0.12);
+  }
+
+  .papercraft-desk .study-console-quick:first-child {
+    transform: rotate(-0.65deg);
+  }
+
+  .papercraft-desk .study-console-quick:nth-child(2) {
+    transform: rotate(0.65deg);
+  }
+
+  .papercraft-desk .study-console-quick + .study-console-quick {
+    border-left: 1px solid rgba(17, 51, 92, 0.34);
+  }
+
+  .papercraft-desk .study-console-next {
+    margin: 1rem 0.35rem 0;
+    background: var(--paper-white);
+    border: 1px solid rgba(17, 51, 92, 0.34);
+    border-radius: 4px 4px 11px 4px;
+    box-shadow: 4px 5px 0 rgba(17, 51, 92, 0.12);
+    transform: rotate(-0.25deg);
+  }
+
+  .papercraft-desk .study-console-total {
+    width: max-content;
+    margin-left: auto;
+    padding: 0.35rem 0.65rem;
+    color: var(--retro-ink-soft);
+    background: #f6e6a8;
+    border: 1px solid rgba(17, 51, 92, 0.2);
+    box-shadow: 2px 3px 0 rgba(17, 51, 92, 0.1);
+    transform: rotate(0.8deg);
+  }
+
+  .papercraft-desk .study-console-empty-note {
+    width: fit-content;
+    max-width: 34rem;
+    margin-top: 0.85rem;
+    padding: 0.65rem 0.85rem;
+    background: var(--paper-white);
+    border-left: 4px solid var(--retro-cyan);
+    box-shadow: 3px 4px 0 rgba(17, 51, 92, 0.1);
+    transform: rotate(-0.25deg);
+  }
+
+  .papercraft-desk .study-console-action {
+    background: var(--paper-white);
+    border-width: 1px;
+    border-radius: 3px 3px 9px 3px;
+    box-shadow: 4px 5px 0 var(--paper-edge);
+  }
+
+  .papercraft-desk .study-console-action:nth-child(2) {
+    transform: rotate(0.6deg);
+  }
+
+  .papercraft-desk .study-console-readiness {
+    background: var(--paper-white);
+    border-radius: 4px 4px 13px 4px;
+    box-shadow: 6px 7px 0 var(--paper-edge);
+    transform: rotate(0.2deg);
+  }
+
+  .papercraft-card-sheet {
+    background: var(--paper-white);
+    border: 1px solid rgba(17, 51, 92, 0.32);
+    border-radius: 4px 4px 13px 4px;
+    box-shadow: 6px 7px 0 var(--paper-edge);
+  }
+
+  .papercraft-card-header {
+    transform: rotate(-0.35deg);
+  }
+
+  .papercraft-card-header::after {
+    content: '';
+    position: absolute;
+    z-index: 4;
+    top: -0.55rem;
+    left: calc(50% - 2.5rem);
+    width: 5rem;
+    height: 1.05rem;
+    pointer-events: none;
+    background: var(--paper-tape-cyan);
+    transform: rotate(1.5deg);
+  }
+
+  .papercraft-card-tray {
+    transform: rotate(0.16deg);
+  }
+
+  .papercraft-plus {
+    border-radius: 2px 2px 8px 2px;
+    box-shadow: 3px 4px 0 var(--paper-tape-cyan);
+    transform: rotate(1.2deg);
+  }
+
+  .papercraft-index-tabs {
+    gap: 0.4rem;
+    padding: 0;
+    background: transparent;
+  }
+
+  .papercraft-index-tabs [role='tab'] {
+    border: 1px solid rgba(17, 51, 92, 0.28);
+    border-radius: 5px 5px 2px 2px;
+    background: #e8ddbf;
+    box-shadow: 2px 3px 0 rgba(17, 51, 92, 0.1);
+  }
+
+  .papercraft-index-tabs [role='tab'][aria-selected='true'] {
+    background: #fffdf6;
+    border-bottom-color: #fffdf6;
+    box-shadow: 3px 3px 0 var(--paper-tape-cyan);
+    transform: translateY(1px) rotate(-0.25deg);
   }
 
   @media (min-width: 640px) {
