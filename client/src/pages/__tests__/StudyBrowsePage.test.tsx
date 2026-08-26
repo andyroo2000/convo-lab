@@ -377,10 +377,15 @@ describe('StudyBrowsePage', () => {
     });
   });
 
-  it('renders note rows and selects the first note by default', async () => {
+  it('renders the card list without selecting a note by default', async () => {
     renderPage();
 
-    expect(screen.getByText('Browse cards')).toBeInTheDocument();
+    expect(await screen.findByText('Browse cards')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to cards' })).toHaveAttribute(
+      'href',
+      '/app/study/cards'
+    );
+    expect(screen.getByText('Filters')).toBeInTheDocument();
     expect(useStudyBrowserMock).toHaveBeenCalledWith(
       true,
       expect.objectContaining({
@@ -399,7 +404,7 @@ describe('StudyBrowsePage', () => {
       'xl:overflow-y-auto'
     );
     expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
-    expect(await screen.findByText('Imported fields')).toBeInTheDocument();
+    expect(screen.getByText('Select a note to preview it.')).toBeInTheDocument();
   });
 
   it('preserves loading states for both browse contracts', () => {
@@ -468,6 +473,9 @@ describe('StudyBrowsePage', () => {
     const noteItems = await screen.findAllByTestId('study-browser-note-item');
     await userEvent.click(within(noteItems[1]).getByText('お風呂に虫[...]！'));
 
+    await waitFor(() => {
+      expect(window.location.search).toBe('?noteId=note-2&cardId=card-2');
+    });
     expect(await screen.findByTestId('study-card-editor')).toBeInTheDocument();
     expect(screen.getByLabelText('Answer')).toHaveValue('お風呂に虫がいる！');
     expect(screen.getByLabelText('Answer reading')).toHaveValue('お風呂[ふろ]に虫[むし]がいる！');
@@ -485,6 +493,18 @@ describe('StudyBrowsePage', () => {
     await waitFor(() => {
       expect(window.location.search).toBe('?noteId=note-2&cardId=card-2');
     });
+  });
+
+  it('returns from card detail to the All Cards list', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await screen.findByTestId('study-card-editor');
+    await userEvent.click(screen.getByRole('button', { name: 'All cards' }));
+
+    expect(await screen.findByText('Browse cards')).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(screen.getByText('Select a note to preview it.')).toBeInTheDocument();
   });
 
   it('updates the browser query when search and filters are submitted', async () => {
@@ -594,6 +614,9 @@ describe('StudyBrowsePage', () => {
     renderPage();
 
     await userEvent.click(getNoteRow('会社'));
+    await waitFor(() => {
+      expect(window.location.search).toBe('?noteId=note-1&cardId=card-1');
+    });
 
     expect(screen.getByTestId('study-card-editor')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();

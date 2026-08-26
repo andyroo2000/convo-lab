@@ -58,7 +58,7 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
   return (
     <>
       <div className="min-w-0 space-y-6">
-        <section data-testid="study-browser-detail" className="card retro-paper-panel min-w-0">
+        <section data-testid="study-browser-detail" className="card app-surface min-w-0 p-4 sm:p-6">
           {isDetailLoading ? <p className="text-gray-500">{t('browse.loadingDetail')}</p> : null}
           {detailError ? (
             <p className="text-red-600">
@@ -83,16 +83,17 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
               </div>
 
               {selectedDetail.cards.length > 1 ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="app-segmented-control flex flex-wrap gap-1 rounded-xl p-1">
                   {selectedDetail.cards.map((card) => (
                     <button
                       key={card.id}
                       type="button"
+                      aria-pressed={selectedCardId === card.id}
                       onClick={() => selectCard(card.id)}
-                      className={`rounded-full border px-3 py-2 text-sm font-medium ${
+                      className={`px-3 py-2 text-sm font-medium ${
                         selectedCardId === card.id
-                          ? 'border-navy bg-navy text-white'
-                          : 'border-gray-300 bg-white text-navy'
+                          ? 'bg-white text-navy shadow-sm'
+                          : 'text-navy/60 hover:text-navy'
                       }`}
                     >
                       {card.state.source.templateName ?? card.cardType}
@@ -104,7 +105,7 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
               {selectedCard ? (
                 <div
                   data-testid="study-browser-preview"
-                  className="min-w-0 max-w-full space-y-4 overflow-hidden rounded-[2rem] bg-white px-4 py-6 shadow-sm ring-1 ring-gray-200 sm:px-6 sm:py-10 md:px-12"
+                  className="min-w-0 max-w-full space-y-5 overflow-hidden border-t border-navy/10 pt-5"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="break-words text-sm text-gray-500">
@@ -119,18 +120,14 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
                         : ''}
                     </p>
                     <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-                      <button
-                        type="button"
-                        onClick={openPreview}
-                        className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50"
-                      >
+                      <button type="button" onClick={openPreview} className="app-button-secondary">
                         {t('create.previewCard')}
                       </button>
                       <button
                         type="button"
                         onClick={suspendOrUnsuspendSelectedCard}
                         disabled={isCardMutationPending}
-                        className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="app-button-secondary"
                       >
                         {selectedCard.state.queueState === 'suspended'
                           ? t('reviewActions.unsuspend')
@@ -140,7 +137,7 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
                         type="button"
                         onClick={forgetSelectedCard}
                         disabled={isCardMutationPending}
-                        className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="app-button-secondary"
                       >
                         {t('browse.forget')}
                       </button>
@@ -148,7 +145,7 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
                         type="button"
                         onClick={toggleSetDueControls}
                         disabled={isCardMutationPending}
-                        className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="app-button-secondary"
                       >
                         {t('browse.setDue')}
                       </button>
@@ -157,7 +154,7 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
                           type="button"
                           onClick={promoteSelectedCard}
                           disabled={isCardMutationPending || isPromotePending}
-                          className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="app-button-secondary"
                         >
                           {t('browse.moveToFront')}
                         </button>

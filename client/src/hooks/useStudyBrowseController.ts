@@ -115,7 +115,7 @@ export default function useStudyBrowseController(enabled: boolean) {
       return;
     }
 
-    if (!selectedNoteId || !rows.some((row) => row.noteId === selectedNoteId)) {
+    if (selectedNoteId && !rows.some((row) => row.noteId === selectedNoteId)) {
       setSelectedNoteId(rows[0].noteId);
     }
   }, [browserQuery.data, rows, selectedNoteId]);
@@ -181,6 +181,16 @@ export default function useStudyBrowseController(enabled: boolean) {
 
   const updateQuery = (patch: Partial<StudyBrowserQuery>) => {
     setQuery((current) => ({ ...current, ...patch, cursor: undefined }));
+  };
+
+  const showNoteList = () => {
+    setSelectedNoteId('');
+    setSelectedCardId('');
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('noteId');
+    nextParams.delete('cardId');
+    setSearchParams(nextParams, { replace: true });
   };
 
   const handleCardAction = async (
@@ -283,6 +293,7 @@ export default function useStudyBrowseController(enabled: boolean) {
     },
     selectedNoteId,
     selectNote: setSelectedNoteId,
+    showNoteList,
     selectedCardId,
     selectCard: setSelectedCardId,
     selectedDetail,
