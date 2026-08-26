@@ -428,8 +428,7 @@
     max-width: 36rem;
   }
 
-  .app-surface,
-  .ios-surface {
+  .app-surface {
     background: rgba(255, 255, 255, 0.72);
     border: 1px solid rgba(17, 51, 92, 0.1);
     border-radius: 1.125rem;
@@ -440,27 +439,23 @@
     letter-spacing: -0.035em;
   }
 
-  .app-icon-button,
-  .ios-plus {
+  .app-icon-button {
     border-radius: 999px;
     box-shadow: none;
   }
 
-  .app-segmented-control,
-  .ios-segmented-control {
+  .app-segmented-control {
     border: 1px solid rgba(17, 51, 92, 0.06);
     background: rgba(17, 51, 92, 0.08);
   }
 
   .app-segmented-control [role='tab'],
-  .app-segmented-control > button,
-  .ios-segmented-control [role='tab'] {
+  .app-segmented-control > button {
     border-radius: 0.65rem;
   }
 
   .app-segmented-control [role='tab'][aria-selected='true'],
-  .app-segmented-control [aria-pressed='true'],
-  .ios-segmented-control [role='tab'][aria-selected='true'] {
+  .app-segmented-control [aria-pressed='true'] {
     color: var(--retro-ink-strong);
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 1px 4px rgba(17, 51, 92, 0.1);
@@ -528,17 +523,6 @@
     margin-inline: auto;
   }
 
-  .ios-create-page .card {
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(17, 51, 92, 0.1);
-    border-radius: 1.125rem;
-    box-shadow: 0 8px 24px rgba(17, 51, 92, 0.05);
-  }
-
-  .ios-create-page .retro-paper-panel::before {
-    content: none;
-  }
-
   .ios-create-page input:not([type='checkbox']):not([type='radio']),
   .ios-create-page textarea,
   .ios-create-page select {
@@ -554,11 +538,6 @@
     border-color: var(--retro-cyan-deep);
     outline: 3px solid rgba(26, 178, 209, 0.16);
     outline-offset: 0;
-  }
-
-  .ios-create-page button.rounded-full,
-  .ios-create-page a.rounded-full {
-    border-radius: 0.75rem;
   }
 
   .active-study-timer {
