@@ -444,6 +444,13 @@ export interface StudyOverview {
 export interface StudySettings {
   newCardsPerDay: number;
   lessonBatchSize?: number;
+  newCardLaneWeights?: StudyNewCardLaneWeights;
+}
+
+export interface StudyNewCardLaneWeights {
+  standard: number;
+  lessonFollowup: number;
+  wanikani: number;
 }
 
 export interface StudyNewCardQueueItem {

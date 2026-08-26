@@ -7,6 +7,7 @@ import {
   STUDY_NEW_CARDS_PER_DAY_DEFAULT,
 } from '@languageflow/shared/src/studyConstants';
 import { useTranslation } from 'react-i18next';
+import type { StudyNewCardLaneWeights } from '@languageflow/shared/src/types';
 
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
@@ -26,6 +27,7 @@ const StudySettingsPage = () => {
   const runBackgroundTask = useStudyBackgroundTask();
   const [newCardsPerDay, setNewCardsPerDay] = useState(STUDY_NEW_CARDS_PER_DAY_DEFAULT);
   const [lessonBatchSize, setLessonBatchSize] = useState(STUDY_LESSON_BATCH_SIZE_DEFAULT);
+  const [laneWeights, setLaneWeights] = useState<StudyNewCardLaneWeights | null>(null);
   const [settingsSavedVisible, setSettingsSavedVisible] = useState(false);
   const [settingsSaveFailedVisible, setSettingsSaveFailedVisible] = useState(false);
   const [wanikaniToken, setWanikaniToken] = useState('');
@@ -44,6 +46,7 @@ const StudySettingsPage = () => {
     if (settingsQuery.data) {
       setNewCardsPerDay(settingsQuery.data.newCardsPerDay);
       setLessonBatchSize(settingsQuery.data.lessonBatchSize ?? STUDY_LESSON_BATCH_SIZE_DEFAULT);
+      setLaneWeights(settingsQuery.data.newCardLaneWeights ?? null);
     }
   }, [settingsQuery.data]);
 
@@ -56,6 +59,17 @@ const StudySettingsPage = () => {
 
     return () => window.clearTimeout(timer);
   }, [settingsSavedVisible]);
+
+  const laneWeightTotal = laneWeights
+    ? laneWeights.standard + laneWeights.lessonFollowup + laneWeights.wanikani
+    : 0;
+  const lanePercentage = (weight: number) =>
+    laneWeightTotal === 0 ? 0 : Math.round((weight / laneWeightTotal) * 100);
+  const updateLaneWeight = (lane: keyof StudyNewCardLaneWeights, value: number) => {
+    setSettingsSavedVisible(false);
+    setSettingsSaveFailedVisible(false);
+    setLaneWeights((current) => (current ? { ...current, [lane]: value } : current));
+  };
 
   if (!enabled) {
     return (
@@ -300,7 +314,11 @@ const StudySettingsPage = () => {
             runBackgroundTask(
               async () => {
                 try {
-                  await updateSettingsMutation.mutateAsync({ newCardsPerDay, lessonBatchSize });
+                  await updateSettingsMutation.mutateAsync({
+                    newCardsPerDay,
+                    lessonBatchSize,
+                    ...(laneWeights ? { newCardLaneWeights: laneWeights } : {}),
+                  });
                   setSettingsSaveFailedVisible(false);
                   setSettingsSavedVisible(true);
                 } catch (error) {
@@ -353,6 +371,48 @@ const StudySettingsPage = () => {
               className="mt-2 w-36 rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
             />
           </label>
+          {laneWeights ? (
+            <fieldset className="w-full basis-full rounded-2xl border border-gray-200 bg-white/50 p-4">
+              <legend className="px-2 text-sm font-semibold text-navy">
+                {t('settings.laneBalanceTitle')}
+              </legend>
+              <p className="mb-4 text-sm text-gray-500">{t('settings.laneBalanceDescription')}</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(
+                  [
+                    ['standard', 'settings.standardLane'],
+                    ['lessonFollowup', 'settings.lessonFollowupLane'],
+                    ['wanikani', 'settings.wanikaniLane'],
+                  ] as const
+                ).map(([lane, label]) => (
+                  <label
+                    key={lane}
+                    htmlFor={`study-lane-weight-${lane}`}
+                    className="rounded-xl border border-gray-200 bg-white p-3"
+                  >
+                    <span className="flex items-center justify-between gap-2 text-sm font-semibold text-navy">
+                      {t(label)}
+                      <span className="font-normal text-gray-500">
+                        {t('settings.laneShare', { percent: lanePercentage(laneWeights[lane]) })}
+                      </span>
+                    </span>
+                    <input
+                      id={`study-lane-weight-${lane}`}
+                      aria-label={t(label)}
+                      type="number"
+                      min={lane === 'standard' ? 1 : 0}
+                      max={20}
+                      step={1}
+                      value={laneWeights[lane]}
+                      onChange={(event) => updateLaneWeight(lane, Number(event.target.value))}
+                      className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-gray-500">{t('settings.laneBalanceHelp')}</p>
+            </fieldset>
+          ) : null}
           <button
             type="submit"
             disabled={updateSettingsMutation.isPending}

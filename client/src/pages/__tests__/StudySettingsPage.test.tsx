@@ -105,7 +105,10 @@ describe('StudySettingsPage', () => {
       wanikani: { connected: false, lastSyncedAt: null },
     };
     useStudySettingsMock.mockReturnValue({
-      data: { newCardsPerDay: 20 },
+      data: {
+        newCardsPerDay: 20,
+        newCardLaneWeights: { standard: 3, lessonFollowup: 1, wanikani: 1 },
+      },
       isLoading: false,
       error: null,
     });
@@ -173,6 +176,49 @@ describe('StudySettingsPage', () => {
       expect(updateStudySettingsMock).toHaveBeenCalledWith({
         lessonBatchSize: 5,
         newCardsPerDay: 12,
+        newCardLaneWeights: { standard: 3, lessonFollowup: 1, wanikani: 1 },
+      })
+    );
+  });
+
+  it('saves API-provided lane weights and explains their proportions', async () => {
+    const user = userEvent.setup();
+    updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 20 });
+    renderPage();
+
+    expect(screen.getByLabelText('Standard queue')).toHaveValue(3);
+    expect(screen.getAllByText('20%')).toHaveLength(2);
+
+    const waniKaniWeight = screen.getByLabelText('WaniKani');
+    await user.clear(waniKaniWeight);
+    await user.type(waniKaniWeight, '2');
+    fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() =>
+      expect(updateStudySettingsMock).toHaveBeenCalledWith({
+        lessonBatchSize: 5,
+        newCardsPerDay: 20,
+        newCardLaneWeights: { standard: 3, lessonFollowup: 1, wanikani: 2 },
+      })
+    );
+  });
+
+  it('does not invent lane values when an older settings response omits them', async () => {
+    updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 20 });
+    useStudySettingsMock.mockReturnValue({
+      data: { newCardsPerDay: 20 },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    expect(screen.queryByLabelText('Standard queue')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() =>
+      expect(updateStudySettingsMock).toHaveBeenCalledWith({
+        lessonBatchSize: 5,
+        newCardsPerDay: 20,
       })
     );
   });
