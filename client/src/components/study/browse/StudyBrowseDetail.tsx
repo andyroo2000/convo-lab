@@ -88,6 +88,7 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
                     <button
                       key={card.id}
                       type="button"
+                      aria-pressed={selectedCardId === card.id}
                       onClick={() => selectCard(card.id)}
                       className={`px-3 py-2 text-sm font-medium ${
                         selectedCardId === card.id

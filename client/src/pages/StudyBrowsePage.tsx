@@ -18,7 +18,7 @@ const StudyBrowsePage = () => {
   useEffect(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  }, []);
+  }, [hasSelection]);
 
   return (
     <div className="app-browse-page space-y-4">
@@ -32,7 +32,20 @@ const StudyBrowsePage = () => {
               {t(hasSelection ? 'browse.detailDescription' : 'browse.description')}
             </p>
           </div>
-          <Link to="/app/study/cards" className="app-button-secondary gap-1.5">
+          {hasSelection ? (
+            <button
+              type="button"
+              onClick={controller.showNoteList}
+              className="app-button-secondary gap-1.5 xl:hidden"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              {t('browse.backToList')}
+            </button>
+          ) : null}
+          <Link
+            to="/app/study/cards"
+            className={`app-button-secondary gap-1.5 ${hasSelection ? 'hidden xl:inline-flex' : ''}`}
+          >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             {t('browse.back')}
           </Link>

@@ -65,7 +65,6 @@ const StudyBrowseFilters = ({ controller }: StudyBrowseFiltersProps) => {
           >
             <Search className="h-4 w-4" aria-hidden="true" />
             <span className="hidden sm:inline">{t('browse.search')}</span>
-            <span className="sr-only sm:hidden">{t('browse.search')}</span>
           </button>
         </div>
 

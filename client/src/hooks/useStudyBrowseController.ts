@@ -183,6 +183,16 @@ export default function useStudyBrowseController(enabled: boolean) {
     setQuery((current) => ({ ...current, ...patch, cursor: undefined }));
   };
 
+  const showNoteList = () => {
+    setSelectedNoteId('');
+    setSelectedCardId('');
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('noteId');
+    nextParams.delete('cardId');
+    setSearchParams(nextParams, { replace: true });
+  };
+
   const handleCardAction = async (
     action: 'suspend' | 'unsuspend' | 'forget' | 'set_due',
     options?: SetDueOptions
@@ -283,6 +293,7 @@ export default function useStudyBrowseController(enabled: boolean) {
     },
     selectedNoteId,
     selectNote: setSelectedNoteId,
+    showNoteList,
     selectedCardId,
     selectCard: setSelectedCardId,
     selectedDetail,

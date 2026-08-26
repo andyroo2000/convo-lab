@@ -495,6 +495,18 @@ describe('StudyBrowsePage', () => {
     });
   });
 
+  it('returns from card detail to the All Cards list', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await screen.findByTestId('study-card-editor');
+    await userEvent.click(screen.getByRole('button', { name: 'All cards' }));
+
+    expect(await screen.findByText('Browse cards')).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(screen.getByText('Select a note to preview it.')).toBeInTheDocument();
+  });
+
   it('updates the browser query when search and filters are submitted', async () => {
     renderPage();
 

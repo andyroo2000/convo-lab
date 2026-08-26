@@ -372,6 +372,7 @@
     "detailTitle": "カード詳細",
     "detailDescription": "このカードを確認、編集、管理します。",
     "back": "カードに戻る",
+    "backToList": "すべてのカード",
     "filters": "フィルター",
     "showFilters": "オプションを表示",
     "hideFilters": "オプションを隠す",
