@@ -525,7 +525,11 @@ describe('useStudy request helpers', () => {
 
   it('routes settings, queue, and browser reads and writes through Learning OS', async () => {
     await getStudySettings();
-    await updateStudySettings({ newCardsPerDay: 15, lessonBatchSize: 7 });
+    await updateStudySettings({
+      newCardsPerDay: 15,
+      lessonBatchSize: 7,
+      newCardLaneWeights: { standard: 3, lessonFollowup: 1, wanikani: 1 },
+    });
     await getStudyNewCardQueue({ cursor: 'cursor-1', q: 'kana', limit: 25 });
     await getStudyCards({ cursor: 'card-cursor', q: '会社', limit: 50 });
     await getStudyLearningItems({ cursor: 'item-cursor', q: '会社', limit: 20 });
@@ -558,6 +562,7 @@ describe('useStudy request helpers', () => {
     expect(JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body))).toEqual({
       newCardsPerDay: 15,
       lessonBatchSize: 7,
+      newCardLaneWeights: { standard: 3, lessonFollowup: 1, wanikani: 1 },
     });
     expectJsonMutation(5);
   });
