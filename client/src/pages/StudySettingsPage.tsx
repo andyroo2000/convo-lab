@@ -73,31 +73,28 @@ const StudySettingsPage = () => {
 
   if (!enabled) {
     return (
-      <section className="card retro-paper-panel max-w-3xl">
-        <h1 className="mb-4 text-3xl font-bold text-navy">{t('settings.title')}</h1>
+      <section className="card app-surface max-w-3xl">
+        <h1 className="mb-4 text-2xl font-bold text-navy sm:text-3xl">{t('settings.title')}</h1>
         <p className="text-gray-600">{t('disabled')}</p>
       </section>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <section className="card retro-paper-panel">
+    <div className="mx-auto max-w-5xl space-y-4 sm:space-y-6">
+      <section className="card app-surface px-4 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-navy">{t('settings.title')}</h1>
-            <p className="text-gray-600">{t('settings.description')}</p>
+            <h1 className="text-2xl font-bold text-navy sm:text-3xl">{t('settings.title')}</h1>
+            <p className="mt-1 text-sm text-gray-600 sm:text-base">{t('settings.description')}</p>
           </div>
-          <Link
-            to="/app/study"
-            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-white/50"
-          >
+          <Link to="/app/study" className="app-button-secondary">
             {t('settings.back')}
           </Link>
         </div>
       </section>
 
-      <section className="card retro-paper-panel space-y-5">
+      <section className="card app-surface space-y-5 p-4 sm:p-6">
         <div>
           <h2 className="text-2xl font-semibold text-navy">{t('settings.kanjiKnowledgeTitle')}</h2>
           <p className="text-sm text-gray-500">{t('settings.kanjiKnowledgeDescription')}</p>
@@ -113,7 +110,7 @@ const StudySettingsPage = () => {
         ) : null}
 
         {knownKanjiQuery.data ? (
-          <div className="rounded-xl border border-gray-200 bg-white/60 p-4">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
             <p className="font-semibold text-navy">
               {t('settings.knownKanjiCount', { count: knownKanjiQuery.data.kanji.length })}
             </p>
@@ -151,7 +148,7 @@ const StudySettingsPage = () => {
                   { label: 'WaniKani kanji sync' }
                 );
               }}
-              className="rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+              className="app-button-primary"
             >
               {syncWaniKaniMutation.isPending
                 ? t('settings.wanikaniSyncing')
@@ -166,7 +163,7 @@ const StudySettingsPage = () => {
                   label: 'WaniKani disconnect',
                 });
               }}
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-white/50 disabled:opacity-60"
+              className="app-button-secondary"
             >
               {t('settings.wanikaniDisconnect')}
             </button>
@@ -205,14 +202,14 @@ const StudySettingsPage = () => {
                 value={wanikaniToken}
                 onChange={(event) => setWanikaniToken(event.target.value)}
                 placeholder={t('settings.wanikaniTokenPlaceholder')}
-                className="mt-2 block w-full max-w-xl rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+                className="app-form-control mt-2 block w-full max-w-xl"
               />
             </label>
             <p className="text-xs text-gray-500">{t('settings.wanikaniTokenHelp')}</p>
             <button
               type="submit"
               disabled={connectWaniKaniMutation.isPending || !wanikaniToken.trim()}
-              className="rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+              className="app-button-primary"
             >
               {connectWaniKaniMutation.isPending
                 ? t('settings.wanikaniConnecting')
@@ -257,13 +254,13 @@ const StudySettingsPage = () => {
                 value={manualKanji}
                 onChange={(event) => setManualKanji(event.target.value)}
                 placeholder={t('settings.manualKanjiPlaceholder')}
-                className="w-32 rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+                className="app-form-control w-32"
               />
             </label>
             <button
               type="submit"
               disabled={setManualKnownKanjiMutation.isPending}
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-white/50 disabled:opacity-60"
+              className="app-button-secondary"
             >
               {t('settings.manualKanjiAdd')}
             </button>
@@ -297,7 +294,7 @@ const StudySettingsPage = () => {
         </div>
       </section>
 
-      <section className="card retro-paper-panel space-y-4">
+      <section className="card app-surface space-y-4 p-4 sm:p-6">
         <div>
           <h2 className="text-2xl font-semibold text-navy">{t('settings.dailyLimitTitle')}</h2>
           <p className="text-sm text-gray-500">{t('settings.dailyLimitDescription')}</p>
@@ -349,7 +346,7 @@ const StudySettingsPage = () => {
                 setSettingsSaveFailedVisible(false);
                 setNewCardsPerDay(Number(event.target.value));
               }}
-              className="mt-2 w-36 rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+              className="app-form-control mt-2 w-36"
             />
           </label>
           <label className="block" htmlFor="study-lesson-batch-size">
@@ -368,11 +365,11 @@ const StudySettingsPage = () => {
                 setSettingsSaveFailedVisible(false);
                 setLessonBatchSize(Number(event.target.value));
               }}
-              className="mt-2 w-36 rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+              className="app-form-control mt-2 w-36"
             />
           </label>
           {laneWeights ? (
-            <fieldset className="w-full basis-full rounded-2xl border border-gray-200 bg-white/50 p-4">
+            <fieldset className="w-full basis-full rounded-lg border border-gray-200 bg-gray-50/70 p-4">
               <legend className="px-2 text-sm font-semibold text-navy">
                 {t('settings.laneBalanceTitle')}
               </legend>
@@ -388,7 +385,7 @@ const StudySettingsPage = () => {
                   <label
                     key={lane}
                     htmlFor={`study-lane-weight-${lane}`}
-                    className="rounded-xl border border-gray-200 bg-white p-3"
+                    className="rounded-lg border border-gray-200 bg-white p-3"
                   >
                     <span className="flex items-center justify-between gap-2 text-sm font-semibold text-navy">
                       {t(label)}
@@ -405,7 +402,7 @@ const StudySettingsPage = () => {
                       step={1}
                       value={laneWeights[lane]}
                       onChange={(event) => updateLaneWeight(lane, Number(event.target.value))}
-                      className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
+                      className="app-form-control mt-2 w-full"
                     />
                   </label>
                 ))}
@@ -416,7 +413,7 @@ const StudySettingsPage = () => {
           <button
             type="submit"
             disabled={updateSettingsMutation.isPending}
-            className="rounded-full bg-navy px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="app-button-primary"
           >
             {updateSettingsMutation.isPending ? t('settings.saving') : t('settings.save')}
           </button>
