@@ -188,11 +188,14 @@ const StudyPage = () => {
           <section className="h-[100dvh] md:px-3 md:py-2">
             <div
               data-testid="study-focus-shell"
-              className="study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-[2rem] md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-gray-200"
+              className="study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-2xl md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-navy/10"
             >
-              {!showingMilestoneAward ? (
+              {!showingMilestoneAward &&
+              !reviewSession.reviewSessionComplete &&
+              !reviewSession.practiceComplete ? (
                 <StudyReviewHeader
                   progress={reviewSession.sessionProgress}
+                  counts={reviewSession.sessionCounts}
                   actions={
                     reviewSession.revealed && !reviewSession.editing && !reviewSession.practiceMode
                       ? renderReviewActionButtons()
@@ -464,7 +467,7 @@ const StudyPage = () => {
                           reviewSession.revealCurrentCard();
                         }
                       }}
-                      className="flex min-h-[calc(100dvh-7.5rem)] w-full flex-1 items-center justify-center px-3 py-4 text-left transition md:min-h-[60vh] md:rounded-[2rem] md:bg-white md:px-12 md:py-12 md:shadow-sm md:ring-1 md:ring-gray-200 md:hover:shadow-md"
+                      className="flex min-h-[calc(100dvh-7.5rem)] w-full flex-1 items-center justify-center px-3 py-4 text-left transition md:min-h-[60vh] md:rounded-2xl md:bg-white md:px-12 md:py-12 md:shadow-sm md:ring-1 md:ring-navy/10 md:hover:shadow-md"
                     >
                       <div className="w-full min-w-0 overflow-x-hidden">
                         <StudyCardFace
@@ -482,7 +485,7 @@ const StudyPage = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="min-h-[calc(100dvh-7.5rem)] min-w-0 flex-1 overflow-x-hidden px-2 py-2 md:min-h-[60vh] md:rounded-[2rem] md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-gray-200">
+                    <div className="min-h-[calc(100dvh-7.5rem)] min-w-0 flex-1 overflow-x-hidden px-2 py-2 md:min-h-[60vh] md:rounded-2xl md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-navy/10">
                       {reviewSession.editing && !masteryAnimation ? (
                         <StudyCardEditor
                           card={displayedCard}

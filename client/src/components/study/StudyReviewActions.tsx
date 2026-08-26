@@ -25,16 +25,16 @@ const StudyReviewActions = ({
   const { t } = useTranslation('study');
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-1.5 md:gap-2">
+    <div className="min-w-0">
       <div
         data-testid="study-review-actions"
-        className="grid w-full grid-cols-3 gap-1.5 sm:flex sm:w-auto sm:flex-wrap md:gap-2"
+        className="flex w-full gap-1.5 overflow-x-auto pb-0.5"
       >
         <button
           type="button"
           onClick={onEdit}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-1.5 py-1 text-[0.68rem] font-medium leading-tight text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5 sm:text-xs"
+          className="app-button-secondary min-h-8 shrink-0 px-2.5 py-1 text-xs"
         >
           {t('reviewActions.edit')}
         </button>
@@ -42,7 +42,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onBury}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-1.5 py-1 text-[0.68rem] font-medium leading-tight text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5 sm:text-xs"
+          className="app-button-secondary min-h-8 shrink-0 px-2.5 py-1 text-xs"
         >
           {t('reviewActions.bury')}
         </button>
@@ -50,7 +50,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onToggleSuspend}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-1.5 py-1 text-[0.68rem] font-medium leading-tight text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5 sm:text-xs"
+          className="app-button-secondary min-h-8 shrink-0 px-2.5 py-1 text-xs"
         >
           {card.state.queueState === 'suspended'
             ? t('reviewActions.unsuspend')
@@ -60,7 +60,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onForget}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-1.5 py-1 text-[0.68rem] font-medium leading-tight text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5 sm:text-xs"
+          className="app-button-secondary min-h-8 shrink-0 px-2.5 py-1 text-xs"
         >
           {t('reviewActions.forget')}
         </button>
@@ -68,7 +68,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onToggleSetDue}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-1.5 py-1 text-[0.68rem] font-medium leading-tight text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5 sm:text-xs"
+          className="app-button-secondary min-h-8 shrink-0 px-2.5 py-1 text-xs"
         >
           {t('reviewActions.setDue')}
         </button>
@@ -76,7 +76,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onOpenBrowse}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-1.5 py-1 text-[0.68rem] font-medium leading-tight text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5 sm:text-xs"
+          className="app-button-secondary min-h-8 shrink-0 px-2.5 py-1 text-xs"
         >
           {t('reviewActions.openBrowse')}
         </button>

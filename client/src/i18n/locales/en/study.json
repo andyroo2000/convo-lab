@@ -102,7 +102,11 @@
   },
   "reviewHeader": {
     "exit": "End session",
-    "progress": "Review session progress"
+    "progress": "Review session progress",
+    "failed": "Failed",
+    "queued": "Queued",
+    "new": "New",
+    "counts": "{{failed}} failed, {{queued}} queued, {{new}} new"
   },
   "gradeButtons": {
     "again": "Again",

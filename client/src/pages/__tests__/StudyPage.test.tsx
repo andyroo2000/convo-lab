@@ -861,6 +861,10 @@ describe('StudyPage', () => {
     expect(startStudySessionMock).toHaveBeenCalledWith();
     expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
     expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
+    expect(screen.getByTestId('study-review-header')).toHaveTextContent(
+      '0Failed1Queued0NewEnd session'
+    );
+    expect(screen.getByRole('group', { name: '0 failed, 1 queued, 0 new' })).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
     expect(screen.getByTestId('mastery-feedback-lane')).toHaveClass('mastery-feedback-lane');
@@ -2311,7 +2315,9 @@ describe('StudyPage', () => {
     expect(await screen.findByText('Nice work')).toBeInTheDocument();
     expect(screen.getByText('Here’s what you reviewed this session.')).toBeInTheDocument();
     expect(screen.queryByText('学校')).not.toBeInTheDocument();
-    expect(screen.getByText('1', { selector: 'p' })).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('study-session-wrap-up')).getByText('1', { selector: 'p' })
+    ).toBeInTheDocument();
   });
 
   it('awards the Orbit milestone before wrap-up and moves it into recent milestones', async () => {
