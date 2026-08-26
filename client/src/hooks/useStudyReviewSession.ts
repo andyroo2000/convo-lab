@@ -756,7 +756,14 @@ const useStudyReviewSession = () => {
           }
           const [, refreshedSession] = await Promise.all([
             queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-            loadSession(sessionKind, { allowEmptySessionRefresh: false }, expectedEpoch),
+            loadSession(
+              sessionKind,
+              {
+                allowEmptySessionRefresh: false,
+                lessonCohortId: activeLessonCohortIdRef.current ?? undefined,
+              },
+              expectedEpoch
+            ),
           ]);
           if (sessionKind === 'reviews' && refreshedSession) {
             milestoneStore?.beginReviewSession();

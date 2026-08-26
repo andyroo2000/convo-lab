@@ -339,6 +339,7 @@ const StudyCardsPage = () => {
   queueDataRef.current = queueQuery.data;
   const previousQueuePageCountRef = useRef(0);
   const previousFirstQueuePageSignatureRef = useRef('');
+  const creatingLessonFollowupRef = useRef(false);
   const queuePageSignature = useMemo(
     () =>
       queueQuery.data?.pages
@@ -418,11 +419,13 @@ const StudyCardsPage = () => {
   };
 
   const startLessonFollowup = () => {
+    if (creatingLessonFollowupRef.current) return;
     const cardIds = queueItems
       .filter((item) => selectedLessonCardIds.has(item.id))
       .map((item) => item.id);
     if (cardIds.length === 0) return;
 
+    creatingLessonFollowupRef.current = true;
     setQueueError(null);
     runBackgroundTask(
       async () => {
@@ -438,6 +441,8 @@ const StudyCardsPage = () => {
             error instanceof Error ? error.message : t('cards.lessonFollowupCreateFailed')
           );
           throw error;
+        } finally {
+          creatingLessonFollowupRef.current = false;
         }
       },
       { label: 'Create lesson follow-up cohort' }

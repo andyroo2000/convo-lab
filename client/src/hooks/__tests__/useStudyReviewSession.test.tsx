@@ -11,6 +11,7 @@ const {
   cardActionMutateAsyncMock,
   createStudyReviewRequestMock,
   startStudyLessonMock,
+  startStudyIntroductionCohortLessonMock,
   startStudySessionMock,
   prepareStudyAnswerAudioMock,
   reviewMutateAsyncMock,
@@ -25,6 +26,7 @@ const {
   cardActionMutateAsyncMock: vi.fn(),
   createStudyReviewRequestMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
+  startStudyIntroductionCohortLessonMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
   reviewMutateAsyncMock: vi.fn(),
@@ -63,6 +65,7 @@ vi.mock('../useStudy', () => ({
     error: null,
   }),
   startStudyLesson: startStudyLessonMock,
+  startStudyIntroductionCohortLesson: startStudyIntroductionCohortLessonMock,
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   undoStudyReview: undoStudyReviewMock,
@@ -161,6 +164,7 @@ describe('useStudyReviewSession', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     startStudyLessonMock.mockReset();
+    startStudyIntroductionCohortLessonMock.mockReset();
     startStudySessionMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
     reviewMutateAsyncMock.mockReset();
@@ -201,6 +205,15 @@ describe('useStudyReviewSession', () => {
         {
           ...baseCardTwo,
           state: { ...baseCardTwo.state, dueAt: null, queueState: 'new' as const },
+        },
+      ],
+    });
+    startStudyIntroductionCohortLessonMock.mockResolvedValue({
+      overview: { ...baseOverview, newCount: 1 },
+      cards: [
+        {
+          ...baseCardOne,
+          state: { ...baseCardOne.state, dueAt: null, queueState: 'new' as const },
         },
       ],
     });
@@ -814,6 +827,33 @@ describe('useStudyReviewSession', () => {
       await result.current.retryPendingReview();
     });
     expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the lesson cohort during authoritative conflict recovery', async () => {
+    const cohortId = '01k00000000000000000000000';
+    reviewMutateAsyncMock.mockRejectedValueOnce(
+      new JsonRequestError('Review is out of order. (409)', 409, {
+        code: 'review_out_of_order',
+      })
+    );
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode('lessons', { lessonCohortId: cohortId });
+    });
+    act(() => result.current.beginLessonQuiz());
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    expect(startStudyIntroductionCohortLessonMock).toHaveBeenCalledTimes(2);
+    expect(startStudyIntroductionCohortLessonMock).toHaveBeenNthCalledWith(1, cohortId);
+    expect(startStudyIntroductionCohortLessonMock).toHaveBeenNthCalledWith(2, cohortId);
+    expect(startStudyLessonMock).not.toHaveBeenCalled();
+    expect(result.current.reviewConflictRecovered).toBe(true);
   });
 
   it('preserves a milestone crossed before a later review conflict', async () => {

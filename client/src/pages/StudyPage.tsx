@@ -80,7 +80,7 @@ const StudyPage = () => {
   }, [reviewSession.cards.length]);
 
   useEffect(() => {
-    if (!lessonCohortId || startedLessonCohortRef.current === lessonCohortId) return;
+    if (!enabled || !lessonCohortId || startedLessonCohortRef.current === lessonCohortId) return;
 
     startedLessonCohortRef.current = lessonCohortId;
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -90,7 +90,7 @@ const StudyPage = () => {
     runBackgroundTask(() => reviewSession.enterFocusMode('lessons', { lessonCohortId }), {
       label: 'Study lesson follow-up start',
     });
-  }, [lessonCohortId, reviewSession, runBackgroundTask, searchParams, setSearchParams]);
+  }, [enabled, lessonCohortId, reviewSession, runBackgroundTask, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (
