@@ -711,7 +711,7 @@ const StudyCreatePage = () => {
   }
   if (isImpersonating) {
     return (
-      <section className="card retro-paper-panel max-w-4xl" role="status">
+      <section className="card app-surface max-w-4xl" role="status">
         <h1 className="mb-3 text-3xl font-bold text-navy">{t('create.title')}</h1>
         <p className="text-gray-600">{t('create.impersonationUnavailable')}</p>
       </section>
@@ -745,24 +745,27 @@ const StudyCreatePage = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <section className="card retro-paper-panel max-w-4xl">
+    <div className="ios-create-page space-y-6">
+      <section className="card app-surface max-w-4xl">
         <h1 className="mb-3 text-3xl font-bold text-navy">{t('create.title')}</h1>
         <p className="text-gray-600">{t('create.description')}</p>
-        <div className="mt-5 inline-flex rounded-full border border-gray-200 bg-white p-1">
+        <div
+          className="app-segmented-control mt-5 grid max-w-md grid-cols-2 rounded-xl p-1"
+          role="group"
+          aria-label={t('create.title')}
+        >
           {(['generate', 'manual'] as const).map((nextMode) => (
             <button
               key={nextMode}
               type="button"
+              aria-pressed={mode === nextMode}
               onClick={() => {
                 setMode(nextMode);
                 setManualSuccess(null);
                 setVocabSuccess(null);
               }}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                mode === nextMode
-                  ? 'bg-navy text-white'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-navy'
+              className={`px-4 py-2 text-sm font-semibold transition ${
+                mode === nextMode ? 'bg-white text-navy shadow-sm' : 'text-navy/55 hover:text-navy'
               }`}
             >
               {t(`create.${nextMode}`)}
@@ -791,84 +794,86 @@ const StudyCreatePage = () => {
         />
       ) : (
         <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
-          {draftListPanel}
+          <div className="order-2 min-w-0 xl:order-1">{draftListPanel}</div>
 
-          <StudyManualDraftComposerPanel
-            audioError={
-              regenerateManualAudio.error instanceof Error
-                ? regenerateManualAudio.error.message
-                : null
-            }
-            canRetryDraft={canRetrySelectedManualDraft}
-            draftRecovery={
-              draftRecovery?.intent.draftId === selectedManualDraftId ? draftRecovery : null
-            }
-            creationKind={creationKind}
-            draft={selectedManualDraft}
-            errorMessage={manualErrorMessage}
-            imageError={
-              generateDraftImage.error instanceof Error ? generateDraftImage.error.message : null
-            }
-            imagePlacement={manualImagePlacement}
-            imagePrompt={manualImagePrompt}
-            isActionBusy={isManualActionBusy}
-            isCreatingCard={createCardFromDraft.isPending}
-            isCreatingDraft={createDraft.isPending}
-            isDeletingDraft={deleteDraft.isPending}
-            isGeneratingImage={generateDraftImage.isPending}
-            isPreviewOpen={isManualPreviewOpen}
-            isRegeneratingAudio={regenerateManualAudio.isPending}
-            isRetryingDraft={retryDraft.isPending}
-            onCreationKindChange={handleCreationKindChange}
-            onDiscardRecoveredDraft={() => {
-              if (!draftRecovery) return;
-              clearStudyDraftIntent(draftRecovery.intent);
-              manualFormBaseRevisionRef.current = draftRecovery.serverDraft.revision;
-              setValues(getDraftFormValues(draftRecovery.serverDraft));
-              setManualImagePrompt(draftRecovery.serverDraft.imagePrompt ?? '');
-              setManualImagePlacement(draftRecovery.serverDraft.imagePlacement);
-              setManualPreviewImage(draftRecovery.serverDraft.previewImage);
-              setManualPreviewAudio(draftRecovery.serverDraft.previewAudio);
-              setManualPreviewAudioRole(draftRecovery.serverDraft.previewAudioRole);
-              setDraftRecovery(null);
-            }}
-            onDeleteDraft={handleDeleteSelectedDraft}
-            onFieldChange={handleManualFieldChange}
-            onFillRemainingFields={handleFillRemainingFields}
-            onGenerateImage={handleGenerateManualImage}
-            onImagePlacementChange={setManualImagePlacement}
-            onImagePromptChange={setManualImagePrompt}
-            onPreviewClose={() => setIsManualPreviewOpen(false)}
-            onPreviewOpen={() => setIsManualPreviewOpen(true)}
-            onRegenerateAudio={handleRegenerateManualAudio}
-            onRetryDraft={handleRetrySelectedDraft}
-            onRestoreRecoveredDraft={() => {
-              if (!draftRecovery) return;
-              const restoredDraft = {
-                ...draftRecovery.serverDraft,
-                ...draftRecovery.intent.values,
-              };
-              manualFormBaseRevisionRef.current = draftRecovery.serverDraft.revision;
-              setValues(getDraftFormValues(restoredDraft));
-              setManualImagePrompt(restoredDraft.imagePrompt ?? '');
-              setManualImagePlacement(restoredDraft.imagePlacement);
-              setManualPreviewImage(restoredDraft.previewImage);
-              setManualPreviewAudio(restoredDraft.previewAudio);
-              setManualPreviewAudioRole(restoredDraft.previewAudioRole);
-              setDraftRecovery(null);
-              replayManualDraftIntent(
-                draftRecovery.intent,
-                draftRecovery.serverDraft.revision
-              ).catch(() => undefined);
-            }}
-            onSubmit={handleManualSubmit}
-            previewAudioRole={manualPreviewAudioRole}
-            previewAudioUrl={manualPreviewAudioUrl}
-            previewCard={manualPreviewCard}
-            previewImageUrl={manualPreviewImageUrl}
-            successMessage={manualSuccess}
-            values={values}
-          />
+          <div className="order-1 min-w-0 xl:order-2">
+            <StudyManualDraftComposerPanel
+              audioError={
+                regenerateManualAudio.error instanceof Error
+                  ? regenerateManualAudio.error.message
+                  : null
+              }
+              canRetryDraft={canRetrySelectedManualDraft}
+              draftRecovery={
+                draftRecovery?.intent.draftId === selectedManualDraftId ? draftRecovery : null
+              }
+              creationKind={creationKind}
+              draft={selectedManualDraft}
+              errorMessage={manualErrorMessage}
+              imageError={
+                generateDraftImage.error instanceof Error ? generateDraftImage.error.message : null
+              }
+              imagePlacement={manualImagePlacement}
+              imagePrompt={manualImagePrompt}
+              isActionBusy={isManualActionBusy}
+              isCreatingCard={createCardFromDraft.isPending}
+              isCreatingDraft={createDraft.isPending}
+              isDeletingDraft={deleteDraft.isPending}
+              isGeneratingImage={generateDraftImage.isPending}
+              isPreviewOpen={isManualPreviewOpen}
+              isRegeneratingAudio={regenerateManualAudio.isPending}
+              isRetryingDraft={retryDraft.isPending}
+              onCreationKindChange={handleCreationKindChange}
+              onDiscardRecoveredDraft={() => {
+                if (!draftRecovery) return;
+                clearStudyDraftIntent(draftRecovery.intent);
+                manualFormBaseRevisionRef.current = draftRecovery.serverDraft.revision;
+                setValues(getDraftFormValues(draftRecovery.serverDraft));
+                setManualImagePrompt(draftRecovery.serverDraft.imagePrompt ?? '');
+                setManualImagePlacement(draftRecovery.serverDraft.imagePlacement);
+                setManualPreviewImage(draftRecovery.serverDraft.previewImage);
+                setManualPreviewAudio(draftRecovery.serverDraft.previewAudio);
+                setManualPreviewAudioRole(draftRecovery.serverDraft.previewAudioRole);
+                setDraftRecovery(null);
+              }}
+              onDeleteDraft={handleDeleteSelectedDraft}
+              onFieldChange={handleManualFieldChange}
+              onFillRemainingFields={handleFillRemainingFields}
+              onGenerateImage={handleGenerateManualImage}
+              onImagePlacementChange={setManualImagePlacement}
+              onImagePromptChange={setManualImagePrompt}
+              onPreviewClose={() => setIsManualPreviewOpen(false)}
+              onPreviewOpen={() => setIsManualPreviewOpen(true)}
+              onRegenerateAudio={handleRegenerateManualAudio}
+              onRetryDraft={handleRetrySelectedDraft}
+              onRestoreRecoveredDraft={() => {
+                if (!draftRecovery) return;
+                const restoredDraft = {
+                  ...draftRecovery.serverDraft,
+                  ...draftRecovery.intent.values,
+                };
+                manualFormBaseRevisionRef.current = draftRecovery.serverDraft.revision;
+                setValues(getDraftFormValues(restoredDraft));
+                setManualImagePrompt(restoredDraft.imagePrompt ?? '');
+                setManualImagePlacement(restoredDraft.imagePlacement);
+                setManualPreviewImage(restoredDraft.previewImage);
+                setManualPreviewAudio(restoredDraft.previewAudio);
+                setManualPreviewAudioRole(restoredDraft.previewAudioRole);
+                setDraftRecovery(null);
+                replayManualDraftIntent(
+                  draftRecovery.intent,
+                  draftRecovery.serverDraft.revision
+                ).catch(() => undefined);
+              }}
+              onSubmit={handleManualSubmit}
+              previewAudioRole={manualPreviewAudioRole}
+              previewAudioUrl={manualPreviewAudioUrl}
+              previewCard={manualPreviewCard}
+              previewImageUrl={manualPreviewImageUrl}
+              successMessage={manualSuccess}
+              values={values}
+            />
+          </div>
         </section>
       )}
     </div>

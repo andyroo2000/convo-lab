@@ -41,8 +41,8 @@ const StudyVocabDraftGeneratorPanel = ({
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(22rem,34rem)_minmax(0,1fr)]">
-      {draftList}
-      <div className="space-y-4">
+      <div className="order-2 min-w-0 xl:order-1">{draftList}</div>
+      <div className="order-1 space-y-4 xl:order-2">
         <StudyVocabCandidateForm
           targetWord={targetWord}
           sourceSentence={sourceSentence}

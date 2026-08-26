@@ -31,14 +31,14 @@ const ActiveStudyTimer = () => {
   if (!active) return null;
 
   return (
-    <div className="fixed right-4 top-20 z-50 flex items-center gap-3 border-2 border-navy bg-cream px-4 py-3 shadow-[4px_4px_0_#173b65]">
+    <div className="active-study-timer fixed z-50 flex items-center gap-3 px-3 py-2">
       <Link to="/app/study/time" className="flex items-center gap-2 text-navy">
         <Clock3 className="h-5 w-5" />
         <span>
           <span className="block text-xs font-bold uppercase tracking-wider">
             {active.name || t(`time.activities.${activityTranslationKey(active.activity)}`)}
           </span>
-          <span className="font-mono text-lg font-black tabular-nums">
+          <span className="font-mono text-base font-bold tabular-nums">
             {formatElapsed(elapsedMs)}
           </span>
         </span>
@@ -46,7 +46,7 @@ const ActiveStudyTimer = () => {
       <button
         type="button"
         onClick={() => stop()}
-        className="rounded-full bg-coral p-2 text-white"
+        className="grid size-9 place-items-center rounded-full bg-coral text-white"
         aria-label={t('time.timer.stopAria')}
       >
         <Square className="h-4 w-4 fill-current" />

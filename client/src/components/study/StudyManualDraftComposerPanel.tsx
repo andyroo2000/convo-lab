@@ -105,7 +105,7 @@ const StudyManualDraftComposerPanel = ({
   if (isCreatingCard) submitLabel = t('create.creating');
 
   return (
-    <section className="card retro-paper-panel min-w-0">
+    <section className="card app-surface min-w-0">
       <form className="space-y-4" onSubmit={onSubmit}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -219,7 +219,7 @@ const StudyManualDraftComposerPanel = ({
             type="button"
             onClick={onPreviewOpen}
             disabled={isGeneratingDraft || Boolean(draftRecovery)}
-            className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="app-button-secondary"
           >
             {t('create.previewCard')}
           </button>
@@ -230,7 +230,7 @@ const StudyManualDraftComposerPanel = ({
                   type="button"
                   onClick={onRetryDraft}
                   disabled={isActionBusy || Boolean(draftRecovery)}
-                  className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="app-button-secondary"
                 >
                   {isRetryingDraft ? t('create.retryingDraft') : t('create.retryDraft')}
                 </button>
@@ -238,7 +238,7 @@ const StudyManualDraftComposerPanel = ({
               <button
                 type="submit"
                 disabled={isGeneratingDraft || isActionBusy || Boolean(draftRecovery)}
-                className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="app-button-primary"
               >
                 {submitLabel}
               </button>
@@ -246,7 +246,7 @@ const StudyManualDraftComposerPanel = ({
                 type="button"
                 onClick={onDeleteDraft}
                 disabled={isActionBusy || Boolean(draftRecovery)}
-                className="rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="app-button-danger"
               >
                 {isDeletingDraft ? t('create.deletingDraft') : t('create.deleteDraft')}
               </button>
@@ -256,15 +256,12 @@ const StudyManualDraftComposerPanel = ({
               type="button"
               onClick={onFillRemainingFields}
               disabled={isActionBusy}
-              className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="app-button-primary"
             >
               {isCreatingDraft ? t('create.queueingDraft') : t('create.fillRemaining')}
             </button>
           )}
-          <Link
-            to="/app/study"
-            className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
-          >
+          <Link to="/app/study" className="app-button-secondary">
             {t('create.back')}
           </Link>
         </div>
