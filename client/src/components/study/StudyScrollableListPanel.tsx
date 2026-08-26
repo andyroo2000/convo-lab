@@ -17,7 +17,7 @@ const StudyScrollableListPanel = ({
 }: StudyScrollableListPanelProps) => (
   <div
     data-testid={panelTestId}
-    className="card retro-paper-panel min-w-0 overflow-hidden xl:sticky xl:top-6 xl:flex xl:max-h-[calc(100vh-3rem)] xl:flex-col xl:self-start"
+    className="card app-surface min-w-0 overflow-hidden xl:sticky xl:top-6 xl:flex xl:max-h-[calc(100vh-3rem)] xl:flex-col xl:self-start"
   >
     <div className="border-b border-gray-200 px-4 py-3">{header}</div>
 

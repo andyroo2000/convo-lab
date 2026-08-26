@@ -298,6 +298,23 @@ describe('StudyCreatePage', () => {
     expect(useStudyManualCardDraftsMock).toHaveBeenLastCalledWith(null);
   });
 
+  it('keeps the active creation form before the draft queue in document order', async () => {
+    renderPage();
+
+    const draftList = screen.getByTestId('study-manual-draft-list');
+    expect(
+      screen.getByRole('heading', { name: 'Vocab bundle' }).compareDocumentPosition(draftList)
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+
+    expect(
+      screen
+        .getByRole('heading', { name: 'New manual draft' })
+        .compareDocumentPosition(screen.getByTestId('study-manual-draft-list'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });

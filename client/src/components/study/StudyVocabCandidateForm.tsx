@@ -23,9 +23,9 @@ const StudyVocabCandidateForm = ({
   onSubmit,
   onTargetWordChange,
 }: StudyVocabCandidateFormProps) => (
-  <section className="card retro-paper-panel max-w-4xl">
+  <section className="card app-surface max-w-4xl">
     <div className="mb-5">
-      <h2 className="font-display text-2xl text-brown">Vocab bundle</h2>
+      <h2 className="text-2xl text-navy">Vocab bundle</h2>
       <p className="mt-1 text-sm text-gray-600">
         Generate three sentence variants and a staged set of listening, reading, word, and cloze
         cards.
@@ -86,7 +86,7 @@ const StudyVocabCandidateForm = ({
       <button
         type="submit"
         disabled={isGenerating || !targetWord.trim()}
-        className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="app-button-primary"
       >
         {isGenerating ? 'Generating…' : 'Generate vocab bundle'}
       </button>
