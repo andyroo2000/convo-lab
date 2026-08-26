@@ -66,8 +66,8 @@ const StudyOverviewDashboard = ({
   }
 
   return (
-    <div className="study-console papercraft-desk space-y-7">
-      <section aria-labelledby="study-today-title" className="papercraft-desk-sheet">
+    <div className="study-console poster-classroom space-y-7">
+      <section aria-labelledby="study-today-title" className="poster-classroom-stage">
         <p id="study-today-title" className="study-console-kicker">
           {t('overview.today')}
         </p>

@@ -190,28 +190,19 @@
   .mobile-learning-dock {
     position: fixed;
     z-index: 60;
-    right: 0.65rem;
-    bottom: 0.55rem;
-    left: 0.65rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    left: 0.5rem;
     padding: 0 0 env(safe-area-inset-bottom);
     color: var(--retro-ink-strong);
-    background: #fffdf6;
-    border: 1px solid rgba(17, 51, 92, 0.46);
-    border-radius: 7px;
-    box-shadow: 5px 6px 0 rgba(17, 51, 92, 0.16);
-    transform: rotate(-0.18deg);
+    background: var(--retro-cream);
+    border: 3px solid var(--retro-ink-strong);
+    border-radius: 0;
+    box-shadow: 6px 6px 0 #ee685a;
   }
 
   .mobile-learning-dock::before {
-    content: '';
-    position: absolute;
-    top: -0.55rem;
-    left: calc(50% - 2rem);
-    width: 4rem;
-    height: 0.95rem;
-    pointer-events: none;
-    background: rgba(26, 178, 209, 0.48);
-    transform: rotate(1.5deg);
+    content: none;
   }
 
   .mobile-learning-dock-inner {
@@ -243,7 +234,7 @@
     height: 1.85rem;
     place-items: center;
     border: 1px solid rgba(17, 51, 92, 0.28);
-    border-radius: 999px;
+    border-radius: 0;
     color: var(--retro-ink-strong);
     background: #f4ecd4;
   }
@@ -256,13 +247,14 @@
 
   .mobile-learning-dock-link[aria-current='page'] {
     color: var(--retro-ink-strong);
+    background: var(--retro-cyan);
   }
 
   .mobile-learning-dock-link[aria-current='page'] .mobile-learning-dock-icon {
     color: var(--retro-cream);
-    background: #ee685a;
-    border-color: #ee685a;
-    box-shadow: 2px 2px 0 var(--retro-ink-strong);
+    background: var(--retro-ink-strong);
+    border-color: var(--retro-ink-strong);
+    box-shadow: 2px 2px 0 var(--retro-cream);
   }
 
   .mobile-learning-dock-link:focus-visible {
@@ -441,211 +433,220 @@
     box-shadow: 5px 6px 0 rgba(17, 51, 92, 0.1);
   }
 
-  .papercraft-desk,
-  .papercraft-cards {
-    --paper-white: #fffdf6;
-    --paper-warm: #f4ecd4;
-    --paper-edge: #d7caa8;
-    --paper-tape-cyan: rgba(26, 178, 209, 0.48);
-    --paper-tape-coral: rgba(238, 104, 90, 0.72);
+  .poster-classroom {
+    max-width: 58rem;
   }
 
-  .papercraft-desk {
-    max-width: 56rem;
-  }
-
-  .papercraft-desk-sheet {
+  .poster-classroom-stage {
     position: relative;
-    padding: 1rem 0.35rem 1.1rem;
+    isolation: isolate;
+    padding: 0.35rem 0 1rem;
   }
 
-  .papercraft-desk-sheet::before {
+  .poster-classroom-stage::before {
     content: '';
     position: absolute;
     z-index: -1;
-    top: -0.35rem;
-    left: -0.45rem;
-    width: min(18rem, 72%);
-    height: 5.4rem;
-    background: var(--paper-white);
-    border: 1px solid rgba(17, 51, 92, 0.24);
-    border-radius: 3px 3px 11px 3px;
-    box-shadow: 4px 5px 0 rgba(17, 51, 92, 0.1);
-    transform: rotate(-0.7deg);
+    top: -2.3rem;
+    right: 0.5rem;
+    width: 8.5rem;
+    height: 8.5rem;
+    border-radius: 999px;
+    background: #ee685a;
   }
 
-  .papercraft-desk-sheet::after {
+  .poster-classroom-stage::after {
     content: '';
     position: absolute;
-    z-index: 0;
-    top: -0.72rem;
-    left: 4.4rem;
-    width: 4.5rem;
-    height: 1rem;
-    pointer-events: none;
-    background: var(--paper-tape-cyan);
-    transform: rotate(1.8deg);
+    z-index: -1;
+    top: 3.7rem;
+    right: -1rem;
+    width: 13rem;
+    height: 1.15rem;
+    background: var(--retro-cyan);
+    transform: rotate(-4deg);
   }
 
-  .papercraft-desk-sheet > * {
-    position: relative;
-    z-index: 1;
+  .poster-classroom .study-console-title {
+    max-width: 75%;
+    font-size: clamp(2.35rem, 7vw, 4.25rem);
+    letter-spacing: -0.055em;
   }
 
-  .papercraft-desk .study-console-plan {
+  .poster-classroom .study-console-plan {
     overflow: visible;
     background: transparent;
     border: 0;
     box-shadow: none;
   }
 
-  .papercraft-desk .study-console-review {
-    border: 1px solid rgba(17, 51, 92, 0.58);
-    border-radius: 4px 4px 12px 4px;
-    box-shadow: 7px 8px 0 var(--paper-edge);
-    transform: rotate(0.3deg);
+  .poster-classroom .study-console-review {
+    background: var(--retro-ink-strong);
+    border: 0;
+    border-radius: 0;
+    box-shadow: 9px 9px 0 var(--retro-cyan);
+    clip-path: polygon(0 0, 96% 0, 100% 86%, 8% 100%, 0 92%);
   }
 
-  .papercraft-desk .study-console-review::before {
-    content: '';
-    position: absolute;
-    z-index: 2;
-    top: -0.55rem;
-    left: 1rem;
-    width: 3.75rem;
-    height: 1rem;
-    pointer-events: none;
-    background: var(--paper-tape-coral);
-    transform: rotate(-2.3deg);
+  .poster-classroom .study-console-review::after {
+    right: 7rem;
+    height: 14rem;
+    border-left-width: 2px;
   }
 
-  .papercraft-desk .study-console-quick-grid {
-    gap: 0.85rem;
-    margin-top: 1.15rem;
-    padding: 0 0.3rem;
+  .poster-classroom .study-console-play {
+    border-radius: 0;
+    background: #ee685a;
+    box-shadow: 4px 4px 0 var(--retro-cream);
+    transform: rotate(3deg);
+  }
+
+  .poster-classroom .study-console-quick-grid {
+    gap: 0.8rem;
+    margin-top: 0.9rem;
     border: 0;
   }
 
-  .papercraft-desk .study-console-quick {
-    background: var(--paper-white);
-    border: 1px solid rgba(17, 51, 92, 0.34);
-    border-radius: 4px;
-    box-shadow: 4px 5px 0 rgba(17, 51, 92, 0.12);
+  .poster-classroom .study-console-quick {
+    border: 3px solid var(--retro-ink-strong);
+    border-radius: 0;
+    box-shadow: none;
   }
 
-  .papercraft-desk .study-console-quick:first-child {
-    transform: rotate(-0.65deg);
+  .poster-classroom .study-console-quick:first-child {
+    background: var(--retro-cyan);
   }
 
-  .papercraft-desk .study-console-quick:nth-child(2) {
-    transform: rotate(0.65deg);
+  .poster-classroom .study-console-quick:nth-child(2) {
+    color: var(--retro-cream);
+    background: #ee685a;
+    transform: translateY(0.5rem) rotate(-1deg);
   }
 
-  .papercraft-desk .study-console-quick + .study-console-quick {
-    border-left: 1px solid rgba(17, 51, 92, 0.34);
+  .poster-classroom .study-console-quick:nth-child(2) .text-navy,
+  .poster-classroom .study-console-quick:nth-child(2) .text-gray-600 {
+    color: var(--retro-cream);
   }
 
-  .papercraft-desk .study-console-next {
-    margin: 1rem 0.35rem 0;
-    background: var(--paper-white);
-    border: 1px solid rgba(17, 51, 92, 0.34);
-    border-radius: 4px 4px 11px 4px;
-    box-shadow: 4px 5px 0 rgba(17, 51, 92, 0.12);
-    transform: rotate(-0.25deg);
+  .poster-classroom .study-console-quick + .study-console-quick {
+    border-left: 3px solid var(--retro-ink-strong);
   }
 
-  .papercraft-desk .study-console-total {
+  .poster-classroom .study-console-next {
+    margin-top: 1rem;
+    background: var(--retro-cream);
+    border: 3px solid var(--retro-ink-strong);
+    box-shadow: -7px 7px 0 var(--retro-cyan);
+  }
+
+  .poster-classroom .study-console-total {
     width: max-content;
+    margin-top: 1rem;
     margin-left: auto;
     padding: 0.35rem 0.65rem;
-    color: var(--retro-ink-soft);
-    background: #f6e6a8;
-    border: 1px solid rgba(17, 51, 92, 0.2);
-    box-shadow: 2px 3px 0 rgba(17, 51, 92, 0.1);
-    transform: rotate(0.8deg);
+    color: var(--retro-cream);
+    background: #ee685a;
+    border: 2px solid var(--retro-ink-strong);
+    transform: rotate(1deg);
   }
 
-  .papercraft-desk .study-console-empty-note {
+  .poster-classroom .study-console-empty-note {
     width: fit-content;
-    max-width: 34rem;
-    margin-top: 0.85rem;
+    max-width: 36rem;
     padding: 0.65rem 0.85rem;
-    background: var(--paper-white);
-    border-left: 4px solid var(--retro-cyan);
-    box-shadow: 3px 4px 0 rgba(17, 51, 92, 0.1);
-    transform: rotate(-0.25deg);
+    background: var(--retro-cream);
+    border: 3px solid var(--retro-ink-strong);
+    box-shadow: -6px 6px 0 var(--retro-cyan);
   }
 
-  .papercraft-desk .study-console-action {
-    background: var(--paper-white);
-    border-width: 1px;
-    border-radius: 3px 3px 9px 3px;
-    box-shadow: 4px 5px 0 var(--paper-edge);
+  .poster-classroom .study-console-action {
+    border: 3px solid var(--retro-ink-strong);
+    border-radius: 0;
+    background: var(--retro-cream);
+    box-shadow: 5px 5px 0 #ee685a;
   }
 
-  .papercraft-desk .study-console-action:nth-child(2) {
-    transform: rotate(0.6deg);
+  .poster-classroom .study-console-action:nth-child(2) {
+    box-shadow: 5px 5px 0 var(--retro-cyan);
+    transform: translateY(0.35rem);
   }
 
-  .papercraft-desk .study-console-readiness {
-    background: var(--paper-white);
-    border-radius: 4px 4px 13px 4px;
-    box-shadow: 6px 7px 0 var(--paper-edge);
-    transform: rotate(0.2deg);
+  .poster-classroom .study-console-readiness {
+    background: var(--retro-cream);
+    border: 3px solid var(--retro-ink-strong);
+    border-radius: 0;
+    box-shadow: -7px 7px 0 var(--retro-cyan);
   }
 
-  .papercraft-card-sheet {
-    background: var(--paper-white);
-    border: 1px solid rgba(17, 51, 92, 0.32);
-    border-radius: 4px 4px 13px 4px;
-    box-shadow: 6px 7px 0 var(--paper-edge);
+  .poster-card-sheet {
+    border: 3px solid var(--retro-ink-strong);
+    border-radius: 0;
+    background: var(--retro-cream);
   }
 
-  .papercraft-card-header {
-    transform: rotate(-0.35deg);
+  .poster-card-header {
+    min-height: 8.5rem;
+    overflow: hidden;
+    background: var(--retro-cyan);
+    box-shadow: 9px 9px 0 var(--retro-ink-strong);
   }
 
-  .papercraft-card-header::after {
+  .poster-card-header::after {
     content: '';
     position: absolute;
-    z-index: 4;
-    top: -0.55rem;
-    left: calc(50% - 2.5rem);
-    width: 5rem;
-    height: 1.05rem;
-    pointer-events: none;
-    background: var(--paper-tape-cyan);
-    transform: rotate(1.5deg);
+    z-index: 2;
+    top: -4.8rem;
+    right: -2.5rem;
+    width: 12rem;
+    height: 12rem;
+    border-radius: 999px;
+    background: #ee685a;
   }
 
-  .papercraft-card-tray {
-    transform: rotate(0.16deg);
+  .poster-card-header > * {
+    position: relative;
+    z-index: 3;
   }
 
-  .papercraft-plus {
-    border-radius: 2px 2px 8px 2px;
-    box-shadow: 3px 4px 0 var(--paper-tape-cyan);
-    transform: rotate(1.2deg);
+  .poster-card-header h1 {
+    font-size: clamp(2.5rem, 7vw, 4rem);
+    letter-spacing: -0.05em;
   }
 
-  .papercraft-index-tabs {
-    gap: 0.4rem;
+  .poster-card-tray {
+    box-shadow: -8px 8px 0 var(--retro-cyan);
+  }
+
+  .poster-plus {
+    border-radius: 0;
+    background: var(--retro-ink-strong);
+    box-shadow: 4px 4px 0 var(--retro-cream);
+    transform: rotate(2deg);
+  }
+
+  .poster-index-tabs {
+    gap: 0;
     padding: 0;
+    border: 3px solid var(--retro-ink-strong);
+    border-radius: 0;
     background: transparent;
   }
 
-  .papercraft-index-tabs [role='tab'] {
-    border: 1px solid rgba(17, 51, 92, 0.28);
-    border-radius: 5px 5px 2px 2px;
-    background: #e8ddbf;
-    box-shadow: 2px 3px 0 rgba(17, 51, 92, 0.1);
+  .poster-index-tabs [role='tab'] {
+    border-radius: 0;
+    color: var(--retro-ink-strong);
+    background: #ee685a;
   }
 
-  .papercraft-index-tabs [role='tab'][aria-selected='true'] {
-    background: #fffdf6;
-    border-bottom-color: #fffdf6;
-    box-shadow: 3px 3px 0 var(--paper-tape-cyan);
-    transform: translateY(1px) rotate(-0.25deg);
+  .poster-index-tabs [role='tab'] + [role='tab'] {
+    border-left: 3px solid var(--retro-ink-strong);
+    background: var(--retro-cyan);
+  }
+
+  .poster-index-tabs [role='tab'][aria-selected='true'] {
+    color: var(--retro-cream);
+    background: var(--retro-ink-strong);
+    box-shadow: none;
   }
 
   @media (min-width: 640px) {
