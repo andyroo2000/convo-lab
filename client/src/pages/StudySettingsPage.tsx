@@ -46,7 +46,7 @@ const StudySettingsPage = () => {
     if (settingsQuery.data) {
       setNewCardsPerDay(settingsQuery.data.newCardsPerDay);
       setLessonBatchSize(settingsQuery.data.lessonBatchSize ?? STUDY_LESSON_BATCH_SIZE_DEFAULT);
-      setLaneWeights(settingsQuery.data.newCardLaneWeights);
+      setLaneWeights(settingsQuery.data.newCardLaneWeights ?? null);
     }
   }, [settingsQuery.data]);
 
@@ -311,14 +311,13 @@ const StudySettingsPage = () => {
           className="flex flex-wrap items-end gap-3"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!laneWeights) return;
             runBackgroundTask(
               async () => {
                 try {
                   await updateSettingsMutation.mutateAsync({
                     newCardsPerDay,
                     lessonBatchSize,
-                    newCardLaneWeights: laneWeights,
+                    ...(laneWeights ? { newCardLaneWeights: laneWeights } : {}),
                   });
                   setSettingsSaveFailedVisible(false);
                   setSettingsSavedVisible(true);
@@ -416,7 +415,7 @@ const StudySettingsPage = () => {
           ) : null}
           <button
             type="submit"
-            disabled={updateSettingsMutation.isPending || !laneWeights}
+            disabled={updateSettingsMutation.isPending}
             className="rounded-full bg-navy px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {updateSettingsMutation.isPending ? t('settings.saving') : t('settings.save')}

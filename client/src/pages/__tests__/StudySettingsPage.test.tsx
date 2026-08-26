@@ -203,6 +203,26 @@ describe('StudySettingsPage', () => {
     );
   });
 
+  it('does not invent lane values when an older settings response omits them', async () => {
+    updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 20 });
+    useStudySettingsMock.mockReturnValue({
+      data: { newCardsPerDay: 20 },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    expect(screen.queryByLabelText('Standard queue')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() =>
+      expect(updateStudySettingsMock).toHaveBeenCalledWith({
+        lessonBatchSize: 5,
+        newCardsPerDay: 20,
+      })
+    );
+  });
+
   it('shows localized feedback when saving the daily limit fails', async () => {
     updateStudySettingsMock.mockRejectedValue(new Error('Save endpoint failed'));
     renderPage();

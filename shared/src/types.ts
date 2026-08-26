@@ -444,7 +444,7 @@ export interface StudyOverview {
 export interface StudySettings {
   newCardsPerDay: number;
   lessonBatchSize?: number;
-  newCardLaneWeights: StudyNewCardLaneWeights;
+  newCardLaneWeights?: StudyNewCardLaneWeights;
 }
 
 export interface StudyNewCardLaneWeights {
