@@ -30,6 +30,7 @@ const catalog: AchievementCatalog = {
 const progress: AchievementProgress = {
   revision: catalog.revision,
   metricValues: { 'reviews.count': 25 },
+  awards: [],
 };
 
 describe('useAchievements', () => {

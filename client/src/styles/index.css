@@ -93,7 +93,7 @@
   }
 
   .achievement-badge-grid {
-    @apply grid items-start justify-center gap-5 sm:grid-cols-[repeat(auto-fit,128px)];
+    @apply grid grid-cols-[repeat(auto-fill,128px)] items-start justify-start gap-5;
   }
 
   .achievement-badge-card {

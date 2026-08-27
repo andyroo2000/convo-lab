@@ -59,6 +59,17 @@ const catalog: AchievementCatalog = {
             locked: { png: { '256': asset(256), '512': asset(512) } },
           },
         },
+        {
+          key: 'second',
+          title: 'Big Bite',
+          threshold: 100,
+          earnedDescription: 'Completed 100 reviews',
+          description: 'Finish 100 reviews.',
+          assets: {
+            earned: { png: { '256': asset(256), '512': asset(512) } },
+            locked: { png: { '256': asset(256), '512': asset(512) } },
+          },
+        },
       ],
     },
   ],
@@ -75,7 +86,7 @@ beforeEach(async () => {
   await i18n.changeLanguage('en');
   achievementState.current = {
     catalog,
-    progress: { revision: catalog.revision, metricValues: { 'reviews.count': 12 } },
+    progress: { revision: catalog.revision, metricValues: { 'reviews.count': 12 }, awards: [] },
     loading: false,
     error: null,
     progressError: null,
@@ -88,18 +99,36 @@ afterEach(async () => {
 });
 
 describe('StudyMilestonesPage', () => {
-  it('toggles to all badges and ignores progress from a mismatched catalog revision', async () => {
+  it('toggles to earned badges and ignores progress from a mismatched catalog revision', async () => {
     achievementState.current.progress = {
       revision: 'catalog-v1',
       metricValues: { 'reviews.count': 88 },
+      awards: [{ id: 'reviews.first', earnedAt: '2026-01-01T00:00:00.000Z' }],
     };
     renderPage();
 
-    await userEvent.click(screen.getByRole('button', { name: 'All badges' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Earned' }));
 
-    expect(screen.getByText('0 reviews so far')).toBeInTheDocument();
-    expect(screen.getByText('Start with 25 reviews')).toBeInTheDocument();
-    expect(screen.queryByText('88 reviews so far')).not.toBeInTheDocument();
+    expect(screen.getByText('Your earned badges will appear here.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'First Nibble' })).not.toBeInTheDocument();
+  });
+
+  it('shows every earned badge newest first', async () => {
+    achievementState.current.progress = {
+      revision: catalog.revision,
+      metricValues: { 'reviews.count': 100 },
+      awards: [
+        { id: 'reviews.first', earnedAt: '2026-01-01T00:00:00.000Z' },
+        { id: 'reviews.second', earnedAt: '2026-02-01T00:00:00.000Z' },
+      ],
+    };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Earned' }));
+
+    expect(
+      screen.getAllByTestId(/^achievement-/).map((badge) => badge.getAttribute('data-testid'))
+    ).toEqual(['achievement-reviews.second', 'achievement-reviews.first']);
   });
 
   it('keeps fallback badges visible and retries after a progress-only failure', () => {

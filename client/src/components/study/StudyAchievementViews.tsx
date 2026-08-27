@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import useAchievements from '../../hooks/useAchievements';
-import { featuredAchievements, type PresentedAchievement } from './achievementModel';
+import { recentEarnedAchievements, type PresentedAchievement } from './achievementModel';
 
 interface AchievementBadgeCardProps {
   achievement: PresentedAchievement;
@@ -91,9 +91,12 @@ export const StudyAchievementSpotlight = () => {
       {loading ? <AchievementSkeletons /> : null}
       {!loading && catalog ? (
         <div className="achievement-badge-row">
-          {featuredAchievements(catalog, progress).map((achievement) => (
+          {recentEarnedAchievements(catalog, progress).map((achievement) => (
             <AchievementBadgeCard key={achievement.id} achievement={achievement} />
           ))}
+          {recentEarnedAchievements(catalog, progress).length === 0 ? (
+            <p className="text-sm text-[color:rgba(17,51,92,0.72)]">{t('achievements.noEarned')}</p>
+          ) : null}
         </div>
       ) : null}
       {!loading && catalog && progressError ? (

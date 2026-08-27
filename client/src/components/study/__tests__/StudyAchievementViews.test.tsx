@@ -8,6 +8,7 @@ import type { PresentedAchievement } from '../achievementModel';
 const achievement = (earned: boolean): PresentedAchievement => ({
   id: 'reviews.card-muncher',
   earned,
+  earnedAt: earned ? '2026-01-01T00:00:00.000Z' : null,
   currentValue: earned ? 25 : 23,
   remaining: earned ? 0 : 2,
   family: {

@@ -5,25 +5,21 @@ import { useTranslation } from 'react-i18next';
 
 import { AchievementBadgeCard } from '../components/study/StudyAchievementViews';
 import {
-  allPresentedAchievements,
-  featuredAchievements,
+  closestInProgressAchievements,
+  recentEarnedAchievements,
 } from '../components/study/achievementModel';
 import useAchievements from '../hooks/useAchievements';
 
 const StudyMilestonesPage = () => {
-  const { t, i18n } = useTranslation('study');
+  const { t } = useTranslation('study');
   const { catalog, progress, loading, error, progressError, retry } = useAchievements();
-  const [view, setView] = useState<'progress' | 'all'>('progress');
-  const featured = useMemo(
-    () => (catalog ? featuredAchievements(catalog, progress) : []),
+  const [view, setView] = useState<'progress' | 'earned'>('progress');
+  const inProgress = useMemo(
+    () => (catalog ? closestInProgressAchievements(catalog, progress) : []),
     [catalog, progress]
   );
-  const all = useMemo(
-    () => (catalog ? allPresentedAchievements(catalog, progress) : []),
-    [catalog, progress]
-  );
-  const metricValues = useMemo(
-    () => (catalog && progress?.revision === catalog.revision ? progress.metricValues : {}),
+  const earned = useMemo(
+    () => (catalog ? recentEarnedAchievements(catalog, progress, Number.MAX_SAFE_INTEGER) : []),
     [catalog, progress]
   );
 
@@ -60,11 +56,11 @@ const StudyMilestonesPage = () => {
           </button>
           <button
             type="button"
-            className={view === 'all' ? 'is-active' : ''}
-            aria-pressed={view === 'all'}
-            onClick={() => setView('all')}
+            className={view === 'earned' ? 'is-active' : ''}
+            aria-pressed={view === 'earned'}
+            onClick={() => setView('earned')}
           >
-            {t('achievements.allBadges')}
+            {t('achievements.earned')}
           </button>
         </div>
       </header>
@@ -95,40 +91,29 @@ const StudyMilestonesPage = () => {
             {t('achievements.progressIntro')}
           </p>
           <div className="achievement-badge-grid mt-6">
-            {featured.map((achievement) => (
+            {inProgress.map((achievement) => (
               <AchievementBadgeCard key={achievement.id} achievement={achievement} />
             ))}
           </div>
         </section>
       ) : null}
 
-      {!loading && catalog && view === 'all'
-        ? catalog.families.map((family) => (
-            <section key={family.key}>
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h2 className="text-3xl text-[var(--retro-ink-strong)]">{family.title}</h2>
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-coral">
-                  {t('achievements.familyProgress', {
-                    current: new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language).format(
-                      metricValues[family.metricKey] ?? 0
-                    ),
-                    unit: t(`achievements.units.${family.unit}`, {
-                      count: metricValues[family.metricKey] ?? 0,
-                      defaultValue: family.unit,
-                    }),
-                  })}
-                </p>
-              </div>
-              <div className="achievement-badge-grid mt-4">
-                {all
-                  .filter((achievement) => achievement.family.key === family.key)
-                  .map((achievement) => (
-                    <AchievementBadgeCard key={achievement.id} achievement={achievement} />
-                  ))}
-              </div>
-            </section>
-          ))
-        : null}
+      {!loading && catalog && view === 'earned' ? (
+        <section>
+          <p className="max-w-2xl text-lg text-[color:rgba(17,51,92,0.72)]">
+            {t('achievements.earnedIntro')}
+          </p>
+          {earned.length > 0 ? (
+            <div className="achievement-badge-grid mt-6">
+              {earned.map((achievement) => (
+                <AchievementBadgeCard key={achievement.id} achievement={achievement} />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-6 text-[var(--retro-ink-strong)]">{t('achievements.noEarned')}</p>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 };
