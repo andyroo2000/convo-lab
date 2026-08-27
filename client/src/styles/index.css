@@ -109,7 +109,7 @@
   }
 
   .achievement-badge-caption {
-    @apply relative z-10 -mt-px flex min-h-[62px] flex-col items-center justify-center px-2 py-2 text-center;
+    @apply relative z-10 -mt-px flex h-[62px] flex-col items-center justify-center px-2 py-2 text-center;
     background: var(--retro-ink-strong);
     color: var(--retro-paper);
   }
@@ -123,7 +123,7 @@
   }
 
   .achievement-badge-caption p {
-    @apply mt-1 text-[0.6875rem] font-bold leading-tight text-[#f7e7b7];
+    @apply mt-1 line-clamp-2 text-[0.6875rem] font-bold leading-tight text-[#f7e7b7];
   }
 
   .achievement-view-toggle {
