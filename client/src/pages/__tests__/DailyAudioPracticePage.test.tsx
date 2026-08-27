@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DailyAudioPracticePage from '../DailyAudioPracticePage';
@@ -263,12 +263,18 @@ describe('DailyAudioPracticePage', () => {
   });
 
   it('shows generation progress and track statuses', () => {
+    const todayGeneratingPractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+      updatedAt: new Date().toISOString(),
+    };
     mockUseRecentDailyAudioPractice.mockReturnValue({
-      data: [{ ...readyPractice, status: 'generating' }],
+      data: [todayGeneratingPractice],
       isLoading: false,
     });
     mockUseDailyAudioPractice.mockReturnValue({
-      data: { ...readyPractice, status: 'generating' },
+      data: todayGeneratingPractice,
       isLoading: false,
     });
     mockUseDailyAudioPracticeStatus.mockReturnValue({
@@ -280,6 +286,83 @@ describe('DailyAudioPracticePage', () => {
     expect(screen.getByText("Generating today's 30-minute edition")).toBeInTheDocument();
     expect(screen.getByText('45%')).toBeInTheDocument();
     expect(screen.getByText(/Drills: Ready/)).toBeInTheDocument();
+  });
+
+  it("keeps polling today's generation while an earlier day is selected", () => {
+    const todayGeneratingPractice = {
+      ...readyPractice,
+      id: 'practice-today',
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+      updatedAt: new Date().toISOString(),
+    };
+    const earlierPractice = {
+      ...readyPractice,
+      id: 'practice-earlier',
+      practiceDate: '2020-01-01',
+    };
+    const practices = [todayGeneratingPractice, earlierPractice];
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: practices, isLoading: false });
+    mockUseDailyAudioPractice.mockImplementation((id: string | undefined) => ({
+      data: practices.find((item) => item.id === id),
+      isLoading: false,
+    }));
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Earlier day' }));
+
+    expect(screen.getByText('2020-01-01')).toBeInTheDocument();
+    expect(mockUseDailyAudioPracticeStatus).toHaveBeenLastCalledWith('practice-today', true);
+  });
+
+  it("enables retry when today's generation is stale", async () => {
+    const stalePractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+      updatedAt: new Date(Date.now() - 91 * 60 * 1000).toISOString(),
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [stalePractice], isLoading: false });
+    mockUseDailyAudioPractice.mockReturnValue({ data: stalePractice, isLoading: false });
+    mockCreateMutateAsync.mockResolvedValue(stalePractice);
+
+    renderPage();
+
+    expect(screen.getByText('Generation is taking longer than expected')).toBeInTheDocument();
+    expect(screen.queryByText(/Generating today's 30-minute edition/i)).not.toBeInTheDocument();
+    expect(mockUseDailyAudioPracticeStatus).toHaveBeenLastCalledWith('practice-1', false);
+    const retryButton = screen.getByRole('button', { name: /retry today's audio/i });
+    expect(retryButton).toBeEnabled();
+    fireEvent.click(retryButton);
+
+    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith(60));
+  });
+
+  it('enables retry when an unchanged generation crosses the stale threshold', () => {
+    vi.useFakeTimers();
+    const now = new Date('2026-08-27T12:00:00.000Z');
+    vi.setSystemTime(now);
+    const nearlyStalePractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+      updatedAt: new Date(now.getTime() - 89 * 60 * 1000).toISOString(),
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({
+      data: [nearlyStalePractice],
+      isLoading: false,
+    });
+    mockUseDailyAudioPractice.mockReturnValue({ data: nearlyStalePractice, isLoading: false });
+
+    renderPage();
+    expect(screen.getByRole('button', { name: /generate today's audio/i })).toBeDisabled();
+
+    act(() => {
+      vi.advanceTimersByTime(61 * 1000);
+    });
+
+    expect(screen.getByRole('button', { name: /retry today's audio/i })).toBeEnabled();
+    vi.useRealTimers();
   });
 
   it('renders source summary and all three ready tracks', () => {
