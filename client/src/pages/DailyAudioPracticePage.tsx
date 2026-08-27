@@ -123,6 +123,14 @@ const DailyAudioPracticePage = () => {
   const todayPractice = practices.find((item) => item.practiceDate === localPracticeDate());
   const todayGenerating = todayPractice?.status === 'generating';
   const todayHasAudio = todayPractice?.status === 'ready';
+  const todayGenerationUpdatedAt = todayPractice?.updatedAt
+    ? new Date(todayPractice.updatedAt).getTime()
+    : null;
+  const staleTodayGeneration =
+    Boolean(todayGenerating) &&
+    todayGenerationUpdatedAt !== null &&
+    Date.now() - todayGenerationUpdatedAt > GENERATION_STALE_AFTER_MS;
+  const activeTodayGeneration = Boolean(todayGenerating && !staleTodayGeneration);
 
   useEffect(() => {
     if (!selectedPracticeId && practices[0]) {
@@ -133,22 +141,16 @@ const DailyAudioPracticePage = () => {
   const detailQuery = useDailyAudioPractice(selectedPracticeId);
   const practice = detailQuery.data ?? practices.find((item) => item.id === selectedPracticeId);
   const generating = practice?.status === 'generating';
-  const generationUpdatedAt = practice?.updatedAt ? new Date(practice.updatedAt).getTime() : null;
-  const staleGeneration =
-    Boolean(generating) &&
-    generationUpdatedAt !== null &&
-    Date.now() - generationUpdatedAt > GENERATION_STALE_AFTER_MS;
-  const statusQuery = useDailyAudioPracticeStatus(
-    practice?.id,
-    Boolean(generating && !staleGeneration)
-  );
+  const selectedPracticeIsToday = Boolean(practice?.id && practice.id === todayPractice?.id);
+  const staleGeneration = selectedPracticeIsToday && staleTodayGeneration;
+  const statusQuery = useDailyAudioPracticeStatus(todayPractice?.id, activeTodayGeneration);
 
   useEffect(() => {
     const status = statusQuery.data?.status;
-    if (!practice?.id || (status !== 'ready' && status !== 'error')) return;
-    queryClient.invalidateQueries({ queryKey: dailyAudioPracticeKeys.detail(practice.id) });
+    if (!todayPractice?.id || (status !== 'ready' && status !== 'error')) return;
+    queryClient.invalidateQueries({ queryKey: dailyAudioPracticeKeys.detail(todayPractice.id) });
     queryClient.invalidateQueries({ queryKey: dailyAudioPracticeKeys.list() });
-  }, [practice?.id, queryClient, statusQuery.data?.status]);
+  }, [queryClient, statusQuery.data?.status, todayPractice?.id]);
 
   const sourceSummary = practice?.selectionSummaryJson;
   const tracks = useMemo(() => practice?.tracks ?? [], [practice?.tracks]);
@@ -210,7 +212,13 @@ const DailyAudioPracticePage = () => {
   };
 
   const loading = recentQuery.isLoading || Boolean(selectedPracticeId && detailQuery.isLoading);
-  const progress = statusQuery.data?.progress ?? (generating ? 0 : null);
+  let progress: number | null = generating ? 0 : null;
+  if (selectedPracticeIsToday && statusQuery.data?.progress !== undefined) {
+    progress = statusQuery.data.progress;
+  }
+  let generateButtonLabel = "Generate Today's Audio";
+  if (todayHasAudio) generateButtonLabel = "Regenerate Today's Audio";
+  if (staleTodayGeneration) generateButtonLabel = "Retry Today's Audio";
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5">
@@ -225,7 +233,7 @@ const DailyAudioPracticePage = () => {
             </p>
           </div>
           <div className="space-y-3">
-            <fieldset disabled={createPractice.isPending || todayGenerating}>
+            <fieldset disabled={createPractice.isPending || activeTodayGeneration}>
               <legend className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Edition length</legend>
               <div className="grid grid-cols-4 gap-1" aria-label="Edition length">
                 {DAILY_AUDIO_DURATION_OPTIONS.map((duration) => (
@@ -248,15 +256,15 @@ const DailyAudioPracticePage = () => {
             <button
               type="button"
               onClick={handleGenerateRequest}
-              disabled={createPractice.isPending || todayGenerating}
+              disabled={createPractice.isPending || activeTodayGeneration}
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 border-2 border-navy/20 bg-navy px-5 py-3 font-black uppercase tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {todayGenerating ? (
+              {activeTodayGeneration ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
                 <Headphones className="h-4 w-4" />
               )}
-              {todayHasAudio ? "Regenerate Today's Audio" : "Generate Today's Audio"}
+              {generateButtonLabel}
             </button>
           </div>
         </div>

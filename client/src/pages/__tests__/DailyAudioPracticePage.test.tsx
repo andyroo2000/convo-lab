@@ -263,12 +263,17 @@ describe('DailyAudioPracticePage', () => {
   });
 
   it('shows generation progress and track statuses', () => {
+    const todayGeneratingPractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+    };
     mockUseRecentDailyAudioPractice.mockReturnValue({
-      data: [{ ...readyPractice, status: 'generating' }],
+      data: [todayGeneratingPractice],
       isLoading: false,
     });
     mockUseDailyAudioPractice.mockReturnValue({
-      data: { ...readyPractice, status: 'generating' },
+      data: todayGeneratingPractice,
       isLoading: false,
     });
     mockUseDailyAudioPracticeStatus.mockReturnValue({
@@ -280,6 +285,55 @@ describe('DailyAudioPracticePage', () => {
     expect(screen.getByText("Generating today's 30-minute edition")).toBeInTheDocument();
     expect(screen.getByText('45%')).toBeInTheDocument();
     expect(screen.getByText(/Drills: Ready/)).toBeInTheDocument();
+  });
+
+  it("keeps polling today's generation while an earlier day is selected", () => {
+    const todayGeneratingPractice = {
+      ...readyPractice,
+      id: 'practice-today',
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+      updatedAt: new Date().toISOString(),
+    };
+    const earlierPractice = {
+      ...readyPractice,
+      id: 'practice-earlier',
+      practiceDate: '2020-01-01',
+    };
+    const practices = [todayGeneratingPractice, earlierPractice];
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: practices, isLoading: false });
+    mockUseDailyAudioPractice.mockImplementation((id: string | undefined) => ({
+      data: practices.find((item) => item.id === id),
+      isLoading: false,
+    }));
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Earlier day' }));
+
+    expect(screen.getByText('2020-01-01')).toBeInTheDocument();
+    expect(mockUseDailyAudioPracticeStatus).toHaveBeenLastCalledWith('practice-today', true);
+  });
+
+  it("enables retry when today's generation is stale", async () => {
+    const stalePractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+      updatedAt: new Date(Date.now() - 91 * 60 * 1000).toISOString(),
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [stalePractice], isLoading: false });
+    mockUseDailyAudioPractice.mockReturnValue({ data: stalePractice, isLoading: false });
+    mockCreateMutateAsync.mockResolvedValue(stalePractice);
+
+    renderPage();
+
+    expect(screen.getByText('Generation is taking longer than expected')).toBeInTheDocument();
+    expect(mockUseDailyAudioPracticeStatus).toHaveBeenLastCalledWith('practice-1', false);
+    const retryButton = screen.getByRole('button', { name: /retry today's audio/i });
+    expect(retryButton).toBeEnabled();
+    fireEvent.click(retryButton);
+
+    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith(60));
   });
 
   it('renders source summary and all three ready tracks', () => {
