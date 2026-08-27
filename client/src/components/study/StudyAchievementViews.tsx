@@ -68,6 +68,7 @@ const AchievementSkeletons = () => (
 export const StudyAchievementSpotlight = () => {
   const { t } = useTranslation('study');
   const { catalog, progress, loading, error, progressError, retry } = useAchievements();
+  const recentAchievements = catalog ? recentEarnedAchievements(catalog, progress) : [];
 
   return (
     <section className="achievement-spotlight" data-testid="study-recent-milestones">
@@ -89,12 +90,12 @@ export const StudyAchievementSpotlight = () => {
       </div>
 
       {loading ? <AchievementSkeletons /> : null}
-      {!loading && catalog ? (
+      {!loading && catalog && (!progressError || progress) ? (
         <div className="achievement-badge-row">
-          {recentEarnedAchievements(catalog, progress).map((achievement) => (
+          {recentAchievements.map((achievement) => (
             <AchievementBadgeCard key={achievement.id} achievement={achievement} />
           ))}
-          {recentEarnedAchievements(catalog, progress).length === 0 ? (
+          {recentAchievements.length === 0 ? (
             <p className="text-sm text-[color:rgba(17,51,92,0.72)]">{t('achievements.noEarned')}</p>
           ) : null}
         </div>

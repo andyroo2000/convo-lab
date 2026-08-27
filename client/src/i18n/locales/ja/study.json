@@ -73,7 +73,6 @@
     "earned": "獲得済み",
     "more": "あと{{formattedCount}} {{unit}}",
     "startWith": "まずは{{formattedCount}} {{unit}}",
-    "familyProgress": "現在 {{current}} {{unit}}",
     "units": {
       "cards": "枚",
       "reviews": "回のレビュー",

@@ -55,6 +55,16 @@ describe('achievementModel', () => {
     ]);
   });
 
+  it('uses the catalog fallback order before a new account has meaningful progress', () => {
+    expect(
+      closestInProgressAchievements(catalog(), {
+        revision: 'achievement-collection-v2',
+        metricValues: { 'stable.count': 0, 'reviews.count': 0, 'voice.hours': 0 },
+        awards: [],
+      }).map(({ id }) => id)
+    ).toEqual(['reviews.first', 'voice.first', 'stable.first']);
+  });
+
   it('shows only locked badges ranked by percentage complete', () => {
     expect(
       closestInProgressAchievements(catalog(), {

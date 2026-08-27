@@ -52,7 +52,15 @@ const useAchievements = () => {
           console.error(context, progressError);
         }
         if (!cancelled) {
-          setState({ catalog, progress, loading: false, error: null, progressError });
+          setState((current) => ({
+            catalog,
+            progress:
+              progress ??
+              (current.progress?.revision === catalog.revision ? current.progress : null),
+            loading: false,
+            error: null,
+            progressError,
+          }));
         }
       })
       .catch((reason: unknown) => {

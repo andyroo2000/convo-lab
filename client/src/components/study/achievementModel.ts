@@ -273,8 +273,12 @@ export const closestInProgressAchievements = (
   count = catalog.presentation.targetVisibleBadgeCount
 ): PresentedAchievement[] => {
   const all = allPresentedAchievements(catalog, progress);
-  const metricValues = progress?.revision === catalog.revision ? progress.metricValues : null;
-  const hasProgress = metricValues !== null;
+  const compatibleProgress = progress?.revision === catalog.revision ? progress : null;
+  const metricValues = compatibleProgress?.metricValues ?? null;
+  const hasProgress =
+    metricValues !== null &&
+    (Object.values(metricValues).some((metricValue) => metricValue > 0) ||
+      (compatibleProgress?.awards.length ?? 0) > 0);
 
   if (!hasProgress) {
     const byId = new Map(all.map((achievement) => [achievement.id, achievement]));
@@ -284,11 +288,20 @@ export const closestInProgressAchievements = (
       .slice(0, count);
   }
 
+  if (!catalog.presentation.fillWithLockedCandidates) return [];
+
   const achievementOrder = new Map(all.map((achievement, index) => [achievement.id, index]));
   const candidates = catalog.families
-    .map((family) =>
-      all.find((achievement) => achievement.family.key === family.key && !achievement.earned)
-    )
+    .map((family) => {
+      const familyAchievements = all.filter((achievement) => achievement.family.key === family.key);
+      let highestEarnedIndex = -1;
+      familyAchievements.forEach((achievement, index) => {
+        if (achievement.earned) highestEarnedIndex = index;
+      });
+      return familyAchievements
+        .slice(highestEarnedIndex + 1)
+        .find((achievement) => !achievement.earned);
+    })
     .filter((achievement): achievement is PresentedAchievement => achievement !== undefined)
     .sort((left, right) => {
       const leftRatio = (left.currentValue ?? 0) / left.tier.threshold;

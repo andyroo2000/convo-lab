@@ -98,7 +98,7 @@ const StudyMilestonesPage = () => {
         </section>
       ) : null}
 
-      {!loading && catalog && view === 'earned' ? (
+      {!loading && catalog && (!progressError || progress) && view === 'earned' ? (
         <section>
           <p className="max-w-2xl text-lg text-[color:rgba(17,51,92,0.72)]">
             {t('achievements.earnedIntro')}

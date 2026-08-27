@@ -68,4 +68,19 @@ describe('useAchievements', () => {
     expect(getAchievementCatalogMock).toHaveBeenCalledTimes(2);
     expect(getAchievementProgressMock).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps a compatible achievement snapshot when a later refresh fails', async () => {
+    const progressFailure = new Error('Progress service unavailable');
+    getAchievementProgressMock
+      .mockResolvedValueOnce(progress)
+      .mockRejectedValueOnce(progressFailure);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const { result } = renderHook(() => useAchievements());
+
+    await waitFor(() => expect(result.current.progress).toBe(progress));
+    act(() => result.current.retry());
+    await waitFor(() => expect(result.current.progressError).toBe(progressFailure));
+    expect(result.current.progress).toBe(progress);
+  });
 });
