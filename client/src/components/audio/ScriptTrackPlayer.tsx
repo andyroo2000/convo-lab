@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import AudioPlayer from '../AudioPlayer';
 import CurrentTextDisplay from '../CurrentTextDisplay';
@@ -107,6 +107,28 @@ const ScriptTrackPlayer = ({
     return () => stopActivity('daily_audio', title);
   }, [isPlaying, startActivity, stopActivity, title]);
 
+  const recordCompletion = useCallback(() => {
+    stopActivityAndWait('daily_audio', title)
+      .then(() => {
+        const now = new Date().toISOString();
+        return logCompletedAndWait({
+          clientSessionId: crypto.randomUUID(),
+          category: 'listen',
+          activity: 'daily_audio',
+          source: 'automatic',
+          name: `${DAILY_AUDIO_COMPLETION_PREFIX}${title.slice(
+            0,
+            STUDY_ACTIVITY_NAME_MAX_LENGTH - DAILY_AUDIO_COMPLETION_PREFIX.length
+          )}`,
+          startedAt: now,
+          endedAt: now,
+          durationMs: 0,
+          audioPlaybackMs: 0,
+        });
+      })
+      .catch(() => undefined);
+  }, [logCompletedAndWait, stopActivityAndWait, title]);
+
   return (
     <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">
       <div className="space-y-4 px-4 py-4 sm:px-5">
@@ -145,27 +167,7 @@ const ScriptTrackPlayer = ({
                 src={playbackAudioUrl}
                 audioRef={audioRef}
                 key={playbackAudioUrl}
-                onEnded={() => {
-                  stopActivityAndWait('daily_audio', title)
-                    .then(() => {
-                      const now = new Date().toISOString();
-                      return logCompletedAndWait({
-                        clientSessionId: crypto.randomUUID(),
-                        category: 'listen',
-                        activity: 'daily_audio',
-                        source: 'automatic',
-                        name: `${DAILY_AUDIO_COMPLETION_PREFIX}${title.slice(
-                          0,
-                          STUDY_ACTIVITY_NAME_MAX_LENGTH - DAILY_AUDIO_COMPLETION_PREFIX.length
-                        )}`,
-                        startedAt: now,
-                        endedAt: now,
-                        durationMs: 0,
-                        audioPlaybackMs: 0,
-                      });
-                    })
-                    .catch(() => undefined);
-                }}
+                onEnded={recordCompletion}
               />
             </div>
           </>
