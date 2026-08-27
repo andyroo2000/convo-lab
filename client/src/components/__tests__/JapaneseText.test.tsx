@@ -259,7 +259,7 @@ describe('JapaneseText', () => {
 
   describe('html sanitization', () => {
     it('should only allow ruby and rt tags', () => {
-      // The component uses dangerouslySetInnerHTML but only generates ruby/rt
+      // The parser emits text plus ruby/rt React nodes.
       const { container } = render(<JapaneseText text="日[ひ]本[ほん]" />);
       // Verify only expected elements exist
       // For checking element types, we need container as there's no better semantic query
