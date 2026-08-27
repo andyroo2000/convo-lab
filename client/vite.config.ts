@@ -121,6 +121,10 @@ export default defineConfig({
         target: learningOsApiUrl,
         changeOrigin: true,
       },
+      '/achievement-assets': {
+        target: learningOsApiUrl,
+        changeOrigin: true,
+      },
       '/avatars': {
         target: learningOsApiUrl,
         changeOrigin: true,
