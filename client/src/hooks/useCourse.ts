@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Course, CourseStatusResponse } from '../types';
 import { courseApi, readCourseApiError } from '../lib/courseApi';
@@ -5,8 +6,10 @@ import { courseApi, readCourseApiError } from '../lib/courseApi';
 // Query keys
 export const courseKeys = {
   all: ['courses'] as const,
-  detail: (id: string) => [...courseKeys.all, 'detail', id] as const,
-  status: (id: string) => [...courseKeys.all, 'status', id] as const,
+  detail: (id: string, viewAsUserId?: string) =>
+    [...courseKeys.all, 'detail', id, viewAsUserId ?? null] as const,
+  status: (id: string, viewAsUserId?: string) =>
+    [...courseKeys.all, 'status', id, viewAsUserId ?? null] as const,
 };
 
 async function fetchCourse(courseId: string, viewAsUserId?: string): Promise<Course> {
@@ -50,9 +53,16 @@ async function fetchCourseStatus(
 
 async function updateCourseRequest(
   courseId: string,
-  updates: { title?: string; description?: string }
+  updates: { title?: string; description?: string },
+  viewAsUserId?: string
 ): Promise<void> {
-  const response = await fetch(courseApi.member(courseId), {
+  const params = new URLSearchParams();
+  if (viewAsUserId) params.append('viewAs', viewAsUserId);
+
+  const queryString = params.toString();
+  const url = `${courseApi.member(courseId)}${queryString ? `?${queryString}` : ''}`;
+
+  const response = await fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -69,7 +79,7 @@ export function useCourse(courseId: string | undefined, viewAsUserId?: string) {
 
   // Main course query
   const courseQuery = useQuery({
-    queryKey: courseKeys.detail(courseId!),
+    queryKey: courseKeys.detail(courseId!, viewAsUserId),
     queryFn: () => fetchCourse(courseId!, viewAsUserId),
     enabled: !!courseId,
   });
@@ -79,25 +89,36 @@ export function useCourse(courseId: string | undefined, viewAsUserId?: string) {
 
   // Status polling query - only active when course is generating
   const statusQuery = useQuery({
-    queryKey: courseKeys.status(courseId!),
+    queryKey: courseKeys.status(courseId!, viewAsUserId),
     queryFn: () => fetchCourseStatus(courseId!, viewAsUserId),
     enabled: !!courseId && isGenerating,
     refetchInterval: isGenerating ? 5000 : false, // Poll every 5 seconds while generating
   });
 
   // When status changes to ready/error, refetch the course
-  const status = statusQuery.data;
-  if (status && (status.status === 'ready' || status.status === 'error')) {
-    // Invalidate the course query to get fresh data
-    queryClient.invalidateQueries({ queryKey: courseKeys.detail(courseId!) });
-  }
+  const terminalStatus =
+    statusQuery.data?.status === 'ready' || statusQuery.data?.status === 'error'
+      ? statusQuery.data.status
+      : null;
+
+  useEffect(() => {
+    if (!courseId || !isGenerating || !terminalStatus) return;
+
+    // Refresh once when polling reaches a terminal state. Performing this
+    // invalidation during render caused every render to start another request.
+    queryClient.invalidateQueries({
+      queryKey: courseKeys.detail(courseId, viewAsUserId),
+    });
+  }, [courseId, isGenerating, queryClient, terminalStatus, viewAsUserId]);
 
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: (updates: { title?: string; description?: string }) =>
-      updateCourseRequest(courseId!, updates),
+      updateCourseRequest(courseId!, updates, viewAsUserId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: courseKeys.detail(courseId!) });
+      queryClient.invalidateQueries({
+        queryKey: courseKeys.detail(courseId!, viewAsUserId),
+      });
     },
   });
 

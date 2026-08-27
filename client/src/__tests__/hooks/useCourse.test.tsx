@@ -21,8 +21,13 @@ describe('useCourse', () => {
   describe('courseKeys', () => {
     it('should generate correct query keys', () => {
       expect(courseKeys.all).toEqual(['courses']);
-      expect(courseKeys.detail('course-123')).toEqual(['courses', 'detail', 'course-123']);
-      expect(courseKeys.status('course-123')).toEqual(['courses', 'status', 'course-123']);
+      expect(courseKeys.detail('course-123')).toEqual(['courses', 'detail', 'course-123', null]);
+      expect(courseKeys.status('course-123', 'user-456')).toEqual([
+        'courses',
+        'status',
+        'course-123',
+        'user-456',
+      ]);
     });
   });
 
@@ -90,6 +95,46 @@ describe('useCourse', () => {
       await waitFor(() => {
         expect(result.current.error).toBe('Not found');
       });
+    });
+
+    it('refetches when the view-as identity changes', async () => {
+      mockFetch.mockImplementation((url: string) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: 'course-123',
+              status: 'ready',
+              title: url.includes('user-b') ? 'User B course' : 'User A course',
+            }),
+        })
+      );
+
+      const { result, rerender } = renderHook(
+        ({ viewAsUserId }) => useCourse('course-123', viewAsUserId),
+        {
+          initialProps: { viewAsUserId: 'user-a' },
+          wrapper: createWrapper(),
+        }
+      );
+
+      await waitFor(() => {
+        expect(result.current.course?.title).toBe('User A course');
+      });
+
+      rerender({ viewAsUserId: 'user-b' });
+
+      await waitFor(() => {
+        expect(result.current.course?.title).toBe('User B course');
+      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/convolab/courses/course-123?viewAs=user-a',
+        expect.any(Object)
+      );
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/convolab/courses/course-123?viewAs=user-b',
+        expect.any(Object)
+      );
     });
   });
 
@@ -203,6 +248,41 @@ describe('useCourse', () => {
         });
       });
     });
+
+    it('refetches course detail only once when status becomes terminal', async () => {
+      let courseRequestCount = 0;
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/status')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ status: 'ready', progress: null }),
+          });
+        }
+
+        courseRequestCount += 1;
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: 'course-123',
+              status: courseRequestCount === 1 ? 'generating' : 'ready',
+            }),
+        });
+      });
+
+      const { result } = renderHook(() => useCourse('course-123'), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.course?.status).toBe('ready');
+      });
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
+
+      expect(courseRequestCount).toBe(2);
+    });
   });
 
   describe('Update Mutation', () => {
@@ -273,6 +353,34 @@ describe('useCourse', () => {
       });
 
       expect(result.current.isUpdating).toBe(false);
+    });
+
+    it('preserves view-as scope when updating a course', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ id: 'course-123', status: 'ready' }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ message: 'Course updated successfully' }),
+        });
+
+      const { result } = renderHook(() => useCourse('course-123', 'user-456'), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      await act(async () => {
+        await result.current.updateCourse({ title: 'Updated Title' });
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/convolab/courses/course-123?viewAs=user-456',
+        expect.objectContaining({ method: 'PATCH' })
+      );
     });
   });
 
