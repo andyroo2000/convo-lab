@@ -22,6 +22,10 @@ const StudyMilestonesPage = () => {
     () => (catalog ? allPresentedAchievements(catalog, progress) : []),
     [catalog, progress]
   );
+  const metricValues = useMemo(
+    () => (catalog && progress?.revision === catalog.revision ? progress.metricValues : {}),
+    [catalog, progress]
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-10">
@@ -106,10 +110,10 @@ const StudyMilestonesPage = () => {
                 <p className="text-sm font-bold uppercase tracking-[0.12em] text-coral">
                   {t('achievements.familyProgress', {
                     current: new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language).format(
-                      progress?.metricValues[family.metricKey] ?? 0
+                      metricValues[family.metricKey] ?? 0
                     ),
                     unit: t(`achievements.units.${family.unit}`, {
-                      count: progress?.metricValues[family.metricKey] ?? 0,
+                      count: metricValues[family.metricKey] ?? 0,
                       defaultValue: family.unit,
                     }),
                   })}
