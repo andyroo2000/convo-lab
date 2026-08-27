@@ -232,6 +232,8 @@ export interface StudyLearningReadiness {
   reviewTimeBudgetMinutes?: number | null;
   reviewTimeHeadroomMinutes?: number | null;
   suggestedBatchSize: number;
+  displayStatus?: string;
+  displaySummary?: string;
 }
 
 export type StudyCardCandidateKind =

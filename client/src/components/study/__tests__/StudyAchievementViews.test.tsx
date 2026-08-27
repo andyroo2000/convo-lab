@@ -21,6 +21,7 @@ const achievement = (earned: boolean): PresentedAchievement => ({
     key: 'card-muncher',
     title: 'Card Muncher',
     threshold: 25,
+    earnedDescription: 'Completed 25 reviews',
     description: 'A hungry kaiju discovers its first review cards.',
     assets: {
       earned: {
@@ -63,10 +64,10 @@ describe('AchievementBadgeCard', () => {
       'srcset',
       '/achievement-assets/card-muncher-256.png 1x, /achievement-assets/card-muncher-512.png 2x'
     );
-    expect(image).toHaveAttribute('width', '256');
-    expect(image).toHaveAttribute('height', '256');
+    expect(image).toHaveAttribute('width', '128');
+    expect(image).toHaveAttribute('height', '128');
     expect(screen.getByTestId('achievement-reviews.card-muncher')).toHaveClass('is-earned');
-    expect(screen.getByText('Earned')).toBeInTheDocument();
+    expect(screen.getByText('Completed 25 reviews')).toBeInTheDocument();
   });
 
   it('localizes locked progress units while keeping canonical badge names', async () => {

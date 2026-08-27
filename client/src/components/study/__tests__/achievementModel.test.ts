@@ -35,6 +35,7 @@ const catalog = (): AchievementCatalog => ({
       key: index === 0 ? 'first' : 'second',
       title: `${title} ${String(index + 1)}`,
       threshold,
+      earnedDescription: `Completed ${String(threshold)} ${unit}`,
       description: `${String(threshold)} ${unit}`,
       assets: {
         earned: { png: { '256': asset(256), '512': asset(512) } },

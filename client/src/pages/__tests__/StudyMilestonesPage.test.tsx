@@ -52,6 +52,7 @@ const catalog: AchievementCatalog = {
           key: 'first',
           title: 'First Nibble',
           threshold: 25,
+          earnedDescription: 'Completed 25 reviews',
           description: 'Finish 25 reviews.',
           assets: {
             earned: { png: { '256': asset(256), '512': asset(512) } },

@@ -8,6 +8,7 @@ export interface AchievementTier {
   key: string;
   title: string;
   threshold: number;
+  earnedDescription: string;
   description: string;
   assets: {
     earned: { png: Record<'256' | '512', AchievementAsset> };
@@ -113,6 +114,10 @@ const decodeTier = (value: unknown): AchievementTier => {
     key: asString(record.key, 'Achievement tier key was invalid.'),
     title: asString(record.title, 'Achievement tier title was invalid.'),
     threshold: asPositiveInteger(record.threshold, 'Achievement threshold was invalid.'),
+    earnedDescription: asString(
+      record.earnedDescription,
+      'Achievement earned description was invalid.'
+    ),
     description: asString(record.description, 'Achievement description was invalid.'),
     assets: {
       earned: decodeStateAssets(assets.earned),
