@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DailyAudioPracticePage from '../DailyAudioPracticePage';
@@ -334,6 +334,33 @@ describe('DailyAudioPracticePage', () => {
     fireEvent.click(retryButton);
 
     await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith(60));
+  });
+
+  it('enables retry when an unchanged generation crosses the stale threshold', () => {
+    vi.useFakeTimers();
+    const now = new Date('2026-08-27T12:00:00.000Z');
+    vi.setSystemTime(now);
+    const nearlyStalePractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+      updatedAt: new Date(now.getTime() - 89 * 60 * 1000).toISOString(),
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({
+      data: [nearlyStalePractice],
+      isLoading: false,
+    });
+    mockUseDailyAudioPractice.mockReturnValue({ data: nearlyStalePractice, isLoading: false });
+
+    renderPage();
+    expect(screen.getByRole('button', { name: /generate today's audio/i })).toBeDisabled();
+
+    act(() => {
+      vi.advanceTimersByTime(61 * 1000);
+    });
+
+    expect(screen.getByRole('button', { name: /retry today's audio/i })).toBeEnabled();
+    vi.useRealTimers();
   });
 
   it('renders source summary and all three ready tracks', () => {

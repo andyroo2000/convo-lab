@@ -112,6 +112,7 @@ const DailyAudioPracticePage = () => {
   const [targetDurationMinutes, setTargetDurationMinutes] = useState<DailyAudioDurationMinutes>(
     DEFAULT_DAILY_AUDIO_DURATION_MINUTES
   );
+  const [generationClock, setGenerationClock] = useState(() => Date.now());
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const dayRegionRef = useRef<HTMLDivElement>(null);
   const createPractice = useCreateDailyAudioPractice();
@@ -129,8 +130,21 @@ const DailyAudioPracticePage = () => {
   const staleTodayGeneration =
     Boolean(todayGenerating) &&
     todayGenerationUpdatedAt !== null &&
-    Date.now() - todayGenerationUpdatedAt > GENERATION_STALE_AFTER_MS;
+    generationClock - todayGenerationUpdatedAt > GENERATION_STALE_AFTER_MS;
   const activeTodayGeneration = Boolean(todayGenerating && !staleTodayGeneration);
+
+  useEffect(() => {
+    if (!todayGenerating || todayGenerationUpdatedAt === null || staleTodayGeneration) {
+      return undefined;
+    }
+
+    const staleAt = todayGenerationUpdatedAt + GENERATION_STALE_AFTER_MS;
+    const timer = window.setTimeout(
+      () => setGenerationClock(Date.now()),
+      Math.max(staleAt - Date.now() + 1, 1)
+    );
+    return () => window.clearTimeout(timer);
+  }, [staleTodayGeneration, todayGenerating, todayGenerationUpdatedAt]);
 
   useEffect(() => {
     if (!selectedPracticeId && practices[0]) {
