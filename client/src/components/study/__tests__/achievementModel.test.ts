@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AchievementContractError,
+  closestInProgressAchievements,
   decodeAchievementCatalog,
   decodeAchievementProgress,
-  featuredAchievements,
+  recentEarnedAchievements,
   type AchievementAsset,
   type AchievementCatalog,
 } from '../achievementModel';
@@ -16,7 +17,7 @@ const asset = (size: 256 | 512): AchievementAsset => ({
 });
 
 const catalog = (): AchievementCatalog => ({
-  revision: 'achievement-collection-v1',
+  revision: 'achievement-collection-v2',
   presentation: {
     targetVisibleBadgeCount: 3,
     fillWithLockedCandidates: true,
@@ -25,7 +26,7 @@ const catalog = (): AchievementCatalog => ({
   families: [
     ['stable', 'Stable', 'stable.count', 'cards'],
     ['reviews', 'Reviews', 'reviews.count', 'reviews'],
-    ['voice', 'Voice', 'voice.minutes', 'minutes'],
+    ['voice', 'Voice', 'voice.hours', 'hours'],
   ].map(([key, title, metricKey, unit]) => ({
     key,
     title,
@@ -46,50 +47,56 @@ const catalog = (): AchievementCatalog => ({
 });
 
 describe('achievementModel', () => {
-  it('uses the catalog fallback order when progress has no meaningful data', () => {
-    expect(featuredAchievements(catalog(), null).map(({ id }) => id)).toEqual([
+  it('uses the catalog fallback order when progress is unavailable', () => {
+    expect(closestInProgressAchievements(catalog(), null).map(({ id }) => id)).toEqual([
       'reviews.first',
       'voice.first',
       'stable.first',
     ]);
   });
 
-  it('shows the strongest earned tier per family and fills open slots with closest candidates', () => {
+  it('uses the catalog fallback order before a new account has meaningful progress', () => {
     expect(
-      featuredAchievements(catalog(), {
-        revision: 'achievement-collection-v1',
-        metricValues: { 'stable.count': 0, 'reviews.count': 120, 'voice.minutes': 20 },
+      closestInProgressAchievements(catalog(), {
+        revision: 'achievement-collection-v2',
+        metricValues: { 'stable.count': 0, 'reviews.count': 0, 'voice.hours': 0 },
+        awards: [],
+      }).map(({ id }) => id)
+    ).toEqual(['reviews.first', 'voice.first', 'stable.first']);
+  });
+
+  it('shows only locked badges ranked by percentage complete', () => {
+    expect(
+      closestInProgressAchievements(catalog(), {
+        revision: 'achievement-collection-v2',
+        metricValues: { 'stable.count': 0, 'reviews.count': 120, 'voice.hours': 20 },
+        awards: [
+          { id: 'reviews.first', earnedAt: '2026-01-01T00:00:00.000Z' },
+          { id: 'reviews.second', earnedAt: '2026-02-01T00:00:00.000Z' },
+        ],
       }).map(({ id, earned }) => [id, earned])
     ).toEqual([
-      ['reviews.second', true],
       ['voice.first', false],
       ['stable.first', false],
     ]);
   });
 
-  it('ranks earned families by tier depth and progress when they outnumber visible slots', () => {
-    const crowdedCatalog = catalog();
-    const extraFamily = structuredClone(crowdedCatalog.families[0]);
-    extraFamily.key = 'extra';
-    extraFamily.metricKey = 'extra.count';
-    extraFamily.title = 'Extra';
-    extraFamily.tiers = extraFamily.tiers.map((tier) => ({
-      ...tier,
-      title: `Extra ${tier.key}`,
-    }));
-    crowdedCatalog.families.push(extraFamily);
-
+  it('returns every earned badge in reverse chronological order', () => {
     expect(
-      featuredAchievements(crowdedCatalog, {
-        revision: crowdedCatalog.revision,
-        metricValues: {
-          'stable.count': 25,
-          'reviews.count': 120,
-          'voice.minutes': 30,
-          'extra.count': 500,
+      recentEarnedAchievements(
+        catalog(),
+        {
+          revision: 'achievement-collection-v2',
+          metricValues: { 'stable.count': 100, 'reviews.count': 100, 'voice.hours': 100 },
+          awards: [
+            { id: 'stable.first', earnedAt: '2026-01-01T00:00:00.000Z' },
+            { id: 'reviews.second', earnedAt: '2026-03-01T00:00:00.000Z' },
+            { id: 'voice.first', earnedAt: '2026-02-01T00:00:00.000Z' },
+          ],
         },
-      }).map(({ id }) => id)
-    ).toEqual(['extra.second', 'reviews.second', 'voice.first']);
+        Number.MAX_SAFE_INTEGER
+      ).map(({ id }) => id)
+    ).toEqual(['reviews.second', 'voice.first', 'stable.first']);
   });
 
   it('rejects mismatched retina dimensions and progress from malformed metric values', () => {
@@ -104,10 +111,32 @@ describe('achievementModel', () => {
     );
     expect(() =>
       decodeAchievementProgress({
-        revision: 'achievement-collection-v1',
+        revision: 'achievement-collection-v2',
         metricValues: { 'reviews.count': -1 },
+        awards: [],
       })
     ).toThrow('Achievement metric reviews.count was invalid');
+  });
+
+  it('rejects malformed award dates and duplicate award IDs', () => {
+    expect(() =>
+      decodeAchievementProgress({
+        revision: 'achievement-collection-v2',
+        metricValues: {},
+        awards: [{ id: 'reviews.first', earnedAt: 'not-a-date' }],
+      })
+    ).toThrow('Achievement award date was invalid.');
+
+    expect(() =>
+      decodeAchievementProgress({
+        revision: 'achievement-collection-v2',
+        metricValues: {},
+        awards: [
+          { id: 'reviews.first', earnedAt: '2026-01-01T00:00:00.000Z' },
+          { id: 'reviews.first', earnedAt: '2026-02-01T00:00:00.000Z' },
+        ],
+      })
+    ).toThrow('Achievement award IDs were not unique.');
   });
 
   it('rejects zero and out-of-order tier thresholds as contract errors', () => {

@@ -37,6 +37,12 @@ export interface AchievementCatalog {
 export interface AchievementProgress {
   revision: string;
   metricValues: Record<string, number>;
+  awards: AchievementAward[];
+}
+
+export interface AchievementAward {
+  id: string;
+  earnedAt: string;
 }
 
 export interface PresentedAchievement {
@@ -44,6 +50,7 @@ export interface PresentedAchievement {
   family: AchievementFamily;
   tier: AchievementTier;
   earned: boolean;
+  earnedAt: string | null;
   currentValue: number | null;
   remaining: number | null;
 }
@@ -80,6 +87,12 @@ const asPositiveInteger = (value: unknown, message: string) => {
   const integer = asNonNegativeInteger(value, message);
   if (integer === 0) return invalidContract(message);
   return integer;
+};
+
+const asIsoTimestamp = (value: unknown, message: string) => {
+  const timestamp = asString(value, message);
+  if (!Number.isFinite(Date.parse(timestamp))) return invalidContract(message);
+  return timestamp;
 };
 
 const decodeAsset = (value: unknown): AchievementAsset => {
@@ -181,6 +194,19 @@ export const decodeAchievementCatalog = (value: unknown): AchievementCatalog => 
 export const decodeAchievementProgress = (value: unknown): AchievementProgress => {
   const record = asRecord(value, 'Achievement progress was invalid.');
   const metricValues = asRecord(record.metricValues, 'Achievement metric values were invalid.');
+  if (!Array.isArray(record.awards)) {
+    return invalidContract('Achievement awards were invalid.');
+  }
+  const awards = record.awards.map((awardValue) => {
+    const award = asRecord(awardValue, 'Achievement award was invalid.');
+    return {
+      id: asString(award.id, 'Achievement award ID was invalid.'),
+      earnedAt: asIsoTimestamp(award.earnedAt, 'Achievement award date was invalid.'),
+    };
+  });
+  if (new Set(awards.map(({ id }) => id)).size !== awards.length) {
+    return invalidContract('Achievement award IDs were not unique.');
+  }
   return {
     revision: asString(record.revision, 'Achievement progress revision was invalid.'),
     metricValues: Object.fromEntries(
@@ -189,20 +215,23 @@ export const decodeAchievementProgress = (value: unknown): AchievementProgress =
         asNonNegativeInteger(metricValue, `Achievement metric ${key} was invalid.`),
       ])
     ),
+    awards,
   };
 };
 
 const presentAchievement = (
   family: AchievementFamily,
   tier: AchievementTier,
-  metricValues: Record<string, number> | null
+  metricValues: Record<string, number> | null,
+  earnedAt: string | null
 ): PresentedAchievement => {
   const currentValue = metricValues?.[family.metricKey] ?? null;
   return {
     id: `${family.key}.${tier.key}`,
     family,
     tier,
-    earned: currentValue !== null && currentValue >= tier.threshold,
+    earned: earnedAt !== null,
+    earnedAt,
     currentValue,
     remaining: currentValue === null ? null : Math.max(0, tier.threshold - currentValue),
   };
@@ -212,21 +241,44 @@ export const allPresentedAchievements = (
   catalog: AchievementCatalog,
   progress: AchievementProgress | null
 ) => {
-  const metricValues = progress?.revision === catalog.revision ? progress.metricValues : null;
+  const compatibleProgress = progress?.revision === catalog.revision ? progress : null;
+  const metricValues = compatibleProgress?.metricValues ?? null;
+  const awardsById = new Map(
+    (compatibleProgress?.awards ?? []).map((award) => [award.id, award.earnedAt])
+  );
   return catalog.families.flatMap((family) =>
-    family.tiers.map((tier) => presentAchievement(family, tier, metricValues))
+    family.tiers.map((tier) => {
+      const id = `${family.key}.${tier.key}`;
+      return presentAchievement(family, tier, metricValues, awardsById.get(id) ?? null);
+    })
   );
 };
 
-export const featuredAchievements = (
+export const recentEarnedAchievements = (
   catalog: AchievementCatalog,
-  progress: AchievementProgress | null
+  progress: AchievementProgress | null,
+  count = catalog.presentation.targetVisibleBadgeCount
+): PresentedAchievement[] =>
+  allPresentedAchievements(catalog, progress)
+    .filter(
+      (achievement): achievement is PresentedAchievement & { earnedAt: string } =>
+        achievement.earnedAt !== null
+    )
+    .sort((left, right) => Date.parse(right.earnedAt) - Date.parse(left.earnedAt))
+    .slice(0, count);
+
+export const closestInProgressAchievements = (
+  catalog: AchievementCatalog,
+  progress: AchievementProgress | null,
+  count = catalog.presentation.targetVisibleBadgeCount
 ): PresentedAchievement[] => {
   const all = allPresentedAchievements(catalog, progress);
-  const count = catalog.presentation.targetVisibleBadgeCount;
-  const metricValues = progress?.revision === catalog.revision ? progress.metricValues : null;
+  const compatibleProgress = progress?.revision === catalog.revision ? progress : null;
+  const metricValues = compatibleProgress?.metricValues ?? null;
   const hasProgress =
-    metricValues !== null && Object.values(metricValues).some((metricValue) => metricValue > 0);
+    metricValues !== null &&
+    (Object.values(metricValues).some((metricValue) => metricValue > 0) ||
+      (compatibleProgress?.awards.length ?? 0) > 0);
 
   if (!hasProgress) {
     const byId = new Map(all.map((achievement) => [achievement.id, achievement]));
@@ -236,30 +288,21 @@ export const featuredAchievements = (
       .slice(0, count);
   }
 
-  const familyOrder = new Map(catalog.families.map((family, index) => [family.key, index]));
+  if (!catalog.presentation.fillWithLockedCandidates) return [];
+
   const achievementOrder = new Map(all.map((achievement, index) => [achievement.id, index]));
-  const highestEarnedByFamily = catalog.families
-    .map((family) =>
-      all
-        .filter((achievement) => achievement.family.key === family.key && achievement.earned)
-        .at(-1)
-    )
+  const candidates = catalog.families
+    .map((family) => {
+      const familyAchievements = all.filter((achievement) => achievement.family.key === family.key);
+      let highestEarnedIndex = -1;
+      familyAchievements.forEach((achievement, index) => {
+        if (achievement.earned) highestEarnedIndex = index;
+      });
+      return familyAchievements
+        .slice(highestEarnedIndex + 1)
+        .find((achievement) => !achievement.earned);
+    })
     .filter((achievement): achievement is PresentedAchievement => achievement !== undefined)
-    .sort((left, right) => {
-      const leftDepth = left.family.tiers.findIndex(({ key }) => key === left.tier.key);
-      const rightDepth = right.family.tiers.findIndex(({ key }) => key === right.tier.key);
-      const leftRatio = (left.currentValue ?? 0) / left.tier.threshold;
-      const rightRatio = (right.currentValue ?? 0) / right.tier.threshold;
-      return (
-        rightDepth - leftDepth ||
-        rightRatio - leftRatio ||
-        (familyOrder.get(left.family.key) ?? 0) - (familyOrder.get(right.family.key) ?? 0)
-      );
-    });
-  const selected = highestEarnedByFamily.slice(0, count);
-  const selectedIds = new Set(selected.map(({ id }) => id));
-  const candidates = all
-    .filter((achievement) => !achievement.earned && !selectedIds.has(achievement.id))
     .sort((left, right) => {
       const leftRatio = (left.currentValue ?? 0) / left.tier.threshold;
       const rightRatio = (right.currentValue ?? 0) / right.tier.threshold;
@@ -270,35 +313,5 @@ export const featuredAchievements = (
       );
     });
 
-  if (catalog.presentation.fillWithLockedCandidates) {
-    const familySlots = Math.max(0, count - selected.length);
-    const familyFill = candidates.reduce<{
-      achievements: PresentedAchievement[];
-      representedFamilies: Set<string>;
-    }>(
-      (fill, candidate) => {
-        if (
-          fill.achievements.length >= familySlots ||
-          fill.representedFamilies.has(candidate.family.key)
-        ) {
-          return fill;
-        }
-        return {
-          achievements: [...fill.achievements, candidate],
-          representedFamilies: new Set([...fill.representedFamilies, candidate.family.key]),
-        };
-      },
-      {
-        achievements: [],
-        representedFamilies: new Set(selected.map(({ family }) => family.key)),
-      }
-    );
-    selected.push(...familyFill.achievements);
-    selected.push(
-      ...candidates
-        .filter((candidate) => !selected.some(({ id }) => id === candidate.id))
-        .slice(0, Math.max(0, count - selected.length))
-    );
-  }
-  return selected.slice(0, count);
+  return candidates.slice(0, count);
 };

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import useAchievements from '../../hooks/useAchievements';
-import { featuredAchievements, type PresentedAchievement } from './achievementModel';
+import { recentEarnedAchievements, type PresentedAchievement } from './achievementModel';
 
 interface AchievementBadgeCardProps {
   achievement: PresentedAchievement;
@@ -68,6 +68,7 @@ const AchievementSkeletons = () => (
 export const StudyAchievementSpotlight = () => {
   const { t } = useTranslation('study');
   const { catalog, progress, loading, error, progressError, retry } = useAchievements();
+  const recentAchievements = catalog ? recentEarnedAchievements(catalog, progress) : [];
 
   return (
     <section className="achievement-spotlight" data-testid="study-recent-milestones">
@@ -89,11 +90,14 @@ export const StudyAchievementSpotlight = () => {
       </div>
 
       {loading ? <AchievementSkeletons /> : null}
-      {!loading && catalog ? (
+      {!loading && catalog && (!progressError || progress) ? (
         <div className="achievement-badge-row">
-          {featuredAchievements(catalog, progress).map((achievement) => (
+          {recentAchievements.map((achievement) => (
             <AchievementBadgeCard key={achievement.id} achievement={achievement} />
           ))}
+          {recentAchievements.length === 0 ? (
+            <p className="text-sm text-[color:rgba(17,51,92,0.72)]">{t('achievements.noEarned')}</p>
+          ) : null}
         </div>
       ) : null}
       {!loading && catalog && progressError ? (
