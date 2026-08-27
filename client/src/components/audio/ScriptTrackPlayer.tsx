@@ -27,6 +27,10 @@ interface ScriptTrackPlayerProps {
 const DAILY_AUDIO_COMPLETION_PREFIX = 'Daily Audio completed: ';
 const STUDY_ACTIVITY_NAME_MAX_LENGTH = 120;
 
+function boundedActivityName(name: string) {
+  return name.slice(0, STUDY_ACTIVITY_NAME_MAX_LENGTH);
+}
+
 function formatDuration(seconds?: number | null) {
   if (!seconds) return null;
   const mins = Math.floor(seconds / 60);
@@ -80,6 +84,7 @@ const ScriptTrackPlayer = ({
   const playbackAudioUrl = audioUrl ? versionAudioUrl(audioUrl, updatedAt) : null;
   const units = useMemo(() => scriptUnits ?? [], [scriptUnits]);
   const timings = useMemo(() => timingData ?? [], [timingData]);
+  const activityName = boundedActivityName(title);
   const scaledTimings = useMemo(
     () => normalizeTimingDataForDuration(timings, duration || approxDurationSeconds),
     [approxDurationSeconds, duration, timings]
@@ -102,13 +107,13 @@ const ScriptTrackPlayer = ({
       category: 'listen',
       activity: 'daily_audio',
       source: 'automatic',
-      name: title,
+      name: activityName,
     });
-    return () => stopActivity('daily_audio', title);
-  }, [isPlaying, startActivity, stopActivity, title]);
+    return () => stopActivity('daily_audio', activityName);
+  }, [activityName, isPlaying, startActivity, stopActivity]);
 
   const recordCompletion = useCallback(() => {
-    stopActivityAndWait('daily_audio', title)
+    stopActivityAndWait('daily_audio', activityName)
       .then(() => {
         const now = new Date().toISOString();
         return logCompletedAndWait({
@@ -116,10 +121,7 @@ const ScriptTrackPlayer = ({
           category: 'listen',
           activity: 'daily_audio',
           source: 'automatic',
-          name: `${DAILY_AUDIO_COMPLETION_PREFIX}${title.slice(
-            0,
-            STUDY_ACTIVITY_NAME_MAX_LENGTH - DAILY_AUDIO_COMPLETION_PREFIX.length
-          )}`,
+          name: boundedActivityName(`${DAILY_AUDIO_COMPLETION_PREFIX}${title}`),
           startedAt: now,
           endedAt: now,
           durationMs: 0,
@@ -127,7 +129,7 @@ const ScriptTrackPlayer = ({
         });
       })
       .catch(() => undefined);
-  }, [logCompletedAndWait, stopActivityAndWait, title]);
+  }, [activityName, logCompletedAndWait, stopActivityAndWait, title]);
 
   return (
     <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">

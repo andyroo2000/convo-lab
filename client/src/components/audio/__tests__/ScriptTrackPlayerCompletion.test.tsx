@@ -72,11 +72,12 @@ describe('ScriptTrackPlayer completion tracking', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
+    const title = `Morning dialogue ${'A'.repeat(150)}`;
     const { container } = render(
       <QueryClientProvider client={queryClient}>
         <StudyActivityProvider userId={42}>
           <ScriptTrackPlayer
-            title="Morning dialogue"
+            title={title}
             status="ready"
             audioUrl="https://example.com/daily-audio.mp3"
             targetLanguage="ja"
@@ -96,7 +97,9 @@ describe('ScriptTrackPlayer completion tracking', () => {
     await waitFor(() => expect(saveSessionsMock).toHaveBeenCalledTimes(2));
     const sessions = saveSessionsMock.mock.calls.flatMap(([batch]) => batch);
     expect(sessions).toHaveLength(2);
-    expect(sessions.filter(({ name }) => name === 'Morning dialogue')).toHaveLength(1);
+    const listenSession = sessions.find(({ durationMs }) => durationMs !== 0);
+    expect(listenSession?.name).toBe(title.slice(0, 120));
+    expect(listenSession?.name).toHaveLength(120);
     expect(sessions.filter(({ name }) => name.startsWith('Daily Audio completed: '))).toHaveLength(
       1
     );
