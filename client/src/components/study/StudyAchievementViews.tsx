@@ -20,7 +20,7 @@ export const AchievementBadgeCard = ({ achievement }: AchievementBadgeCardProps)
     count: earned ? tier.threshold : (remaining ?? tier.threshold),
     defaultValue: family.unit,
   });
-  let detail = t('achievements.earned');
+  let detail = tier.earnedDescription;
   if (!earned && remaining === null) {
     detail = t('achievements.startWith', {
       count: tier.threshold,
@@ -43,11 +43,11 @@ export const AchievementBadgeCard = ({ achievement }: AchievementBadgeCardProps)
       <img
         src={standard.path}
         srcSet={`${standard.path} 1x, ${retina.path} 2x`}
-        width={256}
-        height={256}
+        width={128}
+        height={128}
         loading="lazy"
         alt={tier.description}
-        className="block size-64"
+        className="achievement-badge-art block size-32"
       />
       <div className="achievement-badge-caption">
         <h3>{tier.title}</h3>
@@ -60,7 +60,7 @@ export const AchievementBadgeCard = ({ achievement }: AchievementBadgeCardProps)
 const AchievementSkeletons = () => (
   <div className="achievement-badge-row" aria-hidden="true">
     {[0, 1, 2].map((key) => (
-      <div key={key} className="h-[344px] w-64 shrink-0 animate-pulse bg-navy/10" />
+      <div key={key} className="h-[190px] w-32 shrink-0 animate-pulse bg-navy/10" />
     ))}
   </div>
 );

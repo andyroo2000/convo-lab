@@ -71,7 +71,6 @@
     "viewLabel": "実績の表示",
     "inProgress": "進行中",
     "allBadges": "すべてのバッジ",
-    "earned": "達成済み",
     "more": "あと{{formattedCount}} {{unit}}",
     "startWith": "まずは{{formattedCount}} {{unit}}",
     "familyProgress": "現在 {{current}} {{unit}}",
@@ -210,16 +209,6 @@
     "pathProgressPending": "学習パスは{{total}}段階あり、現在有効な番号付き段階はありません",
     "transferDemonstrated": "応用できました",
     "independentStage": "利用可能"
-  },
-  "readiness": {
-    "title": "学習準備度",
-    "ready": "新しいカードを学べます",
-    "caution": "少なめがおすすめ",
-    "pause": "先にレビューがおすすめ",
-    "withData": "最近の正答率は目標 {{target}}% に対して {{recall}}% です。Apprentice は {{apprentice}} 件、今後7日間のレビュー見込みは {{projected}} 件です。",
-    "building": "最初の30回答から提案を作成中です（現在 {{sample}} 件）。今後7日間のレビュー見込みは {{projected}} 件です。",
-    "reviewNow": "今すぐレビュー",
-    "learnAnyway": "それでも学ぶ"
   },
   "mastery": {
     "title": "項目の分布",

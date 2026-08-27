@@ -36,6 +36,16 @@ const overview = {
     projectedSevenDayReviews: 83,
     medianReviewDurationSeconds: 25,
     suggestedBatchSize: 5,
+    displayStatus: 'Ready to learn',
+    displaySummary:
+      'Recent recall is 91% against a 90% target. 12 Apprentice cards need reinforcement, with 83 reviews projected over seven days.',
+  },
+  masterySpread: {
+    apprentice: 12,
+    guru: 8,
+    master: 4,
+    enlightened: 2,
+    burned: 1,
   },
 };
 
@@ -90,6 +100,7 @@ describe('StudyOverviewDashboard', () => {
           onBeginReview={onBeginReview}
           onBeginLesson={onBeginLesson}
           isStartingSession={false}
+          recentMilestones={<div>Achievement shelf</div>}
         />
       </MemoryRouter>
     );
@@ -100,6 +111,18 @@ describe('StudyOverviewDashboard', () => {
     expect(screen.getByText('32 reviews')).toBeInTheDocument();
     expect(screen.getByText('iTalki')).toBeInTheDocument();
     expect(screen.getByText('6,851 cards total')).toBeInTheDocument();
+    expect(screen.getByText('Ready to learn')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Recent recall is 91% against a 90% target. 12 Apprentice cards need reinforcement, with 83 reviews projected over seven days.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Learning readiness')).not.toBeInTheDocument();
+    const itemSpread = screen.getByText('Item spread');
+    const achievementShelf = screen.getByText('Achievement shelf');
+    expect(itemSpread.compareDocumentPosition(achievementShelf)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
     expect(screen.queryByRole('heading', { name: "Today's practice" })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /WaniKani/ })).toHaveAttribute(
       'href',

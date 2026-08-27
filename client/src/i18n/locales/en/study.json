@@ -71,7 +71,6 @@
     "viewLabel": "Achievement view",
     "inProgress": "In progress",
     "allBadges": "All badges",
-    "earned": "Earned",
     "more": "{{formattedCount}} more {{unit}}",
     "startWith": "Start with {{formattedCount}} {{unit}}",
     "familyProgress": "{{current}} {{unit}} so far",
@@ -220,16 +219,6 @@
     "pathProgressPending": "Learning path has {{total}} stages and no active numbered stage",
     "transferDemonstrated": "Transfer demonstrated",
     "independentStage": "Available"
-  },
-  "readiness": {
-    "title": "Learning readiness",
-    "ready": "Ready to learn",
-    "caution": "Add carefully",
-    "pause": "Reviews first recommended",
-    "withData": "Recent recall is {{recall}}% against a {{target}}% target. {{apprentice}} Apprentice cards need reinforcement, with {{projected}} reviews projected over seven days.",
-    "building": "Building a recommendation from your first 30 answers ({{sample}} so far). Current seven-day workload: {{projected}} reviews.",
-    "reviewNow": "Review now",
-    "learnAnyway": "Learn anyway"
   },
   "mastery": {
     "title": "Item spread",

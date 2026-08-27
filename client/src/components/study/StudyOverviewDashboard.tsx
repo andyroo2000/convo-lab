@@ -101,6 +101,16 @@ const StudyOverviewDashboard = ({
             </span>
           </button>
 
+          {readiness?.displayStatus && readiness.displaySummary ? (
+            <div
+              className={`study-console-readiness-summary border-l-4 ${readinessBorderClass}`}
+              role="status"
+            >
+              <p className="font-bold text-navy">{readiness.displayStatus}</p>
+              <p className="mt-0.5 text-sm text-gray-600">{readiness.displaySummary}</p>
+            </div>
+          ) : null}
+
           <div className="study-console-quick-grid grid grid-cols-2">
             <button
               type="button"
@@ -184,8 +194,6 @@ const StudyOverviewDashboard = ({
         {error ? <p className="mt-2 text-red-600">{error.message}</p> : null}
       </section>
 
-      {recentMilestones}
-
       <nav
         aria-label={t('overview.studyTools')}
         className="study-console-tools hidden flex-wrap gap-2 sm:flex"
@@ -201,51 +209,9 @@ const StudyOverviewDashboard = ({
         </Link>
       </nav>
 
-      {readiness ? (
-        <section className={`study-console-readiness border-l-4 ${readinessBorderClass}`}>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-            {t('readiness.title')}
-          </p>
-          <h2 className="mt-1 text-2xl font-bold capitalize text-navy">
-            {t(`readiness.${readiness.recommendation}`)}
-          </h2>
-          <p className="mt-2 max-w-3xl text-gray-600">
-            {readiness.sufficientData && readiness.recentRecall !== null
-              ? t('readiness.withData', {
-                  recall: Math.round(readiness.recentRecall * 100),
-                  target: Math.round(readiness.targetRecall * 100),
-                  apprentice: readiness.apprenticeCount,
-                  projected: readiness.projectedSevenDayReviews,
-                })
-              : t('readiness.building', {
-                  sample: readiness.sampleSize,
-                  projected: readiness.projectedSevenDayReviews,
-                })}
-          </p>
-          {readiness.recommendation !== 'ready' ? (
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={onBeginReview}
-                disabled={beginStudyDisabled}
-                className={STUDY_ACTION_CLASS}
-              >
-                {t('readiness.reviewNow')}
-              </button>
-              <button
-                type="button"
-                onClick={onBeginLesson}
-                disabled={isStartingSession || lessonsAvailable === 0}
-                className={STUDY_ACTION_CLASS}
-              >
-                {t('readiness.learnAnyway')}
-              </button>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
       {overview?.masterySpread ? <MasterySpreadChart spread={overview.masterySpread} /> : null}
+
+      {recentMilestones}
     </div>
   );
 };

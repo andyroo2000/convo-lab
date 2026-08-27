@@ -89,23 +89,27 @@
   }
 
   .achievement-badge-row {
-    @apply mt-5 flex max-w-full gap-5 overflow-x-auto pb-3;
+    @apply mt-5 flex max-w-full items-start gap-4 overflow-x-auto pb-2;
   }
 
   .achievement-badge-grid {
-    @apply grid justify-center gap-7 sm:grid-cols-[repeat(auto-fit,256px)];
+    @apply grid items-start justify-center gap-5 sm:grid-cols-[repeat(auto-fit,128px)];
   }
 
   .achievement-badge-card {
-    @apply w-64 shrink-0 overflow-hidden rounded-b-[1.15rem] shadow-[0_10px_0_rgba(17,51,92,0.12)];
+    @apply w-32 shrink-0 overflow-hidden rounded-b-[0.625rem] shadow-[0_5px_0_rgba(17,51,92,0.12)];
   }
 
   .achievement-badge-card.is-locked {
     @apply opacity-90;
   }
 
+  .achievement-badge-art {
+    @apply relative z-0;
+  }
+
   .achievement-badge-caption {
-    @apply flex min-h-[88px] flex-col items-center justify-center px-4 py-3 text-center;
+    @apply relative z-10 -mt-px flex h-[62px] flex-col items-center justify-center px-2 py-2 text-center;
     background: var(--retro-ink-strong);
     color: var(--retro-paper);
   }
@@ -115,11 +119,11 @@
   }
 
   .achievement-badge-caption h3 {
-    @apply text-xl font-black leading-tight;
+    @apply w-full overflow-hidden text-ellipsis whitespace-nowrap text-[0.8125rem] font-black leading-tight;
   }
 
   .achievement-badge-caption p {
-    @apply mt-1 text-sm font-bold text-[#f7e7b7];
+    @apply mt-1 line-clamp-2 text-[0.6875rem] font-bold leading-tight text-[#f7e7b7];
   }
 
   .achievement-view-toggle {
@@ -427,15 +431,10 @@
     outline-offset: 2px;
   }
 
-  .study-console-readiness {
-    position: relative;
-    padding: 1.5rem;
-    background: rgba(255, 253, 246, 0.94);
+  .study-console-readiness-summary {
+    padding: 0.75rem 1.25rem;
+    background: rgba(251, 245, 224, 0.62);
     border-top: 1px solid rgba(17, 51, 92, 0.1);
-    border-right: 1px solid rgba(17, 51, 92, 0.1);
-    border-bottom: 1px solid rgba(17, 51, 92, 0.1);
-    border-radius: 1.125rem;
-    box-shadow: 0 8px 24px rgba(17, 51, 92, 0.05);
   }
 
   .ios-study-home {
