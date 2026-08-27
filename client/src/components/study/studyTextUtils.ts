@@ -41,6 +41,90 @@ export interface StudyRubySegment {
 
 const isKana = (char: string): boolean => HIRAGANA_REGEX.test(char) || KATAKANA_REGEX.test(char);
 
+const normalizeKanaCharacter = (char: string) => {
+  const codePoint = char.codePointAt(0);
+  if (codePoint !== undefined && codePoint >= 0x30a1 && codePoint <= 0x30f6) {
+    return String.fromCodePoint(codePoint - 0x60);
+  }
+  return char;
+};
+
+// The source regex necessarily consumes adjacent Japanese text before `[reading]`.
+// Use literal kana as alignment anchors while allowing each kanji one or more reading kana.
+const canAlignRubyBaseToReading = (base: string, reading: string) => {
+  const baseCharacters = Array.from(base);
+  const readingCharacters = Array.from(reading);
+  const memo = new Map<string, boolean>();
+
+  const alignFrom = (baseIndex: number, readingIndex: number): boolean => {
+    const memoKey = `${String(baseIndex)}:${String(readingIndex)}`;
+    const memoized = memo.get(memoKey);
+    if (memoized !== undefined) return memoized;
+
+    if (baseIndex === baseCharacters.length) {
+      return readingIndex === readingCharacters.length;
+    }
+
+    const remainingBaseLength = baseCharacters.length - baseIndex;
+    const remainingReadingLength = readingCharacters.length - readingIndex;
+    if (remainingReadingLength < remainingBaseLength) {
+      memo.set(memoKey, false);
+      return false;
+    }
+
+    const baseCharacter = baseCharacters[baseIndex];
+    if (isKana(baseCharacter)) {
+      const matches =
+        readingIndex < readingCharacters.length &&
+        normalizeKanaCharacter(baseCharacter) ===
+          normalizeKanaCharacter(readingCharacters[readingIndex]) &&
+        alignFrom(baseIndex + 1, readingIndex + 1);
+      memo.set(memoKey, matches);
+      return matches;
+    }
+
+    const remainingCharactersAfterKanji = baseCharacters.length - baseIndex - 1;
+    const latestReadingEnd = readingCharacters.length - remainingCharactersAfterKanji;
+    for (let readingEnd = readingIndex + 1; readingEnd <= latestReadingEnd; readingEnd += 1) {
+      if (alignFrom(baseIndex + 1, readingEnd)) {
+        memo.set(memoKey, true);
+        return true;
+      }
+    }
+
+    memo.set(memoKey, false);
+    return false;
+  };
+
+  return alignFrom(0, 0);
+};
+
+const splitUnannotatedRubyPrefix = (base: string, reading: string) => {
+  const characters = Array.from(base);
+  const hasKanaBeforeLaterKanji = characters.some(
+    (character, index) =>
+      isKana(character) && characters.slice(index + 1).some((later) => KANJI_REGEX.test(later))
+  );
+
+  if (!hasKanaBeforeLaterKanji || canAlignRubyBaseToReading(base, reading)) {
+    return { prefix: '', base };
+  }
+
+  for (let index = 1; index < characters.length; index += 1) {
+    if (KANJI_REGEX.test(characters[index])) {
+      const candidate = characters.slice(index).join('');
+      if (canAlignRubyBaseToReading(candidate, reading)) {
+        return {
+          prefix: characters.slice(0, index).join(''),
+          base: candidate,
+        };
+      }
+    }
+  }
+
+  return { prefix: '', base };
+};
+
 const isKanaReading = (value: string): boolean => {
   const normalized = value.replace(/\s+/g, '');
   return normalized.length > 0 && /^[\u3040-\u309f\u30a0-\u30ffー・]+$/u.test(normalized);
@@ -161,8 +245,8 @@ const normalizeRubyMatch = (
     };
   }
 
-  const prefix = base.substring(0, kanjiStart);
-  const kanjiPart = base.substring(kanjiStart, kanjiEnd);
+  let prefix = base.substring(0, kanjiStart);
+  let kanjiPart = base.substring(kanjiStart, kanjiEnd);
   const suffix = base.substring(kanjiEnd);
 
   let adjustedReading = cleanReading;
@@ -177,6 +261,10 @@ const normalizeRubyMatch = (
   if (suffix && adjustedReading.endsWith(suffix)) {
     adjustedReading = adjustedReading.slice(0, adjustedReading.length - suffix.length);
   }
+
+  const realigned = splitUnannotatedRubyPrefix(kanjiPart, adjustedReading);
+  prefix += realigned.prefix;
+  kanjiPart = realigned.base;
 
   return {
     prefix,

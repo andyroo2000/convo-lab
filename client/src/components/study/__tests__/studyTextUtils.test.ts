@@ -97,6 +97,23 @@ describe('studyTextUtils', () => {
     ]);
   });
 
+  it('keeps an unannotated word before 狭い out of its furigana base', () => {
+    expect(parseRubySegments('この道[みち]は少し狭[せま]いです。')).toEqual([
+      { kind: 'text', key: 'prefix-0', text: 'この' },
+      { kind: 'ruby', key: 'ruby-0', base: '道', reading: 'みち' },
+      { kind: 'text', key: 'prefix-7', text: 'は少し' },
+      { kind: 'ruby', key: 'ruby-7', base: '狭', reading: 'せま' },
+      { kind: 'text', key: 'text-15', text: 'いです。' },
+    ]);
+  });
+
+  it('keeps internal kana inside a single annotated word', () => {
+    expect(parseRubySegments('取り扱い[とりあつかい]')).toEqual([
+      { kind: 'ruby', key: 'ruby-0', base: '取り扱', reading: 'とりあつか' },
+      { kind: 'text', key: 'suffix-0', text: 'い' },
+    ]);
+  });
+
   it('leaves non-reading parentheses as plain text', () => {
     expect(parseRubySegments('予定(plan)が変(か)わった。')).toEqual([
       {
