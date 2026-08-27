@@ -803,6 +803,8 @@
       "error": "Study time couldn’t be loaded. Please try again."
     },
     "manual": {
+      "sectionTitle": "Manual time entry",
+      "sectionDescription": "Start a timer, add calendar time, or edit entries you logged yourself.",
       "eyebrow": "Editable",
       "title": "Manual entries",
       "empty": "Timers and study time you add yourself will appear here.",

@@ -100,6 +100,7 @@ describe('StudyOverviewDashboard', () => {
     expect(screen.getByText('32 reviews')).toBeInTheDocument();
     expect(screen.getByText('iTalki')).toBeInTheDocument();
     expect(screen.getByText('6,851 cards total')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: "Today's practice" })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /WaniKani/ })).toHaveAttribute(
       'href',
       'https://www.wanikani.com/subjects/review'

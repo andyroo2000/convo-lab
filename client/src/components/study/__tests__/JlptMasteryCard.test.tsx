@@ -81,6 +81,8 @@ describe('JlptMasteryCard', () => {
     expect(overviewMock).toHaveBeenCalledWith(true, 'always');
     const title = screen.getByRole('heading', { name: 'JLPT Mastery' });
     const disclosure = screen.getByRole('group');
+    const chevron = screen.getByTestId('jlpt-mastery-chevron');
+    expect(chevron.compareDocumentPosition(title)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(disclosure).not.toHaveAttribute('open');
 
     fireEvent.click(title);

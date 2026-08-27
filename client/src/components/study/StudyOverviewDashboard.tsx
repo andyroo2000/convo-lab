@@ -67,12 +67,7 @@ const StudyOverviewDashboard = ({
 
   return (
     <div className="study-console ios-study-home space-y-7">
-      <section aria-labelledby="study-today-title" className="ios-study-section">
-        <p id="study-today-title" className="study-console-kicker">
-          {t('overview.today')}
-        </p>
-        <h1 className="study-console-title">{t('overview.practiceHeading')}</h1>
-
+      <section>
         <div className="study-console-plan">
           <button
             type="button"

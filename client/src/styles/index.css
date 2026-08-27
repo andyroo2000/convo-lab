@@ -259,30 +259,6 @@
     display: none;
   }
 
-  .study-console-kicker {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin: 0 0 0.5rem;
-    color: var(--retro-ink-soft);
-    font-family: Inter, 'Noto Sans JP', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .study-console-kicker::before {
-    content: none;
-  }
-
-  .study-console-title {
-    margin: 0 0 1rem;
-    color: var(--retro-ink-strong);
-    font-size: clamp(2rem, 8vw, 3rem);
-    letter-spacing: -0.035em;
-  }
-
   .study-console-plan {
     overflow: hidden;
     background: rgba(255, 255, 255, 0.72);
@@ -410,14 +386,6 @@
 
   .ios-study-home {
     max-width: 54rem;
-  }
-
-  .ios-study-section {
-    padding-top: 0.25rem;
-  }
-
-  .ios-study-home .study-console-title {
-    max-width: 38rem;
   }
 
   .ios-study-home .study-console-review {
@@ -577,16 +545,6 @@
       top: 5.25rem;
       right: 1rem;
       bottom: auto;
-    }
-  }
-
-  @media (min-width: 640px) {
-    .study-console-plan {
-      max-width: 52rem;
-    }
-
-    .study-console-title {
-      font-size: 3rem;
     }
   }
 
