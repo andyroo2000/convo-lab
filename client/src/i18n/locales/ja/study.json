@@ -64,6 +64,28 @@
       "detail": "1,000枚のカードが1年間の記憶安定度に到達しました。"
     }
   },
+  "achievements": {
+    "kicker": "実績",
+    "heading": "あなたの咆哮が育っています",
+    "viewAll": "すべて見る",
+    "viewLabel": "実績の表示",
+    "inProgress": "進行中",
+    "allBadges": "すべてのバッジ",
+    "earned": "達成済み",
+    "more": "あと{{formattedCount}} {{unit}}",
+    "startWith": "まずは{{formattedCount}} {{unit}}",
+    "familyProgress": "現在 {{current}} {{unit}}",
+    "units": {
+      "cards": "枚",
+      "reviews": "回のレビュー",
+      "minutes": "分"
+    },
+    "progressIntro": "達成済みの代表バッジと、次に獲得できそうな実績です。",
+    "loading": "実績を読み込み中…",
+    "error": "バッジを読み込めませんでした。",
+    "progressError": "バッジは表示できますが、現在の進捗を更新できませんでした。",
+    "retry": "もう一度試す"
+  },
   "practice": {
     "title": "練習のみ",
     "description": "ここでの評価は、レビュー数・カードの予定・セッション結果に影響しません。",

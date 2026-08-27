@@ -64,6 +64,31 @@
       "detail": "One thousand cards have reached a year of memory stability."
     }
   },
+  "achievements": {
+    "kicker": "Achievements",
+    "heading": "Your roar is growing",
+    "viewAll": "View all",
+    "viewLabel": "Achievement view",
+    "inProgress": "In progress",
+    "allBadges": "All badges",
+    "earned": "Earned",
+    "more": "{{formattedCount}} more {{unit}}",
+    "startWith": "Start with {{formattedCount}} {{unit}}",
+    "familyProgress": "{{current}} {{unit}} so far",
+    "units": {
+      "cards_one": "card",
+      "cards_other": "cards",
+      "reviews_one": "review",
+      "reviews_other": "reviews",
+      "minutes_one": "minute",
+      "minutes_other": "minutes"
+    },
+    "progressIntro": "Your strongest earned badges and the achievements you’re closest to unlocking next.",
+    "loading": "Loading achievements…",
+    "error": "The badge cabinet couldn’t be opened right now.",
+    "progressError": "Your badges are here, but current progress could not be refreshed.",
+    "retry": "Try again"
+  },
   "practice": {
     "title": "Practice only",
     "description": "Ratings here won’t change review counts, card schedules, or session results.",

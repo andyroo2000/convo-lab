@@ -150,36 +150,3 @@ export const StudyMilestoneAwardView = ({ award, onContinue }: StudyMilestoneAwa
     </div>
   );
 };
-
-interface StudyMilestoneListProps {
-  title: string;
-  definitions: StudyMilestoneDefinition[];
-  earned: boolean;
-}
-
-export const StudyMilestoneList = ({ title, definitions, earned }: StudyMilestoneListProps) => {
-  const { t } = useTranslation('study');
-  if (definitions.length === 0) return null;
-
-  return (
-    <section>
-      <h2 className="text-2xl font-black text-navy">{title}</h2>
-      <div className="mt-3 space-y-3">
-        {definitions.map((definition) => (
-          <div
-            key={definition.id}
-            className={`flex items-center gap-4 rounded-[1.35rem] border-2 border-navy/10 p-4 shadow-sm ${
-              earned ? 'bg-white/85' : 'bg-white/50'
-            }`}
-          >
-            <StudyMilestoneBadge definition={definition} earned={earned} />
-            <div>
-              <h3 className="font-bold text-navy">{t(definition.titleKey)}</h3>
-              <p className="mt-1 text-sm text-gray-600">{t(definition.detailKey)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-};

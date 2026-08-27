@@ -12,10 +12,8 @@ import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
 import StudySessionWrapUp from '../components/study/StudySessionWrapUp';
-import {
-  StudyMilestoneAwardView,
-  StudyRecentMilestones,
-} from '../components/study/StudyMilestoneViews';
+import { StudyMilestoneAwardView } from '../components/study/StudyMilestoneViews';
+import { StudyAchievementSpotlight } from '../components/study/StudyAchievementViews';
 import StudySetDueControls from '../components/study/StudySetDueControls';
 import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
@@ -598,7 +596,7 @@ const StudyPage = () => {
         });
       }}
       isStartingSession={reviewSession.sessionLoading}
-      recentMilestones={<StudyRecentMilestones awards={reviewSession.earnedMilestoneAwards} />}
+      recentMilestones={<StudyAchievementSpotlight />}
     />
   );
 };

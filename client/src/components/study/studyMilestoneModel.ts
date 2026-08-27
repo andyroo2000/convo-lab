@@ -171,11 +171,6 @@ export class StudyMilestoneStore {
     });
   }
 
-  get upcomingMilestones(): StudyMilestoneDefinition[] {
-    const earnedIds = new Set(this.state.earnedAwards.map(({ id }) => id));
-    return STUDY_MILESTONE_DEFINITIONS.filter(({ id }) => !earnedIds.has(id));
-  }
-
   beginReviewSession(): void {
     if (this.state.activeSession?.isReadyForPresentation) {
       this.persist();
