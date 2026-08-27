@@ -269,5 +269,40 @@ describe('JapaneseText', () => {
       const allElements = container.querySelectorAll('*');
       expect(allowedTags.length).toBe(allElements.length);
     });
+
+    it('renders HTML-like course content as inert text', () => {
+      const hostileText = '<img src=x onerror="alert(1)">日[ひ]<svg onload="alert(2)">';
+      const { container } = render(<JapaneseText text={hostileText} />);
+
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+      expect(container.querySelector('img, svg')).not.toBeInTheDocument();
+      expect(container.textContent).toContain('<img src=x onerror="alert(1)">');
+      expect(container.textContent).toContain('<svg onload="alert(2)">');
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+      expect(container.querySelector('ruby')).toBeInTheDocument();
+    });
+
+    it('renders metadata and hidden-furigana values as inert text', () => {
+      const metadata = {
+        japanese: {
+          furigana: '<img src=x onerror="alert(1)">日[ひ]',
+          kanji: '<svg onload="alert(2)">日本語',
+          kana: 'にほんご',
+        },
+      };
+      const { container, rerender } = render(
+        <JapaneseText text="fallback" metadata={metadata} showFurigana />
+      );
+
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+      expect(container.querySelector('img, svg')).not.toBeInTheDocument();
+      expect(container.textContent).toContain('<img src=x onerror="alert(1)">');
+
+      rerender(<JapaneseText text="fallback" metadata={metadata} showFurigana={false} />);
+
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+      expect(container.querySelector('img, svg')).not.toBeInTheDocument();
+      expect(container.textContent).toBe('<svg onload="alert(2)">日本語');
+    });
   });
 });

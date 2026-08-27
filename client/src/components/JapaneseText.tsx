@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { LanguageMetadata } from '../types';
 
 interface JapaneseTextProps {
@@ -35,15 +35,27 @@ function isKana(char: string): boolean {
 }
 
 /**
- * Converts bracket notation to HTML ruby tags
+ * Converts bracket notation to React ruby elements.
  * Input: "買[か]い物[もの]" or "が東京[とうきょう]" (with incorrect particles)
- * Output: "<ruby>買<rt>か</rt></ruby>い<ruby>物<rt>もの</rt></ruby>" or "が<ruby>東京<rt>とうきょう</rt></ruby>"
+ *
+ * Returning React nodes instead of an HTML string is important here: course
+ * content can come from users or generated content, so React must retain
+ * responsibility for escaping every text segment.
  */
-function renderRuby(text: string): string {
+function renderRuby(text: string): ReactNode[] {
   // Pattern matches any characters (kanji, hiragana, katakana) followed by bracket notation
   const rubyPattern = /([\u4E00-\u9FAF\u3040-\u309F\u30A0-\u30FF]+)\[([^\]]+)\]/g;
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let match = rubyPattern.exec(text);
 
-  return text.replace(rubyPattern, (_match, base, reading) => {
+  while (match !== null) {
+    const [matchedText, base, reading] = match;
+
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+
     // Remove extra spaces from the reading
     const cleanReading = reading.replace(/\s+/g, '');
 
@@ -61,23 +73,43 @@ function renderRuby(text: string): string {
 
     // If no kanji found, use the whole base (might be katakana or special case)
     if (kanjiStart >= base.length || kanjiStart >= kanjiEnd) {
-      return `<ruby>${base}<rt>${cleanReading}</rt></ruby>`;
+      nodes.push(
+        <ruby key={match.index}>
+          {base}
+          <rt>{cleanReading}</rt>
+        </ruby>
+      );
+    } else {
+      // Extract prefix, kanji, and suffix
+      const prefix = base.substring(0, kanjiStart);
+      const kanjiPart = base.substring(kanjiStart, kanjiEnd);
+      const suffix = base.substring(kanjiEnd);
+
+      // Adjust reading to only cover the kanji portion
+      let adjustedReading = cleanReading;
+      if (suffix && cleanReading.endsWith(suffix)) {
+        adjustedReading = cleanReading.substring(0, cleanReading.length - suffix.length);
+      }
+
+      nodes.push(
+        prefix,
+        <ruby key={match.index}>
+          {kanjiPart}
+          <rt>{adjustedReading}</rt>
+        </ruby>,
+        suffix
+      );
     }
 
-    // Extract prefix, kanji, and suffix
-    const prefix = base.substring(0, kanjiStart);
-    const kanjiPart = base.substring(kanjiStart, kanjiEnd);
-    const suffix = base.substring(kanjiEnd);
+    lastIndex = match.index + matchedText.length;
+    match = rubyPattern.exec(text);
+  }
 
-    // Adjust reading to only cover the kanji portion
-    let adjustedReading = cleanReading;
-    if (suffix && cleanReading.endsWith(suffix)) {
-      adjustedReading = cleanReading.substring(0, cleanReading.length - suffix.length);
-    }
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
 
-    // Return: prefix + <ruby>kanji<rt>reading</rt></ruby> + suffix
-    return `${prefix}<ruby>${kanjiPart}<rt>${adjustedReading}</rt></ruby>${suffix}`;
-  });
+  return nodes;
 }
 
 /**
@@ -103,16 +135,10 @@ const JapaneseText = ({
     ? metadata?.japanese?.furigana || text
     : metadata?.japanese?.kanji || stripFurigana(text);
 
-  const htmlString = showFurigana ? renderRuby(displayText) : displayText;
-
   return (
-    <span
-      className={`japanese-text ${className}`}
-      style={style}
-      // Intentional: Rendering furigana ruby HTML from trusted source (metadata or bracket notation)
-      // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: htmlString }}
-    />
+    <span className={`japanese-text ${className}`} style={style}>
+      {showFurigana ? renderRuby(displayText) : displayText}
+    </span>
   );
 };
 
