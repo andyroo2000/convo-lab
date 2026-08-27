@@ -267,6 +267,7 @@ describe('DailyAudioPracticePage', () => {
       ...readyPractice,
       practiceDate: todayPracticeDate(),
       status: 'generating' as const,
+      updatedAt: new Date().toISOString(),
     };
     mockUseRecentDailyAudioPractice.mockReturnValue({
       data: [todayGeneratingPractice],
@@ -328,6 +329,7 @@ describe('DailyAudioPracticePage', () => {
     renderPage();
 
     expect(screen.getByText('Generation is taking longer than expected')).toBeInTheDocument();
+    expect(screen.queryByText(/Generating today's 30-minute edition/i)).not.toBeInTheDocument();
     expect(mockUseDailyAudioPracticeStatus).toHaveBeenLastCalledWith('practice-1', false);
     const retryButton = screen.getByRole('button', { name: /retry today's audio/i });
     expect(retryButton).toBeEnabled();

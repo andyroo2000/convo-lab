@@ -360,7 +360,9 @@ const DailyAudioPracticePage = () => {
               </section>
             ) : null}
 
-            {practice && (practice.status === 'generating' || practice.status === 'draft') ? (
+            {practice &&
+            !staleGeneration &&
+            (practice.status === 'generating' || practice.status === 'draft') ? (
               <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
