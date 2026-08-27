@@ -29,7 +29,7 @@ const useAchievements = () => {
     let cancelled = false;
     setState((current) => ({
       ...current,
-      loading: true,
+      loading: current.catalog === null,
       error: null,
       progressError: null,
     }));

@@ -187,7 +187,7 @@ export const decodeAchievementProgress = (value: unknown): AchievementProgress =
   };
 };
 
-export const presentAchievement = (
+const presentAchievement = (
   family: AchievementFamily,
   tier: AchievementTier,
   metricValues: Record<string, number> | null

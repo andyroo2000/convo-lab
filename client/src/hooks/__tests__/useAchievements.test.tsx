@@ -60,6 +60,8 @@ describe('useAchievements', () => {
     );
 
     act(() => result.current.retry());
+    expect(result.current.loading).toBe(false);
+    expect(result.current.catalog).toBe(catalog);
     await waitFor(() => expect(result.current.progress).toBe(progress));
     expect(result.current.progressError).toBeNull();
     expect(getAchievementCatalogMock).toHaveBeenCalledTimes(2);
