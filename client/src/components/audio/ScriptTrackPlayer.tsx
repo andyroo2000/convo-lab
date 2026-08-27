@@ -24,6 +24,8 @@ interface ScriptTrackPlayerProps {
   updatedAt?: string | null;
 }
 
+const DAILY_AUDIO_COMPLETION_PREFIX = 'Daily Audio completed: ';
+
 function formatDuration(seconds?: number | null) {
   if (!seconds) return null;
   const mins = Math.floor(seconds / 60);
@@ -63,7 +65,12 @@ const ScriptTrackPlayer = ({
   updatedAt,
 }: ScriptTrackPlayerProps) => {
   const { audioRef, currentTime, duration, isPlaying } = useAudioPlayer();
-  const { start: startActivity, stop: stopActivity } = useStudyActivityActions();
+  const {
+    start: startActivity,
+    stop: stopActivity,
+    stopAndWait: stopActivityAndWait,
+    logCompletedAndWait,
+  } = useStudyActivityActions();
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
@@ -133,7 +140,32 @@ const ScriptTrackPlayer = ({
             ) : null}
 
             <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 py-3">
-              <AudioPlayer src={playbackAudioUrl} audioRef={audioRef} key={playbackAudioUrl} />
+              <AudioPlayer
+                src={playbackAudioUrl}
+                audioRef={audioRef}
+                key={playbackAudioUrl}
+                onEnded={() => {
+                  stopActivityAndWait('daily_audio', title)
+                    .then(() => {
+                      const now = new Date().toISOString();
+                      return logCompletedAndWait({
+                        clientSessionId: crypto.randomUUID(),
+                        category: 'listen',
+                        activity: 'daily_audio',
+                        source: 'automatic',
+                        name: `${DAILY_AUDIO_COMPLETION_PREFIX}${title.slice(
+                          0,
+                          120 - DAILY_AUDIO_COMPLETION_PREFIX.length
+                        )}`,
+                        startedAt: now,
+                        endedAt: now,
+                        durationMs: 0,
+                        audioPlaybackMs: 0,
+                      });
+                    })
+                    .catch(() => undefined);
+                }}
+              />
             </div>
           </>
         ) : (

@@ -21,6 +21,7 @@ export interface AchievementFamily {
   title: string;
   metricKey: string;
   unit: string;
+  hiddenUntilEarned?: boolean;
   tiers: AchievementTier[];
 }
 
@@ -156,6 +157,7 @@ const decodeFamily = (value: unknown): AchievementFamily => {
     title: asString(record.title, 'Achievement family title was invalid.'),
     metricKey: asString(record.metricKey, 'Achievement metric key was invalid.'),
     unit: asString(record.unit, 'Achievement unit was invalid.'),
+    hiddenUntilEarned: record.hiddenUntilEarned === true,
     tiers,
   };
 };
@@ -292,6 +294,7 @@ export const closestInProgressAchievements = (
 
   const achievementOrder = new Map(all.map((achievement, index) => [achievement.id, index]));
   const candidates = catalog.families
+    .filter((family) => !family.hiddenUntilEarned)
     .map((family) => {
       const familyAchievements = all.filter((achievement) => achievement.family.key === family.key);
       let highestEarnedIndex = -1;
