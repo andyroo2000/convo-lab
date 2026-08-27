@@ -119,7 +119,7 @@
   }
 
   .achievement-badge-caption h3 {
-    @apply whitespace-nowrap text-[0.8125rem] font-black leading-tight;
+    @apply w-full overflow-hidden text-ellipsis whitespace-nowrap text-[0.8125rem] font-black leading-tight;
   }
 
   .achievement-badge-caption p {
