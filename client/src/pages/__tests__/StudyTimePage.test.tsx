@@ -268,6 +268,14 @@ vi.mock('../../hooks/useStudyActivity', () => ({
   }),
 }));
 
+const expandManualTimeEntry = () => {
+  const disclosure = screen.getByTestId('manual-study-time-section');
+  expect(disclosure).not.toHaveAttribute('open');
+  fireEvent.click(screen.getByRole('heading', { name: 'Manual time entry' }));
+  expect(disclosure).toHaveAttribute('open');
+  return disclosure;
+};
+
 describe('StudyTimePage', () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -299,11 +307,16 @@ describe('StudyTimePage', () => {
     ).not.toBeInTheDocument();
     const weeklyRecap = screen.getByTestId('weekly-study-recap-card');
     const jlptMastery = screen.getByTestId('jlpt-mastery-card');
-    const manualEntries = screen.getByRole('heading', { name: 'Manual entries' });
-    expect(weeklyRecap.compareDocumentPosition(jlptMastery)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(jlptMastery.compareDocumentPosition(manualEntries)).toBe(
+    const manualTimeEntry = screen.getByTestId('manual-study-time-section');
+    expect(jlptMastery.compareDocumentPosition(manualTimeEntry)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
     );
+
+    expandManualTimeEntry();
+
+    const manualEntries = screen.getByRole('heading', { name: 'Manual entries' });
+    expect(weeklyRecap.compareDocumentPosition(jlptMastery)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(manualTimeEntry).toContainElement(manualEntries);
     fireEvent.click(screen.getByRole('button', { name: 'Log entry' }));
 
     expect(logCompletedMock).toHaveBeenCalledWith(
@@ -318,6 +331,7 @@ describe('StudyTimePage', () => {
 
   it('loads additional editable entries without expanding the sync window', () => {
     render(<StudyTimePage />);
+    expandManualTimeEntry();
     fireEvent.click(screen.getByRole('button', { name: 'Load more entries' }));
     expect(fetchNextPageMock).toHaveBeenCalledOnce();
   });
@@ -421,6 +435,7 @@ describe('StudyTimePage', () => {
 
   it('edits a manual entry and remaps its category', () => {
     render(<StudyTimePage />);
+    expandManualTimeEntry();
 
     expect(screen.queryByText('Automatic review')).not.toBeInTheDocument();
     expect(screen.queryByText('Imported iTalki lesson')).not.toBeInTheDocument();
@@ -453,6 +468,7 @@ describe('StudyTimePage', () => {
 
   it('confirms before deleting a manual entry', () => {
     render(<StudyTimePage />);
+    expandManualTimeEntry();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Episode 8 cards' }));
     expect(deleteResetMock).toHaveBeenCalledOnce();
