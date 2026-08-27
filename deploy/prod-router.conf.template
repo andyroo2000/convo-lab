@@ -373,7 +373,7 @@ server {
         proxy_read_timeout 30s;
     }
 
-    location = /api/achievements/progress {
+    location ~ ^/api/achievements/(?:progress|evaluate)$ {
         proxy_pass $learning_os_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
