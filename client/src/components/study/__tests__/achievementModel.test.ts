@@ -113,6 +113,24 @@ describe('achievementModel', () => {
     ]);
   });
 
+  it('keeps the visible fallback when only a hidden family has progress', () => {
+    const hiddenCatalog = catalog();
+    hiddenCatalog.families[0].hiddenUntilEarned = true;
+    hiddenCatalog.presentation.noDataFallbackTierIds = [
+      'voice.first',
+      'reviews.first',
+      'stable.first',
+    ];
+
+    expect(
+      closestInProgressAchievements(hiddenCatalog, {
+        revision: 'achievement-collection-v2',
+        metricValues: { 'stable.count': 24, 'reviews.count': 0, 'voice.hours': 0 },
+        awards: [],
+      }).map(({ id }) => id)
+    ).toEqual(['voice.first', 'reviews.first']);
+  });
+
   it('returns every earned badge in reverse chronological order', () => {
     expect(
       recentEarnedAchievements(

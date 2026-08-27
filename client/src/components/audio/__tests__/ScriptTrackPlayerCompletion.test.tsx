@@ -97,7 +97,7 @@ describe('ScriptTrackPlayer completion tracking', () => {
     await waitFor(() => expect(saveSessionsMock).toHaveBeenCalledTimes(2));
     const sessions = saveSessionsMock.mock.calls.flatMap(([batch]) => batch);
     expect(sessions).toHaveLength(2);
-    const listenSession = sessions.find(({ durationMs }) => durationMs !== 0);
+    const listenSession = sessions.find(({ name }) => !name.startsWith('Daily Audio completed: '));
     expect(listenSession?.name).toBe(title.slice(0, 120));
     expect(listenSession?.name).toHaveLength(120);
     expect(sessions.filter(({ name }) => name.startsWith('Daily Audio completed: '))).toHaveLength(

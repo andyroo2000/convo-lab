@@ -28,7 +28,7 @@ const DAILY_AUDIO_COMPLETION_PREFIX = 'Daily Audio completed: ';
 const STUDY_ACTIVITY_NAME_MAX_LENGTH = 120;
 
 function boundedActivityName(name: string) {
-  return name.slice(0, STUDY_ACTIVITY_NAME_MAX_LENGTH);
+  return Array.from(name).slice(0, STUDY_ACTIVITY_NAME_MAX_LENGTH).join('');
 }
 
 function formatDuration(seconds?: number | null) {
