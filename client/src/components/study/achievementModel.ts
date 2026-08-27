@@ -286,7 +286,10 @@ export const closestInProgressAchievements = (
     const byId = new Map(all.map((achievement) => [achievement.id, achievement]));
     return catalog.presentation.noDataFallbackTierIds
       .map((id) => byId.get(id))
-      .filter((achievement): achievement is PresentedAchievement => achievement !== undefined)
+      .filter(
+        (achievement): achievement is PresentedAchievement =>
+          achievement !== undefined && !achievement.family.hiddenUntilEarned
+      )
       .slice(0, count);
   }
 

@@ -103,6 +103,16 @@ describe('achievementModel', () => {
     ).toContain('stable.first');
   });
 
+  it('does not leak hidden badges through the no-progress fallback', () => {
+    const hiddenCatalog = catalog();
+    hiddenCatalog.families[0].hiddenUntilEarned = true;
+
+    expect(closestInProgressAchievements(hiddenCatalog, null).map(({ id }) => id)).toEqual([
+      'reviews.first',
+      'voice.first',
+    ]);
+  });
+
   it('returns every earned badge in reverse chronological order', () => {
     expect(
       recentEarnedAchievements(

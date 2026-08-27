@@ -25,6 +25,7 @@ interface ScriptTrackPlayerProps {
 }
 
 const DAILY_AUDIO_COMPLETION_PREFIX = 'Daily Audio completed: ';
+const STUDY_ACTIVITY_NAME_MAX_LENGTH = 120;
 
 function formatDuration(seconds?: number | null) {
   if (!seconds) return null;
@@ -155,7 +156,7 @@ const ScriptTrackPlayer = ({
                         source: 'automatic',
                         name: `${DAILY_AUDIO_COMPLETION_PREFIX}${title.slice(
                           0,
-                          120 - DAILY_AUDIO_COMPLETION_PREFIX.length
+                          STUDY_ACTIVITY_NAME_MAX_LENGTH - DAILY_AUDIO_COMPLETION_PREFIX.length
                         )}`,
                         startedAt: now,
                         endedAt: now,
