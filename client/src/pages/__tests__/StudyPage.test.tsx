@@ -875,6 +875,7 @@ describe('StudyPage', () => {
     expect(screen.getByTestId('study-review-header')).toHaveTextContent(
       '0Failed1Queued0NewEnd session'
     );
+    expect(screen.getByTestId('study-review-metrics')).not.toHaveClass('border-b');
     expect(screen.getByRole('group', { name: '0 failed, 1 queued, 0 new' })).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
