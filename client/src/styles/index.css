@@ -581,10 +581,6 @@
   }
 
   @media (min-width: 640px) {
-    .study-console-plan {
-      max-width: 52rem;
-    }
-
     .study-console-title {
       font-size: 3rem;
     }
