@@ -21,6 +21,7 @@ export interface AchievementFamily {
   title: string;
   metricKey: string;
   unit: string;
+  hiddenUntilEarned?: boolean;
   tiers: AchievementTier[];
 }
 
@@ -156,6 +157,7 @@ const decodeFamily = (value: unknown): AchievementFamily => {
     title: asString(record.title, 'Achievement family title was invalid.'),
     metricKey: asString(record.metricKey, 'Achievement metric key was invalid.'),
     unit: asString(record.unit, 'Achievement unit was invalid.'),
+    hiddenUntilEarned: record.hiddenUntilEarned === true,
     tiers,
   };
 };
@@ -275,23 +277,33 @@ export const closestInProgressAchievements = (
   const all = allPresentedAchievements(catalog, progress);
   const compatibleProgress = progress?.revision === catalog.revision ? progress : null;
   const metricValues = compatibleProgress?.metricValues ?? null;
+  const visibleFamilies = catalog.families.filter((family) => !family.hiddenUntilEarned);
+  const visibleMetricKeys = new Set(visibleFamilies.map((family) => family.metricKey));
+  const visibleTierIds = new Set(
+    visibleFamilies.flatMap((family) => family.tiers.map((tier) => `${family.key}.${tier.key}`))
+  );
   const hasProgress =
     metricValues !== null &&
-    (Object.values(metricValues).some((metricValue) => metricValue > 0) ||
-      (compatibleProgress?.awards.length ?? 0) > 0);
+    (Object.entries(metricValues).some(
+      ([metricKey, metricValue]) => visibleMetricKeys.has(metricKey) && metricValue > 0
+    ) ||
+      (compatibleProgress?.awards.some((award) => visibleTierIds.has(award.id)) ?? false));
 
   if (!hasProgress) {
     const byId = new Map(all.map((achievement) => [achievement.id, achievement]));
     return catalog.presentation.noDataFallbackTierIds
       .map((id) => byId.get(id))
-      .filter((achievement): achievement is PresentedAchievement => achievement !== undefined)
+      .filter(
+        (achievement): achievement is PresentedAchievement =>
+          achievement !== undefined && !achievement.family.hiddenUntilEarned
+      )
       .slice(0, count);
   }
 
   if (!catalog.presentation.fillWithLockedCandidates) return [];
 
   const achievementOrder = new Map(all.map((achievement, index) => [achievement.id, index]));
-  const candidates = catalog.families
+  const candidates = visibleFamilies
     .map((family) => {
       const familyAchievements = all.filter((achievement) => achievement.family.key === family.key);
       let highestEarnedIndex = -1;

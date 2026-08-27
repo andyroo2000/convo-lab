@@ -32,6 +32,7 @@ const catalog = (): AchievementCatalog => ({
     title,
     metricKey,
     unit,
+    hiddenUntilEarned: false,
     tiers: [25, 100].map((threshold, index) => ({
       key: index === 0 ? 'first' : 'second',
       title: `${title} ${String(index + 1)}`,
@@ -79,6 +80,55 @@ describe('achievementModel', () => {
       ['voice.first', false],
       ['stable.first', false],
     ]);
+  });
+
+  it('keeps hidden badges out of in-progress results until they are earned', () => {
+    const hiddenCatalog = catalog();
+    hiddenCatalog.families[0].hiddenUntilEarned = true;
+
+    expect(
+      closestInProgressAchievements(hiddenCatalog, {
+        revision: 'achievement-collection-v2',
+        metricValues: { 'stable.count': 24, 'reviews.count': 1, 'voice.hours': 1 },
+        awards: [],
+      }).map(({ id }) => id)
+    ).not.toContain('stable.first');
+
+    expect(
+      recentEarnedAchievements(hiddenCatalog, {
+        revision: 'achievement-collection-v2',
+        metricValues: { 'stable.count': 25 },
+        awards: [{ id: 'stable.first', earnedAt: '2026-01-01T00:00:00.000Z' }],
+      }).map(({ id }) => id)
+    ).toContain('stable.first');
+  });
+
+  it('does not leak hidden badges through the no-progress fallback', () => {
+    const hiddenCatalog = catalog();
+    hiddenCatalog.families[0].hiddenUntilEarned = true;
+
+    expect(closestInProgressAchievements(hiddenCatalog, null).map(({ id }) => id)).toEqual([
+      'reviews.first',
+      'voice.first',
+    ]);
+  });
+
+  it('keeps the visible fallback when only a hidden family has progress', () => {
+    const hiddenCatalog = catalog();
+    hiddenCatalog.families[0].hiddenUntilEarned = true;
+    hiddenCatalog.presentation.noDataFallbackTierIds = [
+      'voice.first',
+      'reviews.first',
+      'stable.first',
+    ];
+
+    expect(
+      closestInProgressAchievements(hiddenCatalog, {
+        revision: 'achievement-collection-v2',
+        metricValues: { 'stable.count': 24, 'reviews.count': 0, 'voice.hours': 0 },
+        awards: [],
+      }).map(({ id }) => id)
+    ).toEqual(['voice.first', 'reviews.first']);
   });
 
   it('returns every earned badge in reverse chronological order', () => {

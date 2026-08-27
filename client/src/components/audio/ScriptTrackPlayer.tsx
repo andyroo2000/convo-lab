@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import AudioPlayer from '../AudioPlayer';
 import CurrentTextDisplay from '../CurrentTextDisplay';
@@ -22,6 +22,13 @@ interface ScriptTrackPlayerProps {
   targetLanguage: LanguageCode;
   approxDurationSeconds?: number | null;
   updatedAt?: string | null;
+}
+
+const DAILY_AUDIO_COMPLETION_PREFIX = 'Daily Audio completed: ';
+const STUDY_ACTIVITY_NAME_MAX_LENGTH = 120;
+
+function boundedActivityName(name: string) {
+  return Array.from(name).slice(0, STUDY_ACTIVITY_NAME_MAX_LENGTH).join('');
 }
 
 function formatDuration(seconds?: number | null) {
@@ -63,7 +70,12 @@ const ScriptTrackPlayer = ({
   updatedAt,
 }: ScriptTrackPlayerProps) => {
   const { audioRef, currentTime, duration, isPlaying } = useAudioPlayer();
-  const { start: startActivity, stop: stopActivity } = useStudyActivityActions();
+  const {
+    start: startActivity,
+    stop: stopActivity,
+    stopAndWait: stopActivityAndWait,
+    logCompletedAndWait,
+  } = useStudyActivityActions();
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
@@ -72,6 +84,7 @@ const ScriptTrackPlayer = ({
   const playbackAudioUrl = audioUrl ? versionAudioUrl(audioUrl, updatedAt) : null;
   const units = useMemo(() => scriptUnits ?? [], [scriptUnits]);
   const timings = useMemo(() => timingData ?? [], [timingData]);
+  const activityName = boundedActivityName(title);
   const scaledTimings = useMemo(
     () => normalizeTimingDataForDuration(timings, duration || approxDurationSeconds),
     [approxDurationSeconds, duration, timings]
@@ -94,10 +107,29 @@ const ScriptTrackPlayer = ({
       category: 'listen',
       activity: 'daily_audio',
       source: 'automatic',
-      name: title,
+      name: activityName,
     });
-    return () => stopActivity('daily_audio', title);
-  }, [isPlaying, startActivity, stopActivity, title]);
+    return () => stopActivity('daily_audio', activityName);
+  }, [activityName, isPlaying, startActivity, stopActivity]);
+
+  const recordCompletion = useCallback(() => {
+    stopActivityAndWait('daily_audio', activityName)
+      .then(() => {
+        const now = new Date().toISOString();
+        return logCompletedAndWait({
+          clientSessionId: crypto.randomUUID(),
+          category: 'listen',
+          activity: 'daily_audio',
+          source: 'automatic',
+          name: boundedActivityName(`${DAILY_AUDIO_COMPLETION_PREFIX}${title}`),
+          startedAt: now,
+          endedAt: now,
+          durationMs: 0,
+          audioPlaybackMs: 0,
+        });
+      })
+      .catch(() => undefined);
+  }, [activityName, logCompletedAndWait, stopActivityAndWait, title]);
 
   return (
     <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">
@@ -133,7 +165,12 @@ const ScriptTrackPlayer = ({
             ) : null}
 
             <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 py-3">
-              <AudioPlayer src={playbackAudioUrl} audioRef={audioRef} key={playbackAudioUrl} />
+              <AudioPlayer
+                src={playbackAudioUrl}
+                audioRef={audioRef}
+                key={playbackAudioUrl}
+                onEnded={recordCompletion}
+              />
             </div>
           </>
         ) : (
