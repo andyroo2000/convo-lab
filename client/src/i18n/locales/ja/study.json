@@ -43,29 +43,15 @@
     "cardFallback": "学習カード",
     "done": "完了"
   },
-  "milestones": {
-    "title": "マイルストーン",
-    "recent": "最近のマイルストーン",
-    "earned": "達成済み",
-    "ahead": "これから",
-    "continue": "続ける",
-    "replay": "もう一度見る",
-    "burned100": {
-      "title": "100項目をBurnedに",
-      "detail": "100枚のカードが1年間の記憶安定度に到達しました。"
-    },
-    "burned500": {
-      "title": "500項目をBurnedに",
-      "detail": "500枚のカードが1年間の記憶安定度に到達しました。"
-    },
-    "burned1000": {
-      "title": "1,000項目をBurnedに",
-      "detail": "1,000枚のカードが1年間の記憶安定度に到達しました。"
-    }
-  },
   "achievements": {
     "kicker": "実績",
     "heading": "あなたの咆哮が育っています",
+    "earned": "実績を獲得",
+    "earnedThisSession": "今回獲得",
+    "new": "新着",
+    "next": "次へ",
+    "continue": "続ける",
+    "replay": "もう一度見る",
     "nextUp": "次はこちら",
     "more": "あと{{formattedCount}} {{unit}}",
     "startWith": "まずは{{formattedCount}} {{unit}}",

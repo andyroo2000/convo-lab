@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -12,8 +13,10 @@ import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
 import StudySessionWrapUp from '../components/study/StudySessionWrapUp';
-import { StudyMilestoneAwardView } from '../components/study/StudyMilestoneViews';
-import { StudyAchievementSpotlight } from '../components/study/StudyAchievementViews';
+import {
+  StudyAchievementAwardView,
+  StudyAchievementSpotlight,
+} from '../components/study/StudyAchievementViews';
 import StudySetDueControls from '../components/study/StudySetDueControls';
 import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
@@ -37,6 +40,8 @@ const StudyPage = () => {
   const runBackgroundTask = useStudyBackgroundTask();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [lessonPreviewIndex, setLessonPreviewIndex] = useState(0);
+  const [landingAchievementId, setLandingAchievementId] = useState<string | null>(null);
+  const [sessionNewAchievementIds, setSessionNewAchievementIds] = useState<string[]>([]);
   const startedLessonCohortRef = useRef<string | null>(null);
   const lessonCohortId = searchParams.get('lessonCohortId');
   const startReviewTimer = useCallback(
@@ -54,8 +59,17 @@ const StudyPage = () => {
   const shouldShowMotionBanner =
     reviewSession.motionPermissionState === 'prompt' ||
     reviewSession.motionPermissionState === 'denied';
-  const showingMilestoneAward = reviewSession.currentMilestoneAward !== null;
-  const showGradeTray = reviewSession.revealed && !reviewSession.editing && !showingMilestoneAward;
+  const showingAchievementAward = reviewSession.currentAchievement !== null;
+  const showGradeTray =
+    reviewSession.revealed && !reviewSession.editing && !showingAchievementAward;
+  const runViewTransition = useCallback((update: () => void) => {
+    const startViewTransition = document.startViewTransition?.bind(document);
+    if (!startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      update();
+      return;
+    }
+    startViewTransition(() => flushSync(update));
+  }, []);
   const motionBannerMessage = useMemo(() => {
     if (reviewSession.motionPermissionState === 'unsupported') {
       return t('motion.unsupported');
@@ -188,7 +202,7 @@ const StudyPage = () => {
               data-testid="study-focus-shell"
               className="study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-2xl md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-navy/10"
             >
-              {!showingMilestoneAward &&
+              {!showingAchievementAward &&
               !reviewSession.reviewSessionComplete &&
               !reviewSession.practiceComplete ? (
                 <StudyReviewHeader
@@ -203,19 +217,29 @@ const StudyPage = () => {
                   exitLabel={reviewSession.practiceMode ? t('practice.back') : undefined}
                 />
               ) : null}
-              {reviewSession.currentMilestoneAward ? (
-                <StudyMilestoneAwardView
-                  award={reviewSession.currentMilestoneAward}
-                  onContinue={reviewSession.advanceMilestoneAward}
+              {reviewSession.currentAchievement ? (
+                <StudyAchievementAwardView
+                  achievements={reviewSession.completionAchievements}
+                  currentIndex={reviewSession.currentAchievementIndex}
+                  onContinue={() => {
+                    if (
+                      reviewSession.currentAchievementIndex + 1 >=
+                      reviewSession.completionAchievements.length
+                    ) {
+                      runViewTransition(reviewSession.advanceAchievement);
+                    } else {
+                      reviewSession.advanceAchievement();
+                    }
+                  }}
                 />
               ) : null}
-              {!showingMilestoneAward && reviewSession.practiceMode ? (
+              {!showingAchievementAward && reviewSession.practiceMode ? (
                 <div className="mt-2 rounded-2xl border border-cyan/30 bg-cyan/10 px-4 py-3 text-sm text-gray-700">
                   <p className="font-bold text-cyan-700">{t('practice.title')}</p>
                   <p>{t('practice.description')}</p>
                 </div>
               ) : null}
-              {!showingMilestoneAward && showQuizSurface ? (
+              {!showingAchievementAward && showQuizSurface ? (
                 <div className="mastery-feedback-lane" data-testid="mastery-feedback-lane">
                   {masteryAnimation ? (
                     <MasteryReviewAnimation
@@ -243,7 +267,7 @@ const StudyPage = () => {
                   ) : null}
                 </div>
               ) : null}
-              {!showingMilestoneAward &&
+              {!showingAchievementAward &&
               reviewSession.sessionKind === 'lessons' &&
               reviewSession.lessonPhase === 'preview' &&
               !reviewSession.sessionLoading ? (
@@ -309,7 +333,7 @@ const StudyPage = () => {
                   </div>
                 </div>
               ) : null}
-              {!showingMilestoneAward &&
+              {!showingAchievementAward &&
               reviewSession.sessionKind === 'lessons' &&
               reviewSession.lessonPhase === 'complete' &&
               !masteryAnimation ? (
@@ -341,7 +365,7 @@ const StudyPage = () => {
                   </div>
                 </div>
               ) : null}
-              {!showingMilestoneAward &&
+              {!showingAchievementAward &&
               reviewSession.currentCard &&
               reviewSession.revealed &&
               !reviewSession.editing &&
@@ -357,7 +381,7 @@ const StudyPage = () => {
                   />
                 </div>
               ) : null}
-              {!showingMilestoneAward && shouldShowMotionBanner ? (
+              {!showingAchievementAward && shouldShowMotionBanner ? (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 md:mt-4 md:gap-3 md:rounded-2xl md:px-4 md:py-3 md:text-sm">
                   <p>{motionBannerMessage}</p>
                   <button
@@ -376,10 +400,10 @@ const StudyPage = () => {
                 </div>
               ) : null}
 
-              {!showingMilestoneAward && reviewSession.sessionLoading ? (
+              {!showingAchievementAward && reviewSession.sessionLoading ? (
                 <p className="py-16 text-center text-gray-500">{t('focus.loading')}</p>
               ) : null}
-              {!showingMilestoneAward && reviewSession.sessionError ? (
+              {!showingAchievementAward && reviewSession.sessionError ? (
                 <div className="space-y-4 py-16 text-center text-red-600">
                   <p>{reviewSession.sessionError}</p>
                   {reviewSession.reviewRetryAvailable ? (
@@ -397,25 +421,32 @@ const StudyPage = () => {
                   ) : null}
                 </div>
               ) : null}
-              {!showingMilestoneAward && reviewSession.reviewConflictRecovered ? (
+              {!showingAchievementAward && reviewSession.reviewConflictRecovered ? (
                 <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
                   {t('focus.reviewConflictRecovered')}
                 </p>
               ) : null}
 
-              {!showingMilestoneAward &&
+              {!showingAchievementAward &&
               reviewSession.reviewSessionComplete &&
               !masteryAnimation ? (
                 <StudySessionWrapUp
                   summary={reviewSession.sessionWrapUp}
                   caughtUp={reviewSession.reviewQueueExhausted}
-                  awards={reviewSession.milestoneCompletion?.newAwards ?? []}
+                  achievements={[...reviewSession.completionAchievements].reverse()}
                   onPractice={reviewSession.startToughestPractice}
-                  onDone={reviewSession.finishReviewSession}
+                  onDone={() => {
+                    const newest = [...reviewSession.completionAchievements].reverse()[0] ?? null;
+                    setLandingAchievementId(newest?.id ?? null);
+                    setSessionNewAchievementIds(
+                      reviewSession.completionAchievements.map(({ id }) => id)
+                    );
+                    runViewTransition(reviewSession.finishReviewSession);
+                  }}
                 />
               ) : null}
 
-              {!showingMilestoneAward && reviewSession.practiceComplete ? (
+              {!showingAchievementAward && reviewSession.practiceComplete ? (
                 <div className="flex min-h-[60vh] flex-1 items-center justify-center">
                   <div className="max-w-lg rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-200">
                     <h2 className="text-3xl font-bold text-navy">{t('practice.completeTitle')}</h2>
@@ -431,7 +462,7 @@ const StudyPage = () => {
                 </div>
               ) : null}
 
-              {!showingMilestoneAward &&
+              {!showingAchievementAward &&
               showQuizSurface &&
               !reviewSession.sessionLoading &&
               !reviewSession.sessionError &&
@@ -443,7 +474,7 @@ const StudyPage = () => {
                 </div>
               ) : null}
 
-              {!showingMilestoneAward &&
+              {!showingAchievementAward &&
               showQuizSurface &&
               displayedCard &&
               !reviewSession.reviewSessionComplete ? (
@@ -596,7 +627,14 @@ const StudyPage = () => {
         });
       }}
       isStartingSession={reviewSession.sessionLoading}
-      recentMilestones={<StudyAchievementSpotlight />}
+      recentMilestones={
+        <StudyAchievementSpotlight
+          initialCatalog={reviewSession.achievementCatalog}
+          initialProgress={reviewSession.achievementProgress}
+          landingAchievementId={landingAchievementId}
+          newAchievementIds={sessionNewAchievementIds}
+        />
+      }
     />
   );
 };
