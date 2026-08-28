@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import i18n from '../../../i18n';
@@ -182,5 +182,54 @@ describe('StudyAchievementSpotlight', () => {
       screen.getByTestId('achievement-voice.second')
     );
     expect(screen.queryByText('View all')).not.toBeInTheDocument();
+  });
+
+  it('keeps fallback badges visible and retries after a progress refresh failure', () => {
+    const { assets } = achievement(true).tier;
+    const catalog: AchievementCatalog = {
+      revision: 'catalog-v3',
+      presentation: {
+        targetVisibleBadgeCount: 1,
+        fillWithLockedCandidates: true,
+        noDataFallbackTierIds: ['reviews.first'],
+      },
+      families: [
+        {
+          key: 'reviews',
+          title: 'Card Muncher',
+          metricKey: 'reviews.count',
+          unit: 'reviews',
+          tiers: [
+            {
+              key: 'first',
+              title: 'First Nibble',
+              threshold: 25,
+              earnedDescription: 'Completed 25 reviews',
+              description: 'Finish 25 reviews.',
+              assets,
+            },
+          ],
+        },
+      ],
+    };
+    const retry = vi.fn();
+    achievementState.current = {
+      catalog,
+      progress: null,
+      loading: false,
+      error: null,
+      progressError: new Error('offline'),
+      retry,
+    };
+
+    render(<StudyAchievementSpotlight />);
+
+    expect(
+      screen.getByText('Your badges are here, but current progress could not be refreshed.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'First Nibble' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(retry).toHaveBeenCalledOnce();
   });
 });

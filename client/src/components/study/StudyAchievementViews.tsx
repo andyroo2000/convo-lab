@@ -111,11 +111,7 @@ export const StudyAchievementSpotlight = () => {
   const inProgressAchievements = catalog ? closestInProgressAchievements(catalog, progress) : [];
 
   return (
-    <section
-      id="achievements"
-      className="achievement-spotlight"
-      data-testid="study-recent-milestones"
-    >
+    <section className="achievement-spotlight" data-testid="study-recent-milestones">
       <div>
         <p className="study-console-kicker">{t('achievements.kicker')}</p>
         <h2 className="mt-1 text-3xl text-[var(--retro-ink-strong)]">
