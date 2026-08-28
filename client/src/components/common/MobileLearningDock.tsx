@@ -18,7 +18,7 @@ const MobileLearningDock = () => {
       label: t('nav.study'),
       path: '/app/study',
       icon: BookOpen,
-      active: pathname === '/app/study' || pathname.startsWith('/app/study/milestones'),
+      active: pathname === '/app/study',
     },
     {
       id: 'cards',

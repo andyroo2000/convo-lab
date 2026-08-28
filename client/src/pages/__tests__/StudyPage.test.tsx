@@ -2411,10 +2411,8 @@ describe('StudyPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
 
     expect(await screen.findByTestId('study-recent-milestones')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Recent milestones/ })).toHaveAttribute(
-      'href',
-      '/app/study/milestones'
-    );
+    expect(screen.queryByText('View all')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Recent milestones/ })).not.toBeInTheDocument();
   });
 
   it('opens a requested lesson-follow-up cohort directly in lesson preview', async () => {

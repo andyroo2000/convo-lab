@@ -1,9 +1,30 @@
 import { render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import i18n from '../../../i18n';
-import { AchievementBadgeCard } from '../StudyAchievementViews';
-import type { PresentedAchievement } from '../achievementModel';
+import { AchievementBadgeCard, StudyAchievementSpotlight } from '../StudyAchievementViews';
+import type {
+  AchievementCatalog,
+  AchievementProgress,
+  PresentedAchievement,
+} from '../achievementModel';
+
+const { achievementState } = vi.hoisted(() => ({
+  achievementState: {
+    current: {} as {
+      catalog: AchievementCatalog | null;
+      progress: AchievementProgress | null;
+      loading: boolean;
+      error: Error | null;
+      progressError: Error | null;
+      retry: ReturnType<typeof vi.fn>;
+    },
+  },
+}));
+
+vi.mock('../../../hooks/useAchievements', () => ({
+  default: () => achievementState.current,
+}));
 
 const achievement = (earned: boolean): PresentedAchievement => ({
   id: 'reviews.card-muncher',
@@ -78,5 +99,88 @@ describe('AchievementBadgeCard', () => {
     expect(screen.getByRole('heading', { name: 'Card Muncher' })).toBeInTheDocument();
     expect(screen.getByText('あと2 回のレビュー')).toBeInTheDocument();
     expect(screen.getByTestId('achievement-reviews.card-muncher')).toHaveClass('is-locked');
+  });
+});
+
+describe('StudyAchievementSpotlight', () => {
+  it('shows every earned badge newest first, then the closest in-progress badges', () => {
+    const { assets } = achievement(true).tier;
+    const catalog: AchievementCatalog = {
+      revision: 'catalog-v3',
+      presentation: {
+        targetVisibleBadgeCount: 2,
+        fillWithLockedCandidates: true,
+        noDataFallbackTierIds: ['reviews.first', 'voice.first'],
+      },
+      families: [
+        {
+          key: 'reviews',
+          title: 'Card Muncher',
+          metricKey: 'reviews.count',
+          unit: 'reviews',
+          tiers: [
+            ['first', 'First Nibble', 25],
+            ['second', 'Big Bite', 100],
+            ['third', 'Full Plate', 500],
+          ].map(([key, title, threshold]) => ({
+            key: String(key),
+            title: String(title),
+            threshold: Number(threshold),
+            earnedDescription: `Completed ${String(threshold)} reviews`,
+            description: `Finish ${String(threshold)} reviews.`,
+            assets,
+          })),
+        },
+        {
+          key: 'voice',
+          title: 'Roarer',
+          metricKey: 'voice.hours',
+          unit: 'hours',
+          tiers: [
+            ['first', 'First Roar', 10],
+            ['second', 'Big Roar', 100],
+          ].map(([key, title, threshold]) => ({
+            key: String(key),
+            title: String(title),
+            threshold: Number(threshold),
+            earnedDescription: `Spoke for ${String(threshold)} hours`,
+            description: `Speak for ${String(threshold)} hours.`,
+            assets,
+          })),
+        },
+      ],
+    };
+    achievementState.current = {
+      catalog,
+      progress: {
+        revision: catalog.revision,
+        metricValues: { 'reviews.count': 250, 'voice.hours': 50 },
+        awards: [
+          { id: 'reviews.first', earnedAt: '2026-01-01T00:00:00.000Z' },
+          { id: 'voice.first', earnedAt: '2026-02-01T00:00:00.000Z' },
+          { id: 'reviews.second', earnedAt: '2026-03-01T00:00:00.000Z' },
+        ],
+      },
+      loading: false,
+      error: null,
+      progressError: null,
+      retry: vi.fn(),
+    };
+
+    render(<StudyAchievementSpotlight />);
+
+    expect(
+      screen.getAllByTestId(/^achievement-/).map((badge) => badge.getAttribute('data-testid'))
+    ).toEqual([
+      'achievement-reviews.second',
+      'achievement-voice.first',
+      'achievement-reviews.first',
+      'achievement-voice.second',
+      'achievement-reviews.third',
+    ]);
+    expect(screen.getByRole('group', { name: 'Next up' })).toContainElement(
+      screen.getByTestId('achievement-voice.second')
+    );
+    expect(screen.queryByText('View all')).not.toBeInTheDocument();
   });
 });

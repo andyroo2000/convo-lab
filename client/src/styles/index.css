@@ -92,8 +92,21 @@
     @apply mt-5 flex max-w-full items-start gap-4 overflow-x-auto pb-2;
   }
 
-  .achievement-badge-grid {
-    @apply grid grid-cols-[repeat(auto-fill,128px)] items-start justify-start gap-5;
+  .achievement-next-up {
+    @apply flex shrink-0 items-start gap-4;
+  }
+
+  .achievement-next-up-marker {
+    @apply flex h-[190px] w-10 shrink-0 flex-col items-center justify-center gap-2 text-center text-coral;
+  }
+
+  .achievement-next-up-marker::before,
+  .achievement-next-up-marker::after {
+    @apply block h-[66px] w-0.5 rounded-full bg-coral/30 content-[''];
+  }
+
+  .achievement-next-up-marker span {
+    @apply text-[0.625rem] font-black uppercase leading-tight tracking-[0.14em];
   }
 
   .achievement-badge-card {
@@ -124,21 +137,6 @@
 
   .achievement-badge-caption p {
     @apply mt-1 line-clamp-2 text-[0.6875rem] font-bold leading-tight text-[#f7e7b7];
-  }
-
-  .achievement-view-toggle {
-    @apply flex overflow-hidden rounded-full border-[4px] bg-[#f7e7b7] p-1;
-    border-color: var(--retro-ink-strong);
-  }
-
-  .achievement-view-toggle button {
-    @apply min-h-11 rounded-full px-5 font-black;
-    color: var(--retro-ink-strong);
-  }
-
-  .achievement-view-toggle button.is-active {
-    background: var(--retro-ink-strong);
-    color: var(--retro-paper);
   }
 
   .btn {

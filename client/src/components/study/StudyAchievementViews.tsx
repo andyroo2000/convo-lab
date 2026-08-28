@@ -1,9 +1,11 @@
-import { ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import useAchievements from '../../hooks/useAchievements';
-import { recentEarnedAchievements, type PresentedAchievement } from './achievementModel';
+import {
+  closestInProgressAchievements,
+  recentEarnedAchievements,
+  type PresentedAchievement,
+} from './achievementModel';
 
 interface AchievementBadgeCardProps {
   achievement: PresentedAchievement;
@@ -65,40 +67,68 @@ const AchievementSkeletons = () => (
   </div>
 );
 
+interface AchievementShelfProps {
+  earnedAchievements: PresentedAchievement[];
+  inProgressAchievements: PresentedAchievement[];
+}
+
+export const AchievementShelf = ({
+  earnedAchievements,
+  inProgressAchievements,
+}: AchievementShelfProps) => {
+  const { t } = useTranslation('study');
+
+  return (
+    <div className="achievement-badge-row">
+      {earnedAchievements.map((achievement) => (
+        <AchievementBadgeCard key={achievement.id} achievement={achievement} />
+      ))}
+
+      {inProgressAchievements.length > 0 ? (
+        <div className="achievement-next-up" role="group" aria-label={t('achievements.nextUp')}>
+          <div className="achievement-next-up-marker" aria-hidden="true">
+            <span>{t('achievements.nextUp')}</span>
+          </div>
+          {inProgressAchievements.map((achievement) => (
+            <AchievementBadgeCard key={achievement.id} achievement={achievement} />
+          ))}
+        </div>
+      ) : null}
+
+      {earnedAchievements.length === 0 && inProgressAchievements.length === 0 ? (
+        <p className="text-sm text-[color:rgba(17,51,92,0.72)]">{t('achievements.noEarned')}</p>
+      ) : null}
+    </div>
+  );
+};
+
 export const StudyAchievementSpotlight = () => {
   const { t } = useTranslation('study');
   const { catalog, progress, loading, error, progressError, retry } = useAchievements();
-  const recentAchievements = catalog ? recentEarnedAchievements(catalog, progress) : [];
+  const earnedAchievements = catalog
+    ? recentEarnedAchievements(catalog, progress, Number.MAX_SAFE_INTEGER)
+    : [];
+  const inProgressAchievements = catalog ? closestInProgressAchievements(catalog, progress) : [];
 
   return (
-    <section className="achievement-spotlight" data-testid="study-recent-milestones">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="study-console-kicker">{t('achievements.kicker')}</p>
-          <h2 className="mt-1 text-3xl text-[var(--retro-ink-strong)]">
-            {t('achievements.heading')}
-          </h2>
-        </div>
-        <Link
-          to="/app/study/milestones"
-          aria-label={t('milestones.recent')}
-          className="inline-flex min-h-11 items-center gap-1 px-2 font-bold text-[var(--retro-ink-strong)] hover:text-cyan-700"
-        >
-          {t('achievements.viewAll')}
-          <ChevronRight aria-hidden="true" className="size-4" />
-        </Link>
+    <section
+      id="achievements"
+      className="achievement-spotlight"
+      data-testid="study-recent-milestones"
+    >
+      <div>
+        <p className="study-console-kicker">{t('achievements.kicker')}</p>
+        <h2 className="mt-1 text-3xl text-[var(--retro-ink-strong)]">
+          {t('achievements.heading')}
+        </h2>
       </div>
 
       {loading ? <AchievementSkeletons /> : null}
-      {!loading && catalog && (!progressError || progress) ? (
-        <div className="achievement-badge-row">
-          {recentAchievements.map((achievement) => (
-            <AchievementBadgeCard key={achievement.id} achievement={achievement} />
-          ))}
-          {recentAchievements.length === 0 ? (
-            <p className="text-sm text-[color:rgba(17,51,92,0.72)]">{t('achievements.noEarned')}</p>
-          ) : null}
-        </div>
+      {!loading && catalog ? (
+        <AchievementShelf
+          earnedAchievements={earnedAchievements}
+          inProgressAchievements={inProgressAchievements}
+        />
       ) : null}
       {!loading && catalog && progressError ? (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-2 border-navy/15 bg-cream/80 p-4 text-sm text-[var(--retro-ink-strong)]">
