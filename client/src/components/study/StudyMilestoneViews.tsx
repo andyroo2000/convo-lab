@@ -1,6 +1,5 @@
-import { ChevronRight, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -41,14 +40,12 @@ export const StudyRecentMilestones = ({
   if (visibleAwards.length === 0) return null;
 
   return (
-    <Link
-      to="/app/study/milestones"
-      className={`block rounded-[1.35rem] border-2 border-navy/10 bg-white/80 p-4 shadow-[0_8px_24px_rgba(17,51,92,0.08)] transition hover:border-cyan/40 hover:bg-white ${className}`}
+    <section
+      className={`block rounded-[1.35rem] border-2 border-navy/10 bg-white/80 p-4 shadow-[0_8px_24px_rgba(17,51,92,0.08)] ${className}`}
       data-testid="study-recent-milestones"
     >
-      <span className="flex items-center justify-between gap-3">
+      <span className="flex items-center gap-3">
         <span className="font-bold text-navy">{title ?? t('milestones.recent')}</span>
-        <ChevronRight aria-hidden="true" className="size-4 text-gray-400" />
       </span>
       <span className="mt-3 grid grid-cols-3 gap-3">
         {visibleAwards.map((award) => {
@@ -63,7 +60,7 @@ export const StudyRecentMilestones = ({
           );
         })}
       </span>
-    </Link>
+    </section>
   );
 };
 

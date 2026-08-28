@@ -50,7 +50,6 @@
     "ahead": "Ahead",
     "continue": "Continue",
     "replay": "Replay",
-    "back": "Back to Study",
     "burned100": {
       "title": "100 items burned",
       "detail": "One hundred cards have reached a year of memory stability."
@@ -67,10 +66,7 @@
   "achievements": {
     "kicker": "Achievements",
     "heading": "Your roar is growing",
-    "viewAll": "View all",
-    "viewLabel": "Achievement view",
-    "inProgress": "In progress",
-    "earned": "Earned",
+    "nextUp": "Next up",
     "more": "{{formattedCount}} more {{unit}}",
     "startWith": "Start with {{formattedCount}} {{unit}}",
     "units": {
@@ -81,8 +77,6 @@
       "hours_one": "hour",
       "hours_other": "hours"
     },
-    "progressIntro": "The achievements you’re closest to unlocking next.",
-    "earnedIntro": "Every badge you’ve earned, newest first.",
     "noEarned": "Your earned badges will appear here.",
     "loading": "Loading achievements…",
     "error": "The badge cabinet couldn’t be opened right now.",
