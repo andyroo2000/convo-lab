@@ -37,6 +37,7 @@ export const deleteStudyAchievementSessionData = (
   userId: string
 ) => {
   storage.removeItem(studyAchievementSessionStorageKey(userId));
+  storage.removeItem(`convo-lab.study-milestones-v1.${encodeURIComponent(userId)}`);
 };
 
 const stringArray = (value: unknown): string[] | null =>

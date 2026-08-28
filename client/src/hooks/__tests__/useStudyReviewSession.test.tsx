@@ -21,8 +21,6 @@ const {
   deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
   warmAudioCacheMock,
-  evaluateStudyMilestonesMock,
-  presentStudyMilestonesMock,
   getAchievementCatalogMock,
   getAchievementProgressMock,
 } = vi.hoisted(() => ({
@@ -38,8 +36,6 @@ const {
   deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   warmAudioCacheMock: vi.fn(),
-  evaluateStudyMilestonesMock: vi.fn(),
-  presentStudyMilestonesMock: vi.fn(),
   getAchievementCatalogMock: vi.fn(),
   getAchievementProgressMock: vi.fn(),
 }));
@@ -78,11 +74,6 @@ vi.mock('../useStudy', () => ({
 
 vi.mock('../../lib/audioCache', () => ({
   warmAudioCache: warmAudioCacheMock,
-}));
-
-vi.mock('../../lib/studyMilestoneApi', () => ({
-  evaluateStudyMilestones: evaluateStudyMilestonesMock,
-  presentStudyMilestones: presentStudyMilestonesMock,
 }));
 
 vi.mock('../../lib/achievementApi', () => ({
@@ -241,10 +232,6 @@ describe('useStudyReviewSession', () => {
     regenerateStudyAnswerAudioMock.mockReset();
     warmAudioCacheMock.mockReset();
     warmAudioCacheMock.mockResolvedValue(undefined);
-    evaluateStudyMilestonesMock.mockReset();
-    evaluateStudyMilestonesMock.mockResolvedValue({ milestones: [], pendingMilestones: [] });
-    presentStudyMilestonesMock.mockReset();
-    presentStudyMilestonesMock.mockResolvedValue(undefined);
     getAchievementCatalogMock.mockReset();
     getAchievementCatalogMock.mockResolvedValue(achievementCatalog);
     getAchievementProgressMock.mockReset();
@@ -426,6 +413,8 @@ describe('useStudyReviewSession', () => {
     await waitFor(() => {
       expect(result.current.achievementCompletion?.newAwardIds).toEqual(['burned.burned100']);
     });
+    expect(getAchievementCatalogMock).toHaveBeenCalledTimes(1);
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
     expect(result.current.completionAchievements.map(({ id }) => id)).toEqual(['burned.burned100']);
   });
 

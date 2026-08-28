@@ -33,8 +33,6 @@ const {
   featureFlagsLoading,
   masteryAnimationFinishesImmediately,
   reviewMutationError,
-  evaluateStudyMilestonesMock,
-  presentStudyMilestonesMock,
   getAchievementCatalogMock,
   getAchievementProgressMock,
 } = vi.hoisted(() => ({
@@ -77,8 +75,6 @@ const {
   featureFlagsLoading: { current: false },
   masteryAnimationFinishesImmediately: { current: true },
   reviewMutationError: { current: null as Error | null },
-  evaluateStudyMilestonesMock: vi.fn(),
-  presentStudyMilestonesMock: vi.fn(),
   getAchievementCatalogMock: vi.fn(),
   getAchievementProgressMock: vi.fn(),
 }));
@@ -140,11 +136,6 @@ vi.mock('../../hooks/useStudy', () => ({
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   undoStudyReview: undoStudyReviewMock,
-}));
-
-vi.mock('../../lib/studyMilestoneApi', () => ({
-  evaluateStudyMilestones: evaluateStudyMilestonesMock,
-  presentStudyMilestones: presentStudyMilestonesMock,
 }));
 
 vi.mock('../../lib/achievementApi', () => ({
@@ -303,10 +294,6 @@ const pageEmptyAchievementProgress = {
 describe('StudyPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    evaluateStudyMilestonesMock.mockReset();
-    evaluateStudyMilestonesMock.mockResolvedValue({ milestones: [], pendingMilestones: [] });
-    presentStudyMilestonesMock.mockReset();
-    presentStudyMilestonesMock.mockResolvedValue(undefined);
     getAchievementCatalogMock.mockReset();
     getAchievementCatalogMock.mockResolvedValue(pageAchievementCatalog);
     getAchievementProgressMock.mockReset();

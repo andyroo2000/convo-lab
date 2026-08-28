@@ -1,5 +1,5 @@
 import { Star } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import useAchievements from '../../hooks/useAchievements';
@@ -110,6 +110,7 @@ export const StudyAchievementAwardView = ({
   const [animationKey, setAnimationKey] = useState(0);
   const [canContinue, setCanContinue] = useState(achievementPrefersReducedMotion);
   const [advancing, setAdvancing] = useState(false);
+  const advanceTimeoutRef = useRef<number | null>(null);
   const nextAchievement = achievements[currentIndex + 1] ?? null;
   useEffect(() => {
     if (achievementPrefersReducedMotion()) {
@@ -121,6 +122,15 @@ export const StudyAchievementAwardView = ({
     return () => window.clearTimeout(timeoutId);
   }, [achievement.id, animationKey]);
 
+  useEffect(
+    () => () => {
+      if (advanceTimeoutRef.current !== null) {
+        window.clearTimeout(advanceTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   if (!achievement) return null;
 
   const advance = () => {
@@ -129,9 +139,10 @@ export const StudyAchievementAwardView = ({
       return;
     }
     setAdvancing(true);
-    window.setTimeout(() => {
+    advanceTimeoutRef.current = window.setTimeout(() => {
       onContinue();
       setAdvancing(false);
+      advanceTimeoutRef.current = null;
     }, 560);
   };
 
@@ -198,14 +209,14 @@ export const StudyAchievementAwardView = ({
             canContinue ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          {t(hasNext ? 'achievements.next' : 'milestones.continue')}
+          {t(hasNext ? 'achievements.next' : 'achievements.continue')}
         </button>
         <button
           type="button"
           onClick={() => setAnimationKey((current) => current + 1)}
           className="text-sm font-bold text-navy hover:text-cyan-700 motion-reduce:hidden"
         >
-          {t('milestones.replay')}
+          {t('achievements.replay')}
         </button>
       </div>
     </div>

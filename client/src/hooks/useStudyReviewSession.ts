@@ -124,6 +124,7 @@ const useStudyReviewSession = () => {
         : null,
     [userId]
   );
+  const achievementCatalogRef = useRef<AchievementCatalog | null>(null);
   const achievementSyncQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const syncAchievements = useCallback(() => {
@@ -131,12 +132,15 @@ const useStudyReviewSession = () => {
       .catch(() => undefined)
       .then(async () => {
         const [catalog, progress] = await Promise.all([
-          achievementCatalog ? Promise.resolve(achievementCatalog) : getAchievementCatalog(),
+          achievementCatalogRef.current
+            ? Promise.resolve(achievementCatalogRef.current)
+            : getAchievementCatalog(),
           getAchievementProgress(),
         ]);
         if (catalog.revision !== progress.revision) {
           throw new Error('Achievement catalog and progress revisions did not match.');
         }
+        achievementCatalogRef.current = catalog;
         setAchievementCatalog(catalog);
         setAchievementProgress(progress);
         return { catalog, progress };
@@ -146,7 +150,7 @@ const useStudyReviewSession = () => {
       () => undefined
     );
     return request;
-  }, [achievementCatalog]);
+  }, []);
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
   const practiceMode = practiceCards !== null;

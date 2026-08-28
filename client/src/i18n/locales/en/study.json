@@ -43,26 +43,6 @@
     "cardFallback": "Study card",
     "done": "Done"
   },
-  "milestones": {
-    "title": "Milestones",
-    "recent": "Recent milestones",
-    "earned": "Earned",
-    "ahead": "Ahead",
-    "continue": "Continue",
-    "replay": "Replay",
-    "burned100": {
-      "title": "100 items burned",
-      "detail": "One hundred cards have reached a year of memory stability."
-    },
-    "burned500": {
-      "title": "500 items burned",
-      "detail": "Five hundred cards have reached a year of memory stability."
-    },
-    "burned1000": {
-      "title": "1,000 items burned",
-      "detail": "One thousand cards have reached a year of memory stability."
-    }
-  },
   "achievements": {
     "kicker": "Achievements",
     "heading": "Your roar is growing",
@@ -70,6 +50,8 @@
     "earnedThisSession": "Earned this session",
     "new": "New",
     "next": "Next",
+    "continue": "Continue",
+    "replay": "Replay",
     "nextUp": "Next up",
     "more": "{{formattedCount}} more {{unit}}",
     "startWith": "Start with {{formattedCount}} {{unit}}",
