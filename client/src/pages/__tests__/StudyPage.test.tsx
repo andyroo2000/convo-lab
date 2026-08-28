@@ -35,6 +35,8 @@ const {
   reviewMutationError,
   evaluateStudyMilestonesMock,
   presentStudyMilestonesMock,
+  getAchievementCatalogMock,
+  getAchievementProgressMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
@@ -77,6 +79,8 @@ const {
   reviewMutationError: { current: null as Error | null },
   evaluateStudyMilestonesMock: vi.fn(),
   presentStudyMilestonesMock: vi.fn(),
+  getAchievementCatalogMock: vi.fn(),
+  getAchievementProgressMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
@@ -141,6 +145,11 @@ vi.mock('../../hooks/useStudy', () => ({
 vi.mock('../../lib/studyMilestoneApi', () => ({
   evaluateStudyMilestones: evaluateStudyMilestonesMock,
   presentStudyMilestones: presentStudyMilestonesMock,
+}));
+
+vi.mock('../../lib/achievementApi', () => ({
+  getAchievementCatalog: getAchievementCatalogMock,
+  getAchievementProgress: getAchievementProgressMock,
 }));
 
 vi.mock('../../components/study/studyTimeZoneUtils', () => ({
@@ -245,6 +254,52 @@ class MockDeviceMotionEvent extends Event {
   }
 }
 
+const pageAchievementAssets = {
+  earned: {
+    png: {
+      '256': { path: '/achievement-assets/burned-256.png', width: 256, height: 256 },
+      '512': { path: '/achievement-assets/burned-512.png', width: 512, height: 512 },
+    },
+  },
+  locked: {
+    png: {
+      '256': { path: '/achievement-assets/burned-locked-256.png', width: 256, height: 256 },
+      '512': { path: '/achievement-assets/burned-locked-512.png', width: 512, height: 512 },
+    },
+  },
+};
+const pageAchievementCatalog = {
+  revision: 'test-achievements-v1',
+  presentation: {
+    targetVisibleBadgeCount: 1,
+    fillWithLockedCandidates: true,
+    noDataFallbackTierIds: ['burned.burned100'],
+  },
+  families: [
+    {
+      key: 'burned',
+      title: 'Burned',
+      metricKey: 'mastery.burned',
+      unit: 'cards',
+      tiers: [
+        {
+          key: 'burned100',
+          title: '100 items burned',
+          threshold: 100,
+          earnedDescription: 'One hundred cards reached burned.',
+          description: 'Burn 100 cards.',
+          assets: pageAchievementAssets,
+        },
+      ],
+    },
+  ],
+};
+const pageEmptyAchievementProgress = {
+  revision: pageAchievementCatalog.revision,
+  metricValues: { 'mastery.burned': 99 },
+  awards: [] as Array<{ id: string; earnedAt: string }>,
+};
+
 describe('StudyPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -252,6 +307,10 @@ describe('StudyPage', () => {
     evaluateStudyMilestonesMock.mockResolvedValue({ milestones: [], pendingMilestones: [] });
     presentStudyMilestonesMock.mockReset();
     presentStudyMilestonesMock.mockResolvedValue(undefined);
+    getAchievementCatalogMock.mockReset();
+    getAchievementCatalogMock.mockResolvedValue(pageAchievementCatalog);
+    getAchievementProgressMock.mockReset();
+    getAchievementProgressMock.mockResolvedValue(pageEmptyAchievementProgress);
     cardActionMutateAsyncMock.mockReset();
     startStudyLessonMock.mockReset();
     startStudyIntroductionCohortLessonMock.mockReset();
@@ -2332,26 +2391,7 @@ describe('StudyPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('awards the Orbit milestone before wrap-up and moves it into recent milestones', async () => {
-    evaluateStudyMilestonesMock
-      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
-      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
-      .mockResolvedValueOnce({
-        milestones: [
-          {
-            id: 'burned100',
-            earnedAt: '2026-08-25T12:00:00.000Z',
-            presentedAt: null,
-          },
-        ],
-        pendingMilestones: [
-          {
-            id: 'burned100',
-            earnedAt: '2026-08-25T12:00:00.000Z',
-            presentedAt: null,
-          },
-        ],
-      });
+  it('awards the Orbit achievement before wrap-up and moves it onto Study', async () => {
     vi.spyOn(window, 'matchMedia').mockImplementation(
       (query) =>
         ({
@@ -2400,14 +2440,19 @@ describe('StudyPage', () => {
     renderStudyPage();
     await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    getAchievementProgressMock.mockResolvedValue({
+      ...pageEmptyAchievementProgress,
+      metricValues: { 'mastery.burned': 100 },
+      awards: [{ id: 'burned.burned100', earnedAt: '2026-08-25T12:00:00.000Z' }],
+    });
     await userEvent.click(screen.getByRole('button', { name: 'Good' }));
 
-    expect(await screen.findByTestId('study-milestone-award')).toBeInTheDocument();
+    expect(await screen.findByTestId('study-achievement-award')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '100 items burned' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(await screen.findByText('Nice work')).toBeInTheDocument();
-    expect(screen.getByTestId('study-recent-milestones')).toBeInTheDocument();
+    expect(screen.getByTestId('study-session-achievements')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
 
     expect(await screen.findByTestId('study-recent-milestones')).toBeInTheDocument();

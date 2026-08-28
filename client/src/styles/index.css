@@ -110,7 +110,15 @@
   }
 
   .achievement-badge-card {
-    @apply w-32 shrink-0 overflow-hidden rounded-b-[0.625rem] shadow-[0_5px_0_rgba(17,51,92,0.12)];
+    @apply relative w-32 shrink-0 overflow-hidden rounded-b-[0.625rem] shadow-[0_5px_0_rgba(17,51,92,0.12)];
+  }
+
+  .achievement-badge-card.is-shadowless {
+    box-shadow: none;
+  }
+
+  .achievement-badge-new {
+    @apply absolute right-2 top-2 z-20 rounded-full bg-coral px-2 py-1 text-[0.625rem] font-black uppercase tracking-[0.14em] text-white;
   }
 
   .achievement-badge-card.is-locked {
@@ -6037,63 +6045,126 @@
   }
 }
 
-.study-milestone-orbit {
+.study-achievement-award-stage {
   position: relative;
-  width: 16rem;
-  height: 16rem;
-  flex: 0 0 16rem;
+  width: min(100%, 34rem);
+  min-height: 24rem;
 }
 
-.study-milestone-orbit-ring {
-  position: absolute;
-  inset: 1.5rem;
-  border: 2px solid rgb(56 189 248 / 16%);
-  border-radius: 9999px;
-  animation: study-milestone-star-fade 3.8s linear forwards;
-}
-
-.study-milestone-stars {
+.study-achievement-award-panel {
   position: absolute;
   inset: 0;
-  animation: study-milestone-orbit-spin 3.8s linear forwards;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.study-milestone-star-position {
+.study-achievement-award-panel.is-incoming {
+  transform: translateX(110%);
+}
+
+.study-achievement-award-panel.is-incoming .study-achievement-stars,
+.study-achievement-award-panel.is-incoming .study-achievement-orbit-ring {
+  display: none;
+}
+
+.study-achievement-award-panel.is-incoming .study-achievement-award-art {
+  animation: none;
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.study-achievement-award-stage.is-advancing .is-current {
+  animation: study-achievement-panel-out 560ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+.study-achievement-award-stage.is-advancing .is-incoming {
+  animation: study-achievement-panel-in 560ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+.study-achievement-award-stage.is-advancing .is-incoming .study-achievement-award-art {
+  animation: none;
+}
+
+.study-achievement-award-stage.is-subsequent
+  .study-achievement-award-panel.is-current
+  .study-achievement-award-art {
+  animation: study-achievement-incoming-swell 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.study-achievement-orbit {
+  position: relative;
+  width: 19rem;
+  height: 19rem;
+  flex: 0 0 19rem;
+}
+
+.study-achievement-orbit-ring {
+  position: absolute;
+  inset: 1.8rem;
+  border: 2px solid rgb(56 189 248 / 16%);
+  border-radius: 9999px;
+  animation: study-achievement-star-fade 4.8s linear forwards;
+}
+
+.study-achievement-stars {
+  position: absolute;
+  inset: 0;
+  animation: study-achievement-orbit-spin 4.8s linear forwards;
+}
+
+.study-achievement-star-position {
   position: absolute;
   top: 50%;
   left: 50%;
   width: 1.25rem;
   height: 1.25rem;
   margin: -0.625rem;
-  transform: rotate(calc(var(--study-star-index) * 45deg)) translateY(-6.5rem);
+  transform: rotate(calc(var(--study-star-index) * 45deg)) translateY(-7.7rem);
 }
 
-.study-milestone-star {
+.study-achievement-star {
   display: block;
-  animation: study-milestone-star-swell 3.8s linear forwards;
+  filter: drop-shadow(0 5px 4px rgb(17 51 92 / 22%));
+  animation: study-achievement-star-swell 4.8s linear forwards;
 }
 
-.study-milestone-award-badge {
+.study-achievement-award-art {
   position: absolute;
   top: 50%;
   left: 50%;
-  display: grid;
-  width: 7rem;
-  height: 7rem;
-  margin: -3.5rem;
-  place-items: center;
-  border: 0.5rem solid rgb(56 189 248 / 18%);
-  border-radius: 2.1rem;
-  background: #194873;
+  width: 10rem;
+  height: 10rem;
+  margin: -5rem;
+  object-fit: cover;
   box-shadow: 0 1rem 2rem rgb(17 51 92 / 22%);
-  color: #fbf5e0;
-  font-family: ui-rounded, 'SF Pro Rounded', ui-sans-serif, system-ui, sans-serif;
-  font-size: 2.4rem;
-  font-weight: 900;
-  animation: study-milestone-badge-arrival 4.8s linear forwards;
+  animation: study-achievement-badge-arrival 4.8s linear forwards;
 }
 
-@keyframes study-milestone-orbit-spin {
+@keyframes study-achievement-panel-out {
+  to {
+    transform: translateX(-110%);
+  }
+}
+
+@keyframes study-achievement-panel-in {
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes study-achievement-incoming-swell {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.075);
+  }
+}
+
+@keyframes study-achievement-orbit-spin {
   0% {
     transform: rotate(0deg);
   }
@@ -6123,7 +6194,7 @@
   }
 }
 
-@keyframes study-milestone-star-swell {
+@keyframes study-achievement-star-swell {
   0% {
     opacity: 0;
     transform: scale(0.68);
@@ -6164,7 +6235,7 @@
   }
 }
 
-@keyframes study-milestone-star-fade {
+@keyframes study-achievement-star-fade {
   0%,
   91% {
     opacity: 1;
@@ -6175,61 +6246,66 @@
   }
 }
 
-@keyframes study-milestone-badge-arrival {
+@keyframes study-achievement-badge-arrival {
   0% {
-    background: #194873;
     opacity: 0;
     transform: rotate(-170deg) scale(0.28);
   }
 
   19% {
-    background: #194873;
     opacity: 1;
     transform: rotate(10deg) scale(1.08);
   }
 
   29%,
   70% {
-    background: #194873;
     opacity: 1;
     transform: rotate(0deg) scale(1);
   }
 
   75% {
-    background: #194873;
     transform: rotate(0deg) scale(1.055);
   }
 
   79.16% {
-    background: #194873;
     transform: rotate(0deg) scale(1);
   }
 
   100% {
-    background: #11335c;
     opacity: 1;
     transform: rotate(0deg) scale(1);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .study-milestone-stars,
-  .study-milestone-star,
-  .study-milestone-orbit-ring,
-  .study-milestone-award-badge {
+  .study-achievement-stars,
+  .study-achievement-star,
+  .study-achievement-orbit-ring,
+  .study-achievement-award-art,
+  .study-achievement-award-panel {
     animation: none;
   }
 
-  .study-milestone-stars,
-  .study-milestone-orbit-ring {
+  .study-achievement-stars,
+  .study-achievement-orbit-ring {
     opacity: 0;
   }
 
-  .study-milestone-award-badge {
-    background: #11335c;
+  .study-achievement-award-art {
     opacity: 1;
     transform: rotate(0deg) scale(1);
   }
+}
+
+::view-transition-group(achievement-badge-flight) {
+  animation-duration: 1.9s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(achievement-badge-flight),
+::view-transition-new(achievement-badge-flight) {
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  mix-blend-mode: normal;
 }
 
 .mastery-feedback-lane {

@@ -66,6 +66,10 @@
   "achievements": {
     "kicker": "実績",
     "heading": "あなたの咆哮が育っています",
+    "earned": "実績を獲得",
+    "earnedThisSession": "今回獲得",
+    "new": "新着",
+    "next": "次へ",
     "nextUp": "次はこちら",
     "more": "あと{{formattedCount}} {{unit}}",
     "startWith": "まずは{{formattedCount}} {{unit}}",

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useStudyReviewSession from '../useStudyReviewSession';
 import { JsonRequestError } from '../../lib/apiClient';
 import StudyReviewIdentityMismatchError from '../../lib/studyReviewIdentityMismatch';
+import type { AchievementProgress } from '../../components/study/achievementModel';
 
 const {
   cardActionMutateAsyncMock,
@@ -22,6 +23,8 @@ const {
   warmAudioCacheMock,
   evaluateStudyMilestonesMock,
   presentStudyMilestonesMock,
+  getAchievementCatalogMock,
+  getAchievementProgressMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   createStudyReviewRequestMock: vi.fn(),
@@ -37,6 +40,8 @@ const {
   warmAudioCacheMock: vi.fn(),
   evaluateStudyMilestonesMock: vi.fn(),
   presentStudyMilestonesMock: vi.fn(),
+  getAchievementCatalogMock: vi.fn(),
+  getAchievementProgressMock: vi.fn(),
 }));
 
 vi.mock('../useStudy', () => ({
@@ -80,6 +85,11 @@ vi.mock('../../lib/studyMilestoneApi', () => ({
   presentStudyMilestones: presentStudyMilestonesMock,
 }));
 
+vi.mock('../../lib/achievementApi', () => ({
+  getAchievementCatalog: getAchievementCatalogMock,
+  getAchievementProgress: getAchievementProgressMock,
+}));
+
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'study-review-hook-test-user' } }),
 }));
@@ -91,6 +101,52 @@ const baseOverview = {
   reviewCount: 2,
   suspendedCount: 0,
   totalCards: 2,
+};
+
+const achievementAssets = {
+  earned: {
+    png: {
+      '256': { path: '/achievement-assets/burned-256.png', width: 256, height: 256 },
+      '512': { path: '/achievement-assets/burned-512.png', width: 512, height: 512 },
+    },
+  },
+  locked: {
+    png: {
+      '256': { path: '/achievement-assets/burned-locked-256.png', width: 256, height: 256 },
+      '512': { path: '/achievement-assets/burned-locked-512.png', width: 512, height: 512 },
+    },
+  },
+};
+const achievementCatalog = {
+  revision: 'test-achievements-v1',
+  presentation: {
+    targetVisibleBadgeCount: 1,
+    fillWithLockedCandidates: true,
+    noDataFallbackTierIds: ['burned.burned100'],
+  },
+  families: [
+    {
+      key: 'burned',
+      title: 'Burned',
+      metricKey: 'mastery.burned',
+      unit: 'cards',
+      tiers: [
+        {
+          key: 'burned100',
+          title: '100 items burned',
+          threshold: 100,
+          earnedDescription: 'One hundred cards reached burned.',
+          description: 'Burn 100 cards.',
+          assets: achievementAssets,
+        },
+      ],
+    },
+  ],
+};
+const emptyAchievementProgress: AchievementProgress = {
+  revision: achievementCatalog.revision,
+  metricValues: { 'mastery.burned': 99 },
+  awards: [],
 };
 
 const baseCardOne = {
@@ -189,6 +245,10 @@ describe('useStudyReviewSession', () => {
     evaluateStudyMilestonesMock.mockResolvedValue({ milestones: [], pendingMilestones: [] });
     presentStudyMilestonesMock.mockReset();
     presentStudyMilestonesMock.mockResolvedValue(undefined);
+    getAchievementCatalogMock.mockReset();
+    getAchievementCatalogMock.mockResolvedValue(achievementCatalog);
+    getAchievementProgressMock.mockReset();
+    getAchievementProgressMock.mockResolvedValue(emptyAchievementProgress);
     window.localStorage.clear();
 
     startStudySessionMock.mockResolvedValue({
@@ -299,32 +359,27 @@ describe('useStudyReviewSession', () => {
     });
   });
 
-  it('shows a server-pending award even when this device has no saved session', async () => {
+  it('does not replay historical server awards without a matching saved session', async () => {
     const award = {
       id: 'burned100' as const,
       earnedAt: '2026-08-25T21:00:00.000Z',
       presentedAt: null,
     };
-    evaluateStudyMilestonesMock.mockResolvedValue({
-      milestones: [award],
-      pendingMilestones: [award],
+    getAchievementProgressMock.mockResolvedValue({
+      ...emptyAchievementProgress,
+      awards: [award],
     });
 
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.currentMilestoneAward).toEqual(award));
-
-    act(() => result.current.advanceMilestoneAward());
-
-    await waitFor(() => {
-      expect(presentStudyMilestonesMock).toHaveBeenCalledWith(['burned100']);
-      expect(result.current.focusMode).toBe(false);
-    });
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalled());
+    expect(result.current.currentAchievement).toBeNull();
+    expect(result.current.focusMode).toBe(false);
   });
 
-  it('acknowledges only awards committed to a recovered celebration', async () => {
+  it('restores only awards committed to the saved achievement session', async () => {
     const burned100 = {
       id: 'burned100' as const,
       earnedAt: '2026-08-25T21:00:00.000Z',
@@ -336,9 +391,8 @@ describe('useStudyReviewSession', () => {
       presentedAt: null,
     };
     window.localStorage.setItem(
-      'convo-lab.study-milestones-v1.study-review-hook-test-user',
+      'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user',
       JSON.stringify({
-        earnedAwards: [burned100],
         activeSession: {
           id: 'presented-session',
           records: [
@@ -350,15 +404,19 @@ describe('useStudyReviewSession', () => {
               durationMs: 1_000,
             },
           ],
-          newAwardIds: ['burned100'],
+          baselineAwardIds: [],
+          newAwardIds: ['burned.burned100'],
           isReadyForPresentation: true,
           celebrationPresented: true,
         },
       })
     );
-    evaluateStudyMilestonesMock.mockResolvedValue({
-      milestones: [burned100, burned500],
-      pendingMilestones: [burned100, burned500],
+    getAchievementProgressMock.mockResolvedValue({
+      ...emptyAchievementProgress,
+      awards: [
+        { id: 'burned.burned100', earnedAt: burned100.earnedAt },
+        { id: 'burned.burned500', earnedAt: burned500.earnedAt },
+      ],
     });
 
     const { result } = renderHook(() => useStudyReviewSession(), {
@@ -366,10 +424,9 @@ describe('useStudyReviewSession', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.milestoneCompletion?.newAwards).toEqual([burned100]);
-      expect(presentStudyMilestonesMock).toHaveBeenCalledWith(['burned100']);
+      expect(result.current.achievementCompletion?.newAwardIds).toEqual(['burned.burned100']);
     });
-    expect(presentStudyMilestonesMock).not.toHaveBeenCalledWith(['burned100', 'burned500']);
+    expect(result.current.completionAchievements.map(({ id }) => id)).toEqual(['burned.burned100']);
   });
 
   it('does not replace a newly started review with a slow interrupted-session restore', async () => {
@@ -379,9 +436,8 @@ describe('useStudyReviewSession', () => {
       presentedAt: null,
     };
     window.localStorage.setItem(
-      'convo-lab.study-milestones-v1.study-review-hook-test-user',
+      'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user',
       JSON.stringify({
-        earnedAwards: [],
         activeSession: {
           id: 'interrupted-session',
           records: [
@@ -393,24 +449,22 @@ describe('useStudyReviewSession', () => {
               durationMs: 1_000,
             },
           ],
+          baselineAwardIds: [],
           newAwardIds: [],
           isReadyForPresentation: false,
           celebrationPresented: false,
         },
       })
     );
-    const deferredRestore = createDeferred<{
-      milestones: [typeof award];
-      pendingMilestones: [typeof award];
-    }>();
-    evaluateStudyMilestonesMock
+    const deferredRestore = createDeferred<AchievementProgress>();
+    getAchievementProgressMock
       .mockReturnValueOnce(deferredRestore.promise)
-      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] });
+      .mockResolvedValueOnce(emptyAchievementProgress);
 
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
-    await waitFor(() => expect(evaluateStudyMilestonesMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
 
     let enterPromise: Promise<void> | undefined;
     act(() => {
@@ -419,13 +473,16 @@ describe('useStudyReviewSession', () => {
     expect(result.current.focusMode).toBe(true);
 
     await act(async () => {
-      deferredRestore.resolve({ milestones: [award], pendingMilestones: [award] });
+      deferredRestore.resolve({
+        ...emptyAchievementProgress,
+        awards: [{ id: 'burned.burned100', earnedAt: award.earnedAt }],
+      });
       await enterPromise;
     });
 
     expect(result.current.currentCard?.id).toBe('card-1');
-    expect(result.current.milestoneCompletion).toBeNull();
-    expect(result.current.currentMilestoneAward).toBeNull();
+    expect(result.current.achievementCompletion).toBeNull();
+    expect(result.current.currentAchievement).toBeNull();
   });
 
   it('requeues an incorrect lesson card without submitting or introducing it', async () => {
@@ -470,8 +527,9 @@ describe('useStudyReviewSession', () => {
     });
 
     const persisted = JSON.parse(
-      window.localStorage.getItem('convo-lab.study-milestones-v1.study-review-hook-test-user') ??
-        '{}'
+      window.localStorage.getItem(
+        'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
+      ) ?? '{}'
     ) as { activeSession?: unknown };
     expect(persisted.activeSession).toBeNull();
   });
@@ -856,7 +914,7 @@ describe('useStudyReviewSession', () => {
     expect(result.current.reviewConflictRecovered).toBe(true);
   });
 
-  it('preserves a milestone crossed before a later review conflict', async () => {
+  it('preserves an achievement crossed before a later review conflict', async () => {
     const masterySpread = {
       apprentice: 0,
       guru: 0,
@@ -882,31 +940,17 @@ describe('useStudyReviewSession', () => {
           code: 'review_out_of_order',
         })
       );
-    evaluateStudyMilestonesMock
-      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
-      .mockResolvedValueOnce({ milestones: [], pendingMilestones: [] })
-      .mockResolvedValueOnce({
-        milestones: [
-          {
-            id: 'burned100',
-            earnedAt: '2026-08-25T12:00:00.000Z',
-            presentedAt: null,
-          },
-        ],
-        pendingMilestones: [
-          {
-            id: 'burned100',
-            earnedAt: '2026-08-25T12:00:00.000Z',
-            presentedAt: null,
-          },
-        ],
-      });
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 
     await act(async () => {
       await result.current.enterFocusMode();
+    });
+    getAchievementProgressMock.mockResolvedValue({
+      ...emptyAchievementProgress,
+      metricValues: { 'mastery.burned': 100 },
+      awards: [{ id: 'burned.burned100', earnedAt: '2026-08-25T12:00:00.000Z' }],
     });
     act(() => result.current.revealCurrentCard());
     await act(async () => {
@@ -918,8 +962,8 @@ describe('useStudyReviewSession', () => {
       await result.current.handleGrade('good');
     });
 
-    expect(result.current.currentMilestoneAward?.id).toBe('burned100');
-    expect(result.current.milestoneCompletion?.records.map(({ id }) => id)).toEqual([
+    expect(result.current.currentAchievement?.id).toBe('burned.burned100');
+    expect(result.current.achievementCompletion?.records.map(({ id }) => id)).toEqual([
       'review-burned-100',
     ]);
   });
@@ -1643,7 +1687,7 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentCard?.id).toBe('card-2');
   });
 
-  it('blocks undo while the completed session is evaluating milestones', async () => {
+  it('blocks undo while the completed session is evaluating achievements', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: { ...baseOverview, dueCount: 1, reviewCount: 1, totalCards: 1 },
       cards: [baseCardOne],
@@ -1653,10 +1697,7 @@ describe('useStudyReviewSession', () => {
       card: baseCardOne,
       overview: { ...baseOverview, dueCount: 0, reviewCount: 0 },
     });
-    const deferredEvaluation = createDeferred<{
-      milestones: [];
-      pendingMilestones: [];
-    }>();
+    const deferredEvaluation = createDeferred<AchievementProgress>();
 
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
@@ -1665,7 +1706,7 @@ describe('useStudyReviewSession', () => {
     await act(async () => {
       await result.current.enterFocusMode();
     });
-    evaluateStudyMilestonesMock.mockReturnValueOnce(deferredEvaluation.promise);
+    getAchievementProgressMock.mockReturnValueOnce(deferredEvaluation.promise);
     act(() => result.current.revealCurrentCard());
     await act(async () => {
       await result.current.handleGrade('good');
@@ -1678,7 +1719,7 @@ describe('useStudyReviewSession', () => {
     });
     expect(undoStudyReviewMock).not.toHaveBeenCalled();
 
-    deferredEvaluation.resolve({ milestones: [], pendingMilestones: [] });
+    deferredEvaluation.resolve(emptyAchievementProgress);
     await waitFor(() => expect(result.current.sessionLoading).toBe(false));
     expect(result.current.reviewSessionComplete).toBe(true);
   });

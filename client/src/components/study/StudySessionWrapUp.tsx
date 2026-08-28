@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import type { StudySessionWrapUpSummary } from './studySessionWrapUpModel';
 import { toDisplayText } from './studyTextUtils';
-import { StudyRecentMilestones } from './StudyMilestoneViews';
-import type { StudyMilestoneAward } from './studyMilestoneModel';
+import { AchievementBadgeCard } from './StudyAchievementViews';
+import type { PresentedAchievement } from './achievementModel';
 
 interface StudySessionWrapUpProps {
   summary: StudySessionWrapUpSummary;
   caughtUp: boolean;
-  awards: StudyMilestoneAward[];
+  achievements: PresentedAchievement[];
   onPractice: (cards: StudyCardSummary[]) => void;
   onDone: () => void;
 }
@@ -34,7 +34,7 @@ const formatSeconds = (durationMs: number) =>
 const StudySessionWrapUp = ({
   summary,
   caughtUp,
-  awards,
+  achievements,
   onPractice,
   onDone,
 }: StudySessionWrapUpProps) => {
@@ -137,7 +137,22 @@ const StudySessionWrapUp = ({
           </section>
         ) : null}
 
-        <StudyRecentMilestones awards={awards} />
+        {achievements.length > 0 ? (
+          <section className="app-surface p-4" data-testid="study-session-achievements">
+            <h3 className="font-bold text-gray-900">{t('achievements.earnedThisSession')}</h3>
+            <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+              {achievements.map((achievement, index) => (
+                <AchievementBadgeCard
+                  key={achievement.id}
+                  achievement={achievement}
+                  transitionName={index === 0 ? 'achievement-badge-flight' : undefined}
+                  isNew
+                  suppressShadow
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <button type="button" onClick={onDone} className="app-button-primary mt-1 w-full">
           {t('wrapUp.done')}

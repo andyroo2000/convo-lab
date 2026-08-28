@@ -66,6 +66,10 @@
   "achievements": {
     "kicker": "Achievements",
     "heading": "Your roar is growing",
+    "earned": "Achievement earned",
+    "earnedThisSession": "Earned this session",
+    "new": "New",
+    "next": "Next",
     "nextUp": "Next up",
     "more": "{{formattedCount}} more {{unit}}",
     "startWith": "Start with {{formattedCount}} {{unit}}",

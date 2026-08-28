@@ -1,17 +1,29 @@
+import { Star } from 'lucide-react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import useAchievements from '../../hooks/useAchievements';
 import {
   closestInProgressAchievements,
   recentEarnedAchievements,
+  type AchievementCatalog,
+  type AchievementProgress,
   type PresentedAchievement,
 } from './achievementModel';
 
 interface AchievementBadgeCardProps {
   achievement: PresentedAchievement;
+  transitionName?: string;
+  isNew?: boolean;
+  suppressShadow?: boolean;
 }
 
-export const AchievementBadgeCard = ({ achievement }: AchievementBadgeCardProps) => {
+export const AchievementBadgeCard = ({
+  achievement,
+  transitionName,
+  isNew = false,
+  suppressShadow = false,
+}: AchievementBadgeCardProps) => {
   const { t, i18n } = useTranslation('study');
   const { tier, family, earned, remaining } = achievement;
   const state = earned ? 'earned' : 'locked';
@@ -39,7 +51,9 @@ export const AchievementBadgeCard = ({ achievement }: AchievementBadgeCardProps)
 
   return (
     <article
-      className={`achievement-badge-card ${earned ? 'is-earned' : 'is-locked'}`}
+      className={`achievement-badge-card ${earned ? 'is-earned' : 'is-locked'} ${
+        suppressShadow ? 'is-shadowless' : ''
+      }`}
       data-testid={`achievement-${achievement.id}`}
     >
       <img
@@ -50,12 +64,151 @@ export const AchievementBadgeCard = ({ achievement }: AchievementBadgeCardProps)
         loading="lazy"
         alt={tier.description}
         className="achievement-badge-art block size-32"
+        style={
+          transitionName ? ({ viewTransitionName: transitionName } as CSSProperties) : undefined
+        }
       />
+      {isNew ? <span className="achievement-badge-new">{t('achievements.new')}</span> : null}
       <div className="achievement-badge-caption">
         <h3>{tier.title}</h3>
         <p>{detail}</p>
       </div>
     </article>
+  );
+};
+
+interface StudyAchievementAwardViewProps {
+  achievements: PresentedAchievement[];
+  currentIndex: number;
+  onContinue: () => void;
+}
+
+const achievementStarColors = [
+  'text-cyan',
+  'text-coral',
+  'text-emerald-500',
+  'text-yellow-400',
+  'text-purple-500',
+  'text-pink-500',
+  'text-blue-500',
+  'text-orange-500',
+];
+
+const achievementPrefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+export const StudyAchievementAwardView = ({
+  achievements,
+  currentIndex,
+  onContinue,
+}: StudyAchievementAwardViewProps) => {
+  const { t } = useTranslation('study');
+  const achievement = achievements[currentIndex];
+  const hasNext = currentIndex + 1 < achievements.length;
+  const [animationKey, setAnimationKey] = useState(0);
+  const [canContinue, setCanContinue] = useState(achievementPrefersReducedMotion);
+  const [advancing, setAdvancing] = useState(false);
+  const nextAchievement = achievements[currentIndex + 1] ?? null;
+  useEffect(() => {
+    if (achievementPrefersReducedMotion()) {
+      setCanContinue(true);
+      return undefined;
+    }
+    setCanContinue(false);
+    const timeoutId = window.setTimeout(() => setCanContinue(true), 4_800);
+    return () => window.clearTimeout(timeoutId);
+  }, [achievement.id, animationKey]);
+
+  if (!achievement) return null;
+
+  const advance = () => {
+    if (!hasNext || achievementPrefersReducedMotion()) {
+      onContinue();
+      return;
+    }
+    setAdvancing(true);
+    window.setTimeout(() => {
+      onContinue();
+      setAdvancing(false);
+    }, 560);
+  };
+
+  const awardPanel = (item: PresentedAchievement, incoming: boolean) => {
+    const itemStandard = item.tier.assets.earned.png['256'];
+    const itemRetina = item.tier.assets.earned.png['512'];
+    return (
+      <div className={`study-achievement-award-panel ${incoming ? 'is-incoming' : 'is-current'}`}>
+        <div className="study-achievement-orbit" aria-hidden="true">
+          <div className="study-achievement-orbit-ring" />
+          <div className="study-achievement-stars">
+            {achievementStarColors.map((color, index) => (
+              <span
+                key={color}
+                className="study-achievement-star-position"
+                style={{ '--study-star-index': index } as CSSProperties}
+              >
+                <Star className={`study-achievement-star size-5 fill-current ${color}`} />
+              </span>
+            ))}
+          </div>
+          <img
+            src={itemStandard.path}
+            srcSet={`${itemStandard.path} 1x, ${itemRetina.path} 2x`}
+            alt=""
+            className="study-achievement-award-art"
+            style={
+              !incoming && !hasNext
+                ? ({ viewTransitionName: 'achievement-badge-flight' } as CSSProperties)
+                : undefined
+            }
+          />
+        </div>
+        <p className="mt-3 text-sm font-bold uppercase tracking-[0.18em] text-coral">
+          {t('achievements.earned')}
+        </p>
+        <h2 className="mt-2 text-4xl font-black text-navy">{item.tier.title}</h2>
+        <p className="mt-2 max-w-md text-gray-600">{item.tier.earnedDescription}</p>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto py-5 text-center"
+      data-testid="study-achievement-award"
+    >
+      <div
+        key={`${achievement.id}-${animationKey}`}
+        className={`study-achievement-award-stage ${
+          currentIndex > 0 ? 'is-subsequent' : ''
+        } ${advancing ? 'is-advancing' : ''}`}
+      >
+        {awardPanel(achievement, false)}
+        {nextAchievement ? awardPanel(nextAchievement, true) : null}
+      </div>
+
+      <div className="mt-8 flex min-h-20 flex-col items-center gap-2">
+        <button
+          type="button"
+          onClick={advance}
+          disabled={!canContinue}
+          className={`rounded-xl bg-navy px-8 py-3 font-bold text-white transition hover:bg-navy/90 disabled:pointer-events-none ${
+            canContinue ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          {t(hasNext ? 'achievements.next' : 'milestones.continue')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setAnimationKey((current) => current + 1)}
+          className="text-sm font-bold text-navy hover:text-cyan-700 motion-reduce:hidden"
+        >
+          {t('milestones.replay')}
+        </button>
+      </div>
+    </div>
   );
 };
 
@@ -102,13 +255,29 @@ export const AchievementShelf = ({
   );
 };
 
-export const StudyAchievementSpotlight = () => {
+interface StudyAchievementSpotlightProps {
+  initialCatalog?: AchievementCatalog | null;
+  initialProgress?: AchievementProgress | null;
+  landingAchievementId?: string | null;
+  newAchievementIds?: string[];
+}
+
+export const StudyAchievementSpotlight = ({
+  initialCatalog = null,
+  initialProgress = null,
+  landingAchievementId = null,
+  newAchievementIds = [],
+}: StudyAchievementSpotlightProps = {}) => {
   const { t } = useTranslation('study');
   const { catalog, progress, loading, error, progressError, retry } = useAchievements();
-  const earnedAchievements = catalog
-    ? recentEarnedAchievements(catalog, progress, Number.MAX_SAFE_INTEGER)
+  const resolvedCatalog = initialCatalog ?? catalog;
+  const resolvedProgress = initialProgress ?? progress;
+  const earnedAchievements = resolvedCatalog
+    ? recentEarnedAchievements(resolvedCatalog, resolvedProgress, Number.MAX_SAFE_INTEGER)
     : [];
-  const inProgressAchievements = catalog ? closestInProgressAchievements(catalog, progress) : [];
+  const inProgressAchievements = resolvedCatalog
+    ? closestInProgressAchievements(resolvedCatalog, resolvedProgress)
+    : [];
 
   return (
     <section className="achievement-spotlight" data-testid="study-recent-milestones">
@@ -119,14 +288,32 @@ export const StudyAchievementSpotlight = () => {
         </h2>
       </div>
 
-      {loading ? <AchievementSkeletons /> : null}
-      {!loading && catalog ? (
-        <AchievementShelf
-          earnedAchievements={earnedAchievements}
-          inProgressAchievements={inProgressAchievements}
-        />
+      {loading && !resolvedCatalog ? <AchievementSkeletons /> : null}
+      {resolvedCatalog ? (
+        <div className="achievement-badge-row">
+          {earnedAchievements.map((achievement) => (
+            <AchievementBadgeCard
+              key={achievement.id}
+              achievement={achievement}
+              transitionName={
+                achievement.id === landingAchievementId ? 'achievement-badge-flight' : undefined
+              }
+              isNew={newAchievementIds.includes(achievement.id)}
+            />
+          ))}
+          {inProgressAchievements.length > 0 ? (
+            <div className="achievement-next-up" role="group" aria-label={t('achievements.nextUp')}>
+              <div className="achievement-next-up-marker" aria-hidden="true">
+                <span>{t('achievements.nextUp')}</span>
+              </div>
+              {inProgressAchievements.map((achievement) => (
+                <AchievementBadgeCard key={achievement.id} achievement={achievement} />
+              ))}
+            </div>
+          ) : null}
+        </div>
       ) : null}
-      {!loading && catalog && progressError ? (
+      {!loading && resolvedCatalog && progressError ? (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-2 border-navy/15 bg-cream/80 p-4 text-sm text-[var(--retro-ink-strong)]">
           <p>{t('achievements.progressError')}</p>
           <button type="button" onClick={retry} className="btn-secondary">
