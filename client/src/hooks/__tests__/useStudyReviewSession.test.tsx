@@ -547,6 +547,32 @@ describe('useStudyReviewSession', () => {
     });
   });
 
+  it('does not create an achievement session after focus mode exits during bootstrap', async () => {
+    const deferredProgress = createDeferred<AchievementProgress>();
+    getAchievementProgressMock.mockReturnValue(deferredProgress.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.exitFocusMode());
+
+    await act(async () => {
+      deferredProgress.resolve(emptyAchievementProgress);
+      await deferredProgress.promise;
+    });
+
+    expect(
+      window.localStorage.getItem(
+        'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
+      )
+    ).toBeNull();
+  });
+
   it('does not refetch loaded achievement progress at every review session start', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
@@ -997,6 +1023,66 @@ describe('useStudyReviewSession', () => {
       await result.current.retryPendingReview();
     });
     expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces an in-flight achievement bootstrap with the conflict-recovery baseline', async () => {
+    const deferredProgress = createDeferred<AchievementProgress>();
+    const recoveredProgress: AchievementProgress = {
+      ...emptyAchievementProgress,
+      awards: [
+        {
+          id: 'burned.burned100',
+          earnedAt: '2026-08-25T21:00:00.000Z',
+        },
+      ],
+    };
+    getAchievementProgressMock
+      .mockReturnValueOnce(deferredProgress.promise)
+      .mockResolvedValueOnce(recoveredProgress);
+    reviewMutateAsyncMock.mockRejectedValueOnce(
+      new JsonRequestError('Review is out of order. (409)', 409, {
+        code: 'review_out_of_order',
+      })
+    );
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+
+    let conflictPromise!: Promise<void>;
+    act(() => {
+      conflictPromise = result.current.handleGrade('good');
+    });
+    await waitFor(() => expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      deferredProgress.resolve(emptyAchievementProgress);
+      await conflictPromise;
+    });
+
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(2);
+    expect(startStudySessionMock).toHaveBeenCalledTimes(2);
+    expect(result.current.reviewConflictRecovered).toBe(true);
+
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+
+    const persisted = JSON.parse(
+      window.localStorage.getItem(
+        'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
+      ) ?? '{}'
+    ) as {
+      activeSession?: { baselineAwardIds?: string[]; records?: Array<{ id?: string }> };
+    };
+    expect(persisted.activeSession?.baselineAwardIds).toEqual(['burned.burned100']);
+    expect(persisted.activeSession?.records?.map(({ id }) => id)).toEqual(['review-log-1']);
   });
 
   it('preserves the lesson cohort during authoritative conflict recovery', async () => {

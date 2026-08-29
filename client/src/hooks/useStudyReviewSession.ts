@@ -242,7 +242,7 @@ const useStudyReviewSession = () => {
   const undoAchievementReview = useCallback(
     (reviewId: string) => {
       const bootstrap = achievementSessionBootstrapRef.current;
-      if (bootstrap && !bootstrap.isReady) {
+      if (bootstrap && !bootstrap.cancelled && !bootstrap.isReady) {
         bootstrap.pendingRecords = bootstrap.pendingRecords.filter(({ id }) => id !== reviewId);
       }
       achievementSessionStore?.undoReview(reviewId);
@@ -647,6 +647,11 @@ const useStudyReviewSession = () => {
 
   const exitFocusMode = useCallback(() => {
     sessionEpochRef.current += 1;
+    if (achievementSessionBootstrapRef.current) {
+      achievementSessionBootstrapRef.current.cancelled = true;
+      achievementSessionBootstrapRef.current.pendingRecords = [];
+      achievementSessionBootstrapRef.current = null;
+    }
     stopAllAudio();
     resetUndo();
     canSurfaceAsyncSessionErrorRef.current = false;
@@ -841,6 +846,12 @@ const useStudyReviewSession = () => {
           setEditing(false);
           setShowSetDueControls(false);
           setMasteryAnimation(null);
+          const achievementBootstrap = achievementSessionBootstrapRef.current;
+          await achievementBootstrap?.promise;
+          if (sessionEpochRef.current !== expectedEpoch) return;
+          if (achievementSessionBootstrapRef.current === achievementBootstrap) {
+            achievementSessionBootstrapRef.current = null;
+          }
           let currentAwards = achievementProgress?.awards ?? [];
           if (sessionKind === 'reviews') {
             try {
@@ -848,6 +859,7 @@ const useStudyReviewSession = () => {
             } catch {
               // Recovery still refreshes the authoritative review queue below.
             }
+            if (sessionEpochRef.current !== expectedEpoch) return;
           }
           const recoveredAchievementCompletion =
             sessionKind === 'reviews'
