@@ -60,6 +60,8 @@ import {
 } from '../components/study/achievementModel';
 import { getAchievementCatalog, getAchievementProgress } from '../lib/achievementApi';
 
+const ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS = 60_000;
+
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
   const queryClient = useQueryClient();
@@ -125,9 +127,18 @@ const useStudyReviewSession = () => {
     [userId]
   );
   const achievementCatalogRef = useRef<AchievementCatalog | null>(null);
+  const achievementProgressSyncedAtRef = useRef<number | null>(null);
   const achievementSyncQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const achievementSyncInFlightRef = useRef<Promise<{
+    catalog: AchievementCatalog;
+    progress: AchievementProgress;
+  }> | null>(null);
 
   const syncAchievements = useCallback(() => {
+    if (achievementSyncInFlightRef.current) {
+      return achievementSyncInFlightRef.current;
+    }
+
     const request = achievementSyncQueueRef.current
       .catch(() => undefined)
       .then(async () => {
@@ -141,14 +152,22 @@ const useStudyReviewSession = () => {
           throw new Error('Achievement catalog and progress revisions did not match.');
         }
         achievementCatalogRef.current = catalog;
+        achievementProgressSyncedAtRef.current = Date.now();
         setAchievementCatalog(catalog);
         setAchievementProgress(progress);
         return { catalog, progress };
       });
+    achievementSyncInFlightRef.current = request;
     achievementSyncQueueRef.current = request.then(
       () => undefined,
       () => undefined
     );
+    const clearInFlightRequest = () => {
+      if (achievementSyncInFlightRef.current === request) {
+        achievementSyncInFlightRef.current = null;
+      }
+    };
+    request.then(clearInFlightRequest, clearInFlightRequest);
     return request;
   }, []);
 
@@ -440,6 +459,8 @@ const useStudyReviewSession = () => {
       sessionLoadRequestRef.current = requestId;
       const isCurrentRequest = () =>
         sessionEpochRef.current === expectedEpoch && sessionLoadRequestRef.current === requestId;
+
+      if (!isCurrentRequest()) return null;
 
       setSessionLoading(true);
       setSessionError(null);
@@ -1145,6 +1166,8 @@ const useStudyReviewSession = () => {
       setReviewRetryAvailable(false);
       setReviewConflictRecovered(false);
       canSurfaceAsyncSessionErrorRef.current = true;
+      setSession(null);
+      setSessionLoading(true);
       setFocusMode(true);
       setSessionKind(kind);
       activeLessonCohortIdRef.current =
@@ -1172,17 +1195,25 @@ const useStudyReviewSession = () => {
         label: 'Study motion-permission request',
       });
       try {
-        let currentAwards = achievementProgress?.awards ?? [];
+        let currentAwards = achievementProgress?.awards ?? null;
         if (kind === 'reviews') {
-          try {
-            currentAwards = (await syncAchievements()).progress.awards;
-          } catch {
-            // Starting reviews remains available offline with cached achievement history.
+          const progressSyncedAt = achievementProgressSyncedAtRef.current;
+          const hasFreshAchievementProgress =
+            currentAwards !== null &&
+            progressSyncedAt !== null &&
+            Date.now() - progressSyncedAt <= ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS;
+          if (!hasFreshAchievementProgress) {
+            try {
+              currentAwards = (await syncAchievements()).progress.awards;
+            } catch {
+              // Starting reviews remains available offline, using cached awards when available.
+              currentAwards ??= [];
+            }
           }
         }
         const nextSession = await loadSession(kind, options, expectedEpoch);
         if (kind === 'reviews' && nextSession) {
-          achievementSessionStore?.beginReviewSession(currentAwards);
+          achievementSessionStore?.beginReviewSession(currentAwards ?? []);
         }
       } catch {
         // loadSession already updates session error state for the dashboard.
