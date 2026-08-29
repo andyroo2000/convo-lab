@@ -537,7 +537,35 @@ describe('StudyPage', () => {
     expect(startStudySessionMock).not.toHaveBeenCalled();
   });
 
-  it('shows loading instead of a false empty state while review startup data resolves', async () => {
+  it('shows loading instead of a false empty state while the review session resolves', async () => {
+    let resolveSession!: () => void;
+    startStudySessionMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSession = () =>
+          resolve({
+            overview: studyOverviewData.current,
+            cards: [baseCard],
+          });
+      })
+    );
+
+    renderStudyPage();
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+
+    expect(screen.getByText('Loading study session…')).toBeInTheDocument();
+    expect(screen.queryByText(/No cards are ready right now/i)).not.toBeInTheDocument();
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveSession();
+    });
+
+    expect(await screen.findByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
+    expect(startStudySessionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the first review card while achievement progress is still resolving', async () => {
     let resolveProgress!: (value: typeof pageEmptyAchievementProgress) => void;
     getAchievementProgressMock.mockReturnValue(
       new Promise((resolve) => {
@@ -553,16 +581,13 @@ describe('StudyPage', () => {
     await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
     await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
-    expect(screen.getByText('Loading study session…')).toBeInTheDocument();
-    expect(screen.queryByText(/No cards are ready right now/i)).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading study session…')).not.toBeInTheDocument();
     expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       resolveProgress(pageEmptyAchievementProgress);
     });
-
-    expect(await screen.findByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
-    expect(startStudySessionMock).toHaveBeenCalledTimes(1);
   });
 
   it('associates the disabled Reviews button with the empty-state message', () => {
