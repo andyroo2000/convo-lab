@@ -527,6 +527,34 @@ describe('useStudyReviewSession', () => {
     expect(startStudySessionMock).toHaveBeenCalledTimes(2);
   });
 
+  it('refreshes stale achievement progress before capturing a review-session baseline', async () => {
+    let now = 1_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const refreshedProgress = {
+      ...emptyAchievementProgress,
+      awards: [{ id: 'burned.burned100', earnedAt: '2026-08-25T21:00:00.000Z' }],
+    };
+    getAchievementProgressMock
+      .mockResolvedValueOnce(emptyAchievementProgress)
+      .mockResolvedValueOnce(refreshedProgress);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() =>
+      expect(result.current.achievementProgress).toEqual(emptyAchievementProgress)
+    );
+    now += 60_001;
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(2);
+    expect(result.current.achievementProgress).toEqual(refreshedProgress);
+    expect(result.current.currentCard?.id).toBe('card-1');
+  });
+
   it('requeues an incorrect lesson card without submitting or introducing it', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),

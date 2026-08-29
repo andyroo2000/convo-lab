@@ -60,6 +60,8 @@ import {
 } from '../components/study/achievementModel';
 import { getAchievementCatalog, getAchievementProgress } from '../lib/achievementApi';
 
+const ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS = 60_000;
+
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
   const queryClient = useQueryClient();
@@ -125,6 +127,7 @@ const useStudyReviewSession = () => {
     [userId]
   );
   const achievementCatalogRef = useRef<AchievementCatalog | null>(null);
+  const achievementProgressSyncedAtRef = useRef<number | null>(null);
   const achievementSyncQueueRef = useRef<Promise<void>>(Promise.resolve());
   const achievementSyncInFlightRef = useRef<Promise<{
     catalog: AchievementCatalog;
@@ -149,6 +152,7 @@ const useStudyReviewSession = () => {
           throw new Error('Achievement catalog and progress revisions did not match.');
         }
         achievementCatalogRef.current = catalog;
+        achievementProgressSyncedAtRef.current = Date.now();
         setAchievementCatalog(catalog);
         setAchievementProgress(progress);
         return { catalog, progress };
@@ -158,18 +162,12 @@ const useStudyReviewSession = () => {
       () => undefined,
       () => undefined
     );
-    request.then(
-      () => {
-        if (achievementSyncInFlightRef.current === request) {
-          achievementSyncInFlightRef.current = null;
-        }
-      },
-      () => {
-        if (achievementSyncInFlightRef.current === request) {
-          achievementSyncInFlightRef.current = null;
-        }
+    const clearInFlightRequest = () => {
+      if (achievementSyncInFlightRef.current === request) {
+        achievementSyncInFlightRef.current = null;
       }
-    );
+    };
+    request.then(clearInFlightRequest, clearInFlightRequest);
     return request;
   }, []);
 
@@ -1199,12 +1197,17 @@ const useStudyReviewSession = () => {
       try {
         let currentAwards = achievementProgress?.awards ?? null;
         if (kind === 'reviews') {
-          if (currentAwards === null) {
+          const progressSyncedAt = achievementProgressSyncedAtRef.current;
+          const hasFreshAchievementProgress =
+            currentAwards !== null &&
+            progressSyncedAt !== null &&
+            Date.now() - progressSyncedAt <= ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS;
+          if (!hasFreshAchievementProgress) {
             try {
               currentAwards = (await syncAchievements()).progress.awards;
             } catch {
-              // Starting reviews remains available offline with cached achievement history.
-              currentAwards = [];
+              // Starting reviews remains available offline, using cached awards when available.
+              currentAwards ??= [];
             }
           }
         }
