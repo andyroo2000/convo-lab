@@ -126,8 +126,16 @@ const useStudyReviewSession = () => {
   );
   const achievementCatalogRef = useRef<AchievementCatalog | null>(null);
   const achievementSyncQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const achievementSyncInFlightRef = useRef<Promise<{
+    catalog: AchievementCatalog;
+    progress: AchievementProgress;
+  }> | null>(null);
 
   const syncAchievements = useCallback(() => {
+    if (achievementSyncInFlightRef.current) {
+      return achievementSyncInFlightRef.current;
+    }
+
     const request = achievementSyncQueueRef.current
       .catch(() => undefined)
       .then(async () => {
@@ -145,9 +153,22 @@ const useStudyReviewSession = () => {
         setAchievementProgress(progress);
         return { catalog, progress };
       });
+    achievementSyncInFlightRef.current = request;
     achievementSyncQueueRef.current = request.then(
       () => undefined,
       () => undefined
+    );
+    request.then(
+      () => {
+        if (achievementSyncInFlightRef.current === request) {
+          achievementSyncInFlightRef.current = null;
+        }
+      },
+      () => {
+        if (achievementSyncInFlightRef.current === request) {
+          achievementSyncInFlightRef.current = null;
+        }
+      }
     );
     return request;
   }, []);
@@ -440,6 +461,8 @@ const useStudyReviewSession = () => {
       sessionLoadRequestRef.current = requestId;
       const isCurrentRequest = () =>
         sessionEpochRef.current === expectedEpoch && sessionLoadRequestRef.current === requestId;
+
+      if (!isCurrentRequest()) return null;
 
       setSessionLoading(true);
       setSessionError(null);
@@ -1145,6 +1168,8 @@ const useStudyReviewSession = () => {
       setReviewRetryAvailable(false);
       setReviewConflictRecovered(false);
       canSurfaceAsyncSessionErrorRef.current = true;
+      setSession(null);
+      setSessionLoading(true);
       setFocusMode(true);
       setSessionKind(kind);
       activeLessonCohortIdRef.current =
@@ -1172,17 +1197,20 @@ const useStudyReviewSession = () => {
         label: 'Study motion-permission request',
       });
       try {
-        let currentAwards = achievementProgress?.awards ?? [];
+        let currentAwards = achievementProgress?.awards ?? null;
         if (kind === 'reviews') {
-          try {
-            currentAwards = (await syncAchievements()).progress.awards;
-          } catch {
-            // Starting reviews remains available offline with cached achievement history.
+          if (currentAwards === null) {
+            try {
+              currentAwards = (await syncAchievements()).progress.awards;
+            } catch {
+              // Starting reviews remains available offline with cached achievement history.
+              currentAwards = [];
+            }
           }
         }
         const nextSession = await loadSession(kind, options, expectedEpoch);
         if (kind === 'reviews' && nextSession) {
-          achievementSessionStore?.beginReviewSession(currentAwards);
+          achievementSessionStore?.beginReviewSession(currentAwards ?? []);
         }
       } catch {
         // loadSession already updates session error state for the dashboard.

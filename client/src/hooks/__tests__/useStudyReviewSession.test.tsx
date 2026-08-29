@@ -474,6 +474,59 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentAchievement).toBeNull();
   });
 
+  it('shows session loading while reusing an in-flight achievement bootstrap', async () => {
+    const deferredProgress = createDeferred<AchievementProgress>();
+    getAchievementProgressMock.mockReturnValue(deferredProgress.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
+
+    let enterPromise!: Promise<void>;
+    act(() => {
+      enterPromise = result.current.enterFocusMode();
+    });
+
+    expect(result.current.focusMode).toBe(true);
+    expect(result.current.sessionLoading).toBe(true);
+    expect(result.current.currentCard).toBeNull();
+    expect(startStudySessionMock).not.toHaveBeenCalled();
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      deferredProgress.resolve(emptyAchievementProgress);
+      await enterPromise;
+    });
+
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
+    expect(startStudySessionMock).toHaveBeenCalledTimes(1);
+    expect(result.current.currentCard?.id).toBe('card-1');
+    expect(result.current.sessionLoading).toBe(false);
+  });
+
+  it('does not refetch loaded achievement progress at every review session start', async () => {
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() =>
+      expect(result.current.achievementProgress).toEqual(emptyAchievementProgress)
+    );
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => {
+      result.current.exitFocusMode();
+    });
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
+    expect(startStudySessionMock).toHaveBeenCalledTimes(2);
+  });
+
   it('requeues an incorrect lesson card without submitting or introducing it', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),

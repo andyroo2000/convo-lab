@@ -537,6 +537,34 @@ describe('StudyPage', () => {
     expect(startStudySessionMock).not.toHaveBeenCalled();
   });
 
+  it('shows loading instead of a false empty state while review startup data resolves', async () => {
+    let resolveProgress!: (value: typeof pageEmptyAchievementProgress) => void;
+    getAchievementProgressMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveProgress = resolve;
+      })
+    );
+    startStudySessionMock.mockResolvedValue({
+      overview: studyOverviewData.current,
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+
+    expect(screen.getByText('Loading study session…')).toBeInTheDocument();
+    expect(screen.queryByText(/No cards are ready right now/i)).not.toBeInTheDocument();
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveProgress(pageEmptyAchievementProgress);
+    });
+
+    expect(await screen.findByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
+    expect(startStudySessionMock).toHaveBeenCalledTimes(1);
+  });
+
   it('associates the disabled Reviews button with the empty-state message', () => {
     studyOverviewData.current = {
       dueCount: 0,
