@@ -5,6 +5,7 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import {
   getStudyCardAudio,
   getStudyCardAudioUrl,
+  getStudyCardReviewAudio,
   isAudioLedPromptCard,
   isMediaLedPromptCard,
   toAssetUrl,
@@ -104,6 +105,7 @@ describe('studyCardUtils', () => {
     } as StudyCardSummary;
 
     expect(getStudyCardAudio(presentedCard)).toBe(rawAudio);
+    expect(getStudyCardReviewAudio(presentedCard)).toEqual({ url: '/presented.mp3' });
     expect(getStudyCardAudioUrl(presentedCard)).toBe('http://localhost:8080/presented.mp3');
     expect(isAudioLedPromptCard(presentedCard)).toBe(true);
   });
@@ -190,5 +192,6 @@ describe('studyCardUtils', () => {
     } as StudyCardSummary;
 
     expect(getStudyCardAudioUrl(presentedCard)).toBeNull();
+    expect(getStudyCardReviewAudio(presentedCard)).toBeNull();
   });
 });

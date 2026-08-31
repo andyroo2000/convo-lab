@@ -8,8 +8,8 @@ import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
 import {
-  getStudyCardAudioUrl,
   getStudyCardPresentation,
+  getStudyCardReviewAudio,
   isAudioLedPromptCard,
   isMediaLedPromptCard,
   toAssetUrl,
@@ -415,7 +415,8 @@ export const StudyCardFace = ({
     );
   }
 
-  const answerAudioUrl = getStudyCardAudioUrl(card);
+  const answerAudio = getStudyCardReviewAudio(card);
+  const answerAudioUrl = toAssetUrl(answerAudio?.url);
   const reviewImage = presentation
     ? presentation.answer.media.image
     : (card.answer.answerImage ?? card.prompt.cueImage ?? null);
@@ -554,7 +555,7 @@ export const StudyCardFace = ({
         {answerAudioUrl ? (
           <StudyAudioPlayer
             ref={answerAudioRef}
-            filename={presentation?.answer.audio?.filename ?? card.answer.answerAudio?.filename}
+            filename={answerAudio?.filename}
             url={answerAudioUrl}
             label="Play answer audio"
             renderMode={compactMobile ? 'hidden' : 'default'}
@@ -600,7 +601,7 @@ export const StudyCardFace = ({
       {answerAudioUrl ? (
         <StudyAudioPlayer
           ref={answerAudioRef}
-          filename={presentation?.answer.audio?.filename ?? card.answer.answerAudio?.filename}
+          filename={answerAudio?.filename}
           url={answerAudioUrl}
           label="Play answer audio"
           renderMode={compactMobile ? 'hidden' : 'default'}
