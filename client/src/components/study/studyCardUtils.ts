@@ -3,6 +3,9 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import { API_URL } from '../../config';
 import { DAILY_AUDIO_API_BASE, STUDY_API_BASE } from '../../lib/studyApi';
 
+export const getStudyCardPresentation = (card: StudyCardSummary) =>
+  card.presentation?.version === 1 ? card.presentation : null;
+
 export const toAssetUrl = (url?: string | null) => {
   if (!url) return null;
   if (
@@ -36,10 +39,16 @@ export const getAudioMimeType = (url?: string | null, filename?: string | null) 
 export const getStudyCardAudio = (card: StudyCardSummary) =>
   card.prompt.cueAudio ?? card.answer.answerAudio ?? null;
 
+export const getStudyCardReviewAudio = (card: StudyCardSummary) => {
+  const presentation = getStudyCardPresentation(card);
+  return presentation ? presentation.answer.audio : getStudyCardAudio(card);
+};
+
 export const getStudyCardAudioUrl = (card: StudyCardSummary) =>
-  toAssetUrl(getStudyCardAudio(card)?.url);
+  toAssetUrl(getStudyCardReviewAudio(card)?.url);
 
 export const isAudioLedPromptCard = (card: StudyCardSummary) =>
+  getStudyCardPresentation(card)?.front.autoplayAudio ??
   Boolean(
     card.cardType === 'recognition' &&
     card.prompt.cueAudio &&
@@ -48,9 +57,13 @@ export const isAudioLedPromptCard = (card: StudyCardSummary) =>
     !card.prompt.clozeText
   );
 
-export const isMediaLedPromptCard = (card: StudyCardSummary) =>
-  Boolean(
-    (card.prompt.cueAudio?.url || card.prompt.cueImage?.url) &&
-    !card.prompt.cueText &&
-    !card.prompt.clozeText
-  );
+export const isMediaLedPromptCard = (card: StudyCardSummary) => {
+  const presentation = getStudyCardPresentation(card);
+  return presentation
+    ? presentation.front.mode === 'media'
+    : Boolean(
+        (card.prompt.cueAudio?.url || card.prompt.cueImage?.url) &&
+        !card.prompt.cueText &&
+        !card.prompt.clozeText
+      );
+};

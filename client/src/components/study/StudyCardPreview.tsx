@@ -8,7 +8,8 @@ import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
 import {
-  getStudyCardAudioUrl,
+  getStudyCardPresentation,
+  getStudyCardReviewAudio,
   isAudioLedPromptCard,
   isMediaLedPromptCard,
   toAssetUrl,
@@ -137,9 +138,12 @@ const toMaskedRubyText = (
 };
 
 const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
-  const readingText = card.answer.expressionReading ?? card.prompt.cueReading;
-  const headlineText =
-    card.answer.expressionReading ?? card.answer.expression ?? card.prompt.cueReading ?? '';
+  const presentation = getStudyCardPresentation(card);
+  const readingText = presentation
+    ? presentation.answer.ruby
+    : (card.answer.expressionReading ?? card.prompt.cueReading);
+  const answerText = presentation ? presentation.answer.heading : card.answer.expression;
+  const headlineText = readingText ?? answerText ?? card.prompt.cueReading ?? '';
   const headingMinFontSizePx = compactMobile ? 24 : 28;
   const headingWrapClasses =
     'max-w-full min-w-0 whitespace-normal break-words md:max-w-5xl md:whitespace-nowrap';
@@ -161,15 +165,15 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
     );
   }
 
-  if (card.answer.expression) {
+  if (answerText) {
     return (
       <StudyRubyText
         as="div"
-        text={card.answer.expression}
+        text={answerText}
         autoFitSingleLine
         minFontSizePx={headingMinFontSizePx}
         className={`${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
-          card.answer.expression,
+          answerText,
           { compactMobile }
         )}`}
       />
@@ -230,23 +234,32 @@ export const StudyCardFace = ({
   side: 'front' | 'back';
 }) => {
   const compactMobile = layout === 'mobile-focus';
+  const presentation = getStudyCardPresentation(card);
+  const isClozePresentation = presentation
+    ? presentation.front.mode === 'cloze'
+    : card.cardType === 'cloze';
 
   if (side === 'front') {
-    if (card.cardType === 'cloze') {
+    if (isClozePresentation) {
       const rawDisplayText = card.prompt.clozeDisplayText ?? null;
       const derived = deriveClozePresentation(card.prompt.clozeText ?? rawDisplayText);
       const clozeDisplayText =
         rawDisplayText && !CLOZE_MARKUP_PATTERN.test(rawDisplayText)
           ? rawDisplayText
           : derived.displayText;
-      const clozeRubyText = toMaskedRubyText(
-        clozeDisplayText ?? '',
-        card.answer.restoredText ?? derived.restoredText,
-        card.answer.restoredTextReading
+      const clozeRubyText = presentation
+        ? (presentation.front.ruby ?? presentation.front.text ?? '')
+        : toMaskedRubyText(
+            clozeDisplayText ?? '',
+            card.answer.restoredText ?? derived.restoredText,
+            card.answer.restoredTextReading
+          );
+      const cueImageUrl = toAssetUrl(
+        presentation ? presentation.front.media.image?.url : card.prompt.cueImage?.url
       );
-      const cueImageUrl = toAssetUrl(card.prompt.cueImage?.url);
-      const effectiveHint =
-        card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() || '';
+      const effectiveHint = presentation
+        ? (presentation.front.hint ?? '')
+        : card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() || '';
 
       return (
         <div
@@ -259,7 +272,11 @@ export const StudyCardFace = ({
           {cueImageUrl ? (
             <img
               src={cueImageUrl}
-              alt={card.prompt.cueMeaning ?? 'Study prompt'}
+              alt={
+                presentation
+                  ? effectiveHint || 'Study prompt'
+                  : (card.prompt.cueMeaning ?? 'Study prompt')
+              }
               className={`mx-auto object-contain ${
                 compactMobile ? 'max-h-[46dvh] rounded-lg' : 'max-h-[50dvh] rounded-xl'
               }`}
@@ -291,8 +308,13 @@ export const StudyCardFace = ({
       );
     }
 
-    const cueAudioUrl = toAssetUrl(card.prompt.cueAudio?.url);
-    const cueImageUrl = toAssetUrl(card.prompt.cueImage?.url);
+    const cueAudio = presentation ? presentation.front.media.audio : card.prompt.cueAudio;
+    const cueImage = presentation ? presentation.front.media.image : card.prompt.cueImage;
+    const cueAudioUrl = toAssetUrl(cueAudio?.url);
+    const cueImageUrl = toAssetUrl(cueImage?.url);
+    const cueText = presentation ? presentation.front.text : card.prompt.cueText;
+    const cueRuby = presentation ? presentation.front.ruby : null;
+    const cueHint = presentation ? presentation.front.hint : card.prompt.cueMeaning;
     const mediaLedPrompt = isMediaLedPromptCard(card);
     const audioLedPrompt = isAudioLedPromptCard(card);
 
@@ -316,20 +338,22 @@ export const StudyCardFace = ({
             <div className={cueImageUrl ? 'pt-2' : ''}>
               <StudyAudioPlayer
                 ref={promptAudioRef}
-                filename={card.prompt.cueAudio?.filename}
+                filename={cueAudio?.filename}
                 url={cueAudioUrl}
                 label={audioLedPrompt ? 'Replay prompt audio' : 'Play prompt audio'}
                 testId="study-prompt-audio"
               />
             </div>
           ) : null}
-          {isVisualProductionCueLabel(card.prompt.cueMeaning) && cueImageUrl && !cueAudioUrl ? (
+          {(presentation ? Boolean(cueHint) : isVisualProductionCueLabel(cueHint)) &&
+          cueImageUrl &&
+          !cueAudioUrl ? (
             <p
               className={`font-semibold text-gray-700 ${
                 compactMobile ? 'text-base sm:text-xl' : 'text-lg sm:text-2xl'
               }`}
             >
-              {toDisplayText(card.prompt.cueMeaning)}
+              {toDisplayText(cueHint)}
             </p>
           ) : null}
         </div>
@@ -347,7 +371,7 @@ export const StudyCardFace = ({
         {cueImageUrl ? (
           <img
             src={cueImageUrl}
-            alt={card.prompt.cueMeaning ?? 'Study prompt'}
+            alt={cueHint ?? 'Study prompt'}
             className={`mx-auto object-contain ${
               compactMobile ? 'max-h-[46dvh] rounded-lg' : 'max-h-[50dvh] rounded-xl'
             }`}
@@ -356,47 +380,60 @@ export const StudyCardFace = ({
         {cueAudioUrl ? (
           <StudyAudioPlayer
             ref={promptAudioRef}
-            filename={card.prompt.cueAudio?.filename}
+            filename={cueAudio?.filename}
             url={cueAudioUrl}
             label="Play prompt audio"
           />
         ) : null}
-        {card.prompt.cueText ? (
+        {cueText ? (
           <StudyRubyText
             as="div"
             text={
-              matchingRubyText(card.prompt.cueText, [
-                card.prompt.cueReading,
-                card.answer.expressionReading,
-              ]) ?? card.prompt.cueText
+              cueRuby ??
+              matchingRubyText(cueText, [card.prompt.cueReading, card.answer.expressionReading]) ??
+              cueText
             }
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
             className={`mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
-              card.prompt.cueText,
+              cueText,
               { compactMobile }
             )}`}
             rtClassName="text-[0.34em] font-medium text-gray-500"
           />
         ) : null}
-        {card.prompt.cueMeaning ? (
+        {cueHint ? (
           <p
             className={`mx-auto max-w-3xl text-gray-700 sm:text-xl md:text-2xl ${
               compactMobile ? 'text-base' : 'text-lg'
             }`}
           >
-            {toDisplayText(card.prompt.cueMeaning)}
+            {toDisplayText(cueHint)}
           </p>
         ) : null}
       </div>
     );
   }
 
-  const answerAudioUrl = getStudyCardAudioUrl(card);
-  const reviewImage = card.answer.answerImage ?? card.prompt.cueImage ?? null;
+  const answerAudio = getStudyCardReviewAudio(card);
+  const answerAudioUrl = toAssetUrl(answerAudio?.url);
+  const reviewImage = presentation
+    ? presentation.answer.media.image
+    : (card.answer.answerImage ?? card.prompt.cueImage ?? null);
   const reviewImageUrl = toAssetUrl(reviewImage?.url);
-  const reviewImageAlt = card.answer.answerImage ? 'Answer visual' : 'Study visual';
-  const notes = toNotesList(card.answer.notes);
+  const usesAnswerVisual = presentation
+    ? Boolean(presentation.answer.media.image)
+    : Boolean(card.answer.answerImage);
+  const reviewImageAlt = usesAnswerVisual ? 'Answer visual' : 'Study visual';
+  const notes = presentation ? presentation.answer.notes : toNotesList(card.answer.notes);
+  const restoredText = presentation ? presentation.answer.restored : card.answer.restoredText;
+  const meaning = presentation ? presentation.answer.meaning : card.answer.meaning;
+  const japaneseSentence = presentation
+    ? presentation.answer.sentences.japanese
+    : { text: card.answer.sentenceJp ?? null, ruby: card.answer.sentenceJpKana ?? null };
+  const englishSentence = presentation
+    ? presentation.answer.sentences.english
+    : { text: card.answer.sentenceEn ?? null, ruby: null };
   const reviewImageClasses = compactMobile
     ? 'max-h-[30dvh] w-auto max-w-full rounded-lg md:max-h-[48dvh] md:w-full md:rounded-xl'
     : 'max-h-[38dvh] w-auto max-w-full rounded-xl md:max-h-[46dvh] md:w-full';
@@ -407,7 +444,7 @@ export const StudyCardFace = ({
     'mx-auto flex w-full min-w-0 justify-center md:block md:border-r md:border-gray-300/80 md:pr-8';
   const renderedAnswerDetails = (
     <>
-      {card.answer.restoredText ? (
+      {restoredText ? (
         <p
           className={`mx-auto max-w-full break-words text-black md:max-w-4xl ${
             compactMobile
@@ -415,10 +452,10 @@ export const StudyCardFace = ({
               : 'text-xl leading-relaxed sm:text-3xl md:text-4xl'
           }`}
         >
-          {toDisplayText(card.answer.restoredText)}
+          {toDisplayText(restoredText)}
         </p>
       ) : null}
-      {card.answer.meaning ? (
+      {meaning ? (
         <p
           className={`mx-auto max-w-full break-words text-gray-800 md:max-w-4xl ${
             compactMobile
@@ -426,10 +463,10 @@ export const StudyCardFace = ({
               : 'text-lg sm:text-2xl md:text-3xl'
           }`}
         >
-          {toDisplayText(card.answer.meaning)}
+          {toDisplayText(meaning)}
         </p>
       ) : null}
-      {card.answer.sentenceJp ? (
+      {japaneseSentence.text ? (
         <p
           className={`mx-auto max-w-full break-words text-black md:max-w-4xl ${
             compactMobile
@@ -437,10 +474,14 @@ export const StudyCardFace = ({
               : 'text-base leading-relaxed sm:text-xl'
           }`}
         >
-          {toDisplayText(card.answer.sentenceJp)}
+          {presentation ? (
+            <StudyRubyText as="span" text={japaneseSentence.ruby ?? japaneseSentence.text} />
+          ) : (
+            toDisplayText(japaneseSentence.text)
+          )}
         </p>
       ) : null}
-      {card.answer.sentenceEn ? (
+      {englishSentence.text ? (
         <p
           className={`mx-auto max-w-full break-words text-gray-600 md:max-w-3xl ${
             compactMobile
@@ -448,7 +489,7 @@ export const StudyCardFace = ({
               : 'text-sm sm:text-lg'
           }`}
         >
-          {toDisplayText(card.answer.sentenceEn)}
+          {toDisplayText(englishSentence.text)}
         </p>
       ) : null}
       {renderNotes(
@@ -462,10 +503,10 @@ export const StudyCardFace = ({
     </>
   );
 
-  if (card.cardType === 'cloze') {
+  if (isClozePresentation) {
     const renderedClozeAnswerDetails = (
       <>
-        {card.answer.meaning ? (
+        {meaning ? (
           <p
             className={`mx-auto max-w-4xl text-gray-800 ${
               compactMobile
@@ -473,7 +514,7 @@ export const StudyCardFace = ({
                 : 'text-xl sm:text-3xl md:text-4xl'
             }`}
           >
-            {toDisplayText(card.answer.meaning)}
+            {toDisplayText(meaning)}
           </p>
         ) : null}
         {renderNotes(
@@ -495,15 +536,17 @@ export const StudyCardFace = ({
             : 'space-y-5 text-center sm:space-y-8'
         }
       >
-        {card.answer.restoredTextReading || card.answer.restoredText ? (
+        {(presentation?.answer.ruby ?? card.answer.restoredTextReading ?? restoredText) ? (
           <StudyRubyText
             as="div"
-            text={card.answer.restoredTextReading ?? card.answer.restoredText}
+            text={
+              presentation?.answer.ruby ?? card.answer.restoredTextReading ?? restoredText ?? ''
+            }
             testId="study-cloze-heading"
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
             className={`study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
-              card.answer.restoredText,
+              restoredText,
               { compactMobile }
             )}`}
             rtClassName="text-[0.34em] font-medium text-gray-500"
@@ -512,7 +555,7 @@ export const StudyCardFace = ({
         {answerAudioUrl ? (
           <StudyAudioPlayer
             ref={answerAudioRef}
-            filename={card.answer.answerAudio?.filename}
+            filename={answerAudio?.filename}
             url={answerAudioUrl}
             label="Play answer audio"
             renderMode={compactMobile ? 'hidden' : 'default'}
@@ -558,7 +601,7 @@ export const StudyCardFace = ({
       {answerAudioUrl ? (
         <StudyAudioPlayer
           ref={answerAudioRef}
-          filename={card.answer.answerAudio?.filename}
+          filename={answerAudio?.filename}
           url={answerAudioUrl}
           label="Play answer audio"
           renderMode={compactMobile ? 'hidden' : 'default'}
@@ -588,7 +631,7 @@ export const StudyCardFace = ({
           Answer audio is being backfilled for this card.
         </p>
       ) : null}
-      {card.answer.expression && !card.answer.meaning && !notes.length ? (
+      {(presentation?.answer.heading ?? card.answer.expression) && !meaning && !notes.length ? (
         <div className="text-sm text-gray-400">
           This card only has the core answer content imported so far.
         </div>

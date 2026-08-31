@@ -116,6 +116,42 @@ export interface StudyAnswerPayload {
   pitchAccent?: JapanesePitchAccentPayload | null;
 }
 
+export type StudyCardPresentationMediaRef = Partial<StudyMediaRef>;
+
+export interface StudyCardPresentationText {
+  text: string | null;
+  ruby: string | null;
+}
+
+export interface StudyCardPresentationV1 {
+  version: 1;
+  front: {
+    mode: 'text' | 'media' | 'cloze';
+    text: string | null;
+    ruby: string | null;
+    hint: string | null;
+    media: {
+      audio: StudyCardPresentationMediaRef | null;
+      image: StudyCardPresentationMediaRef | null;
+    };
+    autoplayAudio: boolean;
+  };
+  answer: {
+    heading: string | null;
+    ruby: string | null;
+    restored: string | null;
+    meaning: string | null;
+    sentences: {
+      japanese: StudyCardPresentationText;
+      english: StudyCardPresentationText;
+    };
+    notes: string[];
+    media: { image: StudyCardPresentationMediaRef | null };
+    audio: StudyCardPresentationMediaRef | null;
+    pitchAccent: JapanesePitchAccentResolvedPayload | null;
+  };
+}
+
 export type JapanesePitchAccentSource = 'kanjium';
 
 export type JapanesePitchAccentResolvedBy = 'single-candidate' | 'local-reading' | 'llm';
@@ -208,6 +244,8 @@ export interface StudyCardSummary {
   cardType: StudyCardType;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
+  /** Server-owned review rendering projection. Missing/unknown versions fall back to raw fields. */
+  presentation?: StudyCardPresentationV1 | null;
   state: StudyCardState;
   masteryLevel?: StudyMasteryLevel;
   answerAudioSource: StudyAudioSource;

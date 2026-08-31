@@ -2,7 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
-import { getStudyCardAudio, toAssetUrl } from '../studyCardUtils';
+import {
+  getStudyCardAudio,
+  getStudyCardAudioUrl,
+  getStudyCardReviewAudio,
+  isAudioLedPromptCard,
+  isMediaLedPromptCard,
+  toAssetUrl,
+} from '../studyCardUtils';
 
 vi.mock('../../../config', () => ({
   API_URL: 'http://localhost:8080',
@@ -57,5 +64,134 @@ describe('studyCardUtils', () => {
     expect(getStudyCardAudio({ ...card, prompt: { cueAudio }, answer: { answerAudio } })).toBe(
       cueAudio
     );
+  });
+
+  it('uses presentation v1 for review audio and autoplay without changing raw editor media', () => {
+    const rawAudio = {
+      filename: 'raw.mp3',
+      url: '/raw.mp3',
+      mediaKind: 'audio' as const,
+      source: 'imported' as const,
+    };
+    const presentedCard = {
+      ...card,
+      cardType: 'recognition' as const,
+      answer: { answerAudio: rawAudio },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'media' as const,
+          text: null,
+          ruby: null,
+          hint: null,
+          media: { audio: { url: '/presented.mp3' }, image: null },
+          autoplayAudio: true,
+        },
+        answer: {
+          heading: null,
+          ruby: null,
+          restored: null,
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: { url: '/presented.mp3' },
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(getStudyCardAudio(presentedCard)).toBe(rawAudio);
+    expect(getStudyCardReviewAudio(presentedCard)).toEqual({ url: '/presented.mp3' });
+    expect(getStudyCardAudioUrl(presentedCard)).toBe('http://localhost:8080/presented.mp3');
+    expect(isAudioLedPromptCard(presentedCard)).toBe(true);
+  });
+
+  it('does not let legacy media fields override a server-owned text front', () => {
+    const cardWithRawMedia = {
+      ...card,
+      cardType: 'recognition' as const,
+      prompt: {
+        cueAudio: {
+          filename: 'raw.mp3',
+          url: '/raw.mp3',
+          mediaKind: 'audio' as const,
+          source: 'imported' as const,
+        },
+      },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: 'server text',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: null,
+          ruby: null,
+          restored: null,
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(isMediaLedPromptCard(cardWithRawMedia)).toBe(false);
+  });
+
+  it('does not resurrect raw audio that the server presentation suppresses', () => {
+    const presentedCard = {
+      ...card,
+      cardType: 'recognition' as const,
+      answer: {
+        answerAudio: {
+          filename: 'stale.mp3',
+          url: '/stale.mp3',
+          mediaKind: 'audio' as const,
+          source: 'imported' as const,
+        },
+      },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: '会社',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: '会社',
+          ruby: null,
+          restored: null,
+          meaning: 'company',
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(getStudyCardAudioUrl(presentedCard)).toBeNull();
+    expect(getStudyCardReviewAudio(presentedCard)).toBeNull();
   });
 });

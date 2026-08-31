@@ -129,6 +129,48 @@ describe('useStudyPitchAccent', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
+  it('does not resolve again when the server presentation already has pitch accent', async () => {
+    const card = {
+      ...buildCard('card-1'),
+      answer: {
+        ...buildCard('card-1').answer,
+        pitchAccent: unresolvedPitchAccent,
+      },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: '会社',
+          ruby: '会社[かいしゃ]',
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: '会社',
+          ruby: '会社[かいしゃ]',
+          restored: null,
+          meaning: 'company',
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: resolvedPitchAccent,
+        },
+      },
+    } as StudyCardSummary;
+
+    const { result } = renderHook(() => useStudyPitchAccent(card, true), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.pitchAccent).toEqual(resolvedPitchAccent);
+    expect(resolveStudyCardPitchAccentMock).not.toHaveBeenCalled();
+  });
+
   it('retries cards with cached unresolved pitch accent data', async () => {
     resolveStudyCardPitchAccentMock.mockResolvedValueOnce({
       ...buildCard('card-1'),
