@@ -201,7 +201,7 @@ export const StudyActivityProvider = ({
 
   const start = useCallback(
     (options: StartOptions) => {
-      if (!enabled || !categoriesByActivity) return;
+      if (!enabled) return;
       const { current } = activeRef;
       if (
         current?.activity === options.activity &&
@@ -214,7 +214,7 @@ export const StudyActivityProvider = ({
       if (current) finishActive();
       const next: ActiveStudyActivity = {
         ...options,
-        category: categoriesByActivity[options.activity],
+        ...(categoriesByActivity ? { category: categoriesByActivity[options.activity] } : {}),
         clientSessionId: crypto.randomUUID(),
         startedAt: new Date().toISOString(),
         cardsCreated: 0,

@@ -81,13 +81,15 @@ function renderProvider() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(
+  const provider = () => (
     <QueryClientProvider client={queryClient}>
       <StudyActivityProvider userId={42}>
         <Controls />
       </StudyActivityProvider>
     </QueryClientProvider>
   );
+  const view = render(provider());
+  return { ...view, rerenderProvider: () => view.rerender(provider()) };
 }
 
 describe('StudyActivityProvider', () => {
@@ -134,23 +136,54 @@ describe('StudyActivityProvider', () => {
     expect(saveSessionsMock).not.toHaveBeenCalled();
   });
 
-  it('waits to start and keeps completions queued while capabilities are unavailable', () => {
+  it('retains an unclassified start and queues its completion while capabilities are unavailable', () => {
     capabilitiesQueryMock.mockReturnValue({ data: undefined, isError: true });
     renderProvider();
 
     fireEvent.click(screen.getByRole('button', { name: 'Start audio' }));
-    expect(screen.getByText('inactive')).toBeInTheDocument();
+    expect(screen.getByText('daily_audio')).toBeInTheDocument();
+    expect(
+      JSON.parse(localStorage.getItem('convolab.studyActivity.active.v1.42') ?? '{}')
+    ).not.toHaveProperty('category');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add cards' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
     expect(saveSessionsMock).not.toHaveBeenCalled();
     expect(
       JSON.parse(localStorage.getItem('convolab.studyActivity.pending.v1.42') ?? '[]')
     ).toEqual([
       expect.objectContaining({
-        activity: 'card_creation',
-        cardsCreated: 2,
+        activity: 'daily_audio',
       }),
     ]);
+  });
+
+  it('backfills an unclassified active start when capabilities arrive', () => {
+    capabilitiesQueryMock.mockReturnValue({ data: undefined });
+    const view = renderProvider();
+    fireEvent.click(screen.getByRole('button', { name: 'Start audio' }));
+
+    capabilitiesQueryMock.mockReturnValue({
+      data: {
+        studyActivity: {
+          categoriesByActivity: {
+            card_review: 'review',
+            daily_audio: 'conversation',
+            card_creation: 'create',
+            tv: 'immerse',
+            podcast: 'immerse',
+            reading: 'immerse',
+            conversation: 'conversation',
+            wanikani_review: 'wanikani',
+            other: 'immerse',
+          },
+        },
+      },
+    });
+    view.rerenderProvider();
+
+    expect(JSON.parse(localStorage.getItem('convolab.studyActivity.active.v1.42') ?? '{}')).toEqual(
+      expect.objectContaining({ activity: 'daily_audio', category: 'conversation' })
+    );
   });
 
   it('caps a stale recovered automatic timer at five minutes', async () => {

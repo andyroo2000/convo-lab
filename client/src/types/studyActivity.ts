@@ -36,7 +36,7 @@ export interface StudyActivitySession extends StudyActivitySessionInput {
 
 export interface ActiveStudyActivity {
   clientSessionId: string;
-  category: StudyActivityCategory;
+  category?: StudyActivityCategory;
   activity: StudyActivityKind;
   source: StudyActivitySource;
   name?: string;
