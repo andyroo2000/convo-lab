@@ -134,6 +134,37 @@ describe('vendored Learning OS compatibility fixtures', () => {
     ).toBeNull();
   });
 
+  it('accepts nullable presentation v1 media metadata while rejecting wrong types', () => {
+    const nullablePayload = structuredClone(studyCardCompatibilityFixture.cases[0].payload) as {
+      presentation: {
+        front: { media: { audio: Record<string, unknown> | null } };
+      };
+    };
+    nullablePayload.presentation.front.media.audio = {
+      id: null,
+      filename: null,
+      url: '/api/study/media/audio/example',
+      mediaKind: null,
+      source: null,
+    };
+
+    expect(decodeStudyCardSummary(nullablePayload).presentation?.front.media.audio).toMatchObject({
+      id: null,
+      filename: null,
+      mediaKind: null,
+      source: null,
+    });
+
+    (['id', 'filename', 'mediaKind', 'source'] as const).forEach((field) => {
+      const invalidPayload = structuredClone(nullablePayload);
+      invalidPayload.presentation.front.media.audio = { [field]: 42 };
+
+      expect(() => decodeStudyCardSummary(invalidPayload), field).toThrow(
+        `study card.presentation.front.media.audio.${field} must be a string.`
+      );
+    });
+  });
+
   it('decodes connected and disconnected Google Calendar boundary cases', () => {
     const connections = googleCalendarCompatibilityFixture.cases.map(({ payload }) =>
       decodeGoogleCalendarConnectionStatus(payload)

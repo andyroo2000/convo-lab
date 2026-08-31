@@ -286,11 +286,11 @@ function optionalNullableString(value: unknown, path: string): string | null | u
 function decodePresentationMedia(value: unknown, path: string) {
   if (value === null) return;
   const media = record(value, path);
-  if (media.id !== undefined) string(media.id, `${path}.id`);
-  if (media.filename !== undefined) string(media.filename, `${path}.filename`);
+  optionalNullableString(media.id, `${path}.id`);
+  optionalNullableString(media.filename, `${path}.filename`);
   if (media.url !== undefined) nullableString(media.url, `${path}.url`);
-  if (media.mediaKind !== undefined) string(media.mediaKind, `${path}.mediaKind`);
-  if (media.source !== undefined) string(media.source, `${path}.source`);
+  optionalNullableString(media.mediaKind, `${path}.mediaKind`);
+  optionalNullableString(media.source, `${path}.source`);
 }
 
 function decodePresentationText(value: unknown, path: string) {
