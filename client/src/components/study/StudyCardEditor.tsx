@@ -31,6 +31,8 @@ interface StudyCardEditorProps {
   isRegeneratingAudio?: boolean;
   isRegeneratingImage?: boolean;
   error?: string | null;
+  imagePromptMaxLength?: number;
+  defaultAnswerAudioVoiceId?: string;
 }
 
 function getCardImageRole(card: StudyCardSummary): StudyCardImagePlacement {
@@ -66,9 +68,11 @@ const StudyCardEditor = ({
   isRegeneratingAudio = false,
   isRegeneratingImage = false,
   error,
+  imagePromptMaxLength,
+  defaultAnswerAudioVoiceId,
 }: StudyCardEditorProps) => {
   const { t } = useTranslation('study');
-  const { values, setField, buildPayload } = useStudyCardForm({ card });
+  const { values, setField, setValues, buildPayload } = useStudyCardForm({ card });
   const isAudioLedPrompt = isAudioLedPromptCard(card);
   const [currentAnswerAudio, setCurrentAnswerAudio] = useState(getStudyCardAudio(card));
   const [currentImage, setCurrentImage] = useState(
@@ -100,6 +104,15 @@ const StudyCardEditor = ({
     imageRole: getCardImageRole(card),
     imagePrompt: getCardImagePrompt(card),
   };
+  useEffect(() => {
+    if (!defaultAnswerAudioVoiceId) return;
+    setValues((current) =>
+      current.answerAudioVoiceId
+        ? current
+        : { ...current, answerAudioVoiceId: defaultAnswerAudioVoiceId }
+    );
+  }, [cardResetKey, defaultAnswerAudioVoiceId, setValues]);
+
   useEffect(() => {
     if (lastCardResetKeyRef.current === cardResetKey) {
       return;
@@ -179,6 +192,7 @@ const StudyCardEditor = ({
         imagePrompt={imagePrompt}
         imagePromptId="study-edit-image-prompt"
         imagePromptLabel={t('editor.imagePrompt')}
+        imagePromptMaxLength={imagePromptMaxLength}
         isRegenerateDisabled={!onRegenerateImage || isBusy}
         isRegenerating={isRegeneratingImage}
         onImagePlacementChange={setImageRole}

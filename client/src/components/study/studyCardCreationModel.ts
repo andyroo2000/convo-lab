@@ -1,8 +1,4 @@
-import {
-  DEFAULT_NARRATOR_VOICES,
-  MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
-  selectManualStudyCardDefaultVoiceId,
-} from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
 import type {
   StudyCardCreationKind,
   StudyCardImagePlacement,
@@ -35,15 +31,22 @@ export function cardTypeForStudyCardCreationKind(
 }
 
 export function defaultVoiceIdForStudyCardCreationKind(
-  _creationKind: StudyCardCreationKind
+  _creationKind: StudyCardCreationKind,
+  defaultVoiceIds: readonly string[],
+  randomValue = Math.random()
 ): string {
-  return selectManualStudyCardDefaultVoiceId();
+  if (defaultVoiceIds.length === 0) return '';
+  const boundedRandomValue = Math.min(Math.max(randomValue, 0), 0.9999999999999999);
+  return defaultVoiceIds[Math.floor(boundedRandomValue * defaultVoiceIds.length)] ?? '';
 }
 
-export function isStudyCardCreationDefaultVoice(voiceId: string): boolean {
+export function isStudyCardCreationDefaultVoice(
+  voiceId: string,
+  defaultVoiceIds: readonly string[]
+): boolean {
   return (
     voiceId === DEFAULT_NARRATOR_VOICES.ja ||
-    MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS.some((manualVoiceId) => manualVoiceId === voiceId)
+    defaultVoiceIds.some((defaultVoiceId) => defaultVoiceId === voiceId)
   );
 }
 

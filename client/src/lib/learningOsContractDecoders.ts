@@ -1,4 +1,10 @@
-import type { StudyCardSummary } from '@languageflow/shared/src/types';
+import type {
+  StudyCardCreationKind,
+  StudyCardImagePlacement,
+  StudyCardSummary,
+  StudyClientCapabilities,
+  StudyIntegerCapability,
+} from '@languageflow/shared/src/types';
 
 import type {
   DailyAudioPractice,
@@ -25,6 +31,19 @@ const DAILY_AUDIO_MODES: readonly DailyAudioPracticeMode[] = [
 ];
 const DAILY_AUDIO_PRACTICE_STATUSES = ['draft', 'generating', 'ready', 'error'] as const;
 const DAILY_AUDIO_TRACK_STATUSES = ['draft', 'generating', 'ready', 'error', 'skipped'] as const;
+const STUDY_CARD_CREATION_KINDS: readonly StudyCardCreationKind[] = [
+  'text-recognition',
+  'audio-recognition',
+  'production-text',
+  'production-image',
+  'cloze',
+];
+const STUDY_CARD_IMAGE_PLACEMENTS: readonly StudyCardImagePlacement[] = [
+  'none',
+  'prompt',
+  'answer',
+  'both',
+];
 
 function record(value: unknown, path: string): JsonRecord {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -56,6 +75,143 @@ function nonNegativeInteger(value: unknown, path: string): number {
     throw new Error(`${path} must be a nonnegative integer.`);
   }
   return decoded;
+}
+
+function integerCapability(value: unknown, path: string): StudyIntegerCapability {
+  const capability = record(value, path);
+  const defaultValue = nonNegativeInteger(capability.default, `${path}.default`);
+  const min = nonNegativeInteger(capability.min, `${path}.min`);
+  const max = nonNegativeInteger(capability.max, `${path}.max`);
+  if (min > max || defaultValue < min || defaultValue > max) {
+    throw new Error(`${path} must have an ordered range containing its default.`);
+  }
+  return { default: defaultValue, min, max };
+}
+
+function supportedStrings<T extends string>(
+  value: unknown,
+  path: string,
+  supported: readonly T[]
+): T[] {
+  return array(value, path).map((item, index) => {
+    const decoded = string(item, `${path}[${index}]`);
+    if (!supported.includes(decoded as T)) {
+      throw new Error(`${path}[${index}] is not supported.`);
+    }
+    return decoded as T;
+  });
+}
+
+export function decodeStudyClientCapabilities(value: unknown): StudyClientCapabilities {
+  const capabilities = record(value, 'study capabilities');
+  const version = nonNegativeInteger(capabilities.version, 'study capabilities.version');
+  if (version !== 1) throw new Error('study capabilities.version is not supported.');
+
+  const settings = record(capabilities.settings, 'study capabilities.settings');
+  const laneWeights = record(
+    settings.newCardLaneWeights,
+    'study capabilities.settings.newCardLaneWeights'
+  );
+  const cardAuthoring = record(capabilities.cardAuthoring, 'study capabilities.cardAuthoring');
+  const limits = record(cardAuthoring.limits, 'study capabilities.cardAuthoring.limits');
+  const dailyAudio = record(capabilities.dailyAudio, 'study capabilities.dailyAudio');
+  const offlineReserve = record(capabilities.offlineReserve, 'study capabilities.offlineReserve');
+  const imports = record(capabilities.imports, 'study capabilities.imports');
+  const previewAudioRoles = supportedStrings(
+    cardAuthoring.previewAudioRoles,
+    'study capabilities.cardAuthoring.previewAudioRoles',
+    ['prompt', 'answer'] as const
+  );
+
+  return {
+    version,
+    settings: {
+      newCardsPerDay: integerCapability(
+        settings.newCardsPerDay,
+        'study capabilities.settings.newCardsPerDay'
+      ),
+      lessonBatchSize: integerCapability(
+        settings.lessonBatchSize,
+        'study capabilities.settings.lessonBatchSize'
+      ),
+      reviewTimeBudgetMinutes: integerCapability(
+        settings.reviewTimeBudgetMinutes,
+        'study capabilities.settings.reviewTimeBudgetMinutes'
+      ),
+      newCardLaneWeights: {
+        standard: integerCapability(
+          laneWeights.standard,
+          'study capabilities.settings.newCardLaneWeights.standard'
+        ),
+        lessonFollowup: integerCapability(
+          laneWeights.lessonFollowup,
+          'study capabilities.settings.newCardLaneWeights.lessonFollowup'
+        ),
+        wanikani: integerCapability(
+          laneWeights.wanikani,
+          'study capabilities.settings.newCardLaneWeights.wanikani'
+        ),
+      },
+    },
+    cardAuthoring: {
+      creationKinds: supportedStrings(
+        cardAuthoring.creationKinds,
+        'study capabilities.cardAuthoring.creationKinds',
+        STUDY_CARD_CREATION_KINDS
+      ),
+      imagePlacements: supportedStrings(
+        cardAuthoring.imagePlacements,
+        'study capabilities.cardAuthoring.imagePlacements',
+        STUDY_CARD_IMAGE_PLACEMENTS
+      ),
+      previewAudioRoles,
+      defaultAnswerAudioVoiceId: string(
+        cardAuthoring.defaultAnswerAudioVoiceId,
+        'study capabilities.cardAuthoring.defaultAnswerAudioVoiceId'
+      ),
+      defaultFemaleAnswerAudioVoiceId: string(
+        cardAuthoring.defaultFemaleAnswerAudioVoiceId,
+        'study capabilities.cardAuthoring.defaultFemaleAnswerAudioVoiceId'
+      ),
+      limits: {
+        combinedPayloadBytes: nonNegativeInteger(
+          limits.combinedPayloadBytes,
+          'study capabilities.cardAuthoring.limits.combinedPayloadBytes'
+        ),
+        payloadDepth: nonNegativeInteger(
+          limits.payloadDepth,
+          'study capabilities.cardAuthoring.limits.payloadDepth'
+        ),
+        imagePromptCharacters: nonNegativeInteger(
+          limits.imagePromptCharacters,
+          'study capabilities.cardAuthoring.limits.imagePromptCharacters'
+        ),
+        imageUploadBytes: nonNegativeInteger(
+          limits.imageUploadBytes,
+          'study capabilities.cardAuthoring.limits.imageUploadBytes'
+        ),
+      },
+    },
+    dailyAudio: {
+      targetDurationMinutes: integerCapability(
+        dailyAudio.targetDurationMinutes,
+        'study capabilities.dailyAudio.targetDurationMinutes'
+      ),
+    },
+    offlineReserve: {
+      days: nonNegativeInteger(offlineReserve.days, 'study capabilities.offlineReserve.days'),
+      maxScheduledCards: nonNegativeInteger(
+        offlineReserve.maxScheduledCards,
+        'study capabilities.offlineReserve.maxScheduledCards'
+      ),
+    },
+    imports: {
+      maxArchiveBytes: nonNegativeInteger(
+        imports.maxArchiveBytes,
+        'study capabilities.imports.maxArchiveBytes'
+      ),
+    },
+  };
 }
 
 function boolean(value: unknown, path: string): boolean {

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { StudyClientCapabilities } from '@languageflow/shared/src/types';
 
 import type { StudyBrowseController } from '../../../hooks/useStudyBrowseController';
 import ConfirmModal from '../../common/ConfirmModal';
@@ -10,9 +11,10 @@ import StudyBrowseFieldSections from './StudyBrowseFieldSections';
 
 interface StudyBrowseDetailProps {
   controller: StudyBrowseController;
+  cardAuthoringCapabilities?: StudyClientCapabilities['cardAuthoring'];
 }
 
-const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
+const StudyBrowseDetail = ({ controller, cardAuthoringCapabilities }: StudyBrowseDetailProps) => {
   const { t } = useTranslation('study');
   const {
     actionErrorMessage,
@@ -190,6 +192,10 @@ const StudyBrowseDetail = ({ controller }: StudyBrowseDetailProps) => {
                     <StudyCardEditor
                       key={`${selectedCard.id}:${editorResetToken}`}
                       card={selectedCard}
+                      defaultAnswerAudioVoiceId={
+                        cardAuthoringCapabilities?.defaultAnswerAudioVoiceId
+                      }
+                      imagePromptMaxLength={cardAuthoringCapabilities?.limits.imagePromptCharacters}
                       isSaving={isUpdatePending}
                       isDeleting={isDeletePending}
                       isRegeneratingAudio={isRegeneratingAudio}

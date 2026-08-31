@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { selectManualStudyCardDefaultVoiceId } from '@languageflow/shared/src/constants-new';
 import type {
   StudyCardCreationKind,
   StudyCardImagePlacement,
@@ -10,6 +9,7 @@ import type {
 } from '@languageflow/shared/src/types';
 
 import StudyManualDraftComposerPanel from '../components/study/StudyManualDraftComposerPanel';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
 import StudyManualDraftListPanel from '../components/study/StudyManualDraftListPanel';
 import StudyVocabDraftGeneratorPanel from '../components/study/StudyVocabDraftGeneratorPanel';
 import {
@@ -43,6 +43,7 @@ import useEffectiveUser from '../hooks/useEffectiveUser';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 import useStudyDraftAutosaveQueue from '../hooks/useStudyDraftAutosaveQueue';
 import useStudyCreateActionGuard from '../hooks/useStudyCreateActionGuard';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 import {
   clearStudyDraftIntent,
   isStudyDraftIntentApplied,
@@ -158,7 +159,26 @@ const StudyCreatePage = () => {
   useAutomaticStudyActivity(true, startCreationTimer, stopCreationTimer);
   const generateDraftImage = useGenerateStudyManualCardDraftPreviewImage();
   const regenerateManualAudio = useGenerateStudyManualCardDraftPreviewAudio();
-  const [manualDefaultVoiceId] = useState(() => selectManualStudyCardDefaultVoiceId());
+  const capabilitiesQuery = useStudyCapabilities();
+  const cardAuthoringCapabilities = capabilitiesQuery.data?.cardAuthoring;
+  const manualDefaultVoiceIds = useMemo(
+    () =>
+      cardAuthoringCapabilities
+        ? [
+            cardAuthoringCapabilities.defaultAnswerAudioVoiceId,
+            cardAuthoringCapabilities.defaultFemaleAnswerAudioVoiceId,
+          ]
+        : [],
+    [cardAuthoringCapabilities]
+  );
+  const manualDefaultVoiceId = useMemo(
+    () =>
+      defaultVoiceIdForStudyCardCreationKind(
+        DEFAULT_STUDY_CARD_CREATION_KIND,
+        manualDefaultVoiceIds
+      ),
+    [manualDefaultVoiceIds]
+  );
   const [mode, setMode] = useState<CreateMode>('generate');
   const [creationKind, setCreationKind] = useState<StudyCardCreationKind>(
     DEFAULT_STUDY_CARD_CREATION_KIND
@@ -215,8 +235,15 @@ const StudyCreatePage = () => {
   );
   const { values, setField, setValues } = useStudyCardForm({
     initialCardType: 'recognition',
-    initialAnswerAudioVoiceId: manualDefaultVoiceId,
   });
+  useEffect(() => {
+    if (!manualDefaultVoiceId) return;
+    setValues((current) =>
+      current.answerAudioVoiceId
+        ? current
+        : { ...current, answerAudioVoiceId: manualDefaultVoiceId }
+    );
+  }, [manualDefaultVoiceId, setValues]);
   const {
     cancelScheduledSave: cancelManualDraftAutosave,
     flushSave: flushManualDraftAutosave,
@@ -287,7 +314,10 @@ const StudyCreatePage = () => {
 
   const resetManualComposer = useCallback(
     (nextCreationKind = creationKind) => {
-      const nextDefaultVoiceId = selectManualStudyCardDefaultVoiceId();
+      const nextDefaultVoiceId = defaultVoiceIdForStudyCardCreationKind(
+        nextCreationKind,
+        manualDefaultVoiceIds
+      );
       setValues(
         getStudyCardFormValues({
           initialCardType: cardTypeForStudyCardCreationKind(nextCreationKind),
@@ -301,7 +331,7 @@ const StudyCreatePage = () => {
       setManualPreviewAudioRole(null);
       setIsManualPreviewOpen(false);
     },
-    [creationKind, setValues]
+    [creationKind, manualDefaultVoiceIds, setValues]
   );
 
   useEffect(() => {
@@ -489,8 +519,11 @@ const StudyCreatePage = () => {
     setValues((current) => ({
       ...current,
       cardType: cardTypeForStudyCardCreationKind(nextCreationKind),
-      answerAudioVoiceId: isStudyCardCreationDefaultVoice(current.answerAudioVoiceId)
-        ? defaultVoiceIdForStudyCardCreationKind(nextCreationKind)
+      answerAudioVoiceId: isStudyCardCreationDefaultVoice(
+        current.answerAudioVoiceId,
+        manualDefaultVoiceIds
+      )
+        ? defaultVoiceIdForStudyCardCreationKind(nextCreationKind, manualDefaultVoiceIds)
         : current.answerAudioVoiceId,
     }));
     setManualPreviewAudio(null);
@@ -775,6 +808,14 @@ const StudyCreatePage = () => {
         </div>
       </section>
 
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
+
       {mode === 'generate' ? (
         <StudyVocabDraftGeneratorPanel
           context={context}
@@ -814,6 +855,7 @@ const StudyCreatePage = () => {
               }
               imagePlacement={manualImagePlacement}
               imagePrompt={manualImagePrompt}
+              imagePromptMaxLength={cardAuthoringCapabilities?.limits.imagePromptCharacters}
               isActionBusy={isManualActionBusy}
               isCreatingCard={createCardFromDraft.isPending}
               isCreatingDraft={createDraft.isPending}

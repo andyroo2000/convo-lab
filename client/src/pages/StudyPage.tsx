@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { StudyCardFace } from '../components/study/StudyCardPreview';
 import StudyCardEditor from '../components/study/StudyCardEditor';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
 import StudyGradeButtons from '../components/study/StudyGradeButtons';
 import MasteryReviewAnimation from '../components/study/MasteryReviewAnimation';
 import { masteryReviewAnnouncementKind } from '../components/study/studyMastery';
@@ -25,6 +26,7 @@ import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 import useStudyReviewSession from '../hooks/useStudyReviewSession';
 import { useStudyActivityActions } from '../contexts/StudyActivityContext';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 
 const StudyPage = () => {
   const { t } = useTranslation('study');
@@ -33,6 +35,8 @@ const StudyPage = () => {
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
+  const capabilitiesQuery = useStudyCapabilities(enabled);
+  const cardAuthoringCapabilities = capabilitiesQuery.data?.cardAuthoring;
   const availableCount =
     (overviewQuery.data?.failedDueCount ?? 0) + (overviewQuery.data?.dueCount ?? 0);
   const reviewSession = useStudyReviewSession();
@@ -202,6 +206,13 @@ const StudyPage = () => {
               data-testid="study-focus-shell"
               className="study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-2xl md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-navy/10"
             >
+              <StudyCapabilitiesError
+                isError={capabilitiesQuery.isError}
+                isRetrying={capabilitiesQuery.isFetching}
+                onRetry={() => {
+                  capabilitiesQuery.refetch().catch(() => undefined);
+                }}
+              />
               {!showingAchievementAward &&
               !reviewSession.reviewSessionComplete &&
               !reviewSession.practiceComplete ? (
@@ -518,6 +529,12 @@ const StudyPage = () => {
                       {reviewSession.editing && !masteryAnimation ? (
                         <StudyCardEditor
                           card={displayedCard}
+                          defaultAnswerAudioVoiceId={
+                            cardAuthoringCapabilities?.defaultAnswerAudioVoiceId
+                          }
+                          imagePromptMaxLength={
+                            cardAuthoringCapabilities?.limits.imagePromptCharacters
+                          }
                           isSaving={reviewSession.updateCardMutation.isPending}
                           isDeleting={reviewSession.deleteCardMutation.isPending}
                           isRegeneratingAudio={reviewSession.regenerateAudioMutation.isPending}
@@ -610,32 +627,41 @@ const StudyPage = () => {
   }
 
   return (
-    <StudyOverviewDashboard
-      overview={overviewQuery.data}
-      reviewAvailableCount={availableCount}
-      loading={overviewQuery.isLoading}
-      error={overviewQuery.error instanceof Error ? overviewQuery.error : null}
-      onBeginReview={() => {
-        runBackgroundTask(() => reviewSession.enterFocusMode('reviews'), {
-          label: 'Study session start',
-        });
-      }}
-      onBeginLesson={() => {
-        setLessonPreviewIndex(0);
-        runBackgroundTask(() => reviewSession.enterFocusMode('lessons'), {
-          label: 'Study lesson start',
-        });
-      }}
-      isStartingSession={reviewSession.sessionLoading}
-      recentMilestones={
-        <StudyAchievementSpotlight
-          initialCatalog={reviewSession.achievementCatalog}
-          initialProgress={reviewSession.achievementProgress}
-          landingAchievementId={landingAchievementId}
-          newAchievementIds={sessionNewAchievementIds}
-        />
-      }
-    />
+    <>
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
+      <StudyOverviewDashboard
+        overview={overviewQuery.data}
+        reviewAvailableCount={availableCount}
+        loading={overviewQuery.isLoading}
+        error={overviewQuery.error instanceof Error ? overviewQuery.error : null}
+        onBeginReview={() => {
+          runBackgroundTask(() => reviewSession.enterFocusMode('reviews'), {
+            label: 'Study session start',
+          });
+        }}
+        onBeginLesson={() => {
+          setLessonPreviewIndex(0);
+          runBackgroundTask(() => reviewSession.enterFocusMode('lessons'), {
+            label: 'Study lesson start',
+          });
+        }}
+        isStartingSession={reviewSession.sessionLoading}
+        recentMilestones={
+          <StudyAchievementSpotlight
+            initialCatalog={reviewSession.achievementCatalog}
+            initialProgress={reviewSession.achievementProgress}
+            landingAchievementId={landingAchievementId}
+            newAchievementIds={sessionNewAchievementIds}
+          />
+        }
+      />
+    </>
   );
 };
 

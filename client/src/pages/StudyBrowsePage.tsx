@@ -4,15 +4,18 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 
 import StudyBrowseDetail from '../components/study/browse/StudyBrowseDetail';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
 import StudyBrowseFilters from '../components/study/browse/StudyBrowseFilters';
 import StudyBrowseNoteList from '../components/study/browse/StudyBrowseNoteList';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import useStudyBrowseController from '../hooks/useStudyBrowseController';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 
 const StudyBrowsePage = () => {
   const { t } = useTranslation('study');
   const { isFeatureEnabled } = useFeatureFlags();
   const controller = useStudyBrowseController(isFeatureEnabled('flashcardsEnabled'));
+  const capabilitiesQuery = useStudyCapabilities(isFeatureEnabled('flashcardsEnabled'));
   const hasSelection = Boolean(controller.selectedNoteId);
 
   useEffect(() => {
@@ -52,6 +55,14 @@ const StudyBrowsePage = () => {
         </div>
       </section>
 
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
+
       <div className={hasSelection ? 'hidden xl:block' : undefined}>
         <StudyBrowseFilters controller={controller} />
       </div>
@@ -61,7 +72,10 @@ const StudyBrowsePage = () => {
           <StudyBrowseNoteList controller={controller} />
         </div>
         <div className={`min-w-0 ${hasSelection ? '' : 'hidden xl:block'}`}>
-          <StudyBrowseDetail controller={controller} />
+          <StudyBrowseDetail
+            controller={controller}
+            cardAuthoringCapabilities={capabilitiesQuery.data?.cardAuthoring}
+          />
         </div>
       </section>
     </div>

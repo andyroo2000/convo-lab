@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DailyAudioPracticePage from '../DailyAudioPracticePage';
 import type { DailyAudioPractice } from '../../types';
+import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
 
 const {
   mockUseRecentDailyAudioPractice,
@@ -20,7 +21,6 @@ const {
 }));
 
 vi.mock('../../hooks/useDailyAudioPractice', () => ({
-  DAILY_AUDIO_DURATION_OPTIONS: [15, 30, 45, 60],
   dailyAudioPracticeKeys: {
     list: () => ['daily-audio-practice', 'list'],
     detail: (id: string) => ['daily-audio-practice', 'detail', id],
@@ -29,6 +29,10 @@ vi.mock('../../hooks/useDailyAudioPractice', () => ({
   useDailyAudioPractice: mockUseDailyAudioPractice,
   useDailyAudioPracticeStatus: mockUseDailyAudioPracticeStatus,
   useCreateDailyAudioPractice: mockUseCreateDailyAudioPractice,
+}));
+
+vi.mock('../../hooks/useStudyCapabilities', () => ({
+  useStudyCapabilities: () => ({ data: studyCapabilitiesFixture }),
 }));
 
 vi.mock('../../components/audio/ScriptTrackPlayer', () => ({
@@ -147,7 +151,7 @@ describe('DailyAudioPracticePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
 
     await waitFor(() => {
-      expect(mockCreateMutateAsync).toHaveBeenCalledWith(60);
+      expect(mockCreateMutateAsync).toHaveBeenCalledWith(30);
     });
   });
 
@@ -183,7 +187,7 @@ describe('DailyAudioPracticePage', () => {
 
     expect(screen.getByText('Regenerate today’s audio?')).toBeInTheDocument();
     expect(
-      screen.getByText(/overwrite today’s existing audio with a 60-minute edition/i)
+      screen.getByText(/overwrite today’s existing audio with a 30-minute edition/i)
     ).toBeInTheDocument();
     expect(mockCreateMutateAsync).not.toHaveBeenCalled();
 
@@ -335,7 +339,7 @@ describe('DailyAudioPracticePage', () => {
     expect(retryButton).toBeEnabled();
     fireEvent.click(retryButton);
 
-    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith(60));
+    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith(30));
   });
 
   it('enables retry when an unchanged generation crosses the stale threshold', () => {

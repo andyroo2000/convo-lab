@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  DEFAULT_NARRATOR_VOICES,
-  DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID,
-  TTS_VOICES,
-} from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
 import { buildStudyCardFormPayload, getStudyCardFormValues } from '../studyCardFormModel';
 
 describe('studyCardFormModel', () => {
-  it('defaults new and voice-less cards to the canonical Study Fish voice', () => {
-    expect(getStudyCardFormValues().answerAudioVoiceId).toBe(DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID);
+  it('uses the server-provided default for new and voice-less cards', () => {
+    const serverDefaultVoiceId = 'server-default-voice';
+    expect(
+      getStudyCardFormValues({ initialAnswerAudioVoiceId: serverDefaultVoiceId }).answerAudioVoiceId
+    ).toBe(serverDefaultVoiceId);
     expect(
       getStudyCardFormValues({
         card: {
@@ -30,8 +29,9 @@ describe('studyCardFormModel', () => {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
+        initialAnswerAudioVoiceId: serverDefaultVoiceId,
       }).answerAudioVoiceId
-    ).toBe(DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID);
+    ).toBe(serverDefaultVoiceId);
   });
 
   it('builds a recognition payload with null-normalized optional fields', () => {

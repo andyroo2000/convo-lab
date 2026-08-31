@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  STUDY_LESSON_BATCH_SIZE_DEFAULT,
-  STUDY_LESSON_BATCH_SIZE_MAX,
-  STUDY_LESSON_BATCH_SIZE_MIN,
-  STUDY_NEW_CARDS_PER_DAY_DEFAULT,
-} from '@languageflow/shared/src/studyConstants';
 import { useTranslation } from 'react-i18next';
 import type { StudyNewCardLaneWeights } from '@languageflow/shared/src/types';
 
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 import {
   useConnectWaniKani,
   useDisconnectWaniKani,
@@ -25,8 +21,8 @@ const StudySettingsPage = () => {
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const runBackgroundTask = useStudyBackgroundTask();
-  const [newCardsPerDay, setNewCardsPerDay] = useState(STUDY_NEW_CARDS_PER_DAY_DEFAULT);
-  const [lessonBatchSize, setLessonBatchSize] = useState(STUDY_LESSON_BATCH_SIZE_DEFAULT);
+  const [newCardsPerDay, setNewCardsPerDay] = useState(0);
+  const [lessonBatchSize, setLessonBatchSize] = useState(0);
   const [laneWeights, setLaneWeights] = useState<StudyNewCardLaneWeights | null>(null);
   const [settingsSavedVisible, setSettingsSavedVisible] = useState(false);
   const [settingsSaveFailedVisible, setSettingsSaveFailedVisible] = useState(false);
@@ -35,6 +31,8 @@ const StudySettingsPage = () => {
   const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
 
   const settingsQuery = useStudySettings(enabled);
+  const capabilitiesQuery = useStudyCapabilities(enabled);
+  const settingsCapabilities = capabilitiesQuery.data?.settings;
   const updateSettingsMutation = useUpdateStudySettings();
   const knownKanjiQuery = useKnownKanji();
   const connectWaniKaniMutation = useConnectWaniKani();
@@ -45,10 +43,23 @@ const StudySettingsPage = () => {
   useEffect(() => {
     if (settingsQuery.data) {
       setNewCardsPerDay(settingsQuery.data.newCardsPerDay);
-      setLessonBatchSize(settingsQuery.data.lessonBatchSize ?? STUDY_LESSON_BATCH_SIZE_DEFAULT);
+      setLessonBatchSize(
+        settingsQuery.data.lessonBatchSize ?? settingsCapabilities?.lessonBatchSize.default ?? 0
+      );
       setLaneWeights(settingsQuery.data.newCardLaneWeights ?? null);
     }
-  }, [settingsQuery.data]);
+  }, [settingsCapabilities?.lessonBatchSize.default, settingsQuery.data]);
+
+  useEffect(() => {
+    if (!settingsCapabilities || settingsQuery.data) return;
+    setNewCardsPerDay(settingsCapabilities.newCardsPerDay.default);
+    setLessonBatchSize(settingsCapabilities.lessonBatchSize.default);
+    setLaneWeights({
+      standard: settingsCapabilities.newCardLaneWeights.standard.default,
+      lessonFollowup: settingsCapabilities.newCardLaneWeights.lessonFollowup.default,
+      wanikani: settingsCapabilities.newCardLaneWeights.wanikani.default,
+    });
+  }, [settingsCapabilities, settingsQuery.data]);
 
   useEffect(() => {
     if (!settingsSavedVisible) return undefined;
@@ -93,6 +104,14 @@ const StudySettingsPage = () => {
           </Link>
         </div>
       </section>
+
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
 
       <section className="card app-surface space-y-5 p-4 sm:p-6">
         <div>
@@ -337,8 +356,8 @@ const StudySettingsPage = () => {
             <input
               id="study-new-cards-per-day"
               type="number"
-              min={0}
-              max={1000}
+              min={settingsCapabilities?.newCardsPerDay.min}
+              max={settingsCapabilities?.newCardsPerDay.max}
               step={1}
               value={newCardsPerDay}
               onChange={(event) => {
@@ -356,8 +375,8 @@ const StudySettingsPage = () => {
             <input
               id="study-lesson-batch-size"
               type="number"
-              min={STUDY_LESSON_BATCH_SIZE_MIN}
-              max={STUDY_LESSON_BATCH_SIZE_MAX}
+              min={settingsCapabilities?.lessonBatchSize.min}
+              max={settingsCapabilities?.lessonBatchSize.max}
               step={1}
               value={lessonBatchSize}
               onChange={(event) => {
@@ -397,8 +416,8 @@ const StudySettingsPage = () => {
                       id={`study-lane-weight-${lane}`}
                       aria-label={t(label)}
                       type="number"
-                      min={lane === 'standard' ? 1 : 0}
-                      max={20}
+                      min={settingsCapabilities?.newCardLaneWeights[lane].min}
+                      max={settingsCapabilities?.newCardLaneWeights[lane].max}
                       step={1}
                       value={laneWeights[lane]}
                       onChange={(event) => updateLaneWeight(lane, Number(event.target.value))}
@@ -412,7 +431,7 @@ const StudySettingsPage = () => {
           ) : null}
           <button
             type="submit"
-            disabled={updateSettingsMutation.isPending}
+            disabled={updateSettingsMutation.isPending || !settingsCapabilities}
             className="app-button-primary"
           >
             {updateSettingsMutation.isPending ? t('settings.saving') : t('settings.save')}

@@ -25,6 +25,7 @@ interface StudyManualDraftComposerPanelProps {
   imageError: string | null;
   imagePlacement: StudyCardImagePlacement;
   imagePrompt: string;
+  imagePromptMaxLength?: number;
   isActionBusy: boolean;
   isCreatingCard: boolean;
   isCreatingDraft: boolean;
@@ -68,6 +69,7 @@ const StudyManualDraftComposerPanel = ({
   imageError,
   imagePlacement,
   imagePrompt,
+  imagePromptMaxLength,
   isActionBusy,
   isCreatingCard,
   isCreatingDraft,
@@ -197,6 +199,7 @@ const StudyManualDraftComposerPanel = ({
             imagePrompt={imagePrompt}
             imagePromptId="study-manual-image-prompt"
             imagePromptLabel={t('create.imagePrompt')}
+            imagePromptMaxLength={imagePromptMaxLength}
             isRegenerateDisabled={!draft || isGeneratingDraft || isActionBusy}
             isRegenerating={isGeneratingImage}
             onImagePlacementChange={onImagePlacementChange}

@@ -9,8 +9,7 @@ import {
   decodeDailyAudioPracticeStatus,
 } from '../lib/learningOsContractDecoders';
 
-export const DAILY_AUDIO_DURATION_OPTIONS = [15, 30, 45, 60] as const;
-export type DailyAudioDurationMinutes = (typeof DAILY_AUDIO_DURATION_OPTIONS)[number];
+export type DailyAudioDurationMinutes = number;
 export const dailyAudioPracticeKeys = {
   all: ['daily-audio-practice'] as const,
   list: () => [...dailyAudioPracticeKeys.all, 'list'] as const,

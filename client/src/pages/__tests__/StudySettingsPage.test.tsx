@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import StudySettingsPage from '../StudySettingsPage';
+import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
 
 const {
   updateStudySettingsMock,
@@ -29,6 +30,10 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
   useFeatureFlags: () => ({
     isFeatureEnabled: () => true,
   }),
+}));
+
+vi.mock('../../hooks/useStudyCapabilities', () => ({
+  useStudyCapabilities: () => ({ data: studyCapabilitiesFixture }),
 }));
 
 vi.mock('../../hooks/useKnownKanji', () => ({

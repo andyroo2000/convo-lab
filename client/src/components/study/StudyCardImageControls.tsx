@@ -1,4 +1,3 @@
-import { STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH } from '@languageflow/shared/src/studyConstants';
 import type { StudyCardImagePlacement } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +7,7 @@ const StudyCardImageControls = ({
   imagePrompt,
   imagePromptId,
   imagePromptLabel,
+  imagePromptMaxLength,
   isRegenerating,
   isRegenerateDisabled,
   onImagePlacementChange,
@@ -24,6 +24,7 @@ const StudyCardImageControls = ({
   imagePrompt: string;
   imagePromptId: string;
   imagePromptLabel: string;
+  imagePromptMaxLength?: number;
   isRegenerating: boolean;
   isRegenerateDisabled?: boolean;
   onImagePlacementChange: (value: StudyCardImagePlacement) => void;
@@ -72,7 +73,7 @@ const StudyCardImageControls = ({
             id={imagePromptId}
             value={imagePrompt}
             onChange={(event) => onImagePromptChange(event.target.value)}
-            maxLength={STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH}
+            maxLength={imagePromptMaxLength}
             readOnly={isRegenerating}
             aria-busy={isRegenerating}
             className="mt-1 block min-h-20 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm font-normal text-gray-700"
