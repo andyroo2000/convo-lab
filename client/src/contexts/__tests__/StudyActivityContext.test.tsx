@@ -134,6 +134,25 @@ describe('StudyActivityProvider', () => {
     expect(saveSessionsMock).not.toHaveBeenCalled();
   });
 
+  it('waits to start and keeps completions queued while capabilities are unavailable', () => {
+    capabilitiesQueryMock.mockReturnValue({ data: undefined, isError: true });
+    renderProvider();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start audio' }));
+    expect(screen.getByText('inactive')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add cards' }));
+    expect(saveSessionsMock).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(localStorage.getItem('convolab.studyActivity.pending.v1.42') ?? '[]')
+    ).toEqual([
+      expect.objectContaining({
+        activity: 'card_creation',
+        cardsCreated: 2,
+      }),
+    ]);
+  });
+
   it('caps a stale recovered automatic timer at five minutes', async () => {
     localStorage.setItem(
       'convolab.studyActivity.active.v1.42',
