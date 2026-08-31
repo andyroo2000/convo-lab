@@ -179,7 +179,7 @@ describe('useStudy request helpers', () => {
 
     await startStudySession();
     await startStudyLesson();
-    await submitStudyReview(reviewRequest, undefined);
+    await submitStudyReview(reviewRequest);
     await undoStudyReview('review-log-1');
 
     const fetchMock = vi.mocked(global.fetch);
@@ -239,16 +239,7 @@ describe('useStudy request helpers', () => {
     expectJsonMutation(1);
   });
 
-  it('sends device timezone and current overview with review operations', async () => {
-    const overview = {
-      dueCount: 1,
-      newCount: 0,
-      learningCount: 0,
-      reviewCount: 1,
-      suspendedCount: 0,
-      totalCards: 1,
-    };
-
+  it('sends device timezone without duplicating the server-owned overview', async () => {
     const reviewRequest = createStudyReviewRequest({ cardId: 'card-1', grade: 'hard' });
     vi.mocked(global.fetch).mockImplementation(
       async (input: RequestInfo | URL) =>
@@ -260,8 +251,8 @@ describe('useStudy request helpers', () => {
         }) as Response
     );
 
-    await submitStudyReview(reviewRequest, overview);
-    await undoStudyReview('review-log-1', overview);
+    await submitStudyReview(reviewRequest);
+    await undoStudyReview('review-log-1');
 
     const fetchMock = vi.mocked(global.fetch);
     expect(JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body))).toEqual({
@@ -269,12 +260,10 @@ describe('useStudy request helpers', () => {
       grade: 'hard',
       clientReviewId: reviewRequest.clientReviewId,
       reviewedAt: reviewRequest.reviewedAt,
-      currentOverview: overview,
       timeZone: expect.any(String),
     });
     expect(JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body))).toEqual({
       reviewLogId: 'review-log-1',
-      currentOverview: overview,
       timeZone: expect.any(String),
     });
   });
