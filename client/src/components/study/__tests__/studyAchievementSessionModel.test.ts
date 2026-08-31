@@ -51,6 +51,21 @@ describe('StudyAchievementSessionStore', () => {
     });
   });
 
+  it('refreshes a stale baseline after local completion without discarding reviews', () => {
+    store.beginReviewSession([]);
+    store.recordReview(record('review-1'));
+    expect(store.prepareCurrentSessionCompletion([])).toMatchObject({
+      newAwardIds: [],
+      records: [{ id: 'review-1' }],
+    });
+    store.refreshCurrentSessionBaseline([awards[0]]);
+
+    expect(store.prepareCurrentSessionCompletion(awards)).toMatchObject({
+      newAwardIds: ['voice.first'],
+      records: [{ id: 'review-1' }],
+    });
+  });
+
   it('restores an interrupted qualifying session as celebration then wrap-up', () => {
     store.beginReviewSession([]);
     store.recordReview(record('review-1'));

@@ -526,11 +526,14 @@ describe('useStudyReviewSession', () => {
       await result.current.handleGrade('good');
     });
 
-    expect(
+    const persistedBeforeBootstrap = JSON.parse(
       window.localStorage.getItem(
         'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
-      )
-    ).toBeNull();
+      ) ?? '{}'
+    ) as { activeSession?: { records?: Array<{ id?: string }> } };
+    expect(persistedBeforeBootstrap.activeSession?.records?.map(({ id }) => id)).toEqual([
+      'review-log-1',
+    ]);
 
     await act(async () => {
       deferredProgress.resolve(emptyAchievementProgress);
@@ -567,9 +570,11 @@ describe('useStudyReviewSession', () => {
     });
 
     expect(
-      window.localStorage.getItem(
-        'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
-      )
+      JSON.parse(
+        window.localStorage.getItem(
+          'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
+        ) ?? '{}'
+      ).activeSession
     ).toBeNull();
   });
 
@@ -619,6 +624,7 @@ describe('useStudyReviewSession', () => {
     });
 
     expect(getAchievementProgressMock).toHaveBeenCalledTimes(2);
+    expect(getAchievementProgressMock).toHaveBeenLastCalledWith({ evaluate: false });
     expect(result.current.currentCard?.id).toBe('card-1');
     await waitFor(() => expect(result.current.achievementProgress).toEqual(refreshedProgress));
   });
@@ -1882,7 +1888,7 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentCard?.id).toBe('card-2');
   });
 
-  it('blocks undo while the completed session is evaluating achievements', async () => {
+  it('shows wrap-up and allows undo while achievements refresh in the background', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: { ...baseOverview, dueCount: 1, reviewCount: 1, totalCards: 1 },
       cards: [baseCardOne],
@@ -1908,15 +1914,21 @@ describe('useStudyReviewSession', () => {
     });
     act(() => result.current.setMasteryAnimation(null));
 
-    await waitFor(() => expect(result.current.sessionLoading).toBe(true));
-    await act(async () => {
-      await result.current.handleUndo();
-    });
-    expect(undoStudyReviewMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.reviewSessionComplete).toBe(true));
+    expect(result.current.sessionLoading).toBe(false);
+    expect(getAchievementProgressMock).toHaveBeenLastCalledWith({ evaluate: true });
 
-    deferredEvaluation.resolve(emptyAchievementProgress);
-    await waitFor(() => expect(result.current.sessionLoading).toBe(false));
-    expect(result.current.reviewSessionComplete).toBe(true);
+    let undoPromise!: Promise<void>;
+    act(() => {
+      undoPromise = result.current.handleUndo();
+    });
+    await waitFor(() => expect(undoStudyReviewMock).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      deferredEvaluation.resolve(emptyAchievementProgress);
+      await undoPromise;
+    });
+    expect(result.current.reviewSessionComplete).toBe(false);
   });
 
   it('submits only one review undo while the first undo is still in flight', async () => {

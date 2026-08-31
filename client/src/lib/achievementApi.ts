@@ -9,7 +9,16 @@ import { requestJson } from './apiClient';
 export const getAchievementCatalog = async (): Promise<AchievementCatalog> =>
   decodeAchievementCatalog(await requestJson<unknown>('/api/achievements/catalog'));
 
-export const getAchievementProgress = async (): Promise<AchievementProgress> =>
+interface GetAchievementProgressOptions {
+  evaluate?: boolean;
+}
+
+export const getAchievementProgress = async (
+  options: GetAchievementProgressOptions = {}
+): Promise<AchievementProgress> =>
   decodeAchievementProgress(
-    await requestJson<unknown>('/api/achievements/evaluate', { method: 'POST' })
+    await requestJson<unknown>(
+      options.evaluate === false ? '/api/achievements/progress' : '/api/achievements/evaluate',
+      options.evaluate === false ? undefined : { method: 'POST' }
+    )
   );
