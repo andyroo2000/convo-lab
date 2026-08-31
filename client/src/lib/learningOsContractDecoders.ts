@@ -256,69 +256,47 @@ export function decodeStudyTimeAnalytics(value: unknown): StudyTimeAnalytics {
   return analytics as unknown as StudyTimeAnalytics;
 }
 
-function decodeDailyAudioTiming(
-  value: unknown,
-  index: number,
-  legacyUnitIndices: number[]
-): DailyAudioPracticeTiming {
+function decodeDailyAudioTiming(value: unknown, index: number): DailyAudioPracticeTiming {
   const path = `Daily Audio timing[${index}]`;
   const timing = record(value, path);
-  if ('unitIndex' in timing && 'startTime' in timing && 'endTime' in timing) {
-    return {
-      unitIndex: number(timing.unitIndex, `${path}.unitIndex`),
-      startTime: number(timing.startTime, `${path}.startTime`),
-      endTime: number(timing.endTime, `${path}.endTime`),
-    };
-  }
-  const unitIndex = legacyUnitIndices[index];
-  if (unitIndex === undefined) {
-    throw new Error(`${path} has no matching script unit.`);
-  }
   return {
-    unitIndex,
-    startTime: number(timing.startMs, `${path}.startMs`),
-    endTime: number(timing.endMs, `${path}.endMs`),
+    unitIndex: number(timing.unitIndex, `${path}.unitIndex`),
+    startTime: number(timing.startTime, `${path}.startTime`),
+    endTime: number(timing.endTime, `${path}.endTime`),
   };
 }
 
 function decodeDailyAudioScriptUnit(value: unknown): LessonScriptUnit {
   const unit = record(value, 'Daily Audio script unit');
-  if ('type' in unit) {
-    const type = string(unit.type, 'Daily Audio script unit.type');
-    if (type === 'pause') {
-      return { type, seconds: number(unit.seconds, 'Daily Audio script unit.seconds') };
-    }
-    if (type === 'marker') {
-      return { type, label: string(unit.label, 'Daily Audio script unit.label') };
-    }
-    if (type === 'narration_L1') {
-      return {
-        type,
-        text: string(unit.text, 'Daily Audio script unit.text'),
-        voiceId: string(unit.voiceId, 'Daily Audio script unit.voiceId'),
-      };
-    }
-    if (type === 'L2') {
-      const decoded: Extract<LessonScriptUnit, { type: 'L2' }> = {
-        type,
-        text: string(unit.text, 'Daily Audio script unit.text'),
-        voiceId: string(unit.voiceId, 'Daily Audio script unit.voiceId'),
-      };
-      if (unit.reading !== undefined)
-        decoded.reading = string(unit.reading, 'Daily Audio script unit.reading');
-      if (unit.translation !== undefined)
-        decoded.translation = string(unit.translation, 'Daily Audio script unit.translation');
-      if (unit.speed !== undefined)
-        decoded.speed = number(unit.speed, 'Daily Audio script unit.speed');
-      return decoded;
-    }
-    throw new Error(`Daily Audio script unit type ${type} is not supported.`);
+  const type = string(unit.type, 'Daily Audio script unit.type');
+  if (type === 'pause') {
+    return { type, seconds: number(unit.seconds, 'Daily Audio script unit.seconds') };
   }
-  const kind = string(unit.kind, 'Daily Audio script unit.kind');
-  const text = string(unit.text, 'Daily Audio script unit.text');
-  if (kind === 'target_language') return { type: 'L2', text, voiceId: '' };
-  if (kind === 'native_language') return { type: 'narration_L1', text, voiceId: '' };
-  throw new Error(`Daily Audio script unit kind ${kind} is not supported.`);
+  if (type === 'marker') {
+    return { type, label: string(unit.label, 'Daily Audio script unit.label') };
+  }
+  if (type === 'narration_L1') {
+    return {
+      type,
+      text: string(unit.text, 'Daily Audio script unit.text'),
+      voiceId: string(unit.voiceId, 'Daily Audio script unit.voiceId'),
+    };
+  }
+  if (type === 'L2') {
+    const decoded: Extract<LessonScriptUnit, { type: 'L2' }> = {
+      type,
+      text: string(unit.text, 'Daily Audio script unit.text'),
+      voiceId: string(unit.voiceId, 'Daily Audio script unit.voiceId'),
+    };
+    if (unit.reading !== undefined)
+      decoded.reading = string(unit.reading, 'Daily Audio script unit.reading');
+    if (unit.translation !== undefined)
+      decoded.translation = string(unit.translation, 'Daily Audio script unit.translation');
+    if (unit.speed !== undefined)
+      decoded.speed = number(unit.speed, 'Daily Audio script unit.speed');
+    return decoded;
+  }
+  throw new Error(`Daily Audio script unit type ${type} is not supported.`);
 }
 
 export function decodeDailyAudioPractice(value: unknown): DailyAudioPractice {
@@ -395,9 +373,6 @@ export function decodeDailyAudioPractice(value: unknown): DailyAudioPractice {
       `${path}.scriptUnitsJson`,
       decodeDailyAudioScriptUnit
     );
-    const legacyUnitIndices = (scriptUnitsJson ?? []).flatMap((unit, unitIndex) =>
-      unit.type === 'marker' ? [] : [unitIndex]
-    );
     return {
       ...track,
       mode: mode as DailyAudioPracticeMode,
@@ -405,7 +380,7 @@ export function decodeDailyAudioPractice(value: unknown): DailyAudioPractice {
       timingData: optionalNullableArray(
         track.timingData,
         `${path}.timingData`,
-        (timing, timingIndex) => decodeDailyAudioTiming(timing, timingIndex, legacyUnitIndices)
+        decodeDailyAudioTiming
       ),
     };
   });

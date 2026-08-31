@@ -8,7 +8,6 @@ import {
   decodeDailyAudioPractice,
   decodeDailyAudioPracticeStatus,
 } from '../lib/learningOsContractDecoders';
-import type { DailyAudioPracticeTrack } from '../types';
 
 export const DAILY_AUDIO_DURATION_OPTIONS = [15, 30, 45, 60] as const;
 export type DailyAudioDurationMinutes = (typeof DAILY_AUDIO_DURATION_OPTIONS)[number];
@@ -18,10 +17,6 @@ export const dailyAudioPracticeKeys = {
   detail: (id: string) => [...dailyAudioPracticeKeys.all, 'detail', id] as const,
   status: (id: string) => [...dailyAudioPracticeKeys.all, 'status', id] as const,
 };
-
-function normalizeTracks(tracks: DailyAudioPracticeTrack[] = []) {
-  return [...tracks].sort((left, right) => left.sortOrder - right.sortOrder);
-}
 
 function extractErrorMessage(errorBody: unknown): string {
   if (!errorBody || typeof errorBody !== 'object') return 'Request failed';
@@ -59,15 +54,13 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
 async function fetchRecentDailyAudioPractice() {
   const payload = await apiRequest<unknown>(DAILY_AUDIO_API_BASE);
   if (!Array.isArray(payload)) throw new Error('Daily Audio practice list must be an array.');
-  const practices = payload.map(decodeDailyAudioPractice);
-  return practices.map((practice) => ({ ...practice, tracks: normalizeTracks(practice.tracks) }));
+  return payload.map(decodeDailyAudioPractice);
 }
 
 async function fetchDailyAudioPractice(id: string) {
-  const practice = decodeDailyAudioPractice(
+  return decodeDailyAudioPractice(
     await apiRequest<unknown>(`${DAILY_AUDIO_API_BASE}/${encodeURIComponent(id)}`)
   );
-  return { ...practice, tracks: normalizeTracks(practice.tracks) };
 }
 
 async function fetchDailyAudioPracticeStatus(id: string) {
@@ -118,10 +111,7 @@ export function useCreateDailyAudioPractice() {
   return useMutation({
     mutationFn: createDailyAudioPractice,
     onSuccess: (practice) => {
-      queryClient.setQueryData(dailyAudioPracticeKeys.detail(practice.id), {
-        ...practice,
-        tracks: normalizeTracks(practice.tracks),
-      });
+      queryClient.setQueryData(dailyAudioPracticeKeys.detail(practice.id), practice);
       queryClient.invalidateQueries({ queryKey: dailyAudioPracticeKeys.list() });
     },
   });
