@@ -6,6 +6,7 @@ import {
   getStudyCardAudio,
   getStudyCardAudioUrl,
   isAudioLedPromptCard,
+  isMediaLedPromptCard,
   toAssetUrl,
 } from '../studyCardUtils';
 
@@ -105,5 +106,47 @@ describe('studyCardUtils', () => {
     expect(getStudyCardAudio(presentedCard)).toBe(rawAudio);
     expect(getStudyCardAudioUrl(presentedCard)).toBe('http://localhost:8080/presented.mp3');
     expect(isAudioLedPromptCard(presentedCard)).toBe(true);
+  });
+
+  it('does not let legacy media fields override a server-owned text front', () => {
+    const cardWithRawMedia = {
+      ...card,
+      cardType: 'recognition' as const,
+      prompt: {
+        cueAudio: {
+          filename: 'raw.mp3',
+          url: '/raw.mp3',
+          mediaKind: 'audio' as const,
+          source: 'imported' as const,
+        },
+      },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: 'server text',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: null,
+          ruby: null,
+          restored: null,
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(isMediaLedPromptCard(cardWithRawMedia)).toBe(false);
   });
 });

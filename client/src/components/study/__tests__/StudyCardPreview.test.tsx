@@ -103,7 +103,7 @@ describe('StudyCardPreview', () => {
             english: { text: 'It is a company.', ruby: null },
           },
           notes: ['server note'],
-          media: { image: null },
+          media: { image: { url: 'https://example.com/server-answer.webp' } },
           audio: null,
           pitchAccent: null,
         },
@@ -124,7 +124,31 @@ describe('StudyCardPreview', () => {
     expect(screen.getByText('server meaning')).toBeInTheDocument();
     expect(screen.getByText('server note')).toBeInTheDocument();
     expect(screen.getByText('It is a company.')).toBeInTheDocument();
+    expect(screen.getByAltText('Answer visual')).toHaveAttribute(
+      'src',
+      'https://example.com/server-answer.webp'
+    );
     expect(screen.queryByText('raw meaning')).not.toBeInTheDocument();
+  });
+
+  it('preserves plain Japanese sentence rendering on the raw fallback path', () => {
+    render(
+      <StudyCardFace
+        card={{
+          ...baseCard,
+          prompt: { cueText: '会社' },
+          answer: {
+            expression: '会社',
+            sentenceJp: '会社です',
+            sentenceJpKana: '会社[かいしゃ]です',
+          },
+        }}
+        side="back"
+      />
+    );
+
+    expect(screen.getByText('会社です')).toBeInTheDocument();
+    expect(screen.queryByText('かいしゃ', { selector: 'rt' })).not.toBeInTheDocument();
   });
 
   it('renders stored bracket furigana on the prompt side', () => {

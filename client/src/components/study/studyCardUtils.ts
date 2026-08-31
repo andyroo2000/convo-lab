@@ -52,10 +52,13 @@ export const isAudioLedPromptCard = (card: StudyCardSummary) =>
     !card.prompt.clozeText
   );
 
-export const isMediaLedPromptCard = (card: StudyCardSummary) =>
-  getStudyCardPresentation(card)?.front.mode === 'media' ||
-  Boolean(
-    (card.prompt.cueAudio?.url || card.prompt.cueImage?.url) &&
-    !card.prompt.cueText &&
-    !card.prompt.clozeText
-  );
+export const isMediaLedPromptCard = (card: StudyCardSummary) => {
+  const presentation = getStudyCardPresentation(card);
+  return presentation
+    ? presentation.front.mode === 'media'
+    : Boolean(
+        (card.prompt.cueAudio?.url || card.prompt.cueImage?.url) &&
+        !card.prompt.cueText &&
+        !card.prompt.clozeText
+      );
+};

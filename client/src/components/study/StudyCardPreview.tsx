@@ -417,7 +417,10 @@ export const StudyCardFace = ({
     ? presentation.answer.media.image
     : (card.answer.answerImage ?? card.prompt.cueImage ?? null);
   const reviewImageUrl = toAssetUrl(reviewImage?.url);
-  const reviewImageAlt = card.answer.answerImage ? 'Answer visual' : 'Study visual';
+  const usesAnswerVisual = presentation
+    ? Boolean(presentation.answer.media.image)
+    : Boolean(card.answer.answerImage);
+  const reviewImageAlt = usesAnswerVisual ? 'Answer visual' : 'Study visual';
   const notes = presentation ? presentation.answer.notes : toNotesList(card.answer.notes);
   const restoredText = presentation ? presentation.answer.restored : card.answer.restoredText;
   const meaning = presentation ? presentation.answer.meaning : card.answer.meaning;
@@ -467,7 +470,11 @@ export const StudyCardFace = ({
               : 'text-base leading-relaxed sm:text-xl'
           }`}
         >
-          <StudyRubyText as="span" text={japaneseSentence.ruby ?? japaneseSentence.text} />
+          {presentation ? (
+            <StudyRubyText as="span" text={japaneseSentence.ruby ?? japaneseSentence.text} />
+          ) : (
+            toDisplayText(japaneseSentence.text)
+          )}
         </p>
       ) : null}
       {englishSentence.text ? (
