@@ -8,6 +8,16 @@ import userEvent from '@testing-library/user-event';
 import { KnownKanjiContextProvider } from '../../contexts/KnownKanjiContext';
 import { JsonRequestError } from '../../lib/apiClient';
 import StudyPage from '../StudyPage';
+import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
+
+vi.mock('../../hooks/useStudyCapabilities', () => ({
+  useStudyCapabilities: () => ({
+    data: studyCapabilitiesFixture,
+    isError: false,
+    isFetching: false,
+    refetch: vi.fn(),
+  }),
+}));
 
 async function chooseAnswerAudioVoice(name: RegExp | string) {
   await userEvent.click(screen.getByLabelText('Answer audio voice'));

@@ -9,6 +9,7 @@ import type {
 } from '@languageflow/shared/src/types';
 
 import StudyManualDraftComposerPanel from '../components/study/StudyManualDraftComposerPanel';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
 import StudyManualDraftListPanel from '../components/study/StudyManualDraftListPanel';
 import StudyVocabDraftGeneratorPanel from '../components/study/StudyVocabDraftGeneratorPanel';
 import {
@@ -806,6 +807,14 @@ const StudyCreatePage = () => {
           ))}
         </div>
       </section>
+
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
 
       {mode === 'generate' ? (
         <StudyVocabDraftGeneratorPanel

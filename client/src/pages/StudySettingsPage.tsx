@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { StudyNewCardLaneWeights } from '@languageflow/shared/src/types';
 
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
 import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 import {
   useConnectWaniKani,
@@ -103,6 +104,14 @@ const StudySettingsPage = () => {
           </Link>
         </div>
       </section>
+
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
 
       <section className="card app-surface space-y-5 p-4 sm:p-6">
         <div>

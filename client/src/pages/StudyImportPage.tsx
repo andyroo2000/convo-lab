@@ -4,6 +4,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import type { StudyImportResult } from '@languageflow/shared/src/types';
 
 import StudyFormField from '../components/study/StudyFormField';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
 import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
@@ -316,6 +317,14 @@ const StudyImportPage = () => {
           />
         </p>
       </section>
+
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
 
       <section className="card retro-paper-panel max-w-3xl">
         <form className="space-y-4" onSubmit={handleSubmit}>

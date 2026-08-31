@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 
 import StudyBrowseDetail from '../components/study/browse/StudyBrowseDetail';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
 import StudyBrowseFilters from '../components/study/browse/StudyBrowseFilters';
 import StudyBrowseNoteList from '../components/study/browse/StudyBrowseNoteList';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
@@ -53,6 +54,14 @@ const StudyBrowsePage = () => {
           </Link>
         </div>
       </section>
+
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
 
       <div className={hasSelection ? 'hidden xl:block' : undefined}>
         <StudyBrowseFilters controller={controller} />

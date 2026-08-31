@@ -14,6 +14,7 @@ import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-
 
 import ScriptTrackPlayer from '../components/audio/ScriptTrackPlayer';
 import ConfirmModal from '../components/common/ConfirmModal';
+import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
 import {
   dailyAudioPracticeKeys,
   type DailyAudioDurationMinutes,
@@ -276,7 +277,7 @@ const DailyAudioPracticePage = () => {
               disabled={createPractice.isPending || activeTodayGeneration || !durationCapability}
             >
               <legend className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Edition length</legend>
-              <div className="grid grid-cols-2 gap-1 sm:grid-cols-5" aria-label="Edition length">
+              <div className="flex flex-wrap gap-1" aria-label="Edition length">
                 {durationOptions.map((duration) => (
                   <button
                     key={duration}
@@ -312,6 +313,14 @@ const DailyAudioPracticePage = () => {
           </div>
         </div>
       </section>
+
+      <StudyCapabilitiesError
+        isError={capabilitiesQuery.isError}
+        isRetrying={capabilitiesQuery.isFetching}
+        onRetry={() => {
+          capabilitiesQuery.refetch().catch(() => undefined);
+        }}
+      />
 
       {loading ? (
         <section className="card retro-paper-panel py-12 text-center">
