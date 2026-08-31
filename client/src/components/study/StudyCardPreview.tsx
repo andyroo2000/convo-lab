@@ -541,6 +541,7 @@ export const StudyCardFace = ({
           presentation.answer.heading
         )
       : (card.answer.restoredTextReading ?? restoredText);
+    const clozeHeadlineText = clozeHeading ? toRubyPlainText(clozeHeading) : null;
     const renderedClozeAnswerDetails = (
       <>
         {meaning ? (
@@ -581,7 +582,7 @@ export const StudyCardFace = ({
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
             className={`study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
-              restoredText,
+              clozeHeadlineText,
               { compactMobile }
             )}`}
             rtClassName="text-[0.34em] font-medium text-gray-500"

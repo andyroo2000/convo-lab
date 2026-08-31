@@ -188,6 +188,8 @@ describe('StudyCardPreview', () => {
   });
 
   it('skips blank cloze ruby and trusts cloze mode despite a stale outer recognition type', () => {
+    const longServerHeading =
+      'This authoritative server heading is deliberately longer than forty characters';
     const card = {
       ...baseCard,
       cardType: 'recognition' as const,
@@ -208,7 +210,7 @@ describe('StudyCardPreview', () => {
           autoplayAudio: false,
         },
         answer: {
-          heading: 'wrong server heading',
+          heading: longServerHeading,
           ruby: '   ',
           restored: ' server restored ',
           meaning: null,
@@ -242,7 +244,8 @@ describe('StudyCardPreview', () => {
         side="back"
       />
     );
-    expect(screen.getByTestId('study-cloze-heading')).toHaveTextContent('wrong server heading');
+    expect(screen.getByTestId('study-cloze-heading')).toHaveTextContent(longServerHeading);
+    expect(screen.getByTestId('study-cloze-heading')).toHaveClass('text-2xl');
     expect(screen.queryByText('raw restored')).not.toBeInTheDocument();
   });
 
