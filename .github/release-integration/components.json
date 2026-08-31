@@ -3,17 +3,17 @@
   "components": {
     "provider": {
       "repository": "andyroo2000/learning-os",
-      "sha": "c2ed3d75bbad869c6481e1c38368806ff931c689",
+      "sha": "6f557e9ff7819bfee6c12d6e845ac28056475bdb",
       "fixtureDirectory": "tests/Fixtures/Compatibility"
     },
     "web": {
       "repository": "andyroo2000/convo-lab",
-      "sha": "0d37791e177304df0e5d49085bc197de836bcddf",
+      "sha": "35d6d6ae37633d0e1d6a73f1cf71022f5a24194c",
       "fixtureDirectory": "client/src/test/fixtures/learning-os/Compatibility"
     },
     "ios": {
       "repository": "andyroo2000/convo-lab-ios",
-      "sha": "fa21d9e815533c91b6d653506d2661b8a915d0d0",
+      "sha": "049087cffedc0763cf5050cb9cb6b8b4f3667836",
       "fixtureDirectory": "ConvoLabTests/Fixtures/Compatibility"
     }
   }

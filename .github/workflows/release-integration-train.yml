@@ -71,19 +71,19 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: andyroo2000/learning-os
-          ref: c2ed3d75bbad869c6481e1c38368806ff931c689
+          ref: 6f557e9ff7819bfee6c12d6e845ac28056475bdb
           path: provider
       - name: Checkout pinned web consumer
         uses: actions/checkout@v6
         with:
           repository: andyroo2000/convo-lab
-          ref: 0d37791e177304df0e5d49085bc197de836bcddf
+          ref: 35d6d6ae37633d0e1d6a73f1cf71022f5a24194c
           path: web
       - name: Checkout pinned iOS consumer
         uses: actions/checkout@v6
         with:
           repository: andyroo2000/convo-lab-ios
-          ref: fa21d9e815533c91b6d653506d2661b8a915d0d0
+          ref: 049087cffedc0763cf5050cb9cb6b8b4f3667836
           path: ios
       - name: Verify checked out commits and canonical bytes
         env:
@@ -112,7 +112,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: andyroo2000/learning-os
-          ref: c2ed3d75bbad869c6481e1c38368806ff931c689
+          ref: 6f557e9ff7819bfee6c12d6e845ac28056475bdb
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
@@ -145,7 +145,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: andyroo2000/convo-lab
-          ref: 0d37791e177304df0e5d49085bc197de836bcddf
+          ref: 35d6d6ae37633d0e1d6a73f1cf71022f5a24194c
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -173,7 +173,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: andyroo2000/convo-lab-ios
-          ref: fa21d9e815533c91b6d653506d2661b8a915d0d0
+          ref: 049087cffedc0763cf5050cb9cb6b8b4f3667836
       - name: Run API compatibility golden-fixture tests
         run: |
           xcodebuild test \
