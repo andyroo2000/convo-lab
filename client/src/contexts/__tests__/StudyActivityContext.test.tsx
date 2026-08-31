@@ -136,9 +136,9 @@ describe('StudyActivityProvider', () => {
     expect(saveSessionsMock).not.toHaveBeenCalled();
   });
 
-  it('retains an unclassified start and queues its completion while capabilities are unavailable', () => {
+  it('retains, queues, and flushes an unclassified activity across capability recovery', async () => {
     capabilitiesQueryMock.mockReturnValue({ data: undefined, isError: true });
-    renderProvider();
+    const view = renderProvider();
 
     fireEvent.click(screen.getByRole('button', { name: 'Start audio' }));
     expect(screen.getByText('daily_audio')).toBeInTheDocument();
@@ -155,6 +155,34 @@ describe('StudyActivityProvider', () => {
         activity: 'daily_audio',
       }),
     ]);
+
+    capabilitiesQueryMock.mockReturnValue({
+      data: {
+        studyActivity: {
+          categoriesByActivity: {
+            card_review: 'review',
+            daily_audio: 'conversation',
+            card_creation: 'create',
+            tv: 'immerse',
+            podcast: 'immerse',
+            reading: 'immerse',
+            conversation: 'conversation',
+            wanikani_review: 'wanikani',
+            other: 'immerse',
+          },
+        },
+      },
+    });
+    view.rerenderProvider();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(saveSessionsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ activity: 'daily_audio', category: 'conversation' }),
+    ]);
+    expect(localStorage.getItem('convolab.studyActivity.pending.v1.42')).toBeNull();
   });
 
   it('backfills an unclassified active start when capabilities arrive', () => {

@@ -43,13 +43,13 @@ export function studyActivityTranslationKey(activity: StudyActivityKind) {
 
 export function useStudyTimeSessionManager() {
   const { t } = useTranslation(['study']);
-  const capabilitiesQuery = useStudyCapabilities();
+  const { active, enabled } = useStudyActivityStatus();
+  const capabilitiesQuery = useStudyCapabilities(enabled);
   const categoriesByActivity = capabilitiesQuery.data?.studyActivity.categoriesByActivity;
   const hasActivityCategories = Boolean(categoriesByActivity);
   const sessionsQuery = useEditableStudyActivitySessions();
   const saveSession = useSaveStudyActivitySession();
   const deleteSession = useDeleteStudyActivitySession();
-  const { active } = useStudyActivityStatus();
   const { start, stopAndWait, logCompletedAndWait } = useStudyActivityActions();
 
   const [activity, setActivity] = useState<StudyActivityKind>('card_creation');

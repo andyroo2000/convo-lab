@@ -31,7 +31,7 @@ const {
 }));
 
 vi.mock('../../hooks/useStudyCapabilities', () => ({
-  useStudyCapabilities: () => capabilitiesQueryMock(),
+  useStudyCapabilities: (enabled?: boolean) => capabilitiesQueryMock(enabled),
 }));
 
 vi.mock('../../contexts/StudyActivityContext', () => ({
@@ -41,7 +41,7 @@ vi.mock('../../contexts/StudyActivityContext', () => ({
     logCompleted: logCompletedMock,
     logCompletedAndWait: logCompletedMock,
   }),
-  useStudyActivityStatus: () => studyActivityStatusMock(),
+  useStudyActivityStatus: () => ({ enabled: true, ...studyActivityStatusMock() }),
 }));
 
 vi.mock('../../components/study/GoogleCalendarConnectionCard', () => ({
@@ -375,6 +375,14 @@ describe('StudyTimePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(capabilitiesRefetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not load capabilities when study activity tracking is disabled', () => {
+    studyActivityStatusMock.mockReturnValue({ active: null, enabled: false });
+
+    render(<StudyTimePage />);
+
+    expect(capabilitiesQueryMock).toHaveBeenCalledWith(false);
   });
 
   it('loads additional editable entries without expanding the sync window', () => {

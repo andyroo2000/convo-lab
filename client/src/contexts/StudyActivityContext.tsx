@@ -44,6 +44,7 @@ interface StudyActivityActionsContextValue {
 interface StudyActivityStatusContextValue {
   active: ActiveStudyActivity | null;
   elapsedMs: number;
+  enabled: boolean;
 }
 
 const inactiveStudyActivityActions: StudyActivityActionsContextValue = {
@@ -61,6 +62,7 @@ const StudyActivityActionsContext = createContext<StudyActivityActionsContextVal
 const StudyActivityStatusContext = createContext<StudyActivityStatusContextValue>({
   active: null,
   elapsedMs: 0,
+  enabled: false,
 });
 
 function readJson<T>(key: string, fallback: T): T {
@@ -347,7 +349,7 @@ export const StudyActivityProvider = ({
     }),
     [addCreatedCards, finishActive, persistCompleted, start]
   );
-  const statusValue = useMemo(() => ({ active, elapsedMs }), [active, elapsedMs]);
+  const statusValue = useMemo(() => ({ active, elapsedMs, enabled }), [active, elapsedMs, enabled]);
 
   return (
     <StudyActivityActionsContext.Provider value={actionsValue}>
