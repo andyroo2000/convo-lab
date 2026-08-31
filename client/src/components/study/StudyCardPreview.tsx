@@ -235,9 +235,12 @@ export const StudyCardFace = ({
 }) => {
   const compactMobile = layout === 'mobile-focus';
   const presentation = getStudyCardPresentation(card);
+  const isClozePresentation = presentation
+    ? presentation.front.mode === 'cloze'
+    : card.cardType === 'cloze';
 
   if (side === 'front') {
-    if (presentation?.front.mode === 'cloze' || (!presentation && card.cardType === 'cloze')) {
+    if (isClozePresentation) {
       const rawDisplayText = card.prompt.clozeDisplayText ?? null;
       const derived = deriveClozePresentation(card.prompt.clozeText ?? rawDisplayText);
       const clozeDisplayText =
@@ -485,7 +488,7 @@ export const StudyCardFace = ({
               : 'text-sm sm:text-lg'
           }`}
         >
-          {toDisplayText(englishSentence.ruby ?? englishSentence.text)}
+          {toDisplayText(englishSentence.text)}
         </p>
       ) : null}
       {renderNotes(
@@ -499,7 +502,7 @@ export const StudyCardFace = ({
     </>
   );
 
-  if (presentation?.front.mode === 'cloze' || (!presentation && card.cardType === 'cloze')) {
+  if (isClozePresentation) {
     const renderedClozeAnswerDetails = (
       <>
         {meaning ? (

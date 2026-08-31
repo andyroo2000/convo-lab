@@ -23,6 +23,7 @@ export default function useStudyPitchAccent(
   const resolvedPresentation = resolvedCard ? getStudyCardPresentation(resolvedCard) : null;
   const rawPitchAccent = card.answer.pitchAccent;
   const presentation = getStudyCardPresentation(card);
+  const pitchAccentForResolution = presentation ? presentation.answer.pitchAccent : rawPitchAccent;
 
   useEffect(() => {
     reset();
@@ -32,14 +33,14 @@ export default function useStudyPitchAccent(
     // Keep failed requests quiet for the current card; changing cards resets the mutation above.
     if (
       enabled &&
-      shouldResolvePitchAccent(rawPitchAccent) &&
+      shouldResolvePitchAccent(pitchAccentForResolution) &&
       !resolvedCard &&
       !isPending &&
       !isError
     ) {
       mutate(card.id);
     }
-  }, [card.id, enabled, isError, isPending, mutate, rawPitchAccent, resolvedCard]);
+  }, [card.id, enabled, isError, isPending, mutate, pitchAccentForResolution, resolvedCard]);
 
   let pitchAccent: JapanesePitchAccentPayload | null;
   if (resolvedCard) {
