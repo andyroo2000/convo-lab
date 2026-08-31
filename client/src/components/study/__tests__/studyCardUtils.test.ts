@@ -7,6 +7,7 @@ import {
   getStudyCardAudioUrl,
   getStudyCardDisplayLabel,
   getStudyCardDisplayMeaning,
+  getPresentedCardDisplayLabel,
   getStudyCardReviewAudio,
   isAudioLedPromptCard,
   isMediaLedPromptCard,
@@ -233,10 +234,10 @@ describe('studyCardUtils', () => {
     expect(getStudyCardDisplayMeaning(presentedCard)).toBe('server meaning');
   });
 
-  it('uses the answer-side presentation label for production cards without duplicating it as meaning', () => {
+  it('uses text-mode answer priority and skips blank fields despite a stale outer cloze type', () => {
     const presentedCard = {
       ...card,
-      cardType: 'production' as const,
+      cardType: 'cloze' as const,
       prompt: { cueText: 'raw production prompt' },
       answer: { expression: 'raw production answer' },
       presentation: {
@@ -250,10 +251,10 @@ describe('studyCardUtils', () => {
           autoplayAudio: false,
         },
         answer: {
-          heading: '会社',
-          ruby: null,
-          restored: null,
-          meaning: null,
+          heading: ' 会社 ',
+          ruby: '   ',
+          restored: 'wrong restored label',
+          meaning: '   ',
           sentences: {
             japanese: { text: null, ruby: null },
             english: { text: null, ruby: null },
@@ -266,14 +267,15 @@ describe('studyCardUtils', () => {
       },
     } as StudyCardSummary;
 
+    expect(getPresentedCardDisplayLabel(presentedCard, 'fallback')).toBe('会社');
     expect(getStudyCardDisplayLabel(presentedCard, 'fallback')).toBe('会社');
     expect(getStudyCardDisplayMeaning(presentedCard)).toBeNull();
   });
 
-  it('uses the restored answer-side presentation label for cloze cards', () => {
+  it('uses cloze-mode restored priority despite a stale outer recognition type', () => {
     const presentedCard = {
       ...card,
-      cardType: 'cloze' as const,
+      cardType: 'recognition' as const,
       prompt: { clozeDisplayText: 'raw [...] prompt' },
       answer: { restoredText: 'raw restored answer' },
       presentation: {
@@ -287,9 +289,9 @@ describe('studyCardUtils', () => {
           autoplayAudio: false,
         },
         answer: {
-          heading: null,
-          ruby: null,
-          restored: 'server restored answer',
+          heading: 'wrong heading',
+          ruby: '',
+          restored: ' server restored answer ',
           meaning: null,
           sentences: {
             japanese: { text: null, ruby: null },
@@ -303,6 +305,7 @@ describe('studyCardUtils', () => {
       },
     } as StudyCardSummary;
 
+    expect(getPresentedCardDisplayLabel(presentedCard, 'fallback')).toBe('server restored answer');
     expect(getStudyCardDisplayLabel(presentedCard, 'fallback')).toBe('server restored answer');
     expect(getStudyCardDisplayMeaning(presentedCard)).toBeNull();
   });

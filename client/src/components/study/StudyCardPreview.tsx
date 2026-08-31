@@ -8,6 +8,7 @@ import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
 import {
+  firstNonBlankPresentationText,
   getStudyCardPresentation,
   getStudyCardReviewAudio,
   isAudioLedPromptCard,
@@ -140,9 +141,11 @@ const toMaskedRubyText = (
 const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
   const presentation = getStudyCardPresentation(card);
   const readingText = presentation
-    ? presentation.answer.ruby
+    ? firstNonBlankPresentationText(presentation.answer.ruby)
     : (card.answer.expressionReading ?? card.prompt.cueReading);
-  const answerText = presentation ? presentation.answer.heading : card.answer.expression;
+  const answerText = presentation
+    ? firstNonBlankPresentationText(presentation.answer.heading)
+    : card.answer.expression;
   const headlineText = presentation
     ? (readingText ?? answerText ?? '')
     : (readingText ?? answerText ?? card.prompt.cueReading ?? '');
@@ -250,7 +253,7 @@ export const StudyCardFace = ({
           ? rawDisplayText
           : derived.displayText;
       const clozeRubyText = presentation
-        ? (presentation.front.ruby ?? presentation.front.text ?? '')
+        ? (firstNonBlankPresentationText(presentation.front.ruby, presentation.front.text) ?? '')
         : toMaskedRubyText(
             clozeDisplayText ?? '',
             card.answer.restoredText ?? derived.restoredText,
@@ -260,7 +263,7 @@ export const StudyCardFace = ({
         presentation ? presentation.front.media.image?.url : card.prompt.cueImage?.url
       );
       const effectiveHint = presentation
-        ? (presentation.front.hint ?? '')
+        ? (firstNonBlankPresentationText(presentation.front.hint) ?? '')
         : card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() || '';
 
       return (
@@ -314,9 +317,15 @@ export const StudyCardFace = ({
     const cueImage = presentation ? presentation.front.media.image : card.prompt.cueImage;
     const cueAudioUrl = toAssetUrl(cueAudio?.url);
     const cueImageUrl = toAssetUrl(cueImage?.url);
-    const cueText = presentation ? presentation.front.text : card.prompt.cueText;
-    const cueRuby = presentation ? presentation.front.ruby : null;
-    const cueHint = presentation ? presentation.front.hint : card.prompt.cueMeaning;
+    const cueText = presentation
+      ? firstNonBlankPresentationText(presentation.front.text)
+      : card.prompt.cueText;
+    const cueRuby = presentation ? firstNonBlankPresentationText(presentation.front.ruby) : null;
+    const cueDisplayText = presentation ? firstNonBlankPresentationText(cueRuby, cueText) : cueText;
+    const cueHeadlineText = cueText ?? (cueDisplayText ? toRubyPlainText(cueDisplayText) : null);
+    const cueHint = presentation
+      ? firstNonBlankPresentationText(presentation.front.hint)
+      : card.prompt.cueMeaning;
     const mediaLedPrompt = isMediaLedPromptCard(card);
     const audioLedPrompt = isAudioLedPromptCard(card);
 
@@ -387,23 +396,24 @@ export const StudyCardFace = ({
             label="Play prompt audio"
           />
         ) : null}
-        {cueText ? (
+        {cueDisplayText ? (
           <StudyRubyText
             as="div"
             text={
               presentation
-                ? (presentation.front.ruby ?? presentation.front.text ?? '')
+                ? cueDisplayText
                 : (cueRuby ??
-                  matchingRubyText(cueText, [
+                  matchingRubyText(cueDisplayText, [
                     card.prompt.cueReading,
                     card.answer.expressionReading,
                   ]) ??
-                  cueText)
+                  cueDisplayText)
             }
+            testId="study-front-heading"
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
             className={`mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
-              cueText,
+              cueHeadlineText,
               { compactMobile }
             )}`}
             rtClassName="text-[0.34em] font-medium text-gray-500"
@@ -433,14 +443,26 @@ export const StudyCardFace = ({
     : Boolean(card.answer.answerImage);
   const reviewImageAlt = usesAnswerVisual ? 'Answer visual' : 'Study visual';
   const notes = presentation ? presentation.answer.notes : toNotesList(card.answer.notes);
-  const restoredText = presentation ? presentation.answer.restored : card.answer.restoredText;
-  const meaning = presentation ? presentation.answer.meaning : card.answer.meaning;
-  const answerHeading = presentation ? presentation.answer.heading : card.answer.expression;
+  const restoredText = presentation
+    ? firstNonBlankPresentationText(presentation.answer.restored)
+    : card.answer.restoredText;
+  const meaning = presentation
+    ? firstNonBlankPresentationText(presentation.answer.meaning)
+    : card.answer.meaning;
+  const answerHeading = presentation
+    ? firstNonBlankPresentationText(presentation.answer.heading)
+    : card.answer.expression;
   const japaneseSentence = presentation
-    ? presentation.answer.sentences.japanese
+    ? {
+        text: firstNonBlankPresentationText(presentation.answer.sentences.japanese.text),
+        ruby: firstNonBlankPresentationText(presentation.answer.sentences.japanese.ruby),
+      }
     : { text: card.answer.sentenceJp ?? null, ruby: card.answer.sentenceJpKana ?? null };
   const englishSentence = presentation
-    ? presentation.answer.sentences.english
+    ? {
+        text: firstNonBlankPresentationText(presentation.answer.sentences.english.text),
+        ruby: firstNonBlankPresentationText(presentation.answer.sentences.english.ruby),
+      }
     : { text: card.answer.sentenceEn ?? null, ruby: null };
   const reviewImageClasses = compactMobile
     ? 'max-h-[30dvh] w-auto max-w-full rounded-lg md:max-h-[48dvh] md:w-full md:rounded-xl'
@@ -513,7 +535,11 @@ export const StudyCardFace = ({
 
   if (isClozePresentation) {
     const clozeHeading = presentation
-      ? (presentation.answer.ruby ?? presentation.answer.restored)
+      ? firstNonBlankPresentationText(
+          presentation.answer.ruby,
+          presentation.answer.restored,
+          presentation.answer.heading
+        )
       : (card.answer.restoredTextReading ?? restoredText);
     const renderedClozeAnswerDetails = (
       <>
