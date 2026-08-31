@@ -191,8 +191,15 @@ describe('vendored Learning OS compatibility fixtures', () => {
     expectTypeOf(practices).toEqualTypeOf<DailyAudioPractice[]>();
     expect(practices[0].tracks[0]).toMatchObject({
       mode: 'drill',
-      scriptUnitsJson: [{ type: 'L2', text: '会社' }],
-      timingData: [{ unitIndex: 0, startTime: 0, endTime: 1200 }],
+      scriptUnitsJson: [
+        { type: 'marker', label: 'Recall' },
+        { type: 'narration_L1', text: 'company', voiceId: '' },
+        { type: 'L2', text: '会社', voiceId: '' },
+      ],
+      timingData: [
+        { unitIndex: 1, startTime: 0, endTime: 600 },
+        { unitIndex: 2, startTime: 600, endTime: 1200 },
+      ],
     });
     expect(practices[0].tracks[1]).toMatchObject({ mode: 'context', status: 'skipped' });
     expect(practices[0].selectionSummaryJson).toEqual({
@@ -207,24 +214,15 @@ describe('vendored Learning OS compatibility fixtures', () => {
     });
   });
 
-  it('maps legacy Daily Audio timing entries to interleaved non-marker script units', () => {
+  it('rejects legacy Daily Audio timing entries outside the canonical API contract', () => {
     const payload = structuredClone(dailyAudioCompatibilityFixture.cases[0].payload) as {
       tracks: Array<{ scriptUnitsJson: unknown[]; timingData: unknown[] }>;
     };
-    payload.tracks[0]!.scriptUnitsJson = [
-      { type: 'narration_L1', text: 'Listen.', voiceId: 'narrator' },
-      { type: 'marker', label: 'prompt' },
-      { type: 'L2', text: '会社', voiceId: 'speaker' },
-    ];
-    payload.tracks[0]!.timingData = [
-      { startMs: 0, endMs: 500 },
-      { startMs: 500, endMs: 1200 },
-    ];
+    payload.tracks[0]!.timingData = [{ startMs: 0, endMs: 500 }];
 
-    expect(decodeDailyAudioPractice(payload).tracks[0]?.timingData).toEqual([
-      { unitIndex: 0, startTime: 0, endTime: 500 },
-      { unitIndex: 2, startTime: 500, endTime: 1200 },
-    ]);
+    expect(() => decodeDailyAudioPractice(payload)).toThrow(
+      'Daily Audio timing[0].unitIndex must be a finite number.'
+    );
   });
 
   it('strictly validates type-keyed Daily Audio script units', () => {

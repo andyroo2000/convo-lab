@@ -35,22 +35,22 @@ const practice = {
   updatedAt: '2026-07-18T12:00:00.000Z',
   tracks: [
     {
-      id: '123e4567-e89b-42d3-a456-426614174102',
-      practiceId,
-      mode: 'story' as const,
-      status: 'skipped' as const,
-      title: 'Story',
-      sortOrder: 2,
-      createdAt: '2026-07-18T12:00:00.000Z',
-      updatedAt: '2026-07-18T12:00:00.000Z',
-    },
-    {
       id: '123e4567-e89b-42d3-a456-426614174101',
       practiceId,
       mode: 'drill' as const,
       status: 'ready' as const,
       title: 'Drill',
       sortOrder: 1,
+      createdAt: '2026-07-18T12:00:00.000Z',
+      updatedAt: '2026-07-18T12:00:00.000Z',
+    },
+    {
+      id: '123e4567-e89b-42d3-a456-426614174102',
+      practiceId,
+      mode: 'story' as const,
+      status: 'skipped' as const,
+      title: 'Story',
+      sortOrder: 2,
       createdAt: '2026-07-18T12:00:00.000Z',
       updatedAt: '2026-07-18T12:00:00.000Z',
     },
@@ -93,7 +93,7 @@ describe('Daily Audio API requests', () => {
     vi.unstubAllGlobals();
   });
 
-  it('loads sorted list reads through Learning OS', async () => {
+  it('preserves API-ordered list reads from Learning OS', async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse([practice]));
 
     const { result } = renderHook(() => useRecentDailyAudioPractice(), {
@@ -120,8 +120,15 @@ describe('Daily Audio API requests', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data?.[0]?.tracks[0]).toMatchObject({
-      scriptUnitsJson: [{ type: 'L2', text: '会社' }],
-      timingData: [{ unitIndex: 0, startTime: 0, endTime: 1200 }],
+      scriptUnitsJson: [
+        { type: 'marker', label: 'Recall' },
+        { type: 'narration_L1', text: 'company', voiceId: '' },
+        { type: 'L2', text: '会社', voiceId: '' },
+      ],
+      timingData: [
+        { unitIndex: 1, startTime: 0, endTime: 600 },
+        { unitIndex: 2, startTime: 600, endTime: 1200 },
+      ],
     });
     expect(result.current.data?.[0]?.tracks[1]?.mode).toBe('context');
   });
@@ -195,10 +202,7 @@ describe('Daily Audio API requests', () => {
     expect(JSON.parse(String(mockFetch.mock.calls[1]?.[1]?.body))).toMatchObject({
       targetDurationMinutes: 45,
     });
-    expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toEqual({
-      ...practice,
-      tracks: [...practice.tracks].sort((left, right) => left.sortOrder - right.sortOrder),
-    });
+    expect(queryClient.getQueryData(dailyAudioPracticeKeys.detail(practiceId))).toEqual(practice);
   });
 
   it('notifies the app when a Daily Audio read finds an expired Convo Lab session', async () => {
