@@ -755,10 +755,7 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentCard?.id).toBe('card-1');
     expect(result.current.revealed).toBe(true);
     expect(startStudySessionMock).toHaveBeenCalledWith();
-    expect(undoStudyReviewMock).toHaveBeenCalledWith(
-      'review-log-1',
-      expect.objectContaining({ reviewCount: 2 })
-    );
+    expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-1');
   });
 
   it('surfaces the mastery rail after a passing review even when the level stays put', async () => {
@@ -905,7 +902,7 @@ describe('useStudyReviewSession', () => {
     await act(async () => {
       await result.current.handleUndo();
     });
-    expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-committed', expect.any(Object));
+    expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-committed');
   });
 
   it('reuses the exact review identity and timestamp after an ambiguous lost response', async () => {
@@ -1965,7 +1962,7 @@ describe('useStudyReviewSession', () => {
       await Promise.resolve();
 
       expect(undoStudyReviewMock).toHaveBeenCalledTimes(1);
-      expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-2', expect.any(Object));
+      expect(undoStudyReviewMock).toHaveBeenCalledWith('review-log-2');
 
       deferredUndo.resolve({
         reviewLogId: 'review-log-2',
@@ -1980,7 +1977,7 @@ describe('useStudyReviewSession', () => {
     });
 
     expect(undoStudyReviewMock).toHaveBeenCalledTimes(2);
-    expect(undoStudyReviewMock).toHaveBeenLastCalledWith('review-log-1', expect.any(Object));
+    expect(undoStudyReviewMock).toHaveBeenLastCalledWith('review-log-1');
   });
 
   it('blocks grading and card actions while a review undo is still in flight', async () => {

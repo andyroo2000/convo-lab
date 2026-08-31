@@ -85,7 +85,6 @@ interface StudyCardActionPayload {
   mode?: StudyCardSetDueMode;
   dueAt?: string;
   timeZone?: string;
-  currentOverview?: StudyOverview;
 }
 
 export type StudyLearningPathVariantStatus = 'locked' | 'available' | 'retired';
@@ -601,27 +600,20 @@ export async function deleteStudyManualCardDraft(draftId: string): Promise<void>
   );
 }
 
-export async function undoStudyReview(
-  reviewLogId: string,
-  currentOverview?: StudyOverview
-): Promise<StudyUndoReviewResult> {
+export async function undoStudyReview(reviewLogId: string): Promise<StudyUndoReviewResult> {
   const timeZone = getDeviceStudyTimeZone();
   return apiRequest<StudyUndoReviewResult>('/reviews/undo', {
     method: 'POST',
-    body: JSON.stringify({ reviewLogId, currentOverview, timeZone }),
+    body: JSON.stringify({ reviewLogId, timeZone }),
   });
 }
 
-export async function submitStudyReview(
-  payload: StudyReviewRequest,
-  currentOverview?: StudyOverview
-): Promise<StudyReviewResult> {
+export async function submitStudyReview(payload: StudyReviewRequest): Promise<StudyReviewResult> {
   const result = await apiRequest<StudyReviewResult>('/reviews', {
     method: 'POST',
     body: JSON.stringify({
       ...payload,
       timeZone: getDeviceStudyTimeZone(),
-      currentOverview,
     }),
   });
 
@@ -704,7 +696,6 @@ export async function performStudyCardAction(
     mode: payload.mode,
     dueAt: payload.dueAt,
     timeZone: payload.timeZone,
-    currentOverview: payload.currentOverview,
   };
 
   return apiRequest<StudyCardActionResult>(`/cards/${encodeURIComponent(payload.cardId)}/actions`, {
@@ -877,8 +868,7 @@ export function useSubmitStudyReview() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: StudyReviewRequest) =>
-      submitStudyReview(payload, queryClient.getQueryData<StudyOverview>(['study', 'overview'])),
+    mutationFn: submitStudyReview,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
@@ -1075,11 +1065,7 @@ export function useStudyCardAction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: StudyCardActionPayload) =>
-      performStudyCardAction({
-        ...payload,
-        currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
-      }),
+    mutationFn: performStudyCardAction,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),

@@ -566,7 +566,6 @@ export interface StudyCardActionRequest {
   mode?: StudyCardSetDueMode;
   dueAt?: string;
   timeZone?: string;
-  currentOverview?: StudyOverview;
 }
 
 export interface StudyCardActionResult {

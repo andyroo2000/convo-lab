@@ -1165,10 +1165,7 @@ const useStudyReviewSession = () => {
     }
     setUndoPending(true);
     try {
-      const undoResult = await undoStudyReview(
-        action.reviewLogId,
-        action.snapshot.overview ?? undefined
-      );
+      const undoResult = await undoStudyReview(action.reviewLogId);
       if (sessionEpochRef.current !== expectedEpoch) return;
 
       restoreUndoSnapshot(action.snapshot);

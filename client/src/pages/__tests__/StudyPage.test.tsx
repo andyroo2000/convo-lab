@@ -1841,13 +1841,7 @@ describe('StudyPage', () => {
     fireEvent.keyDown(window, { key: 'z', metaKey: true });
 
     await waitFor(() => {
-      expect(undoStudyReviewMock).toHaveBeenCalledWith(
-        'review-1',
-        expect.objectContaining({
-          dueCount: 1,
-          reviewCount: 1,
-        })
-      );
+      expect(undoStudyReviewMock).toHaveBeenCalledWith('review-1');
     });
     expect(screen.getByText('company')).toBeInTheDocument();
     expect(screen.queryByText(/Nice work/i)).not.toBeInTheDocument();
