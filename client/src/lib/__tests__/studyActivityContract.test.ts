@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { StudyActivitySessionInput } from '../../types/studyActivity';
-import {
-  decodeStudyActivitySession,
-  encodeStudyActivitySession,
-  type StudyActivitySessionWire,
-} from '../studyActivityContract';
+import { decodeStudyActivitySession, encodeStudyActivitySession } from '../studyActivityContract';
 
 const input: StudyActivitySessionInput = {
   clientSessionId: '018f22d2-6d38-7000-8000-000000000001',
@@ -86,15 +82,30 @@ describe('study activity API contract', () => {
     });
 
     expect(encodeStudyActivitySession(storedSession)).toEqual({
-      ...input,
       id: '01K2R0T9Q4V8B7RAG4M7C5B0Y3',
+      clientSessionId: input.clientSessionId,
+      activity: input.activity,
+      source: input.source,
+      name: input.name,
+      startedAt: input.startedAt,
+      endedAt: input.endedAt,
+      durationMs: input.durationMs,
       origin: 'web',
     });
   });
 
   it('preserves the current payload while adding web origin to new sessions', () => {
-    const encoded: StudyActivitySessionWire = encodeStudyActivitySession(input);
+    const encoded = encodeStudyActivitySession(input);
 
-    expect(encoded).toEqual({ ...input, origin: 'web' });
+    expect(encoded).toEqual({
+      clientSessionId: input.clientSessionId,
+      activity: input.activity,
+      source: input.source,
+      name: input.name,
+      startedAt: input.startedAt,
+      endedAt: input.endedAt,
+      durationMs: input.durationMs,
+      origin: 'web',
+    });
   });
 });
