@@ -104,7 +104,6 @@ const ScriptTrackPlayer = ({
   useEffect(() => {
     if (!isPlaying) return undefined;
     startActivity({
-      category: 'listen',
       activity: 'daily_audio',
       source: 'automatic',
       name: activityName,
@@ -118,7 +117,6 @@ const ScriptTrackPlayer = ({
         const now = new Date().toISOString();
         return logCompletedAndWait({
           clientSessionId: crypto.randomUUID(),
-          category: 'listen',
           activity: 'daily_audio',
           source: 'automatic',
           name: boundedActivityName(`${DAILY_AUDIO_COMPLETION_PREFIX}${title}`),

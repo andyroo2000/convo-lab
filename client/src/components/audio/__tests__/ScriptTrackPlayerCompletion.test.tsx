@@ -15,6 +15,11 @@ vi.mock('../../../hooks/useStudyActivity', () => ({
   studyActivityKeys: { all: ['study-activity'] },
 }));
 
+vi.mock('../../../hooks/useStudyCapabilities', async () => {
+  const { default: capabilities } = await import('../../../test/studyCapabilitiesFixture');
+  return { useStudyCapabilities: () => ({ data: capabilities }) };
+});
+
 describe('ScriptTrackPlayer completion tracking', () => {
   beforeEach(() => {
     localStorage.clear();

@@ -344,6 +344,9 @@ describe('Study client capabilities contract', () => {
     expect(decoded.settings.lessonBatchSize).toEqual({ default: 5, min: 3, max: 10 });
     expect(decoded.cardAuthoring.limits.imagePromptCharacters).toBe(1000);
     expect(decoded.imports.maxArchiveBytes).toBe(2147483648);
+    expect(decoded.studyActivity.categoriesByActivity).toEqual(
+      studyCapabilitiesFixture.studyActivity.categoriesByActivity
+    );
   });
 
   it('rejects unsupported versions and invalid default ranges', () => {
@@ -356,5 +359,28 @@ describe('Study client capabilities contract', () => {
         dailyAudio: { targetDurationMinutes: { default: 90, min: 5, max: 60 } },
       })
     ).toThrow('must have an ordered range containing its default');
+  });
+
+  it('rejects missing or unsupported activity category mappings', () => {
+    const { card_review: _cardReview, ...missingCardReview } =
+      studyCapabilitiesFixture.studyActivity.categoriesByActivity;
+
+    expect(() =>
+      decodeStudyClientCapabilities({
+        ...studyCapabilitiesFixture,
+        studyActivity: { categoriesByActivity: missingCardReview },
+      })
+    ).toThrow('study capabilities.studyActivity.categoriesByActivity.card_review must be a string');
+    expect(() =>
+      decodeStudyClientCapabilities({
+        ...studyCapabilitiesFixture,
+        studyActivity: {
+          categoriesByActivity: {
+            ...studyCapabilitiesFixture.studyActivity.categoriesByActivity,
+            daily_audio: 'unsupported',
+          },
+        },
+      })
+    ).toThrow('study capabilities.studyActivity.categoriesByActivity.daily_audio is not supported');
   });
 });

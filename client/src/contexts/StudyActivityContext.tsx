@@ -11,9 +11,9 @@ import {
 } from 'react';
 
 import { saveStudyActivitySessions, studyActivityKeys } from '../hooks/useStudyActivity';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 import type {
   ActiveStudyActivity,
-  StudyActivityCategory,
   StudyActivityKind,
   StudyActivitySessionInput,
   StudyActivitySource,
@@ -25,24 +25,26 @@ const AUTOMATIC_RECOVERY_LIMIT_MS = 5 * 60 * 1000;
 const MANUAL_RECOVERY_LIMIT_MS = 6 * 60 * 60 * 1000;
 
 interface StartOptions {
-  category: StudyActivityCategory;
   activity: StudyActivityKind;
   source: StudyActivitySource;
   name?: string;
 }
+
+type StudyActivitySessionDraft = Omit<StudyActivitySessionInput, 'category'>;
 
 interface StudyActivityActionsContextValue {
   start: (options: StartOptions) => void;
   stop: (activity?: StudyActivityKind, name?: string) => void;
   stopAndWait: (activity?: StudyActivityKind, name?: string) => Promise<void>;
   addCreatedCards: (count?: number) => void;
-  logCompleted: (session: StudyActivitySessionInput) => void;
-  logCompletedAndWait: (session: StudyActivitySessionInput) => Promise<void>;
+  logCompleted: (session: StudyActivitySessionDraft) => void;
+  logCompletedAndWait: (session: StudyActivitySessionDraft) => Promise<void>;
 }
 
 interface StudyActivityStatusContextValue {
   active: ActiveStudyActivity | null;
   elapsedMs: number;
+  enabled: boolean;
 }
 
 const inactiveStudyActivityActions: StudyActivityActionsContextValue = {
@@ -60,6 +62,7 @@ const StudyActivityActionsContext = createContext<StudyActivityActionsContextVal
 const StudyActivityStatusContext = createContext<StudyActivityStatusContextValue>({
   active: null,
   elapsedMs: 0,
+  enabled: false,
 });
 
 function readJson<T>(key: string, fallback: T): T {
@@ -71,8 +74,8 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-function queuePending(key: string, session: StudyActivitySessionInput) {
-  const pending = readJson<StudyActivitySessionInput[]>(key, []);
+function queuePending(key: string, session: StudyActivitySessionDraft) {
+  const pending = readJson<StudyActivitySessionDraft[]>(key, []);
   const next = [
     ...pending.filter((item) => item.clientSessionId !== session.clientSessionId),
     session,
@@ -82,7 +85,7 @@ function queuePending(key: string, session: StudyActivitySessionInput) {
 
 function acknowledgePending(key: string, clientSessionIds: Iterable<string>) {
   const acknowledged = new Set(clientSessionIds);
-  const pending = readJson<StudyActivitySessionInput[]>(key, []);
+  const pending = readJson<StudyActivitySessionDraft[]>(key, []);
   const remaining = pending.filter((item) => !acknowledged.has(item.clientSessionId));
 
   if (remaining.length) {
@@ -95,7 +98,7 @@ function acknowledgePending(key: string, clientSessionIds: Iterable<string>) {
 function sessionFromActive(
   active: ActiveStudyActivity,
   endedAt = new Date()
-): StudyActivitySessionInput {
+): StudyActivitySessionDraft {
   const startedAt = new Date(active.startedAt);
   const durationMs = Math.max(0, Math.min(86_400_000, endedAt.getTime() - startedAt.getTime()));
   return {
@@ -117,6 +120,8 @@ export const StudyActivityProvider = ({
   enabled?: boolean;
 }) => {
   const queryClient = useQueryClient();
+  const capabilitiesQuery = useStudyCapabilities(enabled);
+  const categoriesByActivity = capabilitiesQuery.data?.studyActivity.categoriesByActivity;
   const activeKey = `${ACTIVE_KEY_PREFIX}.${userId}`;
   const pendingKey = `${PENDING_KEY_PREFIX}.${userId}`;
   const [active, setActive] = useState<ActiveStudyActivity | null>(() =>
@@ -127,7 +132,9 @@ export const StudyActivityProvider = ({
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const persistSessions = useCallback(
-    (sessions: StudyActivitySessionInput[]) => {
+    (sessions: StudyActivitySessionDraft[]) => {
+      if (!categoriesByActivity) return Promise.resolve();
+
       const inFlightSessions = inFlightSessionsRef.current;
       const unownedSessions = sessions.filter(
         (session) => !inFlightSessions.has(session.clientSessionId)
@@ -135,7 +142,13 @@ export const StudyActivityProvider = ({
 
       if (unownedSessions.length) {
         const submittedSessionIds = unownedSessions.map((session) => session.clientSessionId);
-        const request = saveStudyActivitySessions(unownedSessions)
+        // Reclassify queued sessions with the latest server policy before every retry.
+        const request = saveStudyActivitySessions(
+          unownedSessions.map((session) => ({
+            ...session,
+            category: categoriesByActivity[session.activity],
+          }))
+        )
           .then(async () => {
             acknowledgePending(pendingKey, submittedSessionIds);
             await queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
@@ -160,11 +173,11 @@ export const StudyActivityProvider = ({
         sessions.map((session) => inFlightSessions.get(session.clientSessionId))
       ).then(() => undefined);
     },
-    [pendingKey, queryClient]
+    [categoriesByActivity, pendingKey, queryClient]
   );
 
   const persistCompleted = useCallback(
-    (session: StudyActivitySessionInput) => {
+    (session: StudyActivitySessionDraft) => {
       queuePending(pendingKey, session);
       return persistSessions([session]);
     },
@@ -204,6 +217,7 @@ export const StudyActivityProvider = ({
       if (current) finishActive();
       const next: ActiveStudyActivity = {
         ...options,
+        ...(categoriesByActivity ? { category: categoriesByActivity[options.activity] } : {}),
         clientSessionId: crypto.randomUUID(),
         startedAt: new Date().toISOString(),
         cardsCreated: 0,
@@ -212,7 +226,7 @@ export const StudyActivityProvider = ({
       setActive(next);
       localStorage.setItem(activeKey, JSON.stringify(next));
     },
-    [activeKey, enabled, finishActive]
+    [activeKey, categoriesByActivity, enabled, finishActive]
   );
 
   const addCreatedCards = useCallback(
@@ -222,7 +236,6 @@ export const StudyActivityProvider = ({
         const now = new Date().toISOString();
         persistCompleted({
           clientSessionId: crypto.randomUUID(),
-          category: 'create',
           activity: 'card_creation',
           source: 'automatic',
           startedAt: now,
@@ -245,11 +258,22 @@ export const StudyActivityProvider = ({
   }, [active]);
 
   useEffect(() => {
+    const { current } = activeRef;
+    if (!current || !categoriesByActivity) return;
+    const category = categoriesByActivity[current.activity];
+    if (!category || current.category === category) return;
+    const next = { ...current, category };
+    activeRef.current = next;
+    setActive(next);
+    localStorage.setItem(activeKey, JSON.stringify(next));
+  }, [activeKey, categoriesByActivity]);
+
+  useEffect(() => {
     if (!enabled) finishActive();
   }, [enabled, finishActive]);
 
   const flushPending = useCallback(() => {
-    const pending = readJson<StudyActivitySessionInput[]>(pendingKey, []);
+    const pending = readJson<StudyActivitySessionDraft[]>(pendingKey, []);
     if (!pending.length) return;
     persistSessions(pending).catch(() => undefined);
   }, [pendingKey, persistSessions]);
@@ -318,14 +342,14 @@ export const StudyActivityProvider = ({
       },
       stopAndWait: finishActive,
       addCreatedCards,
-      logCompleted: (session: StudyActivitySessionInput) => {
+      logCompleted: (session: StudyActivitySessionDraft) => {
         persistCompleted(session).catch(() => undefined);
       },
       logCompletedAndWait: persistCompleted,
     }),
     [addCreatedCards, finishActive, persistCompleted, start]
   );
-  const statusValue = useMemo(() => ({ active, elapsedMs }), [active, elapsedMs]);
+  const statusValue = useMemo(() => ({ active, elapsedMs, enabled }), [active, elapsedMs, enabled]);
 
   return (
     <StudyActivityActionsContext.Provider value={actionsValue}>

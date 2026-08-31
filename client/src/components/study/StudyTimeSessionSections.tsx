@@ -3,6 +3,7 @@ import { CalendarPlus, ChevronDown, Clock3, Pencil, Play, Trash2 } from 'lucide-
 import { useTranslation } from 'react-i18next';
 
 import ConfirmModal from '../common/ConfirmModal';
+import StudyCapabilitiesError from './StudyCapabilitiesError';
 import {
   STUDY_ACTIVITY_OPTIONS,
   studyActivityTranslationKey,
@@ -69,6 +70,7 @@ const StudyTimerSection = ({ timer }: { timer: StudyTimeSessionManager['timer'] 
         <button
           type="button"
           onClick={timer.start}
+          disabled={!timer.isReady}
           className="app-button-primary flex w-full items-center justify-center gap-2"
         >
           <Play className="h-4 w-4 fill-current" /> {t('time.timer.start')}
@@ -389,6 +391,13 @@ const StudyTimeSessionSections = () => {
 
   return (
     <>
+      <StudyCapabilitiesError
+        isError={manager.capabilities.isError}
+        isRetrying={manager.capabilities.isRetrying}
+        onRetry={() => {
+          manager.capabilities.retry().catch(() => undefined);
+        }}
+      />
       <section
         className="card app-surface overflow-hidden"
         aria-labelledby="manual-study-time-title"

@@ -51,7 +51,6 @@ const StudyPage = () => {
   const startReviewTimer = useCallback(
     () =>
       startActivity({
-        category: 'review',
         activity: 'card_review',
         source: 'automatic',
         name: reviewSession.sessionKind === 'lessons' ? 'Lessons' : 'Card reviews',

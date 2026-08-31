@@ -10,12 +10,16 @@ const {
   deleteResetMock,
   fetchNextPageMock,
   logCompletedMock,
+  capabilitiesQueryMock,
+  capabilitiesRefetchMock,
   saveMutateMock,
   saveResetMock,
   studyActivityStatusMock,
   stopMock,
 } = vi.hoisted(() => ({
   analyticsAnchorMock: vi.fn(),
+  capabilitiesQueryMock: vi.fn(),
+  capabilitiesRefetchMock: vi.fn(),
   deleteMutateMock: vi.fn(),
   deleteResetMock: vi.fn(),
   fetchNextPageMock: vi.fn(),
@@ -26,6 +30,10 @@ const {
   stopMock: vi.fn(),
 }));
 
+vi.mock('../../hooks/useStudyCapabilities', () => ({
+  useStudyCapabilities: (enabled?: boolean) => capabilitiesQueryMock(enabled),
+}));
+
 vi.mock('../../contexts/StudyActivityContext', () => ({
   useStudyActivityActions: () => ({
     start: vi.fn(),
@@ -33,7 +41,7 @@ vi.mock('../../contexts/StudyActivityContext', () => ({
     logCompleted: logCompletedMock,
     logCompletedAndWait: logCompletedMock,
   }),
-  useStudyActivityStatus: () => studyActivityStatusMock(),
+  useStudyActivityStatus: () => ({ enabled: true, ...studyActivityStatusMock() }),
 }));
 
 vi.mock('../../components/study/GoogleCalendarConnectionCard', () => ({
@@ -283,6 +291,27 @@ describe('StudyTimePage', () => {
 
   beforeEach(() => {
     analyticsAnchorMock.mockReset();
+    capabilitiesRefetchMock.mockReset().mockResolvedValue({});
+    capabilitiesQueryMock.mockReset().mockReturnValue({
+      data: {
+        studyActivity: {
+          categoriesByActivity: {
+            card_review: 'review',
+            daily_audio: 'listen',
+            card_creation: 'create',
+            tv: 'immerse',
+            podcast: 'immerse',
+            reading: 'immerse',
+            conversation: 'conversation',
+            wanikani_review: 'wanikani',
+            other: 'immerse',
+          },
+        },
+      },
+      isError: false,
+      isFetching: false,
+      refetch: capabilitiesRefetchMock,
+    });
     logCompletedMock.mockReset();
     saveMutateMock.mockReset();
     deleteMutateMock.mockReset();
@@ -322,11 +351,38 @@ describe('StudyTimePage', () => {
     expect(logCompletedMock).toHaveBeenCalledWith(
       expect.objectContaining({
         activity: 'card_creation',
-        category: 'create',
         source: 'calendar',
         durationMs: 1_800_000,
       })
     );
+  });
+
+  it('shows a retryable capability error and disables new optimistic timers', () => {
+    capabilitiesQueryMock.mockReturnValue({
+      data: undefined,
+      isError: true,
+      isFetching: false,
+      refetch: capabilitiesRefetchMock,
+    });
+    render(<StudyTimePage />);
+    expandManualTimeEntry();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Study limits and defaults couldn’t be loaded.'
+    );
+    expect(screen.getByRole('button', { name: 'Start session' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Log entry' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(capabilitiesRefetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not load capabilities when study activity tracking is disabled', () => {
+    studyActivityStatusMock.mockReturnValue({ active: null, enabled: false });
+
+    render(<StudyTimePage />);
+
+    expect(capabilitiesQueryMock).toHaveBeenCalledWith(false);
   });
 
   it('loads additional editable entries without expanding the sync window', () => {
