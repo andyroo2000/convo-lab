@@ -5,6 +5,8 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import {
   getStudyCardAudio,
   getStudyCardAudioUrl,
+  getStudyCardDisplayLabel,
+  getStudyCardDisplayMeaning,
   getStudyCardReviewAudio,
   isAudioLedPromptCard,
   isMediaLedPromptCard,
@@ -193,5 +195,154 @@ describe('studyCardUtils', () => {
 
     expect(getStudyCardAudioUrl(presentedCard)).toBeNull();
     expect(getStudyCardReviewAudio(presentedCard)).toBeNull();
+  });
+
+  it('uses known-v1 presentation labels and meanings instead of divergent raw fields', () => {
+    const presentedCard = {
+      ...card,
+      prompt: { cueText: 'raw prompt', cueMeaning: 'raw prompt meaning' },
+      answer: { expression: 'raw answer', meaning: 'raw answer meaning' },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: 'server label',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: 'server heading',
+          ruby: null,
+          restored: null,
+          meaning: 'server meaning',
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(getStudyCardDisplayLabel(presentedCard, 'fallback')).toBe('server heading');
+    expect(getStudyCardDisplayMeaning(presentedCard)).toBe('server meaning');
+  });
+
+  it('uses the answer-side presentation label for production cards without duplicating it as meaning', () => {
+    const presentedCard = {
+      ...card,
+      cardType: 'production' as const,
+      prompt: { cueText: 'raw production prompt' },
+      answer: { expression: 'raw production answer' },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: 'company',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: '会社',
+          ruby: null,
+          restored: null,
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(getStudyCardDisplayLabel(presentedCard, 'fallback')).toBe('会社');
+    expect(getStudyCardDisplayMeaning(presentedCard)).toBeNull();
+  });
+
+  it('uses the restored answer-side presentation label for cloze cards', () => {
+    const presentedCard = {
+      ...card,
+      cardType: 'cloze' as const,
+      prompt: { clozeDisplayText: 'raw [...] prompt' },
+      answer: { restoredText: 'raw restored answer' },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'cloze' as const,
+          text: 'server [...] prompt',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: null,
+          ruby: null,
+          restored: 'server restored answer',
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(getStudyCardDisplayLabel(presentedCard, 'fallback')).toBe('server restored answer');
+    expect(getStudyCardDisplayMeaning(presentedCard)).toBeNull();
+  });
+
+  it('does not resurrect raw labels or meanings when known-v1 fields are null', () => {
+    const presentedCard = {
+      ...card,
+      prompt: { cueText: 'raw prompt', cueMeaning: 'raw prompt meaning' },
+      answer: { expression: 'raw answer', meaning: 'raw answer meaning' },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: null,
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: null,
+          ruby: null,
+          restored: null,
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(getStudyCardDisplayLabel(presentedCard, 'fallback')).toBe('fallback');
+    expect(getStudyCardDisplayMeaning(presentedCard)).toBeNull();
+    expect(
+      getStudyCardDisplayLabel({ ...presentedCard, presentation: undefined }, 'fallback')
+    ).toBe('raw answer');
   });
 });

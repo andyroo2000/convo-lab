@@ -131,6 +131,97 @@ describe('StudyCardPreview', () => {
     expect(screen.queryByText('raw meaning')).not.toBeInTheDocument();
   });
 
+  it('does not derive front ruby from raw fields when known-v1 ruby is null', () => {
+    const card = {
+      ...baseCard,
+      answer: {
+        ...baseCard.answer,
+        expression: 'raw answer',
+        expressionReading: '会社[stale-reading]',
+      },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: '会社',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: null,
+          ruby: null,
+          restored: null,
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    };
+
+    const { rerender } = render(<StudyCardFace card={card} side="front" />);
+
+    expect(screen.getByText('会社')).toBeInTheDocument();
+    expect(screen.queryByText('stale-reading', { selector: 'rt' })).not.toBeInTheDocument();
+
+    rerender(<StudyCardFace card={card} side="back" />);
+    expect(screen.queryByText('raw answer')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('This card only has the core answer content imported so far.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not derive a cloze answer reading from raw fields when known-v1 ruby is null', () => {
+    const card = {
+      ...baseCard,
+      cardType: 'cloze' as const,
+      prompt: { clozeText: 'これは{{c1::答え}}です' },
+      answer: {
+        restoredText: 'raw restored',
+        restoredTextReading: '生[stale-reading]',
+        meaning: 'raw meaning',
+      },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'cloze' as const,
+          text: 'これは[...]です',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: null,
+          ruby: null,
+          restored: 'server restored',
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    };
+
+    render(<StudyCardFace card={card} side="back" />);
+
+    expect(screen.getByTestId('study-cloze-heading')).toHaveTextContent('server restored');
+    expect(screen.queryByText('stale-reading', { selector: 'rt' })).not.toBeInTheDocument();
+    expect(screen.queryByText('raw restored')).not.toBeInTheDocument();
+  });
+
   it('preserves plain Japanese sentence rendering on the raw fallback path', () => {
     render(
       <StudyCardFace

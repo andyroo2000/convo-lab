@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import type { StudySessionWrapUpSummary } from './studySessionWrapUpModel';
-import { toDisplayText } from './studyTextUtils';
+import { getStudyCardDisplayLabel, getStudyCardDisplayMeaning } from './studyCardUtils';
 import { AchievementBadgeCard } from './StudyAchievementViews';
 import type { PresentedAchievement } from './achievementModel';
 
@@ -15,19 +15,6 @@ interface StudySessionWrapUpProps {
   onPractice: (cards: StudyCardSummary[]) => void;
   onDone: () => void;
 }
-
-const cardLabel = (card: StudyCardSummary, fallback: string) =>
-  toDisplayText(
-    card.answer.expressionReading ??
-      card.answer.expression ??
-      card.prompt.cueText ??
-      card.answer.restoredText ??
-      card.prompt.clozeDisplayText ??
-      fallback
-  );
-
-const cardMeaning = (card: StudyCardSummary) =>
-  card.answer.meaning ?? card.prompt.cueMeaning ?? null;
 
 const formatSeconds = (durationMs: number) =>
   `${Math.max(1, Math.round(durationMs / 1000)).toLocaleString()} sec`;
@@ -87,7 +74,7 @@ const StudySessionWrapUp = ({
             {summary.stabilizedCards.length > 0 ? (
               <p className="truncate text-sm text-gray-500">
                 {summary.stabilizedCards
-                  .map((card) => cardLabel(card, fallbackCardLabel))
+                  .map((card) => getStudyCardDisplayLabel(card, fallbackCardLabel))
                   .join(' · ')}
               </p>
             ) : (
@@ -112,29 +99,30 @@ const StudySessionWrapUp = ({
               </button>
             </div>
             <div className="mt-2 divide-y divide-gray-100">
-              {summary.toughestCards.map(({ card, durationMs, missCount }) => (
-                <div
-                  key={card.syncId ?? card.id}
-                  className="flex min-h-11 items-center justify-between gap-4 py-2"
-                >
-                  <p className="min-w-0 truncate font-semibold text-gray-900">
-                    {cardLabel(card, fallbackCardLabel)}
-                    {cardMeaning(card) ? (
-                      <span className="ml-2 text-sm font-normal text-gray-500">
-                        {cardMeaning(card)}
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="shrink-0 text-sm font-bold tabular-nums text-coral">
-                    {[
-                      missCount > 0 ? t('wrapUp.misses', { count: missCount }) : null,
-                      formatSeconds(durationMs),
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                </div>
-              ))}
+              {summary.toughestCards.map(({ card, durationMs, missCount }) => {
+                const meaning = getStudyCardDisplayMeaning(card);
+                return (
+                  <div
+                    key={card.syncId ?? card.id}
+                    className="flex min-h-11 items-center justify-between gap-4 py-2"
+                  >
+                    <p className="min-w-0 truncate font-semibold text-gray-900">
+                      {getStudyCardDisplayLabel(card, fallbackCardLabel)}
+                      {meaning ? (
+                        <span className="ml-2 text-sm font-normal text-gray-500">{meaning}</span>
+                      ) : null}
+                    </p>
+                    <p className="shrink-0 text-sm font-bold tabular-nums text-coral">
+                      {[
+                        missCount > 0 ? t('wrapUp.misses', { count: missCount }) : null,
+                        formatSeconds(durationMs),
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </section>
         ) : null}

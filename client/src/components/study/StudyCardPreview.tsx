@@ -143,7 +143,9 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
     ? presentation.answer.ruby
     : (card.answer.expressionReading ?? card.prompt.cueReading);
   const answerText = presentation ? presentation.answer.heading : card.answer.expression;
-  const headlineText = readingText ?? answerText ?? card.prompt.cueReading ?? '';
+  const headlineText = presentation
+    ? (readingText ?? answerText ?? '')
+    : (readingText ?? answerText ?? card.prompt.cueReading ?? '');
   const headingMinFontSizePx = compactMobile ? 24 : 28;
   const headingWrapClasses =
     'max-w-full min-w-0 whitespace-normal break-words md:max-w-5xl md:whitespace-nowrap';
@@ -389,9 +391,14 @@ export const StudyCardFace = ({
           <StudyRubyText
             as="div"
             text={
-              cueRuby ??
-              matchingRubyText(cueText, [card.prompt.cueReading, card.answer.expressionReading]) ??
-              cueText
+              presentation
+                ? (presentation.front.ruby ?? presentation.front.text ?? '')
+                : (cueRuby ??
+                  matchingRubyText(cueText, [
+                    card.prompt.cueReading,
+                    card.answer.expressionReading,
+                  ]) ??
+                  cueText)
             }
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
@@ -428,6 +435,7 @@ export const StudyCardFace = ({
   const notes = presentation ? presentation.answer.notes : toNotesList(card.answer.notes);
   const restoredText = presentation ? presentation.answer.restored : card.answer.restoredText;
   const meaning = presentation ? presentation.answer.meaning : card.answer.meaning;
+  const answerHeading = presentation ? presentation.answer.heading : card.answer.expression;
   const japaneseSentence = presentation
     ? presentation.answer.sentences.japanese
     : { text: card.answer.sentenceJp ?? null, ruby: card.answer.sentenceJpKana ?? null };
@@ -504,6 +512,9 @@ export const StudyCardFace = ({
   );
 
   if (isClozePresentation) {
+    const clozeHeading = presentation
+      ? (presentation.answer.ruby ?? presentation.answer.restored)
+      : (card.answer.restoredTextReading ?? restoredText);
     const renderedClozeAnswerDetails = (
       <>
         {meaning ? (
@@ -536,12 +547,10 @@ export const StudyCardFace = ({
             : 'space-y-5 text-center sm:space-y-8'
         }
       >
-        {(presentation?.answer.ruby ?? card.answer.restoredTextReading ?? restoredText) ? (
+        {clozeHeading ? (
           <StudyRubyText
             as="div"
-            text={
-              presentation?.answer.ruby ?? card.answer.restoredTextReading ?? restoredText ?? ''
-            }
+            text={clozeHeading}
             testId="study-cloze-heading"
             autoFitSingleLine
             minFontSizePx={compactMobile ? 24 : 28}
@@ -631,7 +640,7 @@ export const StudyCardFace = ({
           Answer audio is being backfilled for this card.
         </p>
       ) : null}
-      {(presentation?.answer.heading ?? card.answer.expression) && !meaning && !notes.length ? (
+      {answerHeading && !meaning && !notes.length ? (
         <div className="text-sm text-gray-400">
           This card only has the core answer content imported so far.
         </div>

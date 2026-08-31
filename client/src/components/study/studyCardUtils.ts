@@ -2,9 +2,68 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import { API_URL } from '../../config';
 import { DAILY_AUDIO_API_BASE, STUDY_API_BASE } from '../../lib/studyApi';
+import { toDisplayText } from './studyTextUtils';
 
 export const getStudyCardPresentation = (card: StudyCardSummary) =>
   card.presentation?.version === 1 ? card.presentation : null;
+
+const getPresentedCardDisplayLabel = (card: StudyCardSummary, fallback: string) => {
+  const presentation = getStudyCardPresentation(card);
+  if (!presentation) return null;
+
+  if (card.cardType === 'cloze') {
+    return (
+      presentation.answer.ruby ??
+      presentation.answer.restored ??
+      presentation.answer.heading ??
+      presentation.front.ruby ??
+      presentation.front.text ??
+      fallback
+    );
+  }
+
+  return (
+    presentation.answer.ruby ??
+    presentation.answer.heading ??
+    presentation.answer.restored ??
+    presentation.front.ruby ??
+    presentation.front.text ??
+    fallback
+  );
+};
+
+export const getStudyCardDisplayLabel = (card: StudyCardSummary, fallback: string) => {
+  const presentation = getStudyCardPresentation(card);
+  return (
+    toDisplayText(
+      presentation
+        ? getPresentedCardDisplayLabel(card, fallback)
+        : (card.answer.expressionReading ??
+            card.answer.expression ??
+            card.prompt.cueText ??
+            card.answer.restoredText ??
+            card.prompt.clozeDisplayText ??
+            fallback)
+    ) ?? fallback
+  );
+};
+
+export const getStudyCardDisplayMeaning = (card: StudyCardSummary) => {
+  const presentation = getStudyCardPresentation(card);
+  if (!presentation) return card.answer.meaning ?? card.prompt.cueMeaning ?? null;
+  return presentation.answer.meaning;
+};
+
+export const getStudyCardMasteryLabel = (card: StudyCardSummary, fallback: string) => {
+  const presentation = getStudyCardPresentation(card);
+  return (
+    toDisplayText(
+      presentation
+        ? getPresentedCardDisplayLabel(card, fallback)
+        : (card.answer.expression ?? card.prompt.cueText ?? card.prompt.cueMeaning ?? fallback)
+    ) ?? fallback
+  );
+};
 
 export const toAssetUrl = (url?: string | null) => {
   if (!url) return null;

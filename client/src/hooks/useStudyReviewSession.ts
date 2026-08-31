@@ -33,7 +33,7 @@ import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
-import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
+import { getStudyCardAudioUrl, getStudyCardMasteryLabel } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 import {
   cloneStudySnapshot,
@@ -796,11 +796,7 @@ const useStudyReviewSession = () => {
         const normalizedPreviousLevel = normalizeStudyMasteryLevel(previousLevel);
         const normalizedNextLevel = normalizeStudyMasteryLevel(nextLevel, normalizedPreviousLevel);
         const reviewedCard = reviewResult.card ?? currentCard;
-        const label =
-          reviewedCard.answer.expression ??
-          reviewedCard.prompt.cueText ??
-          reviewedCard.prompt.cueMeaning ??
-          'This item';
+        const label = getStudyCardMasteryLabel(reviewedCard, 'This item');
         setMasteryAnimation({
           id: reviewResult.reviewLogId,
           card: currentCard,
