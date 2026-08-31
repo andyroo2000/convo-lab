@@ -148,7 +148,6 @@ const StudyCreatePage = () => {
   const startCreationTimer = useCallback(
     () =>
       startActivity({
-        category: 'create',
         activity: 'card_creation',
         source: 'automatic',
         name: 'Card creator',

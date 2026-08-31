@@ -7,32 +7,26 @@ import {
   useEditableStudyActivitySessions,
   useSaveStudyActivitySession,
 } from './useStudyActivity';
-import type {
-  StudyActivityCategory,
-  StudyActivityKind,
-  StudyActivitySession,
-} from '../types/studyActivity';
+import { useStudyCapabilities } from './useStudyCapabilities';
+import type { StudyActivityKind, StudyActivitySession } from '../types/studyActivity';
 
 export const STUDY_ACTIVITY_OPTIONS: Array<{
   activity: StudyActivityKind;
-  category: StudyActivityCategory;
   labelKey: string;
 }> = [
-  { activity: 'card_creation', category: 'create', labelKey: 'time.activities.cardCreation' },
-  { activity: 'tv', category: 'immerse', labelKey: 'time.activities.tv' },
-  { activity: 'podcast', category: 'immerse', labelKey: 'time.activities.podcast' },
-  { activity: 'reading', category: 'immerse', labelKey: 'time.activities.reading' },
+  { activity: 'card_creation', labelKey: 'time.activities.cardCreation' },
+  { activity: 'tv', labelKey: 'time.activities.tv' },
+  { activity: 'podcast', labelKey: 'time.activities.podcast' },
+  { activity: 'reading', labelKey: 'time.activities.reading' },
   {
     activity: 'conversation',
-    category: 'conversation',
     labelKey: 'time.activities.conversation',
   },
   {
     activity: 'wanikani_review',
-    category: 'wanikani',
     labelKey: 'time.activities.wanikaniReview',
   },
-  { activity: 'other', category: 'immerse', labelKey: 'time.activities.other' },
+  { activity: 'other', labelKey: 'time.activities.other' },
 ];
 
 export function localStudyTimeInputValue(date: Date) {
@@ -49,6 +43,9 @@ export function studyActivityTranslationKey(activity: StudyActivityKind) {
 
 export function useStudyTimeSessionManager() {
   const { t } = useTranslation(['study']);
+  const capabilitiesQuery = useStudyCapabilities();
+  const categoriesByActivity = capabilitiesQuery.data?.studyActivity.categoriesByActivity;
+  const hasActivityCategories = Boolean(categoriesByActivity);
   const sessionsQuery = useEditableStudyActivitySessions();
   const saveSession = useSaveStudyActivitySession();
   const deleteSession = useDeleteStudyActivitySession();
@@ -69,11 +66,13 @@ export function useStudyTimeSessionManager() {
   const selectedOption =
     STUDY_ACTIVITY_OPTIONS.find((item) => item.activity === activity) ?? STUDY_ACTIVITY_OPTIONS[0];
   const validEntry =
+    hasActivityCategories &&
     Number.isFinite(minutes) &&
     minutes >= 1 &&
     minutes <= 1440 &&
     Number.isFinite(new Date(entryDate).getTime());
   const validEdit =
+    hasActivityCategories &&
     Number.isFinite(editMinutes) &&
     editMinutes >= 1 &&
     editMinutes <= 1440 &&
@@ -88,7 +87,6 @@ export function useStudyTimeSessionManager() {
 
   const startTimer = () => {
     start({
-      category: selectedOption.category,
       activity,
       source: 'manual',
       name: name.trim() || t(selectedOption.labelKey),
@@ -105,7 +103,6 @@ export function useStudyTimeSessionManager() {
     const endedAt = new Date(startedAt.getTime() + minutes * 60_000);
     await logCompletedAndWait({
       clientSessionId: crypto.randomUUID(),
-      category: selectedOption.category,
       activity,
       source: 'calendar',
       name: name.trim() || t(selectedOption.labelKey),
@@ -131,7 +128,7 @@ export function useStudyTimeSessionManager() {
   };
 
   const commitEdit = () => {
-    if (!editing?.editable || !validEdit) return;
+    if (!editing?.editable || !validEdit || !categoriesByActivity) return;
     const selected =
       STUDY_ACTIVITY_OPTIONS.find((item) => item.activity === editActivity) ??
       STUDY_ACTIVITY_OPTIONS[0];
@@ -141,7 +138,7 @@ export function useStudyTimeSessionManager() {
       {
         ...editing,
         activity: editActivity,
-        category: selected.category,
+        category: categoriesByActivity[editActivity],
         name: editName.trim() || t(selected.labelKey),
         startedAt: startedAt.toISOString(),
         endedAt: endedAt.toISOString(),
@@ -176,6 +173,11 @@ export function useStudyTimeSessionManager() {
   };
 
   return {
+    capabilities: {
+      isError: capabilitiesQuery.isError,
+      isRetrying: capabilitiesQuery.isFetching,
+      retry: () => capabilitiesQuery.refetch().then(() => undefined),
+    },
     timer: {
       active,
       activity,
@@ -184,6 +186,7 @@ export function useStudyTimeSessionManager() {
       setName,
       start: startTimer,
       stop: stopTimer,
+      isReady: hasActivityCategories,
     },
     calendar: {
       name,

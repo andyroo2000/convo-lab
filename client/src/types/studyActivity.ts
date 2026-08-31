@@ -1,29 +1,7 @@
-export type StudyActivityCategory =
-  | 'review'
-  | 'listen'
-  | 'create'
-  | 'immerse'
-  | 'conversation'
-  | 'wanikani';
+import type { StudyActivityCategory, StudyActivityKind } from '@languageflow/shared/src/types';
 
-export const STUDY_ACTIVITY_CATEGORIES = [
-  'review',
-  'listen',
-  'create',
-  'immerse',
-  'conversation',
-  'wanikani',
-] as const satisfies readonly StudyActivityCategory[];
-export type StudyActivityKind =
-  | 'card_review'
-  | 'daily_audio'
-  | 'card_creation'
-  | 'tv'
-  | 'podcast'
-  | 'reading'
-  | 'conversation'
-  | 'wanikani_review'
-  | 'other';
+export type { StudyActivityCategory, StudyActivityKind } from '@languageflow/shared/src/types';
+export { STUDY_ACTIVITY_CATEGORIES, STUDY_ACTIVITY_KINDS } from '@languageflow/shared/src/types';
 export type StudyActivitySource = 'automatic' | 'manual' | 'calendar';
 export const STUDY_ACTIVITY_ORIGINS = [
   'legacy',

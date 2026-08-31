@@ -48,6 +48,29 @@ export interface StudyIntegerCapability {
   max: number;
 }
 
+export const STUDY_ACTIVITY_CATEGORIES = [
+  'review',
+  'listen',
+  'create',
+  'immerse',
+  'conversation',
+  'wanikani',
+] as const;
+export type StudyActivityCategory = (typeof STUDY_ACTIVITY_CATEGORIES)[number];
+
+export const STUDY_ACTIVITY_KINDS = [
+  'card_review',
+  'daily_audio',
+  'card_creation',
+  'tv',
+  'podcast',
+  'reading',
+  'conversation',
+  'wanikani_review',
+  'other',
+] as const;
+export type StudyActivityKind = (typeof STUDY_ACTIVITY_KINDS)[number];
+
 export interface StudyClientCapabilities {
   version: number;
   settings: {
@@ -72,6 +95,9 @@ export interface StudyClientCapabilities {
   dailyAudio: { targetDurationMinutes: StudyIntegerCapability };
   offlineReserve: { days: number; maxScheduledCards: number };
   imports: { maxArchiveBytes: number };
+  studyActivity: {
+    categoriesByActivity: Record<StudyActivityKind, StudyActivityCategory>;
+  };
 }
 
 export type StudyQueueState = 'new' | 'learning' | 'review' | 'relearning' | 'suspended' | 'buried';

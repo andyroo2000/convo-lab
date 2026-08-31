@@ -13,7 +13,7 @@ import type {
   DailyAudioPracticeTiming,
   LessonScriptUnit,
 } from '../types';
-import { STUDY_ACTIVITY_CATEGORIES } from '../types/studyActivity';
+import { STUDY_ACTIVITY_CATEGORIES, STUDY_ACTIVITY_KINDS } from '../types/studyActivity';
 import type { StudyTimeAnalytics, StudyTimeRange } from '../types/studyActivity';
 import type { GoogleCalendarConnectionStatus } from '../hooks/useGoogleCalendarConnection';
 import type { KnownKanjiResponse } from '../hooks/useKnownKanji';
@@ -102,6 +102,29 @@ function supportedStrings<T extends string>(
   });
 }
 
+function studyActivityCategories(
+  value: unknown
+): StudyClientCapabilities['studyActivity']['categoriesByActivity'] {
+  const categories = record(value, 'study capabilities.studyActivity.categoriesByActivity');
+
+  return Object.fromEntries(
+    STUDY_ACTIVITY_KINDS.map((activity) => {
+      const category = string(
+        categories[activity],
+        `study capabilities.studyActivity.categoriesByActivity.${activity}`
+      );
+      if (
+        !STUDY_ACTIVITY_CATEGORIES.includes(category as (typeof STUDY_ACTIVITY_CATEGORIES)[number])
+      ) {
+        throw new Error(
+          `study capabilities.studyActivity.categoriesByActivity.${activity} is not supported.`
+        );
+      }
+      return [activity, category];
+    })
+  ) as StudyClientCapabilities['studyActivity']['categoriesByActivity'];
+}
+
 export function decodeStudyClientCapabilities(value: unknown): StudyClientCapabilities {
   const capabilities = record(value, 'study capabilities');
   const version = nonNegativeInteger(capabilities.version, 'study capabilities.version');
@@ -117,6 +140,7 @@ export function decodeStudyClientCapabilities(value: unknown): StudyClientCapabi
   const dailyAudio = record(capabilities.dailyAudio, 'study capabilities.dailyAudio');
   const offlineReserve = record(capabilities.offlineReserve, 'study capabilities.offlineReserve');
   const imports = record(capabilities.imports, 'study capabilities.imports');
+  const studyActivity = record(capabilities.studyActivity, 'study capabilities.studyActivity');
   const previewAudioRoles = supportedStrings(
     cardAuthoring.previewAudioRoles,
     'study capabilities.cardAuthoring.previewAudioRoles',
@@ -210,6 +234,9 @@ export function decodeStudyClientCapabilities(value: unknown): StudyClientCapabi
         imports.maxArchiveBytes,
         'study capabilities.imports.maxArchiveBytes'
       ),
+    },
+    studyActivity: {
+      categoriesByActivity: studyActivityCategories(studyActivity.categoriesByActivity),
     },
   };
 }

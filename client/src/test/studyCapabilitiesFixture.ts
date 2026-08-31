@@ -34,6 +34,19 @@ const studyCapabilitiesFixture: StudyClientCapabilities = {
   dailyAudio: { targetDurationMinutes: { default: 30, min: 5, max: 60 } },
   offlineReserve: { days: 5, maxScheduledCards: 1000 },
   imports: { maxArchiveBytes: 2147483648 },
+  studyActivity: {
+    categoriesByActivity: {
+      card_review: 'review',
+      daily_audio: 'listen',
+      card_creation: 'create',
+      tv: 'immerse',
+      podcast: 'immerse',
+      reading: 'immerse',
+      conversation: 'conversation',
+      wanikani_review: 'wanikani',
+      other: 'immerse',
+    },
+  },
 };
 
 export default studyCapabilitiesFixture;

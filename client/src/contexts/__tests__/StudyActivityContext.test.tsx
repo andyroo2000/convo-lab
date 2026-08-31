@@ -4,9 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StudyActivityProvider, useStudyActivityTimer } from '../StudyActivityContext';
 
-const { saveSessionsMock, stopResultMock } = vi.hoisted(() => ({
+const { capabilitiesQueryMock, saveSessionsMock, stopResultMock } = vi.hoisted(() => ({
+  capabilitiesQueryMock: vi.fn(),
   saveSessionsMock: vi.fn(),
   stopResultMock: vi.fn(),
+}));
+
+vi.mock('../../hooks/useStudyCapabilities', () => ({
+  useStudyCapabilities: () => capabilitiesQueryMock(),
 }));
 
 vi.mock('../../hooks/useStudyActivity', () => ({
@@ -23,7 +28,6 @@ const Controls = () => {
         type="button"
         onClick={() =>
           start({
-            category: 'create',
             activity: 'card_creation',
             source: 'manual',
             name: 'Deck work',
@@ -36,7 +40,6 @@ const Controls = () => {
         type="button"
         onClick={() =>
           start({
-            category: 'review',
             activity: 'card_review',
             source: 'automatic',
           })
@@ -59,7 +62,6 @@ const Controls = () => {
         type="button"
         onClick={() =>
           start({
-            category: 'listen',
             activity: 'daily_audio',
             source: 'automatic',
             name: 'Drill',
@@ -94,6 +96,23 @@ describe('StudyActivityProvider', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-28T15:00:00.000Z'));
     saveSessionsMock.mockReset().mockResolvedValue([]);
+    capabilitiesQueryMock.mockReset().mockReturnValue({
+      data: {
+        studyActivity: {
+          categoriesByActivity: {
+            card_review: 'review',
+            daily_audio: 'listen',
+            card_creation: 'create',
+            tv: 'immerse',
+            podcast: 'immerse',
+            reading: 'immerse',
+            conversation: 'conversation',
+            wanikani_review: 'wanikani',
+            other: 'immerse',
+          },
+        },
+      },
+    });
     stopResultMock.mockReset();
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
       '018f22d2-6d38-7000-8000-000000000001'
@@ -212,9 +231,38 @@ describe('StudyActivityProvider', () => {
     expect(saveSessionsMock).toHaveBeenCalledWith([
       expect.objectContaining({
         activity: 'card_creation',
+        category: 'create',
         durationMs: 0,
         cardsCreated: 2,
       }),
+    ]);
+  });
+
+  it('uses the server capability mapping for optimistic activity categories', () => {
+    capabilitiesQueryMock.mockReturnValue({
+      data: {
+        studyActivity: {
+          categoriesByActivity: {
+            card_review: 'review',
+            daily_audio: 'conversation',
+            card_creation: 'create',
+            tv: 'immerse',
+            podcast: 'immerse',
+            reading: 'immerse',
+            conversation: 'conversation',
+            wanikani_review: 'wanikani',
+            other: 'immerse',
+          },
+        },
+      },
+    });
+    renderProvider();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start audio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+
+    expect(saveSessionsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ activity: 'daily_audio', category: 'conversation' }),
     ]);
   });
 
