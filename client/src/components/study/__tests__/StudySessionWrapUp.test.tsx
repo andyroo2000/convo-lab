@@ -45,8 +45,11 @@ const presentationCard = (overrides: { label: string | null; meaning: string | n
 
 describe('StudySessionWrapUp', () => {
   it('uses known-v1 labels and meanings without resurrecting explicit-null raw fields', () => {
-    const serverCard = presentationCard({ label: 'server label', meaning: 'server meaning' });
-    const nullCard = presentationCard({ label: null, meaning: null });
+    const serverCard = presentationCard({
+      label: ' server label ',
+      meaning: ' server meaning ',
+    });
+    const nullCard = presentationCard({ label: '   ', meaning: '   ' });
 
     render(
       <StudySessionWrapUp

@@ -88,7 +88,7 @@ describe('StudyCardPreview', () => {
         front: {
           mode: 'text' as const,
           text: '会社',
-          ruby: '会社[かいしゃ]',
+          ruby: '会社[かいしゃかいしゃかいしゃかいしゃかいしゃ]',
           hint: 'server hint',
           media: { audio: null, image: null },
           autoplayAudio: false,
@@ -111,7 +111,13 @@ describe('StudyCardPreview', () => {
     };
 
     const { rerender } = render(<StudyCardFace card={card} side="front" />);
-    expect(screen.getByText('かいしゃ', { selector: 'rt' })).toBeInTheDocument();
+    const frontHeading = screen.getByTestId('study-front-heading');
+    expect(
+      within(frontHeading).getByText('かいしゃかいしゃかいしゃかいしゃかいしゃ', {
+        selector: 'rt',
+      })
+    ).toBeInTheDocument();
+    expect(frontHeading).toHaveClass('text-4xl');
     expect(screen.getByText('server hint')).toBeInTheDocument();
     expect(screen.queryByText('raw prompt')).not.toBeInTheDocument();
 
@@ -131,9 +137,11 @@ describe('StudyCardPreview', () => {
     expect(screen.queryByText('raw meaning')).not.toBeInTheDocument();
   });
 
-  it('does not derive front ruby from raw fields when known-v1 ruby is null', () => {
+  it('skips blank front ruby and trusts text mode despite a stale outer cloze type', () => {
     const card = {
       ...baseCard,
+      cardType: 'cloze' as const,
+      prompt: { clozeDisplayText: 'raw [...] prompt' },
       answer: {
         ...baseCard.answer,
         expression: 'raw answer',
@@ -143,8 +151,8 @@ describe('StudyCardPreview', () => {
         version: 1 as const,
         front: {
           mode: 'text' as const,
-          text: '会社',
-          ruby: null,
+          text: ' 会社 ',
+          ruby: '   ',
           hint: null,
           media: { audio: null, image: null },
           autoplayAudio: false,
@@ -169,6 +177,7 @@ describe('StudyCardPreview', () => {
     const { rerender } = render(<StudyCardFace card={card} side="front" />);
 
     expect(screen.getByText('会社')).toBeInTheDocument();
+    expect(screen.queryByTestId('study-cloze-prompt')).not.toBeInTheDocument();
     expect(screen.queryByText('stale-reading', { selector: 'rt' })).not.toBeInTheDocument();
 
     rerender(<StudyCardFace card={card} side="back" />);
@@ -178,10 +187,10 @@ describe('StudyCardPreview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not derive a cloze answer reading from raw fields when known-v1 ruby is null', () => {
+  it('skips blank cloze ruby and trusts cloze mode despite a stale outer recognition type', () => {
     const card = {
       ...baseCard,
-      cardType: 'cloze' as const,
+      cardType: 'recognition' as const,
       prompt: { clozeText: 'これは{{c1::答え}}です' },
       answer: {
         restoredText: 'raw restored',
@@ -199,9 +208,9 @@ describe('StudyCardPreview', () => {
           autoplayAudio: false,
         },
         answer: {
-          heading: null,
-          ruby: null,
-          restored: 'server restored',
+          heading: 'wrong server heading',
+          ruby: '   ',
+          restored: ' server restored ',
           meaning: null,
           sentences: {
             japanese: { text: null, ruby: null },
@@ -215,10 +224,25 @@ describe('StudyCardPreview', () => {
       },
     };
 
-    render(<StudyCardFace card={card} side="back" />);
+    const { rerender } = render(<StudyCardFace card={card} side="back" />);
 
     expect(screen.getByTestId('study-cloze-heading')).toHaveTextContent('server restored');
     expect(screen.queryByText('stale-reading', { selector: 'rt' })).not.toBeInTheDocument();
+    expect(screen.queryByText('raw restored')).not.toBeInTheDocument();
+
+    rerender(
+      <StudyCardFace
+        card={{
+          ...card,
+          presentation: {
+            ...card.presentation,
+            answer: { ...card.presentation.answer, restored: '   ' },
+          },
+        }}
+        side="back"
+      />
+    );
+    expect(screen.getByTestId('study-cloze-heading')).toHaveTextContent('wrong server heading');
     expect(screen.queryByText('raw restored')).not.toBeInTheDocument();
   });
 

@@ -7,27 +7,30 @@ import { toDisplayText } from './studyTextUtils';
 export const getStudyCardPresentation = (card: StudyCardSummary) =>
   card.presentation?.version === 1 ? card.presentation : null;
 
-const getPresentedCardDisplayLabel = (card: StudyCardSummary, fallback: string) => {
+export const firstNonBlankPresentationText = (...values: Array<string | null | undefined>) =>
+  values.map((value) => value?.trim() ?? '').find(Boolean) ?? null;
+
+export const getPresentedCardDisplayLabel = (card: StudyCardSummary, fallback: string) => {
   const presentation = getStudyCardPresentation(card);
   if (!presentation) return null;
 
-  if (card.cardType === 'cloze') {
-    return (
-      presentation.answer.ruby ??
-      presentation.answer.restored ??
-      presentation.answer.heading ??
-      presentation.front.ruby ??
-      presentation.front.text ??
+  if (presentation.front.mode === 'cloze') {
+    return firstNonBlankPresentationText(
+      presentation.answer.ruby,
+      presentation.answer.restored,
+      presentation.answer.heading,
+      presentation.front.ruby,
+      presentation.front.text,
       fallback
     );
   }
 
-  return (
-    presentation.answer.ruby ??
-    presentation.answer.heading ??
-    presentation.answer.restored ??
-    presentation.front.ruby ??
-    presentation.front.text ??
+  return firstNonBlankPresentationText(
+    presentation.answer.ruby,
+    presentation.answer.heading,
+    presentation.answer.restored,
+    presentation.front.ruby,
+    presentation.front.text,
     fallback
   );
 };
@@ -51,7 +54,7 @@ export const getStudyCardDisplayLabel = (card: StudyCardSummary, fallback: strin
 export const getStudyCardDisplayMeaning = (card: StudyCardSummary) => {
   const presentation = getStudyCardPresentation(card);
   if (!presentation) return card.answer.meaning ?? card.prompt.cueMeaning ?? null;
-  return presentation.answer.meaning;
+  return firstNonBlankPresentationText(presentation.answer.meaning);
 };
 
 export const getStudyCardMasteryLabel = (card: StudyCardSummary, fallback: string) => {
