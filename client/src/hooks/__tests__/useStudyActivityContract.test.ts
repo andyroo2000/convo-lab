@@ -39,7 +39,17 @@ describe('study activity request contract', () => {
 
     expect(path).toBe('/api/study/activity-sessions/batch');
     expect(JSON.parse(String(request.body))).toEqual({
-      sessions: [{ ...input, origin: 'web' }],
+      sessions: [
+        {
+          clientSessionId: input.clientSessionId,
+          activity: input.activity,
+          source: input.source,
+          startedAt: input.startedAt,
+          endedAt: input.endedAt,
+          durationMs: input.durationMs,
+          origin: 'web',
+        },
+      ],
     });
     expect(stored).toEqual({
       ...input,

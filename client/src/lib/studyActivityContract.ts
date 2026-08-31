@@ -48,11 +48,10 @@ export function decodeStudyActivitySession(
 
 export function encodeStudyActivitySession(
   session: StudyActivitySessionInput | StudyActivitySession
-): StudyActivitySessionWire & { origin: 'web' } {
+): Omit<StudyActivitySessionWire, 'category'> & { origin: 'web' } {
   return {
     ...(session.id === undefined ? {} : { id: session.id }),
     clientSessionId: session.clientSessionId,
-    category: session.category,
     activity: session.activity,
     source: session.source,
     ...(session.name === undefined ? {} : { name: session.name }),
