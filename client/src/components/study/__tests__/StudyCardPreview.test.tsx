@@ -78,6 +78,55 @@ describe('StudyCardPreview', () => {
     expect(screen.getByText('company')).toBeInTheDocument();
   });
 
+  it('renders the supported server presentation instead of divergent raw fields', () => {
+    const card = {
+      ...baseCard,
+      prompt: { cueText: 'raw prompt', cueMeaning: 'raw hint' },
+      answer: { expression: 'raw answer', meaning: 'raw meaning', notes: 'raw note' },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: '会社',
+          ruby: '会社[かいしゃ]',
+          hint: 'server hint',
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: '企業',
+          ruby: '企業[きぎょう]',
+          restored: null,
+          meaning: 'server meaning',
+          sentences: {
+            japanese: { text: '企業です', ruby: '企業[きぎょう]です' },
+            english: { text: 'It is a company.', ruby: null },
+          },
+          notes: ['server note'],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    };
+
+    const { rerender } = render(<StudyCardFace card={card} side="front" />);
+    expect(screen.getByText('かいしゃ', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.getByText('server hint')).toBeInTheDocument();
+    expect(screen.queryByText('raw prompt')).not.toBeInTheDocument();
+
+    rerender(<StudyCardFace card={card} side="back" />);
+    expect(
+      within(screen.getByTestId('study-japanese-heading')).getByText('きぎょう', {
+        selector: 'rt',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText('server meaning')).toBeInTheDocument();
+    expect(screen.getByText('server note')).toBeInTheDocument();
+    expect(screen.getByText('It is a company.')).toBeInTheDocument();
+    expect(screen.queryByText('raw meaning')).not.toBeInTheDocument();
+  });
+
   it('renders stored bracket furigana on the prompt side', () => {
     render(<StudyCardFace card={baseCard} side="front" />);
 

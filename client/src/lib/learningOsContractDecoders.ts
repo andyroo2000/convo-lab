@@ -256,6 +256,60 @@ function optionalNullableString(value: unknown, path: string): string | null | u
   return nullableString(value, path);
 }
 
+function decodePresentationMedia(value: unknown, path: string) {
+  if (value === null) return;
+  const media = record(value, path);
+  if (media.id !== undefined) string(media.id, `${path}.id`);
+  if (media.filename !== undefined) string(media.filename, `${path}.filename`);
+  if (media.url !== undefined) nullableString(media.url, `${path}.url`);
+  if (media.mediaKind !== undefined) string(media.mediaKind, `${path}.mediaKind`);
+  if (media.source !== undefined) string(media.source, `${path}.source`);
+}
+
+function decodePresentationText(value: unknown, path: string) {
+  const text = record(value, path);
+  nullableString(text.text, `${path}.text`);
+  nullableString(text.ruby, `${path}.ruby`);
+}
+
+function decodeStudyCardPresentationV1(value: JsonRecord) {
+  const front = record(value.front, 'study card.presentation.front');
+  const mode = string(front.mode, 'study card.presentation.front.mode');
+  if (!['text', 'media', 'cloze'].includes(mode)) {
+    throw new Error('study card.presentation.front.mode is not supported.');
+  }
+  nullableString(front.text, 'study card.presentation.front.text');
+  nullableString(front.ruby, 'study card.presentation.front.ruby');
+  nullableString(front.hint, 'study card.presentation.front.hint');
+  const frontMedia = record(front.media, 'study card.presentation.front.media');
+  decodePresentationMedia(frontMedia.audio, 'study card.presentation.front.media.audio');
+  decodePresentationMedia(frontMedia.image, 'study card.presentation.front.media.image');
+  boolean(front.autoplayAudio, 'study card.presentation.front.autoplayAudio');
+
+  const answer = record(value.answer, 'study card.presentation.answer');
+  nullableString(answer.heading, 'study card.presentation.answer.heading');
+  nullableString(answer.ruby, 'study card.presentation.answer.ruby');
+  nullableString(answer.restored, 'study card.presentation.answer.restored');
+  nullableString(answer.meaning, 'study card.presentation.answer.meaning');
+  const sentences = record(answer.sentences, 'study card.presentation.answer.sentences');
+  decodePresentationText(sentences.japanese, 'study card.presentation.answer.sentences.japanese');
+  decodePresentationText(sentences.english, 'study card.presentation.answer.sentences.english');
+  array(answer.notes, 'study card.presentation.answer.notes').forEach((note, index) =>
+    string(note, `study card.presentation.answer.notes[${index}]`)
+  );
+  const answerMedia = record(answer.media, 'study card.presentation.answer.media');
+  decodePresentationMedia(answerMedia.image, 'study card.presentation.answer.media.image');
+  decodePresentationMedia(answer.audio, 'study card.presentation.answer.audio');
+  if (answer.pitchAccent !== null) {
+    const pitchAccent = record(answer.pitchAccent, 'study card.presentation.answer.pitchAccent');
+    if (
+      string(pitchAccent.status, 'study card.presentation.answer.pitchAccent.status') !== 'resolved'
+    ) {
+      throw new Error('study card.presentation.answer.pitchAccent.status must be resolved.');
+    }
+  }
+}
+
 function numericCategories(value: unknown, path: string) {
   const categories = record(value, path);
   STUDY_ACTIVITY_CATEGORIES.forEach((category) =>
@@ -315,6 +369,16 @@ export function decodeStudyCardSummary(value: unknown): StudyCardSummary {
   string(card.cardType, 'study card.cardType');
   record(card.prompt, 'study card.prompt');
   record(card.answer, 'study card.answer');
+  if (card.presentation !== undefined && card.presentation !== null) {
+    const presentation = record(card.presentation, 'study card.presentation');
+    const version = nonNegativeInteger(presentation.version, 'study card.presentation.version');
+    if (version === 1) {
+      decodeStudyCardPresentationV1(presentation);
+    } else {
+      // Unknown additive versions must not prevent raw prompt/answer fallback.
+      card.presentation = null;
+    }
+  }
   const state = record(card.state, 'study card.state');
   nullableString(state.dueAt, 'study card.state.dueAt');
   optionalNullableString(state.introducedAt, 'study card.state.introducedAt');

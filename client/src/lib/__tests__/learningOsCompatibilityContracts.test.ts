@@ -112,6 +112,28 @@ describe('vendored Learning OS compatibility fixtures', () => {
     );
   });
 
+  it('uses presentation v1 while preserving raw fallback for missing and future versions', () => {
+    const payload = structuredClone(studyCardCompatibilityFixture.cases[0].payload) as Record<
+      string,
+      unknown
+    >;
+    const decoded = decodeStudyCardSummary(payload);
+    expect(decoded.presentation).toMatchObject({
+      version: 1,
+      front: { mode: 'text', text: '聞く' },
+      answer: { heading: 'to listen', notes: [] },
+    });
+
+    const withoutPresentation = { ...payload };
+    delete withoutPresentation.presentation;
+    expect(decodeStudyCardSummary(withoutPresentation).presentation).toBeUndefined();
+
+    expect(
+      decodeStudyCardSummary({ ...payload, presentation: { version: 2, futureShape: true } })
+        .presentation
+    ).toBeNull();
+  });
+
   it('decodes connected and disconnected Google Calendar boundary cases', () => {
     const connections = googleCalendarCompatibilityFixture.cases.map(({ payload }) =>
       decodeGoogleCalendarConnectionStatus(payload)
