@@ -241,7 +241,12 @@ export default function useStudyBrowseController(enabled: boolean) {
 
   const saveSelectedCard = async ({ prompt, answer }: SaveSelectedCardPayload) => {
     if (!selectedCard) return;
-    await updateCardMutation.mutateAsync({ cardId: selectedCard.id, prompt, answer });
+    await updateCardMutation.mutateAsync({
+      cardId: selectedCard.id,
+      expectedRevision: selectedCard.revision ?? 0,
+      prompt,
+      answer,
+    });
     setEditorResetToken((current) => current + 1);
     await detailQuery.refetch();
     await browserQuery.refetch();

@@ -97,6 +97,19 @@ describe('vendored Learning OS compatibility fixtures', () => {
     });
   });
 
+  it('rejects missing and invalid card revisions', () => {
+    const payload = studyCardCompatibilityFixture.cases[0].payload as Record<string, unknown>;
+    const legacyPayload = { ...payload };
+    delete (legacyPayload as { revision?: unknown }).revision;
+
+    expect(() => decodeStudyCardSummary(legacyPayload)).toThrow(
+      'study card.revision must be a finite number.'
+    );
+    expect(() => decodeStudyCardSummary({ ...payload, revision: -1 })).toThrow(
+      'study card.revision must be a nonnegative integer.'
+    );
+  });
+
   it('decodes connected and disconnected Google Calendar boundary cases', () => {
     const connections = googleCalendarCompatibilityFixture.cases.map(({ payload }) =>
       decodeGoogleCalendarConnectionStatus(payload)

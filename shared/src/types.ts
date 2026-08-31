@@ -175,6 +175,8 @@ export interface StudyCardSummary {
   id: string;
   syncId?: string;
   noteId: string | null;
+  /** Required at the API boundary; optional only for local synthetic and test cards. */
+  revision?: number;
   cardType: StudyCardType;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;

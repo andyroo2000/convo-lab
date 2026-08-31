@@ -262,6 +262,7 @@ const StudyCreatePage = () => {
   const manualPreviewCard: StudyCardSummary = {
     id: 'manual-preview',
     noteId: 'manual-preview-note',
+    revision: 0,
     ...manualPayload,
     state: {
       dueAt: null,

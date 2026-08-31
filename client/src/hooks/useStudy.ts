@@ -64,6 +64,7 @@ export interface CreateStudyCardPayload {
 
 interface UpdateStudyCardPayload {
   cardId: string;
+  expectedRevision: number;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
 }
@@ -719,6 +720,7 @@ export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<
       body: JSON.stringify({
         prompt: payload.prompt,
         answer: payload.answer,
+        expectedRevision: payload.expectedRevision,
       }),
     })
   );
