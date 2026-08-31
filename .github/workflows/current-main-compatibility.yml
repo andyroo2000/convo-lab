@@ -1,0 +1,42 @@
+name: Current Main Compatibility Drift
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 11 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: current-main-compatibility-drift
+  cancel-in-progress: true
+
+jobs:
+  fixture-drift:
+    name: Provider → current web/iOS main
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Compare canonical contracts at every current main head
+        id: audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/audit-current-main-contracts.mjs
+      - name: Record immutable commits that were audited
+        env:
+          PROVIDER_SHA: ${{ steps.audit.outputs.provider_sha }}
+          WEB_SHA: ${{ steps.audit.outputs.web_sha }}
+          IOS_SHA: ${{ steps.audit.outputs.ios_sha }}
+        run: |
+          {
+            echo '### Current-main compatibility audit'
+            echo
+            echo "- Provider: \`$PROVIDER_SHA\`"
+            echo "- Web: \`$WEB_SHA\`"
+            echo "- iOS: \`$IOS_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
