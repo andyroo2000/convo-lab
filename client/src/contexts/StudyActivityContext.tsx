@@ -140,6 +140,7 @@ export const StudyActivityProvider = ({
 
       if (unownedSessions.length) {
         const submittedSessionIds = unownedSessions.map((session) => session.clientSessionId);
+        // Reclassify queued sessions with the latest server policy before every retry.
         const request = saveStudyActivitySessions(
           unownedSessions.map((session) => ({
             ...session,

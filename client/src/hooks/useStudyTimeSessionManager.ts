@@ -175,7 +175,7 @@ export function useStudyTimeSessionManager() {
   return {
     capabilities: {
       isError: capabilitiesQuery.isError,
-      isRetrying: capabilitiesQuery.isFetching,
+      isRetrying: capabilitiesQuery.isError && capabilitiesQuery.isFetching,
       retry: () => capabilitiesQuery.refetch().then(() => undefined),
     },
     timer: {
