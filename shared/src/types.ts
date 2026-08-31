@@ -142,7 +142,9 @@ export interface StudyAnswerPayload {
   pitchAccent?: JapanesePitchAccentPayload | null;
 }
 
-export type StudyCardPresentationMediaRef = Partial<StudyMediaRef>;
+export type StudyCardPresentationMediaRef = {
+  [Key in keyof StudyMediaRef]?: StudyMediaRef[Key] | null;
+};
 
 export interface StudyCardPresentationText {
   text: string | null;
