@@ -122,6 +122,15 @@ export class StudyAchievementSessionStore {
     this.persist();
   }
 
+  refreshCurrentSessionBaseline(currentAwards: AchievementAward[]): void {
+    const session = this.state.activeSession;
+    if (!session) return;
+    const baseline = new Set([...session.baselineAwardIds, ...currentAwards.map(({ id }) => id)]);
+    session.baselineAwardIds = [...baseline];
+    session.newAwardIds = session.newAwardIds.filter((id) => !baseline.has(id));
+    this.persist();
+  }
+
   undoReview(reviewId: string): void {
     const session = this.state.activeSession;
     if (!session || session.isReadyForPresentation) return;
