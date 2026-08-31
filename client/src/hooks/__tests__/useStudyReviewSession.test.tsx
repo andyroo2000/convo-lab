@@ -1931,6 +1931,84 @@ describe('useStudyReviewSession', () => {
     expect(result.current.reviewSessionComplete).toBe(false);
   });
 
+  it('keeps the newest completion refresh authoritative after undo and re-ending', async () => {
+    reviewMutateAsyncMock
+      .mockResolvedValueOnce({
+        reviewLogId: 'review-log-1',
+        card: baseCardOne,
+        overview: { ...baseOverview, dueCount: 1, reviewCount: 1 },
+      })
+      .mockResolvedValueOnce({
+        reviewLogId: 'review-log-2',
+        card: baseCardTwo,
+        overview: { ...baseOverview, dueCount: 0, reviewCount: 0 },
+      });
+    undoStudyReviewMock.mockResolvedValue({
+      reviewLogId: 'review-log-2',
+      card: baseCardTwo,
+      overview: { ...baseOverview, dueCount: 1, reviewCount: 1 },
+    });
+    const firstEvaluation = createDeferred<AchievementProgress>();
+    const secondEvaluation = createDeferred<AchievementProgress>();
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    getAchievementProgressMock
+      .mockReturnValueOnce(firstEvaluation.promise)
+      .mockReturnValueOnce(secondEvaluation.promise);
+
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+
+    await waitFor(() => expect(result.current.reviewSessionComplete).toBe(true));
+
+    let undoPromise!: Promise<void>;
+    act(() => {
+      undoPromise = result.current.handleUndo();
+    });
+    await waitFor(() => expect(result.current.reviewSessionComplete).toBe(false));
+
+    act(() => result.current.endReviewSession());
+    await waitFor(() => expect(result.current.reviewSessionComplete).toBe(true));
+
+    await act(async () => {
+      firstEvaluation.resolve(emptyAchievementProgress);
+      await undoPromise;
+    });
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      secondEvaluation.resolve({
+        ...emptyAchievementProgress,
+        metricValues: { 'mastery.burned': 100 },
+        awards: [
+          {
+            id: 'burned.burned100',
+            earnedAt: '2026-08-31T18:00:00.000Z',
+          },
+        ],
+      });
+      await secondEvaluation.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.achievementCompletion?.newAwardIds).toEqual(['burned.burned100']);
+    });
+  });
+
   it('submits only one review undo while the first undo is still in flight', async () => {
     reviewMutateAsyncMock
       .mockResolvedValueOnce({

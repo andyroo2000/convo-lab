@@ -64,7 +64,6 @@ const ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS = 60_000;
 
 interface AchievementSessionBootstrap {
   cancelled: boolean;
-  isReady: boolean;
   promise: Promise<void> | null;
 }
 
@@ -117,7 +116,8 @@ const useStudyReviewSession = () => {
   const canSurfaceAsyncSessionErrorRef = useRef(false);
   const answeredCardIdsRef = useRef<Set<string>>(new Set());
   const autoRefreshEmptySessionRef = useRef(false);
-  const achievementCompletionRequestRef = useRef(false);
+  const achievementCompletionRequestIdRef = useRef(0);
+  const activeAchievementCompletionRequestRef = useRef<number | null>(null);
   const pendingReviewOperationRef = useRef<{
     request: StudyReviewRequest;
     undoSnapshot: StudyUndoSnapshot;
@@ -181,7 +181,6 @@ const useStudyReviewSession = () => {
   const startAchievementReviewSession = useCallback(() => {
     const bootstrap: AchievementSessionBootstrap = {
       cancelled: false,
-      isReady: true,
       promise: null,
     };
     if (achievementSessionBootstrapRef.current) {
@@ -219,10 +218,6 @@ const useStudyReviewSession = () => {
 
   const recordAchievementReview = useCallback(
     (record: StudySessionReviewRecord) => {
-      const bootstrap = achievementSessionBootstrapRef.current;
-      if (bootstrap && !bootstrap.cancelled && !bootstrap.isReady) {
-        return;
-      }
       achievementSessionStore?.recordReview(record);
     },
     [achievementSessionStore]
@@ -230,10 +225,6 @@ const useStudyReviewSession = () => {
 
   const undoAchievementReview = useCallback(
     (reviewId: string) => {
-      const bootstrap = achievementSessionBootstrapRef.current;
-      if (bootstrap && !bootstrap.cancelled && !bootstrap.isReady) {
-        return;
-      }
       achievementSessionStore?.undoReview(reviewId);
     },
     [achievementSessionStore]
@@ -605,8 +596,10 @@ const useStudyReviewSession = () => {
   ]);
 
   const prepareSessionCompletion = useCallback(() => {
-    if (achievementCompletionRequestRef.current) return;
-    achievementCompletionRequestRef.current = true;
+    if (activeAchievementCompletionRequestRef.current !== null) return;
+    const requestId = achievementCompletionRequestIdRef.current + 1;
+    achievementCompletionRequestIdRef.current = requestId;
+    activeAchievementCompletionRequestRef.current = requestId;
     setSessionWasEnded(true);
 
     const currentAwards = achievementProgress?.awards ?? [];
@@ -625,7 +618,7 @@ const useStudyReviewSession = () => {
           const refreshedAwards = (await syncAchievements(true, true)).progress.awards;
           if (
             sessionEpochRef.current !== expectedEpoch ||
-            !achievementCompletionRequestRef.current
+            activeAchievementCompletionRequestRef.current !== requestId
           ) {
             return;
           }
@@ -640,8 +633,11 @@ const useStudyReviewSession = () => {
         } catch {
           // The wrap-up remains available offline. A later launch can recover a new award.
         } finally {
-          if (sessionEpochRef.current === expectedEpoch) {
-            achievementCompletionRequestRef.current = false;
+          if (
+            sessionEpochRef.current === expectedEpoch &&
+            activeAchievementCompletionRequestRef.current === requestId
+          ) {
+            activeAchievementCompletionRequestRef.current = null;
           }
         }
       })(),
@@ -660,7 +656,8 @@ const useStudyReviewSession = () => {
       achievementSessionBootstrapRef.current.cancelled = true;
       achievementSessionBootstrapRef.current = null;
     }
-    achievementCompletionRequestRef.current = false;
+    achievementCompletionRequestIdRef.current += 1;
+    activeAchievementCompletionRequestRef.current = null;
     achievementSessionStore?.cancelCurrentSession();
     stopAllAudio();
     resetUndo();
@@ -1182,7 +1179,8 @@ const useStudyReviewSession = () => {
         current.filter((record) => record.id !== action.reviewLogId)
       );
       if (achievementCompletion) {
-        achievementCompletionRequestRef.current = false;
+        achievementCompletionRequestIdRef.current += 1;
+        activeAchievementCompletionRequestRef.current = null;
         achievementSessionStore?.reopenCompletion(
           achievementCompletion.id,
           achievementProgress?.awards ?? []
@@ -1262,7 +1260,8 @@ const useStudyReviewSession = () => {
       resetStudyAudioAutoplay();
       resetUndo();
       pendingReviewOperationRef.current = null;
-      achievementCompletionRequestRef.current = false;
+      achievementCompletionRequestIdRef.current += 1;
+      activeAchievementCompletionRequestRef.current = null;
       setReviewRetryAvailable(false);
       setReviewConflictRecovered(false);
       canSurfaceAsyncSessionErrorRef.current = true;
