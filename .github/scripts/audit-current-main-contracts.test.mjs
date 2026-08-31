@@ -2,10 +2,16 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 
-import {
-  auditCurrentMainContracts,
-  CURRENT_MAIN_COMPONENTS,
-} from './audit-current-main-contracts.mjs';
+import { auditCurrentMainContracts } from './audit-current-main-contracts.mjs';
+
+const components = {
+  provider: {
+    repository: 'example/provider',
+    fixtureDirectory: 'provider-fixtures',
+  },
+  web: { repository: 'example/web', fixtureDirectory: 'web-fixtures' },
+  ios: { repository: 'example/ios', fixtureDirectory: 'ios-fixtures' },
+};
 
 const shas = {
   provider: '1'.repeat(40),
@@ -16,7 +22,7 @@ const shas = {
 const bytes = (value) => Buffer.from(value);
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 
-function fixtureSet() {
+function fixtureSet({ fixturePath = 'sample-v1.json' } = {}) {
   const payload = bytes('{"version":1}\n');
   const payloadSha = digest(payload);
   const manifest = bytes(
@@ -24,8 +30,8 @@ function fixtureSet() {
       fixtures: [
         {
           id: 'sample',
-          path: 'sample-v1.json',
-          checksumPath: 'sample-v1.sha256',
+          path: fixturePath,
+          checksumPath: fixturePath.replace(/\.json$/u, '.sha256'),
           sha256: payloadSha,
         },
       ],
@@ -39,9 +45,10 @@ function fixtureSet() {
   ]);
 }
 
-function mockFetch(filesByComponent, overrides = {}) {
+function mockFetch(filesByComponent, overrides = {}, requestedUrls = []) {
   return async (url) => {
-    const repositoryEntry = Object.entries(CURRENT_MAIN_COMPONENTS).find(([, component]) => {
+    requestedUrls.push(url);
+    const repositoryEntry = Object.entries(components).find(([, component]) => {
       const apiRoot = `https://api.github.com/repos/${component.repository}`;
       return (
         url === apiRoot ||
@@ -66,6 +73,7 @@ function mockFetch(filesByComponent, overrides = {}) {
 test('accepts byte-identical fixtures at each repository current main SHA', async () => {
   const files = fixtureSet();
   const result = await auditCurrentMainContracts({
+    components,
     fetchImpl: mockFetch({ provider: files, web: files, ios: files }),
   });
 
@@ -80,6 +88,7 @@ test('rejects consumer drift from the provider current main manifest', async () 
 
   await assert.rejects(
     auditCurrentMainContracts({
+      components,
       fetchImpl: mockFetch({ provider, web, ios }),
     }),
     /web current-main fixture differs from provider: sample-v1.json/u
@@ -90,6 +99,7 @@ test('rejects abbreviated or malformed current main SHAs', async () => {
   const files = fixtureSet();
   await assert.rejects(
     auditCurrentMainContracts({
+      components,
       fetchImpl: mockFetch(
         { provider: files, web: files, ios: files },
         { iosSha: 'abc123' }
@@ -97,4 +107,30 @@ test('rejects abbreviated or malformed current main SHAs', async () => {
     }),
     /default branch did not resolve to a full commit SHA/u
   );
+});
+
+test('rejects a provider manifest whose checksum does not match its bytes', async () => {
+  const files = fixtureSet();
+  const provider = new Map(files);
+  provider.set('manifest-v1.sha256', bytes(`${'0'.repeat(64)}  manifest-v1.json\n`));
+
+  await assert.rejects(
+    auditCurrentMainContracts({
+      components,
+      fetchImpl: mockFetch({ provider, web: files, ios: files }),
+    }),
+    /manifest checksum does not match/u
+  );
+});
+
+test('reduces manifest paths to basenames before constructing remote URLs', async () => {
+  const files = fixtureSet({ fixturePath: '../../sample-v1.json' });
+  const requestedUrls = [];
+
+  await auditCurrentMainContracts({
+    components,
+    fetchImpl: mockFetch({ provider: files, web: files, ios: files }, {}, requestedUrls),
+  });
+
+  assert.equal(requestedUrls.some((url) => url.includes('../')), false);
 });

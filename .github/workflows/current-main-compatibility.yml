@@ -28,6 +28,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node .github/scripts/audit-current-main-contracts.mjs
       - name: Record immutable commits that were audited
+        if: always()
         env:
           PROVIDER_SHA: ${{ steps.audit.outputs.provider_sha }}
           WEB_SHA: ${{ steps.audit.outputs.web_sha }}
