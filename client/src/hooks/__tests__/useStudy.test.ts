@@ -327,7 +327,7 @@ describe('useStudy request helpers', () => {
       prompt,
       answer,
     });
-    await updateStudyCard({ cardId, prompt, answer });
+    await updateStudyCard({ cardId, expectedRevision: 7, prompt, answer });
     await performStudyCardAction({ cardId, action: 'suspend' });
     await prepareStudyAnswerAudio(cardId);
     await regenerateStudyAnswerAudio({
@@ -352,6 +352,11 @@ describe('useStudy request helpers', () => {
       `/cards/${cardId}/pitch-accent`,
       `/cards/${cardId}`,
     ]);
+    expect(JSON.parse(String(vi.mocked(global.fetch).mock.calls[1]?.[1]?.body))).toEqual({
+      prompt,
+      answer,
+      expectedRevision: 7,
+    });
     expect(new Set(paths)).not.toContain('/api/study');
   });
 

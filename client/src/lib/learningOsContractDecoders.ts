@@ -155,6 +155,7 @@ export function decodeStudyCardSummary(value: unknown): StudyCardSummary {
   string(card.id, 'study card.id');
   if (card.syncId !== undefined) string(card.syncId, 'study card.syncId');
   nullableString(card.noteId, 'study card.noteId');
+  nonNegativeInteger(card.revision, 'study card.revision');
   string(card.cardType, 'study card.cardType');
   record(card.prompt, 'study card.prompt');
   record(card.answer, 'study card.answer');

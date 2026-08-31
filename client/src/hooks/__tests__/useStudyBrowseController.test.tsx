@@ -253,7 +253,12 @@ describe('useStudyBrowseController', () => {
     const answer: StudyAnswerPayload = { expression: '会社', meaning: 'business' };
     await act(async () => result.current.saveSelectedCard({ prompt, answer }));
 
-    expect(updateStudyCardMock).toHaveBeenCalledWith({ cardId: 'card-1', prompt, answer });
+    expect(updateStudyCardMock).toHaveBeenCalledWith({
+      cardId: 'card-1',
+      expectedRevision: 0,
+      prompt,
+      answer,
+    });
     expect(detailRefetchMock).toHaveBeenCalledTimes(1);
     expect(browserRefetchMock).toHaveBeenCalledTimes(1);
   });

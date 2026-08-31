@@ -12,6 +12,7 @@ const currentCard: StudyCardSummary = {
   id: '0191f917-f689-7d3f-9988-56aa3149a101',
   syncId: '01arz3ndektsv4rrffq69g5fav',
   noteId: null,
+  revision: 0,
   cardType: 'recognition' as const,
   prompt: { cueText: '会社を辞めました。' },
   answer: { expression: '会社を辞めました。', meaning: 'I left the company.' },

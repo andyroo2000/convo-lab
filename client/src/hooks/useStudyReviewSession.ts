@@ -1054,6 +1054,7 @@ const useStudyReviewSession = () => {
       stopAllAudio();
       const updatedCard = await updateCardMutation.mutateAsync({
         cardId: card.id,
+        expectedRevision: card.revision ?? 0,
         prompt: payload.prompt,
         answer: payload.answer,
       });
