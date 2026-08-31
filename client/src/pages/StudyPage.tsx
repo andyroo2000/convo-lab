@@ -444,6 +444,7 @@ const StudyPage = () => {
                   summary={reviewSession.sessionWrapUp}
                   caughtUp={reviewSession.reviewQueueExhausted}
                   achievements={[...reviewSession.completionAchievements].reverse()}
+                  isFinalizing={reviewSession.achievementCompletionRefreshPending}
                   onPractice={reviewSession.startToughestPractice}
                   onDone={() => {
                     const newest = [...reviewSession.completionAchievements].reverse()[0] ?? null;

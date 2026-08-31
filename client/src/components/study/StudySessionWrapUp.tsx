@@ -11,6 +11,7 @@ interface StudySessionWrapUpProps {
   summary: StudySessionWrapUpSummary;
   caughtUp: boolean;
   achievements: PresentedAchievement[];
+  isFinalizing: boolean;
   onPractice: (cards: StudyCardSummary[]) => void;
   onDone: () => void;
 }
@@ -35,6 +36,7 @@ const StudySessionWrapUp = ({
   summary,
   caughtUp,
   achievements,
+  isFinalizing,
   onPractice,
   onDone,
 }: StudySessionWrapUpProps) => {
@@ -154,8 +156,14 @@ const StudySessionWrapUp = ({
           </section>
         ) : null}
 
-        <button type="button" onClick={onDone} className="app-button-primary mt-1 w-full">
-          {t('wrapUp.done')}
+        <button
+          type="button"
+          onClick={onDone}
+          disabled={isFinalizing}
+          aria-busy={isFinalizing}
+          className="app-button-primary mt-1 w-full disabled:cursor-wait disabled:opacity-70"
+        >
+          {t(isFinalizing ? 'wrapUp.finalizing' : 'wrapUp.done')}
         </button>
       </div>
     </div>

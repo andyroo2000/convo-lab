@@ -46,7 +46,8 @@
     "misses_one": "{{count}}回ミス",
     "misses_other": "{{count}}回ミス",
     "cardFallback": "学習カード",
-    "done": "完了"
+    "done": "完了",
+    "finalizing": "最終処理中…"
   },
   "achievements": {
     "kicker": "実績",

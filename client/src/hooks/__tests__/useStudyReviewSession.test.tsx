@@ -1931,6 +1931,61 @@ describe('useStudyReviewSession', () => {
     expect(result.current.reviewSessionComplete).toBe(false);
   });
 
+  it('does not consume the achievement session while completion refresh is pending', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: { ...baseOverview, dueCount: 1, reviewCount: 1, totalCards: 1 },
+      cards: [baseCardOne],
+    });
+    reviewMutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-log-1',
+      card: baseCardOne,
+      overview: { ...baseOverview, dueCount: 0, reviewCount: 0 },
+    });
+    const deferredEvaluation = createDeferred<AchievementProgress>();
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    getAchievementProgressMock.mockReturnValueOnce(deferredEvaluation.promise);
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
+
+    await waitFor(() => expect(result.current.achievementCompletionRefreshPending).toBe(true));
+    act(() => result.current.finishReviewSession());
+
+    expect(result.current.focusMode).toBe(true);
+    expect(
+      JSON.parse(
+        window.localStorage.getItem(
+          'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
+        ) ?? '{}'
+      ).activeSession
+    ).toBeDefined();
+
+    await act(async () => {
+      deferredEvaluation.resolve(emptyAchievementProgress);
+      await deferredEvaluation.promise;
+    });
+    await waitFor(() => expect(result.current.achievementCompletionRefreshPending).toBe(false));
+    act(() => result.current.finishReviewSession());
+
+    expect(result.current.focusMode).toBe(false);
+    expect(
+      JSON.parse(
+        window.localStorage.getItem(
+          'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
+        ) ?? '{}'
+      ).activeSession
+    ).toBeNull();
+  });
+
   it('keeps the newest completion refresh authoritative after undo and re-ending', async () => {
     reviewMutateAsyncMock
       .mockResolvedValueOnce({
@@ -1949,7 +2004,8 @@ describe('useStudyReviewSession', () => {
       overview: { ...baseOverview, dueCount: 1, reviewCount: 1 },
     });
     const firstEvaluation = createDeferred<AchievementProgress>();
-    const secondEvaluation = createDeferred<AchievementProgress>();
+    const postUndoEvaluation = createDeferred<AchievementProgress>();
+    const latestCompletionEvaluation = createDeferred<AchievementProgress>();
 
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
@@ -1960,7 +2016,8 @@ describe('useStudyReviewSession', () => {
     });
     getAchievementProgressMock
       .mockReturnValueOnce(firstEvaluation.promise)
-      .mockReturnValueOnce(secondEvaluation.promise);
+      .mockReturnValueOnce(postUndoEvaluation.promise)
+      .mockReturnValueOnce(latestCompletionEvaluation.promise);
 
     act(() => result.current.revealCurrentCard());
     await act(async () => {
@@ -1986,12 +2043,17 @@ describe('useStudyReviewSession', () => {
 
     await act(async () => {
       firstEvaluation.resolve(emptyAchievementProgress);
-      await undoPromise;
+      await firstEvaluation.promise;
     });
     await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(3));
+    await act(async () => {
+      postUndoEvaluation.resolve(emptyAchievementProgress);
+      await undoPromise;
+    });
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(4));
 
     await act(async () => {
-      secondEvaluation.resolve({
+      latestCompletionEvaluation.resolve({
         ...emptyAchievementProgress,
         metricValues: { 'mastery.burned': 100 },
         awards: [
@@ -2001,7 +2063,7 @@ describe('useStudyReviewSession', () => {
           },
         ],
       });
-      await secondEvaluation.promise;
+      await latestCompletionEvaluation.promise;
     });
 
     await waitFor(() => {

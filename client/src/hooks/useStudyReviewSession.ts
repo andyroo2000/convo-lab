@@ -106,6 +106,8 @@ const useStudyReviewSession = () => {
   const [achievementProgress, setAchievementProgress] = useState<AchievementProgress | null>(null);
   const [currentAchievementIndex, setCurrentAchievementIndex] = useState(0);
   const [achievementCelebrationPresented, setAchievementCelebrationPresented] = useState(false);
+  const [achievementCompletionRefreshPending, setAchievementCompletionRefreshPending] =
+    useState(false);
   const [practiceCards, setPracticeCards] = useState<StudyCardSummary[] | null>(null);
   const [practiceInitialCount, setPracticeInitialCount] = useState(0);
   const requestGuardRef = useRef(createStudyReviewRequestGuard());
@@ -600,6 +602,7 @@ const useStudyReviewSession = () => {
     const requestId = achievementCompletionRequestIdRef.current + 1;
     achievementCompletionRequestIdRef.current = requestId;
     activeAchievementCompletionRequestRef.current = requestId;
+    setAchievementCompletionRefreshPending(true);
     setSessionWasEnded(true);
 
     const currentAwards = achievementProgress?.awards ?? [];
@@ -638,6 +641,7 @@ const useStudyReviewSession = () => {
             activeAchievementCompletionRequestRef.current === requestId
           ) {
             activeAchievementCompletionRequestRef.current = null;
+            setAchievementCompletionRefreshPending(false);
           }
         }
       })(),
@@ -658,6 +662,7 @@ const useStudyReviewSession = () => {
     }
     achievementCompletionRequestIdRef.current += 1;
     activeAchievementCompletionRequestRef.current = null;
+    setAchievementCompletionRefreshPending(false);
     achievementSessionStore?.cancelCurrentSession();
     stopAllAudio();
     resetUndo();
@@ -1181,6 +1186,7 @@ const useStudyReviewSession = () => {
       if (achievementCompletion) {
         achievementCompletionRequestIdRef.current += 1;
         activeAchievementCompletionRequestRef.current = null;
+        setAchievementCompletionRefreshPending(false);
         achievementSessionStore?.reopenCompletion(
           achievementCompletion.id,
           achievementProgress?.awards ?? []
@@ -1192,7 +1198,7 @@ const useStudyReviewSession = () => {
       }
       undoAchievementReview(action.reviewLogId);
       try {
-        await syncAchievements();
+        await syncAchievements(true, true);
       } catch {
         // The successful review undo is authoritative; achievement refresh retries later.
       }
@@ -1262,6 +1268,7 @@ const useStudyReviewSession = () => {
       pendingReviewOperationRef.current = null;
       achievementCompletionRequestIdRef.current += 1;
       activeAchievementCompletionRequestRef.current = null;
+      setAchievementCompletionRefreshPending(false);
       setReviewRetryAvailable(false);
       setReviewConflictRecovered(false);
       canSurfaceAsyncSessionErrorRef.current = true;
@@ -1415,11 +1422,17 @@ const useStudyReviewSession = () => {
   ]);
 
   const finishReviewSession = useCallback(() => {
+    if (achievementCompletionRefreshPending) return;
     if (achievementCompletion) {
       achievementSessionStore?.consumeCompletion(achievementCompletion.id);
     }
     exitFocusMode();
-  }, [achievementCompletion, achievementSessionStore, exitFocusMode]);
+  }, [
+    achievementCompletion,
+    achievementCompletionRefreshPending,
+    achievementSessionStore,
+    exitFocusMode,
+  ]);
 
   const loadNextLessonBatch = useCallback(async () => {
     answeredCardIdsRef.current = new Set();
@@ -1558,6 +1571,7 @@ const useStudyReviewSession = () => {
     achievementCompletion,
     achievementCatalog,
     achievementProgress,
+    achievementCompletionRefreshPending,
     currentAchievement,
     currentAchievementIndex,
     completionAchievements,
