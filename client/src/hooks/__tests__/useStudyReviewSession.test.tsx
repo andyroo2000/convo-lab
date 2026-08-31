@@ -767,6 +767,32 @@ describe('useStudyReviewSession', () => {
   it('surfaces the mastery rail after a passing review even when the level stays put', async () => {
     const guruCard = {
       ...baseCardOne,
+      answer: { ...baseCardOne.answer, expression: 'raw mastery label' },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: 'server mastery label',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: null,
+          ruby: null,
+          restored: null,
+          meaning: null,
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
       masteryLevel: 'guru',
     };
     startStudySessionMock.mockResolvedValueOnce({
@@ -805,7 +831,7 @@ describe('useStudyReviewSession', () => {
     expect(result.current.masteryAnimation).toMatchObject({
       id: 'review-log-pass',
       card: { id: guruCard.id },
-      label: '会社',
+      label: 'server mastery label',
       fromLevel: 'guru',
       toLevel: 'guru',
       passed: true,
