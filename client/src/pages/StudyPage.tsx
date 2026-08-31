@@ -25,6 +25,7 @@ import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 import useStudyReviewSession from '../hooks/useStudyReviewSession';
 import { useStudyActivityActions } from '../contexts/StudyActivityContext';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 
 const StudyPage = () => {
   const { t } = useTranslation('study');
@@ -33,6 +34,8 @@ const StudyPage = () => {
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
+  const capabilitiesQuery = useStudyCapabilities(enabled);
+  const cardAuthoringCapabilities = capabilitiesQuery.data?.cardAuthoring;
   const availableCount =
     (overviewQuery.data?.failedDueCount ?? 0) + (overviewQuery.data?.dueCount ?? 0);
   const reviewSession = useStudyReviewSession();
@@ -518,6 +521,12 @@ const StudyPage = () => {
                       {reviewSession.editing && !masteryAnimation ? (
                         <StudyCardEditor
                           card={displayedCard}
+                          defaultAnswerAudioVoiceId={
+                            cardAuthoringCapabilities?.defaultAnswerAudioVoiceId
+                          }
+                          imagePromptMaxLength={
+                            cardAuthoringCapabilities?.limits.imagePromptCharacters
+                          }
                           isSaving={reviewSession.updateCardMutation.isPending}
                           isDeleting={reviewSession.deleteCardMutation.isPending}
                           isRegeneratingAudio={reviewSession.regenerateAudioMutation.isPending}

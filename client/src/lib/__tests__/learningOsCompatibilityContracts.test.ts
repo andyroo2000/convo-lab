@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import type { StudyCardSummary } from '@languageflow/shared/src/types';
+import type { StudyCardSummary, StudyClientCapabilities } from '@languageflow/shared/src/types';
 
 import type { DailyAudioPractice } from '../../types';
 import type { StudyTimeAnalytics } from '../../types/studyActivity';
@@ -27,9 +27,11 @@ import {
   decodeGoogleCalendarConnectionStatus,
   decodeKnownKanjiResponse,
   decodeStudyCardSummary,
+  decodeStudyClientCapabilities,
   decodeStudyTimeAnalytics,
   decodeWeeklyStudyRecap,
 } from '../learningOsContractDecoders';
+import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
 
 interface CompatibilityManifestEntry {
   id: string;
@@ -309,5 +311,28 @@ describe('vendored Learning OS compatibility fixtures', () => {
     expect(() => decodeStudyCardSummary({ id: 'card-without-state' })).toThrow(
       'study card.noteId must be a string'
     );
+  });
+});
+
+describe('Study client capabilities contract', () => {
+  it('decodes the authenticated capability document', () => {
+    const decoded = decodeStudyClientCapabilities(studyCapabilitiesFixture);
+
+    expectTypeOf(decoded).toEqualTypeOf<StudyClientCapabilities>();
+    expect(decoded.settings.lessonBatchSize).toEqual({ default: 5, min: 3, max: 10 });
+    expect(decoded.cardAuthoring.limits.imagePromptCharacters).toBe(1000);
+    expect(decoded.imports.maxArchiveBytes).toBe(2147483648);
+  });
+
+  it('rejects unsupported versions and invalid default ranges', () => {
+    expect(() =>
+      decodeStudyClientCapabilities({ ...studyCapabilitiesFixture, version: 2 })
+    ).toThrow('study capabilities.version is not supported');
+    expect(() =>
+      decodeStudyClientCapabilities({
+        ...studyCapabilitiesFixture,
+        dailyAudio: { targetDurationMinutes: { default: 90, min: 5, max: 60 } },
+      })
+    ).toThrow('must have an ordered range containing its default');
   });
 });

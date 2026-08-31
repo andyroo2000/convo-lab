@@ -8,11 +8,13 @@ import StudyBrowseFilters from '../components/study/browse/StudyBrowseFilters';
 import StudyBrowseNoteList from '../components/study/browse/StudyBrowseNoteList';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import useStudyBrowseController from '../hooks/useStudyBrowseController';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 
 const StudyBrowsePage = () => {
   const { t } = useTranslation('study');
   const { isFeatureEnabled } = useFeatureFlags();
   const controller = useStudyBrowseController(isFeatureEnabled('flashcardsEnabled'));
+  const capabilitiesQuery = useStudyCapabilities(isFeatureEnabled('flashcardsEnabled'));
   const hasSelection = Boolean(controller.selectedNoteId);
 
   useEffect(() => {
@@ -61,7 +63,10 @@ const StudyBrowsePage = () => {
           <StudyBrowseNoteList controller={controller} />
         </div>
         <div className={`min-w-0 ${hasSelection ? '' : 'hidden xl:block'}`}>
-          <StudyBrowseDetail controller={controller} />
+          <StudyBrowseDetail
+            controller={controller}
+            cardAuthoringCapabilities={capabilitiesQuery.data?.cardAuthoring}
+          />
         </div>
       </section>
     </div>

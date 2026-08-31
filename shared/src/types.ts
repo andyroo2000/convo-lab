@@ -1,17 +1,13 @@
 // Shared type definitions used across client and server
 
 export {
-  MAX_STUDY_ASYNC_IMPORT_BYTES,
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
-  STUDY_NEW_CARDS_PER_DAY_DEFAULT,
-  STUDY_NEW_CARDS_PER_DAY_MAX,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_COMMIT_MAX_COUNT,
-  STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
   STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT,
   STUDY_VOCAB_BUNDLE_CARD_COUNT,
   STUDY_VOCAB_BUNDLE_SENTENCE_COUNT,
@@ -45,6 +41,38 @@ export type StudyCardCreationKind =
 export type StudyCardImageRole = 'prompt' | 'answer' | 'both';
 
 export type StudyCardImagePlacement = 'none' | StudyCardImageRole;
+
+export interface StudyIntegerCapability {
+  default: number;
+  min: number;
+  max: number;
+}
+
+export interface StudyClientCapabilities {
+  version: number;
+  settings: {
+    newCardsPerDay: StudyIntegerCapability;
+    lessonBatchSize: StudyIntegerCapability;
+    reviewTimeBudgetMinutes: StudyIntegerCapability;
+    newCardLaneWeights: Record<keyof StudyNewCardLaneWeights, StudyIntegerCapability>;
+  };
+  cardAuthoring: {
+    creationKinds: StudyCardCreationKind[];
+    imagePlacements: StudyCardImagePlacement[];
+    previewAudioRoles: Array<'prompt' | 'answer'>;
+    defaultAnswerAudioVoiceId: string;
+    defaultFemaleAnswerAudioVoiceId: string;
+    limits: {
+      combinedPayloadBytes: number;
+      payloadDepth: number;
+      imagePromptCharacters: number;
+      imageUploadBytes: number;
+    };
+  };
+  dailyAudio: { targetDurationMinutes: StudyIntegerCapability };
+  offlineReserve: { days: number; maxScheduledCards: number };
+  imports: { maxArchiveBytes: number };
+}
 
 export type StudyQueueState = 'new' | 'learning' | 'review' | 'relearning' | 'suspended' | 'buried';
 

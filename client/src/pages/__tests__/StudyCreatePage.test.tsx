@@ -4,14 +4,17 @@ import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  DEFAULT_NARRATOR_VOICES,
-  MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
-} from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
 import type { StudyManualCardDraft } from '@languageflow/shared/src/types';
 
 import StudyCreatePage from '../StudyCreatePage';
 import { writeStudyDraftIntent } from '../../lib/studyDraftIntentStore';
+import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
+
+const MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS = [
+  studyCapabilitiesFixture.cardAuthoring.defaultAnswerAudioVoiceId,
+  studyCapabilitiesFixture.cardAuthoring.defaultFemaleAnswerAudioVoiceId,
+] as const;
 
 async function chooseAnswerAudioVoice(name: RegExp | string) {
   await userEvent.click(screen.getByLabelText('Answer audio voice'));
@@ -137,6 +140,10 @@ vi.mock('../../hooks/useStudy', () => ({
 
 vi.mock('../../hooks/useEffectiveUser', () => ({
   default: () => effectiveUserState,
+}));
+
+vi.mock('../../hooks/useStudyCapabilities', () => ({
+  useStudyCapabilities: () => ({ data: studyCapabilitiesFixture }),
 }));
 
 vi.mock('../../components/common/VoicePreview', () => ({

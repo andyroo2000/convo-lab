@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
-import { MAX_STUDY_ASYNC_IMPORT_BYTES } from '@languageflow/shared/src/studyConstants';
 import type { StudyImportResult } from '@languageflow/shared/src/types';
 
 import StudyFormField from '../components/study/StudyFormField';
@@ -13,10 +12,10 @@ import {
   getStudyImportStatus,
   uploadStudyImportArchive,
 } from '../hooks/useStudy';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 
 const STUDY_IMPORT_ACTIVE_JOB_STORAGE_KEY = 'study.import.activeJobId';
 const STUDY_IMPORT_POLL_TIMEOUT_MS = 30 * 60 * 1000;
-const STUDY_IMPORT_MAX_SIZE_GB = Math.floor(MAX_STUDY_ASYNC_IMPORT_BYTES / (1024 * 1024 * 1024));
 
 type ImportPhase =
   | 'idle'
@@ -70,6 +69,9 @@ function isTerminalImportResult(result: StudyImportResult): boolean {
 
 const StudyImportPage = () => {
   const { t } = useTranslation('study');
+  const capabilitiesQuery = useStudyCapabilities();
+  const maxArchiveBytes = capabilitiesQuery.data?.imports.maxArchiveBytes;
+  const maxArchiveGb = maxArchiveBytes ? Math.floor(maxArchiveBytes / (1024 * 1024 * 1024)) : null;
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<ImportPhase>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -243,8 +245,9 @@ const StudyImportPage = () => {
       return;
     }
 
-    if (file.size > MAX_STUDY_ASYNC_IMPORT_BYTES) {
-      setError(t('import.tooLarge', { maxGb: STUDY_IMPORT_MAX_SIZE_GB }));
+    if (!maxArchiveBytes || maxArchiveGb === null) return;
+    if (file.size > maxArchiveBytes) {
+      setError(t('import.tooLarge', { maxGb: maxArchiveGb }));
       return;
     }
 
@@ -337,9 +340,9 @@ const StudyImportPage = () => {
                   return;
                 }
 
-                if (nextFile.size > MAX_STUDY_ASYNC_IMPORT_BYTES) {
+                if (maxArchiveBytes && nextFile.size > maxArchiveBytes) {
                   setFile(null);
-                  setError(t('import.tooLarge', { maxGb: STUDY_IMPORT_MAX_SIZE_GB }));
+                  setError(t('import.tooLarge', { maxGb: maxArchiveGb }));
                   setImportResult(null);
                   return;
                 }
@@ -358,7 +361,9 @@ const StudyImportPage = () => {
             <p className="font-semibold text-navy">{t('import.behaviorTitle')}</p>
             <p className="mt-1">{t('import.behaviorDeck')}</p>
             <p className="mt-1">{t('import.behaviorMedia')}</p>
-            <p className="mt-1">{t('import.largeFileHint', { maxGb: STUDY_IMPORT_MAX_SIZE_GB })}</p>
+            {maxArchiveGb === null ? null : (
+              <p className="mt-1">{t('import.largeFileHint', { maxGb: maxArchiveGb })}</p>
+            )}
           </div>
 
           {file ? (
@@ -439,7 +444,7 @@ const StudyImportPage = () => {
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
-              disabled={isBusy}
+              disabled={isBusy || !file || !maxArchiveBytes}
               className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isBusy ? t('import.importing') : t('import.submit')}

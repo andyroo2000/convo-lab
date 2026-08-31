@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  DEFAULT_NARRATOR_VOICES,
-  MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
-} from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
 import type { StudyMediaRef } from '@languageflow/shared/src/types';
 
 import {
@@ -22,6 +19,7 @@ const imageRef: StudyMediaRef = {
   mediaKind: 'image',
   source: 'generated',
 };
+const defaultVoiceIds = ['server-male', 'server-female'] as const;
 
 describe('studyCardCreationModel', () => {
   it('maps creation kinds to persisted card types', () => {
@@ -41,14 +39,16 @@ describe('studyCardCreationModel', () => {
   });
 
   it('randomly chooses Ren or Yumi as the manual default voice', () => {
-    expect(defaultVoiceIdForStudyCardCreationKind('audio-recognition')).toMatch(/^fishaudio:/);
-    expect(MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS).toContain(
-      defaultVoiceIdForStudyCardCreationKind('text-recognition')
+    expect(defaultVoiceIdForStudyCardCreationKind('audio-recognition', defaultVoiceIds, 0)).toBe(
+      'server-male'
     );
-    expect(isStudyCardCreationDefaultVoice(MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0])).toBe(true);
-    expect(isStudyCardCreationDefaultVoice(MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[1])).toBe(true);
-    expect(isStudyCardCreationDefaultVoice(DEFAULT_NARRATOR_VOICES.ja)).toBe(true);
-    expect(isStudyCardCreationDefaultVoice('custom-voice')).toBe(false);
+    expect(defaultVoiceIdForStudyCardCreationKind('text-recognition', defaultVoiceIds, 0.9)).toBe(
+      'server-female'
+    );
+    expect(isStudyCardCreationDefaultVoice('server-male', defaultVoiceIds)).toBe(true);
+    expect(isStudyCardCreationDefaultVoice('server-female', defaultVoiceIds)).toBe(true);
+    expect(isStudyCardCreationDefaultVoice(DEFAULT_NARRATOR_VOICES.ja, defaultVoiceIds)).toBe(true);
+    expect(isStudyCardCreationDefaultVoice('custom-voice', defaultVoiceIds)).toBe(false);
   });
 
   it('applies a generated image to front, back, or both sides', () => {

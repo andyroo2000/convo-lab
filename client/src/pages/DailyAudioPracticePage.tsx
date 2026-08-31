@@ -15,7 +15,6 @@ import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-
 import ScriptTrackPlayer from '../components/audio/ScriptTrackPlayer';
 import ConfirmModal from '../components/common/ConfirmModal';
 import {
-  DAILY_AUDIO_DURATION_OPTIONS,
   dailyAudioPracticeKeys,
   type DailyAudioDurationMinutes,
   useCreateDailyAudioPractice,
@@ -23,10 +22,18 @@ import {
   useDailyAudioPracticeStatus,
   useRecentDailyAudioPractice,
 } from '../hooks/useDailyAudioPractice';
+import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 
 const GENERATION_STALE_AFTER_MS = 90 * 60 * 1000;
 const SWIPE_THRESHOLD_PX = 50;
-const DEFAULT_DAILY_AUDIO_DURATION_MINUTES: DailyAudioDurationMinutes = 60;
+
+function dailyAudioDurationOptions(min: number, max: number, defaultValue: number): number[] {
+  const options = [min, defaultValue, max];
+  for (let duration = Math.ceil(min / 15) * 15; duration <= max; duration += 15) {
+    options.push(duration);
+  }
+  return [...new Set(options)].sort((left, right) => left - right);
+}
 
 function localPracticeDate() {
   const now = new Date();
@@ -109,13 +116,30 @@ const DailyAudioPracticePage = () => {
   const [selectedPracticeId, setSelectedPracticeId] = useState<string | undefined>();
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const [confirmingRegeneration, setConfirmingRegeneration] = useState(false);
-  const [targetDurationMinutes, setTargetDurationMinutes] = useState<DailyAudioDurationMinutes>(
-    DEFAULT_DAILY_AUDIO_DURATION_MINUTES
+  const capabilitiesQuery = useStudyCapabilities();
+  const durationCapability = capabilitiesQuery.data?.dailyAudio.targetDurationMinutes;
+  const durationOptions = useMemo(
+    () =>
+      durationCapability
+        ? dailyAudioDurationOptions(
+            durationCapability.min,
+            durationCapability.max,
+            durationCapability.default
+          )
+        : [],
+    [durationCapability]
   );
+  const [targetDurationMinutes, setTargetDurationMinutes] =
+    useState<DailyAudioDurationMinutes | null>(null);
   const [generationClock, setGenerationClock] = useState(() => Date.now());
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const dayRegionRef = useRef<HTMLDivElement>(null);
   const createPractice = useCreateDailyAudioPractice();
+  useEffect(() => {
+    if (durationCapability && targetDurationMinutes === null) {
+      setTargetDurationMinutes(durationCapability.default);
+    }
+  }, [durationCapability, targetDurationMinutes]);
   const practices = useMemo(
     () =>
       [...(recentQuery.data ?? [])].sort((a, b) => b.practiceDate.localeCompare(a.practiceDate)),
@@ -210,6 +234,7 @@ const DailyAudioPracticePage = () => {
 
   const handleGenerate = async () => {
     try {
+      if (targetDurationMinutes === null) return;
       const nextPractice = await createPractice.mutateAsync(targetDurationMinutes);
       setSelectedPracticeId(nextPractice.id);
     } catch {
@@ -247,10 +272,12 @@ const DailyAudioPracticePage = () => {
             </p>
           </div>
           <div className="space-y-3">
-            <fieldset disabled={createPractice.isPending || activeTodayGeneration}>
+            <fieldset
+              disabled={createPractice.isPending || activeTodayGeneration || !durationCapability}
+            >
               <legend className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Edition length</legend>
-              <div className="grid grid-cols-4 gap-1" aria-label="Edition length">
-                {DAILY_AUDIO_DURATION_OPTIONS.map((duration) => (
+              <div className="grid grid-cols-2 gap-1 sm:grid-cols-5" aria-label="Edition length">
+                {durationOptions.map((duration) => (
                   <button
                     key={duration}
                     type="button"
@@ -270,7 +297,9 @@ const DailyAudioPracticePage = () => {
             <button
               type="button"
               onClick={handleGenerateRequest}
-              disabled={createPractice.isPending || activeTodayGeneration}
+              disabled={
+                createPractice.isPending || activeTodayGeneration || targetDurationMinutes === null
+              }
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 border-2 border-navy/20 bg-navy px-5 py-3 font-black uppercase tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {activeTodayGeneration ? (

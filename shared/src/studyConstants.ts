@@ -1,13 +1,6 @@
-export const MAX_STUDY_ASYNC_IMPORT_BYTES = 2 * 1024 * 1024 * 1024;
-
 export const STUDY_BROWSER_PAGE_SIZE_DEFAULT = 100;
 export const STUDY_BROWSER_PAGE_SIZE_MAX = 100;
 
-export const STUDY_NEW_CARDS_PER_DAY_DEFAULT = 20;
-export const STUDY_NEW_CARDS_PER_DAY_MAX = 1000;
-export const STUDY_LESSON_BATCH_SIZE_DEFAULT = 5;
-export const STUDY_LESSON_BATCH_SIZE_MIN = 3;
-export const STUDY_LESSON_BATCH_SIZE_MAX = 10;
 export const STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT = 100;
 export const STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX = 500;
 
@@ -17,7 +10,6 @@ export const STUDY_CANDIDATE_CONTEXT_MAX_LENGTH = 2000;
 export const STUDY_CANDIDATE_COMMIT_MAX_COUNT = 20;
 export const STUDY_VOCAB_BUNDLE_SENTENCE_COUNT = 3;
 export const STUDY_VOCAB_BUNDLE_CARD_COUNT = 11;
-export const STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH = 1000;
 // Caps automatic lazy image backfill per generation; tune alongside the manual
 // image-regeneration route limit so image API spend stays predictable.
 export const STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT = 3;

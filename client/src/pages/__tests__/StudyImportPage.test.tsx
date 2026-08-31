@@ -4,6 +4,11 @@ import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import StudyImportPage from '../StudyImportPage';
+import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
+
+vi.mock('../../hooks/useStudyCapabilities', () => ({
+  useStudyCapabilities: () => ({ data: studyCapabilitiesFixture }),
+}));
 
 const {
   cancelStudyImportUploadMock,

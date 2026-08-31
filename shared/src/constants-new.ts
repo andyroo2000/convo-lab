@@ -242,22 +242,6 @@ export const DEFAULT_NARRATOR_VOICES = {
   ja: 'ja-JP-Wavenet-C', // Shohei - Male (Google)
 } as const;
 
-export const MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS = [
-  'fishaudio:abb4362e736f40b7b5716f4fafcafa9f', // Ren - Wiry and assertive
-  'fishaudio:9639f090aa6346329d7d3aca7e6b7226', // Yumi - Young Tokyo mother
-] as const;
-
-export const STUDY_ANSWER_AUDIO_MALE_VOICE_ID = MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0];
-export const STUDY_ANSWER_AUDIO_FEMALE_VOICE_ID = MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[1];
-export const DEFAULT_STUDY_ANSWER_AUDIO_VOICE_ID = STUDY_ANSWER_AUDIO_MALE_VOICE_ID;
-
-export function selectManualStudyCardDefaultVoiceId(randomValue = Math.random()): string {
-  const boundedRandomValue = Math.min(Math.max(randomValue, 0), 0.999999999999);
-  return MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[
-    Math.floor(boundedRandomValue * MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS.length)
-  ];
-}
-
 // Default L2 speaker voices for courses (used when no voice is specified at course creation)
 export const DEFAULT_SPEAKER_VOICES: Record<string, { speaker1: string; speaker2: string }> = {
   ja: {
