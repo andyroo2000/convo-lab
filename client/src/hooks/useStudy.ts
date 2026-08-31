@@ -447,69 +447,10 @@ export async function reorderStudyNewCardQueue(cardIds: string[]) {
   });
 }
 
-const MAX_REORDER_CARD_IDS = 500;
-
-async function reorderStudyNewCardQueuePrefix(
-  cardId: string,
-  precedingCardIds: string[]
-): Promise<StudyNewCardQueueResponse> {
-  const precedingChunk = precedingCardIds.slice(-(MAX_REORDER_CARD_IDS - 1));
-  const remainingPrecedingCardIds = precedingCardIds.slice(
-    0,
-    precedingCardIds.length - precedingChunk.length
-  );
-  const result = await reorderStudyNewCardQueue([cardId, ...precedingChunk]);
-
-  if (remainingPrecedingCardIds.length === 0) return result;
-  return reorderStudyNewCardQueuePrefix(cardId, remainingPrecedingCardIds);
-}
-
-async function getStudyNewCardQueuePrefix(
-  cardId: string,
-  cursor: string | null = null,
-  precedingCardIds: string[] = [],
-  firstPage: StudyNewCardQueueResponse | null = null
-): Promise<{ firstPage: StudyNewCardQueueResponse; precedingCardIds: string[] }> {
-  const page = await getStudyNewCardQueue({ cursor, limit: 100 });
-  const initialPage = firstPage ?? page;
-  const selectedIndex = page.items.findIndex((item) => item.id === cardId);
-
-  if (selectedIndex >= 0) {
-    return {
-      firstPage: initialPage,
-      precedingCardIds: [
-        ...precedingCardIds,
-        ...page.items.slice(0, selectedIndex).map((item) => item.id),
-      ],
-    };
-  }
-
-  if (page.nextCursor) {
-    return getStudyNewCardQueuePrefix(
-      cardId,
-      page.nextCursor,
-      [...precedingCardIds, ...page.items.map((item) => item.id)],
-      initialPage
-    );
-  }
-
-  if (initialPage.items.length === 0) {
-    throw new Error('No active new-card queue is available.');
-  }
-
-  throw new Error('The selected card is not in the active new-card queue.');
-}
-
 export async function promoteStudyNewCardToFront(cardId: string) {
-  const { firstPage, precedingCardIds } = await getStudyNewCardQueuePrefix(cardId);
-  if (precedingCardIds.length === 0) return firstPage;
-
-  // The reorder API assigns the supplied cards to their existing queue
-  // positions in the requested order. Including every card ahead of the
-  // selected card shifts that prefix down instead of swapping position 1.
-  // Large prefixes are shifted from the selected card backward in bounded
-  // chunks because the backend accepts at most 500 card IDs per request.
-  return reorderStudyNewCardQueuePrefix(cardId, precedingCardIds);
+  return apiRequest<StudyNewCardQueueResponse>(`/new-queue/${encodeURIComponent(cardId)}/promote`, {
+    method: 'POST',
+  });
 }
 
 export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {

@@ -603,135 +603,44 @@ describe('useStudy request helpers', () => {
     expectJsonMutation(5);
   });
 
-  it('promotes a new card by shifting every preceding queue card down', async () => {
-    vi.mocked(global.fetch)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          items: [{ id: 'card-first' }, { id: 'card-second' }],
-          total: 4,
-          limit: 100,
-          nextCursor: 'cursor-2',
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          items: [{ id: 'card-third' }, { id: 'card-selected' }],
-          total: 4,
-          limit: 100,
-          nextCursor: null,
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ items: [], total: 2, limit: 50, nextCursor: null }),
-      } as Response);
-
-    await promoteStudyNewCardToFront('card-selected');
-
-    const fetchMock = vi.mocked(global.fetch);
-    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-      `${STUDY_API_BASE}/new-queue?limit=100`,
-      `${STUDY_API_BASE}/new-queue?cursor=cursor-2&limit=100`,
-      `${STUDY_API_BASE}/new-queue/reorder`,
-    ]);
-    expect(fetchMock.mock.calls[2]?.[1]).toEqual(
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({
-          cardIds: ['card-selected', 'card-first', 'card-second', 'card-third'],
-        }),
-      })
-    );
-  });
-
-  it('does not reorder a card that is already first', async () => {
+  it('promotes a new card through the atomic Learning OS action', async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => ({
-        items: [{ id: 'card-selected' }],
+        items: [{ id: 'card/selected' }],
         total: 1,
-        limit: 100,
+        limit: 50,
         nextCursor: null,
       }),
     } as Response);
 
-    await promoteStudyNewCardToFront('card-selected');
+    await expect(promoteStudyNewCardToFront('card/selected')).resolves.toEqual({
+      items: [{ id: 'card/selected' }],
+      total: 1,
+      limit: 50,
+      nextCursor: null,
+    });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${STUDY_API_BASE}/new-queue/card%2Fselected/promote`,
+      expect.objectContaining({ method: 'POST' })
+    );
+    const requestInit = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(headers.get('Accept')).toBe('application/json');
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
   });
 
-  it('promotes through long queue prefixes in bounded reorder batches', async () => {
-    const precedingCardIds = Array.from({ length: 501 }, (_, index) => `card-${index}`);
-    vi.mocked(global.fetch)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          items: [...precedingCardIds, 'card-selected'].map((id) => ({ id })),
-          total: 502,
-          limit: 100,
-          nextCursor: null,
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ items: [], total: 502, limit: 100, nextCursor: null }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ items: [], total: 502, limit: 100, nextCursor: null }),
-      } as Response);
-
-    await promoteStudyNewCardToFront('card-selected');
-
-    const fetchMock = vi.mocked(global.fetch);
-    const firstBatch = JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body));
-    const secondBatch = JSON.parse(String((fetchMock.mock.calls[2]?.[1] as RequestInit).body));
-
-    expect(firstBatch.cardIds).toEqual(['card-selected', ...precedingCardIds.slice(2)]);
-    expect(firstBatch.cardIds).toHaveLength(500);
-    expect(secondBatch.cardIds).toEqual(['card-selected', 'card-0', 'card-1']);
-    expect(global.fetch).toHaveBeenCalledTimes(3);
-  });
-
-  it('rejects promotion when the active new-card queue is empty', async () => {
+  it('surfaces atomic promotion errors from Learning OS', async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ items: [], total: 0, limit: 100, nextCursor: null }),
+      ok: false,
+      status: 404,
+      json: async () => ({ message: 'Not Found' }),
     } as Response);
 
-    await expect(promoteStudyNewCardToFront('card-selected')).rejects.toThrow(
-      'No active new-card queue is available.'
-    );
-
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('rejects promotion when the selected card is not in the active queue', async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        items: [{ id: 'card-first' }],
-        total: 1,
-        limit: 100,
-        nextCursor: null,
-      }),
-    } as Response);
-
-    await expect(promoteStudyNewCardToFront('card-selected')).rejects.toThrow(
-      'The selected card is not in the active new-card queue.'
-    );
-
+    await expect(promoteStudyNewCardToFront('card-selected')).rejects.toThrow('Not Found (404)');
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
