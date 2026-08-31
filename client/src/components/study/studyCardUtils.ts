@@ -39,8 +39,10 @@ export const getAudioMimeType = (url?: string | null, filename?: string | null) 
 export const getStudyCardAudio = (card: StudyCardSummary) =>
   card.prompt.cueAudio ?? card.answer.answerAudio ?? null;
 
-export const getStudyCardAudioUrl = (card: StudyCardSummary) =>
-  toAssetUrl(getStudyCardPresentation(card)?.answer.audio?.url ?? getStudyCardAudio(card)?.url);
+export const getStudyCardAudioUrl = (card: StudyCardSummary) => {
+  const presentation = getStudyCardPresentation(card);
+  return toAssetUrl(presentation ? presentation.answer.audio?.url : getStudyCardAudio(card)?.url);
+};
 
 export const isAudioLedPromptCard = (card: StudyCardSummary) =>
   getStudyCardPresentation(card)?.front.autoplayAudio ??

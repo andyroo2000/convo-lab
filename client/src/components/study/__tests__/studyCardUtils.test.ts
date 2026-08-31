@@ -149,4 +149,46 @@ describe('studyCardUtils', () => {
 
     expect(isMediaLedPromptCard(cardWithRawMedia)).toBe(false);
   });
+
+  it('does not resurrect raw audio that the server presentation suppresses', () => {
+    const presentedCard = {
+      ...card,
+      cardType: 'recognition' as const,
+      answer: {
+        answerAudio: {
+          filename: 'stale.mp3',
+          url: '/stale.mp3',
+          mediaKind: 'audio' as const,
+          source: 'imported' as const,
+        },
+      },
+      presentation: {
+        version: 1 as const,
+        front: {
+          mode: 'text' as const,
+          text: '会社',
+          ruby: null,
+          hint: null,
+          media: { audio: null, image: null },
+          autoplayAudio: false,
+        },
+        answer: {
+          heading: '会社',
+          ruby: null,
+          restored: null,
+          meaning: 'company',
+          sentences: {
+            japanese: { text: null, ruby: null },
+            english: { text: null, ruby: null },
+          },
+          notes: [],
+          media: { image: null },
+          audio: null,
+          pitchAccent: null,
+        },
+      },
+    } as StudyCardSummary;
+
+    expect(getStudyCardAudioUrl(presentedCard)).toBeNull();
+  });
 });
