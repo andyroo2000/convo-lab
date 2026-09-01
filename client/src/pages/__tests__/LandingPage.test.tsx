@@ -53,6 +53,12 @@ describe('LandingPage', () => {
       fireEvent.click(screen.getByTestId('landing-header-button-open-tools'));
       expect(mockNavigate).toHaveBeenCalledWith('/tools');
     });
+
+    it('navigates to the feature tour', () => {
+      renderPage();
+      fireEvent.click(screen.getByTestId('landing-header-button-features'));
+      expect(mockNavigate).toHaveBeenCalledWith('/features');
+    });
   });
 
   describe('unauthenticated user', () => {

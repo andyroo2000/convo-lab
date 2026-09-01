@@ -17,6 +17,14 @@ const LandingPage = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <button
                 type="button"
+                onClick={() => navigate('/features')}
+                className="hidden sm:inline-flex retro-landing-v3-nav-btn"
+                data-testid="landing-header-button-features"
+              >
+                Features
+              </button>
+              <button
+                type="button"
                 onClick={() => navigate('/tools')}
                 className="retro-landing-v3-nav-btn is-primary"
                 data-testid="landing-header-button-open-tools"

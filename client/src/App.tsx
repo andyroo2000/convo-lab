@@ -22,6 +22,7 @@ import './i18n';
 
 // Lazy load all page components for code splitting
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
@@ -88,6 +89,12 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
     description:
       'Practice Japanese date, time, money, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
     canonicalPath: '/',
+  },
+  '/features': {
+    title: 'ConvoLab Features | Japanese Study, Listening & Progress Tracking',
+    description:
+      'Explore how ConvoLab creates progressive Japanese study cards, schedules reviews, connects with WaniKani, and supports listening and study tracking.',
+    canonicalPath: '/features',
   },
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
@@ -215,6 +222,7 @@ const App = () => (
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/features" element={<FeaturesPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/tools" element={<ToolsPublicLayout />}>
                   <Route index element={<ToolsPage />} />
