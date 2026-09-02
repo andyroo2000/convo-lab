@@ -61,7 +61,8 @@ type FeatureMedia =
   | 'score-prompt'
   | 'goal-progress'
   | 'goal-results'
-  | 'pr-evidence';
+  | 'pr-evidence'
+  | 'review-bot';
 
 interface FeatureSlide {
   id: string;
@@ -279,6 +280,15 @@ const FEATURE_SLIDES: FeatureSlide[] = [
       'CodeScene commented directly on the diff: complex conditionals fell from 10 to 9, and cyclomatic complexity fell from 232 to 219. “Getting better” was visible before merge.',
     shortLabel: 'PR evidence',
     media: 'pr-evidence',
+  },
+  {
+    id: 'two-kinds-of-review',
+    kicker: 'A second set of eyes',
+    title: 'Code smells were only half the story.',
+    description:
+      'CodeScene stayed on top of complexity and code smells. Claude’s review bot was still useful for a different job: checking behavior, spotting logical errors and actual bugs, and pointing out missing tests.',
+    shortLabel: 'Two review layers',
+    media: 'review-bot',
   },
 ];
 
@@ -1119,6 +1129,41 @@ const PrEvidenceMedia = () => (
   </div>
 );
 
+const ReviewBotMedia = () => (
+  <div
+    className="feature-review-bot-media feature-media-panel"
+    aria-label="Claude review bot checking behavior and test coverage"
+  >
+    <figure>
+      <img
+        src="/presentation/claude-review-bot.png"
+        alt="Claude review bot comment examining the behavior and test coverage of a refactor"
+      />
+    </figure>
+    <aside>
+      <header>
+        <span>Claude review bot</span>
+        <b>Second set of eyes</b>
+      </header>
+      <blockquote>“One subtle improvement worth calling out…”</blockquote>
+      <ul>
+        <li>
+          <Check aria-hidden="true" />
+          Behavior and logic
+        </li>
+        <li>
+          <Check aria-hidden="true" />
+          Subtle bugs and race conditions
+        </li>
+        <li>
+          <Check aria-hidden="true" />
+          Missing test coverage
+        </li>
+      </ul>
+    </aside>
+  </div>
+);
+
 const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
   switch (type) {
     case 'existing-apps':
@@ -1167,6 +1212,8 @@ const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
       return <GoalResultsMedia />;
     case 'pr-evidence':
       return <PrEvidenceMedia />;
+    case 'review-bot':
+      return <ReviewBotMedia />;
     default:
       return null;
   }

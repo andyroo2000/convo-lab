@@ -407,7 +407,8 @@
 .feature-score-prompt-media,
 .feature-goal-progress-media,
 .feature-goal-results-media,
-.feature-pr-evidence-media {
+.feature-pr-evidence-media,
+.feature-review-bot-media {
   align-items: center;
   display: flex;
   justify-content: center;
@@ -2387,9 +2388,9 @@
 
 .feature-agent-exchange article p {
   color: rgba(255, 255, 255, 0.82);
-  font-size: clamp(0.49rem, 0.92vw, 0.6rem);
-  line-height: 1.42;
-  margin: 0.3rem 0 0;
+  font-size: clamp(0.72rem, 1.25vw, 0.9rem);
+  line-height: 1.48;
+  margin: 0.4rem 0 0;
 }
 
 .feature-agent-exchange > .is-response-1 {
@@ -2438,9 +2439,9 @@
 
 .feature-result-exchange article p {
   color: rgba(255, 255, 255, 0.82);
-  font-size: clamp(0.56rem, 1.1vw, 0.7rem);
+  font-size: clamp(0.72rem, 1.25vw, 0.9rem);
   line-height: 1.5;
-  margin: 0.35rem 0 0;
+  margin: 0.4rem 0 0;
 }
 
 .feature-goal-results {
@@ -2566,6 +2567,114 @@
   letter-spacing: 0.08em;
   text-align: right;
   text-transform: uppercase;
+}
+
+.feature-review-bot-media {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(233, 111, 90, 0.18), transparent 27%),
+    linear-gradient(145deg, #fff7f2, #e9e7ee);
+  gap: clamp(0.8rem, 2vw, 1.25rem);
+  padding: clamp(0.85rem, 2vw, 1.35rem);
+}
+
+.feature-review-bot-media figure {
+  align-self: stretch;
+  background: #fff;
+  border: 0.22rem solid #fff;
+  border-radius: 1rem;
+  box-shadow: 0 1.2rem 2.5rem rgba(17, 51, 92, 0.16);
+  flex: 1 1 57%;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.feature-review-bot-media figure::after {
+  background: linear-gradient(90deg, transparent 68%, rgba(255, 255, 255, 0.72));
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.feature-review-bot-media img {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  object-position: 15% top;
+  position: absolute;
+  width: 100%;
+}
+
+.feature-review-bot-media aside {
+  background: #1c1d21;
+  border-radius: 1rem;
+  box-shadow: 0 1.2rem 2.5rem rgba(17, 51, 92, 0.2);
+  color: #fff;
+  flex: 0 1 43%;
+  margin-left: clamp(-2.7rem, -4vw, -1.6rem);
+  padding: clamp(1rem, 2.4vw, 1.5rem);
+  position: relative;
+  z-index: 2;
+}
+
+.feature-review-bot-media aside header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+  padding-bottom: 0.75rem;
+}
+
+.feature-review-bot-media aside header span,
+.feature-review-bot-media aside header b {
+  display: block;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.feature-review-bot-media aside header span {
+  color: #f0a08f;
+  font-size: 0.6rem;
+}
+
+.feature-review-bot-media aside header b {
+  font-size: clamp(0.88rem, 1.6vw, 1.15rem);
+  margin-top: 0.15rem;
+}
+
+.feature-review-bot-media blockquote {
+  color: rgba(255, 255, 255, 0.88);
+  font-family: 'Archivo Black', sans-serif;
+  font-size: clamp(0.82rem, 1.5vw, 1.1rem);
+  line-height: 1.28;
+  margin: clamp(1rem, 2vw, 1.35rem) 0;
+}
+
+.feature-review-bot-media ul {
+  display: grid;
+  gap: 0.68rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.feature-review-bot-media li {
+  align-items: center;
+  color: rgba(255, 255, 255, 0.76);
+  display: flex;
+  font-size: clamp(0.62rem, 1vw, 0.76rem);
+  gap: 0.55rem;
+  line-height: 1.35;
+}
+
+.feature-review-bot-media li svg {
+  background: rgba(233, 111, 90, 0.14);
+  border-radius: 50%;
+  color: #f0a08f;
+  flex: 0 0 auto;
+  height: 1.35rem;
+  padding: 0.3rem;
+  width: 1.35rem;
 }
 
 .feature-deck-footer {
@@ -2912,11 +3021,11 @@
   }
 
   .feature-agent-exchange article p {
-    font-size: 0.54rem;
+    font-size: 0.68rem;
   }
 
   .feature-result-exchange article p {
-    font-size: 0.54rem;
+    font-size: 0.68rem;
   }
 
   .feature-pr-evidence-summary {
@@ -2926,6 +3035,24 @@
   .feature-pr-evidence-summary b {
     grid-column: 1 / -1;
     text-align: left;
+  }
+
+  .feature-review-bot-media {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .feature-review-bot-media figure {
+    min-height: 10rem;
+  }
+
+  .feature-review-bot-media aside {
+    flex-basis: auto;
+    margin: -2.4rem 0 0 clamp(1rem, 5vw, 2.5rem);
+  }
+
+  .feature-review-bot-media blockquote {
+    margin: 0.75rem 0;
   }
 
   .feature-overview-card {

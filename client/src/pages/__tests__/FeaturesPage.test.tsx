@@ -43,10 +43,10 @@ describe('FeaturesPage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'The pull request had to show its work.',
+        name: 'Code smells were only half the story.',
       })
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#pr-review-evidence');
+    expect(window.location.hash).toBe('#two-kinds-of-review');
   });
 
   it('opens a directly linked feature', () => {
@@ -155,5 +155,21 @@ describe('FeaturesPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('10 → 9')).toBeInTheDocument();
     expect(screen.getByText('232 → 219')).toBeInTheDocument();
+  });
+
+  it('opens the second-review-layer slide directly', () => {
+    window.history.replaceState(null, '', '/features#two-kinds-of-review');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Code smells were only half the story.' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /Claude review bot comment examining the behavior/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Behavior and logic')).toBeInTheDocument();
+    expect(screen.getByText('Subtle bugs and race conditions')).toBeInTheDocument();
+    expect(screen.getByText('Missing test coverage')).toBeInTheDocument();
   });
 });
