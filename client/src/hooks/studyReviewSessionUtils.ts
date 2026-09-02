@@ -28,6 +28,9 @@ export type StudyUndoAction =
 export const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot =>
   structuredClone(snapshot);
 
+export const getNextCardIndex = (current: number, nextLength: number) =>
+  nextLength === 0 ? 0 : Math.min(current, nextLength - 1);
+
 export const isCardEligibleForSession = (card: StudyCardSummary) => {
   if (card.state.queueState === 'new') return !card.state.failedAt;
   if (!['learning', 'review', 'relearning'].includes(card.state.queueState)) {

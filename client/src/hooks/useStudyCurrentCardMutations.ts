@@ -11,6 +11,8 @@ import {
   type SetStateAction,
 } from 'react';
 
+import { getNextCardIndex } from './studyReviewSessionUtils';
+
 interface StudyCurrentCardMutationsOptions {
   autoRefreshEmptySessionRef: MutableRefObject<boolean>;
   cardsLength: number;
@@ -39,7 +41,7 @@ interface StudyCurrentCardMutationsOptions {
   }) => Promise<StudyCardSummary>;
 }
 
-const resetCardInteraction = (options: StudyCurrentCardMutationsOptions, cardId: string) => {
+const resetSavedCardInteraction = (options: StudyCurrentCardMutationsOptions, cardId: string) => {
   options.resetAudioAutoplayForCard(cardId);
   options.setEditing(false);
   options.setRevealed(false);
@@ -64,7 +66,7 @@ const saveCurrentCard = async (
   if (options.sessionEpochRef.current !== expectedEpoch) return;
 
   options.mergeCardIntoSession(updatedCard);
-  resetCardInteraction(options, card.id);
+  resetSavedCardInteraction(options, card.id);
 };
 
 const regenerateCurrentCardAudio = async (
@@ -85,9 +87,6 @@ const regenerateCurrentCardAudio = async (
   return updatedCard;
 };
 
-const nextCardIndex = (current: number, nextLength: number) =>
-  nextLength === 0 ? 0 : Math.min(current, nextLength - 1);
-
 const deleteCurrentCard = async (options: StudyCurrentCardMutationsOptions) => {
   const card = options.currentCardRef.current;
   if (!card) return;
@@ -103,8 +102,10 @@ const deleteCurrentCard = async (options: StudyCurrentCardMutationsOptions) => {
     options.setAnsweredCardIds((current) => current.filter((cardId) => cardId !== card.id));
     options.removeCardFromSession(card.id);
     const nextLength = Math.max(options.cardsLength - 1, 0);
-    options.setCurrentIndex((current) => nextCardIndex(current, nextLength));
-    resetCardInteraction(options, card.id);
+    options.setCurrentIndex((current) => getNextCardIndex(current, nextLength));
+    options.setEditing(false);
+    options.setRevealed(false);
+    options.setSessionError(null);
   } catch (error) {
     if (options.sessionEpochRef.current !== expectedEpoch) return;
     options.setSessionError(error instanceof Error ? error.message : 'Unable to delete card.');
