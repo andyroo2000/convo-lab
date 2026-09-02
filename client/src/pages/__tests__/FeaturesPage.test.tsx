@@ -19,24 +19,18 @@ describe('FeaturesPage', () => {
     render(<FeaturesPage />);
 
     expect(
-      screen.getByRole('heading', { name: 'I was using too many separate apps.' })
+      screen.getByRole('heading', { name: 'Great apps. Separate memories.' })
     ).toBeInTheDocument();
-    expect(screen.getByText('Time tracker')).toBeInTheDocument();
-    expect(screen.getByText('Anki replacement')).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: /original JLPT N3 Study Tracker/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: /original ConvoLab dialogue generator/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /JLPT N3 Study Tracker/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /AI Card Maker/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Dialogue Generator/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next feature' }));
 
     expect(
-      screen.getByRole('heading', { name: 'Every part should know what I know.' })
+      screen.getByRole('heading', { name: 'I started with the easiest gap.' })
     ).toBeInTheDocument();
-    expect(screen.getByText('Kanji knowledge')).toBeInTheDocument();
-    expect(window.location.hash).toBe('#shared-context');
+    expect(window.location.hash).toBe('#the-first-gap');
   });
 
   it('supports presentation keyboard navigation', () => {
@@ -59,5 +53,16 @@ describe('FeaturesPage', () => {
       screen.getByRole('heading', { name: 'Your known kanji come with you.' })
     ).toBeInTheDocument();
     expect(screen.getByText('WaniKani connected')).toBeInTheDocument();
+  });
+
+  it('opens the narrative problem slide directly', () => {
+    window.history.replaceState(null, '', '/features#the-silo-problem');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Every app had its own version of me.' })
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Isolated')).toHaveLength(4);
   });
 });

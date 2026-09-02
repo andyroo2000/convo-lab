@@ -2,6 +2,7 @@ import {
   AudioLines,
   BookOpenCheck,
   Brain,
+  CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -9,6 +10,7 @@ import {
   Clock3,
   CloudOff,
   Code2,
+  Database,
   Dumbbell,
   Expand,
   Headphones,
@@ -38,6 +40,10 @@ import '../styles/features.css';
 
 type FeatureMedia =
   | 'origin'
+  | 'tracker-story'
+  | 'ai-practice-story'
+  | 'knowledge-silos'
+  | 'own-data'
   | 'shared-context'
   | 'overview'
   | 'create-word'
@@ -64,18 +70,54 @@ const FEATURE_SLIDES: FeatureSlide[] = [
   {
     id: 'why-i-built-it',
     kicker: 'Why I made it',
-    title: 'I was using too many separate apps.',
+    title: 'Great apps. Separate memories.',
     description:
-      'The first version only tracked study time. Then I added AI-assisted Anki card creation, a dialogue generator, and eventually a replacement for Anki.',
+      'Language-learning apps often do one thing well. I ended up with a collection—and each app knew a different part of what I knew.',
     shortLabel: 'Why I built it',
     media: 'origin',
   },
   {
+    id: 'the-first-gap',
+    kicker: 'The first mini app',
+    title: 'I started with the easiest gap.',
+    description:
+      'A study-time tracker seemed simple enough to build. Seeing how much time I spent—and what I spent it on—made the work visible and surprisingly motivating.',
+    shortLabel: 'The first gap',
+    media: 'tracker-story',
+  },
+  {
+    id: 'ai-made-practice',
+    kicker: 'Then AI',
+    title: 'What if practice could be made for me?',
+    description:
+      'The Dialogue Generator made conversations about topics I cared about, at roughly my level. The card maker helped turn useful words into study material.',
+    shortLabel: 'AI-made practice',
+    media: 'ai-practice-story',
+  },
+  {
+    id: 'the-silo-problem',
+    kicker: 'The real problem',
+    title: 'Every app had its own version of me.',
+    description:
+      'Anki knew most of my vocabulary and grammar. WaniKani knew my kanji. The Dialogue Generator knew neither, and my tutor time lived in Calendar.',
+    shortLabel: 'The silo problem',
+    media: 'knowledge-silos',
+  },
+  {
+    id: 'own-the-data',
+    kicker: 'The turning point',
+    title: 'So I rebuilt the part I couldn’t connect.',
+    description:
+      'Anki could not expose all the learning data I needed. Rebuilding its review system let ConvoLab own that history, while WaniKani and Google Calendar could sync through their APIs.',
+    shortLabel: 'Owning the data',
+    media: 'own-data',
+  },
+  {
     id: 'shared-context',
     kicker: 'The underlying idea',
-    title: 'Every part should know what I know.',
+    title: 'Now every part can know what I know.',
     description:
-      'A shared model of vocabulary strength can shape new cards, dialogues, and listening practice to my current level. WaniKani adds kanji knowledge, so furigana changes as I learn.',
+      'One shared model of vocabulary strength and kanji knowledge can shape cards, dialogues, and listening practice to my current level—including when furigana should disappear.',
     shortLabel: 'Shared context',
     media: 'shared-context',
   },
@@ -187,70 +229,147 @@ const MediaLabel = ({ children, audio = false }: { children: string; audio?: boo
   </div>
 );
 
-const OriginMedia = () => {
-  const steps = [
-    {
-      number: '01',
-      title: 'Time tracker',
-      icon: Clock3,
-    },
-    {
-      number: '02',
-      title: 'AI card maker',
-      icon: WandSparkles,
-    },
-    {
-      number: '03',
-      title: 'Dialogue generator',
-      icon: MessagesSquare,
-    },
-    {
-      number: '04',
-      title: 'Anki replacement',
-      icon: Layers3,
-    },
+const OriginMedia = () => (
+  <div className="feature-origin-media feature-media-panel" aria-label="Separate study apps">
+    <div className="feature-origin-collage">
+      <figure className="is-tracker">
+        <img
+          src="/presentation/jlpt-study-tracker.png"
+          alt="JLPT N3 Study Tracker showing a weekly study-time chart"
+        />
+        <figcaption>Study-time tracker</figcaption>
+      </figure>
+      <figure className="is-card-maker">
+        <img
+          src="/presentation/ai-card-maker.png"
+          alt="AI Card Maker showing the create study card interface"
+        />
+        <figcaption>AI card maker</figcaption>
+      </figure>
+      <figure className="is-dialogue">
+        <img
+          src="/presentation/dialogue-generator.png"
+          alt="Dialogue Generator showing the Sangenjaya Memories dialogue"
+        />
+        <figcaption>Dialogue generator</figcaption>
+      </figure>
+    </div>
+  </div>
+);
+
+const TrackerStoryMedia = () => (
+  <div
+    className="feature-tracker-story-media feature-media-panel"
+    aria-label="The first study-time tracker"
+  >
+    <figure className="feature-story-screenshot">
+      <img
+        src="/presentation/jlpt-study-tracker.png"
+        alt="JLPT N3 Study Tracker with study time grouped by activity"
+      />
+    </figure>
+    <aside className="feature-story-aside">
+      <Clock3 aria-hidden="true" />
+      <small>The useful part</small>
+      <strong>Look back later.</strong>
+      <p>Time spent became visible by day and by activity.</p>
+    </aside>
+  </div>
+);
+
+const AiPracticeStoryMedia = () => (
+  <div
+    className="feature-ai-story-media feature-media-panel"
+    aria-label="AI-created dialogues and cards"
+  >
+    <figure className="feature-ai-dialogue-shot">
+      <img
+        src="/presentation/dialogue-generator.png"
+        alt="Dialogue Generator with a personalized Japanese conversation"
+      />
+      <figcaption>
+        <MessagesSquare aria-hidden="true" />
+        Dialogue from a topic
+      </figcaption>
+    </figure>
+    <figure className="feature-ai-card-shot">
+      <img
+        src="/presentation/ai-card-maker.png"
+        alt="AI Card Maker with a study-card creation form"
+      />
+      <figcaption>
+        <WandSparkles aria-hidden="true" />
+        Card from a word
+      </figcaption>
+    </figure>
+  </div>
+);
+
+const KnowledgeSilosMedia = () => {
+  const silos = [
+    { title: 'Anki', detail: 'Vocabulary + grammar', icon: Layers3 },
+    { title: 'WaniKani', detail: 'Kanji knowledge', mark: 'ワ' },
+    { title: 'Dialogue Generator', detail: 'Topics + level', icon: MessagesSquare },
+    { title: 'Google Calendar', detail: 'Tutor time', icon: CalendarDays },
   ];
 
   return (
-    <div className="feature-origin-media feature-media-panel" aria-label="ConvoLab origin story">
-      <MediaLabel>The apps before ConvoLab</MediaLabel>
-      <div className="feature-origin-screenshots">
-        <figure>
-          <img
-            src="/presentation/jlpt-study-tracker.png"
-            alt="The original JLPT N3 Study Tracker showing a weekly study-time chart"
-          />
-          <figcaption>
-            <b>01</b>
-            <span>Study-time tracker</span>
-          </figcaption>
-        </figure>
-        <figure>
-          <img
-            src="/presentation/dialogue-generator.png"
-            alt="The original ConvoLab dialogue generator showing the Sangenjaya Memories dialogue"
-          />
-          <figcaption>
-            <b>03</b>
-            <span>Dialogue generator</span>
-          </figcaption>
-        </figure>
-      </div>
-      <div className="feature-origin-path" aria-label="Evolution of the separate study apps">
-        {steps.map(({ number, title, icon: Icon }) => (
-          <article key={number}>
-            <span className="feature-origin-number">{number}</span>
-            <span className="feature-origin-icon">
-              <Icon aria-hidden="true" />
-            </span>
+    <div className="feature-silos-media feature-media-panel" aria-label="Disconnected app data">
+      <div className="feature-silo-grid">
+        {silos.map(({ title, detail, icon: Icon, mark }) => (
+          <article key={title}>
+            <span>{mark ?? (Icon ? <Icon aria-hidden="true" /> : null)}</span>
             <strong>{title}</strong>
+            <small>{detail}</small>
+            <b>
+              <LockKeyhole aria-hidden="true" /> Isolated
+            </b>
           </article>
         ))}
       </div>
-      <p className="feature-origin-caption">Each version solved the next missing piece.</p>
+      <div className="feature-silo-divider">
+        <i />
+        <span>No shared context</span>
+        <i />
+      </div>
+      <p>A correct answer in one app changed nothing in the others.</p>
     </div>
   );
 };
+
+const OwnDataMedia = () => (
+  <div className="feature-own-data-media feature-media-panel" aria-label="Connected learning data">
+    <div className="feature-own-data-core">
+      <Database aria-hidden="true" />
+      <small>ConvoLab owns</small>
+      <strong>Review history</strong>
+      <span>Vocabulary strength</span>
+    </div>
+    <div className="feature-own-data-connections">
+      <article>
+        <span className="feature-wanikani-mark">ワ</span>
+        <div>
+          <strong>WaniKani</strong>
+          <small>Kanji + vocabulary via API</small>
+        </div>
+        <b>Syncs in</b>
+      </article>
+      <article>
+        <span className="feature-calendar-mark">
+          <CalendarDays aria-hidden="true" />
+        </span>
+        <div>
+          <strong>Google Calendar</strong>
+          <small>Online tutor lesson time</small>
+        </div>
+        <b>Syncs in</b>
+      </article>
+    </div>
+    <p className="feature-own-data-result">
+      One place can finally connect the whole learning history.
+    </p>
+  </div>
+);
 
 const SharedContextMedia = () => (
   <div
@@ -759,6 +878,14 @@ const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
   switch (type) {
     case 'origin':
       return <OriginMedia />;
+    case 'tracker-story':
+      return <TrackerStoryMedia />;
+    case 'ai-practice-story':
+      return <AiPracticeStoryMedia />;
+    case 'knowledge-silos':
+      return <KnowledgeSilosMedia />;
+    case 'own-data':
+      return <OwnDataMedia />;
     case 'shared-context':
       return <SharedContextMedia />;
     case 'overview':
@@ -899,7 +1026,7 @@ const FeaturesPage = () => {
             <span>{isPresenting ? 'Exit' : 'Present'}</span>
           </button>
           <div className="feature-deck-position">
-            <span>Feature tour</span>
+            <span>Building ConvoLab</span>
             <strong>
               {String(activeIndex + 1).padStart(2, '0')} /{' '}
               {String(FEATURE_SLIDES.length).padStart(2, '0')}
