@@ -215,17 +215,46 @@ const loadCurrentAchievementAwards = async (context: StudyReviewSubmissionContex
   return isCurrentSession(context) ? currentAwards : null;
 };
 
+const prepareAchievementConflictRecovery = (
+  context: StudyReviewSubmissionContext,
+  currentAwards: AchievementAward[]
+) => {
+  const completion =
+    context.sessionKind === 'reviews'
+      ? (context.achievementSessionStore?.prepareInterruptedCompletion(currentAwards) ?? null)
+      : null;
+  if (!completion) {
+    context.achievementSessionStore?.cancelCurrentSession();
+  }
+  return completion;
+};
+
+const resumeAchievementConflictSession = (
+  context: StudyReviewSubmissionContext,
+  currentAwards: AchievementAward[],
+  refreshedSession: StudySessionResponse | null
+) => {
+  if (context.sessionKind === 'reviews' && refreshedSession) {
+    context.achievementSessionStore?.beginReviewSession(currentAwards);
+  }
+};
+
+const presentRecoveredAchievementCompletion = (
+  context: StudyReviewSubmissionContext,
+  completion: StudyAchievementSessionCompletion | null
+) => {
+  if (!completion) return;
+  context.setSessionWasEnded(true);
+  context.setAchievementCompletion(completion);
+  context.setCurrentAchievementIndex(0);
+  context.setAchievementCelebrationPresented(completion.celebrationPresented);
+};
+
 const reloadAfterReviewConflict = async (
   context: StudyReviewSubmissionContext,
   currentAwards: AchievementAward[]
 ) => {
-  const recoveredCompletion =
-    context.sessionKind === 'reviews'
-      ? (context.achievementSessionStore?.prepareInterruptedCompletion(currentAwards) ?? null)
-      : null;
-  if (!recoveredCompletion) {
-    context.achievementSessionStore?.cancelCurrentSession();
-  }
+  const recoveredCompletion = prepareAchievementConflictRecovery(context, currentAwards);
 
   const [, refreshedSession] = await Promise.all([
     context.queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
@@ -238,15 +267,8 @@ const reloadAfterReviewConflict = async (
       context.expectedEpoch
     ),
   ]);
-  if (context.sessionKind === 'reviews' && refreshedSession) {
-    context.achievementSessionStore?.beginReviewSession(currentAwards);
-  }
-  if (recoveredCompletion) {
-    context.setSessionWasEnded(true);
-    context.setAchievementCompletion(recoveredCompletion);
-    context.setCurrentAchievementIndex(0);
-    context.setAchievementCelebrationPresented(recoveredCompletion.celebrationPresented);
-  }
+  resumeAchievementConflictSession(context, currentAwards, refreshedSession);
+  presentRecoveredAchievementCompletion(context, recoveredCompletion);
   if (isCurrentSession(context)) {
     context.setReviewConflictRecovered(true);
   }
