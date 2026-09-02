@@ -19,13 +19,18 @@ describe('FeaturesPage', () => {
     render(<FeaturesPage />);
 
     expect(
-      screen.getByRole('heading', { name: 'Study cards are only one part of the system.' })
+      screen.getByRole('heading', { name: 'I was using too many separate apps.' })
     ).toBeInTheDocument();
+    expect(screen.getByText('Time tracker')).toBeInTheDocument();
+    expect(screen.getByText('Anki replacement')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next feature' }));
 
-    expect(screen.getByRole('heading', { name: 'Start with a word.' })).toBeInTheDocument();
-    expect(window.location.hash).toBe('#create-from-a-word');
+    expect(
+      screen.getByRole('heading', { name: 'Every part should know what I know.' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Kanji knowledge')).toBeInTheDocument();
+    expect(window.location.hash).toBe('#shared-context');
   });
 
   it('supports presentation keyboard navigation', () => {

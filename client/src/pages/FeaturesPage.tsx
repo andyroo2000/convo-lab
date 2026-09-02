@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleGauge,
+  Clock3,
   CloudOff,
   Code2,
   Dumbbell,
@@ -14,6 +15,7 @@ import {
   Image as ImageIcon,
   Layers3,
   LockKeyhole,
+  MessagesSquare,
   Minimize,
   Play,
   Sparkles,
@@ -35,6 +37,8 @@ import Logo from '../components/common/Logo';
 import '../styles/features.css';
 
 type FeatureMedia =
+  | 'origin'
+  | 'shared-context'
   | 'overview'
   | 'create-word'
   | 'progressive'
@@ -57,6 +61,24 @@ interface FeatureSlide {
 }
 
 const FEATURE_SLIDES: FeatureSlide[] = [
+  {
+    id: 'why-i-built-it',
+    kicker: 'Why I made it',
+    title: 'I was using too many separate apps.',
+    description:
+      'The first version only tracked study time. Then I added AI-assisted Anki card creation, a dialogue generator, and eventually a replacement for Anki.',
+    shortLabel: 'Why I built it',
+    media: 'origin',
+  },
+  {
+    id: 'shared-context',
+    kicker: 'The underlying idea',
+    title: 'Every part should know what I know.',
+    description:
+      'A shared model of vocabulary strength can shape new cards, dialogues, and listening practice to my current level. WaniKani adds kanji knowledge, so furigana changes as I learn.',
+    shortLabel: 'Shared context',
+    media: 'shared-context',
+  },
   {
     id: 'overview',
     kicker: 'Japanese study, connected',
@@ -162,6 +184,105 @@ const MediaLabel = ({ children, audio = false }: { children: string; audio?: boo
   <div className="feature-media-label">
     {audio ? <Volume2 aria-hidden="true" /> : <Play aria-hidden="true" />}
     {children}
+  </div>
+);
+
+const OriginMedia = () => {
+  const steps = [
+    {
+      number: '01',
+      title: 'Time tracker',
+      detail: 'See where my study time went.',
+      icon: Clock3,
+    },
+    {
+      number: '02',
+      title: 'AI card maker',
+      detail: 'Turn a word into Anki material.',
+      icon: WandSparkles,
+    },
+    {
+      number: '03',
+      title: 'Dialogue generator',
+      detail: 'Create conversations at my level.',
+      icon: MessagesSquare,
+    },
+    {
+      number: '04',
+      title: 'Anki replacement',
+      detail: 'Put the learning model in the app.',
+      icon: Layers3,
+    },
+  ];
+
+  return (
+    <div className="feature-origin-media feature-media-panel" aria-label="ConvoLab origin story">
+      <MediaLabel>Four tools, one direction</MediaLabel>
+      <div className="feature-origin-timeline">
+        {steps.map(({ number, title, detail, icon: Icon }) => (
+          <article key={number}>
+            <span className="feature-origin-number">{number}</span>
+            <span className="feature-origin-icon">
+              <Icon aria-hidden="true" />
+            </span>
+            <span>
+              <strong>{title}</strong>
+              <small>{detail}</small>
+            </span>
+          </article>
+        ))}
+      </div>
+      <p className="feature-origin-caption">Each version solved the next missing piece.</p>
+    </div>
+  );
+};
+
+const SharedContextMedia = () => (
+  <div
+    className="feature-context-media feature-media-panel"
+    aria-label="Shared Japanese knowledge model"
+  >
+    <MediaLabel>One shared learning model</MediaLabel>
+    <div className="feature-context-system">
+      <div className="feature-context-inputs">
+        <article>
+          <span className="feature-wanikani-mark">ワ</span>
+          <span>
+            <strong>WaniKani</strong>
+            <small>Kanji knowledge</small>
+          </span>
+        </article>
+        <article>
+          <span className="feature-context-review-icon">
+            <CircleGauge aria-hidden="true" />
+          </span>
+          <span>
+            <strong>Review history</strong>
+            <small>Vocabulary strength</small>
+          </span>
+        </article>
+      </div>
+      <div className="feature-context-core">
+        <Brain aria-hidden="true" />
+        <small>Shared context</small>
+        <strong>What I know</strong>
+      </div>
+      <div className="feature-context-outputs">
+        <article>
+          <Layers3 aria-hidden="true" />
+          <span>Cards</span>
+        </article>
+        <article>
+          <MessagesSquare aria-hidden="true" />
+          <span>Dialogues</span>
+        </article>
+        <article>
+          <Headphones aria-hidden="true" />
+          <span>Listening</span>
+        </article>
+      </div>
+      <p className="feature-context-result">Right level · familiar kanji · useful next words</p>
+    </div>
   </div>
 );
 
@@ -621,6 +742,10 @@ const BuildStoryMedia = () => (
 
 const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
   switch (type) {
+    case 'origin':
+      return <OriginMedia />;
+    case 'shared-context':
+      return <SharedContextMedia />;
     case 'overview':
       return <OverviewMedia />;
     case 'create-word':
