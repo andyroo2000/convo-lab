@@ -40,6 +40,7 @@ import {
 } from '../../lib/generationRequest';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import VoicePreview from '../common/VoicePreview';
+import { DialogueCompleteState, DialogueGeneratingState } from './DialogueGenerationStatus';
 
 interface SpeakerFormData {
   name: string;
@@ -607,82 +608,18 @@ const DialogueGenerator = () => {
   };
 
   if (step === 'generating') {
-    return (
-      <div className="retro-dialogue-create-v3-generator">
-        <div className="retro-dialogue-create-v3-state">
-          <div className="loading-spinner retro-dialogue-create-v3-spinner" />
-          <h2 className="retro-dialogue-create-v3-state-title">{t('dialogue:generating.title')}</h2>
-          <p className="retro-dialogue-create-v3-state-copy">
-            {t('dialogue:generating.description')}
-          </p>
-          {(generationError || error) && (
-            <div className="retro-dialogue-create-v3-alert is-error">
-              {generationError || error}
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    return <DialogueGeneratingState generationError={generationError} requestError={error} />;
   }
 
   if (step === 'complete') {
     return (
-      <div className="retro-dialogue-create-v3-generator">
-        <div className="retro-dialogue-create-v3-state">
-          <div className="retro-dialogue-create-v3-check">
-            <svg
-              className="retro-dialogue-create-v3-check-icon"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={3}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h2 className="retro-dialogue-create-v3-state-title">{t('dialogue:complete.title')}</h2>
-          <p className="retro-dialogue-create-v3-state-copy">
-            {courseError
-              ? t('dialogue:complete.courseFailureSubtitle')
-              : t('dialogue:complete.redirecting')}
-          </p>
-          {courseError && (
-            <div className="retro-dialogue-create-v3-alert is-warning">
-              <p className="retro-dialogue-create-v3-alert-title">
-                {t('dialogue:complete.courseFailureTitle')}
-              </p>
-              <p className="retro-dialogue-create-v3-alert-copy">
-                {t('dialogue:complete.courseFailureBody')}
-              </p>
-              <p className="retro-dialogue-create-v3-alert-detail">
-                {t('dialogue:complete.courseFailureDetail', { message: courseError })}
-              </p>
-              {generatedEpisodeId && (
-                <button
-                  type="button"
-                  className="retro-dialogue-create-v3-alert-btn"
-                  onClick={() => navigate(scopedRoute(`/app/playback/${generatedEpisodeId}`))}
-                >
-                  {t('dialogue:complete.courseFailureCta')}
-                </button>
-              )}
-              {conflictedCourseIntent && (
-                <button
-                  type="button"
-                  className="retro-dialogue-create-v3-alert-btn"
-                  onClick={abandonConflictedCourseRequest}
-                >
-                  Start a new request
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <DialogueCompleteState
+        courseError={courseError}
+        generatedEpisodeId={generatedEpisodeId}
+        hasConflictedCourseIntent={!!conflictedCourseIntent}
+        onOpenEpisode={(episodeId) => navigate(scopedRoute(`/app/playback/${episodeId}`))}
+        onAbandonConflictedCourseRequest={abandonConflictedCourseRequest}
+      />
     );
   }
 
