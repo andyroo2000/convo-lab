@@ -35,6 +35,13 @@ import type {
 
 import { CSRF_TOKEN_HEADER_NAME, getCsrfToken } from '../lib/csrf';
 import { JsonRequestError, requestJson } from '../lib/apiClient';
+import {
+  isJsonRecord,
+  nullableStringValue,
+  numberValue,
+  stringValue,
+  unwrapLearningOsData,
+} from '../lib/learningOsResponseNormalization';
 import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
 import { decodeStudyCardSummary } from '../lib/learningOsContractDecoders';
@@ -45,9 +52,26 @@ import {
   type StudyBrowserQuery,
 } from '../lib/studyBrowseApi';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
+import {
+  getStudyLearningPath,
+  linkStudyLearningPathSuccessor,
+  type StudyLearningPath,
+  type StudyLearningPathCard,
+  type StudyLearningPathStage,
+  type StudyLearningPathUnlockRequirement,
+  type StudyLearningPathVariantStatus,
+} from '../lib/studyLearningPathApi';
 
 export { getStudyBrowser, getStudyBrowserNoteDetail };
 export type { StudyBrowserQuery };
+export { getStudyLearningPath, linkStudyLearningPathSuccessor };
+export type {
+  StudyLearningPath,
+  StudyLearningPathCard,
+  StudyLearningPathStage,
+  StudyLearningPathUnlockRequirement,
+  StudyLearningPathVariantStatus,
+};
 
 export interface StudySessionResponse {
   overview: StudyOverview;
@@ -87,172 +111,12 @@ interface StudyCardActionPayload {
   timeZone?: string;
 }
 
-export type StudyLearningPathVariantStatus = 'locked' | 'available' | 'retired';
-export type StudyLearningPathUnlockRequirement = 'successful_retrieval' | 'guru' | 'master';
-
-export interface StudyLearningPathCard {
-  id: string;
-  noteId: string | null;
-  cardType: 'recognition' | 'production' | 'cloze';
-  displayText: string;
-  meaning: string;
-  variantStage: number | null;
-  variantStatus: StudyLearningPathVariantStatus | null;
-  unlockRequirement: StudyLearningPathUnlockRequirement | null;
-}
-
-export interface StudyLearningPathStage {
-  number: number | null;
-  cards: StudyLearningPathCard[];
-}
-
-export interface StudyLearningPath {
-  groupId: string | null;
-  anchorCardId: string;
-  stages: StudyLearningPathStage[];
-}
-
-interface LinkStudyLearningPathSuccessorPayload {
-  cardId: string;
-  successorCardId: string;
-  unlockRequirement: StudyLearningPathUnlockRequirement;
-}
-
 export interface StudyReviewRequest {
   cardId: string;
   grade: 'again' | 'hard' | 'good' | 'easy';
   durationMs?: number;
   clientReviewId: string;
   reviewedAt: string;
-}
-
-type JsonRecord = Record<string, unknown>;
-
-function isJsonRecord(value: unknown): value is JsonRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function unwrapLearningOsData(value: unknown): unknown {
-  return isJsonRecord(value) && Object.prototype.hasOwnProperty.call(value, 'data')
-    ? value.data
-    : value;
-}
-
-function stringValue(record: JsonRecord, camelKey: string, snakeKey: string): string {
-  const value = record[camelKey] ?? record[snakeKey];
-  return typeof value === 'string' ? value : '';
-}
-
-function nullableStringValue(
-  record: JsonRecord,
-  camelKey: string,
-  snakeKey: string
-): string | null {
-  const value = record[camelKey] ?? record[snakeKey];
-  return typeof value === 'string' ? value : null;
-}
-
-function numberValue(record: JsonRecord, camelKey: string, snakeKey: string): number {
-  const value = record[camelKey] ?? record[snakeKey];
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
-
-function nullableNumberValue(
-  record: JsonRecord,
-  camelKey: string,
-  snakeKey: string
-): number | null {
-  const value = record[camelKey] ?? record[snakeKey];
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function nestedRecord(record: JsonRecord, camelKey: string, snakeKey: string): JsonRecord {
-  const value = record[camelKey] ?? record[snakeKey];
-  return isJsonRecord(value) ? value : {};
-}
-
-function normalizeLearningPathCard(value: unknown): StudyLearningPathCard {
-  if (!isJsonRecord(value)) {
-    throw new Error('Learning path response contained an invalid card.');
-  }
-
-  const id = stringValue(value, 'id', 'id');
-  if (!id) {
-    throw new Error('Learning path response contained a card without an id.');
-  }
-
-  const prompt = nestedRecord(value, 'promptJson', 'prompt_json');
-  const answer = nestedRecord(value, 'answerJson', 'answer_json');
-  const rawCardType = value.cardType ?? value.card_type;
-  const cardType =
-    rawCardType === 'production' || rawCardType === 'cloze' ? rawCardType : 'recognition';
-  const rawStatus = value.variantStatus ?? value.variant_status;
-  const variantStatus =
-    rawStatus === 'locked' || rawStatus === 'available' || rawStatus === 'retired'
-      ? rawStatus
-      : null;
-  const rawUnlockRequirement = value.variantUnlockRequirement ?? value.variant_unlock_requirement;
-  const unlockRequirement =
-    rawUnlockRequirement === 'successful_retrieval' ||
-    rawUnlockRequirement === 'guru' ||
-    rawUnlockRequirement === 'master'
-      ? rawUnlockRequirement
-      : null;
-  const displayText =
-    stringValue(value, 'frontText', 'front_text') ||
-    stringValue(prompt, 'clozeDisplayText', 'cloze_display_text') ||
-    stringValue(prompt, 'cueText', 'cue_text') ||
-    stringValue(answer, 'expressionReading', 'expression_reading') ||
-    stringValue(answer, 'expression', 'expression') ||
-    stringValue(prompt, 'clozeText', 'cloze_text') ||
-    id;
-  const meaning =
-    stringValue(answer, 'meaning', 'meaning') ||
-    stringValue(prompt, 'cueMeaning', 'cue_meaning') ||
-    stringValue(answer, 'sentenceEn', 'sentence_en') ||
-    stringValue(value, 'backText', 'back_text');
-
-  return {
-    id,
-    noteId: nullableStringValue(value, 'sourceNoteId', 'source_note_id'),
-    cardType,
-    displayText,
-    meaning,
-    variantStage: nullableNumberValue(value, 'variantStage', 'variant_stage'),
-    variantStatus,
-    unlockRequirement,
-  };
-}
-
-function normalizeStudyLearningPath(value: unknown): StudyLearningPath {
-  const path = unwrapLearningOsData(value);
-  if (!isJsonRecord(path)) {
-    throw new Error('Learning path response was malformed.');
-  }
-
-  const anchorCardId = stringValue(path, 'anchorCardId', 'anchor_card_id');
-  if (!anchorCardId) {
-    throw new Error('Learning path response did not include its anchor card.');
-  }
-
-  const rawStages = path.stages;
-  if (!Array.isArray(rawStages)) {
-    throw new Error('Learning path response did not include stages.');
-  }
-
-  return {
-    groupId: nullableStringValue(path, 'groupId', 'group_id'),
-    anchorCardId,
-    stages: rawStages.map((stageValue) => {
-      if (!isJsonRecord(stageValue) || !Array.isArray(stageValue.cards)) {
-        throw new Error('Learning path response contained an invalid stage.');
-      }
-      return {
-        number: nullableNumberValue(stageValue, 'number', 'number'),
-        cards: stageValue.cards.map(normalizeLearningPathCard),
-      };
-    }),
-  };
 }
 
 function normalizeStudyImportPreview(value: unknown): StudyImportResult['preview'] {
@@ -663,29 +527,6 @@ export async function deleteStudyCard(cardId: string): Promise<void> {
   await apiRequest<unknown>(`/cards/${encodeURIComponent(cardId)}`, {
     method: 'DELETE',
   });
-}
-
-export async function getStudyLearningPath(cardId: string): Promise<StudyLearningPath> {
-  return normalizeStudyLearningPath(
-    await requestJson<unknown>(`/api/cards/${encodeURIComponent(cardId)}/learning-path`)
-  );
-}
-
-export async function linkStudyLearningPathSuccessor(
-  payload: LinkStudyLearningPathSuccessorPayload
-): Promise<StudyLearningPath> {
-  return normalizeStudyLearningPath(
-    await requestJson<unknown>(
-      `/api/cards/${encodeURIComponent(payload.cardId)}/learning-path/successor`,
-      {
-        method: 'PUT',
-        body: JSON.stringify({
-          successor_card_id: payload.successorCardId,
-          unlock_requirement: payload.unlockRequirement,
-        }),
-      }
-    )
-  );
 }
 
 export async function performStudyCardAction(
