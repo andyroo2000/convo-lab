@@ -12,7 +12,6 @@ import type {
 import {
   createStudyReviewRequest,
   type StudySessionResponse,
-  type StudyReviewRequest,
   undoStudyReview,
   useRegenerateStudyAnswerAudio,
   useDeleteStudyCard,
@@ -45,18 +44,16 @@ import useStudyAchievementReviewSession from './useStudyAchievementReviewSession
 import useStudyEmptySessionRefresh from './useStudyEmptySessionRefresh';
 import useStudySessionLoader from './useStudySessionLoader';
 import {
-  createStudyMasteryAnimation,
-  getCardsAfterCommittedReview,
   getLessonCardsAfterAgain,
-  getNextReviewCardIndex,
   getPracticeCardsAfterGrade,
-  getStudyReviewErrorMessage,
-  isAmbiguousReviewError,
-  isReviewConflictError,
   isReviewSubmissionBlocked,
   pendingReviewDoesNotMatch,
   type StudyMasteryAnimation,
 } from './studyReviewSubmissionRules';
+import {
+  submitStudyReviewOperation,
+  type PendingStudyReviewOperation,
+} from './studyReviewSubmissionFlow';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -100,10 +97,7 @@ const useStudyReviewSession = () => {
   const autoRefreshEmptySessionRef = useRef(false);
   const achievementCompletionRequestIdRef = useRef(0);
   const activeAchievementCompletionRequestRef = useRef<number | null>(null);
-  const pendingReviewOperationRef = useRef<{
-    request: StudyReviewRequest;
-    undoSnapshot: StudyUndoSnapshot;
-  } | null>(null);
+  const pendingReviewOperationRef = useRef<PendingStudyReviewOperation | null>(null);
   const runBackgroundTask = useStudyBackgroundTask();
   const cardStartedAtRef = useRef(Date.now());
   const getCachedOverview = useCallback(
@@ -559,149 +553,53 @@ const useStudyReviewSession = () => {
       const expectedEpoch = sessionEpochRef.current;
       const requestToken = requestGuardRef.current.acquire('review', currentCard.id);
       if (!requestToken) return;
-      try {
-        setReviewSubmitPending(true);
-        setMasteryAnimation(null);
-        stopAllAudio();
-        const reviewResult = await reviewMutation.mutateAsync(operation.request);
-        if (sessionEpochRef.current !== expectedEpoch) return;
-
-        pendingReviewOperationRef.current = null;
-        setReviewRetryAvailable(false);
-
-        answeredCardIdsRef.current.add(currentCard.id);
-        setAnsweredCardIds((current) =>
-          current.includes(currentCard.id) ? current : [...current, currentCard.id]
-        );
-        pushUndo({
-          kind: 'grade',
-          snapshot: operation.undoSnapshot,
-          reviewLogId: reviewResult.reviewLogId,
-        });
-        if (grade === 'again') {
-          resetStudyAudioAutoplayForCard(currentCard.id);
-        }
-        // A committed review must not be retried. Without the updated card, drop it for this
-        // session even for "again"; the next session will load its authoritative schedule.
-        const nextCards = getCardsAfterCommittedReview(
-          cards,
-          currentCard.id,
-          reviewResult.card,
-          grade
-        );
-        autoRefreshEmptySessionRef.current = sessionKind === 'reviews' && nextCards.length === 0;
-        setMasteryAnimation(
-          createStudyMasteryAnimation({
-            cardBefore: currentCard,
-            cardAfter: reviewResult.card,
-            grade,
-            reviewLogId: reviewResult.reviewLogId,
-          })
-        );
-        if (reviewResult.card) {
-          applyReviewResultToSession(reviewResult.card, grade, nextCards, reviewResult.overview);
-        } else {
-          setSession((currentSession) =>
-            currentSession
-              ? { ...currentSession, cards: nextCards, overview: reviewResult.overview }
-              : currentSession
-          );
-        }
-        syncOverview(reviewResult.overview);
-        const reviewRecord: StudySessionReviewRecord = {
-          id: reviewResult.reviewLogId,
-          cardBefore: currentCard,
-          cardAfter: reviewResult.card,
-          grade,
-          durationMs: operation.request.durationMs ?? durationMs,
-        };
-        setSessionReviewRecords((current) => [...current, reviewRecord]);
-        if (sessionKind === 'reviews') {
-          recordAchievementReview(reviewRecord);
-        }
-        setCurrentIndex((current) => getNextReviewCardIndex(current, nextCards.length));
-        setRevealed(false);
-        if (sessionKind === 'lessons' && nextCards.length === 0) {
-          setLessonPhase('complete');
-        }
-        setSessionError(null);
-      } catch (error) {
-        if (sessionEpochRef.current !== expectedEpoch) return;
-
-        if (isReviewConflictError(error)) {
-          pendingReviewOperationRef.current = null;
-          setReviewRetryAvailable(false);
-          resetUndo();
-          answeredCardIdsRef.current = new Set();
-          setAnsweredCardIds([]);
-          setSessionReviewRecords([]);
-          setCurrentIndex(0);
-          setRevealed(false);
-          setEditing(false);
-          setShowSetDueControls(false);
-          setMasteryAnimation(null);
-          const achievementBootstrap = achievementSessionBootstrapRef.current;
-          await achievementBootstrap?.promise;
-          if (sessionEpochRef.current !== expectedEpoch) return;
-          if (achievementSessionBootstrapRef.current === achievementBootstrap) {
-            achievementSessionBootstrapRef.current = null;
-          }
-          let currentAwards = achievementProgress?.awards ?? [];
-          if (sessionKind === 'reviews') {
-            try {
-              currentAwards = (await syncAchievements()).progress.awards;
-            } catch {
-              // Recovery still refreshes the authoritative review queue below.
-            }
-            if (sessionEpochRef.current !== expectedEpoch) return;
-          }
-          const recoveredAchievementCompletion =
-            sessionKind === 'reviews'
-              ? (achievementSessionStore?.prepareInterruptedCompletion(currentAwards) ?? null)
-              : null;
-          if (!recoveredAchievementCompletion) {
-            achievementSessionStore?.cancelCurrentSession();
-          }
-          const [, refreshedSession] = await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-            loadSession(
-              sessionKind,
-              {
-                allowEmptySessionRefresh: false,
-                lessonCohortId: activeLessonCohortIdRef.current ?? undefined,
-              },
-              expectedEpoch
-            ),
-          ]);
-          if (sessionKind === 'reviews' && refreshedSession) {
-            achievementSessionStore?.beginReviewSession(currentAwards);
-          }
-          if (recoveredAchievementCompletion) {
-            setSessionWasEnded(true);
-            setAchievementCompletion(recoveredAchievementCompletion);
-            setCurrentAchievementIndex(0);
-            setAchievementCelebrationPresented(recoveredAchievementCompletion.celebrationPresented);
-          }
-          if (sessionEpochRef.current === expectedEpoch) {
-            setReviewConflictRecovered(true);
-          }
-          return;
-        }
-
-        if (isAmbiguousReviewError(error)) {
-          setReviewRetryAvailable(true);
-        } else {
-          pendingReviewOperationRef.current = null;
-          setReviewRetryAvailable(false);
-        }
-        setSessionError(getStudyReviewErrorMessage(error));
-        throw error;
-      } finally {
-        requestGuardRef.current.release(requestToken);
-        if (sessionEpochRef.current === expectedEpoch) {
-          setReviewSubmitPending(false);
-        }
-      }
+      await submitStudyReviewOperation({
+        activeLessonCohortIdRef,
+        achievementAwards: achievementProgress?.awards ?? [],
+        achievementSessionBootstrapRef,
+        achievementSessionStore,
+        answeredCardIdsRef,
+        applyReviewResultToSession,
+        autoRefreshEmptySessionRef,
+        cards,
+        currentCard,
+        expectedEpoch,
+        fallbackDurationMs: durationMs,
+        grade,
+        loadSession,
+        operation,
+        pendingReviewOperationRef,
+        pushUndo,
+        queryClient,
+        recordAchievementReview,
+        requestGuardRef,
+        requestToken,
+        resetStudyAudioAutoplayForCard,
+        resetUndo,
+        sessionEpochRef,
+        sessionKind,
+        setAchievementCelebrationPresented,
+        setAchievementCompletion,
+        setAnsweredCardIds,
+        setCurrentAchievementIndex,
+        setCurrentIndex,
+        setEditing,
+        setLessonPhase,
+        setMasteryAnimation,
+        setRevealed,
+        setReviewConflictRecovered,
+        setReviewRetryAvailable,
+        setReviewSubmitPending,
+        setSession,
+        setSessionError,
+        setSessionReviewRecords,
+        setSessionWasEnded,
+        setShowSetDueControls,
+        stopAllAudio,
+        submitReview: reviewMutation.mutateAsync,
+        syncAchievements,
+        syncOverview,
+      });
     },
     [
       applyReviewResultToSession,
