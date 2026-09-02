@@ -82,6 +82,42 @@ describe('submitStudyReviewUndo', () => {
     expect(context.setUndoPending).toHaveBeenLastCalledWith(false);
   });
 
+  it('returns a persisted action to the stack when the request guard is busy', async () => {
+    const requestGuard = createStudyReviewRequestGuard();
+    requestGuard.acquire('review', 'review-in-flight');
+    const context = makeContext({ requestGuardRef: { current: requestGuard } });
+
+    await submitStudyReviewUndo(context);
+
+    expect(context.pushUndo).toHaveBeenCalledWith(gradeAction);
+    expect(context.undoReview).not.toHaveBeenCalled();
+    expect(context.setUndoPending).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['successful', false],
+    ['failed', true],
+  ])('ignores a %s undo response from a stale session epoch', async (_label, rejects) => {
+    let resolveUndo!: (result: { overview: StudyOverview }) => void;
+    let rejectUndo!: (error: Error) => void;
+    const deferredUndo = new Promise<{ overview: StudyOverview }>((resolve, reject) => {
+      resolveUndo = resolve;
+      rejectUndo = reject;
+    });
+    const context = makeContext({ undoReview: vi.fn().mockReturnValue(deferredUndo) });
+
+    const submission = submitStudyReviewUndo(context);
+    context.sessionEpochRef.current += 1;
+    if (rejects) rejectUndo(new Error('Late failure'));
+    else resolveUndo({ overview });
+    await submission;
+
+    expect(context.restoreUndoSnapshot).not.toHaveBeenCalled();
+    expect(context.pushUndo).not.toHaveBeenCalled();
+    expect(context.setSessionError).not.toHaveBeenCalled();
+    expect(context.setUndoPending).not.toHaveBeenCalledWith(false);
+  });
+
   it('restores a failed persisted undo to the stack', async () => {
     const error = new Error('Undo failed');
     const context = makeContext({ undoReview: vi.fn().mockRejectedValue(error) });
