@@ -55,7 +55,8 @@ type FeatureMedia =
   | 'practice'
   | 'study-time'
   | 'achievements'
-  | 'build-story';
+  | 'build-story'
+  | 'code-health';
 
 interface FeatureSlide {
   id: string;
@@ -219,6 +220,15 @@ const FEATURE_SLIDES: FeatureSlide[] = [
       'ConvoLab became a test bed for an adversarial development loop: one agent implements, another challenges the result, and the cycle repeats.',
     shortLabel: 'How it was built',
     media: 'build-story',
+  },
+  {
+    id: 'code-health-reality-check',
+    kicker: 'The reality check',
+    title: 'The review loop helped. It did not make the code perfect.',
+    description:
+      'Using Claude Code review bots against my local agents undoubtedly improved correctness and code quality overall. My first CodeScene analysis still found an average code health of 8.6 out of 10—close to good, with real technical debt remaining.',
+    shortLabel: 'Code health',
+    media: 'code-health',
   },
 ];
 
@@ -874,6 +884,29 @@ const BuildStoryMedia = () => (
   </div>
 );
 
+const CodeHealthMedia = () => (
+  <div className="feature-code-health-media feature-media-panel" aria-label="CodeScene analysis">
+    <figure>
+      <img
+        src="/presentation/codescene-code-health.png"
+        alt="CodeScene analysis of ConvoLab showing code-health and technical-debt results"
+      />
+    </figure>
+    <div className="feature-code-health-score">
+      <small>First CodeScene analysis</small>
+      <strong>
+        8.6 <em>/ 10</em>
+      </strong>
+      <span>Average code health</span>
+    </div>
+    <div className="feature-code-health-verdict">
+      <span>Improved overall</span>
+      <i aria-hidden="true">→</i>
+      <strong>Still not perfect</strong>
+    </div>
+  </div>
+);
+
 const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
   switch (type) {
     case 'origin':
@@ -910,6 +943,8 @@ const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
       return <AchievementsMedia />;
     case 'build-story':
       return <BuildStoryMedia />;
+    case 'code-health':
+      return <CodeHealthMedia />;
     default:
       return null;
   }

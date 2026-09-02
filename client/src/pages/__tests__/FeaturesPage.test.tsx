@@ -39,9 +39,11 @@ describe('FeaturesPage', () => {
     fireEvent.keyDown(window, { key: 'End' });
 
     expect(
-      screen.getByRole('heading', { name: 'Then the agents started reviewing each other.' })
+      screen.getByRole('heading', {
+        name: 'The review loop helped. It did not make the code perfect.',
+      })
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#how-it-was-built');
+    expect(window.location.hash).toBe('#code-health-reality-check');
   });
 
   it('opens a directly linked feature', () => {
@@ -64,5 +66,21 @@ describe('FeaturesPage', () => {
       screen.getByRole('heading', { name: 'Every app had its own version of me.' })
     ).toBeInTheDocument();
     expect(screen.getAllByText('Isolated')).toHaveLength(4);
+  });
+
+  it('opens the CodeScene reality check directly', () => {
+    window.history.replaceState(null, '', '/features#code-health-reality-check');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'The review loop helped. It did not make the code perfect.',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/^8\.6/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /CodeScene analysis of ConvoLab/i })
+    ).toBeInTheDocument();
   });
 });

@@ -401,7 +401,8 @@
 .feature-practice-media,
 .feature-time-media,
 .feature-achievements-media,
-.feature-build-media {
+.feature-build-media,
+.feature-code-health-media {
   align-items: center;
   display: flex;
   justify-content: center;
@@ -1983,6 +1984,113 @@
   font-size: 0.62rem;
   margin: 1.3rem 0 0;
   text-align: center;
+}
+
+.feature-code-health-media {
+  background: linear-gradient(145deg, #dce7ee, #91a8bd);
+  padding: clamp(0.8rem, 1.8vw, 1.3rem);
+}
+
+.feature-code-health-media figure {
+  align-self: stretch;
+  border: 0.28rem solid rgba(255, 255, 255, 0.9);
+  border-radius: 1.15rem;
+  box-shadow: 0 1.4rem 2.8rem rgba(17, 51, 92, 0.2);
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.feature-code-health-media figure::after {
+  background: linear-gradient(180deg, transparent 45%, rgba(8, 29, 55, 0.5));
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.feature-code-health-media img {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  object-position: center top;
+  position: absolute;
+  width: 100%;
+}
+
+.feature-code-health-score {
+  background: #fffdf8;
+  border-left: 0.38rem solid var(--feature-coral);
+  bottom: clamp(2.8rem, 5vw, 4rem);
+  box-shadow: 0 1.1rem 2.2rem rgba(8, 29, 55, 0.28);
+  display: flex;
+  flex-direction: column;
+  left: clamp(1.7rem, 4vw, 3rem);
+  padding: clamp(0.8rem, 2vw, 1.2rem) clamp(1rem, 2.5vw, 1.5rem);
+  position: absolute;
+  transform: rotate(-1deg);
+  z-index: 2;
+}
+
+.feature-code-health-score small,
+.feature-code-health-score span,
+.feature-code-health-verdict {
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.feature-code-health-score small {
+  color: var(--feature-muted);
+  font-size: 0.52rem;
+  font-weight: 700;
+}
+
+.feature-code-health-score strong {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: clamp(2.1rem, 5vw, 3.6rem);
+  letter-spacing: -0.055em;
+  line-height: 1;
+  margin: 0.28rem 0 0.2rem;
+}
+
+.feature-code-health-score em {
+  color: var(--feature-muted);
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.42em;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+.feature-code-health-score span {
+  color: var(--feature-coral);
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.feature-code-health-verdict {
+  align-items: center;
+  background: rgba(17, 51, 92, 0.94);
+  bottom: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  font-size: 0.55rem;
+  gap: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  position: absolute;
+  right: clamp(1.7rem, 4vw, 3rem);
+  z-index: 2;
+}
+
+.feature-code-health-verdict i {
+  color: #7ed4e3;
+  font-size: 0.9rem;
+  font-style: normal;
+}
+
+.feature-code-health-verdict strong {
+  color: #fff;
 }
 
 .feature-deck-footer {
