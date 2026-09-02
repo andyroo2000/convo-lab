@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { flushSync } from 'react-dom';
-import type {
-  StudyCardSummary,
-  StudyOverview,
-  StudyPromptPayload,
-  StudyAnswerPayload,
-} from '@languageflow/shared/src/types';
+import type { StudyCardSummary, StudyOverview } from '@languageflow/shared/src/types';
 
 import {
   createStudyReviewRequest,
@@ -54,6 +49,7 @@ import {
 import { submitStudyReviewUndo } from './studyReviewUndoFlow';
 import useStudyReviewCardActions from './useStudyReviewCardActions';
 import useStudyFocusModeLifecycle from './useStudyFocusModeLifecycle';
+import useStudyCurrentCardMutations from './useStudyCurrentCardMutations';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -606,91 +602,25 @@ const useStudyReviewSession = () => {
     syncOverview,
   });
 
-  const saveCurrentCard = useCallback(
-    async (payload: { prompt: StudyPromptPayload; answer: StudyAnswerPayload }) => {
-      const card = currentCardRef.current; // read live value, not stale closure
-      if (!card) return;
-      const expectedEpoch = sessionEpochRef.current;
-
-      stopAllAudio();
-      const updatedCard = await updateCardMutation.mutateAsync({
-        cardId: card.id,
-        expectedRevision: card.revision ?? 0,
-        prompt: payload.prompt,
-        answer: payload.answer,
-      });
-      if (sessionEpochRef.current !== expectedEpoch) return;
-
-      mergeCardIntoSession(updatedCard);
-      resetStudyAudioAutoplayForCard(card.id);
-      setEditing(false);
-      setRevealed(false);
-      setSessionError(null);
-    },
-    [
+  const { deleteCurrentCard, regenerateCurrentCardAudio, saveCurrentCard } =
+    useStudyCurrentCardMutations({
+      autoRefreshEmptySessionRef,
+      cardsLength: cards.length,
       currentCardRef,
+      deleteCard: deleteCardMutation.mutateAsync,
       mergeCardIntoSession,
-      resetStudyAudioAutoplayForCard,
+      regenerateAnswerAudio: regenerateAudioMutation.mutateAsync,
+      removeCardFromSession,
+      resetAudioAutoplayForCard: resetStudyAudioAutoplayForCard,
+      sessionEpochRef,
+      setAnsweredCardIds,
+      setCurrentIndex,
+      setEditing,
+      setRevealed,
+      setSessionError,
       stopAllAudio,
-      updateCardMutation,
-    ]
-  );
-
-  const regenerateCurrentCardAudio = useCallback(
-    async (payload: {
-      answerAudioVoiceId: string | null;
-      answerAudioTextOverride: string | null;
-    }) => {
-      const card = currentCardRef.current; // read live value, not stale closure
-      if (!card) return undefined;
-      const expectedEpoch = sessionEpochRef.current;
-
-      stopAllAudio();
-      const updatedCard = await regenerateAudioMutation.mutateAsync({
-        cardId: card.id,
-        answerAudioVoiceId: payload.answerAudioVoiceId,
-        answerAudioTextOverride: payload.answerAudioTextOverride,
-      });
-      if (sessionEpochRef.current !== expectedEpoch) return undefined;
-
-      mergeCardIntoSession(updatedCard);
-      resetStudyAudioAutoplayForCard(card.id);
-      setSessionError(null);
-      return updatedCard;
-    },
-    [
-      currentCardRef,
-      mergeCardIntoSession,
-      regenerateAudioMutation,
-      resetStudyAudioAutoplayForCard,
-      stopAllAudio,
-    ]
-  );
-
-  const deleteCurrentCard = useCallback(async () => {
-    if (!currentCard) return;
-    const expectedEpoch = sessionEpochRef.current;
-
-    stopAllAudio();
-    try {
-      await deleteCardMutation.mutateAsync(currentCard.id);
-      if (sessionEpochRef.current !== expectedEpoch) return;
-
-      autoRefreshEmptySessionRef.current = false;
-      setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
-      removeCardFromSession(currentCard.id);
-      const nextLength = Math.max(cards.length - 1, 0);
-      setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
-      setEditing(false);
-      setRevealed(false);
-      setSessionError(null);
-    } catch (error) {
-      if (sessionEpochRef.current !== expectedEpoch) return;
-
-      setSessionError(error instanceof Error ? error.message : 'Unable to delete card.');
-      throw error;
-    }
-  }, [cards.length, currentCard, deleteCardMutation, removeCardFromSession, stopAllAudio]);
+      updateCard: updateCardMutation.mutateAsync,
+    });
 
   const handleUndo = useCallback(async () => {
     await submitStudyReviewUndo({
