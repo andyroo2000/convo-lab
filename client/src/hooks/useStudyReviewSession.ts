@@ -19,7 +19,6 @@ import useStudyUndoStack from './useStudyUndoStack';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 import {
   cloneStudySnapshot,
-  getCardsAfterReview,
   type StudyUndoAction,
   type StudyUndoSnapshot,
 } from './studyReviewSessionUtils';
@@ -42,6 +41,7 @@ import useStudySessionCompletion from './useStudySessionCompletion';
 import useStudyReviewAudioControls from './useStudyReviewAudioControls';
 import useStudyReviewWrapUpActions from './useStudyReviewWrapUpActions';
 import useStudyReviewGrading from './useStudyReviewGrading';
+import useStudyReviewSessionCardState from './useStudyReviewSessionCardState';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -234,69 +234,20 @@ const useStudyReviewSession = () => {
 
   const { popUndo, pushUndo, resetUndo } = useStudyUndoStack<StudyUndoAction>();
 
-  const mergeCardIntoSession = useCallback((updatedCard: StudyCardSummary) => {
-    setSession((currentSession) => {
-      if (!currentSession) return currentSession;
-      if (answeredCardIdsRef.current.has(updatedCard.id)) return currentSession;
-
-      return {
-        ...currentSession,
-        cards: currentSession.cards.map((card) =>
-          card.id === updatedCard.id ? updatedCard : card
-        ),
-      };
-    });
-  }, []);
-
-  const removeCardFromSession = useCallback((cardId: string) => {
-    setSession((currentSession) => {
-      if (!currentSession) return currentSession;
-
-      return {
-        ...currentSession,
-        cards: currentSession.cards.filter((card) => card.id !== cardId),
-      };
-    });
-  }, []);
-
-  const applyReviewResultToSession = useCallback(
-    (
-      updatedCard: StudyCardSummary,
-      grade: 'again' | 'hard' | 'good' | 'easy',
-      resolvedCards?: StudyCardSummary[],
-      resolvedOverview?: StudyOverview
-    ) => {
-      setSession((currentSession) => {
-        if (!currentSession) return currentSession;
-
-        return {
-          ...currentSession,
-          overview: resolvedOverview ?? currentSession.overview,
-          cards: resolvedCards ?? getCardsAfterReview(currentSession.cards, updatedCard, grade),
-        };
-      });
-    },
-    []
-  );
-
-  const captureUndoSnapshot = useCallback(
-    (): StudyUndoSnapshot => ({
-      session: session
-        ? cloneStudySnapshot({
-            session,
-            overview: getCachedOverview(),
-            currentIndex,
-            revealed,
-            answeredCardIds,
-          }).session
-        : null,
-      overview: getCachedOverview(),
-      currentIndex,
-      revealed,
-      answeredCardIds: [...answeredCardIds],
-    }),
-    [answeredCardIds, currentIndex, getCachedOverview, revealed, session]
-  );
+  const {
+    applyReviewResultToSession,
+    captureUndoSnapshot,
+    mergeCardIntoSession,
+    removeCardFromSession,
+  } = useStudyReviewSessionCardState({
+    answeredCardIds,
+    answeredCardIdsRef,
+    currentIndex,
+    getCachedOverview,
+    revealed,
+    session,
+    setSession,
+  });
 
   const ensureAnswerAudioPrepared = useStudyAnswerAudioPrep({
     enabled: focusMode,
