@@ -43,7 +43,7 @@ describe('FeaturesPage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'A Goal kept the constraint alive.',
+        name: 'A persistent goal kept the constraint alive.',
       })
     ).toBeInTheDocument();
     expect(window.location.hash).toBe('#goal-driven-refactors');
@@ -102,17 +102,17 @@ describe('FeaturesPage', () => {
     expect(screen.getByText('Hotspot health first')).toBeInTheDocument();
   });
 
-  it('opens the Codex Goal progress slide directly', () => {
+  it('opens the brand-neutral Goal progress slide directly', () => {
     window.history.replaceState(null, '', '/features#goal-driven-refactors');
 
     render(<FeaturesPage />);
 
     expect(
-      screen.getByRole('heading', { name: 'A Goal kept the constraint alive.' })
+      screen.getByRole('heading', { name: 'A persistent goal kept the constraint alive.' })
     ).toBeInTheDocument();
     expect(screen.getByText('2.62 → 2.79')).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: /Codex working through a CodeScene/i })
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Recreated goal-driven agent exchange')).toBeInTheDocument();
+    expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(screen.queryByText('Codex')).not.toBeInTheDocument();
   });
 });

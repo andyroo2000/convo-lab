@@ -247,16 +247,16 @@ const FEATURE_SLIDES: FeatureSlide[] = [
     kicker: 'The instruction',
     title: 'The prompt became the quality gate.',
     description:
-      'I asked Codex to turn the recommendations into small, measurable changes. A higher score was required for every merge, while hotspot health remained the real priority.',
+      'I asked an agent to turn the recommendations into small, measurable changes. A higher score was required for every merge, while hotspot health remained the real priority.',
     shortLabel: 'The prompt',
     media: 'score-prompt',
   },
   {
     id: 'goal-driven-refactors',
-    kicker: 'Codex Goal',
-    title: 'A Goal kept the constraint alive.',
+    kicker: 'Persistent Goal',
+    title: 'A persistent goal kept the constraint alive.',
     description:
-      'Codex carried the target across multiple PRs, worked one hotspot at a time, and waited for CodeScene and independent review checks before each merge.',
+      'The agent carried the target across multiple PRs, worked one hotspot at a time, and waited for CodeScene and independent review checks before each merge.',
     shortLabel: 'Goal in progress',
     media: 'goal-progress',
   },
@@ -1005,30 +1005,57 @@ const ScorePromptMedia = () => (
 );
 
 const GoalProgressMedia = () => (
-  <div className="feature-goal-progress-media feature-media-panel" aria-label="Codex Goal progress">
-    <figure>
-      <img
-        src="/presentation/codex-goal-progress.png"
-        alt="Codex working through a CodeScene improvement goal in a series of gated pull requests"
-      />
-    </figure>
-    <div className="feature-goal-status">
-      <CircleGauge aria-hidden="true" />
-      <span>
-        Goal active
-        <strong>≥ 9.25</strong>
-      </span>
-    </div>
-    <div className="feature-goal-results">
-      <span>
-        <small>Hotspot health</small>
-        <strong>2.62 → 2.79</strong>
-      </span>
-      <span>
-        <small>New modules</small>
-        <strong>10.0</strong>
-      </span>
-      <p>Local gate passed · waiting for CodeScene + independent review</p>
+  <div
+    className="feature-goal-progress-media feature-media-panel"
+    aria-label="Recreated goal-driven agent exchange"
+  >
+    <div className="feature-agent-exchange">
+      <header>
+        <div>
+          <CircleGauge aria-hidden="true" />
+          <span>
+            <small>Persistent goal</small>
+            <strong>Code health ≥ 9.25</strong>
+          </span>
+        </div>
+        <b>Active</b>
+      </header>
+      <article className="is-user">
+        <span>You</span>
+        <p>Use well-scoped PRs. Merge only if the score improves. Prioritize hotspot health.</p>
+      </article>
+      <article className="is-agent">
+        <span>Agent</span>
+        <p>
+          Goal accepted. I’ll work one hotspot at a time and require the full gate before each
+          merge.
+        </p>
+        <ol>
+          <li>
+            <Check aria-hidden="true" /> Scope one hotspot
+          </li>
+          <li>
+            <Check aria-hidden="true" /> Preserve behavior
+          </li>
+          <li>
+            <Check aria-hidden="true" /> Run full checks
+          </li>
+          <li>
+            <Check aria-hidden="true" /> Re-analyze the score
+          </li>
+        </ol>
+      </article>
+      <footer className="feature-goal-results">
+        <span>
+          <small>Hotspot health</small>
+          <strong>2.62 → 2.79</strong>
+        </span>
+        <span>
+          <small>New modules</small>
+          <strong>10.0</strong>
+        </span>
+        <p>Local gate passed · waiting for CodeScene + independent review</p>
+      </footer>
     </div>
   </div>
 );
