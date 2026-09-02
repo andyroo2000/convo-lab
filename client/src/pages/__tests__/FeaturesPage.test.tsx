@@ -43,10 +43,10 @@ describe('FeaturesPage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'A persistent goal kept the constraint alive.',
+        name: 'The pull request had to show its work.',
       })
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#goal-driven-refactors');
+    expect(window.location.hash).toBe('#pr-review-evidence');
   });
 
   it('opens a directly linked feature', () => {
@@ -110,7 +110,6 @@ describe('FeaturesPage', () => {
     expect(
       screen.getByRole('heading', { name: 'A persistent goal kept the constraint alive.' })
     ).toBeInTheDocument();
-    expect(screen.getByText('2.62 → 2.79')).toBeInTheDocument();
     expect(screen.getByLabelText('Recreated goal-driven agent exchange')).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -120,12 +119,41 @@ describe('FeaturesPage', () => {
     expect(screen.getByText(/I'm continuing with the next hotspot slice:/)).toHaveTextContent(
       "I'll keep it behavior-preserving"
     );
+    expect(screen.queryByText(/The second slice clears the local gate/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/PR #548 is open/)).not.toBeInTheDocument();
+    expect(screen.queryByText('2.62 → 2.79')).not.toBeInTheDocument();
+    expect(screen.queryByText('Codex')).not.toBeInTheDocument();
+  });
+
+  it('opens the agent result and merge-gate slide directly', () => {
+    window.history.replaceState(null, '', '/features#goal-results-and-merge-gate');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Progress was reported. The merge still waited.' })
+    ).toBeInTheDocument();
     expect(screen.getByText(/The second slice clears the local gate/)).toHaveTextContent(
       'both new achievement modules score 10.0'
     );
     expect(screen.getByText(/PR #548 is open/)).toHaveTextContent(
       "I'm waiting for the independent CodeScene and review checks before any merge"
     );
-    expect(screen.queryByText('Codex')).not.toBeInTheDocument();
+    expect(screen.getByText('2.62 → 2.79')).toBeInTheDocument();
+  });
+
+  it('opens the pull-request evidence slide directly', () => {
+    window.history.replaceState(null, '', '/features#pr-review-evidence');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'The pull request had to show its work.' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /Pull request diff with CodeScene comments/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText('10 → 9')).toBeInTheDocument();
+    expect(screen.getByText('232 → 219')).toBeInTheDocument();
   });
 });

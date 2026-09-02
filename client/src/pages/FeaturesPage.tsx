@@ -59,7 +59,9 @@ type FeatureMedia =
   | 'build-story'
   | 'code-health'
   | 'score-prompt'
-  | 'goal-progress';
+  | 'goal-progress'
+  | 'goal-results'
+  | 'pr-evidence';
 
 interface FeatureSlide {
   id: string;
@@ -259,6 +261,24 @@ const FEATURE_SLIDES: FeatureSlide[] = [
       'The agent carried the target across multiple PRs. The exchange shows the actual instruction, plan, measured result, and decision to wait for independent checks.',
     shortLabel: 'Goal in progress',
     media: 'goal-progress',
+  },
+  {
+    id: 'goal-results-and-merge-gate',
+    kicker: 'Measured result',
+    title: 'Progress was reported. The merge still waited.',
+    description:
+      'The hotspot improved from 2.62 to 2.79 and both extracted modules scored 10.0. The local gate passed, but the PR stayed open while independent checks ran.',
+    shortLabel: 'Result + merge gate',
+    media: 'goal-results',
+  },
+  {
+    id: 'pr-review-evidence',
+    kicker: 'Independent evidence',
+    title: 'The pull request had to show its work.',
+    description:
+      'CodeScene commented directly on the diff: complex conditionals fell from 10 to 9, and cyclomatic complexity fell from 232 to 219. “Getting better” was visible before merge.',
+    shortLabel: 'PR evidence',
+    media: 'pr-evidence',
   },
 ];
 
@@ -1039,14 +1059,26 @@ const GoalProgressMedia = () => (
         <span>Original prompt</span>
         <p>{CODE_HEALTH_PROMPT}</p>
       </article>
-      <div className="feature-agent-responses">
-        {GOAL_AGENT_RESPONSES.map(({ label, text }, index) => (
-          <article className={`is-agent is-response-${index + 1}`} key={label}>
-            <span>{label}</span>
-            <p>{text}</p>
-          </article>
-        ))}
-      </div>
+      <article className="is-agent is-response-1">
+        <span>{GOAL_AGENT_RESPONSES[0].label}</span>
+        <p>{GOAL_AGENT_RESPONSES[0].text}</p>
+      </article>
+    </div>
+  </div>
+);
+
+const GoalResultsMedia = () => (
+  <div
+    className="feature-goal-results-media feature-media-panel"
+    aria-label="Agent result and merge gate"
+  >
+    <div className="feature-result-exchange">
+      {GOAL_AGENT_RESPONSES.slice(1).map(({ label, text }, index) => (
+        <article className={`is-result-${index + 1}`} key={label}>
+          <span>{label}</span>
+          <p>{text}</p>
+        </article>
+      ))}
       <footer className="feature-goal-results">
         <span>
           <small>Hotspot health</small>
@@ -1058,6 +1090,31 @@ const GoalProgressMedia = () => (
         </span>
         <p>Local gate passed · waiting for CodeScene + independent review</p>
       </footer>
+    </div>
+  </div>
+);
+
+const PrEvidenceMedia = () => (
+  <div
+    className="feature-pr-evidence-media feature-media-panel"
+    aria-label="CodeScene pull-request comments"
+  >
+    <figure>
+      <img
+        src="/presentation/codescene-pr-comments.png"
+        alt="Pull request diff with CodeScene comments showing reduced conditional and method complexity"
+      />
+    </figure>
+    <div className="feature-pr-evidence-summary">
+      <span>
+        <small>Complex conditional</small>
+        <strong>10 → 9</strong>
+      </span>
+      <span>
+        <small>Cyclomatic complexity</small>
+        <strong>232 → 219</strong>
+      </span>
+      <b>Getting better</b>
     </div>
   </div>
 );
@@ -1106,6 +1163,10 @@ const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
       return <ScorePromptMedia />;
     case 'goal-progress':
       return <GoalProgressMedia />;
+    case 'goal-results':
+      return <GoalResultsMedia />;
+    case 'pr-evidence':
+      return <PrEvidenceMedia />;
     default:
       return null;
   }
