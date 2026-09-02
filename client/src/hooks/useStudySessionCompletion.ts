@@ -104,6 +104,7 @@ const isAutomaticCompletionBlocked = (options: StudySessionCompletionOptions) =>
   ].some(Boolean);
 
 const useStudySessionCompletion = (options: StudySessionCompletionOptions) => {
+  // Keep the callback stable so award refreshes cannot retrigger automatic completion.
   const optionsRef = useRef(options);
   optionsRef.current = options;
   const prepareCompletion = useCallback(() => prepareSessionCompletion(optionsRef.current), []);
