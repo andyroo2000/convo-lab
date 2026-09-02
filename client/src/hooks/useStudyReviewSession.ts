@@ -50,6 +50,7 @@ import { submitStudyReviewUndo } from './studyReviewUndoFlow';
 import useStudyReviewCardActions from './useStudyReviewCardActions';
 import useStudyFocusModeLifecycle from './useStudyFocusModeLifecycle';
 import useStudyCurrentCardMutations from './useStudyCurrentCardMutations';
+import useStudySessionCompletion from './useStudySessionCompletion';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -386,62 +387,23 @@ const useStudyReviewSession = () => {
     stopAllAudio,
   ]);
 
-  const prepareSessionCompletion = useCallback(() => {
-    if (activeAchievementCompletionRequestRef.current !== null) return;
-    const requestId = achievementCompletionRequestIdRef.current + 1;
-    achievementCompletionRequestIdRef.current = requestId;
-    activeAchievementCompletionRequestRef.current = requestId;
-    setAchievementCompletionRefreshPending(true);
-    setSessionWasEnded(true);
-
-    const currentAwards = achievementProgress?.awards ?? [];
-    const completion =
-      achievementSessionStore?.prepareCurrentSessionCompletion(currentAwards) ?? null;
-    setAchievementCompletion(completion);
-    setCurrentAchievementIndex(0);
-    setAchievementCelebrationPresented(completion?.celebrationPresented ?? true);
-
-    const expectedEpoch = sessionEpochRef.current;
-    runBackgroundTask(
-      (async () => {
-        try {
-          // Queue an evaluation that starts after the final review has committed;
-          // an older in-flight baseline request cannot authoritatively include it.
-          const refreshedAwards = (await syncAchievements(true, true)).progress.awards;
-          if (
-            sessionEpochRef.current !== expectedEpoch ||
-            activeAchievementCompletionRequestRef.current !== requestId
-          ) {
-            return;
-          }
-
-          const refreshedCompletion =
-            achievementSessionStore?.prepareCurrentSessionCompletion(refreshedAwards) ?? null;
-          if (!refreshedCompletion || refreshedCompletion.id !== completion?.id) return;
-
-          setAchievementCompletion(refreshedCompletion);
-          setCurrentAchievementIndex(0);
-          setAchievementCelebrationPresented(refreshedCompletion.celebrationPresented);
-        } catch {
-          // The wrap-up remains available offline. A later launch can recover a new award.
-        } finally {
-          if (
-            sessionEpochRef.current === expectedEpoch &&
-            activeAchievementCompletionRequestRef.current === requestId
-          ) {
-            activeAchievementCompletionRequestRef.current = null;
-            setAchievementCompletionRefreshPending(false);
-          }
-        }
-      })(),
-      { label: 'Study achievement completion refresh' }
-    );
-  }, [achievementProgress?.awards, achievementSessionStore, runBackgroundTask, syncAchievements]);
-
-  useEffect(() => {
-    if (!reviewQueueExhausted || achievementCompletion || masteryAnimation !== null) return;
-    prepareSessionCompletion();
-  }, [achievementCompletion, masteryAnimation, prepareSessionCompletion, reviewQueueExhausted]);
+  const prepareSessionCompletion = useStudySessionCompletion({
+    achievementAwards: achievementProgress?.awards ?? [],
+    achievementCompletion,
+    achievementCompletionRequestIdRef,
+    achievementSessionStore,
+    activeAchievementCompletionRequestRef,
+    masteryAnimation,
+    reviewQueueExhausted,
+    runBackgroundTask,
+    sessionEpochRef,
+    setAchievementCelebrationPresented,
+    setAchievementCompletion,
+    setAchievementCompletionRefreshPending,
+    setCurrentAchievementIndex,
+    setSessionWasEnded,
+    syncAchievements,
+  });
 
   const handleGrade = useCallback(
     async (grade: 'again' | 'hard' | 'good' | 'easy') => {
