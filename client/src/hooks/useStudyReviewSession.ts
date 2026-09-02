@@ -4,7 +4,6 @@ import { flushSync } from 'react-dom';
 import type {
   StudyCardSetDueMode,
   StudyCardSummary,
-  StudyMasteryLevel,
   StudyOverview,
   StudyPromptPayload,
   StudyAnswerPayload,
@@ -21,16 +20,13 @@ import {
   useSubmitStudyReview,
   useUpdateStudyCard,
 } from './useStudy';
-import { JsonRequestError } from '../lib/apiClient';
-import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
 import useStudyAudioAutoplay from './useStudyAudioAutoplay';
-import { normalizeStudyMasteryLevel } from '../components/study/studyMastery';
 import useStudyAnswerAudioPrep from './useStudyAnswerAudioPrep';
 import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
-import { getStudyCardAudioUrl, getStudyCardMasteryLabel } from '../components/study/studyCardUtils';
+import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 import {
   cloneStudySnapshot,
@@ -48,6 +44,19 @@ import useStudyAchievementSync from './useStudyAchievementSync';
 import useStudyAchievementReviewSession from './useStudyAchievementReviewSession';
 import useStudyEmptySessionRefresh from './useStudyEmptySessionRefresh';
 import useStudySessionLoader from './useStudySessionLoader';
+import {
+  createStudyMasteryAnimation,
+  getCardsAfterCommittedReview,
+  getLessonCardsAfterAgain,
+  getNextReviewCardIndex,
+  getPracticeCardsAfterGrade,
+  getStudyReviewErrorMessage,
+  isAmbiguousReviewError,
+  isReviewConflictError,
+  isReviewSubmissionBlocked,
+  pendingReviewDoesNotMatch,
+  type StudyMasteryAnimation,
+} from './studyReviewSubmissionRules';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -60,14 +69,7 @@ const useStudyReviewSession = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [sessionKind, setSessionKind] = useState<'reviews' | 'lessons'>('reviews');
   const [lessonPhase, setLessonPhase] = useState<'preview' | 'quiz' | 'complete'>('preview');
-  const [masteryAnimation, setMasteryAnimation] = useState<{
-    id: string;
-    card: StudyCardSummary;
-    label: string;
-    fromLevel: StudyMasteryLevel;
-    toLevel: StudyMasteryLevel;
-    passed: boolean;
-  } | null>(null);
+  const [masteryAnimation, setMasteryAnimation] = useState<StudyMasteryAnimation | null>(null);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -507,12 +509,14 @@ const useStudyReviewSession = () => {
   const handleGrade = useCallback(
     async (grade: 'again' | 'hard' | 'good' | 'easy') => {
       if (
-        !currentCard ||
-        requestGuardRef.current.isBusy() ||
-        reviewMutation.isPending ||
-        undoPending ||
-        editing ||
-        masteryAnimation !== null
+        isReviewSubmissionBlocked({
+          editing,
+          hasCurrentCard: currentCard !== null,
+          masteryAnimationActive: masteryAnimation !== null,
+          requestBusy: requestGuardRef.current.isBusy(),
+          reviewPending: reviewMutation.isPending,
+          undoPending,
+        })
       ) {
         return;
       }
@@ -520,11 +524,7 @@ const useStudyReviewSession = () => {
       if (practiceMode) {
         stopAllAudio();
         resetStudyAudioAutoplayForCard(currentCard.id);
-        setPracticeCards((current) => {
-          if (!current || current.length === 0) return current;
-          const [reviewedCard, ...remaining] = current;
-          return grade === 'again' ? [...remaining, reviewedCard] : remaining;
-        });
+        setPracticeCards((current) => getPracticeCardsAfterGrade(current, grade));
         setRevealed(false);
         setSessionError(null);
         cardStartedAtRef.current = Date.now();
@@ -534,11 +534,7 @@ const useStudyReviewSession = () => {
       if (sessionKind === 'lessons' && grade === 'again') {
         stopAllAudio();
         resetStudyAudioAutoplayForCard(currentCard.id);
-        const nextCards = [
-          ...cards.slice(currentIndex + 1),
-          ...cards.slice(0, currentIndex),
-          currentCard,
-        ];
+        const nextCards = getLessonCardsAfterAgain(cards, currentIndex, currentCard);
         setSession((currentSession) =>
           currentSession ? { ...currentSession, cards: nextCards } : currentSession
         );
@@ -549,11 +545,7 @@ const useStudyReviewSession = () => {
       }
 
       const pendingOperation = pendingReviewOperationRef.current;
-      if (
-        pendingOperation &&
-        (pendingOperation.request.cardId !== currentCard.id ||
-          pendingOperation.request.grade !== grade)
-      ) {
+      if (pendingReviewDoesNotMatch(pendingOperation?.request ?? null, currentCard.id, grade)) {
         return;
       }
       const durationMs = Math.max(0, Date.now() - cardStartedAtRef.current);
@@ -591,24 +583,21 @@ const useStudyReviewSession = () => {
         }
         // A committed review must not be retried. Without the updated card, drop it for this
         // session even for "again"; the next session will load its authoritative schedule.
-        const nextCards = reviewResult.card
-          ? getCardsAfterReview(cards, reviewResult.card, grade)
-          : cards.filter((card) => card.id !== currentCard.id);
+        const nextCards = getCardsAfterCommittedReview(
+          cards,
+          currentCard.id,
+          reviewResult.card,
+          grade
+        );
         autoRefreshEmptySessionRef.current = sessionKind === 'reviews' && nextCards.length === 0;
-        const previousLevel = currentCard.masteryLevel ?? 'apprentice';
-        const nextLevel = reviewResult.card?.masteryLevel ?? previousLevel;
-        const normalizedPreviousLevel = normalizeStudyMasteryLevel(previousLevel);
-        const normalizedNextLevel = normalizeStudyMasteryLevel(nextLevel, normalizedPreviousLevel);
-        const reviewedCard = reviewResult.card ?? currentCard;
-        const label = getStudyCardMasteryLabel(reviewedCard, 'This item');
-        setMasteryAnimation({
-          id: reviewResult.reviewLogId,
-          card: currentCard,
-          label,
-          fromLevel: normalizedPreviousLevel,
-          toLevel: normalizedNextLevel,
-          passed: grade !== 'again',
-        });
+        setMasteryAnimation(
+          createStudyMasteryAnimation({
+            cardBefore: currentCard,
+            cardAfter: reviewResult.card,
+            grade,
+            reviewLogId: reviewResult.reviewLogId,
+          })
+        );
         if (reviewResult.card) {
           applyReviewResultToSession(reviewResult.card, grade, nextCards, reviewResult.overview);
         } else {
@@ -630,11 +619,7 @@ const useStudyReviewSession = () => {
         if (sessionKind === 'reviews') {
           recordAchievementReview(reviewRecord);
         }
-        setCurrentIndex((current) => {
-          const nextLength = nextCards.length;
-          if (nextLength === 0) return 0;
-          return Math.min(current, nextLength - 1);
-        });
+        setCurrentIndex((current) => getNextReviewCardIndex(current, nextCards.length));
         setRevealed(false);
         if (sessionKind === 'lessons' && nextCards.length === 0) {
           setLessonPhase('complete');
@@ -643,10 +628,7 @@ const useStudyReviewSession = () => {
       } catch (error) {
         if (sessionEpochRef.current !== expectedEpoch) return;
 
-        if (
-          error instanceof StudyReviewIdentityMismatchError ||
-          (error instanceof JsonRequestError && error.status === 409)
-        ) {
+        if (isReviewConflictError(error)) {
           pendingReviewOperationRef.current = null;
           setReviewRetryAvailable(false);
           resetUndo();
@@ -706,17 +688,13 @@ const useStudyReviewSession = () => {
           return;
         }
 
-        const ambiguous =
-          error instanceof TypeError ||
-          (error instanceof JsonRequestError &&
-            (error.status === 408 || error.status === 429 || error.status >= 500));
-        if (ambiguous) {
+        if (isAmbiguousReviewError(error)) {
           setReviewRetryAvailable(true);
         } else {
           pendingReviewOperationRef.current = null;
           setReviewRetryAvailable(false);
         }
-        setSessionError(error instanceof Error ? error.message : 'Review failed.');
+        setSessionError(getStudyReviewErrorMessage(error));
         throw error;
       } finally {
         requestGuardRef.current.release(requestToken);
