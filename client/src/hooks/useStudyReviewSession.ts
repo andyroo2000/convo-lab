@@ -53,6 +53,7 @@ import {
 } from './studyReviewSubmissionFlow';
 import { submitStudyReviewUndo } from './studyReviewUndoFlow';
 import useStudyReviewCardActions from './useStudyReviewCardActions';
+import useStudyFocusModeLifecycle from './useStudyFocusModeLifecycle';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -446,59 +447,6 @@ const useStudyReviewSession = () => {
     prepareSessionCompletion();
   }, [achievementCompletion, masteryAnimation, prepareSessionCompletion, reviewQueueExhausted]);
 
-  const exitFocusMode = useCallback(() => {
-    sessionEpochRef.current += 1;
-    if (achievementSessionBootstrapRef.current) {
-      achievementSessionBootstrapRef.current.cancelled = true;
-      achievementSessionBootstrapRef.current = null;
-    }
-    achievementCompletionRequestIdRef.current += 1;
-    activeAchievementCompletionRequestRef.current = null;
-    setAchievementCompletionRefreshPending(false);
-    achievementSessionStore?.cancelCurrentSession();
-    stopAllAudio();
-    resetUndo();
-    canSurfaceAsyncSessionErrorRef.current = false;
-    setFocusMode(false);
-    setSessionKind('reviews');
-    setLessonPhase('preview');
-    setMasteryAnimation(null);
-    setSession(null);
-    setSessionLoading(false);
-    setSessionError(null);
-    setReviewConflictRecovered(false);
-    setCurrentIndex(0);
-    setRevealed(false);
-    setEditing(false);
-    setShowSetDueControls(false);
-    setUndoPending(false);
-    activeLessonCohortIdRef.current = null;
-    requestGuardRef.current.reset();
-    setReviewSubmitPending(false);
-    pendingReviewOperationRef.current = null;
-    setReviewRetryAvailable(false);
-    autoRefreshEmptySessionRef.current = false;
-    answeredCardIdsRef.current = new Set();
-    setAnsweredCardIds([]);
-    setSessionReviewRecords([]);
-    setSessionWasEnded(false);
-    setAchievementCompletion(null);
-    setCurrentAchievementIndex(0);
-    setAchievementCelebrationPresented(false);
-    setPracticeCards(null);
-    setPracticeInitialCount(0);
-    runBackgroundTask(() => queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }), {
-      label: 'Study overview refresh',
-    });
-  }, [
-    achievementSessionBootstrapRef,
-    achievementSessionStore,
-    queryClient,
-    resetUndo,
-    runBackgroundTask,
-    stopAllAudio,
-  ]);
-
   const handleGrade = useCallback(
     async (grade: 'again' | 'hard' | 'good' | 'easy') => {
       if (
@@ -823,86 +771,51 @@ const useStudyReviewSession = () => {
     return true;
   }, [answerAudioRef, editing, revealed, runBackgroundTask]);
 
-  const enterFocusMode = useCallback(
-    async (kind: 'reviews' | 'lessons' = 'reviews', options: { lessonCohortId?: string } = {}) => {
-      const expectedEpoch = sessionEpochRef.current + 1;
-      sessionEpochRef.current = expectedEpoch;
-      requestGuardRef.current.reset();
-      stopAllAudio();
-      resetStudyAudioAutoplay();
-      resetUndo();
-      pendingReviewOperationRef.current = null;
-      achievementCompletionRequestIdRef.current += 1;
-      activeAchievementCompletionRequestRef.current = null;
-      setAchievementCompletionRefreshPending(false);
-      setReviewRetryAvailable(false);
-      setReviewConflictRecovered(false);
-      canSurfaceAsyncSessionErrorRef.current = true;
-      setSession(null);
-      setSessionLoading(true);
-      setFocusMode(true);
-      setSessionKind(kind);
-      activeLessonCohortIdRef.current =
-        kind === 'lessons' ? (options.lessonCohortId ?? null) : null;
-      setLessonPhase(kind === 'lessons' ? 'preview' : 'quiz');
-      setMasteryAnimation(null);
-      setCurrentIndex(0);
-      setRevealed(false);
-      setEditing(false);
-      setUndoPending(false);
-      autoRefreshEmptySessionRef.current = false;
-      answeredCardIdsRef.current = new Set();
-      setAnsweredCardIds([]);
-      setSessionReviewRecords([]);
-      setSessionWasEnded(false);
-      setAchievementCompletion(null);
-      setCurrentAchievementIndex(0);
-      setAchievementCelebrationPresented(false);
-      setPracticeCards(null);
-      setPracticeInitialCount(0);
-      if (achievementSessionBootstrapRef.current) {
-        achievementSessionBootstrapRef.current.cancelled = true;
-      }
-      achievementSessionBootstrapRef.current = null;
-      const achievementBootstrap = kind === 'reviews' ? startAchievementReviewSession() : null;
-      if (kind !== 'reviews') {
-        achievementSessionStore?.cancelCurrentSession();
-      }
-      runBackgroundTask(() => requestMotionPermission(), {
-        label: 'Study motion-permission request',
-      });
-      try {
-        const nextSession = await loadSession(kind, options, expectedEpoch);
-        if (!nextSession && achievementBootstrap) {
-          achievementBootstrap.cancelled = true;
-          if (achievementSessionBootstrapRef.current === achievementBootstrap) {
-            achievementSessionBootstrapRef.current = null;
-            achievementSessionStore?.cancelCurrentSession();
-          }
-        }
-      } catch {
-        if (achievementBootstrap) {
-          achievementBootstrap.cancelled = true;
-          if (achievementSessionBootstrapRef.current === achievementBootstrap) {
-            achievementSessionBootstrapRef.current = null;
-            achievementSessionStore?.cancelCurrentSession();
-          }
-        }
-        // loadSession already updates session error state for the dashboard.
-      }
-    },
-    [
-      loadSession,
-      achievementSessionBootstrapRef,
-      achievementSessionStore,
-      requestMotionPermission,
-      resetStudyAudioAutoplay,
-      runBackgroundTask,
-      resetUndo,
-      startAchievementReviewSession,
-      stopAllAudio,
-    ]
-  );
+  const { enterFocusMode, exitFocusMode } = useStudyFocusModeLifecycle({
+    activeAchievementCompletionRequestRef,
+    activeLessonCohortIdRef,
+    achievementCompletionRequestIdRef,
+    achievementSessionBootstrapRef,
+    achievementSessionStore,
+    answeredCardIdsRef,
+    autoRefreshEmptySessionRef,
+    canSurfaceAsyncSessionErrorRef,
+    loadSession,
+    pendingReviewOperationRef,
+    queryClient,
+    requestGuardRef,
+    requestMotionPermission,
+    resetStudyAudioAutoplay,
+    resetUndo,
+    runBackgroundTask,
+    sessionEpochRef,
+    setAchievementCelebrationPresented,
+    setAchievementCompletion,
+    setAchievementCompletionRefreshPending,
+    setAnsweredCardIds,
+    setCurrentAchievementIndex,
+    setCurrentIndex,
+    setEditing,
+    setFocusMode,
+    setLessonPhase,
+    setMasteryAnimation,
+    setPracticeCards,
+    setPracticeInitialCount,
+    setRevealed,
+    setReviewConflictRecovered,
+    setReviewRetryAvailable,
+    setReviewSubmitPending,
+    setSession,
+    setSessionError,
+    setSessionKind,
+    setSessionLoading,
+    setSessionReviewRecords,
+    setSessionWasEnded,
+    setShowSetDueControls,
+    setUndoPending,
+    startAchievementReviewSession,
+    stopAllAudio,
+  });
 
   const beginLessonQuiz = useCallback(() => {
     setCurrentIndex(0);
