@@ -50,6 +50,7 @@ import useStudyFocusModeLifecycle from './useStudyFocusModeLifecycle';
 import useStudyCurrentCardMutations from './useStudyCurrentCardMutations';
 import useStudySessionCompletion from './useStudySessionCompletion';
 import useStudyReviewAudioControls from './useStudyReviewAudioControls';
+import useStudyReviewWrapUpActions from './useStudyReviewWrapUpActions';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -710,67 +711,23 @@ const useStudyReviewSession = () => {
     setSessionError(null);
   }, [resetStudyAudioAutoplay, stopAllAudio]);
 
-  const endReviewSession = useCallback(() => {
-    if (practiceMode) {
-      exitPracticeMode();
-      return;
+  const { advanceAchievement, endReviewSession, finishReviewSession } = useStudyReviewWrapUpActions(
+    {
+      achievementCompletion,
+      achievementCompletionRefreshPending,
+      achievementSessionStore,
+      completionAchievementCount: completionAchievements.length,
+      currentAchievementIndex,
+      exitFocusMode,
+      exitPracticeMode,
+      practiceMode,
+      prepareSessionCompletion,
+      sessionKind,
+      sessionReviewRecordCount: sessionReviewRecords.length,
+      setAchievementCelebrationPresented,
+      setCurrentAchievementIndex,
     }
-
-    if (sessionKind === 'lessons') {
-      exitFocusMode();
-      return;
-    }
-
-    if (sessionReviewRecords.length === 0) {
-      achievementSessionStore?.cancelCurrentSession();
-      exitFocusMode();
-      return;
-    }
-
-    prepareSessionCompletion();
-  }, [
-    exitFocusMode,
-    exitPracticeMode,
-    achievementSessionStore,
-    practiceMode,
-    prepareSessionCompletion,
-    sessionKind,
-    sessionReviewRecords.length,
-  ]);
-
-  const advanceAchievement = useCallback(() => {
-    if (!achievementCompletion) return;
-
-    if (currentAchievementIndex + 1 < completionAchievements.length) {
-      setCurrentAchievementIndex((current) => current + 1);
-      return;
-    }
-
-    achievementSessionStore?.markCelebrationPresented(achievementCompletion.id);
-    setAchievementCelebrationPresented(true);
-    if (achievementCompletion.records.length === 0) {
-      exitFocusMode();
-    }
-  }, [
-    achievementCompletion,
-    achievementSessionStore,
-    completionAchievements.length,
-    currentAchievementIndex,
-    exitFocusMode,
-  ]);
-
-  const finishReviewSession = useCallback(() => {
-    if (achievementCompletionRefreshPending) return;
-    if (achievementCompletion) {
-      achievementSessionStore?.consumeCompletion(achievementCompletion.id);
-    }
-    exitFocusMode();
-  }, [
-    achievementCompletion,
-    achievementCompletionRefreshPending,
-    achievementSessionStore,
-    exitFocusMode,
-  ]);
+  );
 
   const loadNextLessonBatch = useCallback(async () => {
     answeredCardIdsRef.current = new Set();
