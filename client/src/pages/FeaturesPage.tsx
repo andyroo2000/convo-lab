@@ -39,6 +39,7 @@ import Logo from '../components/common/Logo';
 import '../styles/features.css';
 
 type FeatureMedia =
+  | 'existing-apps'
   | 'origin'
   | 'tracker-story'
   | 'ai-practice-story'
@@ -73,8 +74,17 @@ const FEATURE_SLIDES: FeatureSlide[] = [
     kicker: 'Why I made it',
     title: 'Great apps. Separate memories.',
     description:
-      'Language-learning apps often do one thing well. I ended up with a collection—and each app knew a different part of what I knew.',
+      'Anki knew my flashcards. WaniKani knew my kanji. Bunpro knew my grammar. They were all useful, but each one held a different piece of my learning history.',
     shortLabel: 'Why I built it',
+    media: 'existing-apps',
+  },
+  {
+    id: 'little-apps-for-the-gaps',
+    kicker: 'Filling the gaps',
+    title: 'Then I started making the missing pieces.',
+    description:
+      'First a study-time tracker, then an AI Dialogue Generator and card maker. Each mini app solved something I wanted—but it also became one more separate tool.',
+    shortLabel: 'My first apps',
     media: 'origin',
   },
   {
@@ -239,8 +249,57 @@ const MediaLabel = ({ children, audio = false }: { children: string; audio?: boo
   </div>
 );
 
+const ExistingAppsMedia = () => {
+  const apps = [
+    {
+      name: 'Anki',
+      detail: 'Flashcards',
+      memory: 'Vocabulary + grammar',
+      className: 'is-anki',
+      icon: <Layers3 aria-hidden="true" />,
+    },
+    {
+      name: 'WaniKani',
+      detail: 'Kanji',
+      memory: 'Kanji + related vocabulary',
+      className: 'is-wanikani',
+      icon: <span lang="ja">ワ</span>,
+    },
+    {
+      name: 'Bunpro',
+      detail: 'Grammar',
+      memory: 'Grammar progress',
+      className: 'is-bunpro',
+      icon: <BookOpenCheck aria-hidden="true" />,
+    },
+  ];
+
+  return (
+    <div
+      className="feature-existing-apps-media feature-media-panel"
+      aria-label="Established language-learning apps"
+    >
+      <MediaLabel>My study stack</MediaLabel>
+      <div className="feature-existing-apps-grid">
+        {apps.map(({ name, detail, memory, className, icon }) => (
+          <article className={className} key={name}>
+            <div className="feature-existing-app-icon">{icon}</div>
+            <p>{detail}</p>
+            <strong>{name}</strong>
+            <small>{memory}</small>
+            <span>Its own memory</span>
+          </article>
+        ))}
+      </div>
+      <p className="feature-existing-apps-caption">
+        Three strong tools. Three separate versions of what I knew.
+      </p>
+    </div>
+  );
+};
+
 const OriginMedia = () => (
-  <div className="feature-origin-media feature-media-panel" aria-label="Separate study apps">
+  <div className="feature-origin-media feature-media-panel" aria-label="Homemade study apps">
     <div className="feature-origin-collage">
       <figure className="is-tracker">
         <img
@@ -909,6 +968,8 @@ const CodeHealthMedia = () => (
 
 const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
   switch (type) {
+    case 'existing-apps':
+      return <ExistingAppsMedia />;
     case 'origin':
       return <OriginMedia />;
     case 'tracker-story':

@@ -21,16 +21,19 @@ describe('FeaturesPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Great apps. Separate memories.' })
     ).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /JLPT N3 Study Tracker/i })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /AI Card Maker/i })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /Dialogue Generator/i })).toBeInTheDocument();
+    expect(screen.getByText('Anki')).toBeInTheDocument();
+    expect(screen.getByText('WaniKani')).toBeInTheDocument();
+    expect(screen.getByText('Bunpro')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next feature' }));
 
     expect(
-      screen.getByRole('heading', { name: 'I started with the easiest gap.' })
+      screen.getByRole('heading', { name: 'Then I started making the missing pieces.' })
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#the-first-gap');
+    expect(screen.getByRole('img', { name: /JLPT N3 Study Tracker/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /AI Card Maker/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Dialogue Generator/i })).toBeInTheDocument();
+    expect(window.location.hash).toBe('#little-apps-for-the-gaps');
   });
 
   it('supports presentation keyboard navigation', () => {

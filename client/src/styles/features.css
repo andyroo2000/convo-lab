@@ -387,6 +387,7 @@
   text-transform: uppercase;
 }
 
+.feature-existing-apps-media,
 .feature-origin-media,
 .feature-tracker-story-media,
 .feature-ai-story-media,
@@ -408,6 +409,7 @@
   justify-content: center;
 }
 
+.feature-existing-apps-media > .feature-media-label,
 .feature-origin-media > .feature-media-label,
 .feature-context-media > .feature-media-label,
 .feature-create-media > .feature-media-label,
@@ -426,6 +428,120 @@
 
 .feature-origin-media {
   background: linear-gradient(145deg, #f0e3d3, #d6ab8f);
+}
+
+.feature-existing-apps-media {
+  background:
+    radial-gradient(circle at 80% 12%, rgba(255, 255, 255, 0.7), transparent 24%),
+    linear-gradient(145deg, #d9e8ee, #92b8c8);
+  flex-direction: column;
+}
+
+.feature-existing-apps-grid {
+  align-items: center;
+  display: grid;
+  gap: clamp(0.7rem, 2vw, 1.15rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(96%, 44rem);
+}
+
+.feature-existing-apps-grid article {
+  background: rgba(255, 253, 248, 0.98);
+  border: 1px solid rgba(17, 51, 92, 0.1);
+  border-radius: 1.1rem;
+  box-shadow: 0 1.1rem 2.2rem rgba(17, 51, 92, 0.14);
+  min-width: 0;
+  padding: clamp(1rem, 2.4vw, 1.5rem);
+  position: relative;
+}
+
+.feature-existing-apps-grid article:nth-child(1) {
+  transform: rotate(-1.7deg) translateY(0.6rem);
+}
+
+.feature-existing-apps-grid article:nth-child(2) {
+  transform: translateY(-0.65rem);
+}
+
+.feature-existing-apps-grid article:nth-child(3) {
+  transform: rotate(1.7deg) translateY(0.5rem);
+}
+
+.feature-existing-app-icon {
+  align-items: center;
+  background: #2985d8;
+  border-radius: 0.8rem;
+  color: #fff;
+  display: flex;
+  height: 3.4rem;
+  justify-content: center;
+  width: 3.4rem;
+}
+
+.feature-existing-apps-grid .is-wanikani .feature-existing-app-icon {
+  background: #ee4897;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.feature-existing-apps-grid .is-bunpro .feature-existing-app-icon {
+  background: #55a779;
+}
+
+.feature-existing-app-icon svg {
+  height: 1.4rem;
+  width: 1.4rem;
+}
+
+.feature-existing-apps-grid article p {
+  color: var(--feature-coral);
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 1rem 0 0.18rem;
+  text-transform: uppercase;
+}
+
+.feature-existing-apps-grid article strong,
+.feature-existing-apps-grid article small,
+.feature-existing-apps-grid article > span {
+  display: block;
+}
+
+.feature-existing-apps-grid article strong {
+  font-size: clamp(1rem, 2vw, 1.35rem);
+}
+
+.feature-existing-apps-grid article small {
+  color: var(--feature-muted);
+  font-size: 0.58rem;
+  line-height: 1.35;
+  margin-top: 0.28rem;
+  min-height: 2.7em;
+}
+
+.feature-existing-apps-grid article > span {
+  border-top: 1px solid var(--feature-line);
+  color: var(--feature-muted);
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-top: 0.9rem;
+  padding-top: 0.55rem;
+  text-transform: uppercase;
+}
+
+.feature-existing-apps-caption {
+  color: var(--feature-muted);
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  margin: 1.8rem 0 0;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .feature-origin-collage {
@@ -2224,6 +2340,44 @@
   .feature-media-panel {
     border-radius: 1.4rem;
     min-height: 25rem;
+  }
+
+  .feature-existing-apps-grid {
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .feature-existing-apps-grid article {
+    padding: 0.7rem;
+  }
+
+  .feature-existing-app-icon {
+    border-radius: 0.6rem;
+    height: 2.5rem;
+    width: 2.5rem;
+  }
+
+  .feature-existing-apps-grid article p {
+    font-size: 0.43rem;
+    margin-top: 0.7rem;
+  }
+
+  .feature-existing-apps-grid article strong {
+    font-size: 0.76rem;
+  }
+
+  .feature-existing-apps-grid article small {
+    display: none;
+  }
+
+  .feature-existing-apps-grid article > span {
+    font-size: 0.4rem;
+    margin-top: 0.65rem;
+  }
+
+  .feature-existing-apps-caption {
+    font-size: 0.48rem;
+    margin-top: 1.3rem;
   }
 
   .feature-origin-collage {
