@@ -75,10 +75,18 @@ const cancelAchievementBootstrap = (
   context: StudyFocusModeLifecycleOptions,
   bootstrap: AchievementSessionBootstrap | null
 ) => {
-  if (!bootstrap) return;
+  if (!bootstrap) return false;
   Object.assign(bootstrap, { cancelled: true });
-  if (context.achievementSessionBootstrapRef.current !== bootstrap) return;
+  if (context.achievementSessionBootstrapRef.current !== bootstrap) return false;
   context.achievementSessionBootstrapRef.current = null;
+  return true;
+};
+
+const cancelAchievementSessionBootstrap = (
+  context: StudyFocusModeLifecycleOptions,
+  bootstrap: AchievementSessionBootstrap | null
+) => {
+  if (!cancelAchievementBootstrap(context, bootstrap)) return;
   context.achievementSessionStore?.cancelCurrentSession();
 };
 
@@ -151,9 +159,9 @@ const enterFocusMode = async (
   });
   try {
     const nextSession = await context.loadSession(kind, options, expectedEpoch);
-    if (!nextSession) cancelAchievementBootstrap(context, achievementBootstrap);
+    if (!nextSession) cancelAchievementSessionBootstrap(context, achievementBootstrap);
   } catch {
-    cancelAchievementBootstrap(context, achievementBootstrap);
+    cancelAchievementSessionBootstrap(context, achievementBootstrap);
     // loadSession already updates session error state for the dashboard.
   }
 };
