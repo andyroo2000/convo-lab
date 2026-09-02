@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { flushSync } from 'react-dom';
 import type { StudyCardSummary, StudyOverview } from '@languageflow/shared/src/types';
 
 import {
@@ -18,7 +17,6 @@ import useStudyAnswerAudioPrep from './useStudyAnswerAudioPrep';
 import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
-import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 import {
   cloneStudySnapshot,
@@ -51,6 +49,7 @@ import useStudyReviewCardActions from './useStudyReviewCardActions';
 import useStudyFocusModeLifecycle from './useStudyFocusModeLifecycle';
 import useStudyCurrentCardMutations from './useStudyCurrentCardMutations';
 import useStudySessionCompletion from './useStudySessionCompletion';
+import useStudyReviewAudioControls from './useStudyReviewAudioControls';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -351,41 +350,20 @@ const useStudyReviewSession = () => {
     [stopAllAudio, syncOverview]
   );
 
-  const revealCurrentCard = useCallback(() => {
-    if (!currentCard || revealed || editing) return;
-
-    pushUndo({
-      kind: 'reveal',
-      snapshot: captureUndoSnapshot(),
-    });
-    stopAllAudio();
-    flushSync(() => setRevealed(true));
-
-    const answerUrl = getStudyCardAudioUrl(currentCard);
-    if (answerUrl) {
-      autoplayAnswerAudioForCard(currentCard);
-      return;
-    }
-
-    // Mobile browsers such as iOS Safari may reject play() until a user gesture or
-    // until the generated audio asset has propagated, so we prewarm with bounded retries.
-    runBackgroundTask(() => ensureAnswerAudioPrepared(currentCard.id), {
-      label: 'Study answer-audio preparation',
-      errorMessage: 'Answer audio could not be prepared.',
-      onError: reportAsyncSessionError,
-    });
-  }, [
+  const { revealCurrentCard, toggleAnswerAudio } = useStudyReviewAudioControls({
+    answerAudioRef,
+    autoplayAnswerAudioForCard,
     captureUndoSnapshot,
     currentCard,
     editing,
-    autoplayAnswerAudioForCard,
     ensureAnswerAudioPrepared,
     pushUndo,
-    revealed,
     reportAsyncSessionError,
+    revealed,
     runBackgroundTask,
+    setRevealed,
     stopAllAudio,
-  ]);
+  });
 
   const prepareSessionCompletion = useStudySessionCompletion({
     achievementAwards: achievementProgress?.awards ?? [],
@@ -650,18 +628,6 @@ const useStudyReviewSession = () => {
     onShake: handleUndo,
     runBackgroundTask,
   });
-
-  const toggleAnswerAudio = useCallback(() => {
-    if (!revealed || editing || !answerAudioRef.current) {
-      return false;
-    }
-
-    const playPromise = answerAudioRef.current.play();
-    runBackgroundTask(playPromise, {
-      label: 'Study answer-audio keyboard replay',
-    });
-    return true;
-  }, [answerAudioRef, editing, revealed, runBackgroundTask]);
 
   const { enterFocusMode, exitFocusMode } = useStudyFocusModeLifecycle({
     activeAchievementCompletionRequestRef,
