@@ -42,6 +42,7 @@ import useStudyReviewAudioControls from './useStudyReviewAudioControls';
 import useStudyReviewWrapUpActions from './useStudyReviewWrapUpActions';
 import useStudyReviewGrading from './useStudyReviewGrading';
 import useStudyReviewSessionCardState from './useStudyReviewSessionCardState';
+import useStudyInterruptedAchievementRecovery from './useStudyInterruptedAchievementRecovery';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -173,49 +174,29 @@ const useStudyReviewSession = () => {
     canSurfaceAsyncSessionErrorRef.current = focusMode;
   }, [focusMode]);
 
-  useEffect(() => {
-    if (!achievementSessionStore) return undefined;
-    let cancelled = false;
-    const expectedEpoch = sessionEpochRef.current;
-
-    (async () => {
-      try {
-        const { progress } = await syncAchievements();
-        if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
-        const restoredCompletion = achievementSessionStore.prepareInterruptedCompletion(
-          progress.awards
-        );
-        if (!restoredCompletion) return;
-        if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
-
-        sessionEpochRef.current += 1;
-        canSurfaceAsyncSessionErrorRef.current = false;
-        setFocusMode(true);
-        setSessionKind('reviews');
-        setLessonPhase('quiz');
-        setSession(null);
-        setSessionLoading(false);
-        setSessionError(null);
-        setReviewConflictRecovered(false);
-        setCurrentIndex(0);
-        setRevealed(false);
-        setEditing(false);
-        setShowSetDueControls(false);
-        setMasteryAnimation(null);
-        setSessionReviewRecords(restoredCompletion.records);
-        setSessionWasEnded(true);
-        setAchievementCompletion(restoredCompletion);
-        setCurrentAchievementIndex(0);
-        setAchievementCelebrationPresented(restoredCompletion.celebrationPresented);
-      } catch {
-        // Achievement recovery is best-effort and must not block study startup.
-      }
-    })().catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [achievementSessionStore, syncAchievements]);
+  useStudyInterruptedAchievementRecovery({
+    achievementSessionStore,
+    canSurfaceAsyncSessionErrorRef,
+    sessionEpochRef,
+    setAchievementCelebrationPresented,
+    setAchievementCompletion,
+    setCurrentAchievementIndex,
+    setCurrentIndex,
+    setEditing,
+    setFocusMode,
+    setLessonPhase,
+    setMasteryAnimation,
+    setRevealed,
+    setReviewConflictRecovered,
+    setSession,
+    setSessionError,
+    setSessionKind,
+    setSessionLoading,
+    setSessionReviewRecords,
+    setSessionWasEnded,
+    setShowSetDueControls,
+    syncAchievements,
+  });
 
   useEffect(
     () => () => {
