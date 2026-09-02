@@ -43,10 +43,10 @@ describe('FeaturesPage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'The review loop helped. It did not make the code perfect.',
+        name: 'A Goal kept the constraint alive.',
       })
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#code-health-reality-check');
+    expect(window.location.hash).toBe('#goal-driven-refactors');
   });
 
   it('opens a directly linked feature', () => {
@@ -84,6 +84,35 @@ describe('FeaturesPage', () => {
     expect(screen.getByText(/^8\.6/)).toBeInTheDocument();
     expect(
       screen.getByRole('img', { name: /CodeScene analysis of ConvoLab/i })
+    ).toBeInTheDocument();
+  });
+
+  it('includes the exact code-health prompt as presentation copy', () => {
+    window.history.replaceState(null, '', '/features#the-code-health-prompt');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByText(
+        /Okay, I'd like for us to address the recommendations in a series of well-scoped PRs/
+      )
+    ).toHaveTextContent(
+      "Okay, I'd like for us to address the recommendations in a series of well-scoped PRs that should only be merged if they increase the score. Our goal is to get to at least 9.25 while prioritizing hotspot health over squeezing the aggregate score higher"
+    );
+    expect(screen.getByText('Hotspot health first')).toBeInTheDocument();
+  });
+
+  it('opens the Codex Goal progress slide directly', () => {
+    window.history.replaceState(null, '', '/features#goal-driven-refactors');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'A Goal kept the constraint alive.' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('2.62 → 2.79')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /Codex working through a CodeScene/i })
     ).toBeInTheDocument();
   });
 });

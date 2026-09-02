@@ -57,7 +57,9 @@ type FeatureMedia =
   | 'study-time'
   | 'achievements'
   | 'build-story'
-  | 'code-health';
+  | 'code-health'
+  | 'score-prompt'
+  | 'goal-progress';
 
 interface FeatureSlide {
   id: string;
@@ -240,7 +242,28 @@ const FEATURE_SLIDES: FeatureSlide[] = [
     shortLabel: 'Code health',
     media: 'code-health',
   },
+  {
+    id: 'the-code-health-prompt',
+    kicker: 'The instruction',
+    title: 'The prompt became the quality gate.',
+    description:
+      'I asked Codex to turn the recommendations into small, measurable changes. A higher score was required for every merge, while hotspot health remained the real priority.',
+    shortLabel: 'The prompt',
+    media: 'score-prompt',
+  },
+  {
+    id: 'goal-driven-refactors',
+    kicker: 'Codex Goal',
+    title: 'A Goal kept the constraint alive.',
+    description:
+      'Codex carried the target across multiple PRs, worked one hotspot at a time, and waited for CodeScene and independent review checks before each merge.',
+    shortLabel: 'Goal in progress',
+    media: 'goal-progress',
+  },
 ];
+
+const CODE_HEALTH_PROMPT =
+  "Okay, I'd like for us to address the recommendations in a series of well-scoped PRs that should only be merged if they increase the score. Our goal is to get to at least 9.25 while prioritizing hotspot health over squeezing the aggregate score higher";
 
 const MediaLabel = ({ children, audio = false }: { children: string; audio?: boolean }) => (
   <div className="feature-media-label">
@@ -966,6 +989,50 @@ const CodeHealthMedia = () => (
   </div>
 );
 
+const ScorePromptMedia = () => (
+  <div className="feature-score-prompt-media feature-media-panel" aria-label="Code health prompt">
+    <span className="feature-prompt-mark" aria-hidden="true">
+      “
+    </span>
+    <blockquote>“{CODE_HEALTH_PROMPT}”</blockquote>
+    <div className="feature-prompt-rules" aria-label="Rules established by the prompt">
+      <span>Well-scoped PRs</span>
+      <span>Merge only on improvement</span>
+      <span>Target ≥ 9.25</span>
+      <span>Hotspot health first</span>
+    </div>
+  </div>
+);
+
+const GoalProgressMedia = () => (
+  <div className="feature-goal-progress-media feature-media-panel" aria-label="Codex Goal progress">
+    <figure>
+      <img
+        src="/presentation/codex-goal-progress.png"
+        alt="Codex working through a CodeScene improvement goal in a series of gated pull requests"
+      />
+    </figure>
+    <div className="feature-goal-status">
+      <CircleGauge aria-hidden="true" />
+      <span>
+        Goal active
+        <strong>≥ 9.25</strong>
+      </span>
+    </div>
+    <div className="feature-goal-results">
+      <span>
+        <small>Hotspot health</small>
+        <strong>2.62 → 2.79</strong>
+      </span>
+      <span>
+        <small>New modules</small>
+        <strong>10.0</strong>
+      </span>
+      <p>Local gate passed · waiting for CodeScene + independent review</p>
+    </div>
+  </div>
+);
+
 const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
   switch (type) {
     case 'existing-apps':
@@ -1006,6 +1073,10 @@ const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
       return <BuildStoryMedia />;
     case 'code-health':
       return <CodeHealthMedia />;
+    case 'score-prompt':
+      return <ScorePromptMedia />;
+    case 'goal-progress':
+      return <GoalProgressMedia />;
     default:
       return null;
   }
