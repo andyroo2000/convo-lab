@@ -13,7 +13,11 @@ import {
 
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import type { StudyReviewRequestGuard } from './studyReviewRequestGuard';
-import { isCardEligibleForSession, type StudyUndoSnapshot } from './studyReviewSessionUtils';
+import {
+  getNextCardIndex,
+  isCardEligibleForSession,
+  type StudyUndoSnapshot,
+} from './studyReviewSessionUtils';
 import type { StudySessionKind } from './useStudySessionLoader';
 
 type CardAction = 'suspend' | 'unsuspend' | 'forget' | 'set_due';
@@ -60,9 +64,6 @@ interface StudyReviewCardActionsOptions {
   syncOverview: (overview: StudyOverview) => void;
 }
 
-const nextCardIndex = (current: number, nextLength: number) =>
-  nextLength === 0 ? 0 : Math.min(current, nextLength - 1);
-
 const finishLessonWhenEmpty = (options: StudyReviewCardActionsOptions, nextLength: number) => {
   if (options.sessionKind === 'lessons' && nextLength === 0) {
     options.setLessonPhase('complete');
@@ -74,7 +75,7 @@ const removeCurrentCard = (options: StudyReviewCardActionsOptions) => {
   if (!currentCard) return;
   options.removeCardFromSession(currentCard.id);
   const nextLength = Math.max(options.cardsLength - 1, 0);
-  options.setCurrentIndex((current) => nextCardIndex(current, nextLength));
+  options.setCurrentIndex((current) => getNextCardIndex(current, nextLength));
   finishLessonWhenEmpty(options, nextLength);
 };
 
