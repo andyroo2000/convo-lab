@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { flushSync } from 'react-dom';
 import type {
@@ -45,20 +45,10 @@ import {
 import { createStudyReviewRequestGuard } from './studyReviewRequestGuard';
 import type { StudySessionReviewRecord } from '../components/study/studySessionWrapUpModel';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  StudyAchievementSessionStore,
-  type StudyAchievementSessionCompletion,
-} from '../components/study/studyAchievementSessionModel';
-import type { AchievementCatalog, AchievementProgress } from '../components/study/achievementModel';
-import { getAchievementCatalog, getAchievementProgress } from '../lib/achievementApi';
+import type { StudyAchievementSessionCompletion } from '../components/study/studyAchievementSessionModel';
 import useStudyReviewSessionDerivedState from './useStudyReviewSessionDerivedState';
-
-const ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS = 60_000;
-
-interface AchievementSessionBootstrap {
-  cancelled: boolean;
-  promise: Promise<void> | null;
-}
+import useStudyAchievementSync from './useStudyAchievementSync';
+import useStudyAchievementReviewSession from './useStudyAchievementReviewSession';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -95,8 +85,6 @@ const useStudyReviewSession = () => {
   const [sessionWasEnded, setSessionWasEnded] = useState(false);
   const [achievementCompletion, setAchievementCompletion] =
     useState<StudyAchievementSessionCompletion | null>(null);
-  const [achievementCatalog, setAchievementCatalog] = useState<AchievementCatalog | null>(null);
-  const [achievementProgress, setAchievementProgress] = useState<AchievementProgress | null>(null);
   const [currentAchievementIndex, setCurrentAchievementIndex] = useState(0);
   const [achievementCelebrationPresented, setAchievementCelebrationPresented] = useState(false);
   const [achievementCompletionRefreshPending, setAchievementCompletionRefreshPending] =
@@ -119,111 +107,21 @@ const useStudyReviewSession = () => {
   } | null>(null);
   const runBackgroundTask = useStudyBackgroundTask();
   const cardStartedAtRef = useRef(Date.now());
-  const achievementSessionStore = useMemo(
-    () =>
-      userId && typeof window !== 'undefined'
-        ? new StudyAchievementSessionStore(window.localStorage, userId)
-        : null,
-    [userId]
-  );
-  const achievementCatalogRef = useRef<AchievementCatalog | null>(null);
-  const achievementProgressSyncedAtRef = useRef<number | null>(null);
-  const achievementSyncQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const achievementSyncInFlightRef = useRef<{
-    evaluate: boolean;
-    request: Promise<{ catalog: AchievementCatalog; progress: AchievementProgress }>;
-  } | null>(null);
-  const achievementSessionBootstrapRef = useRef<AchievementSessionBootstrap | null>(null);
-
-  const syncAchievements = useCallback((evaluate = true, force = false) => {
-    const inFlight = achievementSyncInFlightRef.current;
-    if (!force && inFlight && (inFlight.evaluate || !evaluate)) {
-      return inFlight.request;
-    }
-
-    const request = achievementSyncQueueRef.current
-      .catch(() => undefined)
-      .then(async () => {
-        const [catalog, progress] = await Promise.all([
-          achievementCatalogRef.current
-            ? Promise.resolve(achievementCatalogRef.current)
-            : getAchievementCatalog(),
-          getAchievementProgress({ evaluate }),
-        ]);
-        if (catalog.revision !== progress.revision) {
-          throw new Error('Achievement catalog and progress revisions did not match.');
-        }
-        achievementCatalogRef.current = catalog;
-        achievementProgressSyncedAtRef.current = Date.now();
-        setAchievementCatalog(catalog);
-        setAchievementProgress(progress);
-        return { catalog, progress };
-      });
-    achievementSyncInFlightRef.current = { evaluate, request };
-    achievementSyncQueueRef.current = request.then(
-      () => undefined,
-      () => undefined
-    );
-    const clearInFlightRequest = () => {
-      if (achievementSyncInFlightRef.current?.request === request) {
-        achievementSyncInFlightRef.current = null;
-      }
-    };
-    request.then(clearInFlightRequest, clearInFlightRequest);
-    return request;
-  }, []);
-
-  const startAchievementReviewSession = useCallback(() => {
-    const bootstrap: AchievementSessionBootstrap = {
-      cancelled: false,
-      promise: null,
-    };
-    if (achievementSessionBootstrapRef.current) {
-      achievementSessionBootstrapRef.current.cancelled = true;
-    }
-    achievementSessionBootstrapRef.current = bootstrap;
-
-    const cachedAwards = achievementProgress?.awards ?? [];
-    achievementSessionStore?.beginReviewSession(cachedAwards);
-
-    bootstrap.promise = (async () => {
-      const progressSyncedAt = achievementProgressSyncedAtRef.current;
-      const hasFreshAchievementProgress =
-        achievementProgress !== null &&
-        progressSyncedAt !== null &&
-        Date.now() - progressSyncedAt <= ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS;
-
-      if (hasFreshAchievementProgress) return;
-
-      try {
-        const currentAwards = (await syncAchievements(false)).progress.awards;
-        if (bootstrap.cancelled || achievementSessionBootstrapRef.current !== bootstrap) return;
-
-        achievementSessionStore?.refreshCurrentSessionBaseline(currentAwards);
-      } catch {
-        // Reviews remain available offline, using cached awards when available.
-      }
-    })();
-
-    runBackgroundTask(bootstrap.promise, {
-      label: 'Study achievement-session bootstrap',
-    });
-    return bootstrap;
-  }, [achievementProgress, achievementSessionStore, runBackgroundTask, syncAchievements]);
-
-  const recordAchievementReview = useCallback(
-    (record: StudySessionReviewRecord) => {
-      achievementSessionStore?.recordReview(record);
-    },
-    [achievementSessionStore]
-  );
-
-  const undoAchievementReview = useCallback(
-    (reviewId: string) => {
-      achievementSessionStore?.undoReview(reviewId);
-    },
-    [achievementSessionStore]
-  );
+  const { achievementCatalog, achievementProgress, hasFreshAchievementProgress, syncAchievements } =
+    useStudyAchievementSync();
+  const {
+    achievementSessionBootstrapRef,
+    achievementSessionStore,
+    recordAchievementReview,
+    startAchievementReviewSession,
+    undoAchievementReview,
+  } = useStudyAchievementReviewSession({
+    achievementProgress,
+    hasFreshAchievementProgress,
+    runBackgroundTask,
+    syncAchievements,
+    userId,
+  });
 
   const {
     cards,
@@ -280,39 +178,37 @@ const useStudyReviewSession = () => {
     const expectedEpoch = sessionEpochRef.current;
 
     (async () => {
-      let progress: AchievementProgress;
       try {
-        ({ progress } = await syncAchievements());
+        const { progress } = await syncAchievements();
         if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
+        const restoredCompletion = achievementSessionStore.prepareInterruptedCompletion(
+          progress.awards
+        );
+        if (!restoredCompletion) return;
+        if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
+
+        sessionEpochRef.current += 1;
+        canSurfaceAsyncSessionErrorRef.current = false;
+        setFocusMode(true);
+        setSessionKind('reviews');
+        setLessonPhase('quiz');
+        setSession(null);
+        setSessionLoading(false);
+        setSessionError(null);
+        setReviewConflictRecovered(false);
+        setCurrentIndex(0);
+        setRevealed(false);
+        setEditing(false);
+        setShowSetDueControls(false);
+        setMasteryAnimation(null);
+        setSessionReviewRecords(restoredCompletion.records);
+        setSessionWasEnded(true);
+        setAchievementCompletion(restoredCompletion);
+        setCurrentAchievementIndex(0);
+        setAchievementCelebrationPresented(restoredCompletion.celebrationPresented);
       } catch {
-        return;
+        // Achievement recovery is best-effort and must not block study startup.
       }
-
-      const restoredCompletion = achievementSessionStore.prepareInterruptedCompletion(
-        progress.awards
-      );
-      if (!restoredCompletion) return;
-      if (cancelled || sessionEpochRef.current !== expectedEpoch) return;
-
-      sessionEpochRef.current += 1;
-      canSurfaceAsyncSessionErrorRef.current = false;
-      setFocusMode(true);
-      setSessionKind('reviews');
-      setLessonPhase('quiz');
-      setSession(null);
-      setSessionLoading(false);
-      setSessionError(null);
-      setReviewConflictRecovered(false);
-      setCurrentIndex(0);
-      setRevealed(false);
-      setEditing(false);
-      setShowSetDueControls(false);
-      setMasteryAnimation(null);
-      setSessionReviewRecords(restoredCompletion.records);
-      setSessionWasEnded(true);
-      setAchievementCompletion(restoredCompletion);
-      setCurrentAchievementIndex(0);
-      setAchievementCelebrationPresented(restoredCompletion.celebrationPresented);
     })().catch(() => {});
 
     return () => {
@@ -646,7 +542,14 @@ const useStudyReviewSession = () => {
     runBackgroundTask(() => queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }), {
       label: 'Study overview refresh',
     });
-  }, [achievementSessionStore, queryClient, resetUndo, runBackgroundTask, stopAllAudio]);
+  }, [
+    achievementSessionBootstrapRef,
+    achievementSessionStore,
+    queryClient,
+    resetUndo,
+    runBackgroundTask,
+    stopAllAudio,
+  ]);
 
   const handleGrade = useCallback(
     async (grade: 'again' | 'hard' | 'good' | 'easy') => {
@@ -887,6 +790,7 @@ const useStudyReviewSession = () => {
       practiceMode,
       loadSession,
       achievementProgress?.awards,
+      achievementSessionBootstrapRef,
       achievementSessionStore,
       recordAchievementReview,
       queryClient,
@@ -1271,6 +1175,7 @@ const useStudyReviewSession = () => {
     },
     [
       loadSession,
+      achievementSessionBootstrapRef,
       achievementSessionStore,
       requestMotionPermission,
       resetStudyAudioAutoplay,
