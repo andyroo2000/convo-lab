@@ -14,9 +14,6 @@ import {
   createStudyReviewRequest,
   type StudySessionResponse,
   type StudyReviewRequest,
-  startStudyLesson,
-  startStudyIntroductionCohortLesson,
-  startStudySession,
   undoStudyReview,
   useRegenerateStudyAnswerAudio,
   useDeleteStudyCard,
@@ -50,6 +47,7 @@ import useStudyReviewSessionDerivedState from './useStudyReviewSessionDerivedSta
 import useStudyAchievementSync from './useStudyAchievementSync';
 import useStudyAchievementReviewSession from './useStudyAchievementReviewSession';
 import useStudyEmptySessionRefresh from './useStudyEmptySessionRefresh';
+import useStudySessionLoader from './useStudySessionLoader';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -94,9 +92,7 @@ const useStudyReviewSession = () => {
   const [practiceInitialCount, setPracticeInitialCount] = useState(0);
   const requestGuardRef = useRef(createStudyReviewRequestGuard());
   const sessionEpochRef = useRef(0);
-  const sessionLoadRequestRef = useRef(0);
   const activeLessonCohortIdRef = useRef<string | null>(null);
-  const sessionCardCountRef = useRef(0);
   const canSurfaceAsyncSessionErrorRef = useRef(false);
   const answeredCardIdsRef = useRef<Set<string>>(new Set());
   const autoRefreshEmptySessionRef = useRef(false);
@@ -108,6 +104,26 @@ const useStudyReviewSession = () => {
   } | null>(null);
   const runBackgroundTask = useStudyBackgroundTask();
   const cardStartedAtRef = useRef(Date.now());
+  const getCachedOverview = useCallback(
+    () => queryClient.getQueryData<StudyOverview>(['study', 'overview']) ?? null,
+    [queryClient]
+  );
+  const syncOverview = useCallback(
+    (overview: StudyOverview) => {
+      queryClient.setQueryData(['study', 'overview'], overview);
+    },
+    [queryClient]
+  );
+  const { loadSession, sessionCardCountRef } = useStudySessionLoader({
+    autoRefreshEmptySessionRef,
+    sessionEpochRef,
+    sessionKind,
+    setLessonPhase,
+    setSession,
+    setSessionError,
+    setSessionLoading,
+    syncOverview,
+  });
   const { achievementCatalog, achievementProgress, hasFreshAchievementProgress, syncAchievements } =
     useStudyAchievementSync();
   const {
@@ -234,18 +250,6 @@ const useStudyReviewSession = () => {
 
   const { popUndo, pushUndo, resetUndo } = useStudyUndoStack<StudyUndoAction>();
 
-  const getCachedOverview = useCallback(
-    () => queryClient.getQueryData<StudyOverview>(['study', 'overview']) ?? null,
-    [queryClient]
-  );
-
-  const syncOverview = useCallback(
-    (overview: StudyOverview) => {
-      queryClient.setQueryData(['study', 'overview'], overview);
-    },
-    [queryClient]
-  );
-
   const mergeCardIntoSession = useCallback((updatedCard: StudyCardSummary) => {
     setSession((currentSession) => {
       if (!currentSession) return currentSession;
@@ -352,58 +356,6 @@ const useStudyReviewSession = () => {
       setShowSetDueControls(false);
     },
     [stopAllAudio, syncOverview]
-  );
-
-  const loadSession = useCallback(
-    async (
-      kind: 'reviews' | 'lessons' = sessionKind,
-      options: { allowEmptySessionRefresh?: boolean; lessonCohortId?: string } = {},
-      expectedEpoch = sessionEpochRef.current
-    ) => {
-      const requestId = sessionLoadRequestRef.current + 1;
-      sessionLoadRequestRef.current = requestId;
-      const isCurrentRequest = () =>
-        sessionEpochRef.current === expectedEpoch && sessionLoadRequestRef.current === requestId;
-
-      if (!isCurrentRequest()) return null;
-
-      setSessionLoading(true);
-      setSessionError(null);
-
-      try {
-        let nextSession: StudySessionResponse;
-        if (kind === 'lessons' && options.lessonCohortId) {
-          nextSession = await startStudyIntroductionCohortLesson(options.lessonCohortId);
-        } else if (kind === 'lessons') {
-          nextSession = await startStudyLesson();
-        } else {
-          nextSession = await startStudySession();
-        }
-        if (!isCurrentRequest()) return null;
-
-        autoRefreshEmptySessionRef.current =
-          kind === 'reviews' &&
-          nextSession.cards.length === 0 &&
-          options.allowEmptySessionRefresh !== false;
-        sessionCardCountRef.current = nextSession.cards.length;
-        setSession(nextSession);
-        setLessonPhase(kind === 'lessons' ? 'preview' : 'quiz');
-        syncOverview(nextSession.overview);
-        return nextSession;
-      } catch (error) {
-        if (!isCurrentRequest()) return null;
-
-        setSession(null);
-        const message = error instanceof Error ? error.message : 'Study session failed to load.';
-        setSessionError(message);
-        throw error;
-      } finally {
-        if (isCurrentRequest()) {
-          setSessionLoading(false);
-        }
-      }
-    },
-    [sessionKind, syncOverview]
   );
 
   const revealCurrentCard = useCallback(() => {
