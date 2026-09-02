@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 
 import { useQueryClient } from '@tanstack/react-query';
 import { flushSync } from 'react-dom';
 import type {
-  StudyCardSetDueMode,
   StudyCardSummary,
   StudyOverview,
   StudyPromptPayload,
@@ -24,13 +23,11 @@ import useStudyAnswerAudioPrep from './useStudyAnswerAudioPrep';
 import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
-import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 import {
   cloneStudySnapshot,
   getCardsAfterReview,
-  isCardEligibleForSession,
   type StudyUndoAction,
   type StudyUndoSnapshot,
 } from './studyReviewSessionUtils';
@@ -55,6 +52,7 @@ import {
   type PendingStudyReviewOperation,
 } from './studyReviewSubmissionFlow';
 import { submitStudyReviewUndo } from './studyReviewUndoFlow';
+import useStudyReviewCardActions from './useStudyReviewCardActions';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -635,105 +633,30 @@ const useStudyReviewSession = () => {
     await handleGrade(pendingOperation.request.grade);
   }, [handleGrade]);
 
-  const handleBuryForSession = useCallback(() => {
-    if (!currentCard || !revealed || editing || pendingReviewOperationRef.current) return;
-
-    // Bury is intentionally session-only: it removes the card from this in-memory
-    // review queue without persisting any scheduler change on the server.
-    pushUndo({
-      kind: 'bury',
-      snapshot: captureUndoSnapshot(),
-    });
-    stopAllAudio();
-    autoRefreshEmptySessionRef.current = false;
-    setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
-    removeCardFromSession(currentCard.id);
-    const nextLength = Math.max(cards.length - 1, 0);
-    setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
-    setRevealed(false);
-    setShowSetDueControls(false);
-    if (sessionKind === 'lessons' && nextLength === 0) {
-      setLessonPhase('complete');
-    }
-  }, [
-    cards.length,
+  const { handleBuryForSession, handleCardAction } = useStudyReviewCardActions({
+    autoRefreshEmptySessionRef,
+    cardActionMutation,
+    cardsLength: cards.length,
     captureUndoSnapshot,
     currentCard,
     editing,
+    mergeCardIntoSession,
+    pendingReviewOperationRef,
     pushUndo,
     removeCardFromSession,
+    requestGuardRef,
     revealed,
+    sessionEpochRef,
     sessionKind,
+    setAnsweredCardIds,
+    setCurrentIndex,
+    setLessonPhase,
+    setRevealed,
+    setSessionError,
+    setShowSetDueControls,
     stopAllAudio,
-  ]);
-
-  const handleCardAction = useCallback(
-    async (
-      action: 'suspend' | 'unsuspend' | 'forget' | 'set_due',
-      options?: { mode?: StudyCardSetDueMode; dueAt?: string }
-    ) => {
-      if (
-        !currentCard ||
-        editing ||
-        pendingReviewOperationRef.current ||
-        requestGuardRef.current.isBusy() ||
-        cardActionMutation.isPending
-      ) {
-        return;
-      }
-
-      const expectedEpoch = sessionEpochRef.current;
-      const requestToken = requestGuardRef.current.acquire('card-action', currentCard.id);
-      if (!requestToken) return;
-      try {
-        stopAllAudio();
-        const result = await cardActionMutation.mutateAsync({
-          cardId: currentCard.id,
-          action,
-          mode: options?.mode,
-          dueAt: options?.dueAt,
-          timeZone: options?.mode === 'tomorrow' ? getDeviceStudyTimeZone() : undefined,
-        });
-        if (sessionEpochRef.current !== expectedEpoch) return;
-
-        syncOverview(result.overview);
-        setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
-        setShowSetDueControls(false);
-        autoRefreshEmptySessionRef.current = false;
-
-        if (isCardEligibleForSession(result.card)) {
-          mergeCardIntoSession(result.card);
-        } else {
-          removeCardFromSession(currentCard.id);
-          const nextLength = Math.max(cards.length - 1, 0);
-          setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
-          if (sessionKind === 'lessons' && nextLength === 0) {
-            setLessonPhase('complete');
-          }
-        }
-
-        setRevealed(false);
-        setSessionError(null);
-      } catch (error) {
-        if (sessionEpochRef.current !== expectedEpoch) return;
-
-        setSessionError(error instanceof Error ? error.message : 'Card action failed.');
-      } finally {
-        requestGuardRef.current.release(requestToken);
-      }
-    },
-    [
-      cardActionMutation,
-      cards.length,
-      currentCard,
-      editing,
-      mergeCardIntoSession,
-      removeCardFromSession,
-      sessionKind,
-      stopAllAudio,
-      syncOverview,
-    ]
-  );
+    syncOverview,
+  });
 
   const saveCurrentCard = useCallback(
     async (payload: { prompt: StudyPromptPayload; answer: StudyAnswerPayload }) => {
