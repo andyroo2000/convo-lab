@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { StudyCardSummary, StudyOverview } from '@languageflow/shared/src/types';
 
 import {
-  createStudyReviewRequest,
   type StudySessionResponse,
   undoStudyReview,
   useRegenerateStudyAnswerAudio,
@@ -33,17 +32,8 @@ import useStudyAchievementSync from './useStudyAchievementSync';
 import useStudyAchievementReviewSession from './useStudyAchievementReviewSession';
 import useStudyEmptySessionRefresh from './useStudyEmptySessionRefresh';
 import useStudySessionLoader from './useStudySessionLoader';
-import {
-  getLessonCardsAfterAgain,
-  getPracticeCardsAfterGrade,
-  isReviewSubmissionBlocked,
-  pendingReviewDoesNotMatch,
-  type StudyMasteryAnimation,
-} from './studyReviewSubmissionRules';
-import {
-  submitStudyReviewOperation,
-  type PendingStudyReviewOperation,
-} from './studyReviewSubmissionFlow';
+import { type StudyMasteryAnimation } from './studyReviewSubmissionRules';
+import { type PendingStudyReviewOperation } from './studyReviewSubmissionFlow';
 import { submitStudyReviewUndo } from './studyReviewUndoFlow';
 import useStudyReviewCardActions from './useStudyReviewCardActions';
 import useStudyFocusModeLifecycle from './useStudyFocusModeLifecycle';
@@ -51,6 +41,7 @@ import useStudyCurrentCardMutations from './useStudyCurrentCardMutations';
 import useStudySessionCompletion from './useStudySessionCompletion';
 import useStudyReviewAudioControls from './useStudyReviewAudioControls';
 import useStudyReviewWrapUpActions from './useStudyReviewWrapUpActions';
+import useStudyReviewGrading from './useStudyReviewGrading';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -384,139 +375,57 @@ const useStudyReviewSession = () => {
     syncAchievements,
   });
 
-  const handleGrade = useCallback(
-    async (grade: 'again' | 'hard' | 'good' | 'easy') => {
-      if (
-        isReviewSubmissionBlocked({
-          editing,
-          hasCurrentCard: currentCard !== null,
-          masteryAnimationActive: masteryAnimation !== null,
-          requestBusy: requestGuardRef.current.isBusy(),
-          reviewPending: reviewMutation.isPending,
-          undoPending,
-        })
-      ) {
-        return;
-      }
-
-      if (practiceMode) {
-        stopAllAudio();
-        resetStudyAudioAutoplayForCard(currentCard.id);
-        setPracticeCards((current) => getPracticeCardsAfterGrade(current, grade));
-        setRevealed(false);
-        setSessionError(null);
-        cardStartedAtRef.current = Date.now();
-        return;
-      }
-
-      if (sessionKind === 'lessons' && grade === 'again') {
-        stopAllAudio();
-        resetStudyAudioAutoplayForCard(currentCard.id);
-        const nextCards = getLessonCardsAfterAgain(cards, currentIndex, currentCard);
-        setSession((currentSession) =>
-          currentSession ? { ...currentSession, cards: nextCards } : currentSession
-        );
-        setCurrentIndex(0);
-        setRevealed(false);
-        setSessionError(null);
-        return;
-      }
-
-      const pendingOperation = pendingReviewOperationRef.current;
-      if (pendingReviewDoesNotMatch(pendingOperation?.request ?? null, currentCard.id, grade)) {
-        return;
-      }
-      const durationMs = Math.max(0, Date.now() - cardStartedAtRef.current);
-      const operation = pendingOperation ?? {
-        request: createStudyReviewRequest({ cardId: currentCard.id, grade, durationMs }),
-        undoSnapshot: captureUndoSnapshot(),
-      };
-      pendingReviewOperationRef.current = operation;
-      setReviewRetryAvailable(false);
-      setReviewConflictRecovered(false);
-      const expectedEpoch = sessionEpochRef.current;
-      const requestToken = requestGuardRef.current.acquire('review', currentCard.id);
-      if (!requestToken) return;
-      await submitStudyReviewOperation({
-        activeLessonCohortIdRef,
-        achievementAwards: achievementProgress?.awards ?? [],
-        achievementSessionBootstrapRef,
-        achievementSessionStore,
-        answeredCardIdsRef,
-        applyReviewResultToSession,
-        autoRefreshEmptySessionRef,
-        cards,
-        currentCard,
-        expectedEpoch,
-        fallbackDurationMs: durationMs,
-        grade,
-        loadSession,
-        operation,
-        pendingReviewOperationRef,
-        pushUndo,
-        queryClient,
-        recordAchievementReview,
-        requestGuardRef,
-        requestToken,
-        resetStudyAudioAutoplayForCard,
-        resetUndo,
-        sessionEpochRef,
-        sessionKind,
-        setAchievementCelebrationPresented,
-        setAchievementCompletion,
-        setAnsweredCardIds,
-        setCurrentAchievementIndex,
-        setCurrentIndex,
-        setEditing,
-        setLessonPhase,
-        setMasteryAnimation,
-        setRevealed,
-        setReviewConflictRecovered,
-        setReviewRetryAvailable,
-        setReviewSubmitPending,
-        setSession,
-        setSessionError,
-        setSessionReviewRecords,
-        setSessionWasEnded,
-        setShowSetDueControls,
-        stopAllAudio,
-        submitReview: reviewMutation.mutateAsync,
-        syncAchievements,
-        syncOverview,
-      });
-    },
-    [
-      applyReviewResultToSession,
-      captureUndoSnapshot,
-      currentCard,
-      currentIndex,
-      cards,
-      editing,
-      masteryAnimation,
-      pushUndo,
-      resetStudyAudioAutoplayForCard,
-      reviewMutation,
-      stopAllAudio,
-      syncOverview,
-      undoPending,
-      sessionKind,
-      practiceMode,
-      loadSession,
-      achievementProgress?.awards,
-      achievementSessionBootstrapRef,
-      achievementSessionStore,
-      recordAchievementReview,
-      queryClient,
-      resetUndo,
-      syncAchievements,
-    ]
-  );
-
-  const retryPendingReview = useCallback(async () => {
-    const pendingOperation = pendingReviewOperationRef.current;
-    if (!pendingOperation) return;
-    await handleGrade(pendingOperation.request.grade);
-  }, [handleGrade]);
+  const { handleGrade, retryPendingReview } = useStudyReviewGrading({
+    activeLessonCohortIdRef,
+    achievementAwards: achievementProgress?.awards ?? [],
+    achievementSessionBootstrapRef,
+    achievementSessionStore,
+    answeredCardIdsRef,
+    applyReviewResultToSession,
+    autoRefreshEmptySessionRef,
+    cards,
+    cardStartedAtRef,
+    captureUndoSnapshot,
+    currentCard,
+    currentIndex,
+    editing,
+    loadSession,
+    masteryAnimation,
+    pendingReviewOperationRef,
+    practiceMode,
+    pushUndo,
+    queryClient,
+    recordAchievementReview,
+    requestGuardRef,
+    resetStudyAudioAutoplayForCard,
+    resetUndo,
+    reviewPending: reviewMutation.isPending,
+    sessionEpochRef,
+    sessionKind,
+    setAchievementCelebrationPresented,
+    setAchievementCompletion,
+    setAnsweredCardIds,
+    setCurrentAchievementIndex,
+    setCurrentIndex,
+    setEditing,
+    setLessonPhase,
+    setMasteryAnimation,
+    setPracticeCards,
+    setRevealed,
+    setReviewConflictRecovered,
+    setReviewRetryAvailable,
+    setReviewSubmitPending,
+    setSession,
+    setSessionError,
+    setSessionReviewRecords,
+    setSessionWasEnded,
+    setShowSetDueControls,
+    stopAllAudio,
+    submitReview: reviewMutation.mutateAsync,
+    syncAchievements,
+    syncOverview,
+    undoPending,
+  });
 
   const { handleBuryForSession, handleCardAction } = useStudyReviewCardActions({
     autoRefreshEmptySessionRef,
