@@ -49,6 +49,7 @@ import type { StudyAchievementSessionCompletion } from '../components/study/stud
 import useStudyReviewSessionDerivedState from './useStudyReviewSessionDerivedState';
 import useStudyAchievementSync from './useStudyAchievementSync';
 import useStudyAchievementReviewSession from './useStudyAchievementReviewSession';
+import useStudyEmptySessionRefresh from './useStudyEmptySessionRefresh';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -1293,63 +1294,22 @@ const useStudyReviewSession = () => {
     });
   }, [loadSession]);
 
-  useEffect(() => {
-    if (
+  useStudyEmptySessionRefresh({
+    autoRefreshEmptySessionRef,
+    blocked:
       !focusMode ||
       practiceMode ||
       sessionLoading ||
-      sessionError ||
-      currentCard ||
+      Boolean(sessionError) ||
+      Boolean(currentCard) ||
       reviewBusy ||
       undoPending ||
-      editing ||
-      !autoRefreshEmptySessionRef.current
-    ) {
-      return undefined;
-    }
-
-    const overview = session?.overview ?? getCachedOverview();
-    if (!overview) return undefined;
-
-    const failedCount = overview.failedCount ?? 0;
-    const nextDueAt = overview.nextDueAt ? new Date(overview.nextDueAt) : null;
-    const nextDueMs = nextDueAt && !Number.isNaN(nextDueAt.getTime()) ? nextDueAt.getTime() : null;
-    const shouldLoadNow =
-      overview.dueCount > 0 || (failedCount > 0 && nextDueMs !== null && nextDueMs <= Date.now());
-
-    if (shouldLoadNow) {
-      runBackgroundTask(() => loadSession('reviews', { allowEmptySessionRefresh: false }), {
-        label: 'Study session refresh',
-      });
-      return undefined;
-    }
-
-    if (failedCount > 0 && nextDueMs !== null) {
-      const delayMs = Math.max(0, Math.min(nextDueMs - Date.now() + 250, 2_147_483_647));
-      const timeoutId = window.setTimeout(() => {
-        runBackgroundTask(() => loadSession('reviews', { allowEmptySessionRefresh: false }), {
-          label: 'Study failed-card retry refresh',
-        });
-      }, delayMs);
-
-      return () => window.clearTimeout(timeoutId);
-    }
-
-    return undefined;
-  }, [
-    currentCard,
-    editing,
-    focusMode,
+      editing,
     getCachedOverview,
     loadSession,
-    practiceMode,
-    reviewBusy,
     runBackgroundTask,
-    session?.overview,
-    sessionError,
-    sessionLoading,
-    undoPending,
-  ]);
+    sessionOverview: session?.overview,
+  });
 
   useEffect(() => {
     stopAllAudio();
