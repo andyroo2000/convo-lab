@@ -112,7 +112,20 @@ describe('FeaturesPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('2.62 → 2.79')).toBeInTheDocument();
     expect(screen.getByLabelText('Recreated goal-driven agent exchange')).toBeInTheDocument();
-    expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Okay, I'd like for us to address the recommendations in a series of well-scoped PRs that should only be merged if they increase the score. Our goal is to get to at least 9.25 while prioritizing hotspot health over squeezing the aggregate score higher"
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText(/I'm continuing with the next hotspot slice:/)).toHaveTextContent(
+      "I'll keep it behavior-preserving"
+    );
+    expect(screen.getByText(/The second slice clears the local gate/)).toHaveTextContent(
+      'both new achievement modules score 10.0'
+    );
+    expect(screen.getByText(/PR #548 is open/)).toHaveTextContent(
+      "I'm waiting for the independent CodeScene and review checks before any merge"
+    );
     expect(screen.queryByText('Codex')).not.toBeInTheDocument();
   });
 });

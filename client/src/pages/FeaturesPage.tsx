@@ -256,7 +256,7 @@ const FEATURE_SLIDES: FeatureSlide[] = [
     kicker: 'Persistent Goal',
     title: 'A persistent goal kept the constraint alive.',
     description:
-      'The agent carried the target across multiple PRs, worked one hotspot at a time, and waited for CodeScene and independent review checks before each merge.',
+      'The agent carried the target across multiple PRs. The exchange shows the actual instruction, plan, measured result, and decision to wait for independent checks.',
     shortLabel: 'Goal in progress',
     media: 'goal-progress',
   },
@@ -264,6 +264,21 @@ const FEATURE_SLIDES: FeatureSlide[] = [
 
 const CODE_HEALTH_PROMPT =
   "Okay, I'd like for us to address the recommendations in a series of well-scoped PRs that should only be merged if they increase the score. Our goal is to get to at least 9.25 while prioritizing hotspot health over squeezing the aggregate score higher";
+
+const GOAL_AGENT_RESPONSES = [
+  {
+    label: 'Agent · plan',
+    text: "I'm continuing with the next hotspot slice: achievement synchronization and completion coordination inside useStudyReviewSession. I'll keep it behavior-preserving, require the original hotspot to improve beyond 2.62, require every extracted module to remain healthy, and repeat the full CodeScene/review/deploy gate before merging.",
+  },
+  {
+    label: 'Agent · result',
+    text: 'The second slice clears the local gate with a larger improvement: the main hotspot rises 2.62 → 2.79, and both new achievement modules score 10.0. The existing 49-test session suite—including its extensive achievement race, offline, recovery, and undo cases—passes unchanged.',
+  },
+  {
+    label: 'Agent · merge gate',
+    text: "PR #548 is open with the 2.62 → 2.79 CodeScene result documented. The complete local gate passed; I'm waiting for the independent CodeScene and review checks before any merge.",
+  },
+] as const;
 
 const MediaLabel = ({ children, audio = false }: { children: string; audio?: boolean }) => (
   <div className="feature-media-label">
@@ -1021,30 +1036,17 @@ const GoalProgressMedia = () => (
         <b>Active</b>
       </header>
       <article className="is-user">
-        <span>You</span>
-        <p>Use well-scoped PRs. Merge only if the score improves. Prioritize hotspot health.</p>
+        <span>Original prompt</span>
+        <p>{CODE_HEALTH_PROMPT}</p>
       </article>
-      <article className="is-agent">
-        <span>Agent</span>
-        <p>
-          Goal accepted. I’ll work one hotspot at a time and require the full gate before each
-          merge.
-        </p>
-        <ol>
-          <li>
-            <Check aria-hidden="true" /> Scope one hotspot
-          </li>
-          <li>
-            <Check aria-hidden="true" /> Preserve behavior
-          </li>
-          <li>
-            <Check aria-hidden="true" /> Run full checks
-          </li>
-          <li>
-            <Check aria-hidden="true" /> Re-analyze the score
-          </li>
-        </ol>
-      </article>
+      <div className="feature-agent-responses">
+        {GOAL_AGENT_RESPONSES.map(({ label, text }, index) => (
+          <article className={`is-agent is-response-${index + 1}`} key={label}>
+            <span>{label}</span>
+            <p>{text}</p>
+          </article>
+        ))}
+      </div>
       <footer className="feature-goal-results">
         <span>
           <small>Hotspot health</small>
