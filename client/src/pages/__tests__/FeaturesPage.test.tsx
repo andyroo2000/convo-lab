@@ -23,6 +23,12 @@ describe('FeaturesPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Time tracker')).toBeInTheDocument();
     expect(screen.getByText('Anki replacement')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /original JLPT N3 Study Tracker/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /original ConvoLab dialogue generator/i })
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next feature' }));
 

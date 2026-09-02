@@ -192,43 +192,58 @@ const OriginMedia = () => {
     {
       number: '01',
       title: 'Time tracker',
-      detail: 'See where my study time went.',
       icon: Clock3,
     },
     {
       number: '02',
       title: 'AI card maker',
-      detail: 'Turn a word into Anki material.',
       icon: WandSparkles,
     },
     {
       number: '03',
       title: 'Dialogue generator',
-      detail: 'Create conversations at my level.',
       icon: MessagesSquare,
     },
     {
       number: '04',
       title: 'Anki replacement',
-      detail: 'Put the learning model in the app.',
       icon: Layers3,
     },
   ];
 
   return (
     <div className="feature-origin-media feature-media-panel" aria-label="ConvoLab origin story">
-      <MediaLabel>Four tools, one direction</MediaLabel>
-      <div className="feature-origin-timeline">
-        {steps.map(({ number, title, detail, icon: Icon }) => (
+      <MediaLabel>The apps before ConvoLab</MediaLabel>
+      <div className="feature-origin-screenshots">
+        <figure>
+          <img
+            src="/presentation/jlpt-study-tracker.png"
+            alt="The original JLPT N3 Study Tracker showing a weekly study-time chart"
+          />
+          <figcaption>
+            <b>01</b>
+            <span>Study-time tracker</span>
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="/presentation/dialogue-generator.png"
+            alt="The original ConvoLab dialogue generator showing the Sangenjaya Memories dialogue"
+          />
+          <figcaption>
+            <b>03</b>
+            <span>Dialogue generator</span>
+          </figcaption>
+        </figure>
+      </div>
+      <div className="feature-origin-path" aria-label="Evolution of the separate study apps">
+        {steps.map(({ number, title, icon: Icon }) => (
           <article key={number}>
             <span className="feature-origin-number">{number}</span>
             <span className="feature-origin-icon">
               <Icon aria-hidden="true" />
             </span>
-            <span>
-              <strong>{title}</strong>
-              <small>{detail}</small>
-            </span>
+            <strong>{title}</strong>
           </article>
         ))}
       </div>
