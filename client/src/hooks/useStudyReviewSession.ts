@@ -38,27 +38,20 @@ import useStudyBackgroundTask from './useStudyBackgroundTask';
 import {
   cloneStudySnapshot,
   getCardsAfterReview,
-  hasPersistedFailure,
   isCardEligibleForSession,
   type StudyUndoAction,
   type StudyUndoSnapshot,
 } from './studyReviewSessionUtils';
 import { createStudyReviewRequestGuard } from './studyReviewRequestGuard';
-import {
-  buildStudySessionWrapUp,
-  type StudySessionReviewRecord,
-} from '../components/study/studySessionWrapUpModel';
+import type { StudySessionReviewRecord } from '../components/study/studySessionWrapUpModel';
 import { useAuth } from '../contexts/AuthContext';
 import {
   StudyAchievementSessionStore,
   type StudyAchievementSessionCompletion,
 } from '../components/study/studyAchievementSessionModel';
-import {
-  allPresentedAchievements,
-  type AchievementCatalog,
-  type AchievementProgress,
-} from '../components/study/achievementModel';
+import type { AchievementCatalog, AchievementProgress } from '../components/study/achievementModel';
 import { getAchievementCatalog, getAchievementProgress } from '../lib/achievementApi';
+import useStudyReviewSessionDerivedState from './useStudyReviewSessionDerivedState';
 
 const ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS = 60_000;
 
@@ -232,35 +225,39 @@ const useStudyReviewSession = () => {
     [achievementSessionStore]
   );
 
-  const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
-  const practiceMode = practiceCards !== null;
-  const practiceComplete = practiceMode && practiceCards.length === 0;
-  const presentedCards = practiceCards ?? cards;
-  const currentCard = practiceMode ? (practiceCards[0] ?? null) : (cards[currentIndex] ?? null);
-  const sessionWrapUp = useMemo(
-    () => buildStudySessionWrapUp(sessionReviewRecords),
-    [sessionReviewRecords]
-  );
-  const reviewQueueExhausted =
-    focusMode &&
-    sessionKind === 'reviews' &&
-    sessionReviewRecords.length > 0 &&
-    cards.length === 0 &&
-    (session?.overview.dueCount ?? 0) === 0 &&
-    (session?.overview.failedCount ?? 0) === 0 &&
-    !practiceMode;
-  const reviewSessionComplete = !practiceMode && (reviewQueueExhausted || sessionWasEnded);
-  const completionAchievements = useMemo(() => {
-    if (!achievementCatalog || !achievementProgress || !achievementCompletion) return [];
-    const achievementIds = new Set(achievementCompletion.newAwardIds);
-    return allPresentedAchievements(achievementCatalog, achievementProgress)
-      .filter((achievement) => achievementIds.has(achievement.id))
-      .sort((left, right) => (left.earnedAt ?? '').localeCompare(right.earnedAt ?? ''));
-  }, [achievementCatalog, achievementCompletion, achievementProgress]);
-  const currentAchievement =
-    !achievementCelebrationPresented && completionAchievements[currentAchievementIndex]
-      ? completionAchievements[currentAchievementIndex]
-      : null;
+  const {
+    cards,
+    completionAchievements,
+    currentAchievement,
+    currentCard,
+    practiceComplete,
+    practiceMode,
+    presentedCards,
+    reviewQueueExhausted,
+    reviewSessionComplete,
+    sessionCounts,
+    sessionProgress,
+    sessionWrapUp,
+    updateCardErrorMessage,
+  } = useStudyReviewSessionDerivedState({
+    achievementCatalog,
+    achievementCelebrationPresented,
+    achievementCompletion,
+    achievementProgress,
+    answeredCardIds,
+    currentAchievementIndex,
+    currentIndex,
+    focusMode,
+    practiceCards,
+    practiceInitialCount,
+    regenerateAudioError: regenerateAudioMutation.error,
+    session,
+    sessionCardCount: sessionCardCountRef.current,
+    sessionKind,
+    sessionReviewRecords,
+    sessionWasEnded,
+    updateCardError: updateCardMutation.error,
+  });
   // Ref so handlers always read the live card even if a background session update
   // races with a click (stale-closure guard). Cast needed for @types/react 18.3.5.
   const currentCardRef = useRef<StudyCardSummary | null>(
@@ -268,55 +265,6 @@ const useStudyReviewSession = () => {
   ) as MutableRefObject<StudyCardSummary | null>;
   currentCardRef.current = currentCard;
   const reviewBusy = reviewMutation.isPending || reviewSubmitPending || reviewRetryAvailable;
-  const sessionCounts = useMemo(() => {
-    const answeredSet = new Set(answeredCardIds);
-    const totals = {
-      newRemaining: 0,
-      failedDue: session?.overview.failedCount ?? 0,
-      reviewRemaining: 0,
-    };
-    let loadedFailedCount = 0;
-
-    cards.forEach((card) => {
-      if (hasPersistedFailure(card)) {
-        loadedFailedCount += 1;
-      } else if (!answeredSet.has(card.id)) {
-        if (card.state.queueState === 'new') {
-          totals.newRemaining += 1;
-        } else {
-          totals.reviewRemaining += 1;
-        }
-      }
-    });
-
-    totals.failedDue = Math.max(totals.failedDue, loadedFailedCount);
-
-    return totals;
-  }, [answeredCardIds, cards, session?.overview.failedCount]);
-  let sessionProgress = 0;
-  if (practiceMode && practiceInitialCount > 0) {
-    sessionProgress = practiceComplete
-      ? 1
-      : Math.max(0, (practiceInitialCount - practiceCards.length) / practiceInitialCount);
-  } else if (sessionCardCountRef.current > 0) {
-    sessionProgress =
-      cards.length === 0 ? 1 : Math.min(0.99, answeredCardIds.length / sessionCardCountRef.current);
-  }
-  const updateCardErrorMessage = useMemo(() => {
-    if (regenerateAudioMutation.error instanceof Error) {
-      return regenerateAudioMutation.error.message;
-    }
-
-    if (updateCardMutation.error instanceof Error) {
-      return updateCardMutation.error.message;
-    }
-
-    if (regenerateAudioMutation.error) {
-      return 'Audio regeneration failed.';
-    }
-
-    return updateCardMutation.error ? 'Card update failed.' : null;
-  }, [regenerateAudioMutation.error, updateCardMutation.error]);
 
   useEffect(() => {
     answeredCardIdsRef.current = new Set(answeredCardIds);
