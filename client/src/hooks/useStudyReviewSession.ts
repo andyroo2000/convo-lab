@@ -54,6 +54,7 @@ import {
   submitStudyReviewOperation,
   type PendingStudyReviewOperation,
 } from './studyReviewSubmissionFlow';
+import { submitStudyReviewUndo } from './studyReviewUndoFlow';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -821,75 +822,40 @@ const useStudyReviewSession = () => {
   }, [cards.length, currentCard, deleteCardMutation, removeCardFromSession, stopAllAudio]);
 
   const handleUndo = useCallback(async () => {
-    if (
-      undoPending ||
-      pendingReviewOperationRef.current ||
-      requestGuardRef.current.isBusy() ||
-      reviewMutation.isPending ||
-      cardActionMutation.isPending ||
-      sessionLoading ||
-      editing ||
-      masteryAnimation !== null
-    ) {
-      return;
-    }
-
-    const action = popUndo();
-    if (!action) return;
-    const expectedEpoch = sessionEpochRef.current;
-
-    stopAllAudio();
-
-    if (action.kind !== 'grade') {
-      restoreUndoSnapshot(action.snapshot);
-      return;
-    }
-
-    const requestToken = requestGuardRef.current.acquire('undo', action.reviewLogId);
-    if (!requestToken) {
-      pushUndo(action);
-      return;
-    }
-    setUndoPending(true);
-    try {
-      const undoResult = await undoStudyReview(action.reviewLogId);
-      if (sessionEpochRef.current !== expectedEpoch) return;
-
-      restoreUndoSnapshot(action.snapshot);
-      syncOverview(undoResult.overview);
-      setSessionReviewRecords((current) =>
-        current.filter((record) => record.id !== action.reviewLogId)
-      );
-      if (achievementCompletion) {
-        achievementCompletionRequestIdRef.current += 1;
-        activeAchievementCompletionRequestRef.current = null;
-        setAchievementCompletionRefreshPending(false);
-        achievementSessionStore?.reopenCompletion(
-          achievementCompletion.id,
-          achievementProgress?.awards ?? []
-        );
-        setSessionWasEnded(false);
-        setAchievementCompletion(null);
-        setCurrentAchievementIndex(0);
-        setAchievementCelebrationPresented(false);
-      }
-      undoAchievementReview(action.reviewLogId);
-      try {
-        await syncAchievements(true, true);
-      } catch {
-        // The successful review undo is authoritative; achievement refresh retries later.
-      }
-    } catch (error) {
-      if (sessionEpochRef.current !== expectedEpoch) return;
-
-      pushUndo(action);
-      setSessionError(error instanceof Error ? error.message : 'Unable to undo study action.');
-    } finally {
-      requestGuardRef.current.release(requestToken);
-      if (sessionEpochRef.current === expectedEpoch) {
-        setUndoPending(false);
-      }
-    }
+    await submitStudyReviewUndo({
+      achievementAwards: achievementProgress?.awards ?? [],
+      achievementCompletion,
+      achievementCompletionRequestIdRef,
+      achievementSessionStore,
+      activeAchievementCompletionRequestRef,
+      blocked:
+        undoPending ||
+        Boolean(pendingReviewOperationRef.current) ||
+        requestGuardRef.current.isBusy() ||
+        reviewMutation.isPending ||
+        cardActionMutation.isPending ||
+        sessionLoading ||
+        editing ||
+        masteryAnimation !== null,
+      popUndo,
+      pushUndo,
+      requestGuardRef,
+      restoreUndoSnapshot,
+      sessionEpochRef,
+      setAchievementCelebrationPresented,
+      setAchievementCompletion,
+      setAchievementCompletionRefreshPending,
+      setCurrentAchievementIndex,
+      setSessionError,
+      setSessionReviewRecords,
+      setSessionWasEnded,
+      setUndoPending,
+      stopAllAudio,
+      syncAchievements,
+      syncOverview,
+      undoAchievementReview,
+      undoReview: undoStudyReview,
+    });
   }, [
     popUndo,
     pushUndo,
