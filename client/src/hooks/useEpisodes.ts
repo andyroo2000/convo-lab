@@ -24,13 +24,13 @@ interface DialogueGenerationOptions {
   viewAsUserId?: string;
 }
 
-type GenerateDialogueArguments = [
-  episodeId: string,
-  speakers: Speaker[],
-  variationCount?: number,
-  dialogueLength?: number,
-  options?: DialogueGenerationOptions,
-];
+interface DialogueGenerationRequest {
+  episodeId: string;
+  speakers: Speaker[];
+  variationCount?: number;
+  dialogueLength?: number;
+  options?: DialogueGenerationOptions;
+}
 
 type JobStatus = 'completed' | 'failed' | 'pending';
 type JobEndpoint = 'dialogue' | 'audio';
@@ -75,6 +75,19 @@ function dialogueGenerationUrl(options?: DialogueGenerationOptions): string {
     ? `?${new URLSearchParams({ viewAs: options.viewAsUserId })}`
     : '';
   return `${generationApi.dialogue.generate}${viewAsParam}`;
+}
+
+function dialogueGenerationPayload(request: DialogueGenerationRequest) {
+  return {
+    episodeId: request.episodeId,
+    speakers: request.speakers,
+    variationCount: request.variationCount ?? 3,
+    dialogueLength: request.dialogueLength ?? 6,
+    jlptLevel: request.options?.jlptLevel,
+    vocabSeedOverride: request.options?.vocabSeedOverride,
+    grammarSeedOverride: request.options?.grammarSeedOverride,
+    clientRequestId: request.options?.clientRequestId,
+  };
 }
 
 function cooldownFromPayload(payload: unknown): ErrorWithMetadata['cooldown'] | undefined {
@@ -201,33 +214,18 @@ export function useEpisodes() {
   };
 
   const generateDialogue = async (
-    ...[
-      episodeId,
-      speakers,
-      variationCount = 3,
-      dialogueLength = 6,
-      options,
-    ]: GenerateDialogueArguments
+    request: DialogueGenerationRequest
   ): Promise<GenerationRequestAcknowledgement> => {
     setLoading(true);
     setError(null);
     setErrorMetadata(null);
 
     try {
-      const response = await fetch(dialogueGenerationUrl(options), {
+      const response = await fetch(dialogueGenerationUrl(request.options), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          episodeId,
-          speakers,
-          variationCount,
-          dialogueLength,
-          jlptLevel: options?.jlptLevel,
-          vocabSeedOverride: options?.vocabSeedOverride,
-          grammarSeedOverride: options?.grammarSeedOverride,
-          clientRequestId: options?.clientRequestId,
-        }),
+        body: JSON.stringify(dialogueGenerationPayload(request)),
       });
       if (!response.ok) {
         const payload: unknown = await response.json().catch(() => null);

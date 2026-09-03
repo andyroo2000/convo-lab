@@ -24,17 +24,17 @@ const generateIntentDialogue = (
   intent: GenerationIntent<DialogueGenerationIntentPayload>,
   episodeId: string
 ) =>
-  state.generateDialogue(
+  state.generateDialogue({
     episodeId,
-    intent.payload.dialogue.speakers,
-    intent.payload.dialogue.variationCount,
-    intent.payload.dialogue.dialogueLength,
-    {
+    speakers: intent.payload.dialogue.speakers,
+    variationCount: intent.payload.dialogue.variationCount,
+    dialogueLength: intent.payload.dialogue.dialogueLength,
+    options: {
       ...intent.payload.dialogue.options,
       clientRequestId: intent.intentId,
       ...(intent.payload.viewAsUserId ? { viewAsUserId: intent.payload.viewAsUserId } : {}),
-    }
-  );
+    },
+  });
 
 export const acknowledgeRejectedDialogueIntent = (
   state: DialogueGeneratorState,

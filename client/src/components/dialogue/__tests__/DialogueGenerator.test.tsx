@@ -37,7 +37,20 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../../../hooks/useEpisodes', () => ({
   useEpisodes: () => ({
     createEpisode: mockCreateEpisode,
-    generateDialogue: mockGenerateDialogue,
+    generateDialogue: (request: {
+      episodeId: string;
+      speakers: unknown[];
+      variationCount: number;
+      dialogueLength: number;
+      options: unknown;
+    }) =>
+      mockGenerateDialogue(
+        request.episodeId,
+        request.speakers,
+        request.variationCount,
+        request.dialogueLength,
+        request.options
+      ),
     generateAllSpeedsAudio: mockGenerateAllSpeedsAudio,
     getEpisode: mockGetEpisode,
     pollJobStatus: mockPollJobStatus,
