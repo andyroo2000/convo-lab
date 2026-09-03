@@ -9,13 +9,7 @@ import {
   getDialogueSpeakerVoices,
   getTtsVoiceById,
 } from '@languageflow/shared/src/voiceSelection';
-import {
-  CreateEpisodeRequest,
-  LanguageCode,
-  ProficiencyLevel,
-  Speaker,
-  ToneStyle,
-} from '../../types';
+import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
@@ -43,21 +37,11 @@ import {
   generateCompletedDialogueAudio,
   generateCompletedDialogueCourse,
 } from './dialogueCompletion';
-
-interface DialogueGenerationIntentPayload {
-  episode: CreateEpisodeRequest;
-  dialogue: {
-    speakers: Speaker[];
-    variationCount: number;
-    dialogueLength: number;
-    options: {
-      jlptLevel: string;
-      vocabSeedOverride: string;
-      grammarSeedOverride: string;
-    };
-  };
-  viewAsUserId?: string;
-}
+import {
+  buildDialogueGenerationIntentPayload,
+  getDialogueGenerationValidationError,
+  type DialogueGenerationIntentPayload,
+} from './dialogueGenerationRequest';
 
 // Note: Speaker colors are now assigned at runtime based on index, not stored in the database
 // This constant is kept for backward compatibility with episode creation API
@@ -147,9 +131,6 @@ const DialogueGenerator = () => {
       scopedUserId ? `${path}?${new URLSearchParams({ viewAs: scopedUserId })}` : path,
     [viewAsUserId]
   );
-
-  // Helper function to get proficiency level
-  const getProficiencyLevel = () => jlptLevel;
 
   const createCourseFromEpisode = useCallback(
     async (episodeId: string, signal: AbortSignal): Promise<string | null> => {
@@ -493,24 +474,18 @@ const DialogueGenerator = () => {
       return;
     }
 
-    if (!sourceText.trim()) {
+    const validationError = getDialogueGenerationValidationError({
+      sourceText,
+      speakers,
+      createAudioCourse,
+      audioCourseEnabled,
+      courseTitle,
+      courseNarratorVoice,
+    });
+    if (validationError) {
       // eslint-disable-next-line no-alert
-      alert(t('dialogue:alerts.fillRequired'));
+      alert(t(validationError));
       return;
-    }
-
-    if (speakers.length < 2) {
-      // eslint-disable-next-line no-alert
-      alert(t('dialogue:alerts.twoSpeakers'));
-      return;
-    }
-
-    if (createAudioCourse && audioCourseEnabled) {
-      if (!courseTitle.trim() || !courseNarratorVoice) {
-        // eslint-disable-next-line no-alert
-        alert(t('dialogue:alerts.courseFields'));
-        return;
-      }
     }
 
     const ownerId = viewAsUserId ?? user?.id;
@@ -520,47 +495,22 @@ const DialogueGenerator = () => {
     }
 
     try {
-      const proficiencyLevel = getProficiencyLevel();
-      const episode: CreateEpisodeRequest = {
+      const payload = buildDialogueGenerationIntentPayload({
         title: t('dialogue:placeholderTitle'),
-        sourceText: sourceText.trim(),
+        sourceText,
         targetLanguage,
         nativeLanguage,
-        speakers: speakers.map((s) => ({
-          name: s.name,
-          voiceId: s.voiceId,
-          proficiency: proficiencyLevel as ProficiencyLevel,
-          tone: s.tone,
-          color: s.color,
-        })),
-        audioSpeed: 'medium',
+        speakers,
         jlptLevel,
         autoGenerateAudio,
-      };
-      const dialogueSpeakers = speakers.map((s) => ({
-        id: '', // Will be assigned by backend
-        name: s.name,
-        voiceId: s.voiceId,
-        proficiency: proficiencyLevel as ProficiencyLevel,
-        tone: s.tone,
-        color: s.color,
-      }));
+        dialogueLength,
+        vocabSeedOverride,
+        grammarSeedOverride,
+        viewAsUserId,
+      });
       const intent =
         readGenerationIntent<DialogueGenerationIntentPayload>(ownerId, 'dialogue') ??
-        writeGenerationIntent(ownerId, 'dialogue', {
-          episode,
-          dialogue: {
-            speakers: dialogueSpeakers,
-            variationCount: 3,
-            dialogueLength,
-            options: {
-              jlptLevel,
-              vocabSeedOverride,
-              grammarSeedOverride,
-            },
-          },
-          ...(viewAsUserId ? { viewAsUserId } : {}),
-        });
+        writeGenerationIntent(ownerId, 'dialogue', payload);
       submissionInFlightRef.current = true;
       await runDialogueIntent(intent);
     } catch (caught) {
