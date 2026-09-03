@@ -30,6 +30,12 @@ import {
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import AdminScriptWorkbench from './AdminScriptWorkbench';
 import VoicePreview from '../common/VoicePreview';
+import {
+  buildCourseCreationIntentPayload,
+  buildCourseCreationRequest,
+  getCourseCreationValidationError,
+  getCourseDraftErrorMessage,
+} from './courseCreationRequest';
 
 interface CourseGeneratorProps {
   episodeId?: string;
@@ -197,13 +203,14 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
       return;
     }
 
-    if (!title.trim() || (!episodeId && !sourceText.trim())) {
-      setError(t('audioCourse:alerts.fillRequired'));
-      return;
-    }
-
-    if (!selectedVoice) {
-      setError(t('audioCourse:alerts.selectVoice'));
+    const validationError = getCourseCreationValidationError({
+      title,
+      sourceText,
+      episodeId,
+      selectedVoice,
+    });
+    if (validationError) {
+      setError(t(validationError));
       return;
     }
 
@@ -213,22 +220,19 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
         setError('Your account is still loading. Please try again.');
         return;
       }
-      const payload: CourseGenerationIntentPayload = {
-        course: {
-          title: title.trim(),
-          ...(episodeId ? { episodeIds: [episodeId] } : { sourceText: sourceText.trim() }),
-          nativeLanguage,
-          targetLanguage,
-          maxLessonDurationMinutes: maxDuration,
-          l1VoiceId: selectedVoice,
-          jlptLevel,
-          speaker1Gender: 'male',
-          speaker2Gender: 'female',
-          speaker1VoiceId,
-          speaker2VoiceId,
-        },
-        ...(viewAsUserId ? { viewAsUserId } : {}),
-      };
+      const payload = buildCourseCreationIntentPayload({
+        title,
+        sourceText,
+        episodeId,
+        nativeLanguage,
+        targetLanguage,
+        maxDuration,
+        selectedVoice,
+        jlptLevel,
+        speaker1VoiceId,
+        speaker2VoiceId,
+        viewAsUserId,
+      });
       const intent =
         readGenerationIntent<CourseGenerationIntentPayload>(ownerId, 'course') ??
         writeGenerationIntent(ownerId, 'course', payload);
@@ -251,13 +255,14 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
   };
 
   const handleCreateDraft = async () => {
-    if (!title.trim() || (!episodeId && !sourceText.trim())) {
-      setError(t('audioCourse:alerts.fillRequired'));
-      return;
-    }
-
-    if (!selectedVoice) {
-      setError(t('audioCourse:alerts.selectVoice'));
+    const validationError = getCourseCreationValidationError({
+      title,
+      sourceText,
+      episodeId,
+      selectedVoice,
+    });
+    if (validationError) {
+      setError(t(validationError));
       return;
     }
 
@@ -270,29 +275,25 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          title: title.trim(),
-          ...(episodeId ? { episodeIds: [episodeId] } : { sourceText: sourceText.trim() }),
-          nativeLanguage,
-          targetLanguage,
-          maxLessonDurationMinutes: maxDuration,
-          l1VoiceId: selectedVoice,
-          jlptLevel,
-          speaker1Gender: 'male',
-          speaker2Gender: 'female',
-          speaker1VoiceId,
-          speaker2VoiceId,
-        }),
+        body: JSON.stringify(
+          buildCourseCreationRequest({
+            title,
+            sourceText,
+            episodeId,
+            nativeLanguage,
+            targetLanguage,
+            maxDuration,
+            selectedVoice,
+            jlptLevel,
+            speaker1VoiceId,
+            speaker2VoiceId,
+          })
+        ),
       });
 
       if (!createResponse.ok) {
         const errorData = await createResponse.json();
-        const errorMessage =
-          errorData.message ||
-          errorData.error?.message ||
-          (typeof errorData.error === 'string' ? errorData.error : null) ||
-          'Failed to create course';
-        throw new Error(errorMessage);
+        throw new Error(getCourseDraftErrorMessage(errorData));
       }
 
       const course = await createResponse.json();
@@ -349,6 +350,8 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
   const narratorVoices = getSelectableTtsVoices(nativeLanguage);
   const narratorVoiceChoices = narratorVoices.filter((voice) => voice.provider === 'fishaudio');
   const targetVoices = getSelectableTtsVoices(targetLanguage);
+  const isCreationDisabled =
+    getCourseCreationValidationError({ title, sourceText, episodeId, selectedVoice }) !== null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -628,9 +631,7 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
           <button
             type="button"
             onClick={adminMode ? handleCreateDraft : handleCreate}
-            disabled={
-              isCreating || !title.trim() || (!episodeId && !sourceText.trim()) || !selectedVoice
-            }
+            disabled={isCreating || isCreationDisabled}
             className="w-full sm:w-auto bg-coral hover:bg-coral-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {/* eslint-disable-next-line no-nested-ternary */}
