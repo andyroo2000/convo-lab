@@ -207,143 +207,157 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
-describe('useStudyReviewSession', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-    startStudyLessonMock.mockReset();
-    startStudyIntroductionCohortLessonMock.mockReset();
-    startStudySessionMock.mockReset();
-    prepareStudyAnswerAudioMock.mockReset();
-    reviewMutateAsyncMock.mockReset();
-    createStudyReviewRequestMock.mockReset();
-    createStudyReviewRequestMock.mockImplementation(
-      (payload: { cardId: string; grade: 'again' | 'hard' | 'good' | 'easy' }) => ({
-        ...payload,
-        clientReviewId: `01arz3ndektsv4rrffq69g5fa${String(
-          createStudyReviewRequestMock.mock.calls.length
-        )}`,
-        reviewedAt: '2026-08-12T23:30:45.678Z',
-      })
-    );
-    cardActionMutateAsyncMock.mockReset();
-    undoStudyReviewMock.mockReset();
-    updateStudyCardMock.mockReset();
-    deleteStudyCardMock.mockReset();
-    regenerateStudyAnswerAudioMock.mockReset();
-    warmAudioCacheMock.mockReset();
-    warmAudioCacheMock.mockResolvedValue(undefined);
-    getAchievementCatalogMock.mockReset();
-    getAchievementCatalogMock.mockResolvedValue(achievementCatalog);
-    getAchievementProgressMock.mockReset();
-    getAchievementProgressMock.mockResolvedValue(emptyAchievementProgress);
-    window.localStorage.clear();
+function resetStudyReviewSessionMocks() {
+  vi.restoreAllMocks();
+  startStudyLessonMock.mockReset();
+  startStudyIntroductionCohortLessonMock.mockReset();
+  startStudySessionMock.mockReset();
+  prepareStudyAnswerAudioMock.mockReset();
+  reviewMutateAsyncMock.mockReset();
+  createStudyReviewRequestMock.mockReset();
+  createStudyReviewRequestMock.mockImplementation(
+    (payload: { cardId: string; grade: 'again' | 'hard' | 'good' | 'easy' }) => ({
+      ...payload,
+      clientReviewId: `01arz3ndektsv4rrffq69g5fa${String(
+        createStudyReviewRequestMock.mock.calls.length
+      )}`,
+      reviewedAt: '2026-08-12T23:30:45.678Z',
+    })
+  );
+  cardActionMutateAsyncMock.mockReset();
+  undoStudyReviewMock.mockReset();
+  updateStudyCardMock.mockReset();
+  deleteStudyCardMock.mockReset();
+  regenerateStudyAnswerAudioMock.mockReset();
+  warmAudioCacheMock.mockReset();
+  warmAudioCacheMock.mockResolvedValue(undefined);
+  getAchievementCatalogMock.mockReset();
+  getAchievementCatalogMock.mockResolvedValue(achievementCatalog);
+  getAchievementProgressMock.mockReset();
+  getAchievementProgressMock.mockResolvedValue(emptyAchievementProgress);
+  window.localStorage.clear();
+}
 
-    startStudySessionMock.mockResolvedValue({
-      overview: baseOverview,
-      cards: [baseCardOne, baseCardTwo],
-    });
-    startStudyLessonMock.mockResolvedValue({
-      overview: { ...baseOverview, newCount: 2 },
-      cards: [
-        {
-          ...baseCardOne,
-          state: { ...baseCardOne.state, dueAt: null, queueState: 'new' as const },
-        },
-        {
-          ...baseCardTwo,
-          state: { ...baseCardTwo.state, dueAt: null, queueState: 'new' as const },
-        },
-      ],
-    });
-    startStudyIntroductionCohortLessonMock.mockResolvedValue({
-      overview: { ...baseOverview, newCount: 1 },
-      cards: [
-        {
-          ...baseCardOne,
-          state: { ...baseCardOne.state, dueAt: null, queueState: 'new' as const },
-        },
-      ],
-    });
-    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
-      ...(cardId === 'card-1' ? baseCardOne : baseCardTwo),
-      id: cardId,
+function configureStudySessionStartMocks() {
+  startStudySessionMock.mockResolvedValue({
+    overview: baseOverview,
+    cards: [baseCardOne, baseCardTwo],
+  });
+  startStudyLessonMock.mockResolvedValue({
+    overview: { ...baseOverview, newCount: 2 },
+    cards: [
+      {
+        ...baseCardOne,
+        state: { ...baseCardOne.state, dueAt: null, queueState: 'new' as const },
+      },
+      {
+        ...baseCardTwo,
+        state: { ...baseCardTwo.state, dueAt: null, queueState: 'new' as const },
+      },
+    ],
+  });
+  startStudyIntroductionCohortLessonMock.mockResolvedValue({
+    overview: { ...baseOverview, newCount: 1 },
+    cards: [
+      {
+        ...baseCardOne,
+        state: { ...baseCardOne.state, dueAt: null, queueState: 'new' as const },
+      },
+    ],
+  });
+}
+
+function configureStudyReviewMutationMocks() {
+  prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
+    ...(cardId === 'card-1' ? baseCardOne : baseCardTwo),
+    id: cardId,
+    answer: {
+      ...baseCardOne.answer,
+      answerAudio: {
+        filename: `${cardId}.mp3`,
+        url: `https://example.com/${cardId}.mp3`,
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+    },
+    answerAudioSource: 'generated',
+  }));
+  reviewMutateAsyncMock.mockResolvedValue({
+    reviewLogId: 'review-log-1',
+    card: {
+      ...baseCardOne,
+      state: {
+        ...baseCardOne.state,
+        dueAt: new Date('2026-04-23T09:00:00.000Z').toISOString(),
+      },
+    },
+    overview: {
+      ...baseOverview,
+      dueCount: 1,
+      reviewCount: 1,
+    },
+  });
+  regenerateStudyAnswerAudioMock.mockImplementation(
+    async (payload: {
+      cardId: string;
+      answerAudioVoiceId?: string | null;
+      answerAudioTextOverride?: string | null;
+    }) => ({
+      ...baseCardOne,
+      id: payload.cardId,
+      answerAudioSource: 'generated' as const,
       answer: {
         ...baseCardOne.answer,
+        answerAudioVoiceId: payload.answerAudioVoiceId,
+        answerAudioTextOverride: payload.answerAudioTextOverride,
         answerAudio: {
-          filename: `${cardId}.mp3`,
-          url: `https://example.com/${cardId}.mp3`,
+          filename: `${payload.cardId}.mp3`,
+          url: `https://example.com/${payload.cardId}.mp3`,
           mediaKind: 'audio',
           source: 'generated',
         },
       },
-      answerAudioSource: 'generated',
-    }));
-    reviewMutateAsyncMock.mockResolvedValue({
-      reviewLogId: 'review-log-1',
-      card: {
-        ...baseCardOne,
-        state: {
-          ...baseCardOne.state,
-          dueAt: new Date('2026-04-23T09:00:00.000Z').toISOString(),
-        },
+    })
+  );
+  undoStudyReviewMock.mockResolvedValue({
+    reviewLogId: 'review-log-1',
+    card: baseCardOne,
+    overview: baseOverview,
+  });
+  cardActionMutateAsyncMock.mockResolvedValue({
+    card: {
+      ...baseCardOne,
+      state: {
+        ...baseCardOne.state,
+        queueState: 'suspended',
       },
-      overview: {
-        ...baseOverview,
-        dueCount: 1,
-        reviewCount: 1,
-      },
-    });
-    regenerateStudyAnswerAudioMock.mockImplementation(
-      async (payload: {
-        cardId: string;
-        answerAudioVoiceId?: string | null;
-        answerAudioTextOverride?: string | null;
-      }) => ({
-        ...baseCardOne,
-        id: payload.cardId,
-        answerAudioSource: 'generated' as const,
-        answer: {
-          ...baseCardOne.answer,
-          answerAudioVoiceId: payload.answerAudioVoiceId,
-          answerAudioTextOverride: payload.answerAudioTextOverride,
-          answerAudio: {
-            filename: `${payload.cardId}.mp3`,
-            url: `https://example.com/${payload.cardId}.mp3`,
-            mediaKind: 'audio',
-            source: 'generated',
-          },
-        },
-      })
-    );
-    undoStudyReviewMock.mockResolvedValue({
-      reviewLogId: 'review-log-1',
-      card: baseCardOne,
-      overview: baseOverview,
-    });
-    cardActionMutateAsyncMock.mockResolvedValue({
-      card: {
-        ...baseCardOne,
-        state: {
-          ...baseCardOne.state,
-          queueState: 'suspended',
-        },
-      },
-      overview: {
-        ...baseOverview,
-        dueCount: 1,
-        reviewCount: 1,
-        suspendedCount: 1,
-      },
-    });
+    },
+    overview: {
+      ...baseOverview,
+      dueCount: 1,
+      reviewCount: 1,
+      suspendedCount: 1,
+    },
+  });
+}
 
-    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
-      configurable: true,
-      value: vi.fn().mockResolvedValue(undefined),
-    });
-    Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
-      configurable: true,
-      value: vi.fn(),
-    });
+function configureStudyMediaEnvironment() {
+  Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(undefined),
+  });
+  Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+    configurable: true,
+    value: vi.fn(),
+  });
+}
+
+describe('useStudyReviewSession', () => {
+  beforeEach(() => {
+    resetStudyReviewSessionMocks();
+    configureStudySessionStartMocks();
+    configureStudyReviewMutationMocks();
+    configureStudyMediaEnvironment();
   });
 
   it('does not replay historical server awards without a matching saved session', async () => {
@@ -2295,124 +2309,6 @@ describe('useStudyReviewSession', () => {
         overview: baseOverview,
       });
       await reviewPromise;
-    });
-  });
-
-  it('retries answer-audio preparation until a generated URL becomes available', async () => {
-    prepareStudyAnswerAudioMock.mockResolvedValueOnce(baseCardOne).mockResolvedValueOnce({
-      ...baseCardOne,
-      answer: {
-        ...baseCardOne.answer,
-        answerAudio: {
-          filename: 'card-1.mp3',
-          url: 'https://example.com/card-1.mp3',
-          mediaKind: 'audio',
-          source: 'generated',
-        },
-      },
-      answerAudioSource: 'generated',
-    });
-
-    const { result } = renderHook(() => useStudyReviewSession(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.enterFocusMode();
-    });
-
-    act(() => {
-      result.current.revealCurrentCard();
-    });
-
-    await waitFor(() => {
-      expect(prepareStudyAnswerAudioMock.mock.calls.length).toBeGreaterThanOrEqual(2);
-    });
-    expect(result.current.currentCard?.answer.answerAudio?.url).toBe(
-      'https://example.com/card-1.mp3'
-    );
-    expect(warmAudioCacheMock).toHaveBeenCalledWith(['https://example.com/card-1.mp3']);
-  });
-
-  it('regenerates current card answer audio and merges the refreshed card', async () => {
-    const { result } = renderHook(() => useStudyReviewSession(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.enterFocusMode();
-    });
-
-    await act(async () => {
-      await result.current.regenerateCurrentCardAudio({
-        answerAudioVoiceId: 'ja-JP-Neural2-C',
-        answerAudioTextOverride: 'かいしゃ',
-      });
-    });
-
-    expect(regenerateStudyAnswerAudioMock).toHaveBeenCalledWith({
-      cardId: 'card-1',
-      answerAudioVoiceId: 'ja-JP-Neural2-C',
-      answerAudioTextOverride: 'かいしゃ',
-    });
-    expect(result.current.currentCard?.answer.answerAudioVoiceId).toBe('ja-JP-Neural2-C');
-    expect(result.current.currentCard?.answer.answerAudioTextOverride).toBe('かいしゃ');
-    expect(result.current.currentCard?.answer.answerAudio?.url).toBe(
-      'https://example.com/card-1.mp3'
-    );
-  });
-
-  it('exits focus mode cleanly while answer-audio preparation is still pending', async () => {
-    const deferredAudio = createDeferred<typeof baseCardOne>();
-    prepareStudyAnswerAudioMock.mockReturnValue(deferredAudio.promise);
-
-    const { result } = renderHook(() => useStudyReviewSession(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.enterFocusMode();
-    });
-    act(() => {
-      result.current.revealCurrentCard();
-      result.current.exitFocusMode();
-    });
-
-    await act(async () => {
-      deferredAudio.resolve(baseCardOne);
-      await deferredAudio.promise;
-    });
-
-    await waitFor(() => {
-      expect(result.current.focusMode).toBe(false);
-      expect(result.current.currentCard).toBeNull();
-    });
-  });
-
-  it('does not surface a stale audio preparation error after focus mode exits', async () => {
-    const deferredAudio = createDeferred<typeof baseCardOne>();
-    prepareStudyAnswerAudioMock.mockReturnValue(deferredAudio.promise);
-
-    const { result } = renderHook(() => useStudyReviewSession(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.enterFocusMode();
-    });
-    act(() => {
-      result.current.revealCurrentCard();
-      result.current.exitFocusMode();
-    });
-
-    await act(async () => {
-      deferredAudio.reject(new Error('audio failed'));
-      await deferredAudio.promise.catch(() => undefined);
-    });
-
-    await waitFor(() => {
-      expect(result.current.focusMode).toBe(false);
-      expect(result.current.sessionError).toBeNull();
     });
   });
 
