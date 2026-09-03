@@ -33,6 +33,7 @@ import type {
 import { JsonRequestError, requestJson } from '../lib/apiClient';
 import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
+import useStudyMutationWithInvalidations from '../lib/studyQueryInvalidation';
 import { decodeStudyCardSummary } from '../lib/learningOsContractDecoders';
 import { studyApiPath } from '../lib/studyApi';
 import {
@@ -566,17 +567,7 @@ export function useLinkStudyLearningPathSuccessor() {
 }
 
 export function useUpdateStudySettings() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: updateStudySettings,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'settings'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-      ]);
-    },
-  });
+  return useStudyMutationWithInvalidations(updateStudySettings, ['settings', 'overview']);
 }
 
 export function useReorderStudyNewCardQueue() {
@@ -596,32 +587,15 @@ export function useReorderStudyNewCardQueue() {
 }
 
 export function useCreateStudyLessonFollowupCohort() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: createStudyLessonFollowupCohort,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'cards'] }),
-      ]);
-    },
-  });
+  return useStudyMutationWithInvalidations(createStudyLessonFollowupCohort, [
+    'new-queue',
+    'overview',
+    'cards',
+  ]);
 }
 
 export function usePromoteStudyNewCardToFront() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: promoteStudyNewCardToFront,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-      ]);
-    },
-  });
+  return useStudyMutationWithInvalidations(promoteStudyNewCardToFront, ['new-queue', 'overview']);
 }
 
 export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
@@ -641,31 +615,11 @@ export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
 }
 
 export function useSubmitStudyReview() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: submitStudyReview,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-      ]);
-    },
-  });
+  return useStudyMutationWithInvalidations(submitStudyReview, ['session', 'overview']);
 }
 
 export function useCreateStudyCard() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: createStudyCard,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-      ]);
-    },
-  });
+  return useStudyMutationWithInvalidations(createStudyCard, ['overview', 'session']);
 }
 
 export function useCreateStudyVocabBundleDrafts() {
@@ -796,17 +750,7 @@ export function useDeleteStudyManualCardDraft() {
 }
 
 export function useUpdateStudyCard() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: updateStudyCard,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
-      ]);
-    },
-  });
+  return useStudyMutationWithInvalidations(updateStudyCard, ['browser', 'export']);
 }
 
 export function useDeleteStudyCard() {
@@ -838,15 +782,5 @@ export function useRegenerateStudyCardImage() {
 }
 
 export function useStudyCardAction() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: performStudyCardAction,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
-      ]);
-    },
-  });
+  return useStudyMutationWithInvalidations(performStudyCardAction, ['browser', 'export']);
 }
