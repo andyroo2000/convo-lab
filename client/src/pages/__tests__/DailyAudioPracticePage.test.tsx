@@ -342,6 +342,26 @@ describe('DailyAudioPracticePage', () => {
     await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith(30));
   });
 
+  it('shows ready audio while the practice list still reports a stale generation', () => {
+    const staleListPractice = {
+      ...readyPractice,
+      practiceDate: todayPracticeDate(),
+      status: 'generating' as const,
+      updatedAt: new Date(Date.now() - 91 * 60 * 1000).toISOString(),
+    };
+    const refreshedDetail = { ...staleListPractice, status: 'ready' as const };
+    mockUseRecentDailyAudioPractice.mockReturnValue({
+      data: [staleListPractice],
+      isLoading: false,
+    });
+    mockUseDailyAudioPractice.mockReturnValue({ data: refreshedDetail, isLoading: false });
+
+    renderPage();
+
+    expect(screen.getByText('Generation is taking longer than expected')).toBeInTheDocument();
+    expect(screen.getAllByTestId('script-track-player')).toHaveLength(3);
+  });
+
   it('enables retry when an unchanged generation crosses the stale threshold', () => {
     vi.useFakeTimers();
     const now = new Date('2026-08-27T12:00:00.000Z');
