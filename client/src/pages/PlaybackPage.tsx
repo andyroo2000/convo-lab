@@ -9,7 +9,7 @@ import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
 import usePlaybackAudioGeneration from '../hooks/usePlaybackAudioGeneration';
 import usePlaybackKeyboardControls from '../hooks/usePlaybackKeyboardControls';
 import usePlaybackDialogueNavigation from '../hooks/usePlaybackDialogueNavigation';
-import { Sentence, AudioSpeed } from '../types';
+import { Sentence, AudioSpeed, Episode } from '../types';
 import AudioScriptPlayback from '../components/audio/AudioScriptPlayback';
 import PlaybackDialogue from '../components/playback/PlaybackDialogue';
 import PlaybackHeader from '../components/playback/PlaybackHeader';
@@ -17,10 +17,49 @@ import Toast from '../components/common/Toast';
 
 const EMPTY_SENTENCES: Sentence[] = [];
 
+const getViewAsUserId = (searchParams: URLSearchParams) => searchParams.get('viewAs') || undefined;
+
+const getPlaybackRouteIdentity = (episodeId?: string, viewAsUserId?: string) =>
+  `${episodeId ?? ''}\0${viewAsUserId ?? ''}`;
+
+const usePlaybackAudioUrls = (episode: Episode | null) =>
+  useMemo(
+    () => [episode?.audioUrl_0_7, episode?.audioUrl_0_85, episode?.audioUrl_1_0, episode?.audioUrl],
+    [episode?.audioUrl_0_7, episode?.audioUrl_0_85, episode?.audioUrl_1_0, episode?.audioUrl]
+  );
+
+const shouldWarmPlaybackAudio = (episode: Episode | null, isGeneratingAudio: boolean) =>
+  Boolean(episode && !isGeneratingAudio);
+
+const canNavigatePlaybackDialogue = (episode: Episode | null) =>
+  Boolean(episode && episode.contentType !== 'script');
+
+const getPlaybackSentences = (episode: Episode | null) =>
+  episode?.dialogue?.sentences ?? EMPTY_SENTENCES;
+
+const getToastMessage = (message: string | null) => message || '';
+
+const PlaybackLoadingState = () => (
+  <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
+    <div className="card text-center py-12">
+      <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
+      <p className="text-gray-600">Loading episode...</p>
+    </div>
+  </div>
+);
+
+const PlaybackMissingState = () => (
+  <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
+    <div className="card text-center py-12">
+      <p className="text-gray-600">Episode not found</p>
+    </div>
+  </div>
+);
+
 const PlaybackPage = () => {
   const { episodeId } = useParams<{ episodeId: string }>();
   const [searchParams] = useSearchParams();
-  const viewAsUserId = searchParams.get('viewAs') || undefined;
+  const viewAsUserId = getViewAsUserId(searchParams);
   const {
     getEpisode,
     generateAudio: _generateAudio,
@@ -50,28 +89,25 @@ const PlaybackPage = () => {
     clearToast,
   } = usePlaybackAudioGeneration({
     episodeId,
-    routeIdentity: `${episodeId ?? ''}\0${viewAsUserId ?? ''}`,
+    routeIdentity: getPlaybackRouteIdentity(episodeId, viewAsUserId),
     episode,
     generateAllSpeedsAudio,
     loadEpisode,
   });
   const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
-  const episodeAudioUrls = useMemo(
-    () => [episode?.audioUrl_0_7, episode?.audioUrl_0_85, episode?.audioUrl_1_0, episode?.audioUrl],
-    [episode?.audioUrl_0_7, episode?.audioUrl_0_85, episode?.audioUrl_1_0, episode?.audioUrl]
-  );
+  const episodeAudioUrls = usePlaybackAudioUrls(episode);
 
-  useWarmAudioCache(episodeAudioUrls, Boolean(episode && !isGeneratingAudio));
+  useWarmAudioCache(episodeAudioUrls, shouldWarmPlaybackAudio(episode, isGeneratingAudio));
 
   const { navigateSentence } = usePlaybackKeyboardControls({
     currentTimeSeconds: currentTime,
-    enabled: Boolean(episode && episode.contentType !== 'script'),
+    enabled: canNavigatePlaybackDialogue(episode),
     isPlaying,
     pause,
     play,
     seek,
     selectedSpeed,
-    sentences: episode?.dialogue?.sentences ?? EMPTY_SENTENCES,
+    sentences: getPlaybackSentences(episode),
   });
 
   const { handleSentenceKeyDown, seekToSentence, sentenceRefs } = usePlaybackDialogueNavigation({
@@ -85,24 +121,11 @@ const PlaybackPage = () => {
   });
 
   if (isEpisodeLoading) {
-    return (
-      <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
-        <div className="card text-center py-12">
-          <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-gray-600">Loading episode...</p>
-        </div>
-      </div>
-    );
+    return <PlaybackLoadingState />;
   }
 
   if (!episode) {
-    return (
-      <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
-        <div className="card text-center py-12">
-          <p className="text-gray-600">Episode not found</p>
-        </div>
-      </div>
-    );
+    return <PlaybackMissingState />;
   }
 
   if (episode.contentType === 'script') {
@@ -147,7 +170,7 @@ const PlaybackPage = () => {
 
       {/* Toast Notification */}
       <Toast
-        message={toastMessage || ''}
+        message={getToastMessage(toastMessage)}
         type={toastType}
         isVisible={!!toastMessage}
         onClose={clearToast}
