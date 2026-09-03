@@ -22,6 +22,21 @@ interface AudioGenerationPromptProps {
   shouldAutoGenerate: boolean;
 }
 
+const AUDIO_TITLE_BY_AVAILABILITY = {
+  false: 'Audio isn’t generated yet.',
+  true: 'More audio speeds are available.',
+};
+
+const AUDIO_DESCRIPTION_BY_AUTO_GENERATION = {
+  false: 'Auto-generation is off for this dialogue. Generate audio to enable playback.',
+  true: 'Generate audio to enable slow, medium, and normal playback.',
+};
+
+const REFRESH_BUTTON_LABEL = {
+  false: 'Retry refresh',
+  true: 'Refreshing...',
+};
+
 const GenerationProgress = ({ generationProgress }: { generationProgress: number }) => (
   <div className="retro-paper-panel bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
     <div className="flex items-center gap-4 p-4">
@@ -58,15 +73,12 @@ const AudioGenerationPrompt = ({
 }: AudioGenerationPromptProps) => {
   const title = needsEpisodeRefresh
     ? 'Audio finished generating, but playback needs to refresh.'
-    : ['Audio isn’t generated yet.', 'More audio speeds are available.'][Number(hasAnyAudio)];
+    : AUDIO_TITLE_BY_AVAILABILITY[String(hasAnyAudio) as 'false' | 'true'];
   const description = needsEpisodeRefresh
     ? 'Retry loading this episode without starting another audio job.'
-    : [
-        'Auto-generation is off for this dialogue. Generate audio to enable playback.',
-        'Generate audio to enable slow, medium, and normal playback.',
-      ][Number(shouldAutoGenerate)];
+    : AUDIO_DESCRIPTION_BY_AUTO_GENERATION[String(shouldAutoGenerate) as 'false' | 'true'];
   const buttonLabel = needsEpisodeRefresh
-    ? ['Retry refresh', 'Refreshing...'][Number(isRefreshingEpisode)]
+    ? REFRESH_BUTTON_LABEL[String(isRefreshingEpisode) as 'false' | 'true']
     : 'Generate Audio';
 
   return (

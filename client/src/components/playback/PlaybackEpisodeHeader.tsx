@@ -79,8 +79,19 @@ const AudioCourseLink = ({
   );
 };
 
-const PlaybackEpisodeHeader = (props: PlaybackEpisodeHeaderProps) => {
-  const { episode } = props;
+const PlaybackEpisodeHeader = ({
+  audioCourseEnabled,
+  currentAudioUrl,
+  episode,
+  isGeneratingAudio,
+  selectedSpeed,
+  setSelectedSpeed,
+  setShowReadings,
+  setShowTranslations,
+  showReadings,
+  showTranslations,
+  viewAsUserId,
+}: PlaybackEpisodeHeaderProps) => {
   const speakers = episode.dialogue?.speakers ?? [];
 
   return (
@@ -100,8 +111,22 @@ const PlaybackEpisodeHeader = (props: PlaybackEpisodeHeaderProps) => {
           </div>
           <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
             <PracticeLink episode={episode} />
-            <PlaybackViewControls {...props} />
-            <AudioCourseLink {...props} />
+            <PlaybackViewControls
+              currentAudioUrl={currentAudioUrl}
+              episode={episode}
+              isGeneratingAudio={isGeneratingAudio}
+              selectedSpeed={selectedSpeed}
+              setSelectedSpeed={setSelectedSpeed}
+              setShowReadings={setShowReadings}
+              setShowTranslations={setShowTranslations}
+              showReadings={showReadings}
+              showTranslations={showTranslations}
+            />
+            <AudioCourseLink
+              audioCourseEnabled={audioCourseEnabled}
+              episode={episode}
+              viewAsUserId={viewAsUserId}
+            />
           </div>
         </div>
       </div>
