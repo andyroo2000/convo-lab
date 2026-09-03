@@ -202,6 +202,118 @@ const GoogleAnalyticsTracker = () => {
   return null;
 };
 
+const renderPublicRoutes = () => (
+  <>
+    <Route path="/" element={<LandingPage />} />
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/tools" element={<ToolsPublicLayout />}>
+      <Route index element={<ToolsPage />} />
+      <Route path="japanese-date" element={<JapaneseDateToolPage />} />
+      <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
+      <Route path="japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
+      <Route path="japanese-money" element={<JapaneseMoneyToolPage />} />
+      <Route path="japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
+      <Route path="credits" element={<CreditsPage />} />
+    </Route>
+    <Route path="/claim-invite" element={<ClaimInvitePage />} />
+    <Route path="/verify-email" element={<VerifyEmailPage />} />
+    <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+    <Route path="/reset-password" element={<ResetPasswordPage />} />
+  </>
+);
+
+const renderStudyRoutes = () => (
+  <Route path="study" element={<StudyImpersonationBoundary />}>
+    <Route element={<StudyFeatureBoundary />}>
+      <Route
+        index
+        element={
+          <StudyRouteWrapper>
+            <StudyPage />
+          </StudyRouteWrapper>
+        }
+      />
+      <Route
+        path="browse"
+        element={
+          <StudyRouteWrapper>
+            <StudyBrowsePage />
+          </StudyRouteWrapper>
+        }
+      />
+      <Route
+        path="import"
+        element={
+          <StudyRouteWrapper>
+            <StudyImportPage />
+          </StudyRouteWrapper>
+        }
+      />
+      <Route
+        path="cards"
+        element={
+          <StudyRouteWrapper>
+            <StudyCardsPage />
+          </StudyRouteWrapper>
+        }
+      />
+      <Route
+        path="create"
+        element={
+          <StudyRouteWrapper>
+            <StudyCreatePage />
+          </StudyRouteWrapper>
+        }
+      />
+      <Route
+        path="settings"
+        element={
+          <StudyRouteWrapper>
+            <StudySettingsPage />
+          </StudyRouteWrapper>
+        }
+      />
+      <Route
+        path="daily-audio"
+        element={
+          <StudyRouteWrapper>
+            <DailyAudioPracticePage />
+          </StudyRouteWrapper>
+        }
+      />
+    </Route>
+    <Route path="time" element={<StudyTimePage />} />
+  </Route>
+);
+
+const renderProtectedRoutes = () => (
+  <Route path="/app" element={<Layout />}>
+    <Route index element={<Navigate to="/app/library" replace />} />
+    <Route path="library" element={<LibraryPage />} />
+    <Route path="settings" element={<SettingsPage />} />
+    <Route path="settings/:tab" element={<SettingsPage />} />
+    <Route path="credits" element={<CreditsPage />} />
+    <Route path="admin" element={<AdminPage />} />
+    <Route path="admin/:tab" element={<AdminPage />} />
+    {renderStudyRoutes()}
+    <Route path="create" element={<CreatePage />} />
+    <Route path="create/dialogue" element={<DialogueCreatorPage />} />
+    <Route path="create/script" element={<ScriptCreatorPage />} />
+    <Route path="create/audio-course" element={<Navigate to="/app/create/dialogue" replace />} />
+    <Route path="create/audio-course/:episodeId" element={<CourseCreatorPage />} />
+    <Route path="playback/:episodeId" element={<PlaybackPage />} />
+    <Route path="practice/:episodeId" element={<PracticePage />} />
+    <Route path="courses/:courseId" element={<CoursePage />} />
+    <Route path="tools" element={<ToolsPage />} />
+    <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
+    <Route path="tools/japanese-time" element={<JapaneseTimePracticeToolPage />} />
+    <Route path="tools/japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
+    <Route path="tools/japanese-money" element={<JapaneseMoneyToolPage />} />
+    <Route path="tools/japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
+  </Route>
+);
+
 const App = () => (
   <ErrorBoundary>
     <BrowserRouter>
@@ -213,126 +325,8 @@ const App = () => (
             <PWAInstallPrompt />
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/tools" element={<ToolsPublicLayout />}>
-                  <Route index element={<ToolsPage />} />
-                  <Route path="japanese-date" element={<JapaneseDateToolPage />} />
-                  <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
-                  <Route path="japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
-                  <Route path="japanese-money" element={<JapaneseMoneyToolPage />} />
-                  <Route path="japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
-                  <Route path="credits" element={<CreditsPage />} />
-                </Route>
-                <Route path="/claim-invite" element={<ClaimInvitePage />} />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-
-                {/* App Routes (Protected) */}
-                <Route path="/app" element={<Layout />}>
-                  <Route index element={<Navigate to="/app/library" replace />} />
-                  <Route path="library" element={<LibraryPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="settings/:tab" element={<SettingsPage />} />
-                  <Route path="credits" element={<CreditsPage />} />
-                  <Route path="admin" element={<AdminPage />} />
-                  <Route path="admin/:tab" element={<AdminPage />} />
-                  <Route path="study" element={<StudyImpersonationBoundary />}>
-                    <Route element={<StudyFeatureBoundary />}>
-                      <Route
-                        index
-                        element={
-                          <StudyRouteWrapper>
-                            <StudyPage />
-                          </StudyRouteWrapper>
-                        }
-                      />
-                      <Route
-                        path="browse"
-                        element={
-                          <StudyRouteWrapper>
-                            <StudyBrowsePage />
-                          </StudyRouteWrapper>
-                        }
-                      />
-                      <Route
-                        path="import"
-                        element={
-                          <StudyRouteWrapper>
-                            <StudyImportPage />
-                          </StudyRouteWrapper>
-                        }
-                      />
-                      <Route
-                        path="cards"
-                        element={
-                          <StudyRouteWrapper>
-                            <StudyCardsPage />
-                          </StudyRouteWrapper>
-                        }
-                      />
-                      <Route
-                        path="create"
-                        element={
-                          <StudyRouteWrapper>
-                            <StudyCreatePage />
-                          </StudyRouteWrapper>
-                        }
-                      />
-                      <Route
-                        path="settings"
-                        element={
-                          <StudyRouteWrapper>
-                            <StudySettingsPage />
-                          </StudyRouteWrapper>
-                        }
-                      />
-                      <Route
-                        path="daily-audio"
-                        element={
-                          <StudyRouteWrapper>
-                            <DailyAudioPracticePage />
-                          </StudyRouteWrapper>
-                        }
-                      />
-                    </Route>
-                    <Route path="time" element={<StudyTimePage />} />
-                  </Route>
-
-                  {/* Create - Content Creation Hub */}
-                  <Route path="create" element={<CreatePage />} />
-                  <Route path="create/dialogue" element={<DialogueCreatorPage />} />
-                  <Route path="create/script" element={<ScriptCreatorPage />} />
-                  <Route
-                    path="create/audio-course"
-                    element={<Navigate to="/app/create/dialogue" replace />}
-                  />
-                  <Route path="create/audio-course/:episodeId" element={<CourseCreatorPage />} />
-
-                  {/* Playback & Practice */}
-                  <Route path="playback/:episodeId" element={<PlaybackPage />} />
-                  <Route path="practice/:episodeId" element={<PracticePage />} />
-                  <Route path="courses/:courseId" element={<CoursePage />} />
-
-                  {/* Tools */}
-                  <Route path="tools" element={<ToolsPage />} />
-                  <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
-                  <Route path="tools/japanese-time" element={<JapaneseTimePracticeToolPage />} />
-                  <Route
-                    path="tools/japanese-counters"
-                    element={<JapaneseCounterPracticeToolPage />}
-                  />
-                  <Route path="tools/japanese-money" element={<JapaneseMoneyToolPage />} />
-                  <Route
-                    path="tools/japanese-verbs"
-                    element={<JapaneseVerbConjugationToolPage />}
-                  />
-                </Route>
-
-                {/* 404 Catch-all Route */}
+                {renderPublicRoutes()}
+                {renderProtectedRoutes()}
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
