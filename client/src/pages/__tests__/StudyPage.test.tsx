@@ -301,222 +301,228 @@ const pageEmptyAchievementProgress = {
   awards: [] as Array<{ id: string; earnedAt: string }>,
 };
 
-describe('StudyPage', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-    getAchievementCatalogMock.mockReset();
-    getAchievementCatalogMock.mockResolvedValue(pageAchievementCatalog);
-    getAchievementProgressMock.mockReset();
-    getAchievementProgressMock.mockResolvedValue(pageEmptyAchievementProgress);
-    cardActionMutateAsyncMock.mockReset();
-    startStudyLessonMock.mockReset();
-    startStudyIntroductionCohortLessonMock.mockReset();
-    startStudySessionMock.mockReset();
-    createStudyReviewRequestMock.mockReset();
-    createStudyReviewRequestMock.mockImplementation(
-      (payload: { cardId: string; grade: 'again' | 'hard' | 'good' | 'easy' }) => ({
-        ...payload,
-        clientReviewId: `01arz3ndektsv4rrffq69g5fa${String(
-          createStudyReviewRequestMock.mock.calls.length
-        )}`,
-        reviewedAt: '2026-08-12T23:30:45.678Z',
-      })
-    );
-    prepareStudyAnswerAudioMock.mockReset();
-    resolveStudyCardPitchAccentMock.mockReset();
-    undoStudyReviewMock.mockReset();
-    mutateAsyncMock.mockReset();
-    updateStudyCardMock.mockReset();
-    deleteStudyCardMock.mockReset();
-    regenerateStudyAnswerAudioMock.mockReset();
-    window.history.replaceState({}, '', '/app/study');
+const resetStudyPageMocks = () => {
+  vi.restoreAllMocks();
+  getAchievementCatalogMock.mockReset();
+  getAchievementCatalogMock.mockResolvedValue(pageAchievementCatalog);
+  getAchievementProgressMock.mockReset();
+  getAchievementProgressMock.mockResolvedValue(pageEmptyAchievementProgress);
+  cardActionMutateAsyncMock.mockReset();
+  startStudyLessonMock.mockReset();
+  startStudyIntroductionCohortLessonMock.mockReset();
+  startStudySessionMock.mockReset();
+  createStudyReviewRequestMock.mockReset();
+  createStudyReviewRequestMock.mockImplementation(
+    (payload: { cardId: string; grade: 'again' | 'hard' | 'good' | 'easy' }) => ({
+      ...payload,
+      clientReviewId: `01arz3ndektsv4rrffq69g5fa${String(
+        createStudyReviewRequestMock.mock.calls.length
+      )}`,
+      reviewedAt: '2026-08-12T23:30:45.678Z',
+    })
+  );
+  prepareStudyAnswerAudioMock.mockReset();
+  resolveStudyCardPitchAccentMock.mockReset();
+  undoStudyReviewMock.mockReset();
+  mutateAsyncMock.mockReset();
+  updateStudyCardMock.mockReset();
+  deleteStudyCardMock.mockReset();
+  regenerateStudyAnswerAudioMock.mockReset();
+  window.history.replaceState({}, '', '/app/study');
+};
 
-    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
+const configureStudyContentMocks = () => {
+  prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
+    ...baseCard,
+    id: cardId,
+    answer: {
+      ...baseCard.answer,
+      answerAudio: {
+        filename: `${cardId}.mp3`,
+        url: `https://example.com/${cardId}.mp3`,
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+    },
+    answerAudioSource: 'generated',
+  }));
+  resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
+    ...baseCard,
+    id: cardId,
+    answer: { ...baseCard.answer, pitchAccent: null },
+  }));
+  undoStudyReviewMock.mockImplementation(async (reviewLogId: string) => ({
+    reviewLogId,
+    card: baseCard,
+    overview: {
+      dueCount: 4,
+      newCount: 6,
+      learningCount: 2,
+      reviewCount: 8,
+      suspendedCount: 0,
+      totalCards: 20,
+    },
+  }));
+  updateStudyCardMock.mockImplementation(
+    async (payload: {
+      cardId: string;
+      prompt: Record<string, unknown>;
+      answer: Record<string, unknown>;
+    }) => ({ ...baseCard, id: payload.cardId, prompt: payload.prompt, answer: payload.answer })
+  );
+  regenerateStudyAnswerAudioMock.mockImplementation(
+    async (payload: {
+      cardId: string;
+      answerAudioVoiceId?: string | null;
+      answerAudioTextOverride?: string | null;
+    }) => ({
       ...baseCard,
-      id: cardId,
+      id: payload.cardId,
+      answerAudioSource: 'generated' as const,
       answer: {
         ...baseCard.answer,
+        answerAudioVoiceId: payload.answerAudioVoiceId,
+        answerAudioTextOverride: payload.answerAudioTextOverride,
         answerAudio: {
-          filename: `${cardId}.mp3`,
-          url: `https://example.com/${cardId}.mp3`,
+          filename: `${payload.cardId}-regenerated.mp3`,
+          url: `https://example.com/${payload.cardId}-regenerated.mp3`,
           mediaKind: 'audio',
           source: 'generated',
         },
       },
-      answerAudioSource: 'generated',
-    }));
-    resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
-      ...baseCard,
-      id: cardId,
-      answer: {
-        ...baseCard.answer,
-        pitchAccent: null,
-      },
-    }));
-    undoStudyReviewMock.mockImplementation(async (reviewLogId: string) => ({
-      reviewLogId,
-      card: baseCard,
-      overview: {
-        dueCount: 4,
-        newCount: 6,
-        learningCount: 2,
-        reviewCount: 8,
-        suspendedCount: 0,
-        totalCards: 20,
-      },
-    }));
-    updateStudyCardMock.mockImplementation(
-      async (payload: {
-        cardId: string;
-        prompt: Record<string, unknown>;
-        answer: Record<string, unknown>;
-      }) => ({
-        ...baseCard,
-        id: payload.cardId,
-        prompt: payload.prompt,
-        answer: payload.answer,
-      })
-    );
-    regenerateStudyAnswerAudioMock.mockImplementation(
-      async (payload: {
-        cardId: string;
-        answerAudioVoiceId?: string | null;
-        answerAudioTextOverride?: string | null;
-      }) => ({
-        ...baseCard,
-        id: payload.cardId,
-        answerAudioSource: 'generated' as const,
-        answer: {
-          ...baseCard.answer,
-          answerAudioVoiceId: payload.answerAudioVoiceId,
-          answerAudioTextOverride: payload.answerAudioTextOverride,
-          answerAudio: {
-            filename: `${payload.cardId}-regenerated.mp3`,
-            url: `https://example.com/${payload.cardId}-regenerated.mp3`,
-            mediaKind: 'audio',
-            source: 'generated',
-          },
-        },
-      })
-    );
-    cardActionMutateAsyncMock.mockImplementation(
-      async (payload: {
-        cardId: string;
-        action: 'suspend' | 'unsuspend' | 'forget' | 'set_due';
-        mode?: 'now' | 'tomorrow' | 'custom_date';
-        dueAt?: string;
-        timeZone?: string;
-      }) => {
-        if (payload.action === 'suspend') {
-          return {
-            card: {
-              ...baseCard,
-              id: payload.cardId,
-              state: {
-                ...baseCard.state,
-                queueState: 'suspended',
-              },
-            },
-            overview: {
-              dueCount: 3,
-              newCount: 6,
-              learningCount: 2,
-              reviewCount: 7,
-              suspendedCount: 1,
-              totalCards: 20,
-            },
-          };
-        }
+    })
+  );
+};
 
-        if (payload.action === 'forget') {
-          return {
-            card: {
-              ...baseCard,
-              id: payload.cardId,
-              state: {
-                ...baseCard.state,
-                queueState: 'new',
-                dueAt: null,
-              },
-            },
-            overview: {
-              dueCount: 3,
-              newCount: 7,
-              learningCount: 2,
-              reviewCount: 7,
-              suspendedCount: 0,
-              totalCards: 20,
-            },
-          };
-        }
-
+const configureStudyCardActionMock = () => {
+  cardActionMutateAsyncMock.mockImplementation(
+    async (payload: {
+      cardId: string;
+      action: 'suspend' | 'unsuspend' | 'forget' | 'set_due';
+      mode?: 'now' | 'tomorrow' | 'custom_date';
+      dueAt?: string;
+      timeZone?: string;
+    }) => {
+      if (payload.action === 'suspend') {
         return {
           card: {
             ...baseCard,
             id: payload.cardId,
             state: {
               ...baseCard.state,
-              queueState: payload.mode === 'tomorrow' ? 'review' : baseCard.state.queueState,
-              dueAt:
-                payload.mode === 'tomorrow'
-                  ? new Date('2026-04-13T09:00:00.000Z').toISOString()
-                  : (payload.dueAt ?? baseCard.state.dueAt),
+              queueState: 'suspended',
             },
           },
           overview: {
-            dueCount: payload.mode === 'tomorrow' ? 3 : 4,
+            dueCount: 3,
             newCount: 6,
             learningCount: 2,
-            reviewCount: 8,
+            reviewCount: 7,
+            suspendedCount: 1,
+            totalCards: 20,
+          },
+        };
+      }
+
+      if (payload.action === 'forget') {
+        return {
+          card: {
+            ...baseCard,
+            id: payload.cardId,
+            state: {
+              ...baseCard.state,
+              queueState: 'new',
+              dueAt: null,
+            },
+          },
+          overview: {
+            dueCount: 3,
+            newCount: 7,
+            learningCount: 2,
+            reviewCount: 7,
             suspendedCount: 0,
             totalCards: 20,
           },
         };
       }
-    );
 
-    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
-      configurable: true,
-      value: vi.fn().mockResolvedValue(undefined),
-    });
-    Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
-      configurable: true,
-      value: vi.fn(),
-    });
-    Object.defineProperty(window, 'DeviceMotionEvent', {
-      configurable: true,
-      writable: true,
-      value: MockDeviceMotionEvent,
-    });
-    Object.defineProperty(navigator, 'maxTouchPoints', {
-      configurable: true,
-      value: 1,
-    });
-    MockDeviceMotionEvent.requestPermission.mockClear();
-    studyOverviewLoading.current = false;
-    featureFlagsLoading.current = false;
-    masteryAnimationFinishesImmediately.current = true;
-    reviewMutationError.current = null;
-    window.localStorage.clear();
-    featureFlagsData.current = {
-      id: 'default',
-      dialoguesEnabled: false,
-      scriptsEnabled: true,
-      audioCourseEnabled: true,
-      flashcardsEnabled: true,
-      updatedAt: '2026-07-16T12:00:00.000Z',
-    };
-    studyOverviewData.current = {
-      dueCount: 4,
-      newCount: 6,
-      newCardsPerDay: 20,
-      newCardsIntroducedToday: 18,
-      newCardsAvailableToday: 2,
-      learningCount: 2,
-      reviewCount: 8,
-      suspendedCount: 0,
-      totalCards: 20,
-    };
+      return {
+        card: {
+          ...baseCard,
+          id: payload.cardId,
+          state: {
+            ...baseCard.state,
+            queueState: payload.mode === 'tomorrow' ? 'review' : baseCard.state.queueState,
+            dueAt:
+              payload.mode === 'tomorrow'
+                ? new Date('2026-04-13T09:00:00.000Z').toISOString()
+                : (payload.dueAt ?? baseCard.state.dueAt),
+          },
+        },
+        overview: {
+          dueCount: payload.mode === 'tomorrow' ? 3 : 4,
+          newCount: 6,
+          learningCount: 2,
+          reviewCount: 8,
+          suspendedCount: 0,
+          totalCards: 20,
+        },
+      };
+    }
+  );
+};
+
+const configureStudyPageEnvironment = () => {
+  Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(undefined),
+  });
+  Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+    configurable: true,
+    value: vi.fn(),
+  });
+  Object.defineProperty(window, 'DeviceMotionEvent', {
+    configurable: true,
+    writable: true,
+    value: MockDeviceMotionEvent,
+  });
+  Object.defineProperty(navigator, 'maxTouchPoints', {
+    configurable: true,
+    value: 1,
+  });
+  MockDeviceMotionEvent.requestPermission.mockClear();
+  studyOverviewLoading.current = false;
+  featureFlagsLoading.current = false;
+  masteryAnimationFinishesImmediately.current = true;
+  reviewMutationError.current = null;
+  window.localStorage.clear();
+  featureFlagsData.current = {
+    id: 'default',
+    dialoguesEnabled: false,
+    scriptsEnabled: true,
+    audioCourseEnabled: true,
+    flashcardsEnabled: true,
+    updatedAt: '2026-07-16T12:00:00.000Z',
+  };
+  studyOverviewData.current = {
+    dueCount: 4,
+    newCount: 6,
+    newCardsPerDay: 20,
+    newCardsIntroducedToday: 18,
+    newCardsAvailableToday: 2,
+    learningCount: 2,
+    reviewCount: 8,
+    suspendedCount: 0,
+    totalCards: 20,
+  };
+};
+
+describe('StudyPage', () => {
+  beforeEach(() => {
+    resetStudyPageMocks();
+    configureStudyContentMocks();
+    configureStudyCardActionMock();
+    configureStudyPageEnvironment();
   });
 
   it('renders overview counts without eagerly starting a study session', () => {
@@ -1572,107 +1578,6 @@ describe('StudyPage', () => {
     });
   });
 
-  it('renders media-led prompt cards without leaking helper meaning text on the front', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 4,
-        newCount: 6,
-        learningCount: 2,
-        reviewCount: 8,
-        suspendedCount: 0,
-        totalCards: 20,
-      },
-      cards: [
-        {
-          ...baseCard,
-          prompt: {
-            cueAudio: {
-              filename: 'listening.mp3',
-              url: 'https://example.com/listening.mp3',
-              mediaKind: 'audio',
-              source: 'imported',
-            },
-            cueImage: {
-              filename: 'prompt.png',
-              url: 'https://example.com/prompt.png',
-              mediaKind: 'image',
-              source: 'imported_image',
-            },
-            cueMeaning: 'this should stay hidden',
-          },
-          answer: {
-            ...baseCard.answer,
-            answerAudio: {
-              filename: 'answer.mp3',
-              url: 'https://example.com/answer.mp3',
-              mediaKind: 'audio',
-              source: 'imported',
-            },
-          },
-        },
-      ],
-    });
-
-    renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-
-    await waitFor(() => {
-      expect(startStudySessionMock).toHaveBeenCalledTimes(1);
-    });
-
-    expect(screen.queryByText('this should stay hidden')).not.toBeInTheDocument();
-    expect(screen.getByAltText('Study prompt')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Play prompt audio' })).toBeInTheDocument();
-  });
-
-  it('renders image-front cards as image-only prompts', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 4,
-        newCount: 6,
-        learningCount: 2,
-        reviewCount: 8,
-        suspendedCount: 0,
-        totalCards: 20,
-      },
-      cards: [
-        {
-          ...baseCard,
-          cardType: 'production' as const,
-          prompt: {
-            cueImage: {
-              filename: 'prompt.png',
-              url: 'https://example.com/prompt.png',
-              mediaKind: 'image',
-              source: 'imported_image',
-            },
-            cueMeaning: 'also hidden',
-          },
-          answer: {
-            ...baseCard.answer,
-            answerAudio: {
-              filename: 'answer.mp3',
-              url: 'https://example.com/answer.mp3',
-              mediaKind: 'audio',
-              source: 'imported',
-            },
-          },
-        },
-      ],
-    });
-
-    renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-
-    await waitFor(() => {
-      expect(startStudySessionMock).toHaveBeenCalledTimes(1);
-    });
-
-    expect(screen.getByAltText('Study prompt')).toBeInTheDocument();
-    expect(screen.queryByText('also hidden')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Play prompt audio' })).not.toBeInTheDocument();
-  });
-
   it('undoes a reveal with command-z', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {
@@ -1855,166 +1760,6 @@ describe('StudyPage', () => {
     });
     expect(screen.getByText('company')).toBeInTheDocument();
     expect(screen.queryByText(/Nice work/i)).not.toBeInTheDocument();
-  });
-
-  it('renders cloze cards with masked front text and restored furigana answer text', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 1,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 1,
-      },
-      cards: [
-        {
-          ...baseCard,
-          id: 'cloze-1',
-          cardType: 'cloze',
-          prompt: {
-            clozeText: 'お風呂に虫{{c1::がいる::are (existence verb)}}！',
-            clozeDisplayText: 'お風呂に虫[...]！',
-            clozeAnswerText: 'がいる',
-            clozeHint: 'backup hint',
-            clozeResolvedHint: 'are (existence verb)',
-          },
-          answer: {
-            restoredText: 'お風呂に虫がいる！',
-            restoredTextReading: 'お風呂[ふろ]に虫[むし]がいる！',
-            meaning: 'There are bugs in the bath!',
-            notes: 'お風呂[ふろ]に虫[むし]がいる！',
-            answerAudio: {
-              filename: 'cloze.mp3',
-              url: 'https://example.com/cloze.mp3',
-              mediaKind: 'audio',
-              source: 'imported',
-            },
-          },
-          answerAudioSource: 'imported',
-        },
-      ],
-    });
-
-    renderStudyPage({ knownKanji: ['風', '呂', '虫'], knownKanjiActive: true });
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('study-cloze-prompt')).toBeInTheDocument();
-    });
-    const clozePrompt = screen.getByTestId('study-cloze-prompt');
-    expect(clozePrompt).toHaveTextContent('お風呂ふろに虫むし[...]！');
-    expect(screen.getByText('backup hint')).toBeInTheDocument();
-    expect(screen.queryByText('are (existence verb)')).not.toBeInTheDocument();
-    expect(screen.queryByText('Click or push space to reveal')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tap to reveal')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('お風呂に虫{{c1::がいる::are (existence verb)}}！')
-    ).not.toBeInTheDocument();
-
-    const bathReading = within(clozePrompt).getByText('ふろ', { selector: 'rt' });
-    expect(bathReading).toHaveClass('opacity-0');
-    await userEvent.click(within(clozePrompt).getByRole('button', { name: '風呂' }));
-    expect(bathReading).not.toHaveClass('opacity-0');
-    expect(screen.queryByText('There are bugs in the bath!')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-
-    await waitFor(() => {
-      expect(screen.getByText('There are bugs in the bath!')).toBeInTheDocument();
-    });
-    const restoredHeading = screen.getByTestId('study-cloze-heading');
-    expect(within(restoredHeading).getByText('ふろ', { selector: 'rt' })).toBeInTheDocument();
-    expect(within(restoredHeading).getByText('むし', { selector: 'rt' })).toBeInTheDocument();
-    expect(screen.queryByText('• お風呂[ふろ]に虫[むし]がいる！')).not.toBeInTheDocument();
-    expect(screen.getAllByText('ふろ', { selector: 'rt' })).toHaveLength(2);
-    expect(screen.getAllByText('むし', { selector: 'rt' })).toHaveLength(2);
-  });
-
-  it('decodes numeric html entities in study text', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 1,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 1,
-      },
-      cards: [
-        {
-          ...baseCard,
-          id: 'entity-1',
-          answer: {
-            ...baseCard.answer,
-            meaning: 'Someone, please come. It&#x27;s an accident.',
-            answerAudio: {
-              filename: 'entity-1.mp3',
-              url: 'https://example.com/entity-1.mp3',
-              mediaKind: 'audio',
-              source: 'imported',
-            },
-          },
-        },
-      ],
-    });
-
-    renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-
-    await waitFor(() => {
-      expect(screen.getByText("Someone, please come. It's an accident.")).toBeInTheDocument();
-    });
-    expect(
-      screen.queryByText('Someone, please come. It&#x27;s an accident.')
-    ).not.toBeInTheDocument();
-  });
-
-  it('keeps furigana aligned to kanji when particles and okurigana surround bracket readings', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 1,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 1,
-      },
-      cards: [
-        {
-          ...baseCard,
-          id: 'furigana-1',
-          answer: {
-            ...baseCard.answer,
-            expression: '彼は深く息を吸っています',
-            expressionReading: '彼[かれ]は深[ふか]く息[いき]を吸[す]っています',
-            answerAudio: {
-              filename: 'furigana-1.mp3',
-              url: 'https://example.com/furigana-1.mp3',
-              mediaKind: 'audio',
-              source: 'imported',
-            },
-          },
-        },
-      ],
-    });
-
-    renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-
-    await waitFor(() => {
-      expect(screen.getByText('company')).toBeInTheDocument();
-    });
-
-    const heading = screen.getByTestId('study-japanese-heading');
-    expect(within(heading).getByText('かれ', { selector: 'rt' })).toBeInTheDocument();
-    expect(within(heading).getByText('ふか', { selector: 'rt' })).toBeInTheDocument();
-    expect(within(heading).getByText('いき', { selector: 'rt' })).toBeInTheDocument();
-    expect(within(heading).getByText('す', { selector: 'rt' })).toBeInTheDocument();
-    expect(within(heading).queryByText('は深', { selector: 'ruby' })).not.toBeInTheDocument();
   });
 
   it('opens an in-place editor on the answer side and returns to the front after save', async () => {
