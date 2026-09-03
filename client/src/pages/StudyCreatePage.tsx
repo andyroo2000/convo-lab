@@ -592,38 +592,37 @@ const StudyCreatePage = () => {
     return selectedManualDraft.id;
   };
 
-  const handleRegenerateManualAudio = async () => {
+  const generateSelectedDraftPreview = async <Result extends { revision: number }>(
+    generatePreview: (draftId: string) => Promise<Result>,
+    applyPreview: (result: Result) => void
+  ) => {
     await runManualAction(async () => {
       setManualSuccess(null);
       try {
         const draftId = await persistSelectedManualDraft();
         if (!draftId) return;
-        const result = await regenerateManualAudio.mutateAsync(draftId);
+        const result = await generatePreview(draftId);
         if (selectedManualDraftIdRef.current !== draftId) return;
         manualFormBaseRevisionRef.current = result.revision;
-        setManualPreviewAudio(result.previewAudio);
-        setManualPreviewAudioRole(result.previewAudioRole);
+        applyPreview(result);
       } catch {
-        // React Query exposes the regeneration error through regenerateManualAudio.error.
+        // React Query exposes the preview-generation error through its mutation state.
       }
     });
   };
 
+  const handleRegenerateManualAudio = async () => {
+    await generateSelectedDraftPreview(regenerateManualAudio.mutateAsync, (result) => {
+      setManualPreviewAudio(result.previewAudio);
+      setManualPreviewAudioRole(result.previewAudioRole);
+    });
+  };
+
   const handleGenerateManualImage = async () => {
-    await runManualAction(async () => {
-      setManualSuccess(null);
-      try {
-        const draftId = await persistSelectedManualDraft();
-        if (!draftId) return;
-        const result = await generateDraftImage.mutateAsync(draftId);
-        if (selectedManualDraftIdRef.current !== draftId) return;
-        manualFormBaseRevisionRef.current = result.revision;
-        setManualImagePrompt(result.imagePrompt);
-        setManualImagePlacement(result.imagePlacement);
-        setManualPreviewImage(result.previewImage);
-      } catch {
-        // React Query exposes the image-generation error through generateDraftImage.error.
-      }
+    await generateSelectedDraftPreview(generateDraftImage.mutateAsync, (result) => {
+      setManualImagePrompt(result.imagePrompt);
+      setManualImagePlacement(result.imagePlacement);
+      setManualPreviewImage(result.previewImage);
     });
   };
 
