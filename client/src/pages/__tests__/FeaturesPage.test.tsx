@@ -43,10 +43,10 @@ describe('FeaturesPage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Code smells were only half the story.',
+        name: '9.4. Then the agent stopped.',
       })
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#two-kinds-of-review');
+    expect(window.location.hash).toBe('#goal-achieved');
   });
 
   it('opens a directly linked feature', () => {
@@ -171,5 +171,22 @@ describe('FeaturesPage', () => {
     expect(screen.getByText('Behavior and logic')).toBeInTheDocument();
     expect(screen.getByText('Subtle bugs and race conditions')).toBeInTheDocument();
     expect(screen.getByText('Missing test coverage')).toBeInTheDocument();
+  });
+
+  it('opens the final goal-results slide directly', () => {
+    window.history.replaceState(null, '', '/features#goal-achieved');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByRole('heading', { name: '9.4. Then the agent stopped.' })
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Final CodeScene goal results')).toBeInTheDocument();
+    expect(screen.getByText('Target ≥ 9.25 cleared')).toBeInTheDocument();
+    expect(screen.getByText('68.3%')).toBeInTheDocument();
+    expect(screen.getByText('31.7%')).toBeInTheDocument();
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.getByText(/Every merged PR improved CodeScene/)).toBeInTheDocument();
+    expect(screen.getByText(/Goal run: 17h 47m/)).toBeInTheDocument();
   });
 });

@@ -62,7 +62,8 @@ type FeatureMedia =
   | 'goal-progress'
   | 'goal-results'
   | 'pr-evidence'
-  | 'review-bot';
+  | 'review-bot'
+  | 'goal-achieved';
 
 interface FeatureSlide {
   id: string;
@@ -289,6 +290,15 @@ const FEATURE_SLIDES: FeatureSlide[] = [
       'CodeScene stayed on top of complexity and code smells. Claude’s review bot was still useful for a different job: checking behavior, spotting logical errors and actual bugs, and pointing out missing tests.',
     shortLabel: 'Two review layers',
     media: 'review-bot',
+  },
+  {
+    id: 'goal-achieved',
+    kicker: 'The result',
+    title: '9.4. Then the agent stopped.',
+    description:
+      'Hotspot code health rose from 8.69 to 9.4, clearing the 9.25 target. With no red code and every merged PR passing CodeScene, CI, and review, the agent closed the goal instead of adding another risky refactor.',
+    shortLabel: 'Goal achieved',
+    media: 'goal-achieved',
   },
 ];
 
@@ -1164,6 +1174,63 @@ const ReviewBotMedia = () => (
   </div>
 );
 
+const GoalAchievedMedia = () => (
+  <div
+    className="feature-goal-achieved-media feature-media-panel"
+    aria-label="Final CodeScene goal results"
+  >
+    <div className="feature-final-score">
+      <span>Hotspot code health</span>
+      <strong>9.4</strong>
+      <b>Target ≥ 9.25 cleared</b>
+    </div>
+
+    <div className="feature-score-journey" aria-label="Code health improved from 8.69 to 9.4">
+      <span>
+        <small>Baseline</small>
+        <strong>8.69</strong>
+      </span>
+      <i aria-hidden="true" />
+      <span>
+        <small>Final</small>
+        <strong>9.4</strong>
+      </span>
+    </div>
+
+    <div className="feature-code-distribution">
+      <div aria-hidden="true">
+        <i />
+        <b />
+      </div>
+      <span>
+        <strong>68.3%</strong>
+        <small>green code</small>
+      </span>
+      <span>
+        <strong>31.7%</strong>
+        <small>yellow code</small>
+      </span>
+      <span>
+        <strong>0%</strong>
+        <small>red code</small>
+      </span>
+    </div>
+
+    <footer>
+      <span>
+        <Check aria-hidden="true" /> Every merged PR improved CodeScene and passed CI + review
+      </span>
+      <span>
+        <Check aria-hidden="true" /> Web changes reached staging and production
+      </span>
+      <small>
+        Goal run: 17h 47m · 3,723,565 tokens · iOS PR #213 improved 8.51 → 10.0 and remained
+        unmerged only because the daily TestFlight upload limit was reached.
+      </small>
+    </footer>
+  </div>
+);
+
 const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
   switch (type) {
     case 'existing-apps':
@@ -1214,6 +1281,8 @@ const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
       return <PrEvidenceMedia />;
     case 'review-bot':
       return <ReviewBotMedia />;
+    case 'goal-achieved':
+      return <GoalAchievedMedia />;
     default:
       return null;
   }
