@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
+import VerbPracticeCardPanel from './VerbPracticeCard';
 import { playVerbAudioClip } from '../logic/preRenderedVerbAudio';
 import {
-  CONJUGATION_BADGE_LABELS,
   createVerbPracticeCard,
   DEFAULT_CONJUGATION_IDS,
   DEFAULT_JLPT_LEVELS,
@@ -14,17 +14,10 @@ import {
   VERB_CONJUGATION_OPTIONS,
   VERB_GROUP_OPTIONS,
   type JLPTLevel,
-  type RegisterBadge,
   type VerbConjugationId,
   type VerbPracticeCard,
   type VerbGroup,
 } from '../logic/verbConjugation';
-
-interface RubyPartProps {
-  script: string;
-  kana: string;
-  showFurigana?: boolean;
-}
 
 interface VerbCardSnapshot {
   card: VerbPracticeCard | null;
@@ -32,99 +25,8 @@ interface VerbCardSnapshot {
 }
 
 const PAUSE_OPTIONS = [5, 8, 12] as const;
-const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
 const HISTORY_LIMIT = 120;
 const RECENT_CARD_HISTORY_LIMIT = 18;
-const KANJI_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff々]/u;
-const HIRAGANA_REGEX = /[\u3040-\u309f]/u;
-const KATAKANA_REGEX = /[\u30a0-\u30ff]/u;
-
-const GROUP_BADGE_CLASSES: Record<VerbGroup, string> = {
-  '1': 'retro-verb-badge-group-1',
-  '2': 'retro-verb-badge-group-2',
-  '3': 'retro-verb-badge-group-3',
-};
-
-const REGISTER_BADGE_CLASSES: Record<RegisterBadge, string> = {
-  formal: 'retro-verb-badge-register-formal',
-  casual: 'retro-verb-badge-register-casual',
-  spoken: 'retro-verb-badge-register-spoken',
-  colloquial: 'retro-verb-badge-register-colloquial',
-};
-
-const isKana = (char: string): boolean => HIRAGANA_REGEX.test(char) || KATAKANA_REGEX.test(char);
-
-const buildRubyParts = (
-  script: string,
-  kana: string
-): {
-  prefix: string;
-  kanjiPart: string;
-  suffix: string;
-  reading: string;
-} | null => {
-  if (!KANJI_REGEX.test(script)) {
-    return null;
-  }
-
-  let kanjiStart = 0;
-  while (kanjiStart < script.length && isKana(script[kanjiStart])) {
-    kanjiStart += 1;
-  }
-
-  let kanjiEnd = script.length;
-  while (kanjiEnd > kanjiStart && isKana(script[kanjiEnd - 1])) {
-    kanjiEnd -= 1;
-  }
-
-  if (kanjiStart >= kanjiEnd) {
-    return null;
-  }
-
-  const prefix = script.slice(0, kanjiStart);
-  const kanjiPart = script.slice(kanjiStart, kanjiEnd);
-  const suffix = script.slice(kanjiEnd);
-
-  let adjustedReading = kana;
-  if (prefix && adjustedReading.startsWith(prefix)) {
-    adjustedReading = adjustedReading.slice(prefix.length);
-  }
-  if (suffix && adjustedReading.endsWith(suffix)) {
-    adjustedReading = adjustedReading.slice(0, adjustedReading.length - suffix.length);
-  }
-
-  if (!adjustedReading) {
-    return null;
-  }
-
-  return {
-    prefix,
-    kanjiPart,
-    suffix,
-    reading: adjustedReading,
-  };
-};
-
-const RubyPart = ({ script, kana, showFurigana = true }: RubyPartProps) => {
-  const rubyParts = buildRubyParts(script, kana);
-  if (!rubyParts) {
-    return <span className="mr-1">{script}</span>;
-  }
-
-  return (
-    <span className="mr-1">
-      {rubyParts.prefix}
-      <ruby>
-        {rubyParts.kanjiPart}
-        <rt className={`${RUBY_RT_CLASS}${showFurigana ? '' : ' invisible'}`}>
-          {rubyParts.reading}
-        </rt>
-      </ruby>
-      {rubyParts.suffix}
-    </span>
-  );
-};
-
 const buildCardHistoryKey = (card: VerbPracticeCard): string =>
   `${card.verb.id}:${card.conjugation.id}`;
 
@@ -475,7 +377,6 @@ const JapaneseVerbConjugationToolPage = () => {
     stopPlayback,
   ]);
 
-  const nextButtonLabel = isRevealed ? 'Next' : 'Show Answer';
   const autoPlayButtonLabel = isPowerOn ? 'Stop Loop' : 'Auto-Loop';
   const normalizedCountdownSeconds =
     countdownSeconds === null
@@ -499,97 +400,14 @@ const JapaneseVerbConjugationToolPage = () => {
         </div>
 
         <div className="retro-verb-layout">
-          <div className="retro-verb-main-panel">
-            <div className="retro-verb-sheet" role="region" aria-label="Verb conjugation quiz card">
-              {card ? (
-                <>
-                  <p className="retro-verb-status" aria-live="polite">
-                    {statusText || '\u00A0'}
-                  </p>
-
-                  <p className="japanese-text retro-verb-dictionary-form" aria-live="polite">
-                    <RubyPart
-                      script={card.verb.dictionary}
-                      kana={card.verb.reading}
-                      showFurigana={showFurigana}
-                    />
-                  </p>
-                  <p className="retro-verb-meaning">{card.verb.meaning}</p>
-
-                  <div className="retro-verb-badge-row mt-2">
-                    {card.conjugation.registers.map((register) => (
-                      <span
-                        key={`register-${register}`}
-                        className={`retro-verb-badge ${REGISTER_BADGE_CLASSES[register]}`}
-                      >
-                        {REGISTER_BADGE_LABELS[register]}
-                      </span>
-                    ))}
-                    <span className="retro-verb-badge retro-verb-badge-conjugation">
-                      {CONJUGATION_BADGE_LABELS[card.conjugation.conjugationBadge]}
-                    </span>
-                  </div>
-
-                  {card.conjugation.promptHint && (
-                    <p className="retro-verb-prompt-hint" data-testid="verb-colloquial-hint">
-                      {card.conjugation.promptHint}
-                    </p>
-                  )}
-
-                  <div className="retro-verb-answer-slot">
-                    {isRevealed && (
-                      <>
-                        <p className="japanese-text retro-verb-answer" aria-live="polite">
-                          <RubyPart
-                            script={card.answer.script}
-                            kana={card.answer.reading}
-                            showFurigana={showFurigana}
-                          />
-                        </p>
-                        {card.referenceAnswer && (
-                          <p className="retro-verb-reference-answer">
-                            Textbook: {card.referenceAnswer.script} ({card.referenceAnswer.reading})
-                          </p>
-                        )}
-                        <div className="retro-verb-badge-row mt-2">
-                          <span
-                            className={`retro-verb-badge ${GROUP_BADGE_CLASSES[card.verb.group]}`}
-                          >
-                            Group {card.verb.group}
-                          </span>
-                          <span className="retro-verb-badge retro-verb-badge-jlpt">
-                            {card.verb.jlptLevel}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="retro-verb-empty-state" role="status">
-                  <p className="retro-verb-empty-title">No matching cards.</p>
-                  <p className="retro-verb-empty-copy">
-                    Expand JLPT level, verb group, or conjugation filters to generate cards.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="retro-verb-next-row">
-              <span
-                className={`retro-clock-radio-led retro-clock-radio-led-next ${isNextLedActive ? 'is-flash' : ''}`}
-              />
-              <button
-                type="button"
-                onClick={handleNext}
-                className="retro-counter-control-btn retro-verb-next-btn"
-                aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
-                disabled={!card}
-              >
-                {nextButtonLabel}
-              </button>
-            </div>
-          </div>
+          <VerbPracticeCardPanel
+            card={card}
+            isNextLedActive={isNextLedActive}
+            isRevealed={isRevealed}
+            onNext={handleNext}
+            showFurigana={showFurigana}
+            statusText={statusText}
+          />
 
           <div className="retro-verb-controls-panel">
             <div
