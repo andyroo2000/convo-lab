@@ -78,7 +78,7 @@ describe('JlptMasteryCard', () => {
   it('shows separate N5 and N4 vocabulary and grammar level bands', () => {
     render(<JlptMasteryCard />);
 
-    expect(overviewMock).toHaveBeenCalledWith(true, 'always');
+    expect(overviewMock).toHaveBeenCalledWith({ enabled: true, refetchOnMount: 'always' });
     const title = screen.getByRole('heading', { name: 'JLPT Mastery' });
     const disclosure = screen.getByRole('group');
     const chevron = screen.getByTestId('jlpt-mastery-chevron');

@@ -24,22 +24,12 @@ import {
   createStudyIntroductionCohortId,
   useCreateStudyLessonFollowupCohort,
   useReorderStudyNewCardQueue,
-  useStudyLearningItemsInfinite,
-  useStudyNewCardQueueInfinite,
 } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
+import useStudyCardListQueries, { uniqueStudyItemsById } from '../hooks/useStudyCardListQueries';
 import { LearningItemRow, QueueRow } from '../components/study/StudyCardsRows';
 
 type CollectionMode = 'queue' | 'all';
-
-const uniqueById = <T extends { id: string }>(items: T[]) => {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
-};
 
 const useInfiniteScroll = (enabled: boolean, loadMore: () => void) => {
   const targetRef = useRef<HTMLDivElement | null>(null);
@@ -76,8 +66,11 @@ const StudyCardsPage = () => {
   const [selectingLessonFollowup, setSelectingLessonFollowup] = useState(false);
   const [selectedLessonCardIds, setSelectedLessonCardIds] = useState<Set<string>>(new Set());
   const [lessonLabel, setLessonLabel] = useState('');
-  const queueQuery = useStudyNewCardQueueInfinite(enabled && mode === 'queue');
-  const learningItemsQuery = useStudyLearningItemsInfinite(enabled && mode === 'all', searchQuery);
+  const { learningItems, learningItemsQuery, queueQuery } = useStudyCardListQueries({
+    enabled,
+    mode,
+    searchQuery,
+  });
   const reorderMutation = useReorderStudyNewCardQueue();
   const createLessonFollowupMutation = useCreateStudyLessonFollowupCohort();
   const runBackgroundTask = useStudyBackgroundTask();
@@ -86,10 +79,6 @@ const StudyCardsPage = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const learningItems = useMemo(
-    () => uniqueById(learningItemsQuery.data?.pages.flatMap((page) => page.items) ?? []),
-    [learningItemsQuery.data]
-  );
   const queueTotal = queueQuery.data?.pages[0]?.total ?? queueItems.length;
   const reorderDisabled = queueItems.length > 100;
   const queueDataRef = useRef(queueQuery.data);
@@ -107,7 +96,7 @@ const StudyCardsPage = () => {
 
   useEffect(() => {
     const pages = queueDataRef.current?.pages ?? [];
-    const loadedQueueItems = uniqueById(pages.flatMap((page) => page.items));
+    const loadedQueueItems = uniqueStudyItemsById(pages.flatMap((page) => page.items));
     const firstPageSignature = pages[0]?.items.map((item) => item.id).join(',') ?? '';
     const previousPageCount = previousQueuePageCountRef.current;
     // Only a larger page count with an unchanged first page is an append.
@@ -119,7 +108,7 @@ const StudyCardsPage = () => {
 
     setQueueItems((current) => {
       if (isPageAppend) {
-        return uniqueById([
+        return uniqueStudyItemsById([
           ...current,
           ...pages.slice(previousPageCount).flatMap((page) => page.items),
         ]);
@@ -157,7 +146,7 @@ const StudyCardsPage = () => {
     runBackgroundTask(
       async () => {
         try {
-          await reorderMutation.mutateAsync(nextItems.map((item) => item.id));
+          await reorderMutation.mutateAsync({ cardIds: nextItems.map((item) => item.id) });
         } catch (error) {
           setQueueItems(previousItems);
           setQueueError(error instanceof Error ? error.message : t('cards.reorderFailed'));

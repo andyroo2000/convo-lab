@@ -187,9 +187,8 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
 
 vi.mock('../../hooks/useStudy', () => ({
   getStudyCards: vi.fn().mockResolvedValue({ items: [], limit: 20, nextCursor: null }),
-  useStudyBrowser: (enabled: boolean, query: unknown) => useStudyBrowserMock(enabled, query),
-  useStudyBrowserNoteDetail: (enabled: boolean, noteId?: string) =>
-    useStudyBrowserNoteDetailMock(enabled, noteId),
+  useStudyBrowser: (options: unknown) => useStudyBrowserMock(options),
+  useStudyBrowserNoteDetail: (options: unknown) => useStudyBrowserNoteDetailMock(options),
   useStudyCardAction: () => ({
     mutateAsync: cardActionMutateAsyncMock,
     isPending: false,
@@ -221,7 +220,7 @@ vi.mock('../../hooks/useStudy', () => ({
     reset: vi.fn(),
   }),
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
-  useStudyLearningPath: (cardId: string) => ({
+  useStudyLearningPath: ({ cardId }: { cardId: string }) => ({
     data: { groupId: null, anchorCardId: cardId, stages: [] },
     error: null,
     isError: false,
@@ -280,7 +279,7 @@ describe('StudyBrowsePage', () => {
       error: null,
       refetch: vi.fn(),
     });
-    useStudyBrowserNoteDetailMock.mockImplementation((_enabled: boolean, noteId?: string) => ({
+    useStudyBrowserNoteDetailMock.mockImplementation(({ noteId }: { noteId?: string }) => ({
       data: noteId ? noteDetailById[noteId as keyof typeof noteDetailById] : undefined,
       isLoading: false,
       error: null,
@@ -397,10 +396,12 @@ describe('StudyBrowsePage', () => {
     );
     expect(screen.getByText('Filters')).toBeInTheDocument();
     expect(useStudyBrowserMock).toHaveBeenCalledWith(
-      true,
       expect.objectContaining({
-        sortField: 'created_on',
-        sortDirection: 'desc',
+        enabled: true,
+        query: expect.objectContaining({
+          sortField: 'created_on',
+          sortDirection: 'desc',
+        }),
       })
     );
     expect(screen.getByTestId('study-browser-note-list')).toHaveClass(
@@ -535,15 +536,17 @@ describe('StudyBrowsePage', () => {
 
     await waitFor(() => {
       expect(useStudyBrowserMock).toHaveBeenLastCalledWith(
-        true,
         expect.objectContaining({
-          q: '会社',
-          noteType: 'Japanese - Vocab',
-          cardType: 'recognition',
-          sortField: 'note_type',
-          sortDirection: 'asc',
-          cursor: undefined,
-          limit: 100,
+          enabled: true,
+          query: expect.objectContaining({
+            q: '会社',
+            noteType: 'Japanese - Vocab',
+            cardType: 'recognition',
+            sortField: 'note_type',
+            sortDirection: 'asc',
+            cursor: undefined,
+            limit: 100,
+          }),
         })
       );
     });

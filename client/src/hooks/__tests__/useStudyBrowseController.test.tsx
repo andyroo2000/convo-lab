@@ -36,9 +36,8 @@ function mutation(mutateAsync = vi.fn()) {
 }
 
 vi.mock('../useStudy', () => ({
-  useStudyBrowser: (enabled: boolean, query: unknown) => useStudyBrowserMock(enabled, query),
-  useStudyBrowserNoteDetail: (enabled: boolean, noteId?: string) =>
-    useStudyBrowserNoteDetailMock(enabled, noteId),
+  useStudyBrowser: (options: unknown) => useStudyBrowserMock(options),
+  useStudyBrowserNoteDetail: (options: unknown) => useStudyBrowserNoteDetailMock(options),
   useStudyCardAction: () => mutation(),
   usePromoteStudyNewCardToFront: () => mutation(),
   useUpdateStudyCard: () => mutation(updateStudyCardMock),
@@ -142,7 +141,7 @@ describe('useStudyBrowseController', () => {
     browserRefetchMock.mockReset().mockResolvedValue(undefined);
     detailRefetchMock.mockReset().mockResolvedValue(undefined);
     updateStudyCardMock.mockReset().mockResolvedValue(detail.cards[0]);
-    useStudyBrowserMock.mockReset().mockImplementation((_enabled, query) => ({
+    useStudyBrowserMock.mockReset().mockImplementation(({ query }) => ({
       data: query.cursor ? secondPage : firstPage,
       isLoading: false,
       error: null,
@@ -159,10 +158,13 @@ describe('useStudyBrowseController', () => {
   it('owns the canonical search, filter, and sort query state', async () => {
     const { result } = renderHook(() => useStudyBrowseController(true), { wrapper });
 
-    expect(useStudyBrowserMock).toHaveBeenCalledWith(true, {
-      limit: 100,
-      sortField: 'created_on',
-      sortDirection: 'desc',
+    expect(useStudyBrowserMock).toHaveBeenCalledWith({
+      enabled: true,
+      query: {
+        limit: 100,
+        sortField: 'created_on',
+        sortDirection: 'desc',
+      },
     });
 
     act(() => {

@@ -232,7 +232,8 @@ describe('manual card draft query ownership', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
     const { result, rerender } = renderHook(
-      ({ ownerId }: { ownerId: string | null }) => useStudyManualCardDrafts(ownerId),
+      ({ ownerId }: { ownerId: string | null }) =>
+        useStudyManualCardDrafts({ effectiveOwnerId: ownerId }),
       { initialProps: { ownerId: null as string | null }, wrapper }
     );
 

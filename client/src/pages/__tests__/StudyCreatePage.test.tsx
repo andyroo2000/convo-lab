@@ -86,8 +86,8 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
-  useStudyManualCardDrafts: (effectiveOwnerId: string | null) => {
-    useStudyManualCardDraftsMock(effectiveOwnerId);
+  useStudyManualCardDrafts: (options: { effectiveOwnerId: string | null }) => {
+    useStudyManualCardDraftsMock(options);
     return {
       data: { drafts: manualDraftsState.drafts },
       isLoading: manualDraftsState.isLoading,
@@ -302,7 +302,7 @@ describe('StudyCreatePage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId('study-manual-draft-list')).not.toBeInTheDocument();
     expect(screen.queryByText('会社')).not.toBeInTheDocument();
-    expect(useStudyManualCardDraftsMock).toHaveBeenLastCalledWith(null);
+    expect(useStudyManualCardDraftsMock).toHaveBeenLastCalledWith({ effectiveOwnerId: null });
   });
 
   it('keeps the active creation form before the draft queue in document order', async () => {

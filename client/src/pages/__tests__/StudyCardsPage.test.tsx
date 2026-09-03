@@ -356,7 +356,9 @@ describe('StudyCardsPage', () => {
       } as DragEndEvent);
     });
 
-    await waitFor(() => expect(reorderMock).toHaveBeenCalledWith(['card-2', 'card-1']));
+    await waitFor(() =>
+      expect(reorderMock).toHaveBeenCalledWith({ cardIds: ['card-2', 'card-1'] })
+    );
     queuePages.current = [
       ...queuePages.current,
       {

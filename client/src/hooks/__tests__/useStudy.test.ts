@@ -609,7 +609,7 @@ describe('useStudy request helpers', () => {
     await getStudyNewCardQueue({ cursor: 'cursor-1', q: 'kana', limit: 25 });
     await getStudyCards({ cursor: 'card-cursor', q: '会社', limit: 50 });
     await getStudyLearningItems({ cursor: 'item-cursor', q: '会社', limit: 20 });
-    await reorderStudyNewCardQueue(['card-2', 'card-1']);
+    await reorderStudyNewCardQueue({ cardIds: ['card-2', 'card-1'] });
     await getStudyBrowser({
       q: '学校',
       sortField: 'created_on',
