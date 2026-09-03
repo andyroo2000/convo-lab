@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getTtsVoiceById } from '@languageflow/shared/src/voiceSelection';
 import { useEpisodes } from '../hooks/useEpisodes';
@@ -9,8 +9,8 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
 import usePlaybackAudioGeneration from '../hooks/usePlaybackAudioGeneration';
 import usePlaybackKeyboardControls from '../hooks/usePlaybackKeyboardControls';
-import { hasBlockingShortcutState } from '../lib/keyboardShortcuts';
-import { getSentenceTiming, isSentenceActive } from '../lib/playbackTiming';
+import usePlaybackDialogueNavigation from '../hooks/usePlaybackDialogueNavigation';
+import { isSentenceActive } from '../lib/playbackTiming';
 import { Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
@@ -61,7 +61,6 @@ const PlaybackPage = () => {
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
   const [showReadings, setShowReadings] = useState(false); // Hide furigana by default
   const [showTranslations, setShowTranslations] = useState(true); // Show English translations by default
-  const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const {
     isGeneratingAudio,
     isRefreshingEpisode,
@@ -98,6 +97,16 @@ const PlaybackPage = () => {
     sentences: episode?.dialogue?.sentences ?? EMPTY_SENTENCES,
   });
 
+  const { handleSentenceKeyDown, seekToSentence, sentenceRefs } = usePlaybackDialogueNavigation({
+    currentTime,
+    episode,
+    isPlaying,
+    navigateSentence,
+    play,
+    seek,
+    selectedSpeed,
+  });
+
   // Helper function to get speaker avatar URL from GCS
   const getSpeakerAvatarUrl = (
     speaker: Speaker,
@@ -109,42 +118,6 @@ const PlaybackPage = () => {
 
     // Return GCS URL if available, otherwise return a placeholder
     return url || '/placeholder-avatar.jpg';
-  };
-
-  // Auto-scroll to currently playing sentence
-  useEffect(() => {
-    if (!episode?.dialogue?.sentences) return;
-
-    const currentSentence = episode.dialogue.sentences.find((sentence) =>
-      isSentenceActive(sentence, selectedSpeed, currentTime * 1000)
-    );
-
-    if (currentSentence) {
-      const element = sentenceRefs.current.get(currentSentence.id);
-      if (element) {
-        // Calculate the actual height of the sticky header dynamically
-        const stickyHeader = document.querySelector('[data-playback-sticky-header]');
-        const headerHeight = stickyHeader ? stickyHeader.getBoundingClientRect().height : 0;
-        const nav = document.querySelector('.retro-topbar');
-        const navHeight = nav ? nav.getBoundingClientRect().height : 72;
-        const yOffset = -(navHeight + headerHeight + 20); // Add 20px padding
-        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
-    }
-  }, [currentTime, episode, selectedSpeed]);
-
-  const seekToSentence = (sentence: Sentence) => {
-    const { startTime } = getSentenceTiming(sentence, selectedSpeed);
-
-    if (startTime !== undefined) {
-      // Convert milliseconds to seconds
-      seek(startTime / 1000);
-      // Play if not already playing
-      if (!isPlaying) {
-        play();
-      }
-    }
   };
 
   if (isEpisodeLoading) {
@@ -372,20 +345,7 @@ const PlaybackPage = () => {
                 borderLeft: `4px solid ${borderTone}`,
               }}
               onClick={() => seekToSentence(sentence)}
-              onKeyDown={(event) => {
-                if (hasBlockingShortcutState(event)) return;
-
-                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                  event.preventDefault();
-                  navigateSentence(event.key === 'ArrowLeft' ? 'previous' : 'next');
-                  return;
-                }
-
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-
-                event.preventDefault();
-                seekToSentence(sentence);
-              }}
+              onKeyDown={(event) => handleSentenceKeyDown(event, sentence)}
               role="button"
               tabIndex={0}
               data-testid={`playback-sentence-${sentence.id}`}
