@@ -49,6 +49,7 @@ const StandaloneLearningItemRow = ({ item }: { item: StudyLearningItem }) => {
 
 const LearningPathItemHeader = ({ item }: { item: StudyLearningItem }) => {
   const { t } = useTranslation('study');
+  // Keep the family row's title and destination stable as later stages unlock.
   const { representativeCard } = item;
 
   return (
