@@ -1,18 +1,15 @@
 import type { Ref } from 'react';
-import { STUDY_CANDIDATE_VISUAL_POS_LABELS_JA } from '@languageflow/shared/src/studyConstants';
-import { deriveClozePresentation } from '@languageflow/shared/src/studyCloze';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import StudyAudioPlayer from './StudyAudioPlayer';
 import type { AudioPlayerHandle } from './StudyAudioPlayer';
+import StudyCardFront from './StudyCardFront';
 import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
 import {
   firstNonBlankPresentationText,
   getStudyCardPresentation,
   getStudyCardReviewAudio,
-  isAudioLedPromptCard,
-  isMediaLedPromptCard,
   toAssetUrl,
 } from './studyCardUtils';
 import {
@@ -26,12 +23,6 @@ export type { AudioPlayerHandle };
 
 type StudyCardLayout = 'default' | 'mobile-focus';
 
-const STUDY_CANDIDATE_VISUAL_POS_LABELS = new Set<string>(STUDY_CANDIDATE_VISUAL_POS_LABELS_JA);
-
-const isVisualProductionCueLabel = (value: string | null | undefined) =>
-  Boolean(value && STUDY_CANDIDATE_VISUAL_POS_LABELS.has(value));
-
-const CLOZE_MARKUP_PATTERN = /\{\{c\d+::/;
 // Keeps glyph descenders clear when review text sits inside clipped/scrolling card containers.
 const DESCENDER_SAFE_PADDING_CLASS = 'pb-[0.08em]';
 
@@ -39,104 +30,6 @@ const toRubyPlainText = (value: string) =>
   parseRubySegments(value)
     .map((segment) => (segment.kind === 'ruby' ? segment.base : segment.text) ?? '')
     .join('');
-
-const toRubyMatchText = (value: string) => value.replace(/\s+/gu, '');
-
-const matchingRubyText = (plainText: string, candidates: Array<string | null | undefined>) =>
-  candidates.find(
-    (candidate) =>
-      candidate &&
-      parseRubySegments(candidate).some((segment) => segment.kind === 'ruby') &&
-      toRubyMatchText(toRubyPlainText(candidate)) === toRubyMatchText(plainText)
-  );
-
-const alignRubyTextToPlainText = (rubyText: string, plainText: string) => {
-  let plainIndex = 0;
-
-  const appendPlainWhitespace = (value: string) => {
-    const whitespace = plainText.slice(plainIndex).match(/^\s+/u)?.[0] ?? '';
-    plainIndex += whitespace.length;
-    return value + whitespace;
-  };
-
-  const alignedText = parseRubySegments(rubyText).reduce<string | null>((current, segment) => {
-    if (current === null) return null;
-
-    if (segment.kind === 'ruby') {
-      const aligned = appendPlainWhitespace(current);
-      const base = segment.base ?? '';
-      if (!plainText.startsWith(base, plainIndex)) return null;
-
-      plainIndex += base.length;
-      return `${aligned}${base}[${segment.reading ?? ''}]`;
-    }
-
-    return Array.from(segment.text ?? '').reduce<string | null>((text, character) => {
-      if (text === null || /\s/u.test(character)) return text;
-
-      const aligned = appendPlainWhitespace(text);
-      if (!plainText.startsWith(character, plainIndex)) return null;
-
-      plainIndex += character.length;
-      return aligned + character;
-    }, current);
-  }, '');
-
-  if (alignedText === null) return null;
-  const completeText = appendPlainWhitespace(alignedText);
-  return plainIndex === plainText.length ? completeText : null;
-};
-
-const sliceRubyText = (value: string, start: number, end: number) => {
-  let offset = 0;
-
-  return parseRubySegments(value)
-    .map((segment) => {
-      const plain = (segment.kind === 'ruby' ? segment.base : segment.text) ?? '';
-      const segmentStart = offset;
-      const segmentEnd = offset + plain.length;
-      offset = segmentEnd;
-
-      const sliceStart = Math.max(start, segmentStart);
-      const sliceEnd = Math.min(end, segmentEnd);
-      if (sliceStart >= sliceEnd) return '';
-
-      const visible = plain.slice(sliceStart - segmentStart, sliceEnd - segmentStart);
-      if (segment.kind === 'ruby' && sliceStart === segmentStart && sliceEnd === segmentEnd) {
-        return `${visible}[${segment.reading ?? ''}]`;
-      }
-
-      return visible;
-    })
-    .join('');
-};
-
-const toMaskedRubyText = (
-  displayText: string,
-  restoredText: string | null | undefined,
-  restoredTextReading: string | null | undefined
-) => {
-  if (!restoredText || !restoredTextReading) {
-    return displayText;
-  }
-
-  const alignedReading = alignRubyTextToPlainText(restoredTextReading, restoredText);
-  if (!alignedReading) return displayText;
-
-  // deriveClozePresentation masks only the active cloze, so the display has at most one marker.
-  const markerIndex = displayText.indexOf('[...]');
-  if (markerIndex < 0) return displayText;
-
-  const prefix = displayText.slice(0, markerIndex);
-  const suffix = displayText.slice(markerIndex + '[...]'.length);
-  if (!restoredText.startsWith(prefix) || !restoredText.endsWith(suffix)) return displayText;
-
-  return `${sliceRubyText(alignedReading, 0, prefix.length)}[...]${sliceRubyText(
-    alignedReading,
-    restoredText.length - suffix.length,
-    restoredText.length
-  )}`;
-};
 
 const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
   const presentation = getStudyCardPresentation(card);
@@ -245,190 +138,8 @@ export const StudyCardFace = ({
     : card.cardType === 'cloze';
 
   if (side === 'front') {
-    if (isClozePresentation) {
-      const rawDisplayText = card.prompt.clozeDisplayText ?? null;
-      const derived = deriveClozePresentation(card.prompt.clozeText ?? rawDisplayText);
-      const clozeDisplayText =
-        rawDisplayText && !CLOZE_MARKUP_PATTERN.test(rawDisplayText)
-          ? rawDisplayText
-          : derived.displayText;
-      const clozeRubyText = presentation
-        ? (firstNonBlankPresentationText(presentation.front.ruby, presentation.front.text) ?? '')
-        : toMaskedRubyText(
-            clozeDisplayText ?? '',
-            card.answer.restoredText ?? derived.restoredText,
-            card.answer.restoredTextReading
-          );
-      const cueImageUrl = toAssetUrl(
-        presentation ? presentation.front.media.image?.url : card.prompt.cueImage?.url
-      );
-      const effectiveHint = presentation
-        ? (firstNonBlankPresentationText(presentation.front.hint) ?? '')
-        : card.prompt.clozeHint?.trim() || card.prompt.clozeResolvedHint?.trim() || '';
-
-      return (
-        <div
-          className={
-            compactMobile
-              ? 'space-y-3 text-center md:space-y-6'
-              : 'space-y-4 text-center sm:space-y-6'
-          }
-        >
-          {cueImageUrl ? (
-            <img
-              src={cueImageUrl}
-              alt={
-                presentation
-                  ? effectiveHint || 'Study prompt'
-                  : (card.prompt.cueMeaning ?? 'Study prompt')
-              }
-              className={`mx-auto object-contain ${
-                compactMobile ? 'max-h-[46dvh] rounded-lg' : 'max-h-[50dvh] rounded-xl'
-              }`}
-            />
-          ) : null}
-          <StudyRubyText
-            as="p"
-            text={clozeRubyText}
-            testId="study-cloze-prompt"
-            className={`mx-auto max-w-5xl leading-relaxed text-black ${
-              compactMobile
-                ? 'text-2xl sm:text-4xl md:text-6xl'
-                : 'text-3xl sm:text-4xl md:text-6xl'
-            }`}
-            rtClassName="text-[0.34em] font-medium text-gray-500"
-          />
-          {effectiveHint ? (
-            <p
-              className={
-                compactMobile
-                  ? 'pb-1 text-base leading-snug text-gray-700 sm:text-2xl md:text-3xl'
-                  : 'pb-1 text-xl leading-snug text-gray-700 sm:text-2xl md:text-3xl'
-              }
-            >
-              {toDisplayText(effectiveHint)}
-            </p>
-          ) : null}
-        </div>
-      );
-    }
-
-    const cueAudio = presentation ? presentation.front.media.audio : card.prompt.cueAudio;
-    const cueImage = presentation ? presentation.front.media.image : card.prompt.cueImage;
-    const cueAudioUrl = toAssetUrl(cueAudio?.url);
-    const cueImageUrl = toAssetUrl(cueImage?.url);
-    const cueText = presentation
-      ? firstNonBlankPresentationText(presentation.front.text)
-      : card.prompt.cueText;
-    const cueRuby = presentation ? firstNonBlankPresentationText(presentation.front.ruby) : null;
-    const cueDisplayText = presentation ? firstNonBlankPresentationText(cueRuby, cueText) : cueText;
-    const cueHeadlineText = cueText ?? (cueDisplayText ? toRubyPlainText(cueDisplayText) : null);
-    const cueHint = presentation
-      ? firstNonBlankPresentationText(presentation.front.hint)
-      : card.prompt.cueMeaning;
-    const mediaLedPrompt = isMediaLedPromptCard(card);
-    const audioLedPrompt = isAudioLedPromptCard(card);
-
-    if (mediaLedPrompt) {
-      return (
-        <div
-          className={`flex flex-col items-center justify-center text-center sm:min-h-[58vh] sm:gap-8 ${
-            compactMobile ? 'min-h-[calc(100dvh-12rem)] gap-4' : 'min-h-[calc(100dvh-14rem)] gap-5'
-          }`}
-        >
-          {cueImageUrl ? (
-            <img
-              src={cueImageUrl}
-              alt="Study prompt"
-              className={`mx-auto w-auto max-w-full object-contain ${
-                compactMobile ? 'max-h-[52dvh]' : 'max-h-[56dvh]'
-              }`}
-            />
-          ) : null}
-          {cueAudioUrl ? (
-            <div className={cueImageUrl ? 'pt-2' : ''}>
-              <StudyAudioPlayer
-                ref={promptAudioRef}
-                filename={cueAudio?.filename}
-                url={cueAudioUrl}
-                label={audioLedPrompt ? 'Replay prompt audio' : 'Play prompt audio'}
-                testId="study-prompt-audio"
-              />
-            </div>
-          ) : null}
-          {(presentation ? Boolean(cueHint) : isVisualProductionCueLabel(cueHint)) &&
-          cueImageUrl &&
-          !cueAudioUrl ? (
-            <p
-              className={`font-semibold text-gray-700 ${
-                compactMobile ? 'text-base sm:text-xl' : 'text-lg sm:text-2xl'
-              }`}
-            >
-              {toDisplayText(cueHint)}
-            </p>
-          ) : null}
-        </div>
-      );
-    }
-
     return (
-      <div
-        className={
-          compactMobile
-            ? 'space-y-4 text-center md:space-y-8'
-            : 'space-y-5 text-center sm:space-y-8'
-        }
-      >
-        {cueImageUrl ? (
-          <img
-            src={cueImageUrl}
-            alt={cueHint ?? 'Study prompt'}
-            className={`mx-auto object-contain ${
-              compactMobile ? 'max-h-[46dvh] rounded-lg' : 'max-h-[50dvh] rounded-xl'
-            }`}
-          />
-        ) : null}
-        {cueAudioUrl ? (
-          <StudyAudioPlayer
-            ref={promptAudioRef}
-            filename={cueAudio?.filename}
-            url={cueAudioUrl}
-            label="Play prompt audio"
-          />
-        ) : null}
-        {cueDisplayText ? (
-          <StudyRubyText
-            as="div"
-            text={
-              presentation
-                ? cueDisplayText
-                : (cueRuby ??
-                  matchingRubyText(cueDisplayText, [
-                    card.prompt.cueReading,
-                    card.answer.expressionReading,
-                  ]) ??
-                  cueDisplayText)
-            }
-            testId="study-front-heading"
-            autoFitSingleLine
-            minFontSizePx={compactMobile ? 24 : 28}
-            className={`mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
-              cueHeadlineText,
-              { compactMobile }
-            )}`}
-            rtClassName="text-[0.34em] font-medium text-gray-500"
-          />
-        ) : null}
-        {cueHint ? (
-          <p
-            className={`mx-auto max-w-3xl text-gray-700 sm:text-xl md:text-2xl ${
-              compactMobile ? 'text-base' : 'text-lg'
-            }`}
-          >
-            {toDisplayText(cueHint)}
-          </p>
-        ) : null}
-      </div>
+      <StudyCardFront card={card} compactMobile={compactMobile} promptAudioRef={promptAudioRef} />
     );
   }
 
