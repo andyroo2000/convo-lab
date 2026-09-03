@@ -148,7 +148,12 @@ describe('useEpisodes', () => {
 
       let response!: { jobId: string };
       await act(async () => {
-        response = await result.current.generateDialogue('ep-123', speakers, 3, 6);
+        response = await result.current.generateDialogue({
+          episodeId: 'ep-123',
+          speakers,
+          variationCount: 3,
+          dialogueLength: 6,
+        });
       });
 
       expect(response.jobId).toBe('job-123');
@@ -170,7 +175,7 @@ describe('useEpisodes', () => {
       const { result } = renderHook(() => useEpisodes());
 
       await act(async () => {
-        await result.current.generateDialogue('ep-123', []);
+        await result.current.generateDialogue({ episodeId: 'ep-123', speakers: [] });
       });
 
       const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -188,15 +193,38 @@ describe('useEpisodes', () => {
       const { result } = renderHook(() => useEpisodes());
 
       await act(async () => {
-        await expect(result.current.generateDialogue('ep-123', [])).rejects.toThrow(
-          'Failed to generate dialogue'
-        );
+        await expect(
+          result.current.generateDialogue({ episodeId: 'ep-123', speakers: [] })
+        ).rejects.toThrow('Failed to generate dialogue');
       });
 
       expect(result.current.error).toBe('Failed to generate dialogue');
       expect(result.current.errorMetadata).toEqual({
         message: 'Failed to generate dialogue',
         status: 502,
+      });
+    });
+
+    it('should preserve cooldown metadata from a failed generation request', async () => {
+      const cooldown = { remainingSeconds: 45, retryAfter: '2026-09-03T20:00:00Z' };
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: () => Promise.resolve({ message: 'Please wait', cooldown }),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        await expect(
+          result.current.generateDialogue({ episodeId: 'ep-123', speakers: [] })
+        ).rejects.toThrow('Please wait');
+      });
+
+      expect(result.current.errorMetadata).toEqual({
+        message: 'Please wait',
+        status: 429,
+        cooldown,
       });
     });
   });
@@ -423,6 +451,22 @@ describe('useEpisodes', () => {
       });
 
       expect(status).toBe('failed');
+    });
+
+    it('should retry a transient status response', async () => {
+      vi.useFakeTimers();
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 503 }).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ state: 'completed' }),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+      const poll = result.current.pollJobStatus('job-123');
+      await vi.runAllTimersAsync();
+
+      await expect(poll).resolves.toBe('completed');
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
     });
 
     it('aborts the current status request', async () => {
