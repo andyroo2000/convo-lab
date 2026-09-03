@@ -19,6 +19,7 @@ import {
   StudyAchievementSpotlight,
 } from '../components/study/StudyAchievementViews';
 import StudySetDueControls from '../components/study/StudySetDueControls';
+import { StudyLessonPhase } from '../components/study/StudyLessonViews';
 import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useStudyOverview } from '../hooks/useStudy';
@@ -277,104 +278,47 @@ const StudyPage = () => {
                   ) : null}
                 </div>
               ) : null}
-              {!showingAchievementAward &&
-              reviewSession.sessionKind === 'lessons' &&
-              reviewSession.lessonPhase === 'preview' &&
-              !reviewSession.sessionLoading ? (
-                <div className="min-h-0 flex-1 overflow-y-auto py-4">
-                  <div className="mx-auto max-w-5xl space-y-4">
-                    <div className="rounded-2xl bg-emerald-50 p-5 ring-1 ring-emerald-200">
-                      <h2 className="text-2xl font-bold text-navy">{t('lesson.previewTitle')}</h2>
-                      <p className="mt-1 text-gray-600">{t('lesson.previewDescription')}</p>
-                    </div>
-                    {lessonPreviewCard ? (
-                      <div
-                        key={lessonPreviewCard.id}
-                        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200"
-                      >
-                        <p className="mb-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-gray-500">
-                          {t('lesson.cardPosition', {
-                            current: lessonPreviewIndex + 1,
-                            total: reviewSession.cards.length,
-                          })}
-                        </p>
-                        <StudyCardFace card={lessonPreviewCard} layout="mobile-focus" side="back" />
-                      </div>
-                    ) : null}
-                    {lessonPreviewCard ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setLessonPreviewIndex((current) => Math.max(0, current - 1))
-                          }
-                          disabled={lessonPreviewIsFirst}
-                          className="rounded-2xl border border-gray-300 px-6 py-4 text-lg font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {t('lesson.previous')}
-                        </button>
-                        {lessonPreviewIsLast ? (
-                          <button
-                            type="button"
-                            onClick={reviewSession.beginLessonQuiz}
-                            className="rounded-2xl bg-emerald-700 px-6 py-4 text-lg font-bold text-white"
-                          >
-                            {t('lesson.startQuiz')}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setLessonPreviewIndex((current) =>
-                                Math.min(reviewSession.cards.length - 1, current + 1)
-                              )
-                            }
-                            className="rounded-2xl bg-emerald-700 px-6 py-4 text-lg font-bold text-white"
-                          >
-                            {t('lesson.next')}
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-600">
-                        {t('lesson.noneAvailable')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : null}
-              {!showingAchievementAward &&
-              reviewSession.sessionKind === 'lessons' &&
-              reviewSession.lessonPhase === 'complete' &&
-              !masteryAnimation ? (
-                <div className="flex min-h-[60vh] flex-1 items-center justify-center">
-                  <div className="max-w-lg rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-200">
-                    <h2 className="text-3xl font-bold text-navy">{t('lesson.completeTitle')}</h2>
-                    <p className="mt-3 text-gray-600">{t('lesson.completeDescription')}</p>
-                    <div className="mt-6 flex flex-wrap justify-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLessonPreviewIndex(0);
-                          runBackgroundTask(() => reviewSession.loadNextLessonBatch(), {
-                            label: 'Next lesson batch',
-                          });
-                        }}
-                        className="rounded-full bg-emerald-700 px-6 py-3 font-bold text-white"
-                      >
-                        {t('lesson.anotherBatch')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={reviewSession.exitFocusMode}
-                        className="rounded-full border border-gray-300 px-6 py-3 font-bold text-navy"
-                      >
-                        {t('lesson.finish')}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+              <StudyLessonPhase
+                active={!showingAchievementAward}
+                complete={{
+                  anotherBatchLabel: t('lesson.anotherBatch'),
+                  description: t('lesson.completeDescription'),
+                  finishLabel: t('lesson.finish'),
+                  onAnotherBatch: () => {
+                    setLessonPreviewIndex(0);
+                    runBackgroundTask(() => reviewSession.loadNextLessonBatch(), {
+                      label: 'Next lesson batch',
+                    });
+                  },
+                  onFinish: reviewSession.exitFocusMode,
+                  title: t('lesson.completeTitle'),
+                }}
+                lessonPhase={reviewSession.lessonPhase}
+                masteryAnimationActive={Boolean(masteryAnimation)}
+                preview={{
+                  card: lessonPreviewCard,
+                  cardPosition: t('lesson.cardPosition', {
+                    current: lessonPreviewIndex + 1,
+                    total: reviewSession.cards.length,
+                  }),
+                  description: t('lesson.previewDescription'),
+                  emptyMessage: t('lesson.noneAvailable'),
+                  isFirst: lessonPreviewIsFirst,
+                  isLast: lessonPreviewIsLast,
+                  nextLabel: t('lesson.next'),
+                  onNext: () =>
+                    setLessonPreviewIndex((current) =>
+                      Math.min(reviewSession.cards.length - 1, current + 1)
+                    ),
+                  onPrevious: () => setLessonPreviewIndex((current) => Math.max(0, current - 1)),
+                  onStartQuiz: reviewSession.beginLessonQuiz,
+                  previousLabel: t('lesson.previous'),
+                  startQuizLabel: t('lesson.startQuiz'),
+                  title: t('lesson.previewTitle'),
+                }}
+                sessionKind={reviewSession.sessionKind}
+                sessionLoading={reviewSession.sessionLoading}
+              />
               {!showingAchievementAward &&
               reviewSession.currentCard &&
               reviewSession.revealed &&
