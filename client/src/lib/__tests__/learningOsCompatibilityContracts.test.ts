@@ -380,14 +380,21 @@ describe('Study client capabilities contract', () => {
     );
   });
 
-  it('rejects unsupported versions and invalid default ranges', () => {
+  it('rejects unsupported capability versions', () => {
     expect(() =>
       decodeStudyClientCapabilities({ ...studyCapabilitiesFixture, version: 2 })
     ).toThrow('study capabilities.version is not supported');
+  });
+
+  it.each([
+    { default: 5, min: 10, max: 3 },
+    { default: 2, min: 3, max: 10 },
+    { default: 11, min: 3, max: 10 },
+  ])('rejects invalid capability range $default/$min/$max', (targetDurationMinutes) => {
     expect(() =>
       decodeStudyClientCapabilities({
         ...studyCapabilitiesFixture,
-        dailyAudio: { targetDurationMinutes: { default: 90, min: 5, max: 60 } },
+        dailyAudio: { targetDurationMinutes },
       })
     ).toThrow('must have an ordered range containing its default');
   });
