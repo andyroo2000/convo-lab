@@ -6,18 +6,14 @@ import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyCardFront from './StudyCardFront';
 import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
+import toRubyPlainText from './rubyTextUtils';
 import {
   firstNonBlankPresentationText,
   getStudyCardPresentation,
   getStudyCardReviewAudio,
   toAssetUrl,
 } from './studyCardUtils';
-import {
-  getHeadlineClasses,
-  parseRubySegments,
-  toDisplayText,
-  toNotesList,
-} from './studyTextUtils';
+import { getHeadlineClasses, toDisplayText, toNotesList } from './studyTextUtils';
 
 export type { AudioPlayerHandle };
 
@@ -25,11 +21,6 @@ type StudyCardLayout = 'default' | 'mobile-focus';
 
 // Keeps glyph descenders clear when review text sits inside clipped/scrolling card containers.
 const DESCENDER_SAFE_PADDING_CLASS = 'pb-[0.08em]';
-
-const toRubyPlainText = (value: string) =>
-  parseRubySegments(value)
-    .map((segment) => (segment.kind === 'ruby' ? segment.base : segment.text) ?? '')
-    .join('');
 
 const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
   const presentation = getStudyCardPresentation(card);

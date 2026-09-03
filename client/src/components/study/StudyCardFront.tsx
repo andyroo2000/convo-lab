@@ -13,6 +13,7 @@ import {
   toAssetUrl,
 } from './studyCardUtils';
 import StudyRubyText from './StudyRubyText';
+import toRubyPlainText from './rubyTextUtils';
 import { getHeadlineClasses, parseRubySegments, toDisplayText } from './studyTextUtils';
 
 const CLOZE_MARKUP_PATTERN = /\{\{c\d+::/;
@@ -24,11 +25,6 @@ type PlainText = string;
 type PresentationText = string | null | undefined;
 type RubyMarkup = string;
 type TextIndex = number;
-
-const toRubyPlainText = (value: RubyMarkup) =>
-  parseRubySegments(value)
-    .map((segment) => (segment.kind === 'ruby' ? segment.base : segment.text) ?? '')
-    .join('');
 
 const toRubyMatchText = (value: PlainText) => value.replace(/\s+/gu, '');
 
