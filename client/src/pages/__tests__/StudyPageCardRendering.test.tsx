@@ -8,12 +8,35 @@ import { KnownKanjiContextProvider } from '../../contexts/KnownKanjiContext';
 import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
 import StudyPage from '../StudyPage';
 
-const { prepareStudyAnswerAudioMock, resolveStudyCardPitchAccentMock, startStudySessionMock } =
-  vi.hoisted(() => ({
-    prepareStudyAnswerAudioMock: vi.fn(),
-    resolveStudyCardPitchAccentMock: vi.fn(),
-    startStudySessionMock: vi.fn(),
-  }));
+const {
+  cardActionMutateAsyncMock,
+  createStudyReviewRequestMock,
+  deleteStudyCardMock,
+  masteryAnimationFinishesImmediately,
+  mutateAsyncMock,
+  prepareStudyAnswerAudioMock,
+  regenerateStudyAnswerAudioMock,
+  resolveStudyCardPitchAccentMock,
+  startStudyIntroductionCohortLessonMock,
+  startStudyLessonMock,
+  startStudySessionMock,
+  undoStudyReviewMock,
+  updateStudyCardMock,
+} = vi.hoisted(() => ({
+  cardActionMutateAsyncMock: vi.fn(),
+  createStudyReviewRequestMock: vi.fn(),
+  deleteStudyCardMock: vi.fn(),
+  masteryAnimationFinishesImmediately: { current: true },
+  mutateAsyncMock: vi.fn(),
+  prepareStudyAnswerAudioMock: vi.fn(),
+  regenerateStudyAnswerAudioMock: vi.fn(),
+  resolveStudyCardPitchAccentMock: vi.fn(),
+  startStudyIntroductionCohortLessonMock: vi.fn(),
+  startStudyLessonMock: vi.fn(),
+  startStudySessionMock: vi.fn(),
+  undoStudyReviewMock: vi.fn(),
+  updateStudyCardMock: vi.fn(),
+}));
 
 vi.mock('../../hooks/useStudyCapabilities', () => ({
   useStudyCapabilities: () => ({
@@ -51,7 +74,7 @@ vi.mock('../../hooks/useAchievements', () => ({
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
-  createStudyReviewRequest: vi.fn(),
+  createStudyReviewRequest: createStudyReviewRequestMock,
   useStudyOverview: () => ({
     data: {
       dueCount: 4,
@@ -68,21 +91,21 @@ vi.mock('../../hooks/useStudy', () => ({
     error: null,
     refetch: vi.fn(),
   }),
-  useSubmitStudyReview: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
-  useStudyCardAction: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useUpdateStudyCard: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
-  useDeleteStudyCard: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
+  useSubmitStudyReview: () => ({ mutateAsync: mutateAsyncMock, isPending: false, error: null }),
+  useStudyCardAction: () => ({ mutateAsync: cardActionMutateAsyncMock, isPending: false }),
+  useUpdateStudyCard: () => ({ mutateAsync: updateStudyCardMock, isPending: false, error: null }),
+  useDeleteStudyCard: () => ({ mutateAsync: deleteStudyCardMock, isPending: false, error: null }),
   useRegenerateStudyAnswerAudio: () => ({
-    mutateAsync: vi.fn(),
+    mutateAsync: regenerateStudyAnswerAudioMock,
     isPending: false,
     error: null,
   }),
-  startStudyLesson: vi.fn(),
-  startStudyIntroductionCohortLesson: vi.fn(),
+  startStudyLesson: startStudyLessonMock,
+  startStudyIntroductionCohortLesson: startStudyIntroductionCohortLessonMock,
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
-  undoStudyReview: vi.fn(),
+  undoStudyReview: undoStudyReviewMock,
 }));
 
 vi.mock('../../components/study/studyTimeZoneUtils', () => ({
@@ -97,9 +120,25 @@ vi.mock('../../components/common/VoicePreview', () => ({
   default: ({ voiceId }: { voiceId: string }) => <span data-testid="voice-preview">{voiceId}</span>,
 }));
 
-vi.mock('../../components/study/MasteryReviewAnimation', () => ({
-  default: () => null,
-}));
+vi.mock('../../components/study/MasteryReviewAnimation', async () => {
+  const React = await import('react');
+
+  return {
+    default: function MasteryReviewAnimationStub({ onFinished }: { onFinished: () => void }) {
+      React.useEffect(() => {
+        if (masteryAnimationFinishesImmediately.current) {
+          onFinished();
+        }
+      }, [onFinished]);
+
+      return (
+        <button type="button" data-testid="mastery-animation-stub" onClick={onFinished}>
+          Finish mastery animation
+        </button>
+      );
+    },
+  };
+});
 
 const renderStudyPage = ({
   knownKanji = [],
@@ -147,9 +186,19 @@ const baseCard = {
 describe('StudyPage card rendering', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    cardActionMutateAsyncMock.mockReset();
+    createStudyReviewRequestMock.mockReset();
+    deleteStudyCardMock.mockReset();
+    mutateAsyncMock.mockReset();
     startStudySessionMock.mockReset();
+    startStudyLessonMock.mockReset();
+    startStudyIntroductionCohortLessonMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
+    regenerateStudyAnswerAudioMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
+    undoStudyReviewMock.mockReset();
+    updateStudyCardMock.mockReset();
+    masteryAnimationFinishesImmediately.current = true;
     resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
       ...baseCard,
       id: cardId,
