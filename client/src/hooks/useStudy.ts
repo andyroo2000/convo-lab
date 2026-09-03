@@ -18,9 +18,6 @@ import type {
   StudyCardRegenerateImageRequest,
   StudyCardSummary,
   StudyCardListResponse,
-  StudyImportResult,
-  StudyImportUploadReadiness,
-  StudyImportUploadSession,
   StudyIntroductionCohort,
   StudyLearningItemListResponse,
   StudyNewCardQueueResponse,
@@ -33,15 +30,7 @@ import type {
   StudyVocabBundleGenerateRequest,
 } from '@languageflow/shared/src/types';
 
-import { CSRF_TOKEN_HEADER_NAME, getCsrfToken } from '../lib/csrf';
 import { JsonRequestError, requestJson } from '../lib/apiClient';
-import {
-  isJsonRecord,
-  nullableStringValue,
-  numberValue,
-  stringValue,
-  unwrapLearningOsData,
-} from '../lib/learningOsResponseNormalization';
 import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
 import { decodeStudyCardSummary } from '../lib/learningOsContractDecoders';
@@ -65,6 +54,16 @@ import {
 export { getStudyBrowser, getStudyBrowserNoteDetail };
 export type { StudyBrowserQuery };
 export { getStudyLearningPath, linkStudyLearningPathSuccessor };
+export {
+  cancelStudyImportUpload,
+  completeStudyImportUpload,
+  createStudyImportUploadSession,
+  getCurrentStudyImport,
+  getStudyImportStatus,
+  getStudyImportUploadReadiness,
+  uploadStudyImport,
+  uploadStudyImportArchive,
+} from '../lib/studyImportApi';
 export type {
   StudyLearningPath,
   StudyLearningPathCard,
@@ -117,70 +116,6 @@ export interface StudyReviewRequest {
   durationMs?: number;
   clientReviewId: string;
   reviewedAt: string;
-}
-
-function normalizeStudyImportPreview(value: unknown): StudyImportResult['preview'] {
-  const preview = isJsonRecord(value) ? value : {};
-  const breakdownValue = preview.noteTypeBreakdown ?? preview.note_type_breakdown;
-  const warningsValue = preview.warnings;
-
-  return {
-    deckName: stringValue(preview, 'deckName', 'deck_name'),
-    cardCount: numberValue(preview, 'cardCount', 'card_count'),
-    noteCount: numberValue(preview, 'noteCount', 'note_count'),
-    reviewLogCount: numberValue(preview, 'reviewLogCount', 'review_log_count'),
-    mediaReferenceCount: numberValue(preview, 'mediaReferenceCount', 'media_reference_count'),
-    skippedMediaCount: numberValue(preview, 'skippedMediaCount', 'skipped_media_count'),
-    warnings: Array.isArray(warningsValue)
-      ? warningsValue.filter((warning): warning is string => typeof warning === 'string')
-      : [],
-    noteTypeBreakdown: Array.isArray(breakdownValue)
-      ? breakdownValue.filter(isJsonRecord).map((item) => ({
-          notetypeName: stringValue(item, 'notetypeName', 'notetype_name'),
-          noteCount: numberValue(item, 'noteCount', 'note_count'),
-          cardCount: numberValue(item, 'cardCount', 'card_count'),
-        }))
-      : [],
-  };
-}
-
-function normalizeStudyImportResult(value: unknown): StudyImportResult {
-  const result = unwrapLearningOsData(value);
-  if (!isJsonRecord(result)) {
-    throw new Error('Study import response was malformed.');
-  }
-
-  const { status } = result;
-  if (
-    status !== 'pending' &&
-    status !== 'processing' &&
-    status !== 'completed' &&
-    status !== 'failed'
-  ) {
-    throw new Error('Study import response contained an invalid status.');
-  }
-
-  const sourceSizeValue = result.sourceSizeBytes ?? result.source_size_bytes;
-  const id = stringValue(result, 'id', 'id');
-  if (!id) {
-    throw new Error('Study import response did not include an id.');
-  }
-
-  return {
-    id,
-    status,
-    sourceFilename: stringValue(result, 'sourceFilename', 'source_filename'),
-    deckName: stringValue(result, 'deckName', 'deck_name'),
-    preview: normalizeStudyImportPreview(result.preview),
-    uploadedAt: nullableStringValue(result, 'uploadedAt', 'uploaded_at'),
-    uploadExpiresAt: nullableStringValue(result, 'uploadExpiresAt', 'upload_expires_at'),
-    sourceSizeBytes:
-      typeof sourceSizeValue === 'number' && Number.isFinite(sourceSizeValue)
-        ? sourceSizeValue
-        : null,
-    importedAt: nullableStringValue(result, 'importedAt', 'completed_at'),
-    errorMessage: nullableStringValue(result, 'errorMessage', 'error_message'),
-  };
 }
 
 async function apiRequest<T>(
@@ -914,157 +849,4 @@ export function useStudyCardAction() {
       ]);
     },
   });
-}
-
-export async function createStudyImportUploadSession(
-  file: File
-): Promise<StudyImportUploadSession> {
-  const response = await apiRequest<unknown>('/imports', {
-    method: 'POST',
-    body: JSON.stringify({
-      filename: file.name,
-      content_type: file.type || 'application/octet-stream',
-    }),
-  });
-  const session = unwrapLearningOsData(response);
-  if (!isJsonRecord(session)) {
-    throw new Error('Study import upload session was malformed.');
-  }
-  const importJob = session.importJob ?? session.import_job;
-  const { upload } = session;
-  if (!isJsonRecord(upload) || upload.method !== 'PUT' || typeof upload.url !== 'string') {
-    throw new Error('Study import upload session was malformed.');
-  }
-
-  return {
-    importJob: normalizeStudyImportResult(importJob),
-    upload: {
-      method: 'PUT',
-      url: upload.url,
-      headers: isJsonRecord(upload.headers)
-        ? Object.fromEntries(
-            Object.entries(upload.headers).filter(
-              (entry): entry is [string, string] => typeof entry[1] === 'string'
-            )
-          )
-        : {},
-    },
-  };
-}
-
-export async function uploadStudyImportArchive(
-  session: StudyImportUploadSession,
-  file: File,
-  options: {
-    onProgress?: (progress: number) => void;
-    signal?: AbortSignal;
-  } = {}
-): Promise<void> {
-  const csrfToken = await getCsrfToken();
-  if (!csrfToken) {
-    throw new Error('Unable to initialize secure upload.');
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    const abortHandler = () => {
-      request.abort();
-    };
-
-    if (options.signal?.aborted) {
-      reject(new Error('Upload cancelled'));
-      return;
-    }
-
-    request.open(session.upload.method, session.upload.url);
-
-    Object.entries(session.upload.headers).forEach(([headerName, headerValue]) => {
-      request.setRequestHeader(headerName, headerValue);
-    });
-    request.setRequestHeader(CSRF_TOKEN_HEADER_NAME, csrfToken);
-
-    options.signal?.addEventListener('abort', abortHandler, { once: true });
-
-    const cleanup = () => {
-      options.signal?.removeEventListener('abort', abortHandler);
-    };
-
-    request.upload.onprogress = (event) => {
-      if (typeof options.onProgress === 'function' && event.lengthComputable && event.total > 0) {
-        options.onProgress(Math.min(1, event.loaded / event.total));
-      }
-    };
-
-    request.onerror = () => {
-      cleanup();
-      reject(new Error('Upload failed'));
-    };
-    request.onabort = () => {
-      cleanup();
-      reject(new Error('Upload cancelled'));
-    };
-    request.onload = () => {
-      cleanup();
-      if (request.status >= 200 && request.status < 300) {
-        options.onProgress?.(1);
-        resolve();
-        return;
-      }
-
-      reject(new Error(`Upload failed (${String(request.status)})`));
-    };
-
-    request.send(file);
-  });
-}
-
-export async function completeStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
-  return normalizeStudyImportResult(
-    await apiRequest<unknown>(`/imports/${encodeURIComponent(importJobId)}/complete`, {
-      method: 'POST',
-    })
-  );
-}
-
-export async function cancelStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
-  return normalizeStudyImportResult(
-    await apiRequest<unknown>(`/imports/${encodeURIComponent(importJobId)}/cancel`, {
-      method: 'POST',
-    })
-  );
-}
-
-export async function getCurrentStudyImport(
-  init?: Pick<RequestInit, 'signal'>
-): Promise<StudyImportResult | null> {
-  const response = unwrapLearningOsData(await apiRequest<unknown>('/imports/current', init));
-  return response === null || typeof response === 'undefined'
-    ? null
-    : normalizeStudyImportResult(response);
-}
-
-export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
-  const response = unwrapLearningOsData(await apiRequest<unknown>('/imports/readiness'));
-  if (!isJsonRecord(response)) {
-    throw new Error('Study import readiness response was malformed.');
-  }
-  return {
-    ready: response.ready === true,
-    message: typeof response.message === 'string' ? response.message : null,
-  };
-}
-
-export async function getStudyImportStatus(
-  importJobId: string,
-  init?: Pick<RequestInit, 'signal'>
-): Promise<StudyImportResult> {
-  return normalizeStudyImportResult(
-    await apiRequest<unknown>(`/imports/${encodeURIComponent(importJobId)}`, init)
-  );
-}
-
-export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
-  const session = await createStudyImportUploadSession(file);
-  await uploadStudyImportArchive(session, file);
-  return completeStudyImportUpload(session.importJob.id);
 }
