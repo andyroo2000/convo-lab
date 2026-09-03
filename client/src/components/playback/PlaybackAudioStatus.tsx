@@ -1,3 +1,4 @@
+import { hasAllPlaybackSpeeds } from '../../lib/playbackAudio';
 import type { Episode } from '../../types';
 import AudioPlayer from '../AudioPlayer';
 
@@ -22,20 +23,19 @@ interface AudioGenerationPromptProps {
   shouldAutoGenerate: boolean;
 }
 
-const AUDIO_TITLE_BY_AVAILABILITY = {
-  false: 'Audio isn’t generated yet.',
-  true: 'More audio speeds are available.',
-};
+function getAudioAvailabilityTitle(hasAnyAudio: boolean): string {
+  return hasAnyAudio ? 'More audio speeds are available.' : 'Audio isn’t generated yet.';
+}
 
-const AUDIO_DESCRIPTION_BY_AUTO_GENERATION = {
-  false: 'Auto-generation is off for this dialogue. Generate audio to enable playback.',
-  true: 'Generate audio to enable slow, medium, and normal playback.',
-};
+function getAudioGenerationDescription(shouldAutoGenerate: boolean): string {
+  return shouldAutoGenerate
+    ? 'Generate audio to enable slow, medium, and normal playback.'
+    : 'Auto-generation is off for this dialogue. Generate audio to enable playback.';
+}
 
-const REFRESH_BUTTON_LABEL = {
-  false: 'Retry refresh',
-  true: 'Refreshing...',
-};
+function getRefreshButtonLabel(isRefreshingEpisode: boolean): string {
+  return isRefreshingEpisode ? 'Refreshing...' : 'Retry refresh';
+}
 
 const GenerationProgress = ({ generationProgress }: { generationProgress: number }) => (
   <div className="retro-paper-panel bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
@@ -73,12 +73,12 @@ const AudioGenerationPrompt = ({
 }: AudioGenerationPromptProps) => {
   const title = needsEpisodeRefresh
     ? 'Audio finished generating, but playback needs to refresh.'
-    : AUDIO_TITLE_BY_AVAILABILITY[String(hasAnyAudio) as 'false' | 'true'];
+    : getAudioAvailabilityTitle(hasAnyAudio);
   const description = needsEpisodeRefresh
     ? 'Retry loading this episode without starting another audio job.'
-    : AUDIO_DESCRIPTION_BY_AUTO_GENERATION[String(shouldAutoGenerate) as 'false' | 'true'];
+    : getAudioGenerationDescription(shouldAutoGenerate);
   const buttonLabel = needsEpisodeRefresh
-    ? REFRESH_BUTTON_LABEL[String(isRefreshingEpisode) as 'false' | 'true']
+    ? getRefreshButtonLabel(isRefreshingEpisode)
     : 'Generate Audio';
 
   return (
@@ -113,7 +113,7 @@ const PlaybackAudioStatus = ({
   retryEpisodeRefresh,
 }: PlaybackAudioStatusProps) => {
   const speedUrls = [episode.audioUrl_0_7, episode.audioUrl_0_85, episode.audioUrl_1_0];
-  const hasAllSpeeds = speedUrls.every(Boolean);
+  const hasAllSpeeds = hasAllPlaybackSpeeds(episode);
   const hasAnyAudio = [...speedUrls, episode.audioUrl].some(Boolean);
 
   return (

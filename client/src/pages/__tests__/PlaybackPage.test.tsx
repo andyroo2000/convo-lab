@@ -800,6 +800,45 @@ describe('PlaybackPage', () => {
       });
     });
 
+    it('explains when an episode has no audio and auto-generation is disabled', async () => {
+      mockGetEpisode.mockResolvedValue({
+        ...mockEpisode,
+        autoGenerateAudio: false,
+        audioUrl: undefined,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      });
+
+      renderPlaybackPage();
+
+      expect(await screen.findByText('Audio isn’t generated yet.')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Auto-generation is off for this dialogue. Generate audio to enable playback.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('explains when more speeds can be generated for existing audio', async () => {
+      mockGetEpisode.mockResolvedValue({
+        ...mockEpisode,
+        autoGenerateAudio: false,
+        audioUrl_0_7: undefined,
+        audioUrl_0_85: undefined,
+        audioUrl_1_0: undefined,
+      });
+
+      renderPlaybackPage();
+
+      expect(await screen.findByText('More audio speeds are available.')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Auto-generation is off for this dialogue. Generate audio to enable playback.'
+        )
+      ).toBeInTheDocument();
+    });
+
     it('starts only one audio job for same-frame Generate Audio clicks', async () => {
       mockGetEpisode.mockResolvedValue({
         ...mockEpisode,

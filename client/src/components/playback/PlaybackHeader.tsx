@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 
+import { getPlaybackAudioUrl } from '../../lib/playbackAudio';
 import type { AudioSpeed, Episode } from '../../types';
 import PlaybackAudioStatus from './PlaybackAudioStatus';
 import PlaybackEpisodeHeader from './PlaybackEpisodeHeader';
@@ -23,20 +24,6 @@ interface PlaybackHeaderProps {
   viewAsUserId?: string;
 }
 
-function getCurrentAudioUrl(episode: Episode, selectedSpeed: AudioSpeed): string | undefined {
-  const hasAllSpeeds = [episode.audioUrl_0_7, episode.audioUrl_0_85, episode.audioUrl_1_0].every(
-    Boolean
-  );
-  if (!hasAllSpeeds) return episode.audioUrl;
-
-  const audioUrlBySpeed: Record<AudioSpeed, string | undefined> = {
-    slow: episode.audioUrl_0_7,
-    medium: episode.audioUrl_0_85,
-    normal: episode.audioUrl_1_0,
-  };
-  return audioUrlBySpeed[selectedSpeed];
-}
-
 const PlaybackHeader = ({
   audioCourseEnabled,
   audioRef,
@@ -55,7 +42,7 @@ const PlaybackHeader = ({
   showTranslations,
   viewAsUserId,
 }: PlaybackHeaderProps) => {
-  const currentAudioUrl = getCurrentAudioUrl(episode, selectedSpeed);
+  const currentAudioUrl = getPlaybackAudioUrl(episode, selectedSpeed);
 
   return (
     <div
