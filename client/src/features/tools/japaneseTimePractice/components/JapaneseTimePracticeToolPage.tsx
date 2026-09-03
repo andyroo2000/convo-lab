@@ -5,8 +5,6 @@ import {
   parseLocalDateTimeInput,
   toLocalDateInputValue,
 } from '../../japaneseDate/logic/readingEngine';
-import { buildTimeAudioClipUrls } from '../../japaneseDate/logic/preRenderedTimeAudio';
-import { playAudioClipSequence, type AudioSequencePlayback } from '../../logic/audioClipPlayback';
 import { createInitialFsrsSessionState, type FsrsSessionState } from '../logic/fsrsSession';
 import trackTimePracticeEvent from '../logic/analytics';
 import { loadTimePracticeLocalState, saveTimePracticeLocalState } from '../logic/localStorageState';
@@ -23,6 +21,7 @@ import useTimePracticeAutoPlay, {
   clearTimePracticeTimeout,
 } from './useTimePracticeAutoPlay';
 import TimePracticeClockRadio from './TimePracticeClockRadio';
+import useTimePracticeAudio, { getTimePracticeStatusText } from './useTimePracticeAudio';
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
 const HISTORY_LIMIT = 120;
@@ -59,20 +58,26 @@ const JapaneseTimePracticeToolPage = () => {
     () => initialState?.fsrsState ?? createInitialFsrsSessionState()
   );
   const [isPowerOn, setIsPowerOn] = useState(() => initialState?.ui.isPowerOn ?? false);
-  const [volumeLevel, setVolumeLevel] = useState<number>(() => initialState?.ui.volumeLevel ?? 1);
   const [isRevealed, setIsRevealed] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isNextLedActive, setIsNextLedActive] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
-  const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
   const revealTimerRef = useRef<number | null>(null);
   const autoAdvanceTimerRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
   const nextLedTimerRef = useRef<number | null>(null);
-  const playbackRef = useRef<AudioSequencePlayback | null>(null);
   const isFirstPowerOnRef = useRef(true);
   const previousCardsRef = useRef<TimeCardSnapshot[]>([]);
+
+  const {
+    handleVolumeChange,
+    isPlaying,
+    playbackHint,
+    playCurrentCardAudio,
+    stopPlayback,
+    triggerRevealAudioPlayback,
+    volumeLevel,
+  } = useTimePracticeAudio(card, initialState?.ui.volumeLevel ?? 1);
 
   const pauseSeconds = settings.revealDelaySeconds;
   const localDate = useMemo(() => toLocalDateInputValue(new Date()), []);
@@ -91,12 +96,12 @@ const JapaneseTimePracticeToolPage = () => {
 
   const digitalDisplay = `${toTwoDigits(card.hour24)}:${toTwoDigits(card.minute)}`;
   const shouldShowScript = isRevealed;
-  const statusText = (() => {
-    if (!isPowerOn || countdownSeconds === null) return '';
-    if (!isRevealed) return `answer in ${countdownSeconds}s`;
-    if (!isPlaying) return `replaying in ${countdownSeconds}s`;
-    return '';
-  })();
+  const statusText = getTimePracticeStatusText({
+    countdownSeconds,
+    isPlaying,
+    isPowerOn,
+    isRevealed,
+  });
 
   const clearRevealTimer = useCallback(() => {
     revealTimerRef.current = clearTimePracticeTimeout(revealTimerRef.current);
@@ -123,51 +128,6 @@ const JapaneseTimePracticeToolPage = () => {
       previousCardsRef.current.shift();
     }
   }, [card, isRevealed]);
-
-  const stopPlayback = useCallback(() => {
-    playbackRef.current?.stop();
-    playbackRef.current = null;
-    setIsPlaying(false);
-  }, []);
-
-  const playCurrentCardAudio = useCallback(async () => {
-    stopPlayback();
-
-    let currentPlayback: AudioSequencePlayback | null = null;
-
-    try {
-      const urls = buildTimeAudioClipUrls({
-        hour24: card.hour24,
-        minute: card.minute,
-        hourFormat: '24h',
-      });
-
-      const playback = playAudioClipSequence(urls, { volume: volumeLevel });
-      currentPlayback = playback;
-      playbackRef.current = playback;
-      setIsPlaying(true);
-      setPlaybackHint(null);
-      await playback.finished;
-    } catch (error) {
-      const isAbort = error instanceof DOMException && error.name === 'AbortError';
-      if (!isAbort) {
-        trackTimePracticeEvent('audio_play_error', 'random');
-        setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
-      }
-    } finally {
-      if (currentPlayback && playbackRef.current === currentPlayback) {
-        playbackRef.current = null;
-      }
-      setIsPlaying(false);
-    }
-  }, [card.hour24, card.minute, stopPlayback, volumeLevel]);
-
-  const triggerRevealAudioPlayback = useCallback(() => {
-    playCurrentCardAudio().catch((error) => {
-      console.warn('[Time Tool] Unexpected reveal audio rejection:', error);
-      setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
-    });
-  }, [playCurrentCardAudio, setPlaybackHint]);
 
   const revealCard = useCallback(() => {
     trackTimePracticeEvent('reveal_answer', 'random');
@@ -262,11 +222,6 @@ const JapaneseTimePracticeToolPage = () => {
       }));
       return next;
     });
-  }, []);
-
-  const handleVolumeChange = useCallback((nextVolume: number) => {
-    setVolumeLevel(nextVolume);
-    playbackRef.current?.setVolume(nextVolume);
   }, []);
 
   const handlePauseChange = useCallback((seconds: number) => {
