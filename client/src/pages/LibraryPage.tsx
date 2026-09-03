@@ -37,6 +37,18 @@ type FilterType = LibraryContentScope;
 const getDialogueTurnCount = (episode: LibraryEpisode): number =>
   episode.dialogue?.turnCount ?? episode.dialogue?.sentences?.length ?? 0;
 
+const shouldShowSampleContentGuide = (
+  onboardingCompleted: boolean | undefined,
+  seenSampleContentGuide: boolean | undefined,
+  viewAsUserId: string | undefined,
+  isDemo: boolean
+) => {
+  if (!onboardingCompleted) return false;
+  if (seenSampleContentGuide) return false;
+  if (viewAsUserId) return false;
+  return !isDemo;
+};
+
 const LibraryPage = () => {
   const { t } = useTranslation(['library', 'common']);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -73,7 +85,14 @@ const LibraryPage = () => {
     if (!SHOW_ONBOARDING_WELCOME) return;
 
     // Show guide if user completed onboarding, hasn't seen the guide, and isn't viewing as another user
-    if (user?.onboardingCompleted && !user?.seenSampleContentGuide && !viewAsUserId && !isDemo) {
+    if (
+      shouldShowSampleContentGuide(
+        user?.onboardingCompleted,
+        user?.seenSampleContentGuide,
+        viewAsUserId,
+        isDemo
+      )
+    ) {
       setShowSampleGuide(true);
     }
   }, [user, viewAsUserId, isDemo]);
@@ -233,7 +252,9 @@ const LibraryPage = () => {
   ) => (viewAsUserId ? `${path}?viewAs=${viewAsUserId}` : path);
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds || Number.isNaN(seconds) || seconds <= 0) return '--:--';
+    if (!seconds) return '--:--';
+    if (Number.isNaN(seconds)) return '--:--';
+    if (seconds <= 0) return '--:--';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
