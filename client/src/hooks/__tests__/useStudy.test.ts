@@ -161,6 +161,93 @@ describe('useStudy request helpers', () => {
     };
   }
 
+  function canonicalLearningPathResponse(predecessorId: string, successorId: string) {
+    return {
+      data: {
+        group_id: '01arz3ndektsv4rrffq69g5fax',
+        anchor_card_id: predecessorId,
+        stages: [
+          {
+            number: 1,
+            cards: [
+              {
+                id: predecessorId,
+                source_note_id: null,
+                front_text: '会社を辞めました。',
+                back_text: 'I left the company.',
+                card_type: 'recognition',
+                prompt_json: { cue_text: '会社を辞めました。' },
+                answer_json: { meaning: 'I left the company.' },
+                variant_stage: 1,
+                variant_status: 'available',
+              },
+            ],
+          },
+          {
+            number: 2,
+            cards: [
+              {
+                id: successorId,
+                source_note_id: 'note-2',
+                front_text: '会社',
+                back_text: 'company',
+                card_type: 'recognition',
+                prompt_json: {},
+                answer_json: { expression: '会社', meaning: 'company' },
+                variant_stage: 2,
+                variant_status: 'locked',
+                variant_unlock_requirement: 'guru',
+              },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  function mockStudyImportUploadLifecycle(uploadUrl: string) {
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          data: {
+            import_job: learningOsImportJob(),
+            upload: {
+              method: 'PUT',
+              url: uploadUrl,
+              headers: { 'Content-Type': 'application/octet-stream' },
+            },
+          },
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({
+          data: learningOsImportJob({
+            uploaded_at: '2026-08-03T21:00:00Z',
+            preview: {
+              deck_name: '日本語',
+              card_count: 155,
+              note_count: 155,
+              review_log_count: 0,
+              media_reference_count: 155,
+              skipped_media_count: 0,
+              warnings: [],
+              note_type_breakdown: [
+                {
+                  notetype_name: 'Japanese - Listening',
+                  note_count: 155,
+                  card_count: 155,
+                },
+              ],
+            },
+          }),
+        }),
+      } as Response);
+  }
+
   it('routes review and lesson starts, review, and undo through Learning OS', async () => {
     const reviewRequest = createStudyReviewRequest({
       cardId: '123e4567-e89b-42d3-a456-426614174000',
@@ -352,51 +439,10 @@ describe('useStudy request helpers', () => {
   it('reads and extends canonical learning paths while normalizing their card resources', async () => {
     const predecessorId = '01arz3ndektsv4rrffq69g5fav';
     const successorId = '01arz3ndektsv4rrffq69g5faw';
-    const responsePayload = {
-      data: {
-        group_id: '01arz3ndektsv4rrffq69g5fax',
-        anchor_card_id: predecessorId,
-        stages: [
-          {
-            number: 1,
-            cards: [
-              {
-                id: predecessorId,
-                source_note_id: null,
-                front_text: '会社を辞めました。',
-                back_text: 'I left the company.',
-                card_type: 'recognition',
-                prompt_json: { cue_text: '会社を辞めました。' },
-                answer_json: { meaning: 'I left the company.' },
-                variant_stage: 1,
-                variant_status: 'available',
-              },
-            ],
-          },
-          {
-            number: 2,
-            cards: [
-              {
-                id: successorId,
-                source_note_id: 'note-2',
-                front_text: '会社',
-                back_text: 'company',
-                card_type: 'recognition',
-                prompt_json: {},
-                answer_json: { expression: '会社', meaning: 'company' },
-                variant_stage: 2,
-                variant_status: 'locked',
-                variant_unlock_requirement: 'guru',
-              },
-            ],
-          },
-        ],
-      },
-    };
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => responsePayload,
+      json: async () => canonicalLearningPathResponse(predecessorId, successorId),
     } as Response);
 
     const path = await getStudyLearningPath(predecessorId);
@@ -663,46 +709,7 @@ describe('useStudy request helpers', () => {
   it('routes the complete import lifecycle through Learning OS', async () => {
     const importId = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
     const uploadUrl = `/api/study/imports/${importId}/upload`;
-    vi.mocked(global.fetch)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 201,
-        json: async () => ({
-          data: {
-            import_job: learningOsImportJob(),
-            upload: {
-              method: 'PUT',
-              url: uploadUrl,
-              headers: { 'Content-Type': 'application/octet-stream' },
-            },
-          },
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 202,
-        json: async () => ({
-          data: learningOsImportJob({
-            uploaded_at: '2026-08-03T21:00:00Z',
-            preview: {
-              deck_name: '日本語',
-              card_count: 155,
-              note_count: 155,
-              review_log_count: 0,
-              media_reference_count: 155,
-              skipped_media_count: 0,
-              warnings: [],
-              note_type_breakdown: [
-                {
-                  notetype_name: 'Japanese - Listening',
-                  note_count: 155,
-                  card_count: 155,
-                },
-              ],
-            },
-          }),
-        }),
-      } as Response);
+    mockStudyImportUploadLifecycle(uploadUrl);
 
     const file = new File(['archive'], 'deck.colpkg', {
       type: 'application/octet-stream',
