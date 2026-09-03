@@ -75,6 +75,7 @@ function normalizeStudyImportResult(value: unknown): StudyImportResult {
     throw new Error('Study import response was malformed.');
   }
 
+  const status = normalizeStudyImportStatus(result.status);
   const id = stringValue(result, 'id', 'id');
   if (!id) {
     throw new Error('Study import response did not include an id.');
@@ -82,7 +83,7 @@ function normalizeStudyImportResult(value: unknown): StudyImportResult {
 
   return {
     id,
-    status: normalizeStudyImportStatus(result.status),
+    status,
     sourceFilename: stringValue(result, 'sourceFilename', 'source_filename'),
     deckName: stringValue(result, 'deckName', 'deck_name'),
     preview: normalizeStudyImportPreview(result.preview),
