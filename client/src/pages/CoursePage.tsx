@@ -13,6 +13,8 @@ import type { Course, LessonScriptUnit } from '../types';
 const AdminScriptWorkbench = lazy(() => import('../components/courses/AdminScriptWorkbench'));
 
 type UpdateCourse = (updates: { title?: string; description?: string }) => Promise<unknown>;
+const TEXT_PADDING_START_MS = 1000;
+const TEXT_PADDING_END_MS = 5000;
 
 const formatDuration = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
@@ -39,7 +41,10 @@ const useCurrentCourseUnit = (course: Course | null, currentTime: number) => {
     const activeTiming = course.timingData.find((timing) => {
       const unit = course.scriptJson![timing.unitIndex];
       if (!unit || unit.type !== 'L2') return false;
-      return currentTimeMs >= timing.startTime - 1000 && currentTimeMs < timing.endTime + 5000;
+      return (
+        currentTimeMs >= timing.startTime - TEXT_PADDING_START_MS &&
+        currentTimeMs < timing.endTime + TEXT_PADDING_END_MS
+      );
     });
     setCurrentUnit(activeTiming ? course.scriptJson[activeTiming.unitIndex] : null);
   }, [currentTime, course]);
@@ -245,10 +250,12 @@ const OriginalPrompt = ({ course }: { course: Course }) => {
 
 const ReadyCoursePlayer = ({
   course,
+  audioUrl,
   audioRef,
   currentUnit,
 }: {
   course: Course;
+  audioUrl: string;
   audioRef: (element: HTMLAudioElement | null) => void;
   currentUnit: LessonScriptUnit | null;
 }) => {
@@ -280,7 +287,7 @@ const ReadyCoursePlayer = ({
           )}
           <h2 className="retro-headline text-4xl sm:text-[3rem]">Course Audio</h2>
           <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 sm:px-5 py-3">
-            <AudioPlayer src={course.audioUrl!} audioRef={audioRef} key={course.audioUrl} />
+            <AudioPlayer src={audioUrl} audioRef={audioRef} key={audioUrl} />
           </div>
         </div>
       </div>
@@ -325,7 +332,14 @@ const CoursePlayer = ({
   currentUnit: LessonScriptUnit | null;
 }) => {
   if (course.status === 'ready' && course.audioUrl) {
-    return <ReadyCoursePlayer course={course} audioRef={audioRef} currentUnit={currentUnit} />;
+    return (
+      <ReadyCoursePlayer
+        course={course}
+        audioUrl={course.audioUrl}
+        audioRef={audioRef}
+        currentUnit={currentUnit}
+      />
+    );
   }
   if (course.status === 'generating')
     return <GeneratingCoursePlayer progress={generationProgress} />;
