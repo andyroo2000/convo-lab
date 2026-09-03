@@ -350,6 +350,8 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
   const narratorVoices = getSelectableTtsVoices(nativeLanguage);
   const narratorVoiceChoices = narratorVoices.filter((voice) => voice.provider === 'fishaudio');
   const targetVoices = getSelectableTtsVoices(targetLanguage);
+  const isCreationDisabled =
+    getCourseCreationValidationError({ title, sourceText, episodeId, selectedVoice }) !== null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -629,9 +631,7 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
           <button
             type="button"
             onClick={adminMode ? handleCreateDraft : handleCreate}
-            disabled={
-              isCreating || !title.trim() || (!episodeId && !sourceText.trim()) || !selectedVoice
-            }
+            disabled={isCreating || isCreationDisabled}
             className="w-full sm:w-auto bg-coral hover:bg-coral-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {/* eslint-disable-next-line no-nested-ternary */}
