@@ -18,6 +18,10 @@ import {
   type TimePracticeSettings,
 } from '../logic/types';
 import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
+import useTimePracticeAutoPlay, {
+  clearTimePracticeInterval,
+  clearTimePracticeTimeout,
+} from './useTimePracticeAutoPlay';
 
 interface RubyPartProps {
   script: string;
@@ -146,24 +150,15 @@ const JapaneseTimePracticeToolPage = () => {
   })();
 
   const clearRevealTimer = useCallback(() => {
-    if (revealTimerRef.current !== null) {
-      window.clearTimeout(revealTimerRef.current);
-      revealTimerRef.current = null;
-    }
+    revealTimerRef.current = clearTimePracticeTimeout(revealTimerRef.current);
   }, []);
 
   const clearAutoAdvanceTimer = useCallback(() => {
-    if (autoAdvanceTimerRef.current !== null) {
-      window.clearTimeout(autoAdvanceTimerRef.current);
-      autoAdvanceTimerRef.current = null;
-    }
+    autoAdvanceTimerRef.current = clearTimePracticeTimeout(autoAdvanceTimerRef.current);
   }, []);
 
   const clearCountdownInterval = useCallback(() => {
-    if (countdownIntervalRef.current !== null) {
-      window.clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
+    countdownIntervalRef.current = clearTimePracticeInterval(countdownIntervalRef.current);
   }, []);
 
   const clearNextLedTimer = useCallback(() => {
@@ -308,77 +303,24 @@ const JapaneseTimePracticeToolPage = () => {
   const autoPlayButtonLabel = isPowerOn ? 'Stop' : 'Auto-Play';
   const nextButtonAriaLabel = isRevealed ? 'Advance to the next item' : 'Show answer';
 
-  useEffect(() => {
-    clearAutoAdvanceTimer();
-    clearRevealTimer();
-    clearCountdownInterval();
-
-    if (!isPowerOn) {
-      setCountdownSeconds(null);
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    if (!isRevealed && isFirstPowerOnRef.current) {
-      isFirstPowerOnRef.current = false;
-      setCountdownSeconds(null);
-      revealCard();
-      return undefined;
-    }
-
-    setCountdownSeconds(pauseSeconds);
-    countdownIntervalRef.current = window.setInterval(() => {
-      setCountdownSeconds((current) => {
-        if (current === null) return null;
-        return Math.max(0, current - 1);
-      });
-    }, 1000);
-
-    if (isRevealed) {
-      autoAdvanceTimerRef.current = window.setTimeout(() => {
-        setCountdownSeconds(null);
-        const finishAdvance = () => {
-          if (!cancelled) {
-            advanceToRandomCard();
-          }
-        };
-
-        if (!settings.autoPlayAudio) {
-          finishAdvance();
-          return;
-        }
-
-        playCurrentCardAudio().then(finishAdvance).catch(finishAdvance);
-      }, pauseSeconds * 1000);
-    } else {
-      revealTimerRef.current = window.setTimeout(() => {
-        if (!cancelled) {
-          setCountdownSeconds(null);
-          revealCard();
-        }
-      }, pauseSeconds * 1000);
-    }
-
-    return () => {
-      cancelled = true;
-      clearAutoAdvanceTimer();
-      clearRevealTimer();
-      clearCountdownInterval();
-    };
-  }, [
-    advanceToRandomCard,
-    card.id,
-    clearAutoAdvanceTimer,
-    clearCountdownInterval,
-    clearRevealTimer,
+  useTimePracticeAutoPlay({
+    cardId: card.id,
     isPowerOn,
     isRevealed,
     pauseSeconds,
-    playCurrentCardAudio,
+    autoPlayAudio: settings.autoPlayAudio,
+    isFirstPowerOnRef,
+    revealTimerRef,
+    autoAdvanceTimerRef,
+    countdownIntervalRef,
+    clearRevealTimer,
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    setCountdownSeconds,
     revealCard,
-    settings.autoPlayAudio,
-  ]);
+    advanceToRandomCard,
+    playCurrentCardAudio,
+  });
 
   useEffect(() => {
     if (isPowerOn) {
