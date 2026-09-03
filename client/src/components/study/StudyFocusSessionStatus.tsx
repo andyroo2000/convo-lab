@@ -23,6 +23,7 @@ type SharedStatusProps = Pick<
   StudyFocusSessionStatusProps,
   'reviewSession' | 'runBackgroundTask' | 'showingAchievementAward'
 >;
+type ActiveStatusProps = Pick<SharedStatusProps, 'reviewSession' | 'runBackgroundTask'>;
 
 const reviewCardCanSetDue = (reviewSession: StudyReviewSession) => {
   if (!reviewSession.currentCard) return false;
@@ -46,12 +47,8 @@ export const StudyPracticeBanner = ({
   );
 };
 
-const StudySetDuePanel = ({
-  reviewSession,
-  showingAchievementAward,
-}: Pick<SharedStatusProps, 'reviewSession' | 'showingAchievementAward'>) => {
+const StudySetDuePanel = ({ reviewSession }: Pick<ActiveStatusProps, 'reviewSession'>) => {
   if (!reviewCardCanSetDue(reviewSession)) return null;
-  if (showingAchievementAward) return null;
   if (!reviewSession.showSetDueControls) return null;
 
   return (
@@ -77,15 +74,14 @@ const getMotionBannerMessage = (
   return translate('motion.prompt');
 };
 
-const StudyMotionBanner = ({
-  reviewSession,
-  runBackgroundTask,
-  showingAchievementAward,
-}: SharedStatusProps) => {
+const shouldShowMotionBanner = (permissionState: StudyReviewSession['motionPermissionState']) => {
+  if (permissionState === 'prompt') return true;
+  return permissionState === 'denied';
+};
+
+const StudyMotionBanner = ({ reviewSession, runBackgroundTask }: ActiveStatusProps) => {
   const { t } = useTranslation('study');
-  if (showingAchievementAward) return null;
-  if (reviewSession.motionPermissionState === 'unsupported') return null;
-  if (reviewSession.motionPermissionState === 'granted') return null;
+  if (!shouldShowMotionBanner(reviewSession.motionPermissionState)) return null;
 
   return (
     <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 md:mt-4 md:gap-3 md:rounded-2xl md:px-4 md:py-3 md:text-sm">
@@ -107,24 +103,15 @@ const StudyMotionBanner = ({
   );
 };
 
-const StudySessionLoading = ({
-  reviewSession,
-  showingAchievementAward,
-}: Pick<SharedStatusProps, 'reviewSession' | 'showingAchievementAward'>) => {
+const StudySessionLoading = ({ reviewSession }: Pick<ActiveStatusProps, 'reviewSession'>) => {
   const { t } = useTranslation('study');
-  if (showingAchievementAward) return null;
   if (!reviewSession.sessionLoading) return null;
 
   return <p className="py-16 text-center text-gray-500">{t('focus.loading')}</p>;
 };
 
-const StudySessionError = ({
-  reviewSession,
-  runBackgroundTask,
-  showingAchievementAward,
-}: SharedStatusProps) => {
+const StudySessionError = ({ reviewSession, runBackgroundTask }: ActiveStatusProps) => {
   const { t } = useTranslation('study');
-  if (showingAchievementAward) return null;
   if (!reviewSession.sessionError) return null;
 
   return (
@@ -147,12 +134,8 @@ const StudySessionError = ({
   );
 };
 
-const StudyConflictNotice = ({
-  reviewSession,
-  showingAchievementAward,
-}: Pick<SharedStatusProps, 'reviewSession' | 'showingAchievementAward'>) => {
+const StudyConflictNotice = ({ reviewSession }: Pick<ActiveStatusProps, 'reviewSession'>) => {
   const { t } = useTranslation('study');
-  if (showingAchievementAward) return null;
   if (!reviewSession.reviewConflictRecovered) return null;
 
   return (
@@ -166,12 +149,10 @@ const StudyReviewWrapUp = ({
   masteryAnimationActive,
   onFinishReview,
   reviewSession,
-  showingAchievementAward,
 }: Pick<
   StudyFocusSessionStatusProps,
-  'masteryAnimationActive' | 'onFinishReview' | 'reviewSession' | 'showingAchievementAward'
+  'masteryAnimationActive' | 'onFinishReview' | 'reviewSession'
 >) => {
-  if (showingAchievementAward) return null;
   if (!reviewSession.reviewSessionComplete) return null;
   if (masteryAnimationActive) return null;
 
@@ -187,12 +168,8 @@ const StudyReviewWrapUp = ({
   );
 };
 
-const StudyPracticeComplete = ({
-  reviewSession,
-  showingAchievementAward,
-}: Pick<SharedStatusProps, 'reviewSession' | 'showingAchievementAward'>) => {
+const StudyPracticeComplete = ({ reviewSession }: Pick<ActiveStatusProps, 'reviewSession'>) => {
   const { t } = useTranslation('study');
-  if (showingAchievementAward) return null;
   if (!reviewSession.practiceComplete) return null;
 
   return (
@@ -221,14 +198,9 @@ const reviewIsUnavailable = (reviewSession: StudyReviewSession) =>
 const StudyEmptySession = ({
   displayedCard,
   reviewSession,
-  showingAchievementAward,
   showQuizSurface,
-}: Pick<
-  StudyFocusSessionStatusProps,
-  'displayedCard' | 'reviewSession' | 'showingAchievementAward' | 'showQuizSurface'
->) => {
+}: Pick<StudyFocusSessionStatusProps, 'displayedCard' | 'reviewSession' | 'showQuizSurface'>) => {
   const { t } = useTranslation('study');
-  if (showingAchievementAward) return null;
   if (!showQuizSurface) return null;
   if (displayedCard) return null;
   if (reviewIsUnavailable(reviewSession)) return null;
@@ -241,17 +213,22 @@ const StudyEmptySession = ({
   );
 };
 
-const StudyFocusSessionStatus = (props: StudyFocusSessionStatusProps) => (
-  <>
-    <StudySetDuePanel {...props} />
-    <StudyMotionBanner {...props} />
-    <StudySessionLoading {...props} />
-    <StudySessionError {...props} />
-    <StudyConflictNotice {...props} />
-    <StudyReviewWrapUp {...props} />
-    <StudyPracticeComplete {...props} />
-    <StudyEmptySession {...props} />
-  </>
-);
+const StudyFocusSessionStatus = (props: StudyFocusSessionStatusProps) => {
+  const { showingAchievementAward } = props;
+  if (showingAchievementAward) return null;
+
+  return (
+    <>
+      <StudySetDuePanel {...props} />
+      <StudyMotionBanner {...props} />
+      <StudySessionLoading {...props} />
+      <StudySessionError {...props} />
+      <StudyConflictNotice {...props} />
+      <StudyReviewWrapUp {...props} />
+      <StudyPracticeComplete {...props} />
+      <StudyEmptySession {...props} />
+    </>
+  );
+};
 
 export default StudyFocusSessionStatus;
