@@ -1,9 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps -- preserve the existing autoplay lifecycle triggers */
-import { useEffect } from 'react';
-
-interface MutableValue<T> {
-  current: T;
-}
+import { useEffect, type MutableRefObject } from 'react';
 
 interface TimePracticeAutoPlayOptions {
   cardId: string;
@@ -11,10 +6,10 @@ interface TimePracticeAutoPlayOptions {
   isRevealed: boolean;
   pauseSeconds: number;
   autoPlayAudio: boolean;
-  isFirstPowerOnRef: MutableValue<boolean>;
-  revealTimerRef: MutableValue<number | null>;
-  autoAdvanceTimerRef: MutableValue<number | null>;
-  countdownIntervalRef: MutableValue<number | null>;
+  isFirstPowerOnRef: MutableRefObject<boolean>;
+  revealTimerRef: MutableRefObject<number | null>;
+  autoAdvanceTimerRef: MutableRefObject<number | null>;
+  countdownIntervalRef: MutableRefObject<number | null>;
   clearRevealTimer: () => void;
   clearAutoAdvanceTimer: () => void;
   clearCountdownInterval: () => void;
@@ -104,6 +99,8 @@ export default function useTimePracticeAutoPlay(options: TimePracticeAutoPlayOpt
       options.clearRevealTimer();
       options.clearCountdownInterval();
     };
+    // Preserve the original autoplay effect's trigger set; the options object itself is recreated.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     options.advanceToRandomCard,
     options.autoPlayAudio,
