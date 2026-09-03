@@ -6,6 +6,8 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 import YAML from 'yaml';
 
+import { assertRequiredGenerationProxyContracts } from './study-import-generation-contracts.mjs';
+
 const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const requiredAuthLifecycleContracts = [
@@ -444,80 +446,7 @@ test('generation routes are permanently proxied and production rehearsals cover 
   assert.doesNotMatch(stageCompose, /MONTHLY_GENERATION_LIMIT/);
   assert.doesNotMatch(productionCompose, /MONTHLY_GENERATION_LIMIT/);
 
-  for (const requiredContract of [
-    'wait_for_health "convolab-server-$active_color"',
-    'bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh',
-    'Disposable Learning OS content browser session established.',
-    'script_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'script_smoke_inserted=true',
-    'cleanup_script_smoke best-effort',
-    '"/api/convolab/scripts/$script_smoke_episode_id/status"',
-    '"/api/convolab/scripts/job/$script_smoke_job_id"',
-    '"https://convo-lab.com/api/convolab/scripts/media/$script_smoke_media_id?viewAs=$user_id"',
-    '"https://convo-lab.com/api/convolab/scripts/$script_smoke_episode_id/audio/$script_smoke_render_id?viewAs=$user_id"',
-    'Audio Script Learning OS routing and streaming smoke checks passed.',
-    'course_generation_smoke_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'course_generation_smoke_inserted=false',
-    'if [ "$course_generation_smoke_inserted" != true ]; then',
-    'cleanup_course_generation_smoke best-effort',
-    'COURSE_GENERATION_SMOKE_DELETED=',
-    '[ "$mode" = best-effort ] && [ "$deleted_count" = 0 ]',
-    '::warning::Unable to clean up course-generation smoke fixture',
-    'App\\Domain\\Content\\Support\\ContentSourceSystem::CONVOLAB',
-    '"generation_heartbeat_at" => now()->subDay()',
-    'course_generation_smoke_inserted=true',
-    'incompatible required',
-    '"/api/convolab/courses/$course_generation_smoke_id/reset"',
-    "'Course generation status after reset'",
-    'response?.status !== "draft"',
-    'cleanup_course_generation_smoke',
-    'Course generation Learning OS write smoke check passed.',
-    'dialogue_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'dialogue_generation_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'dialogue_generation_smoke_inserted=true',
-    'DB::table("content_dialogue_generation_jobs")->insert',
-    '"state" => App\\Domain\\Content\\Support\\ContentDialogueGeneration::STATE_ACTIVE',
-    '"progress" => 37',
-    '"/api/convolab/dialogue/job/$dialogue_generation_smoke_job_id"',
-    'cleanup_dialogue_generation_smoke best-effort',
-    'Dialogue generation Learning OS routing smoke check passed.',
-    'image_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'image_generation_smoke_dialogue_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'image_generation_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'image_generation_smoke_inserted=true',
-    'DB::table("content_image_generation_jobs")->insert',
-    '"state" => App\\Domain\\Content\\Support\\ContentImageGeneration::STATE_ACTIVE',
-    "'/api/convolab/images/generate'",
-    '"/api/convolab/images/job/$image_generation_smoke_job_id"',
-    'cleanup_image_generation_smoke best-effort',
-    'Image generation Learning OS routing smoke checks passed.',
-    'audio_generation_smoke_episode_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'audio_generation_smoke_dialogue_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'audio_generation_smoke_job_id="$(cat /proc/sys/kernel/random/uuid)"',
-    'audio_generation_smoke_path="content-episodes/$audio_generation_smoke_episode_id/audio-1-1-0.mp3"',
-    'audio_generation_smoke_inserted=true',
-    'DB::table("content_audio_generation_jobs")->insert',
-    '"state" => App\\Domain\\Content\\Support\\ContentAudioGeneration::STATE_COMPLETED',
-    '"speed" => "slow"',
-    '"speed" => "medium"',
-    '"speed" => "normal"',
-    '"/api/convolab/audio/job/$audio_generation_smoke_job_id"',
-    'audio_generation_smoke_body="$(mktemp)"',
-    '--cookie "$content_browser_smoke_cookie_jar"',
-    '$(content_browser_path',
-    '"/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0")',
-    '"learning-os-audio-generation-smoke"',
-    "^content-security-policy: sandbox; default-src 'none'",
-    '^cross-origin-resource-policy: same-origin',
-    '^x-content-type-options: nosniff',
-    'cleanup_audio_generation_smoke best-effort',
-    'Audio generation Learning OS routing and streaming smoke checks passed.',
-  ]) {
-    assert.ok(
-      workflow.includes(requiredContract),
-      `Missing permanent generation proxy contract: ${requiredContract}`
-    );
-  }
+  assertRequiredGenerationProxyContracts(workflow);
 
   const audioFixtureInsert = workflow.indexOf(
     'DB::table("content_audio_generation_jobs")->insert'
