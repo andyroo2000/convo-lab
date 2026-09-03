@@ -22,16 +22,9 @@ import useTimePracticeAutoPlay, {
   clearTimePracticeInterval,
   clearTimePracticeTimeout,
 } from './useTimePracticeAutoPlay';
-
-interface RubyPartProps {
-  script: string;
-  kana: string;
-  showFurigana: boolean;
-}
+import TimePracticeClockRadio from './TimePracticeClockRadio';
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
-const PAUSE_OPTIONS = [5, 8, 12] as const;
-const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
 const HISTORY_LIMIT = 120;
 
 interface TimeCardSnapshot {
@@ -42,50 +35,6 @@ interface TimeCardSnapshot {
 const createCurrentLocalTimeCard = (): TimePracticeCard => {
   const now = new Date();
   return createTimeCard(now.getHours(), now.getMinutes());
-};
-
-const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => (
-  <ruby className="mr-1">
-    {script}
-    <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{kana}</rt>
-  </ruby>
-);
-
-const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
-  if (script.endsWith('時') && kana.endsWith('じ')) {
-    const numberScript = script.slice(0, -1);
-    const numberKana = kana.slice(0, -1);
-    return (
-      <span className="mr-1 inline-flex items-start">
-        <ruby>
-          {numberScript}
-          <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
-        </ruby>
-        <ruby>
-          時<rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>じ</rt>
-        </ruby>
-      </span>
-    );
-  }
-
-  if (script.endsWith('分') && (kana.endsWith('ふん') || kana.endsWith('ぷん'))) {
-    const unitKana = kana.endsWith('ふん') ? 'ふん' : 'ぷん';
-    const numberScript = script.slice(0, -1);
-    const numberKana = kana.slice(0, -unitKana.length);
-    return (
-      <span className="mr-1 inline-flex items-start">
-        <ruby>
-          {numberScript}
-          <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
-        </ruby>
-        <ruby>
-          分<rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{unitKana}</rt>
-        </ruby>
-      </span>
-    );
-  }
-
-  return <RubyPart script={script} kana={kana} showFurigana={showFurigana} />;
 };
 
 const JapaneseTimePracticeToolPage = () => {
@@ -303,6 +252,31 @@ const JapaneseTimePracticeToolPage = () => {
   const autoPlayButtonLabel = isPowerOn ? 'Stop' : 'Auto-Play';
   const nextButtonAriaLabel = isRevealed ? 'Advance to the next item' : 'Show answer';
 
+  const handlePowerToggle = useCallback(() => {
+    setIsPowerOn((current) => {
+      const next = !current;
+      trackTimePracticeEvent('autoplay_toggled', 'random', { enabled: next });
+      setSettings((currentSettings) => ({
+        ...currentSettings,
+        randomAutoLoop: next,
+      }));
+      return next;
+    });
+  }, []);
+
+  const handleVolumeChange = useCallback((nextVolume: number) => {
+    setVolumeLevel(nextVolume);
+    playbackRef.current?.setVolume(nextVolume);
+  }, []);
+
+  const handlePauseChange = useCallback((seconds: number) => {
+    trackTimePracticeEvent('pause_length_changed', 'random', { seconds });
+    setSettings((currentSettings) => ({
+      ...currentSettings,
+      revealDelaySeconds: seconds,
+    }));
+  }, []);
+
   useTimePracticeAutoPlay({
     cardId: card.id,
     isPowerOn,
@@ -400,109 +374,23 @@ const JapaneseTimePracticeToolPage = () => {
           </p>
         </div>
 
-        <div className="retro-clock-radio-shell">
-          <div className="retro-clock-radio-body">
-            <div className="retro-clock-radio-window">
-              <div className="retro-clock-radio-glow" />
-              {statusText && <p className="retro-clock-radio-status">{statusText}</p>}
-              {shouldShowScript ? (
-                <p className="japanese-text retro-clock-radio-script">
-                  <UnitRubyPart
-                    script={reading.parts.hourScript}
-                    kana={reading.parts.hourKana}
-                    showFurigana
-                  />
-                  <UnitRubyPart
-                    script={reading.parts.minuteScript}
-                    kana={reading.parts.minuteKana}
-                    showFurigana
-                  />
-                </p>
-              ) : (
-                <p className="retro-clock-radio-digital">{digitalDisplay}</p>
-              )}
-            </div>
-          </div>
-          <div className="retro-clock-radio-controls">
-            <div className="retro-clock-radio-transport">
-              <div className="retro-clock-radio-autoplay-stack">
-                <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsPowerOn((current) => {
-                      const next = !current;
-                      trackTimePracticeEvent('autoplay_toggled', 'random', { enabled: next });
-                      setSettings((currentSettings) => ({
-                        ...currentSettings,
-                        randomAutoLoop: next,
-                      }));
-                      return next;
-                    });
-                  }}
-                  className={`retro-clock-radio-action ${isPowerOn ? 'is-active' : ''}`}
-                  aria-pressed={isPowerOn}
-                >
-                  {autoPlayButtonLabel}
-                </button>
-              </div>
-              <div className="retro-clock-radio-next-stack">
-                <span
-                  className={`retro-clock-radio-led retro-clock-radio-led-next ${isNextLedActive ? 'is-flash' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="retro-clock-radio-action"
-                  aria-label={nextButtonAriaLabel}
-                >
-                  {nextButtonLabel}
-                </button>
-              </div>
-            </div>
-            <div className="retro-clock-radio-volume" role="group" aria-label="Volume">
-              <span className="retro-clock-radio-control-label">Volume</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={Math.round(volumeLevel * 100)}
-                onChange={(event) => {
-                  const nextVolume = Number(event.target.value) / 100;
-                  setVolumeLevel(nextVolume);
-                  playbackRef.current?.setVolume(nextVolume);
-                }}
-                className="retro-clock-radio-volume-slider"
-                aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
-              />
-            </div>
-            <div className="retro-clock-radio-pause-group" role="group" aria-label="Pause length">
-              <span className="retro-clock-radio-control-label">
-                Pause Length (In Auto-Play Mode)
-              </span>
-              <div className="retro-clock-radio-pause-options">
-                {PAUSE_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => {
-                      trackTimePracticeEvent('pause_length_changed', 'random', { seconds: option });
-                      setSettings((currentSettings) => ({
-                        ...currentSettings,
-                        revealDelaySeconds: option,
-                      }));
-                    }}
-                    className={`retro-clock-radio-pause-button ${pauseSeconds === option ? 'is-active' : ''}`}
-                    aria-pressed={pauseSeconds === option}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        <TimePracticeClockRadio
+          autoPlayButtonLabel={autoPlayButtonLabel}
+          digitalDisplay={digitalDisplay}
+          isNextLedActive={isNextLedActive}
+          isPowerOn={isPowerOn}
+          nextButtonAriaLabel={nextButtonAriaLabel}
+          nextButtonLabel={nextButtonLabel}
+          onNext={handleNext}
+          onPauseChange={handlePauseChange}
+          onPowerToggle={handlePowerToggle}
+          onVolumeChange={handleVolumeChange}
+          pauseSeconds={pauseSeconds}
+          reading={reading}
+          shouldShowScript={shouldShowScript}
+          statusText={statusText}
+          volumeLevel={volumeLevel}
+        />
 
         <div className="mt-4 rounded border border-[#173b6538] bg-[#edf5f9] px-3 py-3 shadow-[0_3px_0_rgba(17,51,92,0.12)] sm:px-4">
           <ul className="list-disc pl-5 text-sm font-semibold leading-snug text-[#1b3f69] sm:text-[0.96rem]">
