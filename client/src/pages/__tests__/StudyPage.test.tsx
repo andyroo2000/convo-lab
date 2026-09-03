@@ -517,6 +517,71 @@ const configureStudyPageEnvironment = () => {
   };
 };
 
+const createImportedTestAudio = (filename: string) => ({
+  filename,
+  url: `https://example.com/${filename}`,
+  mediaKind: 'audio' as const,
+  source: 'imported' as const,
+});
+
+const createReturningFailedCard = () => ({
+  ...baseCard,
+  prompt: {
+    cueAudio: createImportedTestAudio('prompt-card-1.mp3'),
+  },
+  answer: {
+    ...baseCard.answer,
+    answerAudio: createImportedTestAudio('answer-card-1.mp3'),
+  },
+});
+
+const createReturningNextCard = () => ({
+  ...baseCard,
+  id: 'card-2',
+  noteId: 'note-2',
+  prompt: {
+    cueText: '学校',
+    cueReading: 'がっこう',
+  },
+  answer: {
+    expression: '学校',
+    expressionReading: '学校[がっこう]',
+    meaning: 'school',
+    answerAudio: createImportedTestAudio('answer-card-2.mp3'),
+  },
+});
+
+const configureReturningFailedCardSession = () => {
+  const firstCard = createReturningFailedCard();
+  const secondCard = createReturningNextCard();
+
+  startStudySessionMock.mockResolvedValue({
+    overview: {
+      dueCount: 2,
+      newCount: 0,
+      learningCount: 0,
+      reviewCount: 2,
+      suspendedCount: 0,
+      totalCards: 2,
+    },
+    cards: [firstCard, secondCard],
+  });
+  mutateAsyncMock.mockImplementation(
+    async ({ cardId, grade }: { cardId: string; grade: 'again' | 'good' }) => ({
+      reviewLogId: `review-${cardId}-${grade}`,
+      card: cardId === 'card-1' ? firstCard : secondCard,
+      overview: {
+        dueCount: grade === 'again' ? 2 : 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: grade === 'again' ? 2 : 1,
+        suspendedCount: 0,
+        totalCards: 2,
+      },
+    })
+  );
+};
+
 describe('StudyPage', () => {
   beforeEach(() => {
     resetStudyPageMocks();
@@ -1447,72 +1512,7 @@ describe('StudyPage', () => {
   });
 
   it('replays audio and accepts keyboard grading when failed cards return', async () => {
-    const firstCard = {
-      ...baseCard,
-      prompt: {
-        cueAudio: {
-          filename: 'prompt-card-1.mp3',
-          url: 'https://example.com/prompt-card-1.mp3',
-          mediaKind: 'audio',
-          source: 'imported',
-        },
-      },
-      answer: {
-        ...baseCard.answer,
-        answerAudio: {
-          filename: 'answer-card-1.mp3',
-          url: 'https://example.com/answer-card-1.mp3',
-          mediaKind: 'audio',
-          source: 'imported',
-        },
-      },
-    };
-    const secondCard = {
-      ...baseCard,
-      id: 'card-2',
-      noteId: 'note-2',
-      prompt: {
-        cueText: '学校',
-        cueReading: 'がっこう',
-      },
-      answer: {
-        expression: '学校',
-        expressionReading: '学校[がっこう]',
-        meaning: 'school',
-        answerAudio: {
-          filename: 'answer-card-2.mp3',
-          url: 'https://example.com/answer-card-2.mp3',
-          mediaKind: 'audio',
-          source: 'imported',
-        },
-      },
-    };
-
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 2,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 2,
-        suspendedCount: 0,
-        totalCards: 2,
-      },
-      cards: [firstCard, secondCard],
-    });
-    mutateAsyncMock.mockImplementation(
-      async ({ cardId, grade }: { cardId: string; grade: 'again' | 'good' }) => ({
-        reviewLogId: `review-${cardId}-${grade}`,
-        card: cardId === 'card-1' ? firstCard : secondCard,
-        overview: {
-          dueCount: grade === 'again' ? 2 : 1,
-          newCount: 0,
-          learningCount: 0,
-          reviewCount: grade === 'again' ? 2 : 1,
-          suspendedCount: 0,
-          totalCards: 2,
-        },
-      })
-    );
+    configureReturningFailedCardSession();
 
     renderStudyPage();
     await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
