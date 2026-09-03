@@ -199,6 +199,27 @@ describe('useEpisodes', () => {
         status: 502,
       });
     });
+
+    it('should preserve cooldown metadata from a failed generation request', async () => {
+      const cooldown = { remainingSeconds: 45, retryAfter: '2026-09-03T20:00:00Z' };
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: () => Promise.resolve({ message: 'Please wait', cooldown }),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        await expect(result.current.generateDialogue('ep-123', [])).rejects.toThrow('Please wait');
+      });
+
+      expect(result.current.errorMetadata).toEqual({
+        message: 'Please wait',
+        status: 429,
+        cooldown,
+      });
+    });
   });
 
   describe('generateAudio', () => {
@@ -423,6 +444,22 @@ describe('useEpisodes', () => {
       });
 
       expect(status).toBe('failed');
+    });
+
+    it('should retry a transient status response', async () => {
+      vi.useFakeTimers();
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 503 }).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ state: 'completed' }),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+      const poll = result.current.pollJobStatus('job-123');
+      await vi.runAllTimersAsync();
+
+      await expect(poll).resolves.toBe('completed');
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
     });
 
     it('aborts the current status request', async () => {

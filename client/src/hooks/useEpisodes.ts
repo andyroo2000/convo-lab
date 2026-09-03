@@ -16,6 +16,38 @@ interface ErrorWithMetadata {
   };
 }
 
+interface DialogueGenerationOptions {
+  jlptLevel?: string;
+  vocabSeedOverride?: string;
+  grammarSeedOverride?: string;
+  clientRequestId?: string;
+  viewAsUserId?: string;
+}
+
+type GenerateDialogueArguments = [
+  episodeId: string,
+  speakers: Speaker[],
+  variationCount?: number,
+  dialogueLength?: number,
+  options?: DialogueGenerationOptions,
+];
+
+type JobStatus = 'completed' | 'failed' | 'pending';
+type JobEndpoint = 'dialogue' | 'audio';
+
+interface JobStatusRequest {
+  jobId: string;
+  endpoint: JobEndpoint;
+  signal?: AbortSignal;
+}
+
+interface JobStatusAttempt extends JobStatusRequest {
+  attempt: number;
+}
+
+const MAX_POLLING_RETRIES = 3;
+const POLLING_RETRY_DELAYS = [1000, 2000, 4000] as const;
+
 function pollingDelay(delay: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -36,6 +68,99 @@ function pollingDelay(delay: number, signal?: AbortSignal): Promise<void> {
     }, delay);
     signal?.addEventListener('abort', onAbort, { once: true });
   });
+}
+
+function dialogueGenerationUrl(options?: DialogueGenerationOptions): string {
+  const viewAsParam = options?.viewAsUserId
+    ? `?${new URLSearchParams({ viewAs: options.viewAsUserId })}`
+    : '';
+  return `${generationApi.dialogue.generate}${viewAsParam}`;
+}
+
+function cooldownFromPayload(payload: unknown): ErrorWithMetadata['cooldown'] | undefined {
+  if (typeof payload !== 'object') return undefined;
+  if (payload === null) return undefined;
+  if (!('cooldown' in payload)) return undefined;
+  if (typeof payload.cooldown !== 'object') return undefined;
+  if (payload.cooldown === null) return undefined;
+  return payload.cooldown as ErrorWithMetadata['cooldown'];
+}
+
+function dialogueErrorMetadata(
+  payload: unknown,
+  response: Response,
+  message: string
+): ErrorWithMetadata {
+  const metadata: ErrorWithMetadata = { message, status: response.status };
+  const cooldown = cooldownFromPayload(payload);
+  if (cooldown) metadata.cooldown = cooldown;
+  return metadata;
+}
+
+function shouldRetryTransientResponse(status: number, attempt: number): boolean {
+  if (status < 500) return false;
+  if (status >= 600) return false;
+  return attempt < MAX_POLLING_RETRIES - 1;
+}
+
+function jobStatusFromPayload(payload: { state?: unknown }): JobStatus {
+  if (payload.state === 'completed') return 'completed';
+  if (payload.state === 'failed') return 'failed';
+  return 'pending';
+}
+
+async function requestJobStatus(options: JobStatusAttempt): Promise<JobStatus | undefined> {
+  const response = await fetch(generationApi[options.endpoint].job(options.jobId), {
+    credentials: 'include',
+    signal: options.signal,
+  });
+  if (!response.ok) {
+    if (shouldRetryTransientResponse(response.status, options.attempt)) {
+      const delay = POLLING_RETRY_DELAYS[options.attempt];
+      console.warn(
+        `Transient error ${response.status} polling job status, retrying in ${delay}ms...`
+      );
+      await pollingDelay(delay, options.signal);
+      return undefined;
+    }
+    throw new Error('Failed to fetch job status');
+  }
+  return jobStatusFromPayload(await response.json());
+}
+
+async function recoverJobStatus(
+  error: unknown,
+  options: JobStatusAttempt
+): Promise<JobStatus | undefined> {
+  if (options.signal?.aborted) throw error;
+  if (options.attempt < MAX_POLLING_RETRIES - 1) {
+    console.warn(
+      `Error polling job status (attempt ${options.attempt + 1}/${MAX_POLLING_RETRIES}):`,
+      error
+    );
+    const delay = POLLING_RETRY_DELAYS[options.attempt];
+    console.warn(`Retrying in ${delay}ms...`);
+    await pollingDelay(delay, options.signal);
+    return undefined;
+  }
+  console.error('Error polling job status after all retries:', error);
+  return 'pending';
+}
+
+async function checkJobStatus(options: JobStatusRequest): Promise<JobStatus> {
+  for (let attempt = 0; attempt < MAX_POLLING_RETRIES; attempt += 1) {
+    const attemptOptions = { ...options, attempt };
+    try {
+      // eslint-disable-next-line no-await-in-loop -- Sequential retry attempts required
+      const status = await requestJobStatus(attemptOptions);
+      if (status) return status;
+    } catch (error) {
+      // eslint-disable-next-line no-await-in-loop -- Retry recovery may require backoff
+      const status = await recoverJobStatus(error, attemptOptions);
+      if (status) return status;
+    }
+  }
+  return 'pending';
 }
 
 // Named export is intentional for hooks
@@ -76,27 +201,20 @@ export function useEpisodes() {
   };
 
   const generateDialogue = async (
-    episodeId: string,
-    speakers: Speaker[],
-    variationCount: number = 3,
-    dialogueLength: number = 6,
-    options?: {
-      jlptLevel?: string;
-      vocabSeedOverride?: string;
-      grammarSeedOverride?: string;
-      clientRequestId?: string;
-      viewAsUserId?: string;
-    }
+    ...[
+      episodeId,
+      speakers,
+      variationCount = 3,
+      dialogueLength = 6,
+      options,
+    ]: GenerateDialogueArguments
   ): Promise<GenerationRequestAcknowledgement> => {
     setLoading(true);
     setError(null);
     setErrorMetadata(null);
 
     try {
-      const viewAsParam = options?.viewAsUserId
-        ? `?${new URLSearchParams({ viewAs: options.viewAsUserId })}`
-        : '';
-      const response = await fetch(`${generationApi.dialogue.generate}${viewAsParam}`, {
+      const response = await fetch(dialogueGenerationUrl(options), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -114,17 +232,7 @@ export function useEpisodes() {
       if (!response.ok) {
         const payload: unknown = await response.json().catch(() => null);
         const message = errorMessageFromPayload(payload) ?? 'Failed to generate dialogue';
-        const metadata: ErrorWithMetadata = { message, status: response.status };
-        if (
-          typeof payload === 'object' &&
-          payload !== null &&
-          'cooldown' in payload &&
-          typeof payload.cooldown === 'object' &&
-          payload.cooldown !== null
-        ) {
-          metadata.cooldown = payload.cooldown as ErrorWithMetadata['cooldown'];
-        }
-        setErrorMetadata(metadata);
+        setErrorMetadata(dialogueErrorMetadata(payload, response, message));
         throw new JsonRequestError(message, response.status, payload);
       }
       return await response.json();
@@ -273,75 +381,18 @@ export function useEpisodes() {
   const pollJobStatus = useCallback(
     async (
       jobId: string,
-      onStatusChange?: (status: 'completed' | 'failed' | 'pending') => void | Promise<void>,
-      endpoint: 'dialogue' | 'audio' = 'dialogue',
+      onStatusChange?: (status: JobStatus) => void | Promise<void>,
+      endpoint: JobEndpoint = 'dialogue',
       signal?: AbortSignal
-    ): Promise<'completed' | 'failed' | 'pending'> => {
-      const checkStatus = async (): Promise<'completed' | 'failed' | 'pending'> => {
-        const MAX_RETRIES = 3;
-        const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
-
-        for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
-          try {
-            // eslint-disable-next-line no-await-in-loop -- Sequential retry attempts required
-            const response = await fetch(generationApi[endpoint].job(jobId), {
-              credentials: 'include',
-              signal,
-            });
-
-            if (!response.ok) {
-              // Check if it's a transient error (500, 502, 503, 504)
-              if (response.status >= 500 && response.status < 600 && attempt < MAX_RETRIES - 1) {
-                console.warn(
-                  `Transient error ${response.status} polling job status, retrying in ${RETRY_DELAYS[attempt]}ms...`
-                );
-                // eslint-disable-next-line no-await-in-loop -- Delay needed for retry backoff
-                await pollingDelay(RETRY_DELAYS[attempt], signal);
-                // eslint-disable-next-line no-continue -- Continue needed to retry on transient errors
-                continue; // Retry
-              }
-              throw new Error('Failed to fetch job status');
-            }
-
-            // eslint-disable-next-line no-await-in-loop -- Sequential parsing of response required
-            const data = await response.json();
-            if (data.state === 'completed') return 'completed';
-            if (data.state === 'failed') return 'failed';
-            return 'pending';
-          } catch (err) {
-            if (signal?.aborted) {
-              throw err;
-            }
-            // Network errors or other failures
-            if (attempt < MAX_RETRIES - 1) {
-              console.warn(
-                `Error polling job status (attempt ${attempt + 1}/${MAX_RETRIES}):`,
-                err
-              );
-              console.warn(`Retrying in ${RETRY_DELAYS[attempt]}ms...`);
-              // eslint-disable-next-line no-await-in-loop -- Delay needed for retry backoff
-              await pollingDelay(RETRY_DELAYS[attempt], signal);
-              // eslint-disable-next-line no-continue -- Continue needed to retry on network errors
-              continue; // Retry
-            }
-            // Final attempt failed
-            console.error('Error polling job status after all retries:', err);
-            return 'pending';
-          }
-        }
-
-        // Should never reach here, but return pending as fallback
-        return 'pending';
-      };
-
+    ): Promise<JobStatus> => {
       // Poll every 2 seconds until completed or failed
-      let status: 'completed' | 'failed' | 'pending' = 'pending';
+      let status: JobStatus = 'pending';
       while (status === 'pending') {
         if (signal?.aborted) {
           throw new DOMException('Polling aborted', 'AbortError');
         }
         // eslint-disable-next-line no-await-in-loop -- Sequential status check required
-        status = await checkStatus();
+        status = await checkJobStatus({ jobId, endpoint, signal });
 
         if (signal?.aborted) {
           throw new DOMException('Polling aborted', 'AbortError');
