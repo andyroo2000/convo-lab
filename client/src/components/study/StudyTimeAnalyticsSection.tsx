@@ -187,6 +187,14 @@ const RhythmBucket = ({
   const label = bucketLabel(bucket, analytics, locale, timeZone);
   const totalLabel = t('time.analytics.bucketTotal', { time: formatDuration(totalMs) });
   const activate = () => onDrillDown?.(bucket);
+  const handleDoubleClick = () => {
+    if (!onDrillDown) return;
+    handleMouseDoubleClick(activate);
+  };
+  const handlePointerUp = (event: React.PointerEvent) => {
+    if (!onDrillDown) return;
+    handleTouchActivation(`bucket-${bucket.startsAt}`, event.pointerType, activate);
+  };
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (!onDrillDown) return;
     if (!isKeyboardActivation(event.key)) return;
@@ -208,10 +216,8 @@ const RhythmBucket = ({
         aria-label={`${label}: ${formatDuration(totalMs)}${
           onDrillDown ? `. ${t('time.analytics.drillDown')}` : ''
         }`}
-        onDoubleClick={() => handleMouseDoubleClick(activate)}
-        onPointerUp={(event) =>
-          handleTouchActivation(`bucket-${bucket.startsAt}`, event.pointerType, activate)
-        }
+        onDoubleClick={handleDoubleClick}
+        onPointerUp={handlePointerUp}
         onKeyDown={handleKeyDown}
         disabled={!onDrillDown}
       >
