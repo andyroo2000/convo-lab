@@ -148,7 +148,12 @@ describe('useEpisodes', () => {
 
       let response!: { jobId: string };
       await act(async () => {
-        response = await result.current.generateDialogue('ep-123', speakers, 3, 6);
+        response = await result.current.generateDialogue({
+          episodeId: 'ep-123',
+          speakers,
+          variationCount: 3,
+          dialogueLength: 6,
+        });
       });
 
       expect(response.jobId).toBe('job-123');
@@ -170,7 +175,7 @@ describe('useEpisodes', () => {
       const { result } = renderHook(() => useEpisodes());
 
       await act(async () => {
-        await result.current.generateDialogue('ep-123', []);
+        await result.current.generateDialogue({ episodeId: 'ep-123', speakers: [] });
       });
 
       const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -188,9 +193,9 @@ describe('useEpisodes', () => {
       const { result } = renderHook(() => useEpisodes());
 
       await act(async () => {
-        await expect(result.current.generateDialogue('ep-123', [])).rejects.toThrow(
-          'Failed to generate dialogue'
-        );
+        await expect(
+          result.current.generateDialogue({ episodeId: 'ep-123', speakers: [] })
+        ).rejects.toThrow('Failed to generate dialogue');
       });
 
       expect(result.current.error).toBe('Failed to generate dialogue');
@@ -211,7 +216,9 @@ describe('useEpisodes', () => {
       const { result } = renderHook(() => useEpisodes());
 
       await act(async () => {
-        await expect(result.current.generateDialogue('ep-123', [])).rejects.toThrow('Please wait');
+        await expect(
+          result.current.generateDialogue({ episodeId: 'ep-123', speakers: [] })
+        ).rejects.toThrow('Please wait');
       });
 
       expect(result.current.errorMetadata).toEqual({
