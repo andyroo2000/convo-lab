@@ -39,7 +39,7 @@ const browserHref = (cardId: string, noteId: string | null) => {
 const StudyLearningPathEditor = ({ card }: StudyLearningPathEditorProps) => {
   const { t } = useTranslation('study');
   const currentCardId = canonicalCardId(card);
-  const pathQuery = useStudyLearningPath(currentCardId);
+  const pathQuery = useStudyLearningPath({ cardId: currentCardId, enabled: true });
   const linkMutation = useLinkStudyLearningPathSuccessor();
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<StudyCardSummary[]>([]);

@@ -34,7 +34,7 @@ const StudyPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
-  const overviewQuery = useStudyOverview(enabled);
+  const overviewQuery = useStudyOverview({ enabled });
   const capabilitiesQuery = useStudyCapabilities(enabled);
   const cardAuthoringCapabilities = capabilitiesQuery.data?.cardAuthoring;
   const availableCount =

@@ -30,7 +30,7 @@ const StudySettingsPage = () => {
   const [manualKanji, setManualKanji] = useState('');
   const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
 
-  const settingsQuery = useStudySettings(enabled);
+  const settingsQuery = useStudySettings({ enabled });
   const capabilitiesQuery = useStudyCapabilities(enabled);
   const settingsCapabilities = capabilitiesQuery.data?.settings;
   const updateSettingsMutation = useUpdateStudySettings();

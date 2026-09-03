@@ -57,12 +57,15 @@ export default function useStudyBrowseController(enabled: boolean) {
     sortField: 'created_on',
     sortDirection: 'desc',
   });
-  const browserQuery = useStudyBrowser(enabled, query);
+  const browserQuery = useStudyBrowser({ enabled, query });
   const [rows, setRows] = useState<StudyBrowserListResponse['rows']>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string>(
     () => searchParams.get('noteId') ?? ''
   );
-  const detailQuery = useStudyBrowserNoteDetail(enabled, selectedNoteId || undefined);
+  const detailQuery = useStudyBrowserNoteDetail({
+    enabled,
+    noteId: selectedNoteId || undefined,
+  });
   const [selectedCardId, setSelectedCardId] = useState<string>(
     () => searchParams.get('cardId') ?? ''
   );

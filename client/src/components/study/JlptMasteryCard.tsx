@@ -153,7 +153,7 @@ const LevelBand = ({ level, mastery }: LevelBandProps) => {
 
 const JlptMasteryCard = () => {
   const { t } = useTranslation('study');
-  const overviewQuery = useStudyOverview(true, 'always');
+  const overviewQuery = useStudyOverview({ enabled: true, refetchOnMount: 'always' });
   const n5 = overviewQuery.data?.jlptMastery?.N5;
   const n4 = overviewQuery.data?.jlptMastery?.N4;
   let body: ReactNode;

@@ -111,6 +111,35 @@ interface StudyCardActionPayload {
   timeZone?: string;
 }
 
+interface StudyQueryOptions {
+  enabled: boolean;
+}
+
+interface StudySearchQueryOptions extends StudyQueryOptions {
+  query?: string;
+}
+
+interface StudyOverviewQueryOptions extends StudyQueryOptions {
+  refetchOnMount?: boolean | 'always';
+}
+
+interface StudyLearningPathQueryOptions {
+  cardId: string;
+  enabled?: boolean;
+}
+
+interface StudyBrowserQueryOptions extends StudyQueryOptions {
+  query: StudyBrowserQuery;
+}
+
+interface StudyBrowserNoteQueryOptions extends StudyQueryOptions {
+  noteId?: string;
+}
+
+interface StudyManualCardDraftQueryOptions {
+  effectiveOwnerId: string | null;
+}
+
 export interface StudyReviewRequest {
   cardId: string;
   grade: 'again' | 'hard' | 'good' | 'easy';
@@ -240,10 +269,10 @@ export async function getStudyLearningItems(
   return apiRequest<StudyLearningItemListResponse>(`/learning-items${suffix ? `?${suffix}` : ''}`);
 }
 
-export async function reorderStudyNewCardQueue(cardIds: string[]) {
+export async function reorderStudyNewCardQueue(payload: { cardIds: string[] }) {
   return apiRequest<StudyNewCardQueueResponse>('/new-queue/reorder', {
     method: 'POST',
-    body: JSON.stringify({ cardIds }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -481,7 +510,7 @@ export async function performStudyCardAction(
   });
 }
 
-export function useStudyOverview(enabled: boolean, refetchOnMount: boolean | 'always' = true) {
+export function useStudyOverview({ enabled, refetchOnMount = true }: StudyOverviewQueryOptions) {
   const timeZone = getDeviceStudyTimeZone();
   const searchParams = new URLSearchParams();
   if (timeZone) searchParams.set('timeZone', timeZone);
@@ -500,7 +529,7 @@ export function useStudyOverview(enabled: boolean, refetchOnMount: boolean | 'al
   });
 }
 
-export function useStudySettings(enabled: boolean) {
+export function useStudySettings({ enabled }: StudyQueryOptions) {
   return useQuery({
     queryKey: ['study', 'settings'],
     queryFn: getStudySettings,
@@ -508,7 +537,7 @@ export function useStudySettings(enabled: boolean) {
   });
 }
 
-export function useStudyNewCardQueueInfinite(enabled: boolean, q = '') {
+export function useStudyNewCardQueueInfinite({ enabled, query: q = '' }: StudySearchQueryOptions) {
   return useInfiniteQuery({
     queryKey: ['study', 'new-queue', 'infinite', q],
     queryFn: ({ pageParam }) => getStudyNewCardQueue({ cursor: pageParam, limit: 50, q }),
@@ -518,7 +547,7 @@ export function useStudyNewCardQueueInfinite(enabled: boolean, q = '') {
   });
 }
 
-export function useStudyCardsInfinite(enabled: boolean, q = '') {
+export function useStudyCardsInfinite({ enabled, query: q = '' }: StudySearchQueryOptions) {
   return useInfiniteQuery({
     queryKey: ['study', 'cards', 'infinite', q],
     queryFn: ({ pageParam }) => getStudyCards({ cursor: pageParam, limit: 50, q }),
@@ -528,7 +557,7 @@ export function useStudyCardsInfinite(enabled: boolean, q = '') {
   });
 }
 
-export function useStudyLearningItemsInfinite(enabled: boolean, q = '') {
+export function useStudyLearningItemsInfinite({ enabled, query: q = '' }: StudySearchQueryOptions) {
   return useInfiniteQuery({
     queryKey: ['study', 'learning-items', 'infinite', q],
     queryFn: ({ pageParam }) => getStudyLearningItems({ cursor: pageParam, limit: 20, q }),
@@ -538,7 +567,7 @@ export function useStudyLearningItemsInfinite(enabled: boolean, q = '') {
   });
 }
 
-export function useStudyLearningPath(cardId: string, enabled = true) {
+export function useStudyLearningPath({ cardId, enabled = true }: StudyLearningPathQueryOptions) {
   return useQuery({
     queryKey: ['study', 'learning-path', cardId],
     queryFn: () => getStudyLearningPath(cardId),
@@ -598,7 +627,7 @@ export function usePromoteStudyNewCardToFront() {
   return useStudyMutationWithInvalidations(promoteStudyNewCardToFront, ['new-queue', 'overview']);
 }
 
-export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
+export function useStudyBrowser({ enabled, query }: StudyBrowserQueryOptions) {
   return useQuery({
     queryKey: ['study', 'browser', query],
     queryFn: ({ signal }) => getStudyBrowser(query, { signal }),
@@ -606,7 +635,7 @@ export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
   });
 }
 
-export function useStudyBrowserNoteDetail(enabled: boolean, noteId?: string) {
+export function useStudyBrowserNoteDetail({ enabled, noteId }: StudyBrowserNoteQueryOptions) {
   return useQuery({
     queryKey: ['study', 'browser', 'note', noteId ?? 'none'],
     queryFn: ({ signal }) => getStudyBrowserNoteDetail(noteId as string, { signal }),
@@ -655,7 +684,7 @@ export function useGenerateStudyManualCardDraftPreviewImage() {
   });
 }
 
-export function useStudyManualCardDrafts(effectiveOwnerId: string | null) {
+export function useStudyManualCardDrafts({ effectiveOwnerId }: StudyManualCardDraftQueryOptions) {
   return useInfiniteQuery({
     queryKey: ['study', 'manual-card-drafts', effectiveOwnerId],
     queryFn: ({ pageParam }) => getStudyManualCardDrafts({ cursor: pageParam, limit: 200 }),
