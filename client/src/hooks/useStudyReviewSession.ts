@@ -4,7 +4,6 @@ import type { StudyCardSummary, StudyOverview } from '@languageflow/shared/src/t
 
 import {
   type StudySessionResponse,
-  undoStudyReview,
   useRegenerateStudyAnswerAudio,
   useDeleteStudyCard,
   useStudyCardAction,
@@ -17,11 +16,7 @@ import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
-import {
-  cloneStudySnapshot,
-  type StudyUndoAction,
-  type StudyUndoSnapshot,
-} from './studyReviewSessionUtils';
+import { type StudyUndoAction } from './studyReviewSessionUtils';
 import { createStudyReviewRequestGuard } from './studyReviewRequestGuard';
 import type { StudySessionReviewRecord } from '../components/study/studySessionWrapUpModel';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,7 +28,6 @@ import useStudyEmptySessionRefresh from './useStudyEmptySessionRefresh';
 import useStudySessionLoader from './useStudySessionLoader';
 import { type StudyMasteryAnimation } from './studyReviewSubmissionRules';
 import { type PendingStudyReviewOperation } from './studyReviewSubmissionFlow';
-import { submitStudyReviewUndo } from './studyReviewUndoFlow';
 import useStudyReviewCardActions from './useStudyReviewCardActions';
 import useStudyFocusModeLifecycle from './useStudyFocusModeLifecycle';
 import useStudyCurrentCardMutations from './useStudyCurrentCardMutations';
@@ -43,6 +37,7 @@ import useStudyReviewWrapUpActions from './useStudyReviewWrapUpActions';
 import useStudyReviewGrading from './useStudyReviewGrading';
 import useStudyReviewSessionCardState from './useStudyReviewSessionCardState';
 import useStudyInterruptedAchievementRecovery from './useStudyInterruptedAchievementRecovery';
+import useStudyReviewUndoAction from './useStudyReviewUndoAction';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -256,23 +251,42 @@ const useStudyReviewSession = () => {
     revealed,
   });
 
-  const restoreUndoSnapshot = useCallback(
-    (snapshot: StudyUndoSnapshot) => {
-      stopAllAudio();
-      const restored = cloneStudySnapshot(snapshot);
-      setSession(restored.session);
-      if (restored.overview) {
-        syncOverview(restored.overview);
-      }
-      setCurrentIndex(restored.currentIndex);
-      setRevealed(restored.revealed);
-      answeredCardIdsRef.current = new Set(restored.answeredCardIds);
-      setAnsweredCardIds(restored.answeredCardIds);
-      setSessionError(null);
-      setShowSetDueControls(false);
-    },
-    [stopAllAudio, syncOverview]
-  );
+  const handleUndo = useStudyReviewUndoAction({
+    achievementAwards: achievementProgress?.awards ?? [],
+    achievementCompletion,
+    achievementCompletionRequestIdRef,
+    achievementSessionStore,
+    activeAchievementCompletionRequestRef,
+    answeredCardIdsRef,
+    cardActionPending: cardActionMutation.isPending,
+    editing,
+    masteryAnimation,
+    pendingReviewOperationRef,
+    popUndo,
+    pushUndo,
+    requestGuardRef,
+    reviewPending: reviewMutation.isPending,
+    sessionEpochRef,
+    sessionLoading,
+    setAchievementCelebrationPresented,
+    setAchievementCompletion,
+    setAchievementCompletionRefreshPending,
+    setAnsweredCardIds,
+    setCurrentAchievementIndex,
+    setCurrentIndex,
+    setRevealed,
+    setSession,
+    setSessionError,
+    setSessionReviewRecords,
+    setSessionWasEnded,
+    setShowSetDueControls,
+    setUndoPending,
+    stopAllAudio,
+    syncAchievements,
+    syncOverview,
+    undoAchievementReview,
+    undoPending,
+  });
 
   const { revealCurrentCard, toggleAnswerAudio } = useStudyReviewAudioControls({
     answerAudioRef,
@@ -403,60 +417,6 @@ const useStudyReviewSession = () => {
       stopAllAudio,
       updateCard: updateCardMutation.mutateAsync,
     });
-
-  const handleUndo = useCallback(async () => {
-    await submitStudyReviewUndo({
-      achievementAwards: achievementProgress?.awards ?? [],
-      achievementCompletion,
-      achievementCompletionRequestIdRef,
-      achievementSessionStore,
-      activeAchievementCompletionRequestRef,
-      blocked:
-        undoPending ||
-        Boolean(pendingReviewOperationRef.current) ||
-        requestGuardRef.current.isBusy() ||
-        reviewMutation.isPending ||
-        cardActionMutation.isPending ||
-        sessionLoading ||
-        editing ||
-        masteryAnimation !== null,
-      popUndo,
-      pushUndo,
-      requestGuardRef,
-      restoreUndoSnapshot,
-      sessionEpochRef,
-      setAchievementCelebrationPresented,
-      setAchievementCompletion,
-      setAchievementCompletionRefreshPending,
-      setCurrentAchievementIndex,
-      setSessionError,
-      setSessionReviewRecords,
-      setSessionWasEnded,
-      setUndoPending,
-      stopAllAudio,
-      syncAchievements,
-      syncOverview,
-      undoAchievementReview,
-      undoReview: undoStudyReview,
-    });
-  }, [
-    popUndo,
-    pushUndo,
-    editing,
-    masteryAnimation,
-    achievementCompletion,
-    achievementProgress?.awards,
-    achievementSessionStore,
-    cardActionMutation.isPending,
-    restoreUndoSnapshot,
-    reviewMutation.isPending,
-    sessionLoading,
-    stopAllAudio,
-    syncOverview,
-    syncAchievements,
-    undoAchievementReview,
-    undoPending,
-  ]);
 
   const { motionPermissionState, requestMotionPermission } = useStudyMotionUndo({
     disabled:
