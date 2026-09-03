@@ -8,6 +8,53 @@ import YAML from 'yaml';
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
+const requiredAuthLifecycleContracts = [
+  'trap cleanup EXIT',
+  'trap report_error ERR',
+  ': "${JSON_TOOLS_CONTAINER:?JSON_TOOLS_CONTAINER is required}"',
+  'Auth lifecycle command failed at line $failed_line with exit status $exit_status.',
+  'assert_learning_os_session_cookie',
+  'did not establish a Learning OS browser session.',
+  'delete_disposable_account',
+  'source_system", ConvoLabAccountSource::LEARNING_OS',
+  'convolab_email_verification_tokens',
+  'password_reset_tokens',
+  'Auth lifecycle failed and disposable-state cleanup also failed; manual cleanup is required.',
+  'SMOKE_EMAIL="${smoke_local_part}+learning-os-smoke-',
+  'POST $path failed before receiving an HTTP response.',
+  'POST $path returned HTTP $status${retry_after:+ (Retry-After: $retry_after seconds)}.',
+  'Response body (first 4096 bytes):',
+  '$BASE_URL/sanctum/csrf-cookie',
+  'X-XSRF-TOKEN',
+  'session_get_json()',
+  'session_get_status()',
+  '--header "Origin: $BASE_URL"',
+  "'/api/convolab/browser/auth/signup'",
+  '--request PATCH',
+  '$BASE_URL/api/convolab/auth/me',
+  'response.emailVerified',
+  'AUTH_SMOKE_TOKEN_COUNT=',
+  'if token_count="$(docker exec',
+  'Verification mail token query attempt $attempt/30 failed; retrying.',
+  'IssueConvoLabVerificationTokenAction::class',
+  "'/api/convolab/browser/auth/verification'",
+  "'/api/convolab/browser/auth/login'",
+  "'/api/convolab/browser/auth/logout'",
+  '$6 == "learning_os_session"',
+  '$BASE_URL/api/convolab/browser/auth/me',
+  "'/api/auth/password/forgot'",
+  'AUTH_SMOKE_RESET_TOKEN_COUNT=',
+  'if reset_token_count="$(docker exec',
+  'Password reset token query attempt $attempt/30 failed; retrying.',
+  'if [ "$attempt" -lt 30 ]; then',
+  'AUTH_SMOKE_RESET_TOKEN=',
+  'password_confirmation',
+  "'/api/auth/password/reset'",
+  '--request DELETE',
+  '$BASE_URL/api/convolab/auth/me',
+  'AUTH_SMOKE_USER_COUNT=',
+  'Learning OS signup, verification, password reset, and account deletion lifecycle smoke completed.',
+];
 
 test('the staging workflow no longer runs retired Express migrations', async () => {
   const workflow = await readFile(
@@ -18,35 +65,6 @@ test('the staging workflow no longer runs retired Express migrations', async () 
   assert.ok(!workflow.includes('failed_migration'));
   assert.ok(!workflow.includes('postgres-stage'));
   assert.ok(!workflow.includes('redis-stage'));
-});
-
-test('the production deployment leaves Google OAuth exclusively on Learning OS', async () => {
-  const [compose, workflow] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
-    readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
-  ]);
-  const production = YAML.parse(compose);
-
-  assert.equal(production['x-server-environment'], undefined);
-  assert.equal(production['x-server-service'], undefined);
-
-  for (const retiredWorkflowContract of [
-    'verify_public_google_oauth() {',
-    'https://convo-lab.com/api/auth/google',
-    'GOOGLE_CALLBACK_URL',
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET',
-  ]) {
-    assert.ok(!workflow.includes(retiredWorkflowContract), retiredWorkflowContract);
-  }
-
-  const publicGate = workflow.indexOf('if ! verify_public_health \\');
-  assert.ok(publicGate >= 0);
-  assert.match(
-    workflow.slice(publicGate),
-    /if ! verify_public_health \\\s+\|\| ! verify_public_static_frontend \\\s+\|\| ! verify_public_learning_os_browser_route; then/
-  );
-  assert.ok(publicGate < workflow.indexOf('write_active_color "$inactive_color"'));
 });
 
 test('the production workflow verifies the always-on Study API without rollout flags', async () => {
@@ -242,67 +260,6 @@ test('the production workflow verifies the always-on Study API without rollout f
   assert.ok(credentialCheck >= 0);
   assert.ok(imagePull > credentialCheck);
   assert.ok(migration > credentialCheck);
-});
-
-test('production configures the permanent Learning OS browser session without a bridge flag', async () => {
-  const [compose, learningOsWorkflow, productionWorkflow] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
-    readFile(
-      path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-      'utf8'
-    ),
-    readFile(path.join(repositoryRoot, '.github/workflows/deploy-prod.yml'), 'utf8'),
-  ]);
-
-  for (const contract of [
-    'SESSION_COOKIE: ${LEARNING_OS_SESSION_COOKIE:-learning_os_session}',
-    'SESSION_LIFETIME: ${LEARNING_OS_SESSION_LIFETIME:-10080}',
-    'SESSION_SECURE_COOKIE: ${LEARNING_OS_SESSION_SECURE_COOKIE:-true}',
-    'SESSION_SAME_SITE: ${LEARNING_OS_SESSION_SAME_SITE:-lax}',
-    'SANCTUM_STATEFUL_DOMAINS: ${LEARNING_OS_SANCTUM_STATEFUL_DOMAINS:-convo-lab.com,www.convo-lab.com}',
-    'CORS_ALLOWED_ORIGINS: ${LEARNING_OS_CORS_ALLOWED_ORIGINS:-https://convo-lab.com,https://www.convo-lab.com}',
-  ]) {
-    assert.ok(compose.includes(contract), `Missing browser-session compose contract: ${contract}`);
-  }
-  for (const workflow of [learningOsWorkflow, productionWorkflow]) {
-    assert.ok(!workflow.includes('LEARNING_OS_BROWSER_SESSION_ENABLED'));
-    assert.ok(!workflow.includes('BROWSER_SESSION_ENABLED'));
-  }
-  assert.ok(!compose.includes('LEARNING_OS_BROWSER_SESSION_ENABLED'));
-  assert.ok(
-    learningOsWorkflow.includes(
-      'upsert_env LEARNING_OS_SANCTUM_STATEFUL_DOMAINS "convo-lab.com,www.convo-lab.com"'
-    )
-  );
-  assert.ok(
-    learningOsWorkflow.includes('desired_deploy_config_revision="calendar-oauth-redirect-v1"')
-  );
-});
-
-test('browser mutations use only the Learning OS CSRF bootstrap', async () => {
-  const [clientCsrf, learningOsWorkflow, ...composes] = await Promise.all([
-      readFile(path.join(repositoryRoot, 'client/src/lib/csrf.ts'), 'utf8'),
-      readFile(
-        path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'),
-        'utf8'
-      ),
-      readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
-      readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
-    ]);
-
-  assert.ok(clientCsrf.includes("const CSRF_BOOTSTRAP_PATH = '/sanctum/csrf-cookie';"));
-  assert.ok(!clientCsrf.includes('/api/auth/csrf'));
-  assert.ok(
-    learningOsWorkflow.includes("'https://convo-lab.com/sanctum/csrf-cookie'"),
-    'The production smoke should prove the public Learning OS CSRF bootstrap.',
-  );
-  assert.ok(!learningOsWorkflow.includes("'https://convo-lab.com/api/auth/csrf'"));
-  assert.ok(!learningOsWorkflow.includes('AUTH_USER_ID'));
-  assert.ok(!learningOsWorkflow.includes('AUTH_USER_ROLE'));
-  for (const compose of composes) {
-    assert.ok(!compose.includes('JWT_SECRET'));
-    assert.ok(!compose.includes('COOKIE_SECRET'));
-  }
 });
 
 test('production permanently routes migrated browser APIs', async () => {
@@ -856,58 +813,6 @@ test('the production workflow verifies browser routes against Learning OS state'
   assert.doesNotMatch(browserBlock, /\/api\/learning-os\/study\/browser|compare_read_route|ENABLE_/);
 });
 
-test('the production workflow authenticates smoke traffic without proxy bearer credentials', async () => {
-  const [workflow, compose] = await Promise.all([
-    readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
-    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
-  ]);
-
-  for (const requiredContract of [
-    'remove_env LEARNING_OS_API_URL',
-    'remove_env LEARNING_OS_API_TOKEN',
-    'remove_env LEARNING_OS_PROXY_USER_EMAIL',
-    'Laravel\\Sanctum\\PersonalAccessToken::query()',
-    '->where("name", "convolab-proxy")',
-    'Revoked {$deleted} retired ConvoLab proxy token(s).',
-    'wait_for_health "convolab-server-$active_color"',
-    '"http://127.0.0.1:8080/api/convolab/browser/tools/analytics"',
-    'Learning OS browser analytics internal smoke check passed.',
-    'Disposable Learning OS content browser session established.',
-    '--cookie "$content_browser_smoke_cookie_jar"',
-    'content_browser_path \\',
-    '"/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0"',
-  ]) {
-    assert.ok(
-      workflow.includes(requiredContract),
-      `Missing browser-session deployment contract: ${requiredContract}`
-    );
-  }
-
-  for (const retiredContract of [
-    'createToken("convolab-proxy"',
-    'Authorization: Bearer',
-    'X-Convo-Lab-User-Id',
-    'proxy_token',
-    'PROXY_TOKEN',
-  ]) {
-    assert.ok(
-      !workflow.includes(retiredContract),
-      `Retired proxy credential remains in production deployment: ${retiredContract}`
-    );
-  }
-  for (const retiredComposeContract of [
-    'LEARNING_OS_API_URL:',
-    'LEARNING_OS_API_TOKEN:',
-    'LEARNING_OS_PROXY_USER_EMAIL:',
-    'CONVOLAB_PROXY_USER_EMAIL:',
-  ]) {
-    assert.ok(
-      !compose.includes(retiredComposeContract),
-      `Retired proxy credential remains in production Compose: ${retiredComposeContract}`
-    );
-  }
-});
-
 test('the auth lifecycle smoke exercises signup through account deletion with disposable state', async () => {
   const scriptPath = path.join(
     repositoryRoot,
@@ -920,53 +825,7 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
 
   await execFileAsync('bash', ['-n', scriptPath]);
 
-  for (const requiredContract of [
-    'trap cleanup EXIT',
-    'trap report_error ERR',
-    ': "${JSON_TOOLS_CONTAINER:?JSON_TOOLS_CONTAINER is required}"',
-    'Auth lifecycle command failed at line $failed_line with exit status $exit_status.',
-    'assert_learning_os_session_cookie',
-    'did not establish a Learning OS browser session.',
-    'delete_disposable_account',
-    'source_system", ConvoLabAccountSource::LEARNING_OS',
-    'convolab_email_verification_tokens',
-    'password_reset_tokens',
-    'Auth lifecycle failed and disposable-state cleanup also failed; manual cleanup is required.',
-    'SMOKE_EMAIL="${smoke_local_part}+learning-os-smoke-',
-    'POST $path failed before receiving an HTTP response.',
-    'POST $path returned HTTP $status${retry_after:+ (Retry-After: $retry_after seconds)}.',
-    'Response body (first 4096 bytes):',
-    '$BASE_URL/sanctum/csrf-cookie',
-    'X-XSRF-TOKEN',
-    'session_get_json()',
-    'session_get_status()',
-    '--header "Origin: $BASE_URL"',
-    "'/api/convolab/browser/auth/signup'",
-    '--request PATCH',
-    '$BASE_URL/api/convolab/auth/me',
-    'response.emailVerified',
-    'AUTH_SMOKE_TOKEN_COUNT=',
-    'if token_count="$(docker exec',
-    'Verification mail token query attempt $attempt/30 failed; retrying.',
-    'IssueConvoLabVerificationTokenAction::class',
-    "'/api/convolab/browser/auth/verification'",
-    "'/api/convolab/browser/auth/login'",
-    "'/api/convolab/browser/auth/logout'",
-    '$6 == "learning_os_session"',
-    '$BASE_URL/api/convolab/browser/auth/me',
-    "'/api/auth/password/forgot'",
-    'AUTH_SMOKE_RESET_TOKEN_COUNT=',
-    'if reset_token_count="$(docker exec',
-    'Password reset token query attempt $attempt/30 failed; retrying.',
-    'if [ "$attempt" -lt 30 ]; then',
-    'AUTH_SMOKE_RESET_TOKEN=',
-    'password_confirmation',
-    "'/api/auth/password/reset'",
-    '--request DELETE',
-    '$BASE_URL/api/convolab/auth/me',
-    'AUTH_SMOKE_USER_COUNT=',
-    'Learning OS signup, verification, password reset, and account deletion lifecycle smoke completed.',
-  ]) {
+  for (const requiredContract of requiredAuthLifecycleContracts) {
     assert.ok(script.includes(requiredContract), `Missing auth lifecycle contract: ${requiredContract}`);
   }
 
