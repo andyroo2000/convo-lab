@@ -8,10 +8,12 @@ import type { StudyAchievementSessionCompletion } from '../components/study/stud
 import type { StudyMasteryAnimation } from './studyReviewSubmissionRules';
 import type { PendingStudyReviewOperation } from './studyReviewSubmissionFlow';
 
+export type StudyLessonPhase = 'preview' | 'quiz' | 'complete';
+
 const useStudyReviewViewState = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [sessionKind, setSessionKind] = useState<'reviews' | 'lessons'>('reviews');
-  const [lessonPhase, setLessonPhase] = useState<'preview' | 'quiz' | 'complete'>('preview');
+  const [lessonPhase, setLessonPhase] = useState<StudyLessonPhase>('preview');
   const [masteryAnimation, setMasteryAnimation] = useState<StudyMasteryAnimation | null>(null);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);

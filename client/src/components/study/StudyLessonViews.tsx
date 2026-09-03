@@ -1,5 +1,7 @@
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
+import type { StudyLessonPhase as StudyLessonPhaseValue } from '../../hooks/useStudyReviewSessionState';
+import type { StudySessionKind } from '../../hooks/useStudySessionLoader';
 import { StudyCardFace } from './StudyCardPreview';
 
 interface StudyLessonPreviewNavigationProps {
@@ -151,10 +153,10 @@ export const StudyLessonComplete = ({
 interface StudyLessonPhaseProps {
   active: boolean;
   complete: StudyLessonCompleteProps;
-  lessonPhase: string;
+  lessonPhase: StudyLessonPhaseValue;
   masteryAnimationActive: boolean;
   preview: StudyLessonPreviewProps;
-  sessionKind: string;
+  sessionKind: StudySessionKind;
   sessionLoading: boolean;
 }
 
