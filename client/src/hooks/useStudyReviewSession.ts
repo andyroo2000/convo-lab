@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { StudyCardSummary, StudyOverview } from '@languageflow/shared/src/types';
 
 import {
-  type StudySessionResponse,
   useRegenerateStudyAnswerAudio,
   useDeleteStudyCard,
   useStudyCardAction,
@@ -17,17 +16,12 @@ import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 import { type StudyUndoAction } from './studyReviewSessionUtils';
-import { createStudyReviewRequestGuard } from './studyReviewRequestGuard';
-import type { StudySessionReviewRecord } from '../components/study/studySessionWrapUpModel';
 import { useAuth } from '../contexts/AuthContext';
-import type { StudyAchievementSessionCompletion } from '../components/study/studyAchievementSessionModel';
 import useStudyReviewSessionDerivedState from './useStudyReviewSessionDerivedState';
 import useStudyAchievementSync from './useStudyAchievementSync';
 import useStudyAchievementReviewSession from './useStudyAchievementReviewSession';
 import useStudyEmptySessionRefresh from './useStudyEmptySessionRefresh';
 import useStudySessionLoader from './useStudySessionLoader';
-import { type StudyMasteryAnimation } from './studyReviewSubmissionRules';
-import { type PendingStudyReviewOperation } from './studyReviewSubmissionFlow';
 import useStudyReviewCardActions from './useStudyReviewCardActions';
 import useStudyFocusModeLifecycle from './useStudyFocusModeLifecycle';
 import useStudyCurrentCardMutations from './useStudyCurrentCardMutations';
@@ -38,6 +32,11 @@ import useStudyReviewGrading from './useStudyReviewGrading';
 import useStudyReviewSessionCardState from './useStudyReviewSessionCardState';
 import useStudyInterruptedAchievementRecovery from './useStudyInterruptedAchievementRecovery';
 import useStudyReviewUndoAction from './useStudyReviewUndoAction';
+import useStudyReviewSessionState, {
+  isStudyReviewBusy,
+  useStudyAsyncSessionErrorReporter,
+} from './useStudyReviewSessionState';
+import useStudyReviewModeActions from './useStudyReviewModeActions';
 
 const useStudyReviewSession = () => {
   const userId = useAuth().user?.id ?? null;
@@ -47,43 +46,10 @@ const useStudyReviewSession = () => {
   const updateCardMutation = useUpdateStudyCard();
   const deleteCardMutation = useDeleteStudyCard();
   const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
-  const [focusMode, setFocusMode] = useState(false);
-  const [sessionKind, setSessionKind] = useState<'reviews' | 'lessons'>('reviews');
-  const [lessonPhase, setLessonPhase] = useState<'preview' | 'quiz' | 'complete'>('preview');
-  const [masteryAnimation, setMasteryAnimation] = useState<StudyMasteryAnimation | null>(null);
-  const [session, setSession] = useState<StudySessionResponse | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(false);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-  const [reviewConflictRecovered, setReviewConflictRecovered] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [revealed, setRevealed] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [showSetDueControls, setShowSetDueControls] = useState(false);
-  const [undoPending, setUndoPending] = useState(false);
-  const [reviewSubmitPending, setReviewSubmitPending] = useState(false);
-  const [reviewRetryAvailable, setReviewRetryAvailable] = useState(false);
-  const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
-  const [sessionReviewRecords, setSessionReviewRecords] = useState<StudySessionReviewRecord[]>([]);
-  const [sessionWasEnded, setSessionWasEnded] = useState(false);
-  const [achievementCompletion, setAchievementCompletion] =
-    useState<StudyAchievementSessionCompletion | null>(null);
-  const [currentAchievementIndex, setCurrentAchievementIndex] = useState(0);
-  const [achievementCelebrationPresented, setAchievementCelebrationPresented] = useState(false);
-  const [achievementCompletionRefreshPending, setAchievementCompletionRefreshPending] =
-    useState(false);
-  const [practiceCards, setPracticeCards] = useState<StudyCardSummary[] | null>(null);
-  const [practiceInitialCount, setPracticeInitialCount] = useState(0);
-  const requestGuardRef = useRef(createStudyReviewRequestGuard());
-  const sessionEpochRef = useRef(0);
-  const activeLessonCohortIdRef = useRef<string | null>(null);
-  const canSurfaceAsyncSessionErrorRef = useRef(false);
-  const answeredCardIdsRef = useRef<Set<string>>(new Set());
-  const autoRefreshEmptySessionRef = useRef(false);
-  const achievementCompletionRequestIdRef = useRef(0);
-  const activeAchievementCompletionRequestRef = useRef<number | null>(null);
-  const pendingReviewOperationRef = useRef<PendingStudyReviewOperation | null>(null);
+  const state = useStudyReviewSessionState();
+  const { canSurfaceAsyncSessionErrorRef, setEditing, setSessionError, setShowSetDueControls } =
+    state;
   const runBackgroundTask = useStudyBackgroundTask();
-  const cardStartedAtRef = useRef(Date.now());
   const getCachedOverview = useCallback(
     () => queryClient.getQueryData<StudyOverview>(['study', 'overview']) ?? null,
     [queryClient]
@@ -95,13 +61,13 @@ const useStudyReviewSession = () => {
     [queryClient]
   );
   const { loadSession, sessionCardCountRef } = useStudySessionLoader({
-    autoRefreshEmptySessionRef,
-    sessionEpochRef,
-    sessionKind,
-    setLessonPhase,
-    setSession,
-    setSessionError,
-    setSessionLoading,
+    autoRefreshEmptySessionRef: state.autoRefreshEmptySessionRef,
+    sessionEpochRef: state.sessionEpochRef,
+    sessionKind: state.sessionKind,
+    setLessonPhase: state.setLessonPhase,
+    setSession: state.setSession,
+    setSessionError: state.setSessionError,
+    setSessionLoading: state.setSessionLoading,
     syncOverview,
   });
   const { achievementCatalog, achievementProgress, hasFreshAchievementProgress, syncAchievements } =
@@ -136,21 +102,21 @@ const useStudyReviewSession = () => {
     updateCardErrorMessage,
   } = useStudyReviewSessionDerivedState({
     achievementCatalog,
-    achievementCelebrationPresented,
-    achievementCompletion,
+    achievementCelebrationPresented: state.achievementCelebrationPresented,
+    achievementCompletion: state.achievementCompletion,
     achievementProgress,
-    answeredCardIds,
-    currentAchievementIndex,
-    currentIndex,
-    focusMode,
-    practiceCards,
-    practiceInitialCount,
+    answeredCardIds: state.answeredCardIds,
+    currentAchievementIndex: state.currentAchievementIndex,
+    currentIndex: state.currentIndex,
+    focusMode: state.focusMode,
+    practiceCards: state.practiceCards,
+    practiceInitialCount: state.practiceInitialCount,
     regenerateAudioError: regenerateAudioMutation.error,
-    session,
+    session: state.session,
     sessionCardCount: sessionCardCountRef.current,
-    sessionKind,
-    sessionReviewRecords,
-    sessionWasEnded,
+    sessionKind: state.sessionKind,
+    sessionReviewRecords: state.sessionReviewRecords,
+    sessionWasEnded: state.sessionWasEnded,
     updateCardError: updateCardMutation.error,
   });
   // Ref so handlers always read the live card even if a background session update
@@ -159,54 +125,53 @@ const useStudyReviewSession = () => {
     null
   ) as MutableRefObject<StudyCardSummary | null>;
   currentCardRef.current = currentCard;
-  const reviewBusy = reviewMutation.isPending || reviewSubmitPending || reviewRetryAvailable;
+  const reviewBusy = isStudyReviewBusy(reviewMutation.isPending, state);
 
   useEffect(() => {
-    answeredCardIdsRef.current = new Set(answeredCardIds);
-  }, [answeredCardIds]);
+    state.answeredCardIdsRef.current = new Set(state.answeredCardIds);
+  }, [state.answeredCardIds, state.answeredCardIdsRef]);
 
   useEffect(() => {
-    canSurfaceAsyncSessionErrorRef.current = focusMode;
-  }, [focusMode]);
+    state.canSurfaceAsyncSessionErrorRef.current = state.focusMode;
+  }, [state.canSurfaceAsyncSessionErrorRef, state.focusMode]);
 
   useStudyInterruptedAchievementRecovery({
     achievementSessionStore,
-    canSurfaceAsyncSessionErrorRef,
-    sessionEpochRef,
-    setAchievementCelebrationPresented,
-    setAchievementCompletion,
-    setCurrentAchievementIndex,
-    setCurrentIndex,
-    setEditing,
-    setFocusMode,
-    setLessonPhase,
-    setMasteryAnimation,
-    setRevealed,
-    setReviewConflictRecovered,
-    setSession,
-    setSessionError,
-    setSessionKind,
-    setSessionLoading,
-    setSessionReviewRecords,
-    setSessionWasEnded,
-    setShowSetDueControls,
+    canSurfaceAsyncSessionErrorRef: state.canSurfaceAsyncSessionErrorRef,
+    sessionEpochRef: state.sessionEpochRef,
+    setAchievementCelebrationPresented: state.setAchievementCelebrationPresented,
+    setAchievementCompletion: state.setAchievementCompletion,
+    setCurrentAchievementIndex: state.setCurrentAchievementIndex,
+    setCurrentIndex: state.setCurrentIndex,
+    setEditing: state.setEditing,
+    setFocusMode: state.setFocusMode,
+    setLessonPhase: state.setLessonPhase,
+    setMasteryAnimation: state.setMasteryAnimation,
+    setRevealed: state.setRevealed,
+    setReviewConflictRecovered: state.setReviewConflictRecovered,
+    setSession: state.setSession,
+    setSessionError: state.setSessionError,
+    setSessionKind: state.setSessionKind,
+    setSessionLoading: state.setSessionLoading,
+    setSessionReviewRecords: state.setSessionReviewRecords,
+    setSessionWasEnded: state.setSessionWasEnded,
+    setShowSetDueControls: state.setShowSetDueControls,
     syncAchievements,
   });
 
   useEffect(
     () => () => {
-      sessionEpochRef.current += 1;
-      requestGuardRef.current.reset();
-      canSurfaceAsyncSessionErrorRef.current = false;
+      state.sessionEpochRef.current += 1;
+      state.requestGuardRef.current.reset();
+      state.canSurfaceAsyncSessionErrorRef.current = false;
     },
-    []
+    [state.canSurfaceAsyncSessionErrorRef, state.requestGuardRef, state.sessionEpochRef]
   );
 
-  const reportAsyncSessionError = useCallback((message: string) => {
-    if (canSurfaceAsyncSessionErrorRef.current) {
-      setSessionError(message);
-    }
-  }, []);
+  const reportAsyncSessionError = useStudyAsyncSessionErrorReporter(
+    canSurfaceAsyncSessionErrorRef,
+    setSessionError
+  );
 
   const { popUndo, pushUndo, resetUndo } = useStudyUndoStack<StudyUndoAction>();
 
@@ -216,17 +181,17 @@ const useStudyReviewSession = () => {
     mergeCardIntoSession,
     removeCardFromSession,
   } = useStudyReviewSessionCardState({
-    answeredCardIds,
-    answeredCardIdsRef,
-    currentIndex,
+    answeredCardIds: state.answeredCardIds,
+    answeredCardIdsRef: state.answeredCardIdsRef,
+    currentIndex: state.currentIndex,
     getCachedOverview,
-    revealed,
-    session,
-    setSession,
+    revealed: state.revealed,
+    session: state.session,
+    setSession: state.setSession,
   });
 
   const ensureAnswerAudioPrepared = useStudyAnswerAudioPrep({
-    enabled: focusMode,
+    enabled: state.focusMode,
     mergeCardIntoSession,
     onError: reportAsyncSessionError,
   });
@@ -240,52 +205,52 @@ const useStudyReviewSession = () => {
     stopAllAudio,
   } = useStudyAudioAutoplay({
     autoplayBlocked:
-      masteryAnimation !== null ||
-      reviewSubmitPending ||
-      (sessionKind === 'lessons' && lessonPhase !== 'quiz'),
+      state.masteryAnimation !== null ||
+      state.reviewSubmitPending ||
+      (state.sessionKind === 'lessons' && state.lessonPhase !== 'quiz'),
     cards: presentedCards,
     currentCard,
     ensureAnswerAudioPrepared,
-    focusMode,
+    focusMode: state.focusMode,
     runBackgroundTask,
-    revealed,
+    revealed: state.revealed,
   });
 
   const handleUndo = useStudyReviewUndoAction({
     achievementAwards: achievementProgress?.awards ?? [],
-    achievementCompletion,
-    achievementCompletionRequestIdRef,
+    achievementCompletion: state.achievementCompletion,
+    achievementCompletionRequestIdRef: state.achievementCompletionRequestIdRef,
     achievementSessionStore,
-    activeAchievementCompletionRequestRef,
-    answeredCardIdsRef,
+    activeAchievementCompletionRequestRef: state.activeAchievementCompletionRequestRef,
+    answeredCardIdsRef: state.answeredCardIdsRef,
     cardActionPending: cardActionMutation.isPending,
-    editing,
-    masteryAnimation,
-    pendingReviewOperationRef,
+    editing: state.editing,
+    masteryAnimation: state.masteryAnimation,
+    pendingReviewOperationRef: state.pendingReviewOperationRef,
     popUndo,
     pushUndo,
-    requestGuardRef,
+    requestGuardRef: state.requestGuardRef,
     reviewPending: reviewMutation.isPending,
-    sessionEpochRef,
-    sessionLoading,
-    setAchievementCelebrationPresented,
-    setAchievementCompletion,
-    setAchievementCompletionRefreshPending,
-    setAnsweredCardIds,
-    setCurrentAchievementIndex,
-    setCurrentIndex,
-    setRevealed,
-    setSession,
-    setSessionError,
-    setSessionReviewRecords,
-    setSessionWasEnded,
-    setShowSetDueControls,
-    setUndoPending,
+    sessionEpochRef: state.sessionEpochRef,
+    sessionLoading: state.sessionLoading,
+    setAchievementCelebrationPresented: state.setAchievementCelebrationPresented,
+    setAchievementCompletion: state.setAchievementCompletion,
+    setAchievementCompletionRefreshPending: state.setAchievementCompletionRefreshPending,
+    setAnsweredCardIds: state.setAnsweredCardIds,
+    setCurrentAchievementIndex: state.setCurrentAchievementIndex,
+    setCurrentIndex: state.setCurrentIndex,
+    setRevealed: state.setRevealed,
+    setSession: state.setSession,
+    setSessionError: state.setSessionError,
+    setSessionReviewRecords: state.setSessionReviewRecords,
+    setSessionWasEnded: state.setSessionWasEnded,
+    setShowSetDueControls: state.setShowSetDueControls,
+    setUndoPending: state.setUndoPending,
     stopAllAudio,
     syncAchievements,
     syncOverview,
     undoAchievementReview,
-    undoPending,
+    undoPending: state.undoPending,
   });
 
   const { revealCurrentCard, toggleAnswerAudio } = useStudyReviewAudioControls({
@@ -293,114 +258,114 @@ const useStudyReviewSession = () => {
     autoplayAnswerAudioForCard,
     captureUndoSnapshot,
     currentCard,
-    editing,
+    editing: state.editing,
     ensureAnswerAudioPrepared,
     pushUndo,
     reportAsyncSessionError,
-    revealed,
+    revealed: state.revealed,
     runBackgroundTask,
-    setRevealed,
+    setRevealed: state.setRevealed,
     stopAllAudio,
   });
 
   const prepareSessionCompletion = useStudySessionCompletion({
     achievementAwards: achievementProgress?.awards ?? [],
-    achievementCompletion,
-    achievementCompletionRequestIdRef,
+    achievementCompletion: state.achievementCompletion,
+    achievementCompletionRequestIdRef: state.achievementCompletionRequestIdRef,
     achievementSessionStore,
-    activeAchievementCompletionRequestRef,
-    masteryAnimation,
+    activeAchievementCompletionRequestRef: state.activeAchievementCompletionRequestRef,
+    masteryAnimation: state.masteryAnimation,
     reviewQueueExhausted,
     runBackgroundTask,
-    sessionEpochRef,
-    setAchievementCelebrationPresented,
-    setAchievementCompletion,
-    setAchievementCompletionRefreshPending,
-    setCurrentAchievementIndex,
-    setSessionWasEnded,
+    sessionEpochRef: state.sessionEpochRef,
+    setAchievementCelebrationPresented: state.setAchievementCelebrationPresented,
+    setAchievementCompletion: state.setAchievementCompletion,
+    setAchievementCompletionRefreshPending: state.setAchievementCompletionRefreshPending,
+    setCurrentAchievementIndex: state.setCurrentAchievementIndex,
+    setSessionWasEnded: state.setSessionWasEnded,
     syncAchievements,
   });
 
   const { handleGrade, retryPendingReview } = useStudyReviewGrading({
-    activeLessonCohortIdRef,
+    activeLessonCohortIdRef: state.activeLessonCohortIdRef,
     achievementAwards: achievementProgress?.awards ?? [],
     achievementSessionBootstrapRef,
     achievementSessionStore,
-    answeredCardIdsRef,
+    answeredCardIdsRef: state.answeredCardIdsRef,
     applyReviewResultToSession,
-    autoRefreshEmptySessionRef,
+    autoRefreshEmptySessionRef: state.autoRefreshEmptySessionRef,
     cards,
-    cardStartedAtRef,
+    cardStartedAtRef: state.cardStartedAtRef,
     captureUndoSnapshot,
     currentCard,
-    currentIndex,
-    editing,
+    currentIndex: state.currentIndex,
+    editing: state.editing,
     loadSession,
-    masteryAnimation,
-    pendingReviewOperationRef,
+    masteryAnimation: state.masteryAnimation,
+    pendingReviewOperationRef: state.pendingReviewOperationRef,
     practiceMode,
     pushUndo,
     queryClient,
     recordAchievementReview,
-    requestGuardRef,
+    requestGuardRef: state.requestGuardRef,
     resetStudyAudioAutoplayForCard,
     resetUndo,
     reviewPending: reviewMutation.isPending,
-    sessionEpochRef,
-    sessionKind,
-    setAchievementCelebrationPresented,
-    setAchievementCompletion,
-    setAnsweredCardIds,
-    setCurrentAchievementIndex,
-    setCurrentIndex,
-    setEditing,
-    setLessonPhase,
-    setMasteryAnimation,
-    setPracticeCards,
-    setRevealed,
-    setReviewConflictRecovered,
-    setReviewRetryAvailable,
-    setReviewSubmitPending,
-    setSession,
-    setSessionError,
-    setSessionReviewRecords,
-    setSessionWasEnded,
-    setShowSetDueControls,
+    sessionEpochRef: state.sessionEpochRef,
+    sessionKind: state.sessionKind,
+    setAchievementCelebrationPresented: state.setAchievementCelebrationPresented,
+    setAchievementCompletion: state.setAchievementCompletion,
+    setAnsweredCardIds: state.setAnsweredCardIds,
+    setCurrentAchievementIndex: state.setCurrentAchievementIndex,
+    setCurrentIndex: state.setCurrentIndex,
+    setEditing: state.setEditing,
+    setLessonPhase: state.setLessonPhase,
+    setMasteryAnimation: state.setMasteryAnimation,
+    setPracticeCards: state.setPracticeCards,
+    setRevealed: state.setRevealed,
+    setReviewConflictRecovered: state.setReviewConflictRecovered,
+    setReviewRetryAvailable: state.setReviewRetryAvailable,
+    setReviewSubmitPending: state.setReviewSubmitPending,
+    setSession: state.setSession,
+    setSessionError: state.setSessionError,
+    setSessionReviewRecords: state.setSessionReviewRecords,
+    setSessionWasEnded: state.setSessionWasEnded,
+    setShowSetDueControls: state.setShowSetDueControls,
     stopAllAudio,
     submitReview: reviewMutation.mutateAsync,
     syncAchievements,
     syncOverview,
-    undoPending,
+    undoPending: state.undoPending,
   });
 
   const { handleBuryForSession, handleCardAction } = useStudyReviewCardActions({
-    autoRefreshEmptySessionRef,
+    autoRefreshEmptySessionRef: state.autoRefreshEmptySessionRef,
     cardActionMutation,
     cardsLength: cards.length,
     captureUndoSnapshot,
     currentCard,
-    editing,
+    editing: state.editing,
     mergeCardIntoSession,
-    pendingReviewOperationRef,
+    pendingReviewOperationRef: state.pendingReviewOperationRef,
     pushUndo,
     removeCardFromSession,
-    requestGuardRef,
-    revealed,
-    sessionEpochRef,
-    sessionKind,
-    setAnsweredCardIds,
-    setCurrentIndex,
-    setLessonPhase,
-    setRevealed,
-    setSessionError,
-    setShowSetDueControls,
+    requestGuardRef: state.requestGuardRef,
+    revealed: state.revealed,
+    sessionEpochRef: state.sessionEpochRef,
+    sessionKind: state.sessionKind,
+    setAnsweredCardIds: state.setAnsweredCardIds,
+    setCurrentIndex: state.setCurrentIndex,
+    setLessonPhase: state.setLessonPhase,
+    setRevealed: state.setRevealed,
+    setSessionError: state.setSessionError,
+    setShowSetDueControls: state.setShowSetDueControls,
     stopAllAudio,
     syncOverview,
   });
 
   const { deleteCurrentCard, regenerateCurrentCardAudio, saveCurrentCard } =
     useStudyCurrentCardMutations({
-      autoRefreshEmptySessionRef,
+      autoRefreshEmptySessionRef: state.autoRefreshEmptySessionRef,
       cardsLength: cards.length,
       currentCardRef,
       deleteCard: deleteCardMutation.mutateAsync,
@@ -408,173 +373,137 @@ const useStudyReviewSession = () => {
       regenerateAnswerAudio: regenerateAudioMutation.mutateAsync,
       removeCardFromSession,
       resetAudioAutoplayForCard: resetStudyAudioAutoplayForCard,
-      sessionEpochRef,
-      setAnsweredCardIds,
-      setCurrentIndex,
-      setEditing,
-      setRevealed,
-      setSessionError,
+      sessionEpochRef: state.sessionEpochRef,
+      setAnsweredCardIds: state.setAnsweredCardIds,
+      setCurrentIndex: state.setCurrentIndex,
+      setEditing: state.setEditing,
+      setRevealed: state.setRevealed,
+      setSessionError: state.setSessionError,
       stopAllAudio,
       updateCard: updateCardMutation.mutateAsync,
     });
 
   const { motionPermissionState, requestMotionPermission } = useStudyMotionUndo({
     disabled:
-      undoPending ||
+      state.undoPending ||
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
-      sessionLoading ||
-      editing ||
-      masteryAnimation !== null,
-    focusMode,
+      state.sessionLoading ||
+      state.editing ||
+      state.masteryAnimation !== null,
+    focusMode: state.focusMode,
     onShake: handleUndo,
     runBackgroundTask,
   });
 
   const { enterFocusMode, exitFocusMode } = useStudyFocusModeLifecycle({
-    activeAchievementCompletionRequestRef,
-    activeLessonCohortIdRef,
-    achievementCompletionRequestIdRef,
+    activeAchievementCompletionRequestRef: state.activeAchievementCompletionRequestRef,
+    activeLessonCohortIdRef: state.activeLessonCohortIdRef,
+    achievementCompletionRequestIdRef: state.achievementCompletionRequestIdRef,
     achievementSessionBootstrapRef,
     achievementSessionStore,
-    answeredCardIdsRef,
-    autoRefreshEmptySessionRef,
-    canSurfaceAsyncSessionErrorRef,
+    answeredCardIdsRef: state.answeredCardIdsRef,
+    autoRefreshEmptySessionRef: state.autoRefreshEmptySessionRef,
+    canSurfaceAsyncSessionErrorRef: state.canSurfaceAsyncSessionErrorRef,
     loadSession,
-    pendingReviewOperationRef,
+    pendingReviewOperationRef: state.pendingReviewOperationRef,
     queryClient,
-    requestGuardRef,
+    requestGuardRef: state.requestGuardRef,
     requestMotionPermission,
     resetStudyAudioAutoplay,
     resetUndo,
     runBackgroundTask,
-    sessionEpochRef,
-    setAchievementCelebrationPresented,
-    setAchievementCompletion,
-    setAchievementCompletionRefreshPending,
-    setAnsweredCardIds,
-    setCurrentAchievementIndex,
-    setCurrentIndex,
-    setEditing,
-    setFocusMode,
-    setLessonPhase,
-    setMasteryAnimation,
-    setPracticeCards,
-    setPracticeInitialCount,
-    setRevealed,
-    setReviewConflictRecovered,
-    setReviewRetryAvailable,
-    setReviewSubmitPending,
-    setSession,
-    setSessionError,
-    setSessionKind,
-    setSessionLoading,
-    setSessionReviewRecords,
-    setSessionWasEnded,
-    setShowSetDueControls,
-    setUndoPending,
+    sessionEpochRef: state.sessionEpochRef,
+    setAchievementCelebrationPresented: state.setAchievementCelebrationPresented,
+    setAchievementCompletion: state.setAchievementCompletion,
+    setAchievementCompletionRefreshPending: state.setAchievementCompletionRefreshPending,
+    setAnsweredCardIds: state.setAnsweredCardIds,
+    setCurrentAchievementIndex: state.setCurrentAchievementIndex,
+    setCurrentIndex: state.setCurrentIndex,
+    setEditing: state.setEditing,
+    setFocusMode: state.setFocusMode,
+    setLessonPhase: state.setLessonPhase,
+    setMasteryAnimation: state.setMasteryAnimation,
+    setPracticeCards: state.setPracticeCards,
+    setPracticeInitialCount: state.setPracticeInitialCount,
+    setRevealed: state.setRevealed,
+    setReviewConflictRecovered: state.setReviewConflictRecovered,
+    setReviewRetryAvailable: state.setReviewRetryAvailable,
+    setReviewSubmitPending: state.setReviewSubmitPending,
+    setSession: state.setSession,
+    setSessionError: state.setSessionError,
+    setSessionKind: state.setSessionKind,
+    setSessionLoading: state.setSessionLoading,
+    setSessionReviewRecords: state.setSessionReviewRecords,
+    setSessionWasEnded: state.setSessionWasEnded,
+    setShowSetDueControls: state.setShowSetDueControls,
+    setUndoPending: state.setUndoPending,
     startAchievementReviewSession,
     stopAllAudio,
   });
 
-  const beginLessonQuiz = useCallback(() => {
-    setCurrentIndex(0);
-    setRevealed(false);
-    setLessonPhase('quiz');
-  }, []);
-
-  const startToughestPractice = useCallback(
-    (nextCards: StudyCardSummary[]) => {
-      if (nextCards.length === 0) return;
-      stopAllAudio();
-      resetStudyAudioAutoplay();
-      resetUndo();
-      setMasteryAnimation(null);
-      setPracticeCards([...nextCards]);
-      setPracticeInitialCount(nextCards.length);
-      setCurrentIndex(0);
-      setRevealed(false);
-      setEditing(false);
-      setShowSetDueControls(false);
-      setSessionError(null);
-      cardStartedAtRef.current = Date.now();
-    },
-    [resetStudyAudioAutoplay, resetUndo, stopAllAudio]
-  );
-
-  const exitPracticeMode = useCallback(() => {
-    stopAllAudio();
-    resetStudyAudioAutoplay();
-    setPracticeCards(null);
-    setPracticeInitialCount(0);
-    setCurrentIndex(0);
-    setRevealed(false);
-    setSessionError(null);
-  }, [resetStudyAudioAutoplay, stopAllAudio]);
+  const { beginLessonQuiz, exitPracticeMode, loadNextLessonBatch, startToughestPractice } =
+    useStudyReviewModeActions({
+      loadSession,
+      resetStudyAudioAutoplay,
+      resetUndo,
+      state,
+      stopAllAudio,
+    });
 
   const { advanceAchievement, endReviewSession, finishReviewSession } = useStudyReviewWrapUpActions(
     {
-      achievementCompletion,
-      achievementCompletionRefreshPending,
+      achievementCompletion: state.achievementCompletion,
+      achievementCompletionRefreshPending: state.achievementCompletionRefreshPending,
       achievementSessionStore,
       completionAchievementCount: completionAchievements.length,
-      currentAchievementIndex,
+      currentAchievementIndex: state.currentAchievementIndex,
       exitFocusMode,
       exitPracticeMode,
       practiceMode,
       prepareSessionCompletion,
-      sessionKind,
-      sessionReviewRecordCount: sessionReviewRecords.length,
-      setAchievementCelebrationPresented,
-      setCurrentAchievementIndex,
+      sessionKind: state.sessionKind,
+      sessionReviewRecordCount: state.sessionReviewRecords.length,
+      setAchievementCelebrationPresented: state.setAchievementCelebrationPresented,
+      setCurrentAchievementIndex: state.setCurrentAchievementIndex,
     }
   );
 
-  const loadNextLessonBatch = useCallback(async () => {
-    answeredCardIdsRef.current = new Set();
-    setAnsweredCardIds([]);
-    setCurrentIndex(0);
-    setRevealed(false);
-    await loadSession('lessons', {
-      lessonCohortId: activeLessonCohortIdRef.current ?? undefined,
-    });
-  }, [loadSession]);
-
   useStudyEmptySessionRefresh({
-    autoRefreshEmptySessionRef,
+    autoRefreshEmptySessionRef: state.autoRefreshEmptySessionRef,
     blocked:
-      !focusMode ||
+      !state.focusMode ||
       practiceMode ||
-      sessionLoading ||
-      Boolean(sessionError) ||
+      state.sessionLoading ||
+      Boolean(state.sessionError) ||
       Boolean(currentCard) ||
       reviewBusy ||
-      undoPending ||
-      editing,
+      state.undoPending ||
+      state.editing,
     getCachedOverview,
     loadSession,
     runBackgroundTask,
-    sessionOverview: session?.overview,
+    sessionOverview: state.session?.overview,
   });
 
   useEffect(() => {
     stopAllAudio();
-    cardStartedAtRef.current = Date.now();
-  }, [currentCard?.id, stopAllAudio]);
+    state.cardStartedAtRef.current = Date.now();
+  }, [currentCard?.id, state.cardStartedAtRef, stopAllAudio]);
 
   useEffect(() => {
     setEditing(false);
     setShowSetDueControls(false);
-  }, [currentCard?.id]);
+  }, [currentCard?.id, setEditing, setShowSetDueControls]);
 
   useEffect(() => {
-    if (!focusMode) {
+    if (!state.focusMode) {
       stopAllAudio();
     }
-  }, [focusMode, stopAllAudio]);
+  }, [state.focusMode, stopAllAudio]);
 
   useEffect(() => {
-    if (!focusMode) return undefined;
+    if (!state.focusMode) return undefined;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -582,53 +511,53 @@ const useStudyReviewSession = () => {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [focusMode]);
+  }, [state.focusMode]);
 
   useStudyKeyboardShortcuts({
     cardActionPending: cardActionMutation.isPending,
-    editing,
+    editing: state.editing,
     exitFocusMode: endReviewSession,
-    focusMode,
+    focusMode: state.focusMode,
     handleGrade,
     handleUndo,
-    interactionBlocked: masteryAnimation !== null,
+    interactionBlocked: state.masteryAnimation !== null,
     onError: reportAsyncSessionError,
     revealCurrentCard,
-    revealed,
+    revealed: state.revealed,
     reviewPending: reviewMutation.isPending,
-    reviewSubmitPending,
+    reviewSubmitPending: state.reviewSubmitPending,
     runBackgroundTask,
-    setEditing: practiceMode ? () => {} : setEditing,
+    setEditing: practiceMode ? () => {} : state.setEditing,
     toggleAnswerAudio,
   });
 
   return {
-    focusMode,
-    sessionKind,
-    lessonPhase,
+    focusMode: state.focusMode,
+    sessionKind: state.sessionKind,
+    lessonPhase: state.lessonPhase,
     cards,
-    masteryAnimation,
-    sessionLoading,
-    sessionError,
-    reviewConflictRecovered,
+    masteryAnimation: state.masteryAnimation,
+    sessionLoading: state.sessionLoading,
+    sessionError: state.sessionError,
+    reviewConflictRecovered: state.reviewConflictRecovered,
     currentCard,
-    revealed,
-    editing,
-    showSetDueControls,
-    undoPending,
+    revealed: state.revealed,
+    editing: state.editing,
+    showSetDueControls: state.showSetDueControls,
+    undoPending: state.undoPending,
     reviewBusy,
-    reviewRetryAvailable,
+    reviewRetryAvailable: state.reviewRetryAvailable,
     sessionCounts,
     sessionProgress,
     sessionWrapUp,
     reviewQueueExhausted,
     reviewSessionComplete,
-    achievementCompletion,
+    achievementCompletion: state.achievementCompletion,
     achievementCatalog,
     achievementProgress,
-    achievementCompletionRefreshPending,
+    achievementCompletionRefreshPending: state.achievementCompletionRefreshPending,
     currentAchievement,
-    currentAchievementIndex,
+    currentAchievementIndex: state.currentAchievementIndex,
     completionAchievements,
     practiceMode,
     practiceComplete,
@@ -641,9 +570,9 @@ const useStudyReviewSession = () => {
     deleteCardMutation,
     regenerateAudioMutation,
     updateCardErrorMessage,
-    setEditing,
-    setMasteryAnimation,
-    setShowSetDueControls,
+    setEditing: state.setEditing,
+    setMasteryAnimation: state.setMasteryAnimation,
+    setShowSetDueControls: state.setShowSetDueControls,
     revealCurrentCard,
     exitFocusMode,
     endReviewSession,
