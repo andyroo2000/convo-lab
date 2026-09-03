@@ -4,14 +4,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import ConfirmModal from '../components/common/ConfirmModal';
-import { StudyCardFace } from '../components/study/StudyCardPreview';
-import StudyCardEditor from '../components/study/StudyCardEditor';
 import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
-import StudyGradeButtons from '../components/study/StudyGradeButtons';
 import MasteryReviewAnimation from '../components/study/MasteryReviewAnimation';
 import { masteryReviewAnnouncementKind } from '../components/study/studyMastery';
 import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
+import StudyReviewCardSurface from '../components/study/StudyReviewCardSurface';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
 import StudySessionWrapUp from '../components/study/StudySessionWrapUp';
 import {
@@ -20,7 +18,6 @@ import {
 } from '../components/study/StudyAchievementViews';
 import StudySetDueControls from '../components/study/StudySetDueControls';
 import { StudyLessonPhase } from '../components/study/StudyLessonViews';
-import { getStudyCardAudioUrl } from '../components/study/studyCardUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useStudyOverview } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
@@ -28,6 +25,22 @@ import useStudyReviewSession from '../hooks/useStudyReviewSession';
 import { useStudyActivityActions } from '../contexts/StudyActivityContext';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
+
+const shouldStartLessonCohort = (
+  enabled: boolean,
+  lessonCohortId: string | null,
+  startedLessonCohortId: string | null
+): lessonCohortId is string => {
+  if (!enabled) return false;
+  if (!lessonCohortId) return false;
+  return startedLessonCohortId !== lessonCohortId;
+};
+
+const isLessonPreviewActive = (focusMode: boolean, sessionKind: string, lessonPhase: string) => {
+  if (!focusMode) return false;
+  if (sessionKind !== 'lessons') return false;
+  return lessonPhase === 'preview';
+};
 
 const StudyPage = () => {
   const { t } = useTranslation('study');
@@ -96,7 +109,7 @@ const StudyPage = () => {
   }, [reviewSession.cards.length]);
 
   useEffect(() => {
-    if (!enabled || !lessonCohortId || startedLessonCohortRef.current === lessonCohortId) return;
+    if (!shouldStartLessonCohort(enabled, lessonCohortId, startedLessonCohortRef.current)) return;
 
     startedLessonCohortRef.current = lessonCohortId;
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -110,9 +123,11 @@ const StudyPage = () => {
 
   useEffect(() => {
     if (
-      !reviewSession.focusMode ||
-      reviewSession.sessionKind !== 'lessons' ||
-      reviewSession.lessonPhase !== 'preview'
+      !isLessonPreviewActive(
+        reviewSession.focusMode,
+        reviewSession.sessionKind,
+        reviewSession.lessonPhase
+      )
     ) {
       return undefined;
     }
@@ -429,117 +444,36 @@ const StudyPage = () => {
                 </div>
               ) : null}
 
-              {!showingAchievementAward &&
-              showQuizSurface &&
-              displayedCard &&
-              !reviewSession.reviewSessionComplete ? (
-                <div
-                  data-testid="study-focus-card-scroll"
-                  className={`study-focus-scroll relative mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
-                    showGradeTray ? 'pb-24 md:pb-16' : 'pb-0'
-                  }`}
-                >
-                  {!displayedCardIsRevealed ? (
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-label={t('focus.reveal')}
-                      onClick={reviewSession.revealCurrentCard}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          reviewSession.revealCurrentCard();
-                        }
-                      }}
-                      className="flex min-h-[calc(100dvh-7.5rem)] w-full flex-1 items-center justify-center px-3 py-4 text-left transition md:min-h-[60vh] md:rounded-2xl md:bg-white md:px-12 md:py-12 md:shadow-sm md:ring-1 md:ring-navy/10 md:hover:shadow-md"
-                    >
-                      <div className="w-full min-w-0 overflow-x-hidden">
-                        <StudyCardFace
-                          card={displayedCard}
-                          layout="mobile-focus"
-                          side="front"
-                          promptAudioRef={reviewSession.promptAudioRef}
-                        />
-                        {displayedCard.cardType !== 'cloze' ? (
-                          <p className="mt-8 text-center text-xs uppercase tracking-[0.18em] text-gray-400 sm:mt-10 sm:text-sm sm:tracking-[0.2em]">
-                            <span className="md:hidden">{t('focus.revealHintMobile')}</span>
-                            <span className="hidden md:inline">{t('focus.revealHintDesktop')}</span>
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="min-h-[calc(100dvh-7.5rem)] min-w-0 flex-1 overflow-x-hidden px-2 py-2 md:min-h-[60vh] md:rounded-2xl md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-navy/10">
-                      {reviewSession.editing && !masteryAnimation ? (
-                        <StudyCardEditor
-                          card={displayedCard}
-                          defaultAnswerAudioVoiceId={
-                            cardAuthoringCapabilities?.defaultAnswerAudioVoiceId
-                          }
-                          imagePromptMaxLength={
-                            cardAuthoringCapabilities?.limits.imagePromptCharacters
-                          }
-                          isSaving={reviewSession.updateCardMutation.isPending}
-                          isDeleting={reviewSession.deleteCardMutation.isPending}
-                          isRegeneratingAudio={reviewSession.regenerateAudioMutation.isPending}
-                          error={reviewSession.updateCardErrorMessage}
-                          onCancel={() => {
-                            reviewSession.setEditing(false);
-                          }}
-                          onSave={reviewSession.saveCurrentCard}
-                          onDelete={() => setIsDeleteConfirmOpen(true)}
-                          onRegenerateAudio={reviewSession.regenerateCurrentCardAudio}
-                        />
-                      ) : (
-                        <div className="flex flex-col gap-4 md:gap-5">
-                          <div className="flex min-h-[calc(100dvh-9.5rem)] min-w-0 items-start justify-center overflow-x-hidden md:block md:min-h-0">
-                            <div className="w-full min-w-0 overflow-x-hidden">
-                              <StudyCardFace
-                                card={displayedCard}
-                                layout="mobile-focus"
-                                side="back"
-                                answerAudioRef={reviewSession.answerAudioRef}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {showGradeTray ? (
-                    <div
-                      data-testid="study-grade-tray"
-                      className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:bg-cream/95 md:px-6 md:py-2"
-                    >
-                      <div data-testid="study-grade-tray-inner" className="mx-auto max-w-7xl">
-                        <StudyGradeButtons
-                          disabled={
-                            reviewSession.reviewBusy ||
-                            reviewSession.sessionLoading ||
-                            reviewSession.undoPending ||
-                            reviewSession.masteryAnimation !== null
-                          }
-                          onGrade={(grade) => {
-                            runBackgroundTask(() => reviewSession.handleGrade(grade), {
-                              label: 'Study card grade',
-                            });
-                          }}
-                          onReplayAudio={
-                            getStudyCardAudioUrl(reviewSession.currentCard)
-                              ? () => {
-                                  const playPromise = reviewSession.answerAudioRef.current?.play();
-                                  runBackgroundTask(playPromise, {
-                                    label: 'Study answer-audio replay',
-                                  });
-                                }
-                              : undefined
-                          }
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
+              {displayedCard ? (
+                <StudyReviewCardSurface
+                  answerAudioRef={reviewSession.answerAudioRef}
+                  card={displayedCard}
+                  cardAuthoringCapabilities={cardAuthoringCapabilities}
+                  deletePending={reviewSession.deleteCardMutation.isPending}
+                  editing={reviewSession.editing}
+                  masteryAnimationActive={Boolean(masteryAnimation)}
+                  onDelete={() => setIsDeleteConfirmOpen(true)}
+                  onGrade={reviewSession.handleGrade}
+                  onRegenerateAudio={reviewSession.regenerateCurrentCardAudio}
+                  onReveal={reviewSession.revealCurrentCard}
+                  onSave={reviewSession.saveCurrentCard}
+                  onStopEditing={() => reviewSession.setEditing(false)}
+                  promptAudioRef={reviewSession.promptAudioRef}
+                  regenerateAudioPending={reviewSession.regenerateAudioMutation.isPending}
+                  revealed={displayedCardIsRevealed}
+                  reviewBusy={reviewSession.reviewBusy}
+                  runBackgroundTask={runBackgroundTask}
+                  sessionLoading={reviewSession.sessionLoading}
+                  showGradeTray={showGradeTray}
+                  undoPending={reviewSession.undoPending}
+                  updateError={reviewSession.updateCardErrorMessage}
+                  updatePending={reviewSession.updateCardMutation.isPending}
+                  visible={
+                    !showingAchievementAward &&
+                    showQuizSurface &&
+                    !reviewSession.reviewSessionComplete
+                  }
+                />
               ) : null}
             </div>
           </section>
