@@ -123,8 +123,9 @@ interface StudyOverviewQueryOptions extends StudyQueryOptions {
   refetchOnMount?: boolean | 'always';
 }
 
-interface StudyLearningPathQueryOptions extends StudyQueryOptions {
+interface StudyLearningPathQueryOptions {
   cardId: string;
+  enabled?: boolean;
 }
 
 interface StudyBrowserQueryOptions extends StudyQueryOptions {
@@ -566,7 +567,7 @@ export function useStudyLearningItemsInfinite({ enabled, query: q = '' }: StudyS
   });
 }
 
-export function useStudyLearningPath({ cardId, enabled }: StudyLearningPathQueryOptions) {
+export function useStudyLearningPath({ cardId, enabled = true }: StudyLearningPathQueryOptions) {
   return useQuery({
     queryKey: ['study', 'learning-path', cardId],
     queryFn: () => getStudyLearningPath(cardId),
