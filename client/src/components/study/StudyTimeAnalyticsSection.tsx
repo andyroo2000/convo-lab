@@ -69,6 +69,17 @@ function analyticsSlideOffset(
 type StudyTimeProjection = ReturnType<typeof buildStudyTimeAnalyticsProjection>;
 type StudyTimeCategoryDefinition = (typeof STUDY_TIME_CATEGORIES)[number];
 type TouchActivation = (key: string, pointerType: string, activate: () => void) => void;
+type StudyRhythmLabels = {
+  bestRhythm: string;
+  bucketTotal: (time: string) => string;
+  categoryFilters: string;
+  categoryNames: Record<StudyActivityCategory, string>;
+  chart: string;
+  dailyAverage: string;
+  drillDown: string;
+  toggleCategory: string;
+  total: string;
+};
 
 const useChartActivation = () => {
   const lastTouchActivation = useRef({ key: '', timestamp: 0 });
@@ -94,16 +105,17 @@ const useChartActivation = () => {
 
 const StudyRhythmSummary = ({
   analytics,
+  labels,
   locale,
   projection,
   timeZone,
 }: {
   analytics: StudyTimeAnalyticsRange;
+  labels: StudyRhythmLabels;
   locale: string;
   projection: StudyTimeProjection;
   timeZone: string;
 }) => {
-  const { t } = useTranslation(['study']);
   const bestBucketLabel = projection.bestBucket
     ? bucketLabel(projection.bestBucket.bucket, analytics, locale, timeZone)
     : '—';
@@ -114,20 +126,20 @@ const StudyRhythmSummary = ({
         className="rounded-xl border border-navy/10 bg-white/70 p-4"
         data-testid="study-time-total"
       >
-        <p className="retro-caps text-gray-500">{t('time.totals.total')}</p>
+        <p className="retro-caps text-gray-500">{labels.total}</p>
         <p className="mt-1 text-3xl font-black text-navy">{formatDuration(projection.totalMs)}</p>
       </div>
       <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
-        <p className="retro-caps text-gray-500">{t('time.analytics.dailyAverage')}</p>
+        <p className="retro-caps text-gray-500">{labels.dailyAverage}</p>
         <p className="mt-1 text-3xl font-black text-navy">
           {formatDuration(projection.dailyAverageMs)}
         </p>
       </div>
       <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
-        <p className="retro-caps text-gray-500">{t('time.analytics.bestRhythm')}</p>
+        <p className="retro-caps text-gray-500">{labels.bestRhythm}</p>
         <p className="mt-1 text-xl font-black text-navy">{bestBucketLabel}</p>
         <p className="text-sm font-bold text-gray-500">
-          {t('time.analytics.bucketTotal', { time: formatDuration(bestBucketTotal) })}
+          {labels.bucketTotal(formatDuration(bestBucketTotal))}
         </p>
       </div>
     </div>
@@ -138,12 +150,13 @@ const CategoryBar = ({
   category,
   categoryTotals,
   includedCategories,
+  label,
 }: {
   category: StudyTimeCategoryDefinition;
   categoryTotals: Record<string, number>;
   includedCategories: ReadonlySet<StudyActivityCategory>;
+  label: string;
 }) => {
-  const { t } = useTranslation(['study']);
   if (!includedCategories.has(category.key)) return null;
   const value = categoryTotals[category.key] ?? 0;
   if (value === 0) return null;
@@ -151,7 +164,7 @@ const CategoryBar = ({
     <div
       className={`${category.barColor} min-h-[2px]`}
       style={{ flexGrow: value }}
-      title={`${t(category.labelKey)}: ${formatDuration(value)}`}
+      title={`${label}: ${formatDuration(value)}`}
     />
   );
 };
@@ -165,6 +178,7 @@ const RhythmBucket = ({
   handleMouseDoubleClick,
   handleTouchActivation,
   includedCategories,
+  labels,
   locale,
   maximumBucketMs,
   onDrillDown,
@@ -177,15 +191,15 @@ const RhythmBucket = ({
   handleMouseDoubleClick: (activate: () => void) => void;
   handleTouchActivation: TouchActivation;
   includedCategories: ReadonlySet<StudyActivityCategory>;
+  labels: StudyRhythmLabels;
   locale: string;
   maximumBucketMs: number;
   onDrillDown?: (bucket: StudyTimeAnalyticsBucket) => void;
   timeZone: string;
   totalMs: number;
 }) => {
-  const { t } = useTranslation(['study']);
   const label = bucketLabel(bucket, analytics, locale, timeZone);
-  const totalLabel = t('time.analytics.bucketTotal', { time: formatDuration(totalMs) });
+  const totalLabel = labels.bucketTotal(formatDuration(totalMs));
   const activate = () => onDrillDown?.(bucket);
   const handleDoubleClick = () => {
     if (!onDrillDown) return;
@@ -214,7 +228,7 @@ const RhythmBucket = ({
         style={{ height: `${Math.max(2, (totalMs / maximumBucketMs) * 88)}%` }}
         title={`${label}: ${totalLabel}`}
         aria-label={`${label}: ${formatDuration(totalMs)}${
-          onDrillDown ? `. ${t('time.analytics.drillDown')}` : ''
+          onDrillDown ? `. ${labels.drillDown}` : ''
         }`}
         onDoubleClick={handleDoubleClick}
         onPointerUp={handlePointerUp}
@@ -227,6 +241,7 @@ const RhythmBucket = ({
             category={category}
             categoryTotals={categoryTotals}
             includedCategories={includedCategories}
+            label={labels.categoryNames[category.key]}
           />
         ))}
       </button>
@@ -240,6 +255,7 @@ const StudyRhythmBars = ({
   handleMouseDoubleClick,
   handleTouchActivation,
   includedCategories,
+  labels,
   locale,
   onDrillDown,
   projection,
@@ -249,49 +265,49 @@ const StudyRhythmBars = ({
   handleMouseDoubleClick: (activate: () => void) => void;
   handleTouchActivation: TouchActivation;
   includedCategories: ReadonlySet<StudyActivityCategory>;
+  labels: StudyRhythmLabels;
   locale: string;
   onDrillDown?: (bucket: StudyTimeAnalyticsBucket) => void;
   projection: StudyTimeProjection;
   timeZone: string;
-}) => {
-  const { t } = useTranslation(['study']);
-  return (
+}) => (
+  <div
+    className="mt-6 min-w-0 overflow-hidden pb-2"
+    data-testid={`study-rhythm-chart-container-${analytics.key}`}
+  >
     <div
-      className="mt-6 min-w-0 overflow-hidden pb-2"
-      data-testid={`study-rhythm-chart-container-${analytics.key}`}
+      className="grid h-64 w-full min-w-0 items-end gap-0.5 border-b-2 border-navy/20 px-0.5"
+      style={{ gridTemplateColumns: `repeat(${Math.max(analytics.buckets.length, 1)}, 1fr)` }}
+      aria-label={labels.chart}
+      data-testid={`study-rhythm-chart-${analytics.key}`}
     >
-      <div
-        className="grid h-64 w-full min-w-0 items-end gap-0.5 border-b-2 border-navy/20 px-0.5"
-        style={{ gridTemplateColumns: `repeat(${Math.max(analytics.buckets.length, 1)}, 1fr)` }}
-        aria-label={t('time.analytics.chartLabel')}
-        data-testid={`study-rhythm-chart-${analytics.key}`}
-      >
-        {projection.buckets.map(({ bucket, categoryTotals, totalMs }) => (
-          <RhythmBucket
-            key={bucket.startsAt}
-            analytics={analytics}
-            bucket={bucket}
-            categoryTotals={categoryTotals}
-            handleMouseDoubleClick={handleMouseDoubleClick}
-            handleTouchActivation={handleTouchActivation}
-            includedCategories={includedCategories}
-            locale={locale}
-            maximumBucketMs={projection.maximumBucketMs}
-            onDrillDown={onDrillDown}
-            timeZone={timeZone}
-            totalMs={totalMs}
-          />
-        ))}
-      </div>
+      {projection.buckets.map(({ bucket, categoryTotals, totalMs }) => (
+        <RhythmBucket
+          key={bucket.startsAt}
+          analytics={analytics}
+          bucket={bucket}
+          categoryTotals={categoryTotals}
+          handleMouseDoubleClick={handleMouseDoubleClick}
+          handleTouchActivation={handleTouchActivation}
+          includedCategories={includedCategories}
+          labels={labels}
+          locale={locale}
+          maximumBucketMs={projection.maximumBucketMs}
+          onDrillDown={onDrillDown}
+          timeZone={timeZone}
+          totalMs={totalMs}
+        />
+      ))}
     </div>
-  );
-};
+  </div>
+);
 
 const CategoryFilter = ({
   category,
   handleMouseDoubleClick,
   handleTouchActivation,
   includedCategories,
+  labels,
   onToggleCategory,
   projection,
 }: {
@@ -299,10 +315,10 @@ const CategoryFilter = ({
   handleMouseDoubleClick: (activate: () => void) => void;
   handleTouchActivation: TouchActivation;
   includedCategories: ReadonlySet<StudyActivityCategory>;
+  labels: StudyRhythmLabels;
   onToggleCategory: (category: StudyActivityCategory) => void;
   projection: StudyTimeProjection;
 }) => {
-  const { t } = useTranslation(['study']);
   const categoryProjection = projection.categories.find((item) => item.category === category.key);
   const included = categoryProjection?.included ?? false;
   const categoryTotalMs = categoryProjection?.totalMs ?? 0;
@@ -322,9 +338,7 @@ const CategoryFilter = ({
           : 'border-navy/10 bg-navy/5 text-gray-400 opacity-60'
       } disabled:cursor-not-allowed`}
       aria-pressed={included}
-      aria-label={`${t(category.labelKey)}: ${formatDuration(categoryTotalMs)}. ${t(
-        'time.analytics.toggleCategory'
-      )}`}
+      aria-label={`${labels.categoryNames[category.key]}: ${formatDuration(categoryTotalMs)}. ${labels.toggleCategory}`}
       disabled={isOnlyIncludedCategory}
       onDoubleClick={() => handleMouseDoubleClick(activate)}
       onPointerUp={(event) =>
@@ -334,7 +348,7 @@ const CategoryFilter = ({
     >
       <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
         <span className={`h-2.5 w-2.5 rounded-full ${category.barColor}`} />
-        {t(category.labelKey)}
+        {labels.categoryNames[category.key]}
       </span>
       <span className={`font-mono text-sm font-black ${category.color}`}>
         {formatDuration(categoryTotalMs)}
@@ -347,35 +361,35 @@ const CategoryFilters = ({
   handleMouseDoubleClick,
   handleTouchActivation,
   includedCategories,
+  labels,
   onToggleCategory,
   projection,
 }: {
   handleMouseDoubleClick: (activate: () => void) => void;
   handleTouchActivation: TouchActivation;
   includedCategories: ReadonlySet<StudyActivityCategory>;
+  labels: StudyRhythmLabels;
   onToggleCategory: (category: StudyActivityCategory) => void;
   projection: StudyTimeProjection;
-}) => {
-  const { t } = useTranslation(['study']);
-  return (
-    <div
-      className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
-      aria-label={t('time.analytics.categoryFilters')}
-    >
-      {STUDY_TIME_CATEGORIES.map((category) => (
-        <CategoryFilter
-          key={category.key}
-          category={category}
-          handleMouseDoubleClick={handleMouseDoubleClick}
-          handleTouchActivation={handleTouchActivation}
-          includedCategories={includedCategories}
-          onToggleCategory={onToggleCategory}
-          projection={projection}
-        />
-      ))}
-    </div>
-  );
-};
+}) => (
+  <div
+    className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
+    aria-label={labels.categoryFilters}
+  >
+    {STUDY_TIME_CATEGORIES.map((category) => (
+      <CategoryFilter
+        key={category.key}
+        category={category}
+        handleMouseDoubleClick={handleMouseDoubleClick}
+        handleTouchActivation={handleTouchActivation}
+        includedCategories={includedCategories}
+        labels={labels}
+        onToggleCategory={onToggleCategory}
+        projection={projection}
+      />
+    ))}
+  </div>
+);
 
 const StudyRhythmChart = ({
   analytics,
@@ -402,11 +416,25 @@ const StudyRhythmChart = ({
     includedCategories,
     timeZone,
   });
+  const labels: StudyRhythmLabels = {
+    bestRhythm: t('time.analytics.bestRhythm'),
+    bucketTotal: (time) => t('time.analytics.bucketTotal', { time }),
+    categoryFilters: t('time.analytics.categoryFilters'),
+    categoryNames: Object.fromEntries(
+      STUDY_TIME_CATEGORIES.map((category) => [category.key, t(category.labelKey)])
+    ) as Record<StudyActivityCategory, string>,
+    chart: t('time.analytics.chartLabel'),
+    dailyAverage: t('time.analytics.dailyAverage'),
+    drillDown: t('time.analytics.drillDown'),
+    toggleCategory: t('time.analytics.toggleCategory'),
+    total: t('time.totals.total'),
+  };
 
   return (
     <>
       <StudyRhythmSummary
         analytics={analytics}
+        labels={labels}
         locale={locale}
         projection={projection}
         timeZone={timeZone}
@@ -416,6 +444,7 @@ const StudyRhythmChart = ({
         handleMouseDoubleClick={handleMouseDoubleClick}
         handleTouchActivation={handleTouchActivation}
         includedCategories={includedCategories}
+        labels={labels}
         locale={locale}
         onDrillDown={onDrillDown}
         projection={projection}
@@ -429,6 +458,7 @@ const StudyRhythmChart = ({
         handleMouseDoubleClick={handleMouseDoubleClick}
         handleTouchActivation={handleTouchActivation}
         includedCategories={includedCategories}
+        labels={labels}
         onToggleCategory={onToggleCategory}
         projection={projection}
       />
