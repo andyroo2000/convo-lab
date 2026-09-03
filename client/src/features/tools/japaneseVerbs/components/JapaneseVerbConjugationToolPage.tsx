@@ -2,17 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
 import VerbPracticeCardPanel from './VerbPracticeCard';
+import VerbPracticeControls from './VerbPracticeControls';
 import { playVerbAudioClip } from '../logic/preRenderedVerbAudio';
 import {
   createVerbPracticeCard,
   DEFAULT_CONJUGATION_IDS,
   DEFAULT_JLPT_LEVELS,
   DEFAULT_VERB_GROUPS,
-  JLPT_LEVEL_OPTIONS,
-  REGISTER_BADGE_LABELS,
   toggleSelection,
-  VERB_CONJUGATION_OPTIONS,
-  VERB_GROUP_OPTIONS,
   type JLPTLevel,
   type VerbConjugationId,
   type VerbPracticeCard,
@@ -24,7 +21,6 @@ interface VerbCardSnapshot {
   isRevealed: boolean;
 }
 
-const PAUSE_OPTIONS = [5, 8, 12] as const;
 const HISTORY_LIMIT = 120;
 const RECENT_CARD_HISTORY_LIMIT = 18;
 const buildCardHistoryKey = (card: VerbPracticeCard): string =>
@@ -377,13 +373,6 @@ const JapaneseVerbConjugationToolPage = () => {
     stopPlayback,
   ]);
 
-  const autoPlayButtonLabel = isPowerOn ? 'Stop Loop' : 'Auto-Loop';
-  const normalizedCountdownSeconds =
-    countdownSeconds === null
-      ? pauseSeconds
-      : Math.max(0, Math.min(pauseSeconds, countdownSeconds));
-  const elapsedCountdownSeconds = Math.max(0, pauseSeconds - normalizedCountdownSeconds);
-
   return (
     <div className="space-y-5">
       <section className="card retro-paper-panel !p-3 sm:!p-5 lg:!p-6">
@@ -409,179 +398,32 @@ const JapaneseVerbConjugationToolPage = () => {
             statusText={statusText}
           />
 
-          <div className="retro-verb-controls-panel">
-            <div
-              className="retro-counter-control-group"
-              role="group"
-              aria-label="JLPT level filters"
-            >
-              <span className="retro-counter-control-label">JLPT Levels</span>
-              <div className="retro-verb-filter-row">
-                {JLPT_LEVEL_OPTIONS.map((level) => {
-                  const isActive = selectedJlptLevels.includes(level);
-
-                  return (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() =>
-                        setSelectedJlptLevels((current) => toggleSelection(current, level))
-                      }
-                      className={`retro-verb-filter-chip ${isActive ? 'is-active' : ''}`}
-                      aria-pressed={isActive}
-                    >
-                      {level}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div
-              className="retro-counter-control-group"
-              role="group"
-              aria-label="Verb group filters"
-            >
-              <span className="retro-counter-control-label">Verb Groups</span>
-              <div className="retro-verb-filter-row">
-                {VERB_GROUP_OPTIONS.map((group) => {
-                  const isActive = selectedVerbGroups.includes(group);
-
-                  return (
-                    <button
-                      key={group}
-                      type="button"
-                      onClick={() =>
-                        setSelectedVerbGroups((current) => toggleSelection(current, group))
-                      }
-                      className={`retro-verb-filter-chip ${isActive ? 'is-active' : ''}`}
-                      aria-pressed={isActive}
-                    >
-                      Group {group}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div
-              className="retro-counter-control-group"
-              role="group"
-              aria-label="Conjugation filters"
-            >
-              <span className="retro-counter-control-label">Conjugation Targets</span>
-              <div className="retro-verb-filter-grid">
-                {VERB_CONJUGATION_OPTIONS.map((conjugation) => {
-                  const isActive = selectedConjugationIds.includes(conjugation.id);
-
-                  return (
-                    <button
-                      key={conjugation.id}
-                      type="button"
-                      onClick={() =>
-                        setSelectedConjugationIds((current) =>
-                          toggleSelection<VerbConjugationId>(current, conjugation.id)
-                        )
-                      }
-                      className={`retro-verb-conjugation-btn ${isActive ? 'is-active' : ''}`}
-                      aria-pressed={isActive}
-                      aria-label={conjugation.label}
-                    >
-                      <span className="retro-verb-conjugation-btn-title">{conjugation.label}</span>
-                      <span className="retro-verb-conjugation-btn-meta">
-                        {conjugation.registers
-                          .map((register) => REGISTER_BADGE_LABELS[register])
-                          .join(' • ')}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="retro-counter-control-group" role="group" aria-label="Quiz controls">
-              <span className="retro-counter-control-label">Quiz Controls</span>
-              <div className="retro-counter-control-buttons">
-                <div className="retro-counter-control-stack">
-                  <div className="retro-counter-countdown-led-row" aria-hidden="true">
-                    {Array.from({ length: pauseSeconds }, (_, index) => {
-                      let stateClass = 'is-off';
-                      if (isPowerOn) {
-                        const indexFromRight = pauseSeconds - 1 - index;
-                        stateClass =
-                          indexFromRight < elapsedCountdownSeconds ? 'is-red' : 'is-green';
-                      }
-
-                      return (
-                        <span
-                          key={`countdown-led-${pauseSeconds}-${index}`}
-                          data-testid="auto-loop-countdown-led"
-                          className={`retro-clock-radio-led retro-counter-countdown-led ${stateClass}`}
-                        />
-                      );
-                    })}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPowerOn((current) => !current)}
-                    className={`retro-counter-control-btn ${isPowerOn ? 'is-active' : ''}`}
-                    aria-pressed={isPowerOn}
-                  >
-                    {autoPlayButtonLabel}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="retro-counter-control-group" role="group" aria-label="Pause length">
-              <span className="retro-counter-control-label">Pause Length (Auto-Loop)</span>
-              <div className="retro-counter-pause-grid">
-                {PAUSE_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setPauseSeconds(option)}
-                    className={`retro-counter-pause-btn ${pauseSeconds === option ? 'is-active' : ''}`}
-                    aria-pressed={pauseSeconds === option}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="retro-counter-control-group" role="group" aria-label="Volume">
-              <span className="retro-counter-control-label">Volume</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={Math.round(volumeLevel * 100)}
-                onChange={(event) => {
-                  const nextVolume = Number(event.target.value) / 100;
-                  setVolumeLevel(nextVolume);
-                  playbackRef.current?.setVolume(nextVolume);
-                }}
-                className="retro-clock-radio-volume-slider"
-                aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
-              />
-            </div>
-
-            <div className="retro-counter-control-group" role="group" aria-label="Display options">
-              <span className="retro-counter-control-label">Display</span>
-              <button
-                type="button"
-                onClick={() => setShowFurigana((current) => !current)}
-                className={`retro-toggle-button ${showFurigana ? 'is-on' : ''}`}
-                title={showFurigana ? 'Hide furigana' : 'Show furigana'}
-                aria-pressed={showFurigana}
-              >
-                <span className="retro-toggle-switch" aria-hidden="true" />
-                <span>Furigana</span>
-              </button>
-            </div>
-          </div>
+          <VerbPracticeControls
+            countdownSeconds={countdownSeconds}
+            isPowerOn={isPowerOn}
+            onPauseChange={setPauseSeconds}
+            onPowerToggle={() => setIsPowerOn((current) => !current)}
+            onShowFuriganaToggle={() => setShowFurigana((current) => !current)}
+            onToggleConjugation={(conjugationId) =>
+              setSelectedConjugationIds((current) => toggleSelection(current, conjugationId))
+            }
+            onToggleJlptLevel={(level) =>
+              setSelectedJlptLevels((current) => toggleSelection(current, level))
+            }
+            onToggleVerbGroup={(group) =>
+              setSelectedVerbGroups((current) => toggleSelection(current, group))
+            }
+            onVolumeChange={(nextVolume) => {
+              setVolumeLevel(nextVolume);
+              playbackRef.current?.setVolume(nextVolume);
+            }}
+            pauseSeconds={pauseSeconds}
+            selectedConjugationIds={selectedConjugationIds}
+            selectedJlptLevels={selectedJlptLevels}
+            selectedVerbGroups={selectedVerbGroups}
+            showFurigana={showFurigana}
+            volumeLevel={volumeLevel}
+          />
         </div>
 
         <div className="mt-4 rounded border border-[#173b6538] bg-[#edf5f9] px-3 py-3 shadow-[0_3px_0_rgba(17,51,92,0.12)] sm:px-4">
