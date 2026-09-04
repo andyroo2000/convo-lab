@@ -7,192 +7,165 @@ interface SeoMetaOptions {
   robots?: string;
 }
 
-function upsertNamedMeta(name: string, content: string): HTMLMetaElement {
-  let element = document.head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+type SeoOption = keyof SeoMetaOptions;
+type HeadTag = 'link' | 'meta';
+type IdentityAttribute = 'name' | 'property' | 'rel';
+type ValueAttribute = 'content' | 'href';
+
+interface HeadBinding {
+  option: SeoOption;
+  tag: HeadTag;
+  identityAttribute: IdentityAttribute;
+  identityValue: string;
+  valueAttribute: ValueAttribute;
+  fixedValue?: string;
+  restore?: boolean;
+}
+
+const HEAD_BINDINGS: readonly HeadBinding[] = [
+  {
+    option: 'title',
+    tag: 'meta',
+    identityAttribute: 'property',
+    identityValue: 'og:type',
+    valueAttribute: 'content',
+    fixedValue: 'website',
+    restore: false,
+  },
+  {
+    option: 'title',
+    tag: 'meta',
+    identityAttribute: 'property',
+    identityValue: 'og:title',
+    valueAttribute: 'content',
+  },
+  {
+    option: 'title',
+    tag: 'meta',
+    identityAttribute: 'name',
+    identityValue: 'twitter:card',
+    valueAttribute: 'content',
+    fixedValue: 'summary_large_image',
+  },
+  {
+    option: 'title',
+    tag: 'meta',
+    identityAttribute: 'name',
+    identityValue: 'twitter:title',
+    valueAttribute: 'content',
+  },
+  {
+    option: 'description',
+    tag: 'meta',
+    identityAttribute: 'name',
+    identityValue: 'description',
+    valueAttribute: 'content',
+  },
+  {
+    option: 'description',
+    tag: 'meta',
+    identityAttribute: 'property',
+    identityValue: 'og:description',
+    valueAttribute: 'content',
+  },
+  {
+    option: 'description',
+    tag: 'meta',
+    identityAttribute: 'name',
+    identityValue: 'twitter:description',
+    valueAttribute: 'content',
+  },
+  {
+    option: 'robots',
+    tag: 'meta',
+    identityAttribute: 'name',
+    identityValue: 'robots',
+    valueAttribute: 'content',
+  },
+  {
+    option: 'canonicalUrl',
+    tag: 'link',
+    identityAttribute: 'rel',
+    identityValue: 'canonical',
+    valueAttribute: 'href',
+  },
+  {
+    option: 'canonicalUrl',
+    tag: 'meta',
+    identityAttribute: 'property',
+    identityValue: 'og:url',
+    valueAttribute: 'content',
+  },
+];
+
+function bindingSelector(binding: HeadBinding): string {
+  return `${binding.tag}[${binding.identityAttribute}="${binding.identityValue}"]`;
+}
+
+function findHeadElement(binding: HeadBinding): HTMLElement | null {
+  return document.head.querySelector(bindingSelector(binding));
+}
+
+function upsertHeadValue(binding: HeadBinding, value: string): void {
+  let element = findHeadElement(binding);
   if (!element) {
-    element = document.createElement('meta');
-    element.setAttribute('name', name);
+    element = document.createElement(binding.tag);
+    element.setAttribute(binding.identityAttribute, binding.identityValue);
     document.head.appendChild(element);
   }
-  element.setAttribute('content', content);
-  return element;
+  element.setAttribute(binding.valueAttribute, value);
 }
 
-function upsertPropertyMeta(property: string, content: string): HTMLMetaElement {
-  let element = document.head.querySelector(
-    `meta[property="${property}"]`
-  ) as HTMLMetaElement | null;
-  if (!element) {
-    element = document.createElement('meta');
-    element.setAttribute('property', property);
-    document.head.appendChild(element);
+function captureHeadValues(): ReadonlyMap<HeadBinding, string | null> {
+  return new Map(
+    HEAD_BINDINGS.map((binding) => [
+      binding,
+      findHeadElement(binding)?.getAttribute(binding.valueAttribute) ?? null,
+    ])
+  );
+}
+
+function applyHeadValues(options: SeoMetaOptions): void {
+  HEAD_BINDINGS.forEach((binding) => {
+    const optionValue = options[binding.option];
+    if (!optionValue) return;
+    upsertHeadValue(binding, binding.fixedValue ?? optionValue);
+  });
+}
+
+function restoreHeadValue(binding: HeadBinding, previousValue: string | null | undefined): void {
+  if (previousValue) {
+    upsertHeadValue(binding, previousValue);
+    return;
   }
-  element.setAttribute('content', content);
-  return element;
+  findHeadElement(binding)?.remove();
 }
 
-function upsertCanonical(url: string): HTMLLinkElement {
-  let element = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
-  if (!element) {
-    element = document.createElement('link');
-    element.setAttribute('rel', 'canonical');
-    document.head.appendChild(element);
-  }
-  element.setAttribute('href', url);
-  return element;
-}
-
-function removeNamedMeta(name: string): void {
-  const element = document.head.querySelector(`meta[name="${name}"]`);
-  element?.remove();
-}
-
-function removePropertyMeta(property: string): void {
-  const element = document.head.querySelector(`meta[property="${property}"]`);
-  element?.remove();
-}
-
-function removeCanonical(): void {
-  const element = document.head.querySelector('link[rel="canonical"]');
-  element?.remove();
+function restoreHeadValues(
+  options: SeoMetaOptions,
+  previousValues: ReadonlyMap<HeadBinding, string | null>
+): void {
+  HEAD_BINDINGS.forEach((binding) => {
+    if (binding.restore === false) return;
+    if (!options[binding.option]) return;
+    restoreHeadValue(binding, previousValues.get(binding));
+  });
 }
 
 export default function useSeoMeta(options: SeoMetaOptions): void {
+  const { canonicalUrl, description, robots, title } = options;
+
   useEffect(() => {
+    const currentOptions = { canonicalUrl, description, robots, title };
     const previousTitle = document.title;
+    const previousHeadValues = captureHeadValues();
 
-    const previousDescriptionEl = document.head.querySelector(
-      'meta[name="description"]'
-    ) as HTMLMetaElement | null;
-    const previousDescription = previousDescriptionEl?.getAttribute('content');
-
-    const previousRobotsEl = document.head.querySelector(
-      'meta[name="robots"]'
-    ) as HTMLMetaElement | null;
-    const previousRobots = previousRobotsEl?.getAttribute('content');
-
-    const previousCanonicalEl = document.head.querySelector(
-      'link[rel="canonical"]'
-    ) as HTMLLinkElement | null;
-    const previousCanonical = previousCanonicalEl?.getAttribute('href');
-
-    const previousOgTitleEl = document.head.querySelector(
-      'meta[property="og:title"]'
-    ) as HTMLMetaElement | null;
-    const previousOgTitle = previousOgTitleEl?.getAttribute('content');
-
-    const previousOgDescriptionEl = document.head.querySelector(
-      'meta[property="og:description"]'
-    ) as HTMLMetaElement | null;
-    const previousOgDescription = previousOgDescriptionEl?.getAttribute('content');
-
-    const previousOgUrlEl = document.head.querySelector(
-      'meta[property="og:url"]'
-    ) as HTMLMetaElement | null;
-    const previousOgUrl = previousOgUrlEl?.getAttribute('content');
-
-    const previousTwitterCardEl = document.head.querySelector(
-      'meta[name="twitter:card"]'
-    ) as HTMLMetaElement | null;
-    const previousTwitterCard = previousTwitterCardEl?.getAttribute('content');
-
-    const previousTwitterTitleEl = document.head.querySelector(
-      'meta[name="twitter:title"]'
-    ) as HTMLMetaElement | null;
-    const previousTwitterTitle = previousTwitterTitleEl?.getAttribute('content');
-
-    const previousTwitterDescriptionEl = document.head.querySelector(
-      'meta[name="twitter:description"]'
-    ) as HTMLMetaElement | null;
-    const previousTwitterDescription = previousTwitterDescriptionEl?.getAttribute('content');
-
-    if (options.title) {
-      document.title = options.title;
-      upsertPropertyMeta('og:type', 'website');
-      upsertPropertyMeta('og:title', options.title);
-      upsertNamedMeta('twitter:card', 'summary_large_image');
-      upsertNamedMeta('twitter:title', options.title);
-    }
-
-    if (options.description) {
-      upsertNamedMeta('description', options.description);
-      upsertPropertyMeta('og:description', options.description);
-      upsertNamedMeta('twitter:description', options.description);
-    }
-
-    if (options.robots) {
-      upsertNamedMeta('robots', options.robots);
-    }
-
-    if (options.canonicalUrl) {
-      upsertCanonical(options.canonicalUrl);
-      upsertPropertyMeta('og:url', options.canonicalUrl);
-    }
+    if (title) document.title = title;
+    applyHeadValues(currentOptions);
 
     return () => {
-      if (options.title) {
-        document.title = previousTitle;
-
-        if (previousOgTitle) {
-          upsertPropertyMeta('og:title', previousOgTitle);
-        } else {
-          removePropertyMeta('og:title');
-        }
-
-        if (previousTwitterCard) {
-          upsertNamedMeta('twitter:card', previousTwitterCard);
-        } else {
-          removeNamedMeta('twitter:card');
-        }
-
-        if (previousTwitterTitle) {
-          upsertNamedMeta('twitter:title', previousTwitterTitle);
-        } else {
-          removeNamedMeta('twitter:title');
-        }
-      }
-
-      if (options.description) {
-        if (previousDescription) {
-          upsertNamedMeta('description', previousDescription);
-        } else {
-          removeNamedMeta('description');
-        }
-
-        if (previousOgDescription) {
-          upsertPropertyMeta('og:description', previousOgDescription);
-        } else {
-          removePropertyMeta('og:description');
-        }
-
-        if (previousTwitterDescription) {
-          upsertNamedMeta('twitter:description', previousTwitterDescription);
-        } else {
-          removeNamedMeta('twitter:description');
-        }
-      }
-
-      if (options.robots) {
-        if (previousRobots) {
-          upsertNamedMeta('robots', previousRobots);
-        } else {
-          removeNamedMeta('robots');
-        }
-      }
-
-      if (options.canonicalUrl) {
-        if (previousCanonical) {
-          upsertCanonical(previousCanonical);
-        } else {
-          removeCanonical();
-        }
-
-        if (previousOgUrl) {
-          upsertPropertyMeta('og:url', previousOgUrl);
-        } else {
-          removePropertyMeta('og:url');
-        }
-      }
+      if (title) document.title = previousTitle;
+      restoreHeadValues(currentOptions, previousHeadValues);
     };
-  }, [options.canonicalUrl, options.description, options.robots, options.title]);
+  }, [canonicalUrl, description, robots, title]);
 }
