@@ -1,5 +1,10 @@
 import { useEffect, useRef } from 'react';
 
+type RunBackgroundTask = (
+  task?: Promise<unknown> | (() => Promise<unknown> | unknown),
+  options?: { errorMessage?: string; label?: string; onError?: (message: string) => void }
+) => void;
+
 interface UseStudyKeyboardShortcutsOptions {
   cardActionPending: boolean;
   editing: boolean;
@@ -14,10 +19,7 @@ interface UseStudyKeyboardShortcutsOptions {
   toggleAnswerAudio: () => boolean;
   reviewSubmitPending: boolean;
   reviewPending: boolean;
-  runBackgroundTask: (
-    task?: Promise<unknown> | (() => Promise<unknown> | unknown),
-    options?: { errorMessage?: string; label?: string; onError?: (message: string) => void }
-  ) => void;
+  runBackgroundTask: RunBackgroundTask;
   setEditing: (editing: boolean) => void;
 }
 
@@ -39,6 +41,94 @@ const getKeyboardGrade = (event: KeyboardEvent): 'again' | 'hard' | 'good' | 'ea
 
   return gradeByKey[event.key] ?? gradeByKey[event.code] ?? null;
 };
+
+function isTypingTarget(target: EventTarget | null) {
+  if (target instanceof HTMLInputElement) return true;
+  return target instanceof HTMLTextAreaElement;
+}
+
+function hasUndoModifier(event: KeyboardEvent) {
+  if (event.metaKey) return true;
+  return event.ctrlKey;
+}
+
+function handleUndoShortcut(
+  event: KeyboardEvent,
+  handleUndo: () => Promise<void>,
+  runBackgroundTask: RunBackgroundTask,
+  onError: (message: string) => void
+) {
+  if (event.key.toLowerCase() !== 'z') return false;
+  if (event.shiftKey) return false;
+  if (!hasUndoModifier(event)) return false;
+
+  event.preventDefault();
+  runBackgroundTask(() => handleUndo(), {
+    label: 'Study keyboard undo',
+    errorMessage: 'Undo failed.',
+    onError,
+  });
+  return true;
+}
+
+function handleEditingShortcut(
+  event: KeyboardEvent,
+  editing: boolean,
+  setEditing: (editing: boolean) => void
+) {
+  if (!editing) return false;
+  if (event.key !== 'Escape') return true;
+
+  event.preventDefault();
+  setEditing(false);
+  return true;
+}
+
+function handleSpaceShortcut(
+  event: KeyboardEvent,
+  revealed: boolean,
+  revealCurrentCard: () => void,
+  toggleAnswerAudio: () => boolean
+) {
+  if (event.code !== 'Space') return false;
+
+  event.preventDefault();
+  if (!revealed) {
+    revealCurrentCard();
+    return true;
+  }
+  if (!toggleAnswerAudio()) revealCurrentCard();
+  return true;
+}
+
+function handleReviewShortcut(
+  event: KeyboardEvent,
+  revealed: boolean,
+  reviewSubmitPending: boolean,
+  reviewPending: boolean,
+  handleGrade: UseStudyKeyboardShortcutsOptions['handleGrade'],
+  exitFocusMode: () => void,
+  runBackgroundTask: RunBackgroundTask,
+  onError: (message: string) => void
+) {
+  if (!revealed) return;
+  if (reviewSubmitPending) return;
+  if (reviewPending) return;
+
+  const keyboardGrade = getKeyboardGrade(event);
+  if (keyboardGrade) {
+    event.preventDefault();
+    runBackgroundTask(() => handleGrade(keyboardGrade), {
+      label: 'Study keyboard grade',
+      errorMessage: 'Review failed.',
+      onError,
+    });
+    return;
+  }
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  exitFocusMode();
+}
 
 export default function useStudyKeyboardShortcuts({
   cardActionPending,
@@ -71,54 +161,29 @@ export default function useStudyKeyboardShortcuts({
     if (!focusMode || interactionBlocked) return undefined;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+      if (isTypingTarget(event.target)) return;
+      if (handleUndoShortcut(event, handleUndo, runBackgroundTask, onError)) return;
+      if (handleEditingShortcut(event, editing, setEditing)) return;
+      if (cardActionPending) return;
+      if (
+        handleSpaceShortcut(
+          event,
+          revealedRef.current,
+          revealCurrentCardRef.current,
+          toggleAnswerAudioRef.current
+        )
+      )
         return;
-      }
-
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
-        event.preventDefault();
-        runBackgroundTask(() => handleUndo(), {
-          label: 'Study keyboard undo',
-          errorMessage: 'Undo failed.',
-          onError,
-        });
-        return;
-      }
-
-      if (editing && event.key === 'Escape') {
-        event.preventDefault();
-        setEditing(false);
-        return;
-      }
-
-      if (editing || cardActionPending) return;
-
-      if (event.code === 'Space') {
-        event.preventDefault();
-        if (revealedRef.current) {
-          if (!toggleAnswerAudioRef.current()) {
-            revealCurrentCardRef.current();
-          }
-          return;
-        }
-        revealCurrentCardRef.current();
-        return;
-      }
-
-      if (!revealed || reviewSubmitPending || reviewPending) return;
-
-      const keyboardGrade = getKeyboardGrade(event);
-      if (keyboardGrade) {
-        event.preventDefault();
-        runBackgroundTask(() => handleGrade(keyboardGrade), {
-          label: 'Study keyboard grade',
-          errorMessage: 'Review failed.',
-          onError,
-        });
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        exitFocusMode();
-      }
+      handleReviewShortcut(
+        event,
+        revealed,
+        reviewSubmitPending,
+        reviewPending,
+        handleGrade,
+        exitFocusMode,
+        runBackgroundTask,
+        onError
+      );
     };
 
     window.addEventListener('keydown', handleKeyDown, { capture: true });
