@@ -1,4 +1,4 @@
-import { AlertTriangle, WifiOff, Lock, RefreshCw } from 'lucide-react';
+import { AlertTriangle, WifiOff, Lock, RefreshCw, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface ErrorDisplayProps {
@@ -8,66 +8,45 @@ interface ErrorDisplayProps {
   description?: string;
 }
 
+type ErrorKind = 'connection' | 'auth' | 'generation' | 'generic';
+
+interface ErrorDetails {
+  icon: LucideIcon;
+  iconClassName: string;
+  color: string;
+}
+
+const ERROR_PATTERNS: Array<[Exclude<ErrorKind, 'generic'>, RegExp]> = [
+  ['connection', /network|offline|fetch/i],
+  ['auth', /unauthorized|401|forbidden|403/i],
+  ['generation', /generation|generate/i],
+];
+
+const ERROR_DETAILS: Record<ErrorKind, ErrorDetails> = {
+  connection: { icon: WifiOff, iconClassName: 'text-gray-400', color: 'text-gray-700' },
+  auth: { icon: Lock, iconClassName: 'text-amber-500', color: 'text-amber-700' },
+  generation: { icon: RefreshCw, iconClassName: 'text-indigo-500', color: 'text-indigo-700' },
+  generic: { icon: AlertTriangle, iconClassName: 'text-red-500', color: 'text-red-700' },
+};
+
+function classifyError(errorMessage: string): ErrorKind {
+  return ERROR_PATTERNS.find(([, pattern]) => pattern.test(errorMessage))?.[0] ?? 'generic';
+}
+
 const ErrorDisplay = ({ error, onRetry, title, description }: ErrorDisplayProps) => {
   const { t } = useTranslation(['errors']);
   const errorMessage = typeof error === 'string' ? error : error.message;
-
-  // Determine error type and icon
-  const getErrorDetails = () => {
-    const lowerError = errorMessage.toLowerCase();
-
-    if (
-      lowerError.includes('network') ||
-      lowerError.includes('offline') ||
-      lowerError.includes('fetch')
-    ) {
-      return {
-        icon: <WifiOff className="w-12 h-12 text-gray-400" />,
-        title: t('errors:display.connection.title'),
-        description: t('errors:display.connection.description'),
-        color: 'text-gray-700',
-      };
-    }
-
-    if (
-      lowerError.includes('unauthorized') ||
-      lowerError.includes('401') ||
-      lowerError.includes('forbidden') ||
-      lowerError.includes('403')
-    ) {
-      return {
-        icon: <Lock className="w-12 h-12 text-amber-500" />,
-        title: t('errors:display.auth.title'),
-        description: t('errors:display.auth.description'),
-        color: 'text-amber-700',
-      };
-    }
-
-    if (lowerError.includes('generation') || lowerError.includes('generate')) {
-      return {
-        icon: <RefreshCw className="w-12 h-12 text-indigo-500" />,
-        title: t('errors:display.generation.title'),
-        description: t('errors:display.generation.description'),
-        color: 'text-indigo-700',
-      };
-    }
-
-    // Default error
-    return {
-      icon: <AlertTriangle className="w-12 h-12 text-red-500" />,
-      title: t('errors:display.generic.title'),
-      description: t('errors:display.generic.description'),
-      color: 'text-red-700',
-    };
-  };
-
-  const errorDetails = getErrorDetails();
-  const displayTitle = title || errorDetails.title;
-  const displayDescription = description || errorDetails.description;
+  const errorKind = classifyError(errorMessage);
+  const errorDetails = ERROR_DETAILS[errorKind];
+  const ErrorIcon = errorDetails.icon;
+  const displayTitle = title || t(`errors:display.${errorKind}.title`);
+  const displayDescription = description || t(`errors:display.${errorKind}.description`);
 
   return (
     <div className="card text-center py-12 px-6">
-      <div className="flex justify-center mb-4">{errorDetails.icon}</div>
+      <div className="flex justify-center mb-4">
+        <ErrorIcon className={`w-12 h-12 ${errorDetails.iconClassName}`} />
+      </div>
       <h3 className={`text-xl font-semibold mb-2 ${errorDetails.color}`}>{displayTitle}</h3>
       <p className="text-gray-600 mb-4 max-w-md mx-auto">{displayDescription}</p>
       {errorMessage && (

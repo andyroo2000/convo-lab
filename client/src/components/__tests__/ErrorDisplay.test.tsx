@@ -120,6 +120,13 @@ describe('ErrorDisplay', () => {
     expect(screen.getByText('Generation Failed')).toBeTruthy();
   });
 
+  it('preserves connection error priority when a message matches multiple categories', () => {
+    render(<ErrorDisplay error="Network request failed with 401 unauthorized" />);
+
+    expect(screen.getByText('Connection Error')).toBeTruthy();
+    expect(screen.queryByText('Authentication Error')).toBeNull();
+  });
+
   it('should display error message in monospace font', () => {
     render(<ErrorDisplay error="Error code: 500" />);
 
