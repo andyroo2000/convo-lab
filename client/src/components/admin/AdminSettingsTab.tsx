@@ -7,6 +7,7 @@ import {
   type AdminFeatureFlagKey,
   type AdminFeatureFlags,
   type AdminPronunciationDictionary,
+  type AdminPronunciationDictionaryUpdate,
   type AdminReadRequestInit,
 } from '../../lib/adminApi';
 
@@ -16,6 +17,14 @@ interface AdminSettingsTabProps {
 
 const isAbortError = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError';
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
+
+const didRequestFinish = (init?: AdminReadRequestInit): boolean => !init?.signal?.aborted;
+
+const formatUpdatedAt = (updatedAt?: string): string =>
+  updatedAt ? new Date(updatedAt).toLocaleString() : '-';
 
 const formatKeepKanjiText = (keepKanji: string[]) => keepKanji.filter(Boolean).join('\n');
 
@@ -58,6 +67,50 @@ const parseForceKanaText = (text: string) => {
   return { entries, errors };
 };
 
+interface PronunciationDraftText {
+  forceKana: string;
+  keepKanji: string;
+  verbKana: string;
+}
+
+interface ParsedPronunciationDraft {
+  error?: string;
+  value?: AdminPronunciationDictionaryUpdate;
+}
+
+const parsePronunciationDraft = (draft: PronunciationDraftText): ParsedPronunciationDraft => {
+  const forceKanaResult = parseForceKanaText(draft.forceKana);
+  if (forceKanaResult.errors.length > 0) return { error: forceKanaResult.errors[0] };
+
+  const verbKanaResult = parseForceKanaText(draft.verbKana);
+  if (verbKanaResult.errors.length > 0) return { error: verbKanaResult.errors[0] };
+
+  return {
+    value: {
+      forceKana: forceKanaResult.entries,
+      keepKanji: parseKeepKanjiText(draft.keepKanji),
+      verbKana: verbKanaResult.entries,
+    },
+  };
+};
+
+const formatPronunciationDraft = (
+  dictionary: AdminPronunciationDictionary
+): PronunciationDraftText => ({
+  forceKana: formatForceKanaText(dictionary.forceKana || {}),
+  keepKanji: formatKeepKanjiText(dictionary.keepKanji || []),
+  verbKana: formatForceKanaText(dictionary.verbKana || {}),
+});
+
+const preserveEditedText = (current: string, submitted: string, formatted: string): string =>
+  current === submitted ? formatted : current;
+
+const withFeatureFlag = (
+  current: AdminFeatureFlags | null,
+  key: AdminFeatureFlagKey,
+  value: boolean
+): AdminFeatureFlags | null => (current ? { ...current, [key]: value } : current);
+
 const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
   const [featureFlags, setFeatureFlags] = useState<AdminFeatureFlags | null>(null);
   const [isFeatureFlagsLoading, setIsFeatureFlagsLoading] = useState(false);
@@ -89,9 +142,9 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
       setFeatureFlags(data);
     } catch (err) {
       if (isAbortError(err)) return;
-      setFeatureFlagsError(err instanceof Error ? err.message : 'Failed to fetch feature flags');
+      setFeatureFlagsError(getErrorMessage(err, 'Failed to fetch feature flags'));
     } finally {
-      if (!init?.signal?.aborted) setIsFeatureFlagsLoading(false);
+      if (didRequestFinish(init)) setIsFeatureFlagsLoading(false);
     }
   };
 
@@ -108,7 +161,8 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
   };
 
   const updateFeatureFlag = async (key: AdminFeatureFlagKey, value: boolean) => {
-    if (!featureFlags || featureFlagMutationsRef.current.has(key)) return;
+    if (!featureFlags) return;
+    if (featureFlagMutationsRef.current.has(key)) return;
 
     const previousValue = featureFlags[key];
     const readRevision = featureFlagsReadRevisionRef.current;
@@ -116,18 +170,18 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
     featureFlagMutationsRef.current.add(key);
     featureFlagMutationControllersRef.current.set(key, controller);
     setSavingFeatureFlags(new Set(featureFlagMutationsRef.current));
-    setFeatureFlags((current) => (current ? { ...current, [key]: value } : current));
+    setFeatureFlags((current) => withFeatureFlag(current, key, value));
 
     try {
       const updated = await updateAdminFeatureFlag(key, value, { signal: controller.signal });
-      setFeatureFlags((current) => (current ? { ...current, [key]: updated[key] } : updated));
+      setFeatureFlags((current) => withFeatureFlag(current || updated, key, updated[key]));
       showToast('Settings updated successfully', 'success');
     } catch (err) {
       if (isAbortError(err)) return;
       if (featureFlagsReadRevisionRef.current === readRevision) {
-        setFeatureFlags((current) => (current ? { ...current, [key]: previousValue } : current));
+        setFeatureFlags((current) => withFeatureFlag(current, key, previousValue));
       }
-      showToast(err instanceof Error ? err.message : 'Failed to update settings', 'error');
+      showToast(getErrorMessage(err, 'Failed to update settings'), 'error');
     } finally {
       if (featureFlagMutationControllersRef.current.get(key) === controller) {
         featureFlagMutationControllersRef.current.delete(key);
@@ -143,18 +197,16 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
     setPronunciationLoading(true);
     try {
       const data = await getAdminPronunciationDictionary(init);
+      const formatted = formatPronunciationDraft(data);
       setPronunciationDictionary(data);
-      setKeepKanjiText(formatKeepKanjiText(data.keepKanji || []));
-      setForceKanaText(formatForceKanaText(data.forceKana || {}));
-      setVerbKanaText(formatForceKanaText(data.verbKana || {}));
+      setKeepKanjiText(formatted.keepKanji);
+      setForceKanaText(formatted.forceKana);
+      setVerbKanaText(formatted.verbKana);
     } catch (err) {
       if (isAbortError(err)) return;
-      showToast(
-        err instanceof Error ? err.message : 'Failed to fetch pronunciation dictionary',
-        'error'
-      );
+      showToast(getErrorMessage(err, 'Failed to fetch pronunciation dictionary'), 'error');
     } finally {
-      if (!init?.signal?.aborted) setPronunciationLoading(false);
+      if (didRequestFinish(init)) setPronunciationLoading(false);
     }
   };
 
@@ -175,50 +227,40 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
   const handleSavePronunciationDictionary = async () => {
     if (pronunciationMutationRef.current) return;
 
-    const keepKanji = parseKeepKanjiText(keepKanjiText);
-    const { entries: forceKana, errors } = parseForceKanaText(forceKanaText);
-    const { entries: verbKana, errors: verbKanaErrors } = parseForceKanaText(verbKanaText);
-
-    if (errors.length > 0) {
-      showToast(errors[0], 'error');
-      return;
-    }
-    if (verbKanaErrors.length > 0) {
-      showToast(verbKanaErrors[0], 'error');
-      return;
-    }
-
     const submittedText = {
       keepKanji: keepKanjiText,
       forceKana: forceKanaText,
       verbKana: verbKanaText,
     };
+    const parsed = parsePronunciationDraft(submittedText);
+    if (parsed.error || !parsed.value) {
+      showToast(parsed.error || 'Failed to parse pronunciation dictionary', 'error');
+      return;
+    }
+
     const controller = new AbortController();
     pronunciationMutationRef.current = true;
     pronunciationMutationControllerRef.current = controller;
     setPronunciationSaving(true);
     try {
-      const updated = await updateAdminPronunciationDictionary(
-        { keepKanji, forceKana, verbKana },
-        { signal: controller.signal }
-      );
+      const updated = await updateAdminPronunciationDictionary(parsed.value, {
+        signal: controller.signal,
+      });
+      const formatted = formatPronunciationDraft(updated);
       setPronunciationDictionary(updated);
       setKeepKanjiText((current) =>
-        current === submittedText.keepKanji ? formatKeepKanjiText(updated.keepKanji || []) : current
+        preserveEditedText(current, submittedText.keepKanji, formatted.keepKanji)
       );
       setForceKanaText((current) =>
-        current === submittedText.forceKana ? formatForceKanaText(updated.forceKana || {}) : current
+        preserveEditedText(current, submittedText.forceKana, formatted.forceKana)
       );
       setVerbKanaText((current) =>
-        current === submittedText.verbKana ? formatForceKanaText(updated.verbKana || {}) : current
+        preserveEditedText(current, submittedText.verbKana, formatted.verbKana)
       );
       showToast('Pronunciation dictionary updated', 'success');
     } catch (err) {
       if (isAbortError(err)) return;
-      showToast(
-        err instanceof Error ? err.message : 'Failed to update pronunciation dictionary',
-        'error'
-      );
+      showToast(getErrorMessage(err, 'Failed to update pronunciation dictionary'), 'error');
     } finally {
       if (pronunciationMutationControllerRef.current === controller) {
         pronunciationMutationControllerRef.current = null;
@@ -424,10 +466,7 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
 
             <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-xs text-gray-500">
-                Updated:{' '}
-                {pronunciationDictionary?.updatedAt
-                  ? new Date(pronunciationDictionary.updatedAt).toLocaleString()
-                  : '-'}
+                Updated: {formatUpdatedAt(pronunciationDictionary?.updatedAt)}
               </div>
               <div className="flex gap-2">
                 <button
