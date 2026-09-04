@@ -24,6 +24,7 @@ import {
   useRecentDailyAudioPractice,
 } from '../hooks/useDailyAudioPractice';
 import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
+import type { DailyAudioPractice } from '../types';
 
 const GENERATION_STALE_AFTER_MS = 90 * 60 * 1000;
 const SWIPE_THRESHOLD_PX = 50;
@@ -110,6 +111,279 @@ const AnimatedDay = forwardRef<
 
 AnimatedDay.displayName = 'AnimatedDay';
 
+interface DailyAudioHeaderProps {
+  activeTodayGeneration: boolean;
+  durationAvailable: boolean;
+  durationOptions: number[];
+  generateButtonLabel: string;
+  isCreating: boolean;
+  onGenerate: () => void;
+  setTargetDurationMinutes: (duration: DailyAudioDurationMinutes) => void;
+  targetDurationMinutes: DailyAudioDurationMinutes | null;
+}
+
+const DailyAudioHeader = ({
+  activeTodayGeneration,
+  durationAvailable,
+  durationOptions,
+  generateButtonLabel,
+  isCreating,
+  onGenerate,
+  setTargetDurationMinutes,
+  targetDurationMinutes,
+}: DailyAudioHeaderProps) => (
+  <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
+    <div className="flex flex-wrap items-end justify-between gap-5">
+      <div>
+        <div className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Study audio</div>
+        <h1 className="retro-headline text-4xl sm:text-6xl">Daily Audio Practice</h1>
+        <p className="mt-2 max-w-3xl text-lg text-[rgba(20,50,86,0.76)]">
+          Generate audio drills based on words and grammar structures you are currently working on.
+        </p>
+      </div>
+      <div className="space-y-3">
+        <fieldset disabled={isCreating || activeTodayGeneration || !durationAvailable}>
+          <legend className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Edition length</legend>
+          <div className="flex flex-wrap gap-1" aria-label="Edition length">
+            {durationOptions.map((duration) => (
+              <button
+                key={duration}
+                type="button"
+                aria-pressed={targetDurationMinutes === duration}
+                onClick={() => setTargetDurationMinutes(duration)}
+                className={`min-h-10 border-2 px-3 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  targetDurationMinutes === duration
+                    ? 'border-navy bg-navy text-[#fbf5e0]'
+                    : 'border-navy/20 bg-[#fbf5e0]/80 text-navy hover:bg-white'
+                }`}
+              >
+                {duration} min
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <button
+          type="button"
+          onClick={onGenerate}
+          disabled={isCreating || activeTodayGeneration || targetDurationMinutes === null}
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 border-2 border-navy/20 bg-navy px-5 py-3 font-black uppercase tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {activeTodayGeneration ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Headphones className="h-4 w-4" />
+          )}
+          {generateButtonLabel}
+        </button>
+      </div>
+    </div>
+  </section>
+);
+
+const LoadingPractice = () => (
+  <section className="card retro-paper-panel py-12 text-center">
+    <div className="loading-spinner mx-auto mb-4 h-12 w-12 rounded-full border-4 border-indigo border-t-transparent" />
+    <p className="text-gray-600">Loading daily audio practice...</p>
+  </section>
+);
+
+const EmptyPractice = () => (
+  <section className="card retro-paper-panel space-y-3 py-10 text-center">
+    <h2 className="retro-headline text-3xl">Ready when you are</h2>
+    <p className="mx-auto max-w-xl text-gray-600">
+      Your daily drills, dialogues, and story will appear here after generation.
+    </p>
+  </section>
+);
+
+const GenerationError = ({ practice }: { practice: DailyAudioPractice }) => (
+  <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
+    <h2 className="text-xl font-bold text-red-900">Generation failed</h2>
+    <p className="mt-2 text-red-700">
+      {practice.errorMessage || 'Daily audio practice could not be generated.'}
+    </p>
+  </section>
+);
+
+const CreatePracticeError = ({ error }: { error: unknown }) => (
+  <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
+    <h2 className="text-xl font-bold text-red-900">Could not start practice</h2>
+    <p className="mt-2 text-red-700">
+      {error instanceof Error ? error.message : 'Daily audio practice could not be started.'}
+    </p>
+  </section>
+);
+
+const StaleGeneration = () => (
+  <section className="retro-paper-panel border-2 border-amber-200 bg-amber-50 px-4 py-5">
+    <h2 className="text-xl font-bold text-amber-950">Generation is taking longer than expected</h2>
+    <p className="mt-2 text-amber-800">
+      Start a new generation to retry today&apos;s practice set.
+    </p>
+  </section>
+);
+
+const GenerationProgress = ({
+  practice,
+  progress,
+}: {
+  practice: DailyAudioPractice;
+  progress: number | null;
+}) => (
+  <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 className="retro-headline text-3xl">
+          Generating today&apos;s {practice.targetDurationMinutes}-minute edition
+        </h2>
+        <p className="text-[rgba(20,50,86,0.68)]">
+          {practice.tracks
+            .map((track) => `${track.title}: ${formatStatus(track.status)}`)
+            .join(' - ')}
+        </p>
+      </div>
+      <span className="retro-caps text-[rgba(20,50,86,0.68)]">{progress ?? 0}%</span>
+    </div>
+    <div className="mt-4 h-3 overflow-hidden border-2 border-[rgba(20,50,86,0.14)] bg-white/60">
+      <div
+        className="h-full bg-[#1ab2d1] transition-all"
+        style={{ width: `${Math.min(progress ?? 0, 100)}%` }}
+      />
+    </div>
+  </section>
+);
+
+const ReadyPractice = ({ practice }: { practice: DailyAudioPractice }) => {
+  const sourceSummary = practice.selectionSummaryJson;
+  return (
+    <>
+      <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-4 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
+        <div className="grid gap-3 sm:grid-cols-5">
+          <div>
+            <p className="retro-caps text-[rgba(20,50,86,0.5)]">Edition</p>
+            <p className="text-2xl font-black text-navy">{practice.targetDurationMinutes} min</p>
+          </div>
+          <div>
+            <p className="retro-caps text-[rgba(20,50,86,0.5)]">Date</p>
+            <p className="text-2xl font-black text-navy">{practice.practiceDate}</p>
+          </div>
+          <div>
+            <p className="retro-caps text-[rgba(20,50,86,0.5)]">Cards</p>
+            <p className="text-2xl font-black text-navy">
+              {sourceSummary?.selectedCount ?? practice.sourceCardIdsJson?.length ?? 0}
+            </p>
+          </div>
+          <div>
+            <p className="retro-caps text-[rgba(20,50,86,0.5)]">Due</p>
+            <p className="text-2xl font-black text-navy">{sourceSummary?.dueCount ?? 0}</p>
+          </div>
+          <div>
+            <p className="retro-caps text-[rgba(20,50,86,0.5)]">Learning</p>
+            <p className="text-2xl font-black text-navy">{sourceSummary?.learningCount ?? 0}</p>
+          </div>
+        </div>
+      </section>
+      <div className="space-y-4">
+        {practice.tracks.map((track) => (
+          <ScriptTrackPlayer
+            key={track.id}
+            title={track.title}
+            status={track.status}
+            audioUrl={track.audioUrl}
+            scriptUnits={track.scriptUnitsJson}
+            timingData={track.timingData}
+            approxDurationSeconds={track.approxDurationSeconds}
+            updatedAt={track.updatedAt}
+            targetLanguage={practice.targetLanguage}
+          />
+        ))}
+      </div>
+    </>
+  );
+};
+
+interface DayContentProps {
+  createError: unknown;
+  createFailed: boolean;
+  practice: DailyAudioPractice | undefined;
+  progress: number | null;
+  staleGeneration: boolean;
+}
+
+const PracticeStatusContent = ({
+  practice,
+  progress,
+  staleGeneration,
+}: Pick<DayContentProps, 'practice' | 'progress' | 'staleGeneration'>) => {
+  if (!practice) return null;
+  if (!staleGeneration) {
+    if (practice.status === 'generating' || practice.status === 'draft') {
+      return <GenerationProgress practice={practice} progress={progress} />;
+    }
+  }
+  if (practice.status === 'ready') return <ReadyPractice practice={practice} />;
+  return null;
+};
+
+const DayContent = ({
+  createError,
+  createFailed,
+  practice,
+  progress,
+  staleGeneration,
+}: DayContentProps) => (
+  <>
+    {practice?.status === 'error' && <GenerationError practice={practice} />}
+    {createFailed && <CreatePracticeError error={createError} />}
+    {staleGeneration && <StaleGeneration />}
+    <PracticeStatusContent
+      practice={practice}
+      progress={progress}
+      staleGeneration={staleGeneration}
+    />
+  </>
+);
+
+interface DayNavigationProps {
+  canShowEarlier: boolean;
+  canShowLater: boolean;
+  navigationHint: string | null;
+  showEarlier: () => void;
+  showLater: () => void;
+}
+
+const DayNavigation = ({
+  canShowEarlier,
+  canShowLater,
+  navigationHint,
+  showEarlier,
+  showLater,
+}: DayNavigationProps) => (
+  <div className="flex flex-wrap items-center justify-center gap-3">
+    <button
+      type="button"
+      onClick={showEarlier}
+      disabled={!canShowEarlier}
+      className="btn-outline inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <ChevronLeft className="h-4 w-4" />
+      Earlier day
+    </button>
+    {navigationHint && (
+      <p className="text-center text-sm text-[rgba(20,50,86,0.58)]">{navigationHint}</p>
+    )}
+    <button
+      type="button"
+      onClick={showLater}
+      disabled={!canShowLater}
+      className="btn-outline inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      Later day
+      <ChevronRight className="h-4 w-4" />
+    </button>
+  </div>
+);
+
 const DailyAudioPracticePage = () => {
   const queryClient = useQueryClient();
   const reduceMotion = useReducedMotion();
@@ -191,8 +465,6 @@ const DailyAudioPracticePage = () => {
     queryClient.invalidateQueries({ queryKey: dailyAudioPracticeKeys.list() });
   }, [queryClient, statusQuery.data?.status, todayPractice?.id]);
 
-  const sourceSummary = practice?.selectionSummaryJson;
-  const tracks = useMemo(() => practice?.tracks ?? [], [practice?.tracks]);
   const selectedIndex = practices.findIndex((item) => item.id === selectedPracticeId);
   const canShowEarlier = selectedIndex >= 0 && selectedIndex < practices.length - 1;
   const canShowLater = selectedIndex > 0;
@@ -262,57 +534,16 @@ const DailyAudioPracticePage = () => {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5">
-      <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <div className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Study audio</div>
-            <h1 className="retro-headline text-4xl sm:text-6xl">Daily Audio Practice</h1>
-            <p className="mt-2 max-w-3xl text-lg text-[rgba(20,50,86,0.76)]">
-              Generate audio drills based on words and grammar structures you are currently working
-              on.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <fieldset
-              disabled={createPractice.isPending || activeTodayGeneration || !durationCapability}
-            >
-              <legend className="retro-caps mb-2 text-[rgba(20,50,86,0.62)]">Edition length</legend>
-              <div className="flex flex-wrap gap-1" aria-label="Edition length">
-                {durationOptions.map((duration) => (
-                  <button
-                    key={duration}
-                    type="button"
-                    aria-pressed={targetDurationMinutes === duration}
-                    onClick={() => setTargetDurationMinutes(duration)}
-                    className={`min-h-10 border-2 px-3 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                      targetDurationMinutes === duration
-                        ? 'border-navy bg-navy text-[#fbf5e0]'
-                        : 'border-navy/20 bg-[#fbf5e0]/80 text-navy hover:bg-white'
-                    }`}
-                  >
-                    {duration} min
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-            <button
-              type="button"
-              onClick={handleGenerateRequest}
-              disabled={
-                createPractice.isPending || activeTodayGeneration || targetDurationMinutes === null
-              }
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 border-2 border-navy/20 bg-navy px-5 py-3 font-black uppercase tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {activeTodayGeneration ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Headphones className="h-4 w-4" />
-              )}
-              {generateButtonLabel}
-            </button>
-          </div>
-        </div>
-      </section>
+      <DailyAudioHeader
+        activeTodayGeneration={activeTodayGeneration}
+        durationAvailable={Boolean(durationCapability)}
+        durationOptions={durationOptions}
+        generateButtonLabel={generateButtonLabel}
+        isCreating={createPractice.isPending}
+        onGenerate={handleGenerateRequest}
+        setTargetDurationMinutes={setTargetDurationMinutes}
+        targetDurationMinutes={targetDurationMinutes}
+      />
 
       <StudyCapabilitiesError
         isError={capabilitiesQuery.isError}
@@ -322,21 +553,8 @@ const DailyAudioPracticePage = () => {
         }}
       />
 
-      {loading ? (
-        <section className="card retro-paper-panel py-12 text-center">
-          <div className="loading-spinner mx-auto mb-4 h-12 w-12 rounded-full border-4 border-indigo border-t-transparent" />
-          <p className="text-gray-600">Loading daily audio practice...</p>
-        </section>
-      ) : null}
-
-      {!loading && !practice ? (
-        <section className="card retro-paper-panel space-y-3 py-10 text-center">
-          <h2 className="retro-headline text-3xl">Ready when you are</h2>
-          <p className="mx-auto max-w-xl text-gray-600">
-            Your daily drills, dialogues, and story will appear here after generation.
-          </p>
-        </section>
-      ) : null}
+      {loading && <LoadingPractice />}
+      {!loading && !practice && <EmptyPractice />}
 
       <div
         ref={dayRegionRef}
@@ -367,144 +585,26 @@ const DailyAudioPracticePage = () => {
             direction={slideDirection}
             reduceMotion={reduceMotion}
           >
-            {practice?.status === 'error' ? (
-              <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
-                <h2 className="text-xl font-bold text-red-900">Generation failed</h2>
-                <p className="mt-2 text-red-700">
-                  {practice.errorMessage || 'Daily audio practice could not be generated.'}
-                </p>
-              </section>
-            ) : null}
-
-            {createPractice.isError ? (
-              <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
-                <h2 className="text-xl font-bold text-red-900">Could not start practice</h2>
-                <p className="mt-2 text-red-700">
-                  {createPractice.error instanceof Error
-                    ? createPractice.error.message
-                    : 'Daily audio practice could not be started.'}
-                </p>
-              </section>
-            ) : null}
-
-            {staleGeneration ? (
-              <section className="retro-paper-panel border-2 border-amber-200 bg-amber-50 px-4 py-5">
-                <h2 className="text-xl font-bold text-amber-950">
-                  Generation is taking longer than expected
-                </h2>
-                <p className="mt-2 text-amber-800">
-                  Start a new generation to retry today&apos;s practice set.
-                </p>
-              </section>
-            ) : null}
-
-            {practice &&
-            !staleGeneration &&
-            (practice.status === 'generating' || practice.status === 'draft') ? (
-              <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-5 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="retro-headline text-3xl">
-                      Generating today&apos;s {practice.targetDurationMinutes}-minute edition
-                    </h2>
-                    <p className="text-[rgba(20,50,86,0.68)]">
-                      {tracks
-                        .map((track) => `${track.title}: ${formatStatus(track.status)}`)
-                        .join(' - ')}
-                    </p>
-                  </div>
-                  <span className="retro-caps text-[rgba(20,50,86,0.68)]">{progress ?? 0}%</span>
-                </div>
-                <div className="mt-4 h-3 overflow-hidden border-2 border-[rgba(20,50,86,0.14)] bg-white/60">
-                  <div
-                    className="h-full bg-[#1ab2d1] transition-all"
-                    style={{ width: `${Math.min(progress ?? 0, 100)}%` }}
-                  />
-                </div>
-              </section>
-            ) : null}
-
-            {practice?.status === 'ready' ? (
-              <>
-                <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] px-4 py-4 shadow-[0_8px_0_rgba(17,51,92,0.1)] sm:px-5">
-                  <div className="grid gap-3 sm:grid-cols-5">
-                    <div>
-                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Edition</p>
-                      <p className="text-2xl font-black text-navy">
-                        {practice.targetDurationMinutes} min
-                      </p>
-                    </div>
-                    <div>
-                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Date</p>
-                      <p className="text-2xl font-black text-navy">{practice.practiceDate}</p>
-                    </div>
-                    <div>
-                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Cards</p>
-                      <p className="text-2xl font-black text-navy">
-                        {sourceSummary?.selectedCount ?? practice.sourceCardIdsJson?.length ?? 0}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Due</p>
-                      <p className="text-2xl font-black text-navy">
-                        {sourceSummary?.dueCount ?? 0}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="retro-caps text-[rgba(20,50,86,0.5)]">Learning</p>
-                      <p className="text-2xl font-black text-navy">
-                        {sourceSummary?.learningCount ?? 0}
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
-                <div className="space-y-4">
-                  {tracks.map((track) => (
-                    <ScriptTrackPlayer
-                      key={track.id}
-                      title={track.title}
-                      status={track.status}
-                      audioUrl={track.audioUrl}
-                      scriptUnits={track.scriptUnitsJson}
-                      timingData={track.timingData}
-                      approxDurationSeconds={track.approxDurationSeconds}
-                      updatedAt={track.updatedAt}
-                      targetLanguage={practice.targetLanguage}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : null}
+            <DayContent
+              createError={createPractice.error}
+              createFailed={createPractice.isError}
+              practice={practice}
+              progress={progress}
+              staleGeneration={staleGeneration}
+            />
           </AnimatedDay>
         </AnimatePresence>
       </div>
 
-      {practices.length > 1 ? (
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={showEarlier}
-            disabled={!canShowEarlier}
-            className="btn-outline inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Earlier day
-          </button>
-          {navigationHint ? (
-            <p className="text-center text-sm text-[rgba(20,50,86,0.58)]">{navigationHint}</p>
-          ) : null}
-          <button
-            type="button"
-            onClick={showLater}
-            disabled={!canShowLater}
-            className="btn-outline inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Later day
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
+      {practices.length > 1 && (
+        <DayNavigation
+          canShowEarlier={canShowEarlier}
+          canShowLater={canShowLater}
+          navigationHint={navigationHint}
+          showEarlier={showEarlier}
+          showLater={showLater}
+        />
+      )}
 
       <ConfirmModal
         isOpen={confirmingRegeneration}
