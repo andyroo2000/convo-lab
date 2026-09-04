@@ -91,6 +91,34 @@ function toDate(value: string): Date | null {
   return date;
 }
 
+const FSRS_NUMBER_FIELDS = [
+  'stability',
+  'difficulty',
+  'elapsed_days',
+  'scheduled_days',
+  'reps',
+  'lapses',
+  'learning_steps',
+  'state',
+] as const;
+
+type FsrsNumberField = (typeof FSRS_NUMBER_FIELDS)[number];
+
+function readFsrsNumbers(raw: Record<string, unknown>): Record<FsrsNumberField, number> | null {
+  const entries = FSRS_NUMBER_FIELDS.map((field) => [field, toFiniteNumber(raw[field])] as const);
+  if (entries.some(([, value]) => value === null)) return null;
+  return Object.fromEntries(entries) as Record<FsrsNumberField, number>;
+}
+
+function readRequiredDate(value: unknown): Date | null {
+  return typeof value === 'string' ? toDate(value) : null;
+}
+
+function readOptionalDate(value: unknown): Date | null | undefined {
+  if (typeof value === 'undefined' || value === null) return undefined;
+  return readRequiredDate(value);
+}
+
 function serializeFsrsCard(card: Card): PersistedFsrsCardV1 {
   return {
     due: card.due.toISOString(),
@@ -108,54 +136,23 @@ function serializeFsrsCard(card: Card): PersistedFsrsCardV1 {
 
 function deserializeFsrsCard(raw: unknown): Card | null {
   if (!isRecord(raw)) return null;
-
-  const dueRaw = raw.due;
-  if (typeof dueRaw !== 'string') return null;
-  const due = toDate(dueRaw);
+  const due = readRequiredDate(raw.due);
+  const numbers = readFsrsNumbers(raw);
+  const lastReview = readOptionalDate(raw.last_review);
   if (!due) return null;
-
-  const stability = toFiniteNumber(raw.stability);
-  const difficulty = toFiniteNumber(raw.difficulty);
-  const elapsedDays = toFiniteNumber(raw.elapsed_days);
-  const scheduledDays = toFiniteNumber(raw.scheduled_days);
-  const reps = toFiniteNumber(raw.reps);
-  const lapses = toFiniteNumber(raw.lapses);
-  const learningSteps = toFiniteNumber(raw.learning_steps);
-  const state = toFiniteNumber(raw.state);
-
-  if (
-    stability === null ||
-    difficulty === null ||
-    elapsedDays === null ||
-    scheduledDays === null ||
-    reps === null ||
-    lapses === null ||
-    learningSteps === null ||
-    state === null
-  ) {
-    return null;
-  }
-
-  const lastReviewRaw = raw.last_review;
-  let lastReview: Date | undefined;
-  if (typeof lastReviewRaw === 'string') {
-    const parsed = toDate(lastReviewRaw);
-    if (!parsed) return null;
-    lastReview = parsed;
-  } else if (lastReviewRaw !== null && typeof lastReviewRaw !== 'undefined') {
-    return null;
-  }
+  if (!numbers) return null;
+  if (lastReview === null) return null;
 
   return {
     due,
-    stability,
-    difficulty,
-    elapsed_days: Math.max(0, Math.trunc(elapsedDays)),
-    scheduled_days: Math.max(0, Math.trunc(scheduledDays)),
-    reps: Math.max(0, Math.trunc(reps)),
-    lapses: Math.max(0, Math.trunc(lapses)),
-    learning_steps: Math.max(0, Math.trunc(learningSteps)),
-    state: Math.max(0, Math.trunc(state)),
+    stability: numbers.stability,
+    difficulty: numbers.difficulty,
+    elapsed_days: Math.max(0, Math.trunc(numbers.elapsed_days)),
+    scheduled_days: Math.max(0, Math.trunc(numbers.scheduled_days)),
+    reps: Math.max(0, Math.trunc(numbers.reps)),
+    lapses: Math.max(0, Math.trunc(numbers.lapses)),
+    learning_steps: Math.max(0, Math.trunc(numbers.learning_steps)),
+    state: Math.max(0, Math.trunc(numbers.state)),
     last_review: lastReview,
   };
 }
@@ -172,45 +169,36 @@ function serializeFsrsState(state: FsrsSessionState): PersistedFsrsStateV1 {
   };
 }
 
+function deserializeRecord<T>(
+  raw: unknown,
+  deserializeValue: (value: unknown) => T | null
+): Record<string, T> | null {
+  if (!isRecord(raw)) return null;
+
+  const entries = Object.entries(raw).map(
+    ([key, serializedValue]) => [key, deserializeValue(serializedValue)] as const
+  );
+  if (entries.some(([, value]) => value === null)) return null;
+  return Object.fromEntries(entries) as Record<string, T>;
+}
+
+function deserializeSeen(value: unknown): true | null {
+  return value === true ? true : null;
+}
+
+function deserializeCount(value: unknown): number | null {
+  const count = toFiniteNumber(value);
+  return count === null ? null : Math.max(0, Math.trunc(count));
+}
+
 function deserializeFsrsState(raw: unknown): FsrsSessionState | null {
   if (!isRecord(raw)) return null;
-  if (!isRecord(raw.cardsById) || !isRecord(raw.seenById) || !isRecord(raw.newCardsByLocalDate)) {
-    return null;
-  }
 
-  const cardsById = Object.entries(raw.cardsById).reduce<Record<string, Card> | null>(
-    (acc, [cardId, serializedCard]) => {
-      if (!acc) return null;
-      const card = deserializeFsrsCard(serializedCard);
-      if (!card) return null;
-      acc[cardId] = card;
-      return acc;
-    },
-    {}
-  );
+  const cardsById = deserializeRecord(raw.cardsById, deserializeFsrsCard);
+  const seenById = deserializeRecord(raw.seenById, deserializeSeen);
+  const newCardsByLocalDate = deserializeRecord(raw.newCardsByLocalDate, deserializeCount);
   if (!cardsById) return null;
-
-  const seenById = Object.entries(raw.seenById).reduce<Record<string, true> | null>(
-    (acc, [cardId, seen]) => {
-      if (!acc) return null;
-      if (seen !== true) return null;
-      acc[cardId] = true;
-      return acc;
-    },
-    {}
-  );
   if (!seenById) return null;
-
-  const newCardsByLocalDate = Object.entries(raw.newCardsByLocalDate).reduce<Record<
-    string,
-    number
-  > | null>((acc, [localDate, count]) => {
-    if (!acc) return null;
-    const numericCount = toFiniteNumber(count);
-    if (numericCount === null) return null;
-    acc[localDate] = Math.max(0, Math.trunc(numericCount));
-    return acc;
-  }, {});
   if (!newCardsByLocalDate) return null;
 
   return {
@@ -218,6 +206,13 @@ function deserializeFsrsState(raw: unknown): FsrsSessionState | null {
     seenById,
     newCardsByLocalDate,
   };
+}
+
+function deserializeCurrentCard(raw: unknown): TimePracticeCard | null {
+  if (!isRecord(raw)) return null;
+  const hour24 = toFiniteNumber(raw.hour24);
+  const minute = toFiniteNumber(raw.minute);
+  return hour24 === null || minute === null ? null : createTimeCard(hour24, minute);
 }
 
 function sanitizeSettings(raw: unknown): TimePracticeSettings {
@@ -269,6 +264,23 @@ function sanitizeUi(raw: unknown, fallbackPauseSeconds: number): TimePracticeLoc
   };
 }
 
+function deserializeLocalState(raw: unknown): TimePracticeLocalState | null {
+  if (!isRecord(raw) || raw.version !== STORAGE_VERSION) return null;
+
+  const currentCard = deserializeCurrentCard(raw.currentCard);
+  if (!currentCard) return null;
+
+  const mode: TimePracticeMode = raw.mode === 'fsrs' ? 'fsrs' : 'random';
+  const settings = sanitizeSettings(raw.settings);
+  return {
+    mode,
+    currentCard,
+    fsrsState: deserializeFsrsState(raw.fsrsState) ?? createInitialFsrsSessionState(),
+    settings,
+    ui: sanitizeUi(raw.ui, settings.revealDelaySeconds),
+  };
+}
+
 export function loadTimePracticeLocalState(): TimePracticeLocalState | null {
   if (typeof window === 'undefined') {
     return null;
@@ -280,38 +292,7 @@ export function loadTimePracticeLocalState(): TimePracticeLocalState | null {
       return null;
     }
 
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isRecord(parsed)) {
-      return null;
-    }
-
-    if (parsed.version !== STORAGE_VERSION) {
-      return null;
-    }
-
-    const mode: TimePracticeMode = parsed.mode === 'fsrs' ? 'fsrs' : 'random';
-    const currentCardRaw = parsed.currentCard;
-    if (!isRecord(currentCardRaw)) {
-      return null;
-    }
-
-    const hour24 = toFiniteNumber(currentCardRaw.hour24);
-    const minute = toFiniteNumber(currentCardRaw.minute);
-    if (hour24 === null || minute === null) {
-      return null;
-    }
-
-    const settings = sanitizeSettings(parsed.settings);
-    const fsrsState = deserializeFsrsState(parsed.fsrsState) ?? createInitialFsrsSessionState();
-    const ui = sanitizeUi(parsed.ui, settings.revealDelaySeconds);
-
-    return {
-      mode,
-      currentCard: createTimeCard(hour24, minute),
-      fsrsState,
-      settings,
-      ui,
-    };
+    return deserializeLocalState(JSON.parse(raw) as unknown);
   } catch {
     return null;
   }

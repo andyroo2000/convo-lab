@@ -110,4 +110,35 @@ describe('localStorageState', () => {
     expect(loaded?.ui.volumeLevel).toBe(1);
     expect(loaded?.ui.isPowerOn).toBe(false);
   });
+
+  it.each([
+    ['an invalid due date', { cardsById: { '09:15': { due: 'not-a-date' } } }],
+    ['an invalid seen flag', { seenById: { '09:15': false } }],
+    ['an invalid daily count', { newCardsByLocalDate: { '2026-02-10': 'three' } }],
+  ])('falls back to an empty FSRS state for %s', (_description, fsrsState) => {
+    window.localStorage.setItem(
+      TIME_PRACTICE_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        mode: 'fsrs',
+        currentCard: { hour24: 9, minute: 15 },
+        fsrsState: {
+          cardsById: {},
+          seenById: {},
+          newCardsByLocalDate: {},
+          ...fsrsState,
+        },
+        settings: {},
+        ui: {},
+      })
+    );
+
+    expect(loadTimePracticeLocalState()?.fsrsState).toEqual(createInitialFsrsSessionState());
+  });
+
+  it('returns null when persisted JSON cannot be parsed', () => {
+    window.localStorage.setItem(TIME_PRACTICE_STORAGE_KEY, '{invalid');
+
+    expect(loadTimePracticeLocalState()).toBeNull();
+  });
 });
