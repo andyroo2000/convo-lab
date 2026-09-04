@@ -89,4 +89,39 @@ describe('AdminAvatarsTab', () => {
     });
     expect(screen.queryByRole('button', { name: 'Save crop' })).not.toBeInTheDocument();
   });
+
+  it('ignores an aborted stale mutation when a newer crop save starts', async () => {
+    adminApiMocks.recropAdminSpeakerAvatar
+      .mockImplementationOnce(
+        (_filename, _cropArea, { signal }: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener('abort', () => {
+              reject(new DOMException('Aborted', 'AbortError'));
+            });
+          })
+      )
+      .mockResolvedValueOnce({});
+    const showToast = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <AdminAvatarsTab
+        users={[]}
+        isUsersLoading={false}
+        refreshUsers={vi.fn()}
+        showToast={showToast}
+      />
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Re-crop' }));
+    const saveButton = await screen.findByRole('button', { name: 'Save crop' });
+    await user.click(saveButton);
+    await waitFor(() => expect(adminApiMocks.recropAdminSpeakerAvatar).toHaveBeenCalledOnce());
+    await user.click(saveButton);
+
+    await waitFor(() => expect(adminApiMocks.getAdminSpeakerAvatars).toHaveBeenCalledTimes(2));
+    expect(adminApiMocks.recropAdminSpeakerAvatar).toHaveBeenCalledTimes(2);
+    expect(showToast).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledWith('Speaker avatar re-cropped successfully', 'success');
+  });
 });
