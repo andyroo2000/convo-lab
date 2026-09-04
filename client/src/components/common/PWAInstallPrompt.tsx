@@ -19,7 +19,9 @@ const isIOSDevice = () => {
 };
 
 function canSchedulePrompt(wasDismissed: string | null, isInstalled: boolean, canShow: boolean) {
-  return ![Boolean(wasDismissed), isInstalled, !canShow].some(Boolean);
+  if (wasDismissed) return false;
+  if (isInstalled) return false;
+  return canShow;
 }
 
 function canRenderPrompt(
@@ -28,7 +30,10 @@ function canRenderPrompt(
   isInstallable: boolean,
   isIOS: boolean
 ) {
-  return ![!isVisible, isInstalled, !isInstallable && !isIOS].some(Boolean);
+  if (!isVisible) return false;
+  if (isInstalled) return false;
+  if (isInstallable) return true;
+  return isIOS;
 }
 
 interface InstallPromptProps {
