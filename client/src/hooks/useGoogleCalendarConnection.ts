@@ -261,20 +261,15 @@ const refreshStudyActivityAfterSync = (
   queryClient: QueryClient,
   status: GoogleCalendarSyncStatus['status'] | undefined
 ) => {
-  switch (status) {
-    case 'queued':
-    case 'running':
-      pendingStudyActivityRefreshes.add(queryClient);
-      break;
-    case 'succeeded':
-      refreshStudyActivityAfterSuccessfulSync(queryClient);
-      break;
-    case 'failed':
-      pendingStudyActivityRefreshes.delete(queryClient);
-      break;
-    default:
-      break;
+  if (isActiveSync(status)) {
+    pendingStudyActivityRefreshes.add(queryClient);
+    return;
   }
+  if (status === 'succeeded') {
+    refreshStudyActivityAfterSuccessfulSync(queryClient);
+    return;
+  }
+  if (status === 'failed') pendingStudyActivityRefreshes.delete(queryClient);
 };
 
 const useStudyActivityRefreshAfterSync = (
