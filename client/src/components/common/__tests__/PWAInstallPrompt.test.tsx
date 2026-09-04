@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import PWAInstallPrompt from '../PWAInstallPrompt';
@@ -79,5 +79,32 @@ describe('PWAInstallPrompt', () => {
     });
 
     expect(screen.queryByText('Install ConvoLab')).not.toBeInTheDocument();
+  });
+
+  it('recognizes touch-enabled iPadOS devices reporting a Mac platform', async () => {
+    setNavigatorValue('userAgent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)');
+    setNavigatorValue('platform', 'MacIntel');
+    setNavigatorValue('maxTouchPoints', 5);
+
+    render(<PWAInstallPrompt />);
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.getByText('Open ConvoLab at /app in Safari')).toBeInTheDocument();
+  });
+
+  it('dismisses the prompt and remembers the choice', async () => {
+    setNavigatorValue('userAgent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
+    setNavigatorValue('platform', 'iPhone');
+
+    render(<PWAInstallPrompt />);
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(screen.queryByText('Install ConvoLab')).not.toBeInTheDocument();
+    expect(localStorage.getItem('pwa-install-prompt-dismissed')).toBe('true');
   });
 });
