@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
+import { isChunkLoadingError, shouldRetryQuery } from './lib/applicationPolicies';
 import { installCsrfFetch } from './lib/csrf';
 import registerConvoLabServiceWorker from './lib/registerServiceWorker';
 import './styles/index.css';
@@ -11,12 +12,7 @@ registerConvoLabServiceWorker();
 // Global error handler for chunk loading failures
 // This catches errors that might not be caught by ErrorBoundary
 window.addEventListener('error', (event) => {
-  const chunkFailedMessage =
-    /Failed to fetch dynamically imported module|Loading chunk.*failed|ChunkLoadError/i;
-  if (
-    chunkFailedMessage.test(event.message) ||
-    (event.error && chunkFailedMessage.test(event.error.message))
-  ) {
+  if (isChunkLoadingError(event)) {
     console.warn('Chunk loading error detected - likely due to new deployment. Prompting reload.');
     event.preventDefault();
 
@@ -36,24 +32,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: (failureCount, error: unknown) => {
-        // Don't retry on 4xx errors (client errors)
-        if (
-          typeof error === 'object' &&
-          error !== null &&
-          'response' in error &&
-          typeof error.response === 'object' &&
-          error.response !== null &&
-          'status' in error.response &&
-          typeof error.response.status === 'number' &&
-          error.response.status >= 400 &&
-          error.response.status < 500
-        ) {
-          return false;
-        }
-        // Retry up to 2 times for network/server errors
-        return failureCount < 2;
-      },
+      // Don't retry on 4xx errors; retry network/server errors up to 2 times.
+      retry: shouldRetryQuery,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       staleTime: 5 * 60 * 1000, // 5 minutes
     },
