@@ -31,6 +31,30 @@ const DEFAULT_SPEAKER_AVATARS = [
 const isAbortError = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError';
 
+interface AbortControllerRef {
+  current: AbortController | null;
+}
+
+const isCurrentRequest = (
+  controller: AbortController,
+  controllerRef: AbortControllerRef
+): boolean => {
+  if (controller.signal.aborted) return false;
+  return controllerRef.current === controller;
+};
+
+const shouldIgnoreRequestError = (
+  error: unknown,
+  controller: AbortController,
+  controllerRef: AbortControllerRef
+): boolean => {
+  if (isAbortError(error)) return true;
+  return !isCurrentRequest(controller, controllerRef);
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
+
 const formatAvatarTitle = (filename: string): string => {
   const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|webp)$/i, '');
   const parts = nameWithoutExt.split('-');
@@ -120,9 +144,7 @@ const AdminAvatarsTab = ({
       setSpeakerAvatars(await getAdminSpeakerAvatars(bustCache ? Date.now() : undefined, init));
     } catch (err) {
       if (isAbortError(err)) return;
-      setSpeakerAvatarsError(
-        err instanceof Error ? err.message : 'Failed to fetch speaker avatars'
-      );
+      setSpeakerAvatarsError(getErrorMessage(err, 'Failed to fetch speaker avatars'));
     } finally {
       if (!init?.signal?.aborted) setIsSpeakerAvatarsLoading(false);
     }
@@ -140,34 +162,34 @@ const AdminAvatarsTab = ({
     });
   };
 
-  const handleSaveSpeakerRecrop = async (
-    filename: string,
-    cropArea: Area,
-    cropperSessionId: number
-  ) => {
+  interface SpeakerAvatarMutationOptions {
+    cropperSessionId: number;
+    failureMessage: string;
+    mutate: (signal: AbortSignal) => Promise<unknown>;
+    successMessage: string;
+  }
+
+  const runSpeakerAvatarMutation = async ({
+    cropperSessionId,
+    failureMessage,
+    mutate,
+    successMessage,
+  }: SpeakerAvatarMutationOptions): Promise<void> => {
     speakerAvatarMutationControllerRef.current?.abort();
     const controller = new AbortController();
     speakerAvatarMutationControllerRef.current = controller;
 
     try {
-      await recropAdminSpeakerAvatar(filename, cropArea, { signal: controller.signal });
-      if (controller.signal.aborted || speakerAvatarMutationControllerRef.current !== controller) {
-        return;
-      }
+      await mutate(controller.signal);
+      if (!isCurrentRequest(controller, speakerAvatarMutationControllerRef)) return;
 
       if (closeCropperSession(cropperSessionId)) {
-        showToast('Speaker avatar re-cropped successfully', 'success');
+        showToast(successMessage, 'success');
       }
       await refreshSpeakerAvatars(true);
     } catch (err) {
-      if (
-        isAbortError(err) ||
-        controller.signal.aborted ||
-        speakerAvatarMutationControllerRef.current !== controller
-      ) {
-        return;
-      }
-      showToast(err instanceof Error ? err.message : 'Failed to re-crop speaker avatar', 'error');
+      if (shouldIgnoreRequestError(err, controller, speakerAvatarMutationControllerRef)) return;
+      showToast(getErrorMessage(err, failureMessage), 'error');
     } finally {
       if (speakerAvatarMutationControllerRef.current === controller) {
         speakerAvatarMutationControllerRef.current = null;
@@ -183,72 +205,28 @@ const AdminAvatarsTab = ({
 
     try {
       const data = await getAdminSpeakerAvatarOriginal(filename, { signal: controller.signal });
-      if (
-        controller.signal.aborted ||
-        speakerAvatarOriginalReadControllerRef.current !== controller
-      ) {
-        return;
-      }
+      if (!isCurrentRequest(controller, speakerAvatarOriginalReadControllerRef)) return;
 
       const cropperSessionId = beginCropperSession();
       revokeCropperObjectUrl();
       setCropperImageUrl(data.originalUrl);
       setCropperTitle(`Re-crop ${filename}`);
       setCropperSaveHandler(() => async (_blob: Blob, cropArea: Area) => {
-        await handleSaveSpeakerRecrop(filename, cropArea, cropperSessionId);
+        await runSpeakerAvatarMutation({
+          cropperSessionId,
+          failureMessage: 'Failed to re-crop speaker avatar',
+          mutate: (signal) => recropAdminSpeakerAvatar(filename, cropArea, { signal }),
+          successMessage: 'Speaker avatar re-cropped successfully',
+        });
       });
       setCropperOpen(true);
     } catch (err) {
-      if (
-        isAbortError(err) ||
-        controller.signal.aborted ||
-        speakerAvatarOriginalReadControllerRef.current !== controller
-      ) {
-        return;
-      }
-      showToast(err instanceof Error ? err.message : 'Failed to load original image', 'error');
+      if (shouldIgnoreRequestError(err, controller, speakerAvatarOriginalReadControllerRef)) return;
+      showToast(getErrorMessage(err, 'Failed to load original image'), 'error');
     } finally {
       if (speakerAvatarOriginalReadControllerRef.current === controller) {
         speakerAvatarOriginalReadControllerRef.current = null;
         if (!controller.signal.aborted) setLoadingSpeakerAvatarOriginal(null);
-      }
-    }
-  };
-
-  const handleSaveSpeakerCrop = async (
-    filename: string,
-    originalFile: File,
-    cropArea: Area,
-    cropperSessionId: number
-  ) => {
-    speakerAvatarMutationControllerRef.current?.abort();
-    const controller = new AbortController();
-    speakerAvatarMutationControllerRef.current = controller;
-
-    try {
-      await uploadAdminSpeakerAvatar(filename, originalFile, cropArea, {
-        signal: controller.signal,
-      });
-      if (controller.signal.aborted || speakerAvatarMutationControllerRef.current !== controller) {
-        return;
-      }
-
-      if (closeCropperSession(cropperSessionId)) {
-        showToast('Speaker avatar updated successfully', 'success');
-      }
-      await refreshSpeakerAvatars(true);
-    } catch (err) {
-      if (
-        isAbortError(err) ||
-        controller.signal.aborted ||
-        speakerAvatarMutationControllerRef.current !== controller
-      ) {
-        return;
-      }
-      showToast(err instanceof Error ? err.message : 'Failed to upload speaker avatar', 'error');
-    } finally {
-      if (speakerAvatarMutationControllerRef.current === controller) {
-        speakerAvatarMutationControllerRef.current = null;
       }
     }
   };
@@ -271,7 +249,12 @@ const AdminAvatarsTab = ({
       setCropperImageUrl(url);
       setCropperTitle(`Upload New ${filename}`);
       setCropperSaveHandler(() => async (_blob: Blob, cropArea: Area) => {
-        await handleSaveSpeakerCrop(filename, file, cropArea, cropperSessionId);
+        await runSpeakerAvatarMutation({
+          cropperSessionId,
+          failureMessage: 'Failed to upload speaker avatar',
+          mutate: (signal) => uploadAdminSpeakerAvatar(filename, file, cropArea, { signal }),
+          successMessage: 'Speaker avatar updated successfully',
+        });
       });
       setCropperOpen(true);
     };
@@ -313,7 +296,7 @@ const AdminAvatarsTab = ({
           }
           refreshUsers();
         } catch (err) {
-          showToast(err instanceof Error ? err.message : 'Failed to upload user avatar', 'error');
+          showToast(getErrorMessage(err, 'Failed to upload user avatar'), 'error');
         }
       });
       setCropperOpen(true);
