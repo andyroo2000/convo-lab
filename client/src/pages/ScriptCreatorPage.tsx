@@ -9,6 +9,164 @@ import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
 import { readScriptApiError, scriptApi } from '../lib/scriptApi';
 
 type Step = 'input' | 'generating';
+type ScriptId = string;
+type ScriptSourceText = string;
+type VoiceId = string;
+type RenderStatus = string;
+type ScriptApiErrorMessage = string;
+
+interface ScriptStatusResponse {
+  errorMessage?: string;
+  imageStatus?: string;
+  renders: Array<{ status: string }>;
+  segments?: Array<{ imageStatus?: string; imageMediaId?: string | null }>;
+  status: string;
+}
+
+interface PollUntilReadyOptions {
+  id: ScriptId;
+  isMounted: () => boolean;
+  navigate: ReturnType<typeof useNavigate>;
+  setRenderStatus: (status: RenderStatus) => void;
+  viewAsUserId?: ScriptId;
+}
+
+const fetchScriptStatus = async (id: ScriptId): Promise<ScriptStatusResponse> => {
+  const response = await fetch(scriptApi.operation(id, 'status'), {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw new Error(await readScriptApiError(response, 'Failed to check script status.'));
+  }
+  return response.json();
+};
+
+const describeRenderProgress = (script: ScriptStatusResponse) => {
+  const readyCount = script.renders.filter((render) => render.status === 'ready').length;
+  const segments = Array.isArray(script.segments) ? script.segments : [];
+  const imageReadyCount = segments.filter(
+    (segment) => segment.imageStatus === 'ready' && Boolean(segment.imageMediaId)
+  ).length;
+  return `Generated ${readyCount}/${AUDIO_SCRIPT_SPEEDS.length} audio tracks and ${imageReadyCount}/${segments.length} illustrations...`;
+};
+
+const completedImageStatuses = new Set(['ready', 'partial', 'error']);
+
+const isScriptReady = (script: ScriptStatusResponse) =>
+  script.status === 'ready' && completedImageStatuses.has(script.imageStatus ?? 'pending');
+
+const playbackPath = (id: ScriptId, viewAsUserId?: ScriptId) => {
+  const suffix = viewAsUserId ? `?${new URLSearchParams({ viewAs: viewAsUserId }).toString()}` : '';
+  return `/app/playback/${id}${suffix}`;
+};
+
+const handleTerminalScriptStatus = (
+  script: ScriptStatusResponse,
+  { id, navigate, viewAsUserId }: PollUntilReadyOptions
+) => {
+  if (isScriptReady(script)) {
+    navigate(playbackPath(id, viewAsUserId));
+    return true;
+  }
+  if (script.status === 'error') {
+    throw new Error(script.errorMessage || 'Script audio generation failed.');
+  }
+  return false;
+};
+
+const waitForNextPoll = () =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, 3000);
+  });
+
+const pollUntilReady = async (options: PollUntilReadyOptions) => {
+  const startedAt = Date.now();
+  const timeoutMs = 10 * 60 * 1000;
+
+  /* eslint-disable no-await-in-loop -- polling must wait between status requests */
+  while (Date.now() - startedAt < timeoutMs) {
+    const script = await fetchScriptStatus(options.id);
+    if (!options.isMounted()) return;
+    options.setRenderStatus(describeRenderProgress(script));
+    if (handleTerminalScriptStatus(script, options)) return;
+
+    await waitForNextPoll();
+    if (!options.isMounted()) return;
+  }
+  /* eslint-enable no-await-in-loop */
+
+  throw new Error('Script audio generation timed out. Please open it from the Library later.');
+};
+
+const requireSuccessfulResponse = async (
+  response: Response,
+  fallbackMessage: ScriptApiErrorMessage
+) => {
+  if (!response.ok) {
+    throw new Error(await readScriptApiError(response, fallbackMessage));
+  }
+};
+
+const createScriptEpisode = async (sourceText: ScriptSourceText, voiceId: VoiceId) => {
+  const response = await fetch(scriptApi.collection, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ sourceText, voiceId }),
+  });
+  await requireSuccessfulResponse(response, 'Failed to create script.');
+  return response.json() as Promise<{ id: string }>;
+};
+
+interface StartScriptOperationOptions {
+  body?: string;
+  fallbackMessage: ScriptApiErrorMessage;
+  id: ScriptId;
+  operation: 'annotate' | 'images' | 'render';
+}
+
+const startScriptOperation = async ({
+  body,
+  fallbackMessage,
+  id,
+  operation,
+}: StartScriptOperationOptions) => {
+  const response = await fetch(scriptApi.operation(id, operation), {
+    method: 'POST',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    credentials: 'include',
+    body,
+  });
+  await requireSuccessfulResponse(response, fallbackMessage);
+};
+
+const startScriptGeneration = async (
+  sourceText: ScriptSourceText,
+  voiceId: VoiceId,
+  setRenderStatus: (status: RenderStatus) => void
+) => {
+  const episode = await createScriptEpisode(sourceText, voiceId);
+  await startScriptOperation({
+    id: episode.id,
+    operation: 'annotate',
+    fallbackMessage: 'Failed to annotate script.',
+  });
+
+  setRenderStatus('Generating audio and illustrations...');
+  await startScriptOperation({
+    id: episode.id,
+    operation: 'images',
+    fallbackMessage: 'Failed to start image generation.',
+    body: JSON.stringify({ force: false }),
+  });
+  await startScriptOperation({
+    id: episode.id,
+    operation: 'render',
+    fallbackMessage: 'Failed to start audio rendering.',
+  });
+  return episode.id;
+};
 
 const ScriptCreatorPage = () => {
   const navigate = useNavigate();
@@ -32,61 +190,6 @@ const ScriptCreatorPage = () => {
     };
   }, []);
 
-  async function pollUntilReady(id: string) {
-    const startedAt = Date.now();
-    const timeoutMs = 10 * 60 * 1000;
-
-    /* eslint-disable no-await-in-loop -- polling must wait between status requests */
-    while (Date.now() - startedAt < timeoutMs) {
-      const response = await fetch(scriptApi.operation(id, 'status'), {
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      if (!response.ok) {
-        throw new Error(await readScriptApiError(response, 'Failed to check script status.'));
-      }
-      const script = await response.json();
-      if (!mountedRef.current) return;
-      const readyCount = script.renders.filter(
-        (render: { status: string }) => render.status === 'ready'
-      ).length;
-      const segmentCount = Array.isArray(script.segments) ? script.segments.length : 0;
-      const imageReadyCount = Array.isArray(script.segments)
-        ? script.segments.filter(
-            (segment: { imageStatus?: string; imageMediaId?: string | null }) =>
-              segment.imageStatus === 'ready' && segment.imageMediaId
-          ).length
-        : 0;
-      const imageStatus = script.imageStatus || 'pending';
-      setRenderStatus(
-        `Generated ${readyCount}/${AUDIO_SCRIPT_SPEEDS.length} audio tracks and ${imageReadyCount}/${segmentCount} illustrations...`
-      );
-
-      if (
-        script.status === 'ready' &&
-        (imageStatus === 'ready' || imageStatus === 'partial' || imageStatus === 'error')
-      ) {
-        const suffix = viewAsUserId
-          ? `?${new URLSearchParams({ viewAs: viewAsUserId }).toString()}`
-          : '';
-        if (!mountedRef.current) return;
-        navigate(`/app/playback/${id}${suffix}`);
-        return;
-      }
-      if (script.status === 'error') {
-        throw new Error(script.errorMessage || 'Script audio generation failed.');
-      }
-
-      await new Promise((resolve) => {
-        window.setTimeout(resolve, 3000);
-      });
-      if (!mountedRef.current) return;
-    }
-    /* eslint-enable no-await-in-loop */
-
-    throw new Error('Script audio generation timed out. Please open it from the Library later.');
-  }
-
   const createAndGenerate = async () => {
     if (submittingRef.current) {
       return;
@@ -106,49 +209,16 @@ const ScriptCreatorPage = () => {
     submittingRef.current = true;
 
     try {
-      const createResponse = await fetch(scriptApi.collection, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ sourceText, voiceId }),
-      });
-      if (!createResponse.ok) {
-        throw new Error(await readScriptApiError(createResponse, 'Failed to create script.'));
-      }
-      const episode = await createResponse.json();
-
-      const annotateResponse = await fetch(scriptApi.operation(episode.id, 'annotate'), {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!annotateResponse.ok) {
-        throw new Error(await readScriptApiError(annotateResponse, 'Failed to annotate script.'));
-      }
-
-      setRenderStatus('Generating audio and illustrations...');
-      const imagesResponse = await fetch(scriptApi.operation(episode.id, 'images'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ force: false }),
-      });
-      if (!imagesResponse.ok) {
-        throw new Error(
-          await readScriptApiError(imagesResponse, 'Failed to start image generation.')
-        );
-      }
-      const renderResponse = await fetch(scriptApi.operation(episode.id, 'render'), {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!renderResponse.ok) {
-        throw new Error(
-          await readScriptApiError(renderResponse, 'Failed to start audio rendering.')
-        );
-      }
+      const episodeId = await startScriptGeneration(sourceText, voiceId, setRenderStatus);
 
       if (mountedRef.current) {
-        await pollUntilReady(episode.id);
+        await pollUntilReady({
+          id: episodeId,
+          isMounted: () => mountedRef.current,
+          navigate,
+          setRenderStatus,
+          viewAsUserId,
+        });
       }
     } catch (err) {
       if (mountedRef.current) {
