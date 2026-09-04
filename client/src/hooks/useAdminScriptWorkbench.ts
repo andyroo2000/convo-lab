@@ -17,8 +17,8 @@ type PipelineData = {
   audioUrl: string | null;
   stage: PipelineStage;
   scriptUnits?: ScriptUnit[];
-  exchanges: DialogueExchange[];
-  approxDurationSeconds: number;
+  exchanges?: DialogueExchange[];
+  approxDurationSeconds?: number;
   scriptConfig?: ScriptConfig;
 };
 
@@ -35,8 +35,8 @@ type PipelineSetters = {
 function applyScriptPipeline(data: PipelineData, setters: PipelineSetters) {
   if (data.stage !== 'script' || !data.scriptUnits) return false;
   setters.setScriptUnits(data.scriptUnits);
-  setters.setExchanges(data.exchanges);
-  setters.setEstimatedDuration(data.approxDurationSeconds);
+  setters.setExchanges(data.exchanges ?? null);
+  setters.setEstimatedDuration(data.approxDurationSeconds ?? null);
   if (data.scriptConfig) setters.setScriptConfig(data.scriptConfig);
   setters.setActiveStep(data.audioUrl ? 'audio' : 'script');
   return true;
