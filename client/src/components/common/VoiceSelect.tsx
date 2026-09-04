@@ -153,54 +153,54 @@ const VoiceSelect = ({
   const handleComboboxKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
     if (isDisabled) return;
 
-    if (event.key === 'ArrowDown') {
+    const preventDefault = (action: () => void) => {
       event.preventDefault();
+      action();
+    };
+    const openAt = (index: number) => {
+      setIsOpen(true);
+      activateOption(index);
+    };
+    const selectedOr = (fallbackIndex: number) =>
+      selectedIndex >= 0 ? selectedIndex : fallbackIndex;
+    const moveDown = () => {
       if (!isOpen) {
-        setIsOpen(true);
-        activateOption(selectedIndex >= 0 ? selectedIndex : 0);
+        openAt(selectedOr(0));
         return;
       }
       activateOption(activeIndex + 1);
-      return;
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
+    };
+    const moveUp = () => {
       if (!isOpen) {
-        setIsOpen(true);
-        activateOption(selectedIndex >= 0 ? selectedIndex : menuVoices.length - 1);
+        openAt(selectedOr(menuVoices.length - 1));
         return;
       }
       activateOption(activeIndex - 1);
-      return;
-    }
-
-    if (isOpen && event.key === 'Home') {
-      event.preventDefault();
-      activateOption(0);
-      return;
-    }
-
-    if (isOpen && event.key === 'End') {
-      event.preventDefault();
-      activateOption(menuVoices.length - 1);
-      return;
-    }
-
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
+    };
+    const moveHome = () => {
+      if (isOpen) preventDefault(() => activateOption(0));
+    };
+    const moveEnd = () => {
+      if (isOpen) preventDefault(() => activateOption(menuVoices.length - 1));
+    };
+    const toggleSelection = () => {
       if (!isOpen) {
-        setIsOpen(true);
-        activateOption(selectedIndex >= 0 ? selectedIndex : 0);
+        openAt(selectedOr(0));
         return;
       }
       selectActiveVoice();
-      return;
-    }
+    };
+    const keyHandlers: Partial<Record<string, () => void>> = {
+      ArrowDown: () => preventDefault(moveDown),
+      ArrowUp: () => preventDefault(moveUp),
+      Home: moveHome,
+      End: moveEnd,
+      Enter: () => preventDefault(toggleSelection),
+      ' ': () => preventDefault(toggleSelection),
+      Escape: () => setIsOpen(false),
+    };
 
-    if (event.key === 'Escape') {
-      setIsOpen(false);
-    }
+    keyHandlers[event.key]?.();
   };
 
   const formattedSelectedVoice = selectedVoice ? formatVoiceLabel(selectedVoice) : null;
