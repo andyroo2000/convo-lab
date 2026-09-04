@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { CalendarPlus, ChevronDown, Clock3, Pencil, Play, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -13,13 +13,16 @@ import {
 import type { StudyActivityKind } from '../../types/studyActivity';
 import formatDuration from '../../utils/studyTimeFormat';
 
-function googleCalendarUrl(
-  name: string,
-  start: Date,
-  durationMinutes: number,
-  defaultName: string,
-  details: string
-) {
+interface GoogleCalendarEvent {
+  name: string;
+  start: Date;
+  durationMinutes: number;
+  defaultName: string;
+  details: string;
+}
+
+function googleCalendarUrl(event: GoogleCalendarEvent) {
+  const { name, start, durationMinutes, defaultName, details } = event;
   const end = new Date(start.getTime() + durationMinutes * 60_000);
   const compact = (date: Date) =>
     date
@@ -116,13 +119,13 @@ const StudyCalendarSection = ({ calendar }: { calendar: StudyTimeSessionManager[
         </button>
         {calendar.isValid ? (
           <a
-            href={googleCalendarUrl(
-              calendar.name || t(calendar.selectedOption.labelKey),
-              new Date(calendar.entryDate),
-              calendar.minutes,
-              t('time.calendar.defaultName'),
-              t('time.calendar.details')
-            )}
+            href={googleCalendarUrl({
+              name: calendar.name || t(calendar.selectedOption.labelKey),
+              start: new Date(calendar.entryDate),
+              durationMinutes: calendar.minutes,
+              defaultName: t('time.calendar.defaultName'),
+              details: t('time.calendar.details'),
+            })}
             target="_blank"
             rel="noopener noreferrer"
             className="app-button-secondary flex items-center justify-center gap-2"
@@ -140,6 +143,86 @@ const StudyCalendarSection = ({ calendar }: { calendar: StudyTimeSessionManager[
         )}
       </div>
     </div>
+  );
+};
+
+type StudySession = StudyTimeSessionManager['history']['sessions'][number];
+
+const ManualSessionRow = ({
+  session,
+  history,
+}: {
+  session: StudySession;
+  history: StudyTimeSessionManager['history'];
+}) => {
+  const { t } = useTranslation(['study']);
+  const displayName =
+    session.name || t(`time.activities.${studyActivityTranslationKey(session.activity)}`);
+  const entryName = session.name || t('time.manual.entryFallback');
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 py-4">
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-bold text-navy">{displayName}</p>
+        <p className="text-sm text-gray-500">
+          {new Date(session.startedAt).toLocaleString()} · {t(`time.sources.${session.source}`)}
+        </p>
+        {session.activity === 'card_creation' && session.cardsCreated ? (
+          <p className="text-sm font-bold text-amber-700">
+            {t('time.manual.cards', { count: session.cardsCreated })}
+          </p>
+        ) : null}
+      </div>
+      <p className="font-mono font-bold text-navy">{formatDuration(session.durationMs)}</p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => history.beginEditing(session)}
+          className="rounded-lg border border-navy/15 p-2 text-navy hover:bg-navy/5"
+          aria-label={t('time.manual.editAria', { name: entryName })}
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => history.beginDeleting(session)}
+          className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"
+          aria-label={t('time.manual.deleteAria', { name: entryName })}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const ManualSessionsStatus = ({ history }: { history: StudyTimeSessionManager['history'] }) => {
+  const { t } = useTranslation(['study']);
+  if (history.isLoading) {
+    return <p className="mt-4 text-gray-600">{t('time.history.loading')}</p>;
+  }
+  if (history.isError) {
+    return <p className="mt-4 text-red-700">{t('time.history.error')}</p>;
+  }
+  if (history.sessions.length === 0) {
+    return <p className="mt-4 text-gray-600">{t('time.manual.empty')}</p>;
+  }
+  return null;
+};
+
+const LoadMoreSessionsButton = ({ history }: { history: StudyTimeSessionManager['history'] }) => {
+  const { t } = useTranslation(['study']);
+  if (!history.hasNextPage) return null;
+
+  return (
+    <button
+      type="button"
+      className="app-button-secondary mt-4 w-full"
+      onClick={() => history.loadMore()}
+      disabled={history.isFetchingNextPage}
+    >
+      {history.isFetchingNextPage ? t('time.manual.loadingMore') : t('time.manual.loadMore')}
+    </button>
   );
 };
 
@@ -161,74 +244,125 @@ const StudyManualSessionsSection = ({
         </div>
         <Clock3 className="h-7 w-7 text-coral" aria-hidden="true" />
       </div>
-      {history.isLoading ? <p className="mt-4 text-gray-600">{t('time.history.loading')}</p> : null}
-      {history.isError ? <p className="mt-4 text-red-700">{t('time.history.error')}</p> : null}
-      {!history.isLoading && !history.isError && history.sessions.length === 0 ? (
-        <p className="mt-4 text-gray-600">{t('time.manual.empty')}</p>
-      ) : null}
+      <ManualSessionsStatus history={history} />
       <div className="mt-4 divide-y divide-gray-200">
         {history.sessions.map((session) => (
-          <div
-            key={session.clientSessionId}
-            className="flex flex-wrap items-center justify-between gap-4 py-4"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-bold text-navy">
-                {session.name ||
-                  t(`time.activities.${studyActivityTranslationKey(session.activity)}`)}
-              </p>
-              <p className="text-sm text-gray-500">
-                {new Date(session.startedAt).toLocaleString()} ·{' '}
-                {t(`time.sources.${session.source}`)}
-              </p>
-              {session.activity === 'card_creation' && session.cardsCreated ? (
-                <p className="text-sm font-bold text-amber-700">
-                  {t('time.manual.cards', { count: session.cardsCreated })}
-                </p>
-              ) : null}
-            </div>
-            <p className="font-mono font-bold text-navy">{formatDuration(session.durationMs)}</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => history.beginEditing(session)}
-                className="rounded-lg border border-navy/15 p-2 text-navy hover:bg-navy/5"
-                aria-label={t('time.manual.editAria', {
-                  name: session.name || t('time.manual.entryFallback'),
-                })}
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => history.beginDeleting(session)}
-                className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"
-                aria-label={t('time.manual.deleteAria', {
-                  name: session.name || t('time.manual.entryFallback'),
-                })}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+          <ManualSessionRow key={session.clientSessionId} session={session} history={history} />
         ))}
       </div>
-      {history.hasNextPage ? (
-        <button
-          type="button"
-          className="app-button-secondary mt-4 w-full"
-          onClick={() => history.loadMore()}
-          disabled={history.isFetchingNextPage}
-        >
-          {history.isFetchingNextPage ? t('time.manual.loadingMore') : t('time.manual.loadMore')}
-        </button>
-      ) : null}
+      <LoadMoreSessionsButton history={history} />
     </section>
   );
 };
 
-const StudyTimeEditDialog = ({ edit }: { edit: StudyTimeSessionManager['edit'] }) => {
+const dialogFocusableElements = (dialog: HTMLDivElement) =>
+  Array.from(
+    dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  );
+
+const backwardTabDestination = (
+  event: KeyboardEvent,
+  dialog: HTMLDivElement,
+  first: HTMLElement,
+  last: HTMLElement
+) => {
+  if (!event.shiftKey) return null;
+  if (document.activeElement === first) return last;
+  if (!dialog.contains(document.activeElement)) return last;
+  return null;
+};
+
+const forwardTabDestination = (event: KeyboardEvent, first: HTMLElement, last: HTMLElement) => {
+  if (event.shiftKey) return null;
+  return document.activeElement === last ? first : null;
+};
+
+const trapDialogTabKey = (event: KeyboardEvent, dialog: HTMLDivElement | null) => {
+  if (event.key !== 'Tab' || !dialog) return;
+  const focusable = dialogFocusableElements(dialog);
+  const first = focusable[0];
+  const last = focusable.at(-1);
+  if (!first || !last) return;
+
+  const destination =
+    backwardTabDestination(event, dialog, first, last) ?? forwardTabDestination(event, first, last);
+  if (!destination) return;
+  event.preventDefault();
+  destination.focus();
+};
+
+const StudyTimeEditForm = ({
+  edit,
+  dialogRef,
+}: {
+  edit: StudyTimeSessionManager['edit'];
+  dialogRef: RefObject<HTMLDivElement>;
+}) => {
   const { t } = useTranslation(['study']);
+  return (
+    <div ref={dialogRef} className="app-surface w-full max-w-lg space-y-4 bg-white p-6 shadow-2xl">
+      <h2 id="edit-study-time-title" className="text-2xl font-bold text-navy">
+        {t('time.edit.title')}
+      </h2>
+      <select
+        value={edit.activity}
+        onChange={(event) => edit.setActivity(event.target.value as StudyActivityKind)}
+        className="app-form-control w-full"
+        aria-label={t('time.edit.activityLabel')}
+      >
+        {STUDY_ACTIVITY_OPTIONS.map((item) => (
+          <option key={item.activity} value={item.activity}>
+            {t(item.labelKey)}
+          </option>
+        ))}
+      </select>
+      <input
+        value={edit.name}
+        onChange={(event) => edit.setName(event.target.value)}
+        className="app-form-control w-full"
+        aria-label={t('time.edit.nameLabel')}
+      />
+      <input
+        type="datetime-local"
+        value={edit.date}
+        onChange={(event) => edit.setDate(event.target.value)}
+        className="app-form-control w-full"
+        aria-label={t('time.edit.startLabel')}
+      />
+      <input
+        type="number"
+        min={1}
+        max={1440}
+        value={edit.minutes}
+        onChange={(event) => edit.setMinutes(event.target.valueAsNumber)}
+        className="app-form-control w-full"
+        aria-label={t('time.edit.durationLabel')}
+      />
+      {edit.isError ? (
+        <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+          {t('time.edit.error')}
+        </p>
+      ) : null}
+      <div className="grid grid-cols-2 gap-3">
+        <button type="button" onClick={edit.cancel} className="app-button-secondary">
+          {t('time.edit.cancel')}
+        </button>
+        <button
+          type="button"
+          onClick={edit.save}
+          disabled={edit.isPending || !edit.isValid}
+          className="app-button-primary"
+        >
+          {t('time.edit.save')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const StudyTimeEditDialog = ({ edit }: { edit: StudyTimeSessionManager['edit'] }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(edit.cancel);
   cancelRef.current = edit.cancel;
@@ -243,32 +377,11 @@ const StudyTimeEditDialog = ({ edit }: { edit: StudyTimeSessionManager['edit'] }
       dialogRef.current?.querySelector<HTMLElement>('select, input, button')?.focus();
     });
     const handleKeyDown = (event: KeyboardEvent) => {
-      const dialog = dialogRef.current;
       if (event.key === 'Escape') {
         cancelRef.current();
         return;
       }
-      if (event.key !== 'Tab' || !dialog) return;
-
-      const focusable = Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      );
-      const first = focusable[0];
-      const last = focusable.at(-1);
-      if (!first || !last) return;
-
-      if (
-        event.shiftKey &&
-        (document.activeElement === first || !dialog.contains(document.activeElement))
-      ) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
+      trapDialogTabKey(event, dialogRef.current);
     };
     document.addEventListener('keydown', handleKeyDown);
 
@@ -296,66 +409,7 @@ const StudyTimeEditDialog = ({ edit }: { edit: StudyTimeSessionManager['edit'] }
         if (event.key === 'Escape') edit.cancel();
       }}
     >
-      <div
-        ref={dialogRef}
-        className="app-surface w-full max-w-lg space-y-4 bg-white p-6 shadow-2xl"
-      >
-        <h2 id="edit-study-time-title" className="text-2xl font-bold text-navy">
-          {t('time.edit.title')}
-        </h2>
-        <select
-          value={edit.activity}
-          onChange={(event) => edit.setActivity(event.target.value as StudyActivityKind)}
-          className="app-form-control w-full"
-          aria-label={t('time.edit.activityLabel')}
-        >
-          {STUDY_ACTIVITY_OPTIONS.map((item) => (
-            <option key={item.activity} value={item.activity}>
-              {t(item.labelKey)}
-            </option>
-          ))}
-        </select>
-        <input
-          value={edit.name}
-          onChange={(event) => edit.setName(event.target.value)}
-          className="app-form-control w-full"
-          aria-label={t('time.edit.nameLabel')}
-        />
-        <input
-          type="datetime-local"
-          value={edit.date}
-          onChange={(event) => edit.setDate(event.target.value)}
-          className="app-form-control w-full"
-          aria-label={t('time.edit.startLabel')}
-        />
-        <input
-          type="number"
-          min={1}
-          max={1440}
-          value={edit.minutes}
-          onChange={(event) => edit.setMinutes(event.target.valueAsNumber)}
-          className="app-form-control w-full"
-          aria-label={t('time.edit.durationLabel')}
-        />
-        {edit.isError ? (
-          <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
-            {t('time.edit.error')}
-          </p>
-        ) : null}
-        <div className="grid grid-cols-2 gap-3">
-          <button type="button" onClick={edit.cancel} className="app-button-secondary">
-            {t('time.edit.cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={edit.save}
-            disabled={edit.isPending || !edit.isValid}
-            className="app-button-primary"
-          >
-            {t('time.edit.save')}
-          </button>
-        </div>
-      </div>
+      <StudyTimeEditForm edit={edit} dialogRef={dialogRef} />
     </dialog>
   );
 };
