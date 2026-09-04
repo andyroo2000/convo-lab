@@ -135,47 +135,158 @@ function errorKind(status: number): GoogleCalendarErrorKind {
   return 'request_failed';
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const calendarSettingsFieldForErrorKey = (
+  key: string
+): GoogleCalendarSettingsError['field'] | null => {
+  if (key === 'calendarIds' || key.startsWith('calendarIds.')) return 'calendarIds';
+  if (key === 'titleMatchTerms' || key.startsWith('titleMatchTerms.')) {
+    return 'titleMatchTerms';
+  }
+  return key === 'syncEnabled' ? 'syncEnabled' : null;
+};
+
 function validationErrorsFromPayload(payload: unknown): GoogleCalendarSettingsError[] {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return [];
-  const errors = Reflect.get(payload, 'errors');
-  if (!errors || typeof errors !== 'object' || Array.isArray(errors)) return [];
+  if (!isRecord(payload) || !isRecord(payload.errors)) return [];
 
   const fields = new Set<GoogleCalendarSettingsError['field']>();
-  Object.keys(errors).forEach((key) => {
-    if (key === 'calendarIds' || key.startsWith('calendarIds.')) fields.add('calendarIds');
-    if (key === 'titleMatchTerms' || key.startsWith('titleMatchTerms.')) {
-      fields.add('titleMatchTerms');
-    }
-    if (key === 'syncEnabled') fields.add('syncEnabled');
+  Object.keys(payload.errors).forEach((key) => {
+    const field = calendarSettingsFieldForErrorKey(key);
+    if (field) fields.add(field);
   });
   return [...fields].map((field) => ({ field, code: 'server_rejected' }));
 }
 
-async function googleCalendarRequest<T>(path = '', init?: RequestInit): Promise<T> {
+const googleCalendarHeaders = (init?: RequestInit) => {
   const headers = new Headers(init?.headers);
   headers.set('Accept', 'application/json');
   if (init?.body) headers.set('Content-Type', 'application/json');
+  return headers;
+};
+
+const throwGoogleCalendarRequestError = async (response: Response): Promise<never> => {
+  const validationErrors =
+    response.status === 422
+      ? validationErrorsFromPayload(await response.json().catch(() => null))
+      : [];
+  throw new GoogleCalendarRequestError(
+    errorKind(response.status),
+    response.status,
+    validationErrors
+  );
+};
+
+async function googleCalendarRequest<T>(path = '', init?: RequestInit): Promise<T> {
   const response = await fetchWithCsrf(studyApiPath(`/google-calendar${path}`), {
     ...init,
     credentials: 'include',
-    headers,
+    headers: googleCalendarHeaders(init),
   });
   notifyAuthSessionExpired(response);
 
-  if (!response.ok) {
-    const validationErrors =
-      response.status === 422
-        ? validationErrorsFromPayload(await response.json().catch(() => null))
-        : [];
-    throw new GoogleCalendarRequestError(
-      errorKind(response.status),
-      response.status,
-      validationErrors
-    );
-  }
+  if (!response.ok) return throwGoogleCalendarRequestError(response);
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
+
+type GoogleCalendarRefetch = () => Promise<{ data?: GoogleCalendarConnectionStatus }>;
+
+const refreshSyncPollingState = async (
+  refetch: GoogleCalendarRefetch,
+  isCurrent: () => boolean,
+  setSyncPollingTimedOut: (timedOut: boolean) => void
+) => {
+  try {
+    const refreshed = await refetch();
+    if (isCurrent()) {
+      setSyncPollingTimedOut(isActiveSync(refreshed.data?.sync?.status));
+    }
+  } catch {
+    if (isCurrent()) setSyncPollingTimedOut(true);
+  }
+};
+
+const startSyncPollingTimeout = (
+  status: GoogleCalendarSyncStatus['status'] | undefined,
+  statusAt: string | null,
+  refetch: GoogleCalendarRefetch,
+  setSyncPollingTimedOut: (timedOut: boolean) => void
+) => {
+  let current = true;
+  setSyncPollingTimedOut(false);
+  const markStale = () => {
+    current = false;
+  };
+  if (!isActiveSync(status)) return markStale;
+
+  const finishPolling = () =>
+    refreshSyncPollingState(refetch, () => current, setSyncPollingTimedOut);
+
+  const remaining = googleCalendarSyncTimeoutRemaining(statusAt, Date.now());
+  if (remaining === 0) {
+    finishPolling().catch(() => undefined);
+    return markStale;
+  }
+  const timeout = window.setTimeout(() => {
+    finishPolling().catch(() => undefined);
+  }, remaining);
+  return () => {
+    markStale();
+    window.clearTimeout(timeout);
+  };
+};
+
+const useSyncPollingTimeout = (
+  sync: GoogleCalendarSyncStatus | null | undefined,
+  refetch: GoogleCalendarRefetch,
+  setSyncPollingTimedOut: (timedOut: boolean) => void
+) => {
+  const status = sync?.status;
+  const statusAt = sync?.statusAt ?? null;
+  useEffect(
+    () => startSyncPollingTimeout(status, statusAt, refetch, setSyncPollingTimedOut),
+    [refetch, setSyncPollingTimedOut, status, statusAt]
+  );
+};
+
+const refreshStudyActivityAfterSuccessfulSync = (queryClient: QueryClient) => {
+  if (!pendingStudyActivityRefreshes.has(queryClient)) return;
+  pendingStudyActivityRefreshes.delete(queryClient);
+  queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }).catch(() => undefined);
+};
+
+const refreshStudyActivityAfterSync = (
+  queryClient: QueryClient,
+  status: GoogleCalendarSyncStatus['status'] | undefined
+) => {
+  switch (status) {
+    case 'queued':
+    case 'running':
+      pendingStudyActivityRefreshes.add(queryClient);
+      break;
+    case 'succeeded':
+      refreshStudyActivityAfterSuccessfulSync(queryClient);
+      break;
+    case 'failed':
+      pendingStudyActivityRefreshes.delete(queryClient);
+      break;
+    default:
+      break;
+  }
+};
+
+const useStudyActivityRefreshAfterSync = (
+  queryClient: QueryClient,
+  sync: GoogleCalendarSyncStatus | null | undefined
+) => {
+  const status = sync?.status;
+  const statusAt = sync?.statusAt;
+  useEffect(() => {
+    refreshStudyActivityAfterSync(queryClient, status);
+  }, [queryClient, status, statusAt]);
+};
 
 export function useGoogleCalendarConnection() {
   const queryClient = useQueryClient();
@@ -188,56 +299,9 @@ export function useGoogleCalendarConnection() {
       googleCalendarSyncPollInterval(current.state.data?.sync?.status, syncPollingTimedOut),
   });
 
-  const { refetch } = query;
   const sync = query.data?.sync;
-  useEffect(() => {
-    let current = true;
-    setSyncPollingTimedOut(false);
-    if (!isActiveSync(sync?.status)) {
-      return () => {
-        current = false;
-      };
-    }
-
-    const finishPolling = async () => {
-      try {
-        const refreshed = await refetch();
-        if (current) {
-          setSyncPollingTimedOut(isActiveSync(refreshed.data?.sync?.status));
-        }
-      } catch {
-        if (current) {
-          setSyncPollingTimedOut(true);
-        }
-      }
-    };
-
-    const remaining = googleCalendarSyncTimeoutRemaining(sync?.statusAt ?? null, Date.now());
-    if (remaining === 0) {
-      finishPolling().catch(() => undefined);
-      return () => {
-        current = false;
-      };
-    }
-    const timeout = window.setTimeout(() => {
-      finishPolling().catch(() => undefined);
-    }, remaining);
-    return () => {
-      current = false;
-      window.clearTimeout(timeout);
-    };
-  }, [refetch, sync?.status, sync?.statusAt]);
-
-  useEffect(() => {
-    if (isActiveSync(sync?.status)) {
-      pendingStudyActivityRefreshes.add(queryClient);
-    } else if (sync?.status === 'succeeded' && pendingStudyActivityRefreshes.has(queryClient)) {
-      pendingStudyActivityRefreshes.delete(queryClient);
-      queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }).catch(() => undefined);
-    } else if (sync?.status === 'failed') {
-      pendingStudyActivityRefreshes.delete(queryClient);
-    }
-  }, [queryClient, sync?.status, sync?.statusAt]);
+  useSyncPollingTimeout(sync, query.refetch, setSyncPollingTimedOut);
+  useStudyActivityRefreshAfterSync(queryClient, sync);
 
   return { ...query, syncPollingTimedOut };
 }
