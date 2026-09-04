@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { CounterIllustrationId } from '../logic/counterPractice';
 
 interface CounterObjectIllustrationProps {
@@ -13,10 +15,12 @@ const STROKE_PROPS = {
   strokeLinejoin: 'round' as const,
 };
 
-const CounterObjectIllustration = ({
-  illustrationId,
-  className,
-}: CounterObjectIllustrationProps) => {
+type IllustrationRenderer = (
+  illustrationId: CounterIllustrationId,
+  className?: string
+) => ReactNode;
+
+const renderPaperAndBasics: IllustrationRenderer = (illustrationId, className) => {
   switch (illustrationId) {
     case 'paper-sheet':
       return (
@@ -99,6 +103,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderHandheldBasics: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'pencil':
       return (
         <svg className={className} viewBox="-5 -10 110 135" aria-label="pencil" role="img">
@@ -135,6 +146,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderAnimalsAndReading: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'cat':
       return (
         <svg className={className} viewBox="-5 -10 110 110" aria-label="cat" role="img">
@@ -173,6 +191,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderReadingMaterials: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'book':
       return (
         <svg className={className} viewBox="-5 -10 110 110" aria-label="book" role="img">
@@ -214,6 +239,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderTransportAndFood: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'car':
       return (
         <svg className={className} viewBox="-5 -10 110 110" aria-label="car" role="img">
@@ -272,6 +304,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderFood: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'apple':
       return (
         <svg className={className} viewBox="-5 -10 110 135" aria-label="apple" role="img">
@@ -306,6 +345,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderPeopleAndDrinks: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'student':
       return (
         <svg className={className} viewBox="-5 -10 110 110" aria-label="student" role="img">
@@ -344,6 +390,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderDrinks: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'coffee-cup':
       return (
         <svg className={className} viewBox="-5 -10 110 135" aria-label="coffee cup" role="img">
@@ -392,6 +445,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderOuterwear: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'jacket':
       return (
         <svg className={className} viewBox="-5 -10 110 110" aria-label="jacket" role="img">
@@ -415,6 +475,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderCoat: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'coat':
       return (
         <svg className={className} viewBox="-5 -10 110 110" aria-label="coat" role="img">
@@ -481,6 +548,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderFootwear: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'sneakers':
       return (
         <svg
@@ -521,6 +595,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderAnimalsAndBuildings: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'bird':
       return (
         <svg className={className} viewBox="-5 -10 110 110" aria-label="bird" role="img">
@@ -559,6 +640,13 @@ const CounterObjectIllustration = ({
         </svg>
       );
 
+    default:
+      return null;
+  }
+};
+
+const renderBuildings: IllustrationRenderer = (illustrationId, className) => {
+  switch (illustrationId) {
     case 'apartment-building':
       return (
         <svg
@@ -611,5 +699,26 @@ const CounterObjectIllustration = ({
       return null;
   }
 };
+
+const ILLUSTRATION_RENDERERS = [
+  renderPaperAndBasics,
+  renderHandheldBasics,
+  renderAnimalsAndReading,
+  renderReadingMaterials,
+  renderTransportAndFood,
+  renderFood,
+  renderPeopleAndDrinks,
+  renderDrinks,
+  renderOuterwear,
+  renderCoat,
+  renderFootwear,
+  renderAnimalsAndBuildings,
+  renderBuildings,
+];
+
+const CounterObjectIllustration = ({ illustrationId, className }: CounterObjectIllustrationProps) =>
+  ILLUSTRATION_RENDERERS.map((renderIllustration) =>
+    renderIllustration(illustrationId, className)
+  ).find(Boolean) ?? null;
 
 export default CounterObjectIllustration;
