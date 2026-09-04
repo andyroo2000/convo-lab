@@ -32,6 +32,46 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+interface AuthErrorPayload {
+  message?: string;
+  error?: {
+    message?: string;
+  };
+}
+
+type AuthErrorMessage = (error: AuthErrorPayload) => string;
+
+interface AuthCredentialRequest {
+  endpoint: string;
+  credentials: Record<string, string>;
+  getErrorMessage: AuthErrorMessage;
+}
+
+const getLoginErrorMessage: AuthErrorMessage = (error) => error.message || 'Login failed';
+
+const getSignupErrorMessage: AuthErrorMessage = (error) =>
+  error.error?.message || error.message || 'Signup failed';
+
+const submitAuthCredentials = async ({
+  endpoint,
+  credentials,
+  getErrorMessage,
+}: AuthCredentialRequest): Promise<User> => {
+  const response = await fetchWithCsrf(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(credentials),
+  });
+
+  if (!response.ok) {
+    const error = (await response.json()) as AuthErrorPayload;
+    throw new Error(getErrorMessage(error));
+  }
+
+  return response.json();
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,20 +123,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [clearLocalSession]);
 
   const login = async (email: string, password: string) => {
-    const response = await fetchWithCsrf(authApi.login, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Login failed');
-    }
-
-    const userData = await response.json();
-    setUser(userData);
+    setUser(
+      await submitAuthCredentials({
+        endpoint: authApi.login,
+        credentials: { email, password },
+        getErrorMessage: getLoginErrorMessage,
+      })
+    );
   };
 
   const logout = async () => {
@@ -119,20 +152,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signup = async (email: string, password: string, name: string, inviteCode: string) => {
-    const response = await fetchWithCsrf(authApi.signup, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password, name, inviteCode }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || error.message || 'Signup failed');
-    }
-
-    const userData = await response.json();
-    setUser(userData);
+    setUser(
+      await submitAuthCredentials({
+        endpoint: authApi.signup,
+        credentials: { email, password, name, inviteCode },
+        getErrorMessage: getSignupErrorMessage,
+      })
+    );
   };
 
   const updateUser = async (data: {
