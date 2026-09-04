@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { CheckCircle, Circle, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { adminApi } from '../../../lib/adminApi';
@@ -46,6 +46,261 @@ interface CourseInfo {
   exchanges?: Exchange[];
   scriptUnits?: ScriptUnit[];
 }
+
+const STATUS_CLASSES: Record<string, string> = {
+  ready: 'bg-green-100 text-green-700',
+  generating: 'bg-yellow-100 text-yellow-700',
+  error: 'bg-red-100 text-red-700',
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const colors = STATUS_CLASSES[status] ?? 'bg-gray-100 text-gray-700';
+  return <span className={`px-2 py-1 text-xs font-medium rounded ${colors}`}>{status}</span>;
+};
+
+const PipelineStep = ({ complete, children }: { complete: boolean; children: string }) => {
+  const Icon = complete ? CheckCircle : Circle;
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <Icon className={`w-4 h-4 ${complete ? 'text-green-600' : 'text-gray-300'}`} />
+      <span className={complete ? 'text-gray-900' : 'text-gray-400'}>{children}</span>
+    </div>
+  );
+};
+
+const PipelineStatus = ({ course }: { course: CourseInfo }) => (
+  <div>
+    <h4 className="text-sm font-medium text-gray-700 mb-2">Pipeline Status</h4>
+    <div className="space-y-2">
+      <PipelineStep complete={course.hasExchanges}>Dialogue Exchanges Generated</PipelineStep>
+      <PipelineStep complete={course.hasScript}>Script Units Generated</PipelineStep>
+      <PipelineStep complete={course.hasAudio}>Audio Assembled</PipelineStep>
+    </div>
+  </div>
+);
+
+interface SectionToggleProps {
+  isOpen: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}
+
+const SectionToggle = ({ isOpen, onToggle, children }: SectionToggleProps) => {
+  const Icon = isOpen ? ChevronUp : ChevronDown;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-indigo transition-colors mb-2"
+    >
+      <Icon className="w-4 h-4" />
+      {children}
+    </button>
+  );
+};
+
+interface SourceTextSectionProps {
+  sourceText?: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const SourceTextSection = ({ sourceText, isOpen, onToggle }: SourceTextSectionProps) => {
+  if (!sourceText) return null;
+  return (
+    <div className="pt-2 border-t border-gray-200">
+      <SectionToggle isOpen={isOpen} onToggle={onToggle}>
+        Source Text
+      </SectionToggle>
+      {isOpen && (
+        <div className="retro-admin-v3-subpanel bg-gray-50 border border-gray-200 rounded-md p-3">
+          <p className="text-sm whitespace-pre-wrap font-mono">{sourceText}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const VocabularyList = ({ items }: { items?: VocabularyItem[] }) => {
+  if (!items?.length) return null;
+  return (
+    <div>
+      <div className="text-xs text-gray-600 mb-1">Vocabulary:</div>
+      <div className="flex flex-wrap gap-2">
+        {items.map((vocab) => (
+          <span
+            key={`vocab-${vocab.textL2}-${vocab.readingL2 || ''}`}
+            className="inline-flex items-center px-2 py-1 bg-white border border-blue-300 rounded text-xs retro-admin-v3-pill"
+          >
+            <span className="font-medium">{vocab.textL2}</span>
+            {vocab.readingL2 && <span className="ml-1 text-gray-500">({vocab.readingL2})</span>}
+            <span className="ml-1 text-gray-600">= {vocab.translationL1}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ExchangeCard = ({ exchange, index }: { exchange: Exchange; index: number }) => (
+  <div className="retro-admin-v3-subpanel bg-blue-50 border border-blue-200 rounded-md p-3">
+    <div className="flex items-start justify-between mb-2">
+      <span className="text-sm font-semibold text-indigo">
+        {exchange.speakerName || `Speaker ${index + 1}`}
+      </span>
+      <span className="text-xs text-gray-500">Exchange {exchange.order || index + 1}</span>
+    </div>
+    <div className="space-y-2">
+      <div>
+        <div className="text-xs text-gray-600 mb-1">Japanese:</div>
+        <div className="text-sm font-medium text-gray-900">{exchange.textL2}</div>
+      </div>
+      {exchange.readingL2 && (
+        <div>
+          <div className="text-xs text-gray-600 mb-1">Reading:</div>
+          <div className="text-sm text-gray-700 font-mono">{exchange.readingL2}</div>
+        </div>
+      )}
+      <div>
+        <div className="text-xs text-gray-600 mb-1">English:</div>
+        <div className="text-sm text-gray-700 italic">{exchange.translationL1}</div>
+      </div>
+      <VocabularyList items={exchange.vocabularyItems} />
+    </div>
+  </div>
+);
+
+interface ExchangesSectionProps {
+  hasExchanges: boolean;
+  exchanges?: Exchange[];
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const ExchangesSection = ({ hasExchanges, exchanges, isOpen, onToggle }: ExchangesSectionProps) => {
+  if (!hasExchanges || !exchanges) return null;
+  const items = Array.isArray(exchanges) ? exchanges : [];
+  return (
+    <div className="pt-2 border-t border-gray-200">
+      <SectionToggle isOpen={isOpen} onToggle={onToggle}>
+        Dialogue Exchanges ({items.length})
+      </SectionToggle>
+      {isOpen && (
+        <div className="space-y-3">
+          {items.map((exchange, index) => (
+            <ExchangeCard
+              key={`exchange-${exchange.order || index}`}
+              exchange={exchange}
+              index={index}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ScriptUnitContent = ({ unit }: { unit: ScriptUnit }) => {
+  if (unit.type === 'narration_L1') {
+    return (
+      <div className="bg-amber-50 border-l-4 border-amber-400 px-3 py-2">
+        <div className="text-xs text-amber-600 font-semibold mb-1">NARRATOR (English)</div>
+        <div className="text-gray-700 italic">{unit.text}</div>
+      </div>
+    );
+  }
+  if (unit.type === 'L2') {
+    return (
+      <div className="bg-blue-50 border-l-4 border-blue-400 px-3 py-2">
+        <div className="text-xs text-blue-600 font-semibold mb-1">
+          JAPANESE {unit.speed !== 1.0 && `(${unit.speed}x speed)`}
+        </div>
+        <div className="text-gray-900 font-medium">{unit.text}</div>
+        {unit.reading && <div className="text-gray-600 text-xs font-mono mt-1">{unit.reading}</div>}
+      </div>
+    );
+  }
+  if (unit.type === 'pause') {
+    return (
+      <div className="bg-gray-50 border-l-4 border-gray-300 px-3 py-2">
+        <div className="text-xs text-gray-500">PAUSE: {unit.durationSeconds}s</div>
+      </div>
+    );
+  }
+  if (unit.type === 'marker') {
+    return (
+      <div className="bg-purple-50 border-l-4 border-purple-300 px-3 py-2">
+        <div className="text-xs text-purple-600 font-semibold">MARKER: {unit.label}</div>
+      </div>
+    );
+  }
+  return null;
+};
+
+interface ScriptUnitsSectionProps {
+  hasScript: boolean;
+  scriptUnits?: ScriptUnit[];
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const ScriptUnitsSection = ({
+  hasScript,
+  scriptUnits,
+  isOpen,
+  onToggle,
+}: ScriptUnitsSectionProps) => {
+  if (!hasScript || !scriptUnits) return null;
+  const units = Array.isArray(scriptUnits) ? scriptUnits : [];
+  return (
+    <div className="pt-2 border-t border-gray-200">
+      <SectionToggle isOpen={isOpen} onToggle={onToggle}>
+        Lesson Script Units ({units.length})
+      </SectionToggle>
+      {isOpen && (
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {units.map((unit, index) => (
+            <div
+              key={`unit-${unit.type}-${unit.text?.substring(0, 20) || index}`}
+              className="flex items-start gap-3 text-sm"
+            >
+              <span className="text-xs text-gray-400 font-mono w-8 flex-shrink-0">{index + 1}</span>
+              <div className="flex-1">
+                <ScriptUnitContent unit={unit} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface GeneratePromptProps {
+  course: CourseInfo;
+  isGenerating: boolean;
+  onGenerate: () => void;
+}
+
+const GeneratePrompt = ({ course, isGenerating, onGenerate }: GeneratePromptProps) => {
+  if (course.hasExchanges || course.status !== 'draft') return null;
+  return (
+    <div className="retro-admin-v3-note bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <p className="text-sm text-blue-700 mb-3">
+        📝 This course has no content yet. Generate dialogue exchanges from the source text to get
+        started.
+      </p>
+      <button
+        type="button"
+        onClick={onGenerate}
+        disabled={isGenerating}
+        className="retro-admin-v3-btn-primary"
+      >
+        {isGenerating ? 'Generating...' : 'Generate Dialogue Exchanges'}
+      </button>
+    </div>
+  );
+};
 
 const CourseDetails = ({ courseId }: CourseDetailsProps) => {
   const [course, setCourse] = useState<CourseInfo | null>(null);
@@ -137,72 +392,16 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
             Created: {new Date(course.createdAt).toLocaleDateString()}
           </p>
         </div>
-        {(() => {
-          let statusClasses = 'px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700';
-          if (course.status === 'ready') {
-            statusClasses = 'px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700';
-          } else if (course.status === 'generating') {
-            statusClasses = 'px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700';
-          } else if (course.status === 'error') {
-            statusClasses = 'px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-700';
-          }
-          return <span className={statusClasses}>{course.status}</span>;
-        })()}
+        <StatusBadge status={course.status} />
       </div>
 
-      {/* Generate Content Button */}
-      {!course.hasExchanges && course.status === 'draft' && (
-        <div className="retro-admin-v3-note bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-700 mb-3">
-            📝 This course has no content yet. Generate dialogue exchanges from the source text to
-            get started.
-          </p>
-          <button
-            type="button"
-            onClick={handleGenerateCourse}
-            disabled={isGenerating}
-            className="retro-admin-v3-btn-primary"
-          >
-            {isGenerating ? 'Generating...' : 'Generate Dialogue Exchanges'}
-          </button>
-        </div>
-      )}
+      <GeneratePrompt
+        course={course}
+        isGenerating={isGenerating}
+        onGenerate={handleGenerateCourse}
+      />
 
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Pipeline Status</h4>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            {course.hasExchanges ? (
-              <CheckCircle className="w-4 h-4 text-green-600" />
-            ) : (
-              <Circle className="w-4 h-4 text-gray-300" />
-            )}
-            <span className={course.hasExchanges ? 'text-gray-900' : 'text-gray-400'}>
-              Dialogue Exchanges Generated
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            {course.hasScript ? (
-              <CheckCircle className="w-4 h-4 text-green-600" />
-            ) : (
-              <Circle className="w-4 h-4 text-gray-300" />
-            )}
-            <span className={course.hasScript ? 'text-gray-900' : 'text-gray-400'}>
-              Script Units Generated
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            {course.hasAudio ? (
-              <CheckCircle className="w-4 h-4 text-green-600" />
-            ) : (
-              <Circle className="w-4 h-4 text-gray-300" />
-            )}
-            <span className={course.hasAudio ? 'text-gray-900' : 'text-gray-400'}>
-              Audio Assembled
-            </span>
-          </div>
-        </div>
-      </div>
+      <PipelineStatus course={course} />
 
       <div className="pt-2 border-t border-gray-200">
         <a
@@ -216,174 +415,25 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
         </a>
       </div>
 
-      {/* Source Text */}
-      {course.sourceText && (
-        <div className="pt-2 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={() => setShowSourceText(!showSourceText)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-indigo transition-colors mb-2"
-          >
-            {showSourceText ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-            Source Text
-          </button>
-          {showSourceText && (
-            <div className="retro-admin-v3-subpanel bg-gray-50 border border-gray-200 rounded-md p-3">
-              <p className="text-sm whitespace-pre-wrap font-mono">{course.sourceText}</p>
-            </div>
-          )}
-        </div>
-      )}
+      <SourceTextSection
+        sourceText={course.sourceText}
+        isOpen={showSourceText}
+        onToggle={() => setShowSourceText(!showSourceText)}
+      />
 
-      {/* Exchanges (if generated) */}
-      {course.hasExchanges && course.exchanges && (
-        <div className="pt-2 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={() => setShowExchanges(!showExchanges)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-indigo transition-colors mb-2"
-          >
-            {showExchanges ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-            Dialogue Exchanges ({Array.isArray(course.exchanges) ? course.exchanges.length : 0})
-          </button>
-          {showExchanges && (
-            <div className="space-y-3">
-              {Array.isArray(course.exchanges) &&
-                course.exchanges.map((exchange, index) => (
-                  <div
-                    key={`exchange-${exchange.order || index}`}
-                    className="retro-admin-v3-subpanel bg-blue-50 border border-blue-200 rounded-md p-3"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="text-sm font-semibold text-indigo">
-                        {exchange.speakerName || `Speaker ${index + 1}`}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        Exchange {exchange.order || index + 1}
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      <div>
-                        <div className="text-xs text-gray-600 mb-1">Japanese:</div>
-                        <div className="text-sm font-medium text-gray-900">{exchange.textL2}</div>
-                      </div>
-                      {exchange.readingL2 && (
-                        <div>
-                          <div className="text-xs text-gray-600 mb-1">Reading:</div>
-                          <div className="text-sm text-gray-700 font-mono">
-                            {exchange.readingL2}
-                          </div>
-                        </div>
-                      )}
-                      <div>
-                        <div className="text-xs text-gray-600 mb-1">English:</div>
-                        <div className="text-sm text-gray-700 italic">{exchange.translationL1}</div>
-                      </div>
-                      {exchange.vocabularyItems && exchange.vocabularyItems.length > 0 && (
-                        <div>
-                          <div className="text-xs text-gray-600 mb-1">Vocabulary:</div>
-                          <div className="flex flex-wrap gap-2">
-                            {exchange.vocabularyItems.map((vocab) => (
-                              <span
-                                key={`vocab-${vocab.textL2}-${vocab.readingL2 || ''}`}
-                                className="inline-flex items-center px-2 py-1 bg-white border border-blue-300 rounded text-xs retro-admin-v3-pill"
-                              >
-                                <span className="font-medium">{vocab.textL2}</span>
-                                {vocab.readingL2 && (
-                                  <span className="ml-1 text-gray-500">({vocab.readingL2})</span>
-                                )}
-                                <span className="ml-1 text-gray-600">= {vocab.translationL1}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      )}
+      <ExchangesSection
+        hasExchanges={course.hasExchanges}
+        exchanges={course.exchanges}
+        isOpen={showExchanges}
+        onToggle={() => setShowExchanges(!showExchanges)}
+      />
 
-      {/* Script Units (if generated) */}
-      {course.hasScript && course.scriptUnits && (
-        <div className="pt-2 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={() => setShowScriptUnits(!showScriptUnits)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-indigo transition-colors mb-2"
-          >
-            {showScriptUnits ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-            Lesson Script Units ({Array.isArray(course.scriptUnits) ? course.scriptUnits.length : 0}
-            )
-          </button>
-          {showScriptUnits && (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {Array.isArray(course.scriptUnits) &&
-                course.scriptUnits.map((unit, index) => (
-                  <div
-                    key={`unit-${unit.type}-${unit.text?.substring(0, 20) || index}`}
-                    className="flex items-start gap-3 text-sm"
-                  >
-                    <span className="text-xs text-gray-400 font-mono w-8 flex-shrink-0">
-                      {index + 1}
-                    </span>
-                    <div className="flex-1">
-                      {unit.type === 'narration_L1' && (
-                        <div className="bg-amber-50 border-l-4 border-amber-400 px-3 py-2">
-                          <div className="text-xs text-amber-600 font-semibold mb-1">
-                            NARRATOR (English)
-                          </div>
-                          <div className="text-gray-700 italic">{unit.text}</div>
-                        </div>
-                      )}
-                      {unit.type === 'L2' && (
-                        <div className="bg-blue-50 border-l-4 border-blue-400 px-3 py-2">
-                          <div className="text-xs text-blue-600 font-semibold mb-1">
-                            JAPANESE {unit.speed !== 1.0 && `(${unit.speed}x speed)`}
-                          </div>
-                          <div className="text-gray-900 font-medium">{unit.text}</div>
-                          {unit.reading && (
-                            <div className="text-gray-600 text-xs font-mono mt-1">
-                              {unit.reading}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {unit.type === 'pause' && (
-                        <div className="bg-gray-50 border-l-4 border-gray-300 px-3 py-2">
-                          <div className="text-xs text-gray-500">
-                            PAUSE: {unit.durationSeconds}s
-                          </div>
-                        </div>
-                      )}
-                      {unit.type === 'marker' && (
-                        <div className="bg-purple-50 border-l-4 border-purple-300 px-3 py-2">
-                          <div className="text-xs text-purple-600 font-semibold">
-                            MARKER: {unit.label}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      )}
+      <ScriptUnitsSection
+        hasScript={course.hasScript}
+        scriptUnits={course.scriptUnits}
+        isOpen={showScriptUnits}
+        onToggle={() => setShowScriptUnits(!showScriptUnits)}
+      />
 
       <div className="pt-2 border-t border-gray-200">
         <p className="text-sm text-gray-600 mb-2">
