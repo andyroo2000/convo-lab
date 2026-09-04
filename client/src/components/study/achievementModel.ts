@@ -68,9 +68,9 @@ const invalidContract = (message: string): never => {
 };
 
 const asRecord = (value: unknown, message: string): Record<string, unknown> => {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return invalidContract(message);
-  }
+  if (typeof value !== 'object') return invalidContract(message);
+  if (value === null) return invalidContract(message);
+  if (Array.isArray(value)) return invalidContract(message);
   return value as Record<string, unknown>;
 };
 
@@ -105,19 +105,22 @@ const decodeAsset = (value: unknown): AchievementAsset => {
   };
 };
 
+const validateAssetDimensions = (asset: AchievementAsset, size: number) => {
+  if (asset.width !== size) {
+    invalidContract('Achievement asset dimensions did not match the catalog contract.');
+  }
+  if (asset.height !== size) {
+    invalidContract('Achievement asset dimensions did not match the catalog contract.');
+  }
+};
+
 const decodeStateAssets = (value: unknown) => {
   const record = asRecord(value, 'Achievement state assets were invalid.');
   const png = asRecord(record.png, 'Achievement PNG assets were invalid.');
   const standard = decodeAsset(png['256']);
   const retina = decodeAsset(png['512']);
-  if (
-    standard.width !== 256 ||
-    standard.height !== 256 ||
-    retina.width !== 512 ||
-    retina.height !== 512
-  ) {
-    return invalidContract('Achievement asset dimensions did not match the catalog contract.');
-  }
+  validateAssetDimensions(standard, 256);
+  validateAssetDimensions(retina, 512);
   return { png: { '256': standard, '512': retina } };
 };
 
@@ -269,6 +272,70 @@ export const recentEarnedAchievements = (
     .sort((left, right) => Date.parse(right.earnedAt) - Date.parse(left.earnedAt))
     .slice(0, count);
 
+const visibleAchievementFamilies = (catalog: AchievementCatalog) =>
+  catalog.families.filter((family) => !family.hiddenUntilEarned);
+
+const hasVisibleProgress = (
+  families: AchievementFamily[],
+  progress: AchievementProgress | null
+) => {
+  if (!progress) return false;
+  const metricKeys = new Set(families.map((family) => family.metricKey));
+  const tierIds = new Set(
+    families.flatMap((family) => family.tiers.map((tier) => `${family.key}.${tier.key}`))
+  );
+  const hasMetricProgress = Object.entries(progress.metricValues).some(
+    ([metricKey, metricValue]) => metricKeys.has(metricKey) && metricValue > 0
+  );
+  if (hasMetricProgress) return true;
+  return progress.awards.some((award) => tierIds.has(award.id));
+};
+
+const fallbackAchievements = (
+  catalog: AchievementCatalog,
+  achievements: PresentedAchievement[],
+  count: number
+) => {
+  const byId = new Map(achievements.map((achievement) => [achievement.id, achievement]));
+  return catalog.presentation.noDataFallbackTierIds
+    .map((id) => byId.get(id))
+    .filter(
+      (achievement): achievement is PresentedAchievement =>
+        achievement !== undefined && !achievement.family.hiddenUntilEarned
+    )
+    .slice(0, count);
+};
+
+const nextLockedAchievement = (family: AchievementFamily, achievements: PresentedAchievement[]) => {
+  const familyAchievements = achievements.filter(
+    (achievement) => achievement.family.key === family.key
+  );
+  let highestEarnedIndex = -1;
+  familyAchievements.forEach((achievement, index) => {
+    if (achievement.earned) highestEarnedIndex = index;
+  });
+  return familyAchievements
+    .slice(highestEarnedIndex + 1)
+    .find((achievement) => !achievement.earned);
+};
+
+const compareAchievementProgress = (
+  left: PresentedAchievement,
+  right: PresentedAchievement,
+  achievementOrder: Map<string, number>
+) => {
+  const leftRatio = (left.currentValue ?? 0) / left.tier.threshold;
+  const rightRatio = (right.currentValue ?? 0) / right.tier.threshold;
+  const ratioDifference = rightRatio - leftRatio;
+  if (ratioDifference !== 0) return ratioDifference;
+
+  const remainingDifference =
+    (left.remaining ?? left.tier.threshold) - (right.remaining ?? right.tier.threshold);
+  if (remainingDifference !== 0) return remainingDifference;
+
+  return (achievementOrder.get(left.id) ?? 0) - (achievementOrder.get(right.id) ?? 0);
+};
+
 export const closestInProgressAchievements = (
   catalog: AchievementCatalog,
   progress: AchievementProgress | null,
@@ -276,54 +343,19 @@ export const closestInProgressAchievements = (
 ): PresentedAchievement[] => {
   const all = allPresentedAchievements(catalog, progress);
   const compatibleProgress = progress?.revision === catalog.revision ? progress : null;
-  const metricValues = compatibleProgress?.metricValues ?? null;
-  const visibleFamilies = catalog.families.filter((family) => !family.hiddenUntilEarned);
-  const visibleMetricKeys = new Set(visibleFamilies.map((family) => family.metricKey));
-  const visibleTierIds = new Set(
-    visibleFamilies.flatMap((family) => family.tiers.map((tier) => `${family.key}.${tier.key}`))
-  );
-  const hasProgress =
-    metricValues !== null &&
-    (Object.entries(metricValues).some(
-      ([metricKey, metricValue]) => visibleMetricKeys.has(metricKey) && metricValue > 0
-    ) ||
-      (compatibleProgress?.awards.some((award) => visibleTierIds.has(award.id)) ?? false));
+  const visibleFamilies = visibleAchievementFamilies(catalog);
 
-  if (!hasProgress) {
-    const byId = new Map(all.map((achievement) => [achievement.id, achievement]));
-    return catalog.presentation.noDataFallbackTierIds
-      .map((id) => byId.get(id))
-      .filter(
-        (achievement): achievement is PresentedAchievement =>
-          achievement !== undefined && !achievement.family.hiddenUntilEarned
-      )
-      .slice(0, count);
+  if (!hasVisibleProgress(visibleFamilies, compatibleProgress)) {
+    return fallbackAchievements(catalog, all, count);
   }
 
   if (!catalog.presentation.fillWithLockedCandidates) return [];
 
   const achievementOrder = new Map(all.map((achievement, index) => [achievement.id, index]));
   const candidates = visibleFamilies
-    .map((family) => {
-      const familyAchievements = all.filter((achievement) => achievement.family.key === family.key);
-      let highestEarnedIndex = -1;
-      familyAchievements.forEach((achievement, index) => {
-        if (achievement.earned) highestEarnedIndex = index;
-      });
-      return familyAchievements
-        .slice(highestEarnedIndex + 1)
-        .find((achievement) => !achievement.earned);
-    })
+    .map((family) => nextLockedAchievement(family, all))
     .filter((achievement): achievement is PresentedAchievement => achievement !== undefined)
-    .sort((left, right) => {
-      const leftRatio = (left.currentValue ?? 0) / left.tier.threshold;
-      const rightRatio = (right.currentValue ?? 0) / right.tier.threshold;
-      return (
-        rightRatio - leftRatio ||
-        (left.remaining ?? left.tier.threshold) - (right.remaining ?? right.tier.threshold) ||
-        (achievementOrder.get(left.id) ?? 0) - (achievementOrder.get(right.id) ?? 0)
-      );
-    });
+    .sort((left, right) => compareAchievementProgress(left, right, achievementOrder));
 
   return candidates.slice(0, count);
 };
