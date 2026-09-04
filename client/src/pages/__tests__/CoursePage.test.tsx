@@ -99,6 +99,45 @@ const mockCourse: Course = {
   ],
 };
 
+type MockCourse = Omit<Course, 'audioUrl' | 'description'> & {
+  audioUrl?: string | null;
+  description?: string | null;
+};
+
+function setCourseState({
+  course = mockCourse,
+  generationProgress = null,
+  isLoading = false,
+}: {
+  course?: MockCourse | null;
+  generationProgress?: number | null;
+  isLoading?: boolean;
+} = {}) {
+  mockUseCourse.mockReturnValue({
+    course,
+    isLoading,
+    error: null,
+    generationProgress,
+    updateCourse: mockUpdateCourse,
+    isUpdating: false,
+  });
+}
+
+function openEditor(currentValue: string) {
+  fireEvent.click(screen.getByText(currentValue));
+  return screen.getByDisplayValue(currentValue);
+}
+
+function changeEditorValue(editor: HTMLElement, value: string) {
+  fireEvent.change(editor, { target: { value } });
+}
+
+async function expectCourseUpdate(update: Partial<Course>) {
+  await waitFor(() => {
+    expect(mockUpdateCourse).toHaveBeenCalledWith(update);
+  });
+}
+
 describe('CoursePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -116,14 +155,7 @@ describe('CoursePage', () => {
 
   describe('loading state', () => {
     it('should show loading spinner while fetching course', () => {
-      mockUseCourse.mockReturnValue({
-        course: null,
-        isLoading: true,
-        error: null,
-        generationProgress: null,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: null, isLoading: true });
 
       renderPage();
 
@@ -135,14 +167,7 @@ describe('CoursePage', () => {
 
   describe('audio cache warming', () => {
     it('warms ready course audio', async () => {
-      mockUseCourse.mockReturnValue({
-        course: mockCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: null,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState();
 
       renderPage();
 
@@ -157,14 +182,7 @@ describe('CoursePage', () => {
 
   describe('not found state', () => {
     it('should show not found message when course is null', () => {
-      mockUseCourse.mockReturnValue({
-        course: null,
-        isLoading: false,
-        error: null,
-        generationProgress: null,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: null });
 
       renderPage();
 
@@ -174,14 +192,7 @@ describe('CoursePage', () => {
 
   describe('course display', () => {
     beforeEach(() => {
-      mockUseCourse.mockReturnValue({
-        course: mockCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: null,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState();
     });
 
     it('should render course title', () => {
@@ -196,14 +207,7 @@ describe('CoursePage', () => {
 
     it('should show placeholder when description is empty', () => {
       const courseWithoutDescription = { ...mockCourse, description: null };
-      mockUseCourse.mockReturnValue({
-        course: courseWithoutDescription,
-        isLoading: false,
-        error: null,
-        generationProgress: null,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: courseWithoutDescription });
 
       renderPage();
       expect(screen.getByText('Click to add description...')).toBeInTheDocument();
@@ -249,61 +253,38 @@ describe('CoursePage', () => {
 
   describe('title editing', () => {
     beforeEach(() => {
-      mockUseCourse.mockReturnValue({
-        course: mockCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: null,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState();
     });
 
     it('should show input field when title is clicked', () => {
       renderPage();
-      const title = screen.getByText('Daily Conversations');
-      fireEvent.click(title);
-
-      const input = screen.getByDisplayValue('Daily Conversations');
+      const input = openEditor('Daily Conversations');
       expect(input).toBeInTheDocument();
       expect(input.tagName).toBe('INPUT');
     });
 
     it('should save title on blur', async () => {
       renderPage();
-      const title = screen.getByText('Daily Conversations');
-      fireEvent.click(title);
-
-      const input = screen.getByDisplayValue('Daily Conversations');
-      fireEvent.change(input, { target: { value: 'Updated Title' } });
+      const input = openEditor('Daily Conversations');
+      changeEditorValue(input, 'Updated Title');
       fireEvent.blur(input);
 
-      await waitFor(() => {
-        expect(mockUpdateCourse).toHaveBeenCalledWith({ title: 'Updated Title' });
-      });
+      await expectCourseUpdate({ title: 'Updated Title' });
     });
 
     it('should save title on Enter key', async () => {
       renderPage();
-      const title = screen.getByText('Daily Conversations');
-      fireEvent.click(title);
-
-      const input = screen.getByDisplayValue('Daily Conversations');
-      fireEvent.change(input, { target: { value: 'New Title' } });
+      const input = openEditor('Daily Conversations');
+      changeEditorValue(input, 'New Title');
       fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
-      await waitFor(() => {
-        expect(mockUpdateCourse).toHaveBeenCalledWith({ title: 'New Title' });
-      });
+      await expectCourseUpdate({ title: 'New Title' });
     });
 
     it('should cancel editing on Escape key', () => {
       renderPage();
-      const title = screen.getByText('Daily Conversations');
-      fireEvent.click(title);
-
-      const input = screen.getByDisplayValue('Daily Conversations');
-      fireEvent.change(input, { target: { value: 'New Title' } });
+      const input = openEditor('Daily Conversations');
+      changeEditorValue(input, 'New Title');
       fireEvent.keyDown(input, { key: 'Escape', code: 'Escape' });
 
       // Title should be back to normal (not in editing mode)
@@ -313,10 +294,7 @@ describe('CoursePage', () => {
 
     it('should not save if title is unchanged', async () => {
       renderPage();
-      const title = screen.getByText('Daily Conversations');
-      fireEvent.click(title);
-
-      const input = screen.getByDisplayValue('Daily Conversations');
+      const input = openEditor('Daily Conversations');
       fireEvent.blur(input);
 
       await waitFor(() => {
@@ -326,11 +304,8 @@ describe('CoursePage', () => {
 
     it('should not save if title is empty', async () => {
       renderPage();
-      const title = screen.getByText('Daily Conversations');
-      fireEvent.click(title);
-
-      const input = screen.getByDisplayValue('Daily Conversations');
-      fireEvent.change(input, { target: { value: '   ' } });
+      const input = openEditor('Daily Conversations');
+      changeEditorValue(input, '   ');
       fireEvent.blur(input);
 
       await waitFor(() => {
@@ -341,61 +316,38 @@ describe('CoursePage', () => {
 
   describe('description editing', () => {
     beforeEach(() => {
-      mockUseCourse.mockReturnValue({
-        course: mockCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: null,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState();
     });
 
     it('should show textarea when description is clicked', () => {
       renderPage();
-      const description = screen.getByText('Learn everyday Japanese phrases');
-      fireEvent.click(description);
-
-      const textarea = screen.getByDisplayValue('Learn everyday Japanese phrases');
+      const textarea = openEditor('Learn everyday Japanese phrases');
       expect(textarea).toBeInTheDocument();
       expect(textarea.tagName).toBe('TEXTAREA');
     });
 
     it('should save description on blur', async () => {
       renderPage();
-      const description = screen.getByText('Learn everyday Japanese phrases');
-      fireEvent.click(description);
-
-      const textarea = screen.getByDisplayValue('Learn everyday Japanese phrases');
-      fireEvent.change(textarea, { target: { value: 'Updated description' } });
+      const textarea = openEditor('Learn everyday Japanese phrases');
+      changeEditorValue(textarea, 'Updated description');
       fireEvent.blur(textarea);
 
-      await waitFor(() => {
-        expect(mockUpdateCourse).toHaveBeenCalledWith({ description: 'Updated description' });
-      });
+      await expectCourseUpdate({ description: 'Updated description' });
     });
 
     it('should save description on Enter key', async () => {
       renderPage();
-      const description = screen.getByText('Learn everyday Japanese phrases');
-      fireEvent.click(description);
-
-      const textarea = screen.getByDisplayValue('Learn everyday Japanese phrases');
-      fireEvent.change(textarea, { target: { value: 'New description' } });
+      const textarea = openEditor('Learn everyday Japanese phrases');
+      changeEditorValue(textarea, 'New description');
       fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter' });
 
-      await waitFor(() => {
-        expect(mockUpdateCourse).toHaveBeenCalledWith({ description: 'New description' });
-      });
+      await expectCourseUpdate({ description: 'New description' });
     });
 
     it('should cancel editing on Escape key', () => {
       renderPage();
-      const description = screen.getByText('Learn everyday Japanese phrases');
-      fireEvent.click(description);
-
-      const textarea = screen.getByDisplayValue('Learn everyday Japanese phrases');
-      fireEvent.change(textarea, { target: { value: 'New description' } });
+      const textarea = openEditor('Learn everyday Japanese phrases');
+      changeEditorValue(textarea, 'New description');
       fireEvent.keyDown(textarea, { key: 'Escape', code: 'Escape' });
 
       // Description should be back to normal
@@ -405,10 +357,7 @@ describe('CoursePage', () => {
 
     it('should not save if description is unchanged', async () => {
       renderPage();
-      const description = screen.getByText('Learn everyday Japanese phrases');
-      fireEvent.click(description);
-
-      const textarea = screen.getByDisplayValue('Learn everyday Japanese phrases');
+      const textarea = openEditor('Learn everyday Japanese phrases');
       fireEvent.blur(textarea);
 
       await waitFor(() => {
@@ -420,14 +369,7 @@ describe('CoursePage', () => {
   describe('generation progress', () => {
     it('should show progress bar when generating', () => {
       const generatingCourse = { ...mockCourse, status: 'generating' as const, audioUrl: null };
-      mockUseCourse.mockReturnValue({
-        course: generatingCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: 50,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: generatingCourse, generationProgress: 50 });
 
       renderPage();
 
@@ -441,27 +383,13 @@ describe('CoursePage', () => {
       const generatingCourse = { ...mockCourse, status: 'generating' as const, audioUrl: null };
 
       // Test at 15% - Extracting dialogue
-      mockUseCourse.mockReturnValue({
-        course: generatingCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: 15,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: generatingCourse, generationProgress: 15 });
 
       const { rerender } = renderPage();
       expect(screen.getByText('Extracting dialogue...')).toBeInTheDocument();
 
       // Test at 35% - Planning course structure
-      mockUseCourse.mockReturnValue({
-        course: generatingCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: 35,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: generatingCourse, generationProgress: 35 });
 
       rerender(
         <MemoryRouter initialEntries={['/app/courses/course-123']}>
@@ -473,14 +401,7 @@ describe('CoursePage', () => {
       expect(screen.getByText('Planning course structure...')).toBeInTheDocument();
 
       // Test at 55% - Generating teaching script
-      mockUseCourse.mockReturnValue({
-        course: generatingCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: 55,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: generatingCourse, generationProgress: 55 });
 
       rerender(
         <MemoryRouter initialEntries={['/app/courses/course-123']}>
@@ -492,14 +413,7 @@ describe('CoursePage', () => {
       expect(screen.getByText('Generating teaching script...')).toBeInTheDocument();
 
       // Test at 70% - Synthesizing audio
-      mockUseCourse.mockReturnValue({
-        course: generatingCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: 70,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: generatingCourse, generationProgress: 70 });
 
       rerender(
         <MemoryRouter initialEntries={['/app/courses/course-123']}>
@@ -511,14 +425,7 @@ describe('CoursePage', () => {
       expect(screen.getByText('Synthesizing audio (10% complete)...')).toBeInTheDocument();
 
       // Test at 90% - Finalizing
-      mockUseCourse.mockReturnValue({
-        course: generatingCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: 90,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: generatingCourse, generationProgress: 90 });
 
       rerender(
         <MemoryRouter initialEntries={['/app/courses/course-123']}>
@@ -532,14 +439,7 @@ describe('CoursePage', () => {
 
     it('should show draft message when status is draft', () => {
       const draftCourse = { ...mockCourse, status: 'draft' as const, audioUrl: null };
-      mockUseCourse.mockReturnValue({
-        course: draftCourse,
-        isLoading: false,
-        error: null,
-        generationProgress: null,
-        updateCourse: mockUpdateCourse,
-        isUpdating: false,
-      });
+      setCourseState({ course: draftCourse });
 
       renderPage();
 
