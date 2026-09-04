@@ -43,77 +43,100 @@ const isKana = (char: string): boolean => HIRAGANA_REGEX.test(char) || KATAKANA_
 
 const normalizeKanaCharacter = (char: string) => {
   const codePoint = char.codePointAt(0);
-  if (codePoint !== undefined && codePoint >= 0x30a1 && codePoint <= 0x30f6) {
-    return String.fromCodePoint(codePoint - 0x60);
+  if (codePoint === undefined) return char;
+  if (codePoint < 0x30a1) return char;
+  if (codePoint > 0x30f6) return char;
+  return String.fromCodePoint(codePoint - 0x60);
+};
+
+interface RubyAlignmentContext {
+  baseCharacters: string[];
+  readingCharacters: string[];
+  memo: Map<string, boolean>;
+}
+
+interface RubyTextPair {
+  base: string;
+  reading: string;
+}
+
+const alignRubyKana = (
+  context: RubyAlignmentContext,
+  baseIndex: number,
+  readingIndex: number,
+  alignFrom: (baseIndex: number, readingIndex: number) => boolean
+) => {
+  if (readingIndex >= context.readingCharacters.length) return false;
+  const baseCharacter = normalizeKanaCharacter(context.baseCharacters[baseIndex]);
+  const readingCharacter = normalizeKanaCharacter(context.readingCharacters[readingIndex]);
+  if (baseCharacter !== readingCharacter) return false;
+  return alignFrom(baseIndex + 1, readingIndex + 1);
+};
+
+const alignRubyKanji = (
+  context: RubyAlignmentContext,
+  baseIndex: number,
+  readingIndex: number,
+  alignFrom: (baseIndex: number, readingIndex: number) => boolean
+) => {
+  const remainingCharactersAfterKanji = context.baseCharacters.length - baseIndex - 1;
+  const latestReadingEnd = context.readingCharacters.length - remainingCharactersAfterKanji;
+  for (let readingEnd = readingIndex + 1; readingEnd <= latestReadingEnd; readingEnd += 1) {
+    if (alignFrom(baseIndex + 1, readingEnd)) return true;
   }
-  return char;
+  return false;
 };
 
 // The source regex necessarily consumes adjacent Japanese text before `[reading]`.
 // Use literal kana as alignment anchors while allowing each kanji one or more reading kana.
-const canAlignRubyBaseToReading = (base: string, reading: string) => {
-  const baseCharacters = Array.from(base);
-  const readingCharacters = Array.from(reading);
-  const memo = new Map<string, boolean>();
+const canAlignRubyBaseToReading = ({ base, reading }: RubyTextPair) => {
+  const context: RubyAlignmentContext = {
+    baseCharacters: Array.from(base),
+    readingCharacters: Array.from(reading),
+    memo: new Map<string, boolean>(),
+  };
 
   const alignFrom = (baseIndex: number, readingIndex: number): boolean => {
     const memoKey = `${String(baseIndex)}:${String(readingIndex)}`;
-    const memoized = memo.get(memoKey);
+    const memoized = context.memo.get(memoKey);
     if (memoized !== undefined) return memoized;
 
-    if (baseIndex === baseCharacters.length) {
-      return readingIndex === readingCharacters.length;
+    if (baseIndex === context.baseCharacters.length) {
+      return readingIndex === context.readingCharacters.length;
     }
 
-    const remainingBaseLength = baseCharacters.length - baseIndex;
-    const remainingReadingLength = readingCharacters.length - readingIndex;
+    const remainingBaseLength = context.baseCharacters.length - baseIndex;
+    const remainingReadingLength = context.readingCharacters.length - readingIndex;
     if (remainingReadingLength < remainingBaseLength) {
-      memo.set(memoKey, false);
+      context.memo.set(memoKey, false);
       return false;
     }
 
-    const baseCharacter = baseCharacters[baseIndex];
-    if (isKana(baseCharacter)) {
-      const matches =
-        readingIndex < readingCharacters.length &&
-        normalizeKanaCharacter(baseCharacter) ===
-          normalizeKanaCharacter(readingCharacters[readingIndex]) &&
-        alignFrom(baseIndex + 1, readingIndex + 1);
-      memo.set(memoKey, matches);
-      return matches;
-    }
-
-    const remainingCharactersAfterKanji = baseCharacters.length - baseIndex - 1;
-    const latestReadingEnd = readingCharacters.length - remainingCharactersAfterKanji;
-    for (let readingEnd = readingIndex + 1; readingEnd <= latestReadingEnd; readingEnd += 1) {
-      if (alignFrom(baseIndex + 1, readingEnd)) {
-        memo.set(memoKey, true);
-        return true;
-      }
-    }
-
-    memo.set(memoKey, false);
-    return false;
+    const matches = isKana(context.baseCharacters[baseIndex])
+      ? alignRubyKana(context, baseIndex, readingIndex, alignFrom)
+      : alignRubyKanji(context, baseIndex, readingIndex, alignFrom);
+    context.memo.set(memoKey, matches);
+    return matches;
   };
 
   return alignFrom(0, 0);
 };
 
-const splitUnannotatedRubyPrefix = (base: string, reading: string) => {
+const splitUnannotatedRubyPrefix = ({ base, reading }: RubyTextPair) => {
   const characters = Array.from(base);
   const hasKanaBeforeLaterKanji = characters.some(
     (character, index) =>
       isKana(character) && characters.slice(index + 1).some((later) => KANJI_REGEX.test(later))
   );
 
-  if (!hasKanaBeforeLaterKanji || canAlignRubyBaseToReading(base, reading)) {
+  if (!hasKanaBeforeLaterKanji || canAlignRubyBaseToReading({ base, reading })) {
     return { prefix: '', base };
   }
 
   for (let index = 1; index < characters.length; index += 1) {
     if (KANJI_REGEX.test(characters[index])) {
       const candidate = characters.slice(index).join('');
-      if (canAlignRubyBaseToReading(candidate, reading)) {
+      if (canAlignRubyBaseToReading({ base: candidate, reading })) {
         return {
           prefix: characters.slice(0, index).join(''),
           base: candidate,
@@ -215,28 +238,71 @@ export const getHeadlineClasses = (
   return 'text-4xl sm:text-5xl md:text-6xl';
 };
 
-const normalizeRubyMatch = (
-  base: string,
-  reading: string,
-  options: { preservePrefixReading?: boolean } = {}
-) => {
+interface NormalizeRubyMatchOptions extends RubyTextPair {
+  preservePrefixReading: boolean;
+}
+
+interface KanjiBounds {
+  start: number;
+  end: number;
+}
+
+const findKanjiBounds = ({ base }: Pick<RubyTextPair, 'base'>): KanjiBounds => {
+  let start = 0;
+  while (start < base.length && isKana(base[start])) start += 1;
+
+  let end = base.length;
+  while (end > start && isKana(base[end - 1])) end -= 1;
+  return { start, end };
+};
+
+const hasKanjiBase = ({ base, start, end }: Pick<RubyTextPair, 'base'> & KanjiBounds) => {
+  if (start >= base.length) return false;
+  if (start >= end) return false;
+  return KANJI_REGEX.test(base.slice(start, end));
+};
+
+interface ReadingAffixOptions {
+  reading: string;
+  prefix: string;
+  suffix: string;
+  preservePrefixReading: boolean;
+}
+
+const shouldStripReadingPrefix = ({
+  reading,
+  prefix,
+  preservePrefixReading,
+}: Omit<ReadingAffixOptions, 'suffix'>) => {
+  if (!prefix) return false;
+  if (preservePrefixReading) return false;
+  if (PARTICLE_PREFIXES.has(prefix)) return false;
+  return reading.startsWith(prefix);
+};
+
+const stripReadingAffixes = ({
+  reading,
+  prefix,
+  suffix,
+  preservePrefixReading,
+}: ReadingAffixOptions) => {
+  let adjusted = shouldStripReadingPrefix({ reading, prefix, preservePrefixReading })
+    ? reading.slice(prefix.length)
+    : reading;
+  if (suffix && adjusted.endsWith(suffix)) {
+    adjusted = adjusted.slice(0, adjusted.length - suffix.length);
+  }
+  return adjusted;
+};
+
+const normalizeRubyMatch = ({
+  base,
+  reading,
+  preservePrefixReading,
+}: NormalizeRubyMatchOptions) => {
   const cleanReading = reading.replace(/\s+/g, '');
-
-  let kanjiStart = 0;
-  while (kanjiStart < base.length && isKana(base[kanjiStart])) {
-    kanjiStart += 1;
-  }
-
-  let kanjiEnd = base.length;
-  while (kanjiEnd > kanjiStart && isKana(base[kanjiEnd - 1])) {
-    kanjiEnd -= 1;
-  }
-
-  if (
-    kanjiStart >= base.length ||
-    kanjiStart >= kanjiEnd ||
-    !KANJI_REGEX.test(base.slice(kanjiStart, kanjiEnd))
-  ) {
+  const { start, end } = findKanjiBounds({ base });
+  if (!hasKanjiBase({ base, start, end })) {
     return {
       prefix: '',
       kanjiPart: base,
@@ -245,24 +311,17 @@ const normalizeRubyMatch = (
     };
   }
 
-  let prefix = base.substring(0, kanjiStart);
-  let kanjiPart = base.substring(kanjiStart, kanjiEnd);
-  const suffix = base.substring(kanjiEnd);
+  let prefix = base.substring(0, start);
+  let kanjiPart = base.substring(start, end);
+  const suffix = base.substring(end);
+  const adjustedReading = stripReadingAffixes({
+    reading: cleanReading,
+    prefix,
+    suffix,
+    preservePrefixReading,
+  });
 
-  let adjustedReading = cleanReading;
-  if (
-    prefix &&
-    !options.preservePrefixReading &&
-    !PARTICLE_PREFIXES.has(prefix) &&
-    adjustedReading.startsWith(prefix)
-  ) {
-    adjustedReading = adjustedReading.slice(prefix.length);
-  }
-  if (suffix && adjustedReading.endsWith(suffix)) {
-    adjustedReading = adjustedReading.slice(0, adjustedReading.length - suffix.length);
-  }
-
-  const realigned = splitUnannotatedRubyPrefix(kanjiPart, adjustedReading);
+  const realigned = splitUnannotatedRubyPrefix({ base: kanjiPart, reading: adjustedReading });
   prefix += realigned.prefix;
   kanjiPart = realigned.base;
 
@@ -274,79 +333,100 @@ const normalizeRubyMatch = (
   };
 };
 
+interface RubyMatchParts {
+  base: string;
+  reading: string;
+  bracketReading: string | undefined;
+  parentheticalReading: string | undefined;
+}
+
+const isSupportedRubyMatch = ({
+  base,
+  reading,
+  bracketReading,
+  parentheticalReading,
+}: RubyMatchParts) => {
+  // Cloze blanks use `[...]`; do not interpret the ellipsis as a reading.
+  if (bracketReading === '...') return false;
+  if (parentheticalReading === undefined) return true;
+  if (!isKanaReading(reading)) return false;
+  return KANJI_REGEX.test(base);
+};
+
+interface RubySegmentAccumulator {
+  decoded: string;
+  segments: StudyRubySegment[];
+  lastIndex: number;
+}
+
+const appendRubyMatch = (accumulator: RubySegmentAccumulator, match: RegExpMatchArray) => {
+  const matchIndex = match.index ?? 0;
+  const [fullMatch, base, bracketReading, parentheticalReading] = match;
+  const reading = bracketReading ?? parentheticalReading ?? '';
+  if (!isSupportedRubyMatch({ base, reading, bracketReading, parentheticalReading })) return;
+
+  if (matchIndex > accumulator.lastIndex) {
+    accumulator.segments.push({
+      kind: 'text',
+      key: `text-${accumulator.lastIndex}`,
+      text: accumulator.decoded.slice(accumulator.lastIndex, matchIndex),
+    });
+  }
+
+  // When ruby annotations are adjacent, any leading kana in this regex match was
+  // written after the previous annotation and belongs to the plain surface text.
+  // It must not consume the start of the following kanji reading, as in
+  // `悪[わる]い意味[いみ]`.
+  const normalized = normalizeRubyMatch({
+    base,
+    reading,
+    preservePrefixReading: accumulator.lastIndex > 0 && matchIndex === accumulator.lastIndex,
+  });
+
+  if (normalized.prefix) {
+    accumulator.segments.push({
+      kind: 'text',
+      key: `prefix-${matchIndex}`,
+      text: normalized.prefix,
+    });
+  }
+
+  accumulator.segments.push({
+    kind: 'ruby',
+    key: `ruby-${matchIndex}`,
+    base: normalized.kanjiPart,
+    reading: normalized.reading,
+  });
+
+  if (normalized.suffix) {
+    accumulator.segments.push({
+      kind: 'text',
+      key: `suffix-${matchIndex}`,
+      text: normalized.suffix,
+    });
+  }
+
+  accumulator.lastIndex = matchIndex + fullMatch.length;
+};
+
 export const parseRubySegments = (value?: string | null): StudyRubySegment[] => {
   if (!value) return [];
 
   const decoded = decodeHtmlEntities(value);
-  const segments: StudyRubySegment[] = [];
-  let lastIndex = 0;
+  const accumulator: RubySegmentAccumulator = { decoded, segments: [], lastIndex: 0 };
+  Array.from(decoded.matchAll(RUBY_PATTERN)).forEach((match) =>
+    appendRubyMatch(accumulator, match)
+  );
 
-  Array.from(decoded.matchAll(RUBY_PATTERN)).forEach((match) => {
-    const matchIndex = match.index ?? 0;
-    const [fullMatch, base, bracketReading, parentheticalReading] = match;
-    const isParentheticalRuby = parentheticalReading !== undefined;
-    const reading = bracketReading ?? parentheticalReading ?? '';
-
-    // Cloze blanks use `[...]`; do not interpret the ellipsis as a reading.
-    if (bracketReading === '...') {
-      return;
-    }
-
-    if (isParentheticalRuby && (!isKanaReading(reading) || !KANJI_REGEX.test(base))) {
-      return;
-    }
-
-    if (matchIndex > lastIndex) {
-      segments.push({
-        kind: 'text',
-        key: `text-${lastIndex}`,
-        text: decoded.slice(lastIndex, matchIndex),
-      });
-    }
-
-    // When ruby annotations are adjacent, any leading kana in this regex match was
-    // written after the previous annotation and belongs to the plain surface text.
-    // It must not consume the start of the following kanji reading, as in
-    // `悪[わる]い意味[いみ]`.
-    const normalized = normalizeRubyMatch(base, reading, {
-      preservePrefixReading: lastIndex > 0 && matchIndex === lastIndex,
-    });
-
-    if (normalized.prefix) {
-      segments.push({
-        kind: 'text',
-        key: `prefix-${matchIndex}`,
-        text: normalized.prefix,
-      });
-    }
-
-    segments.push({
-      kind: 'ruby',
-      key: `ruby-${matchIndex}`,
-      base: normalized.kanjiPart,
-      reading: normalized.reading,
-    });
-
-    if (normalized.suffix) {
-      segments.push({
-        kind: 'text',
-        key: `suffix-${matchIndex}`,
-        text: normalized.suffix,
-      });
-    }
-
-    lastIndex = matchIndex + fullMatch.length;
-  });
-
-  if (lastIndex < decoded.length) {
-    segments.push({
+  if (accumulator.lastIndex < decoded.length) {
+    accumulator.segments.push({
       kind: 'text',
-      key: `text-${lastIndex}`,
-      text: decoded.slice(lastIndex),
+      key: `text-${accumulator.lastIndex}`,
+      text: decoded.slice(accumulator.lastIndex),
     });
   }
 
-  if (!segments.length) {
+  if (!accumulator.segments.length) {
     return [
       {
         kind: 'text',
@@ -356,5 +436,5 @@ export const parseRubySegments = (value?: string | null): StudyRubySegment[] => 
     ];
   }
 
-  return segments;
+  return accumulator.segments;
 };
