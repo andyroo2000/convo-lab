@@ -41,6 +41,22 @@ const CARD_CREATION_KIND_OPTIONS = [
 const getNextIndex = (currentIndex: number, direction: 1 | -1, optionCount: number) =>
   (currentIndex + direction + optionCount) % optionCount;
 
+function getArrowIndex(key: string, currentIndex: number) {
+  if (key === 'ArrowDown') return getNextIndex(currentIndex, 1, CARD_CREATION_KIND_OPTIONS.length);
+  if (key === 'ArrowUp') return getNextIndex(currentIndex, -1, CARD_CREATION_KIND_OPTIONS.length);
+  return null;
+}
+
+function getBoundaryIndex(key: string) {
+  if (key === 'Home') return 0;
+  if (key === 'End') return CARD_CREATION_KIND_OPTIONS.length - 1;
+  return null;
+}
+
+function isSelectionKey(key: string) {
+  return key === 'Enter' || key === ' ';
+}
+
 export const StudyCardNotesField = ({
   values,
   idPrefix,
@@ -60,337 +76,315 @@ export const StudyCardNotesField = ({
   );
 };
 
-const StudyCardFormFields = ({
-  values,
-  idPrefix,
-  includeCardTypeSelect = false,
-  includeAudioSettings = true,
-  includeNotesField = true,
-  hidePromptFields = false,
-  includeSentenceFields = false,
+const CreationKindSelect = ({
   creationKind,
-  onCardTypeChange,
+  idPrefix,
   onCreationKindChange,
-  onFieldChange,
-}: StudyCardFormFieldsProps) => {
+}: {
+  creationKind?: StudyCardCreationKind;
+  idPrefix: string;
+  onCreationKindChange: (creationKind: StudyCardCreationKind) => void;
+}) => {
   const { t } = useTranslation('study');
   const cardTypeLabelId = `${idPrefix}-card-type-label`;
   const listboxId = `${idPrefix}-card-type-listbox`;
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [isCardKindOpen, setIsCardKindOpen] = useState(false);
-  const activeCreationKindIndexRef = useRef(0);
-  const selectedCreationKindOption = useMemo(
+  const [isOpen, setIsOpen] = useState(false);
+  const activeIndexRef = useRef(0);
+  const selectedOption = useMemo(
     () =>
       CARD_CREATION_KIND_OPTIONS.find((option) => option.value === creationKind) ??
       CARD_CREATION_KIND_OPTIONS[0],
     [creationKind]
   );
-  const selectedCreationKindIndex = CARD_CREATION_KIND_OPTIONS.findIndex(
-    (option) => option.value === selectedCreationKindOption.value
+  const selectedIndex = CARD_CREATION_KIND_OPTIONS.findIndex(
+    (option) => option.value === selectedOption.value
   );
-  const [activeCreationKindIndex, setActiveCreationKindIndex] = useState(selectedCreationKindIndex);
+  const [activeIndex, setActiveIndex] = useState(selectedIndex);
 
   useEffect(() => {
-    setActiveCreationKindIndex(selectedCreationKindIndex);
-    activeCreationKindIndexRef.current = selectedCreationKindIndex;
-  }, [selectedCreationKindIndex]);
+    setActiveIndex(selectedIndex);
+    activeIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
 
-  const setActiveCreationKind = useCallback((nextIndex: number) => {
-    activeCreationKindIndexRef.current = nextIndex;
-    setActiveCreationKindIndex(nextIndex);
+  const activate = useCallback((nextIndex: number) => {
+    activeIndexRef.current = nextIndex;
+    setActiveIndex(nextIndex);
   }, []);
 
   useEffect(() => {
-    if (!isCardKindOpen) return undefined;
-
+    if (!isOpen) return undefined;
     const handlePointerDown = (event: PointerEvent) => {
-      if (!dropdownRef.current?.contains(event.target as Node)) {
-        setIsCardKindOpen(false);
-      }
+      if (!dropdownRef.current?.contains(event.target as Node)) setIsOpen(false);
     };
-
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [isCardKindOpen]);
+  }, [isOpen]);
 
-  const openCreationKindDropdown = useCallback(
-    (nextIndex = selectedCreationKindIndex) => {
-      setActiveCreationKind(nextIndex);
-      setIsCardKindOpen(true);
-      window.requestAnimationFrame(() => {
-        optionRefs.current[nextIndex]?.focus();
-      });
+  const open = useCallback(
+    (nextIndex = selectedIndex) => {
+      activate(nextIndex);
+      setIsOpen(true);
+      window.requestAnimationFrame(() => optionRefs.current[nextIndex]?.focus());
     },
-    [selectedCreationKindIndex, setActiveCreationKind]
+    [activate, selectedIndex]
   );
 
-  const selectCreationKind = useCallback(
+  const select = useCallback(
     (nextKind: StudyCardCreationKind) => {
-      onCreationKindChange?.(nextKind);
-      setIsCardKindOpen(false);
-      window.requestAnimationFrame(() => {
-        buttonRef.current?.focus();
-      });
+      onCreationKindChange(nextKind);
+      setIsOpen(false);
+      window.requestAnimationFrame(() => buttonRef.current?.focus());
     },
     [onCreationKindChange]
   );
 
-  const handleCreationKindButtonKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === 'ArrowDown') {
+  const handleButtonKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const startIndex = isOpen ? activeIndexRef.current : selectedIndex;
+    const arrowIndex = getArrowIndex(event.key, startIndex);
+    if (arrowIndex !== null) {
       event.preventDefault();
-      const nextIndex = getNextIndex(
-        isCardKindOpen ? activeCreationKindIndexRef.current : selectedCreationKindIndex,
-        1,
-        CARD_CREATION_KIND_OPTIONS.length
-      );
-      openCreationKindDropdown(nextIndex);
+      open(arrowIndex);
       return;
     }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      const nextIndex = getNextIndex(
-        isCardKindOpen ? activeCreationKindIndexRef.current : selectedCreationKindIndex,
-        -1,
-        CARD_CREATION_KIND_OPTIONS.length
-      );
-      openCreationKindDropdown(nextIndex);
+    if (!isSelectionKey(event.key)) return;
+    event.preventDefault();
+    if (isOpen) {
+      select(CARD_CREATION_KIND_OPTIONS[activeIndexRef.current].value);
       return;
     }
-
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      if (isCardKindOpen) {
-        selectCreationKind(CARD_CREATION_KIND_OPTIONS[activeCreationKindIndexRef.current].value);
-        return;
-      }
-      openCreationKindDropdown();
-    }
+    open();
   };
 
-  const handleCreationKindOptionKeyDown = (
-    event: KeyboardEvent<HTMLButtonElement>,
-    optionIndex: number
-  ) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+  const handleOptionKeyDown = (event: KeyboardEvent<HTMLButtonElement>, optionIndex: number) => {
+    const arrowIndex = getArrowIndex(event.key, optionIndex);
+    if (arrowIndex !== null) {
       event.preventDefault();
-      const nextIndex = getNextIndex(
-        optionIndex,
-        event.key === 'ArrowDown' ? 1 : -1,
-        CARD_CREATION_KIND_OPTIONS.length
-      );
-      setActiveCreationKind(nextIndex);
-      optionRefs.current[nextIndex]?.focus();
+      activate(arrowIndex);
+      optionRefs.current[arrowIndex]?.focus();
       return;
     }
-
-    if (event.key === 'Home' || event.key === 'End') {
+    const boundaryIndex = getBoundaryIndex(event.key);
+    if (boundaryIndex !== null) {
       event.preventDefault();
-      const nextIndex = event.key === 'Home' ? 0 : CARD_CREATION_KIND_OPTIONS.length - 1;
-      setActiveCreationKind(nextIndex);
-      optionRefs.current[nextIndex]?.focus();
+      activate(boundaryIndex);
+      optionRefs.current[boundaryIndex]?.focus();
       return;
     }
-
     if (event.key === 'Escape') {
       event.preventDefault();
-      setIsCardKindOpen(false);
+      setIsOpen(false);
       buttonRef.current?.focus();
       return;
     }
-
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (isSelectionKey(event.key)) {
       event.preventDefault();
-      selectCreationKind(CARD_CREATION_KIND_OPTIONS[optionIndex].value);
+      select(CARD_CREATION_KIND_OPTIONS[optionIndex].value);
     }
   };
-  const SelectedCreationKindIcon = selectedCreationKindOption.Icon;
+  const SelectedIcon = selectedOption.Icon;
 
   return (
-    <>
-      {includeCardTypeSelect ? (
-        <div>
-          <p id={cardTypeLabelId} className="mb-2 block text-sm font-medium text-gray-700">
-            {t('form.cardType')}
-          </p>
-          {onCreationKindChange ? (
-            <div
-              ref={dropdownRef}
-              data-testid={`${idPrefix}-creation-kind-dropdown`}
-              className={`relative ${isCardKindOpen ? 'z-40' : ''}`}
-            >
+    <div
+      ref={dropdownRef}
+      data-testid={`${idPrefix}-creation-kind-dropdown`}
+      className={`relative ${isOpen ? 'z-40' : ''}`}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        role="combobox"
+        aria-controls={listboxId}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-labelledby={cardTypeLabelId}
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false);
+            return;
+          }
+          open();
+        }}
+        onKeyDown={handleButtonKeyDown}
+        className="flex w-full items-center gap-4 rounded-xl border border-navy/45 bg-white px-4 py-3 text-left text-navy shadow-sm transition hover:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
+      >
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-navy text-white">
+          <SelectedIcon aria-hidden="true" className="h-6 w-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">{t(`form.${selectedOption.labelKey}`)}</span>
+          <span className="mt-0.5 block text-sm text-gray-600">
+            {t(`form.${selectedOption.labelKey}Description`)}
+          </span>
+        </span>
+        <ChevronDown
+          aria-hidden="true"
+          className={`h-5 w-5 shrink-0 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {isOpen ? (
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-labelledby={cardTypeLabelId}
+          className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+        >
+          {CARD_CREATION_KIND_OPTIONS.map(({ value, labelKey, Icon }, optionIndex) => {
+            const isSelected = creationKind === value;
+            const isActive = activeIndex === optionIndex;
+            return (
               <button
-                ref={buttonRef}
-                type="button"
-                role="combobox"
-                aria-controls={listboxId}
-                aria-expanded={isCardKindOpen}
-                aria-haspopup="listbox"
-                aria-labelledby={cardTypeLabelId}
-                onClick={() => {
-                  if (isCardKindOpen) {
-                    setIsCardKindOpen(false);
-                    return;
-                  }
-                  openCreationKindDropdown();
+                key={value}
+                ref={(element) => {
+                  optionRefs.current[optionIndex] = element;
                 }}
-                onKeyDown={handleCreationKindButtonKeyDown}
-                className="flex w-full items-center gap-4 rounded-xl border border-navy/45 bg-white px-4 py-3 text-left text-navy shadow-sm transition hover:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => select(value)}
+                onKeyDown={(event) => handleOptionKeyDown(event, optionIndex)}
+                onMouseEnter={() => activate(optionIndex)}
+                className={`flex w-full items-center gap-4 px-4 py-3 text-left transition ${isSelected ? 'bg-cream text-navy' : 'text-gray-700 hover:bg-cream/70 hover:text-navy'}`}
               >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-navy text-white">
-                  <SelectedCreationKindIcon aria-hidden="true" className="h-6 w-6" />
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${isSelected ? 'bg-navy text-white' : 'bg-navy/5 text-navy'}`}
+                >
+                  <Icon aria-hidden="true" className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">
-                    {t(`form.${selectedCreationKindOption.labelKey}`)}
-                  </span>
+                  <span className="block font-semibold">{t(`form.${labelKey}`)}</span>
                   <span className="mt-0.5 block text-sm text-gray-600">
-                    {t(`form.${selectedCreationKindOption.labelKey}Description`)}
+                    {t(`form.${labelKey}Description`)}
                   </span>
                 </span>
-                <ChevronDown
-                  aria-hidden="true"
-                  className={`h-5 w-5 shrink-0 text-gray-500 transition-transform ${
-                    isCardKindOpen ? 'rotate-180' : ''
-                  }`}
-                />
               </button>
-              {isCardKindOpen ? (
-                <div
-                  id={listboxId}
-                  role="listbox"
-                  aria-labelledby={cardTypeLabelId}
-                  className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
-                >
-                  {CARD_CREATION_KIND_OPTIONS.map(({ value, labelKey, Icon }, optionIndex) => {
-                    const isSelected = creationKind === value;
-                    const isActive = activeCreationKindIndex === optionIndex;
-
-                    return (
-                      <button
-                        key={value}
-                        ref={(element) => {
-                          optionRefs.current[optionIndex] = element;
-                        }}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        tabIndex={isActive ? 0 : -1}
-                        onClick={() => selectCreationKind(value)}
-                        onKeyDown={(event) => handleCreationKindOptionKeyDown(event, optionIndex)}
-                        onMouseEnter={() => setActiveCreationKind(optionIndex)}
-                        className={`flex w-full items-center gap-4 px-4 py-3 text-left transition ${
-                          isSelected
-                            ? 'bg-cream text-navy'
-                            : 'text-gray-700 hover:bg-cream/70 hover:text-navy'
-                        }`}
-                      >
-                        <span
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-                            isSelected ? 'bg-navy text-white' : 'bg-navy/5 text-navy'
-                          }`}
-                        >
-                          <Icon aria-hidden="true" className="h-5 w-5" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-semibold">{t(`form.${labelKey}`)}</span>
-                          <span className="mt-0.5 block text-sm text-gray-600">
-                            {t(`form.${labelKey}Description`)}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div
-              role="radiogroup"
-              aria-labelledby={cardTypeLabelId}
-              className="grid grid-cols-1 gap-2 sm:grid-cols-3"
-            >
-              {CARD_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => {
-                const isSelected = values.cardType === value;
-
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
-                    onClick={() => onCardTypeChange?.(value as StudyCardType)}
-                    className={`flex min-h-[4.75rem] items-center gap-3 rounded-xl border bg-white px-3.5 py-3 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-navy/15 ${
-                      isSelected
-                        ? 'border-navy/50 bg-cream text-navy shadow-sm'
-                        : 'border-gray-300 text-gray-700 hover:border-navy/30 hover:bg-cream/60'
-                    }`}
-                  >
-                    <span
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                        isSelected ? 'bg-navy text-white' : 'bg-navy/5 text-navy'
-                      }`}
-                    >
-                      <Icon aria-hidden="true" className="h-5 w-5" />
-                    </span>
-                    <span className="font-semibold">{t(`form.${labelKey}`)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            );
+          })}
         </div>
       ) : null}
+    </div>
+  );
+};
 
-      {!hidePromptFields ? (
-        <>
-          <StudyFormField
-            htmlFor={`${idPrefix}-cue-text`}
-            label={values.cardType === 'cloze' ? t('form.clozeText') : t('form.promptText')}
-          >
-            <textarea
-              id={`${idPrefix}-cue-text`}
-              value={values.cueText}
-              onChange={(event) => onFieldChange('cueText', event.target.value)}
-              className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-              required
+const CardTypeField = ({
+  creationKind,
+  idPrefix,
+  onCardTypeChange,
+  onCreationKindChange,
+  values,
+}: Pick<
+  StudyCardFormFieldsProps,
+  'creationKind' | 'idPrefix' | 'onCardTypeChange' | 'onCreationKindChange' | 'values'
+>) => {
+  const { t } = useTranslation('study');
+  const labelId = `${idPrefix}-card-type-label`;
+  return (
+    <div>
+      <p id={labelId} className="mb-2 block text-sm font-medium text-gray-700">
+        {t('form.cardType')}
+      </p>
+      {onCreationKindChange ? (
+        <CreationKindSelect
+          creationKind={creationKind}
+          idPrefix={idPrefix}
+          onCreationKindChange={onCreationKindChange}
+        />
+      ) : (
+        <div
+          role="radiogroup"
+          aria-labelledby={labelId}
+          className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+        >
+          {CARD_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => {
+            const isSelected = values.cardType === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => onCardTypeChange?.(value as StudyCardType)}
+                className={`flex min-h-[4.75rem] items-center gap-3 rounded-xl border bg-white px-3.5 py-3 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-navy/15 ${isSelected ? 'border-navy/50 bg-cream text-navy shadow-sm' : 'border-gray-300 text-gray-700 hover:border-navy/30 hover:bg-cream/60'}`}
+              >
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${isSelected ? 'bg-navy text-white' : 'bg-navy/5 text-navy'}`}
+                >
+                  <Icon aria-hidden="true" className="h-5 w-5" />
+                </span>
+                <span className="font-semibold">{t(`form.${labelKey}`)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const PromptFields = ({
+  idPrefix,
+  onFieldChange,
+  values,
+}: Pick<StudyCardFormFieldsProps, 'idPrefix' | 'onFieldChange' | 'values'>) => {
+  const { t } = useTranslation('study');
+  return (
+    <>
+      <StudyFormField
+        htmlFor={`${idPrefix}-cue-text`}
+        label={values.cardType === 'cloze' ? t('form.clozeText') : t('form.promptText')}
+      >
+        <textarea
+          id={`${idPrefix}-cue-text`}
+          value={values.cueText}
+          onChange={(event) => onFieldChange('cueText', event.target.value)}
+          className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+          required
+        />
+      </StudyFormField>
+      {values.cardType === 'cloze' ? (
+        <StudyFormField htmlFor={`${idPrefix}-cloze-hint`} label={t('form.clozeHint')}>
+          <input
+            id={`${idPrefix}-cloze-hint`}
+            value={values.cueMeaning}
+            onChange={(event) => onFieldChange('cueMeaning', event.target.value)}
+            className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+          />
+        </StudyFormField>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          <StudyFormField htmlFor={`${idPrefix}-cue-reading`} label={t('form.promptReading')}>
+            <input
+              id={`${idPrefix}-cue-reading`}
+              value={values.cueReading}
+              onChange={(event) => onFieldChange('cueReading', event.target.value)}
+              className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
           </StudyFormField>
+          <StudyFormField htmlFor={`${idPrefix}-cue-meaning`} label={t('form.promptMeaning')}>
+            <input
+              id={`${idPrefix}-cue-meaning`}
+              value={values.cueMeaning}
+              onChange={(event) => onFieldChange('cueMeaning', event.target.value)}
+              className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+            />
+          </StudyFormField>
+        </div>
+      )}
+    </>
+  );
+};
 
-          {values.cardType === 'cloze' ? (
-            <StudyFormField htmlFor={`${idPrefix}-cloze-hint`} label={t('form.clozeHint')}>
-              <input
-                id={`${idPrefix}-cloze-hint`}
-                value={values.cueMeaning}
-                onChange={(event) => onFieldChange('cueMeaning', event.target.value)}
-                className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-              />
-            </StudyFormField>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              <StudyFormField htmlFor={`${idPrefix}-cue-reading`} label={t('form.promptReading')}>
-                <input
-                  id={`${idPrefix}-cue-reading`}
-                  value={values.cueReading}
-                  onChange={(event) => onFieldChange('cueReading', event.target.value)}
-                  className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-                />
-              </StudyFormField>
-              <StudyFormField htmlFor={`${idPrefix}-cue-meaning`} label={t('form.promptMeaning')}>
-                <input
-                  id={`${idPrefix}-cue-meaning`}
-                  value={values.cueMeaning}
-                  onChange={(event) => onFieldChange('cueMeaning', event.target.value)}
-                  className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-                />
-              </StudyFormField>
-            </div>
-          )}
-        </>
-      ) : null}
-
+const AnswerFields = ({
+  idPrefix,
+  onFieldChange,
+  values,
+}: Pick<StudyCardFormFieldsProps, 'idPrefix' | 'onFieldChange' | 'values'>) => {
+  const { t } = useTranslation('study');
+  return (
+    <>
       <div className="grid gap-4 md:grid-cols-2">
         <StudyFormField
           htmlFor={`${idPrefix}-answer-expression`}
@@ -416,7 +410,6 @@ const StudyCardFormFields = ({
           />
         </StudyFormField>
       </div>
-
       <StudyFormField htmlFor={`${idPrefix}-answer-meaning`} label={t('form.answerMeaning')}>
         <input
           id={`${idPrefix}-answer-meaning`}
@@ -425,41 +418,80 @@ const StudyCardFormFields = ({
           className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
         />
       </StudyFormField>
-
-      {includeAudioSettings ? (
-        <StudyCardAudioSettingsFields
-          values={values}
-          idPrefix={idPrefix}
-          onFieldChange={onFieldChange}
-        />
-      ) : null}
-
-      {includeSentenceFields && values.cardType !== 'cloze' ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          <StudyFormField htmlFor={`${idPrefix}-sentence-jp`} label={t('form.sentenceJp')}>
-            <textarea
-              id={`${idPrefix}-sentence-jp`}
-              value={values.sentenceJp}
-              onChange={(event) => onFieldChange('sentenceJp', event.target.value)}
-              className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-            />
-          </StudyFormField>
-          <StudyFormField htmlFor={`${idPrefix}-sentence-en`} label={t('form.sentenceEn')}>
-            <textarea
-              id={`${idPrefix}-sentence-en`}
-              value={values.sentenceEn}
-              onChange={(event) => onFieldChange('sentenceEn', event.target.value)}
-              className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-            />
-          </StudyFormField>
-        </div>
-      ) : null}
-
-      {includeNotesField ? (
-        <StudyCardNotesField values={values} idPrefix={idPrefix} onFieldChange={onFieldChange} />
-      ) : null}
     </>
   );
 };
+
+const SentenceFields = ({
+  idPrefix,
+  onFieldChange,
+  values,
+}: Pick<StudyCardFormFieldsProps, 'idPrefix' | 'onFieldChange' | 'values'>) => {
+  const { t } = useTranslation('study');
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <StudyFormField htmlFor={`${idPrefix}-sentence-jp`} label={t('form.sentenceJp')}>
+        <textarea
+          id={`${idPrefix}-sentence-jp`}
+          value={values.sentenceJp}
+          onChange={(event) => onFieldChange('sentenceJp', event.target.value)}
+          className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+        />
+      </StudyFormField>
+      <StudyFormField htmlFor={`${idPrefix}-sentence-en`} label={t('form.sentenceEn')}>
+        <textarea
+          id={`${idPrefix}-sentence-en`}
+          value={values.sentenceEn}
+          onChange={(event) => onFieldChange('sentenceEn', event.target.value)}
+          className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+        />
+      </StudyFormField>
+    </div>
+  );
+};
+
+const StudyCardFormFields = ({
+  values,
+  idPrefix,
+  includeCardTypeSelect = false,
+  includeAudioSettings = true,
+  includeNotesField = true,
+  hidePromptFields = false,
+  includeSentenceFields = false,
+  creationKind,
+  onCardTypeChange,
+  onCreationKindChange,
+  onFieldChange,
+}: StudyCardFormFieldsProps) => (
+  <>
+    {includeCardTypeSelect ? (
+      <CardTypeField
+        creationKind={creationKind}
+        idPrefix={idPrefix}
+        onCardTypeChange={onCardTypeChange}
+        onCreationKindChange={onCreationKindChange}
+        values={values}
+      />
+    ) : null}
+    {!hidePromptFields ? (
+      <PromptFields idPrefix={idPrefix} onFieldChange={onFieldChange} values={values} />
+    ) : null}
+    <AnswerFields idPrefix={idPrefix} onFieldChange={onFieldChange} values={values} />
+    {includeAudioSettings ? (
+      <StudyCardAudioSettingsFields
+        values={values}
+        idPrefix={idPrefix}
+        onFieldChange={onFieldChange}
+      />
+    ) : null}
+
+    {includeSentenceFields && values.cardType !== 'cloze' ? (
+      <SentenceFields idPrefix={idPrefix} onFieldChange={onFieldChange} values={values} />
+    ) : null}
+    {includeNotesField ? (
+      <StudyCardNotesField values={values} idPrefix={idPrefix} onFieldChange={onFieldChange} />
+    ) : null}
+  </>
+);
 
 export default StudyCardFormFields;
