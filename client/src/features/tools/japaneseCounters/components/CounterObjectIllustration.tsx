@@ -20,7 +20,7 @@ type IllustrationRenderer = (
   className?: string
 ) => ReactNode;
 
-const renderPaperAndBasics: IllustrationRenderer = (illustrationId, className) => {
+const renderPaperAndShirt: IllustrationRenderer = (illustrationId, className) => {
   switch (illustrationId) {
     case 'paper-sheet':
       return (
@@ -108,7 +108,7 @@ const renderPaperAndBasics: IllustrationRenderer = (illustrationId, className) =
   }
 };
 
-const renderHandheldBasics: IllustrationRenderer = (illustrationId, className) => {
+const renderPencilUmbrellaAndBanana: IllustrationRenderer = (illustrationId, className) => {
   switch (illustrationId) {
     case 'pencil':
       return (
@@ -151,7 +151,7 @@ const renderHandheldBasics: IllustrationRenderer = (illustrationId, className) =
   }
 };
 
-const renderAnimalsAndReading: IllustrationRenderer = (illustrationId, className) => {
+const renderCatsDogsAndFish: IllustrationRenderer = (illustrationId, className) => {
   switch (illustrationId) {
     case 'cat':
       return (
@@ -196,7 +196,7 @@ const renderAnimalsAndReading: IllustrationRenderer = (illustrationId, className
   }
 };
 
-const renderReadingMaterials: IllustrationRenderer = (illustrationId, className) => {
+const renderBooksAndMagazines: IllustrationRenderer = (illustrationId, className) => {
   switch (illustrationId) {
     case 'book':
       return (
@@ -244,7 +244,7 @@ const renderReadingMaterials: IllustrationRenderer = (illustrationId, className)
   }
 };
 
-const renderTransportAndFood: IllustrationRenderer = (illustrationId, className) => {
+const renderTransport: IllustrationRenderer = (illustrationId, className) => {
   switch (illustrationId) {
     case 'car':
       return (
@@ -350,7 +350,7 @@ const renderFood: IllustrationRenderer = (illustrationId, className) => {
   }
 };
 
-const renderPeopleAndDrinks: IllustrationRenderer = (illustrationId, className) => {
+const renderPeople: IllustrationRenderer = (illustrationId, className) => {
   switch (illustrationId) {
     case 'student':
       return (
@@ -600,7 +600,7 @@ const renderFootwear: IllustrationRenderer = (illustrationId, className) => {
   }
 };
 
-const renderAnimalsAndBuildings: IllustrationRenderer = (illustrationId, className) => {
+const renderBirdsAndRabbits: IllustrationRenderer = (illustrationId, className) => {
   switch (illustrationId) {
     case 'bird':
       return (
@@ -701,18 +701,18 @@ const renderBuildings: IllustrationRenderer = (illustrationId, className) => {
 };
 
 const ILLUSTRATION_RENDERERS = [
-  renderPaperAndBasics,
-  renderHandheldBasics,
-  renderAnimalsAndReading,
-  renderReadingMaterials,
-  renderTransportAndFood,
+  renderPaperAndShirt,
+  renderPencilUmbrellaAndBanana,
+  renderCatsDogsAndFish,
+  renderBooksAndMagazines,
+  renderTransport,
   renderFood,
-  renderPeopleAndDrinks,
+  renderPeople,
   renderDrinks,
   renderOuterwear,
   renderCoat,
   renderFootwear,
-  renderAnimalsAndBuildings,
+  renderBirdsAndRabbits,
   renderBuildings,
 ];
 
