@@ -57,6 +57,100 @@ function editableCourseFetch(putResponse: Response | Promise<Response>) {
   });
 }
 
+function scriptPipelineResponse() {
+  return new Response(
+    JSON.stringify({
+      status: 'draft',
+      audioUrl: null,
+      stage: 'script',
+      scriptUnits: [],
+      exchanges: [],
+      approxDurationSeconds: 0,
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
+  );
+}
+
+function buildPromptResponse() {
+  return new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function emptyLineRenderingsResponse() {
+  return new Response(JSON.stringify({ renderings: [] }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function slowAudioFetch(statusResponse: Promise<Response>) {
+  return vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes('/courses/course-a/pipeline-data')) {
+      return Promise.resolve(scriptPipelineResponse());
+    }
+    if (url.includes('/courses/course-a/build-prompt')) {
+      return Promise.resolve(buildPromptResponse());
+    }
+    if (url.includes('/line-renderings')) {
+      return Promise.resolve(emptyLineRenderingsResponse());
+    }
+    if (url.includes('/courses/course-a/generate-audio')) {
+      return Promise.resolve(new Response(null, { status: 202 }));
+    }
+    if (url.includes('/courses/course-a/status')) return statusResponse;
+    throw new Error(`Unexpected request: ${url}`);
+  });
+}
+
+function captureAudioStatusPoll() {
+  let pollStatus: (() => Promise<void>) | undefined;
+  const realSetInterval = window.setInterval.bind(window);
+
+  vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
+    if (delay === 3000) {
+      pollStatus = callback as () => Promise<void>;
+      return 1 as unknown as NodeJS.Timeout;
+    }
+    return realSetInterval(callback, delay, ...args) as unknown as NodeJS.Timeout;
+  });
+
+  return () => pollStatus;
+}
+
+function isCourseAPipelineSave(url: string, method: string | undefined) {
+  return url.includes('/courses/course-a/pipeline-data') && method === 'PUT';
+}
+
+function sameCourseSessionFetch(oldSaveResponse: Promise<Response>) {
+  let courseALoads = 0;
+  const courseANames = ['Original', 'Current A'];
+
+  return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (isCourseAPipelineSave(url, init?.method)) {
+      return oldSaveResponse;
+    }
+    if (url.includes('/courses/course-a/pipeline-data')) {
+      courseALoads += 1;
+      const name = courseANames[Math.min(courseALoads - 1, courseANames.length - 1)];
+      return Promise.resolve(exchangeResponse(name));
+    }
+    if (url.includes('/courses/course-b/pipeline-data')) {
+      return Promise.resolve(exchangeResponse('Course B'));
+    }
+    if (url.includes('/build-prompt')) {
+      return Promise.resolve(buildPromptResponse());
+    }
+    if (url.includes('/line-renderings')) {
+      return Promise.resolve(emptyLineRenderingsResponse());
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  });
+}
+
 describe('AdminScriptWorkbench', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -68,63 +162,18 @@ describe('AdminScriptWorkbench', () => {
     const statusResponse = new Promise<Response>((resolve) => {
       resolveStatus = resolve;
     });
-    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
-      const url = String(input);
-      if (url.includes('/courses/course-a/pipeline-data')) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              status: 'draft',
-              audioUrl: null,
-              stage: 'script',
-              scriptUnits: [],
-              exchanges: [],
-              approxDurationSeconds: 0,
-            }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
-          )
-        );
-      }
-      if (url.includes('/courses/course-a/build-prompt')) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        );
-      }
-      if (url.includes('/line-renderings')) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ renderings: [] }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        );
-      }
-      if (url.includes('/courses/course-a/generate-audio')) {
-        return Promise.resolve(new Response(null, { status: 202 }));
-      }
-      if (url.includes('/courses/course-a/status')) return statusResponse;
-      throw new Error(`Unexpected request: ${url}`);
-    });
+    const fetchMock = slowAudioFetch(statusResponse);
     vi.stubGlobal('fetch', fetchMock);
 
-    let pollStatus: (() => Promise<void>) | undefined;
-    const realSetInterval = window.setInterval.bind(window);
-    vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
-      if (delay === 3000) {
-        pollStatus = callback as () => Promise<void>;
-        return 1 as unknown as NodeJS.Timeout;
-      }
-      return realSetInterval(callback, delay, ...args) as unknown as NodeJS.Timeout;
-    });
+    const getPollStatus = captureAudioStatusPoll();
 
     const { unmount } = render(<AdminScriptWorkbench courseId="course-a" />);
     fireEvent.click(await screen.findByRole('button', { name: 'Generate Audio' }));
-    await waitFor(() => expect(pollStatus).toBeDefined());
+    await waitFor(() => expect(getPollStatus()).toBeDefined());
 
     let firstPoll: Promise<void> | undefined;
     await act(async () => {
+      const pollStatus = getPollStatus();
       firstPoll = pollStatus?.();
       pollStatus?.();
       await Promise.resolve();
@@ -238,37 +287,7 @@ describe('AdminScriptWorkbench', () => {
     const oldSaveResponse = new Promise<Response>((resolve) => {
       resolveOldSave = resolve;
     });
-    let courseALoads = 0;
-    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.includes('/courses/course-a/pipeline-data') && init?.method === 'PUT') {
-        return oldSaveResponse;
-      }
-      if (url.includes('/courses/course-a/pipeline-data')) {
-        courseALoads += 1;
-        return Promise.resolve(exchangeResponse(courseALoads === 1 ? 'Original' : 'Current A'));
-      }
-      if (url.includes('/courses/course-b/pipeline-data')) {
-        return Promise.resolve(exchangeResponse('Course B'));
-      }
-      if (url.includes('/build-prompt')) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ prompt: 'Prompt', metadata: null }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        );
-      }
-      if (url.includes('/line-renderings')) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ renderings: [] }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        );
-      }
-      throw new Error(`Unexpected request: ${url}`);
-    });
+    const fetchMock = sameCourseSessionFetch(oldSaveResponse);
     vi.stubGlobal('fetch', fetchMock);
 
     const { rerender } = render(<AdminScriptWorkbench courseId="course-a" />);
