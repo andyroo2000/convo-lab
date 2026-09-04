@@ -18,6 +18,56 @@ vi.mock('../../config', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+const emptyLibraryResponse = () => ({
+  ok: true,
+  json: () => Promise.resolve([]),
+});
+
+function mockEmptyLibraryFetch() {
+  mockFetch.mockResolvedValue(emptyLibraryResponse());
+}
+
+function mockPendingLibraryFetch() {
+  mockFetch.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        setTimeout(() => resolve(emptyLibraryResponse()), 10000);
+      })
+  );
+}
+
+function renderLibraryData(
+  viewAs?: Parameters<typeof useLibraryData>[0],
+  showDrafts?: Parameters<typeof useLibraryData>[1],
+  scope?: Parameters<typeof useLibraryData>[2]
+) {
+  return renderHook(() => useLibraryData(viewAs, showDrafts, scope), {
+    wrapper: createWrapper(),
+  });
+}
+
+async function expectLibraryFetch(url: string) {
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({ credentials: 'include' })
+    );
+  });
+}
+
+async function renderLoadedLibraryData() {
+  mockEmptyLibraryFetch();
+  const { result } = renderLibraryData();
+
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  mockFetch.mockClear();
+  mockFetch.mockResolvedValueOnce({ ok: true });
+  return result.current;
+}
+
 describe('useLibraryData', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -78,33 +128,17 @@ describe('useLibraryData', () => {
 
   describe('Initial Loading', () => {
     it('should show loading state initially', () => {
-      // Use a long-delayed promise instead of one that never resolves
-      mockFetch.mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000);
-          })
-      );
+      mockPendingLibraryFetch();
 
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderLibraryData();
 
       expect(result.current.isLoading).toBe(true);
     });
 
     it('should initialize with empty arrays', () => {
-      // Use a long-delayed promise instead of one that never resolves
-      mockFetch.mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000);
-          })
-      );
+      mockPendingLibraryFetch();
 
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderLibraryData();
 
       expect(result.current.episodes).toEqual([]);
       expect(result.current.courses).toEqual([]);
@@ -113,39 +147,19 @@ describe('useLibraryData', () => {
 
   describe('Data Fetching', () => {
     it('should fetch episodes with library=true param', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      mockEmptyLibraryFetch();
 
-      renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      renderLibraryData();
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/convolab/episodes?library=true&limit=20&offset=0',
-          expect.objectContaining({ credentials: 'include' })
-        );
-      });
+      await expectLibraryFetch('/api/convolab/episodes?library=true&limit=20&offset=0');
     });
 
     it('should fetch courses with library=true param', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      mockEmptyLibraryFetch();
 
-      renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      renderLibraryData();
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/convolab/courses?library=true&limit=20&offset=0',
-          expect.objectContaining({ credentials: 'include' })
-        );
-      });
+      await expectLibraryFetch('/api/convolab/courses?library=true&limit=20&offset=0');
     });
 
     it('should return fetched data', async () => {
@@ -171,9 +185,7 @@ describe('useLibraryData', () => {
         });
       });
 
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderLibraryData();
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -197,9 +209,7 @@ describe('useLibraryData', () => {
         });
       });
 
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderLibraryData();
 
       resolveEpisodes?.({ ok: true, json: () => Promise.resolve([{ id: 'episode-1' }]) });
       await waitFor(() => {
@@ -213,50 +223,23 @@ describe('useLibraryData', () => {
       });
     });
 
-    it('should only fetch courses for the courses scope', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+    it.each([
+      ['courses', 'courses', 'episodes'],
+      ['dialogues', 'episodes', 'courses'],
+      ['scripts', 'episodes', 'courses'],
+    ] as const)(
+      'should only fetch the matching resource for the %s scope',
+      async (scope, includedResource, excludedResource) => {
+        mockEmptyLibraryFetch();
 
-      renderHook(() => useLibraryData(undefined, false, 'courses'), {
-        wrapper: createWrapper(),
-      });
+        renderLibraryData(undefined, false, scope);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/convolab/courses?library=true&limit=20&offset=0',
-          expect.objectContaining({ credentials: 'include' })
+        await expectLibraryFetch(
+          `/api/convolab/${includedResource}?library=true&limit=20&offset=0`
         );
-      });
-
-      expect(mockFetch).not.toHaveBeenCalledWith(
-        expect.stringContaining('/episodes'),
-        expect.anything()
-      );
-    });
-
-    it.each(['dialogues', 'scripts'] as const)(
-      'should only fetch episodes for the %s scope',
-      async (scope) => {
-        mockFetch.mockResolvedValue({
-          ok: true,
-          json: () => Promise.resolve([]),
-        });
-
-        renderHook(() => useLibraryData(undefined, false, scope), {
-          wrapper: createWrapper(),
-        });
-
-        await waitFor(() => {
-          expect(mockFetch).toHaveBeenCalledWith(
-            '/api/convolab/episodes?library=true&limit=20&offset=0',
-            expect.objectContaining({ credentials: 'include' })
-          );
-        });
 
         expect(mockFetch).not.toHaveBeenCalledWith(
-          expect.stringContaining('/courses'),
+          expect.stringContaining(`/${excludedResource}`),
           expect.anything()
         );
       }
@@ -380,125 +363,63 @@ describe('useLibraryData', () => {
 
   describe('showDrafts Parameter', () => {
     it('should pass status=all when showDrafts is true', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      mockEmptyLibraryFetch();
 
-      renderHook(() => useLibraryData(undefined, true), {
-        wrapper: createWrapper(),
-      });
+      renderLibraryData(undefined, true);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/convolab/courses?library=true&limit=20&offset=0&status=all',
-          expect.objectContaining({ credentials: 'include' })
-        );
-      });
+      await expectLibraryFetch('/api/convolab/courses?library=true&limit=20&offset=0&status=all');
     });
 
     it('should not pass status param when showDrafts is false', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      mockEmptyLibraryFetch();
 
-      renderHook(() => useLibraryData(undefined, false), {
-        wrapper: createWrapper(),
-      });
+      renderLibraryData(undefined, false);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/convolab/courses?library=true&limit=20&offset=0',
-          expect.objectContaining({ credentials: 'include' })
-        );
-      });
+      await expectLibraryFetch('/api/convolab/courses?library=true&limit=20&offset=0');
     });
 
     it('should not pass status param when showDrafts is undefined', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      mockEmptyLibraryFetch();
 
-      renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      renderLibraryData();
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/convolab/courses?library=true&limit=20&offset=0',
-          expect.objectContaining({ credentials: 'include' })
-        );
-      });
+      await expectLibraryFetch('/api/convolab/courses?library=true&limit=20&offset=0');
     });
 
     it('should include viewAs and status=all when both are provided', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      mockEmptyLibraryFetch();
 
-      renderHook(() => useLibraryData('user-123', true), {
-        wrapper: createWrapper(),
-      });
+      renderLibraryData('user-123', true);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/convolab/courses?library=true&limit=20&offset=0&viewAs=user-123&status=all',
-          expect.objectContaining({ credentials: 'include' })
-        );
-      });
+      await expectLibraryFetch(
+        '/api/convolab/courses?library=true&limit=20&offset=0&viewAs=user-123&status=all'
+      );
     });
   });
 
   describe('Delete Mutations', () => {
     it('should provide delete mutation functions', () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      mockEmptyLibraryFetch();
 
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderLibraryData();
 
       expect(typeof result.current.deleteEpisode).toBe('function');
       expect(typeof result.current.deleteCourse).toBe('function');
     });
 
     it('should provide mutation pending states', () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      mockEmptyLibraryFetch();
 
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderLibraryData();
 
       expect(result.current.isDeletingEpisode).toBe(false);
       expect(result.current.isDeletingCourse).toBe(false);
     });
 
     it('should call delete episode API', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      const view = await renderLoadedLibraryData();
 
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      mockFetch.mockClear();
-      mockFetch.mockResolvedValueOnce({ ok: true });
-
-      await result.current.deleteEpisode('ep-123');
+      await view.deleteEpisode('ep-123');
 
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/convolab/episodes/ep-123',
@@ -510,23 +431,9 @@ describe('useLibraryData', () => {
     });
 
     it('should call delete course API', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      const view = await renderLoadedLibraryData();
 
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      mockFetch.mockClear();
-      mockFetch.mockResolvedValueOnce({ ok: true });
-
-      await result.current.deleteCourse('course-123');
+      await view.deleteCourse('course-123');
 
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/convolab/courses/course-123',
