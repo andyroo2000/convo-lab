@@ -7,13 +7,17 @@ import {
   useMemo,
   useRef,
   useState,
+  type Dispatch,
+  type MutableRefObject,
   type ReactNode,
+  type SetStateAction,
 } from 'react';
 
 import { saveStudyActivitySessions, studyActivityKeys } from '../hooks/useStudyActivity';
 import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 import type {
   ActiveStudyActivity,
+  StudyActivityCategory,
   StudyActivityKind,
   StudyActivitySessionInput,
   StudyActivitySource,
@@ -31,6 +35,10 @@ interface StartOptions {
 }
 
 type StudyActivitySessionDraft = Omit<StudyActivitySessionInput, 'category'>;
+type CategoriesByActivity = Record<StudyActivityKind, StudyActivityCategory>;
+type ActiveRef = MutableRefObject<ActiveStudyActivity | null>;
+type SetActive = Dispatch<SetStateAction<ActiveStudyActivity | null>>;
+type PersistCompleted = (session: StudyActivitySessionDraft) => Promise<void>;
 
 interface StudyActivityActionsContextValue {
   start: (options: StartOptions) => void;
@@ -110,70 +118,85 @@ function sessionFromActive(
   };
 }
 
-export const StudyActivityProvider = ({
-  children,
-  userId,
-  enabled = true,
+function unownedSessions(
+  sessions: StudyActivitySessionDraft[],
+  inFlightSessions: Map<string, Promise<void>>
+) {
+  return sessions.filter((session) => !inFlightSessions.has(session.clientSessionId));
+}
+
+function categorizeSessions(
+  sessions: StudyActivitySessionDraft[],
+  categoriesByActivity: CategoriesByActivity
+): StudyActivitySessionInput[] {
+  return sessions.map((session) => ({
+    ...session,
+    category: categoriesByActivity[session.activity],
+  }));
+}
+
+function createPersistenceRequest({
+  sessions,
+  categoriesByActivity,
+  pendingKey,
+  inFlightSessions,
+  invalidate,
 }: {
-  children: ReactNode;
-  userId: string | number;
-  enabled?: boolean;
-}) => {
+  sessions: StudyActivitySessionDraft[];
+  categoriesByActivity: CategoriesByActivity;
+  pendingKey: string;
+  inFlightSessions: Map<string, Promise<void>>;
+  invalidate: () => Promise<void>;
+}) {
+  const sessionIds = sessions.map((session) => session.clientSessionId);
+  const request = saveStudyActivitySessions(categorizeSessions(sessions, categoriesByActivity))
+    .then(async () => {
+      acknowledgePending(pendingKey, sessionIds);
+      await invalidate();
+    })
+    .catch(() => {
+      // The local queue is flushed on the next authenticated app load.
+    })
+    .finally(() => {
+      sessionIds.forEach((sessionId) => {
+        if (inFlightSessions.get(sessionId) === request) inFlightSessions.delete(sessionId);
+      });
+    });
+
+  sessionIds.forEach((sessionId) => inFlightSessions.set(sessionId, request));
+  return request;
+}
+
+function useSessionPersistence(
+  categoriesByActivity: CategoriesByActivity | undefined,
+  pendingKey: string
+) {
   const queryClient = useQueryClient();
-  const capabilitiesQuery = useStudyCapabilities(enabled);
-  const categoriesByActivity = capabilitiesQuery.data?.studyActivity.categoriesByActivity;
-  const activeKey = `${ACTIVE_KEY_PREFIX}.${userId}`;
-  const pendingKey = `${PENDING_KEY_PREFIX}.${userId}`;
-  const [active, setActive] = useState<ActiveStudyActivity | null>(() =>
-    enabled ? readJson<ActiveStudyActivity | null>(activeKey, null) : null
-  );
-  const activeRef = useRef(active);
   const inFlightSessionsRef = useRef(new Map<string, Promise<void>>());
-  const [elapsedMs, setElapsedMs] = useState(0);
+  const invalidate = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: studyActivityKeys.all }),
+    [queryClient]
+  );
 
   const persistSessions = useCallback(
     (sessions: StudyActivitySessionDraft[]) => {
       if (!categoriesByActivity) return Promise.resolve();
-
       const inFlightSessions = inFlightSessionsRef.current;
-      const unownedSessions = sessions.filter(
-        (session) => !inFlightSessions.has(session.clientSessionId)
-      );
-
-      if (unownedSessions.length) {
-        const submittedSessionIds = unownedSessions.map((session) => session.clientSessionId);
-        // Reclassify queued sessions with the latest server policy before every retry.
-        const request = saveStudyActivitySessions(
-          unownedSessions.map((session) => ({
-            ...session,
-            category: categoriesByActivity[session.activity],
-          }))
-        )
-          .then(async () => {
-            acknowledgePending(pendingKey, submittedSessionIds);
-            await queryClient.invalidateQueries({ queryKey: studyActivityKeys.all });
-          })
-          .catch(() => {
-            // The local queue is flushed on the next authenticated app load.
-          })
-          .finally(() => {
-            submittedSessionIds.forEach((clientSessionId) => {
-              if (inFlightSessions.get(clientSessionId) === request) {
-                inFlightSessions.delete(clientSessionId);
-              }
-            });
-          });
-
-        submittedSessionIds.forEach((clientSessionId) => {
-          inFlightSessions.set(clientSessionId, request);
+      const unowned = unownedSessions(sessions, inFlightSessions);
+      if (unowned.length) {
+        createPersistenceRequest({
+          sessions: unowned,
+          categoriesByActivity,
+          pendingKey,
+          inFlightSessions,
+          invalidate,
         });
       }
-
       return Promise.all(
         sessions.map((session) => inFlightSessions.get(session.clientSessionId))
       ).then(() => undefined);
     },
-    [categoriesByActivity, pendingKey, queryClient]
+    [categoriesByActivity, invalidate, pendingKey]
   );
 
   const persistCompleted = useCallback(
@@ -183,53 +206,123 @@ export const StudyActivityProvider = ({
     },
     [pendingKey, persistSessions]
   );
+  return { persistSessions, persistCompleted };
+}
 
-  const finishActive = useCallback(
+function updateActive(
+  activeRef: ActiveRef,
+  setActive: SetActive,
+  activeKey: string,
+  next: ActiveStudyActivity | null
+) {
+  const mutableActiveRef = activeRef;
+  mutableActiveRef.current = next;
+  setActive(next);
+  if (next) localStorage.setItem(activeKey, JSON.stringify(next));
+  else localStorage.removeItem(activeKey);
+}
+
+function useFinishActive(
+  activeRef: ActiveRef,
+  setActive: SetActive,
+  activeKey: string,
+  persistCompleted: PersistCompleted
+) {
+  return useCallback(
     (expectedActivity?: StudyActivityKind, expectedName?: string, endedAt: Date = new Date()) => {
       const { current } = activeRef;
-      if (
-        !current ||
-        (expectedActivity && current.activity !== expectedActivity) ||
-        (expectedName !== undefined && current.name !== expectedName)
-      ) {
-        return Promise.resolve();
-      }
-      activeRef.current = null;
-      setActive(null);
-      localStorage.removeItem(activeKey);
+      if (!current) return Promise.resolve();
+      if (expectedActivity && current.activity !== expectedActivity) return Promise.resolve();
+      if (expectedName !== undefined && current.name !== expectedName) return Promise.resolve();
+      updateActive(activeRef, setActive, activeKey, null);
       return persistCompleted(sessionFromActive(current, endedAt));
     },
-    [activeKey, persistCompleted]
+    [activeKey, activeRef, persistCompleted, setActive]
   );
+}
 
-  const start = useCallback(
-    (options: StartOptions) => {
-      if (!enabled) return;
-      const { current } = activeRef;
-      if (
-        current?.activity === options.activity &&
-        current.source === options.source &&
-        current.name === options.name
-      ) {
-        return;
-      }
-      if (current?.source === 'manual' && options.source === 'automatic') return;
-      if (current) finishActive();
-      const next: ActiveStudyActivity = {
-        ...options,
-        ...(categoriesByActivity ? { category: categoriesByActivity[options.activity] } : {}),
-        clientSessionId: crypto.randomUUID(),
-        startedAt: new Date().toISOString(),
-        cardsCreated: 0,
-      };
-      activeRef.current = next;
-      setActive(next);
-      localStorage.setItem(activeKey, JSON.stringify(next));
-    },
-    [activeKey, categoriesByActivity, enabled, finishActive]
+function matchesActivity(current: ActiveStudyActivity, options: StartOptions) {
+  return (
+    current.activity === options.activity &&
+    current.source === options.source &&
+    current.name === options.name
   );
+}
 
-  const addCreatedCards = useCallback(
+function shouldKeepCurrentActivity(current: ActiveStudyActivity | null, options: StartOptions) {
+  if (!current) return false;
+  if (matchesActivity(current, options)) return true;
+  return current.source === 'manual' && options.source === 'automatic';
+}
+
+function beginActivity({
+  options,
+  activeRef,
+  setActive,
+  activeKey,
+  categoriesByActivity,
+  enabled,
+  finishActive,
+}: {
+  options: StartOptions;
+  activeRef: ActiveRef;
+  setActive: SetActive;
+  activeKey: string;
+  categoriesByActivity: CategoriesByActivity | undefined;
+  enabled: boolean;
+  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>;
+}) {
+  if (!enabled) return;
+  const { current } = activeRef;
+  if (shouldKeepCurrentActivity(current, options)) return;
+  if (current) finishActive();
+  const next: ActiveStudyActivity = {
+    ...options,
+    ...(categoriesByActivity ? { category: categoriesByActivity[options.activity] } : {}),
+    clientSessionId: crypto.randomUUID(),
+    startedAt: new Date().toISOString(),
+    cardsCreated: 0,
+  };
+  updateActive(activeRef, setActive, activeKey, next);
+}
+
+function useStartActivity({
+  activeRef,
+  setActive,
+  activeKey,
+  categoriesByActivity,
+  enabled,
+  finishActive,
+}: {
+  activeRef: ActiveRef;
+  setActive: SetActive;
+  activeKey: string;
+  categoriesByActivity: CategoriesByActivity | undefined;
+  enabled: boolean;
+  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>;
+}) {
+  return useCallback(
+    (options: StartOptions) =>
+      beginActivity({
+        options,
+        activeRef,
+        setActive,
+        activeKey,
+        categoriesByActivity,
+        enabled,
+        finishActive,
+      }),
+    [activeKey, activeRef, categoriesByActivity, enabled, finishActive, setActive]
+  );
+}
+
+function useAddCreatedCards(
+  activeRef: ActiveRef,
+  setActive: SetActive,
+  activeKey: string,
+  persistCompleted: PersistCompleted
+) {
+  return useCallback(
     (count = 1) => {
       const { current } = activeRef;
       if (!current || current.activity !== 'card_creation') {
@@ -245,37 +338,59 @@ export const StudyActivityProvider = ({
         });
         return;
       }
-      const next = { ...current, cardsCreated: current.cardsCreated + count };
-      activeRef.current = next;
-      setActive(next);
-      localStorage.setItem(activeKey, JSON.stringify(next));
+      updateActive(activeRef, setActive, activeKey, {
+        ...current,
+        cardsCreated: current.cardsCreated + count,
+      });
     },
-    [activeKey, persistCompleted]
+    [activeKey, activeRef, persistCompleted, setActive]
   );
+}
 
+function recoveryLimitFor(source: StudyActivitySource) {
+  return source === 'automatic' ? AUTOMATIC_RECOVERY_LIMIT_MS : MANUAL_RECOVERY_LIMIT_MS;
+}
+
+function useActiveRefSynchronization(active: ActiveStudyActivity | null, activeRef: ActiveRef) {
   useEffect(() => {
-    activeRef.current = active;
-  }, [active]);
+    const mutableActiveRef = activeRef;
+    mutableActiveRef.current = active;
+  }, [active, activeRef]);
+}
 
+function useCategoryBackfill({
+  activeRef,
+  setActive,
+  activeKey,
+  categoriesByActivity,
+}: {
+  activeRef: ActiveRef;
+  setActive: SetActive;
+  activeKey: string;
+  categoriesByActivity: CategoriesByActivity | undefined;
+}) {
   useEffect(() => {
     const { current } = activeRef;
     if (!current || !categoriesByActivity) return;
     const category = categoriesByActivity[current.activity];
     if (!category || current.category === category) return;
-    const next = { ...current, category };
-    activeRef.current = next;
-    setActive(next);
-    localStorage.setItem(activeKey, JSON.stringify(next));
-  }, [activeKey, categoriesByActivity]);
+    updateActive(activeRef, setActive, activeKey, { ...current, category });
+  }, [activeKey, activeRef, categoriesByActivity, setActive]);
+}
 
+function useEnabledState(enabled: boolean, finishActive: () => Promise<void>) {
   useEffect(() => {
     if (!enabled) finishActive();
   }, [enabled, finishActive]);
+}
 
+function usePendingSessionFlush(
+  pendingKey: string,
+  persistSessions: (sessions: StudyActivitySessionDraft[]) => Promise<void>
+) {
   const flushPending = useCallback(() => {
     const pending = readJson<StudyActivitySessionDraft[]>(pendingKey, []);
-    if (!pending.length) return;
-    persistSessions(pending).catch(() => undefined);
+    if (pending.length) persistSessions(pending).catch(() => undefined);
   }, [pendingKey, persistSessions]);
 
   useEffect(() => {
@@ -289,28 +404,41 @@ export const StudyActivityProvider = ({
       window.clearInterval(interval);
     };
   }, [flushPending]);
+}
 
+function useRecoveredActivityExpiry(
+  activeRef: ActiveRef,
+  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>
+) {
   useEffect(() => {
     const { current } = activeRef;
     if (!current) return;
     const startedAt = new Date(current.startedAt).getTime();
-    const recoveryLimit =
-      current.source === 'automatic' ? AUTOMATIC_RECOVERY_LIMIT_MS : MANUAL_RECOVERY_LIMIT_MS;
+    const recoveryLimit = recoveryLimitFor(current.source);
     if (!Number.isFinite(startedAt) || Date.now() - startedAt <= recoveryLimit) return;
     finishActive(current.activity, current.name, new Date(startedAt + recoveryLimit));
-  }, [finishActive]);
+  }, [activeRef, finishActive]);
+}
 
+function useCrossTabSynchronization(activeRef: ActiveRef, setActive: SetActive, activeKey: string) {
   useEffect(() => {
     const synchronizeActive = (event: StorageEvent) => {
       if (event.key !== activeKey) return;
       const next = readJson<ActiveStudyActivity | null>(activeKey, null);
-      activeRef.current = next;
+      const mutableActiveRef = activeRef;
+      mutableActiveRef.current = next;
       setActive(next);
     };
     window.addEventListener('storage', synchronizeActive);
     return () => window.removeEventListener('storage', synchronizeActive);
-  }, [activeKey]);
+  }, [activeKey, activeRef, setActive]);
+}
 
+function useElapsedActivityTime(
+  activeRef: ActiveRef,
+  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>
+) {
+  const [elapsedMs, setElapsedMs] = useState(0);
   useEffect(() => {
     const tick = () => {
       const { current } = activeRef;
@@ -319,8 +447,7 @@ export const StudyActivityProvider = ({
         return;
       }
       const startedAt = new Date(current.startedAt).getTime();
-      const recoveryLimit =
-        current.source === 'automatic' ? AUTOMATIC_RECOVERY_LIMIT_MS : MANUAL_RECOVERY_LIMIT_MS;
+      const recoveryLimit = recoveryLimitFor(current.source);
       const elapsed = Date.now() - startedAt;
       if (Number.isFinite(startedAt) && elapsed > recoveryLimit) {
         finishActive(current.activity, current.name, new Date(startedAt + recoveryLimit));
@@ -332,9 +459,22 @@ export const StudyActivityProvider = ({
     tick();
     const interval = window.setInterval(tick, 1000);
     return () => window.clearInterval(interval);
-  }, [finishActive]);
+  }, [activeRef, finishActive]);
+  return elapsedMs;
+}
 
-  const actionsValue = useMemo(
+function useActionsValue({
+  start,
+  finishActive,
+  addCreatedCards,
+  persistCompleted,
+}: {
+  start: StudyActivityActionsContextValue['start'];
+  finishActive: StudyActivityActionsContextValue['stopAndWait'];
+  addCreatedCards: StudyActivityActionsContextValue['addCreatedCards'];
+  persistCompleted: PersistCompleted;
+}) {
+  return useMemo(
     () => ({
       start,
       stop: (...args: Parameters<typeof finishActive>) => {
@@ -349,6 +489,48 @@ export const StudyActivityProvider = ({
     }),
     [addCreatedCards, finishActive, persistCompleted, start]
   );
+}
+
+export const StudyActivityProvider = ({
+  children,
+  userId,
+  enabled = true,
+}: {
+  children: ReactNode;
+  userId: string | number;
+  enabled?: boolean;
+}) => {
+  const capabilitiesQuery = useStudyCapabilities(enabled);
+  const categoriesByActivity = capabilitiesQuery.data?.studyActivity.categoriesByActivity;
+  const activeKey = `${ACTIVE_KEY_PREFIX}.${userId}`;
+  const pendingKey = `${PENDING_KEY_PREFIX}.${userId}`;
+  const [active, setActive] = useState<ActiveStudyActivity | null>(() =>
+    enabled ? readJson<ActiveStudyActivity | null>(activeKey, null) : null
+  );
+  const activeRef = useRef(active);
+  const { persistSessions, persistCompleted } = useSessionPersistence(
+    categoriesByActivity,
+    pendingKey
+  );
+  const finishActive = useFinishActive(activeRef, setActive, activeKey, persistCompleted);
+  const start = useStartActivity({
+    activeRef,
+    setActive,
+    activeKey,
+    categoriesByActivity,
+    enabled,
+    finishActive,
+  });
+  const addCreatedCards = useAddCreatedCards(activeRef, setActive, activeKey, persistCompleted);
+
+  useActiveRefSynchronization(active, activeRef);
+  useCategoryBackfill({ activeRef, setActive, activeKey, categoriesByActivity });
+  useEnabledState(enabled, finishActive);
+  usePendingSessionFlush(pendingKey, persistSessions);
+  useRecoveredActivityExpiry(activeRef, finishActive);
+  useCrossTabSynchronization(activeRef, setActive, activeKey);
+  const elapsedMs = useElapsedActivityTime(activeRef, finishActive);
+  const actionsValue = useActionsValue({ start, finishActive, addCreatedCards, persistCompleted });
   const statusValue = useMemo(() => ({ active, elapsedMs, enabled }), [active, elapsedMs, enabled]);
 
   return (
