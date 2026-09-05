@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getCourseSpeakerVoices,
+  getDialogueSpeakerVoices,
+  getLanguageCodeFromVoiceId,
+  getProviderFromVoiceId,
   getSelectableTtsVoices,
   getTtsVoiceAvatarPath,
   getTtsVoiceById,
@@ -48,5 +52,27 @@ describe('voiceSelection', () => {
     expect(getTtsVoiceAvatarPath('ja', shohei!)).toBe('/api/avatars/voices/ja-shohei.jpg');
     expect(getTtsVoiceAvatarPath('ja', nanami!)).toBe('/api/avatars/voices/ja-nanami.jpg');
     expect(getTtsVoiceAvatarPath('en', englishVoice!)).toBeNull();
+  });
+
+  it('selects one male and one female voice for two-speaker Japanese audio', () => {
+    const selectableVoices = getSelectableTtsVoices('ja');
+    const gendersById = new Map(selectableVoices.map((voice) => [voice.id, voice.gender]));
+    const courseVoices = getCourseSpeakerVoices('ja', 'en', 2).speakerVoices;
+    const dialogueVoices = getDialogueSpeakerVoices('ja', 2);
+
+    expect(new Set(courseVoices.map((voiceId) => gendersById.get(voiceId)))).toEqual(
+      new Set(['male', 'female'])
+    );
+    expect(new Set(dialogueVoices.map((voice) => voice.gender))).toEqual(
+      new Set(['male', 'female'])
+    );
+  });
+
+  it('resolves provider and language conventions through the public barrel', () => {
+    expect(getProviderFromVoiceId('fishaudio:875668667eb94c20b09856b971d9ca2f')).toBe('fishaudio');
+    expect(getProviderFromVoiceId('ja-JP-Neural2-B')).toBe('google');
+    expect(getProviderFromVoiceId('Takumi')).toBe('polly');
+    expect(getLanguageCodeFromVoiceId('ja-JP-Neural2-B')).toBe('ja-JP');
+    expect(getLanguageCodeFromVoiceId('Takumi')).toBe('ja-JP');
   });
 });

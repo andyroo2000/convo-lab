@@ -11,6 +11,7 @@ import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection'
 import { adminApi } from '../../../lib/adminApi';
 import { LessonScriptUnit } from '../../../types';
 import VoicePreview from '../../common/VoicePreview';
+import useAudioCourseLinePlayback from './useAudioCourseLinePlayback';
 
 interface SentenceScriptResponse {
   units: LessonScriptUnit[] | null;
@@ -84,12 +85,16 @@ const AudioCourseCreation = () => {
   const [error, setError] = useState('');
   const [response, setResponse] = useState<SentenceScriptResponse | null>(null);
 
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
-  const [playingUrl, setPlayingUrl] = useState<string | null>(null);
-  const [lineLoadingIndex, setLineLoadingIndex] = useState<number | null>(null);
-  const [audioCache, setAudioCache] = useState<Record<number, string>>({});
-  const audioRef = useRef<HTMLAudioElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const {
+    audioRef,
+    finishPlayback,
+    lineLoadingIndex,
+    playLine,
+    playingIndex,
+    playingUrl,
+    resetPlayback,
+  } = useAudioCourseLinePlayback(setError);
 
   // Past tests state
   const [pastTests, setPastTests] = useState<PastTestSummary[]>([]);
@@ -176,9 +181,7 @@ const AudioCourseCreation = () => {
       });
 
       setActiveTestId(data.id);
-      setAudioCache({});
-      setPlayingIndex(null);
-      setPlayingUrl(null);
+      resetPlayback();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load test');
     } finally {
@@ -244,9 +247,7 @@ const AudioCourseCreation = () => {
       const data = (await res.json()) as SentenceScriptResponse;
       setResponse(data);
       setActiveTestId(data.testId || null);
-      setAudioCache({});
-      setPlayingIndex(null);
-      setPlayingUrl(null);
+      resetPlayback();
       fetchPastTests();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate script');
@@ -272,57 +273,6 @@ const AudioCourseCreation = () => {
   };
 
   const hasUnsavedChanges = savedPrompt?.trim() !== promptOverride.trim();
-
-  const handlePlay = async (unit: LessonScriptUnit, index: number) => {
-    if (unit.type !== 'narration_L1' && unit.type !== 'L2') {
-      return;
-    }
-
-    if (playingIndex === index && audioRef.current && !audioRef.current.paused) {
-      audioRef.current.pause();
-      setPlayingIndex(null);
-      return;
-    }
-
-    const cachedUrl = audioCache[index];
-    if (cachedUrl) {
-      setPlayingUrl(cachedUrl);
-      setPlayingIndex(index);
-      return;
-    }
-
-    setLineLoadingIndex(index);
-    setError('');
-
-    const textToSynthesize = unit.type === 'L2' ? unit.reading || unit.text : unit.text;
-
-    try {
-      const res = await fetch(adminApi.scriptLabSynthesizeLine, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          text: textToSynthesize,
-          voiceId: unit.voiceId,
-          speed: unit.type === 'L2' ? unit.speed : undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to synthesize line');
-      }
-
-      const data = (await res.json()) as { audioUrl: string };
-      setAudioCache((prev) => ({ ...prev, [index]: data.audioUrl }));
-      setPlayingUrl(data.audioUrl);
-      setPlayingIndex(index);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to synthesize line');
-    } finally {
-      setLineLoadingIndex(null);
-    }
-  };
 
   return (
     <div className="space-y-6 retro-admin-v3-module">
@@ -585,7 +535,7 @@ const AudioCourseCreation = () => {
                     {isPlayable && (
                       <button
                         type="button"
-                        onClick={() => handlePlay(unit, index)}
+                        onClick={() => playLine(unit, index)}
                         className="retro-admin-v3-btn-primary px-3 py-2 text-xs font-semibold flex items-center gap-2 disabled:opacity-60"
                         disabled={isLoading}
                       >
@@ -625,10 +575,7 @@ const AudioCourseCreation = () => {
           ref={audioRef}
           src={playingUrl}
           autoPlay
-          onEnded={() => {
-            setPlayingIndex(null);
-            setPlayingUrl(null);
-          }}
+          onEnded={finishPlayback}
           className="w-full"
           controls
         />
