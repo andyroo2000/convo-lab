@@ -43,10 +43,10 @@ describe('FeaturesPage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: '9.4. Then the agent stopped.',
+        name: 'Every yellow file turned green.',
       })
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#goal-achieved');
+    expect(window.location.hash).toBe('#all-green-results');
   });
 
   it('opens a directly linked feature', () => {
@@ -173,20 +173,37 @@ describe('FeaturesPage', () => {
     expect(screen.getByText('Missing test coverage')).toBeInTheDocument();
   });
 
-  it('opens the final goal-results slide directly', () => {
+  it('opens the first goal-results slide directly', () => {
     window.history.replaceState(null, '', '/features#goal-achieved');
 
     render(<FeaturesPage />);
 
     expect(
-      screen.getByRole('heading', { name: '9.4. Then the agent stopped.' })
+      screen.getByRole('heading', { name: '9.4 cleared the hotspot goal.' })
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Final CodeScene goal results')).toBeInTheDocument();
+    expect(screen.getByLabelText('First CodeScene goal results')).toBeInTheDocument();
     expect(screen.getByText('Target ≥ 9.25 cleared')).toBeInTheDocument();
     expect(screen.getByText('68.3%')).toBeInTheDocument();
     expect(screen.getByText('31.7%')).toBeInTheDocument();
     expect(screen.getByText('0%')).toBeInTheDocument();
     expect(screen.getByText(/Every merged PR improved CodeScene/)).toBeInTheDocument();
-    expect(screen.getByText(/Goal run: 17h 47m/)).toBeInTheDocument();
+    expect(screen.getByText(/First goal run: 17h 47m/)).toBeInTheDocument();
+  });
+
+  it('opens the final all-green results slide directly', () => {
+    window.history.replaceState(null, '', '/features#all-green-results');
+
+    render(<FeaturesPage />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Every yellow file turned green.' })
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Final all-green CodeScene results')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('9.7')).toBeInTheDocument();
+    expect(screen.getByText('9.8')).toBeInTheDocument();
+    expect(screen.getByText('of 3,400')).toBeInTheDocument();
+    expect(screen.getByText(/Final web cleanup PR #656 merged/)).toBeInTheDocument();
+    expect(screen.getByText(/Total goal run: approximately 1d 19h/)).toBeInTheDocument();
   });
 });

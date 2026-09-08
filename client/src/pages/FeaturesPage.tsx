@@ -63,7 +63,8 @@ type FeatureMedia =
   | 'goal-results'
   | 'pr-evidence'
   | 'review-bot'
-  | 'goal-achieved';
+  | 'goal-achieved'
+  | 'all-green-results';
 
 interface FeatureSlide {
   id: string;
@@ -293,12 +294,21 @@ const FEATURE_SLIDES: FeatureSlide[] = [
   },
   {
     id: 'goal-achieved',
-    kicker: 'The result',
-    title: '9.4. Then the agent stopped.',
+    kicker: 'The first pass',
+    title: '9.4 cleared the hotspot goal.',
     description:
-      'Hotspot code health rose from 8.69 to 9.4, clearing the 9.25 target. With no red code and every merged PR passing CodeScene, CI, and review, the agent closed the goal instead of adding another risky refactor.',
-    shortLabel: 'Goal achieved',
+      'Hotspot code health rose from 8.69 to 9.4, clearing the 9.25 target. But 31.7% of the code was still yellow—so I widened the next goal to every individual file that CodeScene did not consider healthy.',
+    shortLabel: 'Hotspot goal',
     media: 'goal-achieved',
+  },
+  {
+    id: 'all-green-results',
+    kicker: 'The broader pass',
+    title: 'Every yellow file turned green.',
+    description:
+      'The second pass went beyond hotspots and addressed every individual yellow file. The final analysis reported 9.7 hotspot health, 9.8 average health, and zero unhealthy files across the full 3,400-file portfolio.',
+    shortLabel: '100% green',
+    media: 'all-green-results',
   },
 ];
 
@@ -1177,7 +1187,7 @@ const ReviewBotMedia = () => (
 const GoalAchievedMedia = () => (
   <div
     className="feature-goal-achieved-media feature-media-panel"
-    aria-label="Final CodeScene goal results"
+    aria-label="First CodeScene goal results"
   >
     <div className="feature-final-score">
       <span>Hotspot code health</span>
@@ -1224,8 +1234,56 @@ const GoalAchievedMedia = () => (
         <Check aria-hidden="true" /> Web changes reached staging and production
       </span>
       <small>
-        Goal run: 17h 47m · 3,723,565 tokens · iOS PR #213 improved 8.51 → 10.0 and remained
-        unmerged only because the daily TestFlight upload limit was reached.
+        First goal run: 17h 47m · 3,723,565 tokens · The next pass widened the scope from hotspot
+        health to every individual yellow file.
+      </small>
+    </footer>
+  </div>
+);
+
+const AllGreenResultsMedia = () => (
+  <div
+    className="feature-all-green-media feature-media-panel"
+    aria-label="Final all-green CodeScene results"
+  >
+    <div className="feature-all-green-hero">
+      <span>Full configured portfolio</span>
+      <strong>100%</strong>
+      <b>green code</b>
+    </div>
+
+    <div className="feature-all-green-bar" aria-label="100 percent green code">
+      <i />
+    </div>
+
+    <div className="feature-final-metrics">
+      <span>
+        <small>Hotspot health</small>
+        <strong>9.7</strong>
+        <b>target ≥ 9.5</b>
+      </span>
+      <span>
+        <small>Average health</small>
+        <strong>9.8</strong>
+        <b>target ≥ 9.0</b>
+      </span>
+      <span>
+        <small>Unhealthy files</small>
+        <strong>0</strong>
+        <b>of 3,400</b>
+      </span>
+    </div>
+
+    <footer>
+      <span>
+        <Check aria-hidden="true" /> Final web cleanup PR #656 merged and reached production
+      </span>
+      <span>
+        <Check aria-hidden="true" /> Production health checks passed
+      </span>
+      <small>
+        Total goal run: approximately 1d 19h · 4,297,388 tokens · iOS cleanup PRs were merged
+        without a TestFlight build or delivery.
       </small>
     </footer>
   </div>
@@ -1283,6 +1341,8 @@ const FeatureMediaView = ({ type }: { type: FeatureMedia }) => {
       return <ReviewBotMedia />;
     case 'goal-achieved':
       return <GoalAchievedMedia />;
+    case 'all-green-results':
+      return <AllGreenResultsMedia />;
     default:
       return null;
   }
