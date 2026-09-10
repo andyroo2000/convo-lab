@@ -112,4 +112,30 @@ describe('StudyCardEditor', () => {
       });
     });
   });
+
+  it.each([
+    'Captured from Episode 1',
+    'Captured from Episode 1 — https://www.netflix.com/watch/123?trackId=456',
+    'Captured from A lesson — https://www.youtube.com/watch?v=lesson',
+  ])('keeps captured screenshots editable without image generation: %s', async (notes) => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const card = {
+      ...audioRecognitionCard,
+      prompt: { ...audioRecognitionCard.prompt, cueImage: imageRef },
+      answer: { ...audioRecognitionCard.answer, notes },
+    };
+    render(<StudyCardEditor card={card} onCancel={vi.fn()} onSave={onSave} />);
+
+    expect(screen.queryByLabelText('Image prompt')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Regenerate image' })).not.toBeInTheDocument();
+    expect(screen.getByAltText('Current card image')).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Image placement'), 'answer');
+    await userEvent.click(screen.getByRole('button', { name: 'Save card' }));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith({
+        prompt: expect.objectContaining({ cueImage: null, cueAudio: audioPrompt }),
+        answer: expect.objectContaining({ answerImage: imageRef, notes }),
+      })
+    );
+  });
 });

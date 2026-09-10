@@ -292,6 +292,26 @@ jobs:
                 return 1
               fi
 
+              # These public routes must reach API authentication, not the frontend's 404 fallback.
+              for path_suffix in learning-path learning-path/successor; do
+                path_method=GET
+                if [ "$path_suffix" = learning-path/successor ]; then
+                  path_method=PUT
+                fi
+                path_status="$(curl --silent --show-error \
+                  --connect-timeout 5 --max-time 15 \
+                  --request "$path_method" \
+                  --output "$response_body" \
+                  --write-out '%{http_code}' \
+                  --header 'Accept: application/json' \
+                  "https://convo-lab.com/api/cards/00000000000000000000000000/$path_suffix")"
+                if [ "$path_status" != 401 ]; then
+                  echo "Learning path route $path_suffix returned HTTP $path_status instead of 401."
+                  cat "$response_body"
+                  return 1
+                fi
+              done
+
               native_account_status="$(curl --silent --show-error \
                 --output "$response_body" \
                 --write-out '%{http_code}' \
