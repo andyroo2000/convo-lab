@@ -83,3 +83,26 @@ test('invite registration is routed to Learning OS without trusting client ident
   assert.ok(block.includes('proxy_set_header Authorization "";'));
   assert.ok(block.includes('proxy_set_header X-Convo-Lab-User-Id "";'));
 });
+
+test('learning path reads and successor writes reach Learning OS instead of the static frontend', async () => {
+  const router = await readRepositoryFile('deploy/prod-router.conf.template');
+  const pattern = '^/api/cards/[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}/learning-path(?:/successor)?$';
+  const block = locationBlock(router, `location ~ "${pattern}"`);
+  assert.ok(block.includes('proxy_pass $learning_os_upstream;'));
+  assert.ok(block.includes('proxy_set_header Authorization $http_authorization;'));
+  assert.ok(block.includes('proxy_set_header X-Convo-Lab-User-Id "";'));
+  assert.ok(!block.includes('proxy_set_header Cookie "";'));
+  const route = new RegExp(pattern);
+  for (const id of ['01m26m5c17ce5584rzc24mregx', '01M26M5C17CE5584RZC24MREGX']) {
+    assert.ok(route.test(`/api/cards/${id}/learning-path`));
+    assert.ok(route.test(`/api/cards/${id}/learning-path/successor`));
+    assert.ok(!route.test(`/api/cards/${id}/learning-path/unknown`));
+    assert.ok(!route.test(`/api/cards/${id}`));
+  }
+  assert.ok(!route.test('/api/cards/not-a-card/learning-path'));
+  const workflow = await readRepositoryFile('.github/workflows/deploy-prod.yml');
+  assert.ok(workflow.includes('for path_suffix in learning-path learning-path/successor; do'));
+  assert.ok(workflow.includes('path_method=PUT'));
+  assert.ok(workflow.includes('https://convo-lab.com/api/cards/00000000000000000000000000/$path_suffix'));
+  assert.ok(workflow.includes('if [ "$path_status" != 401 ]; then'));
+});

@@ -25,6 +25,7 @@ import {
   type StudyCardFormValues,
 } from './studyCardFormModel';
 import { getStudyCardAudio, isAudioLedPromptCard, toAssetUrl } from './studyCardUtils';
+import { isCapturedDialogueCard } from './studyCapturedSource';
 
 interface StudyCardEditorProps {
   card: StudyCardSummary;
@@ -59,6 +60,7 @@ interface CardMediaSnapshot {
 }
 
 interface ImageControlsProps {
+  allowGeneration: boolean;
   imageRole: StudyCardImagePlacement;
   imagePrompt: string;
   imagePromptMaxLength?: number;
@@ -105,6 +107,7 @@ function getCardImageRole(card: StudyCardSummary): StudyCardImagePlacement {
 }
 
 function getCardImagePrompt(card: StudyCardSummary): string {
+  if (isCapturedDialogueCard(card)) return '';
   if (!card.prompt.cueImage && !card.answer.answerImage) return '';
 
   const subject =
@@ -240,6 +243,7 @@ const StudyCardEditorHeader = ({ cardType }: { cardType: StudyCardSummary['cardT
 };
 
 const EditorImageControls = ({
+  allowGeneration,
   imageRole,
   imagePrompt,
   imagePromptMaxLength,
@@ -255,6 +259,7 @@ const EditorImageControls = ({
 
   return (
     <StudyCardImageControls
+      allowGeneration={allowGeneration}
       altText={t('editor.currentImage')}
       imagePlacement={imageRole}
       imagePrompt={imagePrompt}
@@ -422,6 +427,7 @@ const StudyCardEditor = ({
         onFieldChange={setField}
       />
       <EditorImageControls
+        allowGeneration={!isCapturedDialogueCard(card)}
         imageRole={imageRole}
         imagePrompt={imagePrompt}
         imagePromptMaxLength={imagePromptMaxLength}

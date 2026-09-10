@@ -17,6 +17,7 @@ const StudyCardImageControls = ({
   regenerateError = null,
   regenerateLabel,
   showImagePlacement = true,
+  allowGeneration = true,
   title,
 }: {
   altText: string;
@@ -34,6 +35,7 @@ const StudyCardImageControls = ({
   regenerateError?: string | null;
   regenerateLabel: string;
   showImagePlacement?: boolean;
+  allowGeneration?: boolean;
   title: string;
 }) => {
   const { t } = useTranslation('study');
@@ -65,20 +67,32 @@ const StudyCardImageControls = ({
       ) : null}
 
       <div
-        className={`mt-3 grid gap-3 ${showImagePlacement ? 'md:grid-cols-[minmax(0,1fr)_12rem]' : ''}`}
+        className={`mt-3 grid gap-3 ${showImagePlacement && allowGeneration ? 'md:grid-cols-[minmax(0,1fr)_12rem]' : ''}`}
       >
-        <label htmlFor={imagePromptId} className="block text-sm font-semibold text-navy">
-          {imagePromptLabel}
-          <textarea
-            id={imagePromptId}
-            value={imagePrompt}
-            onChange={(event) => onImagePromptChange(event.target.value)}
-            maxLength={imagePromptMaxLength}
-            readOnly={isRegenerating}
-            aria-busy={isRegenerating}
-            className="mt-1 block min-h-20 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm font-normal text-gray-700"
-          />
-        </label>
+        {allowGeneration ? (
+          <div>
+            <label htmlFor={imagePromptId} className="block text-sm font-semibold text-navy">
+              {imagePromptLabel}
+              <textarea
+                id={imagePromptId}
+                value={imagePrompt}
+                onChange={(event) => onImagePromptChange(event.target.value)}
+                maxLength={imagePromptMaxLength}
+                readOnly={isRegenerating}
+                aria-busy={isRegenerating}
+                className="mt-1 block min-h-20 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm font-normal text-gray-700"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={onRegenerate}
+              disabled={isGenerateDisabled}
+              className="mt-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {regenerateLabel}
+            </button>
+          </div>
+        ) : null}
         {showImagePlacement ? (
           <label
             htmlFor={`${imagePromptId}-placement`}
@@ -103,14 +117,6 @@ const StudyCardImageControls = ({
         ) : null}
       </div>
 
-      <button
-        type="button"
-        onClick={onRegenerate}
-        disabled={isGenerateDisabled}
-        className="mt-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {regenerateLabel}
-      </button>
       {regenerateError ? <p className="mt-2 text-sm text-red-600">{regenerateError}</p> : null}
     </div>
   );
