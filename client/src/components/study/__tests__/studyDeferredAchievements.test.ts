@@ -41,14 +41,14 @@ describe('deferred achievement completion', () => {
     const reloaded = reload();
     store.completeDeferredRefresh(refresh, [firstAward]);
 
-    expect(reloaded.prepareInterruptedCompletion([firstAward])).toMatchObject({
+    expect(reloaded.prepareDeferredCompletion([firstAward])).toMatchObject({
       id: refresh.sessionId,
       records: [],
       newAwardIds: [firstAward.id],
       celebrationPresented: false,
     });
     reloaded.markCelebrationPresented({ id: refresh.sessionId });
-    expect(reload().prepareInterruptedCompletion([firstAward])).toBeNull();
+    expect(reload().prepareDeferredCompletion([firstAward])).toBeNull();
   });
 
   it('does not replace a new session when an older response arrives', () => {
@@ -62,7 +62,13 @@ describe('deferred achievement completion', () => {
       records: [{ id: `review-${second.sessionId}` }],
       newAwardIds: [],
     });
-    expect(reload().prepareInterruptedCompletion([firstAward])?.id).toBe(first.sessionId);
+    expect(reload().prepareDeferredCompletion([firstAward])?.id).toBe(first.sessionId);
+    store.refreshCurrentSessionBaseline([firstAward]);
+    expect(store.prepareInterruptedCompletion([firstAward, secondAward])).toMatchObject({
+      id: second.sessionId,
+      records: [{ id: `review-${second.sessionId}` }],
+      newAwardIds: [secondAward.id],
+    });
   });
 
   it('ignores an obsolete response after undo, re-ending, and Done', () => {
@@ -80,7 +86,7 @@ describe('deferred achievement completion', () => {
       newAwardIds: [],
     });
     store.completeDeferredRefresh(latest, [secondAward]);
-    expect(reload().prepareInterruptedCompletion([firstAward, secondAward])?.newAwardIds).toEqual([
+    expect(reload().prepareDeferredCompletion([firstAward, secondAward])?.newAwardIds).toEqual([
       secondAward.id,
     ]);
   });
@@ -89,9 +95,7 @@ describe('deferred achievement completion', () => {
     const refresh = finishSession();
     // No completion callback ran because the request failed.
     store.dismissCompletion({ id: refresh.sessionId });
-    expect(reload().prepareInterruptedCompletion([firstAward])?.newAwardIds).toEqual([
-      firstAward.id,
-    ]);
+    expect(reload().prepareDeferredCompletion([firstAward])?.newAwardIds).toEqual([firstAward.id]);
   });
 
   it('applies a late session-start baseline to the deferred session', () => {
@@ -99,7 +103,7 @@ describe('deferred achievement completion', () => {
     store.dismissCompletion({ id: refresh.sessionId });
     store.refreshDeferredBaseline({ id: refresh.sessionId }, [firstAward]);
     store.completeDeferredRefresh(refresh, [firstAward, secondAward]);
-    expect(reload().prepareInterruptedCompletion([firstAward, secondAward])?.newAwardIds).toEqual([
+    expect(reload().prepareDeferredCompletion([firstAward, secondAward])?.newAwardIds).toEqual([
       secondAward.id,
     ]);
   });
@@ -110,9 +114,9 @@ describe('deferred achievement completion', () => {
     const second = finishSession();
     store.dismissCompletion({ id: second.sessionId });
     const reloaded = reload();
-    expect(reloaded.prepareInterruptedCompletion([firstAward])?.id).toBe(first.sessionId);
+    expect(reloaded.prepareDeferredCompletion([firstAward])?.id).toBe(first.sessionId);
     reloaded.markCelebrationPresented({ id: first.sessionId });
-    expect(reload().prepareInterruptedCompletion([firstAward])).toBeNull();
+    expect(reload().prepareDeferredCompletion([firstAward])).toBeNull();
   });
 
   it('removes a successfully evaluated completion with no new awards', () => {
@@ -120,16 +124,16 @@ describe('deferred achievement completion', () => {
     store.completeCurrentRefresh(refresh, []);
     store.dismissCompletion({ id: refresh.sessionId });
     expect(JSON.parse(localStorage.getItem(deferredAchievementStorageKey('learner'))!)).toEqual([]);
-    expect(reload().prepareInterruptedCompletion([firstAward])).toBeNull();
+    expect(reload().prepareDeferredCompletion([firstAward])).toBeNull();
   });
 
   it('keeps deferred awards isolated by user and clears them with study data', () => {
     const refresh = finishSession();
     store.dismissCompletion({ id: refresh.sessionId });
     const anotherUser = new StudyAchievementSessionStore(localStorage, 'another-learner');
-    expect(anotherUser.prepareInterruptedCompletion([firstAward])).toBeNull();
+    expect(anotherUser.prepareDeferredCompletion([firstAward])).toBeNull();
     deleteStudyAchievementSessionData(localStorage, 'learner');
-    expect(reload().prepareInterruptedCompletion([firstAward])).toBeNull();
+    expect(reload().prepareDeferredCompletion([firstAward])).toBeNull();
   });
 
   it('only presents newly discovered awards after an earlier celebration', () => {
@@ -161,6 +165,6 @@ describe('deferred achievement completion', () => {
       firstAward.id,
     ]);
     reloaded.dismissCompletion({ id: 'legacy-session' });
-    expect(reload().prepareInterruptedCompletion([firstAward, secondAward])).toBeNull();
+    expect(reload().prepareDeferredCompletion([firstAward, secondAward])).toBeNull();
   });
 });

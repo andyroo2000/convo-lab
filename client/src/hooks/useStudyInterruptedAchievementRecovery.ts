@@ -49,9 +49,9 @@ const recoverInterruptedAchievement = async (
   try {
     const { progress } = await options.syncAchievements();
     if (isCancelled() || sessionEpochRef.current !== expectedEpoch) return;
-    const restoredCompletion = options.achievementSessionStore?.prepareInterruptedCompletion(
-      progress.awards
-    );
+    const restoredCompletion =
+      options.achievementSessionStore?.prepareDeferredCompletion(progress.awards) ??
+      options.achievementSessionStore?.prepareInterruptedCompletion(progress.awards);
     if (!restoredCompletion) return;
     if (isCancelled() || sessionEpochRef.current !== expectedEpoch) return;
 

@@ -195,7 +195,13 @@ export class StudyAchievementSessionStore {
   prepareInterruptedCompletion(
     currentAwards: AchievementAward[]
   ): StudyAchievementSessionCompletion | null {
-    return this.deferred.recover(currentAwards) ?? this.prepareCompletion(currentAwards, true);
+    return this.prepareCompletion(currentAwards, true);
+  }
+
+  prepareDeferredCompletion(
+    currentAwards: AchievementAward[]
+  ): StudyAchievementSessionCompletion | null {
+    return this.deferred.recover(currentAwards);
   }
 
   beginCompletionRefresh(reference: SessionReference): StudyAchievementRefresh | null {
