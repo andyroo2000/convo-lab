@@ -19,6 +19,48 @@ interface StudySessionWrapUpProps {
 const formatSeconds = (durationMs: number) =>
   `${Math.max(1, Math.round(durationMs / 1000)).toLocaleString()} sec`;
 
+const StudyWrapUpDone = ({
+  isFinalizing,
+  onDone,
+}: Pick<StudySessionWrapUpProps, 'isFinalizing' | 'onDone'>) => {
+  const { t } = useTranslation('study');
+  return (
+    <>
+      {isFinalizing ? (
+        <p className="text-center text-sm text-gray-500" role="status">
+          {t('wrapUp.achievementsUpdating')}
+        </p>
+      ) : null}
+      <button type="button" onClick={onDone} className="app-button-primary mt-1 w-full">
+        {t('wrapUp.done')}
+      </button>
+    </>
+  );
+};
+
+const StudyWrapUpAchievements = ({
+  achievements,
+}: Pick<StudySessionWrapUpProps, 'achievements'>) => {
+  const { t } = useTranslation('study');
+  if (achievements.length === 0) return null;
+  return (
+    <section className="app-surface p-4" data-testid="study-session-achievements">
+      <h3 className="font-bold text-gray-900">{t('achievements.earnedThisSession')}</h3>
+      <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+        {achievements.map((achievement, index) => (
+          <AchievementBadgeCard
+            key={achievement.id}
+            achievement={achievement}
+            transitionName={index === 0 ? 'achievement-badge-flight' : undefined}
+            isNew
+            suppressShadow
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 const StudySessionWrapUp = ({
   summary,
   caughtUp,
@@ -127,32 +169,9 @@ const StudySessionWrapUp = ({
           </section>
         ) : null}
 
-        {achievements.length > 0 ? (
-          <section className="app-surface p-4" data-testid="study-session-achievements">
-            <h3 className="font-bold text-gray-900">{t('achievements.earnedThisSession')}</h3>
-            <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-              {achievements.map((achievement, index) => (
-                <AchievementBadgeCard
-                  key={achievement.id}
-                  achievement={achievement}
-                  transitionName={index === 0 ? 'achievement-badge-flight' : undefined}
-                  isNew
-                  suppressShadow
-                />
-              ))}
-            </div>
-          </section>
-        ) : null}
+        <StudyWrapUpAchievements achievements={achievements} />
 
-        <button
-          type="button"
-          onClick={onDone}
-          disabled={isFinalizing}
-          aria-busy={isFinalizing}
-          className="app-button-primary mt-1 w-full disabled:cursor-wait disabled:opacity-70"
-        >
-          {t(isFinalizing ? 'wrapUp.finalizing' : 'wrapUp.done')}
-        </button>
+        <StudyWrapUpDone isFinalizing={isFinalizing} onDone={onDone} />
       </div>
     </div>
   );

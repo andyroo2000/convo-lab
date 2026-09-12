@@ -47,7 +47,8 @@
     "misses_other": "{{count}}回ミス",
     "cardFallback": "学習カード",
     "done": "完了",
-    "finalizing": "最終処理中…"
+    "finalizing": "最終処理中…",
+    "achievementsUpdating": "実績をバックグラウンドで更新しています。この画面を閉じても大丈夫です。"
   },
   "achievements": {
     "kicker": "実績",

@@ -47,7 +47,8 @@
     "misses_other": "{{count}} misses",
     "cardFallback": "Study card",
     "done": "Done",
-    "finalizing": "Finalizing…"
+    "finalizing": "Finalizing…",
+    "achievementsUpdating": "Achievements are updating in the background. You can leave now."
   },
   "achievements": {
     "kicker": "Achievements",

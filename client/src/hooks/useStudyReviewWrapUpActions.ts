@@ -47,15 +47,14 @@ const advanceAchievement = (options: StudyReviewWrapUpActionsOptions) => {
     return;
   }
 
-  options.achievementSessionStore?.markCelebrationPresented(achievementCompletion.id);
+  options.achievementSessionStore?.markCelebrationPresented(achievementCompletion);
   options.setAchievementCelebrationPresented(true);
   if (achievementCompletion.records.length === 0) options.exitFocusMode();
 };
 
 const finishReviewSession = (options: StudyReviewWrapUpActionsOptions) => {
-  if (options.achievementCompletionRefreshPending) return;
   if (options.achievementCompletion) {
-    options.achievementSessionStore?.consumeCompletion(options.achievementCompletion.id);
+    options.achievementSessionStore?.dismissCompletion(options.achievementCompletion);
   }
   options.exitFocusMode();
 };
