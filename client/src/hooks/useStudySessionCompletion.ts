@@ -10,6 +10,7 @@ import {
 import type { AchievementAward } from '../components/study/achievementModel';
 import type {
   StudyAchievementSessionCompletion,
+  StudyAchievementRefresh,
   StudyAchievementSessionStore,
 } from '../components/study/studyAchievementSessionModel';
 import type useStudyBackgroundTask from './useStudyBackgroundTask';
@@ -51,24 +52,40 @@ const isCurrentCompletionRequest = (
   options.sessionEpochRef.current === expectedEpoch &&
   options.activeAchievementCompletionRequestRef.current === requestId;
 
+interface CompletionRefreshRequest {
+  completion: StudyAchievementSessionCompletion | null;
+  expectedEpoch: number;
+  requestId: number;
+  refresh: StudyAchievementRefresh | null;
+}
+
+const applyRefreshedCompletion = (
+  options: StudySessionCompletionOptions,
+  request: CompletionRefreshRequest,
+  awards: AchievementAward[]
+) => {
+  if (!request.refresh) return;
+  options.achievementSessionStore?.completeDeferredRefresh(request.refresh, awards);
+  if (!isCurrentCompletionRequest(options, request.expectedEpoch, request.requestId)) return;
+  const completion = options.achievementSessionStore?.completeCurrentRefresh(
+    request.refresh,
+    awards
+  );
+  if (!completion || completion.id !== request.completion?.id) return;
+  applyCompletion(options, completion);
+};
+
 const refreshCompletion = async (
   options: StudySessionCompletionOptions,
-  completion: StudyAchievementSessionCompletion | null,
-  expectedEpoch: number,
-  requestId: number
+  request: CompletionRefreshRequest
 ) => {
   try {
-    const refreshedAwards = (await options.syncAchievements(true, true)).progress.awards;
-    if (!isCurrentCompletionRequest(options, expectedEpoch, requestId)) return;
-
-    const refreshedCompletion =
-      options.achievementSessionStore?.prepareCurrentSessionCompletion(refreshedAwards) ?? null;
-    if (!refreshedCompletion || refreshedCompletion.id !== completion?.id) return;
-    applyCompletion(options, refreshedCompletion);
+    const { progress } = await options.syncAchievements(true, true);
+    applyRefreshedCompletion(options, request, progress.awards);
   } catch {
-    // The wrap-up remains available offline. A later launch can recover a new award.
+    // Failed evaluations remain persisted for recovery on the next Study visit.
   } finally {
-    if (isCurrentCompletionRequest(options, expectedEpoch, requestId)) {
+    if (isCurrentCompletionRequest(options, request.expectedEpoch, request.requestId)) {
       const { activeAchievementCompletionRequestRef } = options;
       activeAchievementCompletionRequestRef.current = null;
       options.setAchievementCompletionRefreshPending(false);
@@ -89,11 +106,17 @@ const prepareSessionCompletion = (options: StudySessionCompletionOptions) => {
     options.achievementSessionStore?.prepareCurrentSessionCompletion(options.achievementAwards) ??
     null;
   applyCompletion(options, completion);
+  const refresh = completion
+    ? (options.achievementSessionStore?.beginCompletionRefresh(completion) ?? null)
+    : null;
 
   const expectedEpoch = options.sessionEpochRef.current;
-  options.runBackgroundTask(refreshCompletion(options, completion, expectedEpoch, requestId), {
-    label: 'Study achievement completion refresh',
-  });
+  options.runBackgroundTask(
+    refreshCompletion(options, { completion, expectedEpoch, requestId, refresh }),
+    {
+      label: 'Study achievement completion refresh',
+    }
+  );
 };
 
 const isAutomaticCompletionBlocked = (options: StudySessionCompletionOptions) =>

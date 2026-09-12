@@ -37,18 +37,24 @@ const refreshSessionBaseline = async ({
   bootstrapRef,
   hasFreshAchievementProgress,
   syncAchievements,
+  sessionId,
 }: {
   achievementSessionStore: StudyAchievementSessionStore | null;
   bootstrap: AchievementSessionBootstrap;
   bootstrapRef: MutableRefObject<AchievementSessionBootstrap | null>;
   hasFreshAchievementProgress: (freshnessMs: number) => boolean;
   syncAchievements: (evaluate?: boolean) => Promise<StudyAchievementSyncResult>;
+  sessionId: string | null;
 }) => {
   if (hasFreshAchievementProgress(ACHIEVEMENT_PROGRESS_SESSION_START_FRESHNESS_MS)) return;
 
   try {
     const currentAwards = (await syncAchievements(false)).progress.awards;
-    if (!isActiveBootstrap(bootstrap, bootstrapRef)) return;
+    if (!isActiveBootstrap(bootstrap, bootstrapRef)) {
+      if (sessionId)
+        achievementSessionStore?.refreshDeferredBaseline({ id: sessionId }, currentAwards);
+      return;
+    }
     achievementSessionStore?.refreshCurrentSessionBaseline(currentAwards);
   } catch {
     // Reviews remain available offline, using cached awards when available.
@@ -71,13 +77,15 @@ const useStudyAchievementReviewSession = ({
       achievementSessionBootstrapRef.current.cancelled = true;
     }
     achievementSessionBootstrapRef.current = bootstrap;
-    achievementSessionStore?.beginReviewSession(achievementProgress?.awards ?? []);
+    const sessionId =
+      achievementSessionStore?.beginReviewSession(achievementProgress?.awards ?? []) ?? null;
     bootstrap.promise = refreshSessionBaseline({
       achievementSessionStore,
       bootstrap,
       bootstrapRef: achievementSessionBootstrapRef,
       hasFreshAchievementProgress,
       syncAchievements,
+      sessionId,
     });
     runBackgroundTask(bootstrap.promise, { label: 'Study achievement-session bootstrap' });
     return bootstrap;

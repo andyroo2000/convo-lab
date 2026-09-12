@@ -21,6 +21,9 @@ const createOptions = (overrides: Partial<CompletionOptions> = {}): CompletionOp
   achievementCompletionRequestIdRef: { current: 0 },
   achievementSessionStore: {
     prepareCurrentSessionCompletion: vi.fn().mockReturnValue(null),
+    beginCompletionRefresh: vi.fn().mockReturnValue({ sessionId: 'completion-1', revision: 1 }),
+    completeCurrentRefresh: vi.fn().mockReturnValue(null),
+    completeDeferredRefresh: vi.fn(),
   } as unknown as StudyAchievementSessionStore,
   activeAchievementCompletionRequestRef: { current: null },
   masteryAnimation: null,
@@ -72,7 +75,10 @@ describe('useStudySessionCompletion', () => {
       },
     });
 
-    await waitFor(() => expect(prepareCurrentSessionCompletion).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(options.setAchievementCompletionRefreshPending).toHaveBeenCalledWith(false)
+    );
+    expect(prepareCurrentSessionCompletion).toHaveBeenCalledTimes(1);
     expect(syncAchievements).toHaveBeenCalledTimes(1);
   });
 
@@ -94,6 +100,9 @@ describe('useStudySessionCompletion', () => {
     const options = createOptions({
       achievementSessionStore: {
         prepareCurrentSessionCompletion,
+        beginCompletionRefresh: vi.fn().mockReturnValue({ sessionId: 'completion-1', revision: 1 }),
+        completeCurrentRefresh: vi.fn(),
+        completeDeferredRefresh: vi.fn(),
       } as unknown as StudyAchievementSessionStore,
       sessionEpochRef,
       setAchievementCompletion,

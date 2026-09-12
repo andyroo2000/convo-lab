@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
@@ -44,6 +44,31 @@ const presentationCard = (overrides: { label: string | null; meaning: string | n
   }) as StudyCardSummary;
 
 describe('StudySessionWrapUp', () => {
+  it('keeps Done enabled while achievements update in the background', () => {
+    const onDone = vi.fn();
+    render(
+      <StudySessionWrapUp
+        summary={{
+          reviewsCompleted: 1000,
+          firstPassRecall: 1,
+          stabilizedCards: [],
+          toughestCards: [],
+          burnedCountChange: 0,
+        }}
+        caughtUp
+        achievements={[]}
+        isFinalizing
+        onPractice={vi.fn()}
+        onDone={onDone}
+      />
+    );
+    const done = screen.getByRole('button', { name: 'Done' });
+    expect(done).toBeEnabled();
+    expect(screen.getByRole('status')).toHaveTextContent('You can leave now.');
+    fireEvent.click(done);
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
   it('uses known-v1 labels and meanings without resurrecting explicit-null raw fields', () => {
     const serverCard = presentationCard({
       label: ' server label ',

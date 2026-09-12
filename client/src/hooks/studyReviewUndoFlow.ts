@@ -50,7 +50,7 @@ const reopenAchievementCompletion = (context: StudyReviewUndoContext) => {
   context.activeAchievementCompletionRequestRef.current = null;
   context.setAchievementCompletionRefreshPending(false);
   context.achievementSessionStore?.reopenCompletion(
-    context.achievementCompletion.id,
+    context.achievementCompletion,
     context.achievementAwards
   );
   context.setSessionWasEnded(false);
