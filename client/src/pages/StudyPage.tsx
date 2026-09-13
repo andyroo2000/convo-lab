@@ -24,6 +24,7 @@ import { useStudyOverview } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 import useStudyReviewSession from '../hooks/useStudyReviewSession';
 import { useStudyActivityActions } from '../contexts/StudyActivityContext';
+import openStudyCardEditor from '../hooks/studyEditorMutationState';
 import { useAutomaticStudyActivity } from '../hooks/useStudyActivity';
 import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
 
@@ -156,7 +157,13 @@ const StudyReviewActionButtons = ({
     <StudyReviewActions
       card={reviewSession.currentCard}
       disabled={reviewSession.cardActionMutation.isPending || reviewSession.reviewBusy}
-      onEdit={() => reviewSession.setEditing(true)}
+      onEdit={() =>
+        openStudyCardEditor({
+          resetAudioMutation: reviewSession.regenerateAudioMutation.reset,
+          resetUpdateMutation: reviewSession.updateCardMutation.reset,
+          setEditing: reviewSession.setEditing,
+        })
+      }
       onBury={reviewSession.handleBuryForSession}
       onToggleSuspend={() => {
         runBackgroundTask(
