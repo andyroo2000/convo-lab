@@ -129,6 +129,7 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: updateStudyCardMock,
     isPending: false,
     error: null,
+    reset: vi.fn(),
   }),
   useDeleteStudyCard: () => ({
     mutateAsync: deleteStudyCardMock,
@@ -139,6 +140,7 @@ vi.mock('../../hooks/useStudy', () => ({
     mutateAsync: regenerateStudyAnswerAudioMock,
     isPending: false,
     error: null,
+    reset: vi.fn(),
   }),
   startStudyLesson: startStudyLessonMock,
   startStudyIntroductionCohortLesson: startStudyIntroductionCohortLessonMock,

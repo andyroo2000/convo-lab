@@ -76,6 +76,7 @@ const baseOverview = {
 const baseCardOne = {
   id: 'card-1',
   noteId: 'note-1',
+  revision: 4,
   cardType: 'recognition' as const,
   prompt: { cueText: '会社', cueReading: 'かいしゃ' },
   answer: {
@@ -237,6 +238,7 @@ describe('useStudyReviewSession answer audio', () => {
       }) => ({
         ...baseCardOne,
         id: payload.cardId,
+        revision: 5,
         answerAudioSource: 'generated' as const,
         answer: {
           ...baseCardOne.answer,
@@ -318,6 +320,40 @@ describe('useStudyReviewSession answer audio', () => {
     expect(result.current.currentCard?.answer.answerAudio?.url).toBe(
       'https://example.com/card-1.mp3'
     );
+  });
+
+  it('uses the regenerated card revision when saving immediately afterward', async () => {
+    updateStudyCardMock.mockImplementation(async (payload) => ({
+      ...baseCardOne,
+      revision: 6,
+      prompt: payload.prompt,
+      answer: payload.answer,
+    }));
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    await act(async () => {
+      await result.current.regenerateCurrentCardAudio({
+        answerAudioVoiceId: 'fishaudio:sato',
+        answerAudioTextOverride: null,
+      });
+      await result.current.saveCurrentCard({
+        prompt: baseCardOne.prompt,
+        answer: baseCardOne.answer,
+      });
+    });
+
+    expect(updateStudyCardMock).toHaveBeenCalledWith({
+      cardId: 'card-1',
+      expectedRevision: 5,
+      prompt: baseCardOne.prompt,
+      answer: baseCardOne.answer,
+    });
   });
 
   it('exits focus mode cleanly while answer-audio preparation is still pending', async () => {

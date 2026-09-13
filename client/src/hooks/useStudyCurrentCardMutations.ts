@@ -81,6 +81,8 @@ const regenerateCurrentCardAudio = async (
   const updatedCard = await options.regenerateAnswerAudio({ cardId: card.id, ...payload });
   if (options.sessionEpochRef.current !== expectedEpoch) return undefined;
 
+  const { currentCardRef } = options;
+  currentCardRef.current = updatedCard;
   options.mergeCardIntoSession(updatedCard);
   options.resetAudioAutoplayForCard(card.id);
   options.setSessionError(null);
