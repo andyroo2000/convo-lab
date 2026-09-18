@@ -351,6 +351,7 @@ describe('useStudyReviewSession answer audio', () => {
     expect(updateStudyCardMock).toHaveBeenCalledWith({
       cardId: 'card-1',
       expectedRevision: 5,
+      baseCard: expect.objectContaining({ id: 'card-1', revision: 5 }),
       prompt: baseCardOne.prompt,
       answer: baseCardOne.answer,
     });
