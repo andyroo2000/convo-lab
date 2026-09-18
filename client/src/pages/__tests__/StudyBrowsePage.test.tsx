@@ -30,7 +30,6 @@ const {
   deleteStudyCardMock,
   cardActionMutateAsyncMock,
   promoteStudyNewCardToFrontMock,
-  resolveStudyCardPitchAccentMock,
   linkStudyLearningPathSuccessorMock,
 } = vi.hoisted(() => ({
   useStudyBrowserMock: vi.fn(),
@@ -41,7 +40,6 @@ const {
   deleteStudyCardMock: vi.fn(),
   cardActionMutateAsyncMock: vi.fn(),
   promoteStudyNewCardToFrontMock: vi.fn(),
-  resolveStudyCardPitchAccentMock: vi.fn(),
   linkStudyLearningPathSuccessorMock: vi.fn(),
 }));
 
@@ -219,7 +217,6 @@ vi.mock('../../hooks/useStudy', () => ({
     error: null,
     reset: vi.fn(),
   }),
-  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   useStudyLearningPath: ({ cardId }: { cardId: string }) => ({
     data: { groupId: null, anchorCardId: cardId, stages: [] },
     error: null,
@@ -271,7 +268,6 @@ describe('StudyBrowsePage', () => {
     deleteStudyCardMock.mockReset();
     cardActionMutateAsyncMock.mockReset();
     promoteStudyNewCardToFrontMock.mockReset();
-    resolveStudyCardPitchAccentMock.mockReset();
 
     useStudyBrowserMock.mockReturnValue({
       data: browserData,
@@ -372,10 +368,6 @@ describe('StudyBrowsePage', () => {
       limit: 50,
       nextCursor: null,
     });
-    resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
-      id: cardId,
-      answer: { pitchAccent: null },
-    }));
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
       value: vi.fn().mockResolvedValue(undefined),
@@ -598,9 +590,6 @@ describe('StudyBrowsePage', () => {
     expect(screen.queryByRole('heading', { name: 'Card preview' })).not.toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByTestId('study-browser-editor-section')).toHaveFocus();
-    });
-    await waitFor(() => {
-      expect(resolveStudyCardPitchAccentMock.mock.calls[0]?.[0]).toBe('card-1');
     });
   });
 

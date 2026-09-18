@@ -112,29 +112,33 @@ describe('vendored Learning OS compatibility fixtures', () => {
     );
   });
 
-  it('uses presentation v1 while preserving raw fallback for missing and future versions', () => {
-    const payload = structuredClone(studyCardCompatibilityFixture.cases[0].payload) as Record<
-      string,
-      unknown
-    >;
-    const decoded = decodeStudyCardSummary(payload);
-    expect(decoded.presentation).toMatchObject({
-      version: 1,
-      front: { mode: 'text', text: '聞く' },
-      answer: { heading: 'to listen', notes: [] },
-    });
+  it.each([1, 2])(
+    'uses presentation v%s while preserving raw fallback for missing and future versions',
+    (version) => {
+      const payload = structuredClone(studyCardCompatibilityFixture.cases[0].payload) as Record<
+        string,
+        unknown
+      >;
+      payload.presentation = { ...(payload.presentation as object), version };
+      const decoded = decodeStudyCardSummary(payload);
+      expect(decoded.presentation).toMatchObject({
+        version,
+        front: { mode: 'text', text: '聞く' },
+        answer: { heading: 'to listen', notes: [] },
+      });
 
-    const withoutPresentation = { ...payload };
-    delete withoutPresentation.presentation;
-    expect(decodeStudyCardSummary(withoutPresentation).presentation).toBeUndefined();
+      const withoutPresentation = { ...payload };
+      delete withoutPresentation.presentation;
+      expect(decodeStudyCardSummary(withoutPresentation).presentation).toBeUndefined();
 
-    expect(
-      decodeStudyCardSummary({ ...payload, presentation: { version: 2, futureShape: true } })
-        .presentation
-    ).toBeNull();
-  });
+      expect(
+        decodeStudyCardSummary({ ...payload, presentation: { version: 3, futureShape: true } })
+          .presentation
+      ).toBeNull();
+    }
+  );
 
-  it('accepts nullable presentation v1 media metadata while rejecting wrong types', () => {
+  it('accepts nullable presentation media metadata while rejecting wrong types', () => {
     const nullablePayload = structuredClone(studyCardCompatibilityFixture.cases[0].payload) as {
       presentation: {
         front: { media: { audio: Record<string, unknown> | null } };

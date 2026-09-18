@@ -4,7 +4,6 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import StudyAudioPlayer from './StudyAudioPlayer';
 import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyCardFront from './StudyCardFront';
-import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
 import toRubyPlainText from './rubyTextUtils';
 import {
@@ -112,7 +111,6 @@ type StudyCardFaceProps = {
   card: StudyCardSummary;
   layout?: StudyCardLayout;
   promptAudioRef?: Ref<AudioPlayerHandle>;
-  resolvePitchAccent?: boolean;
   side: 'front' | 'back';
 };
 
@@ -343,16 +341,12 @@ const MissingAnswerAudioNotice = ({ model }: { model: StudyCardBackModel }) =>
 
 const ClozeStudyCardBack = ({
   answerAudioRef,
-  card,
   compactMobile,
   model,
-  resolvePitchAccent,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
-  card: StudyCardSummary;
   compactMobile: boolean;
   model: StudyCardBackModel;
-  resolvePitchAccent: boolean;
 }) => {
   const clozeHeadlineText = model.clozeHeading ? toRubyPlainText(model.clozeHeading) : null;
   const details = <ClozeAnswerDetails compactMobile={compactMobile} model={model} />;
@@ -374,7 +368,6 @@ const ClozeStudyCardBack = ({
         />
       ) : null}
       <AnswerAudio answerAudioRef={answerAudioRef} compactMobile={compactMobile} model={model} />
-      <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       <AnswerImageLayout compactMobile={compactMobile} details={details} model={model} />
       <MissingAnswerAudioNotice model={model} />
@@ -387,13 +380,11 @@ const StandardStudyCardBack = ({
   card,
   compactMobile,
   model,
-  resolvePitchAccent,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   card: StudyCardSummary;
   compactMobile: boolean;
   model: StudyCardBackModel;
-  resolvePitchAccent: boolean;
 }) => {
   const details = <AnswerDetails compactMobile={compactMobile} model={model} />;
 
@@ -401,7 +392,6 @@ const StandardStudyCardBack = ({
     <div className={getBackLayoutClasses(compactMobile).container}>
       {renderJapaneseHeading(card, compactMobile)}
       <AnswerAudio answerAudioRef={answerAudioRef} compactMobile={compactMobile} model={model} />
-      <StudyPitchAccentPanel card={card} enabled={resolvePitchAccent} />
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       <AnswerImageLayout compactMobile={compactMobile} details={details} model={model} />
       <MissingAnswerAudioNotice model={model} />
@@ -418,15 +408,13 @@ const StudyCardBack = ({
   answerAudioRef,
   card,
   compactMobile,
-  resolvePitchAccent,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   card: StudyCardSummary;
   compactMobile: boolean;
-  resolvePitchAccent: boolean;
 }) => {
   const model = getStudyCardBackModel(card);
-  const props = { answerAudioRef, card, compactMobile, model, resolvePitchAccent };
+  const props = { answerAudioRef, card, compactMobile, model };
 
   return model.isClozePresentation ? (
     <ClozeStudyCardBack {...props} />
@@ -440,7 +428,6 @@ export const StudyCardFace = ({
   card,
   layout = 'default',
   promptAudioRef,
-  resolvePitchAccent = true,
   side,
 }: StudyCardFaceProps) => {
   const compactMobile = layout === 'mobile-focus';
@@ -451,11 +438,6 @@ export const StudyCardFace = ({
   }
 
   return (
-    <StudyCardBack
-      answerAudioRef={answerAudioRef}
-      card={card}
-      compactMobile={compactMobile}
-      resolvePitchAccent={resolvePitchAccent}
-    />
+    <StudyCardBack answerAudioRef={answerAudioRef} card={card} compactMobile={compactMobile} />
   );
 };

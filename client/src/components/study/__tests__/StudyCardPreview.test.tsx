@@ -5,14 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StudyCardFace, type AudioPlayerHandle } from '../StudyCardPreview';
 import { defineNavigatorValue } from '../../../test/utils';
 
-const { useStudyPitchAccentMock } = vi.hoisted(() => ({
-  useStudyPitchAccentMock: vi.fn(),
-}));
-
-vi.mock('../../../hooks/useStudyPitchAccent', () => ({
-  default: useStudyPitchAccentMock,
-}));
-
 const baseCard = {
   id: 'card-1',
   noteId: 'note-1',
@@ -51,10 +43,6 @@ function createDeferred<T>() {
 
 describe('StudyCardPreview', () => {
   beforeEach(() => {
-    useStudyPitchAccentMock.mockReturnValue({
-      pitchAccent: null,
-      isLoading: false,
-    });
     defineNavigatorValue('connection', undefined);
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
@@ -105,7 +93,6 @@ describe('StudyCardPreview', () => {
           notes: ['server note'],
           media: { image: { url: 'https://example.com/server-answer.webp' } },
           audio: null,
-          pitchAccent: null,
         },
       },
     };
@@ -169,7 +156,6 @@ describe('StudyCardPreview', () => {
           notes: [],
           media: { image: null },
           audio: null,
-          pitchAccent: null,
         },
       },
     };
@@ -221,7 +207,6 @@ describe('StudyCardPreview', () => {
           notes: [],
           media: { image: null },
           audio: null,
-          pitchAccent: null,
         },
       },
     };
@@ -578,10 +563,6 @@ describe('StudyCardPreview', () => {
     expect(screen.getAllByText('ふろ', { selector: 'rt' })).toHaveLength(2);
     expect(screen.getAllByText('むし', { selector: 'rt' })).toHaveLength(2);
     expect(screen.queryByText('お風呂[ふろ]に虫[むし]がいる！')).not.toBeInTheDocument();
-    expect(useStudyPitchAccentMock).toHaveBeenCalledWith(
-      expect.objectContaining({ cardType: 'cloze' }),
-      true
-    );
   });
 
   it('uses compact note spacing in focus review layout', () => {
@@ -865,47 +846,6 @@ describe('StudyCardPreview', () => {
     );
 
     expect(screen.getByTestId('study-prompt-audio-source')).toHaveAttribute('type', 'audio/mp4');
-  });
-
-  it('renders pitch accent diagrams on the answer side only', () => {
-    useStudyPitchAccentMock.mockReturnValue({
-      pitchAccent: {
-        status: 'resolved',
-        expression: '会社',
-        reading: 'かいしゃ',
-        pitchNum: 0,
-        morae: ['か', 'い', 'しゃ'],
-        pattern: [0, 1, 1],
-        patternName: '平板',
-        source: 'kanjium',
-        resolvedBy: 'local-reading',
-      },
-      isLoading: false,
-    });
-
-    const { rerender } = render(<StudyCardFace card={baseCard} side="front" />);
-    expect(screen.queryByTestId('study-pitch-accent-panel')).not.toBeInTheDocument();
-
-    rerender(<StudyCardFace card={baseCard} side="back" />);
-    expect(screen.getByTestId('study-pitch-accent-panel')).toBeInTheDocument();
-    expect(screen.getByRole('img')).toHaveAccessibleName('Pitch accent for 会社, かいしゃ');
-  });
-
-  it('hides unresolved pitch accent data on the answer side', () => {
-    useStudyPitchAccentMock.mockReturnValue({
-      pitchAccent: {
-        status: 'unresolved',
-        expression: '日本',
-        reason: 'ambiguous-reading',
-        source: 'kanjium',
-        resolvedBy: 'llm',
-      },
-      isLoading: false,
-    });
-
-    render(<StudyCardFace card={baseCard} side="back" />);
-
-    expect(screen.queryByTestId('study-pitch-accent-panel')).not.toBeInTheDocument();
   });
 
   it('renders a mobile-focus answer audio replay button while preserving the audio source', () => {

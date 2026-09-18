@@ -148,7 +148,6 @@ describe('useStudyReviewSession', () => {
           notes: [],
           media: { image: null },
           audio: null,
-          pitchAccent: null,
         },
       },
       masteryLevel: 'guru',

@@ -5,7 +5,7 @@ import { DAILY_AUDIO_API_BASE, STUDY_API_BASE } from '../../lib/studyApi';
 import { toDisplayText } from './studyTextUtils';
 
 export const getStudyCardPresentation = (card: StudyCardSummary) =>
-  card.presentation?.version === 1 ? card.presentation : null;
+  card.presentation?.version === 1 || card.presentation?.version === 2 ? card.presentation : null;
 
 export const firstNonBlankPresentationText = (...values: Array<string | null | undefined>) =>
   values.map((value) => value?.trim() ?? '').find(Boolean) ?? null;

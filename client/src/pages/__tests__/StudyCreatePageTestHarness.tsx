@@ -44,7 +44,6 @@ const {
   regenerateCandidateAudioMock,
   retryManualDraftMock,
   retryManualDraftState,
-  resolveStudyCardPitchAccentMock,
   useStudyManualCardDraftsMock,
   updateManualDraftMock,
   updateManualDraftMutateMock,
@@ -74,7 +73,6 @@ const {
   regenerateCandidateAudioMock: vi.fn(),
   retryManualDraftMock: vi.fn(),
   retryManualDraftState: { isPending: false },
-  resolveStudyCardPitchAccentMock: vi.fn(),
   useStudyManualCardDraftsMock: vi.fn(),
   updateManualDraftMock: vi.fn(),
   updateManualDraftMutateMock: vi.fn(),
@@ -136,7 +134,6 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
-  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
 }));
 
 vi.mock('../../hooks/useEffectiveUser', () => ({
@@ -234,7 +231,6 @@ export const resetStudyCreatePageTest = () => {
   regenerateCandidateAudioMock.mockReset();
   retryManualDraftMock.mockReset();
   retryManualDraftState.isPending = false;
-  resolveStudyCardPitchAccentMock.mockReset();
   useStudyManualCardDraftsMock.mockReset();
   updateManualDraftMock.mockReset();
   updateManualDraftMutateMock.mockReset();
@@ -282,10 +278,6 @@ export const resetStudyCreatePageTest = () => {
     },
     previewAudioRole: 'answer',
   });
-  resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
-    id: cardId,
-    answer: { pitchAccent: null },
-  }));
 };
 
 export const restoreStudyCreatePageTest = () => {
@@ -312,7 +304,6 @@ export {
   regenerateCandidateAudioMock,
   retryManualDraftMock,
   retryManualDraftState,
-  resolveStudyCardPitchAccentMock,
   useStudyManualCardDraftsMock,
   updateManualDraftMock,
   updateManualDraftMutateMock,

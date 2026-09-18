@@ -102,7 +102,6 @@ describe('studyCardUtils', () => {
           notes: [],
           media: { image: null },
           audio: { url: '/presented.mp3' },
-          pitchAccent: null,
         },
       },
     } as StudyCardSummary;
@@ -147,7 +146,6 @@ describe('studyCardUtils', () => {
           notes: [],
           media: { image: null },
           audio: null,
-          pitchAccent: null,
         },
       },
     } as StudyCardSummary;
@@ -189,7 +187,6 @@ describe('studyCardUtils', () => {
           notes: [],
           media: { image: null },
           audio: null,
-          pitchAccent: null,
         },
       },
     } as StudyCardSummary;
@@ -198,41 +195,43 @@ describe('studyCardUtils', () => {
     expect(getStudyCardReviewAudio(presentedCard)).toBeNull();
   });
 
-  it('uses known-v1 presentation labels and meanings instead of divergent raw fields', () => {
-    const presentedCard = {
-      ...card,
-      prompt: { cueText: 'raw prompt', cueMeaning: 'raw prompt meaning' },
-      answer: { expression: 'raw answer', meaning: 'raw answer meaning' },
-      presentation: {
-        version: 1 as const,
-        front: {
-          mode: 'text' as const,
-          text: 'server label',
-          ruby: null,
-          hint: null,
-          media: { audio: null, image: null },
-          autoplayAudio: false,
-        },
-        answer: {
-          heading: 'server heading',
-          ruby: null,
-          restored: null,
-          meaning: 'server meaning',
-          sentences: {
-            japanese: { text: null, ruby: null },
-            english: { text: null, ruby: null },
+  it.each([1, 2] as const)(
+    'uses v%s presentation labels and meanings instead of divergent raw fields',
+    (version) => {
+      const presentedCard = {
+        ...card,
+        prompt: { cueText: 'raw prompt', cueMeaning: 'raw prompt meaning' },
+        answer: { expression: 'raw answer', meaning: 'raw answer meaning' },
+        presentation: {
+          version,
+          front: {
+            mode: 'text' as const,
+            text: 'server label',
+            ruby: null,
+            hint: null,
+            media: { audio: null, image: null },
+            autoplayAudio: false,
           },
-          notes: [],
-          media: { image: null },
-          audio: null,
-          pitchAccent: null,
+          answer: {
+            heading: 'server heading',
+            ruby: null,
+            restored: null,
+            meaning: 'server meaning',
+            sentences: {
+              japanese: { text: null, ruby: null },
+              english: { text: null, ruby: null },
+            },
+            notes: [],
+            media: { image: null },
+            audio: null,
+          },
         },
-      },
-    } as StudyCardSummary;
+      } as StudyCardSummary;
 
-    expect(getStudyCardDisplayLabel(presentedCard, 'fallback')).toBe('server heading');
-    expect(getStudyCardDisplayMeaning(presentedCard)).toBe('server meaning');
-  });
+      expect(getStudyCardDisplayLabel(presentedCard, 'fallback')).toBe('server heading');
+      expect(getStudyCardDisplayMeaning(presentedCard)).toBe('server meaning');
+    }
+  );
 
   it('uses text-mode answer priority and skips blank fields despite a stale outer cloze type', () => {
     const presentedCard = {
@@ -262,7 +261,6 @@ describe('studyCardUtils', () => {
           notes: [],
           media: { image: null },
           audio: null,
-          pitchAccent: null,
         },
       },
     } as StudyCardSummary;
@@ -300,7 +298,6 @@ describe('studyCardUtils', () => {
           notes: [],
           media: { image: null },
           audio: null,
-          pitchAccent: null,
         },
       },
     } as StudyCardSummary;
@@ -337,7 +334,6 @@ describe('studyCardUtils', () => {
           notes: [],
           media: { image: null },
           audio: null,
-          pitchAccent: null,
         },
       },
     } as StudyCardSummary;

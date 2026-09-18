@@ -173,7 +173,6 @@ const StudyBrowseSelectedCard = ({
           card={selectedCard}
           onClose={closePreview}
           onEdit={closePreviewAndFocusEditor}
-          resolvePitchAccent
         />
       ) : null}
     </div>

@@ -33,7 +33,6 @@ import type {
 import { JsonRequestError, requestJson } from '../lib/apiClient';
 import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
-import metadataOnlyRetryRevision from '../lib/studyCardContentConflict';
 import useStudyMutationWithInvalidations from '../lib/studyQueryInvalidation';
 import { decodeStudyCardSummary } from '../lib/learningOsContractDecoders';
 import { studyApiPath } from '../lib/studyApi';
@@ -90,7 +89,6 @@ export interface CreateStudyCardPayload {
 interface UpdateStudyCardPayload {
   cardId: string;
   expectedRevision: number;
-  baseCard?: StudyCardSummary;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
 }
@@ -323,14 +321,6 @@ export async function regenerateStudyCardImage(
   );
 }
 
-export async function resolveStudyCardPitchAccent(cardId: string): Promise<StudyCardSummary> {
-  return decodeStudyCardSummary(
-    await apiRequest<unknown>(`/cards/${encodeURIComponent(cardId)}/pitch-accent`, {
-      method: 'POST',
-    })
-  );
-}
-
 export async function createStudyVocabBundleDrafts(
   payload: StudyVocabBundleGenerateRequest
 ): Promise<StudyVocabBundleDraftCreateResponse> {
@@ -477,7 +467,7 @@ export async function createStudyCard(payload: CreateStudyCardPayload): Promise<
   );
 }
 
-async function sendStudyCardUpdate(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
+export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
   return decodeStudyCardSummary(
     await apiRequest<unknown>(`/cards/${encodeURIComponent(payload.cardId)}`, {
       method: 'PATCH',
@@ -488,18 +478,6 @@ async function sendStudyCardUpdate(payload: UpdateStudyCardPayload): Promise<Stu
       }),
     })
   );
-}
-
-export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
-  try {
-    return await sendStudyCardUpdate(payload);
-  } catch (error) {
-    const revision = metadataOnlyRetryRevision(error, payload);
-    if (revision === null) throw error;
-    // Retry once with the server's revision, keeping the learner's draft intact.
-    // A second race still fails the normal optimistic concurrency guard.
-    return sendStudyCardUpdate({ ...payload, expectedRevision: revision });
-  }
 }
 
 export async function deleteStudyCard(cardId: string): Promise<void> {
