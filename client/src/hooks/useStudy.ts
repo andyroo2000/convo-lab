@@ -33,6 +33,7 @@ import type {
 import { JsonRequestError, requestJson } from '../lib/apiClient';
 import StudyDraftRevisionConflictError from '../lib/studyDraftRevisionConflict';
 import StudyReviewIdentityMismatchError from '../lib/studyReviewIdentityMismatch';
+import metadataOnlyRetryRevision from '../lib/studyCardContentConflict';
 import useStudyMutationWithInvalidations from '../lib/studyQueryInvalidation';
 import { decodeStudyCardSummary } from '../lib/learningOsContractDecoders';
 import { studyApiPath } from '../lib/studyApi';
@@ -89,6 +90,7 @@ export interface CreateStudyCardPayload {
 interface UpdateStudyCardPayload {
   cardId: string;
   expectedRevision: number;
+  baseCard?: StudyCardSummary;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
 }
@@ -475,7 +477,7 @@ export async function createStudyCard(payload: CreateStudyCardPayload): Promise<
   );
 }
 
-export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
+async function sendStudyCardUpdate(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
   return decodeStudyCardSummary(
     await apiRequest<unknown>(`/cards/${encodeURIComponent(payload.cardId)}`, {
       method: 'PATCH',
@@ -486,6 +488,18 @@ export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<
       }),
     })
   );
+}
+
+export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
+  try {
+    return await sendStudyCardUpdate(payload);
+  } catch (error) {
+    const revision = metadataOnlyRetryRevision(error, payload);
+    if (revision === null) throw error;
+    // Retry once with the server's revision, keeping the learner's draft intact.
+    // A second race still fails the normal optimistic concurrency guard.
+    return sendStudyCardUpdate({ ...payload, expectedRevision: revision });
+  }
 }
 
 export async function deleteStudyCard(cardId: string): Promise<void> {

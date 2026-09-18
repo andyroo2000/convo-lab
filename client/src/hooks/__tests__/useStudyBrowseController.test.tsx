@@ -258,6 +258,7 @@ describe('useStudyBrowseController', () => {
     expect(updateStudyCardMock).toHaveBeenCalledWith({
       cardId: 'card-1',
       expectedRevision: 0,
+      baseCard: detail.cards[0],
       prompt,
       answer,
     });
