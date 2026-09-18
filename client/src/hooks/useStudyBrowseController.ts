@@ -247,7 +247,6 @@ export default function useStudyBrowseController(enabled: boolean) {
     await updateCardMutation.mutateAsync({
       cardId: selectedCard.id,
       expectedRevision: selectedCard.revision ?? 0,
-      baseCard: selectedCard,
       prompt,
       answer,
     });

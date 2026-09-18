@@ -34,7 +34,6 @@ const presentationCard = (overrides: { label: string | null; meaning: string | n
         notes: [],
         media: { image: null },
         audio: null,
-        pitchAccent: null,
       },
     },
     state: { dueAt: null, queueState: 'review', scheduler: null, source: {} },

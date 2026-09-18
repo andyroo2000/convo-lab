@@ -8,12 +8,10 @@ const StudyCandidateCardPreviewModal = ({
   card,
   onClose,
   onEdit,
-  resolvePitchAccent = false,
 }: {
   card: StudyCardSummary;
   onClose: () => void;
   onEdit?: () => void;
-  resolvePitchAccent?: boolean;
 }) => {
   const { t } = useTranslation('study');
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -106,7 +104,7 @@ const StudyCandidateCardPreviewModal = ({
           }}
           className="min-h-[52vh] flex-1 overflow-y-auto px-5 py-8 text-left"
         >
-          <StudyCardFace card={card} resolvePitchAccent={resolvePitchAccent} side={side} />
+          <StudyCardFace card={card} side={side} />
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-gray-200 px-5 py-4">

@@ -59,7 +59,6 @@ const buildTallCard = () => {
       answerAudioTextOverride: null,
       answerAudio: null,
       answerImage: null,
-      pitchAccent: null,
     },
     state: {
       dueAt: null,

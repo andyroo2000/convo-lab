@@ -36,7 +36,6 @@ interface StudyCurrentCardMutationsOptions {
   updateCard: (payload: {
     cardId: string;
     expectedRevision: number;
-    baseCard?: StudyCardSummary;
     prompt: StudyPromptPayload;
     answer: StudyAnswerPayload;
   }) => Promise<StudyCardSummary>;
@@ -61,7 +60,6 @@ const saveCurrentCard = async (
   const updatedCard = await options.updateCard({
     cardId: card.id,
     expectedRevision: card.revision ?? 0,
-    baseCard: card,
     prompt: payload.prompt,
     answer: payload.answer,
   });

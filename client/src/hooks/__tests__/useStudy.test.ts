@@ -35,7 +35,6 @@ import {
   regenerateStudyAnswerAudio,
   regenerateStudyCardImage,
   reorderStudyNewCardQueue,
-  resolveStudyCardPitchAccent,
   retryStudyManualCardDraft,
   startStudyLesson,
   startStudyIntroductionCohortLesson,
@@ -412,7 +411,6 @@ describe('useStudy request helpers', () => {
       answerAudioTextOverride: 'かいしゃ',
     });
     await regenerateStudyCardImage({ cardId, imagePrompt: 'An office', imageRole: 'answer' });
-    await resolveStudyCardPitchAccent(cardId);
     await deleteStudyCard(cardId);
 
     const paths = vi
@@ -425,7 +423,6 @@ describe('useStudy request helpers', () => {
       `/cards/${cardId}/prepare-answer-audio`,
       `/cards/${cardId}/regenerate-answer-audio`,
       `/cards/${cardId}/regenerate-image`,
-      `/cards/${cardId}/pitch-accent`,
       `/cards/${cardId}`,
     ]);
     expect(JSON.parse(String(vi.mocked(global.fetch).mock.calls[1]?.[1]?.body))).toEqual({

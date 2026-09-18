@@ -16,7 +16,6 @@ const {
   mutateAsyncMock,
   prepareStudyAnswerAudioMock,
   regenerateStudyAnswerAudioMock,
-  resolveStudyCardPitchAccentMock,
   startStudyIntroductionCohortLessonMock,
   startStudyLessonMock,
   startStudySessionMock,
@@ -30,7 +29,6 @@ const {
   mutateAsyncMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
-  resolveStudyCardPitchAccentMock: vi.fn(),
   startStudyIntroductionCohortLessonMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -104,7 +102,6 @@ vi.mock('../../hooks/useStudy', () => ({
   startStudyIntroductionCohortLesson: startStudyIntroductionCohortLessonMock,
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
-  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   undoStudyReview: undoStudyReviewMock,
 }));
 
@@ -195,15 +192,9 @@ describe('StudyPage card rendering', () => {
     startStudyIntroductionCohortLessonMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
-    resolveStudyCardPitchAccentMock.mockReset();
     undoStudyReviewMock.mockReset();
     updateStudyCardMock.mockReset();
     masteryAnimationFinishesImmediately.current = true;
-    resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
-      ...baseCard,
-      id: cardId,
-      answer: { ...baseCard.answer, pitchAccent: null },
-    }));
     window.history.replaceState({}, '', '/app/study');
     window.localStorage.clear();
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {

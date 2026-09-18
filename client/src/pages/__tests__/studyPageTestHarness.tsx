@@ -32,7 +32,6 @@ const {
   prepareStudyAnswerAudioMock,
   undoStudyReviewMock,
   mutateAsyncMock,
-  resolveStudyCardPitchAccentMock,
   updateStudyCardMock,
   deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
@@ -53,7 +52,6 @@ const {
   prepareStudyAnswerAudioMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
   mutateAsyncMock: vi.fn(),
-  resolveStudyCardPitchAccentMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
   deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
@@ -100,7 +98,6 @@ export const getStudyPageTestState = () => ({
   mutateAsyncMock,
   prepareStudyAnswerAudioMock,
   regenerateStudyAnswerAudioMock,
-  resolveStudyCardPitchAccentMock,
   reviewMutationError,
   startStudyIntroductionCohortLessonMock,
   startStudyLessonMock,
@@ -168,7 +165,6 @@ vi.mock('../../hooks/useStudy', () => ({
   startStudyIntroductionCohortLesson: startStudyIntroductionCohortLessonMock,
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
-  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   undoStudyReview: undoStudyReviewMock,
 }));
 
@@ -346,7 +342,6 @@ const resetStudyPageMocks = () => {
     })
   );
   prepareStudyAnswerAudioMock.mockReset();
-  resolveStudyCardPitchAccentMock.mockReset();
   undoStudyReviewMock.mockReset();
   mutateAsyncMock.mockReset();
   updateStudyCardMock.mockReset();
@@ -369,11 +364,6 @@ const configureStudyContentMocks = () => {
       },
     },
     answerAudioSource: 'generated',
-  }));
-  resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
-    ...baseCard,
-    id: cardId,
-    answer: { ...baseCard.answer, pitchAccent: null },
   }));
   undoStudyReviewMock.mockImplementation(async (reviewLogId: string) => ({
     reviewLogId,

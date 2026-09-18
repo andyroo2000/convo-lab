@@ -304,7 +304,7 @@ function decodePresentationText(value: unknown, path: string) {
   nullableString(text.ruby, `${path}.ruby`);
 }
 
-function decodeStudyCardPresentationV1(value: JsonRecord) {
+function decodeStudyCardPresentationPayload(value: JsonRecord) {
   const front = record(value.front, 'study card.presentation.front');
   const mode = string(front.mode, 'study card.presentation.front.mode');
   if (!['text', 'media', 'cloze'].includes(mode)) {
@@ -332,14 +332,6 @@ function decodeStudyCardPresentationV1(value: JsonRecord) {
   const answerMedia = record(answer.media, 'study card.presentation.answer.media');
   decodePresentationMedia(answerMedia.image, 'study card.presentation.answer.media.image');
   decodePresentationMedia(answer.audio, 'study card.presentation.answer.audio');
-  if (answer.pitchAccent !== null) {
-    const pitchAccent = record(answer.pitchAccent, 'study card.presentation.answer.pitchAccent');
-    if (
-      string(pitchAccent.status, 'study card.presentation.answer.pitchAccent.status') !== 'resolved'
-    ) {
-      throw new Error('study card.presentation.answer.pitchAccent.status must be resolved.');
-    }
-  }
 }
 
 function numericCategories(value: unknown, path: string) {
@@ -404,8 +396,8 @@ export function decodeStudyCardSummary(value: unknown): StudyCardSummary {
   if (card.presentation !== undefined && card.presentation !== null) {
     const presentation = record(card.presentation, 'study card.presentation');
     const version = nonNegativeInteger(presentation.version, 'study card.presentation.version');
-    if (version === 1) {
-      decodeStudyCardPresentationV1(presentation);
+    if (version === 1 || version === 2) {
+      decodeStudyCardPresentationPayload(presentation);
     } else {
       // Unknown additive versions must not prevent raw prompt/answer fallback.
       card.presentation = null;
