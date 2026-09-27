@@ -586,7 +586,7 @@ describe('StudyCardPreview', () => {
     expect(notes).not.toHaveClass('leading-relaxed');
   });
 
-  it('allows long Japanese headings to wrap on mobile focus while preserving desktop nowrap', () => {
+  it('allows long Japanese headings to wrap on both mobile and desktop', () => {
     render(
       <StudyCardFace
         side="back"
@@ -607,9 +607,9 @@ describe('StudyCardPreview', () => {
 
     expect(screen.getByTestId('study-japanese-heading')).toHaveClass(
       'whitespace-normal',
-      'break-words',
-      'md:whitespace-nowrap'
+      'break-words'
     );
+    expect(screen.getByTestId('study-japanese-heading')).not.toHaveClass('md:whitespace-nowrap');
   });
 
   it('renders derived cloze blanks instead of raw manual cloze markup', () => {
