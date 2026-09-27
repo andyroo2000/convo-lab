@@ -442,7 +442,7 @@ const TextPrompt = ({
         testId="study-front-heading"
         autoFitSingleLine
         minFontSizePx={compactMobile ? 24 : 28}
-        className={`mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(media.headlineText, { compactMobile })}`}
+        className={`mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl ${getHeadlineClasses(media.headlineText, { compactMobile })}`}
         rtClassName="text-[0.34em] font-medium text-gray-500"
       />
     ) : null}

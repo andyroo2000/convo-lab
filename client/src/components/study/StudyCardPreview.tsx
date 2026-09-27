@@ -33,8 +33,7 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
     ? (readingText ?? answerText ?? '')
     : (readingText ?? answerText ?? card.prompt.cueReading ?? '');
   const headingMinFontSizePx = compactMobile ? 24 : 28;
-  const headingWrapClasses =
-    'max-w-full min-w-0 whitespace-normal break-words md:max-w-5xl md:whitespace-nowrap';
+  const headingWrapClasses = 'max-w-full min-w-0 whitespace-normal break-words md:max-w-5xl';
 
   if (readingText) {
     return (
@@ -360,7 +359,7 @@ const ClozeStudyCardBack = ({
           testId="study-cloze-heading"
           autoFitSingleLine
           minFontSizePx={compactMobile ? 24 : 28}
-          className={`study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl md:whitespace-nowrap ${getHeadlineClasses(
+          className={`study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl ${getHeadlineClasses(
             clozeHeadlineText,
             { compactMobile }
           )}`}
