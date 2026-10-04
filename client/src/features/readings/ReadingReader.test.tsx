@@ -53,11 +53,20 @@ const reading: ReadingDetail = {
         columns: [
           [
             [0, '犬[いぬ]です。'],
-            [1, 'ねこです。'],
+            [1, 'ねこ'],
           ],
         ],
       },
-      { number: 6, kind: 'text', columns: [[[2, 'おしまい。']]] },
+      {
+        number: 6,
+        kind: 'text',
+        columns: [
+          [
+            [1, 'です。'],
+            [2, 'おしまい。'],
+          ],
+        ],
+      },
     ],
     sentences: [
       { text: '犬です。', translation: 'It is a dog.' },
@@ -136,7 +145,7 @@ describe('private reading interactions', () => {
     expect(getReadingAudio).toHaveBeenCalledTimes(1);
   });
 
-  it('turns pages with arrows, clears the selection and stops playback', async () => {
+  it('turns pages with arrows while retaining playback and an off-page selection', async () => {
     render(<ReadingReader reading={reading} />);
     selectDog();
     space();
@@ -144,12 +153,63 @@ describe('private reading interactions', () => {
     const player = FakeAudio.instances.at(-1)!;
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
     expect(screen.getByText('Page 6 · 2 of 2')).toBeInTheDocument();
-    expect(player.paused).toBe(true);
-    expect(screen.queryByText('It is a dog.')).not.toBeInTheDocument();
+    expect(player.paused).toBe(false);
+    expect(player.pause).not.toHaveBeenCalled();
+    expect(screen.getByText('It is a dog.')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
     expect(screen.getByText('Page 6 · 2 of 2')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(screen.getByText('Page 5 · 1 of 2')).toBeInTheDocument();
+  });
+
+  it('keeps a sentence highlighted across pages using the sidebar controls', async () => {
+    render(<ReadingReader reading={reading} />);
+    fireEvent.click(screen.getByRole('button', { name: 'ねこです。' }));
+    space();
+    await screen.findByRole('button', { name: 'Pause sentence' });
+    const player = FakeAudio.instances.at(-1)!;
+    player.currentTime = 2;
+    const sidebar = screen.getByRole('complementary', { name: 'Sentence translation' });
+    fireEvent.click(within(sidebar).getByRole('button', { name: '← Next' }));
+    expect(within(sidebar).getByText('Page 6 · 2 of 2')).toBeInTheDocument();
+    const continuation = screen.getByRole('button', { name: 'ねこです。' });
+    expect(continuation).toHaveTextContent('です。');
+    expect(continuation).toHaveAttribute('aria-pressed', 'true');
+    expect(continuation).toHaveClass('is-highlighted');
+    expect(within(sidebar).getByText('It is a cat.')).toBeInTheDocument();
+    expect(within(sidebar).getByRole('button', { name: 'Pause sentence' })).toBeInTheDocument();
+    expect(player.pause).not.toHaveBeenCalled();
+    expect(player.currentTime).toBe(2);
+    fireEvent.keyDown(within(sidebar).getByRole('button', { name: '← Next' }), { key: ' ' });
+    fireEvent.keyDown(within(sidebar).getByRole('button', { name: 'Previous →' }), {
+      key: 'ArrowRight',
+    });
+    expect(screen.getByRole('button', { name: 'ねこです。' })).toHaveClass('is-highlighted');
+    expect(player.paused).toBe(true);
+    space();
+    await screen.findByRole('button', { name: 'Pause sentence' });
+    expect(getReadingAudio).toHaveBeenCalledTimes(1);
+    expect(player.currentTime).toBe(2);
+  });
+
+  it('allows pending audio to finish loading after a page turn', async () => {
+    let resolveAudio!: (blob: Blob) => void;
+    vi.mocked(getReadingAudio).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveAudio = resolve;
+        })
+    );
+    render(<ReadingReader reading={reading} />);
+    selectDog();
+    space();
+    await waitFor(() => expect(getReadingAudio).toHaveBeenCalledTimes(1));
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(vi.mocked(getReadingAudio).mock.calls[0][2].aborted).toBe(false);
+    await act(async () => resolveAudio(new Blob(['audio'])));
+    expect(screen.getByRole('button', { name: 'Pause sentence' })).toBeInTheDocument();
+    expect(screen.getByText('It is a dog.')).toBeInTheDocument();
+    expect(getReadingAudio).toHaveBeenCalledTimes(1);
   });
 
   it('turns through an illustration page and selects printed notes on the final page', () => {

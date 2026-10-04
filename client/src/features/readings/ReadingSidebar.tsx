@@ -1,15 +1,18 @@
+import type { ReactNode } from 'react';
 import { Pause, Play } from 'lucide-react';
 import type { ReadingSentence } from './types';
 import type useReadingAudio from './useReadingAudio';
 
 interface Props {
+  children: ReactNode;
   sentence: ReadingSentence | null;
   voice: string;
   audio: ReturnType<typeof useReadingAudio>;
 }
 
-const ReadingSidebar = ({ sentence, voice, audio }: Props) => (
+const ReadingSidebar = ({ sentence, voice, audio, children }: Props) => (
   <aside className="translation-panel" aria-label="Sentence translation">
+    {children}
     <h2>Translation</h2>
     {!sentence ? (
       <p className="panel-empty">Select a sentence to read its meaning and listen.</p>

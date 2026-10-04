@@ -16,7 +16,6 @@ const ReadingReader = ({ reading }: { reading: ReadingDetail }) => {
       const next = pageIndex + direction;
       if (next < 0 || next >= pages.length) return;
       setPageIndex(next);
-      setSelected(null);
       setHovered(null);
     },
     [pageIndex, pages.length]
@@ -35,29 +34,30 @@ const ReadingReader = ({ reading }: { reading: ReadingDetail }) => {
           onSelect={setSelected}
           onHover={setHovered}
         />
-        <ReadingSidebar sentence={sentence} voice={reading.voiceName} audio={audio} />
+        <ReadingSidebar sentence={sentence} voice={reading.voiceName} audio={audio}>
+          <nav className="reader-pagination" aria-label="Reading pages">
+            <button
+              type="button"
+              onClick={() => turnPage(1)}
+              disabled={pageIndex === pages.length - 1}
+              aria-keyshortcuts="ArrowLeft"
+            >
+              ← Next
+            </button>
+            <span aria-live="polite">
+              Page {pages[pageIndex].number} · {pageIndex + 1} of {pages.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => turnPage(-1)}
+              disabled={pageIndex === 0}
+              aria-keyshortcuts="ArrowRight"
+            >
+              Previous →
+            </button>
+          </nav>
+        </ReadingSidebar>
       </div>
-      <footer className="reader-footer">
-        <button
-          type="button"
-          onClick={() => turnPage(1)}
-          disabled={pageIndex === pages.length - 1}
-          aria-keyshortcuts="ArrowLeft"
-        >
-          ← Next
-        </button>
-        <span aria-live="polite">
-          Page {pages[pageIndex].number} · {pageIndex + 1} of {pages.length}
-        </span>
-        <button
-          type="button"
-          onClick={() => turnPage(-1)}
-          disabled={pageIndex === 0}
-          aria-keyshortcuts="ArrowRight"
-        >
-          Previous →
-        </button>
-      </footer>
     </div>
   );
 };
