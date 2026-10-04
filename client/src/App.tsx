@@ -45,6 +45,7 @@ const CourseCreatorPage = lazy(() => import('./pages/CourseCreatorPage'));
 const PlaybackPage = lazy(() => import('./pages/PlaybackPage'));
 const PracticePage = lazy(() => import('./pages/PracticePage'));
 const LibraryPage = lazy(() => import('./pages/LibraryPage'));
+const ReadingsPage = lazy(() => import('./pages/ReadingsPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
@@ -291,6 +292,8 @@ const renderProtectedRoutes = () => (
   <Route path="/app" element={<Layout />}>
     <Route index element={<Navigate to="/app/library" replace />} />
     <Route path="library" element={<LibraryPage />} />
+    <Route path="readings" element={<ReadingsPage />} />
+    <Route path="readings/:readingId" element={<ReadingsPage />} />
     <Route path="settings" element={<SettingsPage />} />
     <Route path="settings/:tab" element={<SettingsPage />} />
     <Route path="credits" element={<CreditsPage />} />
