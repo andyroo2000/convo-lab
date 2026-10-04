@@ -245,7 +245,7 @@ describe('private reading interactions', () => {
     expect(screen.getByText('Page 20 · 3 of 3')).toBeInTheDocument();
   });
 
-  it('discards pending audio when the selected sentence changes', async () => {
+  it('discards pending audio when a different sentence is selected on the next page', async () => {
     let resolveAudio!: (blob: Blob) => void;
     vi.mocked(getReadingAudio).mockImplementationOnce(
       () =>
@@ -258,6 +258,7 @@ describe('private reading interactions', () => {
     space();
     await waitFor(() => expect(getReadingAudio).toHaveBeenCalledTimes(1));
     const player = FakeAudio.instances.at(-1)!;
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
     fireEvent.click(screen.getByRole('button', { name: 'ねこです。' }));
     expect(vi.mocked(getReadingAudio).mock.calls[0][2].aborted).toBe(true);
     await act(async () => resolveAudio(new Blob(['old audio'])));
