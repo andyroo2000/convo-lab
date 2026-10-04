@@ -89,6 +89,22 @@ function space() {
 }
 
 describe('private reading interactions', () => {
+  it('preserves keyboard behavior for controls outside the reader and text inputs', () => {
+    render(
+      <>
+        <button type="button">Account menu</button>
+        <input aria-label="Search" />
+        <ReadingReader reading={reading} />
+      </>
+    );
+    selectDog();
+    const menu = screen.getByRole('button', { name: 'Account menu' });
+    expect(fireEvent.keyDown(menu, { key: ' ' })).toBe(true);
+    expect(fireEvent.keyDown(screen.getByRole('textbox'), { key: 'ArrowLeft' })).toBe(true);
+    expect(getReadingAudio).not.toHaveBeenCalled();
+    expect(screen.getByText('Page 5 · 1 of 2')).toBeInTheDocument();
+  });
+
   it('keeps printed furigana and highlights on hover without showing playback or translation', () => {
     render(<ReadingReader reading={reading} />);
     fireEvent.mouseEnter(screen.getByRole('button', { name: '犬です。' }));

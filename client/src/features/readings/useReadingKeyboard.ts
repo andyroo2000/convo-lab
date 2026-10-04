@@ -10,10 +10,11 @@ function shouldIgnoreKey(event: KeyboardEvent) {
   if ([event.defaultPrevented, event.altKey, event.ctrlKey, event.metaKey].some(Boolean))
     return true;
   const { target } = event;
-  return (
-    target instanceof HTMLElement &&
-    Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
-  );
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.closest('input, textarea, select, [contenteditable="true"], dialog, [role="dialog"]'))
+    return true;
+  const control = target.closest('a, button, [role="button"], summary');
+  return Boolean(control && !control.classList.contains('reading-segment'));
 }
 
 export default function useReadingKeyboard({
