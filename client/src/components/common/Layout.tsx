@@ -1,7 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Library, Mic, Eye, BookOpen, Clock3 } from 'lucide-react';
+import { Library, Mic, Eye, BookOpen, BookMarked, Clock3 } from 'lucide-react';
+import ReadingsNav from '../../features/readings/ReadingsNav';
+import useReadings from '../../features/readings/useReadings';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
 import useEffectiveUser from '../../hooks/useEffectiveUser';
@@ -152,6 +154,7 @@ const DesktopNavigation = ({
         {labels.study}
       </Link>
     ) : null}
+    <ReadingsNav disabled={Boolean(viewAsUserId)} />
     {!viewAsUserId ? (
       <Link
         to="/app/study/time"
@@ -268,6 +271,9 @@ const Layout = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const viewAsUserId = getViewAsUserId(searchParams);
+  const readings = useReadings(!viewAsUserId);
+  const hasReadings = Boolean(readings.data?.length) && !viewAsUserId;
+  const isReadingsActive = location.pathname.startsWith('/app/readings');
   const route = getLayoutRouteState(location.pathname, viewAsUserId);
   const protectedReturnUrl = `${location.pathname}${location.search}${location.hash}`;
   const loginRedirect = `/login?${new URLSearchParams({
@@ -313,8 +319,21 @@ const Layout = () => {
         isActive: route.isCreateActive,
         icon: Mic,
       },
+      ...(hasReadings
+        ? [
+            {
+              id: 'readings',
+              label: 'Readings',
+              path: '/app/readings',
+              isActive: isReadingsActive,
+              icon: BookMarked,
+            },
+          ]
+        : []),
     ],
     [
+      hasReadings,
+      isReadingsActive,
       labels.create,
       labels.library,
       route.createPath,
