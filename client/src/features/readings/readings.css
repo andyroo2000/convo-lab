@@ -1,3 +1,6 @@
+.retro-shell main:has(> .readings-detail) {
+  padding-top: 4px;
+}
 .reading-reader {
   --reader-bg: light-dark(#e9e5dd, #24231f);
   --reader-ink: light-dark(#342f28, #ece6db);
@@ -34,7 +37,7 @@
   justify-content: center;
   align-items: start;
   gap: 24px;
-  padding: 24px 24px 28px;
+  padding: 0 24px 28px;
 }
 .reading-reader .paper {
   container-type: inline-size;
@@ -179,13 +182,20 @@
   left: auto;
   right: 7%;
 }
-.reading-reader .reader-footer {
-  display: flex;
-  justify-content: center;
+.reading-reader .reader-pagination {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
-  gap: 20px;
-  padding: 0 20px 20px;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--reader-line);
   font-size: 12px;
+}
+.reading-reader .reader-pagination span {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  text-align: center;
 }
 .reading-reader .translation-panel {
   padding: 20px;
@@ -311,18 +321,6 @@
   margin-top: 20px;
   opacity: 0.65;
 }
-.readings-heading {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 20px;
-}
-.readings-heading a {
-  font-size: 14px;
-}
-.readings-heading h1 {
-  font-size: 22px;
-}
 @media (max-width: 760px) {
   .reading-reader .translation-panel {
     position: static;
@@ -331,10 +329,6 @@
 @media (max-width: 400px) {
   .reading-reader .paper {
     aspect-ratio: 0.6;
-  }
-  .reading-reader .reader-footer {
-    gap: 8px;
-    padding-inline: 8px;
   }
 }
 

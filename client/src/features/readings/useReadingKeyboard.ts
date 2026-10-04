@@ -14,7 +14,7 @@ function shouldIgnoreKey(event: KeyboardEvent) {
   if (target.closest('input, textarea, select, [contenteditable="true"], dialog, [role="dialog"]'))
     return true;
   const control = target.closest('a, button, [role="button"], summary');
-  return Boolean(control && !control.classList.contains('reading-segment'));
+  return Boolean(control && !control.matches('.reading-segment, .reader-pagination button'));
 }
 
 export default function useReadingKeyboard({

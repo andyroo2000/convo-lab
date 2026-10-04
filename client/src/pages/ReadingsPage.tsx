@@ -58,11 +58,10 @@ const ReadingDetail = ({ id }: { id: string }) => {
       </div>
     );
   return (
-    <section className="readings-detail">
-      <header className="readings-heading">
-        <Link to="/app/readings">← Readings</Link>
-        <h1 lang="ja">{reading.data.title}</h1>
-      </header>
+    <section className="readings-detail" aria-label={reading.data.title}>
+      <h1 className="sr-only" lang="ja">
+        {reading.data.title}
+      </h1>
       <ReadingReader key={`${user?.id}:${id}`} reading={reading.data} />
     </section>
   );
