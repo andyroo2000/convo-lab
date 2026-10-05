@@ -11,11 +11,11 @@ WORKDIR /app
 COPY package*.json ./
 COPY --from=shared-builder /app/shared ./shared
 
-WORKDIR /app/client
-COPY client/package*.json ./
-RUN npm install --ignore-scripts && \
-    npm install --no-save --force @rollup/rollup-linux-x64-musl @esbuild/linux-x64
+COPY client/package*.json ./client/
+# Include root build tooling and use the same audited dependency tree as CI.
+RUN npm ci --ignore-scripts
 
+WORKDIR /app/client
 COPY client/ ./
 ENV VITE_API_URL=""
 ARG VITE_GA_MEASUREMENT_ID
