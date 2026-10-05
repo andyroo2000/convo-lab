@@ -81,7 +81,7 @@ const useStudyReviewSessionUndo = (core: StudyReviewSessionCore, media: StudyRev
     setShowSetDueControls: core.state.setShowSetDueControls,
     setUndoPending: core.state.setUndoPending,
     stopAllAudio: media.stopAllAudio,
-    syncAchievements: core.syncAchievements,
+    invalidateAchievementProgress: core.invalidateAchievementProgress,
     syncOverview: core.syncOverview,
     undoAchievementReview: core.undoAchievementReview,
     undoPending: core.state.undoPending,

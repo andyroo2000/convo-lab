@@ -69,6 +69,18 @@ type StudyReviewSessionBase = ReturnType<typeof useStudyReviewSessionBase>;
 
 const useStudyReviewSessionAchievements = (base: StudyReviewSessionBase) => {
   const syncState = useStudyAchievementSync();
+  const { refreshInvalidatedAchievements } = syncState;
+  const {
+    runBackgroundTask,
+    state: { focusMode },
+  } = base;
+  useEffect(() => {
+    if (focusMode) return;
+    // Also reconcile sessions where every review was undone and no wrap-up is shown.
+    runBackgroundTask(refreshInvalidatedAchievements, {
+      label: 'Study deferred achievement refresh',
+    });
+  }, [focusMode, refreshInvalidatedAchievements, runBackgroundTask]);
   const sessionState = useStudyAchievementReviewSession({
     achievementProgress: syncState.achievementProgress,
     hasFreshAchievementProgress: syncState.hasFreshAchievementProgress,

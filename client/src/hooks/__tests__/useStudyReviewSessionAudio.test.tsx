@@ -389,6 +389,8 @@ describe('useStudyReviewSession answer audio', () => {
       act(() => result.current.setMasteryAnimation(null));
 
       getAchievementProgressMock.mockReturnValue(refresh.promise);
+      act(() => result.current.endReviewSession());
+      await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(2));
       act(() => {
         result.current.handleUndo();
       });
@@ -415,6 +417,7 @@ describe('useStudyReviewSession answer audio', () => {
       });
       expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(2);
       expect(result.current.currentCard?.id).toBe('card-2');
+      expect(getAchievementProgressMock).toHaveBeenCalledTimes(2);
 
       await act(async () => {
         if (outcome === 'success') refresh.resolve(emptyAchievementProgress);

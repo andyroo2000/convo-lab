@@ -35,7 +35,7 @@ export interface StudyReviewUndoContext {
   setSessionWasEnded: Dispatch<SetStateAction<boolean>>;
   setUndoPending: Dispatch<SetStateAction<boolean>>;
   stopAllAudio: () => void;
-  syncAchievements: (evaluate?: boolean, force?: boolean) => Promise<unknown>;
+  invalidateAchievementProgress: () => void;
   syncOverview: (overview: StudyOverview) => void;
   undoAchievementReview: (reviewLogId: string) => void;
   undoReview: (reviewLogId: string) => Promise<StudyReviewUndoResult>;
@@ -71,14 +71,8 @@ const applyPersistedUndo = (
   );
   reopenAchievementCompletion(context);
   context.undoAchievementReview(action.reviewLogId);
-};
-
-const refreshAchievementsAfterUndo = async (context: StudyReviewUndoContext) => {
-  try {
-    await context.syncAchievements(true, true);
-  } catch {
-    // The successful review undo is authoritative; achievement refresh retries later.
-  }
+  // Batch expensive projection rebuilds at completion or focus-mode exit.
+  context.invalidateAchievementProgress();
 };
 
 const runPersistedUndo = async (
@@ -96,9 +90,6 @@ const runPersistedUndo = async (
     const result = await context.undoReview(action.reviewLogId);
     if (!isCurrentSession(context, expectedEpoch)) return;
     applyPersistedUndo(context, action, result);
-    // The undo is committed and the card is already back on screen. Achievement
-    // refreshes must not hold the rating controls or request guard open.
-    refreshAchievementsAfterUndo(context);
   } catch (error) {
     if (!isCurrentSession(context, expectedEpoch)) return;
     context.pushUndo(action);
