@@ -96,7 +96,9 @@ const runPersistedUndo = async (
     const result = await context.undoReview(action.reviewLogId);
     if (!isCurrentSession(context, expectedEpoch)) return;
     applyPersistedUndo(context, action, result);
-    await refreshAchievementsAfterUndo(context);
+    // The undo is committed and the card is already back on screen. Achievement
+    // refreshes must not hold the rating controls or request guard open.
+    refreshAchievementsAfterUndo(context);
   } catch (error) {
     if (!isCurrentSession(context, expectedEpoch)) return;
     context.pushUndo(action);
