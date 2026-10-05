@@ -143,6 +143,7 @@ const useCurrentCardMutations = (
     regenerateImage: core.regenerateImageMutation.mutateAsync,
     removeCardFromSession: interactions.removeCardFromSession,
     resetAudioAutoplayForCard: interactions.resetAutoplayForCard,
+    resetImageMutation: core.regenerateImageMutation.reset,
     sessionEpochRef: core.state.sessionEpochRef,
     setAnsweredCardIds: core.state.setAnsweredCardIds,
     setCurrentIndex: core.state.setCurrentIndex,

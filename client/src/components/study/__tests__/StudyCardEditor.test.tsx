@@ -151,6 +151,32 @@ describe('StudyCardEditor', () => {
     }
   );
 
+  it('preserves unsaved fields when the generated image refreshes the card', async () => {
+    const generatedCard = {
+      ...audioRecognitionCard,
+      revision: 5,
+      answer: { ...audioRecognitionCard.answer, answerImage: imageRef },
+    };
+    const props = {
+      card: audioRecognitionCard,
+      onCancel: vi.fn(),
+      onSave: vi.fn(),
+      onRegenerateImage: vi.fn().mockResolvedValue(generatedCard),
+    };
+    const { rerender } = render(<StudyCardEditor {...props} />);
+    const meaning = screen.getByDisplayValue('company');
+    await userEvent.clear(meaning);
+    await userEvent.type(meaning, 'A company.');
+    await userEvent.selectOptions(screen.getByLabelText('Image placement'), 'answer');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
+    rerender(<StudyCardEditor {...props} card={generatedCard} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Save card' }));
+    expect(props.onSave).toHaveBeenCalledWith({
+      prompt: expect.anything(),
+      answer: expect.objectContaining({ meaning: 'A company.', answerImage: imageRef }),
+    });
+  });
+
   it('shows generating state for an image-less card and preserves an explicit image prompt', async () => {
     const onRegenerateImage = vi.fn();
     const props = {

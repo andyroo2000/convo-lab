@@ -128,6 +128,13 @@ const getCardResetKey = (card: StudyCardSummary) =>
     card.prompt.cueText ?? '',
   ].join('\u001f');
 
+// Media generation refreshes the server card without replacing unsaved form fields.
+const useCardFormSnapshot = (card: StudyCardSummary) => {
+  const snapshot = useRef(card);
+  if (getCardResetKey(snapshot.current) !== getCardResetKey(card)) snapshot.current = card;
+  return snapshot.current;
+};
+
 const getCardMediaSnapshot = (card: StudyCardSummary): CardMediaSnapshot => ({
   answerAudio: getStudyCardAudio(card),
   image: card.prompt.cueImage ?? card.answer.answerImage ?? null,
@@ -359,7 +366,8 @@ const StudyCardEditor = ({
   imagePromptMaxLength,
   defaultAnswerAudioVoiceId,
 }: StudyCardEditorProps) => {
-  const { values, setField, setValues, buildPayload } = useStudyCardForm({ card });
+  const formCard = useCardFormSnapshot(card);
+  const { values, setField, setValues, buildPayload } = useStudyCardForm({ card: formCard });
   const [currentAnswerAudio, setCurrentAnswerAudio] = useState(getStudyCardAudio(card));
   const [currentImage, setCurrentImage] = useState(
     card.prompt.cueImage ?? card.answer.answerImage ?? null

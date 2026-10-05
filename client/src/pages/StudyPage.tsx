@@ -157,13 +157,14 @@ const StudyReviewActionButtons = ({
     <StudyReviewActions
       card={reviewSession.currentCard}
       disabled={reviewSession.cardActionMutation.isPending || reviewSession.reviewBusy}
-      onEdit={() =>
+      onEdit={() => {
+        reviewSession.regenerateImageMutation.reset();
         openStudyCardEditor({
           resetAudioMutation: reviewSession.regenerateAudioMutation.reset,
           resetUpdateMutation: reviewSession.updateCardMutation.reset,
           setEditing: reviewSession.setEditing,
-        })
-      }
+        });
+      }}
       onBury={reviewSession.handleBuryForSession}
       onToggleSuspend={() => {
         runBackgroundTask(
