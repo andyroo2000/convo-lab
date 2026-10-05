@@ -1,6 +1,8 @@
 import type { StudyCardImagePlacement } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
 
+const isImagePromptMissing = (prompt: string, required: boolean) => required && !prompt.trim();
+
 const StudyCardImageControls = ({
   altText,
   imagePlacement,
@@ -8,6 +10,7 @@ const StudyCardImageControls = ({
   imagePromptId,
   imagePromptLabel,
   imagePromptMaxLength,
+  imagePromptRequired = true,
   isRegenerating,
   isRegenerateDisabled,
   onImagePlacementChange,
@@ -26,6 +29,7 @@ const StudyCardImageControls = ({
   imagePromptId: string;
   imagePromptLabel: string;
   imagePromptMaxLength?: number;
+  imagePromptRequired?: boolean;
   isRegenerating: boolean;
   isRegenerateDisabled?: boolean;
   onImagePlacementChange: (value: StudyCardImagePlacement) => void;
@@ -43,7 +47,7 @@ const StudyCardImageControls = ({
     isRegenerating ||
     isRegenerateDisabled ||
     imagePlacement === 'none' ||
-    imagePrompt.trim().length === 0;
+    isImagePromptMissing(imagePrompt, imagePromptRequired);
 
   return (
     <div className="mb-3 rounded-lg border border-gray-200 bg-white/70 p-3">

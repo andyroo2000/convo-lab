@@ -140,6 +140,7 @@ const useCurrentCardMutations = (
     deleteCard: core.deleteCardMutation.mutateAsync,
     mergeCardIntoSession: interactions.mergeCardIntoSession,
     regenerateAnswerAudio: core.regenerateAudioMutation.mutateAsync,
+    regenerateImage: core.regenerateImageMutation.mutateAsync,
     removeCardFromSession: interactions.removeCardFromSession,
     resetAudioAutoplayForCard: interactions.resetAutoplayForCard,
     sessionEpochRef: core.state.sessionEpochRef,

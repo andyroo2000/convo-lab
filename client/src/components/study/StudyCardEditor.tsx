@@ -108,7 +108,6 @@ function getCardImageRole(card: StudyCardSummary): StudyCardImagePlacement {
 
 function getCardImagePrompt(card: StudyCardSummary): string {
   if (isCapturedDialogueCard(card)) return '';
-  if (!card.prompt.cueImage && !card.answer.answerImage) return '';
 
   const subject =
     card.answer.expression ??
@@ -266,13 +265,18 @@ const EditorImageControls = ({
       imagePromptId="study-edit-image-prompt"
       imagePromptLabel={t('editor.imagePrompt')}
       imagePromptMaxLength={imagePromptMaxLength}
+      imagePromptRequired={false}
       isRegenerateDisabled={!canRegenerate || isBusy}
       isRegenerating={isRegenerating}
       onImagePlacementChange={onImagePlacementChange}
       onImagePromptChange={onImagePromptChange}
       onRegenerate={onRegenerate}
       previewUrl={imageUrl}
-      regenerateLabel={isRegenerating ? t('editor.regeneratingImage') : t('editor.regenerateImage')}
+      regenerateLabel={
+        isRegenerating
+          ? t(imageUrl ? 'editor.regeneratingImage' : 'editor.generatingImage')
+          : t(imageUrl ? 'editor.regenerateImage' : 'editor.generateImage')
+      }
       title={t('editor.currentImage')}
     />
   );
@@ -392,7 +396,10 @@ const StudyCardEditor = ({
     if (imageRole === 'none') return;
 
     try {
-      const updatedCard = await onRegenerateImage({ imagePrompt, imageRole });
+      const updatedCard = await onRegenerateImage({
+        imagePrompt: imagePrompt.trim() || getCardImagePrompt({ ...card, ...buildPayload() }),
+        imageRole,
+      });
       if (updatedCard) setCurrentImage(getRegeneratedImage(updatedCard, imageRole) ?? null);
     } catch {
       // The owning mutation surfaces the user-facing error; avoid an unhandled rejection.

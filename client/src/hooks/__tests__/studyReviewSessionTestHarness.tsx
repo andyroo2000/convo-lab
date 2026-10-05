@@ -15,6 +15,7 @@ const {
   undoStudyReviewMock,
   updateStudyCardMock,
   deleteStudyCardMock,
+  regenerateStudyCardImageMock,
   regenerateStudyAnswerAudioMock,
   warmAudioCacheMock,
   getAchievementCatalogMock,
@@ -30,6 +31,7 @@ const {
   undoStudyReviewMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
   deleteStudyCardMock: vi.fn(),
+  regenerateStudyCardImageMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   warmAudioCacheMock: vi.fn(),
   getAchievementCatalogMock: vi.fn(),
@@ -53,6 +55,11 @@ vi.mock('../useStudy', () => ({
   }),
   useDeleteStudyCard: () => ({
     mutateAsync: deleteStudyCardMock,
+    isPending: false,
+    error: null,
+  }),
+  useRegenerateStudyCardImage: () => ({
+    mutateAsync: regenerateStudyCardImageMock,
     isPending: false,
     error: null,
   }),
@@ -224,6 +231,7 @@ function resetStudyReviewSessionMocks() {
   undoStudyReviewMock.mockReset();
   updateStudyCardMock.mockReset();
   deleteStudyCardMock.mockReset();
+  regenerateStudyCardImageMock.mockReset();
   regenerateStudyAnswerAudioMock.mockReset();
   warmAudioCacheMock.mockReset();
   warmAudioCacheMock.mockResolvedValue(undefined);
@@ -356,6 +364,8 @@ export function setUpStudyReviewSession() {
 }
 
 export {
+  regenerateStudyCardImageMock,
+  updateStudyCardMock,
   emptyAchievementProgress,
   baseCardOne,
   baseCardTwo,

@@ -65,7 +65,9 @@ describe('StudyCardEditor', () => {
     render(<StudyCardEditor card={audioRecognitionCard} onCancel={vi.fn()} onSave={onSave} />);
 
     expect(screen.queryByLabelText('Prompt text')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Image prompt')).toHaveValue('');
+    expect(screen.getByLabelText('Image prompt')).toHaveValue(
+      'A clear natural real-world image representing 会社 (company).'
+    );
     expect(screen.getByLabelText('Image placement')).toHaveValue('none');
 
     await userEvent.click(screen.getByRole('button', { name: 'Save card' }));
@@ -111,6 +113,63 @@ describe('StudyCardEditor', () => {
         }),
       });
     });
+  });
+
+  it.each(['prompt', 'answer', 'both'] as const)(
+    'generates a first image on %s with a blank prompt, then offers regeneration',
+    async (imageRole) => {
+      const onRegenerateImage = vi.fn().mockResolvedValue({
+        ...audioRecognitionCard,
+        prompt: { ...audioRecognitionCard.prompt, cueImage: imageRef },
+        answer: { ...audioRecognitionCard.answer, answerImage: imageRef },
+      });
+      const onSave = vi.fn();
+      render(
+        <StudyCardEditor
+          card={audioRecognitionCard}
+          onCancel={vi.fn()}
+          onSave={onSave}
+          onRegenerateImage={onRegenerateImage}
+        />
+      );
+      expect(screen.getByRole('button', { name: 'Generate image' })).toBeDisabled();
+      await userEvent.selectOptions(screen.getByLabelText('Image placement'), imageRole);
+      await userEvent.clear(screen.getByLabelText('Image prompt'));
+      await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
+      expect(onRegenerateImage).toHaveBeenCalledWith({
+        imageRole,
+        imagePrompt: 'A clear natural real-world image representing 会社 (company).',
+      });
+      expect(await screen.findByRole('button', { name: 'Regenerate image' })).toBeEnabled();
+      await userEvent.click(screen.getByRole('button', { name: 'Save card' }));
+      expect(onSave).toHaveBeenCalledWith({
+        prompt: expect.objectContaining({ cueImage: imageRole === 'answer' ? null : imageRef }),
+        answer: expect.objectContaining({ answerImage: imageRole === 'prompt' ? null : imageRef }),
+      });
+      await userEvent.selectOptions(screen.getByLabelText('Image placement'), 'none');
+      expect(screen.getByRole('button', { name: 'Regenerate image' })).toBeDisabled();
+    }
+  );
+
+  it('shows generating state for an image-less card and preserves an explicit image prompt', async () => {
+    const onRegenerateImage = vi.fn();
+    const props = {
+      card: audioRecognitionCard,
+      onCancel: vi.fn(),
+      onSave: vi.fn(),
+      onRegenerateImage,
+    };
+    const { rerender } = render(<StudyCardEditor {...props} />);
+    await userEvent.selectOptions(screen.getByLabelText('Image placement'), 'answer');
+    await userEvent.clear(screen.getByLabelText('Image prompt'));
+    await userEvent.type(screen.getByLabelText('Image prompt'), 'A friendly kappa.');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate image' }));
+    expect(onRegenerateImage).toHaveBeenCalledWith({
+      imageRole: 'answer',
+      imagePrompt: 'A friendly kappa.',
+    });
+    rerender(<StudyCardEditor {...props} isRegeneratingImage />);
+    expect(screen.getByRole('button', { name: 'Generating image…' })).toBeDisabled();
   });
 
   it.each([

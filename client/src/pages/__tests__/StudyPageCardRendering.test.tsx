@@ -93,6 +93,7 @@ vi.mock('../../hooks/useStudy', () => ({
   useStudyCardAction: () => ({ mutateAsync: cardActionMutateAsyncMock, isPending: false }),
   useUpdateStudyCard: () => ({ mutateAsync: updateStudyCardMock, isPending: false, error: null }),
   useDeleteStudyCard: () => ({ mutateAsync: deleteStudyCardMock, isPending: false, error: null }),
+  useRegenerateStudyCardImage: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
   useRegenerateStudyAnswerAudio: () => ({
     mutateAsync: regenerateStudyAnswerAudioMock,
     isPending: false,

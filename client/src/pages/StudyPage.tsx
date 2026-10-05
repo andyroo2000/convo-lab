@@ -377,18 +377,24 @@ const StudyFocusedCard = ({
       onDelete={onDelete}
       onGrade={reviewSession.handleGrade}
       onRegenerateAudio={reviewSession.regenerateCurrentCardAudio}
+      onRegenerateImage={reviewSession.regenerateCurrentCardImage}
       onReveal={reviewSession.revealCurrentCard}
       onSave={reviewSession.saveCurrentCard}
       onStopEditing={() => reviewSession.setEditing(false)}
       promptAudioRef={reviewSession.promptAudioRef}
       regenerateAudioPending={reviewSession.regenerateAudioMutation.isPending}
+      regenerateImagePending={reviewSession.regenerateImageMutation.isPending}
       revealed={displayedCardIsRevealed}
       reviewBusy={reviewSession.reviewBusy}
       runBackgroundTask={runBackgroundTask}
       sessionLoading={reviewSession.sessionLoading}
       showGradeTray={showGradeTray}
       undoPending={reviewSession.undoPending}
-      updateError={reviewSession.updateCardErrorMessage}
+      updateError={
+        reviewSession.regenerateImageMutation.error instanceof Error
+          ? reviewSession.regenerateImageMutation.error.message
+          : reviewSession.updateCardErrorMessage
+      }
       updatePending={reviewSession.updateCardMutation.isPending}
       visible={!showingAchievementAward && showQuizSurface && !reviewSession.reviewSessionComplete}
     />
