@@ -567,7 +567,6 @@ describe('useStudyReviewSession achievements', () => {
       overview: { ...baseOverview, dueCount: 1, reviewCount: 1 },
     });
     const firstEvaluation = createDeferred<AchievementProgress>();
-    const postUndoEvaluation = createDeferred<AchievementProgress>();
     const latestCompletionEvaluation = createDeferred<AchievementProgress>();
 
     const { result } = renderHook(() => useStudyReviewSession(), {
@@ -579,7 +578,6 @@ describe('useStudyReviewSession achievements', () => {
     });
     getAchievementProgressMock
       .mockReturnValueOnce(firstEvaluation.promise)
-      .mockReturnValueOnce(postUndoEvaluation.promise)
       .mockReturnValueOnce(latestCompletionEvaluation.promise);
 
     act(() => result.current.revealCurrentCard());
@@ -605,15 +603,16 @@ describe('useStudyReviewSession achievements', () => {
     await waitFor(() => expect(result.current.reviewSessionComplete).toBe(true));
 
     await act(async () => {
-      firstEvaluation.resolve(emptyAchievementProgress);
+      firstEvaluation.resolve({
+        ...emptyAchievementProgress,
+        awards: [{ id: 'burned.burned100', earnedAt: '2026-08-31T18:00:00.000Z' }],
+      });
       await firstEvaluation.promise;
-    });
-    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(3));
-    await act(async () => {
-      postUndoEvaluation.resolve(emptyAchievementProgress);
       await undoPromise;
     });
-    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(3));
+    expect(result.current.achievementProgress).toBeNull();
+    expect(result.current.currentAchievement).toBeNull();
 
     await act(async () => {
       latestCompletionEvaluation.resolve({
@@ -632,5 +631,6 @@ describe('useStudyReviewSession achievements', () => {
     await waitFor(() => {
       expect(result.current.achievementCompletion?.newAwardIds).toEqual(['burned.burned100']);
     });
+    expect(getAchievementProgressMock).toHaveBeenCalledTimes(3);
   });
 });
