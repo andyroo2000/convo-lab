@@ -396,7 +396,12 @@ const StudyCardEditor = ({
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    await onSave(attachCurrentMedia(buildPayload(), imageRole, currentImage, currentAnswerAudio));
+    const payload = buildPayload();
+    if (isAudioLedPromptCard(card)) {
+      // The form snapshot preserves unsaved text, but its audio may have been retired by regeneration.
+      payload.prompt = { ...payload.prompt, cueAudio: currentAnswerAudio };
+    }
+    await onSave(attachCurrentMedia(payload, imageRole, currentImage, currentAnswerAudio));
   };
 
   const handleRegenerateImage = async () => {
