@@ -18,6 +18,7 @@ interface StudyReviewCardSurfaceProps {
   editing: boolean;
   masteryAnimationActive: boolean;
   onDelete: () => void;
+  onRegenerateImage: StudyReviewSession['regenerateCurrentCardImage'];
   onGrade: (grade: StudySessionGrade) => Promise<void>;
   onRegenerateAudio: (payload: {
     answerAudioVoiceId: string | null;
@@ -42,6 +43,7 @@ interface StudyReviewCardSurfaceProps {
   updatePending: boolean;
   deletePending: boolean;
   regenerateAudioPending: boolean;
+  regenerateImagePending: boolean;
   reviewBusy: boolean;
   visible: boolean;
 }
@@ -99,9 +101,11 @@ const StudyReviewAnswer = ({
   masteryAnimationActive,
   onDelete,
   onRegenerateAudio,
+  onRegenerateImage,
   onSave,
   onStopEditing,
   regenerateAudioPending,
+  regenerateImagePending,
   updateError,
   updatePending,
 }: Pick<
@@ -114,9 +118,11 @@ const StudyReviewAnswer = ({
   | 'masteryAnimationActive'
   | 'onDelete'
   | 'onRegenerateAudio'
+  | 'onRegenerateImage'
   | 'onSave'
   | 'onStopEditing'
   | 'regenerateAudioPending'
+  | 'regenerateImagePending'
   | 'updateError'
   | 'updatePending'
 >) => {
@@ -130,11 +136,13 @@ const StudyReviewAnswer = ({
           isSaving={updatePending}
           isDeleting={deletePending}
           isRegeneratingAudio={regenerateAudioPending}
+          isRegeneratingImage={regenerateImagePending}
           error={updateError}
           onCancel={onStopEditing}
           onSave={onSave}
           onDelete={onDelete}
           onRegenerateAudio={onRegenerateAudio}
+          onRegenerateImage={onRegenerateImage}
         />
       </div>
     );

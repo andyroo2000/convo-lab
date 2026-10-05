@@ -281,6 +281,8 @@
     "saving": "保存中…",
     "regenerateAudio": "音声を再生成",
     "regeneratingAudio": "再生成中…",
+    "generateImage": "画像を生成",
+    "generatingImage": "画像を生成中…",
     "regenerateImage": "画像を再生成",
     "regeneratingImage": "画像を再生成中…",
     "cancel": "キャンセル"

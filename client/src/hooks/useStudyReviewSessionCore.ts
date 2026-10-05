@@ -13,6 +13,7 @@ import useStudySessionLoader from './useStudySessionLoader';
 import {
   useDeleteStudyCard,
   useRegenerateStudyAnswerAudio,
+  useRegenerateStudyCardImage,
   useStudyCardAction,
   useSubmitStudyReview,
   useUpdateStudyCard,
@@ -31,6 +32,7 @@ const useStudyReviewSessionBase = () => {
   const updateCardMutation = useUpdateStudyCard();
   const deleteCardMutation = useDeleteStudyCard();
   const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
+  const regenerateImageMutation = useRegenerateStudyCardImage();
   const state = useStudyReviewSessionState();
   const runBackgroundTask = useStudyBackgroundTask();
   const getCachedOverview = useCallback(() => getCachedStudyOverview(queryClient), [queryClient]);
@@ -55,6 +57,7 @@ const useStudyReviewSessionBase = () => {
     getCachedOverview,
     queryClient,
     regenerateAudioMutation,
+    regenerateImageMutation,
     reviewMutation,
     runBackgroundTask,
     state,

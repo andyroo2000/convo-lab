@@ -13,12 +13,20 @@ import {
 
 import { getNextCardIndex } from './studyReviewSessionUtils';
 
+interface CardImageGenerationPayload {
+  imagePrompt: string;
+  imageRole: 'prompt' | 'answer' | 'both';
+}
+
 interface StudyCurrentCardMutationsOptions {
   autoRefreshEmptySessionRef: MutableRefObject<boolean>;
   cardsLength: number;
   currentCardRef: MutableRefObject<StudyCardSummary | null>;
   deleteCard: (cardId: string) => Promise<void>;
   mergeCardIntoSession: (card: StudyCardSummary) => void;
+  regenerateImage: (
+    payload: CardImageGenerationPayload & { cardId: string }
+  ) => Promise<StudyCardSummary>;
   regenerateAnswerAudio: (payload: {
     cardId: string;
     answerAudioVoiceId: string | null;
@@ -26,6 +34,7 @@ interface StudyCurrentCardMutationsOptions {
   }) => Promise<StudyCardSummary>;
   removeCardFromSession: (cardId: string) => void;
   resetAudioAutoplayForCard: (cardId: string) => void;
+  resetImageMutation: () => void;
   sessionEpochRef: MutableRefObject<number>;
   setAnsweredCardIds: Dispatch<SetStateAction<string[]>>;
   setCurrentIndex: Dispatch<SetStateAction<number>>;
@@ -57,6 +66,7 @@ const saveCurrentCard = async (
   const expectedEpoch = options.sessionEpochRef.current;
 
   options.stopAllAudio();
+  options.resetImageMutation();
   const updatedCard = await options.updateCard({
     cardId: card.id,
     expectedRevision: card.revision ?? 0,
@@ -115,6 +125,24 @@ const deleteCurrentCard = async (options: StudyCurrentCardMutationsOptions) => {
   }
 };
 
+const regenerateCurrentCardImage = async (
+  options: StudyCurrentCardMutationsOptions,
+  payload: CardImageGenerationPayload
+) => {
+  const card = options.currentCardRef.current;
+  if (!card) return undefined;
+  const expectedEpoch = options.sessionEpochRef.current;
+  const updatedCard = await options.regenerateImage({ cardId: card.id, ...payload });
+  if (options.sessionEpochRef.current !== expectedEpoch) return undefined;
+  if (options.currentCardRef.current?.id !== card.id) return undefined;
+
+  const { currentCardRef } = options;
+  currentCardRef.current = updatedCard;
+  options.mergeCardIntoSession(updatedCard);
+  options.setSessionError(null);
+  return updatedCard;
+};
+
 const useStudyCurrentCardMutations = (options: StudyCurrentCardMutationsOptions) => {
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -131,6 +159,11 @@ const useStudyCurrentCardMutations = (options: StudyCurrentCardMutationsOptions)
       []
     ),
     deleteCurrentCard: useCallback(() => deleteCurrentCard(optionsRef.current), []),
+    regenerateCurrentCardImage: useCallback(
+      (payload: CardImageGenerationPayload) =>
+        regenerateCurrentCardImage(optionsRef.current, payload),
+      []
+    ),
   };
 };
 

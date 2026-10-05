@@ -155,6 +155,12 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  useRegenerateStudyCardImage: () => ({
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isPending: false,
+    error: null,
+  }),
   useRegenerateStudyAnswerAudio: () => ({
     mutateAsync: regenerateStudyAnswerAudioMock,
     isPending: false,

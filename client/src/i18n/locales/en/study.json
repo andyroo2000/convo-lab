@@ -291,6 +291,8 @@
     "saving": "Saving…",
     "regenerateAudio": "Regenerate audio",
     "regeneratingAudio": "Regenerating…",
+    "generateImage": "Generate image",
+    "generatingImage": "Generating image…",
     "regenerateImage": "Regenerate image",
     "regeneratingImage": "Regenerating image…",
     "delete": "Delete card",
