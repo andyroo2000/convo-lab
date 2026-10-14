@@ -260,7 +260,7 @@ describe('StudyPage editing and session actions', () => {
     );
 
     vi.mocked(HTMLMediaElement.prototype.play).mockClear();
-    await chooseAnswerAudioVoice(/Sato/);
+    await chooseAnswerAudioVoice(/Sato\b/);
     await userEvent.clear(screen.getByLabelText('Phonetic audio override'));
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かぶしきがいしゃ');
     await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));

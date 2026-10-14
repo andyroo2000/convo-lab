@@ -257,6 +257,39 @@ const getNoteRow = (text: string) => {
   return matchingRow;
 };
 
+const mockCardActions = () => {
+  cardActionMutateAsyncMock.mockImplementation(
+    async (payload: {
+      cardId: string;
+      action: string;
+      mode?: string;
+      dueAt?: string;
+      timeZone?: string;
+    }) => ({
+      card: {
+        ...(noteDetailById['note-1'].cards[0] ?? {}),
+        id: payload.cardId,
+        state: {
+          ...(noteDetailById['note-1'].cards[0]?.state ?? {}),
+          queueState: payload.action === 'suspend' ? 'suspended' : 'review',
+          dueAt:
+            payload.action === 'set_due' && payload.mode === 'tomorrow'
+              ? new Date('2026-04-13T09:00:00.000Z').toISOString()
+              : (noteDetailById['note-1'].cards[0]?.state.dueAt ?? null),
+        },
+      },
+      overview: {
+        dueCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: payload.action === 'suspend' ? 1 : 0,
+        totalCards: 2,
+      },
+    })
+  );
+};
+
 describe('StudyBrowsePage', () => {
   beforeEach(() => {
     window.history.replaceState(null, '', '/app/study/browse');
@@ -332,36 +365,7 @@ describe('StudyBrowsePage', () => {
       })
     );
     deleteStudyCardMock.mockResolvedValue(undefined);
-    cardActionMutateAsyncMock.mockImplementation(
-      async (payload: {
-        cardId: string;
-        action: string;
-        mode?: string;
-        dueAt?: string;
-        timeZone?: string;
-      }) => ({
-        card: {
-          ...(noteDetailById['note-1'].cards[0] ?? {}),
-          id: payload.cardId,
-          state: {
-            ...(noteDetailById['note-1'].cards[0]?.state ?? {}),
-            queueState: payload.action === 'suspend' ? 'suspended' : 'review',
-            dueAt:
-              payload.action === 'set_due' && payload.mode === 'tomorrow'
-                ? new Date('2026-04-13T09:00:00.000Z').toISOString()
-                : (noteDetailById['note-1'].cards[0]?.state.dueAt ?? null),
-          },
-        },
-        overview: {
-          dueCount: 0,
-          newCount: 0,
-          learningCount: 0,
-          reviewCount: 0,
-          suspendedCount: payload.action === 'suspend' ? 1 : 0,
-          totalCards: 2,
-        },
-      })
-    );
+    mockCardActions();
     promoteStudyNewCardToFrontMock.mockResolvedValue({
       items: [],
       total: 2,
@@ -650,7 +654,7 @@ describe('StudyBrowsePage', () => {
 
     await userEvent.click(getNoteRow('会社'));
     expect(screen.getByText('No card audio is available yet.')).toBeInTheDocument();
-    await chooseAnswerAudioVoice(/Sato/);
+    await chooseAnswerAudioVoice(/Sato\b/);
     await userEvent.clear(screen.getByLabelText('Phonetic audio override'));
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かぶしきがいしゃ');
     await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
