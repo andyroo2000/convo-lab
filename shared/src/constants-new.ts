@@ -126,6 +126,42 @@ export const TTS_VOICES = {
         description: 'Fish Audio: Otani - Bookish and thoughtful',
         provider: 'fishaudio',
       },
+      {
+        id: 'fishaudio:297a6fd278df47c3b9da9bfdf55ac89a',
+        gender: 'male',
+        description: 'Fish Audio: Satoru - Calm and relaxed narrator',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:21c74cb823fa45ef996ccc91cd6038b6',
+        gender: 'male',
+        description: 'Fish Audio: おれ - Energetic and authoritative',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:434dd33d4d3c4cf68b98e3d7f25f31ab',
+        gender: 'male',
+        description: 'Fish Audio: チャラ男2 - Cheerful and animated',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:9bf6608381a34f47ada3753f2e9f9381',
+        gender: 'male',
+        description: 'Fish Audio: ナレーター男性 - Deep and measured narrator',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:fce788bf2cbd4698ba32e599f6f0989f',
+        gender: 'male',
+        description: 'Fish Audio: チェスター・ベニントン - Gentle and warm storyteller',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:934ad2c65f604b0e84b432a560e3008a',
+        gender: 'male',
+        description: 'Fish Audio: 隊長さん音声 - Calm and soothing narrator',
+        provider: 'fishaudio',
+      },
       // Female voices
       {
         id: 'fishaudio:72416f3ff95541d9a2456b945e8a7c32',
@@ -155,6 +191,30 @@ export const TTS_VOICES = {
         id: 'fishaudio:9639f090aa6346329d7d3aca7e6b7226',
         gender: 'female',
         description: 'Fish Audio: Yumi - Young Tokyo mother',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:b2d9d8db057042688a5e318b8f405bc2',
+        gender: 'female',
+        description: 'Fish Audio: Kyoko - Polite and composed',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:35c8e5ae5239435f8d9c26c86802b86d',
+        gender: 'female',
+        description: 'Fish Audio: 丁寧なヘルプデスク - Clear and considerate',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:030fda5bec284b038ad930effd150f94',
+        gender: 'female',
+        description: 'Fish Audio: ゆあ - Bright and conversational',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:63bc41e652214372b15d9416a30a60b4',
+        gender: 'female',
+        description: 'Fish Audio: 元気な女性v2 - Cheerful and enthusiastic',
         provider: 'fishaudio',
       },
       // Google voices - curated Japanese options, plus hidden legacy choices for existing cards.

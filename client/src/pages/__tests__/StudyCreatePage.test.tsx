@@ -66,7 +66,7 @@ describe('StudyCreatePage: queue and draft selection', () => {
     await userEvent.type(screen.getByLabelText('Prompt text'), '会社');
     await userEvent.type(screen.getByLabelText('Answer expression'), '会社');
     await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
-    await chooseAnswerAudioVoice(/Sato/);
+    await chooseAnswerAudioVoice(/Sato\b/);
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かいしゃ');
     expect(screen.queryByRole('button', { name: 'Create card' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Fill remaining fields' }));

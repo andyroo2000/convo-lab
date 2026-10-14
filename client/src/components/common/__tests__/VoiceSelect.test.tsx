@@ -89,7 +89,7 @@ describe('VoiceSelect', () => {
     );
 
     await user.click(screen.getByRole('combobox'));
-    await user.click(screen.getByRole('option', { name: /Sato/ }));
+    await user.click(screen.getByRole('option', { name: /Sato\b/ }));
 
     expect(onChange).toHaveBeenCalledWith('fishaudio:875668667eb94c20b09856b971d9ca2f');
   });

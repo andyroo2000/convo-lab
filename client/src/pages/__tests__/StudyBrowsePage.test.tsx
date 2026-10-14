@@ -650,7 +650,7 @@ describe('StudyBrowsePage', () => {
 
     await userEvent.click(getNoteRow('会社'));
     expect(screen.getByText('No card audio is available yet.')).toBeInTheDocument();
-    await chooseAnswerAudioVoice(/Sato/);
+    await chooseAnswerAudioVoice(/Sato\b/);
     await userEvent.clear(screen.getByLabelText('Phonetic audio override'));
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かぶしきがいしゃ');
     await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
