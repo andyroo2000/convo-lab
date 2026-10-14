@@ -30,6 +30,34 @@ describe('automatic card voices', () => {
     });
   });
 
+  it.each([{ pool: [] }, { pool: ['', '  '] }])(
+    'falls back when the advertised pool is empty (%j)',
+    ({ pool }) => {
+      const decoded = decodeStudyClientCapabilities({
+        ...studyCapabilitiesFixture,
+        cardAuthoring: {
+          ...studyCapabilitiesFixture.cardAuthoring,
+          defaultAnswerAudioVoiceIds: pool,
+        },
+      });
+      expect(decoded.cardAuthoring.defaultAnswerAudioVoiceIds).toEqual(
+        studyCapabilitiesFixture.cardAuthoring.defaultAnswerAudioVoiceIds
+      );
+    }
+  );
+
+  it('rejects malformed voice IDs instead of accepting non-string values', () => {
+    expect(() =>
+      decodeStudyClientCapabilities({
+        ...studyCapabilitiesFixture,
+        cardAuthoring: {
+          ...studyCapabilitiesFixture.cardAuthoring,
+          defaultAnswerAudioVoiceIds: [123],
+        },
+      })
+    ).toThrow('must be a string');
+  });
+
   it('accepts older servers that advertise only the two legacy defaults', () => {
     const { cardAuthoring } = decodeStudyClientCapabilities({
       ...studyCapabilitiesFixture,

@@ -132,17 +132,19 @@ function studyActivityCategories(
 
 function decodeDefaultVoiceIds(cardAuthoring: JsonRecord): string[] {
   const value = cardAuthoring.defaultAnswerAudioVoiceIds;
-  if (value === undefined) {
-    return [
-      cardAuthoring.defaultAnswerAudioVoiceId,
-      cardAuthoring.defaultFemaleAnswerAudioVoiceId,
-    ].map((voice) => string(voice, 'study capabilities.cardAuthoring.defaultVoice'));
-  }
-  return array(value, 'study capabilities.cardAuthoring.defaultAnswerAudioVoiceIds')
-    .map((voice) =>
-      string(voice, 'study capabilities.cardAuthoring.defaultAnswerAudioVoiceIds entry')
-    )
-    .filter((voice) => voice.trim() !== '');
+  const pool =
+    value === undefined
+      ? []
+      : array(value, 'study capabilities.cardAuthoring.defaultAnswerAudioVoiceIds')
+          .map((voice) =>
+            string(voice, 'study capabilities.cardAuthoring.defaultAnswerAudioVoiceIds entry')
+          )
+          .filter((voice) => voice.trim() !== '');
+  return pool.length > 0
+    ? pool
+    : [cardAuthoring.defaultAnswerAudioVoiceId, cardAuthoring.defaultFemaleAnswerAudioVoiceId].map(
+        (voice) => string(voice, 'study capabilities.cardAuthoring.defaultVoice')
+      );
 }
 
 function decodeCardAuthoring(value: unknown): StudyClientCapabilities['cardAuthoring'] {
