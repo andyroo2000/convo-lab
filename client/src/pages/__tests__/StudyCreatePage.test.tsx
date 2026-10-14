@@ -21,6 +21,17 @@ import {
   useStudyManualCardDraftsMock,
 } from './StudyCreatePageTestHarness';
 
+const weatherDraft = () =>
+  manualDraft({
+    id: 'draft-b',
+    prompt: { cueText: '天気' },
+    answer: {
+      expression: '天気',
+      meaning: 'weather',
+      answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+    },
+  });
+
 describe('StudyCreatePage: queue and draft selection', () => {
   beforeEach(resetStudyCreatePageTest);
   afterEach(restoreStudyCreatePageTest);
@@ -130,17 +141,7 @@ describe('StudyCreatePage: queue and draft selection', () => {
         resolveQueue = resolve;
       })
     );
-    manualDraftsState.drafts = [
-      manualDraft({
-        id: 'draft-b',
-        prompt: { cueText: '天気' },
-        answer: {
-          expression: '天気',
-          meaning: 'weather',
-          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-        },
-      }),
-    ];
+    manualDraftsState.drafts = [weatherDraft()];
 
     renderPage();
 
@@ -291,15 +292,7 @@ describe('StudyCreatePage: queue and draft selection', () => {
     );
     manualDraftsState.drafts = [
       manualDraft({ id: 'draft-a', prompt: { cueText: '会社' } }),
-      manualDraft({
-        id: 'draft-b',
-        prompt: { cueText: '天気' },
-        answer: {
-          expression: '天気',
-          meaning: 'weather',
-          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
-        },
-      }),
+      weatherDraft(),
     ];
 
     renderPage();

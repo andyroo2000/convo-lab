@@ -10,6 +10,20 @@ vi.mock('../VoicePreview', () => ({
   ),
 }));
 
+const renderSelectableVoice = () => {
+  const onChange = vi.fn();
+  render(
+    <VoiceSelect
+      id="voice"
+      label="Voice"
+      language="ja"
+      value="ja-JP-Wavenet-C"
+      onChange={onChange}
+    />
+  );
+  return { onChange };
+};
+
 describe('VoiceSelect', () => {
   it('shows a clear unavailable state when the selected voice is not in the list', () => {
     render(
@@ -76,17 +90,7 @@ describe('VoiceSelect', () => {
 
   it('calls onChange when selecting a visible voice', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
-
-    render(
-      <VoiceSelect
-        id="voice"
-        label="Voice"
-        language="ja"
-        value="ja-JP-Wavenet-C"
-        onChange={onChange}
-      />
-    );
+    const { onChange } = renderSelectableVoice();
 
     await user.click(screen.getByRole('combobox'));
     await user.click(screen.getByRole('option', { name: /Sato\b/ }));
@@ -114,17 +118,7 @@ describe('VoiceSelect', () => {
 
   it('supports keyboard navigation for visible voices', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
-
-    render(
-      <VoiceSelect
-        id="voice"
-        label="Voice"
-        language="ja"
-        value="ja-JP-Wavenet-C"
-        onChange={onChange}
-      />
-    );
+    const { onChange } = renderSelectableVoice();
 
     const combobox = screen.getByRole('combobox');
     await user.click(combobox);
