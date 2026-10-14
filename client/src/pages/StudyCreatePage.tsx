@@ -24,7 +24,6 @@ import {
   DEFAULT_STUDY_CARD_CREATION_KIND,
   defaultImagePlacementForStudyCardCreationKind,
   defaultVoiceIdForStudyCardCreationKind,
-  isStudyCardCreationDefaultVoice,
 } from '../components/study/studyCardCreationModel';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import {
@@ -131,6 +130,11 @@ function buildManualPayloadForCreationKind(input: {
   };
 }
 
+function nextDraftAfterCreation(drafts: { id: string }[], index: number): string | null {
+  if (index < 0) return null;
+  return drafts[index + 1]?.id ?? drafts[index - 1]?.id ?? null;
+}
+
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
   const { effectiveUser, isImpersonating } = useEffectiveUser();
@@ -163,10 +167,10 @@ const StudyCreatePage = () => {
   const manualDefaultVoiceIds = useMemo(
     () =>
       cardAuthoringCapabilities
-        ? [
+        ? (cardAuthoringCapabilities.defaultAnswerAudioVoiceIds ?? [
             cardAuthoringCapabilities.defaultAnswerAudioVoiceId,
             cardAuthoringCapabilities.defaultFemaleAnswerAudioVoiceId,
-          ]
+          ])
         : [],
     [cardAuthoringCapabilities]
   );
@@ -518,12 +522,9 @@ const StudyCreatePage = () => {
     setValues((current) => ({
       ...current,
       cardType: cardTypeForStudyCardCreationKind(nextCreationKind),
-      answerAudioVoiceId: isStudyCardCreationDefaultVoice(
-        current.answerAudioVoiceId,
-        manualDefaultVoiceIds
-      )
-        ? defaultVoiceIdForStudyCardCreationKind(nextCreationKind, manualDefaultVoiceIds)
-        : current.answerAudioVoiceId,
+      answerAudioVoiceId:
+        current.answerAudioVoiceId ||
+        defaultVoiceIdForStudyCardCreationKind(nextCreationKind, manualDefaultVoiceIds),
     }));
     setManualPreviewAudio(null);
     setManualPreviewAudioRole(null);
@@ -687,12 +688,7 @@ const StudyCreatePage = () => {
         if (draftIntentOwnerId) removeStudyDraftIntent(draftIntentOwnerId, draftId);
         addCreatedCards();
         if (selectedManualDraftIdRef.current !== draftId) return;
-        let nextDraftId: string | null = null;
-        if (createdDraftIndex >= 0) {
-          nextDraftId =
-            manualDrafts[createdDraftIndex + 1]?.id ??
-            (createdDraftIndex > 0 ? manualDrafts[createdDraftIndex - 1]?.id : null);
-        }
+        const nextDraftId = nextDraftAfterCreation(manualDrafts, createdDraftIndex);
 
         setManualSuccess(t('create.success', { cardType: result.card.cardType }));
         setSelectedManualDraftId(nextDraftId);

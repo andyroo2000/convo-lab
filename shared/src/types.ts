@@ -85,6 +85,7 @@ export interface StudyClientCapabilities {
     previewAudioRoles: Array<'prompt' | 'answer'>;
     defaultAnswerAudioVoiceId: string;
     defaultFemaleAnswerAudioVoiceId: string;
+    defaultAnswerAudioVoiceIds?: string[];
     limits: {
       combinedPayloadBytes: number;
       payloadDepth: number;

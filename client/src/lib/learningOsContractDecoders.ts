@@ -80,7 +80,7 @@ function nonNegativeInteger(value: unknown, path: string): number {
   return decoded;
 }
 
-function integerCapability(value: unknown, path: string): StudyIntegerCapability {
+function integerCapability(value: unknown, { path }: DecoderLocation): StudyIntegerCapability {
   const capability = record(value, path);
   const defaultValue = nonNegativeInteger(capability.default, `${path}.default`);
   const min = nonNegativeInteger(capability.min, `${path}.min`);
@@ -130,6 +130,71 @@ function studyActivityCategories(
   ) as StudyClientCapabilities['studyActivity']['categoriesByActivity'];
 }
 
+function decodeDefaultVoiceIds(cardAuthoring: JsonRecord): string[] {
+  const value = cardAuthoring.defaultAnswerAudioVoiceIds;
+  if (value === undefined) {
+    return [
+      cardAuthoring.defaultAnswerAudioVoiceId,
+      cardAuthoring.defaultFemaleAnswerAudioVoiceId,
+    ].map((voice) => string(voice, 'study capabilities.cardAuthoring.defaultVoice'));
+  }
+  return array(value, 'study capabilities.cardAuthoring.defaultAnswerAudioVoiceIds')
+    .map((voice) =>
+      string(voice, 'study capabilities.cardAuthoring.defaultAnswerAudioVoiceIds entry')
+    )
+    .filter((voice) => voice.trim() !== '');
+}
+
+function decodeCardAuthoring(value: unknown): StudyClientCapabilities['cardAuthoring'] {
+  const cardAuthoring = record(value, 'study capabilities.cardAuthoring');
+  const limits = record(cardAuthoring.limits, 'study capabilities.cardAuthoring.limits');
+  const previewAudioRoles = supportedStrings(
+    cardAuthoring.previewAudioRoles,
+    'study capabilities.cardAuthoring.previewAudioRoles',
+    ['prompt', 'answer'] as const
+  );
+  return {
+    creationKinds: supportedStrings(
+      cardAuthoring.creationKinds,
+      'study capabilities.cardAuthoring.creationKinds',
+      STUDY_CARD_CREATION_KINDS
+    ),
+    imagePlacements: supportedStrings(
+      cardAuthoring.imagePlacements,
+      'study capabilities.cardAuthoring.imagePlacements',
+      STUDY_CARD_IMAGE_PLACEMENTS
+    ),
+    previewAudioRoles,
+    defaultAnswerAudioVoiceId: string(
+      cardAuthoring.defaultAnswerAudioVoiceId,
+      'study capabilities.cardAuthoring.defaultAnswerAudioVoiceId'
+    ),
+    defaultFemaleAnswerAudioVoiceId: string(
+      cardAuthoring.defaultFemaleAnswerAudioVoiceId,
+      'study capabilities.cardAuthoring.defaultFemaleAnswerAudioVoiceId'
+    ),
+    defaultAnswerAudioVoiceIds: decodeDefaultVoiceIds(cardAuthoring),
+    limits: {
+      combinedPayloadBytes: nonNegativeInteger(
+        limits.combinedPayloadBytes,
+        'study capabilities.cardAuthoring.limits.combinedPayloadBytes'
+      ),
+      payloadDepth: nonNegativeInteger(
+        limits.payloadDepth,
+        'study capabilities.cardAuthoring.limits.payloadDepth'
+      ),
+      imagePromptCharacters: nonNegativeInteger(
+        limits.imagePromptCharacters,
+        'study capabilities.cardAuthoring.limits.imagePromptCharacters'
+      ),
+      imageUploadBytes: nonNegativeInteger(
+        limits.imageUploadBytes,
+        'study capabilities.cardAuthoring.limits.imageUploadBytes'
+      ),
+    },
+  };
+}
+
 export function decodeStudyClientCapabilities(value: unknown): StudyClientCapabilities {
   const capabilities = record(value, 'study capabilities');
   const version = nonNegativeInteger(capabilities.version, 'study capabilities.version');
@@ -140,92 +205,40 @@ export function decodeStudyClientCapabilities(value: unknown): StudyClientCapabi
     settings.newCardLaneWeights,
     'study capabilities.settings.newCardLaneWeights'
   );
-  const cardAuthoring = record(capabilities.cardAuthoring, 'study capabilities.cardAuthoring');
-  const limits = record(cardAuthoring.limits, 'study capabilities.cardAuthoring.limits');
   const dailyAudio = record(capabilities.dailyAudio, 'study capabilities.dailyAudio');
   const offlineReserve = record(capabilities.offlineReserve, 'study capabilities.offlineReserve');
   const imports = record(capabilities.imports, 'study capabilities.imports');
   const studyActivity = record(capabilities.studyActivity, 'study capabilities.studyActivity');
-  const previewAudioRoles = supportedStrings(
-    cardAuthoring.previewAudioRoles,
-    'study capabilities.cardAuthoring.previewAudioRoles',
-    ['prompt', 'answer'] as const
-  );
 
   return {
     version,
     settings: {
-      newCardsPerDay: integerCapability(
-        settings.newCardsPerDay,
-        'study capabilities.settings.newCardsPerDay'
-      ),
-      lessonBatchSize: integerCapability(
-        settings.lessonBatchSize,
-        'study capabilities.settings.lessonBatchSize'
-      ),
-      reviewTimeBudgetMinutes: integerCapability(
-        settings.reviewTimeBudgetMinutes,
-        'study capabilities.settings.reviewTimeBudgetMinutes'
-      ),
+      newCardsPerDay: integerCapability(settings.newCardsPerDay, {
+        path: 'study capabilities.settings.newCardsPerDay',
+      }),
+      lessonBatchSize: integerCapability(settings.lessonBatchSize, {
+        path: 'study capabilities.settings.lessonBatchSize',
+      }),
+      reviewTimeBudgetMinutes: integerCapability(settings.reviewTimeBudgetMinutes, {
+        path: 'study capabilities.settings.reviewTimeBudgetMinutes',
+      }),
       newCardLaneWeights: {
-        standard: integerCapability(
-          laneWeights.standard,
-          'study capabilities.settings.newCardLaneWeights.standard'
-        ),
-        lessonFollowup: integerCapability(
-          laneWeights.lessonFollowup,
-          'study capabilities.settings.newCardLaneWeights.lessonFollowup'
-        ),
-        wanikani: integerCapability(
-          laneWeights.wanikani,
-          'study capabilities.settings.newCardLaneWeights.wanikani'
-        ),
+        standard: integerCapability(laneWeights.standard, {
+          path: 'study capabilities.settings.newCardLaneWeights.standard',
+        }),
+        lessonFollowup: integerCapability(laneWeights.lessonFollowup, {
+          path: 'study capabilities.settings.newCardLaneWeights.lessonFollowup',
+        }),
+        wanikani: integerCapability(laneWeights.wanikani, {
+          path: 'study capabilities.settings.newCardLaneWeights.wanikani',
+        }),
       },
     },
-    cardAuthoring: {
-      creationKinds: supportedStrings(
-        cardAuthoring.creationKinds,
-        'study capabilities.cardAuthoring.creationKinds',
-        STUDY_CARD_CREATION_KINDS
-      ),
-      imagePlacements: supportedStrings(
-        cardAuthoring.imagePlacements,
-        'study capabilities.cardAuthoring.imagePlacements',
-        STUDY_CARD_IMAGE_PLACEMENTS
-      ),
-      previewAudioRoles,
-      defaultAnswerAudioVoiceId: string(
-        cardAuthoring.defaultAnswerAudioVoiceId,
-        'study capabilities.cardAuthoring.defaultAnswerAudioVoiceId'
-      ),
-      defaultFemaleAnswerAudioVoiceId: string(
-        cardAuthoring.defaultFemaleAnswerAudioVoiceId,
-        'study capabilities.cardAuthoring.defaultFemaleAnswerAudioVoiceId'
-      ),
-      limits: {
-        combinedPayloadBytes: nonNegativeInteger(
-          limits.combinedPayloadBytes,
-          'study capabilities.cardAuthoring.limits.combinedPayloadBytes'
-        ),
-        payloadDepth: nonNegativeInteger(
-          limits.payloadDepth,
-          'study capabilities.cardAuthoring.limits.payloadDepth'
-        ),
-        imagePromptCharacters: nonNegativeInteger(
-          limits.imagePromptCharacters,
-          'study capabilities.cardAuthoring.limits.imagePromptCharacters'
-        ),
-        imageUploadBytes: nonNegativeInteger(
-          limits.imageUploadBytes,
-          'study capabilities.cardAuthoring.limits.imageUploadBytes'
-        ),
-      },
-    },
+    cardAuthoring: decodeCardAuthoring(capabilities.cardAuthoring),
     dailyAudio: {
-      targetDurationMinutes: integerCapability(
-        dailyAudio.targetDurationMinutes,
-        'study capabilities.dailyAudio.targetDurationMinutes'
-      ),
+      targetDurationMinutes: integerCapability(dailyAudio.targetDurationMinutes, {
+        path: 'study capabilities.dailyAudio.targetDurationMinutes',
+      }),
     },
     offlineReserve: {
       days: nonNegativeInteger(offlineReserve.days, 'study capabilities.offlineReserve.days'),
@@ -288,7 +301,7 @@ function optionalNullableString(value: unknown, path: string): string | null | u
   return nullableString(value, path);
 }
 
-function decodePresentationMedia(value: unknown, path: string) {
+function decodePresentationMedia(value: unknown, { path }: DecoderLocation) {
   if (value === null) return;
   const media = record(value, path);
   optionalNullableString(media.id, `${path}.id`);
@@ -298,7 +311,7 @@ function decodePresentationMedia(value: unknown, path: string) {
   optionalNullableString(media.source, `${path}.source`);
 }
 
-function decodePresentationText(value: unknown, path: string) {
+function decodePresentationText(value: unknown, { path }: DecoderLocation) {
   const text = record(value, path);
   nullableString(text.text, `${path}.text`);
   nullableString(text.ruby, `${path}.ruby`);
@@ -314,8 +327,8 @@ function decodeStudyCardPresentationPayload(value: JsonRecord) {
   nullableString(front.ruby, 'study card.presentation.front.ruby');
   nullableString(front.hint, 'study card.presentation.front.hint');
   const frontMedia = record(front.media, 'study card.presentation.front.media');
-  decodePresentationMedia(frontMedia.audio, 'study card.presentation.front.media.audio');
-  decodePresentationMedia(frontMedia.image, 'study card.presentation.front.media.image');
+  decodePresentationMedia(frontMedia.audio, { path: 'study card.presentation.front.media.audio' });
+  decodePresentationMedia(frontMedia.image, { path: 'study card.presentation.front.media.image' });
   boolean(front.autoplayAudio, 'study card.presentation.front.autoplayAudio');
 
   const answer = record(value.answer, 'study card.presentation.answer');
@@ -324,17 +337,23 @@ function decodeStudyCardPresentationPayload(value: JsonRecord) {
   nullableString(answer.restored, 'study card.presentation.answer.restored');
   nullableString(answer.meaning, 'study card.presentation.answer.meaning');
   const sentences = record(answer.sentences, 'study card.presentation.answer.sentences');
-  decodePresentationText(sentences.japanese, 'study card.presentation.answer.sentences.japanese');
-  decodePresentationText(sentences.english, 'study card.presentation.answer.sentences.english');
+  decodePresentationText(sentences.japanese, {
+    path: 'study card.presentation.answer.sentences.japanese',
+  });
+  decodePresentationText(sentences.english, {
+    path: 'study card.presentation.answer.sentences.english',
+  });
   array(answer.notes, 'study card.presentation.answer.notes').forEach((note, index) =>
     string(note, `study card.presentation.answer.notes[${index}]`)
   );
   const answerMedia = record(answer.media, 'study card.presentation.answer.media');
-  decodePresentationMedia(answerMedia.image, 'study card.presentation.answer.media.image');
-  decodePresentationMedia(answer.audio, 'study card.presentation.answer.audio');
+  decodePresentationMedia(answerMedia.image, {
+    path: 'study card.presentation.answer.media.image',
+  });
+  decodePresentationMedia(answer.audio, { path: 'study card.presentation.answer.audio' });
 }
 
-function numericCategories(value: unknown, path: string) {
+function numericCategories(value: unknown, { path }: DecoderLocation) {
   const categories = record(value, path);
   STUDY_ACTIVITY_CATEGORIES.forEach((category) =>
     number(categories[category], `${path}.${category}`)
@@ -462,7 +481,7 @@ function decodeStudyTimeBucket(value: unknown, location: DecoderLocation): void 
   string(bucket.startsAt, `${path}.startsAt`);
   string(bucket.endsAt, `${path}.endsAt`);
   number(bucket.totalMs, `${path}.totalMs`);
-  numericCategories(bucket.categories, `${path}.categories`);
+  numericCategories(bucket.categories, { path: `${path}.categories` });
 }
 
 function decodeStudyTimeRange(value: unknown, index: number): StudyTimeRange {
@@ -482,7 +501,7 @@ function decodeStudyTimeRange(value: unknown, index: number): StudyTimeRange {
   }
   if (range.bucketStep !== undefined) number(range.bucketStep, `${path}.bucketStep`);
   number(range.totalMs, `${path}.totalMs`);
-  numericCategories(range.categories, `${path}.categories`);
+  numericCategories(range.categories, { path: `${path}.categories` });
   array(range.buckets, `${path}.buckets`).forEach((bucket, bucketIndex) =>
     decodeStudyTimeBucket(bucket, { path: `${path}.buckets[${bucketIndex}]` })
   );
@@ -671,7 +690,7 @@ export function decodeDailyAudioPracticeStatus(value: unknown): DailyAudioPracti
   return response as unknown as DailyAudioPracticeStatusResponse;
 }
 
-function decodeWeeklyStats(value: unknown, path: string) {
+function decodeWeeklyStats(value: unknown, { path }: DecoderLocation) {
   const stats = record(value, path);
   number(stats.totalMs, `${path}.totalMs`);
   number(stats.activeDays, `${path}.activeDays`);
@@ -684,15 +703,15 @@ function decodeWeeklyStats(value: unknown, path: string) {
 export function decodeWeeklyStudyRecap(value: unknown): WeeklyStudyRecap {
   const recap = record(value, 'weekly study recap');
   string(recap.generatedAt, 'weekly study recap.generatedAt');
-  const week = decodeWeeklyStats(recap.week, 'weekly study recap.week');
+  const week = decodeWeeklyStats(recap.week, { path: 'weekly study recap.week' });
   string(week.startsAt, 'weekly study recap.week.startsAt');
   string(week.endsAt, 'weekly study recap.week.endsAt');
-  numericCategories(week.categories, 'weekly study recap.week.categories');
+  numericCategories(week.categories, { path: 'weekly study recap.week.categories' });
   if (week.bestDay !== null) {
     const bestDay = record(week.bestDay, 'weekly study recap.week.bestDay');
     string(bestDay.date, 'weekly study recap.week.bestDay.date');
     number(bestDay.totalMs, 'weekly study recap.week.bestDay.totalMs');
   }
-  decodeWeeklyStats(recap.previousWeek, 'weekly study recap.previousWeek');
+  decodeWeeklyStats(recap.previousWeek, { path: 'weekly study recap.previousWeek' });
   return recap as unknown as WeeklyStudyRecap;
 }
