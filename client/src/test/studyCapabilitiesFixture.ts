@@ -22,6 +22,10 @@ const studyCapabilitiesFixture: StudyClientCapabilities = {
     ],
     imagePlacements: ['none', 'prompt', 'answer', 'both'],
     previewAudioRoles: ['prompt', 'answer'],
+    defaultAnswerAudioVoiceIds: [
+      'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+      'fishaudio:9639f090aa6346329d7d3aca7e6b7226',
+    ],
     defaultAnswerAudioVoiceId: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
     defaultFemaleAnswerAudioVoiceId: 'fishaudio:9639f090aa6346329d7d3aca7e6b7226',
     limits: {
