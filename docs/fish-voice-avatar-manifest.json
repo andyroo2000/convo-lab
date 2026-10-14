@@ -1,0 +1,67 @@
+{
+  "generator": "built-in image_gen",
+  "created": "2026-10-14",
+  "sharedPrompt": "Square realistic studio head-and-shoulders portrait, fictional person, warm gray beige background, diffused light, natural skin texture, no text, centered and suitable for a small circular crop.",
+  "voices": [
+    {
+      "voiceId": "fishaudio:297a6fd278df47c3b9da9bfdf55ac89a",
+      "avatar": "voices/ja-satoru.jpg",
+      "original": "original/voices/ja-satoru.png",
+      "subjectPrompt": "a fictional Japanese man about 38, softly wavy medium black hair, clean shaven, kind calm eyes, charcoal knit cardigan over a cream shirt, relaxed subtle smile"
+    },
+    {
+      "voiceId": "fishaudio:21c74cb823fa45ef996ccc91cd6038b6",
+      "avatar": "voices/ja-ore.jpg",
+      "original": "original/voices/ja-ore.png",
+      "subjectPrompt": "a fictional Japanese man about 32, close cropped black hair, sturdy face, confident lively expression, dark olive crewneck shirt"
+    },
+    {
+      "voiceId": "fishaudio:434dd33d4d3c4cf68b98e3d7f25f31ab",
+      "avatar": "voices/ja-charao-2.jpg",
+      "original": "original/voices/ja-charao-2.png",
+      "subjectPrompt": "a fictional Japanese man about 27, gently tousled dark brown hair, broad easy smile, casual indigo denim overshirt"
+    },
+    {
+      "voiceId": "fishaudio:9bf6608381a34f47ada3753f2e9f9381",
+      "avatar": "voices/ja-male-narrator.jpg",
+      "original": "original/voices/ja-male-narrator.png",
+      "subjectPrompt": "a fictional Japanese man about 52, neat salt and pepper hair, clean shaven, thoughtful composed expression, navy collared shirt"
+    },
+    {
+      "voiceId": "fishaudio:fce788bf2cbd4698ba32e599f6f0989f",
+      "avatar": "voices/ja-chester.jpg",
+      "original": "original/voices/ja-chester.png",
+      "subjectPrompt": "a fictional Japanese man about 40, shoulder length dark hair tucked behind ears, light stubble, warm gentle smile, muted taupe linen shirt"
+    },
+    {
+      "voiceId": "fishaudio:934ad2c65f604b0e84b432a560e3008a",
+      "avatar": "voices/ja-captain.jpg",
+      "original": "original/voices/ja-captain.png",
+      "subjectPrompt": "a fictional Japanese man about 46, swept back black hair with slight gray at temples, clean shaven, reassuring composed smile, dark forest green collared shirt"
+    },
+    {
+      "voiceId": "fishaudio:b2d9d8db057042688a5e318b8f405bc2",
+      "avatar": "voices/ja-kyoko.jpg",
+      "original": "original/voices/ja-kyoko.png",
+      "subjectPrompt": "a fictional Japanese woman about 39, elegant chin length black bob, calm kind eyes, subtle smile, muted blue blouse"
+    },
+    {
+      "voiceId": "fishaudio:35c8e5ae5239435f8d9c26c86802b86d",
+      "avatar": "voices/ja-helpdesk.jpg",
+      "original": "original/voices/ja-helpdesk.png",
+      "subjectPrompt": "a fictional Japanese woman about 32, dark hair tied back neatly, considerate friendly smile, cream blouse under soft gray cardigan"
+    },
+    {
+      "voiceId": "fishaudio:030fda5bec284b038ad930effd150f94",
+      "avatar": "voices/ja-yua.jpg",
+      "original": "original/voices/ja-yua.png",
+      "subjectPrompt": "a fictional Japanese woman about 26, long gently wavy dark brown hair, bright natural smile, terracotta knit top"
+    },
+    {
+      "voiceId": "fishaudio:63bc41e652214372b15d9416a30a60b4",
+      "avatar": "voices/ja-energetic-woman-v2.jpg",
+      "original": "original/voices/ja-energetic-woman-v2.png",
+      "subjectPrompt": "a fictional Japanese woman about 29, short dark pixie haircut, cheerful open smile, soft mustard casual shirt"
+    }
+  ]
+}

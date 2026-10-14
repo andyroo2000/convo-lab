@@ -4,6 +4,16 @@ const SUPPORTED_VOICE_AVATAR_VARIANTS = new Set(['ja:male', 'ja:female']);
 
 // Voice-specific avatar files take precedence over tone-derived fallback filenames.
 const VOICE_AVATAR_FILENAME_BY_ID: Record<string, string> = {
+  'fishaudio:297a6fd278df47c3b9da9bfdf55ac89a': 'voices/ja-satoru.jpg',
+  'fishaudio:21c74cb823fa45ef996ccc91cd6038b6': 'voices/ja-ore.jpg',
+  'fishaudio:434dd33d4d3c4cf68b98e3d7f25f31ab': 'voices/ja-charao-2.jpg',
+  'fishaudio:9bf6608381a34f47ada3753f2e9f9381': 'voices/ja-male-narrator.jpg',
+  'fishaudio:fce788bf2cbd4698ba32e599f6f0989f': 'voices/ja-chester.jpg',
+  'fishaudio:934ad2c65f604b0e84b432a560e3008a': 'voices/ja-captain.jpg',
+  'fishaudio:b2d9d8db057042688a5e318b8f405bc2': 'voices/ja-kyoko.jpg',
+  'fishaudio:35c8e5ae5239435f8d9c26c86802b86d': 'voices/ja-helpdesk.jpg',
+  'fishaudio:030fda5bec284b038ad930effd150f94': 'voices/ja-yua.jpg',
+  'fishaudio:63bc41e652214372b15d9416a30a60b4': 'voices/ja-energetic-woman-v2.jpg',
   'fishaudio:0dff3f6860294829b98f8c4501b2cf25': 'voices/ja-nakamura.jpg',
   'fishaudio:875668667eb94c20b09856b971d9ca2f': 'voices/ja-sato.jpg',
   'fishaudio:abb4362e736f40b7b5716f4fafcafa9f': 'voices/ja-ren.jpg',
