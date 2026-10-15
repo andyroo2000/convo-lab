@@ -104,6 +104,7 @@ export const TTS_VOICES = {
       // Male voices
       {
         id: 'fishaudio:0dff3f6860294829b98f8c4501b2cf25',
+        hiddenFromPicker: true,
         gender: 'male',
         description: 'Fish Audio: Nakamura - Cool and restrained',
         provider: 'fishaudio',
@@ -116,18 +117,21 @@ export const TTS_VOICES = {
       },
       {
         id: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+        hiddenFromPicker: true,
         gender: 'male',
         description: 'Fish Audio: Ren - Wiry and assertive',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:b3e9710c629a472f8224e1c4975a869e',
+        hiddenFromPicker: true,
         gender: 'male',
         description: 'Fish Audio: Otani - Bookish and thoughtful',
         provider: 'fishaudio',
       },
       {
         id: 'fishaudio:297a6fd278df47c3b9da9bfdf55ac89a',
+        hiddenFromPicker: true,
         gender: 'male',
         description: 'Fish Audio: Satoru - Calm and relaxed narrator',
         provider: 'fishaudio',
@@ -207,6 +211,7 @@ export const TTS_VOICES = {
       },
       {
         id: 'fishaudio:030fda5bec284b038ad930effd150f94',
+        hiddenFromPicker: true,
         gender: 'female',
         description: 'Fish Audio: ゆあ - Bright and conversational',
         provider: 'fishaudio',

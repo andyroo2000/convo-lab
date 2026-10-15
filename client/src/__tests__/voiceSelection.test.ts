@@ -41,6 +41,28 @@ describe('voiceSelection', () => {
     );
   });
 
+  it('retires selected Fish voices without losing their saved metadata or avatars', () => {
+    const retiredIds = [
+      'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+      'fishaudio:b3e9710c629a472f8224e1c4975a869e',
+      'fishaudio:0dff3f6860294829b98f8c4501b2cf25',
+      'fishaudio:297a6fd278df47c3b9da9bfdf55ac89a',
+      'fishaudio:030fda5bec284b038ad930effd150f94',
+    ];
+    const active = getSelectableTtsVoices('ja');
+    expect(active).toHaveLength(14);
+    const courseIds = getCourseSpeakerVoices('ja', 'en', 14).speakerVoices;
+    const dialogueIds = getDialogueSpeakerVoices('ja', 14).map((voice) => voice.id);
+    retiredIds.forEach((id) => {
+      const voice = getTtsVoiceById('ja', id);
+      expect(voice).toMatchObject({ hiddenFromPicker: true });
+      expect(getTtsVoiceAvatarPath('ja', voice!)).not.toBeNull();
+      expect(active.map((entry) => entry.id)).not.toContain(id);
+      expect(courseIds).not.toContain(id);
+      expect(dialogueIds).not.toContain(id);
+    });
+  });
+
   it('maps voice configs to signed speaker avatar endpoint paths', () => {
     const shohei = getTtsVoiceById('ja', 'ja-JP-Wavenet-C');
     const nanami = getTtsVoiceById('ja', 'ja-JP-Neural2-B');

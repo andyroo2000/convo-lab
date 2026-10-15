@@ -5,6 +5,22 @@ import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection'
 
 import { buildStudyCardFormPayload, getStudyCardFormValues } from '../studyCardFormModel';
 
+const clozeCardWithDerivedHint = () => ({
+  id: 'card-1',
+  noteId: 'note-1',
+  cardType: 'cloze' as const,
+  prompt: {
+    clozeText: '母が帰る{{c1::まで}}、本を読みます。',
+    clozeHint: '',
+    clozeResolvedHint: 'the endpoint of an ongoing action',
+  },
+  answer: { restoredText: '母が帰るまで、本を読みます。' },
+  state: { dueAt: null, queueState: 'new' as const, scheduler: null, source: {} },
+  answerAudioSource: 'missing' as const,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+});
+
 describe('studyCardFormModel', () => {
   it('uses the server-provided default for new and voice-less cards', () => {
     const serverDefaultVoiceId = 'server-default-voice';
@@ -308,21 +324,7 @@ describe('studyCardFormModel', () => {
   });
 
   it('clears a derived cloze hint when the visible hint is edited', () => {
-    const card = {
-      id: 'card-1',
-      noteId: 'note-1',
-      cardType: 'cloze' as const,
-      prompt: {
-        clozeText: '母が帰る{{c1::まで}}、本を読みます。',
-        clozeHint: '',
-        clozeResolvedHint: 'the endpoint of an ongoing action',
-      },
-      answer: { restoredText: '母が帰るまで、本を読みます。' },
-      state: { dueAt: null, queueState: 'new' as const, scheduler: null, source: {} },
-      answerAudioSource: 'missing' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const card = clozeCardWithDerivedHint();
     const values = getStudyCardFormValues({ card });
 
     const payload = buildStudyCardFormPayload(
@@ -335,21 +337,7 @@ describe('studyCardFormModel', () => {
   });
 
   it('preserves a derived cloze hint when the visible hint is not edited', () => {
-    const card = {
-      id: 'card-1',
-      noteId: 'note-1',
-      cardType: 'cloze' as const,
-      prompt: {
-        clozeText: '母が帰る{{c1::まで}}、本を読みます。',
-        clozeHint: '',
-        clozeResolvedHint: 'the endpoint of an ongoing action',
-      },
-      answer: { restoredText: '母が帰るまで、本を読みます。' },
-      state: { dueAt: null, queueState: 'new' as const, scheduler: null, source: {} },
-      answerAudioSource: 'missing' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const card = clozeCardWithDerivedHint();
     const values = getStudyCardFormValues({ card });
 
     const payload = buildStudyCardFormPayload(values, card);
@@ -358,21 +346,7 @@ describe('studyCardFormModel', () => {
   });
 
   it('clears both cloze hint fields when the visible hint is removed', () => {
-    const card = {
-      id: 'card-1',
-      noteId: 'note-1',
-      cardType: 'cloze' as const,
-      prompt: {
-        clozeText: '母が帰る{{c1::まで}}、本を読みます。',
-        clozeHint: '',
-        clozeResolvedHint: 'the endpoint of an ongoing action',
-      },
-      answer: { restoredText: '母が帰るまで、本を読みます。' },
-      state: { dueAt: null, queueState: 'new' as const, scheduler: null, source: {} },
-      answerAudioSource: 'missing' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const card = clozeCardWithDerivedHint();
     const values = getStudyCardFormValues({ card });
 
     const payload = buildStudyCardFormPayload({ ...values, cueMeaning: '' }, card);
@@ -386,6 +360,7 @@ describe('studyCardFormModel', () => {
     const selectableJapaneseVoices = getSelectableTtsVoices('ja');
     const fishAudioVoiceIds = japaneseVoices
       .filter((voice) => voice.provider === 'fishaudio')
+      .filter((voice) => !('hiddenFromPicker' in voice && voice.hiddenFromPicker))
       .map((voice) => voice.id);
     const selectableGoogleVoices = selectableJapaneseVoices.filter(
       (voice) => voice.provider === 'google'
@@ -400,6 +375,11 @@ describe('studyCardFormModel', () => {
         .filter((voice) => 'hiddenFromPicker' in voice && voice.hiddenFromPicker)
         .map((voice) => voice.id)
     ).toEqual([
+      'fishaudio:0dff3f6860294829b98f8c4501b2cf25',
+      'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+      'fishaudio:b3e9710c629a472f8224e1c4975a869e',
+      'fishaudio:297a6fd278df47c3b9da9bfdf55ac89a',
+      'fishaudio:030fda5bec284b038ad930effd150f94',
       'ja-JP-Wavenet-A',
       'ja-JP-Wavenet-B',
       'ja-JP-Neural2-B',
