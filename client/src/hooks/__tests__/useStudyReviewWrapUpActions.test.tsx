@@ -53,6 +53,19 @@ describe.each([false, true])('achievement wrap-up actions (deferred: %s)', (defe
     expect(pending?.newAwardIds).toEqual([awards[1].id]);
   });
 
+  it('treats advancing the final badge as completing the queue', () => {
+    const { options, store } = setUp(deferred);
+    store.acknowledgeAwards([awards[0].id]);
+    options.currentAchievementIndex = 1;
+    options.currentAchievementId = awards[1].id;
+    const { result } = renderHook(() => useStudyReviewWrapUpActions(options));
+    act(() => result.current.advanceAchievement());
+    expect(options.setAchievementCelebrationPresented).toHaveBeenCalledWith(true);
+    expect(options.setCurrentAchievementIndex).not.toHaveBeenCalled();
+    expect(options.exitFocusMode).toHaveBeenCalledTimes(deferred ? 1 : 0);
+    expect(store.prepareDeferredCompletion(awards)).toBeNull();
+  });
+
   it('skips the whole queue and immediately exits recovered notifications', () => {
     const { options } = setUp(deferred);
     const { result } = renderHook(() => useStudyReviewWrapUpActions(options));

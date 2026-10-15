@@ -1,3 +1,4 @@
+import resilientAchievementStorage from './studyAchievementStorage';
 import {
   StudyPresentedAchievements,
   presentedAchievementStorageKey,
@@ -143,15 +144,16 @@ export class StudyAchievementSessionStore {
     private readonly userId: string,
     options: StudyAchievementSessionStoreOptions = {}
   ) {
+    this.storage = resilientAchievementStorage(storage);
     this.createId =
       options.createId ??
       (() =>
         typeof globalThis.crypto?.randomUUID === 'function'
           ? globalThis.crypto.randomUUID()
           : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
-    this.state = loadState(storage, userId);
-    this.deferred = new StudyDeferredAchievements(storage, userId);
-    this.presented = new StudyPresentedAchievements(storage, userId);
+    this.state = loadState(this.storage, userId);
+    this.deferred = new StudyDeferredAchievements(this.storage, userId);
+    this.presented = new StudyPresentedAchievements(this.storage, userId);
     if (this.state.activeSession?.celebrationPresented) {
       this.presented.acknowledge(this.state.activeSession.newAwardIds);
     }

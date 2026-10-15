@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   StudyAchievementSessionStore,
@@ -111,5 +111,46 @@ describe('unavailable initial progress', () => {
     store.refreshCurrentSessionBaseline([awards[0]]);
     const refresh = store.beginCompletionRefresh(reference)!;
     expect(store.completeCurrentRefresh(refresh, awards)?.newAwardIds).toEqual([awards[1].id]);
+  });
+});
+
+describe('unavailable browser storage', () => {
+  it('keeps Skip and Skip all working when storage fills after a session starts', () => {
+    const storage = {
+      getItem: (key: string) => localStorage.getItem(key),
+      setItem: vi.fn((key: string, value: string) => localStorage.setItem(key, value)),
+      removeItem: (key: string) => localStorage.removeItem(key),
+    };
+    const store = new StudyAchievementSessionStore(storage, 'learner');
+    const reference = start(store);
+    store.prepareCurrentSessionCompletion(awards);
+    storage.setItem.mockImplementation(() => {
+      throw new Error('quota exceeded');
+    });
+    store.acknowledgeAwards([awards[0].id]);
+    expect(store.prepareInterruptedCompletion(awards)?.newAwardIds).toEqual([awards[1].id]);
+    store.markCelebrationPresented(reference);
+    expect(store.prepareInterruptedCompletion(awards)?.celebrationPresented).toBe(true);
+    store.dismissCompletion(reference);
+    expect(store.prepareDeferredCompletion(awards)).toBeNull();
+  });
+
+  it('allows studying and dismissing when all storage access fails', () => {
+    const unavailable = () => {
+      throw new Error('storage disabled');
+    };
+    const store = new StudyAchievementSessionStore(
+      {
+        getItem: unavailable,
+        setItem: unavailable,
+        removeItem: unavailable,
+      },
+      'learner'
+    );
+    const reference = start(store);
+    store.prepareCurrentSessionCompletion(awards);
+    store.markCelebrationPresented(reference);
+    store.dismissCompletion(reference);
+    expect(store.prepareDeferredCompletion(awards)).toBeNull();
   });
 });
