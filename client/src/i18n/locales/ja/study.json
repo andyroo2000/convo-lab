@@ -51,6 +51,8 @@
     "achievementsUpdating": "実績をバックグラウンドで更新しています。この画面を閉じても大丈夫です。"
   },
   "achievements": {
+    "skip": "スキップ",
+    "skipAll": "すべてスキップ",
     "kicker": "実績",
     "heading": "あなたの咆哮が育っています",
     "earned": "実績を獲得",

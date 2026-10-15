@@ -1,8 +1,9 @@
 import { Star } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import useAchievements from '../../hooks/useAchievements';
+import useAchievementAwardControls from '../../hooks/useAchievementAwardControls';
 import {
   closestInProgressAchievements,
   recentEarnedAchievements,
@@ -81,6 +82,8 @@ interface StudyAchievementAwardViewProps {
   achievements: PresentedAchievement[];
   currentIndex: number;
   onContinue: () => void;
+  onSkip: () => void;
+  onSkipAll: () => void;
 }
 
 const achievementStarColors = [
@@ -94,57 +97,27 @@ const achievementStarColors = [
   'text-orange-500',
 ];
 
-const achievementPrefersReducedMotion = () =>
-  typeof window !== 'undefined' &&
-  typeof window.matchMedia === 'function' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 export const StudyAchievementAwardView = ({
   achievements,
   currentIndex,
   onContinue,
+  onSkip,
+  onSkipAll,
 }: StudyAchievementAwardViewProps) => {
   const { t } = useTranslation('study');
   const achievement = achievements[currentIndex];
   const hasNext = currentIndex + 1 < achievements.length;
-  const [animationKey, setAnimationKey] = useState(0);
-  const [canContinue, setCanContinue] = useState(achievementPrefersReducedMotion);
-  const [advancing, setAdvancing] = useState(false);
-  const advanceTimeoutRef = useRef<number | null>(null);
   const nextAchievement = achievements[currentIndex + 1] ?? null;
-  useEffect(() => {
-    if (achievementPrefersReducedMotion()) {
-      setCanContinue(true);
-      return undefined;
-    }
-    setCanContinue(false);
-    const timeoutId = window.setTimeout(() => setCanContinue(true), 4_800);
-    return () => window.clearTimeout(timeoutId);
-  }, [achievement.id, animationKey]);
-
-  useEffect(
-    () => () => {
-      if (advanceTimeoutRef.current !== null) {
-        window.clearTimeout(advanceTimeoutRef.current);
-      }
-    },
-    []
-  );
+  const { animationKey, canContinue, advancing, advance, skip, replay } =
+    useAchievementAwardControls({
+      achievementId: achievement?.id,
+      hasNext,
+      onContinue,
+      onSkip,
+      onSkipAll,
+    });
 
   if (!achievement) return null;
-
-  const advance = () => {
-    if (!hasNext || achievementPrefersReducedMotion()) {
-      onContinue();
-      return;
-    }
-    setAdvancing(true);
-    advanceTimeoutRef.current = window.setTimeout(() => {
-      onContinue();
-      setAdvancing(false);
-      advanceTimeoutRef.current = null;
-    }, 560);
-  };
 
   const awardPanel = (item: PresentedAchievement, incoming: boolean) => {
     const itemStandard = item.tier.assets.earned.png['256'];
@@ -201,10 +174,27 @@ export const StudyAchievementAwardView = ({
       </div>
 
       <div className="mt-8 flex min-h-20 flex-col items-center gap-2">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => skip(false)}
+            className="rounded-lg px-4 py-2 font-bold text-navy hover:bg-navy/10"
+            aria-keyshortcuts="ArrowRight"
+          >
+            {t('achievements.skip')}
+          </button>
+          <button
+            type="button"
+            onClick={() => skip(true)}
+            className="rounded-lg px-4 py-2 font-bold text-navy hover:bg-navy/10"
+          >
+            {t('achievements.skipAll')}
+          </button>
+        </div>
         <button
           type="button"
           onClick={advance}
-          disabled={!canContinue}
+          disabled={!canContinue || advancing}
           className={`rounded-xl bg-navy px-8 py-3 font-bold text-white transition hover:bg-navy/90 disabled:pointer-events-none ${
             canContinue ? 'opacity-100' : 'opacity-0'
           }`}
@@ -213,7 +203,7 @@ export const StudyAchievementAwardView = ({
         </button>
         <button
           type="button"
-          onClick={() => setAnimationKey((current) => current + 1)}
+          onClick={replay}
           className="text-sm font-bold text-navy hover:text-cyan-700 motion-reduce:hidden"
         >
           {t('achievements.replay')}

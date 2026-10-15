@@ -78,7 +78,7 @@ const useStudyAchievementReviewSession = ({
     }
     achievementSessionBootstrapRef.current = bootstrap;
     const sessionId =
-      achievementSessionStore?.beginReviewSession(achievementProgress?.awards ?? []) ?? null;
+      achievementSessionStore?.beginReviewSession(achievementProgress?.awards ?? null) ?? null;
     bootstrap.promise = refreshSessionBaseline({
       achievementSessionStore,
       bootstrap,

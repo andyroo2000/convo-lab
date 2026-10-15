@@ -247,6 +247,8 @@ const StudyAchievementAward = ({
   if (!reviewSession.currentAchievement) return null;
   return (
     <StudyAchievementAwardView
+      onSkip={reviewSession.advanceAchievement}
+      onSkipAll={reviewSession.skipAllAchievements}
       achievements={reviewSession.completionAchievements}
       currentIndex={reviewSession.currentAchievementIndex}
       onContinue={() => {
