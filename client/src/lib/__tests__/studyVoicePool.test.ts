@@ -10,7 +10,7 @@ const voices = getSelectableTtsVoices('ja')
   .map((voice) => voice.id);
 
 describe('automatic card voices', () => {
-  it('decodes all 19 advertised voices and can select every voice for every creation kind', () => {
+  it('decodes all 14 advertised voices and can select every voice for every creation kind', () => {
     const capabilities = decodeStudyClientCapabilities({
       ...studyCapabilitiesFixture,
       cardAuthoring: {
@@ -20,7 +20,7 @@ describe('automatic card voices', () => {
     });
     const pool = capabilities.cardAuthoring.defaultAnswerAudioVoiceIds!;
     expect(pool).toEqual(voices);
-    expect(pool).toHaveLength(19);
+    expect(pool).toHaveLength(14);
     capabilities.cardAuthoring.creationKinds.forEach((kind) => {
       voices.forEach((voice, index) => {
         expect(

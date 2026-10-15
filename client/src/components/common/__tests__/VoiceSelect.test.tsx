@@ -88,6 +88,26 @@ describe('VoiceSelect', () => {
     expect(screen.queryByRole('option', { name: /Ichiro/ })).not.toBeInTheDocument();
   });
 
+  it('keeps a selected retired Fish voice named and marked as legacy', async () => {
+    const user = userEvent.setup();
+    render(
+      <VoiceSelect
+        id="voice"
+        label="Voice"
+        language="ja"
+        value="fishaudio:abb4362e736f40b7b5716f4fafcafa9f"
+        onChange={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('combobox')).toHaveTextContent('Ren');
+    expect(screen.getByRole('combobox')).toHaveTextContent('Legacy');
+    await user.click(screen.getByRole('combobox'));
+    expect(screen.getByRole('option', { name: /Ren/ })).toBeInTheDocument();
+    ['Otani', 'Nakamura', 'Satoru', 'ゆあ'].forEach((name) => {
+      expect(screen.queryByRole('option', { name: new RegExp(name) })).not.toBeInTheDocument();
+    });
+  });
+
   it('calls onChange when selecting a visible voice', async () => {
     const user = userEvent.setup();
     const { onChange } = renderSelectableVoice();
@@ -124,7 +144,7 @@ describe('VoiceSelect', () => {
     await user.click(combobox);
     await user.keyboard('{ArrowDown}{Enter}');
 
-    expect(onChange).toHaveBeenCalledWith('fishaudio:0dff3f6860294829b98f8c4501b2cf25');
+    expect(onChange).toHaveBeenCalledWith('fishaudio:875668667eb94c20b09856b971d9ca2f');
   });
 
   it('shows signed speaker avatar endpoint images for the selected voice and dropdown options', async () => {
