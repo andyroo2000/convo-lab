@@ -97,6 +97,7 @@ const useReviewModeLifecycle = (
     achievementCompletionRefreshPending: core.state.achievementCompletionRefreshPending,
     achievementSessionStore: core.achievementSessionStore,
     completionAchievementCount: core.completionAchievements.length,
+    currentAchievementId: core.currentAchievement?.id ?? null,
     currentAchievementIndex: core.state.currentAchievementIndex,
     exitFocusMode: focus.exitFocusMode,
     exitPracticeMode: modes.exitPracticeMode,

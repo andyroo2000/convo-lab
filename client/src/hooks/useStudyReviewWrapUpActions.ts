@@ -11,6 +11,7 @@ interface StudyReviewWrapUpActionsOptions {
   achievementSessionStore: StudyAchievementSessionStore | null;
   completionAchievementCount: number;
   currentAchievementIndex: number;
+  currentAchievementId: string | null;
   exitFocusMode: () => void;
   exitPracticeMode: () => void;
   practiceMode: boolean;
@@ -38,18 +39,27 @@ const endReviewSession = (options: StudyReviewWrapUpActionsOptions) => {
   options.prepareSessionCompletion();
 };
 
+const skipAllAchievements = (options: StudyReviewWrapUpActionsOptions) => {
+  const { achievementCompletion } = options;
+  if (!achievementCompletion) return;
+  options.achievementSessionStore?.markCelebrationPresented(achievementCompletion);
+  options.setAchievementCelebrationPresented(true);
+  if (achievementCompletion.records.length === 0) options.exitFocusMode();
+};
+
 const advanceAchievement = (options: StudyReviewWrapUpActionsOptions) => {
   const { achievementCompletion } = options;
   if (!achievementCompletion) return;
 
   if (options.currentAchievementIndex + 1 < options.completionAchievementCount) {
+    if (options.currentAchievementId) {
+      options.achievementSessionStore?.acknowledgeAwards([options.currentAchievementId]);
+    }
     options.setCurrentAchievementIndex((current) => current + 1);
     return;
   }
 
-  options.achievementSessionStore?.markCelebrationPresented(achievementCompletion);
-  options.setAchievementCelebrationPresented(true);
-  if (achievementCompletion.records.length === 0) options.exitFocusMode();
+  skipAllAchievements(options);
 };
 
 const finishReviewSession = (options: StudyReviewWrapUpActionsOptions) => {
@@ -64,6 +74,7 @@ const useStudyReviewWrapUpActions = (options: StudyReviewWrapUpActionsOptions) =
   optionsRef.current = options;
 
   return {
+    skipAllAchievements: useCallback(() => skipAllAchievements(optionsRef.current), []),
     advanceAchievement: useCallback(() => advanceAchievement(optionsRef.current), []),
     endReviewSession: useCallback(() => endReviewSession(optionsRef.current), []),
     finishReviewSession: useCallback(() => finishReviewSession(optionsRef.current), []),

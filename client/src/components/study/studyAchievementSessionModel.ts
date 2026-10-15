@@ -1,3 +1,7 @@
+import {
+  StudyPresentedAchievements,
+  presentedAchievementStorageKey,
+} from './studyPresentedAchievements';
 import type { AchievementAward } from './achievementModel';
 import type { StudySessionReviewRecord } from './studySessionWrapUpModel';
 import {
@@ -29,6 +33,7 @@ interface PersistedAchievementSession {
   id: string;
   records: StudySessionReviewRecord[];
   baselineAwardIds: string[];
+  baselineKnown: boolean;
   newAwardIds: string[];
   isReadyForPresentation: boolean;
   celebrationPresented: boolean;
@@ -41,6 +46,7 @@ interface PersistedAchievementSessionState {
 }
 
 const detectAwardIds = (session: PersistedAchievementSession, awards: AchievementAward[]) => {
+  if (!session.baselineKnown) return [];
   const baseline = new Set(session.baselineAwardIds);
   return awards
     .filter(({ id }) => !baseline.has(id))
@@ -59,6 +65,7 @@ export const deleteStudyAchievementSessionData = (
 ) => {
   storage.removeItem(studyAchievementSessionStorageKey(userId));
   storage.removeItem(deferredAchievementStorageKey(userId));
+  storage.removeItem(presentedAchievementStorageKey(userId));
   storage.removeItem(`convo-lab.study-milestones-v1.${encodeURIComponent(userId)}`);
 };
 
@@ -85,6 +92,7 @@ const decodeSession = (
     id: session.id,
     records: session.records,
     baselineAwardIds,
+    baselineKnown: session.baselineKnown !== false,
     newAwardIds,
     isReadyForPresentation: session.isReadyForPresentation === true,
     celebrationPresented: session.celebrationPresented === true,
@@ -128,6 +136,8 @@ export class StudyAchievementSessionStore {
 
   private readonly deferred: StudyDeferredAchievements;
 
+  private readonly presented: StudyPresentedAchievements;
+
   constructor(
     private readonly storage: StudyAchievementSessionStorage,
     private readonly userId: string,
@@ -141,14 +151,19 @@ export class StudyAchievementSessionStore {
           : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
     this.state = loadState(storage, userId);
     this.deferred = new StudyDeferredAchievements(storage, userId);
+    this.presented = new StudyPresentedAchievements(storage, userId);
+    if (this.state.activeSession?.celebrationPresented) {
+      this.presented.acknowledge(this.state.activeSession.newAwardIds);
+    }
   }
 
-  beginReviewSession(currentAwards: AchievementAward[]): string | null {
+  beginReviewSession(currentAwards: AchievementAward[] | null): string | null {
     if (this.state.activeSession?.isReadyForPresentation) return null;
     this.state.activeSession = {
       id: this.createId(),
       records: [],
-      baselineAwardIds: currentAwards.map(({ id }) => id),
+      baselineAwardIds: currentAwards?.map(({ id }) => id) ?? [],
+      baselineKnown: currentAwards !== null,
       newAwardIds: [],
       isReadyForPresentation: false,
       celebrationPresented: false,
@@ -167,6 +182,7 @@ export class StudyAchievementSessionStore {
   }
 
   refreshCurrentSessionBaseline(currentAwards: AchievementAward[]): void {
+    if (this.state.activeSession) this.state.activeSession.baselineKnown = true;
     this.refreshBaselineIds(currentAwards.map(({ id }) => id));
   }
 
@@ -195,6 +211,7 @@ export class StudyAchievementSessionStore {
   prepareInterruptedCompletion(
     currentAwards: AchievementAward[]
   ): StudyAchievementSessionCompletion | null {
+    this.establishMissingBaseline(currentAwards);
     return this.prepareCompletion(currentAwards, true);
   }
 
@@ -220,7 +237,9 @@ export class StudyAchievementSessionStore {
     const session = this.state.activeSession;
     if (!session || session.id !== refresh.sessionId) return null;
     if (session.refreshRevision !== refresh.revision) return null;
+    this.establishMissingBaseline(awards);
     session.refreshCompleted = true;
+    this.refreshBaselineIds(this.presented.read());
     prepareLateAwards(session, awards);
     return this.prepareCompletion(awards, false);
   }
@@ -239,6 +258,7 @@ export class StudyAchievementSessionStore {
     this.deferred.enqueue({
       id: session.id,
       revision: session.refreshRevision,
+      baselineKnown: session.baselineKnown,
       baselineAwardIds: session.celebrationPresented
         ? [...session.baselineAwardIds, ...session.newAwardIds]
         : session.baselineAwardIds,
@@ -248,6 +268,12 @@ export class StudyAchievementSessionStore {
     this.consumeCompletion(reference.id);
   }
 
+  acknowledgeAwards(awardIds: string[]): void {
+    this.presented.acknowledge(awardIds);
+    this.deferred.acknowledge(awardIds);
+    this.refreshBaselineIds(awardIds);
+  }
+
   markCelebrationPresented(reference: SessionReference): void {
     const session = this.state.activeSession;
     if (!session || session.id !== reference.id) {
@@ -255,6 +281,7 @@ export class StudyAchievementSessionStore {
       return;
     }
     session.celebrationPresented = true;
+    this.presented.acknowledge(session.newAwardIds);
     this.deferred.acknowledge(session.newAwardIds);
     session.baselineAwardIds = [...new Set([...session.baselineAwardIds, ...session.newAwardIds])];
     this.persist();
@@ -271,6 +298,7 @@ export class StudyAchievementSessionStore {
     if (!session || session.id !== reference.id) return;
     if (!session.isReadyForPresentation) return;
     session.baselineAwardIds = currentAwards.map(({ id }) => id);
+    session.baselineKnown = true;
     session.newAwardIds = [];
     session.isReadyForPresentation = false;
     session.celebrationPresented = false;
@@ -288,6 +316,14 @@ export class StudyAchievementSessionStore {
     this.persist();
   }
 
+  // A failed initial fetch is unknown history, not an empty award collection.
+  // Seed from the first successful response rather than celebrating old awards.
+  private establishMissingBaseline(awards: AchievementAward[]): void {
+    if (this.state.activeSession?.baselineKnown === false) {
+      this.refreshCurrentSessionBaseline(awards);
+    }
+  }
+
   private prepareCompletion(
     currentAwards: AchievementAward[],
     requireNewAward: boolean
@@ -296,6 +332,7 @@ export class StudyAchievementSessionStore {
     if (!session || session.records.length === 0) return null;
 
     if (!session.isReadyForPresentation || !session.celebrationPresented) {
+      this.refreshBaselineIds(this.presented.read());
       session.newAwardIds = [
         ...new Set([...session.newAwardIds, ...detectAwardIds(session, currentAwards)]),
       ];

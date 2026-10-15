@@ -1,3 +1,4 @@
+import { StudyPresentedAchievements } from './studyPresentedAchievements';
 import type { AchievementAward } from './achievementModel';
 import type {
   StudyAchievementSessionCompletion,
@@ -9,6 +10,7 @@ export interface DeferredAchievementSession {
   id: string;
   revision: number;
   baselineAwardIds: string[];
+  baselineKnown?: boolean;
   newAwardIds: string[];
   needsRefresh: boolean;
 }
@@ -36,6 +38,13 @@ const excludeAwards = (session: DeferredAchievementSession, ids: string[]) => {
 };
 
 const evaluateSession = (session: DeferredAchievementSession, awards: AchievementAward[]) => {
+  if (session.baselineKnown === false) {
+    excludeAwards(
+      session,
+      awards.map(({ id }) => id)
+    );
+    Object.assign(session, { baselineKnown: true });
+  }
   const baseline = new Set(session.baselineAwardIds);
   const detected = awards
     .filter(({ id }) => !baseline.has(id))
@@ -50,11 +59,14 @@ const evaluateSession = (session: DeferredAchievementSession, awards: Achievemen
 export class StudyDeferredAchievements {
   private readonly key: string;
 
+  private readonly presented: StudyPresentedAchievements;
+
   constructor(
     private readonly storage: StudyAchievementSessionStorage,
     userId: string
   ) {
     this.key = deferredAchievementStorageKey(userId);
+    this.presented = new StudyPresentedAchievements(storage, userId);
   }
 
   enqueue(session: DeferredAchievementSession): void {
@@ -65,6 +77,7 @@ export class StudyDeferredAchievements {
     const sessions = this.load();
     const session = sessions.find(({ id }) => id === sessionId);
     if (!session) return;
+    Object.assign(session, { baselineKnown: true });
     excludeAwards(
       session,
       awards.map(({ id }) => id)
@@ -85,6 +98,8 @@ export class StudyDeferredAchievements {
     sessions
       .filter(({ needsRefresh }) => needsRefresh)
       .forEach((session) => evaluateSession(session, awards));
+    const presented = this.presented.read();
+    sessions.forEach((session) => excludeAwards(session, presented));
     this.save(sessions);
     const session = sessions.find(({ newAwardIds }) => newAwardIds.length > 0);
     if (!session) return null;
@@ -104,6 +119,7 @@ export class StudyDeferredAchievements {
 
   markPresented(sessionId: string): string[] {
     const ids = this.load().find(({ id }) => id === sessionId)?.newAwardIds ?? [];
+    this.presented.acknowledge(ids);
     this.acknowledge(ids);
     return ids;
   }
