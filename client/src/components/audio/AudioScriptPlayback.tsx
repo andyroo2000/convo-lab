@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import type { SpeedValue } from '../common/SpeedSelector';
 import { Episode } from '../../types';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
-import useScriptImageRetry from './useScriptImageRetry';
 import useAudioScriptPlaybackUi from './useAudioScriptPlaybackUi';
 import useAudioScriptPlaybackModel from './useAudioScriptPlaybackModel';
 import AudioScriptPlaybackView from './AudioScriptPlaybackView';
@@ -17,15 +16,11 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
   const [selectedSpeed, setSelectedSpeed] = useState<SpeedValue>('0.85x');
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(true);
-  const { imageRetryError, isRetryingImages, retryImages, scriptOverride } = useScriptImageRetry(
-    episode.id
-  );
 
   const {
     activeImageUrl,
     activeSegment,
     activeSegmentIndex,
-    canRetryImages,
     currentUnit,
     displaySegment,
     script,
@@ -36,7 +31,6 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
     currentTime,
     duration,
     episode,
-    scriptOverride,
     selectedSpeed,
   });
   const {
@@ -102,12 +96,7 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
       }}
       activeImage={{
         activeImageUrl,
-        canRetryImages,
         displaySegment,
-        imageRetryError,
-        isRetryingImages,
-        onRetryImages: retryImages,
-        script,
         stickyImageRef,
         top: readerImageTop,
       }}

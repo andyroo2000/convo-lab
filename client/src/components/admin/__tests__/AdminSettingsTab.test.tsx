@@ -15,9 +15,7 @@ vi.mock('../../../lib/adminApi', () => adminApiMocks);
 
 const featureFlags = {
   id: 'flags',
-  dialoguesEnabled: true,
-  scriptsEnabled: true,
-  audioCourseEnabled: true,
+
   flashcardsEnabled: true,
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
@@ -36,7 +34,7 @@ describe('AdminSettingsTab', () => {
     adminApiMocks.getAdminPronunciationDictionary.mockResolvedValue(pronunciationDictionary);
     adminApiMocks.updateAdminFeatureFlag.mockResolvedValue({
       ...featureFlags,
-      scriptsEnabled: false,
+      flashcardsEnabled: false,
     });
     adminApiMocks.updateAdminPronunciationDictionary.mockResolvedValue(pronunciationDictionary);
   });
@@ -46,13 +44,17 @@ describe('AdminSettingsTab', () => {
     const user = userEvent.setup();
     render(<AdminSettingsTab showToast={showToast} />);
 
-    const toggle = await screen.findByRole('checkbox', { name: 'Toggle Script Player' });
+    const toggle = await screen.findByRole('checkbox', { name: 'Toggle Study and Flashcards' });
     await user.click(toggle);
 
     await waitFor(() =>
-      expect(adminApiMocks.updateAdminFeatureFlag).toHaveBeenCalledWith('scriptsEnabled', false, {
-        signal: expect.any(AbortSignal),
-      })
+      expect(adminApiMocks.updateAdminFeatureFlag).toHaveBeenCalledWith(
+        'flashcardsEnabled',
+        false,
+        {
+          signal: expect.any(AbortSignal),
+        }
+      )
     );
     expect(showToast).toHaveBeenCalledWith('Settings updated successfully', 'success');
   });

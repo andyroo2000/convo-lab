@@ -155,9 +155,7 @@ export const mockSpeakerAvatars = [
 
 export const mockFeatureFlags = {
   id: 'flags-1',
-  dialoguesEnabled: true,
-  scriptsEnabled: true,
-  audioCourseEnabled: true,
+
   flashcardsEnabled: true,
   updatedAt: new Date('2024-01-01').toISOString(),
 };

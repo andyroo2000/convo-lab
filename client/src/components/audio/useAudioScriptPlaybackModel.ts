@@ -67,14 +67,6 @@ function selectActiveSegment(script: AudioScript | null | undefined, index: numb
   return script.segments[index] ?? null;
 }
 
-function imagesCanBeRetried(script: AudioScript | null | undefined) {
-  return ['partial', 'error'].includes(script?.imageStatus ?? '');
-}
-
-function chooseScript(scriptOverride: AudioScript | null, episode: Episode) {
-  return scriptOverride ?? episode.audioScript;
-}
-
 function renderSpeed(render: AudioScriptRender | null) {
   return render?.numericSpeed ?? 0.85;
 }
@@ -97,7 +89,6 @@ interface PlaybackModelOptions {
   currentTime: number;
   duration: number;
   episode: Episode;
-  scriptOverride: AudioScript | null;
   selectedSpeed: SpeedValue;
 }
 
@@ -105,10 +96,9 @@ export default function useAudioScriptPlaybackModel({
   currentTime,
   duration,
   episode,
-  scriptOverride,
   selectedSpeed,
 }: PlaybackModelOptions) {
-  const script = chooseScript(scriptOverride, episode);
+  const script = episode.audioScript;
   const readyRenders = useMemo(() => readyScriptRenders(script), [script]);
   const warmedUrls = resolveScriptAudioUrls(episode.id, readyRenders);
   useWarmAudioCache(warmedUrls, Boolean(warmedUrls.length));
@@ -138,7 +128,6 @@ export default function useAudioScriptPlaybackModel({
     activeImageUrl: getSegmentImageUrl(displaySegment),
     activeSegment,
     activeSegmentIndex,
-    canRetryImages: imagesCanBeRetried(script),
     currentUnit,
     displaySegment,
     script,

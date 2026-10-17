@@ -71,9 +71,7 @@ export interface AdminSpeakerAvatarMutationResult {
 
 export interface AdminFeatureFlags {
   id: string;
-  dialoguesEnabled: boolean;
-  scriptsEnabled: boolean;
-  audioCourseEnabled: boolean;
+
   flashcardsEnabled: boolean;
   updatedAt: string;
 }
