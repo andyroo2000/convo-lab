@@ -119,6 +119,24 @@ describe('reading position synchronization', () => {
     expect(readPending(key)).not.toBeNull();
   });
 
+  it('restores from the server while preserving corrupt local bytes for recovery', async () => {
+    localStorage.setItem(key, '{broken');
+    const { sync, update } = session();
+    await sync.restore();
+    expect(update).toHaveBeenLastCalledWith({ pageIndex: 1, selected: 1 });
+    expect(localStorage.getItem(key)).toBeNull();
+    expect(Object.keys(localStorage).some((name) => name.startsWith(`${key}:recovery:`))).toBe(
+      true
+    );
+  });
+
+  it('clears sentence selection when content revision changed', () => {
+    expect(restorePosition(reading, { ...remote, readingRevision: 2 })).toEqual({
+      pageIndex: 1,
+      selected: null,
+    });
+  });
+
   it('drops a sentence selection that no longer belongs to the restored page', () => {
     expect(restorePosition(reading, { ...remote, sentenceIndex: 0 })).toEqual({
       pageIndex: 1,

@@ -13,20 +13,37 @@ export function positionKey(userId: string, readingId: string) {
   return `reading-position:${userId}:${readingId}`;
 }
 
+function validPosition(value: Partial<ReadingPosition>) {
+  const sentenceValid = value.sentenceIndex === null || Number.isInteger(value.sentenceIndex);
+  return [
+    typeof value.readingId === 'string',
+    typeof value.eventId === 'string',
+    Boolean(value.eventId),
+    Number.isInteger(value.readingRevision),
+    Number(value.readingRevision) > 0,
+    Number.isInteger(value.pageNumber),
+    Number.isFinite(Date.parse(value.readAt ?? '')),
+    sentenceValid,
+  ].every(Boolean);
+}
+
 export function readPending(key: string): ReadingPosition | null {
   const raw = localStorage.getItem(key);
   if (!raw) return null;
-  const value = JSON.parse(raw) as ReadingPosition;
-  if (
-    [
-      !value.eventId,
-      !Number.isInteger(value.pageNumber),
-      !Number.isFinite(Date.parse(value.readAt)),
-    ].some(Boolean)
-  ) {
-    throw new Error('The saved reading position could not be read.');
+  try {
+    const value = JSON.parse(raw) as ReadingPosition;
+    if (!validPosition(value)) throw new Error('Invalid saved position');
+    return value;
+  } catch {
+    // Keep the unreadable bytes for recovery without blocking the server restore.
+    try {
+      localStorage.setItem(`${key}:recovery:${Date.now()}`, raw);
+      localStorage.removeItem(key);
+    } catch {
+      /* A full browser store must not prevent reading. */
+    }
+    return null;
   }
-  return value;
 }
 
 export function acknowledgePosition(key: string, eventId: string) {
@@ -45,6 +62,10 @@ export function restorePosition(reading: ReadingDetail, position: ReadingPositio
   const pageIndex = Math.max(0, found);
   return {
     pageIndex,
-    selected: sentenceOnPage(reading, pageIndex, position?.sentenceIndex ?? null),
+    selected: sentenceOnPage(
+      reading,
+      pageIndex,
+      position?.readingRevision === reading.revision ? (position?.sentenceIndex ?? null) : null
+    ),
   };
 }
