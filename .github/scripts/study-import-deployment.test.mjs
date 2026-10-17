@@ -466,5 +466,7 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   const apiFallback = router.indexOf('location ~ ^/api/ {');
   assert.ok(apiFallback > router.indexOf('location ~ ^/api/daily-audio-practice'));
   assert.ok(apiFallback < router.indexOf('location / {'));
-  assert.match(router.slice(apiFallback, router.indexOf('}', apiFallback)), /return 404;/);
+  const fallbackBlock = router.slice(apiFallback, router.indexOf('location / {', apiFallback));
+  assert.match(fallbackBlock, /default_type application\/json;/);
+  assert.ok(fallbackBlock.includes(`return 404 '{"message":"Not found"}';`));
 });
