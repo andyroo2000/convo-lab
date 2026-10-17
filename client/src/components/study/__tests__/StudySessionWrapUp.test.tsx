@@ -43,7 +43,7 @@ const presentationCard = (overrides: { label: string | null; meaning: string | n
   }) as StudyCardSummary;
 
 describe('StudySessionWrapUp', () => {
-  it('keeps Done enabled while achievements update in the background', () => {
+  it('allows leaving the completed review summary immediately', () => {
     const onDone = vi.fn();
     render(
       <StudySessionWrapUp
@@ -55,15 +55,12 @@ describe('StudySessionWrapUp', () => {
           burnedCountChange: 0,
         }}
         caughtUp
-        achievements={[]}
-        isFinalizing
         onPractice={vi.fn()}
         onDone={onDone}
       />
     );
     const done = screen.getByRole('button', { name: 'Done' });
     expect(done).toBeEnabled();
-    expect(screen.getByRole('status')).toHaveTextContent('You can leave now.');
     fireEvent.click(done);
     expect(onDone).toHaveBeenCalledTimes(1);
   });
@@ -85,8 +82,6 @@ describe('StudySessionWrapUp', () => {
           burnedCountChange: 0,
         }}
         caughtUp
-        achievements={[]}
-        isFinalizing={false}
         onPractice={vi.fn()}
         onDone={vi.fn()}
       />

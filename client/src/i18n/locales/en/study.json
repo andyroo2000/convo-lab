@@ -47,36 +47,7 @@
     "misses_other": "{{count}} misses",
     "cardFallback": "Study card",
     "done": "Done",
-    "finalizing": "Finalizing…",
-    "achievementsUpdating": "Achievements are updating in the background. You can leave now."
-  },
-  "achievements": {
-    "skip": "Skip",
-    "skipAll": "Skip all",
-    "kicker": "Achievements",
-    "heading": "Your roar is growing",
-    "earned": "Achievement earned",
-    "earnedThisSession": "Earned this session",
-    "new": "New",
-    "next": "Next",
-    "continue": "Continue",
-    "replay": "Replay",
-    "nextUp": "Next up",
-    "more": "{{formattedCount}} more {{unit}}",
-    "startWith": "Start with {{formattedCount}} {{unit}}",
-    "units": {
-      "cards_one": "card",
-      "cards_other": "cards",
-      "reviews_one": "review",
-      "reviews_other": "reviews",
-      "hours_one": "hour",
-      "hours_other": "hours"
-    },
-    "noEarned": "Your earned badges will appear here.",
-    "loading": "Loading achievements…",
-    "error": "The badge cabinet couldn’t be opened right now.",
-    "progressError": "Your badges are here, but current progress could not be refreshed.",
-    "retry": "Try again"
+    "finalizing": "Finalizing…"
   },
   "practice": {
     "title": "Practice only",

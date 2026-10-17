@@ -1,11 +1,6 @@
 import type { StudyOverview } from '@languageflow/shared/src/types';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 
-import type { AchievementAward } from '../components/study/achievementModel';
-import type {
-  StudyAchievementSessionCompletion,
-  StudyAchievementSessionStore,
-} from '../components/study/studyAchievementSessionModel';
 import type { StudySessionReviewRecord } from '../components/study/studySessionWrapUpModel';
 import type { StudyReviewRequestGuard } from './studyReviewRequestGuard';
 import type { StudyUndoAction, StudyUndoSnapshot } from './studyReviewSessionUtils';
@@ -15,49 +10,23 @@ interface StudyReviewUndoResult {
 }
 
 export interface StudyReviewUndoContext {
-  achievementAwards: AchievementAward[];
-  achievementCompletion: StudyAchievementSessionCompletion | null;
-  achievementCompletionRequestIdRef: MutableRefObject<number>;
-  achievementSessionStore: StudyAchievementSessionStore | null;
-  activeAchievementCompletionRequestRef: MutableRefObject<number | null>;
   blocked: boolean;
   popUndo: () => StudyUndoAction | undefined;
   pushUndo: (action: StudyUndoAction) => void;
   requestGuardRef: MutableRefObject<StudyReviewRequestGuard>;
   restoreUndoSnapshot: (snapshot: StudyUndoSnapshot) => void;
   sessionEpochRef: MutableRefObject<number>;
-  setAchievementCelebrationPresented: Dispatch<SetStateAction<boolean>>;
-  setAchievementCompletion: Dispatch<SetStateAction<StudyAchievementSessionCompletion | null>>;
-  setAchievementCompletionRefreshPending: Dispatch<SetStateAction<boolean>>;
-  setCurrentAchievementIndex: Dispatch<SetStateAction<number>>;
   setSessionError: Dispatch<SetStateAction<string | null>>;
   setSessionReviewRecords: Dispatch<SetStateAction<StudySessionReviewRecord[]>>;
   setSessionWasEnded: Dispatch<SetStateAction<boolean>>;
   setUndoPending: Dispatch<SetStateAction<boolean>>;
   stopAllAudio: () => void;
-  invalidateAchievementProgress: () => void;
   syncOverview: (overview: StudyOverview) => void;
-  undoAchievementReview: (reviewLogId: string) => void;
   undoReview: (reviewLogId: string) => Promise<StudyReviewUndoResult>;
 }
 
 const isCurrentSession = (context: StudyReviewUndoContext, expectedEpoch: number) =>
   context.sessionEpochRef.current === expectedEpoch;
-
-const reopenAchievementCompletion = (context: StudyReviewUndoContext) => {
-  if (!context.achievementCompletion) return;
-  context.achievementCompletionRequestIdRef.current += 1;
-  context.activeAchievementCompletionRequestRef.current = null;
-  context.setAchievementCompletionRefreshPending(false);
-  context.achievementSessionStore?.reopenCompletion(
-    context.achievementCompletion,
-    context.achievementAwards
-  );
-  context.setSessionWasEnded(false);
-  context.setAchievementCompletion(null);
-  context.setCurrentAchievementIndex(0);
-  context.setAchievementCelebrationPresented(false);
-};
 
 const applyPersistedUndo = (
   context: StudyReviewUndoContext,
@@ -69,10 +38,7 @@ const applyPersistedUndo = (
   context.setSessionReviewRecords((current) =>
     current.filter((record) => record.id !== action.reviewLogId)
   );
-  reopenAchievementCompletion(context);
-  context.undoAchievementReview(action.reviewLogId);
-  // Batch expensive projection rebuilds at completion or focus-mode exit.
-  context.invalidateAchievementProgress();
+  context.setSessionWasEnded(false);
 };
 
 const runPersistedUndo = async (

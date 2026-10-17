@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -14,10 +13,7 @@ import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewCardSurface from '../components/study/StudyReviewCardSurface';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
-import {
-  StudyAchievementAwardView,
-  StudyAchievementSpotlight,
-} from '../components/study/StudyAchievementViews';
+
 import { StudyLessonPhase } from '../components/study/StudyLessonViews';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useStudyOverview } from '../hooks/useStudy';
@@ -123,16 +119,6 @@ const useLessonPreview = ({
   };
 };
 
-const useReviewViewTransition = () =>
-  useCallback((update: () => void) => {
-    const startViewTransition = document.startViewTransition?.bind(document);
-    if (!startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      update();
-      return;
-    }
-    startViewTransition(() => flushSync(update));
-  }, []);
-
 const StudyDisabled = () => {
   const { t } = useTranslation('study');
   return (
@@ -193,8 +179,7 @@ const StudyReviewActionButtons = ({
   );
 };
 
-const hideFocusHeader = (reviewSession: StudyReviewSession, showingAchievementAward: boolean) => {
-  if (showingAchievementAward) return true;
+const hideFocusHeader = (reviewSession: StudyReviewSession) => {
   if (reviewSession.reviewSessionComplete) return true;
   return reviewSession.practiceComplete;
 };
@@ -209,15 +194,13 @@ const StudyFocusHeader = ({
   navigate,
   reviewSession,
   runBackgroundTask,
-  showingAchievementAward,
 }: {
   navigate: Navigate;
   reviewSession: StudyReviewSession;
   runBackgroundTask: BackgroundTaskRunner;
-  showingAchievementAward: boolean;
 }) => {
   const { t } = useTranslation('study');
-  if (hideFocusHeader(reviewSession, showingAchievementAward)) return null;
+  if (hideFocusHeader(reviewSession)) return null;
   return (
     <StudyReviewHeader
       progress={reviewSession.sessionProgress}
@@ -233,30 +216,6 @@ const StudyFocusHeader = ({
       }
       onExit={reviewSession.endReviewSession}
       exitLabel={reviewSession.practiceMode ? t('practice.back') : undefined}
-    />
-  );
-};
-
-const StudyAchievementAward = ({
-  reviewSession,
-  runViewTransition,
-}: {
-  reviewSession: StudyReviewSession;
-  runViewTransition: (update: () => void) => void;
-}) => {
-  if (!reviewSession.currentAchievement) return null;
-  return (
-    <StudyAchievementAwardView
-      onSkip={reviewSession.advanceAchievement}
-      onSkipAll={reviewSession.skipAllAchievements}
-      achievements={reviewSession.completionAchievements}
-      currentIndex={reviewSession.currentAchievementIndex}
-      onContinue={() => {
-        const showingLastAchievement =
-          reviewSession.currentAchievementIndex + 1 >= reviewSession.completionAchievements.length;
-        if (showingLastAchievement) runViewTransition(reviewSession.advanceAchievement);
-        else reviewSession.advanceAchievement();
-      }}
     />
   );
 };
@@ -292,17 +251,15 @@ const StudyLessonContent = ({
   lessonPreview,
   reviewSession,
   runBackgroundTask,
-  showingAchievementAward,
 }: {
   lessonPreview: ReturnType<typeof useLessonPreview>;
   reviewSession: StudyReviewSession;
   runBackgroundTask: BackgroundTaskRunner;
-  showingAchievementAward: boolean;
 }) => {
   const { t } = useTranslation('study');
   return (
     <StudyLessonPhase
-      active={!showingAchievementAward}
+      active
       complete={{
         anotherBatchLabel: t('lesson.anotherBatch'),
         description: t('lesson.completeDescription'),
@@ -352,7 +309,6 @@ const StudyFocusedCard = ({
   onDelete,
   reviewSession,
   runBackgroundTask,
-  showingAchievementAward,
   showGradeTray,
   showQuizSurface,
 }: {
@@ -364,7 +320,6 @@ const StudyFocusedCard = ({
   onDelete: () => void;
   reviewSession: StudyReviewSession;
   runBackgroundTask: BackgroundTaskRunner;
-  showingAchievementAward: boolean;
   showGradeTray: boolean;
   showQuizSurface: boolean;
 }) => {
@@ -399,7 +354,7 @@ const StudyFocusedCard = ({
           : reviewSession.updateCardErrorMessage
       }
       updatePending={reviewSession.updateCardMutation.isPending}
-      visible={!showingAchievementAward && showQuizSurface && !reviewSession.reviewSessionComplete}
+      visible={showQuizSurface && !reviewSession.reviewSessionComplete}
     />
   );
 };
@@ -440,13 +395,10 @@ const StudyDeleteConfirm = ({
   );
 };
 
-const isGradeTrayVisible = (
-  reviewSession: StudyReviewSession,
-  showingAchievementAward: boolean
-) => {
+const isGradeTrayVisible = (reviewSession: StudyReviewSession) => {
   if (!reviewSession.revealed) return false;
   if (reviewSession.editing) return false;
-  return !showingAchievementAward;
+  return true;
 };
 
 const isDisplayedCardRevealed = (reviewSession: StudyReviewSession) => {
@@ -459,10 +411,7 @@ const isQuizSurfaceVisible = (reviewSession: StudyReviewSession) => {
   return reviewSession.masteryAnimation !== null;
 };
 
-const showMasteryFeedback = (showingAchievementAward: boolean, showQuizSurface: boolean) => {
-  if (showingAchievementAward) return false;
-  return showQuizSurface;
-};
+const showMasteryFeedback = (showQuizSurface: boolean) => showQuizSurface;
 
 const StudyFocusExperience = ({
   capabilitiesQuery,
@@ -473,9 +422,6 @@ const StudyFocusExperience = ({
   onOpenDeleteConfirm,
   reviewSession,
   runBackgroundTask,
-  runViewTransition,
-  setLandingAchievementId,
-  setSessionNewAchievementIds,
 }: {
   capabilitiesQuery: ReturnType<typeof useStudyCapabilities>;
   isDeleteConfirmOpen: boolean;
@@ -485,12 +431,8 @@ const StudyFocusExperience = ({
   onOpenDeleteConfirm: () => void;
   reviewSession: StudyReviewSession;
   runBackgroundTask: BackgroundTaskRunner;
-  runViewTransition: (update: () => void) => void;
-  setLandingAchievementId: React.Dispatch<React.SetStateAction<string | null>>;
-  setSessionNewAchievementIds: React.Dispatch<React.SetStateAction<string[]>>;
 }) => {
-  const showingAchievementAward = reviewSession.currentAchievement !== null;
-  const showGradeTray = isGradeTrayVisible(reviewSession, showingAchievementAward);
+  const showGradeTray = isGradeTrayVisible(reviewSession);
   const displayedCard = reviewSession.masteryAnimation?.card ?? reviewSession.currentCard;
   const displayedCardIsRevealed = isDisplayedCardRevealed(reviewSession);
   const showQuizSurface = isQuizSurfaceVisible(reviewSession);
@@ -512,17 +454,9 @@ const StudyFocusExperience = ({
               navigate={navigate}
               reviewSession={reviewSession}
               runBackgroundTask={runBackgroundTask}
-              showingAchievementAward={showingAchievementAward}
             />
-            <StudyAchievementAward
-              reviewSession={reviewSession}
-              runViewTransition={runViewTransition}
-            />
-            <StudyPracticeBanner
-              reviewSession={reviewSession}
-              showingAchievementAward={showingAchievementAward}
-            />
-            {showMasteryFeedback(showingAchievementAward, showQuizSurface) ? (
+            <StudyPracticeBanner reviewSession={reviewSession} />
+            {showMasteryFeedback(showQuizSurface) ? (
               <div className="mastery-feedback-lane" data-testid="mastery-feedback-lane">
                 <StudyMasteryFeedback reviewSession={reviewSession} />
               </div>
@@ -531,22 +465,13 @@ const StudyFocusExperience = ({
               lessonPreview={lessonPreview}
               reviewSession={reviewSession}
               runBackgroundTask={runBackgroundTask}
-              showingAchievementAward={showingAchievementAward}
             />
             <StudyFocusSessionStatus
               displayedCard={displayedCard}
               masteryAnimationActive={Boolean(reviewSession.masteryAnimation)}
-              onFinishReview={() => {
-                const newest = [...reviewSession.completionAchievements].reverse()[0] ?? null;
-                setLandingAchievementId(newest?.id ?? null);
-                setSessionNewAchievementIds(
-                  reviewSession.completionAchievements.map(({ id }) => id)
-                );
-                runViewTransition(reviewSession.finishReviewSession);
-              }}
+              onFinishReview={reviewSession.finishReviewSession}
               reviewSession={reviewSession}
               runBackgroundTask={runBackgroundTask}
-              showingAchievementAward={showingAchievementAward}
               showQuizSurface={showQuizSurface}
             />
             <StudyFocusedCard
@@ -556,7 +481,6 @@ const StudyFocusExperience = ({
               onDelete={onOpenDeleteConfirm}
               reviewSession={reviewSession}
               runBackgroundTask={runBackgroundTask}
-              showingAchievementAward={showingAchievementAward}
               showGradeTray={showGradeTray}
               showQuizSurface={showQuizSurface}
             />
@@ -575,20 +499,16 @@ const StudyFocusExperience = ({
 
 const StudyDashboard = ({
   capabilitiesQuery,
-  landingAchievementId,
   lessonPreview,
   overviewQuery,
   reviewSession,
   runBackgroundTask,
-  sessionNewAchievementIds,
 }: {
   capabilitiesQuery: ReturnType<typeof useStudyCapabilities>;
-  landingAchievementId: string | null;
   lessonPreview: ReturnType<typeof useLessonPreview>;
   overviewQuery: ReturnType<typeof useStudyOverview>;
   reviewSession: StudyReviewSession;
   runBackgroundTask: BackgroundTaskRunner;
-  sessionNewAchievementIds: string[];
 }) => {
   const availableCount =
     (overviewQuery.data?.failedDueCount ?? 0) + (overviewQuery.data?.dueCount ?? 0);
@@ -616,14 +536,6 @@ const StudyDashboard = ({
           });
         }}
         isStartingSession={reviewSession.sessionLoading}
-        recentMilestones={
-          <StudyAchievementSpotlight
-            initialCatalog={reviewSession.achievementCatalog}
-            initialProgress={reviewSession.achievementProgress}
-            landingAchievementId={landingAchievementId}
-            newAchievementIds={sessionNewAchievementIds}
-          />
-        }
       />
     </>
   );
@@ -640,8 +552,6 @@ const StudyPage = () => {
   const { start: startActivity, stop: stopActivity } = useStudyActivityActions();
   const runBackgroundTask = useStudyBackgroundTask();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [landingAchievementId, setLandingAchievementId] = useState<string | null>(null);
-  const [sessionNewAchievementIds, setSessionNewAchievementIds] = useState<string[]>([]);
   const startReviewTimer = useCallback(
     () =>
       startActivity({
@@ -653,7 +563,6 @@ const StudyPage = () => {
   );
   const stopReviewTimer = useCallback(() => stopActivity('card_review'), [stopActivity]);
   useAutomaticStudyActivity(reviewSession.focusMode, startReviewTimer, stopReviewTimer);
-  const runViewTransition = useReviewViewTransition();
   const lessonPreview = useLessonPreview({
     enabled,
     lessonCohortId: searchParams.get('lessonCohortId'),
@@ -675,21 +584,16 @@ const StudyPage = () => {
         onOpenDeleteConfirm={() => setIsDeleteConfirmOpen(true)}
         reviewSession={reviewSession}
         runBackgroundTask={runBackgroundTask}
-        runViewTransition={runViewTransition}
-        setLandingAchievementId={setLandingAchievementId}
-        setSessionNewAchievementIds={setSessionNewAchievementIds}
       />
     );
   }
   return (
     <StudyDashboard
       capabilitiesQuery={capabilitiesQuery}
-      landingAchievementId={landingAchievementId}
       lessonPreview={lessonPreview}
       overviewQuery={overviewQuery}
       reviewSession={reviewSession}
       runBackgroundTask={runBackgroundTask}
-      sessionNewAchievementIds={sessionNewAchievementIds}
     />
   );
 };

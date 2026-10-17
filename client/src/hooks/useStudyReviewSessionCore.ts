@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { StudyCardSummary, StudyOverview } from '@languageflow/shared/src/types';
+import { getCachedStudyOverview } from './studyReviewSessionOrchestration';
 
-import { useAuth } from '../contexts/AuthContext';
-import useStudyAchievementReviewSession from './useStudyAchievementReviewSession';
-import useStudyAchievementSync from './useStudyAchievementSync';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
-import useStudyInterruptedAchievementRecovery from './useStudyInterruptedAchievementRecovery';
+
 import useStudyReviewSessionDerivedState from './useStudyReviewSessionDerivedState';
 import useStudyReviewSessionState, { isStudyReviewBusy } from './useStudyReviewSessionState';
 import useStudySessionLoader from './useStudySessionLoader';
@@ -18,14 +16,8 @@ import {
   useSubmitStudyReview,
   useUpdateStudyCard,
 } from './useStudy';
-import {
-  getAchievementAwards,
-  getCachedStudyOverview,
-  getStudyUserId,
-} from './studyReviewSessionOrchestration';
 
 const useStudyReviewSessionBase = () => {
-  const userId = getStudyUserId(useAuth().user);
   const queryClient = useQueryClient();
   const reviewMutation = useSubmitStudyReview();
   const cardActionMutation = useStudyCardAction();
@@ -63,55 +55,15 @@ const useStudyReviewSessionBase = () => {
     state,
     syncOverview,
     updateCardMutation,
-    userId,
     ...sessionLoader,
   };
 };
 
 type StudyReviewSessionBase = ReturnType<typeof useStudyReviewSessionBase>;
 
-const useStudyReviewSessionAchievements = (base: StudyReviewSessionBase) => {
-  const syncState = useStudyAchievementSync();
-  const { refreshInvalidatedAchievements } = syncState;
-  const {
-    runBackgroundTask,
-    state: { focusMode },
-  } = base;
-  useEffect(() => {
-    if (focusMode) return;
-    // Also reconcile sessions where every review was undone and no wrap-up is shown.
-    runBackgroundTask(refreshInvalidatedAchievements, {
-      label: 'Study deferred achievement refresh',
-    });
-  }, [focusMode, refreshInvalidatedAchievements, runBackgroundTask]);
-  const sessionState = useStudyAchievementReviewSession({
-    achievementProgress: syncState.achievementProgress,
-    hasFreshAchievementProgress: syncState.hasFreshAchievementProgress,
-    runBackgroundTask: base.runBackgroundTask,
-    syncAchievements: syncState.syncAchievements,
-    userId: base.userId,
-  });
-
-  return {
-    achievementAwards: getAchievementAwards(syncState.achievementProgress),
-    ...sessionState,
-    ...syncState,
-  };
-};
-
-type StudyReviewSessionAchievements = ReturnType<typeof useStudyReviewSessionAchievements>;
-
-const useStudyReviewSessionPresentation = (
-  base: StudyReviewSessionBase,
-  achievements: StudyReviewSessionAchievements
-) => {
+const useStudyReviewSessionPresentation = (base: StudyReviewSessionBase) => {
   const presentation = useStudyReviewSessionDerivedState({
-    achievementCatalog: achievements.achievementCatalog,
-    achievementCelebrationPresented: base.state.achievementCelebrationPresented,
-    achievementCompletion: base.state.achievementCompletion,
-    achievementProgress: achievements.achievementProgress,
     answeredCardIds: base.state.answeredCardIds,
-    currentAchievementIndex: base.state.currentAchievementIndex,
     currentIndex: base.state.currentIndex,
     focusMode: base.state.focusMode,
     practiceCards: base.state.practiceCards,
@@ -136,10 +88,7 @@ const useStudyReviewSessionPresentation = (
   };
 };
 
-const useStudyReviewSessionCoreLifecycle = (
-  base: StudyReviewSessionBase,
-  achievements: StudyReviewSessionAchievements
-) => {
+const useStudyReviewSessionCoreLifecycle = (base: StudyReviewSessionBase) => {
   const { state } = base;
   useEffect(() => {
     state.answeredCardIdsRef.current = new Set(state.answeredCardIds);
@@ -147,29 +96,7 @@ const useStudyReviewSessionCoreLifecycle = (
   useEffect(() => {
     state.canSurfaceAsyncSessionErrorRef.current = state.focusMode;
   }, [state.canSurfaceAsyncSessionErrorRef, state.focusMode]);
-  useStudyInterruptedAchievementRecovery({
-    achievementSessionStore: achievements.achievementSessionStore,
-    canSurfaceAsyncSessionErrorRef: state.canSurfaceAsyncSessionErrorRef,
-    sessionEpochRef: state.sessionEpochRef,
-    setAchievementCelebrationPresented: state.setAchievementCelebrationPresented,
-    setAchievementCompletion: state.setAchievementCompletion,
-    setCurrentAchievementIndex: state.setCurrentAchievementIndex,
-    setCurrentIndex: state.setCurrentIndex,
-    setEditing: state.setEditing,
-    setFocusMode: state.setFocusMode,
-    setLessonPhase: state.setLessonPhase,
-    setMasteryAnimation: state.setMasteryAnimation,
-    setRevealed: state.setRevealed,
-    setReviewConflictRecovered: state.setReviewConflictRecovered,
-    setSession: state.setSession,
-    setSessionError: state.setSessionError,
-    setSessionKind: state.setSessionKind,
-    setSessionLoading: state.setSessionLoading,
-    setSessionReviewRecords: state.setSessionReviewRecords,
-    setSessionWasEnded: state.setSessionWasEnded,
-    setShowSetDueControls: state.setShowSetDueControls,
-    syncAchievements: achievements.syncAchievements,
-  });
+
   useEffect(
     () => () => {
       state.sessionEpochRef.current += 1;
@@ -182,10 +109,9 @@ const useStudyReviewSessionCoreLifecycle = (
 
 const useStudyReviewSessionCore = () => {
   const base = useStudyReviewSessionBase();
-  const achievements = useStudyReviewSessionAchievements(base);
-  const presentation = useStudyReviewSessionPresentation(base, achievements);
-  useStudyReviewSessionCoreLifecycle(base, achievements);
-  return { ...achievements, ...base, ...presentation };
+  const presentation = useStudyReviewSessionPresentation(base);
+  useStudyReviewSessionCoreLifecycle(base);
+  return { ...base, ...presentation };
 };
 
 export type StudyReviewSessionCore = ReturnType<typeof useStudyReviewSessionCore>;

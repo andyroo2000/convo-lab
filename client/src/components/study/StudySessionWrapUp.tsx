@@ -4,14 +4,10 @@ import { useTranslation } from 'react-i18next';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import type { StudySessionWrapUpSummary } from './studySessionWrapUpModel';
 import { getStudyCardDisplayLabel, getStudyCardDisplayMeaning } from './studyCardUtils';
-import { AchievementBadgeCard } from './StudyAchievementViews';
-import type { PresentedAchievement } from './achievementModel';
 
 interface StudySessionWrapUpProps {
   summary: StudySessionWrapUpSummary;
   caughtUp: boolean;
-  achievements: PresentedAchievement[];
-  isFinalizing: boolean;
   onPractice: (cards: StudyCardSummary[]) => void;
   onDone: () => void;
 }
@@ -19,56 +15,16 @@ interface StudySessionWrapUpProps {
 const formatSeconds = (durationMs: number) =>
   `${Math.max(1, Math.round(durationMs / 1000)).toLocaleString()} sec`;
 
-const StudyWrapUpDone = ({
-  isFinalizing,
-  onDone,
-}: Pick<StudySessionWrapUpProps, 'isFinalizing' | 'onDone'>) => {
+const StudyWrapUpDone = ({ onDone }: Pick<StudySessionWrapUpProps, 'onDone'>) => {
   const { t } = useTranslation('study');
   return (
-    <>
-      {isFinalizing ? (
-        <p className="text-center text-sm text-gray-500" role="status">
-          {t('wrapUp.achievementsUpdating')}
-        </p>
-      ) : null}
-      <button type="button" onClick={onDone} className="app-button-primary mt-1 w-full">
-        {t('wrapUp.done')}
-      </button>
-    </>
+    <button type="button" onClick={onDone} className="app-button-primary mt-1 w-full">
+      {t('wrapUp.done')}
+    </button>
   );
 };
 
-const StudyWrapUpAchievements = ({
-  achievements,
-}: Pick<StudySessionWrapUpProps, 'achievements'>) => {
-  const { t } = useTranslation('study');
-  if (achievements.length === 0) return null;
-  return (
-    <section className="app-surface p-4" data-testid="study-session-achievements">
-      <h3 className="font-bold text-gray-900">{t('achievements.earnedThisSession')}</h3>
-      <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-        {achievements.map((achievement, index) => (
-          <AchievementBadgeCard
-            key={achievement.id}
-            achievement={achievement}
-            transitionName={index === 0 ? 'achievement-badge-flight' : undefined}
-            isNew
-            suppressShadow
-          />
-        ))}
-      </div>
-    </section>
-  );
-};
-
-const StudySessionWrapUp = ({
-  summary,
-  caughtUp,
-  achievements,
-  isFinalizing,
-  onPractice,
-  onDone,
-}: StudySessionWrapUpProps) => {
+const StudySessionWrapUp = ({ summary, caughtUp, onPractice, onDone }: StudySessionWrapUpProps) => {
   const { t } = useTranslation('study');
   const fallbackCardLabel = t('wrapUp.cardFallback');
   const recall =
@@ -169,9 +125,7 @@ const StudySessionWrapUp = ({
           </section>
         ) : null}
 
-        <StudyWrapUpAchievements achievements={achievements} />
-
-        <StudyWrapUpDone isFinalizing={isFinalizing} onDone={onDone} />
+        <StudyWrapUpDone onDone={onDone} />
       </div>
     </div>
   );

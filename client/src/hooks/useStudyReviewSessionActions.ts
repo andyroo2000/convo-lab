@@ -27,21 +27,9 @@ const useReviewAudioControls = (
 
 const useReviewSessionCompletion = (core: StudyReviewSessionCore) =>
   useStudySessionCompletion({
-    achievementAwards: core.achievementAwards,
-    achievementCompletion: core.state.achievementCompletion,
-    achievementCompletionRequestIdRef: core.state.achievementCompletionRequestIdRef,
-    achievementSessionStore: core.achievementSessionStore,
-    activeAchievementCompletionRequestRef: core.state.activeAchievementCompletionRequestRef,
     masteryAnimation: core.state.masteryAnimation,
     reviewQueueExhausted: core.reviewQueueExhausted,
-    runBackgroundTask: core.runBackgroundTask,
-    sessionEpochRef: core.state.sessionEpochRef,
-    setAchievementCelebrationPresented: core.state.setAchievementCelebrationPresented,
-    setAchievementCompletion: core.state.setAchievementCompletion,
-    setAchievementCompletionRefreshPending: core.state.setAchievementCompletionRefreshPending,
-    setCurrentAchievementIndex: core.state.setCurrentAchievementIndex,
     setSessionWasEnded: core.state.setSessionWasEnded,
-    syncAchievements: core.syncAchievements,
   });
 
 const useReviewGrading = (
@@ -50,9 +38,6 @@ const useReviewGrading = (
 ) =>
   useStudyReviewGrading({
     activeLessonCohortIdRef: core.state.activeLessonCohortIdRef,
-    achievementAwards: core.achievementAwards,
-    achievementSessionBootstrapRef: core.achievementSessionBootstrapRef,
-    achievementSessionStore: core.achievementSessionStore,
     answeredCardIdsRef: core.state.answeredCardIdsRef,
     applyReviewResultToSession: interactions.applyReviewResultToSession,
     autoRefreshEmptySessionRef: core.state.autoRefreshEmptySessionRef,
@@ -68,17 +53,13 @@ const useReviewGrading = (
     practiceMode: core.practiceMode,
     pushUndo: interactions.pushUndo,
     queryClient: core.queryClient,
-    recordAchievementReview: core.recordAchievementReview,
     requestGuardRef: core.state.requestGuardRef,
     resetStudyAudioAutoplayForCard: interactions.resetAutoplayForCard,
     resetUndo: interactions.resetUndo,
     reviewPending: core.reviewMutation.isPending,
     sessionEpochRef: core.state.sessionEpochRef,
     sessionKind: core.state.sessionKind,
-    setAchievementCelebrationPresented: core.state.setAchievementCelebrationPresented,
-    setAchievementCompletion: core.state.setAchievementCompletion,
     setAnsweredCardIds: core.state.setAnsweredCardIds,
-    setCurrentAchievementIndex: core.state.setCurrentAchievementIndex,
     setCurrentIndex: core.state.setCurrentIndex,
     setEditing: core.state.setEditing,
     setLessonPhase: core.state.setLessonPhase,
@@ -95,7 +76,6 @@ const useReviewGrading = (
     setShowSetDueControls: core.state.setShowSetDueControls,
     stopAllAudio: interactions.stopAllAudio,
     submitReview: core.reviewMutation.mutateAsync,
-    syncAchievements: core.syncAchievements,
     syncOverview: core.syncOverview,
     undoPending: core.state.undoPending,
   });

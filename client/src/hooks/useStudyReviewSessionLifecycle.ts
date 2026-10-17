@@ -30,11 +30,7 @@ const useReviewFocusLifecycle = (
     runBackgroundTask: core.runBackgroundTask,
   });
   const focus = useStudyFocusModeLifecycle({
-    activeAchievementCompletionRequestRef: core.state.activeAchievementCompletionRequestRef,
     activeLessonCohortIdRef: core.state.activeLessonCohortIdRef,
-    achievementCompletionRequestIdRef: core.state.achievementCompletionRequestIdRef,
-    achievementSessionBootstrapRef: core.achievementSessionBootstrapRef,
-    achievementSessionStore: core.achievementSessionStore,
     answeredCardIdsRef: core.state.answeredCardIdsRef,
     autoRefreshEmptySessionRef: core.state.autoRefreshEmptySessionRef,
     canSurfaceAsyncSessionErrorRef: core.state.canSurfaceAsyncSessionErrorRef,
@@ -47,11 +43,7 @@ const useReviewFocusLifecycle = (
     resetUndo: interactions.resetUndo,
     runBackgroundTask: core.runBackgroundTask,
     sessionEpochRef: core.state.sessionEpochRef,
-    setAchievementCelebrationPresented: core.state.setAchievementCelebrationPresented,
-    setAchievementCompletion: core.state.setAchievementCompletion,
-    setAchievementCompletionRefreshPending: core.state.setAchievementCompletionRefreshPending,
     setAnsweredCardIds: core.state.setAnsweredCardIds,
-    setCurrentAchievementIndex: core.state.setCurrentAchievementIndex,
     setCurrentIndex: core.state.setCurrentIndex,
     setEditing: core.state.setEditing,
     setFocusMode: core.state.setFocusMode,
@@ -71,7 +63,6 @@ const useReviewFocusLifecycle = (
     setSessionWasEnded: core.state.setSessionWasEnded,
     setShowSetDueControls: core.state.setShowSetDueControls,
     setUndoPending: core.state.setUndoPending,
-    startAchievementReviewSession: core.startAchievementReviewSession,
     stopAllAudio: interactions.stopAllAudio,
   });
   return { ...focus, ...motion };
@@ -93,20 +84,12 @@ const useReviewModeLifecycle = (
     stopAllAudio: interactions.stopAllAudio,
   });
   const wrapUp = useStudyReviewWrapUpActions({
-    achievementCompletion: core.state.achievementCompletion,
-    achievementCompletionRefreshPending: core.state.achievementCompletionRefreshPending,
-    achievementSessionStore: core.achievementSessionStore,
-    completionAchievementCount: core.completionAchievements.length,
-    currentAchievementId: core.currentAchievement?.id ?? null,
-    currentAchievementIndex: core.state.currentAchievementIndex,
     exitFocusMode: focus.exitFocusMode,
     exitPracticeMode: modes.exitPracticeMode,
     practiceMode: core.practiceMode,
     prepareSessionCompletion: actions.prepareSessionCompletion,
     sessionKind: core.state.sessionKind,
     sessionReviewRecordCount: core.state.sessionReviewRecords.length,
-    setAchievementCelebrationPresented: core.state.setAchievementCelebrationPresented,
-    setCurrentAchievementIndex: core.state.setCurrentAchievementIndex,
   });
   return { ...modes, ...wrapUp };
 };

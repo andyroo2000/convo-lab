@@ -9,8 +9,6 @@ const {
   cardActionMutateAsyncMock,
   createStudyReviewRequestMock,
   deleteStudyCardMock,
-  getAchievementCatalogMock,
-  getAchievementProgressMock,
   prepareStudyAnswerAudioMock,
   regenerateStudyAnswerAudioMock,
   reviewMutateAsyncMock,
@@ -24,8 +22,6 @@ const {
   cardActionMutateAsyncMock: vi.fn(),
   createStudyReviewRequestMock: vi.fn(),
   deleteStudyCardMock: vi.fn(),
-  getAchievementCatalogMock: vi.fn(),
-  getAchievementProgressMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   reviewMutateAsyncMock: vi.fn(),
@@ -62,10 +58,6 @@ vi.mock('../useStudy', () => ({
 }));
 
 vi.mock('../../lib/audioCache', () => ({ warmAudioCache: warmAudioCacheMock }));
-vi.mock('../../lib/achievementApi', () => ({
-  getAchievementCatalog: getAchievementCatalogMock,
-  getAchievementProgress: getAchievementProgressMock,
-}));
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'study-review-hook-test-user' } }),
 }));
@@ -111,21 +103,6 @@ const baseCardTwo = {
     expressionReading: '学校[がっこう]',
     meaning: 'school',
   },
-};
-
-const achievementCatalog = {
-  revision: 'test-achievements-v1',
-  presentation: {
-    targetVisibleBadgeCount: 1,
-    fillWithLockedCandidates: true,
-    noDataFallbackTierIds: ['burned.burned100'],
-  },
-  families: [],
-};
-const emptyAchievementProgress = {
-  revision: achievementCatalog.revision,
-  metricValues: { 'mastery.burned': 99 },
-  awards: [],
 };
 
 function createWrapper() {
@@ -205,8 +182,6 @@ describe('useStudyReviewSession answer audio', () => {
       cardActionMutateAsyncMock,
       createStudyReviewRequestMock,
       deleteStudyCardMock,
-      getAchievementCatalogMock,
-      getAchievementProgressMock,
       prepareStudyAnswerAudioMock,
       regenerateStudyAnswerAudioMock,
       reviewMutateAsyncMock,
@@ -260,8 +235,6 @@ describe('useStudyReviewSession answer audio', () => {
       })
     );
     warmAudioCacheMock.mockResolvedValue(undefined);
-    getAchievementCatalogMock.mockResolvedValue(achievementCatalog);
-    getAchievementProgressMock.mockResolvedValue(emptyAchievementProgress);
   });
 
   it('retries answer-audio preparation until a generated URL becomes available', async () => {
@@ -367,73 +340,61 @@ describe('useStudyReviewSession answer audio', () => {
     await settleAudioAfterFocusExit(deferredAudio, result, 'resolve');
   });
 
-  it.each(['success', 'failure'] as const)(
-    'allows rating after undo, audio regeneration, and save while achievements await %s',
-    async (outcome) => {
-      const refresh = createDeferred<typeof emptyAchievementProgress>();
-      createStudyReviewRequestMock.mockImplementation((payload) => payload);
-      reviewMutateAsyncMock.mockResolvedValue({
-        reviewLogId: 'review-1',
-        card: baseCardOne,
-        overview: baseOverview,
-      });
-      undoStudyReviewMock.mockResolvedValue({ overview: baseOverview });
-      updateStudyCardMock.mockImplementation(async (payload) => ({
-        ...baseCardOne,
-        revision: 6,
-        prompt: payload.prompt,
-        answer: payload.answer,
-      }));
-      const { result } = renderHook(() => useStudyReviewSession(), { wrapper: createWrapper() });
-      await act(async () => {
-        await result.current.enterFocusMode();
-      });
-      act(() => result.current.revealCurrentCard());
-      await act(async () => {
-        await result.current.handleGrade('good');
-      });
-      act(() => result.current.setMasteryAnimation(null));
+  it('allows rating after undoing a completed session, regenerating audio, and saving', async () => {
+    createStudyReviewRequestMock.mockImplementation((payload) => payload);
+    reviewMutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-1',
+      card: baseCardOne,
+      overview: baseOverview,
+    });
+    undoStudyReviewMock.mockResolvedValue({ overview: baseOverview });
+    updateStudyCardMock.mockImplementation(async (payload) => ({
+      ...baseCardOne,
+      revision: 6,
+      prompt: payload.prompt,
+      answer: payload.answer,
+    }));
+    const { result } = renderHook(() => useStudyReviewSession(), { wrapper: createWrapper() });
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    act(() => result.current.setMasteryAnimation(null));
 
-      getAchievementProgressMock.mockReturnValue(refresh.promise);
-      act(() => result.current.endReviewSession());
-      await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(2));
-      act(() => {
-        result.current.handleUndo();
+    act(() => result.current.endReviewSession());
+    act(() => {
+      result.current.handleUndo();
+    });
+    await waitFor(() => expect(result.current.currentCard?.id).toBe('card-1'));
+    act(() => result.current.setEditing(true));
+    await act(async () => {
+      const regenerated = await result.current.regenerateCurrentCardAudio({
+        answerAudioVoiceId: 'fishaudio:sato',
+        answerAudioTextOverride: null,
       });
-      await waitFor(() => expect(result.current.currentCard?.id).toBe('card-1'));
-      act(() => result.current.setEditing(true));
-      await act(async () => {
-        const regenerated = await result.current.regenerateCurrentCardAudio({
-          answerAudioVoiceId: 'fishaudio:sato',
-          answerAudioTextOverride: null,
-        });
-        await result.current.saveCurrentCard({
-          prompt: regenerated!.prompt,
-          answer: regenerated!.answer,
-        });
+      await result.current.saveCurrentCard({
+        prompt: regenerated!.prompt,
+        answer: regenerated!.answer,
       });
-      act(() => result.current.revealCurrentCard());
+    });
+    act(() => result.current.revealCurrentCard());
 
-      expect(result.current.undoPending).toBe(false);
-      expect(result.current.reviewBusy).toBe(false);
-      expect(result.current.sessionLoading).toBe(false);
-      expect(result.current.masteryAnimation).toBeNull();
-      await act(async () => {
-        await result.current.handleGrade('good');
-      });
-      expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(2);
-      expect(result.current.currentCard?.id).toBe('card-2');
-      expect(getAchievementProgressMock).toHaveBeenCalledTimes(2);
+    expect(result.current.undoPending).toBe(false);
+    expect(result.current.reviewBusy).toBe(false);
+    expect(result.current.sessionLoading).toBe(false);
+    expect(result.current.masteryAnimation).toBeNull();
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(2);
+    expect(result.current.currentCard?.id).toBe('card-2');
 
-      await act(async () => {
-        if (outcome === 'success') refresh.resolve(emptyAchievementProgress);
-        else refresh.reject(new Error('Achievements unavailable'));
-        await refresh.promise.catch(() => undefined);
-      });
-      expect(result.current.sessionError).toBeNull();
-      expect(result.current.currentCard?.id).toBe('card-2');
-    }
-  );
+    expect(result.current.sessionError).toBeNull();
+    expect(result.current.currentCard?.id).toBe('card-2');
+  });
 
   it('does not surface a stale audio preparation error after focus mode exits', async () => {
     const { deferredAudio, result } = await exitFocusModeWhileAudioIsPending();

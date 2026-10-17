@@ -50,9 +50,6 @@ const makeContext = (
   overrides: Partial<StudyReviewSubmissionContext> = {}
 ): StudyReviewSubmissionContext => ({
   activeLessonCohortIdRef: { current: null },
-  achievementAwards: [],
-  achievementSessionBootstrapRef: { current: null },
-  achievementSessionStore: null,
   answeredCardIdsRef: { current: new Set() },
   applyReviewResultToSession: vi.fn(),
   autoRefreshEmptySessionRef: { current: false },
@@ -66,7 +63,6 @@ const makeContext = (
   pendingReviewOperationRef: { current: operation },
   pushUndo: vi.fn(),
   queryClient: new QueryClient(),
-  recordAchievementReview: vi.fn(),
   requestGuardRef: {
     current: {
       acquire: vi.fn(),
@@ -80,10 +76,7 @@ const makeContext = (
   resetUndo: vi.fn(),
   sessionEpochRef: { current: 0 },
   sessionKind: 'reviews',
-  setAchievementCelebrationPresented: vi.fn(),
-  setAchievementCompletion: vi.fn(),
   setAnsweredCardIds: vi.fn(),
-  setCurrentAchievementIndex: vi.fn(),
   setCurrentIndex: vi.fn(),
   setEditing: vi.fn(),
   setLessonPhase: vi.fn(),
@@ -99,7 +92,6 @@ const makeContext = (
   setShowSetDueControls: vi.fn(),
   stopAllAudio: vi.fn(),
   submitReview: vi.fn().mockResolvedValue(reviewResult),
-  syncAchievements: vi.fn(),
   syncOverview: vi.fn(),
   ...overrides,
 });
@@ -118,9 +110,6 @@ describe('submitStudyReviewOperation', () => {
     expect(context.answeredCardIdsRef.current).toContain(card.id);
     expect(context.pushUndo).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'grade', reviewLogId: 'review-1' })
-    );
-    expect(context.recordAchievementReview).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'review-1', durationMs: 750 })
     );
     expect(context.setReviewSubmitPending).toHaveBeenNthCalledWith(1, true);
     expect(context.setReviewSubmitPending).toHaveBeenLastCalledWith(false);

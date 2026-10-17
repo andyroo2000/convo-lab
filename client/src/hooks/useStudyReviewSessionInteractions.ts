@@ -51,11 +51,6 @@ type StudyReviewSessionMedia = ReturnType<typeof useStudyReviewSessionMedia>;
 
 const useStudyReviewSessionUndo = (core: StudyReviewSessionCore, media: StudyReviewSessionMedia) =>
   useStudyReviewUndoAction({
-    achievementAwards: core.achievementAwards,
-    achievementCompletion: core.state.achievementCompletion,
-    achievementCompletionRequestIdRef: core.state.achievementCompletionRequestIdRef,
-    achievementSessionStore: core.achievementSessionStore,
-    activeAchievementCompletionRequestRef: core.state.activeAchievementCompletionRequestRef,
     answeredCardIdsRef: core.state.answeredCardIdsRef,
     cardActionPending: core.cardActionMutation.isPending,
     editing: core.state.editing,
@@ -67,11 +62,7 @@ const useStudyReviewSessionUndo = (core: StudyReviewSessionCore, media: StudyRev
     reviewPending: core.reviewMutation.isPending,
     sessionEpochRef: core.state.sessionEpochRef,
     sessionLoading: core.state.sessionLoading,
-    setAchievementCelebrationPresented: core.state.setAchievementCelebrationPresented,
-    setAchievementCompletion: core.state.setAchievementCompletion,
-    setAchievementCompletionRefreshPending: core.state.setAchievementCompletionRefreshPending,
     setAnsweredCardIds: core.state.setAnsweredCardIds,
-    setCurrentAchievementIndex: core.state.setCurrentAchievementIndex,
     setCurrentIndex: core.state.setCurrentIndex,
     setRevealed: core.state.setRevealed,
     setSession: core.state.setSession,
@@ -81,9 +72,7 @@ const useStudyReviewSessionUndo = (core: StudyReviewSessionCore, media: StudyRev
     setShowSetDueControls: core.state.setShowSetDueControls,
     setUndoPending: core.state.setUndoPending,
     stopAllAudio: media.stopAllAudio,
-    invalidateAchievementProgress: core.invalidateAchievementProgress,
     syncOverview: core.syncOverview,
-    undoAchievementReview: core.undoAchievementReview,
     undoPending: core.state.undoPending,
   });
 

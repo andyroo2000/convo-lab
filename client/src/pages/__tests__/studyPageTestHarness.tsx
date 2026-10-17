@@ -41,8 +41,6 @@ const {
   featureFlagsLoading,
   masteryAnimationFinishesImmediately,
   reviewMutationError,
-  getAchievementCatalogMock,
-  getAchievementProgressMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudyLessonMock: vi.fn(),
@@ -82,8 +80,6 @@ const {
   featureFlagsLoading: { current: false },
   masteryAnimationFinishesImmediately: { current: true },
   reviewMutationError: { current: null as Error | null },
-  getAchievementCatalogMock: vi.fn(),
-  getAchievementProgressMock: vi.fn(),
 }));
 
 export const getStudyPageTestState = () => ({
@@ -92,8 +88,6 @@ export const getStudyPageTestState = () => ({
   deleteStudyCardMock,
   featureFlagsData,
   featureFlagsLoading,
-  getAchievementCatalogMock,
-  getAchievementProgressMock,
   masteryAnimationFinishesImmediately,
   mutateAsyncMock,
   prepareStudyAnswerAudioMock,
@@ -113,17 +107,6 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
     flags: featureFlagsData.current,
     isLoading: featureFlagsLoading.current,
     isFeatureEnabled: () => true,
-  }),
-}));
-
-vi.mock('../../hooks/useAchievements', () => ({
-  default: () => ({
-    catalog: null,
-    progress: null,
-    loading: true,
-    error: null,
-    progressError: null,
-    retry: vi.fn(),
   }),
 }));
 
@@ -172,11 +155,6 @@ vi.mock('../../hooks/useStudy', () => ({
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   undoStudyReview: undoStudyReviewMock,
-}));
-
-vi.mock('../../lib/achievementApi', () => ({
-  getAchievementCatalog: getAchievementCatalogMock,
-  getAchievementProgress: getAchievementProgressMock,
 }));
 
 vi.mock('../../components/study/studyTimeZoneUtils', () => ({
@@ -281,58 +259,8 @@ export class MockDeviceMotionEvent extends Event {
   }
 }
 
-const pageAchievementAssets = {
-  earned: {
-    png: {
-      '256': { path: '/achievement-assets/burned-256.png', width: 256, height: 256 },
-      '512': { path: '/achievement-assets/burned-512.png', width: 512, height: 512 },
-    },
-  },
-  locked: {
-    png: {
-      '256': { path: '/achievement-assets/burned-locked-256.png', width: 256, height: 256 },
-      '512': { path: '/achievement-assets/burned-locked-512.png', width: 512, height: 512 },
-    },
-  },
-};
-export const pageAchievementCatalog = {
-  revision: 'test-achievements-v1',
-  presentation: {
-    targetVisibleBadgeCount: 1,
-    fillWithLockedCandidates: true,
-    noDataFallbackTierIds: ['burned.burned100'],
-  },
-  families: [
-    {
-      key: 'burned',
-      title: 'Burned',
-      metricKey: 'mastery.burned',
-      unit: 'cards',
-      tiers: [
-        {
-          key: 'burned100',
-          title: '100 items burned',
-          threshold: 100,
-          earnedDescription: 'One hundred cards reached burned.',
-          description: 'Burn 100 cards.',
-          assets: pageAchievementAssets,
-        },
-      ],
-    },
-  ],
-};
-export const pageEmptyAchievementProgress = {
-  revision: pageAchievementCatalog.revision,
-  metricValues: { 'mastery.burned': 99 },
-  awards: [] as Array<{ id: string; earnedAt: string }>,
-};
-
 const resetStudyPageMocks = () => {
   vi.restoreAllMocks();
-  getAchievementCatalogMock.mockReset();
-  getAchievementCatalogMock.mockResolvedValue(pageAchievementCatalog);
-  getAchievementProgressMock.mockReset();
-  getAchievementProgressMock.mockResolvedValue(pageEmptyAchievementProgress);
   cardActionMutateAsyncMock.mockReset();
   startStudyLessonMock.mockReset();
   startStudyIntroductionCohortLessonMock.mockReset();

@@ -15,14 +15,10 @@ interface StudyFocusSessionStatusProps {
   onFinishReview: () => void;
   reviewSession: StudyReviewSession;
   runBackgroundTask: RunBackgroundTask;
-  showingAchievementAward: boolean;
   showQuizSurface: boolean;
 }
 
-type SharedStatusProps = Pick<
-  StudyFocusSessionStatusProps,
-  'reviewSession' | 'runBackgroundTask' | 'showingAchievementAward'
->;
+type SharedStatusProps = Pick<StudyFocusSessionStatusProps, 'reviewSession' | 'runBackgroundTask'>;
 type ActiveStatusProps = Pick<SharedStatusProps, 'reviewSession' | 'runBackgroundTask'>;
 
 const reviewCardCanSetDue = (reviewSession: StudyReviewSession) => {
@@ -33,10 +29,8 @@ const reviewCardCanSetDue = (reviewSession: StudyReviewSession) => {
 
 export const StudyPracticeBanner = ({
   reviewSession,
-  showingAchievementAward,
-}: Pick<SharedStatusProps, 'reviewSession' | 'showingAchievementAward'>) => {
+}: Pick<SharedStatusProps, 'reviewSession'>) => {
   const { t } = useTranslation('study');
-  if (showingAchievementAward) return null;
   if (!reviewSession.practiceMode) return null;
 
   return (
@@ -160,8 +154,6 @@ const StudyReviewWrapUp = ({
     <StudySessionWrapUp
       summary={reviewSession.sessionWrapUp}
       caughtUp={reviewSession.reviewQueueExhausted}
-      achievements={[...reviewSession.completionAchievements].reverse()}
-      isFinalizing={reviewSession.achievementCompletionRefreshPending}
       onPractice={reviewSession.startToughestPractice}
       onDone={onFinishReview}
     />
@@ -213,22 +205,17 @@ const StudyEmptySession = ({
   );
 };
 
-const StudyFocusSessionStatus = (props: StudyFocusSessionStatusProps) => {
-  const { showingAchievementAward } = props;
-  if (showingAchievementAward) return null;
-
-  return (
-    <>
-      <StudySetDuePanel {...props} />
-      <StudyMotionBanner {...props} />
-      <StudySessionLoading {...props} />
-      <StudySessionError {...props} />
-      <StudyConflictNotice {...props} />
-      <StudyReviewWrapUp {...props} />
-      <StudyPracticeComplete {...props} />
-      <StudyEmptySession {...props} />
-    </>
-  );
-};
+const StudyFocusSessionStatus = (props: StudyFocusSessionStatusProps) => (
+  <>
+    <StudySetDuePanel {...props} />
+    <StudyMotionBanner {...props} />
+    <StudySessionLoading {...props} />
+    <StudySessionError {...props} />
+    <StudyConflictNotice {...props} />
+    <StudyReviewWrapUp {...props} />
+    <StudyPracticeComplete {...props} />
+    <StudyEmptySession {...props} />
+  </>
+);
 
 export default StudyFocusSessionStatus;

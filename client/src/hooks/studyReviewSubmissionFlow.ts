@@ -6,17 +6,11 @@ import type {
 } from '@languageflow/shared/src/types';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 
-import type { AchievementAward } from '../components/study/achievementModel';
-import {
-  StudyAchievementSessionStore,
-  type StudyAchievementSessionCompletion,
-} from '../components/study/studyAchievementSessionModel';
 import type {
   StudySessionGrade,
   StudySessionReviewRecord,
 } from '../components/study/studySessionWrapUpModel';
-import type { AchievementSessionBootstrap } from './useStudyAchievementReviewSession';
-import type { StudyAchievementSyncResult } from './useStudyAchievementSync';
+
 import type { StudyReviewRequestGuard, StudyReviewRequestToken } from './studyReviewRequestGuard';
 import type { StudyUndoAction, StudyUndoSnapshot } from './studyReviewSessionUtils';
 import {
@@ -38,9 +32,6 @@ export interface PendingStudyReviewOperation {
 
 export interface StudyReviewSubmissionContext {
   activeLessonCohortIdRef: MutableRefObject<string | null>;
-  achievementAwards: AchievementAward[];
-  achievementSessionBootstrapRef: MutableRefObject<AchievementSessionBootstrap | null>;
-  achievementSessionStore: StudyAchievementSessionStore | null;
   answeredCardIdsRef: MutableRefObject<Set<string>>;
   applyReviewResultToSession: (
     updatedCard: StudyCardSummary,
@@ -63,17 +54,13 @@ export interface StudyReviewSubmissionContext {
   pendingReviewOperationRef: MutableRefObject<PendingStudyReviewOperation | null>;
   pushUndo: (action: StudyUndoAction) => void;
   queryClient: QueryClient;
-  recordAchievementReview: (record: StudySessionReviewRecord) => void;
   requestGuardRef: MutableRefObject<StudyReviewRequestGuard>;
   requestToken: StudyReviewRequestToken;
   resetStudyAudioAutoplayForCard: (cardId: string) => void;
   resetUndo: () => void;
   sessionEpochRef: MutableRefObject<number>;
   sessionKind: StudySessionKind;
-  setAchievementCelebrationPresented: Dispatch<SetStateAction<boolean>>;
-  setAchievementCompletion: Dispatch<SetStateAction<StudyAchievementSessionCompletion | null>>;
   setAnsweredCardIds: Dispatch<SetStateAction<string[]>>;
-  setCurrentAchievementIndex: Dispatch<SetStateAction<number>>;
   setCurrentIndex: Dispatch<SetStateAction<number>>;
   setEditing: Dispatch<SetStateAction<boolean>>;
   setLessonPhase: Dispatch<SetStateAction<'preview' | 'quiz' | 'complete'>>;
@@ -89,7 +76,6 @@ export interface StudyReviewSubmissionContext {
   setShowSetDueControls: Dispatch<SetStateAction<boolean>>;
   stopAllAudio: () => void;
   submitReview: (request: StudyReviewRequest) => Promise<StudyReviewResult>;
-  syncAchievements: (evaluate?: boolean, force?: boolean) => Promise<StudyAchievementSyncResult>;
   syncOverview: (overview: StudyOverview) => void;
 }
 
@@ -159,9 +145,6 @@ const recordReviewSessionResult = (
 ) => {
   const reviewRecord = createReviewRecord(context, result);
   context.setSessionReviewRecords((current) => [...current, reviewRecord]);
-  if (context.sessionKind === 'reviews') {
-    context.recordAchievementReview(reviewRecord);
-  }
   context.setCurrentIndex((current) => getNextReviewCardIndex(current, nextCards.length));
   context.setRevealed(false);
   if (context.sessionKind === 'lessons' && nextCards.length === 0) {
@@ -196,67 +179,8 @@ const resetReviewConflictState = (context: StudyReviewSubmissionContext) => {
   context.setMasteryAnimation(null);
 };
 
-const loadCurrentAchievementAwards = async (context: StudyReviewSubmissionContext) => {
-  const achievementBootstrap = context.achievementSessionBootstrapRef.current;
-  await achievementBootstrap?.promise;
-  if (!isCurrentSession(context)) return null;
-
-  if (context.achievementSessionBootstrapRef.current === achievementBootstrap) {
-    context.achievementSessionBootstrapRef.current = null;
-  }
-  let currentAwards = context.achievementAwards;
-  if (context.sessionKind === 'reviews') {
-    try {
-      currentAwards = (await context.syncAchievements()).progress.awards;
-    } catch {
-      // Recovery still refreshes the authoritative review queue below.
-    }
-  }
-  return isCurrentSession(context) ? currentAwards : null;
-};
-
-const prepareAchievementConflictRecovery = (
-  context: StudyReviewSubmissionContext,
-  currentAwards: AchievementAward[]
-) => {
-  const completion =
-    context.sessionKind === 'reviews'
-      ? (context.achievementSessionStore?.prepareInterruptedCompletion(currentAwards) ?? null)
-      : null;
-  if (!completion) {
-    context.achievementSessionStore?.cancelCurrentSession();
-  }
-  return completion;
-};
-
-const resumeAchievementConflictSession = (
-  context: StudyReviewSubmissionContext,
-  currentAwards: AchievementAward[],
-  refreshedSession: StudySessionResponse | null
-) => {
-  if (context.sessionKind === 'reviews' && refreshedSession) {
-    context.achievementSessionStore?.beginReviewSession(currentAwards);
-  }
-};
-
-const presentRecoveredAchievementCompletion = (
-  context: StudyReviewSubmissionContext,
-  completion: StudyAchievementSessionCompletion | null
-) => {
-  if (!completion) return;
-  context.setSessionWasEnded(true);
-  context.setAchievementCompletion(completion);
-  context.setCurrentAchievementIndex(0);
-  context.setAchievementCelebrationPresented(completion.celebrationPresented);
-};
-
-const reloadAfterReviewConflict = async (
-  context: StudyReviewSubmissionContext,
-  currentAwards: AchievementAward[]
-) => {
-  const recoveredCompletion = prepareAchievementConflictRecovery(context, currentAwards);
-
-  const [, refreshedSession] = await Promise.all([
+const reloadAfterReviewConflict = async (context: StudyReviewSubmissionContext) => {
+  await Promise.all([
     context.queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
     context.loadSession(
       context.sessionKind,
@@ -267,8 +191,6 @@ const reloadAfterReviewConflict = async (
       context.expectedEpoch
     ),
   ]);
-  resumeAchievementConflictSession(context, currentAwards, refreshedSession);
-  presentRecoveredAchievementCompletion(context, recoveredCompletion);
   if (isCurrentSession(context)) {
     context.setReviewConflictRecovered(true);
   }
@@ -276,9 +198,7 @@ const reloadAfterReviewConflict = async (
 
 const recoverFromReviewConflict = async (context: StudyReviewSubmissionContext) => {
   resetReviewConflictState(context);
-  const currentAwards = await loadCurrentAchievementAwards(context);
-  if (!currentAwards) return;
-  await reloadAfterReviewConflict(context, currentAwards);
+  await reloadAfterReviewConflict(context);
 };
 
 const applyReviewFailure = (context: StudyReviewSubmissionContext, error: unknown) => {

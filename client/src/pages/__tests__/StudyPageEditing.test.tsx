@@ -6,7 +6,6 @@ import {
   baseCard,
   chooseAnswerAudioVoice,
   getStudyPageTestState,
-  pageEmptyAchievementProgress,
   renderStudyPage,
   setUpStudyPageTest,
 } from './studyPageTestHarness';
@@ -14,7 +13,6 @@ import {
 const {
   cardActionMutateAsyncMock,
   deleteStudyCardMock,
-  getAchievementProgressMock,
   mutateAsyncMock,
   regenerateStudyAnswerAudioMock,
   startStudyIntroductionCohortLessonMock,
@@ -505,75 +503,6 @@ describe('StudyPage editing and session actions', () => {
     expect(
       within(screen.getByTestId('study-session-wrap-up')).getByText('1', { selector: 'p' })
     ).toBeInTheDocument();
-  });
-
-  it('awards the Orbit achievement before wrap-up and moves it onto Study', async () => {
-    vi.spyOn(window, 'matchMedia').mockImplementation(
-      (query) =>
-        ({
-          matches: query === '(prefers-reduced-motion: reduce)',
-          media: query,
-          onchange: null,
-          addEventListener: vi.fn(),
-          removeEventListener: vi.fn(),
-          addListener: vi.fn(),
-          removeListener: vi.fn(),
-          dispatchEvent: vi.fn(),
-        }) as MediaQueryList
-    );
-    startStudySessionMock.mockResolvedValueOnce({
-      overview: {
-        dueCount: 1,
-        failedCount: 0,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 100,
-        masterySpread: { apprentice: 0, guru: 0, master: 0, enlightened: 1, burned: 99 },
-      },
-      cards: [{ ...baseCard, masteryLevel: 'enlightened' }],
-    });
-    mutateAsyncMock.mockResolvedValueOnce({
-      reviewLogId: 'review-burned-100',
-      card: {
-        ...baseCard,
-        masteryLevel: 'burned',
-        state: { ...baseCard.state, dueAt: '2027-08-25T12:00:00.000Z' },
-      },
-      overview: {
-        dueCount: 0,
-        failedCount: 0,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 0,
-        suspendedCount: 0,
-        totalCards: 100,
-        masterySpread: { apprentice: 0, guru: 0, master: 0, enlightened: 0, burned: 100 },
-      },
-    });
-
-    renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-    getAchievementProgressMock.mockResolvedValue({
-      ...pageEmptyAchievementProgress,
-      metricValues: { 'mastery.burned': 100 },
-      awards: [{ id: 'burned.burned100', earnedAt: '2026-08-25T12:00:00.000Z' }],
-    });
-    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
-
-    expect(await screen.findByTestId('study-achievement-award')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '100 items burned' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    expect(await screen.findByText('Nice work')).toBeInTheDocument();
-    expect(screen.getByTestId('study-session-achievements')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
-
-    expect(await screen.findByTestId('study-recent-milestones')).toBeInTheDocument();
-    expect(screen.queryByText('View all')).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Recent milestones/ })).not.toBeInTheDocument();
   });
 
   it('opens a requested lesson-follow-up cohort directly in lesson preview', async () => {

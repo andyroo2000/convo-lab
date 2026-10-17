@@ -7,20 +7,9 @@ import {
   buildStudySessionWrapUp,
   type StudySessionReviewRecord,
 } from '../components/study/studySessionWrapUpModel';
-import {
-  allPresentedAchievements,
-  type AchievementCatalog,
-  type AchievementProgress,
-} from '../components/study/achievementModel';
-import type { StudyAchievementSessionCompletion } from '../components/study/studyAchievementSessionModel';
 
 interface UseStudyReviewSessionDerivedStateOptions {
-  achievementCatalog: AchievementCatalog | null;
-  achievementCelebrationPresented: boolean;
-  achievementCompletion: StudyAchievementSessionCompletion | null;
-  achievementProgress: AchievementProgress | null;
   answeredCardIds: string[];
-  currentAchievementIndex: number;
   currentIndex: number;
   focusMode: boolean;
   practiceCards: StudyCardSummary[] | null;
@@ -94,11 +83,18 @@ export const calculateStudySessionProgress = ({
   return remainingCardCount === 0 ? 1 : Math.min(0.99, answeredCount / cardCount);
 };
 
-const getMutationErrorMessage = (regenerateAudioError: unknown, updateCardError: unknown) => {
-  if (regenerateAudioError instanceof Error) return regenerateAudioError.message;
-  if (updateCardError instanceof Error) return updateCardError.message;
-  if (regenerateAudioError) return 'Audio regeneration failed.';
-  return updateCardError ? 'Card update failed.' : null;
+const mutationErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  return error ? fallback : null;
+};
+
+const getMutationErrorMessage = (audioError: unknown, updateError: unknown) => {
+  if (audioError instanceof Error) return audioError.message;
+  if (updateError instanceof Error) return updateError.message;
+  return (
+    mutationErrorMessage(audioError, 'Audio regeneration failed.') ??
+    mutationErrorMessage(updateError, 'Card update failed.')
+  );
 };
 
 const hasReviewQueueWork = (cards: StudyCardSummary[], session: StudySessionResponse | null) => {
@@ -128,21 +124,6 @@ const isReviewQueueExhausted = ({
   return !hasReviewQueueWork(cards, session);
 };
 
-const getCompletionAchievements = (
-  catalog: AchievementCatalog | null,
-  progress: AchievementProgress | null,
-  completion: StudyAchievementSessionCompletion | null
-) => {
-  if (!catalog) return [];
-  if (!progress) return [];
-  if (!completion) return [];
-
-  const achievementIds = new Set(completion.newAwardIds);
-  return allPresentedAchievements(catalog, progress)
-    .filter((achievement) => achievementIds.has(achievement.id))
-    .sort((left, right) => (left.earnedAt ?? '').localeCompare(right.earnedAt ?? ''));
-};
-
 const getCurrentCard = (
   cards: StudyCardSummary[],
   practiceCards: StudyCardSummary[] | null,
@@ -150,15 +131,6 @@ const getCurrentCard = (
 ) => {
   if (practiceCards) return practiceCards[0] ?? null;
   return cards[currentIndex] ?? null;
-};
-
-const getCurrentAchievement = (
-  completionAchievements: ReturnType<typeof allPresentedAchievements>,
-  currentAchievementIndex: number,
-  celebrationPresented: boolean
-) => {
-  if (celebrationPresented) return null;
-  return completionAchievements[currentAchievementIndex] ?? null;
 };
 
 const isReviewSessionComplete = (
@@ -192,38 +164,8 @@ const usePracticePresentationState = ({
   };
 };
 
-const useAchievementPresentationState = ({
-  achievementCatalog,
-  achievementCelebrationPresented,
-  achievementCompletion,
-  achievementProgress,
-  currentAchievementIndex,
-}: Pick<
-  UseStudyReviewSessionDerivedStateOptions,
-  | 'achievementCatalog'
-  | 'achievementCelebrationPresented'
-  | 'achievementCompletion'
-  | 'achievementProgress'
-  | 'currentAchievementIndex'
->) => {
-  const completionAchievements = useMemo(
-    () => getCompletionAchievements(achievementCatalog, achievementProgress, achievementCompletion),
-    [achievementCatalog, achievementCompletion, achievementProgress]
-  );
-
-  return {
-    completionAchievements,
-    currentAchievement: getCurrentAchievement(
-      completionAchievements,
-      currentAchievementIndex,
-      achievementCelebrationPresented
-    ),
-  };
-};
-
 const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerivedStateOptions) => {
   const practice = usePracticePresentationState(options);
-  const achievement = useAchievementPresentationState(options);
   const { cards, practiceComplete, practiceMode, presentedCards } = practice;
   const sessionWrapUp = useMemo(
     () => buildStudySessionWrapUp(options.sessionReviewRecords),
@@ -266,7 +208,6 @@ const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerived
 
   return {
     ...practice,
-    ...achievement,
     reviewQueueExhausted,
     reviewSessionComplete,
     sessionCounts,
