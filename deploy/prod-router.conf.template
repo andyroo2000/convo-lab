@@ -359,7 +359,7 @@ server {
     # Unknown API paths must never return the SPA document.
     location ~ ^/api/ {
         default_type application/json;
-        return 404 '{"message":"Not found"}';
+        return 404 '{"error":{"message":"Not found"}}';
     }
 
     location / {
