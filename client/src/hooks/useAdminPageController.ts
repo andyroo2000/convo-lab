@@ -5,13 +5,7 @@ import type { AdminUsersFeed } from '../components/admin/AdminUsersTab';
 import { useAuth } from '../contexts/AuthContext';
 import { getAdminUsers, type AdminReadRequestInit } from '../lib/adminApi';
 
-export type AdminTab =
-  | 'users'
-  | 'invite-codes'
-  | 'analytics'
-  | 'avatars'
-  | 'settings'
-  | 'script-lab';
+export type AdminTab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings';
 
 export type AdminToastType = 'success' | 'error' | 'info';
 
@@ -91,7 +85,7 @@ const useAdminAvatarUsers = (activeTab: AdminTab) => {
   useEffect(() => {
     if (activeTab === 'avatars') {
       refreshAvatarUsers();
-    } else if (activeTab !== 'script-lab') {
+    } else {
       setAvatarUsersError('');
     }
 

@@ -1,4 +1,4 @@
-import { BarChart3, Image, Settings, TestTube, Ticket, Users } from 'lucide-react';
+import { BarChart3, Image, Settings, Ticket, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import type { AdminTab, AdminToastType } from '../../hooks/useAdminPageController';
@@ -8,7 +8,6 @@ import AdminAvatarsTab from './AdminAvatarsTab';
 import AdminInviteCodesTab from './AdminInviteCodesTab';
 import AdminSettingsTab from './AdminSettingsTab';
 import AdminUsersTab, { type AdminUsersFeed } from './AdminUsersTab';
-import ScriptLabTab from './scriptLab/ScriptLabTab';
 
 const ADMIN_TABS = [
   { id: 'users', label: 'Users', Icon: Users },
@@ -16,7 +15,6 @@ const ADMIN_TABS = [
   { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
   { id: 'avatars', label: 'Avatars', Icon: Image },
   { id: 'settings', label: 'Settings', Icon: Settings },
-  { id: 'script-lab', label: 'Script Lab', Icon: TestTube },
 ] as const;
 
 interface AdminPageContentProps {
@@ -89,7 +87,6 @@ const AdminTabContent = ({
       />
     )}
     {activeTab === 'settings' && <AdminSettingsTab showToast={showToast} />}
-    {activeTab === 'script-lab' && <ScriptLabTab />}
   </>
 );
 

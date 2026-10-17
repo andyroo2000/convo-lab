@@ -4,8 +4,8 @@ import { expectNoHorizontalOverflow, loginAsUser } from './utils/test-helpers';
 
 async function expectMobileLearningNavigation(page: Page) {
   await page.getByTestId('user-menu-button').click();
-  await expect(page.getByTestId('user-menu-mobile-nav-library')).toBeVisible();
-  await expect(page.getByTestId('user-menu-mobile-nav-create')).toBeVisible();
+  await expect(page.getByTestId('user-menu-mobile-nav-library')).toHaveCount(0);
+  await expect(page.getByTestId('user-menu-mobile-nav-create')).toHaveCount(0);
   await expect(page.getByTestId('user-menu-mobile-nav-study')).toHaveCount(0);
   await page.keyboard.press('Escape');
 
@@ -19,7 +19,7 @@ async function expectMobileLearningNavigation(page: Page) {
 }
 
 async function expectTopbarControlsDoNotOverlap(page: Page) {
-  const logo = page.locator('nav a[href*="/app/library"]').first();
+  const logo = page.locator('nav a[href*="/app/study"]').first();
   const userMenu = page.getByTestId('user-menu-button');
   const logoBox = await logo.boundingBox();
   const userMenuBox = await userMenu.boundingBox();
@@ -28,6 +28,22 @@ async function expectTopbarControlsDoNotOverlap(page: Page) {
   expect(userMenuBox).not.toBeNull();
   if (logoBox && userMenuBox) {
     expect(logoBox.x + logoBox.width).toBeLessThanOrEqual(userMenuBox.x);
+  }
+}
+
+async function expectAnswerAudioFits(page: Page) {
+  const answerAudioButton = page.getByTestId('study-answer-audio-button');
+  if ((await answerAudioButton.count()) > 0) {
+    await expect(answerAudioButton).toBeVisible();
+    await expect(answerAudioButton).toHaveAccessibleName('Play answer audio');
+    const audioBox = await answerAudioButton.boundingBox();
+    const viewport = page.viewportSize();
+    expect(audioBox).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    if (audioBox && viewport) {
+      expect(audioBox.x + audioBox.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(audioBox.height).toBeLessThanOrEqual(64);
+    }
   }
 }
 
@@ -78,19 +94,7 @@ test.describe('Study mobile experience', () => {
     await expect(page.getByRole('button', { name: 'Set due' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
-    const answerAudioButton = page.getByTestId('study-answer-audio-button');
-    if ((await answerAudioButton.count()) > 0) {
-      await expect(answerAudioButton).toBeVisible();
-      await expect(answerAudioButton).toHaveAccessibleName('Play answer audio');
-      const audioBox = await answerAudioButton.boundingBox();
-      const viewport = page.viewportSize();
-      expect(audioBox).not.toBeNull();
-      expect(viewport).not.toBeNull();
-      if (audioBox && viewport) {
-        expect(audioBox.x + audioBox.width).toBeLessThanOrEqual(viewport.width + 1);
-        expect(audioBox.height).toBeLessThanOrEqual(64);
-      }
-    }
+    await expectAnswerAudioFits(page);
 
     await page.getByRole('button', { name: 'Set due' }).click();
     await expect(page.getByTestId('study-set-due-controls')).toBeVisible();
