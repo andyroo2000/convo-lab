@@ -8,7 +8,6 @@ import ViewToggleButtons from '../common/ViewToggleButtons';
 interface PlaybackEpisodeHeaderProps {
   currentAudioUrl?: string;
   episode: Episode;
-  isGeneratingAudio: boolean;
   selectedSpeed: AudioSpeed;
   setSelectedSpeed: Dispatch<SetStateAction<AudioSpeed>>;
   setShowReadings: Dispatch<SetStateAction<boolean>>;
@@ -30,7 +29,6 @@ const PracticeLink = ({ episode }: { episode: Episode }) => {
 const PlaybackViewControls = ({
   currentAudioUrl,
   episode,
-  isGeneratingAudio,
   selectedSpeed,
   setSelectedSpeed,
   setShowReadings,
@@ -38,7 +36,7 @@ const PlaybackViewControls = ({
   showReadings,
   showTranslations,
 }: PlaybackEpisodeHeaderProps) => {
-  if (isGeneratingAudio || !currentAudioUrl) return null;
+  if (!currentAudioUrl) return null;
 
   return (
     <>
@@ -63,7 +61,6 @@ const PlaybackViewControls = ({
 const PlaybackEpisodeHeader = ({
   currentAudioUrl,
   episode,
-  isGeneratingAudio,
   selectedSpeed,
   setSelectedSpeed,
   setShowReadings,
@@ -93,7 +90,6 @@ const PlaybackEpisodeHeader = ({
             <PlaybackViewControls
               currentAudioUrl={currentAudioUrl}
               episode={episode}
-              isGeneratingAudio={isGeneratingAudio}
               selectedSpeed={selectedSpeed}
               setSelectedSpeed={setSelectedSpeed}
               setShowReadings={setShowReadings}

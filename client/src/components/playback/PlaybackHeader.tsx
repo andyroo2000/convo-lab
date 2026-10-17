@@ -8,12 +8,6 @@ import PlaybackEpisodeHeader from './PlaybackEpisodeHeader';
 interface PlaybackHeaderProps {
   audioRef: (element: HTMLAudioElement | null) => void;
   episode: Episode;
-  generateAllSpeeds: () => void;
-  generationProgress: number;
-  isGeneratingAudio: boolean;
-  isRefreshingEpisode: boolean;
-  needsEpisodeRefresh: boolean;
-  retryEpisodeRefresh: () => void;
   selectedSpeed: AudioSpeed;
   setSelectedSpeed: Dispatch<SetStateAction<AudioSpeed>>;
   setShowReadings: Dispatch<SetStateAction<boolean>>;
@@ -25,12 +19,6 @@ interface PlaybackHeaderProps {
 const PlaybackHeader = ({
   audioRef,
   episode,
-  generateAllSpeeds,
-  generationProgress,
-  isGeneratingAudio,
-  isRefreshingEpisode,
-  needsEpisodeRefresh,
-  retryEpisodeRefresh,
   selectedSpeed,
   setSelectedSpeed,
   setShowReadings,
@@ -48,7 +36,6 @@ const PlaybackHeader = ({
       <PlaybackEpisodeHeader
         currentAudioUrl={currentAudioUrl}
         episode={episode}
-        isGeneratingAudio={isGeneratingAudio}
         selectedSpeed={selectedSpeed}
         setSelectedSpeed={setSelectedSpeed}
         setShowReadings={setShowReadings}
@@ -56,17 +43,7 @@ const PlaybackHeader = ({
         showReadings={showReadings}
         showTranslations={showTranslations}
       />
-      <PlaybackAudioStatus
-        audioRef={audioRef}
-        currentAudioUrl={currentAudioUrl}
-        episode={episode}
-        generateAllSpeeds={generateAllSpeeds}
-        generationProgress={generationProgress}
-        isGeneratingAudio={isGeneratingAudio}
-        isRefreshingEpisode={isRefreshingEpisode}
-        needsEpisodeRefresh={needsEpisodeRefresh}
-        retryEpisodeRefresh={retryEpisodeRefresh}
-      />
+      <PlaybackAudioStatus audioRef={audioRef} currentAudioUrl={currentAudioUrl} />
     </div>
   );
 };

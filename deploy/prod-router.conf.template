@@ -356,6 +356,11 @@ server {
         proxy_read_timeout 180s;
     }
 
+    # Unknown API paths must never return the SPA document.
+    location ~ ^/api/ {
+        return 404;
+    }
+
     location / {
         proxy_pass $frontend_upstream;
         proxy_http_version 1.1;

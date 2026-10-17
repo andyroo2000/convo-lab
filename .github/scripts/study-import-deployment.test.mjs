@@ -460,3 +460,11 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
   );
   assert.doesNotMatch(workflow, /LEARNING_OS_SCRIPT_PROXY_ENABLED|ROUTE_PROXY_CUTOVER_STARTED/);
 });
+
+ test('unknown API requests terminate before the SPA fallback', async () => {
+  const router = await readFile(new URL('../../deploy/prod-router.conf.template', import.meta.url), 'utf8');
+  const apiFallback = router.indexOf('location ~ ^/api/ {');
+  assert.ok(apiFallback > router.indexOf('location ~ ^/api/daily-audio-practice'));
+  assert.ok(apiFallback < router.indexOf('location / {'));
+  assert.match(router.slice(apiFallback, router.indexOf('}', apiFallback)), /return 404;/);
+});
