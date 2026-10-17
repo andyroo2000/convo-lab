@@ -6,6 +6,7 @@ import { clearAudioCache } from '../lib/audioCache';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../lib/authSession';
 import { accountApi } from '../lib/accountApi';
 import { authApi } from '../lib/authApi';
+import { clearRetiredBrowserStudyStorage } from '../lib/retiredStudyStorage';
 
 interface AuthContextType {
   user: User | null;
@@ -104,6 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [clearLocalSession]);
 
   useEffect(() => {
+    clearRetiredBrowserStudyStorage();
     // Check for existing session
     checkAuth();
   }, [checkAuth]);
