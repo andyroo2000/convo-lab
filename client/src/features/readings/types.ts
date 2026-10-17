@@ -1,4 +1,5 @@
 export interface ReadingSummary {
+  revision?: number;
   id: string;
   title: string;
   author: string;
