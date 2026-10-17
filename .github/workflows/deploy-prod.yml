@@ -489,7 +489,7 @@ jobs:
                   --write-out '%{http_code}' \
                   --header 'Accept: application/json' \
                   --header 'Origin: https://convo-lab.com' \
-                  https://convo-lab.com/api/convolab/scripts/job/00000000-0000-4000-8000-000000000000)"
+                  https://convo-lab.com/api/convolab/scripts/00000000-0000-4000-8000-000000000000/status)"
                 if [ "$script_status" != 401 ]; then
                   echo "Unauthenticated direct script probe returned HTTP $script_status."
                   cat "$response_body"
@@ -518,13 +518,13 @@ jobs:
                     --header 'Accept: application/json' \
                     --header 'Origin: https://convo-lab.com' \
                     "$generation_url")"
-                  if [ "$generation_status" != 401 ]; then
-                    echo "Unauthenticated direct generation probe ($generation_label) returned HTTP $generation_status."
+                  if [ "$generation_status" != 404 ]; then
+                    echo "Retired generation probe ($generation_label) returned HTTP $generation_status."
                     cat "$response_body"
                     return 1
                   fi
-                  if ! grep -q '"message":"Unauthenticated."' "$response_body"; then
-                    echo "Direct generation probe ($generation_label) did not return the Learning OS auth contract."
+                  if ! grep -q '"message":"Not found"' "$response_body"; then
+                    echo "Retired generation probe ($generation_label) did not return the not-found contract."
                     cat "$response_body"
                     return 1
                   fi
