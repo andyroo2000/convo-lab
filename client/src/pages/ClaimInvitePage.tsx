@@ -28,7 +28,7 @@ const ClaimInvitePage = () => {
       }
 
       // Successfully claimed invite, reload page to update auth context
-      window.location.href = '/app/library';
+      window.location.href = '/app/study';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

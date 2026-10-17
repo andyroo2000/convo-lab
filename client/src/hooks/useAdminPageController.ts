@@ -120,7 +120,7 @@ const useAdminPageController = () => {
 
   useEffect(() => {
     if (user && user.role !== 'admin') {
-      navigate('/app/library');
+      navigate('/app/study');
     }
   }, [user, navigate]);
 

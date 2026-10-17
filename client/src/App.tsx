@@ -38,13 +38,8 @@ const JapaneseMoneyToolPage = lazy(() => import('./pages/JapaneseMoneyToolPage')
 const JapaneseVerbConjugationToolPage = lazy(
   () => import('./pages/JapaneseVerbConjugationToolPage')
 );
-const CreatePage = lazy(() => import('./pages/CreatePage'));
-const DialogueCreatorPage = lazy(() => import('./pages/DialogueCreatorPage'));
-const ScriptCreatorPage = lazy(() => import('./pages/ScriptCreatorPage'));
-const CourseCreatorPage = lazy(() => import('./pages/CourseCreatorPage'));
 const PlaybackPage = lazy(() => import('./pages/PlaybackPage'));
 const PracticePage = lazy(() => import('./pages/PracticePage'));
-const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 const ReadingsPage = lazy(() => import('./pages/ReadingsPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -290,8 +285,7 @@ const renderStudyRoutes = () => (
 
 const renderProtectedRoutes = () => (
   <Route path="/app" element={<Layout />}>
-    <Route index element={<Navigate to="/app/library" replace />} />
-    <Route path="library" element={<LibraryPage />} />
+    <Route index element={<Navigate to="/app/study" replace />} />
     <Route path="readings" element={<ReadingsPage />} />
     <Route path="readings/:readingId" element={<ReadingsPage />} />
     <Route path="settings" element={<SettingsPage />} />
@@ -300,11 +294,6 @@ const renderProtectedRoutes = () => (
     <Route path="admin" element={<AdminPage />} />
     <Route path="admin/:tab" element={<AdminPage />} />
     {renderStudyRoutes()}
-    <Route path="create" element={<CreatePage />} />
-    <Route path="create/dialogue" element={<DialogueCreatorPage />} />
-    <Route path="create/script" element={<ScriptCreatorPage />} />
-    <Route path="create/audio-course" element={<Navigate to="/app/create/dialogue" replace />} />
-    <Route path="create/audio-course/:episodeId" element={<CourseCreatorPage />} />
     <Route path="playback/:episodeId" element={<PlaybackPage />} />
     <Route path="practice/:episodeId" element={<PracticePage />} />
     <Route path="courses/:courseId" element={<CoursePage />} />

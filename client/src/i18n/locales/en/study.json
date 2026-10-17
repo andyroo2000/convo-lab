@@ -14,7 +14,7 @@
   "impersonationBoundary": {
     "title": "Study unavailable in View As",
     "description": "Study data is scoped to your own account and cannot be viewed or changed for another user here. Return to the viewed user's Library, or exit View As to open your own Study data.",
-    "backToLibrary": "Back to viewed Library",
+    "backToUsers": "Back to Users",
     "exitAndOpenStudy": "Exit View As and open my Study"
   },
   "motion": {

@@ -6,7 +6,6 @@ import PlaybackAudioStatus from './PlaybackAudioStatus';
 import PlaybackEpisodeHeader from './PlaybackEpisodeHeader';
 
 interface PlaybackHeaderProps {
-  audioCourseEnabled: boolean;
   audioRef: (element: HTMLAudioElement | null) => void;
   episode: Episode;
   generateAllSpeeds: () => void;
@@ -21,11 +20,9 @@ interface PlaybackHeaderProps {
   setShowTranslations: Dispatch<SetStateAction<boolean>>;
   showReadings: boolean;
   showTranslations: boolean;
-  viewAsUserId?: string;
 }
 
 const PlaybackHeader = ({
-  audioCourseEnabled,
   audioRef,
   episode,
   generateAllSpeeds,
@@ -40,7 +37,6 @@ const PlaybackHeader = ({
   setShowTranslations,
   showReadings,
   showTranslations,
-  viewAsUserId,
 }: PlaybackHeaderProps) => {
   const currentAudioUrl = getPlaybackAudioUrl(episode, selectedSpeed);
 
@@ -50,7 +46,6 @@ const PlaybackHeader = ({
       data-playback-sticky-header
     >
       <PlaybackEpisodeHeader
-        audioCourseEnabled={audioCourseEnabled}
         currentAudioUrl={currentAudioUrl}
         episode={episode}
         isGeneratingAudio={isGeneratingAudio}
@@ -60,7 +55,6 @@ const PlaybackHeader = ({
         setShowTranslations={setShowTranslations}
         showReadings={showReadings}
         showTranslations={showTranslations}
-        viewAsUserId={viewAsUserId}
       />
       <PlaybackAudioStatus
         audioRef={audioRef}

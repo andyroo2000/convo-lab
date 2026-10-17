@@ -10,20 +10,16 @@ const StudyImpersonationBoundary = () => {
     return <Outlet />;
   }
 
-  const viewedLibraryPath = `/app/library?${new URLSearchParams({
-    viewAs: viewAsUserId,
-  }).toString()}`;
-
   return (
     <section className="card retro-paper-panel mx-auto max-w-3xl" role="status">
       <h1 className="mb-3 text-3xl font-bold text-navy">{t('impersonationBoundary.title')}</h1>
       <p className="text-gray-600">{t('impersonationBoundary.description')}</p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link
-          to={viewedLibraryPath}
+          to="/app/admin/users"
           className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:bg-navy/90"
         >
-          {t('impersonationBoundary.backToLibrary')}
+          {t('impersonationBoundary.backToUsers')}
         </Link>
         <Link
           to="/app/study"

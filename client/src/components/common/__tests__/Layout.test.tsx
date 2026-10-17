@@ -202,24 +202,6 @@ describe('Layout', () => {
   });
 
   describe('Full-width mobile pages', () => {
-    it('should remove horizontal padding on mobile for library page', () => {
-      window.history.pushState({}, '', '/app/library');
-      const { container } = renderLayout('/app/library');
-
-      const main = container.querySelector('main');
-      expect(main).toHaveClass('sm:px-6');
-      expect(main).not.toHaveClass('px-4');
-    });
-
-    it('should remove horizontal padding on mobile for create page', () => {
-      window.history.pushState({}, '', '/app/create');
-      const { container } = renderLayout('/app/create');
-
-      const main = container.querySelector('main');
-      expect(main).toHaveClass('sm:px-6');
-      expect(main).not.toHaveClass('px-4');
-    });
-
     it('should keep horizontal padding on mobile for other pages', () => {
       window.history.pushState({}, '', '/app/other');
       const { container } = renderLayout('/app/other');
@@ -231,23 +213,23 @@ describe('Layout', () => {
   });
 
   describe('Navigation', () => {
-    it('should render library and create navigation links', () => {
+    it('does not render retired library and create navigation links', () => {
       window.history.pushState({}, '', '/app/library');
       renderLayout('/app/library');
 
-      const libraryLinks = screen.getAllByText('Library');
-      const createLinks = screen.getAllByText('Create');
+      const libraryLinks = screen.queryAllByText('Library');
+      const createLinks = screen.queryAllByText('Create');
 
-      expect(libraryLinks.length).toBeGreaterThan(0);
-      expect(createLinks.length).toBeGreaterThan(0);
+      expect(libraryLinks).toHaveLength(0);
+      expect(createLinks).toHaveLength(0);
     });
 
     it('renders desktop workspace tabs and the mobile learning dock', () => {
       window.history.pushState({}, '', '/app/library');
       const { container } = renderLayout('/app/library');
 
-      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/library"]')).toBeTruthy();
-      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/create"]')).toBeTruthy();
+      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/library"]')).toBeNull();
+      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/create"]')).toBeNull();
       expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study"]')).toBeTruthy();
       expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study/time"]')).toBeTruthy();
       expect(container.querySelector('.sm\\:hidden .retro-nav-tab')).toBeNull();
@@ -280,14 +262,10 @@ describe('Layout', () => {
       renderLayout('/app/study?viewAs=user-1');
 
       const mobileNav = screen.getByTestId('user-menu-mobile-nav-items');
-      expect(mobileNav).toHaveTextContent('Library');
-      expect(mobileNav).toHaveTextContent('Create');
+      expect(mobileNav).not.toHaveTextContent('Library');
+      expect(mobileNav).not.toHaveTextContent('Create');
       expect(mobileNav).not.toHaveTextContent('Study');
       expect(mobileNav).not.toHaveTextContent('Study Time');
-      expect(within(mobileNav).getByText('Library')).toHaveAttribute(
-        'data-path',
-        '/app/library?viewAs=user-1'
-      );
 
       expect(document.querySelector('a[href="/app/study?viewAs=user-1"]')).toBeNull();
       expect(document.querySelector('a[href="/app/study/time"]')).toBeNull();
@@ -303,36 +281,6 @@ describe('Layout', () => {
         'page'
       );
       expect(screen.getByTestId('mobile-learning-dock-study')).not.toHaveAttribute('aria-current');
-    });
-
-    it('should highlight active library navigation', () => {
-      window.history.pushState({}, '', '/app/library');
-      const { container } = renderLayout('/app/library');
-
-      // Desktop navigation
-      const desktopLibraryLink = container.querySelector(
-        '.hidden.sm\\:ml-6 a[href="/app/library"]'
-      );
-      expect(desktopLibraryLink).toHaveClass('bg-white', 'text-strawberry');
-    });
-
-    it('should highlight active create navigation', () => {
-      window.history.pushState({}, '', '/app/create');
-      const { container } = renderLayout('/app/create');
-
-      // Desktop navigation
-      const desktopCreateLink = container.querySelector('.hidden.sm\\:ml-6 a[href="/app/create"]');
-      expect(desktopCreateLink).toHaveClass('bg-white', 'text-coral');
-    });
-
-    it('should not highlight library when on playback route', () => {
-      window.history.pushState({}, '', '/app/playback/episode-123');
-      const { container } = renderLayout('/app/playback/episode-123');
-
-      const desktopLibraryLink = container.querySelector(
-        '.hidden.sm\\:ml-6 a[href="/app/library"]'
-      );
-      expect(desktopLibraryLink).not.toHaveClass('bg-white', 'text-strawberry');
     });
   });
 

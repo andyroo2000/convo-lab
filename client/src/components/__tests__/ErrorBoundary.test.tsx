@@ -71,15 +71,15 @@ describe('ErrorBoundary', () => {
     expect(tryAgainButton).toBeTruthy();
   });
 
-  it('should show "Go to Library" button', () => {
+  it('should show "Go to Study" button', () => {
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
-    const goToLibraryButton = screen.getByText('Go to Library');
-    expect(goToLibraryButton).toBeTruthy();
+    const goToStudyButton = screen.getByText('Go to Study');
+    expect(goToStudyButton).toBeTruthy();
   });
 
   it('should reset error state when "Try Again" clicked', () => {
@@ -104,7 +104,7 @@ describe('ErrorBoundary', () => {
     expect(tryAgainButton).toBeTruthy();
   });
 
-  it('should navigate to library when "Go to Library" clicked', () => {
+  it('should navigate to library when "Go to Study" clicked', () => {
     const assignSpy = vi.fn();
     vi.stubGlobal('location', {
       ...window.location,
@@ -117,10 +117,10 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    const goToLibraryButton = screen.getByText('Go to Library');
-    fireEvent.click(goToLibraryButton);
+    const goToStudyButton = screen.getByText('Go to Study');
+    fireEvent.click(goToStudyButton);
 
-    expect(assignSpy).toHaveBeenCalledWith('/app/library');
+    expect(assignSpy).toHaveBeenCalledWith('/app/study');
     vi.unstubAllGlobals();
   });
 
@@ -148,7 +148,7 @@ describe('ErrorBoundary', () => {
     // Verify error UI is displayed by checking for key elements
     expect(screen.getByText('Something went wrong')).toBeTruthy();
     expect(screen.getByText('Try Again')).toBeTruthy();
-    expect(screen.getByText('Go to Library')).toBeTruthy();
+    expect(screen.getByText('Go to Study')).toBeTruthy();
   });
 
   it('should show default message when error has no message', () => {

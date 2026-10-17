@@ -4,7 +4,6 @@ import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import useWarmAudioCache from '../hooks/useWarmAudioCache';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
-import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
 import usePlaybackAudioGeneration from '../hooks/usePlaybackAudioGeneration';
 import usePlaybackKeyboardControls from '../hooks/usePlaybackKeyboardControls';
@@ -66,7 +65,6 @@ const PlaybackPage = () => {
     generateAllSpeedsAudio,
     pollJobStatus: _pollJobStatus,
   } = useEpisodes();
-  const { isFeatureEnabled } = useFeatureFlags();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const { avatarUrlMap } = useSpeakerAvatars();
   const { episode, isEpisodeLoading, loadEpisode } = usePlaybackEpisode({
@@ -94,7 +92,6 @@ const PlaybackPage = () => {
     generateAllSpeedsAudio,
     loadEpisode,
   });
-  const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
   const episodeAudioUrls = usePlaybackAudioUrls(episode);
 
   useWarmAudioCache(episodeAudioUrls, shouldWarmPlaybackAudio(episode, isGeneratingAudio));
@@ -138,7 +135,6 @@ const PlaybackPage = () => {
       data-testid="playback-page-container"
     >
       <PlaybackHeader
-        audioCourseEnabled={audioCourseEnabled}
         audioRef={audioRef}
         episode={episode}
         generateAllSpeeds={generateAllSpeeds}
@@ -153,7 +149,6 @@ const PlaybackPage = () => {
         setShowTranslations={setShowTranslations}
         showReadings={showReadings}
         showTranslations={showTranslations}
-        viewAsUserId={viewAsUserId}
       />
 
       <PlaybackDialogue

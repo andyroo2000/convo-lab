@@ -57,11 +57,11 @@ const NotFoundPage = () => {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/app/library')}
+              onClick={() => navigate('/app/study')}
               className="retro-404-btn-primary"
             >
               <Home className="w-4 h-4" />
-              {t('notFound:buttons.goToLibrary')}
+              {t('notFound:buttons.goToStudy')}
             </button>
           </div>
         </div>

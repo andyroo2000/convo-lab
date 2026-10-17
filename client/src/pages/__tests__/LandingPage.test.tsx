@@ -76,7 +76,7 @@ describe('LandingPage', () => {
     it('navigates to app library when go-to-app clicked', () => {
       renderPage();
       fireEvent.click(screen.getByTestId('landing-header-button-go-to-app'));
-      expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+      expect(mockNavigate).toHaveBeenCalledWith('/app/study');
     });
   });
 

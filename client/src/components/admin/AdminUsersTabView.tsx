@@ -1,4 +1,4 @@
-import { Eye, Search, Trash2 } from 'lucide-react';
+import { Search, Trash2 } from 'lucide-react';
 import { type AdminUser } from '../../lib/adminApi';
 
 const getRoleBadgeClass = (role: string): string => {
@@ -18,11 +18,10 @@ interface UserRowProps {
   currentAdminUserId: string;
   onDelete: (user: AdminUser) => void;
   onSelect: (id: string) => void;
-  onView: (id: string) => void;
   user: AdminUser;
 }
 
-const UserRow = ({ currentAdminUserId, onDelete, onSelect, onView, user }: UserRowProps) => (
+const UserRow = ({ currentAdminUserId, onDelete, onSelect, user }: UserRowProps) => (
   <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => onSelect(user.id)}>
     <td className="px-3 sm:px-6 py-4">
       <div className="font-medium text-navy whitespace-nowrap">{getUserName(user)}</div>
@@ -43,14 +42,6 @@ const UserRow = ({ currentAdminUserId, onDelete, onSelect, onView, user }: UserR
     </td>
     <td className="px-3 sm:px-6 py-4 text-right" onClick={(event) => event.stopPropagation()}>
       <div className="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => onView(user.id)}
-          className="text-indigo-600 hover:text-indigo-800 transition-colors"
-          title={`View as ${getUserName(user)}`}
-        >
-          <Eye className="w-4 h-4" />
-        </button>
         {user.role !== 'admin' && user.id !== currentAdminUserId && (
           <button
             type="button"
@@ -100,11 +91,10 @@ const UsersTable = ({ isLoading, users, ...rowProps }: UsersTableProps) => {
 
 interface UserDetailsProps {
   onClose: () => void;
-  onView: (id: string) => void;
   user?: AdminUser;
 }
 
-const UserDetails = ({ onClose, onView, user }: UserDetailsProps) => {
+const UserDetails = ({ onClose, user }: UserDetailsProps) => {
   if (!user) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -142,14 +132,6 @@ const UserDetails = ({ onClose, onView, user }: UserDetailsProps) => {
             </div>
           </div>
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => onView(user.id)}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              Impersonate User
-            </button>
             <button type="button" onClick={onClose} className="btn-secondary">
               Close
             </button>
@@ -169,7 +151,6 @@ export interface AdminUsersTabViewProps {
   onSearch: () => void;
   onSearchQueryChange: (value: string) => void;
   onSelect: (id: string) => void;
-  onView: (id: string) => void;
   searchQuery: string;
   selectedUser?: AdminUser;
   users: AdminUser[];
@@ -184,13 +165,11 @@ const AdminUsersTabView = ({
   onSearch,
   onSearchQueryChange,
   onSelect,
-  onView,
   searchQuery,
   selectedUser,
   users,
 }: AdminUsersTabViewProps) => {
-  if (!isActive)
-    return <UserDetails user={selectedUser} onClose={() => onSelect('')} onView={onView} />;
+  if (!isActive) return <UserDetails user={selectedUser} onClose={() => onSelect('')} />;
   return (
     <>
       {error && <div className="retro-admin-v3-alert is-error mb-6">{error}</div>}
@@ -219,10 +198,9 @@ const AdminUsersTabView = ({
           currentAdminUserId={currentAdminUserId}
           onDelete={onDelete}
           onSelect={onSelect}
-          onView={onView}
         />
       </div>
-      <UserDetails user={selectedUser} onClose={() => onSelect('')} onView={onView} />
+      <UserDetails user={selectedUser} onClose={() => onSelect('')} />
     </>
   );
 };

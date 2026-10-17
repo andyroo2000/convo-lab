@@ -90,9 +90,9 @@ describe('NotFoundPage', () => {
       expect(screen.getByText('Go Back')).toBeInTheDocument();
     });
 
-    it('should render Go to Library button', () => {
+    it('should render Go to Study button', () => {
       renderPage();
-      expect(screen.getByText('Go to Library')).toBeInTheDocument();
+      expect(screen.getByText('Go to Study')).toBeInTheDocument();
     });
 
     it('should navigate back when Go Back clicked', () => {
@@ -101,10 +101,10 @@ describe('NotFoundPage', () => {
       expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
 
-    it('should navigate to library when Go to Library clicked', () => {
+    it('should navigate to library when Go to Study clicked', () => {
       renderPage();
-      fireEvent.click(screen.getByText('Go to Library'));
-      expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+      fireEvent.click(screen.getByText('Go to Study'));
+      expect(mockNavigate).toHaveBeenCalledWith('/app/study');
     });
   });
 
