@@ -120,7 +120,12 @@ test('saved playback keeps authenticated media checks after creator retirement',
   assert.doesNotMatch(workflow, /script_smoke_job_id/);
   const session = workflow.indexOf('Disposable Learning OS content browser session established.');
   const playback = workflow.indexOf('Audio Script Learning OS routing and streaming smoke checks passed.');
-  assert.ok(session >= 0 && playback > session);
+  assert.ok(session >= 0);
+  assert.ok(playback > session);
+  const router = await readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8');
+  assert.doesNotMatch(router, /\/api\/achievements|\/achievement-assets/);
+  assert.ok(!router.includes('/api/convolab/(?:dialogue|audio|images)'));
+  assert.doesNotMatch(workflow, /mutate_content_browser_route/);
 });
 
 test('the retired Express workspace stays absent', async () => {

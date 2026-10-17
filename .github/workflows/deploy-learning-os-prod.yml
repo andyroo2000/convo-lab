@@ -1335,39 +1335,6 @@ jobs:
                 return 1
               }
 
-              mutate_content_browser_route() {
-                local method="$1"
-                local path
-                local body="$3"
-                local response_file
-                local status
-
-                path="$(content_browser_path "$2")"
-                response_file="$(mktemp)"
-                status="$(curl --silent --show-error \
-                  --output "$response_file" \
-                  --write-out '%{http_code}' \
-                  --request "$method" \
-                  --header 'Accept: application/json' \
-                  --header 'Content-Type: application/json' \
-                  --header 'Origin: https://convo-lab.com' \
-                  --header "X-XSRF-TOKEN: $content_browser_smoke_csrf_token" \
-                  --cookie "$content_browser_smoke_cookie_jar" \
-                  --data "$body" \
-                  "https://convo-lab.com$path")"
-
-                if [[ ! "$status" =~ ^2[0-9][0-9]$ ]]; then
-                  echo "$method $path failed with HTTP $status:" >&2
-                  cat "$response_file" >&2
-                  echo >&2
-                  rm -f "$response_file"
-                  return 1
-                fi
-
-                cat "$response_file"
-                rm -f "$response_file"
-              }
-
               SMOKE_USER_EMAIL="$SMOKE_USER_EMAIL" \
                 JSON_TOOLS_CONTAINER="$DEPLOYMENT_TOOLS_CONTAINER" \
                 bash .github/scripts/smoke-auth-signup-verification-lifecycle.sh
