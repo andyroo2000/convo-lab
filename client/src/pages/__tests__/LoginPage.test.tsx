@@ -31,6 +31,18 @@ function renderWithRouter(initialRoute = '/login') {
   );
 }
 
+function fillSignupDetails(name: string, inviteCode: string) {
+  fireEvent.click(screen.getByTestId('auth-tab-signup'));
+  fireEvent.change(screen.getByTestId('auth-input-name'), { target: { value: name } });
+  fireEvent.change(screen.getByTestId('auth-input-invite-code'), { target: { value: inviteCode } });
+}
+
+function submitCredentials(email: string, password: string) {
+  fireEvent.change(screen.getByTestId('auth-input-email'), { target: { value: email } });
+  fireEvent.change(screen.getByTestId('auth-input-password'), { target: { value: password } });
+  fireEvent.click(screen.getByTestId('auth-submit-button'));
+}
+
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -116,32 +128,20 @@ describe('LoginPage', () => {
     it('should call login with email and password', async () => {
       renderWithRouter();
 
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'test@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'password123' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      submitCredentials('test@example.com', 'password123');
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
       });
     });
 
-    it('should navigate to library after successful login', async () => {
+    it('should navigate to study after successful login', async () => {
       renderWithRouter();
 
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'test@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'password123' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      submitCredentials('test@example.com', 'password123');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/study');
       });
     });
 
@@ -150,13 +150,7 @@ describe('LoginPage', () => {
 
       renderWithRouter();
 
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'test@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'password123' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      submitCredentials('test@example.com', 'password123');
 
       await waitFor(() => {
         expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Logging in...');
@@ -169,13 +163,7 @@ describe('LoginPage', () => {
 
       renderWithRouter();
 
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'test@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'wrongpassword' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      submitCredentials('test@example.com', 'wrongpassword');
 
       await waitFor(() => {
         expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
@@ -187,21 +175,8 @@ describe('LoginPage', () => {
     it('should call signup with all required fields', async () => {
       renderWithRouter();
 
-      fireEvent.click(screen.getByTestId('auth-tab-signup'));
-
-      fireEvent.change(screen.getByTestId('auth-input-name'), {
-        target: { value: 'John Doe' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-invite-code'), {
-        target: { value: 'INVITE123' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'john@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'password123' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      fillSignupDetails('John Doe', 'INVITE123');
+      submitCredentials('john@example.com', 'password123');
 
       await waitFor(() => {
         expect(mockSignup).toHaveBeenCalledWith(
@@ -213,27 +188,14 @@ describe('LoginPage', () => {
       });
     });
 
-    it('should navigate to library after successful signup', async () => {
+    it('should navigate to study after successful signup', async () => {
       renderWithRouter();
 
-      fireEvent.click(screen.getByTestId('auth-tab-signup'));
-
-      fireEvent.change(screen.getByTestId('auth-input-name'), {
-        target: { value: 'John' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-invite-code'), {
-        target: { value: 'INVITE' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'john@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'password' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      fillSignupDetails('John', 'INVITE');
+      submitCredentials('john@example.com', 'password');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/study');
       });
     });
 
@@ -242,21 +204,8 @@ describe('LoginPage', () => {
 
       renderWithRouter();
 
-      fireEvent.click(screen.getByTestId('auth-tab-signup'));
-
-      fireEvent.change(screen.getByTestId('auth-input-name'), {
-        target: { value: 'John' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-invite-code'), {
-        target: { value: 'WRONG' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'john@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'password' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      fillSignupDetails('John', 'WRONG');
+      submitCredentials('john@example.com', 'password');
 
       await waitFor(() => {
         expect(screen.getByText('Invalid invite code')).toBeInTheDocument();
@@ -267,21 +216,15 @@ describe('LoginPage', () => {
   describe('Return URL', () => {
     it('should navigate to returnUrl after login if present', async () => {
       render(
-        <MemoryRouter initialEntries={['/login?returnUrl=/app/create']}>
+        <MemoryRouter initialEntries={['/login?returnUrl=/app/study/cards']}>
           <LoginPage />
         </MemoryRouter>
       );
 
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'test@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'password123' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      submitCredentials('test@example.com', 'password123');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/create');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/study/cards');
       });
     });
   });
@@ -322,13 +265,7 @@ describe('LoginPage', () => {
 
       renderWithRouter();
 
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'test@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'password' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      submitCredentials('test@example.com', 'password');
 
       await waitFor(() => {
         expect(screen.getByText('An error occurred')).toBeInTheDocument();
@@ -341,13 +278,7 @@ describe('LoginPage', () => {
       renderWithRouter();
 
       // First submission - fails
-      fireEvent.change(screen.getByTestId('auth-input-email'), {
-        target: { value: 'test@example.com' },
-      });
-      fireEvent.change(screen.getByTestId('auth-input-password'), {
-        target: { value: 'wrong' },
-      });
-      fireEvent.click(screen.getByTestId('auth-submit-button'));
+      submitCredentials('test@example.com', 'wrong');
 
       await waitFor(() => {
         expect(screen.getByText('First error')).toBeInTheDocument();

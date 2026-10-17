@@ -273,7 +273,7 @@ const LoginPage = () => {
       if (isLogin) await login(email, password);
       else await signup(email, password, name, inviteCode);
 
-      navigate(searchParams.get('returnUrl') || '/app/library');
+      navigate(searchParams.get('returnUrl') || '/app/study');
     } catch (caughtError) {
       setError(getErrorMessage(caughtError, isLogin));
     } finally {

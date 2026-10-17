@@ -48,8 +48,8 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   // eslint-disable-next-line class-methods-use-this
-  handleGoToLibrary = () => {
-    window.location.assign('/app/library');
+  handleGoToStudy = () => {
+    window.location.assign('/app/study');
   };
 
   render() {
@@ -83,10 +83,10 @@ class ErrorBoundary extends Component<Props, State> {
               {!isChunkError && (
                 <button
                   type="button"
-                  onClick={this.handleGoToLibrary}
+                  onClick={this.handleGoToStudy}
                   className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
                 >
-                  {t('errors:boundary.goToLibrary')}
+                  {t('errors:boundary.goToStudy')}
                 </button>
               )}
             </div>

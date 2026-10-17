@@ -21,7 +21,7 @@
     "title": "エラーが発生しました",
     "description": "予期しないエラーが発生しました",
     "tryAgain": "再試行",
-    "goToLibrary": "ライブラリに移動"
+    "goToStudy": "学習に移動"
   },
   "display": {
     "connection": {

@@ -58,24 +58,24 @@ describe('React Router compatibility', () => {
     });
   });
 
-  it('preserves the replace redirect from the app index to the library', async () => {
+  it('preserves the replace redirect from the app index to the study', async () => {
     window.history.replaceState(null, '', '/app');
 
     render(
       <BrowserRouter>
         <Routes>
           <Route path="/app" element={<Outlet />}>
-            <Route index element={<Navigate to="/app/library" replace />} />
-            <Route path="library" element={<RouteProbe />} />
+            <Route index element={<Navigate to="/app/study" replace />} />
+            <Route path="study" element={<RouteProbe />} />
           </Route>
         </Routes>
       </BrowserRouter>
     );
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/app/library');
+      expect(window.location.pathname).toBe('/app/study');
       expect(JSON.parse(screen.getByTestId('route-probe').textContent ?? '')).toMatchObject({
-        pathname: '/app/library',
+        pathname: '/app/study',
       });
     });
   });
@@ -87,19 +87,19 @@ describe('React Router compatibility', () => {
       <BrowserRouter>
         <Routes>
           <Route path="/app" element={<Outlet />}>
-            <Route path="home" element={<Link to="/app/library">Open library</Link>} />
-            <Route path="library" element={<RouteProbe />} />
+            <Route path="home" element={<Link to="/app/study">Open study</Link>} />
+            <Route path="study" element={<RouteProbe />} />
           </Route>
         </Routes>
       </BrowserRouter>
     );
 
-    await userEvent.click(screen.getByRole('link', { name: 'Open library' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Open study' }));
 
     const routeProbe = await screen.findByTestId('route-probe');
-    expect(window.location.pathname).toBe('/app/library');
+    expect(window.location.pathname).toBe('/app/study');
     expect(JSON.parse(routeProbe.textContent ?? '')).toMatchObject({
-      pathname: '/app/library',
+      pathname: '/app/study',
     });
   });
 });

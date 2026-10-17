@@ -6,6 +6,31 @@ import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 import { authApi } from '../lib/authApi';
 
+type VerificationState = {
+  token: string;
+  status: 'verifying' | 'success' | 'error';
+  error: string;
+};
+
+function verificationStatus(
+  token: string | undefined,
+  verification: VerificationState | null,
+  verified: boolean | undefined
+) {
+  if (!token) return verified ? 'already-verified' : 'idle';
+  return verification?.token === token ? verification.status : 'verifying';
+}
+
+async function requireSuccessfulResponse(response: Response, fallback: string) {
+  if (response.ok) return;
+  const data = await response.json();
+  throw new Error(data.error?.message || data.error || data.message || fallback);
+}
+
+function verificationError(token: string | undefined, verification: VerificationState | null) {
+  return token && verification?.token === token ? verification.error : '';
+}
+
 const VerifyEmailPage = () => {
   const { t } = useTranslation(['auth', 'common']);
   const { token } = useParams<{ token: string }>();
@@ -28,13 +53,8 @@ const VerifyEmailPage = () => {
   navigateRef.current = navigate;
   refreshUserRef.current = refreshUser;
 
-  let status: 'verifying' | 'success' | 'error' | 'already-verified' | 'idle';
-  if (token) {
-    status = verification?.token === token ? verification.status : 'verifying';
-  } else {
-    status = user?.emailVerified ? 'already-verified' : 'idle';
-  }
-  const error = resendError || (token && verification?.token === token ? verification.error : '');
+  const status = verificationStatus(token, verification, user?.emailVerified);
+  const error = resendError || verificationError(token, verification);
 
   useEffect(() => {
     verificationGenerationRef.current += 1;
@@ -69,12 +89,7 @@ const VerifyEmailPage = () => {
           signal: controller.signal,
         });
 
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(
-            data.error?.message || data.error || data.message || 'Verification failed'
-          );
-        }
+        await requireSuccessfulResponse(response, 'Verification failed');
 
         if (!ownsVerification()) return;
 
@@ -83,7 +98,7 @@ const VerifyEmailPage = () => {
         redirectTimerRef.current = setTimeout(() => {
           if (!ownsVerification()) return;
           redirectTimerRef.current = null;
-          navigateRef.current('/app/library');
+          navigateRef.current('/app/study');
         }, 3000);
 
         // Verification already succeeded. Refreshing the session is secondary and
@@ -128,12 +143,7 @@ const VerifyEmailPage = () => {
         credentials: 'include',
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(
-          data.error?.message || data.error || data.message || 'Failed to resend email'
-        );
-      }
+      await requireSuccessfulResponse(response, 'Failed to resend email');
 
       setResendSuccess(true);
     } catch (err) {
@@ -148,11 +158,11 @@ const VerifyEmailPage = () => {
       <div className="max-w-md w-full">
         <div className="mb-6">
           <Link
-            to={user ? '/app/library' : '/login'}
+            to={user ? '/app/study' : '/login'}
             className="inline-flex items-center gap-2 text-medium-brown hover:text-dark-brown transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            {user ? t('auth:verifyEmail.backToLibrary') : t('auth:forgotPassword.backToLogin')}
+            {user ? t('auth:verifyEmail.backToStudy') : t('auth:forgotPassword.backToLogin')}
           </Link>
         </div>
 
@@ -225,8 +235,8 @@ const VerifyEmailPage = () => {
               <p className="text-medium-brown mb-6">
                 {t('auth:verifyEmail.alreadyVerifiedDescription')}
               </p>
-              <Link to="/app/library" className="btn-primary inline-block">
-                {t('auth:verifyEmail.goToLibrary')}
+              <Link to="/app/study" className="btn-primary inline-block">
+                {t('auth:verifyEmail.goToStudy')}
               </Link>
             </div>
           )}

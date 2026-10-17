@@ -43,7 +43,7 @@ function verificationRoutes(withTokenSwitch = false) {
       <Routes>
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
-        <Route path="/app/library" element={<div>Library Page</div>} />
+        <Route path="/app/study" element={<div>Library Page</div>} />
       </Routes>
     </>
   );
@@ -67,6 +67,37 @@ function deferred<T>() {
     reject = rejectPromise;
   });
   return { promise, resolve, reject };
+}
+
+function mockVerificationResponse(ok: boolean, payload: Record<string, string>) {
+  (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    ok,
+    json: async () => payload,
+  });
+}
+
+async function renderExpiredVerification() {
+  mockVerificationResponse(false, { error: 'Token has expired' });
+  renderWithRouter('/verify-email/expired-token');
+  await screen.findByText('Verification Failed');
+}
+
+function resendWithoutToken(ok: boolean, payload: Record<string, string>) {
+  mockUser.emailVerified = false;
+  mockVerificationResponse(ok, payload);
+  renderWithRouter('/verify-email');
+  fireEvent.click(screen.getByRole('button', { name: /Resend Verification Email/ }));
+}
+
+async function renderVerificationResult(
+  ok: boolean,
+  payload: Record<string, string>,
+  token: string,
+  heading: string
+) {
+  mockVerificationResponse(ok, payload);
+  renderWithRouter(`/verify-email/${token}`);
+  await screen.findByText(heading);
 }
 
 describe('VerifyEmailPage', () => {
@@ -137,7 +168,7 @@ describe('VerifyEmailPage', () => {
         vi.advanceTimersByTime(3000);
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+      expect(mockNavigate).toHaveBeenCalledWith('/app/study');
     });
 
     it('owns a single-use token once during StrictMode effect replay', async () => {
@@ -312,16 +343,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should show error for expired token', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Token has expired' }),
-      });
-
-      renderWithRouter('/verify-email/expired-token');
-
-      await waitFor(() => {
-        expect(screen.getByText('Verification Failed')).toBeInTheDocument();
-      });
+      await renderExpiredVerification();
 
       expect(screen.getByText('Token has expired')).toBeInTheDocument();
     });
@@ -341,16 +363,7 @@ describe('VerifyEmailPage', () => {
 
   describe('Resend Verification Email', () => {
     it('should show resend button when verification fails', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Token has expired' }),
-      });
-
-      renderWithRouter('/verify-email/expired-token');
-
-      await waitFor(() => {
-        expect(screen.getByText('Verification Failed')).toBeInTheDocument();
-      });
+      await renderExpiredVerification();
 
       const resendButton = screen.getByRole('button', { name: /Resend Verification Email/ });
       expect(resendButton).toBeInTheDocument();
@@ -449,7 +462,7 @@ describe('VerifyEmailPage', () => {
 
       expect(screen.getByText('Email Already Verified')).toBeInTheDocument();
       expect(screen.getByText(/Your email is already verified/)).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /Go to Library/ })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Go to Study/ })).toBeInTheDocument();
     });
   });
 
@@ -466,17 +479,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should allow resending verification email from no-token state', async () => {
-      mockUser.emailVerified = false;
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Verification email sent' }),
-      });
-
-      renderWithRouter('/verify-email');
-
-      const resendButton = screen.getByRole('button', { name: /Resend Verification Email/ });
-      fireEvent.click(resendButton);
+      resendWithoutToken(true, { message: 'Verification email sent' });
 
       await waitFor(() => {
         expect(screen.getByText('Verification email sent! Check your inbox.')).toBeInTheDocument();
@@ -484,17 +487,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should show error when resend fails in no-token state', async () => {
-      mockUser.emailVerified = false;
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Server error' }),
-      });
-
-      renderWithRouter('/verify-email');
-
-      const resendButton = screen.getByRole('button', { name: /Resend Verification Email/ });
-      fireEvent.click(resendButton);
+      resendWithoutToken(false, { error: 'Server error' });
 
       await waitFor(() => {
         expect(screen.getByText('Server error')).toBeInTheDocument();
@@ -513,22 +506,18 @@ describe('VerifyEmailPage', () => {
     it('should render back to library link', () => {
       renderWithRouter('/verify-email');
 
-      const backLink = screen.getByRole('link', { name: /Back to Library/ });
+      const backLink = screen.getByRole('link', { name: /Back to Study/ });
       expect(backLink).toBeInTheDocument();
-      expect(backLink).toHaveAttribute('href', '/app/library');
+      expect(backLink).toHaveAttribute('href', '/app/study');
     });
 
     it('should show success icon on successful verification', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Email verified successfully' }),
-      });
-
-      renderWithRouter('/verify-email/valid-token');
-
-      await waitFor(() => {
-        expect(screen.getByText('Email Verified!')).toBeInTheDocument();
-      });
+      await renderVerificationResult(
+        true,
+        { message: 'Email verified successfully' },
+        'valid-token',
+        'Email Verified!'
+      );
 
       // Check for CheckCircle icon (you may need to adjust based on how lucide-react renders)
       // eslint-disable-next-line testing-library/no-node-access
@@ -537,16 +526,12 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should show error icon on verification failure', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Invalid token' }),
-      });
-
-      renderWithRouter('/verify-email/invalid-token');
-
-      await waitFor(() => {
-        expect(screen.getByText('Verification Failed')).toBeInTheDocument();
-      });
+      await renderVerificationResult(
+        false,
+        { error: 'Invalid token' },
+        'invalid-token',
+        'Verification Failed'
+      );
 
       // Check for XCircle icon
       // eslint-disable-next-line testing-library/no-node-access

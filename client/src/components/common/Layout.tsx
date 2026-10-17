@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Library, Mic, Eye, BookOpen, BookMarked, Clock3 } from 'lucide-react';
+import { Eye, BookOpen, BookMarked, Clock3 } from 'lucide-react';
 import ReadingsNav from '../../features/readings/ReadingsNav';
 import useReadings from '../../features/readings/useReadings';
 import { useAuth } from '../../contexts/AuthContext';
@@ -18,25 +18,15 @@ import MobileLearningDock from './MobileLearningDock';
 import type { User } from '../../types';
 
 type LayoutRouteState = {
-  createPath: string;
-  isCreateActive: boolean;
   isFullWidthMobilePage: boolean;
-  isLibraryActive: boolean;
   isStudyActive: boolean;
   isTimeActive: boolean;
-  libraryPath: string;
 };
 
 type NavigationLabels = {
-  create: string;
-  library: string;
   study: string;
   studyTime: string;
 };
-
-function pathForViewer(path: string, viewAsUserId?: string) {
-  return viewAsUserId ? `${path}?viewAs=${viewAsUserId}` : path;
-}
 
 function getViewAsUserId(searchParams: URLSearchParams) {
   return searchParams.get('viewAs') || undefined;
@@ -63,18 +53,12 @@ function getMenuUser(user: User, effectiveUser: User | null, isImpersonating: bo
   return user;
 }
 
-function getLayoutRouteState(pathname: string, viewAsUserId?: string): LayoutRouteState {
-  const isLibraryActive = pathname === '/app/library';
-  const isCreateActive = pathname.startsWith('/app/create');
+function getLayoutRouteState(pathname: string): LayoutRouteState {
   const isTimeActive = pathname === '/app/study/time';
   return {
-    createPath: pathForViewer('/app/create', viewAsUserId),
-    isCreateActive,
-    isFullWidthMobilePage: isLibraryActive || pathname === '/app/create',
-    isLibraryActive,
+    isFullWidthMobilePage: false,
     isStudyActive: pathname.startsWith('/app/study') && !isTimeActive,
     isTimeActive,
-    libraryPath: pathForViewer('/app/library', viewAsUserId),
   };
 }
 
@@ -119,28 +103,6 @@ const DesktopNavigation = ({
   viewAsUserId?: string;
 }) => (
   <div className="hidden sm:ml-6 sm:flex h-[4.5rem] items-center gap-2">
-    <Link
-      to={route.libraryPath}
-      className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
-        route.isLibraryActive
-          ? 'is-active bg-white text-strawberry shadow-md'
-          : 'text-white hover:bg-white/20'
-      }`}
-    >
-      <Library className="w-5 h-5 mr-2.5 flex-shrink-0" />
-      {labels.library}
-    </Link>
-    <Link
-      to={route.createPath}
-      className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
-        route.isCreateActive
-          ? 'is-active bg-white text-coral shadow-md'
-          : 'text-white hover:bg-white/20'
-      }`}
-    >
-      <Mic className="w-5 h-5 mr-2.5 flex-shrink-0" />
-      {labels.create}
-    </Link>
     {flashcardsEnabled && !viewAsUserId ? (
       <Link
         to="/app/study"
@@ -203,7 +165,7 @@ const LayoutTopBar = ({
         <div className="flex h-[4.5rem] items-center">
           <div className="flex items-center flex-1 min-w-0">
             <Link
-              to={route.libraryPath}
+              to="/app/study"
               className="flex items-center gap-2 px-2 text-white font-bold text-lg sm:text-xl drop-shadow-md flex-shrink-0"
             >
               <Logo size="small" showKana showIcons={false} alwaysShowText />
@@ -274,7 +236,7 @@ const Layout = () => {
   const readings = useReadings(!viewAsUserId);
   const hasReadings = Boolean(readings.data?.length) && !viewAsUserId;
   const isReadingsActive = location.pathname.startsWith('/app/readings');
-  const route = getLayoutRouteState(location.pathname, viewAsUserId);
+  const route = getLayoutRouteState(location.pathname);
   const protectedReturnUrl = `${location.pathname}${location.search}${location.hash}`;
   const loginRedirect = `/login?${new URLSearchParams({
     returnUrl: protectedReturnUrl,
@@ -298,27 +260,11 @@ const Layout = () => {
     isImpersonating
   );
   const labels = {
-    create: t('common:nav.create'),
-    library: t('common:nav.library'),
     study: t('common:nav.study'),
     studyTime: t('common:nav.studyTime'),
   };
   const mobileNavItems = useMemo<UserMenuMobileNavItem[]>(
     () => [
-      {
-        id: 'library',
-        label: labels.library,
-        path: route.libraryPath,
-        isActive: route.isLibraryActive,
-        icon: Library,
-      },
-      {
-        id: 'create',
-        label: labels.create,
-        path: route.createPath,
-        isActive: route.isCreateActive,
-        icon: Mic,
-      },
       ...(hasReadings
         ? [
             {
@@ -331,16 +277,7 @@ const Layout = () => {
           ]
         : []),
     ],
-    [
-      hasReadings,
-      isReadingsActive,
-      labels.create,
-      labels.library,
-      route.createPath,
-      route.isCreateActive,
-      route.isLibraryActive,
-      route.libraryPath,
-    ]
+    [hasReadings, isReadingsActive]
   );
 
   // Show loading spinner while checking authentication
