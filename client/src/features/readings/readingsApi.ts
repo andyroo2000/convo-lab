@@ -1,6 +1,7 @@
 import { requestJson } from '../../lib/apiClient';
 import { fetchWithCsrf } from '../../lib/csrf';
 import { notifyAuthSessionExpired } from '../../lib/authSession';
+import type { ReadingPosition } from './readingPosition';
 import type { ReadingDetail, ReadingSummary } from './types';
 
 const base = '/api/convolab/readings';
@@ -17,6 +18,22 @@ export async function getReadingAudio(id: string, sentence: number, signal: Abor
     { method: 'POST', credentials: 'include', signal, headers: { Accept: 'audio/mpeg' } }
   );
   notifyAuthSessionExpired(response);
-  if (!response.ok) throw new Error('Sato audio could not be prepared. Please try again.');
+  if (!response.ok) throw new Error('Narration could not be prepared. Please try again.');
   return response.blob();
 }
+
+export const getReadingPosition = (id: string, signal: AbortSignal) =>
+  requestJson<{ position: ReadingPosition | null }>(
+    `/api/reading-progress/${encodeURIComponent(id)}`,
+    { signal }
+  );
+
+export const saveReadingPosition = (id: string, position: ReadingPosition, signal: AbortSignal) =>
+  requestJson<{ position: ReadingPosition | null }>(
+    `/api/reading-progress/${encodeURIComponent(id)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(position),
+      signal,
+    }
+  );

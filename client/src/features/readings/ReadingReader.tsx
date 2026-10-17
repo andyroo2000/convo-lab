@@ -1,30 +1,32 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import type { ReadingDetail } from './types';
 import ReadingBookPage from './ReadingBookPage';
 import ReadingSidebar from './ReadingSidebar';
 import useReadingAudio from './useReadingAudio';
 import useReadingKeyboard from './useReadingKeyboard';
+import useReadingPosition from './useReadingPosition';
 
-const ReadingReader = ({ reading }: { reading: ReadingDetail }) => {
-  const [pageIndex, setPageIndex] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
+const ReadingReader = ({ reading, userId }: { reading: ReadingDetail; userId?: string }) => {
+  const {
+    pageIndex,
+    selected,
+    select: setSelected,
+    turnPage: changePage,
+    error,
+  } = useReadingPosition(reading, userId);
   const [hovered, setHovered] = useState<number | null>(null);
   const audio = useReadingAudio(reading.id, selected);
   const { pages } = reading.document;
-  const turnPage = useCallback(
-    (direction: number) => {
-      const next = pageIndex + direction;
-      if (next < 0 || next >= pages.length) return;
-      setPageIndex(next);
-      setHovered(null);
-    },
-    [pageIndex, pages.length]
-  );
+  const turnPage = (direction: number) => {
+    changePage(direction);
+    setHovered(null);
+  };
   useReadingKeyboard({ selected, toggleAudio: audio.toggle, turnPage });
   const sentence = selected === null ? null : reading.document.sentences[selected];
 
   return (
     <div className="reading-reader">
+      {error && <p role="status">{error}</p>}
       <div className="reading-layout">
         <ReadingBookPage
           reading={reading}

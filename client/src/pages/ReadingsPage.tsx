@@ -62,7 +62,11 @@ const ReadingDetail = ({ id }: { id: string }) => {
       <h1 className="sr-only" lang="ja">
         {reading.data.title}
       </h1>
-      <ReadingReader key={`${user?.id}:${id}`} reading={reading.data} />
+      <ReadingReader
+        key={`${user?.id}:${id}`}
+        reading={reading.data}
+        userId={user ? String(user.id) : undefined}
+      />
     </section>
   );
 };
