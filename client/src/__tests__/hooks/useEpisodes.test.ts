@@ -11,17 +11,6 @@ vi.mock('../../config', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-function mockSuccessfulJob(jobId: string) {
-  mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ jobId }) });
-  return renderHook(() => useEpisodes());
-}
-
-async function expectGenerationFailure(operation: () => Promise<string>, message: string) {
-  await act(async () => {
-    await expect(operation()).rejects.toThrow(message);
-  });
-}
-
 describe('useEpisodes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,71 +28,8 @@ describe('useEpisodes', () => {
     it('should return all expected functions', () => {
       const { result } = renderHook(() => useEpisodes());
 
-      expect(typeof result.current.generateAudio).toBe('function');
-      expect(typeof result.current.generateAllSpeedsAudio).toBe('function');
       expect(typeof result.current.getEpisode).toBe('function');
       expect(typeof result.current.deleteEpisode).toBe('function');
-    });
-  });
-
-  it.each([
-    ['generateAudio', '/api/convolab/audio/generate'],
-    ['generateAllSpeedsAudio', '/api/convolab/audio/generate-all-speeds'],
-  ] as const)('%s submits to its audio endpoint', async (method, endpoint) => {
-    const { result } = mockSuccessfulJob('audio-job-123');
-    let jobId: string | null = null;
-    await act(async () => {
-      jobId = await result.current[method]('ep-123', 'd-456');
-    });
-    expect(jobId).toBe('audio-job-123');
-    expect(mockFetch).toHaveBeenCalledWith(endpoint, expect.objectContaining({ method: 'POST' }));
-  });
-
-  describe('generateAudio', () => {
-    it('should use default speed and pauseMode', async () => {
-      const { result } = mockSuccessfulJob('job-123');
-
-      await act(async () => {
-        await result.current.generateAudio('ep-123', 'd-456');
-      });
-
-      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(callBody.speed).toBe('medium');
-      expect(callBody.pauseMode).toBe(false);
-    });
-
-    it('should surface Learning OS error messages', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: () => Promise.resolve({ message: 'Audio generation is unavailable' }),
-      });
-
-      const { result } = renderHook(() => useEpisodes());
-
-      await expectGenerationFailure(
-        () => result.current.generateAudio('ep-123', 'd-456'),
-        'Audio generation is unavailable'
-      );
-
-      expect(result.current.error).toBe('Audio generation is unavailable');
-    });
-  });
-
-  describe('generateAllSpeedsAudio', () => {
-    it('should retain the fallback when Learning OS returns a non-JSON error', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: () => Promise.reject(new SyntaxError('Unexpected token')),
-      });
-
-      const { result } = renderHook(() => useEpisodes());
-
-      await expectGenerationFailure(
-        () => result.current.generateAllSpeedsAudio('ep-123', 'd-456'),
-        'Failed to generate multi-speed audio'
-      );
-
-      expect(result.current.error).toBe('Failed to generate multi-speed audio');
     });
   });
 

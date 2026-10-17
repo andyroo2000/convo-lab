@@ -7,13 +7,6 @@ import pwaManifest from './src/config/pwaManifest.ts';
 
 const learningOsApiUrl = process.env.LEARNING_OS_API_URL ?? 'http://localhost:8080';
 
-const learningOsLegacyGenerationProxy = (namespace: 'dialogue' | 'audio' | 'images') => ({
-  target: learningOsApiUrl,
-  changeOrigin: true,
-  rewrite: (requestPath: string) =>
-    requestPath.replace(new RegExp(`^/api/${namespace}(?=/|$)`), `/api/convolab/${namespace}`),
-});
-
 export default defineConfig({
   plugins: [
     react(),
@@ -70,21 +63,6 @@ export default defineConfig({
         target: learningOsApiUrl,
         changeOrigin: true,
       },
-      '/api/convolab/dialogue': {
-        target: learningOsApiUrl,
-        changeOrigin: true,
-      },
-      '/api/convolab/audio': {
-        target: learningOsApiUrl,
-        changeOrigin: true,
-      },
-      '/api/convolab/images': {
-        target: learningOsApiUrl,
-        changeOrigin: true,
-      },
-      '^/api/dialogue(?:/|$)': learningOsLegacyGenerationProxy('dialogue'),
-      '^/api/audio(?:/|$)': learningOsLegacyGenerationProxy('audio'),
-      '^/api/images(?:/|$)': learningOsLegacyGenerationProxy('images'),
       '/api/convolab/admin': {
         target: learningOsApiUrl,
         changeOrigin: true,
@@ -118,10 +96,6 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api': {
-        target: learningOsApiUrl,
-        changeOrigin: true,
-      },
-      '/achievement-assets': {
         target: learningOsApiUrl,
         changeOrigin: true,
       },

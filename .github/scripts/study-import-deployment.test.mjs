@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 import YAML from 'yaml';
 
-import { assertRequiredGenerationProxyContracts } from './study-import-generation-contracts.mjs';
+import { assertRequiredPlaybackContracts } from './study-import-playback-contracts.mjs';
 import {
   assertAlwaysOnStudyApiContracts,
   assertPermanentBrowserApiContracts,
@@ -111,72 +111,21 @@ test('the production XSRF decoder runs without a host Node dependency', async ()
   assert.equal(stdout, 'abc+def/ghi==');
 });
 
-test('generation routes are permanently proxied and production rehearsals cover them', async () => {
-  const [stageCompose, productionCompose, workflow] = await Promise.all([
-    readFile(path.join(repositoryRoot, 'docker-compose.stage.yml'), 'utf8'),
-    readFile(path.join(repositoryRoot, 'docker-compose.prod.yml'), 'utf8'),
-    readFile(path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'),
-  ]);
-
-  const retiredProxyFlags =
-    /LEARNING_OS_(?:COURSE_GENERATION|DIALOGUE_GENERATION|AUDIO_GENERATION|SCRIPT|AUTH|PROFILE|SIGNUP|VERIFICATION)_PROXY_ENABLED/;
-  for (const source of [stageCompose, productionCompose, workflow]) {
-    assert.doesNotMatch(source, retiredProxyFlags);
-  }
-  assert.doesNotMatch(stageCompose, /MONTHLY_GENERATION_LIMIT/);
-  assert.doesNotMatch(productionCompose, /MONTHLY_GENERATION_LIMIT/);
-
-  assertRequiredGenerationProxyContracts(workflow);
-
-  const audioFixtureInsert = workflow.indexOf(
-    'DB::table("content_audio_generation_jobs")->insert'
+test('saved playback keeps authenticated media checks after creator retirement', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github/workflows/deploy-learning-os-prod.yml'), 'utf8'
   );
-  const audioStreamSmoke = workflow.slice(
-    workflow.indexOf('audio_generation_smoke_body="$(mktemp)"', audioFixtureInsert),
-    workflow.indexOf('cleanup_audio_generation_smoke', audioFixtureInsert)
-  );
-  assert.ok(audioFixtureInsert >= 0);
-  assert.ok(audioStreamSmoke.includes('--cookie "$content_browser_smoke_cookie_jar"'));
-  assert.ok(
-    audioStreamSmoke.includes(
-      '"https://convo-lab.com$(content_browser_path'
-    )
-  );
-  assert.ok(!audioStreamSmoke.includes('Authorization: Bearer'));
-  assert.ok(!audioStreamSmoke.includes('X-Convo-Lab-User-Id'));
-
-  const serverHealthy = workflow.indexOf('wait_for_health "convolab-server-$active_color"');
-  const browserSession = workflow.indexOf(
-    'Disposable Learning OS content browser session established.'
-  );
-  const fixtureInsert = workflow.indexOf(
-    'Illuminate\\Support\\Facades\\DB::table("content_courses")->insert'
-  );
-  const publicReset = workflow.indexOf(
-    '"/api/convolab/courses/$course_generation_smoke_id/reset"'
-  );
-  const statusCheck = workflow.indexOf("'Course generation status after reset'");
-  const successCleanup = workflow.lastIndexOf(
-    'cleanup_course_generation_smoke',
-    workflow.indexOf('Course generation Learning OS write smoke check passed.')
-  );
-
-  assert.ok(serverHealthy >= 0);
-  assert.ok(serverHealthy < browserSession);
-  assert.ok(browserSession < fixtureInsert);
-  assert.ok(fixtureInsert < publicReset);
-  assert.ok(publicReset < statusCheck);
-  assert.ok(statusCheck < successCleanup);
-
-  const fixtureInserted = workflow.indexOf('course_generation_smoke_inserted=true');
-  assert.ok(browserSession < fixtureInserted);
-  assert.ok(fixtureInserted < fixtureInsert);
-
-  const failureCleanup = workflow.slice(
-    workflow.indexOf('cleanup_deployment_resources() {'),
-    workflow.indexOf('trap cleanup_deployment_resources EXIT')
-  );
-  assert.doesNotMatch(failureCleanup, retiredProxyFlags);
+  assertRequiredPlaybackContracts(workflow);
+  assert.doesNotMatch(workflow, /(?:course|dialogue|image|audio)_generation_smoke/);
+  assert.doesNotMatch(workflow, /script_smoke_job_id/);
+  const session = workflow.indexOf('Disposable Learning OS content browser session established.');
+  const playback = workflow.indexOf('Audio Script Learning OS routing and streaming smoke checks passed.');
+  assert.ok(session >= 0);
+  assert.ok(playback > session);
+  const router = await readFile(path.join(repositoryRoot, 'deploy/prod-router.conf.template'), 'utf8');
+  assert.doesNotMatch(router, /\/api\/achievements|\/achievement-assets/);
+  assert.ok(!router.includes('/api/convolab/(?:dialogue|audio|images)'));
+  assert.doesNotMatch(workflow, /mutate_content_browser_route/);
 });
 
 test('the retired Express workspace stays absent', async () => {
@@ -510,4 +459,12 @@ test('the auth lifecycle smoke exercises signup through account deletion with di
     /JSON_TOOLS_CONTAINER="\$DEPLOYMENT_TOOLS_CONTAINER"/
   );
   assert.doesNotMatch(workflow, /LEARNING_OS_SCRIPT_PROXY_ENABLED|ROUTE_PROXY_CUTOVER_STARTED/);
+});
+
+ test('unknown API requests terminate before the SPA fallback', async () => {
+  const router = await readFile(new URL('../../deploy/prod-router.conf.template', import.meta.url), 'utf8');
+  const apiFallback = router.indexOf('location ~ ^/api/ {');
+  assert.ok(apiFallback > router.indexOf('location ~ ^/api/daily-audio-practice'));
+  assert.ok(apiFallback < router.indexOf('location / {'));
+  assert.match(router.slice(apiFallback, router.indexOf('}', apiFallback)), /return 404;/);
 });

@@ -61,7 +61,6 @@ test('native content routes preserve bearer tokens without trusting browser iden
     'location ~ ^/api/study(?:/|$)',
     'location ~ "^/api/daily-audio-practice/',
     'location ~ ^/api/daily-audio-practice(?:/|$)',
-    'location ~ ^/api/achievements/(?:progress|evaluate)$',
   ]) {
     const block = locationBlock(router, marker);
     assert.ok(

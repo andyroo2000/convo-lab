@@ -253,40 +253,6 @@ server {
         proxy_read_timeout 180s;
     }
 
-    location ~ ^/api/convolab/(?:dialogue|audio|images)(?:/|$) {
-        proxy_pass $learning_os_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
-        proxy_set_header Authorization "";
-        proxy_set_header X-Convo-Lab-User-Id "";
-        proxy_buffering off;
-        proxy_connect_timeout 5s;
-        proxy_send_timeout 180s;
-        proxy_read_timeout 180s;
-    }
-
-    # Preserve stale PWA clients while Express generation compatibility routes retire.
-    location ~ ^/api/(dialogue|audio|images)(/.*)?$ {
-        rewrite ^/api/(dialogue|audio|images)(/.*)?$ /api/convolab/$1$2 break;
-        proxy_pass $learning_os_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
-        proxy_set_header Authorization "";
-        proxy_set_header X-Convo-Lab-User-Id "";
-        proxy_set_header X-XSRF-TOKEN $learning_os_xsrf_token;
-        proxy_buffering off;
-        proxy_connect_timeout 5s;
-        proxy_send_timeout 180s;
-        proxy_read_timeout 180s;
-    }
 
     location ~ ^/api/convolab/admin(?:/|$) {
         proxy_pass $learning_os_upstream;
@@ -390,49 +356,9 @@ server {
         proxy_read_timeout 180s;
     }
 
-    location = /api/achievements/catalog {
-        proxy_pass $learning_os_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
-        proxy_set_header Authorization "";
-        proxy_set_header X-Convo-Lab-User-Id "";
-        proxy_connect_timeout 5s;
-        proxy_send_timeout 30s;
-        proxy_read_timeout 30s;
-    }
-
-    location ~ ^/api/achievements/(?:progress|evaluate)$ {
-        proxy_pass $learning_os_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
-        proxy_set_header Authorization $http_authorization;
-        proxy_set_header X-Convo-Lab-User-Id "";
-        proxy_connect_timeout 5s;
-        proxy_send_timeout 30s;
-        proxy_read_timeout 30s;
-    }
-
-    location ^~ /achievement-assets/ {
-        proxy_pass $learning_os_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
-        proxy_set_header Authorization "";
-        proxy_set_header X-Convo-Lab-User-Id "";
-        proxy_connect_timeout 5s;
-        proxy_send_timeout 30s;
-        proxy_read_timeout 30s;
+    # Unknown API paths must never return the SPA document.
+    location ~ ^/api/ {
+        return 404;
     }
 
     location / {

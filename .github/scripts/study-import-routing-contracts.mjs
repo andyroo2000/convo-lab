@@ -271,7 +271,6 @@ const assertPermanentRouteConfiguration = ({ compose, workflow, router, viteConf
     '/api/convolab/episodes',
     '/api/convolab/courses',
     '/api/convolab/scripts',
-    '/api/convolab/(?:dialogue|audio|images)',
     '/api/convolab/admin',
     '/api/study',
     '/api/daily-audio-practice',

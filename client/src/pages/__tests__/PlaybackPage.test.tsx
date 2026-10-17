@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-node-access */
 // Complex playback page testing with audio elements requires direct node access
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 
 import PlaybackPage from '../PlaybackPage';
@@ -9,8 +9,6 @@ import type { Episode } from '../../types';
 
 // Use vi.hoisted to ensure mock functions are available when vi.mock runs (which is hoisted)
 const mockGetEpisode = vi.hoisted(() => vi.fn());
-const mockGenerateAudio = vi.hoisted(() => vi.fn());
-const mockGenerateAllSpeedsAudio = vi.hoisted(() => vi.fn());
 const mockPollJobStatus = vi.hoisted(() => vi.fn());
 const mockAudioRef = vi.hoisted(() => vi.fn());
 const mockAudioState = vi.hoisted(() => ({
@@ -26,8 +24,6 @@ const mockUseWarmAudioCache = vi.hoisted(() => vi.fn());
 vi.mock('../../hooks/useEpisodes', () => ({
   useEpisodes: () => ({
     getEpisode: mockGetEpisode,
-    generateAudio: mockGenerateAudio,
-    generateAllSpeedsAudio: mockGenerateAllSpeedsAudio,
     pollJobStatus: mockPollJobStatus,
     loading: false,
   }),
@@ -768,18 +764,6 @@ describe('PlaybackPage', () => {
     });
   });
 
-  describe('toast notification', () => {
-    it('should render toast component', async () => {
-      renderPlaybackPage();
-
-      // Toast is always rendered but may be hidden
-      // We just verify the component renders without error
-      await waitFor(() => {
-        expect(screen.getByText('Test Episode')).toBeInTheDocument();
-      });
-    });
-  });
-
   describe('Japanese text rendering', () => {
     it('should render Japanese text with JapaneseText component', async () => {
       renderPlaybackPage();
@@ -791,328 +775,18 @@ describe('PlaybackPage', () => {
     });
   });
 
-  describe('audio generation', () => {
-    it('should not show generation progress when all speeds are available', async () => {
-      renderPlaybackPage();
-
-      await waitFor(() => {
-        expect(screen.queryByText(/Generating audio/)).not.toBeInTheDocument();
-      });
+  it('keeps missing audio read-only even for legacy auto-generation episodes', async () => {
+    mockGetEpisode.mockResolvedValue({
+      ...mockEpisode,
+      autoGenerateAudio: true,
+      audioUrl: undefined,
+      audioUrl_0_7: undefined,
+      audioUrl_0_85: undefined,
+      audioUrl_1_0: undefined,
     });
-
-    it('explains when an episode has no audio and auto-generation is disabled', async () => {
-      mockGetEpisode.mockResolvedValue({
-        ...mockEpisode,
-        autoGenerateAudio: false,
-        audioUrl: undefined,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      });
-
-      renderPlaybackPage();
-
-      expect(await screen.findByText('Audio isn’t generated yet.')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Auto-generation is off for this dialogue. Generate audio to enable playback.'
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('explains when more speeds can be generated for existing audio', async () => {
-      mockGetEpisode.mockResolvedValue({
-        ...mockEpisode,
-        autoGenerateAudio: false,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      });
-
-      renderPlaybackPage();
-
-      expect(await screen.findByText('More audio speeds are available.')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Auto-generation is off for this dialogue. Generate audio to enable playback.'
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('starts only one audio job for same-frame Generate Audio clicks', async () => {
-      mockGetEpisode.mockResolvedValue({
-        ...mockEpisode,
-        autoGenerateAudio: false,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      });
-      const generationRequest = deferred<string>();
-      mockGenerateAllSpeedsAudio.mockReturnValue(generationRequest.promise);
-
-      renderPlaybackPage();
-
-      const generateButton = await screen.findByRole('button', { name: 'Generate Audio' });
-      act(() => {
-        generateButton.click();
-        generateButton.click();
-      });
-
-      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledTimes(1);
-
-      generationRequest.resolve('job-123');
-      await act(async () => generationRequest.promise);
-    });
-
-    it('retries only the episode refresh after completed audio generation', async () => {
-      const episodeMissingSpeeds = {
-        ...mockEpisode,
-        autoGenerateAudio: false,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      };
-      const failedRetryRequest = deferred<Episode>();
-      let bustCacheRequests = 0;
-      mockGetEpisode.mockImplementation((_id: string, bustCache: boolean) => {
-        if (!bustCache) return Promise.resolve(episodeMissingSpeeds);
-
-        bustCacheRequests += 1;
-        if (bustCacheRequests === 1) return Promise.reject(new Error('reload failed'));
-        if (bustCacheRequests === 2) return failedRetryRequest.promise;
-        return Promise.resolve(mockEpisode);
-      });
-      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
-      vi.spyOn(console, 'error').mockImplementation(() => undefined);
-
-      let pollJob: (() => Promise<void>) | undefined;
-      const realSetInterval = globalThis.setInterval;
-      vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
-        if (delay === 1000) {
-          pollJob = callback as () => Promise<void>;
-          return 1 as unknown as NodeJS.Timeout;
-        }
-
-        return realSetInterval(callback, delay, ...args);
-      });
-
-      renderPlaybackPage();
-      fireEvent.click(await screen.findByRole('button', { name: 'Generate Audio' }));
-      await waitFor(() => expect(pollJob).toBeDefined());
-
-      await act(async () => pollJob?.());
-
-      expect(
-        await screen.findByText('Audio generated, but the episode could not be refreshed.')
-      ).toBeInTheDocument();
-      expect(screen.queryByText(/Generating audio at all speeds/)).not.toBeInTheDocument();
-
-      const retryButton = screen.getByRole('button', { name: 'Retry refresh' });
-      act(() => {
-        retryButton.click();
-        retryButton.click();
-      });
-
-      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledTimes(1);
-      expect(bustCacheRequests).toBe(2);
-
-      failedRetryRequest.reject(new Error('reload still failing'));
-      await act(async () => failedRetryRequest.promise.catch(() => undefined));
-
-      expect(
-        await screen.findByText('The episode still could not be refreshed. Please try again.')
-      ).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Retry refresh' }));
-
-      expect(await screen.findByText('Audio is ready!')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Retry refresh' })).not.toBeInTheDocument();
-      expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledTimes(1);
-      expect(bustCacheRequests).toBe(3);
-    });
-
-    it('stops polling an audio job after navigating to another episode', async () => {
-      const episodeMissingSpeeds = {
-        ...mockEpisode,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      };
-      const nextEpisode = {
-        ...mockEpisode,
-        id: 'episode-456',
-        title: 'Next Episode',
-      };
-      mockGetEpisode.mockImplementation((id: string) =>
-        Promise.resolve(id === 'episode-123' ? episodeMissingSpeeds : nextEpisode)
-      );
-      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
-
-      let pollJob: (() => Promise<void>) | undefined;
-      const realSetInterval = globalThis.setInterval;
-      vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
-        if (delay === 1000) {
-          pollJob = callback as () => Promise<void>;
-          return 1 as unknown as NodeJS.Timeout;
-        }
-
-        return realSetInterval(callback, delay, ...args);
-      });
-
-      renderPlaybackPage();
-
-      await waitFor(() => {
-        expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith('episode-123', 'dialogue-123');
-        expect(pollJob).toBeDefined();
-      });
-
-      fireEvent.click(screen.getByRole('button', { name: 'Open next episode' }));
-      expect(await screen.findByText('Next Episode')).toBeInTheDocument();
-
-      await pollJob?.();
-
-      expect(global.fetch).not.toHaveBeenCalled();
-      expect(screen.queryByText('Audio generated successfully!')).not.toBeInTheDocument();
-    });
-
-    it('records an accepted audio job even when its route is no longer current', async () => {
-      const episodeMissingSpeeds = {
-        ...mockEpisode,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      };
-      const nextEpisode = {
-        ...mockEpisode,
-        id: 'episode-456',
-        title: 'Next Episode',
-      };
-      const generationRequest = deferred<string>();
-      mockGetEpisode.mockImplementation((id: string) =>
-        Promise.resolve(id === 'episode-123' ? episodeMissingSpeeds : nextEpisode)
-      );
-      mockGenerateAllSpeedsAudio.mockReturnValue(generationRequest.promise);
-
-      renderPlaybackPage();
-      await waitFor(() => {
-        expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith('episode-123', 'dialogue-123');
-      });
-
-      fireEvent.click(screen.getByRole('button', { name: 'Open next episode' }));
-      expect(await screen.findByText('Next Episode')).toBeInTheDocument();
-
-      generationRequest.resolve('job-123');
-      await act(async () => generationRequest.promise);
-
-      expect(sessionStorage.getItem('audio-generation-queued')).toBe(
-        JSON.stringify(['episode-123'])
-      );
-    });
-
-    it('does not overlap slow audio job polling requests', async () => {
-      mockGetEpisode.mockResolvedValue({
-        ...mockEpisode,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      });
-      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
-      const pollResponse = deferred<{
-        ok: boolean;
-        status: number;
-        json: () => Promise<{ state: string; progress: number }>;
-      }>();
-      (global.fetch as ReturnType<typeof vi.fn>).mockReturnValue(pollResponse.promise);
-
-      let pollJob: (() => Promise<void>) | undefined;
-      const realSetInterval = globalThis.setInterval;
-      vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
-        if (delay === 1000) {
-          pollJob = callback as () => Promise<void>;
-          return 1 as unknown as NodeJS.Timeout;
-        }
-
-        return realSetInterval(callback, delay, ...args);
-      });
-
-      renderPlaybackPage();
-      await waitFor(() => expect(pollJob).toBeDefined());
-
-      let firstPoll: Promise<void> | undefined;
-      await act(async () => {
-        firstPoll = pollJob?.();
-        await pollJob?.();
-      });
-
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-
-      pollResponse.resolve({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({ state: 'processing', progress: 30 }),
-      });
-      await act(async () => firstPoll);
-    });
-
-    it('releases queued-generation suppression when the server reports failure', async () => {
-      sessionStorage.setItem('audio-generation-queued', JSON.stringify(['another-episode']));
-      mockGetEpisode.mockResolvedValue({
-        ...mockEpisode,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      });
-      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ state: 'failed', progress: 25 }),
-      });
-
-      let pollJob: (() => Promise<void>) | undefined;
-      const realSetInterval = globalThis.setInterval;
-      vi.spyOn(globalThis, 'setInterval').mockImplementation((callback, delay, ...args) => {
-        if (delay === 1000) {
-          pollJob = callback as () => Promise<void>;
-          return 1 as unknown as NodeJS.Timeout;
-        }
-
-        return realSetInterval(callback, delay, ...args);
-      });
-
-      renderPlaybackPage();
-      await waitFor(() => {
-        expect(pollJob).toBeDefined();
-        expect(sessionStorage.getItem('audio-generation-queued')).toBe(
-          JSON.stringify(['another-episode', 'episode-123'])
-        );
-      });
-
-      await act(async () => pollJob?.());
-
-      expect(await screen.findByText('Failed to generate audio. Please try again.')).toBeVisible();
-      expect(sessionStorage.getItem('audio-generation-queued')).toBe(
-        JSON.stringify(['another-episode'])
-      );
-    });
-
-    it('recovers from malformed queued-generation session data', async () => {
-      sessionStorage.setItem('audio-generation-queued', '{not-json');
-      mockGetEpisode.mockResolvedValue({
-        ...mockEpisode,
-        audioUrl_0_7: undefined,
-        audioUrl_0_85: undefined,
-        audioUrl_1_0: undefined,
-      });
-      mockGenerateAllSpeedsAudio.mockResolvedValue('job-123');
-
-      renderPlaybackPage();
-
-      await waitFor(() => {
-        expect(mockGenerateAllSpeedsAudio).toHaveBeenCalledWith('episode-123', 'dialogue-123');
-      });
-      expect(sessionStorage.getItem('audio-generation-queued')).toBe(
-        JSON.stringify(['episode-123'])
-      );
-    });
+    renderPlaybackPage();
+    expect(await screen.findByText('No saved audio is available for this dialogue.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: /generate/i })).not.toBeInTheDocument();
   });
 
   describe('responsive layout', () => {

@@ -5,21 +5,16 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import useWarmAudioCache from '../hooks/useWarmAudioCache';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
 import usePlaybackEpisode from '../hooks/usePlaybackEpisode';
-import usePlaybackAudioGeneration from '../hooks/usePlaybackAudioGeneration';
 import usePlaybackKeyboardControls from '../hooks/usePlaybackKeyboardControls';
 import usePlaybackDialogueNavigation from '../hooks/usePlaybackDialogueNavigation';
 import { Sentence, AudioSpeed, Episode } from '../types';
 import AudioScriptPlayback from '../components/audio/AudioScriptPlayback';
 import PlaybackDialogue from '../components/playback/PlaybackDialogue';
 import PlaybackHeader from '../components/playback/PlaybackHeader';
-import Toast from '../components/common/Toast';
 
 const EMPTY_SENTENCES: Sentence[] = [];
 
 const getViewAsUserId = (searchParams: URLSearchParams) => searchParams.get('viewAs') || undefined;
-
-const getPlaybackRouteIdentity = (episodeId?: string, viewAsUserId?: string) =>
-  `${episodeId ?? ''}\0${viewAsUserId ?? ''}`;
 
 const usePlaybackAudioUrls = (episode: Episode | null) =>
   useMemo(
@@ -27,16 +22,11 @@ const usePlaybackAudioUrls = (episode: Episode | null) =>
     [episode?.audioUrl_0_7, episode?.audioUrl_0_85, episode?.audioUrl_1_0, episode?.audioUrl]
   );
 
-const shouldWarmPlaybackAudio = (episode: Episode | null, isGeneratingAudio: boolean) =>
-  Boolean(episode && !isGeneratingAudio);
-
 const canNavigatePlaybackDialogue = (episode: Episode | null) =>
   Boolean(episode && episode.contentType !== 'script');
 
 const getPlaybackSentences = (episode: Episode | null) =>
   episode?.dialogue?.sentences ?? EMPTY_SENTENCES;
-
-const getToastMessage = (message: string | null) => message || '';
 
 const PlaybackLoadingState = () => (
   <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
@@ -59,10 +49,10 @@ const PlaybackPage = () => {
   const { episodeId } = useParams<{ episodeId: string }>();
   const [searchParams] = useSearchParams();
   const viewAsUserId = getViewAsUserId(searchParams);
-  const { getEpisode, generateAudio: _generateAudio, generateAllSpeedsAudio } = useEpisodes();
+  const { getEpisode } = useEpisodes();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const { avatarUrlMap } = useSpeakerAvatars();
-  const { episode, isEpisodeLoading, loadEpisode } = usePlaybackEpisode({
+  const { episode, isEpisodeLoading } = usePlaybackEpisode({
     episodeId,
     viewAsUserId,
     getEpisode,
@@ -70,26 +60,9 @@ const PlaybackPage = () => {
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
   const [showReadings, setShowReadings] = useState(false); // Hide furigana by default
   const [showTranslations, setShowTranslations] = useState(true); // Show English translations by default
-  const {
-    isGeneratingAudio,
-    isRefreshingEpisode,
-    needsEpisodeRefresh,
-    generationProgress,
-    toastMessage,
-    toastType,
-    generateAllSpeeds,
-    retryEpisodeRefresh,
-    clearToast,
-  } = usePlaybackAudioGeneration({
-    episodeId,
-    routeIdentity: getPlaybackRouteIdentity(episodeId, viewAsUserId),
-    episode,
-    generateAllSpeedsAudio,
-    loadEpisode,
-  });
   const episodeAudioUrls = usePlaybackAudioUrls(episode);
 
-  useWarmAudioCache(episodeAudioUrls, shouldWarmPlaybackAudio(episode, isGeneratingAudio));
+  useWarmAudioCache(episodeAudioUrls, Boolean(episode));
 
   const { navigateSentence } = usePlaybackKeyboardControls({
     currentTimeSeconds: currentTime,
@@ -132,12 +105,6 @@ const PlaybackPage = () => {
       <PlaybackHeader
         audioRef={audioRef}
         episode={episode}
-        generateAllSpeeds={generateAllSpeeds}
-        generationProgress={generationProgress}
-        isGeneratingAudio={isGeneratingAudio}
-        isRefreshingEpisode={isRefreshingEpisode}
-        needsEpisodeRefresh={needsEpisodeRefresh}
-        retryEpisodeRefresh={retryEpisodeRefresh}
         selectedSpeed={selectedSpeed}
         setSelectedSpeed={setSelectedSpeed}
         setShowReadings={setShowReadings}
@@ -156,14 +123,6 @@ const PlaybackPage = () => {
         sentenceRefs={sentenceRefs}
         showReadings={showReadings}
         showTranslations={showTranslations}
-      />
-
-      {/* Toast Notification */}
-      <Toast
-        message={getToastMessage(toastMessage)}
-        type={toastType}
-        isVisible={!!toastMessage}
-        onClose={clearToast}
       />
     </div>
   );

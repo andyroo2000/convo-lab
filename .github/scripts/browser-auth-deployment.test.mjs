@@ -114,8 +114,6 @@ test('the production workflow authenticates smoke traffic without proxy bearer c
     'Learning OS browser analytics internal smoke check passed.',
     'Disposable Learning OS content browser session established.',
     '--cookie "$content_browser_smoke_cookie_jar"',
-    'content_browser_path \\',
-    '"/api/convolab/episodes/$audio_generation_smoke_episode_id/audio/1.0"',
   ]) {
     assert.ok(
       workflow.includes(requiredContract),

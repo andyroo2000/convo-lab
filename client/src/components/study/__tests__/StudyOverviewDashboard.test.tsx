@@ -100,7 +100,6 @@ describe('StudyOverviewDashboard', () => {
           onBeginReview={onBeginReview}
           onBeginLesson={onBeginLesson}
           isStartingSession={false}
-          recentMilestones={<div>Recent activity</div>}
         />
       </MemoryRouter>
     );
@@ -118,11 +117,7 @@ describe('StudyOverviewDashboard', () => {
       )
     ).toBeInTheDocument();
     expect(screen.queryByText('Learning readiness')).not.toBeInTheDocument();
-    const itemSpread = screen.getByText('Item spread');
-    const recentActivity = screen.getByText('Recent activity');
-    expect(itemSpread.compareDocumentPosition(recentActivity)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING
-    );
+    expect(screen.getByText('Item spread')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: "Today's practice" })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /WaniKani/ })).toHaveAttribute(
       'href',
