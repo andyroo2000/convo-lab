@@ -2,8 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 
-import type { AchievementProgress } from '../../components/study/achievementModel';
-
 const {
   cardActionMutateAsyncMock,
   createStudyReviewRequestMock,
@@ -19,8 +17,6 @@ const {
   resetStudyCardImageMock,
   regenerateStudyAnswerAudioMock,
   warmAudioCacheMock,
-  getAchievementCatalogMock,
-  getAchievementProgressMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   createStudyReviewRequestMock: vi.fn(),
@@ -36,8 +32,6 @@ const {
   resetStudyCardImageMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   warmAudioCacheMock: vi.fn(),
-  getAchievementCatalogMock: vi.fn(),
-  getAchievementProgressMock: vi.fn(),
 }));
 
 vi.mock('../useStudy', () => ({
@@ -82,11 +76,6 @@ vi.mock('../../lib/audioCache', () => ({
   warmAudioCache: warmAudioCacheMock,
 }));
 
-vi.mock('../../lib/achievementApi', () => ({
-  getAchievementCatalog: getAchievementCatalogMock,
-  getAchievementProgress: getAchievementProgressMock,
-}));
-
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'study-review-hook-test-user' } }),
 }));
@@ -98,52 +87,6 @@ const baseOverview = {
   reviewCount: 2,
   suspendedCount: 0,
   totalCards: 2,
-};
-
-const achievementAssets = {
-  earned: {
-    png: {
-      '256': { path: '/achievement-assets/burned-256.png', width: 256, height: 256 },
-      '512': { path: '/achievement-assets/burned-512.png', width: 512, height: 512 },
-    },
-  },
-  locked: {
-    png: {
-      '256': { path: '/achievement-assets/burned-locked-256.png', width: 256, height: 256 },
-      '512': { path: '/achievement-assets/burned-locked-512.png', width: 512, height: 512 },
-    },
-  },
-};
-const achievementCatalog = {
-  revision: 'test-achievements-v1',
-  presentation: {
-    targetVisibleBadgeCount: 1,
-    fillWithLockedCandidates: true,
-    noDataFallbackTierIds: ['burned.burned100'],
-  },
-  families: [
-    {
-      key: 'burned',
-      title: 'Burned',
-      metricKey: 'mastery.burned',
-      unit: 'cards',
-      tiers: [
-        {
-          key: 'burned100',
-          title: '100 items burned',
-          threshold: 100,
-          earnedDescription: 'One hundred cards reached burned.',
-          description: 'Burn 100 cards.',
-          assets: achievementAssets,
-        },
-      ],
-    },
-  ],
-};
-const emptyAchievementProgress: AchievementProgress = {
-  revision: achievementCatalog.revision,
-  metricValues: { 'mastery.burned': 99 },
-  awards: [],
 };
 
 const baseCardOne = {
@@ -239,10 +182,6 @@ function resetStudyReviewSessionMocks() {
   regenerateStudyAnswerAudioMock.mockReset();
   warmAudioCacheMock.mockReset();
   warmAudioCacheMock.mockResolvedValue(undefined);
-  getAchievementCatalogMock.mockReset();
-  getAchievementCatalogMock.mockResolvedValue(achievementCatalog);
-  getAchievementProgressMock.mockReset();
-  getAchievementProgressMock.mockResolvedValue(emptyAchievementProgress);
   window.localStorage.clear();
 }
 
@@ -371,7 +310,6 @@ export {
   regenerateStudyCardImageMock,
   resetStudyCardImageMock,
   updateStudyCardMock,
-  emptyAchievementProgress,
   baseCardOne,
   baseCardTwo,
   baseOverview,
@@ -379,8 +317,6 @@ export {
   createDeferred,
   createStudyReviewRequestMock,
   createWrapper,
-  getAchievementCatalogMock,
-  getAchievementProgressMock,
   prepareStudyAnswerAudioMock,
   reviewMutateAsyncMock,
   startStudyIntroductionCohortLessonMock,

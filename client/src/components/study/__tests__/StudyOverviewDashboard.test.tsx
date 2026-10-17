@@ -100,7 +100,7 @@ describe('StudyOverviewDashboard', () => {
           onBeginReview={onBeginReview}
           onBeginLesson={onBeginLesson}
           isStartingSession={false}
-          recentMilestones={<div>Achievement shelf</div>}
+          recentMilestones={<div>Recent activity</div>}
         />
       </MemoryRouter>
     );
@@ -119,8 +119,8 @@ describe('StudyOverviewDashboard', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Learning readiness')).not.toBeInTheDocument();
     const itemSpread = screen.getByText('Item spread');
-    const achievementShelf = screen.getByText('Achievement shelf');
-    expect(itemSpread.compareDocumentPosition(achievementShelf)).toBe(
+    const recentActivity = screen.getByText('Recent activity');
+    expect(itemSpread.compareDocumentPosition(recentActivity)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
     );
     expect(screen.queryByRole('heading', { name: "Today's practice" })).not.toBeInTheDocument();

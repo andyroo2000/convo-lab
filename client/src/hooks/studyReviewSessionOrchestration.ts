@@ -1,6 +1,5 @@
 import type { StudyOverview } from '@languageflow/shared/src/types';
 
-import type { AchievementProgress } from '../components/study/achievementModel';
 import type { StudyReviewSessionState } from './useStudyReviewSessionState';
 
 interface StudyOverviewCache {
@@ -11,9 +10,6 @@ export const getStudyUserId = (user: { id: string } | null | undefined) => user?
 
 export const getCachedStudyOverview = (cache: StudyOverviewCache) =>
   cache.getQueryData<StudyOverview>(['study', 'overview']) ?? null;
-
-export const getAchievementAwards = (progress: AchievementProgress | null) =>
-  progress?.awards ?? [];
 
 export const isStudyAudioAutoplayBlocked = (
   state: Pick<

@@ -4,7 +4,7 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import type { StudySessionResponse } from './useStudy';
 import { createStudyReviewRequestGuard } from './studyReviewRequestGuard';
 import type { StudySessionReviewRecord } from '../components/study/studySessionWrapUpModel';
-import type { StudyAchievementSessionCompletion } from '../components/study/studyAchievementSessionModel';
+
 import type { StudyMasteryAnimation } from './studyReviewSubmissionRules';
 import type { PendingStudyReviewOperation } from './studyReviewSubmissionFlow';
 
@@ -59,32 +59,18 @@ const useStudyReviewProgressState = () => {
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const [sessionReviewRecords, setSessionReviewRecords] = useState<StudySessionReviewRecord[]>([]);
   const [sessionWasEnded, setSessionWasEnded] = useState(false);
-  const [achievementCompletion, setAchievementCompletion] =
-    useState<StudyAchievementSessionCompletion | null>(null);
-  const [currentAchievementIndex, setCurrentAchievementIndex] = useState(0);
-  const [achievementCelebrationPresented, setAchievementCelebrationPresented] = useState(false);
-  const [achievementCompletionRefreshPending, setAchievementCompletionRefreshPending] =
-    useState(false);
   const [practiceCards, setPracticeCards] = useState<StudyCardSummary[] | null>(null);
   const [practiceInitialCount, setPracticeInitialCount] = useState(0);
 
   return {
-    achievementCelebrationPresented,
-    achievementCompletion,
-    achievementCompletionRefreshPending,
     answeredCardIds,
-    currentAchievementIndex,
     practiceCards,
     practiceInitialCount,
     reviewRetryAvailable,
     reviewSubmitPending,
     sessionReviewRecords,
     sessionWasEnded,
-    setAchievementCelebrationPresented,
-    setAchievementCompletion,
-    setAchievementCompletionRefreshPending,
     setAnsweredCardIds,
-    setCurrentAchievementIndex,
     setPracticeCards,
     setPracticeInitialCount,
     setReviewRetryAvailable,
@@ -103,14 +89,10 @@ const useStudyReviewSessionRefs = () => {
   const canSurfaceAsyncSessionErrorRef = useRef(false);
   const answeredCardIdsRef = useRef<Set<string>>(new Set());
   const autoRefreshEmptySessionRef = useRef(false);
-  const achievementCompletionRequestIdRef = useRef(0);
-  const activeAchievementCompletionRequestRef = useRef<number | null>(null);
   const pendingReviewOperationRef = useRef<PendingStudyReviewOperation | null>(null);
   const cardStartedAtRef = useRef(Date.now());
 
   return {
-    achievementCompletionRequestIdRef,
-    activeAchievementCompletionRequestRef,
     activeLessonCohortIdRef,
     answeredCardIdsRef,
     autoRefreshEmptySessionRef,

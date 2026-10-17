@@ -20,29 +20,18 @@ const gradeAction: StudyUndoAction = {
 };
 
 const makeContext = (overrides: Partial<StudyReviewUndoContext> = {}): StudyReviewUndoContext => ({
-  achievementAwards: [],
-  achievementCompletion: null,
-  achievementCompletionRequestIdRef: { current: 0 },
-  achievementSessionStore: null,
-  activeAchievementCompletionRequestRef: { current: null },
   blocked: false,
   popUndo: vi.fn().mockReturnValue(gradeAction),
   pushUndo: vi.fn(),
   requestGuardRef: { current: createStudyReviewRequestGuard() },
   restoreUndoSnapshot: vi.fn(),
   sessionEpochRef: { current: 0 },
-  setAchievementCelebrationPresented: vi.fn(),
-  setAchievementCompletion: vi.fn(),
-  setAchievementCompletionRefreshPending: vi.fn(),
-  setCurrentAchievementIndex: vi.fn(),
   setSessionError: vi.fn(),
   setSessionReviewRecords: vi.fn(),
   setSessionWasEnded: vi.fn(),
   setUndoPending: vi.fn(),
   stopAllAudio: vi.fn(),
-  invalidateAchievementProgress: vi.fn(),
   syncOverview: vi.fn(),
-  undoAchievementReview: vi.fn(),
   undoReview: vi.fn().mockResolvedValue({ overview }),
   ...overrides,
 });
@@ -68,7 +57,7 @@ describe('submitStudyReviewUndo', () => {
     expect(context.undoReview).not.toHaveBeenCalled();
   });
 
-  it('commits a persisted grade undo and invalidates achievements for a later refresh', async () => {
+  it('commits a persisted grade undo and reopens the review session', async () => {
     const context = makeContext();
 
     await submitStudyReviewUndo(context);
@@ -76,8 +65,7 @@ describe('submitStudyReviewUndo', () => {
     expect(context.undoReview).toHaveBeenCalledWith('review-1');
     expect(context.restoreUndoSnapshot).toHaveBeenCalledWith(snapshot);
     expect(context.syncOverview).toHaveBeenCalledWith(overview);
-    expect(context.undoAchievementReview).toHaveBeenCalledWith('review-1');
-    expect(context.invalidateAchievementProgress).toHaveBeenCalledOnce();
+    expect(context.setSessionWasEnded).toHaveBeenCalledWith(false);
     expect(context.setUndoPending).toHaveBeenNthCalledWith(1, true);
     expect(context.setUndoPending).toHaveBeenLastCalledWith(false);
   });
@@ -128,6 +116,5 @@ describe('submitStudyReviewUndo', () => {
     expect(context.setSessionError).toHaveBeenCalledWith('Undo failed');
     expect(context.restoreUndoSnapshot).not.toHaveBeenCalled();
     expect(context.setUndoPending).toHaveBeenLastCalledWith(false);
-    expect(context.invalidateAchievementProgress).not.toHaveBeenCalled();
   });
 });

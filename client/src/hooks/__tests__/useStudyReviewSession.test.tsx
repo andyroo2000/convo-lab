@@ -40,33 +40,6 @@ describe('useStudyReviewSession', () => {
     expect(result.current.lessonPhase).toBe('quiz');
   });
 
-  it('clears an ordinary interrupted review session before starting lessons', async () => {
-    const { result: firstResult, unmount: unmountFirst } = renderHook(
-      () => useStudyReviewSession(),
-      {
-        wrapper: createWrapper(),
-      }
-    );
-    await act(async () => {
-      await firstResult.current.enterFocusMode();
-    });
-    unmountFirst();
-
-    const { result: secondResult } = renderHook(() => useStudyReviewSession(), {
-      wrapper: createWrapper(),
-    });
-    await act(async () => {
-      await secondResult.current.enterFocusMode('lessons');
-    });
-
-    const persisted = JSON.parse(
-      window.localStorage.getItem(
-        'convo-lab.study-achievement-sessions-v1.study-review-hook-test-user'
-      ) ?? '{}'
-    ) as { activeSession?: unknown };
-    expect(persisted.activeSession).toBeNull();
-  });
-
   it("warms each nearby card's logical audio asset after entering focus mode", async () => {
     const cardOneWithAudio = {
       ...baseCardOne,

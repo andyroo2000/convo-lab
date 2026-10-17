@@ -3,21 +3,6 @@ import type { StudyReviewSessionCore } from './useStudyReviewSessionCore';
 import type { StudyReviewSessionInteractions } from './useStudyReviewSessionInteractions';
 import type { StudyReviewSessionLifecycle } from './useStudyReviewSessionLifecycle';
 
-const achievementSessionResult = (
-  core: StudyReviewSessionCore,
-  lifecycle: StudyReviewSessionLifecycle
-) => ({
-  achievementCompletion: core.state.achievementCompletion,
-  achievementCatalog: core.achievementCatalog,
-  achievementProgress: core.achievementProgress,
-  achievementCompletionRefreshPending: core.state.achievementCompletionRefreshPending,
-  currentAchievement: core.currentAchievement,
-  currentAchievementIndex: core.state.currentAchievementIndex,
-  completionAchievements: core.completionAchievements,
-  advanceAchievement: lifecycle.advanceAchievement,
-  skipAllAchievements: lifecycle.skipAllAchievements,
-});
-
 const buildStudyReviewSessionResult = (
   core: StudyReviewSessionCore,
   interactions: StudyReviewSessionInteractions,
@@ -44,7 +29,6 @@ const buildStudyReviewSessionResult = (
   sessionWrapUp: core.sessionWrapUp,
   reviewQueueExhausted: core.reviewQueueExhausted,
   reviewSessionComplete: core.reviewSessionComplete,
-  ...achievementSessionResult(core, lifecycle),
   practiceMode: core.practiceMode,
   practiceComplete: core.practiceComplete,
   motionPermissionState: lifecycle.motionPermissionState,

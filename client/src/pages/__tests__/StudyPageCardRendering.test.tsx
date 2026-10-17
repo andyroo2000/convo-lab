@@ -60,17 +60,6 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
   }),
 }));
 
-vi.mock('../../hooks/useAchievements', () => ({
-  default: () => ({
-    catalog: null,
-    progress: null,
-    loading: true,
-    error: null,
-    progressError: null,
-    retry: vi.fn(),
-  }),
-}));
-
 vi.mock('../../hooks/useStudy', () => ({
   createStudyReviewRequest: createStudyReviewRequestMock,
   useStudyOverview: () => ({

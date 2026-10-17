@@ -6,13 +6,11 @@ import { JsonRequestError } from '../../lib/apiClient';
 import {
   baseCard,
   getStudyPageTestState,
-  pageEmptyAchievementProgress,
   renderStudyPage,
   setUpStudyPageTest,
 } from './studyPageTestHarness';
 
 const {
-  getAchievementProgressMock,
   masteryAnimationFinishesImmediately,
   mutateAsyncMock,
   prepareStudyAnswerAudioMock,
@@ -67,12 +65,10 @@ describe('StudyPage overview and lessons', () => {
     );
 
     renderStudyPage();
-    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
     await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
 
     expect(screen.getByText('Loading study session…')).toBeInTheDocument();
     expect(screen.queryByText(/No cards are ready right now/i)).not.toBeInTheDocument();
-    expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       resolveSession();
@@ -80,31 +76,6 @@ describe('StudyPage overview and lessons', () => {
 
     expect(await screen.findByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
     expect(startStudySessionMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows the first review card while achievement progress is still resolving', async () => {
-    let resolveProgress!: (value: typeof pageEmptyAchievementProgress) => void;
-    getAchievementProgressMock.mockReturnValue(
-      new Promise((resolve) => {
-        resolveProgress = resolve;
-      })
-    );
-    startStudySessionMock.mockResolvedValue({
-      overview: studyOverviewData.current,
-      cards: [baseCard],
-    });
-
-    renderStudyPage();
-    await waitFor(() => expect(getAchievementProgressMock).toHaveBeenCalledTimes(1));
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-
-    expect(await screen.findByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
-    expect(screen.queryByText('Loading study session…')).not.toBeInTheDocument();
-    expect(getAchievementProgressMock).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      resolveProgress(pageEmptyAchievementProgress);
-    });
   });
 
   it('associates the disabled Reviews button with the empty-state message', () => {

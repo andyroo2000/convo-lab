@@ -6,7 +6,7 @@ import { clearAudioCache } from '../lib/audioCache';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../lib/authSession';
 import { accountApi } from '../lib/accountApi';
 import { authApi } from '../lib/authApi';
-import { deleteStudyAchievementSessionData } from '../components/study/studyAchievementSessionModel';
+import { clearRetiredBrowserStudyStorage } from '../lib/retiredStudyStorage';
 
 interface AuthContextType {
   user: User | null;
@@ -105,6 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [clearLocalSession]);
 
   useEffect(() => {
+    clearRetiredBrowserStudyStorage();
     // Check for existing session
     checkAuth();
   }, [checkAuth]);
@@ -201,9 +202,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error(error.error?.message || error.message || 'Delete failed');
     }
 
-    if (user) {
-      deleteStudyAchievementSessionData(window.localStorage, user.id);
-    }
     await clearLocalSession();
   };
 
