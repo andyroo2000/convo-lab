@@ -75,6 +75,18 @@ export default class ReadingPositionSync {
     }
   }
 
+  async flushOnExit() {
+    if (this.controller.signal.aborted) return;
+    try {
+      const pending = readPending(this.key);
+      if (!pending) return;
+      const result = await saveReadingPosition(this.reading.id, pending, undefined, true);
+      if (result.position) acknowledgePosition(this.key, pending.eventId);
+    } catch {
+      /* The durable outbox retries when the reader is reopened. */
+    }
+  }
+
   dispose() {
     this.controller.abort();
     clearTimeout(this.timer);

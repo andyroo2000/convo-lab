@@ -65,7 +65,9 @@ export function restorePosition(reading: ReadingDetail, position: ReadingPositio
     selected: sentenceOnPage(
       reading,
       pageIndex,
-      position?.readingRevision === reading.revision ? (position?.sentenceIndex ?? null) : null
+      position?.readingRevision === (reading.revision ?? 1)
+        ? (position?.sentenceIndex ?? null)
+        : null
     ),
   };
 }

@@ -28,11 +28,17 @@ export const getReadingPosition = (id: string, signal: AbortSignal) =>
     { signal }
   );
 
-export const saveReadingPosition = (id: string, position: ReadingPosition, signal: AbortSignal) =>
+export const saveReadingPosition = (
+  id: string,
+  position: ReadingPosition,
+  signal?: AbortSignal,
+  keepalive = false
+) =>
   requestJson<{ position: ReadingPosition | null }>(
     `/api/reading-progress/${encodeURIComponent(id)}`,
     {
       method: 'PUT',
+      keepalive,
       body: JSON.stringify(position),
       signal,
     }

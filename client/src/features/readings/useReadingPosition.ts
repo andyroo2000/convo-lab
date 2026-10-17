@@ -33,11 +33,22 @@ export default function useReadingPosition(reading: ReadingDetail, userId?: stri
     const retry = () => {
       session.flush();
     };
+    const leaving = () => {
+      session.flushOnExit();
+    };
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') leaving();
+    };
     window.addEventListener('online', retry);
+    window.addEventListener('pagehide', leaving);
+    document.addEventListener('visibilitychange', hidden);
     return () => {
+      leaving();
       session.dispose();
       sync.current = undefined;
       window.removeEventListener('online', retry);
+      window.removeEventListener('pagehide', leaving);
+      document.removeEventListener('visibilitychange', hidden);
     };
   }, [userId, reading, update]);
 

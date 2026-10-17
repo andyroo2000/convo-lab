@@ -137,6 +137,27 @@ describe('reading position synchronization', () => {
     });
   });
 
+  it('flushes the last interaction on exit with a request that survives disposal', async () => {
+    const { sync } = session();
+    sync.record({ pageIndex: 1, selected: 1 });
+    const exiting = sync.flushOnExit();
+    sync.dispose();
+    await exiting;
+    expect(saveReadingPosition).toHaveBeenCalledWith(
+      'story',
+      expect.objectContaining({ pageNumber: 25 }),
+      undefined,
+      true
+    );
+    expect(readPending(key)).toBeNull();
+  });
+
+  it('normalizes legacy missing revisions consistently on restore', () => {
+    expect(
+      restorePosition({ ...reading, revision: undefined }, { ...remote, readingRevision: 1 })
+    ).toEqual({ pageIndex: 1, selected: 1 });
+  });
+
   it('drops a sentence selection that no longer belongs to the restored page', () => {
     expect(restorePosition(reading, { ...remote, sentenceIndex: 0 })).toEqual({
       pageIndex: 1,
