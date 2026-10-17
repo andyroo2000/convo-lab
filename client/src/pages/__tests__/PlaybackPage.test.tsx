@@ -362,7 +362,7 @@ describe('PlaybackPage', () => {
       });
     });
 
-    it('should render script segment image and retry control for partial script images', async () => {
+    it('renders saved script images without offering generation', async () => {
       mockGetEpisode.mockResolvedValue(mockScriptEpisode);
 
       renderPlaybackPage('script-episode-123');
@@ -374,7 +374,7 @@ describe('PlaybackPage', () => {
       );
       expect(image).toHaveClass('object-contain');
       expect(screen.getByTestId('script-reader-lines')).toBeInTheDocument();
-      expect(screen.getByTestId('script-button-retry-images')).toBeInTheDocument();
+      expect(screen.queryByTestId('script-button-retry-images')).not.toBeInTheDocument();
       expect(screen.getAllByText('I live in Japan.').length).toBeGreaterThan(0);
       expect(screen.queryByText('Segment 1')).not.toBeInTheDocument();
     });

@@ -6,8 +6,6 @@ import {
   mockSpeakerAvatars,
 } from './AdminPageTestHarness';
 
-type ResponseResolver = (response: unknown) => void;
-type FeatureKey = 'dialoguesEnabled' | 'scriptsEnabled';
 type SettingsMutation = 'feature' | 'pronunciation';
 
 interface FetchRoute {
@@ -136,26 +134,6 @@ export function mockSpeakerUploadFailure(
       },
     },
     ...avatarReadRoutes(),
-  ]);
-}
-
-export function mockConcurrentFeatureMutations(
-  onPending: (key: FeatureKey, resolve: ResponseResolver) => void
-) {
-  installFetchRoutes([
-    csrfRoute(),
-    {
-      contains: '/api/feature-flags',
-      method: 'PATCH',
-      respond: (init) => {
-        const body = JSON.parse(String(init?.body)) as Record<string, boolean>;
-        const key = Object.keys(body)[0] as FeatureKey;
-        return new Promise((resolve) => {
-          onPending(key, resolve);
-        });
-      },
-    },
-    ...settingsReadRoutes(),
   ]);
 }
 

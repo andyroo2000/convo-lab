@@ -70,9 +70,7 @@ const {
   featureFlagsData: {
     current: {
       id: 'default',
-      dialoguesEnabled: false,
-      scriptsEnabled: true,
-      audioCourseEnabled: true,
+
       flashcardsEnabled: true,
       updatedAt: '2026-07-16T12:00:00.000Z',
     },
@@ -446,9 +444,7 @@ const configureStudyPageEnvironment = () => {
   window.localStorage.clear();
   featureFlagsData.current = {
     id: 'default',
-    dialoguesEnabled: false,
-    scriptsEnabled: true,
-    audioCourseEnabled: true,
+
     flashcardsEnabled: true,
     updatedAt: '2026-07-16T12:00:00.000Z',
   };

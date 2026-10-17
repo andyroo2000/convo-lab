@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
-import { mockConcurrentFeatureMutations } from './AdminPageFetchMocks';
 
 import {
   resetAdminPageMocks,
@@ -21,8 +20,8 @@ describe('AdminPage settingsFeatures', () => {
     renderPage('settings');
 
     await waitFor(() => {
-      expect(screen.getByText('Comprehensible Input Dialogues')).toBeInTheDocument();
-      expect(screen.getByText('Guided Audio Course')).toBeInTheDocument();
+      expect(screen.queryByText('Comprehensible Input Dialogues')).not.toBeInTheDocument();
+      expect(screen.queryByText('Guided Audio Course')).not.toBeInTheDocument();
       expect(screen.getByText('Study / Flashcards')).toBeInTheDocument();
       expect(screen.queryByText('Learning OS Study API')).not.toBeInTheDocument();
       expect(screen.queryByText('Study Review')).not.toBeInTheDocument();
@@ -41,7 +40,7 @@ describe('AdminPage settingsFeatures', () => {
   it('should toggle feature flags', async () => {
     renderPage('settings');
 
-    const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+    const dialoguesToggle = await screen.findByLabelText('Toggle Study and Flashcards');
     fireEvent.click(dialoguesToggle);
 
     await waitFor(() => {
@@ -81,7 +80,7 @@ describe('AdminPage settingsFeatures', () => {
     );
 
     renderPage('settings');
-    const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+    const dialoguesToggle = await screen.findByLabelText('Toggle Study and Flashcards');
     expect(dialoguesToggle).toBeChecked();
 
     fireEvent.click(dialoguesToggle);
@@ -120,7 +119,7 @@ describe('AdminPage settingsFeatures', () => {
 
     try {
       renderPage('settings');
-      const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+      const dialoguesToggle = await screen.findByLabelText('Toggle Study and Flashcards');
       fireEvent.click(dialoguesToggle);
 
       await waitFor(() => {
@@ -131,60 +130,6 @@ describe('AdminPage settingsFeatures', () => {
     } finally {
       window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, expiredListener);
     }
-  });
-
-  it('keeps concurrent feature mutations isolated when responses arrive out of order', async () => {
-    const resolvers: Partial<
-      Record<'dialoguesEnabled' | 'scriptsEnabled', (response: unknown) => void>
-    > = {};
-    mockConcurrentFeatureMutations((key, resolve) => {
-      resolvers[key] = resolve;
-    });
-
-    renderPage('settings');
-    const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
-    const scriptsToggle = screen.getByLabelText('Toggle Script Player');
-    fireEvent.click(dialoguesToggle);
-    fireEvent.click(scriptsToggle);
-
-    await waitFor(() => {
-      expect(resolvers.dialoguesEnabled).toBeDefined();
-      expect(resolvers.scriptsEnabled).toBeDefined();
-      expect(dialoguesToggle).toBeDisabled();
-      expect(scriptsToggle).toBeDisabled();
-    });
-
-    resolvers.scriptsEnabled?.({
-      ok: true,
-      status: 200,
-      json: () =>
-        Promise.resolve({
-          ...mockFeatureFlags,
-          dialoguesEnabled: true,
-          scriptsEnabled: false,
-        }),
-    });
-    await waitFor(() => {
-      expect(scriptsToggle).not.toBeChecked();
-      expect(scriptsToggle).not.toBeDisabled();
-      expect(dialoguesToggle).toBeDisabled();
-    });
-
-    resolvers.dialoguesEnabled?.({
-      ok: true,
-      status: 200,
-      json: () =>
-        Promise.resolve({
-          ...mockFeatureFlags,
-          dialoguesEnabled: false,
-          scriptsEnabled: true,
-        }),
-    });
-    await waitFor(() => {
-      expect(dialoguesToggle).not.toBeChecked();
-      expect(scriptsToggle).not.toBeChecked();
-      expect(dialoguesToggle).not.toBeDisabled();
-    });
   });
 
   it('does not let a failed feature mutation overwrite a newer same-key refresh', async () => {
@@ -207,7 +152,7 @@ describe('AdminPage settingsFeatures', () => {
             json: () =>
               Promise.resolve({
                 ...mockFeatureFlags,
-                dialoguesEnabled: featureReadCount === 1,
+                flashcardsEnabled: featureReadCount === 1,
               }),
           });
         }
@@ -225,7 +170,7 @@ describe('AdminPage settingsFeatures', () => {
     );
 
     renderPage('settings');
-    const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+    const dialoguesToggle = await screen.findByLabelText('Toggle Study and Flashcards');
     expect(dialoguesToggle).toBeChecked();
     fireEvent.click(dialoguesToggle);
     await waitFor(() => expect(resolvePatch).toBeDefined());
@@ -233,7 +178,7 @@ describe('AdminPage settingsFeatures', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Users' }));
     fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
 
-    const refreshedDialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+    const refreshedDialoguesToggle = await screen.findByLabelText('Toggle Study and Flashcards');
     await waitFor(() => {
       expect(featureReadCount).toBe(2);
       expect(refreshedDialoguesToggle).not.toBeChecked();

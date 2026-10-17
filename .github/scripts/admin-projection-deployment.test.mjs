@@ -41,8 +41,6 @@ test('production smoke-gates canonical browser-session routes', async () => {
     '/api/convolab/admin/stats',
     '/api/convolab/admin/users?limit=1',
     '/api/convolab/admin/invite-codes?limit=1',
-    '/api/convolab/admin/script-lab/courses',
-    '/api/convolab/admin/script-lab/sentence-tests?limit=1',
     '/api/convolab/admin/avatars/speakers',
     '/api/convolab/admin/pronunciation-dictionaries',
   ]) {

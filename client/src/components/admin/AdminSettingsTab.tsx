@@ -40,30 +40,25 @@ const parseKeepKanjiText = (text: string) =>
     .map((line) => line.trim())
     .filter(Boolean);
 
+const parseForceKanaLine = (line: string, index: number) => {
+  const parts = line.split(/\s*[:=]\s*|\t/).filter(Boolean);
+  if (parts.length < 2) return { error: `Line ${index + 1}: expected "word=reading"` };
+  const word = parts[0].trim();
+  const kana = parts.slice(1).join(' ').trim();
+  if (!word || !kana) return { error: `Line ${index + 1}: missing word or reading` };
+  return { word, kana };
+};
+
 const parseForceKanaText = (text: string) => {
   const entries: Record<string, string> = {};
   const errors: string[] = [];
-
   text.split('\n').forEach((line, index) => {
     const trimmed = line.trim();
     if (!trimmed) return;
-
-    const parts = trimmed.split(/\s*[:=]\s*|\t/).filter(Boolean);
-    if (parts.length < 2) {
-      errors.push(`Line ${index + 1}: expected "word=reading"`);
-      return;
-    }
-
-    const word = parts[0].trim();
-    const kana = parts.slice(1).join(' ').trim();
-    if (!word || !kana) {
-      errors.push(`Line ${index + 1}: missing word or reading`);
-      return;
-    }
-
-    entries[word] = kana;
+    const parsed = parseForceKanaLine(trimmed, index);
+    if (parsed.error) errors.push(parsed.error);
+    else if (parsed.word && parsed.kana) entries[parsed.word] = parsed.kana;
   });
-
   return { entries, errors };
 };
 
@@ -160,6 +155,13 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
     });
   };
 
+  const finishFeatureMutation = (key: AdminFeatureFlagKey, controller: AbortController) => {
+    if (featureFlagMutationControllersRef.current.get(key) !== controller) return;
+    featureFlagMutationControllersRef.current.delete(key);
+    featureFlagMutationsRef.current.delete(key);
+    if (!controller.signal.aborted) setSavingFeatureFlags(new Set(featureFlagMutationsRef.current));
+  };
+
   const updateFeatureFlag = async (key: AdminFeatureFlagKey, value: boolean) => {
     if (!featureFlags) return;
     if (featureFlagMutationsRef.current.has(key)) return;
@@ -183,13 +185,7 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
       }
       showToast(getErrorMessage(err, 'Failed to update settings'), 'error');
     } finally {
-      if (featureFlagMutationControllersRef.current.get(key) === controller) {
-        featureFlagMutationControllersRef.current.delete(key);
-        featureFlagMutationsRef.current.delete(key);
-        if (!controller.signal.aborted) {
-          setSavingFeatureFlags(new Set(featureFlagMutationsRef.current));
-        }
-      }
+      finishFeatureMutation(key, controller);
     }
   };
 
@@ -222,6 +218,13 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
         pronunciationReadControllerRef.current = null;
       }
     });
+  };
+
+  const finishPronunciationMutation = (controller: AbortController) => {
+    if (pronunciationMutationControllerRef.current !== controller) return;
+    pronunciationMutationControllerRef.current = null;
+    pronunciationMutationRef.current = false;
+    if (!controller.signal.aborted) setPronunciationSaving(false);
   };
 
   const handleSavePronunciationDictionary = async () => {
@@ -262,11 +265,7 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
       if (isAbortError(err)) return;
       showToast(getErrorMessage(err, 'Failed to update pronunciation dictionary'), 'error');
     } finally {
-      if (pronunciationMutationControllerRef.current === controller) {
-        pronunciationMutationControllerRef.current = null;
-        pronunciationMutationRef.current = false;
-        if (!controller.signal.aborted) setPronunciationSaving(false);
-      }
+      finishPronunciationMutation(controller);
     }
   };
 
@@ -305,84 +304,6 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
         {!isFeatureFlagsLoading && featureFlags && (
           <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
             <div className="space-y-6">
-              <div className="flex items-center justify-between py-4 border-b border-gray-200">
-                <div>
-                  <h3 className="text-base font-semibold text-navy">
-                    Comprehensible Input Dialogues
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    AI-generated dialogues calibrated to user proficiency level
-                  </p>
-                </div>
-                <label
-                  htmlFor="toggle-dialogues"
-                  className="relative inline-flex items-center cursor-pointer"
-                >
-                  <input
-                    id="toggle-dialogues"
-                    type="checkbox"
-                    checked={featureFlags.dialoguesEnabled}
-                    disabled={savingFeatureFlags.has('dialoguesEnabled')}
-                    onChange={(event) =>
-                      updateFeatureFlag('dialoguesEnabled', event.target.checked)
-                    }
-                    className="sr-only peer"
-                    aria-label="Toggle AI-Generated Dialogues"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between py-4 border-b border-gray-200">
-                <div>
-                  <h3 className="text-base font-semibold text-navy">Script Player</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Japanese script creation with timed audio and illustrations
-                  </p>
-                </div>
-                <label
-                  htmlFor="toggle-scripts"
-                  className="relative inline-flex items-center cursor-pointer"
-                >
-                  <input
-                    id="toggle-scripts"
-                    type="checkbox"
-                    checked={featureFlags.scriptsEnabled}
-                    disabled={savingFeatureFlags.has('scriptsEnabled')}
-                    onChange={(event) => updateFeatureFlag('scriptsEnabled', event.target.checked)}
-                    className="sr-only peer"
-                    aria-label="Toggle Script Player"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between py-4 border-b border-gray-200">
-                <div>
-                  <h3 className="text-base font-semibold text-navy">Guided Audio Course</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Audio-only lessons built from dialogues—perfect for commutes
-                  </p>
-                </div>
-                <label
-                  htmlFor="toggle-audio-course"
-                  className="relative inline-flex items-center cursor-pointer"
-                >
-                  <input
-                    id="toggle-audio-course"
-                    type="checkbox"
-                    checked={featureFlags.audioCourseEnabled}
-                    disabled={savingFeatureFlags.has('audioCourseEnabled')}
-                    onChange={(event) =>
-                      updateFeatureFlag('audioCourseEnabled', event.target.checked)
-                    }
-                    className="sr-only peer"
-                    aria-label="Toggle Guided Audio Course"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                </label>
-              </div>
-
               <div className="flex items-center justify-between py-4">
                 <div>
                   <h3 className="text-base font-semibold text-navy">Study / Flashcards</h3>

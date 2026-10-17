@@ -52,9 +52,7 @@ describe('useFeatureFlags', () => {
     it('should fetch feature flags from API', async () => {
       const mockFlags = {
         id: 'flags-1',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
+
         flashcardsEnabled: true,
         updatedAt: '2024-01-01',
       };
@@ -95,56 +93,14 @@ describe('useFeatureFlags', () => {
   });
 
   describe('isFeatureEnabled', () => {
-    it('should return true for enabled features', async () => {
-      const mockFlags = {
-        id: 'flags-1',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: false,
-        flashcardsEnabled: true,
-        updatedAt: '2024-01-01',
-      };
-
+    it.each([true, false])('uses the Study flag value %s', async (enabled) => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockFlags),
+        json: () => Promise.resolve({ id: 'flags-1', flashcardsEnabled: enabled }),
       });
-
-      const { result } = renderHook(() => useFeatureFlags(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.flags).toBeDefined();
-      });
-
-      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
-    });
-
-    it('should return false for disabled features', async () => {
-      const mockFlags = {
-        id: 'flags-1',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: false,
-        flashcardsEnabled: true,
-        updatedAt: '2024-01-01',
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockFlags),
-      });
-
-      const { result } = renderHook(() => useFeatureFlags(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.flags).toBeDefined();
-      });
-
-      expect(result.current.isFeatureEnabled('audioCourseEnabled')).toBe(false);
+      const { result } = renderHook(() => useFeatureFlags(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.status).toBe('ready'));
+      expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(enabled);
     });
 
     it('keeps non-admin features closed while flags are loading', () => {
@@ -155,7 +111,7 @@ describe('useFeatureFlags', () => {
       });
 
       expect(result.current.status).toBe('loading');
-      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
+      expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(false);
     });
 
     it('keeps non-admin features closed after a fetch error', async () => {
@@ -167,7 +123,6 @@ describe('useFeatureFlags', () => {
       });
 
       await waitFor(() => expect(result.current.status).toBe('error'));
-      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
       expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(false);
     });
 
@@ -178,9 +133,7 @@ describe('useFeatureFlags', () => {
         json: () =>
           Promise.resolve({
             id: 'flags-1',
-            dialoguesEnabled: true,
-            scriptsEnabled: false,
-            audioCourseEnabled: false,
+
             flashcardsEnabled: true,
             updatedAt: '2026-08-12T00:00:00Z',
           }),
@@ -191,14 +144,14 @@ describe('useFeatureFlags', () => {
       });
 
       await waitFor(() => expect(result.current.status).toBe('error'));
-      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
+      expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(false);
 
       await act(async () => {
         await result.current.refetch();
       });
 
       await waitFor(() => expect(result.current.status).toBe('ready'));
-      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
+      expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(true);
     });
   });
 
@@ -208,9 +161,7 @@ describe('useFeatureFlags', () => {
 
       const mockFlags = {
         id: 'flags-1',
-        dialoguesEnabled: false,
-        scriptsEnabled: false,
-        audioCourseEnabled: false,
+
         flashcardsEnabled: false,
         updatedAt: '2024-01-01',
       };
@@ -229,9 +180,7 @@ describe('useFeatureFlags', () => {
       });
 
       // Even though all flags are false, admin should see true
-      expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
-      expect(result.current.isFeatureEnabled('scriptsEnabled')).toBe(true);
-      expect(result.current.isFeatureEnabled('audioCourseEnabled')).toBe(true);
+      expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(true);
     });
 
     it('documents the admin override as available even while flags are unavailable', () => {
@@ -246,49 +195,15 @@ describe('useFeatureFlags', () => {
       expect(result.current.isFeatureEnabled('flashcardsEnabled')).toBe(true);
     });
 
-    it('should set isAdmin to true for admin users', async () => {
-      mockUser.mockReturnValue({ role: 'admin' });
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ id: 'flags-1' }),
-      });
-
-      const { result } = renderHook(() => useFeatureFlags(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.isAdmin).toBe(true);
-    });
-
-    it('should set isAdmin to false for non-admin users', async () => {
-      mockUser.mockReturnValue({ role: 'user' });
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ id: 'flags-1' }),
-      });
-
-      const { result } = renderHook(() => useFeatureFlags(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.isAdmin).toBe(false);
-    });
-
-    it('should set isAdmin to false when no user', async () => {
-      mockUser.mockReturnValue(null);
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ id: 'flags-1' }),
-      });
-
-      const { result } = renderHook(() => useFeatureFlags(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.isAdmin).toBe(false);
+    it.each([
+      [{ role: 'admin' }, true],
+      [{ role: 'user' }, false],
+      [null, false],
+    ])('derives admin access from the current user %j', (user, expected) => {
+      mockUser.mockReturnValue(user);
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'flags-1' }) });
+      const { result } = renderHook(() => useFeatureFlags(), { wrapper: createWrapper() });
+      expect(result.current.isAdmin).toBe(expected);
     });
   });
 
@@ -336,7 +251,7 @@ describe('useFeatureFlags', () => {
       const utils = renderHook(() => useFeatureFlags(), { wrapper });
 
       expect(utils.result.current.status).toBe('ready');
-      expect(utils.result.current.isFeatureEnabled('dialoguesEnabled')).toBe(false);
+      expect(utils.result.current.isFeatureEnabled('flashcardsEnabled')).toBe(false);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
@@ -345,18 +260,13 @@ describe('useFeatureFlags', () => {
     it('should validate FeatureFlags interface', () => {
       const validFlags = {
         id: 'flags-1',
-        dialoguesEnabled: true,
-        scriptsEnabled: true,
-        audioCourseEnabled: true,
+
         flashcardsEnabled: true,
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
       // Type checking - all required fields present
       expect(validFlags.id).toBeDefined();
-      expect(typeof validFlags.dialoguesEnabled).toBe('boolean');
-      expect(typeof validFlags.scriptsEnabled).toBe('boolean');
-      expect(typeof validFlags.audioCourseEnabled).toBe('boolean');
       expect(typeof validFlags.flashcardsEnabled).toBe('boolean');
       expect(typeof validFlags.updatedAt).toBe('string');
     });

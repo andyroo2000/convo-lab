@@ -117,7 +117,7 @@ const CinemaIllustration = ({ activeImageUrl, activeSegment }: CinemaIllustratio
     />
   ) : (
     <div className="flex h-full w-full items-center justify-center px-4 text-center retro-caps text-white/45">
-      Illustration pending
+      No illustration
     </div>
   );
 
@@ -230,62 +230,18 @@ const ActiveIllustration = ({ activeImageUrl, displaySegment }: ActiveIllustrati
     />
   ) : (
     <div className="flex h-full items-center justify-center px-4 text-center retro-caps text-[rgba(20,50,86,0.48)]">
-      Illustration pending
+      No illustration
     </div>
   );
 
-interface ImageRetryControlsProps {
-  canRetryImages: boolean;
-  imageRetryError: string | null;
-  isRetryingImages: boolean;
-  onRetryImages: () => void;
-  scriptImageError: string | null | undefined;
-}
-
-const ImageRetryControls = ({
-  canRetryImages,
-  imageRetryError,
-  isRetryingImages,
-  onRetryImages,
-  scriptImageError,
-}: ImageRetryControlsProps) => {
-  if (!canRetryImages && !imageRetryError) return null;
-
-  return (
-    <div className="flex flex-col gap-2 border-t-2 border-[rgba(20,50,86,0.08)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm font-medium text-[rgba(20,50,86,0.72)]">
-        {imageRetryError || scriptImageError || 'Some illustrations are missing.'}
-      </p>
-      {canRetryImages ? (
-        <button
-          type="button"
-          onClick={onRetryImages}
-          disabled={isRetryingImages}
-          className="btn-secondary inline-flex justify-center"
-          data-testid="script-button-retry-images"
-        >
-          {isRetryingImages ? 'Retrying...' : 'Retry images'}
-        </button>
-      ) : null}
-    </div>
-  );
-};
-
-export interface ActiveImageView
-  extends ActiveIllustrationProps, Omit<ImageRetryControlsProps, 'scriptImageError'> {
-  script: AudioScript;
+export interface ActiveImageView extends ActiveIllustrationProps {
   stickyImageRef: RefObject<HTMLDivElement>;
   top: string;
 }
 
 const ActiveImagePanel = ({
   activeImageUrl,
-  canRetryImages,
   displaySegment,
-  imageRetryError,
-  isRetryingImages,
-  onRetryImages,
-  script,
   stickyImageRef,
   top,
 }: ActiveImageView) => (
@@ -298,13 +254,6 @@ const ActiveImagePanel = ({
     <div className="flex h-[min(34vh,22rem)] min-h-[11rem] w-full items-center justify-center bg-[rgba(20,50,86,0.08)] p-2 sm:p-3">
       <ActiveIllustration activeImageUrl={activeImageUrl} displaySegment={displaySegment} />
     </div>
-    <ImageRetryControls
-      canRetryImages={canRetryImages}
-      imageRetryError={imageRetryError}
-      isRetryingImages={isRetryingImages}
-      onRetryImages={onRetryImages}
-      scriptImageError={script.imageErrorMessage}
-    />
   </div>
 );
 

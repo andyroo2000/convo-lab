@@ -68,7 +68,7 @@ describe('AdminPage settingsLifecycle', () => {
     });
 
     const view = renderPage('settings');
-    const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+    const dialoguesToggle = await screen.findByLabelText('Toggle Study and Flashcards');
     await screen.findByDisplayValue('話す=はなす');
     fireEvent.click(dialoguesToggle);
     fireEvent.click(screen.getByText('Save Dictionary'));
@@ -131,7 +131,7 @@ describe('AdminPage settingsLifecycle', () => {
     renderPage('settings');
 
     expect(await screen.findByText('Pronunciation settings unavailable (503)')).toBeInTheDocument();
-    expect(screen.getByLabelText('Toggle AI-Generated Dialogues')).toBeInTheDocument();
+    expect(screen.getByLabelText('Toggle Study and Flashcards')).toBeInTheDocument();
   });
 
   it('uses shared session-expiry behavior for unauthorized settings reads', async () => {

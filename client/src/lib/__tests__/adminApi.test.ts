@@ -197,9 +197,7 @@ describe('admin API contract', () => {
     const controller = new AbortController();
     const featureFlags = {
       id: 'flags-1',
-      dialoguesEnabled: true,
-      scriptsEnabled: true,
-      audioCourseEnabled: true,
+
       flashcardsEnabled: true,
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -232,21 +230,19 @@ describe('admin API contract', () => {
     const controller = new AbortController();
     const updated = {
       id: 'flags-1',
-      dialoguesEnabled: false,
-      scriptsEnabled: true,
-      audioCourseEnabled: true,
+
       flashcardsEnabled: true,
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
     requestJsonMock.mockResolvedValue(updated);
 
     await expect(
-      updateAdminFeatureFlag('dialoguesEnabled', false, { signal: controller.signal })
+      updateAdminFeatureFlag('flashcardsEnabled', false, { signal: controller.signal })
     ).resolves.toBe(updated);
     expect(requestJsonMock).toHaveBeenCalledWith('/api/feature-flags', {
       signal: controller.signal,
       method: 'PATCH',
-      body: JSON.stringify({ dialoguesEnabled: false }),
+      body: JSON.stringify({ flashcardsEnabled: false }),
     });
   });
 
