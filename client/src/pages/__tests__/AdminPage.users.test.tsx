@@ -5,7 +5,6 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import {
   resetAdminPageMocks,
   renderPage,
-  mockNavigate,
   mockUsers,
   mockSpeakerAvatars,
 } from './AdminPageTestHarness';
@@ -219,7 +218,7 @@ describe('AdminPage users', () => {
       });
     });
 
-    it('keeps user details and impersonation within the users tab', async () => {
+    it('keeps user details without offering retired library impersonation', async () => {
       renderPage('users');
 
       const userEmail = await screen.findByText('user1@test.com');
@@ -228,8 +227,7 @@ describe('AdminPage users', () => {
       expect(screen.getByRole('heading', { name: 'User Details' })).toBeInTheDocument();
       expect(screen.getByText('User Information')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Impersonate User' }));
-      expect(mockNavigate).toHaveBeenCalledWith('/app/library?viewAs=user-1');
+      expect(screen.queryByRole('button', { name: 'Impersonate User' })).not.toBeInTheDocument();
     });
 
     it('preserves the current user search when the parent refreshes the avatars user feed', async () => {

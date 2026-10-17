@@ -58,9 +58,9 @@ describe('StudyImpersonationBoundary', () => {
     ).toBeVisible();
     expect(screen.queryByText(/Study surface:/)).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('link', { name: 'Back to viewed Library' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Back to Users' })).toHaveAttribute(
       'href',
-      '/app/library?viewAs=user-1'
+      '/app/admin/users'
     );
   });
 

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   adminApi,
   getAdminUsers,
@@ -25,7 +24,6 @@ const errorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error ? error.message : fallback;
 
 const AdminUsersTab = ({ isActive, currentAdminUserId, onUserFeedChange, showToast }: Props) => {
-  const navigate = useNavigate();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -90,7 +88,6 @@ const AdminUsersTab = ({ isActive, currentAdminUserId, onUserFeedChange, showToa
   }, [isActive]);
   /* eslint-enable react-hooks/exhaustive-deps */
   const selectUser = (id: string) => setSelectedUserId(id || null);
-  const viewUser = (id: string) => navigate(`/app/library?viewAs=${id}`);
   return (
     <>
       <AdminUsersTabView
@@ -105,7 +102,6 @@ const AdminUsersTab = ({ isActive, currentAdminUserId, onUserFeedChange, showToa
         onSearch={refreshUsers}
         onSelect={selectUser}
         onDelete={(user) => setConfirmUser({ id: user.id, email: user.email })}
-        onView={viewUser}
       />
       <ConfirmModal
         isOpen={!!confirmUser}

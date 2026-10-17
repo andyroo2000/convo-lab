@@ -6,7 +6,6 @@ import SpeedSelector from '../common/SpeedSelector';
 import ViewToggleButtons from '../common/ViewToggleButtons';
 
 interface PlaybackEpisodeHeaderProps {
-  audioCourseEnabled: boolean;
   currentAudioUrl?: string;
   episode: Episode;
   isGeneratingAudio: boolean;
@@ -16,7 +15,6 @@ interface PlaybackEpisodeHeaderProps {
   setShowTranslations: Dispatch<SetStateAction<boolean>>;
   showReadings: boolean;
   showTranslations: boolean;
-  viewAsUserId?: string;
 }
 
 const PracticeLink = ({ episode }: { episode: Episode }) => {
@@ -39,7 +37,7 @@ const PlaybackViewControls = ({
   setShowTranslations,
   showReadings,
   showTranslations,
-}: Omit<PlaybackEpisodeHeaderProps, 'audioCourseEnabled' | 'viewAsUserId'>) => {
+}: PlaybackEpisodeHeaderProps) => {
   if (isGeneratingAudio || !currentAudioUrl) return null;
 
   return (
@@ -62,25 +60,7 @@ const PlaybackViewControls = ({
   );
 };
 
-const AudioCourseLink = ({
-  audioCourseEnabled,
-  episode,
-  viewAsUserId,
-}: Pick<PlaybackEpisodeHeaderProps, 'audioCourseEnabled' | 'episode' | 'viewAsUserId'>) => {
-  if (!audioCourseEnabled || episode.courseEpisodes?.length) return null;
-
-  const audioCourseUrl = viewAsUserId
-    ? `/app/create/audio-course/${episode.id}?viewAs=${viewAsUserId}`
-    : `/app/create/audio-course/${episode.id}`;
-  return (
-    <Link to={audioCourseUrl} className="btn-outline text-sm px-3 py-2">
-      Convert to Audio Course
-    </Link>
-  );
-};
-
 const PlaybackEpisodeHeader = ({
-  audioCourseEnabled,
   currentAudioUrl,
   episode,
   isGeneratingAudio,
@@ -90,7 +70,6 @@ const PlaybackEpisodeHeader = ({
   setShowTranslations,
   showReadings,
   showTranslations,
-  viewAsUserId,
 }: PlaybackEpisodeHeaderProps) => {
   const speakers = episode.dialogue?.speakers ?? [];
 
@@ -121,11 +100,6 @@ const PlaybackEpisodeHeader = ({
               setShowTranslations={setShowTranslations}
               showReadings={showReadings}
               showTranslations={showTranslations}
-            />
-            <AudioCourseLink
-              audioCourseEnabled={audioCourseEnabled}
-              episode={episode}
-              viewAsUserId={viewAsUserId}
             />
           </div>
         </div>

@@ -13,7 +13,7 @@ describe('AdminPage access', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/study');
       });
     });
 

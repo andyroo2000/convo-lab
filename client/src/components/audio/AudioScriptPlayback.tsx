@@ -64,8 +64,8 @@ const AudioScriptPlayback = ({ episode }: AudioScriptPlaybackProps) => {
       <div className="w-full max-w-5xl mx-auto">
         <div className="retro-paper-panel p-8 text-center">
           <p className="text-navy">Script not found.</p>
-          <Link to="/app/library" className="btn-primary mt-4 inline-flex">
-            Back to Library
+          <Link to="/app/study" className="btn-primary mt-4 inline-flex">
+            Back to Study
           </Link>
         </div>
       </div>
