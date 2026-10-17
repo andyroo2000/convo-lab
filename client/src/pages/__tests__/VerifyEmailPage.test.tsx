@@ -136,7 +136,7 @@ describe('VerifyEmailPage', () => {
       });
 
       expect(screen.getByText(/Your email has been successfully verified/)).toBeInTheDocument();
-      expect(screen.getByText(/Redirecting to your library/)).toBeInTheDocument();
+      expect(screen.getByText(/Redirecting to Study/)).toBeInTheDocument();
 
       expect(global.fetch).toHaveBeenCalledWith('/api/convolab/browser/auth/verification', {
         method: 'POST',
@@ -149,7 +149,7 @@ describe('VerifyEmailPage', () => {
       expect(mockRefreshUser).toHaveBeenCalled();
     });
 
-    it('should redirect to library after successful verification', async () => {
+    it('should redirect to study after successful verification', async () => {
       vi.useFakeTimers();
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
@@ -503,7 +503,7 @@ describe('VerifyEmailPage', () => {
       expect(screen.getByText('Email Verification')).toBeInTheDocument();
     });
 
-    it('should render back to library link', () => {
+    it('should render back to study link', () => {
       renderWithRouter('/verify-email');
 
       const backLink = screen.getByRole('link', { name: /Back to Study/ });
