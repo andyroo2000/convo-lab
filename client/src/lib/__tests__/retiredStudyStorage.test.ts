@@ -9,11 +9,16 @@ afterEach(() => {
 
 describe('retired study storage cleanup', () => {
   it('removes award state for all users while preserving other preferences', () => {
-    localStorage.setItem('convo-lab.study-achievement-sessions-v1.42', '{}');
-    localStorage.setItem('convo-lab.study-milestones-v1.99', '{}');
+    const retiredKeys = [
+      'convo-lab.study-achievement-sessions-v1.42',
+      'convo-lab.study-milestones-v1.99',
+      'convo-lab.study-deferred-achievements-v1.42',
+      'convo-lab.study-presented-achievements-v1.99',
+    ];
+    retiredKeys.forEach((key) => localStorage.setItem(key, '{}'));
     localStorage.setItem('language', 'ja');
     clearRetiredStudyStorage(localStorage);
-    expect(localStorage.length).toBe(1);
+    retiredKeys.forEach((key) => expect(localStorage.getItem(key)).toBeNull());
     expect(localStorage.getItem('language')).toBe('ja');
   });
   it('keeps startup usable when storage access is denied', () => {
