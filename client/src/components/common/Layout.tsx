@@ -18,7 +18,6 @@ import MobileLearningDock from './MobileLearningDock';
 import type { User } from '../../types';
 
 type LayoutRouteState = {
-  isFullWidthMobilePage: boolean;
   isStudyActive: boolean;
   isTimeActive: boolean;
 };
@@ -56,7 +55,6 @@ function getMenuUser(user: User, effectiveUser: User | null, isImpersonating: bo
 function getLayoutRouteState(pathname: string): LayoutRouteState {
   const isTimeActive = pathname === '/app/study/time';
   return {
-    isFullWidthMobilePage: false,
     isStudyActive: pathname.startsWith('/app/study') && !isTimeActive,
     isTimeActive,
   };
@@ -198,12 +196,10 @@ const LayoutTopBar = ({
 };
 
 const LayoutBody = ({
-  isFullWidthMobilePage,
   isImpersonating,
   showMobileLearningDock,
   userId,
 }: {
-  isFullWidthMobilePage: boolean;
   isImpersonating: boolean;
   showMobileLearningDock: boolean;
   userId: User['id'];
@@ -211,9 +207,7 @@ const LayoutBody = ({
   <>
     <StudyActivityProvider key={String(userId)} userId={userId} enabled={!isImpersonating}>
       <main
-        className={`max-w-7xl xl:max-w-[96rem] mx-auto pt-8 ${
-          isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'
-        } ${showMobileLearningDock ? 'pb-28 sm:pb-8' : 'pb-8'}`}
+        className={`max-w-7xl xl:max-w-[96rem] mx-auto pt-8 px-4 sm:px-6 lg:px-8 ${showMobileLearningDock ? 'pb-28 sm:pb-8' : 'pb-8'}`}
       >
         <Outlet />
       </main>
@@ -312,7 +306,6 @@ const Layout = () => {
         viewAsUserId={viewAsUserId}
       />
       <LayoutBody
-        isFullWidthMobilePage={route.isFullWidthMobilePage}
         isImpersonating={isImpersonating}
         showMobileLearningDock={showMobileLearningDock}
         userId={user.id}

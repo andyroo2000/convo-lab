@@ -6,13 +6,10 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import enCommon from './locales/en/common.json';
 import enAuth from './locales/en/auth.json';
 import enSettings from './locales/en/settings.json';
-import enLibrary from './locales/en/library.json';
-import enCreate from './locales/en/create.json';
 import enOnboarding from './locales/en/onboarding.json';
 import enErrors from './locales/en/errors.json';
 import enLanding from './locales/en/landing.json';
 import enNotFound from './locales/en/notFound.json';
-import enDialogue from './locales/en/dialogue.json';
 import enAudioCourse from './locales/en/audioCourse.json';
 import enStudy from './locales/en/study.json';
 
@@ -20,13 +17,10 @@ import enStudy from './locales/en/study.json';
 import jaCommon from './locales/ja/common.json';
 import jaAuth from './locales/ja/auth.json';
 import jaSettings from './locales/ja/settings.json';
-import jaLibrary from './locales/ja/library.json';
-import jaCreate from './locales/ja/create.json';
 import jaOnboarding from './locales/ja/onboarding.json';
 import jaErrors from './locales/ja/errors.json';
 import jaLanding from './locales/ja/landing.json';
 import jaNotFound from './locales/ja/notFound.json';
-import jaDialogue from './locales/ja/dialogue.json';
 import jaAudioCourse from './locales/ja/audioCourse.json';
 import jaStudy from './locales/ja/study.json';
 
@@ -36,13 +30,10 @@ const resources = {
     common: enCommon,
     auth: enAuth,
     settings: enSettings,
-    library: enLibrary,
-    create: enCreate,
     onboarding: enOnboarding,
     errors: enErrors,
     landing: enLanding,
     notFound: enNotFound,
-    dialogue: enDialogue,
     audioCourse: enAudioCourse,
     study: enStudy,
   },
@@ -50,13 +41,10 @@ const resources = {
     common: jaCommon,
     auth: jaAuth,
     settings: jaSettings,
-    library: jaLibrary,
-    create: jaCreate,
     onboarding: jaOnboarding,
     errors: jaErrors,
     landing: jaLanding,
     notFound: jaNotFound,
-    dialogue: jaDialogue,
     audioCourse: jaAudioCourse,
     study: jaStudy,
   },
@@ -73,13 +61,10 @@ i18n
       'common',
       'auth',
       'settings',
-      'library',
-      'create',
       'onboarding',
       'errors',
       'landing',
       'notFound',
-      'dialogue',
       'audioCourse',
       'study',
     ],

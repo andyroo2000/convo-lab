@@ -59,12 +59,7 @@ const PlaybackPage = () => {
   const { episodeId } = useParams<{ episodeId: string }>();
   const [searchParams] = useSearchParams();
   const viewAsUserId = getViewAsUserId(searchParams);
-  const {
-    getEpisode,
-    generateAudio: _generateAudio,
-    generateAllSpeedsAudio,
-    pollJobStatus: _pollJobStatus,
-  } = useEpisodes();
+  const { getEpisode, generateAudio: _generateAudio, generateAllSpeedsAudio } = useEpisodes();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const { avatarUrlMap } = useSpeakerAvatars();
   const { episode, isEpisodeLoading, loadEpisode } = usePlaybackEpisode({

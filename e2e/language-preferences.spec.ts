@@ -39,7 +39,7 @@ test.describe('Language Preferences', () => {
       await waitForLoadingComplete(page);
 
       // Navigate away
-      await page.goto('/app/library');
+      await page.goto('/app/study');
 
       // Should show JA badge in header
       const languageBadge = page.locator('[data-testid="language-badge"]');
@@ -98,64 +98,6 @@ test.describe('Language Preferences', () => {
         .locator('[data-testid="settings-select-jlpt-level"]')
         .inputValue();
       expect(selectedValue).toBe('N2');
-    });
-  });
-
-  test.describe('Preferences Auto-Apply to Forms', () => {
-    test('should not show language selector in dialogue form', async ({ page }) => {
-      await loginAsUser(page);
-
-      // Navigate to create dialogue
-      await page.goto('/app/dialogues/new');
-
-      // Language selectors should not be visible
-      const studyLanguageSelector = page.locator('[name="studyLanguage"]');
-      const isVisible = await studyLanguageSelector.isVisible().catch(() => false);
-      expect(isVisible).toBe(false);
-    });
-
-    test('should use Japanese for dialogue generation', async ({ page }) => {
-      await loginAsUser(page);
-
-      // Create dialogue
-      await page.goto('/app/dialogues/new');
-      await page.fill('textarea[name="topic"]', 'Test conversation about food');
-      await page.click('button:has-text("Generate")');
-
-      // Wait for generation
-      await page.waitForSelector('[data-testid="dialogue-result"]', { timeout: 60000 });
-
-      // Check that content is in Japanese
-      const dialogueContent = await page
-        .locator('[data-testid="dialogue-line"]')
-        .first()
-        .textContent();
-
-      // Should contain Japanese characters
-      expect(dialogueContent).toMatch(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/);
-    });
-  });
-
-  test.describe('Default Narrator Voice Selection', () => {
-    test('should select English narrator for English native language', async ({ page }) => {
-      await loginAsUser(page);
-
-      await page.goto('/app/dialogues/new');
-
-      const narratorVoice = await page.inputValue('[name="narratorVoice"]');
-      expect(narratorVoice).toMatch(/brian|english|american/i);
-    });
-
-    test('should allow manual override of narrator voice', async ({ page }) => {
-      await loginAsUser(page);
-
-      await page.goto('/app/dialogues/new');
-
-      // Manually change narrator
-      await page.selectOption('[name="narratorVoice"]', 'spanish-sergio');
-
-      const narratorVoice = await page.inputValue('[name="narratorVoice"]');
-      expect(narratorVoice).toContain('sergio');
     });
   });
 

@@ -104,7 +104,7 @@ describe('ErrorBoundary', () => {
     expect(tryAgainButton).toBeTruthy();
   });
 
-  it('should navigate to library when "Go to Study" clicked', () => {
+  it('should navigate to study when "Go to Study" clicked', () => {
     const assignSpy = vi.fn();
     vi.stubGlobal('location', {
       ...window.location,

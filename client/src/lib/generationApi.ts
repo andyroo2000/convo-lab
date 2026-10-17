@@ -1,10 +1,6 @@
 import readApiError from './apiError';
 
 export interface GenerationApiContract {
-  dialogue: {
-    generate: string;
-    job: (jobId: string) => string;
-  };
   audio: {
     generate: string;
     generateAllSpeeds: string;
@@ -22,10 +18,6 @@ export function createGenerationApiContract(apiUrl = ''): GenerationApiContract 
     `${root}/${collection}/job/${encodeURIComponent(jobId)}`;
 
   return {
-    dialogue: {
-      generate: `${root}/dialogue/generate`,
-      job: (jobId) => job('dialogue', jobId),
-    },
     audio: {
       generate: `${root}/audio/generate`,
       generateAllSpeeds: `${root}/audio/generate-all-speeds`,
