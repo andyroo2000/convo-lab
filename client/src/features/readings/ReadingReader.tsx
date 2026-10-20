@@ -3,10 +3,12 @@ import type { ReadingDetail } from './types';
 import ReadingBookPage from './ReadingBookPage';
 import ReadingSidebar from './ReadingSidebar';
 import useReadingAudio from './useReadingAudio';
+import useReadingActivity from './useReadingActivity';
 import useReadingKeyboard from './useReadingKeyboard';
 import useReadingPosition from './useReadingPosition';
 
 const ReadingReader = ({ reading, userId }: { reading: ReadingDetail; userId?: string }) => {
+  useReadingActivity(reading.id, reading.title, userId);
   const {
     pageIndex,
     selected,

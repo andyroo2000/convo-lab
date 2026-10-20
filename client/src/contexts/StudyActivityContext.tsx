@@ -15,6 +15,7 @@ import {
 
 import { saveStudyActivitySessions, studyActivityKeys } from '../hooks/useStudyActivity';
 import { useStudyCapabilities } from '../hooks/useStudyCapabilities';
+import ReadingActivityLease from './ReadingActivityLease';
 import type {
   ActiveStudyActivity,
   StudyActivityCategory,
@@ -42,6 +43,7 @@ type PersistCompleted = (session: StudyActivitySessionDraft) => Promise<void>;
 
 interface StudyActivityActionsContextValue {
   start: (options: StartOptions) => void;
+  trackReading: (name: string) => () => void;
   stop: (activity?: StudyActivityKind, name?: string) => void;
   stopAndWait: (activity?: StudyActivityKind, name?: string) => Promise<void>;
   addCreatedCards: (count?: number) => void;
@@ -57,6 +59,7 @@ interface StudyActivityStatusContextValue {
 
 const inactiveStudyActivityActions: StudyActivityActionsContextValue = {
   start: () => undefined,
+  trackReading: () => () => undefined,
   stop: () => undefined,
   stopAndWait: () => Promise.resolve(),
   addCreatedCards: () => undefined,
@@ -351,11 +354,44 @@ function recoveryLimitFor(source: StudyActivitySource) {
   return source === 'automatic' ? AUTOMATIC_RECOVERY_LIMIT_MS : MANUAL_RECOVERY_LIMIT_MS;
 }
 
-function useActiveRefSynchronization(active: ActiveStudyActivity | null, activeRef: ActiveRef) {
-  useEffect(() => {
-    const mutableActiveRef = activeRef;
-    mutableActiveRef.current = active;
-  }, [active, activeRef]);
+function isAutomaticReading(activity: ActiveStudyActivity) {
+  return activity.activity === 'reading' && activity.source === 'automatic';
+}
+
+function useTrackReading(
+  activeRef: ActiveRef,
+  start: StudyActivityActionsContextValue['start'],
+  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>,
+  lease: ReadingActivityLease,
+  enabled: boolean
+) {
+  return useCallback(
+    (name: string) => {
+      const previous = activeRef.current;
+      if (!enabled || previous?.source === 'manual') return () => undefined;
+      if (previous) {
+        const endedAt = isAutomaticReading(previous) ? lease.recoveryEnd(previous) : undefined;
+        finishActive(undefined, undefined, endedAt);
+      }
+      start({
+        activity: 'reading',
+        source: 'automatic',
+        name: Array.from(name).slice(0, 120).join(''),
+      });
+      const sessionId = activeRef.current?.clientSessionId;
+      if (sessionId) lease.claim(sessionId);
+      return () => {
+        if (
+          sessionId &&
+          activeRef.current?.clientSessionId === sessionId &&
+          lease.isCurrent(sessionId)
+        )
+          finishActive();
+        if (sessionId) lease.release(sessionId);
+      };
+    },
+    [activeRef, enabled, finishActive, lease, start]
+  );
 }
 
 function useCategoryBackfill({
@@ -408,16 +444,24 @@ function usePendingSessionFlush(
 
 function useRecoveredActivityExpiry(
   activeRef: ActiveRef,
-  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>
+  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>,
+  lease: ReadingActivityLease
 ) {
+  const recovered = useRef(activeRef.current);
   useEffect(() => {
-    const { current } = activeRef;
-    if (!current) return;
+    const { current } = recovered;
+    recovered.current = null;
+    if (!current || current.clientSessionId !== activeRef.current?.clientSessionId) return;
+    if (isAutomaticReading(current)) {
+      const endedAt = lease.recoveryEnd(current);
+      if (endedAt) finishActive(current.activity, current.name, endedAt);
+      return;
+    }
     const startedAt = new Date(current.startedAt).getTime();
     const recoveryLimit = recoveryLimitFor(current.source);
     if (!Number.isFinite(startedAt) || Date.now() - startedAt <= recoveryLimit) return;
     finishActive(current.activity, current.name, new Date(startedAt + recoveryLimit));
-  }, [activeRef, finishActive]);
+  }, [activeRef, finishActive, lease]);
 }
 
 function useCrossTabSynchronization(activeRef: ActiveRef, setActive: SetActive, activeKey: string) {
@@ -436,7 +480,8 @@ function useCrossTabSynchronization(activeRef: ActiveRef, setActive: SetActive, 
 
 function useElapsedActivityTime(
   activeRef: ActiveRef,
-  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>
+  finishActive: (activity?: StudyActivityKind, name?: string, endedAt?: Date) => Promise<void>,
+  lease: ReadingActivityLease
 ) {
   const [elapsedMs, setElapsedMs] = useState(0);
   useEffect(() => {
@@ -446,8 +491,20 @@ function useElapsedActivityTime(
         setElapsedMs(0);
         return;
       }
+      lease.refresh(current);
+      if (isAutomaticReading(current)) {
+        if (!lease.isCurrent(current.clientSessionId)) return;
+        const endedAt = lease.recoveryEnd(current);
+        if (endedAt) {
+          finishActive(current.activity, current.name, endedAt);
+          setElapsedMs(0);
+          return;
+        }
+      }
       const startedAt = new Date(current.startedAt).getTime();
-      const recoveryLimit = recoveryLimitFor(current.source);
+      const recoveryLimit = isAutomaticReading(current)
+        ? 86_400_000
+        : recoveryLimitFor(current.source);
       const elapsed = Date.now() - startedAt;
       if (Number.isFinite(startedAt) && elapsed > recoveryLimit) {
         finishActive(current.activity, current.name, new Date(startedAt + recoveryLimit));
@@ -459,17 +516,19 @@ function useElapsedActivityTime(
     tick();
     const interval = window.setInterval(tick, 1000);
     return () => window.clearInterval(interval);
-  }, [activeRef, finishActive]);
+  }, [activeRef, finishActive, lease]);
   return elapsedMs;
 }
 
 function useActionsValue({
   start,
+  trackReading,
   finishActive,
   addCreatedCards,
   persistCompleted,
 }: {
   start: StudyActivityActionsContextValue['start'];
+  trackReading: StudyActivityActionsContextValue['trackReading'];
   finishActive: StudyActivityActionsContextValue['stopAndWait'];
   addCreatedCards: StudyActivityActionsContextValue['addCreatedCards'];
   persistCompleted: PersistCompleted;
@@ -477,6 +536,7 @@ function useActionsValue({
   return useMemo(
     () => ({
       start,
+      trackReading,
       stop: (...args: Parameters<typeof finishActive>) => {
         finishActive(...args).catch(() => undefined);
       },
@@ -487,7 +547,7 @@ function useActionsValue({
       },
       logCompletedAndWait: persistCompleted,
     }),
-    [addCreatedCards, finishActive, persistCompleted, start]
+    [addCreatedCards, finishActive, persistCompleted, start, trackReading]
   );
 }
 
@@ -503,6 +563,7 @@ export const StudyActivityProvider = ({
   const capabilitiesQuery = useStudyCapabilities(enabled);
   const categoriesByActivity = capabilitiesQuery.data?.studyActivity.categoriesByActivity;
   const activeKey = `${ACTIVE_KEY_PREFIX}.${userId}`;
+  const readingLease = useMemo(() => new ReadingActivityLease(activeKey), [activeKey]);
   const pendingKey = `${PENDING_KEY_PREFIX}.${userId}`;
   const [active, setActive] = useState<ActiveStudyActivity | null>(() =>
     enabled ? readJson<ActiveStudyActivity | null>(activeKey, null) : null
@@ -522,15 +583,21 @@ export const StudyActivityProvider = ({
     finishActive,
   });
   const addCreatedCards = useAddCreatedCards(activeRef, setActive, activeKey, persistCompleted);
+  const trackReading = useTrackReading(activeRef, start, finishActive, readingLease, enabled);
 
-  useActiveRefSynchronization(active, activeRef);
   useCategoryBackfill({ activeRef, setActive, activeKey, categoriesByActivity });
   useEnabledState(enabled, finishActive);
   usePendingSessionFlush(pendingKey, persistSessions);
-  useRecoveredActivityExpiry(activeRef, finishActive);
+  useRecoveredActivityExpiry(activeRef, finishActive, readingLease);
   useCrossTabSynchronization(activeRef, setActive, activeKey);
-  const elapsedMs = useElapsedActivityTime(activeRef, finishActive);
-  const actionsValue = useActionsValue({ start, finishActive, addCreatedCards, persistCompleted });
+  const elapsedMs = useElapsedActivityTime(activeRef, finishActive, readingLease);
+  const actionsValue = useActionsValue({
+    start,
+    trackReading,
+    finishActive,
+    addCreatedCards,
+    persistCompleted,
+  });
   const statusValue = useMemo(() => ({ active, elapsedMs, enabled }), [active, elapsedMs, enabled]);
 
   return (
