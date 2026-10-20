@@ -459,7 +459,7 @@ function useRecoveredActivityExpiry(
     if (!current || current.clientSessionId !== activeRef.current?.clientSessionId) return;
     if (isAutomaticReading(current)) {
       const endedAt = lease.recoveryEnd(current);
-      if (endedAt) finishActive(current.activity, current.name, endedAt);
+      if (endedAt) finishActive(current.activity, current.name, endedAt).catch(() => undefined);
       return;
     }
     const startedAt = new Date(current.startedAt).getTime();
@@ -501,7 +501,7 @@ function useElapsedActivityTime(
         if (!lease.isCurrent(current.clientSessionId)) return;
         const endedAt = lease.recoveryEnd(current);
         if (endedAt) {
-          finishActive(current.activity, current.name, endedAt);
+          finishActive(current.activity, current.name, endedAt).catch(() => undefined);
           setElapsedMs(0);
           return;
         }

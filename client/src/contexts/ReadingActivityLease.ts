@@ -25,7 +25,7 @@ export default class ReadingActivityLease {
       ) as ActiveStudyActivity | null;
       return active?.clientSessionId === sessionId;
     } catch {
-      return false;
+      return this.owner?.sessionId === sessionId;
     }
   }
 
@@ -57,8 +57,11 @@ export default class ReadingActivityLease {
   recoveryEnd(session: ActiveStudyActivity): Date | undefined {
     const heartbeat = this.owner?.sessionId === session.clientSessionId ? this.owner : this.read();
     if (heartbeat?.sessionId === session.clientSessionId) {
-      if (Date.now() - heartbeat.seenAt < HEARTBEAT_EXPIRY_MS) return undefined;
-      return new Date(heartbeat.seenAt);
+      const elapsed = Date.now() - heartbeat.seenAt;
+      if (elapsed >= 0 && elapsed < HEARTBEAT_EXPIRY_MS) return undefined;
+      return new Date(
+        Math.max(new Date(session.startedAt).getTime(), Math.min(Date.now(), heartbeat.seenAt))
+      );
     }
     const legacyLimit = new Date(session.startedAt).getTime() + LEGACY_RECOVERY_LIMIT_MS;
     return new Date(Math.min(Date.now(), legacyLimit));
@@ -67,7 +70,9 @@ export default class ReadingActivityLease {
   private read(): Heartbeat | undefined {
     try {
       const value = JSON.parse(localStorage.getItem(this.key) ?? 'null') as Heartbeat | null;
-      return value && Number.isFinite(value.seenAt) ? value : undefined;
+      return value && typeof value.sessionId === 'string' && Number.isFinite(value.seenAt)
+        ? value
+        : undefined;
     } catch {
       return undefined;
     }

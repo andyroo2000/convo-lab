@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { StrictMode } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -60,7 +61,7 @@ const Controls = () => {
   );
 };
 
-function renderReaders(ids = ['first'], title = 'Story') {
+function renderReaders(ids = ['first'], title = 'Story', strict = false) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const content = (nextIds: string[], userId = '42') => (
     <QueryClientProvider client={queryClient}>
@@ -72,10 +73,12 @@ function renderReaders(ids = ['first'], title = 'Story') {
       </StudyActivityProvider>
     </QueryClientProvider>
   );
-  const view = render(content(ids));
+  const tree = (nextIds: string[], userId = '42') =>
+    strict ? <StrictMode>{content(nextIds, userId)}</StrictMode> : content(nextIds, userId);
+  const view = render(tree(ids));
   return {
     ...view,
-    show: (nextIds: string[], userId = '42') => view.rerender(content(nextIds, userId)),
+    show: (nextIds: string[], userId = '42') => view.rerender(tree(nextIds, userId)),
   };
 }
 
@@ -354,8 +357,8 @@ describe('reading recovery and other tabs', () => {
     localStorage.setItem(activeKey, '{broken');
     view.show([]);
     expect(screen.queryByRole('button', { name: '犬です。' })).not.toBeInTheDocument();
-    expect(localStorage.getItem(activeKey)).toBe('{broken');
-    expect(saved()).toEqual([]);
+    expect(localStorage.getItem(activeKey)).toBeNull();
+    expect(saved()).toEqual([expect.objectContaining({ durationMs: 10_000 })]);
   });
 
   it.each(['setItem', 'removeItem'] as const)(
@@ -388,5 +391,48 @@ describe('reading recovery and other tabs', () => {
     await advance(0);
     expect(saved().map((session) => session.durationMs)).toEqual([120_000, 600_000]);
     expect(localStorage.getItem(pendingKey)).toBeNull();
+  });
+
+  it('finishes its owned interval when reading the active storage key throws', async () => {
+    const view = renderReaders();
+    const original = Storage.prototype.getItem;
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function readStorage(
+      this: Storage,
+      key: string
+    ) {
+      if (key === activeKey) throw new Error('Storage unavailable');
+      return original.call(this, key);
+    });
+    await advance(720_000);
+    view.show([]);
+    await advance(0);
+    expect(saved()).toEqual([expect.objectContaining({ durationMs: 720_000 })]);
+    expect(localStorage.getItem(pendingKey)).toBeNull();
+  });
+
+  it('acknowledges StrictMode’s zero-duration probe without duplicating reading time', async () => {
+    const view = renderReaders(['first'], 'Story', true);
+    await advance(30_000);
+    view.show([]);
+    await advance(0);
+    expect(saved().map((session) => session.durationMs)).toEqual([0, 30_000]);
+    expect(localStorage.getItem(pendingKey)).toBeNull();
+  });
+
+  it('does not treat a future heartbeat as a live reader', async () => {
+    storeReading('2026-10-19T14:48:00.000Z');
+    localStorage.setItem(
+      `${activeKey}.reading-heartbeat`,
+      JSON.stringify({
+        sessionId: 'recovered',
+        seenAt: initialTime.getTime() + 3_600_000,
+      })
+    );
+    renderReaders([]);
+    await advance(0);
+    expect(saved()).toEqual([
+      expect.objectContaining({ durationMs: 720_000, endedAt: initialTime.toISOString() }),
+    ]);
+    expect(active()).toBeNull();
   });
 });
