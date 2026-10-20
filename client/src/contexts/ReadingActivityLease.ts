@@ -9,8 +9,15 @@ interface Heartbeat {
   seenAt: number;
 }
 
+function isLiveHeartbeat(heartbeat: Heartbeat) {
+  const elapsed = Date.now() - heartbeat.seenAt;
+  return elapsed >= 0 && elapsed < HEARTBEAT_EXPIRY_MS;
+}
+
 export default class ReadingActivityLease {
   private owner?: Heartbeat;
+
+  private restart?: () => void;
 
   private readonly key: string;
 
@@ -29,8 +36,9 @@ export default class ReadingActivityLease {
     }
   }
 
-  claim(sessionId: string) {
+  claim(sessionId: string, restart?: () => void) {
     this.owner = { sessionId, seenAt: Date.now() };
+    this.restart = restart;
     try {
       localStorage.setItem(this.key, JSON.stringify(this.owner));
     } catch {
@@ -42,11 +50,27 @@ export default class ReadingActivityLease {
     if (this.owner?.sessionId !== session.clientSessionId) return;
     if (!this.isCurrent(session.clientSessionId)) return;
     if (Date.now() - this.owner.seenAt >= HEARTBEAT_INTERVAL_MS)
-      this.claim(session.clientSessionId);
+      this.claim(session.clientSessionId, this.restart);
+  }
+
+  resumeAfterRecovery() {
+    if (!this.owner || isLiveHeartbeat(this.owner)) return;
+    if (this.sharedSlotIsEmpty()) this.restart?.();
+  }
+
+  private sharedSlotIsEmpty() {
+    try {
+      return localStorage.getItem(this.activeKey) === null;
+    } catch {
+      return false;
+    }
   }
 
   release(sessionId: string) {
-    if (this.owner?.sessionId === sessionId) this.owner = undefined;
+    if (this.owner?.sessionId === sessionId) {
+      this.owner = undefined;
+      this.restart = undefined;
+    }
     try {
       if (this.read()?.sessionId === sessionId) localStorage.removeItem(this.key);
     } catch {
@@ -57,8 +81,7 @@ export default class ReadingActivityLease {
   recoveryEnd(session: ActiveStudyActivity): Date | undefined {
     const heartbeat = this.owner?.sessionId === session.clientSessionId ? this.owner : this.read();
     if (heartbeat?.sessionId === session.clientSessionId) {
-      const elapsed = Date.now() - heartbeat.seenAt;
-      if (elapsed >= 0 && elapsed < HEARTBEAT_EXPIRY_MS) return undefined;
+      if (isLiveHeartbeat(heartbeat)) return undefined;
       return new Date(
         Math.max(new Date(session.startedAt).getTime(), Math.min(Date.now(), heartbeat.seenAt))
       );

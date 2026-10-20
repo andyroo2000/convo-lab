@@ -435,4 +435,51 @@ describe('reading recovery and other tabs', () => {
     ]);
     expect(active()).toBeNull();
   });
+
+  it('excludes a one-hour stall and resumes an interval that still stops when hidden', async () => {
+    const view = renderReaders();
+    await advance(120_000);
+    vi.setSystemTime(new Date(initialTime.getTime() + 3_720_000));
+    await advance(1_000);
+    await advance(30_000);
+    await visibility('hidden');
+    view.unmount();
+    expect(saved().map((session) => session.durationMs)).toEqual([120_000, 30_000]);
+    expect(saved()[0].endedAt).toBe('2026-10-19T15:02:00.000Z');
+    expect(saved()[1].startedAt).toBe('2026-10-19T16:02:01.000Z');
+    expect(new Set(saved().map((session) => session.clientSessionId)).size).toBe(2);
+    expect(active()).toBeNull();
+  });
+
+  it('resumes the owning reader when an observer recovers the stalled interval first', async () => {
+    const { unmount: unmountObserver } = renderReaders([]);
+    const { unmount: unmountOwner } = renderReaders();
+    window.dispatchEvent(new StorageEvent('storage', { key: activeKey }));
+    await advance(120_000);
+    vi.setSystemTime(new Date(initialTime.getTime() + 3_720_000));
+    await advance(1_000);
+    expect(active()).toBeNull();
+    await act(async () => {
+      window.dispatchEvent(new StorageEvent('storage', { key: activeKey }));
+    });
+    await advance(1_000);
+    await advance(30_000);
+    unmountOwner();
+    unmountObserver();
+    expect(saved().map((session) => session.durationMs)).toEqual([120_000, 30_000]);
+    expect(saved()[1].startedAt).toBe('2026-10-19T16:02:02.000Z');
+    expect(active()).toBeNull();
+  });
+
+  it('excludes a stalled hour when the reader hides before its next heartbeat tick', async () => {
+    const view = renderReaders();
+    await advance(120_000);
+    vi.setSystemTime(new Date(initialTime.getTime() + 3_720_000));
+    await visibility('hidden');
+    view.unmount();
+    expect(saved()).toEqual([
+      expect.objectContaining({ durationMs: 120_000, endedAt: '2026-10-19T15:02:00.000Z' }),
+    ]);
+    expect(active()).toBeNull();
+  });
 });

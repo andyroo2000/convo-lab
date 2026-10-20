@@ -378,20 +378,23 @@ function useTrackReading(
         const endedAt = isAutomaticReading(previous) ? lease.recoveryEnd(previous) : undefined;
         finishActive(undefined, undefined, endedAt).catch(() => undefined);
       }
-      start({
-        activity: 'reading',
-        source: 'automatic',
-        name: Array.from(name).slice(0, 120).join(''),
-      });
-      const sessionId = activeRef.current?.clientSessionId;
-      if (sessionId) lease.claim(sessionId);
+      let sessionId: string | undefined;
+      const engage = () => {
+        const { current } = activeRef;
+        if (current || document.visibilityState !== 'visible') return;
+        start({
+          activity: 'reading',
+          source: 'automatic',
+          name: Array.from(name).slice(0, 120).join(''),
+        });
+        sessionId = activeRef.current?.clientSessionId;
+        if (sessionId) lease.claim(sessionId, engage);
+      };
+      engage();
       return () => {
-        if (
-          sessionId &&
-          activeRef.current?.clientSessionId === sessionId &&
-          lease.isCurrent(sessionId)
-        )
-          finishActive().catch(() => undefined);
+        const { current } = activeRef;
+        if (sessionId && current?.clientSessionId === sessionId && lease.isCurrent(sessionId))
+          finishActive(undefined, undefined, lease.recoveryEnd(current)).catch(() => undefined);
         if (sessionId) lease.release(sessionId);
       };
     },
@@ -493,18 +496,20 @@ function useElapsedActivityTime(
     const tick = () => {
       const { current } = activeRef;
       if (!current) {
+        lease.resumeAfterRecovery();
         setElapsedMs(0);
         return;
       }
-      lease.refresh(current);
       if (isAutomaticReading(current)) {
         if (!lease.isCurrent(current.clientSessionId)) return;
         const endedAt = lease.recoveryEnd(current);
         if (endedAt) {
           finishActive(current.activity, current.name, endedAt).catch(() => undefined);
+          lease.resumeAfterRecovery();
           setElapsedMs(0);
           return;
         }
+        lease.refresh(current);
       }
       const startedAt = new Date(current.startedAt).getTime();
       const recoveryLimit = isAutomaticReading(current)
